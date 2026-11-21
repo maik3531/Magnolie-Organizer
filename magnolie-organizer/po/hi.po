@@ -5413,6 +5413,9 @@ msgstr "%(name)s की फ़ोटो"
 msgid "Photo synchronization active"
 msgstr "फ़ोटो सिंक्रनाइज़ेशन सक्रिय है"
 
+msgid "The default folder is not private. Choose a destination folder you own that others cannot write to, then enable photo synchronization again."
+msgstr "डिफ़ॉल्ट फ़ोल्डर निजी नहीं है। ऐसा गंतव्य फ़ोल्डर चुनें जो आपका हो और जिसमें दूसरे लिख न सकें, फिर फ़ोटो सिंक्रनाइज़ेशन दोबारा चालू करें।"
+
 msgid "Photo synchronization could not be started."
 msgstr "फ़ोटो सिंक्रनाइज़ेशन शुरू नहीं हो सका।"
 

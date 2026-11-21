@@ -5630,6 +5630,9 @@ msgstr "صورة %(name)s"
 msgid "Photo synchronization active"
 msgstr "مزامنة الصور نشطة"
 
+msgid "The default folder is not private. Choose a destination folder you own that others cannot write to, then enable photo synchronization again."
+msgstr "المجلد الافتراضي ليس خاصًا. اختر مجلد وجهة تملكه ولا يمكن للآخرين الكتابة فيه، ثم فعّل مزامنة الصور مجددًا."
+
 msgid "Photo synchronization could not be started."
 msgstr "تعذّر بدء مزامنة الصور."
 

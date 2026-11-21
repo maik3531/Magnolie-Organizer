@@ -5501,6 +5501,9 @@ msgstr "Bilde av %(name)s"
 msgid "Photo synchronization active"
 msgstr "Bildesynkronisering aktiv"
 
+msgid "The default folder is not private. Choose a destination folder you own that others cannot write to, then enable photo synchronization again."
+msgstr "Standardmappen er ikke privat. Velg en målmappe du eier, som andre ikke kan skrive til, og slå deretter på bildesynkronisering igjen."
+
 msgid "Photo synchronization could not be started."
 msgstr "Bildesynkroniseringen kunne ikke startes."
 

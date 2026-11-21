@@ -5456,6 +5456,9 @@ msgstr "%(name)s の写真"
 msgid "Photo synchronization active"
 msgstr "写真を同期中"
 
+msgid "The default folder is not private. Choose a destination folder you own that others cannot write to, then enable photo synchronization again."
+msgstr "既定のフォルダーは非公開ではありません。自分が所有し、他のユーザーが書き込めない保存先フォルダーを選んでから、写真の同期を再度有効にしてください。"
+
 msgid "Photo synchronization could not be started."
 msgstr "写真の同期を開始できませんでした。"
 

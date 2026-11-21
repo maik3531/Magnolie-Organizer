@@ -5550,6 +5550,9 @@ msgstr "Фота %(name)s"
 msgid "Photo synchronization active"
 msgstr "Сінхранізацыя фатаграфій актыўная"
 
+msgid "The default folder is not private. Choose a destination folder you own that others cannot write to, then enable photo synchronization again."
+msgstr "Папка па змаўчанні не прыватная. Выберыце сваю папку, у якую іншыя не могуць запісваць файлы, і зноў уключыце сінхранізацыю фота."
+
 msgid "Photo synchronization could not be started."
 msgstr "Не ўдалося запусціць сінхранізацыю фатаграфій."
 

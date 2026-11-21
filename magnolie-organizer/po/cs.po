@@ -5532,6 +5532,9 @@ msgstr "Fotografie osoby %(name)s"
 msgid "Photo synchronization active"
 msgstr "Synchronizace fotografií je aktivní"
 
+msgid "The default folder is not private. Choose a destination folder you own that others cannot write to, then enable photo synchronization again."
+msgstr "Výchozí složka není soukromá. Vyberte cílovou složku, kterou vlastníte a do které ostatní nemohou zapisovat, a pak synchronizaci fotografií znovu zapněte."
+
 msgid "Photo synchronization could not be started."
 msgstr "Synchronizaci fotografií se nepodařilo spustit."
 

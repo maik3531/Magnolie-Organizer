@@ -5268,6 +5268,9 @@ msgstr "%(name)s 的照片"
 msgid "Photo synchronization active"
 msgstr "照片同步进行中"
 
+msgid "The default folder is not private. Choose a destination folder you own that others cannot write to, then enable photo synchronization again."
+msgstr "默认文件夹不是私有的。请选择一个由您所有且其他用户无法写入的目标文件夹，然后重新启用照片同步。"
+
 msgid "Photo synchronization could not be started."
 msgstr "无法启动照片同步。"
 

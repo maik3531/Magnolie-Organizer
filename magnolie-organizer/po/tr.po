@@ -5501,6 +5501,9 @@ msgstr "%(name)s adlı kişinin fotoğrafı"
 msgid "Photo synchronization active"
 msgstr "Fotoğraf eşitlemesi etkin"
 
+msgid "The default folder is not private. Choose a destination folder you own that others cannot write to, then enable photo synchronization again."
+msgstr "Varsayılan klasör özel değil. Size ait olan ve başkalarının yazamadığı bir hedef klasör seçin, ardından fotoğraf eşitlemeyi yeniden açın."
+
 msgid "Photo synchronization could not be started."
 msgstr "Fotoğraf eşitlemesi başlatılamadı."
 

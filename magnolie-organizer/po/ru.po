@@ -5582,6 +5582,9 @@ msgstr "Фото %(name)s"
 msgid "Photo synchronization active"
 msgstr "Синхронизация фотографий активна"
 
+msgid "The default folder is not private. Choose a destination folder you own that others cannot write to, then enable photo synchronization again."
+msgstr "Папка по умолчанию не является личной. Выберите папку, которой вы владеете и в которую другие пользователи не могут записывать файлы, затем снова включите синхронизацию фотографий."
+
 msgid "Photo synchronization could not be started."
 msgstr "Не удалось запустить синхронизацию фотографий."
 

@@ -5638,6 +5638,9 @@ msgstr "Photo de %(name)s"
 msgid "Photo synchronization active"
 msgstr "Synchronisation des photos en cours"
 
+msgid "The default folder is not private. Choose a destination folder you own that others cannot write to, then enable photo synchronization again."
+msgstr "Le dossier par défaut n’est pas privé. Choisissez un dossier de destination qui vous appartient et dans lequel personne d’autre ne peut écrire, puis réactivez la synchronisation des photos."
+
 msgid "Photo synchronization could not be started."
 msgstr "Impossible de démarrer la synchronisation des photos."
 

@@ -5561,6 +5561,9 @@ msgstr "Foto van %(name)s"
 msgid "Photo synchronization active"
 msgstr "Fotosynchronisatie actief"
 
+msgid "The default folder is not private. Choose a destination folder you own that others cannot write to, then enable photo synchronization again."
+msgstr "De standaardmap is niet privé. Kies een doelmap waarvan je eigenaar bent en waarin anderen niet kunnen schrijven. Schakel daarna fotosynchronisatie opnieuw in."
+
 msgid "Photo synchronization could not be started."
 msgstr "Fotosynchronisatie kon niet worden gestart."
 
