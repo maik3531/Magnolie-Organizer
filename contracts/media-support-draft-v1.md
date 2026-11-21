@@ -92,6 +92,9 @@ session loops with disposable pins over encrypted loopback, including the
 ordinary control phase and a heartbeat after discovery on the same parent.
 A second case opens a separate Linux settings owner on that parent and
 checks protected settings, matching ACK and echo on the actual Notes reader.
+The reconnect case retains the original pairing and protected choices but
+starts with no agreement on the replacement channel. Both readers repeat the
+fresh discovery and settings exchange, not an old attempt or a media batch.
 Discovery alone opens no settings owner. The private Notes lane keeps its
 receipt IDs in memory, never in the personal outbox, and does not select the
 legacy gallery runtime. Actual dispatcher tests check loss of agreement on

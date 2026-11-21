@@ -19,6 +19,7 @@ class Desktop(PhoneService):
     heartbeat = False
     test_settings = False
     settings_owner = None
+    resumed = False
 
     def _payload(self, peer, channel, payload, scoped_reference=None):
         super()._payload(peer, channel, payload, scoped_reference)
@@ -34,7 +35,12 @@ class Desktop(PhoneService):
                     assert not self._native_file_connections
                     self.settings_owner = self.open_native_file_connection(
                         peer['device_id'], peer['static_public'], channel, self._generation)
-                    self.settings_owner._media_transport.change('enabled', True)
+                    before = self.settings_owner.desktop_snapshot()['shared_media']
+                    assert before['configured'] is self.resumed and not before['agreed']
+                    if self.resumed:
+                        assert before['values']['enabled'] is True
+                    else:
+                        self.settings_owner._media_transport.change('enabled', True)
                     self.settings_owner._media_transport.send_settings()
                 owner = self.settings_owner
                 state = owner.desktop_snapshot()['shared_media']
@@ -53,7 +59,7 @@ class Desktop(PhoneService):
             channel.send(dict(type='close', reason='normal'))
 
 
-def main(test_settings=False):
+def main(test_settings=False, reconnect=False):
     with TemporaryDirectory(prefix='magnolie-media-paired-') as root, socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         listener.bind(('127.0.0.1', 0)); listener.listen(1); listener.settimeout(10)
         service = Desktop(str(Path(root) / 'telefon'), 'Isolated desktop', bluetooth_backend=FakeBluetooth())
@@ -70,21 +76,25 @@ def main(test_settings=False):
         peer['personal_sync'].update(own_device=True, remote_own_device=True)
         service.store.peers = [peer]
         service.store.save_peers()
-        with listener.accept()[0] as client:
-            client.settimeout(12)
-            start = receive_frame(client, PAIR_FRAME_MAX)
-            try:
-                # Model a photo-capable desktop composition in this disposable
-                # process, without editing or reading a user's build configuration.
-                with patch.object(phone.optional_phone, 'available', lambda name: name == 'photo_sync'):
-                    service._session(client, start)
-            except EOFError:
-                if not service.heartbeat:
-                    raise
-        assert service.heartbeat and not service._native_media_support and not service._native_file_connections
-        print('same-parent-pong', flush=True)
+        for resumed in range(2 if reconnect else 1):
+            service.resumed = bool(resumed)
+            service.ping = service.settings_owner = None
+            service.heartbeat = False
+            with listener.accept()[0] as client:
+                client.settimeout(12)
+                start = receive_frame(client, PAIR_FRAME_MAX)
+                try:
+                    # Model a photo-capable desktop composition in this disposable
+                    # process, without editing or reading a user's build configuration.
+                    with patch.object(phone.optional_phone, 'available', lambda name: name == 'photo_sync'):
+                        service._session(client, start)
+                except EOFError:
+                    if not service.heartbeat:
+                        raise
+            assert service.heartbeat and not service._native_media_support and not service._native_file_connections
+            print('same-parent-pong', flush=True)
 
 
 if __name__ == '__main__':
-    assert sys.argv[1:] in ([], ['--settings'])
-    main(test_settings=sys.argv[1:] == ['--settings'])
+    assert sys.argv[1:] in ([], ['--settings'], ['--reconnect'])
+    main(test_settings=bool(sys.argv[1:]), reconnect=sys.argv[1:] == ['--reconnect'])

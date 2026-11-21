@@ -29,7 +29,9 @@ class NativeMediaSupportSessionTest {
 
     @Test fun phoneAndLinuxAgreeOnSettingsWithoutStartingTransfer() = pairedSession(testSettings = true)
 
-    private fun pairedSession(testSettings: Boolean) {
+    @Test fun originalPairingKeepsSettingsButRequiresNewAgreementOnReconnect() = pairedSession(testSettings = true, reconnect = true)
+
+    private fun pairedSession(testSettings: Boolean, reconnect: Boolean = false) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("MediaSessionFixture", 1.0, "Isolated test keys") {
             init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
@@ -51,7 +53,7 @@ class NativeMediaSupportSessionTest {
             val script = File("../magnolie-organizer/pruefungen/media_support_paired_peer.py").canonicalFile
             assertTrue(script.isFile)
             val command = listOf(System.getenv("MAGNOLIE_PYTHON") ?: "/usr/bin/python3", "-B", script.path) +
-                if (testSettings) listOf("--settings") else emptyList()
+                when { reconnect -> listOf("--reconnect"); testSettings -> listOf("--settings"); else -> emptyList() }
             val process = ProcessBuilder(command)
                 .redirectError(errors).start().also { host = it }
             val stdout = process.inputStream.bufferedReader()
@@ -70,23 +72,32 @@ class NativeMediaSupportSessionTest {
             val session = TelefonWerk::class.java.getDeclaredMethod("session", TelefonPeer::class.java,
                 TelefonTransportArt::class.java, TelefonRoehre::class.java, String::class.java, String::class.java,
                 Boolean::class.javaPrimitiveType, kotlin.jvm.functions.Function0::class.java).apply { isAccessible = true }
-            TelefonTcpRoehre("127.0.0.1", port = port.toInt()).use { pipe ->
-                pipe.setReadTimeout(15_000)
-                val reader = tasks.submit { session.invoke(work, peer, TelefonTransportArt.WIFI, pipe, "", "", false, {}) }
-                try {
-                    assertEquals("same-parent-pong", readHost())
-                    reader.get(5, TimeUnit.SECONDS)
-                } catch (error: Exception) {
-                    val failure = AssertionError("Paired media test failed. Desktop stderr:\n${errors.readText()}", error)
-                    if (reader.isDone) runCatching { reader.get() }.exceptionOrNull()?.let { failure.addSuppressed(it) }
-                    throw failure
+            repeat(if (reconnect) 2 else 1) {
+                TelefonTcpRoehre("127.0.0.1", port = port.toInt()).use { pipe ->
+                    pipe.setReadTimeout(15_000)
+                    val reader = tasks.submit { session.invoke(work, peer, TelefonTransportArt.WIFI, pipe, "", "", false, {}) }
+                    try {
+                        assertEquals("same-parent-pong", readHost())
+                        reader.get(5, TimeUnit.SECONDS)
+                    } catch (error: Exception) {
+                        val failure = AssertionError("Paired media test failed. Desktop stderr:\n${errors.readText()}", error)
+                        if (reader.isDone) runCatching { reader.get() }.exceptionOrNull()?.let { failure.addSuppressed(it) }
+                        throw failure
+                    }
+                }
+                assertTrue((field(TelefonWerk::class.java, "mediaSupportReaders").get(work) as Map<*, *>).isEmpty())
+                assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+                assertFalse(work.state.value.mediaPreferencesSupported)
+                assertEquals(peer.file_pairing_epoch, storage.fileAuthorityPeers().peer?.file_pairing_epoch)
+                if (testSettings) {
+                    val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
+                    val db = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).readableDatabase
+                    db.rawQuery("SELECT COUNT(*) FROM native_media_shared_settings WHERE peer_id=?", arrayOf(desktopId)).use {
+                        assertTrue(it.moveToFirst()); assertEquals(1, it.getInt(0))
+                    }
                 }
             }
             assertTrue(errors.readText(), process.waitFor(4, TimeUnit.SECONDS) && process.exitValue() == 0)
-            assertTrue((field(TelefonWerk::class.java, "mediaSupportReaders").get(work) as Map<*, *>).isEmpty())
-            assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
-            assertFalse(work.state.value.mediaPreferencesSupported)
-            assertEquals(peer.file_pairing_epoch, storage.fileAuthorityPeers().peer?.file_pairing_epoch)
         } finally {
             werk?.serviceStopped()
             host?.let { it.destroy(); if (!it.waitFor(2, TimeUnit.SECONDS)) it.destroyForcibly() }
