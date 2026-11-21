@@ -1,5 +1,6 @@
-"""#749: bounded TIFF evidence does not grant an ordinary transfer."""
+"""#749: TIFF evidence and Linux original-image receive/restore, not SEND."""
 from base64 import b64decode
+from gzip import decompress
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -15,7 +16,8 @@ from test_file_authenticated_desktop import native
 from test_file_desktop_receive import receiving
 
 
-VECTORS=json.loads((Path(__file__).resolve().parents[2]/'contracts'/'media-tiff-probe-vectors.json').read_text())
+CONTRACTS=Path(__file__).resolve().parents[2]/'contracts'
+VECTORS=json.loads((CONTRACTS/'media-tiff-probe-vectors.json').read_text())
 
 
 @pytest.mark.parametrize(('name','endian'), [('little','<'),('big','>')])
@@ -31,18 +33,27 @@ def test_real_tiff_original_remains_byte_exact_and_sender_gate_closed(name,endia
     assert not _tiff_rgb_image(raw,len(raw)-1)
 
 
-@pytest.mark.parametrize('name',['little','big'])
-def test_tiff_original_survives_native_receive_backup_and_offline_restore(receiving,tmp_path,name):
+@pytest.mark.parametrize(('name','suffix'),[('little','.tiff'),('big','.tiff'),('heic','.heic')])
+def test_image_original_survives_native_receive_backup_and_offline_restore(receiving,tmp_path,name,suffix):
     from dataclasses import replace
     from magnolie_file_acceptance import NativeAcceptedDestination
     from magnolie_media_backups import NativeMediaBackupLocations, NativeMediaBackupRestoreOwner, NativeMediaBackups
     from test_file_desktop_album_worker import prepared
     from test_photo_version_workflow import changed, cycle
 
-    fixture=VECTORS[name];raw=b64decode(fixture['base64'],validate=True)
+    if name=='heic':
+        fixture=json.loads((CONTRACTS/'media-heic-original-vector.json').read_text())
+        raw=decompress(b64decode(fixture['gzip_base64'],validate=True))
+        assert raw[4:12]==b'ftypheic'
+        assert sha256(raw[raw.index(b'<x:xmpmeta'):]).hexdigest()==fixture['xmp_sha256']
+        for kind in ('images','video'):
+            with pytest.raises(TransferError,match='media_source_mime_unknown'):identify(raw,len(raw),kind)
+    else:
+        fixture=VECTORS[name];raw=b64decode(fixture['base64'],validate=True)
+    assert sha256(raw).hexdigest()==fixture['sha256']
     connection=receiving[3];root=receiving[4]
     seed=prepared(receiving)[0]
-    relative='Camera/original.tiff'
+    relative='Camera/original'+suffix
     full=changed(replace(seed,files=(replace(seed.files[0],path=relative),)),'a',raw)
     state,chunks,saved=cycle(receiving,full,raw)
     assert state['state']=='complete' and len(chunks)==len(saved)==1,state
@@ -67,7 +78,7 @@ def test_tiff_original_survives_native_receive_backup_and_offline_restore(receiv
             assert result.state=='restored' and result.original_mapping==mapping
             assert not result.grants_write_authority and not result.is_saved_receipt
             restored=restore/result.name
-            assert restored.suffix=='.tiff' and restored.read_bytes()==raw
+            assert restored.suffix==suffix and restored.read_bytes()==raw
             assert sha256(restored.read_bytes()).hexdigest()==fixture['sha256']
     assert (original.stat().st_ino,original.read_bytes())==before
     assert receiving[2].send.call_count==outputs
