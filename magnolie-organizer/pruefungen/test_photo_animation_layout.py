@@ -202,6 +202,57 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
     assert original.read_bytes()==b'unrelated new original' and destination.read_bytes()==local_edit
 
 
+def test_native_gif_selection_freezes_only_the_exact_checked_originals_without_writing(receiving):
+    from magnolie_media_relocation_owner import ProtectedRelocationOwner
+    from magnolie_media_retention import NativeMediaActivity
+    from test_media_relocation_record import ANIMATED
+
+    service,peer,channel,connection,target=receiving
+    converge_controls(service,peer,channel)
+    first=animation(receiving)
+    member=replace(first.files[0],size=len(ANIMATED),sha256=sha256(ANIMATED).hexdigest())
+    other=replace(member,id='f'*32,path='Camera/other.gif')
+    full=replace(first,files=(member,other),total_bytes=2*len(ANIMATED))
+    kinds={file.path:'animation' for file in full.files}
+    photos={path:sha256(path.encode()).hexdigest() for path in kinds}
+    with phone_batches(receiving,[full],media_kinds=kinds,photo_ids=photos,content=ANIMATED) as (_,saved,_,_,errors):
+        worker=connection.start_album_worker(connection.issue_receive_action(),ALBUM,True)
+        assert worker.join(40) and worker.progress()['state']=='complete',worker.progress()
+        assert not errors and len(saved)==1
+    snapshot,mappings,cursor=connection._mappings.candidate_page('images')
+    assert len(mappings)==2 and cursor is None
+    choices=tuple((mapping.association,mapping.protected_record_sha256) for mapping in reversed(mappings))
+    jobs=connection._catalog.jobs();prefs=connection._preferences.read();outputs=channel.send.call_count
+    native=connection._authority.binding.native_directory
+    def preview(selected=choices):
+        return connection._preview_gif_relocation_selection(connection.issue_receive_action(),selected)
+
+    with pytest.raises(TransferError,match='original_job_required'):
+        preview((choices[0],(choices[1][0],'0'*64)))
+    with pytest.raises(TransferError,match='invalid_selection'):preview((choices[0],choices[0]))
+    with NativeMediaActivity(native) as activity, activity.activity(exclusive=True) as lease:
+        assert lease is not None
+        with pytest.raises(TransferError,match='activity_busy'):preview()
+    with pytest.raises(FileNotFoundError):preview()
+    assert not (target/'Animationen').exists()
+    parent=target/'Animationen/Camera';parent.parent.mkdir(mode=0o700);parent.mkdir(mode=0o700)
+    second=target/other.path;second.write_bytes(b'unproven local content')
+    with pytest.raises(TransferError,match='animation_unproven'):preview()
+    assert not list(parent.iterdir())
+    second.write_bytes(ANIMATED)
+    selection=preview()
+    assert [record.source for record in selection]==sorted(kinds)
+    assert {record.target for record in selection}=={'Animationen/'+path for path in kinds}
+    assert {record.original_mapping_sha256 for record in selection}=={digest for _,digest in choices}
+    assert len({record.selection_sha256 for record in selection})==1
+    assert all(record.phase=='prepared' and not record.grants_write_authority for record in selection)
+    assert all((target/mapping.relative_path).read_bytes()==ANIMATED for mapping in mappings)
+    assert not list(parent.iterdir()) and not list(Path(native).glob('media-relocation-v1-*'))
+    with ProtectedRelocationOwner(connection._authority) as owner:assert owner.read_intent() is None
+    assert connection._mappings.candidate_page('images')==(snapshot,mappings,cursor)
+    assert connection._catalog.jobs()==jobs and connection._preferences.read()==prefs and channel.send.call_count==outputs
+
+
 @pytest.mark.parametrize('capture',[False,True],ids=['animations_only','camera_and_animations'])
 def test_gtk_layout_applies_only_to_new_animations_and_preserves_pc_edits_and_original_grants(receiving,request,capture):
     service,peer,channel,connection,target=receiving;converge_controls(service,peer,channel)

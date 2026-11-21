@@ -104,7 +104,10 @@ this comparison.
   reads the current original inode, so a local edit can qualify only if its
   current bytes still prove GIF animation. The preview requires existing
   safe target parents and creates no directory, journal, or consent. It does
-  not yet enumerate a complete user-visible selection.
+  not yet enumerate a complete user-visible selection. The private native
+  selection entry point can freeze an exact explicit list of up to 128 current
+  image mappings under a single shared lease. All selected members must pass;
+  it never silently drops one, creates missing parents, or grants a move.
 - Bound the complete selection, and detect destination collisions, including
   case-folded equivalents and targets of members that are staying put. Never
   use a chain of moves to clear an occupied target. Only the user-confirmed

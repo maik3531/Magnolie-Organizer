@@ -2395,6 +2395,70 @@ class NativeDesktopFileConnection:
             action.validate(self)
             return result
 
+    def _preview_gif_relocation_selection(self,action,choices):
+        """Freeze an exact native selection, without prompting or persisting it."""
+        from magnolie_file_control import _hex
+        from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
+        from magnolie_media_relocation_owner import ProtectedRelocationOwner
+        from magnolie_media_relocation_record import bind_relocation_selection, preview_original_gif_relocation
+        if (type(choices) is not tuple or not 1<=len(choices)<=128
+                or any(type(choice) is not tuple or len(choice)!=2 or type(choice[0]) is not PhotoMappingAssociation
+                    or choice[0].media_type!='images' or not _hex(choice[1]) for choice in choices)
+                or len({choice[0] for choice in choices})!=len(choices)):
+            raise TransferError('photo_relocation_invalid_selection')
+        self._take_action(action)
+        with self._operation():
+            if (self._album_worker is not None or self._run is not None or self._source_pending is not None
+                    or self._source_run is not None or self._offer is not None or self._mapped_worker is not None):
+                raise TransferError('file_desktop_receive_already_active')
+            with (closing(ProtectedRelocationOwner(self._authority)) as owner,
+                    closing(ProtectedMediaRelocationJournal(self._authority)) as journal):
+                policy=self._receiving_policy();binding=self._receive_binding(media_type='images')
+                destination=self._receive_destination(policy,media_type='images')
+                book=owner.saved_book_version()
+                def live_binding():return self._receive_binding(media_type='images')
+                def current():
+                    action.validate(self)
+                    if owner.saved_book_version()!=book or self._receiving_policy()!=policy or live_binding()!=binding:
+                        raise TransferError('photo_relocation_preview_changed')
+                    return True
+                with owner.activity(current) as lease:
+                    if lease is None:raise TransferError('photo_relocation_activity_busy')
+                    empty=journal.read()
+                    if empty.associated or empty.records or empty.outcome_version is not None or owner.read_intent() is not None:
+                        raise TransferError('photo_relocation_owner_already_recorded')
+                    associations=tuple(association for association,_ in choices)
+                    self._verify_expected_mapping_store()
+                    snapshot,mappings=self._mappings.lookup(associations)
+                    if (not snapshot.associated or any(mapping is None or mapping.protected_record_sha256!=digest
+                            or mapping.destination!=destination for (_,digest),mapping in zip(choices,mappings))
+                            or not self._open_catalog(allow_create=False)):
+                        raise TransferError('photo_grouping_original_job_required')
+                    operation=uuid.uuid4().hex;records=[];protection=self._authority.protection
+                    with self._catalog.inspect_jobs() as (parent,jobs):
+                        owners={job.owner:job for job in jobs}
+                        for mapping in mappings:
+                            lease();job=owners.get(mapping.job_owner)
+                            if job is None or job.accepted.binding!=binding or job.accepted.destination!=destination:
+                                raise TransferError('photo_grouping_original_job_required')
+                            with ProtectedTransferJobIndex(parent,job.accepted.manifest,binding,live_binding,
+                                    protection.seal,protection.unseal,owner=job.owner,accepted=job.accepted) as index:
+                                with index._locked():
+                                    history=index.media_history
+                                    if history is None:raise TransferError('photo_grouping_original_job_required')
+                                    self._verify_completed_mapping_job(index,job,history)
+                                    receipt=next((item for item in index.saved_receipts() if item.file_id==mapping.source_file_id),None)
+                                    if receipt is None:raise TransferError('photo_grouping_original_job_required')
+                                    records.append(preview_original_gif_relocation(mapping,job.accepted,history,receipt,
+                                        operation=operation,book_sha256=book,preferences_sha256=policy.version,
+                                        current_binding=live_binding,require_original=lease))
+                        if self._catalog.jobs()!=jobs:raise TransferError('photo_grouping_original_job_changed')
+                    selection=bind_relocation_selection(tuple(records),occupied=())
+                    if (self._mappings.lookup(associations)!=(snapshot,mappings) or journal.read()!=empty
+                            or owner.read_intent() is not None):
+                        raise TransferError('photo_relocation_preview_changed')
+                    lease();return selection
+
     def inspect_photo_recovery(self, action):
         """Bounded native metadata overview; never a repair/publication permit.
 
