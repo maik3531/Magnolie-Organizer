@@ -1,0 +1,7 @@
+{
+  "description": "Synthetic HEIF, major brand mif1, with a single 16×16 HEVC image stored in mdat and its linked Exif item stored in idat using iloc construction method 1. Uses the same synthetic HEVC frame as the HEIC vector; not an iPhone sample.",
+  "sha256": "b576b164168a923dc1bb6f756501f02ead06ff7606d34ffe76a16844dc77cc54",
+  "decoded_rgb_sha256": "2b68c2b1bf7f7cc86bd4e71e23cff84dc9665385d69d761b666f4fd82d25e385",
+  "exif_item_sha256": "915d0ab3b8517f57ea37f9350df667a8ab670ef27274393b7a5b576af339f39e",
+  "gzip_base64": "H4sIAAAAAAACA2NgYJBIK6ksyM1MM2QAAhCdkZqZzMDA+D03tSSRAQI0MlJyiqBshoLM5BIGJBAA5JcWpYKYfAWZJblgQUYgNsjMyU8GMVwYGJjAImBxJnEgpcnADBZhhBoCtJHBNTMzLw3MYwJiKSAnlQmqJ6Ms2dAzNzEdbIssXIYZqKkiM80X6NKURIhrpTKLUtOghvIlpxQngy0CWbM7s6CoAEjPzSxIzgfShUBDnRlZOIDM+StAyuU+MPz5++MHAwM/8wKgDnEHRh7G//9BCpjBKoC2ye1iclgIlFNzYmRElVjQ4TrtZT73gSgmEB9CCCwCKmVzYTxQ2CgENF8ks7ggFeo0ARguyKzIBHuFgwPkErHMglxYqAOdzdzYBDScITsT6D2QkKenFgMHOID4GZkYhIEsCyDObGcB+1ANrpF5AhODCJDlDRXxTUzPy8/JTFUorswryUgtAcawkYGBoZWBkZWBsYKBiZWBqZWBGUirYS7EKly+B1lDnOeBKhF+v6bBuPbBYZadho8ii4JO64T9uLdxf2vWk4scDPE2K1mqNy/guqXD6dT+MZZ5r5prsrjhAr15gteOyU/IfRI25Wx50mIOneI5x1+85ktzue/fGrbnWIThn3kPBY71NZR5qjvUKbXyf8y542y6U4V50dJM7k/MrFO9GwV7vc0XTp2u9eT6MjmnGYtsNh7gMnUOuXZ3f/3v4nkFSRk3JgSeD/nwUUNfYyfbngwftyiGzh0by44/y3ALv2K/r/7AnL7jd5afFk0v/3301rS/zT6bw1JvxtbuP3z4Tf2R+obt/+Qjv8wAABtB7ntAAwAA"
+}

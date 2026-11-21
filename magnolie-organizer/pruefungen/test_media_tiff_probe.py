@@ -33,7 +33,7 @@ def test_real_tiff_original_remains_byte_exact_and_sender_gate_closed(name,endia
     assert not _tiff_rgb_image(raw,len(raw)-1)
 
 
-@pytest.mark.parametrize(('name','suffix'),[('little','.tiff'),('big','.tiff'),('heic','.heic')])
+@pytest.mark.parametrize(('name','suffix'),[('little','.tiff'),('big','.tiff'),('heic','.heic'),('heif','.heif')])
 def test_image_original_survives_native_receive_backup_and_offline_restore(receiving,tmp_path,name,suffix):
     from dataclasses import replace
     from magnolie_file_acceptance import NativeAcceptedDestination
@@ -41,11 +41,17 @@ def test_image_original_survives_native_receive_backup_and_offline_restore(recei
     from test_file_desktop_album_worker import prepared
     from test_photo_version_workflow import changed, cycle
 
-    if name=='heic':
-        fixture=json.loads((CONTRACTS/'media-heic-original-vector.json').read_text())
+    if name in ('heic','heif'):
+        fixture=json.loads((CONTRACTS/f'media-{name}-original-vector.json').read_text())
         raw=decompress(b64decode(fixture['gzip_base64'],validate=True))
-        assert raw[4:12]==b'ftypheic'
-        assert sha256(raw[raw.index(b'<x:xmpmeta'):]).hexdigest()==fixture['xmp_sha256']
+        if name=='heic':
+            assert raw[4:12]==b'ftypheic'
+            assert sha256(raw[raw.index(b'<x:xmpmeta'):]).hexdigest()==fixture['xmp_sha256']
+        else:
+            # Fixture-specific extraction; the production receiver does not parse EXIF here.
+            assert raw[4:12]==b'ftypmif1'
+            marker=raw.index(b'idat'); size,=struct.unpack_from('>I',raw,marker-4)
+            assert sha256(raw[marker+4:marker-4+size]).hexdigest()==fixture['exif_item_sha256']
         for kind in ('images','video'):
             with pytest.raises(TransferError,match='media_source_mime_unknown'):identify(raw,len(raw),kind)
     else:
