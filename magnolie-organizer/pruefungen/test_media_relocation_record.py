@@ -23,7 +23,7 @@ def observations(entry,source,target,**changes):
         target_parents=entry.target_parents,source=source,target=target),**changes)
 
 
-def native_fixture(root):
+def native_fixture(root,raw=b'original with local edits'):
     def identity(path):
         info=path.stat();return info.st_dev,info.st_ino
     root.mkdir(mode=0o700,exist_ok=True)
@@ -31,7 +31,7 @@ def native_fixture(root):
     source.parent.mkdir(mode=0o700)
     target.parent.parent.mkdir(mode=0o700)
     target.parent.mkdir(mode=0o700)
-    raw=b'original with local edits';source.write_bytes(raw)
+    source.write_bytes(raw)
     entry=replace(entry,root_key=identity(root),source_parents=(identity(root),identity(source.parent)),
         target_parents=(identity(root),identity(target.parent.parent),identity(target.parent)),
         file=RelocationFileWitness(identity(source),len(raw),sha256(raw).hexdigest()))
@@ -46,6 +46,29 @@ def test_native_observes_exact_exclusive_inode_before_and_after_fixture_rename(t
     assert target.read_bytes()==raw and not source.exists()
     target.write_bytes(b'?'*len(raw)) # Same inode/length is not the same bytes.
     assert entry.observe_native(destination,lambda:True)=='held'
+
+
+GIF_HEADER=bytes.fromhex('47494638396101000100800000000000ffffff')
+GIF_FRAME=bytes.fromhex('21f90400010000002c0000000001000100000202440100')
+ANIMATED=GIF_HEADER+2*GIF_FRAME+b';'
+
+
+def test_native_animation_proof_reads_the_exact_hashed_original(tmp_path):
+    entry,destination,source,_,_=native_fixture(tmp_path,ANIMATED)
+    assert entry.observe_native(destination,lambda:True,require_animation=True)=='at_source'
+    source.write_bytes(GIF_HEADER+GIF_FRAME+GIF_FRAME.replace(b'\x44',b'\x4c')+b';')
+    with pytest.raises(TransferError,match='animation_unproven'):
+        entry.observe_native(destination,lambda:True,require_animation=True)
+
+
+@pytest.mark.parametrize('raw',[GIF_HEADER+GIF_FRAME+b';',ANIMATED[:-1],ANIMATED+b'appendix',
+    b'not an animation',GIF_HEADER+49*GIF_FRAME+b';',ANIMATED[:6]+b'\xff\xff'+ANIMATED[8:]])
+def test_historical_animation_name_or_marker_does_not_replace_actual_frames(tmp_path,raw):
+    entry,destination,source,target,_=native_fixture(tmp_path,raw)
+    assert entry.observe_native(destination,lambda:True)=='at_source'
+    with pytest.raises(TransferError,match='animation_unproven'):
+        entry.observe_native(destination,lambda:True,require_animation=True)
+    assert source.read_bytes()==raw and not target.exists()
 
 
 @pytest.mark.parametrize('fault',['foreign_at_target','symlink','hardlink','changed_parent','changed_intermediate','writable_parent','missing_parent','revoked'])

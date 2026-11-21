@@ -7,6 +7,7 @@ import struct
 from magnolie_file_transfer import TransferError
 
 PREFIX_BYTES = 1024 * 1024
+ANIMATION_PROOF_BYTES = 4 * PREFIX_BYTES
 _SOF_MARKERS = frozenset((*range(0xc0, 0xc4), *range(0xc5, 0xc8), *range(0xc9, 0xcc), *range(0xcd, 0xd0)))
 
 
@@ -56,6 +57,55 @@ def _gif_image(prefix):
             offset+=size
         else:return False
     return False
+
+
+def verified_gif_animation(raw):
+    """Require a complete, bounded multi-frame GIF and a local decoder witness."""
+    if type(raw) is not bytes or not 14<=len(raw)<=ANIMATION_PROOF_BYTES or raw[:6] not in (b'GIF87a',b'GIF89a'):
+        return False
+    width,height=struct.unpack_from('<HH',raw,6)
+    if not (0<width<=4096 and 0<height<=4096 and width*height<=4_000_000):return False
+    global_table=3*(2<<(raw[10]&7)) if raw[10]&128 else 0
+    offset=13+global_table;frames=0
+    while offset<len(raw):
+        marker=raw[offset];offset+=1
+        if marker==0x3b:
+            if offset!=len(raw) or frames<2:return False
+            break
+        if marker==0x21:
+            if offset>=len(raw) or raw[offset] not in (0xf9,0xfe,0xff):return False
+            offset+=1  # Labels need not be decoded to walk their original subblocks.
+        elif marker==0x2c:
+            if len(raw)-offset<9:return False
+            x,y,w,h,flags=struct.unpack_from('<HHHHB',raw,offset)
+            if not w or not h or x+w>width or y+h>height:return False
+            table=3*(2<<(flags&7)) if flags&128 else 0
+            offset+=9+table;frames+=1
+            if (not (table or global_table) or frames>48 or frames*width*height>16_000_000
+                    or offset+1>=len(raw) or not 2<=raw[offset]<=8 or raw[offset+1]==0):return False
+            offset+=1  # LZW minimum code size is not a data subblock.
+        else:return False
+        while offset<len(raw):
+            block=raw[offset];offset+=1
+            if not block:break
+            offset+=block
+        else:return False
+    else:return False
+    # Recognize the animation only if the available native loader also accepts
+    # the complete original. Do not create a new format or convert any bytes.
+    try:
+        import gi
+        gi.require_version('GdkPixbuf','2.0')
+        from gi.repository import GdkPixbuf, GLib
+    except (ImportError,ValueError):return False
+    try:
+        loader=GdkPixbuf.PixbufLoader.new_with_type('gif')
+        try:written=loader.write(raw)
+        finally:closed=loader.close()
+        animation=loader.get_animation()
+        return bool(written and closed and animation is not None and not animation.is_static_image()
+            and animation.get_width()==width and animation.get_height()==height)
+    except GLib.Error:return False
 
 
 def _webp_image(prefix, total_bytes):

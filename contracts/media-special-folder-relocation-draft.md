@@ -24,6 +24,10 @@ so replacing or losing the entire store cannot admit a new preparation.
   original. Missing evidence holds the affected file. A filename, suffix,
   camera album or camera model alone does not establish capture provenance.
   Do not adopt version copies, outgoing caches, trash or recovery payloads.
+  For the initial Linux GIF subset, readback can require independently checked,
+  complete multi-frame bytes and acceptance by the local GIF decoder. This is
+  bound to the same bytes as the descriptor hash; a historical animation label
+  is not a substitute. Other animation formats remain unverified.
 - Bound the complete selection, and detect destination collisions, including
   case-folded equivalents and targets of members that are staying put. Never
   use a chain of moves to clear an occupied target. Only the user-confirmed

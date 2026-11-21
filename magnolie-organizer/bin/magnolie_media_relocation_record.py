@@ -116,10 +116,14 @@ class MediaRelocationRecord:
             raise TransferError('photo_relocation_original_location_unproven')
         return replace(self,phase=phase)
 
-    def observe_native(self, destination, current):
+    def observe_native(self, destination, current, *, require_animation=False):
         """Read pinned endpoints. Never create, rename, recover or sync anything."""
-        if type(destination) is not NativeAcceptedDestination or destination.ancestor_keys[0]!=self.root_key or not callable(current):
+        if (type(destination) is not NativeAcceptedDestination or destination.ancestor_keys[0]!=self.root_key
+                or not callable(current) or type(require_animation) is not bool):
             raise TransferError('photo_relocation_original_destination_required')
+        if require_animation:
+            from magnolie_media_mime import ANIMATION_PROOF_BYTES, verified_gif_animation
+            if self.file.size>ANIMATION_PROOF_BYTES:raise TransferError('photo_relocation_animation_unproven')
         directory_flags=os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC
         def require_current():
             if current() is not True:raise TransferError('photo_relocation_original_owner_ended')
@@ -162,14 +166,21 @@ class MediaRelocationRecord:
                 # Read the verified descriptor rather than reopening a raced name.
                 fd=track(os.open('/proc/self/fd/'+str(opened),os.O_RDONLY|os.O_CLOEXEC|os.O_NONBLOCK))
                 if signature(os.fstat(fd))!=exact:raise TransferError('photo_relocation_original_file_changed')
-                digest=sha256();remaining=self.file.size
+                digest=sha256();remaining=self.file.size; animation=bytearray() if require_animation else None
                 while remaining:
                     require_current();raw=os.read(fd,min(remaining,1024*1024))
                     if not raw:raise TransferError('photo_relocation_original_file_changed')
                     digest.update(raw);remaining-=len(raw)
+                    if animation is not None:animation.extend(raw)
                 if os.read(fd,1) or signature(os.fstat(fd))!=exact:
                     raise TransferError('photo_relocation_original_file_changed')
-                ends.append((endpoint,exact));return RelocationFileWitness(key(before),before.st_size,digest.hexdigest())
+                observed=RelocationFileWitness(key(before),before.st_size,digest.hexdigest())
+                if animation is not None:
+                    require_current()
+                    if observed!=self.file or not verified_gif_animation(bytes(animation)):
+                        raise TransferError('photo_relocation_animation_unproven')
+                    require_current()
+                ends.append((endpoint,exact));return observed
             observed_source,observed_target=inspect(source),inspect(target)
             require_current();destination.verify()
             for parent,part,fd,expected in held:
