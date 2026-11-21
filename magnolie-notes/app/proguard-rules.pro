@@ -1,5 +1,12 @@
 # Magnolie Notes
 
+# Room loads this generated implementation by name and invokes its no-arg
+# constructor via reflection. The WorkManager/Room consumer rules retain the
+# class name in this build, but R8 removed the constructor (#736).
+-keep class androidx.work.impl.WorkDatabase_Impl {
+    public <init>();
+}
+
 # Native file/Gallery components belong to every Notes APK, including F-Droid.
 # Desktop build composition and branding keys must never strip this runtime.
 # Keep its native entrypoints even while production acceptance is still closed;
