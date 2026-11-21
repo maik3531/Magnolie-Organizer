@@ -20,6 +20,11 @@ try {
     assert.equal(svg.getAttribute("aria-hidden"), "true");
   }
   for (const kind of ["boots", "santa", "rocket", "glass", "eggs"]) assert.equal(appearance.stamp(kind).dataset.appearanceWatermark, kind);
+  const boots = appearance.stamp("boots"), santa = appearance.stamp("santa");
+  assert.equal(boots.querySelectorAll('[data-motif-part="boot"]').length, 2);
+  assert.equal(boots.querySelectorAll('[data-motif-part="fur-cuff"]').length, 2);
+  for (const part of ["fir-sprig", "candy-cane"]) assert(boots.querySelector(`[data-motif-part="${part}"]`));
+  for (const part of ["winter-hat", "pom-pom", "fur-brim", "beard", "smile", "moustache"]) assert(santa.querySelector(`[data-motif-part="${part}"]`));
   const rocket = appearance.stamp("rocket"), glasses = appearance.stamp("glass"), eggs = appearance.stamp("eggs");
   for (const part of ["paper-cap", "firework-body", "guide-stick", "fuse", "sparks"]) assert(rocket.querySelector(`[data-motif-part="${part}"]`), "A firework needs its paper body, stick and fuse, not spacecraft fins");
   const flutes = [...glasses.querySelectorAll('[data-motif-part="flute"]')];
@@ -28,7 +33,7 @@ try {
   assert.equal(eggs.querySelectorAll('[data-motif-part="painted-egg"]').length, 2);
   assert.equal(eggs.querySelectorAll('[data-motif-part="egg-pattern"]').length, 2);
   assert(eggs.querySelector('[data-motif-part="spring-grass"]')); assert(eggs.querySelector('[data-motif-part="ribbon"]'));
-  for (const svg of [rocket, glasses, eggs]) {
+  for (const svg of [boots, santa, rocket, glasses, eggs]) {
     assert.equal(svg.getAttribute("aria-hidden"), "true"); assert.equal(svg.getAttribute("focusable"), "false");
     assert.equal(svg.querySelectorAll("image,script,foreignObject,a,animate,animateTransform").length, 0);
     assert(svg.querySelector('path[fill="none"]'), "Outlined detail must not be swallowed by a solid silhouette");
@@ -53,5 +58,11 @@ try {
     assert.equal(draft.value, "Unsaved original", "Date rollover may not replace an unsaved editor");
     assert.equal(dom.window.document.body.hasAttribute("data-appearance-test"), false);
   }
+  const day = dom.window.document.createElement("div");
+  appearance.day(day, "2026-12-06");
+  assert(day.querySelector('.magnolie-feiertags-schatten[data-appearance-watermark="boots"] [data-motif-part="candy-cane"]'));
+  appearance.day(day, "2026-12-24");
+  assert(day.querySelector('.magnolie-feiertags-schatten[data-appearance-watermark="santa"] [data-motif-part="smile"]'));
+  assert.equal(day.querySelectorAll("[data-appearance-watermark]").length, 1);
   console.log("Appearance model PASS: actual-boolean color matrix, seasonal boundaries, Gregorian Easter, 24 isolated icon variants and passive original vector shapes.");
 } finally { dom.window.close(); }

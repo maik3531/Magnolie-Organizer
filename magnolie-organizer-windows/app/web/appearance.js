@@ -9,8 +9,23 @@
     "M32 34C41 32 49 26 51 17C42 17 34 24 32 34Z", "M32 34C24 40 21 47 22 54C28 51 32 44 32 34Z",
     "M32 34C40 40 43 47 42 54C36 51 32 44 32 34Z"];
   const shapes = Object.freeze({
-    boots: ["M12 9H29L28 37C31 41 43 42 44 49V55H10V44L14 36Z", "M44 7H61L60 35C63 39 75 40 76 47V53H42V42L46 34Z"],
-    santa: ["M19 26Q24 3 48 8L66 24L56 28Q32 17 19 26Z", "M19 29Q36 22 57 29L60 39L53 49L40 68L24 52L17 40Z", "M60 20A6 6 0 1 0 72 20A6 6 0 1 0 60 20"],
+    boots: [
+      { d: "M48 21L51 13L53 16L56 8L58 12L63 5L63 14L68 12L65 19L70 18L67 21", fill: "none", "data-motif-part": "fir-sprig" },
+      { d: "M46 22H65Q68 22 68 25V29Q65 33 61 31Q58 35 54 32Q50 34 46 31Q43 31 43 28V25Q43 22 46 22Z", fill: "none", "data-motif-part": "fur-cuff" },
+      { d: "M47 32L46 58Q46 61 49 61H70Q77 61 77 55Q77 49 70 47L65 45L64 32M47 55H75", fill: "none", "data-motif-part": "boot" },
+      { d: "M25 22V18A6 6 0 0 1 37 18V30H33V18A2 2 0 0 0 29 18V22ZM33 23L37 26M25 18L29 20", fill: "none", "data-motif-part": "candy-cane" },
+      { d: "M20 30H39Q42 30 42 33V37Q39 41 35 39Q31 43 27 40Q23 43 20 40Q17 40 17 37V33Q17 30 20 30Z", fill: "none", "data-motif-part": "fur-cuff" },
+      { d: "M21 41L20 53L12 56Q4 59 4 65Q4 71 11 71H37Q40 71 40 68L38 41M5 65H39M33 44L34 59", fill: "none", "data-motif-part": "boot" }
+    ],
+    santa: [
+      { d: "M18 26C20 9 35 4 47 9Q57 12 64 22M51 18Q56 18 59 24", fill: "none", "data-motif-part": "winter-hat" },
+      { d: "M72 26A5 5 0 1 1 62 26A5 5 0 1 1 72 26Z", "data-motif-part": "pom-pom" },
+      { d: "M16 29Q36 18 57 27Q61 30 58 34Q56 37 52 35Q38 30 22 36Q16 39 14 34Q13 31 16 29Z", fill: "none", "data-motif-part": "fur-brim" },
+      { d: "M19 37Q15 42 19 48Q14 55 20 60Q19 66 27 68Q30 74 38 74Q46 76 51 69Q59 68 60 61Q66 57 61 50Q63 42 57 36", fill: "none", "data-motif-part": "beard" },
+      { d: "M26 42Q29 39 32 42M43 42Q46 39 49 42M34 47Q38 45 41 47Q40 51 36 50M33 58Q38 63 43 58", fill: "none", "data-motif-part": "smile" },
+      { d: "M37 52Q30 47 25 55Q31 58 37 54Q44 58 51 55Q45 47 38 52Z", "data-motif-part": "moustache" },
+      { d: "M22 66Q12 68 9 75M58 66Q68 68 71 75", fill: "none", "data-motif-part": "coat" }
+    ],
     rocket: [
       { d: "M26 24L39 7L52 24Z", "data-motif-part": "paper-cap" },
       { d: "M29 25H49V47H29Z", fill: "none", "data-motif-part": "firework-body" },
