@@ -1,6 +1,8 @@
 /* Read-only decorative appearance. No connection, grant, sync or book writes. Refs #432. */
 (() => {
   "use strict";
+  // Set to true to bring back the developer-only visual preview panel (#432).
+  const SHOW_DEVELOPER_PREVIEW = false;
   const ns = "http://www.w3.org/2000/svg";
   const colors = Object.freeze({ none: "#d8b25c", notes: "#ffffff", kde: "#f7d777", both: "#ee9846" });
   const petals = ["M32 34C26 26 26 16 32 9C38 16 38 26 32 34Z", "M32 34C23 32 15 26 13 17C22 17 30 24 32 34Z",
@@ -174,7 +176,7 @@
     apply();
   }
   function mountDeveloper(root, translate, sendNative = null) {
-    if (!context.developer || context.locked) return;
+    if (!SHOW_DEVELOPER_PREVIEW || !context.developer || context.locked) return;
     const t = translate;
     const section = document.createElement("section"); section.className = "magnolie-darstellungstest"; section.id = "entwickler-darstellung";
     const heading = document.createElement("h3"); heading.textContent = "TEST · " + t("Preview");

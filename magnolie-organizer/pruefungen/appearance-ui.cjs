@@ -6,14 +6,27 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
 (async () => {
   const locales = ["en", ...fs.readdirSync(path.resolve(__dirname, "../web/i18n")).filter(name => name.endsWith(".js")).map(name => name.slice(0, -3))];
   for (const web of harness.exports.roots) for (const locale of locales) {
-    const b = await harness.exports.boot(web, { notizen: [{ id: "keep", titel: "Unchanged", text: "Original" }],
-      einstellungen: { allgemein: { entwicklermodus: true } } });
+    const data = { notizen: [{ id: "keep", titel: "Unchanged", text: "Original" }],
+      einstellungen: { allgemein: { entwicklermodus: true } } };
+    const b = await harness.exports.boot(web, data);
     try {
       const d = b.w.document;
       if (locale !== "en") { b.w.eval(fs.readFileSync(path.join(web, "i18n", locale + ".js"), "utf8")); b.w.MagnolieI18n.setLocale(locale); }
       b.t.zustand().kalender.tag = "2026-12-06";
       await b.t.wechsel("aufgaben"); await b.t.wechsel("kalender");
       assert(d.querySelector('.wo-tag[data-appearance-date="2026-12-06"] [data-appearance-watermark="boots"]'));
+      b.t.oeffneEinstellungen(); d.querySelector("#einst-tab-entwickler").click();
+      assert(d.querySelector("#einst-seite-entwickler"));
+      assert.equal(d.querySelector("#entwickler-darstellung"), null);
+      assert.equal(d.querySelector("[data-appearance-native]"), null);
+      assert(!b.messages.some(message => message.cmd.startsWith("tray_darstellung_test")));
+
+      // Exercise the retained implementation in this disposable DOM only.
+      const source = fs.readFileSync(path.join(web, "appearance.js"), "utf8");
+      const enabledSource = source.replace("const SHOW_DEVELOPER_PREVIEW = false;", "const SHOW_DEVELOPER_PREVIEW = true;");
+      assert.notEqual(enabledSource, source);
+      b.w.eval(enabledSource);
+      b.w.MagnolieAppearance.update({ today: "2026-12-06", developer: true, locked: false });
       b.t.oeffneEinstellungen(); d.querySelector("#einst-tab-entwickler").click();
       const panel = d.querySelector("#entwickler-darstellung"); assert(panel && panel.textContent.includes("TEST"));
       const t = text => b.w.MagnolieI18n.gettext(text);
