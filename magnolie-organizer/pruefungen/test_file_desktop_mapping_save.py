@@ -60,6 +60,30 @@ def test_media_activity_blocks_publication_before_bytes_mapping_or_saved_and_rel
     assert published is not None and (destination/published.relative_path).read_bytes()==b'hello'
 
 
+def test_live_saved_retry_comparison_and_finish_wait_for_relocation_without_changing_history(receiving):
+    from magnolie_media_retention import NativeMediaRetention
+    connection=receiving[3];receiver,_,association=save(receiving,publish=False)
+    connection.publish_received(connection.issue_receive_action())
+    local,=receiver._index.saved_receipts()
+    evidence=receiver._index.saved_mapping_receipt()
+    mapping=connection._mappings.lookup((association,))
+    directory=connection._authority.binding.native_directory
+    with NativeMediaRetention(directory) as other:
+        with other.activity(exclusive=True) as relocation:
+            assert relocation is not None
+            for call in (connection.send_saved_confirmation,lambda:connection.observe_saved_photo(local.file_id),
+                    lambda:connection.finish_saved_receive(connection.issue_receive_action(),retire_cache=True)):
+                with pytest.raises(TransferError,match='media_activity_busy'):call()
+            assert connection._run.receiver is receiver and receiver._index.saved_mapping_receipt()==evidence
+            assert connection._mappings.lookup((association,))==mapping and len(saved_messages(receiving))==1
+        assert connection.observe_saved_photo(local.file_id).observation.state=='present'
+        connection.send_saved_confirmation()
+        connection.finish_saved_receive(connection.issue_receive_action(),retire_cache=True)
+        with other.activity(exclusive=True) as relocation:assert relocation is not None
+    assert connection._run is None and connection._mappings.lookup((association,))==mapping
+    assert len(saved_messages(receiving))==2 and (receiving[4]/local.relative_path).read_bytes()==b'hello'
+
+
 @pytest.mark.parametrize('cache',['cleared','changed'])
 def test_original_protected_job_history_not_mutable_current_page_cache_supplies_mapping(receiving,cache):
     connection=receiving[3];receiver,pages,association=save(receiving,publish=False)

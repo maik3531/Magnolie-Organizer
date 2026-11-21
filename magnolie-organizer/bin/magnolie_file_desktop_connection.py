@@ -2126,13 +2126,32 @@ class NativeDesktopFileConnection:
         with self._operation():
             return self._require_receiver().receiver.progress()
 
+    @contextmanager
+    def _saved_media_activity(self, *, run=None, action=None):
+        """Pin the shared media lane to the native receive owner, not a wire flag."""
+        def current():
+            if run is None:self._receive_binding()
+            elif self._require_receiver() is not run:
+                raise TransferError('file_desktop_receive_owner_changed')
+            if action is not None:action.validate(self)
+            return True
+        if run is not None and run.receiver._index.media_history is None:
+            yield current  # Legacy receiver: no managed media mapping.
+            return
+        from magnolie_media_retention import NativeMediaRetention
+        with NativeMediaRetention(self._authority.binding.native_directory) as retention:
+            with retention.activity(current) as lease:
+                if lease is None:raise TransferError('file_desktop_media_activity_busy')
+                yield lease
+
     def observe_saved_photo(self, file_id):
         """Native read-only conflict input; no wire/UI or deletion authority."""
         with self._operation():
             run = self._require_receiver()
-            result = run.receiver.observe_saved_photo(file_id)
-            self._receive_binding()
-            return result
+            with self._saved_media_activity(run=run) as current:
+                result = run.receiver.observe_saved_photo(file_id)
+                current()
+                return result
 
     def publish_received(self, action, *, clock=now_ms):
         """Explicit native publication/readback only. Never overwrites a target;
@@ -2143,26 +2162,18 @@ class NativeDesktopFileConnection:
             run = self._require_receiver()
             if not run.acceptance_sent:
                 raise TransferError('file_desktop_acceptance_not_sent')
-            if run.receiver._index.media_history is not None:
-                # Keep local relocation and media publication mutually exclusive,
-                # including the saved mapping and its first outbound receipt.
-                from magnolie_media_retention import NativeMediaRetention
-                retention=media.enter_context(NativeMediaRetention(self._authority.binding.native_directory))
-                def current():
-                    action.validate(self);return True
-                if media.enter_context(retention.activity(current)) is None:
-                    raise TransferError('file_desktop_media_activity_busy')
+            current=media.enter_context(self._saved_media_activity(run=run,action=action))
             self._mutation_action = action
             try:
-                action.validate(self)
+                current()
                 self._verify_version_parent_targets(run)
                 run.receiver.publish_completed()
-                self._receive_binding(); action.validate(self)
+                current()
                 run.receiver.commit_saved_receipts()
                 self._commit_saved_media(run, action=action)
                 run.saved_mapping_ready=run.receiver._index.saved_mapping_receipt() is not None
                 confirmation = run.receiver.saved_receipt_message(now=clock())
-                action.validate(self)
+                current()
                 self._send_data(confirmation, clock, action=action)
                 return run.receiver.progress()  # Local save != whole-sync END/quota release.
             finally:
@@ -2237,9 +2248,11 @@ class NativeDesktopFileConnection:
             run = self._require_receiver()
             if not run.acceptance_sent:
                 raise TransferError('file_desktop_acceptance_not_sent')
-            self._commit_saved_media(run)
-            message = run.receiver.saved_receipt_message(now=clock())
-            self._send_data(message, clock)
+            with self._saved_media_activity(run=run) as current:
+                self._commit_saved_media(run)
+                message = run.receiver.saved_receipt_message(now=clock())
+                current()
+                self._send_data(message, clock)
 
     def finish_saved_receive(self, action, *, retire_cache=False):
         """Close a fully saved native receiver, retaining original history/quota.
@@ -2248,7 +2261,7 @@ class NativeDesktopFileConnection:
         if type(retire_cache) is not bool:
             raise TransferError('file_desktop_native_cache_choice_required')
         self._take_action(action)
-        with self._operation():
+        with self._operation(), ExitStack() as media:
             run = self._require_receiver()
             if run.resume_source_run_id is not None:
                 ended=self._resume_end_confirmation
@@ -2256,6 +2269,7 @@ class NativeDesktopFileConnection:
                         or ended[1].run_id!=run.resume_source_run_id or not ended[1].run_ended
                         or not ended[1].source_io_ended):
                     raise TransferError('file_desktop_resume_source_end_required')
+            current=media.enter_context(self._saved_media_activity(run=run,action=action))
             self._commit_saved_media(run, action=action)
             evidence = run.receiver._index.saved_mapping_receipt()
             if evidence is None:
@@ -2264,7 +2278,7 @@ class NativeDesktopFileConnection:
             progress = run.receiver.checkpoint()
             if progress.verified_bytes != progress.total_bytes or progress.checkpoint_verified_bytes != progress.total_bytes:
                 raise TransferError('file_desktop_saved_receive_incomplete')
-            action.validate(self)
+            current()
             if retire_cache:
                 run.job = self._catalog.retire_saved_cache(run.receiver)
                 action.validate(self)
@@ -2398,7 +2412,7 @@ class NativeDesktopFileConnection:
         """
         from magnolie_file_saved_message import create_saved
         self._take_action(action)
-        with self._operation():
+        with self._operation(), self._saved_media_activity(action=action) as current:
             action.validate(self)
             if self._run is not None or self._source_pending is not None or self._source_run is not None or self._offer is not None:
                 raise TransferError('file_desktop_receive_already_active')
@@ -2428,7 +2442,7 @@ class NativeDesktopFileConnection:
                             raise TransferError('file_desktop_saved_mapping_receipt_changed')
                         receipts=index.saved_receipts()
                         message=create_saved(job.accepted,receipts,self._receive_binding,job.owner,now=clock())
-                        action.validate(self)
+                        current()
                         if self._catalog.jobs()!=jobs or index.saved_mapping_receipt()!=evidence:
                             raise TransferError('file_desktop_saved_recovery_evidence_changed')
                         self._send_data(message,clock,action=action)
@@ -2443,7 +2457,7 @@ class NativeDesktopFileConnection:
         A separate native recovery action is needed to send the historical ACK.
         """
         self._take_action(action)
-        with self._operation():
+        with self._operation(), self._saved_media_activity(action=action) as current:
             action.validate(self)
             if self._run is not None or self._source_pending is not None or self._source_run is not None or self._offer is not None:
                 raise TransferError('file_desktop_receive_already_active')
@@ -2478,7 +2492,7 @@ class NativeDesktopFileConnection:
                             if tuple(record.protected_record_sha256 for record in records)!=tuple(entry.mapping_record_sha256 for entry in existing.entries):
                                 raise TransferError('file_desktop_saved_mapping_receipt_changed')
                             self._mappings.verify_checkpoint(existing.store)
-                        self._receive_binding();action.validate(self)
+                        current()
                         if self._catalog.jobs()!=jobs:raise TransferError('file_desktop_saved_recovery_evidence_changed')
                         result=index.commit_saved_mapping(records,checkpoint,lease)
                         if index.saved_mapping_receipt()!=result:raise TransferError('file_desktop_saved_recovery_evidence_changed')

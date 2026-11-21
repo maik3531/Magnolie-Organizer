@@ -32,6 +32,10 @@ does not renew the original operation.
 First-time desktop media publication takes the shared side of that lease
 before inspecting version-parent targets and holds it through the first
 Saved output, including publication, receipts and the mapping write.
+The live Saved retry, target observation, cache retirement, historical Saved
+retry and original mapping-receipt repair now use the same shared lane. They
+do not project a moved path or alter the historical receipt. A busy lane
+stops the action before a new read, mapping write or Saved output.
 
 The native no-replace syscall protects the target name. It does not atomically
 compare the source inode. A conflicting non-cooperating writer can still

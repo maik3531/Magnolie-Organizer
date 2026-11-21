@@ -66,6 +66,34 @@ def test_missing_original_mapping_is_held_not_reconstructed_from_receipt(receivi
             connection.recover_saved_confirmation(connection.issue_receive_action(),receiver.job.owner)
 
 
+def test_original_repair_and_confirmation_share_lane_with_local_relocation(receiving,monkeypatch):
+    from magnolie_media_retention import NativeMediaRetention
+    receiver=interrupted_save(receiving,monkeypatch);job=receiver.job
+    with reconnect(receiving) as fresh:
+        connection=fresh[3];original=connection._mappings.read()
+        repair=lambda:connection.repair_saved_mapping_receipt(connection.issue_receive_action(),job.owner)
+        confirm=lambda:connection.recover_saved_confirmation(connection.issue_receive_action(),job.owner)
+        directory=connection._authority.binding.native_directory
+        with NativeMediaRetention(directory) as other:
+            with other.activity(exclusive=True) as relocation:
+                assert relocation is not None
+                with pytest.raises(TransferError,match='media_activity_busy'):repair()
+                assert not saved_messages(fresh)
+            with pytest.raises(TransferError,match='complete_evidence_required'):confirm()
+            evidence=repair()
+            with other.activity(exclusive=True) as relocation:
+                assert relocation is not None
+                with pytest.raises(TransferError,match='media_activity_busy'):confirm()
+                assert not saved_messages(fresh)
+            def sent(message):
+                if message['kind']=='file_transfer.saved':
+                    with other.activity(exclusive=True) as relocation:assert relocation is None
+            fresh[2].send.side_effect=sent
+            assert confirm()==evidence
+            with other.activity(exclusive=True) as relocation:assert relocation is not None
+        assert connection._mappings.read()==original and len(saved_messages(fresh))==1
+
+
 def test_repair_action_expiring_during_protection_cannot_commit_index_upgrade(receiving,monkeypatch):
     receiver=interrupted_save(receiving,monkeypatch);job=receiver.job
     with reconnect(receiving) as fresh:
