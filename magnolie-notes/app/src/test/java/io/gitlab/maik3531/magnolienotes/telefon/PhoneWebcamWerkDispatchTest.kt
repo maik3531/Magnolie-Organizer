@@ -111,6 +111,27 @@ class PhoneWebcamWerkDispatchTest {
         }
     }
 
+    @Test fun unknownMediaSupportDraftLeavesLegacyParentAndPeerIntact() {
+        Fixture().use { f ->
+            val before = f.storage.fileAuthorityPeers().peer
+            val beforeBook = Ablage.hole(f.context).bestand.value
+            val hello = TelefonNachrichten.message("media_support.hello", buildJsonObject {
+                put("format", 1)
+                put("feature", "shared_settings")
+            }, 10_000)
+            f.deliver(hello)
+            assertEquals(TelefonNachrichten.ack(hello.string("message_id"), "rejected", "unsupported"), f.receive())
+            assertEquals(before, f.storage.fileAuthorityPeers().peer)
+            assertSame(beforeBook, Ablage.hole(f.context).bestand.value)
+            assertNull(f.runtime())
+            assertFalse(f.work.state.value.mediaPreferencesSupported)
+            val next = f.capabilities(6, false)
+            f.deliver(next)
+            assertEquals(TelefonNachrichten.ack(next.string("message_id"), "accepted", "none"), f.receive())
+            assertFalse(f.pipe.isClosed)
+        }
+    }
+
     @Test fun freshEncryptedCapabilityUsesActualWerkDispatcherButBackgroundOfferCannotStartCapture() {
         Fixture().use { f ->
             f.deliver(f.capabilities(6, true))

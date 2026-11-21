@@ -32,6 +32,53 @@ internal static class SharedSyncTransportTests
             ["kind"] = kind, ["created_ms"] = now, ["expires_ms"] = now + 60000, ["body"] = body.DeepClone() };
     }
 
+    internal static async Task LegacyMediaSupportAsync()
+    {
+        using var fixture = new PhoneCameraParentTests.Fixture();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+        var store = fixture.Store;
+        var peer = fixture.Peer;
+        store.SavePeers([peer]);
+        store.SetPersonalSettings(peer.Id, ownDevice: true, remoteOwnDevice: true);
+        var caps = TelefonProtocolContract.DesktopCapabilities();
+        caps["items"]!["device_status"]!["versions"] = new JsonArray(1, 2, 3, 4, 5, 7, 8, 11, 12, 13, 17, 18, 19, 20, 21, 22);
+        var revision = TelefonProtocolContract.ValidateCapabilities(caps);
+        store.UpdatePeerProtocol(peer.Id, revision, caps["items"]!.AsObject(), 0, null);
+        var before = store.LoadPeers().Single();
+        var optIns = store.PersonalSettings(peer.Id);
+        var grants = store.LocalGrants().DeepClone();
+        var hello = Message("media_support.hello", new JsonObject { ["format"] = 1, ["feature"] = "shared_settings" });
+        hello["expires_ms"] = TelefonProtocolContract.Integer(hello["created_ms"]) + 10_000;
+        var ping = new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() };
+
+        var run = fixture.Connection.RunAsync();
+        try
+        {
+            await fixture.Send(hello, 0);
+            var ack = await fixture.Read(0);
+            // The Windows legacy kind allowlist rejects before authorization.
+            TestAssert.That(JsonNode.DeepEquals(ack, new JsonObject { ["type"] = "ack", ["message_id"] = hello["message_id"]!.DeepClone(),
+                ["status"] = "rejected", ["error"] = "invalid_schema" }), $"Unexpected legacy response to the synthetic probe: {ack}");
+            await fixture.Send(ping, 1);
+            ping["type"] = "pong";
+            TestAssert.That(JsonNode.DeepEquals(await fixture.Read(1), ping), "Heartbeat did not continue on the original encrypted parent.");
+            var after = store.LoadPeers().Single();
+            TestAssert.That(after.Id == before.Id && after.State == before.State && after.PublicKey.SequenceEqual(before.PublicKey) &&
+                after.FilePairingEpoch == before.FilePairingEpoch && after.CapabilityRevision == before.CapabilityRevision &&
+                JsonNode.DeepEquals(after.Capabilities, before.Capabilities) && JsonNode.DeepEquals(after.Grants, before.Grants) &&
+                store.PersonalSettings(peer.Id) == optIns && JsonNode.DeepEquals(grants, store.LocalGrants()) &&
+                fixture.LegacyReceives == 0 && !fixture.Connection.SharedSettingsReady,
+                "Unknown media probe altered pairing, capabilities, grants or ordinary preference processing.");
+            await fixture.Send(new JsonObject { ["type"] = "close", ["reason"] = "normal" }, 2);
+            await run.WaitAsync(timeout.Token);
+        }
+        finally
+        {
+            fixture.Connection.Dispose();
+            try { await run.WaitAsync(timeout.Token); } catch (Exception error) when (error is IOException or OperationCanceledException or ObjectDisposedException) { }
+        }
+    }
+
     internal static async Task RunAsync()
     {
         var root = Path.Combine(Path.GetTempPath(), "shared-sync-wire-" + Guid.NewGuid().ToString("N"));
