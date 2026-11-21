@@ -87,8 +87,10 @@ For this Linux/Notes draft, Notes initiates after warm-up; Linux only responds
 from its active reader. Linux sends its capability and grant controls before
 reading the Android controls. Notes' replies to those controls precede its
 hello in the same ordered channel, so Linux can finish its control loop
-before dispatching the hello. This ordering needs a full-session interop test:
-a probe received by a pre-active reader may not be buffered or replayed. The
+before dispatching the hello. `NativeMediaSupportSessionTest` runs both actual
+session loops with disposable pins over encrypted loopback, including the
+ordinary control phase and a heartbeat after discovery on the same parent.
+A probe received by a pre-active reader may not be buffered or replayed. The
 Android private reader tracks only fresh acknowledged controls of that
 original transport, independently of legacy pre-write session flags. It does
 not use this observation for file access or batch authority. Android
