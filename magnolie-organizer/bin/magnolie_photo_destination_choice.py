@@ -70,12 +70,13 @@ class NativeDestinationFolderChoice:
             self.transport = connection._media_transport
             self.intent = self._intent_position()
             self.expected = connection._preferences.read()
-            if self.expected.policy is None or not self.expected.associated:
+            policy = self.expected.policy
+            if (policy is None and kind != 'images') or (policy is not None and not self.expected.associated):
                 raise TransferError('media_destination_existing_preferences_required')
-            if (kind == 'images' and self.expected.policy.enabled or
-                    kind == 'video' and self.expected.policy.videos is not None and self.expected.policy.videos.enabled):
+            if policy is not None and (kind == 'images' and policy.enabled or
+                    kind == 'video' and policy.videos is not None and policy.videos.enabled):
                 raise TransferError('media_destination_disable_first')
-            if kind == 'video' and (not self.expected.policy.enabled or not connection._video_data_handlers_ready or not connection._authority.video_available()):
+            if kind == 'video' and (not policy.enabled or not connection._video_data_handlers_ready or not connection._authority.video_available()):
                 raise TransferError('video_preferences_destination_choice_requires_off')
             root = Path(connection._authority.binding.native_directory)
             self.book_fd = os.open(root.parent / 'daten.json', os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK)
@@ -198,8 +199,10 @@ class NativeDestinationFolderChoice:
             self.current()
             preferences = connection._preferences
             session = connection.desktop_session()
-            previous = self.expected.policy.destination if self.kind == 'images' else (
-                self.expected.policy.videos.destination if self.expected.policy.videos is not None else None)
+            policy = self.expected.policy
+            previous = policy.destination if self.kind == 'images' and policy is not None else None
+            if self.kind == 'video' and policy.videos is not None:
+                previous = policy.videos.destination
             session._retain_backup_destination(self.expected, self.kind, previous, choice.destination, _native_current=self.context_current)
             self.current()
             def writer_current():
@@ -208,7 +211,10 @@ class NativeDestinationFolderChoice:
                 return True
             action = preferences.issue_action(_native_current=writer_current)
             if self.kind == 'images':
-                saved = preferences.set_photo_destination(action, self.expected, choice, historical_choice='keep_existing')
+                if policy is None:
+                    saved = preferences.configure(action, self.expected, enabled=False, mode='manual', destination_choice=choice)
+                else:
+                    saved = preferences.set_photo_destination(action, self.expected, choice, historical_choice='keep_existing')
             else:
                 saved = preferences.set_video_scope(action, self.expected, enabled=False, destination_choice=choice, historical_choice='keep_existing')
             writer_current()

@@ -3346,6 +3346,7 @@ class NativePhotoDesktopSession:
             self._active_media=kind
             if kind=='images':
                 self._destination=saved.policy.destination.path;self._state='off';self._albums=[];self._permission=None
+                self._error=None
             else:
                 self._video_supported=True;self._video_enabled=False
                 self._video_destination=saved.policy.videos.destination.path

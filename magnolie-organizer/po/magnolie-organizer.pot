@@ -5173,6 +5173,11 @@ msgid "Photo synchronization could not be started."
 msgstr ""
 
 msgid ""
+"The default folder is not private. Choose a destination folder you own that "
+"others cannot write to, then enable photo synchronization again."
+msgstr ""
+
+msgid ""
 "Photo synchronization could not be started. Check the current phone "
 "connection and permissions."
 msgstr ""

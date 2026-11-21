@@ -29684,8 +29684,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const pending = stand.state === "enable" && stand.busy === true;
         const failed = stand.state === "held" && !telefonFotoFehler.has(peer.device_id);
         if (pending || failed) {
+          const unsafe = stand.error === "file_acceptance_unsafe_destination" && !stand.destination;
           const activation = el("p", failed ? "einst-warnung" : "einst-hinweis", failed
-            ? _("Photo synchronization could not be started.") : _("Preparing photo synchronization…"));
+            ? (unsafe ? _("The default folder is not private. Choose a destination folder you own that others cannot write to, then enable photo synchronization again.")
+              : _("Photo synchronization could not be started.")) : _("Preparing photo synchronization…"));
           activation.dataset.photoActivationStatus = "true";
           activation.setAttribute("role", "status");
           gruppe.append(activation);
@@ -29812,15 +29814,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           gruppe.append(videos);
         }
       }
-      if (stand.destination) {
+      if (stand.destination || (stand.photo_destination_setup === true && stand.enabled !== true && stand.mapped_outgoing !== true)) {
         const fotoOrdner = el("div", "kde-empfangsordner");
         const fotoZiel = knopf(_("Photos") + " · " + _("Destination folder"), "", () => Bruecke.sende({ cmd: "telefon_fotoziel_waehlen",
           kennung: peer.device_id, fingerprint: peer.fingerprint })); fotoZiel.dataset.photoDestination = "true";
-        fotoZiel.title = stand.destination;
+        if (stand.destination) fotoZiel.title = stand.destination;
         const fotoStandard = knopf(_("Use default"), "", () => sende("photos_default_destination")); fotoStandard.dataset.photoDestinationDefault = "true";
         fotoZiel.disabled = fotoStandard.disabled = stand.busy === true || stand.enabled === true;
-        fotoOrdner.append(fotoZiel, fotoStandard); gruppe.append(fotoOrdner,
-          el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
+        fotoOrdner.append(fotoZiel);
+        if (stand.destination) fotoOrdner.append(fotoStandard);
+        gruppe.append(fotoOrdner);
+        if (stand.destination) gruppe.append(el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
       }
       const sharedSources = stand.shared_media;
       if (stand.collection_sources_supported === true && sharedSources?.values.collection_mode === "entire_collection" &&

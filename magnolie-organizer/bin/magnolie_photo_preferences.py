@@ -633,7 +633,8 @@ class ProtectedPhotoPreferences:
                     if (type(choice.owner) is not NativePhotoDestinationController or choice.owner._authority is not self._authority):
                         raise TransferError('photo_preferences_foreign_destination_choice')
                     selected=choice.owner.verify_choice(choice)
-                    if policy.destination is None:raise TransferError('photo_preferences_destination_required')
+                    # A failed default lookup can leave an associated, disabled
+                    # policy without an initial destination. Update only its target.
                     if selected!=policy.destination:
                         if policy.videos is not None and policy.videos.destination_token==choice.destination_token:
                             raise TransferError('photo_preferences_distinct_destination_token_required')

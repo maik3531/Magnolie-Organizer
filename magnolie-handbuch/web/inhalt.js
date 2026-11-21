@@ -2443,6 +2443,13 @@ const KDE_ZEICHEN_HILFE = {
   "zh-cn": "绘图板：KDE Connect发送位置、接触、压力和笔/橡皮切换，Magnolie将其用于活动画纸，也包括笔记绘图对话框。悬停光标不会绘图，也不会保存或导出。手机菜单可设置全屏，以及隐藏手指绘图按钮或将其放在任一角落。笔型、形状、选择、缩放和撤销属于Magnolie工具栏。此KDE协议不包含倾斜、笔旋转或额外按键。"
 };
 for (const [language, text] of Object.entries(KDE_MEDIEN_HILFE)) HANDBUCH_ANHAENGE["phone-pairing"].inhalt[language] += "<p>" + text + "</p>";
+const LINUX_FOTO_ZIELORDNER = {
+  en: "<h3>Linux: Choose where to receive photos</h3><p>With your own Magnolie Notes phone connected over Wi-Fi, open <b>Settings ▸ Magnolie Notes phone connection ▸ Advanced functions ▸ Photos and videos</b>. Leave synchronization off and click <b>Photos · Destination folder</b> to choose an existing private folder. Choose a folder that belongs to you and is not writable by other users, including via a group. If the default Pictures folder was rejected on the first attempt, choose a private folder here and then enable synchronization again.</p><p>Choosing a folder leaves synchronization off. It does not grant Android media access, transfer or move files, or change folder permissions.</p>",
+  de: "<h3>Linux: Empfangsordner für Fotos wählen</h3><p>Öffnen Sie bei aktiver WLAN-Verbindung zum eigenen Notes-Telefon <b>Einstellungen ▸ Magnolie-Notes-Telefonverbindung ▸ Erweiterte Funktionen ▸ Fotos und Videos</b>. Lassen Sie den Abgleich ausgeschaltet und wählen Sie unter <b>Fotos · Zielordner</b> einen vorhandenen privaten Ordner. Er muss Ihnen gehören und darf für andere Benutzer auch nicht über eine Gruppe beschreibbar sein. Wurde der Standard-Bilderordner beim ersten Einschalten abgelehnt, wählen Sie hier einen privaten Ordner und schalten Sie den Abgleich danach erneut ein.</p><p>Die Ordnerwahl lässt den Abgleich ausgeschaltet. Sie erteilt keine Android-Medienfreigabe, überträgt oder verschiebt keine Dateien und ändert keine Ordnerrechte.</p>"
+};
+for (const language of Object.keys(HANDBUCH_ANHAENGE["phone-pairing"].inhalt)) {
+  HANDBUCH_ANHAENGE["phone-pairing"].inhalt[language] += LINUX_FOTO_ZIELORDNER[language] || LINUX_FOTO_ZIELORDNER.en;
+}
 for (const [language, text] of Object.entries(KDE_ZEICHEN_HILFE)) HANDBUCH_ANHAENGE["phone-pairing"].inhalt[language] += "<p>" + text + "</p>";
 for (const [language, text] of Object.entries(FAX_WEGE_HILFE)) HANDBUCH_ANHAENGE["sending-selected-notes"][language] += "<p>" + text + "</p>";
 for (const [language, text] of Object.entries(KONTAKT_WEB_HILFE)) HANDBUCH_ANHAENGE["creating-a-contact"][language] += "<p>" + text + "</p>";

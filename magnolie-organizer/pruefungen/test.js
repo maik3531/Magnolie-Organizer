@@ -7642,6 +7642,21 @@ function knopfMit(text, wurzel) {
   bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: staleSendChoice.requestId, ok: false, error: "stale forbidden error" });
   assert.ok(!bd.querySelector(".notes-erweiterte-funktionen").textContent.includes("stale forbidden error"), "Alte Antwort verändert keinen neuen Kopplungskontext");
   fotoStand(undefined);
+  const setup = { available: true, enabled: false, state: "off", albums: [], photo_destination_setup: true };
+  fotoStand(setup);
+  const firstPicker = bd.querySelector(".notes-erweiterte-funktionen [data-photo-destination]");
+  assert.ok(firstPicker && !firstPicker.disabled && !firstPicker.title);
+  assert.ok(!bd.querySelector("[data-photo-destination-default]"));
+  firstPicker.click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1))), {
+    cmd: "telefon_fotoziel_waehlen", kennung: fotoPeer.device_id, fingerprint: fotoPeer.fingerprint });
+  fotoStand({ ...setup, state: "enable", busy: true });
+  assert.ok(bd.querySelector("[data-photo-destination]").disabled);
+  fotoStand({ ...setup, state: "held", error: "file_acceptance_unsafe_destination" });
+  const recoveryPicker = bd.querySelector("[data-photo-destination]");
+  assert.ok(recoveryPicker && !recoveryPicker.disabled);
+  const recoveryHint = bd.querySelector("[data-photo-activation-status]").textContent;
+  assert.ok(/destination folder you own|privaten Zielordner/.test(recoveryHint) && !recoveryHint.includes("file_acceptance_"));
   fotoStand({ available: true, enabled: false, state: "off", albums: [], destination: "/native/Pictures/Notes-Fotos" });
   let fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
   assert.ok(fotoGruppe && bd.querySelector(".telefon-karte").contains(fotoGruppe) &&

@@ -3193,7 +3193,7 @@ class PhoneService:
                 and controls.get('grants.update')==peer.get('grants')
                 and controls.get('personal_sync.settings')=={'format':1,'own_device':True})
 
-    def open_native_file_connection(self, peer_id, static_public, channel, generation):
+    def open_native_file_connection(self, peer_id, static_public, channel, generation, *, destination_setup=False):
         NativeDesktopFileConnection = self._native_file_module('magnolie_file_desktop_connection').NativeDesktopFileConnection
         binding = self._current_native_file_binding(peer_id, static_public, channel, generation)
         if binding is None:
@@ -3218,6 +3218,12 @@ class PhoneService:
             authority.close()
             raise
         try:
+            if destination_setup:
+                # Do not publish a live native owner for a dormant, already
+                # enabled policy merely because the off-state hint was shown.
+                saved=connection._preferences.read()
+                if saved.policy is not None and (not saved.associated or saved.policy.enabled):
+                    raise ValueError('media_destination_disable_first')
             with self.lock:
                 if (self._current_native_file_binding(peer_id, static_public, channel, generation) is not binding
                         or channel in self._native_file_connections):
@@ -3269,12 +3275,16 @@ class PhoneService:
                 and self._current_native_video_metadata(peer_id,binding.static_public,channel,binding.generation))
         if connection is None:
             state=dict(available=True,state='off',enabled=False,mode='manual',albums=[])
+            # A passive hint only. Opening the picker still requires the native
+            # pairing, saved book and original protected preference witnesses.
+            if binding.pairing_epoch is not None:state['photo_destination_setup']=True
             setup=self._native_sending_setup_hint(peer_id,binding,channel)
             if setup is not None:
                 state['sending_setup']=setup
                 if video_available:state['video_supported']=True
             return state
         state=connection.desktop_snapshot()
+        if binding.pairing_epoch is not None:state['photo_destination_setup']=True
         if video_available:
             state['video_supported']=True
             for field,default in (('video_enabled',False),('video_destination',None),('video_albums',[]),('video_permission',None)):
@@ -3293,6 +3303,11 @@ class PhoneService:
                     or fingerprint(unb64(binding.static_public,32)).lower()!=expected_fingerprint.lower()):
                 raise ValueError('phone_control_conflict')
             connection=self._native_file_connections.get(channel)
+        if (connection is None and operation=='prepare' and media_type=='images'
+                and binding.pairing_epoch is not None and selection is None and path is None and witness is None):
+            # Read existing native identity only. Do not migrate a legacy peer,
+            # start activation or create preferences just to show a dialog.
+            connection=self.open_native_file_connection(peer_id,binding.static_public,channel,binding.generation,destination_setup=True)
         if connection is None:raise ValueError('photo_sync_not_enabled')
         return connection.native_destination_choice(operation,kind=media_type,selection=selection,path=path,witness=witness,
             book_version=book_version,book_witness=book_witness)

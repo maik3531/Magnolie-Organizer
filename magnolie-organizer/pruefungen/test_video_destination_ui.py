@@ -9,7 +9,7 @@ from queue import Queue, Empty
 
 import pytest
 
-from test_file_authenticated_desktop import native
+from test_file_authenticated_desktop import native, bind
 from test_file_desktop_receive import receiving
 from test_file_desktop_album_worker import prepared as prepared_images
 from test_file_video_authority import ack_all
@@ -19,11 +19,15 @@ import magnolie_telefon as phone
 from magnolie_media_retention import NativeMediaRetention
 
 
-def saved_book_inputs(connection):
-    with NativeMediaRetention(connection._authority.binding.native_directory) as book:
+def saved_book_inputs_for_root(root):
+    with NativeMediaRetention(root) as book:
         saved=book._read()
         assert saved is not None and saved['book_sha256'] is not None
         return dict(book_version=saved['book_sha256'],book_witness=list(saved['book_file']))
+
+
+def saved_book_inputs(connection):
+    return saved_book_inputs_for_root(connection._authority.binding.native_directory)
 
 
 def prepare_choice(fixture,monkeypatch):
@@ -54,7 +58,7 @@ def native_picker(fixture,tmp_path,selection,*,photos=False,clock=None):
         def choose(title,**options):
             assert threading.current_thread() is threading.main_thread()
             calls.append((title,options));return selection(window) if callable(selection) else selection
-        inputs=saved_book_inputs(fixture[3])
+        inputs=saved_book_inputs_for_root(service.store.root)
         proof=dict(book_source='native-test-book',sequence=1)
         window=SimpleNamespace(_gesperrt=False,_telefon=background.PhoneServiceProxy(server.path),_ordner_waehlen=choose,
             antwort=lambda name,value:answers.append((name,value)),_telefon_stand_melden=lambda:None,
@@ -158,6 +162,84 @@ def test_native_photo_picker_private_ipc_keeps_disabled_state_and_original_files
     with native_picker(receiving,tmp_path,str(target),photos=True) as (_,invoke,_,_):
         invoke();assert session.join(20)
     assert connection._preferences.read()==changed
+
+
+@pytest.mark.parametrize('case',['first','cancel','stale_book','unsafe_choice','failed_enable','legacy_failed_enable'])
+def test_native_photo_picker_before_successful_enable(native,tmp_path,monkeypatch,case):
+    service,peer,_=native
+    if case=='legacy_failed_enable':
+        peer.pop('file_pairing_epoch');service.store.save_peers()
+    monkeypatch.setattr(NativeDesktopFileConnection,'_data_handlers_ready',True)
+    monkeypatch.setattr(service,'_resume_automatic_photos',lambda *args:None)
+    channel,_=bind(service,peer);ack_all(service,peer,channel);channel.send.reset_mock()
+    book=tmp_path/'daten.json';book.write_text('{"einstellungen":{"papierkorb":{"an":false,"tage":0}}}')
+    book.chmod(0o600)
+    with NativeMediaRetention(service.store.root) as retention:assert retention.adopt_existing_saved()
+    saved_book=book.read_bytes()
+    pictures=tmp_path/'Native-Pictures';pictures.mkdir(mode=0o700);pictures.chmod(0o775)
+    original=pictures/'unchanged.jpg';original.write_bytes(b'original')
+    target=tmp_path/'Explicit-Safe-Photo-Choice';target.mkdir(mode=0o700)
+    monkeypatch.setattr('magnolie_photo_destination.native_pictures_directory',lambda:pictures)
+    peer_id=peer['device_id'];fingerprint=phone.fingerprint(phone.unb64(peer['static_public'],32))
+    try:
+        assert service.photo_sync_state(peer_id).get('photo_destination_setup',False) is (case!='legacy_failed_enable')
+        assert channel not in service._native_file_connections
+        before=None
+        if case.endswith('failed_enable'):
+            service.photo_sync_action(peer_id,fingerprint,dict(action='enable'))
+            connection=service._native_file_connections[channel];assert connection.desktop_session().join(20)
+            stand=service.photo_sync_state(peer_id)
+            assert stand['state']=='held' and stand['error']=='file_acceptance_unsafe_destination',stand
+            assert not stand['enabled'] and not stand['destination'] and stand['photo_destination_setup']
+            before=connection._preferences.read()
+            assert before.associated and before.policy.mapping_store and before.policy.job_catalog
+        else:
+            assert not any(Path(service.store.root).glob('photo-preferences-v1-*'))
+        paired_before=Path(service.store.peers_path).read_bytes()
+        def choose(_):
+            assert not channel.send.called
+            prefs=service._native_file_connections[channel]._preferences
+            if before is None:assert prefs.read().policy is None
+            else:assert prefs.read()==before
+            if case=='stale_book':book.write_bytes(saved_book+b' ')
+            if case=='unsafe_choice':return str(pictures)
+            return None if case=='cancel' else str(target)
+        with native_picker((service,peer),tmp_path,choose,photos=True) as (_,invoke,calls,answers):
+            invoke()
+            assert len(calls)==1
+            assert answers[-1][1]['ok'] is (case not in ('stale_book','unsafe_choice'))
+            assert answers[-1][1].get('canceled',False) is (case=='cancel')
+        connection=service._native_file_connections[channel]
+        after=connection._preferences.read()
+        if case in ('cancel','stale_book','unsafe_choice'):
+            assert after.policy is None and not any(Path(service.store.root).glob('photo-preferences-v1-*'))
+        else:
+            assert after.associated and after.policy.destination.path==str(target)
+            assert not after.policy.enabled and not after.include_videos and after.policy.mode=='manual'
+            assert after.policy.sending is None and not after.policy.phone_to_pc_delete and not after.policy.pc_to_phone_delete
+            stand=service.photo_sync_state(peer_id)
+            assert stand['state']=='off' and stand['error'] is None and stand['permission'] is None
+            if before is not None:
+                assert after.policy.mapping_store==before.policy.mapping_store and after.policy.job_catalog==before.policy.job_catalog
+        assert not connection._preferences.local_grant(True).grants.receive_files
+        assert not channel.send.called and Path(service.store.peers_path).read_bytes()==paired_before
+        assert book.read_bytes()==saved_book+(b' ' if case=='stale_book' else b'')
+        assert list(pictures.iterdir())==[original] and pictures.stat().st_mode & 0o777==0o775
+        assert original.read_bytes()==b'original' and not list(target.iterdir())
+    finally:service._end_native_file_connection(channel)
+
+
+def test_cold_photo_picker_does_not_open_enabled_receive_policy(receiving,tmp_path,monkeypatch):
+    service,peer,old,connection,_=receiving
+    assert connection._preferences.read().policy.enabled
+    service._end_native_file_connection(old)
+    monkeypatch.setattr(service,'_resume_automatic_photos',lambda *args:None)
+    channel,_=bind(service,peer);ack_all(service,peer,channel);channel.send.reset_mock()
+    try:
+        with native_picker((service,peer),tmp_path,None,photos=True) as (_,invoke,calls,answers):
+            assert invoke() is None and not calls and answers[-1][1]['ok'] is False
+        assert channel not in service._native_file_connections and not channel.send.called
+    finally:service._end_native_file_connection(channel)
 
 
 @pytest.mark.parametrize('photos',[False,True])
