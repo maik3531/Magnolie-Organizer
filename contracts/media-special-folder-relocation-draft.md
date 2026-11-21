@@ -206,6 +206,13 @@ missing name and its existing parent chain under the same original action and
 exclusive lease. An interruption on either side of that commit does not allow
 another attempt. Even an isolated surviving attempt holds the ordinary path.
 This transition does not call mkdir or return permission to do so later.
+The private live continuation can now install that first directory only: it
+holds the parent descriptor, stages an empty private directory, and publishes
+it without replacing an occupied name. It records the verified new inode only
+after filesystem sync. The private staging name is excluded from media scans.
+A late collision preserves both directories; a cut after installation without
+a result is held, not repeated or cleaned up automatically. The next parent
+and media rename are not enabled by this result.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in

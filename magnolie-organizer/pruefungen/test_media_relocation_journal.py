@@ -110,6 +110,57 @@ def test_first_folder_attempt_is_bound_once_without_creating_a_folder(relocation
     assert source.read_bytes()==raw and not target.parent.parent.exists()
 
 
+@pytest.mark.parametrize('fault',['none','late_occupant','after_create_before_result'])
+def test_first_planned_folder_is_installed_no_replace_and_bound_to_its_inode(relocation_owner_case,monkeypatch,fault):
+    from magnolie_media_relocation_record import (MissingGifTargetDraft, bind_gif_relocation_folder_plan,
+        inspect_relocation_target_parents)
+    from magnolie_media_trash import _move_no_replace
+    from magnolie_photo_destination import media_path_is_excluded
+    authority,records,destination,source,target,raw=relocation_owner_case
+    folder=target.parent.parent;target.parent.rmdir();folder.rmdir()
+    members=tuple(MissingGifTargetDraft(record.operation,record.book_sha256,record.preferences_sha256,
+        record.original_mapping_sha256,destination,record.source,record.source_parents,record.target,
+        inspect_relocation_target_parents(destination,record.target,lambda:True),record.file) for record in records)
+    plan=bind_gif_relocation_folder_plan(members,destination)
+    stage=folder.with_name('.magnolie-relocation-dir-'+members[0].operation)
+    assert media_path_is_excluded(stage/'anything.gif')
+    active=True;name_moves=[];foreign=[]
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        def rename(fd,old,new):
+            nonlocal active
+            assert stage.exists() and old==stage.name and new==folder.name
+            assert owner._db.execute('SELECT 1 FROM meta WHERE key=?',(owner._FOLDER_ATTEMPT_KEY,)).fetchone()==(1,)
+            assert not owner._db.in_transaction
+            name_moves.append((stage.stat().st_dev,stage.stat().st_ino))
+            if fault=='late_occupant':
+                folder.mkdir(mode=0o700);foreign.append(folder.stat().st_ino)
+            _move_no_replace(fd,old,new)
+            if fault=='after_create_before_result':active=False
+        monkeypatch.setattr('magnolie_media_trash._move_no_replace',rename)
+        issued=owner._issue_confirmed_action(lambda:active)
+        if fault=='late_occupant':
+            with pytest.raises(FileExistsError):owner._create_first_confirmed_folder(issued,journal,plan,destination)
+        elif fault=='after_create_before_result':
+            with pytest.raises(TransferError,match='native_guard_changed'):
+                owner._create_first_confirmed_folder(issued,journal,plan,destination)
+        else:
+            intent,identity=owner._create_first_confirmed_folder(issued,journal,plan,destination)
+            assert identity==name_moves[0] and intent.selection_sha256==plan.selection_sha256
+        assert not journal.read().records
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        result=owner._db.execute('SELECT value FROM meta WHERE key=?',(owner._FOLDER_RESULT_KEY,)).fetchone()
+        if fault=='none':
+            stored=strict_json(owner._protection.unseal(result[0],owner._FOLDER_RESULT_DOMAIN))
+            assert stored['created']==list(name_moves[0]) and stored['attempt']['intent']==owner.read_folder_intent().wire()
+        else:assert result is None
+        with pytest.raises(TransferError,match='folder_plan_held|confirmation_changed'):
+            owner._create_first_confirmed_folder(owner._issue_confirmed_action(lambda:True),journal,plan,destination)
+        assert len(name_moves)==1
+    assert source.read_bytes()==raw and not target.parent.exists()
+    if fault=='late_occupant':assert folder.stat().st_ino==foreign[0] and stage.stat().st_ino==name_moves[0][1]
+    else:assert folder.stat().st_ino==name_moves[0][1] and not stage.exists()
+
+
 def test_confirmed_intent_is_independent_of_the_journal_and_survives_reopen(relocation_owner_case):
     authority,records,destination,source,target,raw=relocation_owner_case
     selection=records[0].selection_sha256

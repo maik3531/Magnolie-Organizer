@@ -160,6 +160,65 @@ def inspect_relocation_target_parents(destination,relative,current):
         require_current();return RelocationTargetParentObservation(tuple(existing),missing)
 
 
+def _install_spent_folder(destination,relative,existing,operation,current):
+    """Install one empty directory under the caller's live, spent attempt."""
+    from magnolie_media_trash import _move_no_replace
+    from magnolie_photo_destination import require_media_directory
+    *parents,name=_portable_path(relative).split('/')
+    if (len(existing)!=len(parents)+1 or existing[0]!=destination.ancestor_keys[0]
+            or type(operation) is not str or len(operation)!=32 or not _hex(operation*2)):
+        raise TransferError('photo_relocation_original_destination_required')
+    require_media_directory(destination.path+'/'+relative)
+    stage='.magnolie-relocation-dir-'+operation
+    def directory(info,*,private=False):
+        if (not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.geteuid() or info.st_dev!=existing[0][0]
+                or info.st_mode&(0o077 if private else 0o022)):
+            raise TransferError('photo_relocation_unsafe_parent')
+        return info.st_dev,info.st_ino
+    def require_current():
+        if current() is not True:raise TransferError('photo_relocation_original_owner_ended')
+    with ExitStack() as close:
+        def open_dir(path,*,dir_fd=None):
+            fd=os.open(path,_DIRECTORY_FLAGS,dir_fd=dir_fd);close.callback(os.close,fd);return fd
+        require_current();destination.verify();root=open_dir(destination.path);parent=root
+        links=[]
+        for part,identity in zip(parents,existing[1:]):
+            require_current();_require_unique_target_name(parent,part)
+            child=open_dir(part,dir_fd=parent)
+            if directory(os.fstat(child))!=identity:raise TransferError('photo_relocation_parent_changed')
+            links.append((parent,part,child,identity));parent=child
+        def fresh():
+            require_current();destination.verify()
+            if directory(os.fstat(root))!=existing[0]:raise TransferError('photo_relocation_root_changed')
+            for ancestor,part,child,identity in links:
+                _require_unique_target_name(ancestor,part)
+                if (directory(os.fstat(child))!=identity or
+                        directory(os.stat(part,dir_fd=ancestor,follow_symlinks=False))!=identity):
+                    raise TransferError('photo_relocation_parent_changed')
+            _require_unique_target_name(parent,name)
+            require_current()
+        def absent(leaf):
+            try:os.stat(leaf,dir_fd=parent,follow_symlinks=False)
+            except FileNotFoundError:return
+            raise TransferError('photo_relocation_folder_name_occupied')
+        fresh();absent(name);_require_unique_target_name(parent,stage);absent(stage)
+        require_current();os.mkdir(stage,mode=0o700,dir_fd=parent)
+        child=open_dir(stage,dir_fd=parent);identity=directory(os.fstat(child),private=True)
+        def exact(leaf):
+            if (directory(os.fstat(child),private=True)!=identity or
+                    directory(os.stat(leaf,dir_fd=parent,follow_symlinks=False),private=True)!=identity):
+                raise TransferError('photo_relocation_parent_changed')
+            probe=os.open('.',_DIRECTORY_FLAGS,dir_fd=child)
+            try:
+                with os.scandir(probe) as entries:
+                    if next(entries,None) is not None:raise TransferError('photo_relocation_folder_not_empty')
+            finally:os.close(probe)
+        exact(stage);os.fsync(child);fresh();absent(name);exact(stage);require_current()
+        _move_no_replace(parent,stage,name)
+        fresh();absent(stage);exact(name);os.fsync(parent);fresh();exact(name)
+        return identity
+
+
 def _native_key(value):
     if (type(value) is not tuple or len(value)!=2 or not value[1]
             or any(type(part) is not int or not 0<=part<2**64 for part in value)):
