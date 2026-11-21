@@ -52,21 +52,34 @@ def test_activation_and_photo_selection_keep_independent_clocks_and_never_mutate
 
 @pytest.mark.parametrize('scope',['phone_inventory','entire_collection','import_only'])
 @pytest.mark.parametrize('direction',['phone_to_pc','two_way','pc_to_phone'])
-def test_scope_and_direction_have_separate_clocks_and_import_cannot_export(scope,direction):
+@pytest.mark.parametrize('schedule',['manual','wifi'])
+def test_scope_direction_and_schedule_have_separate_clocks_and_import_cannot_export(scope,direction,schedule):
     body=media.change(media.create(A),A,B,'enabled',True)
     body=media.change(body,A,B,'collection_mode',scope)
     body=media.change(body,A,B,'direction',direction)
+    body=media.change(body,A,B,'auto_mode',schedule)
     frozen=copy.deepcopy(body)
     active_direction='phone_to_pc' if scope=='import_only' else direction
     assert media.effective(body)['direction']==active_direction
-    assert media.requested_for(body,'images') is (active_direction in ('phone_to_pc','two_way'))
-    assert media.requested_for(body,'images',to_phone=True) is (active_direction in ('pc_to_phone','two_way'))
+    assert media.configured(body)['direction']==direction
+    assert media.effective(body)['auto_mode']==schedule
+    expected=(active_direction in ('phone_to_pc','two_way'),active_direction in ('pc_to_phone','two_way'))
+    assert tuple(media.requested_for(body,'images',to_phone=outgoing) for outgoing in (False,True))==expected
+    assert not any(media.requested_for(body,'video',to_phone=outgoing) for outgoing in (False,True))
     assert body==frozen
     assert body['settings']['direction'][A]==dict(counter=1,value=direction)
     assert body['settings']['collection_mode'][A]==dict(counter=1,value=scope)
+    assert body['settings']['auto_mode'][A]==dict(counter=1,value=schedule)
     restored=media.change(body,A,B,'collection_mode','phone_inventory')
     assert media.effective(restored)['direction']==direction
     assert restored['settings']['direction']==body['settings']['direction']
+    assert restored['settings']['auto_mode']==body['settings']['auto_mode']
+    other_schedule='manual' if schedule=='wifi' else 'wifi'
+    switched=media.change(body,A,B,'auto_mode',other_schedule)
+    assert media.effective(switched)['auto_mode']==other_schedule
+    assert switched['settings']['collection_mode']==body['settings']['collection_mode']
+    assert switched['settings']['direction']==body['settings']['direction']
+    assert tuple(media.requested_for(switched,'images',to_phone=outgoing) for outgoing in (False,True))==expected
 
 
 def test_concurrent_manual_off_phone_scope_and_skip_deletions_win_conservatively():
