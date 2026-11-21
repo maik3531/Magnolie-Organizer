@@ -7505,9 +7505,12 @@ function knopfMit(text, wurzel) {
   assert.ok(telefonAbschnitt && kdeAbschnitt &&
     telefonAbschnitt.compareDocumentPosition(kdeAbschnitt) & bw.Node.DOCUMENT_POSITION_FOLLOWING,
   "Magnolie-Telefonverbindung und KDE-SMS sind nicht getrennt oder falsch geordnet");
-  assert.ok(telefonAbschnitt.querySelector("[data-media-backup-recovery]") &&
-    !telefonAbschnitt.querySelector("[data-media-backup-recovery] details").open,
-    "Lokale Medienwiederherstellung bleibt ohne verbundenes Telefon getrennt eingeklappt erreichbar");
+  const offlineMedia = telefonAbschnitt.querySelector(".notes-erweiterte-funktionen[data-local-media-only]");
+  const offlinePhotos = offlineMedia.querySelector(":scope > .notes-foto-sync");
+  const offlineRestore = offlinePhotos.querySelector(":scope > [data-media-backup-recovery] > details");
+  assert.ok(!offlineMedia.open && !offlinePhotos.open && !offlineRestore.open,
+    "Lokales Wiederherstellen liegt auch offline unter Erweiterte Funktionen → Fotos und Videos");
+  assert.strictEqual(offlineRestore.querySelector("summary").textContent, "Wiederherstellen");
   assert.ok(telefonAbschnitt.textContent.includes("8741") &&
     !telefonAbschnitt.textContent.includes("1739") && kdeAbschnitt.textContent.includes("1739") &&
     !kdeAbschnitt.textContent.includes("8741"),
@@ -7525,9 +7528,13 @@ function knopfMit(text, wurzel) {
   const fotoStand = (photo, extras = {}) => bw.App.telefonStand({ enabled: true, peers: [{ ...fotoPeer, photo_sync: photo }],
     bluetooth: { available: false, devices: [] }, kdeconnect: { available: false }, ...extras });
   fotoStand(undefined);
-  assert.ok(!bd.querySelector(".notes-erweiterte-funktionen"), "Verbindung allein ist keine native Fotobereitschaft");
+  assert.ok(bd.querySelector(".notes-erweiterte-funktionen[data-local-media-only]") &&
+    !bd.querySelector(".notes-foto-sync input, .notes-foto-sync [data-photo-manual-sync]"),
+    "Verbindung allein ist keine native Fotobereitschaft");
   const setupBefore = baumNachrichten.length;
   fotoStand({ available: true, enabled: false, state: "off", albums: [], sending_setup: { version: "c".repeat(64) } });
+  assert.ok(bd.querySelector(".notes-erweiterte-funktionen:not([data-local-media-only]) > .notes-foto-sync > [data-media-backup-recovery]"));
+  assert.strictEqual(bd.querySelectorAll("[data-media-backup-recovery]").length, 1);
   assert.strictEqual(baumNachrichten.length, setupBefore, "Passive Einrichtung erzeugt keine Verbindung oder Rechte");
   const setupPhotos = bd.querySelector('[data-media-send="photos"]');
   assert.ok(setupPhotos && !setupPhotos.checked && !setupPhotos.disabled);
@@ -7819,8 +7826,8 @@ function knopfMit(text, wurzel) {
   fotoStand({ available: true, enabled: true, state: "recover_saved", busy: true, recovery_supported: true, recovery: recoveryJobs, albums: [] });
   assert.ok([...bd.querySelectorAll("[data-photo-recovery]")].every(button => button.disabled), "keine überlappenden Wiederherstellungsaktionen");
   fotoStand({ available: true }, { enabled: false });
-  assert.ok(!bd.querySelector(".notes-erweiterte-funktionen"), "Ausschalten blendet Notes-Fotocontrols vollständig aus");
-  assert.ok(bd.querySelector(".telefon-karte [data-media-backup-recovery]") && !bd.querySelector(".notes-backup-ordner"),
+  assert.ok(!bd.querySelector(".notes-foto-sync input, .notes-foto-sync [data-photo-manual-sync]"), "Ausschalten blendet Notes-Fotocontrols vollständig aus");
+  assert.ok(bd.querySelector(".telefon-karte [data-local-media-only] > .notes-foto-sync > [data-media-backup-recovery]") && !bd.querySelector(".notes-backup-ordner"),
     "Lokale Wiederherstellung braucht weder aktive Medien noch technische Sicherungsordner-Konfiguration");
   Array.from(bd.querySelectorAll(".einst-reiter-knopf")).find(button => button.textContent === "Sicherheit").click();
   assert.ok(!bd.querySelector("[data-media-backup-recovery]"), "Keine zusätzliche Medien-Sicherungsoption unter Sicherheit");

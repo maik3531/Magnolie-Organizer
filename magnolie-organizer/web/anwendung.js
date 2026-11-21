@@ -29502,24 +29502,45 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       row.append(buttons); fold.append(row);
     }
-    fold.append(baueMedienBackupWiederherstellung());
     return fold;
   }
 
+  function baueTelefonErweiterteMedien(ansicht) {
+    const erweitert = el("details", "einst-gruppe notes-erweiterte-funktionen");
+    erweitert.open = ansicht.offen === true; erweitert.append(el("summary", null, _("Advanced functions")));
+    const gruppe = el("details", "einst-gruppe notes-foto-sync"); gruppe.open = ansicht.medienOffen === true;
+    const titel = el("summary"); titel.append(el("span", null, _("Photos and videos"))); gruppe.append(titel);
+    erweitert.append(gruppe);
+    return { erweitert, gruppe, titel };
+  }
+
+  const telefonLokaleMedienAnsicht = {};
   function zeichneTelefonFotos(einzelneWurzel = null) {
     for (const wurzel of einzelneWurzel ? [einzelneWurzel] : document.querySelectorAll("[data-notes-photo-root]")) {
       const alt = wurzel.querySelector("details");
-      if (alt && wurzel.dataset.photoPeer) telefonFotoAnsichten.set(wurzel.dataset.photoPeer, {
-        offen: alt.open, medienOffen: wurzel.querySelector("details.notes-foto-sync")?.open === true,
-        album: wurzel.querySelector("select[data-photo-album]")?.value || "",
-        videoAlbum: wurzel.querySelector("select[data-video-album]")?.value || ""
-      });
+      if (alt) {
+        const foldState = { offen: alt.open, medienOffen: wurzel.querySelector("details.notes-foto-sync")?.open === true };
+        if (wurzel.dataset.photoPeer) telefonFotoAnsichten.set(wurzel.dataset.photoPeer, {
+          ...foldState, album: wurzel.querySelector("select[data-photo-album]")?.value || "",
+          videoAlbum: wurzel.querySelector("select[data-video-album]")?.value || ""
+        });
+        else Object.assign(telefonLokaleMedienAnsicht, foldState);
+      }
       wurzel.replaceChildren();
+      delete wurzel.dataset.photoPeer;
+      if (!Bruecke.vorhanden || gesperrt) continue;
       const peers = telefonStand?.peers || [];
-      if (!Bruecke.vorhanden || !telefonStand?.enabled || telefonStand.binding_conflict || peers.length !== 1) continue;
-      const peer = peers[0], stand = peer.photo_sync;
+      const peer = peers[0], stand = peer?.photo_sync;
       // Native readiness only, never ContributorKey, Notes-content grants or KDE.
-      if (stand?.available !== true || !peer.own_device || !peer.remote_own_device || !peer.transport) continue;
+      if (!telefonStand?.enabled || telefonStand.binding_conflict || peers.length !== 1 ||
+          stand?.available !== true || !peer.own_device || !peer.remote_own_device || !peer.transport) {
+        // Local restore remains reachable without granting or exposing phone controls.
+        const { erweitert, gruppe } = baueTelefonErweiterteMedien(telefonLokaleMedienAnsicht);
+        erweitert.dataset.localMediaOnly = "true";
+        gruppe.append(baueMedienBackupWiederherstellung()); wurzel.append(erweitert);
+        zeichneMedienBackupWiederherstellung(gruppe.querySelector("[data-media-backup-recovery]"));
+        continue;
+      }
       const oldConsent = telefonSendeZustimmungen.get(peer.device_id);
       if (oldConsent && (oldConsent.book !== DATEN || oldConsent.fingerprint !== peer.fingerprint)) {
         clearTimeout(oldConsent.timer); telefonSendeZustimmungen.delete(peer.device_id);
@@ -29534,10 +29555,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       wurzel.dataset.photoPeer = peer.device_id;
       const ansicht = telefonFotoAnsichten.get(peer.device_id) || { offen: false, album: "" };
-      const erweitert = el("details", "einst-gruppe notes-erweiterte-funktionen");
-      erweitert.open = ansicht.offen; erweitert.append(el("summary", null, _("Advanced functions")));
-      const gruppe = el("details", "einst-gruppe notes-foto-sync"); gruppe.open = ansicht.medienOffen === true;
-      const titel = el("summary"); titel.append(el("span", null, _("Photos and videos"))); gruppe.append(titel);
+      const { erweitert, gruppe, titel } = baueTelefonErweiterteMedien(ansicht);
       const sende = (action, album_id, job_owner, historical_choice) => {
         telefonFotoFehler.delete(peer.device_id);
         const request = { action }; if (album_id !== undefined) request.album_id = album_id;
@@ -29790,6 +29808,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         gruppe.append(sources);
       }
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
+      const backupRecovery = baueMedienBackupWiederherstellung(); gruppe.append(backupRecovery);
       if (stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
         const manuell = el("div", "knopfreihe notes-medien-manuell");
         const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => {
@@ -29807,7 +29826,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }
         gruppe.append(manuell);
       }
-      erweitert.append(gruppe); wurzel.append(erweitert);
+      wurzel.append(erweitert); zeichneMedienBackupWiederherstellung(backupRecovery);
     }
   }
 
@@ -29831,12 +29850,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         _("KDE Connect for SMS is available only in the installed application.")));
       wurzel.append(ab, kdeAb); return;
     }
-    const medienWiederherstellen = baueMedienBackupWiederherstellung();
     if (!telefonStand) {
       ab.append(el("p", "sync-status", _("One moment…")));
       kdeAb.append(el("p", "sync-status", _("One moment…")));
       Bruecke.sende({ cmd: "telefon_stand" });
-      ab.append(medienWiederherstellen); wurzel.append(ab, kdeAb); return;
+      ab.append(fotoWurzel); zeichneTelefonFotos(fotoWurzel);
+      wurzel.append(ab, kdeAb); return;
     }
     if (telefonStand.error) ab.append(el("p", "einst-warnung", telefonStand.error));
     const an = document.createElement("input");
@@ -29938,8 +29957,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     ab.append(liste, el("p", "einst-hinweis",
       _("WLAN has priority. Bluetooth data starts only after WLAN failure and carries the same encrypted phone frames.")));
-    // Local recovery must remain reachable without a connected/enabled phone.
-    ab.append(fotoWurzel, medienWiederherstellen); zeichneTelefonFotos(fotoWurzel);
+    ab.append(fotoWurzel); zeichneTelefonFotos(fotoWurzel);
     wurzel.append(ab);
 
     const kde = telefonStand.kdeconnect || {};
@@ -31603,16 +31621,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function baueMedienBackupWiederherstellung() {
     const root = el("div", "medien-backup-wiederherstellung"); root.dataset.mediaBackupRecovery = "true";
-    zeichneMedienBackupWiederherstellung(root); return root;
+    return root;
   }
 
   function zeichneMedienBackupWiederherstellung(einzelneWurzel = null) {
     const state = medienBackupWiederherstellung;
     for (const root of einzelneWurzel ? [einzelneWurzel] : document.querySelectorAll("[data-media-backup-recovery]")) {
       root.replaceChildren(); root.hidden = gesperrt || !Bruecke.vorhanden || state.supported === false;
+      const local = root.closest("[data-local-media-only]");
+      if (local) local.hidden = root.hidden;
       if (root.hidden) continue;
       const fold = el("details", "einst-gruppe"); fold.open = state.open;
-      fold.append(el("summary", null, _("Photos and videos") + " · " + _("Restore")));
+      fold.append(el("summary", null, _("Restore")));
       fold.addEventListener("toggle", () => {
         state.open = fold.open;
         if (fold.open && !state.tried && !state.pending) medienBackupAnfordern();
