@@ -28,7 +28,9 @@ def native(tmp_path, monkeypatch):
     peer=_complete_peer(public=public)
     peer['personal_sync'].update(own_device=True,remote_own_device=True)
     peer['file_pairing_epoch']=phone.native_file_pairing_epoch(bytes([1])*32)
-    peer['capabilities']=phone.desktop_capabilities();peer['capabilities']['items']['device_status']['versions'].append(21)
+    peer['capabilities']=phone.desktop_capabilities()
+    versions=peer['capabilities']['items']['device_status']['versions']
+    if 21 not in versions:versions.append(21)  # A packaged desktop already advertises the photo marker.
     service.store.peers=[peer];service.store.save_peers();service.enabled=True
     return service,peer,private
 
