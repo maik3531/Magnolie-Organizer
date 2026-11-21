@@ -183,6 +183,24 @@ internal static class DeviceFileUiTests
         }
         remove["confirmed"] = true;
         TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(remove), "Browser confirmation bypassed the native removal dialog.");
+        var empty = request.DeepClone().AsObject(); empty["action"] = "trash_empty"; empty["version"] = new string('e', 64);
+        TestAssert.That(NativeMediaUiRequest.Parse(empty).Version == new string('e', 64), "Empty lost its exact inventory revision.");
+        foreach (var unexpected in new[] { "confirmed", "count", "operation_id", "path" })
+        {
+            var forged = empty.DeepClone().AsObject(); forged[unexpected] = true;
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(forged), "Empty accepted browser authority: " + unexpected);
+        }
+        empty["version"] = null;
+        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(empty), "Empty accepted an unversioned overview.");
+        var states = new[] { "prepared", "trashed", "purge_prepared", "restore_prepared", "purged", "restored" };
+        var items = states.Select((state, i) => new TelefonStore.NativeMediaTrashItem(
+            new(new string((char)('a' + i), 32), new string('b', 64), "job", "file", state, i), "file.png", "images")).ToArray();
+        var overview = new NativeMediaEmptyInventory("peer", items);
+        TestAssert.That(overview.Visible.Count == 4 && overview.Eligible.Select(entry => entry.State).SequenceEqual(new[] { "trashed", "purge_prepared" }),
+            "Empty inventory included pending originals or restored files.");
+        overview.RequireSelection(overview.Version);
+        TestAssert.Throws<InvalidDataException>(() => new NativeMediaEmptyInventory("peer", items.Skip(1).ToArray()).RequireSelection(overview.Version),
+            "Changing even a non-purgeable visible entry must invalidate the original selection.");
         var backup = request.DeepClone().AsObject(); backup["action"] = "backup_restore"; backup["media_type"] = "images";
         backup["backup_id"] = new string('a', 64); backup["version"] = new string('b', 64);
         TestAssert.That(NativeMediaUiRequest.Parse(backup).BackupId == new string('a', 64), "Opaque backup selection was not parsed.");

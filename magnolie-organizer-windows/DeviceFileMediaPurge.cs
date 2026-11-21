@@ -8,13 +8,13 @@ internal sealed class NativeMediaPermanentConsent
 {
     private readonly NativeMediaBookPermit permit;
     private readonly NativeMediaTrashEntry selection;
-    private readonly long issued = Environment.TickCount64;
+    private readonly long issued;
     private long last;
     private bool revoked;
-    private NativeMediaPermanentConsent(NativeMediaBookPermit permit, NativeMediaTrashEntry selection)
-    { this.permit = permit; this.selection = selection; last = issued; Require(permit, selection); }
-    internal static NativeMediaPermanentConsent FromConfirmedNativeChoice(NativeMediaBookPermit permit, NativeMediaTrashEntry selection)
-        => new(permit, selection);
+    private NativeMediaPermanentConsent(NativeMediaBookPermit permit, NativeMediaTrashEntry selection, long issued)
+    { this.permit = permit; this.selection = selection; last = this.issued = issued; Require(permit, selection); }
+    internal static NativeMediaPermanentConsent FromConfirmedNativeChoice(NativeMediaBookPermit permit, NativeMediaTrashEntry selection, long? issued = null)
+        => new(permit, selection, issued ?? Environment.TickCount64);
     internal void Require(NativeMediaBookPermit current, NativeMediaTrashEntry selected)
     {
         lock (this)
@@ -134,15 +134,66 @@ internal sealed partial class TelefonStore
 
 internal sealed record NativeMediaRemovalChoice(string PeerId, TelefonStore.NativeMediaTrashItem Item, NativeMediaBookPermit Permit);
 
+internal sealed class NativeMediaEmptyInventory
+{
+    internal string Version { get; }
+    internal IReadOnlyList<TelefonStore.NativeMediaTrashItem> Visible { get; }
+    internal IReadOnlyList<NativeMediaTrashEntry> Eligible { get; }
+
+    internal NativeMediaEmptyInventory(string peerId, IReadOnlyList<TelefonStore.NativeMediaTrashItem> items)
+    {
+        var visible = items.Where(item => item.Entry.State is not ("purged" or "restored")).ToArray();
+        Visible = Array.AsReadOnly(visible);
+        Eligible = Array.AsReadOnly(visible.Select(item => item.Entry).Where(entry => entry.State is "trashed" or "purge_prepared").ToArray());
+        Version = DeviceFileControl.Digest("magnolie-native-media-empty-v1\0", new JsonArray(peerId,
+            new JsonArray(visible.Select(item => (JsonNode)new JsonArray(item.Entry.Operation, item.Entry.Version, item.Entry.State)).ToArray())));
+    }
+
+    internal void RequireSelection(string version)
+    {
+        if (Eligible.Count == 0 || Version != version) throw DeviceFileControl.Error("media_trash_stale_selection");
+    }
+}
+
+internal sealed record NativeMediaEmptyChoice(string PeerId, NativeMediaEmptyInventory Inventory, NativeMediaBookPermit Permit);
+
 internal sealed partial class TelefonCoordinator
 {
     private NativeMediaBookPermit NativeMediaLocalBookPermit()
         => NativeMediaBookPermit.Capture(NativeProducerBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required"), NativeSavedBook);
 
-    internal IReadOnlyList<TelefonStore.NativeMediaTrashItem> ReadNativeMediaTrashUi(string peerId)
+    private NativeMediaEmptyInventory ReadNativeMediaTrashUi(string peerId, NativeMediaBookPermit permit)
     {
-        var permit = NativeMediaLocalBookPermit(); var items = store.NativeMediaTrashItems(peerId); permit.Require(); return items;
+        permit.Require(); var inventory = new NativeMediaEmptyInventory(peerId, store.NativeMediaTrashItems(peerId)); permit.Require(); return inventory;
     }
+
+    internal NativeMediaEmptyInventory ReadNativeMediaTrashUi(string peerId) => ReadNativeMediaTrashUi(peerId, NativeMediaLocalBookPermit());
+
+    internal NativeMediaEmptyChoice PrepareNativeMediaEmptyChoice(string peerId, string version)
+    {
+        var permit = NativeMediaLocalBookPermit(); var inventory = ReadNativeMediaTrashUi(peerId, permit);
+        inventory.RequireSelection(version); return new(peerId, inventory, permit);
+    }
+
+    internal int RemoveConfirmedNativeMediaTrashBatch(NativeMediaEmptyChoice choice, long confirmedAt)
+        => NativeMediaLocalOperation(() =>
+        {
+            ReadNativeMediaTrashUi(choice.PeerId, choice.Permit).RequireSelection(choice.Inventory.Version);
+            var completed = 0;
+            foreach (var entry in choice.Inventory.Eligible)
+            {
+                try
+                {
+                    // Every member shares the original native confirmation deadline.
+                    // On uncertainty stop, even if the last entry already lost bytes.
+                    var consent = NativeMediaPermanentConsent.FromConfirmedNativeChoice(choice.Permit, entry, confirmedAt);
+                    if (store.PurgeNativeMediaTrash(choice.PeerId, entry, choice.Permit, consent).State != "purged") break;
+                    completed++;
+                }
+                catch (Exception) { break; }
+            }
+            return completed;
+        });
 
     private TelefonStore.NativeMediaTrashItem SelectedNativeMediaTrash(string peerId, string operation, string version)
         => store.NativeMediaTrashItems(peerId).SingleOrDefault(item => item.Entry.Operation == operation && item.Entry.Version == version)

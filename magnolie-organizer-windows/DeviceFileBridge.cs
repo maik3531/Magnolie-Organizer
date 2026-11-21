@@ -20,7 +20,7 @@ internal sealed partial class BridgeDispatcher
         try
         {
             var request = NativeMediaUiRequest.Parse(JsonNode.Parse(message.GetRawText())!.AsObject());
-            if (request.Action is "pick_collection_source" or "send_consent" or "pick_destination" or "default_destination" or "pick_backup_parent" or "activate" or "backup_restore" or "trash_purge")
+            if (request.Action is "pick_collection_source" or "send_consent" or "pick_destination" or "default_destination" or "pick_backup_parent" or "activate" or "backup_restore" or "trash_purge" or "trash_empty")
             {
                 if (Interlocked.CompareExchange(ref nativeMediaDialog, 1, 0) != 0)
                     throw DeviceFileControl.Error("media_collection_native_choice_pending");
@@ -100,10 +100,11 @@ internal sealed partial class BridgeDispatcher
                     var recovered = await Task.Run(() => telefon.RestoreConfirmedNativeMediaBackup(backupChoice));
                     await Reply(new { requestId, device_id = peerId, ok = true, state = recovered.State, display_name = recovered.Name }); return;
                 case "trash_list":
-                    var items = telefon.ReadNativeMediaTrashUi(peerId).Where(item => item.Entry.State is not ("purged" or "restored")).ToArray();
-                    if (request.After > items.Length) throw DeviceFileControl.Error("media_trash_stale_selection");
+                    var inventory = telefon.ReadNativeMediaTrashUi(peerId); var items = inventory.Visible;
+                    if (request.After > items.Count) throw DeviceFileControl.Error("media_trash_stale_selection");
                     await Reply(new { requestId, device_id = peerId, ok = true, after = request.After,
-                        next_cursor = request.After + 128 < items.Length ? (int?)(request.After + 128) : null,
+                        next_cursor = request.After + 128 < items.Count ? (int?)(request.After + 128) : null,
+                        empty_revision = inventory.Version, empty_count = inventory.Eligible.Count,
                         trash = items.Skip(request.After).Take(128).Select(item => new { operation_id = item.Entry.Operation, version = item.Entry.Version,
                             state = item.Entry.State, changed_ms = item.Entry.ChangedMs, display_name = item.DisplayName, media_type = item.MediaType }) });
                     return;
@@ -130,6 +131,17 @@ internal sealed partial class BridgeDispatcher
                     var consent = NativeMediaPermanentConsent.FromConfirmedNativeChoice(removal.Permit, removal.Item.Entry);
                     var purged = await Task.Run(() => telefon.RemoveConfirmedNativeMediaTrash(removal, consent));
                     await Reply(new { requestId, device_id = peerId, ok = true, state = purged.State }); return;
+                case "trash_empty":
+                    var empty = telefon.PrepareNativeMediaEmptyChoice(peerId, request.Version!);
+                    var eligible = empty.Inventory.Eligible.Count;
+                    var offeredAt = Environment.TickCount64;
+                    if (MessageBox.Show(form, T("Delete permanently") + " · " + T("Media recycle bin") + ": " + eligible,
+                        T("Empty recycle bin"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+                    { await Reply(new { requestId, device_id = peerId, ok = true, canceled = true }); return; }
+                    var confirmedAt = Environment.TickCount64;
+                    if (confirmedAt - offeredAt >= 60000) throw DeviceFileControl.Error("media_trash_stale_selection");
+                    var count = await Task.Run(() => telefon.RemoveConfirmedNativeMediaTrashBatch(empty, confirmedAt));
+                    await Reply(new { requestId, device_id = peerId, ok = count == eligible, completed_count = count }); return;
                 case "status":
                     var status = telefon.NativeMediaUiStatus(peerId); status["requestId"] = requestId; status["device_id"] = peerId; status["ok"] = true;
                     status["transfer_busy"] = nativeMediaUiRuns.ContainsKey(peerId) || status["automatic_busy"]?.GetValue<bool>() == true;

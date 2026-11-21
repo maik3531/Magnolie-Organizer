@@ -117,7 +117,7 @@ internal static class DeviceFileMediaPurgeTests
         using var coordinator = new TelefonCoordinator(f.Native.Paths, (_, _) => Task.CompletedTask, dataStore: f.Native.Store, localOnly: true);
         TestAssert.Throws<InvalidDataException>(() => coordinator.ReadNativeMediaTrashUi(f.Native.Peer.Id), "Trash UI bypassed the actually saved book.");
         var host = Host(f); coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
-        var item = coordinator.ReadNativeMediaTrashUi(f.Native.Peer.Id).Single();
+        var item = coordinator.ReadNativeMediaTrashUi(f.Native.Peer.Id).Visible.Single();
         TestAssert.That(item.Entry == entry && item.DisplayName == "first.jpg" && item.MediaType == "images" &&
             coordinator.SweepNativeMediaTrashFromSavedBook(f.Native.Peer.Id) == 0, "Trash listing fabricated a path or automatic expiry for Never.");
         var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;

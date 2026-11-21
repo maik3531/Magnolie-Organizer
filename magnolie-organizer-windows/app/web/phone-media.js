@@ -203,6 +203,8 @@
       scope.disabled = direction.disabled = busy || !enabled;
       for (let i = allButtons.length - 1; i >= 0; i--) if (!root.contains(allButtons[i])) allButtons.splice(i, 1);
       for (const b of allButtons) b.disabled = busy;
+      emptyTrash.disabled = busy || emptyWaiting || emptyRunning;
+      if (emptyRunning) for (const button of trashArea.querySelectorAll("button")) button.disabled = true;
       photos.disabled = videos.disabled = skip.disabled = busy || !native || !enabled;
       photosOnly.disabled = busy || !native || !enabled || photosOnly.parentElement.hidden;
       // Keep switching a live transfer back to manual possible, but don't
@@ -242,6 +244,7 @@
       }
     };
     const request = async (action, data = {}, save = true) => {
+      if (emptyRunning && action.startsWith("trash_")) return;
       const sourceChoice = action === "pick_collection_source";
       const destinationChoice = action === "pick_destination" || action === "default_destination";
       const folderChoice = sourceChoice || destinationChoice;
@@ -269,20 +272,23 @@
       }
       const requestId = crypto.randomUUID(), message = { cmd: "telefon_medien", requestId, device_id: peerId, action, ...data };
       const sequence = ++requestSequence;
-      const item = { root, peerId, action, receive: (reply, action) => receive(reply, action, sequence, data), until: now + 60000 };
+      const emptying = action === "trash_empty";
+      const item = { root, peerId, action, receive: (reply, action) => receive(reply, action, sequence, data), until: now + (emptying ? 125000 : 60000) };
+      if (emptying) emptyRunning = true;
       pending.set(requestId, item);
-      if (folderChoice || ["trash_thumbnail", "trash_preview"].includes(action)) item.timer = setTimeout(() => {
+      if (folderChoice || emptying || ["trash_thumbnail", "trash_preview"].includes(action)) item.timer = setTimeout(() => {
         if (pending.get(requestId) !== item) return;
         pending.delete(requestId); busy = false;
         if (folderChoice) sourceChoiceWaiting = false;
         if (action === "trash_preview") previewStatus.textContent = t("Preview") + " · " + t("Failed");
+        if (emptying) { emptyRunning = false; status.textContent = t("Media operation paused. No completion was confirmed."); }
         toggle(); pumpThumbnails();
-      }, 65000);
+      }, emptying ? 125000 : 65000);
       if (action !== "status" && action !== "cancel") busy = true;
       if (action === "sync" || action === "sync_shared") { transfer = true; status.textContent = t("Waiting for native media status"); }
       if (["sync", "sync_shared", "discover"].includes(action)) review.replaceChildren();
       toggle();
-      if (!send(message)) { clearTimeout(item.timer); pending.delete(requestId); busy = false; if (folderChoice) sourceChoiceWaiting = false; if (["sync", "sync_shared"].includes(action)) transfer = false; restoreSharedInputs(); toggle(); status.textContent = t("Native media connection is unavailable."); }
+      if (!send(message)) { clearTimeout(item.timer); pending.delete(requestId); busy = false; if (emptying) emptyRunning = false; if (folderChoice) sourceChoiceWaiting = false; if (["sync", "sync_shared"].includes(action)) transfer = false; restoreSharedInputs(); toggle(); status.textContent = t("Native media connection is unavailable."); }
     };
     const settings = () => {
       if (skip.indeterminate) {
@@ -347,6 +353,23 @@
     refresh = button("Refresh", () => request("status", {}, false));
     button("Read media recycle bin", () => request("trash_list", { after: 0 }), trashArea);
     const moreTrash = button("Next entries", () => Number.isSafeInteger(nextTrash) && request("trash_list", { after: nextTrash }), trashArea); moreTrash.hidden = true;
+    let emptySelection = null, emptyWaiting = false, emptyRunning = false, emptyExpectedCount = 0;
+    const emptyTrash = button("Empty recycle bin", async () => {
+      const selection = emptySelection;
+      if (!selection || busy || emptyWaiting || emptyRunning || !currentContext()) return;
+      emptyWaiting = true; emptyTrash.disabled = true;
+      try { await saveBefore(); } catch {
+        emptyWaiting = false; toggle();
+        status.textContent = t("Media operation paused. No completion was confirmed."); return;
+      }
+      emptyWaiting = false; toggle();
+      if (!root.isConnected || !currentContext() || emptySelection !== selection || busy || emptyRunning || trashArea.hidden) return;
+      emptyExpectedCount = selection.count;
+      clearPreviews(); emptySelection = null; emptyTrash.hidden = true; nextTrash = null; moreTrash.hidden = true;
+      for (const row of trashRows.children) row.querySelectorAll("button").forEach(control => control.remove());
+      request("trash_empty", { version: selection.version }, false);
+    }, trashArea);
+    emptyTrash.hidden = true;
     const activate = button("Enable", () => request("activate"), root); activate.hidden = true;
     manualSync = button("Synchronize now", () => {
       if (native?.shared_settings) {
@@ -355,6 +378,7 @@
         media_type: kind, version: catalog.version, catalog_id: catalog.id, album_id: selectedAlbum });
     }, manualArea);
     function receive(reply, action, sequence, data) {
+      if (action === "trash_empty") emptyRunning = false;
       const completedChoice = ["pick_collection_source", "pick_destination", "default_destination"].includes(action);
       if (completedChoice) { sourceChoiceWaiting = false; busy = false; }
       if (action === "trash_thumbnail" || action === "trash_preview") {
@@ -402,6 +426,7 @@
         clearPreviews();
         root.hidden = true; updateVisibility(); native = null; busy = transfer = false; catalog = null;
         albumChoice.replaceChildren(); albumChoice.hidden = true; selectedAlbum = null; review.replaceChildren(); trashRows.replaceChildren(); nextTrash = null;
+        emptySelection = null; emptyTrash.hidden = true;
         more.hidden = moreTrash.hidden = true; toggle(); return;
       }
       if (!native && reply.supported !== true && action !== "status") return;
@@ -421,6 +446,13 @@
       }
       busy = false;
       if (["sync", "sync_shared"].includes(action) || reply.state === "idle") transfer = false;
+      if (action === "trash_empty" && reply.ok === true && reply.canceled === true) {
+        request("trash_list", { after: 0 }, false); return;
+      }
+      if (action === "trash_empty" && reply.completed_count !== emptyExpectedCount) {
+        emptyExpectedCount = 0;
+        status.textContent = t("Media operation paused. No completion was confirmed."); toggle(); return;
+      }
       if (!reply.ok) {
         restoreSharedInputs();
         status.textContent = t(reply.state === "partial" ? "Stopped or incomplete. Original files and recovery history are retained." : "Media operation paused. No completion was confirmed.") + (reply.error ? " · " + String(reply.error) : "");
@@ -433,6 +465,10 @@
         clearPreviews();
         trashRows.replaceChildren();
         nextTrash = reply.next_cursor; moreTrash.hidden = !Number.isSafeInteger(nextTrash);
+        emptySelection = typeof reply.empty_revision === "string" && /^[0-9a-f]{64}$/.test(reply.empty_revision) &&
+          Number.isSafeInteger(reply.empty_count) && reply.empty_count > 0 && reply.empty_count <= 2048
+          ? { version: reply.empty_revision, count: reply.empty_count } : null;
+        emptyTrash.hidden = !emptySelection;
         for (const item of (reply.trash || []).slice(0, 128)) {
           const row = node("li"); row.append(document.createTextNode(String(item.display_name || "") + " · " + t(item.media_type === "video" ? "Videos" : "Photos")));
           trashRows.append(row);
@@ -450,9 +486,11 @@
         status.textContent = t(trashRows.children.length ? "Media recycle bin loaded. Permanent removal requires native confirmation." : "No retained media entries on this page.");
         toggle(); observeThumbnails(); return;
       }
-      if (action === "trash_restore" || action === "trash_purge") {
+      if (action === "trash_restore" || action === "trash_purge" || action === "trash_empty") {
         clearPreviews();
         trashRows.replaceChildren(); nextTrash = null; moreTrash.hidden = true;
+        emptySelection = null; emptyTrash.hidden = true;
+        emptyExpectedCount = 0;
         status.textContent = t("Media recycle-bin operation finished. Read the entries again before another operation.");
         toggle(); return;
       }
