@@ -57,6 +57,11 @@ internal sealed partial class TelefonConnection
             handling = ReceiveNativeMediaHelloAsync(plain);
             return;
         }
+        if (ConsumePrivateMediaSettingsAck(plain))
+        {
+            handling = Task.CompletedTask;
+            return;
+        }
         if (mediaSupportId is null || !JsonNode.DeepEquals(plain["type"], JsonValue.Create("ack")) ||
             !JsonNode.DeepEquals(plain["message_id"], JsonValue.Create(mediaSupportId))) return;
         // Even late receipts belong only to this attempt, never the outbox.

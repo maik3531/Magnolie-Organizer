@@ -30,6 +30,7 @@ internal static class PhoneCameraParentTests
         private readonly TcpClient phone;
         private readonly CancellationTokenSource deadline = new(TimeSpan.FromSeconds(10));
         internal readonly TelefonStore Store;
+        internal WindowsPaths Paths { get; }
         internal readonly TelefonPeer Peer;
         internal readonly TelefonConnection Connection;
         internal int LegacyReceives;
@@ -39,7 +40,7 @@ internal static class PhoneCameraParentTests
             Func<TelefonStore, TelefonPeer, JsonObject, Task<TelefonAck?>>? receive = null)
         {
             Peer = new(Guid.NewGuid().ToString("D"), "Controlled original parent", new byte[32]) { FilePairingEpoch = filePairingEpoch };
-            var paths = new WindowsPaths(root); Store = new TelefonStore(paths, new byte[32]);
+            Paths = new WindowsPaths(root); Store = new TelefonStore(Paths, new byte[32]);
             var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
             try
             {

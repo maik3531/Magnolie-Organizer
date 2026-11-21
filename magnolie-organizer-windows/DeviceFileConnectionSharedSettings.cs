@@ -12,6 +12,84 @@ internal sealed partial class TelefonConnection
     internal Func<Task>? MediaPreferencesChanged { get; set; }
     internal Action<JsonObject, string, long, CancellationToken>? MediaManualRequested { get; set; }
 
+    // Original private reader only; this does not publish an intent to any
+    // gallery worker, UI, personal outbox or legacy media composition.
+    private readonly Dictionary<string, JsonObject> privateMediaIncoming = new(StringComparer.Ordinal);
+    private readonly HashSet<string> privateMediaOutgoing = new(StringComparer.Ordinal);
+    private (string Id, JsonObject Body)? privateMediaPending;
+    private JsonObject? privateMediaSent, privateMediaAcknowledged, privateMediaReceived;
+    private bool privateMediaSettingsFailed;
+    private const int PrivateMediaMaxMessages = 128;
+
+    private bool PrivateMediaSettingsSelected => NativeMediaSupportChecked && !LegacyMediaSettingsAdvertised;
+    private bool PrivateMediaSettingsReady => !privateMediaSettingsFailed && NativeMediaSupportEstablished && PrivateMediaSettingsSelected;
+
+    internal bool PrivateMediaSettingsMatched => PrivateMediaSettingsReady &&
+        store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey) is { } local &&
+        JsonNode.DeepEquals(local, privateMediaSent) && JsonNode.DeepEquals(local, privateMediaReceived) &&
+        JsonNode.DeepEquals(local, privateMediaAcknowledged);
+
+    private bool ConsumePrivateMediaSettingsAck(JsonObject plain)
+    {
+        if (!JsonNode.DeepEquals(plain["type"], JsonValue.Create("ack")) || plain["message_id"] is not JsonValue idValue ||
+            !idValue.TryGetValue<string>(out var id) || !privateMediaOutgoing.Contains(id)) return false;
+        TelefonProtocolContract.ValidateAck(plain);
+        if (privateMediaPending is { } attempted && attempted.Id == id && PrivateMediaSettingsReady)
+        {
+            privateMediaPending = null;
+            privateMediaAcknowledged = plain["status"]?.GetValue<string>() is "accepted" or "duplicate" &&
+                plain["error"]?.GetValue<string>() == "none" ? attempted.Body : null;
+        }
+        return true;
+    }
+
+    private async Task ReceivePrivateMediaSettingsAsync(JsonObject message)
+    {
+        TelefonMessageContract.ValidateMessage(message, Now(), true);
+        var id = message["message_id"]!.GetValue<string>();
+        var body = message["body"]!.AsObject();
+        var status = "accepted";
+        var error = "none";
+        try
+        {
+            if (!PrivateMediaSettingsReady) return;
+            if (privateMediaIncoming.TryGetValue(id, out var previous))
+            {
+                if (!JsonNode.DeepEquals(previous, message)) throw new InvalidDataException("media_shared_equivocation");
+                status = "duplicate";
+            }
+            else if (privateMediaIncoming.Count >= PrivateMediaMaxMessages) throw new InvalidOperationException("media_shared_session_capacity");
+            store.MergeNativeMediaSharedSettings(peer.Id, peer.PublicKey, body);
+        }
+        catch (InvalidDataException) { error = "invalid_schema"; }
+        catch (Exception ex) when (ex is IOException or CryptographicException) { error = "temporary_failure"; }
+        catch (PlatformNotSupportedException) { error = "not_granted"; }
+        catch (InvalidOperationException) { error = "not_granted"; }
+        if (!PrivateMediaSettingsReady) return;
+        try
+        {
+            if (!await SendNativeMediaSupportFrameAsync(new JsonObject { ["type"] = "ack", ["message_id"] = id,
+                ["status"] = error == "none" ? status : "rejected", ["error"] = error }) || error != "none" || !PrivateMediaSettingsReady)
+            { privateMediaSettingsFailed = true; return; }
+            privateMediaIncoming[id] = message.DeepClone().AsObject();
+            privateMediaReceived = body.DeepClone().AsObject();
+            var current = store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey);
+            if (current is null || JsonNode.DeepEquals(current, privateMediaSent)) return;
+            if (privateMediaOutgoing.Count >= PrivateMediaMaxMessages) { privateMediaSettingsFailed = true; return; }
+            var now = Now();
+            var outgoingId = Guid.NewGuid().ToString("D");
+            var echo = new JsonObject { ["type"] = "message", ["v"] = 1, ["kind"] = MediaSyncSettings.Kind,
+                ["message_id"] = outgoingId, ["created_ms"] = now, ["expires_ms"] = now + 86_400_000, ["body"] = current.DeepClone() };
+            privateMediaOutgoing.Add(outgoingId);
+            if (!PrivateMediaSettingsReady || !await SendNativeMediaSupportFrameAsync(echo) || !PrivateMediaSettingsReady)
+            { privateMediaSettingsFailed = true; return; }
+            privateMediaPending = (outgoingId, current);
+            privateMediaSent = current;
+            privateMediaAcknowledged = null;
+        }
+        catch { privateMediaSettingsFailed = true; throw; }
+    }
+
     private async Task HandleMediaManualRequestAsync(JsonObject message)
     {
         var now = Now(); TelefonMessageContract.ValidateMessage(message, now, true);
@@ -52,9 +130,10 @@ internal sealed partial class TelefonConnection
         capabilities?["device_status"] is JsonObject status && status["available"]?.GetValue<bool>() == true &&
         status["versions"] is JsonArray versions && versions.Any(value => TelefonProtocolContract.Integer(value) == MediaSyncSettings.DiscoveryVersion);
 
-    internal bool MediaSharedControlsReady => FileMetadataReady() &&
-        MediaSettingsAdvertised(SharedLocalCapabilities()) &&
+    private bool LegacyMediaSettingsAdvertised => MediaSettingsAdvertised(SharedLocalCapabilities()) &&
         MediaSettingsAdvertised(store.LoadPeers().SingleOrDefault(value => value.Id == peer.Id)?.Capabilities);
+
+    internal bool MediaSharedControlsReady => FileMetadataReady() && LegacyMediaSettingsAdvertised;
 
     private void InvalidateMediaSharedReceipts()
     {

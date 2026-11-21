@@ -19,7 +19,8 @@ internal sealed partial class TelefonConnection
 {
     partial void ReceiveNativeMediaSettings(JsonObject message, ref Task? handling)
         => handling = message["kind"]?.GetValue<string>() == MediaSyncSettings.StartKind
-            ? HandleMediaManualRequestAsync(message) : HandleMediaSharedSettingsAsync(message);
+            ? HandleMediaManualRequestAsync(message)
+            : PrivateMediaSettingsSelected ? ReceivePrivateMediaSettingsAsync(message) : HandleMediaSharedSettingsAsync(message);
 
     partial void ObserveNativeMediaAck(string id, string status, string error, JsonObject? queued, ref Task? handling)
     {

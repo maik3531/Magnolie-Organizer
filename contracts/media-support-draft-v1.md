@@ -112,3 +112,8 @@ owner, and the ordinary heartbeat continues. The stock Windows gate stays
 off and its old rejection is still covered separately. Reciprocal Notes
 settings exchange with Windows and native Windows package acceptance are
 not covered by the Core loopback.
+The private Windows settings receiver uses the existing protected store and
+does not set legacy media readiness. On hosts without native DPAPI it holds
+without storing settings or closing the parent. The focused fixture also
+contains a Windows-only positive arm with its own DPAPI key; it must be run
+on Windows before claiming protected Windows agreement.

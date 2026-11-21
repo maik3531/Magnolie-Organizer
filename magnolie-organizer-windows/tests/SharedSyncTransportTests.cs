@@ -146,13 +146,47 @@ internal static class SharedSyncTransportTests
             await fixture.Send(Ack(reply), sent++);
             await Ping();
             TestAssert.That(connection.NativeMediaSupportEstablished && !connection.MediaSharedControlsReady, "Support was missing or granted the media runtime.");
+            var local = fixture.Store.LoadOrCreateIdentity();
+            CryptographicOperations.ZeroMemory(local.PrivateKey);
+            var remote = fixture.Peer.Id;
+            var selected = MediaSyncSettings.Change(MediaSyncSettings.Create(remote), remote, local.Id, "enabled", JsonValue.Create(true)!);
+            var privateFrames = new List<JsonObject> { malformed, probe, reply };
+            if (OperatingSystem.IsWindows())
+            {
+                File.WriteAllText(fixture.Paths.TelefonStorageKey, Convert.ToBase64String(ProtectedData.Protect(
+                    new byte[32], "magnolie-phone-storage-v1"u8.ToArray(), DataProtectionScope.CurrentUser)));
+                await Control(MediaSyncSettings.Kind, selected);
+                var echo = await fixture.Read(received++);
+                privateFrames.Add(echo);
+                TestAssert.That(echo["kind"]!.GetValue<string>() == MediaSyncSettings.Kind, "Missing protected shared settings echo.");
+                await fixture.Send(Ack(echo), sent++);
+                await Ping();
+                TestAssert.That(!connection.PrivateMediaSettingsMatched, "Settings ACK without identical echo meant agreement.");
+                await Control(MediaSyncSettings.Kind, echo["body"]!.AsObject());
+                await Ping();
+                TestAssert.That(connection.PrivateMediaSettingsMatched && !connection.MediaSharedSettingsReady,
+                    "Private settings failed to converge or created a legacy file intent.");
+            }
+            else
+            {
+                var proposal = Message(MediaSyncSettings.Kind, selected);
+                privateFrames.Add(proposal);
+                await fixture.Send(proposal, sent++);
+                var rejection = Ack(proposal); rejection["status"] = "rejected"; rejection["error"] = "not_granted";
+                TestAssert.That(JsonNode.DeepEquals(rejection, await fixture.Read(received++)), "Missing native DPAPI was not held.");
+                await Ping();
+                TestAssert.That(!connection.PrivateMediaSettingsMatched, "Linux stand-in granted protected Windows settings.");
+            }
             await Control("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = false });
             await Control("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true });
             await fixture.Send(Ack(reply), sent++);
             await fixture.Send(Hello(), sent++);
             await Ping();
             TestAssert.That(!connection.NativeMediaSupportEstablished && fixture.LegacyReceives == 5, "Withdrawal was reversed or discovery entered the ordinary dispatcher.");
-            foreach (var frame in new[] { malformed, probe, reply })
+            TestAssert.That(!connection.PrivateMediaSettingsMatched &&
+                (OperatingSystem.IsWindows() == fixture.Store.HasNativeMediaSharedSettings(remote)),
+                "Withdrawal erased saved choices, stored choices without DPAPI or kept the old agreement current.");
+            foreach (var frame in privateFrames)
             {
                 var id = frame["message_id"]!.GetValue<string>();
                 TestAssert.That(fixture.Store.OutboxMessage(fixture.Peer.Id, id) is null && !fixture.Store.ReceivedMatches(fixture.Peer.Id, frame),
