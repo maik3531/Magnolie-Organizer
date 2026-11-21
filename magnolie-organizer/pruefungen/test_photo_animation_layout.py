@@ -89,7 +89,6 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
     planned=plan_special_folder_path(origin.original_path,origin.mapped_path,was_animation=origin.was_animation,
         was_capture=origin.was_capture,verified_animation=True,verified_capture=False,setting='animation',separate=True)
     destination=target/planned
-    destination.parent.parent.mkdir(mode=0o700);destination.parent.mkdir(mode=0o700)
     def key(path):
         info=path.stat();return info.st_dev,info.st_ino
     def original_current():
@@ -100,12 +99,18 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
         def current():return original_current() and book.saved_book_version()==saved_book
         with book.activity(current) as lease:
             assert lease is not None
-            def preview(record):
+            def preview(record,*,allow_missing=False):
                 return preview_original_gif_relocation(record,accepted,history,receipt,operation='4'*32,
                     book_sha256=saved_book,preferences_sha256=preference_snapshot.version,
-                    current_binding=connection._receive_binding,require_original=lease)
-            with pytest.raises(TransferError,match='animation_unproven'):preview(mapping)
+                    current_binding=connection._receive_binding,require_original=lease,_allow_missing_draft=allow_missing)
+            with pytest.raises(TransferError,match='animation_unproven'):preview(mapping,allow_missing=True)
             original.write_bytes(ANIMATED)
+            draft=preview(mapping,allow_missing=True)
+            assert draft.target_parents.existing==(key(target),) and draft.target_parents.missing==('Animationen','Camera')
+            assert draft.target==planned and draft.file.file_key==mapping.file_key and draft.file.sha256==sha256(ANIMATED).hexdigest()
+            assert not draft.grants_write_authority and not destination.parent.parent.exists()
+            with pytest.raises(TransferError,match='invalid_selection'):bind_relocation_selection((draft,),occupied=())
+            destination.parent.parent.mkdir(mode=0o700);destination.parent.mkdir(mode=0o700)
             with pytest.raises(TransferError,match='original_receipt_changed'):
                 preview(replace(mapping,receipt_sha256='0'*64))
             record=preview(mapping)

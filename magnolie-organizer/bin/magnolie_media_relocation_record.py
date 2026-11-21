@@ -40,6 +40,24 @@ class RelocationTargetParentObservation:
     missing: tuple
 
 
+@dataclass(frozen=True)
+class MissingGifTargetDraft:
+    """Read-only intent candidate, distinct from any prepared rename record."""
+    operation: str
+    book_sha256: str
+    preferences_sha256: str
+    original_mapping_sha256: str
+    destination: NativeAcceptedDestination
+    source: str
+    source_parents: tuple
+    target: str
+    target_parents: RelocationTargetParentObservation
+    file: 'RelocationFileWitness'
+
+    @property
+    def grants_write_authority(self):return False
+
+
 def inspect_relocation_target_parents(destination,relative,current):
     """Read the longest safe named prefix and verify the first absent name."""
     from magnolie_photo_destination import require_media_directory
@@ -335,7 +353,7 @@ class MediaRelocationRecord:
 
 
 def preview_original_gif_relocation(mapping,accepted,history,receipt,*,operation,book_sha256,preferences_sha256,
-        current_binding,require_original):
+        current_binding,require_original,_allow_missing_draft=False):
     """Read-only draft for a native caller holding the original protected job.
 
     Only plain original images and already existing safe destination parents
@@ -363,7 +381,26 @@ def preview_original_gif_relocation(mapping,accepted,history,receipt,*,operation
     destination=accepted.destination;root=Path(destination.path)
     require_media_directory(root/origin.mapped_path);require_media_directory(root/target)
     parents=inspect_relocation_target_parents(destination,target,current)
-    if parents.missing:raise TransferError('photo_relocation_target_parents_missing')
+    if parents.missing:
+        if not _allow_missing_draft:raise TransferError('photo_relocation_target_parents_missing')
+        from magnolie_media_mime import ANIMATION_PROOF_BYTES, verified_gif_animation
+        from magnolie_media_source import NativeMappedMediaSource
+        source=inspect_relocation_target_parents(destination,origin.mapped_path,current)
+        if source.missing or source.existing!=mapping.parent_keys:
+            raise TransferError('photo_relocation_original_location_unproven')
+        with NativeMappedMediaSource._file(mapping,current) as (fd,size,signature,unchanged):
+            if size>ANIMATION_PROOF_BYTES or signature[2]&0o077:
+                raise TransferError('photo_relocation_animation_unproven')
+            raw=os.pread(fd,size+1,0)
+            if len(raw)!=size or not verified_gif_animation(raw):
+                raise TransferError('photo_relocation_animation_unproven')
+            if (inspect_relocation_target_parents(destination,target,current)!=parents
+                    or inspect_relocation_target_parents(destination,origin.mapped_path,current)!=source):
+                raise TransferError('photo_relocation_parent_changed')
+            unchanged()
+            return MissingGifTargetDraft(operation,book_sha256,preferences_sha256,origin.mapping_sha256,
+                destination,origin.mapped_path,source.existing,target,parents,
+                RelocationFileWitness(mapping.file_key,size,sha256(raw).hexdigest()))
     draft=MediaRelocationRecord(operation,'0'*64,book_sha256,preferences_sha256,origin.mapping_sha256,
         destination.ancestor_keys[0],mapping.parent_keys,parents.existing,origin.mapped_path,target,
         RelocationFileWitness(mapping.file_key,mapping.saved_size,mapping.saved_sha256))

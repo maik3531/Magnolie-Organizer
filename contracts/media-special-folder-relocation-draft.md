@@ -111,8 +111,10 @@ this comparison.
   safe target parents and creates no directory, journal, or consent. The native
   parent inspection distinguishes an exact missing suffix from a linked,
   aliased, unsafe or concurrently changed parent. A missing suffix currently
-  holds the preview; it is not an instruction to create directories. It does
-  not yet enumerate a complete user-visible selection. The private native
+  holds the ordinary preview. An internal read-only draft can retain that
+  suffix with the freshly proven original GIF and its exact mapping. It is
+  not a prepared rename record or an instruction to create directories. The
+  preview does not yet enumerate a complete user-visible selection. The private native
   selection entry point can freeze an exact explicit list of up to 128 current
   image mappings under a single shared lease. All selected members must pass;
   it never silently drops one, creates missing parents, or grants a move.
