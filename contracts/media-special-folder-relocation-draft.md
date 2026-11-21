@@ -21,6 +21,13 @@ against coordinated loss or rollback of both stores: the future product owner
 must still bind the operation to the live saved book and hold any missing
 selection there rather than creating a new one.
 
+The read-only path projection needs the exact anchored `moved` outcome and
+the unchanged protected mapping. It checks both names and their directories
+again and returns the new location separately from the saved receipt. Later
+edits to the moved inode can still be compared against the original digest;
+the location check itself does not classify an edit or grant access. No
+production reader uses this projection yet.
+
 ## Selection
 
 - Begin with an authenticated saved receive job, its immutable manifest,

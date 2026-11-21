@@ -126,7 +126,17 @@ class MediaRelocationRecord:
             raise TransferError('photo_relocation_invalid_transition')
         return self._observe_native(destination,current,require_animation=False,durable_phase=phase)
 
-    def _observe_native(self,destination,current,*,require_animation,durable_phase):
+    def require_moved_location(self,destination,current):
+        """Verify the anchored inode's location, not its current content.
+
+        A later edit to that same inode must be evaluated against the immutable
+        saved digest by the content reader, not mistaken for a different path.
+        """
+        if self.phase!='moved':raise TransferError('photo_relocation_outcome_required')
+        if self._observe_native(destination,current,require_animation=False,durable_phase=None,location_only=True)!='at_target':
+            raise TransferError('photo_relocation_original_location_unproven')
+
+    def _observe_native(self,destination,current,*,require_animation,durable_phase,location_only=False):
         if (type(destination) is not NativeAcceptedDestination or destination.ancestor_keys[0]!=self.root_key
                 or not callable(current) or type(require_animation) is not bool):
             raise TransferError('photo_relocation_original_destination_required')
@@ -167,11 +177,13 @@ class MediaRelocationRecord:
                 if before is None:
                     ends.append((endpoint,None));return None
                 if (not stat.S_ISREG(before.st_mode) or before.st_uid!=os.geteuid() or before.st_nlink!=1
-                        or key(before)!=self.file.file_key or before.st_size!=self.file.size):
+                        or key(before)!=self.file.file_key or not (1<=before.st_size<=MAX_FILE_BYTES if location_only else before.st_size==self.file.size)):
                     raise TransferError('photo_relocation_original_file_changed')
                 opened=track(os.open(leaf,os.O_PATH|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=parent))
                 exact=signature(before)
                 if signature(os.fstat(opened))!=exact:raise TransferError('photo_relocation_original_file_changed')
+                if location_only:
+                    ends.append((endpoint,exact));return True
                 # Read the verified descriptor rather than reopening a raced name.
                 fd=track(os.open('/proc/self/fd/'+str(opened),os.O_RDONLY|os.O_CLOEXEC|os.O_NONBLOCK))
                 if signature(os.fstat(fd))!=exact:raise TransferError('photo_relocation_original_file_changed')
@@ -205,6 +217,7 @@ class MediaRelocationRecord:
             witnessed=dict(root_key=self.root_key,source_parents=self.source_parents,target_parents=self.target_parents,
                 source=observed_source,target=observed_target)
             recheck()
+            if location_only:return 'at_target' if observed_source is None and observed_target is True else 'held'
             if durable_phase is None:return self.observe(**witnessed)
             candidate=self.terminal_candidate(durable_phase,**witnessed)
             os.fsync(source[0]);require_current();os.fsync(target[0]);recheck()

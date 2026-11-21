@@ -86,8 +86,25 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
         assert record.observe_native(mapping.destination,original_current,require_animation=True)=='at_source'
         prepared=journal.prepare(journal.issue_action(),journal.read(),selection,confirmed,mapping.destination,require_original=original_current)
         assert journal.require_prepared(prepared.version,confirmed).records==selection
+        assert original_current() and original.read_bytes()==ANIMATED and not destination.exists()
+        with pytest.raises(TransferError,match='moved_mapping_required'):
+            journal.resolve_moved_read_location(prepared,mapping,require_original=original_current)
+        original.rename(destination) # Isolated fixture, not a product move.
+        committed=journal.record_terminal(journal.issue_action(),prepared,0,'moved',mapping.destination,
+            require_original=original_current)
+        with pytest.raises(TransferError,match='original_journal_changed'):
+            journal.resolve_moved_read_location(prepared,mapping,require_original=original_current)
+        local_edit=b'edited again after moving'
+        destination.write_bytes(local_edit)
+        located=journal.resolve_moved_read_location(committed,mapping,require_original=original_current)
+        assert located.original==mapping and located.original.saved_sha256==sha256(b'hello').hexdigest()
+        assert located.relative_path==planned and located.parent_keys==record.target_parents
+        assert (target/located.relative_path).read_bytes()==local_edit and key(destination)==mapping.file_key
+        original.write_bytes(b'unrelated new original')
+        with pytest.raises(TransferError,match='original_file_changed'):
+            journal.resolve_moved_read_location(committed,mapping,require_original=original_current)
     assert original_current() and channel.send.call_count==messages
-    assert original.read_bytes()==ANIMATED and key(original)==mapping.file_key and not destination.exists()
+    assert original.read_bytes()==b'unrelated new original' and destination.read_bytes()==local_edit
 
 
 @pytest.mark.parametrize('capture',[False,True],ids=['animations_only','camera_and_animations'])

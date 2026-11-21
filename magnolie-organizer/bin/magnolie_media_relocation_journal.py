@@ -11,7 +11,8 @@ from magnolie_file_control import _hex
 from magnolie_file_transfer import TransferError
 from magnolie_media_relocation_anchor import RelocationAnchor
 from magnolie_media_relocation_record import MediaRelocationRecord, bind_relocation_selection
-from magnolie_photo_destination import NativePhotoDestinationAction
+from magnolie_photo_destination import NativePhotoDestinationAction, require_media_directory
+from magnolie_photo_mappings import NativeSavedPhotoMapping
 from magnolie_photo_preferences import ProtectedPhotoPreferences
 
 
@@ -22,6 +23,14 @@ class RelocationJournalSnapshot:
     records: tuple
     outcome_version: str | None = None
     outcomes: tuple = ()
+
+
+@dataclass(frozen=True)
+class RelocatedReadLocation:
+    """Effective local path, never a replacement for the historical mapping."""
+    original: NativeSavedPhotoMapping
+    relative_path: str
+    parent_keys: tuple
 
 
 class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
@@ -134,6 +143,36 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
                 or current.records[0].selection_sha256!=confirmed_sha256):
             raise TransferError('photo_relocation_original_journal_changed')
         return current
+
+    def resolve_moved_read_location(self,expected,mapping,*,require_original):
+        """Read a moved location under the exact externally bound outcome.
+
+        Only the path and its directory witnesses change. Any reader must still
+        open and revalidate the exact file, using the original mapping for byte
+        comparison. Never use this projection to grant SEND or resume a move.
+        """
+        if (type(expected) is not RelocationJournalSnapshot or not expected.associated or not expected.records
+                or type(mapping) is not NativeSavedPhotoMapping or not callable(require_original)):
+            raise TransferError('photo_relocation_original_checkpoint_required')
+        def current():
+            if require_original() is not True:raise TransferError('photo_relocation_original_owner_ended')
+            self._fresh()
+            return True
+        with self._operation():
+            if not self._open():raise TransferError('photo_relocation_original_journal_changed')
+            with self._locked():
+                self._schema();before=self._anchored_snapshot();current()
+                if before!=expected:raise TransferError('photo_relocation_original_journal_changed')
+                moved=next((item for _,item in before.outcomes if item.original_mapping_sha256==mapping.protected_record_sha256),None)
+                if (moved is None or moved.phase!='moved' or moved.source!=mapping.relative_path
+                        or moved.source_parents!=mapping.parent_keys or moved.file.file_key!=mapping.file_key
+                        or moved.root_key!=mapping.destination.ancestor_keys[0]):
+                    raise TransferError('photo_relocation_moved_mapping_required')
+                require_media_directory(mapping.destination.path+'/'+moved.target)
+                moved.require_moved_location(mapping.destination,current)
+                if self._anchored_snapshot()!=before:raise TransferError('photo_relocation_original_journal_changed')
+                current()
+                return RelocatedReadLocation(mapping,moved.target,moved.target_parents)
 
     def prepare(self,action,expected,records,confirmed_sha256,destination,*,require_original):
         """Store the whole exact selection or none. No files are moved here.
