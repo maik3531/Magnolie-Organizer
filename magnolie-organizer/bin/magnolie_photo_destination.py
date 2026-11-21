@@ -1,4 +1,4 @@
-"""Explicit native folder selection only. No preference defaults, scan or sync."""
+"""Native folder selection and relative layout rules. No scan or file moves."""
 from dataclasses import dataclass
 from pathlib import Path
 import os
@@ -10,7 +10,35 @@ import unicodedata
 
 from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_file_native_authority import NativeDesktopFileAuthority
-from magnolie_file_transfer import TransferError
+from magnolie_file_transfer import TransferError, _portable_path
+
+
+def grouped_media_path(original, *, animation, capture):
+    """Use exactly the same folder order for new files and historical plans."""
+    if type(animation) is not bool or type(capture) is not bool:
+        raise TransferError('photo_grouping_invalid_layout')
+    _portable_path(original)
+    return _portable_path(('Eigene Aufnahmen/' if capture else '')+('Animationen/' if animation else '')+original)
+
+
+def plan_special_folder_path(original, mapped, *, was_animation, was_capture,
+        verified_animation, verified_capture, setting, separate):
+    """Pure path candidate, never a move grant or a claim about media content.
+
+    A later native journal must supply the authenticated original manifest path,
+    mapping, historical flags/eligibility and recheck both filesystem endpoints.
+    Current preferences, a basename or a prefix in an album are not evidence.
+    """
+    if (setting not in ('animation','capture') or any(type(value) is not bool for value in
+            (was_animation,was_capture,verified_animation,verified_capture,separate))):
+        raise TransferError('photo_grouping_invalid_layout')
+    source=grouped_media_path(original,animation=was_animation,capture=was_capture)
+    if type(mapped) is not str or mapped!=source or was_animation and not verified_animation or was_capture and not verified_capture:
+        raise TransferError('photo_grouping_original_layout_required')
+    animation=separate and verified_animation if setting=='animation' else was_animation
+    capture=separate and verified_capture if setting=='capture' else was_capture
+    target=grouped_media_path(original,animation=animation,capture=capture)
+    return None if target==source else target
 
 def media_directory_is_backup(path):
     """Deny-only recursive exclusion; no catalog, pairing or IO authority.

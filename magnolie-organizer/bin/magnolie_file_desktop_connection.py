@@ -36,7 +36,7 @@ from magnolie_transfer_job_catalog import ProtectedTransferJobCatalog
 from magnolie_transfer_job_index import ProtectedTransferJobIndex
 from magnolie_photo_preferences import ProtectedPhotoPreferences
 from magnolie_photo_mappings import ProtectedPhotoMappings, PhotoMappingAssociation
-from magnolie_photo_destination import NativePhotoDestinationController, NativePhotoDestinationAction
+from magnolie_photo_destination import NativePhotoDestinationController, NativePhotoDestinationAction, grouped_media_path
 from magnolie_telefon import now_ms, canonical, strict_json, SecureChannel
 
 
@@ -1946,17 +1946,15 @@ class NativeDesktopFileConnection:
             manifest = validate_offer(self._offer, binding.sender_id, binding.receiver_id, now=clock())
             if clock() >= self._offer['expires_ms']:
                 raise TransferError('file_desktop_offer_expired')
-            targets={file.id:file.path for file in manifest.files}
             media_type=self._source_run.media_type if self._source_run is not None else 'images'
             destination=self._receive_destination(snapshot,media_type=media_type)
-            if snapshot.separate_animations:
-                # Only fresh, correlated animation members are routed. Known
-                # historical associations were fenced before deriving paths.
-                entries={entry.file_id:entry for entry in self._source_media_entries}
-                targets={file.id:('Animationen/'+file.path if entries[file.id].media_kind=='animation' else file.path)
-                    for file in manifest.files}
-            if snapshot.separate_own_recordings and self._source_album_kind=='camera':
-                targets={file_id:'Eigene Aufnahmen/'+path for file_id,path in targets.items()}
+            # This is only routing for fresh correlated entries, not authority
+            # to rearrange already received originals or to classify provenance.
+            entries={entry.file_id:entry for entry in self._source_media_entries} if snapshot.separate_animations else {}
+            capture=snapshot.separate_own_recordings and self._source_album_kind=='camera'
+            targets={file.id:grouped_media_path(file.path,
+                animation=snapshot.separate_animations and entries[file.id].media_kind=='animation',capture=capture)
+                for file in manifest.files}
             parents=selection.version_parents if selection is not None else ()
             if parents:
                 from magnolie_photo_mappings import photo_version_path
