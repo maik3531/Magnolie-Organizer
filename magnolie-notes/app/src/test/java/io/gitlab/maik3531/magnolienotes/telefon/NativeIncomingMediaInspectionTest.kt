@@ -25,10 +25,15 @@ import java.io.FileDescriptor
 import java.io.FileInputStream
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
+import java.security.MessageDigest
+import java.util.Base64
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class])
@@ -220,5 +225,34 @@ class NativeIncomingMediaInspectionTest {
                 }
             }
         }
+    }
+
+    @Test fun webmOriginalNeedsAnExactVideoWitnessAndDoesNotGainPublicationAuthority() = fixture<Unit> { root, io ->
+        val vector = Json.parseToJsonElement(File("../contracts/media-webm-probe-vectors.json").readText())
+            .jsonObject.getValue("webm").jsonObject
+        val original = Base64.getDecoder().decode(vector.getValue("base64").jsonPrimitive.content)
+        val hash = MessageDigest.getInstance("SHA-256").digest(original).joinToString("") { "%02x".format(it.toInt() and 255) }
+        assertEquals(vector.getValue("sha256").jsonPrimitive.content, hash)
+        // Host fixture: real original bytes, shadowed Android metadata and demux tracks.
+        // This must never be represented as a native Android decoder or MediaStore proof.
+        val file = File(root, "misleading-extension.mp4").apply { writeBytes(original) }
+        readOnly(file).use { descriptor ->
+            val source = DataSource.toDataSource(descriptor.fileDescriptor, 0, file.length())
+            mapOf(MediaMetadataRetriever.METADATA_KEY_MIMETYPE to "video/webm",
+                MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO to "yes", MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH to "16",
+                MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT to "16", MediaMetadataRetriever.METADATA_KEY_DURATION to "1000")
+                .forEach { (key, value) -> ShadowMediaMetadataRetriever.addMetadata(source, key, value) }
+            ShadowMediaExtractor.addTrack(source, MediaFormat.createVideoFormat("video/x-vnd.on2.vp8", 16, 16), byteArrayOf())
+            io {
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    NativeIncomingMediaInspection.inspect(descriptor.fileDescriptor, file.length(), GalleryMediaType.VIDEO, "video/mp4") { }
+                }
+                val result = NativeIncomingMediaInspection.inspect(descriptor.fileDescriptor, file.length(), GalleryMediaType.VIDEO, "video/webm") { }
+                assertEquals("video/webm", result.mimeType)
+                assertEquals(16, result.width); assertEquals(16, result.height)
+                assertFalse(result.isSavedReceipt); assertFalse(result.grantsWriteAuthority)
+            }
+        }
+        assertArrayEquals(original, file.readBytes())
     }
 }
