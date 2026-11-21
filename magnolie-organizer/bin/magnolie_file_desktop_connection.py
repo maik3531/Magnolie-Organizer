@@ -2297,6 +2297,41 @@ class NativeDesktopFileConnection:
             if self._receive_binding()!=binding:raise TransferError('photo_preferences_authority_changed')
             return changed
 
+    def inspect_special_folder_origin(self,action,association,mapping_sha256):
+        """Authenticate the original job behind one current mapping, not a move permit."""
+        from magnolie_photo_destination import special_folder_origin
+        if type(association) is not PhotoMappingAssociation:
+            raise TransferError('photo_grouping_original_job_required')
+        self._take_action(action)
+        with self._operation():
+            if (self._album_worker is not None or self._run is not None or self._source_pending is not None
+                    or self._source_run is not None or self._offer is not None or self._mapped_worker is not None):
+                raise TransferError('file_desktop_receive_already_active')
+            policy=self._receiving_policy();kind=association.media_type
+            binding=self._receive_binding(media_type=kind);destination=self._receive_destination(policy,media_type=kind)
+            snapshot,(mapping,)=self._mappings.lookup((association,))
+            if (not snapshot.associated or mapping is None or mapping.protected_record_sha256!=mapping_sha256
+                    or mapping.destination!=destination or not self._open_catalog(allow_create=False)):
+                raise TransferError('photo_grouping_original_job_required')
+            protection=self._authority.protection
+            with self._catalog.inspect_jobs() as (parent,jobs):
+                job=next((candidate for candidate in jobs if candidate.owner==mapping.job_owner),None)
+                if (job is None or job.accepted.binding!=binding or job.accepted.destination!=destination
+                        or job.saved_mapping_sha256 is None):
+                    raise TransferError('photo_grouping_original_job_required')
+                with ProtectedTransferJobIndex(parent,job.accepted.manifest,binding,lambda:self._receive_binding(media_type=kind),
+                        protection.seal,protection.unseal,owner=job.owner,accepted=job.accepted) as index:
+                    history=index.media_history
+                    if history is None:raise TransferError('photo_grouping_original_job_required')
+                    self._verify_completed_mapping_job(index,job,history)
+                    result=special_folder_origin(job.accepted,history,mapping)
+                if self._catalog.jobs()!=jobs:raise TransferError('photo_grouping_original_job_changed')
+            if (self._mappings.lookup((association,))!=(snapshot,(mapping,)) or self._receiving_policy()!=policy
+                    or self._receive_binding(media_type=kind)!=binding):
+                raise TransferError('photo_grouping_original_job_changed')
+            action.validate(self)
+            return result
+
     def inspect_photo_recovery(self, action):
         """Bounded native metadata overview; never a repair/publication permit.
 

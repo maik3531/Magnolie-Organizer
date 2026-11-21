@@ -40,6 +40,45 @@ def plan_special_folder_path(original, mapped, *, was_animation, was_capture,
     target=grouped_media_path(original,animation=animation,capture=capture)
     return None if target==source else target
 
+
+@dataclass(frozen=True)
+class SpecialFolderOrigin:
+    """Historical paths only; source classification is not current eligibility."""
+    original_path: str
+    mapped_path: str
+    mapping_sha256: str
+    source_media_kind: str
+    was_animation: bool
+    was_capture: bool
+
+
+def special_folder_origin(accepted, history, mapping):
+    """Match an already checked saved mapping to its immutable receive job."""
+    from magnolie_file_acceptance import NativeAcceptedTransfer
+    from magnolie_file_media_history import NativeMediaHistory
+    from magnolie_photo_mappings import NativeSavedPhotoMapping
+    if (type(accepted) is not NativeAcceptedTransfer or type(history) is not NativeMediaHistory
+            or type(mapping) is not NativeSavedPhotoMapping):
+        raise TransferError('photo_grouping_original_job_required')
+    association=mapping.association
+    member=next((entry for entry in history.entries if entry.file_id==mapping.source_file_id),None)
+    file=next((entry for entry in accepted.manifest.files if entry.id==mapping.source_file_id),None)
+    if (member is None or file is None or (member.photo_id,history.source_epoch,history.media_type)!=
+            (association.photo_id,association.source_epoch,association.media_type)
+            or association.photo_id in dict(history.version_parents)
+            or mapping.accepted_sha256!=history.accepted_sha256 or mapping.accepted_sha256!=accepted.fingerprint
+            or mapping.manifest_sha256!=history.manifest_sha256 or mapping.manifest_sha256!=accepted.manifest.fingerprint
+            or mapping.relative_path!=dict(accepted.targets).get(file.id) or mapping.destination!=accepted.destination):
+        raise TransferError('photo_grouping_original_job_required')
+    for capture in (False,True):
+        for animation in ((False,True) if member.media_kind=='animation' else (False,)):
+            try:path=grouped_media_path(file.path,animation=animation,capture=capture)
+            except TransferError:continue
+            if path==mapping.relative_path:
+                return SpecialFolderOrigin(file.path,path,mapping.protected_record_sha256,member.media_kind,animation,capture)
+    raise TransferError('photo_grouping_original_layout_required')
+
+
 def media_directory_is_backup(path):
     """Deny-only recursive exclusion; no catalog, pairing or IO authority.
 

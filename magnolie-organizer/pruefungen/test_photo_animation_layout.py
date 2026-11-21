@@ -20,6 +20,36 @@ def animation(fixture):
     return replace(base,files=(replace(base.files[0],path='Camera/old.gif'),))
 
 
+@pytest.mark.parametrize('grouped',[False,True])
+def test_special_folder_origin_uses_authenticated_manifest_not_the_album_prefix(receiving,grouped):
+    from magnolie_photo_destination import plan_special_folder_path
+    service,peer,channel,connection,target=receiving
+    converge_controls(service,peer,channel)
+    original='Animationen/Camera/old.gif'
+    full=animation(receiving);full=replace(full,files=(replace(full.files[0],path=original),))
+    if grouped:connection.set_future_animation_layout(connection.issue_receive_action(),separate=True,historical_choice='keep_existing')
+    with phone_batches(receiving,[full],media_kinds={original:'animation'}) as (_,saved,_,_,errors):
+        worker=connection.start_album_worker(connection.issue_receive_action(),ALBUM,True)
+        assert worker.join(40) and worker.progress()['state']=='complete',worker.progress()
+        assert not errors and len(saved)==1
+    before,mappings,next_cursor=connection._mappings.candidate_page('images')
+    assert next_cursor is None
+    mapping,=mappings
+    wire_before=channel.send.call_count
+    accepted_path=('Animationen/' if grouped else '')+original
+    file=target/accepted_path;file.write_bytes(b'edited local bytes')
+    edited=(file.stat().st_ino,file.read_bytes())
+    with pytest.raises(TransferError,match='original_job_required'):
+        connection.inspect_special_folder_origin(connection.issue_receive_action(),mapping.association,'f'*64)
+    result=connection.inspect_special_folder_origin(connection.issue_receive_action(),mapping.association,mapping.protected_record_sha256)
+    assert (result.original_path,result.mapped_path,result.was_animation,result.was_capture)==(original,accepted_path,grouped,False)
+    proposed=plan_special_folder_path(result.original_path,result.mapped_path,was_animation=result.was_animation,
+        was_capture=result.was_capture,verified_animation=False,verified_capture=False,setting='animation',separate=True) if not grouped else None
+    assert proposed is None # Historical media label is not current-byte eligibility.
+    assert (file.stat().st_ino,file.read_bytes())==edited and connection._mappings.read()==before
+    assert channel.send.call_count==wire_before
+
+
 @pytest.mark.parametrize('capture',[False,True],ids=['animations_only','camera_and_animations'])
 def test_gtk_layout_applies_only_to_new_animations_and_preserves_pc_edits_and_original_grants(receiving,request,capture):
     service,peer,channel,connection,target=receiving;converge_controls(service,peer,channel)
