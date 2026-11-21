@@ -50,12 +50,14 @@ def test_special_folder_origin_uses_authenticated_manifest_not_the_album_prefix(
     assert channel.send.call_count==wire_before
 
 
-def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_touching_receive_history(receiving,monkeypatch):
+@pytest.mark.parametrize('bound_owner',[False,True],ids=['journal','confirmed_owner'])
+def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_touching_receive_history(receiving,monkeypatch,bound_owner):
     from contextlib import closing
     import os
     from test_media_relocation_record import ANIMATED
     from magnolie_media_relocation_record import MediaRelocationRecord, RelocationFileWitness, bind_relocation_selection
     from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
+    from magnolie_media_relocation_owner import ProtectedRelocationOwner
     from magnolie_media_retention import NativeMediaActivity, NativeMediaRetention
     from magnolie_media_source import NativeMappedMediaSource
     from magnolie_photo_destination import plan_special_folder_path
@@ -98,24 +100,35 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
     def original_current():
         return (connection._mappings.lookup((mapping.association,))==(mapping_snapshot,(mapping,))
             and connection._preferences.read()==preference_snapshot and connection._catalog.jobs()==jobs)
-    with closing(ProtectedMediaRelocationJournal(connection._authority)) as journal:
+    with (closing(ProtectedMediaRelocationJournal(connection._authority)) as journal,
+          closing(ProtectedRelocationOwner(connection._authority)) as owner):
         assert record.observe_native(mapping.destination,original_current,require_animation=True)=='at_source'
-        prepared=journal.prepare(journal.issue_action(),journal.read(),selection,confirmed,mapping.destination,require_original=original_current)
-        assert journal.require_prepared(prepared.version,confirmed).records==selection
         assert original_current() and original.read_bytes()==ANIMATED and not destination.exists()
-        with pytest.raises(TransferError,match='moved_mapping_required'):
-            journal.resolve_moved_read_location(prepared,mapping,require_original=original_current)
-        committed=journal.move_prepared_animation(journal.issue_action(),prepared,0,mapping.destination,
-            require_original=original_current)
+        if bound_owner:
+            intent,witness=owner._move_original_animation_selection(owner._issue_confirmed_action(original_current),journal,
+                selection,mapping.destination,confirmed)
+            committed=journal.read()
+            assert owner.require_checkpoint(intent)==witness
+        else:
+            prepared=journal.prepare(journal.issue_action(),journal.read(),selection,confirmed,mapping.destination,require_original=original_current)
+            assert journal.require_prepared(prepared.version,confirmed).records==selection
+            with pytest.raises(TransferError,match='moved_mapping_required'):
+                journal.resolve_moved_read_location(prepared,mapping,require_original=original_current)
+            committed=journal.move_prepared_animation(journal.issue_action(),prepared,0,mapping.destination,
+                require_original=original_current)
+            with pytest.raises(TransferError,match='original_journal_changed'):
+                journal.resolve_moved_read_location(prepared,mapping,require_original=original_current)
         assert committed.attempts==(0,) and committed.outcomes[0][1].phase=='moved'
-        with pytest.raises(TransferError,match='original_journal_changed'):
-            journal.resolve_moved_read_location(prepared,mapping,require_original=original_current)
         def content_changed_at_relocated_path():
             location=journal.resolve_moved_read_location(committed,mapping,require_original=original_current)
             with NativeMappedMediaSource._file(location,original_current) as (fd,length,_,unchanged):
                 raw=os.pread(fd,length,0);unchanged();assert len(raw)==length
                 return (length,sha256(raw).hexdigest())!=(mapping.saved_size,mapping.saved_sha256)
         def observe(*,record=mapping,check=original_current):
+            if bound_owner:
+                with closing(ProtectedRelocationOwner(connection._authority)) as fresh:
+                    return fresh.observe_completed_target(intent,journal,record,accepted,receipt,connection._receive_binding,
+                        require_original=check)
             return journal.observe_moved_saved_target(committed,record,accepted,receipt,connection._receive_binding,
                 require_original=check)
         association=NativePhotoAssociation(accepted.binding,mapping.association.source_epoch,mapping.association.photo_id,
@@ -125,7 +138,7 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
         phone=NativePhotoObservation('present',saved_content,insertion_proven=True)
         with pytest.raises(TransferError,match='original_receipt_changed'):
             observe(record=replace(mapping,receipt_sha256='0'*64))
-        with pytest.raises(TransferError,match='lease_changed'):
+        with pytest.raises(TransferError,match='lease_changed|original_owner_ended'):
             observe(check=lambda:False)
         with NativeMediaActivity(connection._authority.binding.native_directory) as activity:
             with activity.activity(exclusive=True) as exclusive:
@@ -164,6 +177,12 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
         with pytest.raises(TransferError,match='original_file_changed'):observe()
         with pytest.raises(TransferError,match='original_file_changed'):
             journal.resolve_moved_read_location(committed,mapping,require_original=original_current)
+        if bound_owner:
+            import sqlite3
+            with closing(sqlite3.connect(owner._path)) as db, db:
+                db.execute('DELETE FROM meta WHERE key=?',(owner._PREPARED_KEY,))
+            with pytest.raises(TransferError,match='original_checkpoint_required'):observe()
+            assert journal.read()==committed
     assert original_current() and channel.send.call_count==messages
     assert original.read_bytes()==b'unrelated new original' and destination.read_bytes()==local_edit
 

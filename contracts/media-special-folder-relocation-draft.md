@@ -65,6 +65,13 @@ same inode and classifies unchanged bytes independently of the new path. The
 native caller still has to supply the live book and exact checkpoint. No
 production workflow uses the bridge yet.
 
+An owner-bound comparison additionally requires the separate sealed terminal
+checkpoint and a complete selection of verified moved outcomes. If the
+independent checkpoint is absent, the selection is partial, or the journal
+has advanced without the original owner, the comparison holds rather than
+trying the old path. This private comparison does not change any mapping or
+provide a new Saved receipt.
+
 ## Selection
 
 - Begin with an authenticated saved receive job, its immutable manifest,

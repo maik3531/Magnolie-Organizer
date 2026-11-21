@@ -278,3 +278,38 @@ class ProtectedRelocationOwner(NativeMediaRetention):
         if self._db.execute('SELECT value FROM meta WHERE key=?',(self._PREPARED_KEY,)).fetchone()!=row:
             raise TransferError('photo_relocation_original_checkpoint_changed')
         return witness
+
+    def observe_completed_target(self,intent,journal,mapping,accepted,receipt,current_binding,*,require_original):
+        """Use the exact terminal selection for readback, never the old name.
+
+        The caller still owns the live protected mapping and Saved receipt.
+        Neither a partial operation nor a plain historical journal can opt in.
+        """
+        from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal, RelocationOwnerCheckpoint
+        from magnolie_photo_mappings import NativeSavedPhotoMapping
+        if (type(journal) is not ProtectedMediaRelocationJournal or journal._authority is not self._authority
+                or type(intent) is not RelocationOwnerIntent or type(mapping) is not NativeSavedPhotoMapping
+                or not callable(require_original)):
+            raise TransferError('photo_relocation_original_owner_required')
+        if mapping.protected_record_sha256 not in intent.mappings or relocation_destination_digest(mapping.destination)!=intent.destination_sha256:
+            raise TransferError('photo_relocation_original_receipt_changed')
+        witness=self.require_checkpoint(intent)
+
+        def current():
+            if require_original() is not True:return False
+            if self.saved_book_version()!=intent.book_sha256:
+                raise TransferError('photo_relocation_original_book_changed')
+            if self.require_checkpoint(intent)!=witness:
+                raise TransferError('photo_relocation_original_checkpoint_changed')
+            return True
+
+        if not current():raise TransferError('photo_relocation_original_owner_ended')
+        snapshot=journal.require_prepared(witness.prepared_version,intent.selection_sha256)
+        if (RelocationOwnerCheckpoint.from_snapshot(snapshot,mapping.destination)!=witness
+                or RelocationOwnerIntent.for_selection(snapshot.records,mapping.destination)!=intent):
+            raise TransferError('photo_relocation_original_journal_changed')
+        ordinals=tuple(range(len(snapshot.records)))
+        if (snapshot.attempts!=ordinals or tuple(i for i,_ in snapshot.outcomes)!=ordinals
+                or any(record.phase!='moved' for _,record in snapshot.outcomes)):
+            raise TransferError('photo_relocation_selection_held')
+        return journal.observe_moved_saved_target(snapshot,mapping,accepted,receipt,current_binding,require_original=current)
