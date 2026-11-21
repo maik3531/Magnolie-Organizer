@@ -1,4 +1,7 @@
 from pathlib import Path
+import json
+import os
+import subprocess
 import sys
 import types
 import pytest
@@ -7,6 +10,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'bin'))
 from magnolie_photo_destination import NativePhotoDestinationController,photo_folder_component,native_pictures_directory
 from magnolie_file_transfer import TransferError
 from magnolie_photo_destination import media_directory_is_backup,media_path_is_excluded,require_media_directory,NativeVideoDestinationController
+from magnolie_photo_destination import video_folder_component
 from magnolie_photo_preferences import PhotoPreferences,VideoPreferences
 from magnolie_file_acceptance import NativeAcceptedDestination
 from test_file_authenticated_desktop import native,bind
@@ -76,6 +80,46 @@ def test_native_pictures_resolution_uses_glib_user_directory_not_home_or_localiz
     monkeypatch.setitem(sys.modules,'gi',gi);monkeypatch.setitem(sys.modules,'gi.repository',repository)
     monkeypatch.setenv('HOME','/not-the-native-pictures-directory')
     assert native_pictures_directory()==str(pictures) and requested==[native_constant]
+
+def test_real_glib_resolves_independent_personal_roots_without_guessing_home_or_creating_them(chooser,tmp_path):
+    pytest.importorskip('gi')
+    _,peer,authority,photos,_,_=chooser
+    home=tmp_path/'isolated-home';home.mkdir(mode=0o700)
+    xdg=home/'isolated-config';xdg.mkdir(mode=0o700)
+    photos_root=home/'Native Picture Library';photos_root.mkdir(mode=0o700)
+    videos_root=home/'Native Video Library';videos_root.mkdir(mode=0o700)
+    config=xdg/'user-dirs.dirs'
+    config.write_text('XDG_PICTURES_DIR="$HOME/Native Picture Library"\nXDG_VIDEOS_DIR="$HOME/Native Video Library"\n',encoding='utf-8')
+    env=dict(os.environ,HOME=str(home),XDG_CONFIG_HOME=str(xdg),PYTHONDONTWRITEBYTECODE='1',
+        PYTHONPATH=str(Path(__file__).resolve().parents[1]/'bin'))
+    # GLib caches user directories per process. Keep the real GUI's environment
+    # unchanged and run the unmocked resolver with an isolated XDG configuration.
+    probe='''import json
+from magnolie_photo_destination import native_pictures_directory,native_videos_directory
+from magnolie_file_transfer import TransferError
+result=[]
+for provider in (native_pictures_directory,native_videos_directory):
+    try:result.append(provider())
+    except TransferError as error:result.append(str(error))
+print(json.dumps(result))
+'''
+    def resolve():return json.loads(subprocess.check_output([sys.executable,'-c',probe],env=env,text=True,timeout=10))
+    photo_path,video_path=resolve()
+    assert (photo_path,video_path)==(str(photos_root),str(videos_root))
+    assert not list(photos_root.iterdir()) and not list(videos_root.iterdir())
+    videos=NativeVideoDestinationController(authority)
+    try:
+        photo=photos.choose_default(photos.issue_action(),pictures_provider=lambda:photo_path)
+        video=videos.choose_default(videos.issue_action(),videos_provider=lambda:video_path)
+        assert Path(photo.destination.path)==photos_root/photo_folder_component(peer['display_name'])
+        assert Path(video.destination.path)==videos_root/video_folder_component(peer['display_name'])
+        assert photo.destination_token!=video.destination_token
+        assert all(not choice.destination.grants_write_authority for choice in (photo,video))
+    finally:videos.close()
+    config.write_text('XDG_DESKTOP_DIR="$HOME/Desktop"\n',encoding='utf-8')
+    assert resolve()==['photo_destination_native_pictures_unavailable','video_destination_native_videos_unavailable']
+    assert not (home/'Pictures').exists() and not (home/'Videos').exists()
+
 
 def test_slow_native_folder_resolution_cannot_create_after_action_deadline(chooser):
     _,_,_,controller,pictures,clock=chooser;action=controller.issue_action()
