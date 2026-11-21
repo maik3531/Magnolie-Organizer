@@ -110,7 +110,7 @@ def test_exact_checkpoint_holds_if_the_whole_journal_is_missing(receiving,tmp_pa
         journal_dir=Path(journal._native_directory())/journal._name
     preserved=journal_dir.with_name('preserved-fixture-journal');journal_dir.rename(preserved)
     with closing(ProtectedMediaRelocationJournal(authority)) as reopened:
-        with pytest.raises(TransferError,match='original_journal_changed'):
+        with pytest.raises(TransferError,match='original_anchor_required'):
             reopened.require_prepared(snapshot.version,revision)
     assert not journal_dir.exists() and preserved.is_dir()
     assert source.read_bytes()==raw and not target.exists()
@@ -142,6 +142,40 @@ def test_terminal_commit_keeps_the_original_preparation_and_rejects_replay(recei
     with closing(sqlite3.connect(database)) as db, db:db.execute('DELETE FROM outcomes WHERE ordinal=0')
     with closing(ProtectedMediaRelocationJournal(authority)) as reopened:
         with pytest.raises(TransferError,match='original_journal_changed'):reopened.read()
+
+
+@pytest.mark.parametrize('fault',['database_rollback','before_database_commit','missing_anchor','truncated_anchor'])
+def test_anchor_holds_a_changed_or_interrupted_independent_checkpoint(receiving,tmp_path,monkeypatch,fault):
+    entry,destination,source,target,raw=native_fixture(tmp_path/'relocation')
+    selection=bind_relocation_selection((entry,),occupied=());revision=selection[0].selection_sha256
+    authority=receiving[3]._authority
+    with closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        snapshot=journal.prepare(journal.issue_action(),journal.read(),selection,revision,
+            destination,require_original=lambda:True)
+        root=Path(journal._native_directory())
+        db=root/journal._name/'prefs.sqlite';anchor=root/journal._anchor.name
+        prepared_db=db.read_bytes();prepared_anchor=anchor.read_bytes()
+        if fault in ('database_rollback','before_database_commit'):
+            source.rename(target)
+            if fault=='database_rollback':
+                journal.record_terminal(journal.issue_action(),snapshot,0,'moved',destination,require_original=lambda:True)
+            else:
+                append=journal._anchor.append;advanced=[]
+                def interrupted(*args):
+                    append(*args);advanced.append(True)
+                monkeypatch.setattr(journal._anchor,'append',interrupted)
+                with pytest.raises(TransferError,match='original_owner_ended'):
+                    journal.record_terminal(journal.issue_action(),snapshot,0,'moved',destination,require_original=lambda:not advanced)
+                assert advanced and db.read_bytes()==prepared_db
+            assert anchor.read_bytes().startswith(prepared_anchor) and anchor.read_bytes()!=prepared_anchor
+    if fault=='database_rollback':db.write_bytes(prepared_db) # Keep the original database inode.
+    elif fault=='missing_anchor':anchor.rename(anchor.with_suffix('.preserved'))
+    elif fault=='truncated_anchor':anchor.write_bytes(prepared_anchor[:-1])
+    expected={'missing_anchor':'original_anchor_required','truncated_anchor':'original_anchor_incomplete'}.get(fault,'anchor_journal_mismatch')
+    with closing(ProtectedMediaRelocationJournal(authority)) as reopened:
+        with pytest.raises(TransferError,match=expected):reopened.require_prepared(snapshot.version,revision)
+    if fault in ('missing_anchor','truncated_anchor'):assert source.read_bytes()==raw and not target.exists()
+    else:assert target.read_bytes()==raw and not source.exists()
 
 
 def test_terminal_parent_sync_failure_keeps_the_original_outcome_pending(receiving,tmp_path,monkeypatch):
@@ -188,6 +222,6 @@ def test_terminal_target_replaced_during_directory_sync_is_not_credited(receivin
 
 
 def test_relocation_modules_follow_the_existing_optional_photo_composition():
-    modules={'magnolie_media_relocation_record.py','magnolie_media_relocation_journal.py'}
+    modules={'magnolie_media_relocation_record.py','magnolie_media_relocation_journal.py','magnolie_media_relocation_anchor.py'}
     assert not selected_modules(modules,dict(photo_sync=False,phone_camera=True))
     assert selected_modules(modules,dict(photo_sync=True,phone_camera=False))==modules

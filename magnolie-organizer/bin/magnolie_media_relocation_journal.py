@@ -5,9 +5,11 @@ mapping. Terminal evidence is appended only after exact native readback.
 """
 from dataclasses import dataclass, replace
 from hashlib import sha256
+import os
 
 from magnolie_file_control import _hex
 from magnolie_file_transfer import TransferError
+from magnolie_media_relocation_anchor import RelocationAnchor
 from magnolie_media_relocation_record import MediaRelocationRecord, bind_relocation_selection
 from magnolie_photo_destination import NativePhotoDestinationAction
 from magnolie_photo_preferences import ProtectedPhotoPreferences
@@ -35,6 +37,45 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
         self._name='media-relocation-v1-'+self._scope
         self._domain='magnolie-media-relocation-v1/'+self._scope+'/'
         self._absent=sha256((self._domain+'absent').encode()).hexdigest()
+        self._anchor=RelocationAnchor(self)
+
+    def _open(self,*,create=False,validate=lambda:None):
+        flags=os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC
+        parent=os.open(self._native_directory(),flags)
+        try:
+            info=os.fstat(parent);self._private(info,directory=True)
+            if self._key(info)!=self._protection().native_directory_identity:
+                raise TransferError('photo_relocation_original_root_changed')
+            def present(name):
+                try:os.stat(name,dir_fd=parent,follow_symlinks=False);return True
+                except FileNotFoundError:return False
+            exists,anchored=present(self._name),present(self._anchor.name)
+            if exists!=anchored or not exists and self._anchor._identity is not None:
+                raise TransferError('photo_relocation_original_anchor_required')
+            if not exists and not create:return False
+            result=super()._open(create=create,validate=validate)
+            if not result:raise TransferError('photo_relocation_original_journal_changed')
+            if not exists:
+                with self._locked():
+                    self._schema();initial=self._snapshot();validate()
+                    if initial.records or not initial.associated:
+                        raise TransferError('photo_relocation_original_journal_changed')
+                    self._anchor.create(initial)
+            return result
+        finally:os.close(parent)
+
+    def _anchored_snapshot(self):
+        snapshot=self._snapshot();self._anchor.require(snapshot);return snapshot
+
+    def _commit_anchored(self,before,owner,current):
+        blob=self._protect(owner,'owner')
+        self._db.execute('UPDATE owner SET payload=? WHERE id=1',(blob,))
+        checkpoint=(owner['rows_sha256'],sha256(blob).hexdigest(),owner['count'],owner['outcome_count'])
+        # Deliberate write-ahead ordering: a cut between independent writes is
+        # held on restart, not interpreted as an old or successful operation.
+        current();self._anchor.append(before,checkpoint)
+        current();self._db.commit();self._sync();current()
+        return self._anchored_snapshot()
 
     def _initial_owner(self):
         empty=sha256(b'').hexdigest()
@@ -78,7 +119,7 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
         with self._operation():
             if not self._open():return RelocationJournalSnapshot(self._absent,False,())
             with self._locked():
-                self._schema();return self._snapshot()
+                self._schema();return self._anchored_snapshot()
 
     def require_prepared(self,expected_version,confirmed_sha256):
         """Read the exact previous preparation; an absent store cannot be recreated.
@@ -117,7 +158,7 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
                     raise TransferError('photo_relocation_original_location_unproven')
             self._open(create=True,validate=current)
             with self._locked():
-                self._schema();before=self._snapshot();current()
+                self._schema();before=self._anchored_snapshot();current()
                 if not before.associated or before.version!=expected.version or before.records:
                     raise TransferError('photo_relocation_original_journal_changed')
                 try:
@@ -127,9 +168,7 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
                         self._db.execute('INSERT INTO selection VALUES(?,?)',(index,cipher))
                         rows.update(sha256(cipher).digest())
                     owner=dict(self._initial_owner(),count=len(records),rows_sha256=rows.hexdigest())
-                    self._db.execute('UPDATE owner SET payload=? WHERE id=1',(self._protect(owner,'owner'),))
-                    current();self._db.commit();self._sync();current()
-                    return self._snapshot()
+                    return self._commit_anchored(before,owner,current)
                 except BaseException:
                     if self._db.in_transaction:self._db.rollback()
                     self._uncertain=True
@@ -149,7 +188,7 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
         with self._operation():
             if not self._open():raise TransferError('photo_relocation_original_journal_changed')
             with self._locked():
-                self._schema();before=self._snapshot();current()
+                self._schema();before=self._anchored_snapshot();current()
                 if before!=expected:raise TransferError('photo_relocation_original_journal_changed')
                 if index in dict(before.outcomes):raise TransferError('photo_relocation_outcome_already_recorded')
                 entry=before.records[index].sync_terminal_evidence(destination,current,phase)
@@ -162,9 +201,7 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
                         outcomes.update(ordinal.to_bytes(2,'big')+sha256(stored).digest())
                     owner=dict(self._initial_owner(),count=len(before.records),rows_sha256=before.version,
                         outcome_count=len(before.outcomes)+1,outcomes_sha256=outcomes.hexdigest())
-                    self._db.execute('UPDATE owner SET payload=? WHERE id=1',(self._protect(owner,'owner'),))
-                    current();self._db.commit();self._sync();current()
-                    return self._snapshot()
+                    return self._commit_anchored(before,owner,current)
                 except BaseException:
                     if self._db.in_transaction:self._db.rollback()
                     self._uncertain=True

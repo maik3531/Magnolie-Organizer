@@ -12,9 +12,14 @@ the two exclusive locations without traversing symlinks. The draft can append
 a `moved` or `canceled` observation beside the immutable preparation after
 flushing both held parents and checking their identities again. It performs
 no rename or mapping change. Reopening never retries or finalizes a move by
-itself. Before calling it from the product, bind the preparation and latest
-outcome checkpoints to the original operation in another protected store so
-replacing, rolling back or losing this journal cannot admit a new action.
+itself. An independent sealed file in the native store pins the database
+identity and each preparation or outcome revision, and is flushed before
+committing the corresponding database change. A cut between those writes,
+loss of only one store, or disagreement between the two is held for review.
+No stale checkpoint can refresh itself from either side. This does not attest
+against coordinated loss or rollback of both stores: the future product owner
+must still bind the operation to the live saved book and hold any missing
+selection there rather than creating a new one.
 
 ## Selection
 
