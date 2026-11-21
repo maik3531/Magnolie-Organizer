@@ -279,6 +279,54 @@ def test_original_folder_approval_binds_exact_prepared_journal_without_rename(re
     assert source.read_bytes()==raw and not list(target.parent.iterdir())
 
 
+@pytest.mark.parametrize('cut',['none','before_attempt_owner','before_outcome_owner'])
+def test_folder_approval_binds_media_attempt_and_result_without_restart_move(receiving,tmp_path,monkeypatch,cut):
+    from magnolie_media_relocation_record import (MissingGifTargetDraft, bind_gif_relocation_folder_plan,
+        inspect_relocation_target_parents)
+    authority=receiving[3]._authority
+    records,destination,source,target,raw=two_members(tmp_path/'relocation',ANIMATED)
+    target.parent.rmdir();target.parent.parent.rmdir()
+    original=source.stat()
+    with NativeMediaRetention(authority.binding.native_directory) as book:version=book.saved_book_version()
+    members=tuple(MissingGifTargetDraft(record.operation,version,record.preferences_sha256,
+        record.original_mapping_sha256,destination,record.source,record.source_parents,record.target,
+        inspect_relocation_target_parents(destination,record.target,lambda:True),record.file) for record in records)
+    plan=bind_gif_relocation_folder_plan(members,destination)
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        seal=owner._protection.seal;changes=[]
+        def cut_seal(raw,domain):
+            if domain==owner._FOLDER_PREPARED_DOMAIN:
+                changes.append(strict_json(raw)['checkpoint'])
+                if (cut,len(changes)) in (('before_attempt_owner',2),('before_outcome_owner',3)):
+                    raise OSError('cut before folder owner transition')
+            return seal(raw,domain)
+        monkeypatch.setattr(owner._protection,'seal',cut_seal)
+        action=owner._issue_confirmed_action(lambda:True)
+        if cut=='none':
+            intent,witness=owner._move_after_confirmed_gif_folder_creation(action,journal,plan,destination)
+            assert intent.selection_sha256==plan.selection_sha256
+            assert RelocationOwnerCheckpoint.from_snapshot(journal.read(),destination)==witness
+        else:
+            with pytest.raises(OSError,match='cut before folder owner transition'):
+                owner._move_after_confirmed_gif_folder_creation(action,journal,plan,destination)
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        stored,=owner._db.execute('SELECT value FROM meta WHERE key=?',(owner._FOLDER_PREPARED_KEY,)).fetchone()
+        body=strict_json(owner._protection.unseal(stored,owner._FOLDER_PREPARED_DOMAIN))
+        assert body['folder']==owner.read_folder_intent().wire()
+        snapshot=journal.read()
+        terminal=RelocationOwnerCheckpoint.from_snapshot(snapshot,destination).wire()
+        assert (body['checkpoint']==terminal)==(cut=='none')
+        assert snapshot.attempts==((0,1) if cut=='none' else (0,))
+        assert len(snapshot.outcomes)=={'none':2,'before_attempt_owner':0,'before_outcome_owner':1}[cut]
+        with pytest.raises(TransferError,match='folder_plan_held|owner_already_recorded'):
+            owner._move_after_confirmed_gif_folder_creation(owner._issue_confirmed_action(lambda:True),journal,plan,destination)
+        assert journal.read()==snapshot
+    left_at_source=cut=='before_attempt_owner'
+    actual=source if left_at_source else target
+    assert source.exists()==left_at_source and target.exists()!=left_at_source
+    assert actual.read_bytes()==raw and actual.stat().st_ino==original.st_ino and actual.stat().st_mtime_ns==original.st_mtime_ns
+
+
 def test_confirmed_intent_is_independent_of_the_journal_and_survives_reopen(relocation_owner_case):
     authority,records,destination,source,target,raw=relocation_owner_case
     selection=records[0].selection_sha256

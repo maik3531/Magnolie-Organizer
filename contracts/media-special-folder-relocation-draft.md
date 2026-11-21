@@ -227,6 +227,11 @@ The private connection can consume the original GTK handoff for this complete
 preparation path. Isolated tests cover both the seal-only path and preparation
 through actual parent creation, with an unchanged original and no replay after
 reconnect. The connection still exposes no user-facing move action.
+The private execution primitive can use that same live folder approval to move
+the original GIFs. Each file attempt and result advances the separate sealed
+folder checkpoint by exact compare-and-swap. A split before the attempt owner
+commit prevents a rename; a split after a rename does not replay it. The
+folder-based terminal checkpoint is not yet used by ordinary receive or recovery.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in
