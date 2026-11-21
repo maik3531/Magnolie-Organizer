@@ -249,6 +249,12 @@ or split holds; no entry is repaired, adopted, or replayed. The same check
 now guards the connection's read-only recovery and receive comparison. A
 synthetic reconnect recognized the moved original without another download or
 Saved response. An incomplete or competing owner still holds.
+Release blocker: a subsequent ordinary save of the same synthetic book changes
+the saved-book witness. Normal receive then holds with
+`photo_relocation_original_book_changed`, despite the unchanged moved inode and
+mapping. Active confirmation must remain tied to its original revision. A
+separate, authenticated continuity check is needed before terminal readback
+can survive normal saves; a changed revision alone must not authorize it.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in
