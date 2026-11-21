@@ -55,7 +55,7 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
     from contextlib import closing
     import os
     from test_media_relocation_record import ANIMATED
-    from magnolie_media_relocation_record import MediaRelocationRecord, RelocationFileWitness, bind_relocation_selection
+    from magnolie_media_relocation_record import bind_relocation_selection, preview_original_gif_relocation
     from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
     from magnolie_media_relocation_owner import ProtectedRelocationOwner
     from magnolie_media_retention import NativeMediaActivity, NativeMediaRetention
@@ -80,26 +80,41 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
         with ProtectedTransferJobIndex(parent,accepted.manifest,accepted.binding,connection._receive_binding,
                 protection.seal,protection.unseal,owner=job.owner,accepted=accepted) as index:
             with index._locked():
+                connection._verify_completed_mapping_job(index,job,index.media_history)
+                history=index.media_history
                 receipt,=index.saved_receipts()
     assert receipt.protected_record_sha256==mapping.receipt_sha256
     origin=connection.inspect_special_folder_origin(connection.issue_receive_action(),mapping.association,mapping.protected_record_sha256)
-    original=target/origin.mapped_path;original.write_bytes(ANIMATED)
+    original=target/origin.mapped_path
     planned=plan_special_folder_path(origin.original_path,origin.mapped_path,was_animation=origin.was_animation,
         was_capture=origin.was_capture,verified_animation=True,verified_capture=False,setting='animation',separate=True)
     destination=target/planned
     destination.parent.parent.mkdir(mode=0o700);destination.parent.mkdir(mode=0o700)
     def key(path):
         info=path.stat();return info.st_dev,info.st_ino
-    with NativeMediaRetention(connection._authority.binding.native_directory) as book:
-        saved_book=book.saved_book_version()
-    record=MediaRelocationRecord('4'*32,'0'*64,saved_book,preference_snapshot.version,origin.mapping_sha256,key(target),
-        mapping.parent_keys,(key(target),key(destination.parent.parent),key(destination.parent)),origin.mapped_path,planned,
-        RelocationFileWitness(mapping.file_key,len(ANIMATED),sha256(ANIMATED).hexdigest()))
-    assert record.file.sha256!=mapping.saved_sha256
-    selection=bind_relocation_selection((record,),occupied=());confirmed=selection[0].selection_sha256
     def original_current():
         return (connection._mappings.lookup((mapping.association,))==(mapping_snapshot,(mapping,))
             and connection._preferences.read()==preference_snapshot and connection._catalog.jobs()==jobs)
+    with NativeMediaRetention(connection._authority.binding.native_directory) as book:
+        saved_book=book.saved_book_version()
+        def current():return original_current() and book.saved_book_version()==saved_book
+        with book.activity(current) as lease:
+            assert lease is not None
+            def preview(record):
+                return preview_original_gif_relocation(record,accepted,history,receipt,operation='4'*32,
+                    book_sha256=saved_book,preferences_sha256=preference_snapshot.version,
+                    current_binding=connection._receive_binding,require_original=lease)
+            with pytest.raises(TransferError,match='animation_unproven'):preview(mapping)
+            original.write_bytes(ANIMATED)
+            with pytest.raises(TransferError,match='original_receipt_changed'):
+                preview(replace(mapping,receipt_sha256='0'*64))
+            record=preview(mapping)
+            assert record.phase=='prepared' and record.selection_sha256=='0'*64 and not record.grants_write_authority
+            assert record.file.file_key==mapping.file_key and record.file.sha256==sha256(ANIMATED).hexdigest()
+            assert record.target==planned and original.read_bytes()==ANIMATED and not destination.exists()
+            assert not list(Path(connection._authority.binding.native_directory).glob('media-relocation-v1-*'))
+    assert record.file.sha256!=mapping.saved_sha256
+    selection=bind_relocation_selection((record,),occupied=());confirmed=selection[0].selection_sha256
     with (closing(ProtectedMediaRelocationJournal(connection._authority)) as journal,
           closing(ProtectedRelocationOwner(connection._authority)) as owner):
         assert record.observe_native(mapping.destination,original_current,require_animation=True)=='at_source'

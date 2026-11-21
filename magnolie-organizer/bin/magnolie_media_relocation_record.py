@@ -6,6 +6,7 @@ authenticated native journal must bind it to the original action before use.
 from dataclasses import dataclass, replace
 from contextlib import ExitStack
 from hashlib import sha256
+from pathlib import Path
 import os
 import stat
 
@@ -144,13 +145,18 @@ class MediaRelocationRecord:
         if self.phase!='prepared':raise TransferError('photo_relocation_invalid_transition')
         self._observe_native(destination,current,require_animation=True,durable_phase=None,rename=True)
 
-    def _observe_native(self,destination,current,*,require_animation,durable_phase,location_only=False,rename=False):
+    def _observe_native(self,destination,current,*,require_animation,durable_phase,location_only=False,rename=False,
+            preview_animation=False):
         if (type(destination) is not NativeAcceptedDestination or destination.ancestor_keys[0]!=self.root_key
                 or not callable(current) or type(require_animation) is not bool):
             raise TransferError('photo_relocation_original_destination_required')
+        if preview_animation and (not require_animation or durable_phase is not None or location_only or rename
+                or self.phase!='prepared' or self.selection_sha256!='0'*64):
+            raise TransferError('photo_relocation_invalid_preview')
         if require_animation:
             from magnolie_media_mime import ANIMATION_PROOF_BYTES, verified_gif_animation
-            if self.file.size>ANIMATION_PROOF_BYTES:raise TransferError('photo_relocation_animation_unproven')
+            if not preview_animation and self.file.size>ANIMATION_PROOF_BYTES:
+                raise TransferError('photo_relocation_animation_unproven')
         directory_flags=os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC
         def require_current():
             if current() is not True:raise TransferError('photo_relocation_original_owner_ended')
@@ -204,9 +210,14 @@ class MediaRelocationRecord:
                 require_current();parent,leaf=endpoint;before=named(parent,leaf)
                 if before is None:
                     ends.append((endpoint,None));return None
+                if preview_animation and endpoint==target:
+                    raise TransferError('photo_relocation_original_location_unproven')
+                variable_size=preview_animation or location_only
                 if (not stat.S_ISREG(before.st_mode) or before.st_uid!=os.geteuid() or before.st_nlink!=1
-                        or key(before)!=self.file.file_key or not (1<=before.st_size<=MAX_FILE_BYTES if location_only else before.st_size==self.file.size)):
+                        or key(before)!=self.file.file_key or not (1<=before.st_size<=MAX_FILE_BYTES if variable_size else before.st_size==self.file.size)):
                     raise TransferError('photo_relocation_original_file_changed')
+                if preview_animation and (before.st_size>ANIMATION_PROOF_BYTES or before.st_mode&0o077):
+                    raise TransferError('photo_relocation_animation_unproven')
                 opened=track(os.open(leaf,os.O_PATH|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=parent))
                 exact=signature(before)
                 if signature(os.fstat(opened))!=exact:raise TransferError('photo_relocation_original_file_changed')
@@ -216,7 +227,7 @@ class MediaRelocationRecord:
                 fd=track(os.open('/proc/self/fd/'+str(opened),os.O_RDONLY|os.O_CLOEXEC|os.O_NONBLOCK))
                 if signature(os.fstat(fd))!=exact:raise TransferError('photo_relocation_original_file_changed')
                 if rename:payloads[endpoint]=fd
-                digest=sha256();remaining=self.file.size; animation=bytearray() if require_animation else None
+                digest=sha256();remaining=before.st_size; animation=bytearray() if require_animation else None
                 while remaining:
                     require_current();raw=os.read(fd,min(remaining,1024*1024))
                     if not raw:raise TransferError('photo_relocation_original_file_changed')
@@ -227,7 +238,7 @@ class MediaRelocationRecord:
                 observed=RelocationFileWitness(key(before),before.st_size,digest.hexdigest())
                 if animation is not None:
                     require_current()
-                    if observed!=self.file or not verified_gif_animation(bytes(animation)):
+                    if (not preview_animation and observed!=self.file) or not verified_gif_animation(bytes(animation)):
                         raise TransferError('photo_relocation_animation_unproven')
                     require_current()
                 ends.append((endpoint,exact));return observed
@@ -247,6 +258,10 @@ class MediaRelocationRecord:
             witnessed=dict(root_key=self.root_key,source_parents=self.source_parents,target_parents=self.target_parents,
                 source=observed_source,target=observed_target)
             recheck()
+            if preview_animation:
+                if type(observed_source) is not RelocationFileWitness or observed_target is not None:
+                    raise TransferError('photo_relocation_original_location_unproven')
+                return replace(self,file=observed_source)
             if rename:
                 from magnolie_media_trash import _move_no_replace
                 if self.observe(**witnessed)!='at_source':raise TransferError('photo_relocation_original_location_unproven')
@@ -267,6 +282,42 @@ class MediaRelocationRecord:
             candidate=self.terminal_candidate(durable_phase,**witnessed)
             os.fsync(source[0]);require_current();os.fsync(target[0]);recheck()
             return candidate
+
+
+def preview_original_gif_relocation(mapping,accepted,history,receipt,*,operation,book_sha256,preferences_sha256,
+        current_binding,require_original):
+    """Read-only draft for a native caller holding the original protected job.
+
+    Only plain original images and already existing safe destination parents
+    qualify here. The current descriptor supplies the GIF bytes and digest;
+    a historical classification or an edited inode's old digest is not proof.
+    """
+    from magnolie_photo_destination import plan_special_folder_path, require_media_directory, special_folder_origin
+    from magnolie_photo_target import _require_receipt_context
+    origin=special_folder_origin(accepted,history,mapping)
+    _require_receipt_context(accepted,receipt,current_binding)
+    if ((mapping.source_file_id,mapping.relative_path,mapping.parent_keys,mapping.file_key,mapping.saved_size,
+            mapping.saved_sha256,mapping.receipt_sha256)!=(receipt.file_id,receipt.relative_path,receipt.parent_keys,
+            receipt.file_key,receipt.size,receipt.sha256,receipt.protected_record_sha256)):
+        raise TransferError('photo_relocation_original_receipt_changed')
+    if history.media_type!='images' or origin.was_animation or origin.was_capture or not callable(require_original):
+        raise TransferError('photo_relocation_original_layout_required')
+    def current():
+        if require_original() is not True:raise TransferError('photo_relocation_original_owner_ended')
+        accepted.verify(current_binding)
+        return True
+    # This only derives a name to investigate. The descriptor below must prove
+    # an actual animation before a draft is returned.
+    target=plan_special_folder_path(origin.original_path,origin.mapped_path,was_animation=False,was_capture=False,
+        verified_animation=True,verified_capture=False,setting='animation',separate=True)
+    destination=accepted.destination;root=Path(destination.path);parent=(root/target).parent
+    require_media_directory(root/origin.mapped_path);require_media_directory(root/target)
+    current();chain=NativeAcceptedDestination.capture(parent).ancestor_keys
+    depth=len(target.split('/'));target_parents=chain[:depth][::-1]
+    draft=MediaRelocationRecord(operation,'0'*64,book_sha256,preferences_sha256,origin.mapping_sha256,
+        destination.ancestor_keys[0],mapping.parent_keys,target_parents,origin.mapped_path,target,
+        RelocationFileWitness(mapping.file_key,mapping.saved_size,mapping.saved_sha256))
+    return draft._observe_native(destination,current,require_animation=True,durable_phase=None,preview_animation=True)
 
 
 def bind_relocation_selection(records, *, occupied):

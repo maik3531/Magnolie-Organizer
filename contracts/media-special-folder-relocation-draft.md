@@ -99,6 +99,12 @@ this comparison.
   complete multi-frame bytes and acceptance by the local GIF decoder. This is
   bound to the same bytes as the descriptor hash; a historical animation label
   is not a substitute. Other animation formats remain unverified.
+  The private single-file preview now derives the source and target from the
+  original accepted manifest, history and exact mapping/Saved evidence. It
+  reads the current original inode, so a local edit can qualify only if its
+  current bytes still prove GIF animation. The preview requires existing
+  safe target parents and creates no directory, journal, or consent. It does
+  not yet enumerate a complete user-visible selection.
 - Bound the complete selection, and detect destination collisions, including
   case-folded equivalents and targets of members that are staying put. Never
   use a chain of moves to clear an occupied target. Only the user-confirmed
