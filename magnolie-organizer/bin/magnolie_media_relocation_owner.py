@@ -317,9 +317,11 @@ class ProtectedRelocationOwner(NativeMediaRetention):
                 current()
             require_journal()
             subject=self._subject()
+            folder_count=len(plan.missing_parents())
+            folder_rows=self._completed_folder_rows_digest(folder_count)
             def encoded(witness):
                 return canonical(dict(db=list(self._identity),subject=subject,folder=folder_intent.wire(),
-                    intent=intent.wire(),checkpoint=witness.wire()))
+                    folder_count=folder_count,folder_rows=folder_rows,intent=intent.wire(),checkpoint=witness.wire()))
             expected=encoded(checkpoint)
             with self._transaction():
                 current()
@@ -357,6 +359,48 @@ class ProtectedRelocationOwner(NativeMediaRetention):
         with self._prepared_after_gif_folder_creation(action,journal,plan,destination) as prepared:
             folder,intent,snapshot,witness,read,advance=prepared
             return folder,self._move_live_animation_selection(journal,destination,intent,snapshot,witness,read,advance)
+
+    def _completed_folder_rows_digest(self,count):
+        if type(count) is not int or not 1<=count<=128:
+            raise TransferError('photo_relocation_folder_attempt_held')
+        expected={base+(':'+str(i) if i else '') for i in range(count)
+            for base in (self._FOLDER_ATTEMPT_KEY,self._FOLDER_RESULT_KEY)}
+        digest=sha256()
+        for key,blob in self._db.execute('SELECT key,value FROM meta WHERE key IN (?,?) OR key GLOB ? OR key GLOB ? ORDER BY key',
+                (self._FOLDER_ATTEMPT_KEY,self._FOLDER_RESULT_KEY,self._FOLDER_ATTEMPT_KEY+':*',self._FOLDER_RESULT_KEY+':*')):
+            if key not in expected or type(blob) is not bytes or not 28<=len(blob)<=self._MAX_CIPHER_BYTES:
+                raise TransferError('photo_relocation_folder_attempt_held')
+            expected.remove(key);digest.update(key.encode('ascii')+b'\0'+sha256(blob).digest())
+        if expected:raise TransferError('photo_relocation_folder_attempt_held')
+        self._fresh();return digest.hexdigest()
+
+    def require_folder_checkpoint(self,folder_intent):
+        """Read-only validation of the separately sealed folder-to-journal witness."""
+        from magnolie_media_relocation_journal import RelocationOwnerCheckpoint
+        if type(folder_intent) is not RelocationOwnerIntent or self.read_folder_intent()!=folder_intent:
+            raise TransferError('photo_relocation_original_owner_changed')
+        subject=self._subject()
+        sql='SELECT value FROM meta WHERE key=?'
+        row=self._db.execute(sql,(self._FOLDER_PREPARED_KEY,)).fetchone()
+        if row is None:raise TransferError('photo_relocation_original_checkpoint_required')
+        blob,=row
+        if type(blob) is not bytes or not 28<=len(blob)<=self._MAX_CIPHER_BYTES:
+            raise TransferError('photo_relocation_invalid_owner_checkpoint')
+        plain=self._protection.unseal(blob,self._FOLDER_PREPARED_DOMAIN);body=strict_json(plain)
+        if (type(body) is not dict or set(body)!={'db','subject','folder','folder_count','folder_rows','intent','checkpoint'}
+                or body['db']!=list(self._identity) or body['subject']!=subject or canonical(body)!=plain
+                or body['folder']!=folder_intent.wire() or not _hex(body['folder_rows'])):
+            raise TransferError('photo_relocation_original_checkpoint_changed')
+        intent=RelocationOwnerIntent.parse(body['intent']);witness=RelocationOwnerCheckpoint.parse(body['checkpoint'])
+        if ((intent.operation,intent.book_sha256,intent.destination_sha256,intent.mappings)!=
+                (folder_intent.operation,folder_intent.book_sha256,folder_intent.destination_sha256,folder_intent.mappings)
+                or (witness.selection_sha256,witness.book_sha256,witness.destination_sha256)!=
+                (intent.selection_sha256,intent.book_sha256,intent.destination_sha256)
+                or self._completed_folder_rows_digest(body['folder_count'])!=body['folder_rows']
+                or self.read_folder_intent()!=folder_intent or self._subject()!=subject
+                or self._db.execute(sql,(self._FOLDER_PREPARED_KEY,)).fetchone()!=row):
+            raise TransferError('photo_relocation_original_checkpoint_changed')
+        return intent,witness
 
     def record_confirmed_intent(self,action,records,destination,confirmed_sha256):
         with self._confirming_intent(action,records,destination,confirmed_sha256) as (intent,_):
@@ -539,6 +583,32 @@ class ProtectedRelocationOwner(NativeMediaRetention):
             if self.require_checkpoint(intent)!=witness:
                 raise TransferError('photo_relocation_original_checkpoint_changed')
             return True
+        return journal.inspect_original_recovery(witness,destination,require_original=current)
+
+    def inspect_bound_folder_recovery(self,journal,destination,*,require_original):
+        """Observe a folder-based move without adopting a newer journal head."""
+        from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal, RelocationOwnerCheckpoint
+        if (type(journal) is not ProtectedMediaRelocationJournal or journal._authority is not self._authority
+                or not callable(require_original) or require_original() is not True):
+            raise TransferError('photo_relocation_original_owner_required')
+        folder=self.read_folder_intent()
+        if folder is None:raise TransferError('photo_relocation_original_owner_required')
+        if relocation_destination_digest(destination)!=folder.destination_sha256:
+            raise TransferError('photo_relocation_original_destination_required')
+        intent,witness=self.require_folder_checkpoint(folder)
+
+        def current():
+            if require_original() is not True:
+                raise TransferError('photo_relocation_original_owner_ended')
+            if self.require_folder_checkpoint(folder)!=(intent,witness):
+                raise TransferError('photo_relocation_original_checkpoint_changed')
+            return True
+
+        snapshot=journal.require_prepared(witness.prepared_version,intent.selection_sha256)
+        if (RelocationOwnerCheckpoint.from_snapshot(snapshot,destination)!=witness
+                or RelocationOwnerIntent.for_selection(snapshot.records,destination)!=intent):
+            raise TransferError('photo_relocation_original_journal_changed')
+        current()
         return journal.inspect_original_recovery(witness,destination,require_original=current)
 
     def observe_completed_target(self,intent,journal,mapping,accepted,receipt,current_binding,*,require_original):

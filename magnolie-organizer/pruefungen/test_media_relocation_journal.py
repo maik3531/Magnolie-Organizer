@@ -318,6 +318,18 @@ def test_folder_approval_binds_media_attempt_and_result_without_restart_move(rec
         assert (body['checkpoint']==terminal)==(cut=='none')
         assert snapshot.attempts==((0,1) if cut=='none' else (0,))
         assert len(snapshot.outcomes)=={'none':2,'before_attempt_owner':0,'before_outcome_owner':1}[cut]
+        def inspect():return owner.inspect_bound_folder_recovery(journal,destination,require_original=lambda:True)
+        if cut=='none':
+            observations=inspect()
+            assert [item.state for item in observations]==['moved','moved']
+            assert not any(item.grants_write_authority for item in observations)
+            # Losing one independently recorded folder result must not make
+            # the otherwise unchanged terminal journal sufficient.
+            with owner._db:
+                owner._db.execute('DELETE FROM meta WHERE key=?',(owner._FOLDER_RESULT_KEY+':1',))
+            with pytest.raises(TransferError,match='folder_attempt_held'):inspect()
+        else:
+            with pytest.raises(TransferError,match='original_journal_changed'):inspect()
         with pytest.raises(TransferError,match='folder_plan_held|owner_already_recorded'):
             owner._move_after_confirmed_gif_folder_creation(owner._issue_confirmed_action(lambda:True),journal,plan,destination)
         assert journal.read()==snapshot

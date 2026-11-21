@@ -231,7 +231,11 @@ The private execution primitive can use that same live folder approval to move
 the original GIFs. Each file attempt and result advances the separate sealed
 folder checkpoint by exact compare-and-swap. A split before the attempt owner
 commit prevents a rename; a split after a rename does not replay it. The
-folder-based terminal checkpoint is not yet used by ordinary receive or recovery.
+folder-based terminal checkpoint now also binds the complete, exact set of
+folder attempt and result rows. A private read-only recovery entry checks this
+evidence and the original owner/journal agreement after reopen. A missing row
+or split holds; no entry is repaired, adopted, or replayed. This entry is not
+yet wired into the ordinary connection recovery or receive comparison.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in
