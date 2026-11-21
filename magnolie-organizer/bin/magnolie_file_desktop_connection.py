@@ -2500,6 +2500,11 @@ class NativeDesktopFileConnection:
         with self._confirmed_gif_folder_preparation(confirmation,choices) as (owner,journal,selected,destination,action):
             return owner._prepare_after_gif_folder_creation(action,journal,selected,destination)
 
+    def _move_confirmed_gif_folder_relocation(self,confirmation,choices):
+        """Private live handoff; not an IPC action or a recovery/resume entry."""
+        with self._confirmed_gif_folder_preparation(confirmation,choices) as (owner,journal,selected,destination,action):
+            return owner._move_after_confirmed_gif_folder_creation(action,journal,selected,destination)
+
     @contextmanager
     def _confirmed_gif_folder_preparation(self,confirmation,choices):
         from magnolie_media_relocation_record import bind_gif_relocation_folder_plan

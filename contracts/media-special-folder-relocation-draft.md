@@ -224,9 +224,11 @@ materialized selection and the prepared rename journal in an independent sealed
 row. If approval ends after the journal commit but before that row is committed,
 the journal is not adopted or prepared again. No original is renamed here.
 The private connection can consume the original GTK handoff for this complete
-preparation path. Isolated tests cover both the seal-only path and preparation
-through actual parent creation, with an unchanged original and no replay after
-reconnect. The connection still exposes no user-facing move action.
+path. Isolated tests cover sealing, preparation through parent creation, and
+the live folder-based move. The synthetic original retained its bytes, inode,
+mode, and mtime, with mapping, receive jobs, and preferences unchanged.
+Reconnect verified the result without replay or wire output. The connection
+still exposes no user-facing move action.
 The private execution primitive can use that same live folder approval to move
 the original GIFs. Each file attempt and result advances the separate sealed
 folder checkpoint by exact compare-and-swap. A split before the attempt owner
