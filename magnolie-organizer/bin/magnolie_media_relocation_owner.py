@@ -69,6 +69,8 @@ class ProtectedRelocationOwner(NativeMediaRetention):
     _PREPARED_DOMAIN='media-relocation-prepared-v1/local'
     _FOLDER_KEY='media_relocation_folder_plan:local:v1'
     _FOLDER_DOMAIN='media-relocation-folder-plan-v1/local'
+    _FOLDER_ATTEMPT_KEY='media_relocation_folder_attempt:local:v1'
+    _FOLDER_ATTEMPT_DOMAIN='media-relocation-folder-attempt-v1/local'
     _MAX_CIPHER_BYTES=16384
 
     def __init__(self,authority,*,monotonic_ms=lambda:time.monotonic_ns()//1_000_000):
@@ -87,7 +89,8 @@ class ProtectedRelocationOwner(NativeMediaRetention):
     def _read_intent(self):
         if self._held:raise TransferError('photo_relocation_owner_held')
         subject=self._subject()
-        if self._folder_observed is not None or self._db.execute('SELECT 1 FROM meta WHERE key=?',(self._FOLDER_KEY,)).fetchone():
+        if self._folder_observed is not None or self._db.execute('SELECT 1 FROM meta WHERE key IN (?,?) LIMIT 1',
+                (self._FOLDER_KEY,self._FOLDER_ATTEMPT_KEY)).fetchone():
             raise TransferError('photo_relocation_folder_plan_held')
         actual=self._db.execute('SELECT value FROM meta WHERE key=?',(self._INTENT_KEY,)).fetchone()
         intent=None
@@ -147,6 +150,10 @@ class ProtectedRelocationOwner(NativeMediaRetention):
 
     def _record_confirmed_folder_plan(self,action,journal,plan,destination):
         """Commit the last confirmed plan before any possible namespace write."""
+        with self._confirming_folder_plan(action,journal,plan,destination) as (intent,_):return intent
+
+    @contextmanager
+    def _confirming_folder_plan(self,action,journal,plan,destination):
         from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
         from magnolie_media_relocation_record import (GifRelocationFolderPlan, bind_gif_relocation_folder_plan,
             inspect_relocation_target_parents)
@@ -179,6 +186,34 @@ class ProtectedRelocationOwner(NativeMediaRetention):
                 lease()
             if self.read_folder_intent()!=intent or journal.read()!=empty:
                 raise TransferError('photo_relocation_original_owner_changed')
+            lease();yield intent,lease
+
+    def _spend_first_folder_attempt(self,action,journal,plan,destination):
+        """Private cut point before the first mkdir; the result grants nothing."""
+        from magnolie_media_relocation_record import inspect_relocation_target_parents
+        with self._confirming_folder_plan(action,journal,plan,destination) as (intent,lease):
+            member=next(item for item in plan.members if item.target_parents.missing)
+            parents=member.target_parents
+            # Pin the nearest existing directory chain and exactly one absent
+            # component. The later native syscall must still use this chain.
+            parts=member.target.split('/')[:len(parents.existing)]
+            body=dict(format=1,db=list(self._identity),subject=self._subject(),intent=intent.wire(),
+                path='/'.join(parts),parents=[list(key) for key in parents.existing])
+            if inspect_relocation_target_parents(destination,member.target,lease)!=parents:
+                raise TransferError('photo_relocation_confirmation_changed')
+            expected=canonical(body)
+            with self._transaction():
+                lease()
+                if self.read_folder_intent()!=intent or self._db.execute('SELECT 1 FROM meta WHERE key=?',
+                        (self._FOLDER_ATTEMPT_KEY,)).fetchone():
+                    raise TransferError('photo_relocation_folder_attempt_held')
+                blob=self._protection.seal(expected,self._FOLDER_ATTEMPT_DOMAIN)
+                self._db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(self._FOLDER_ATTEMPT_KEY,blob))
+                lease()
+            row=self._db.execute('SELECT value FROM meta WHERE key=?',(self._FOLDER_ATTEMPT_KEY,)).fetchone()
+            if (row!=(blob,) or self._protection.unseal(row[0],self._FOLDER_ATTEMPT_DOMAIN)!=expected
+                    or self.read_folder_intent()!=intent):
+                raise TransferError('photo_relocation_folder_attempt_held')
             lease();return intent
 
     def record_confirmed_intent(self,action,records,destination,confirmed_sha256):

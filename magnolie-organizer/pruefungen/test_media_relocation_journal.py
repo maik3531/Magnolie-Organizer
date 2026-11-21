@@ -16,6 +16,7 @@ from magnolie_media_relocation_owner import ProtectedRelocationOwner, Relocation
 from magnolie_media_relocation_record import bind_relocation_selection
 from magnolie_media_retention import NativeMediaRetention, saved_book_retention
 from magnolie_optional_phone import selected_modules
+from magnolie_telefon import strict_json
 
 
 def test_protected_selection_reopens_after_fixture_rename_without_restarting_or_updating_mapping(receiving,tmp_path):
@@ -61,6 +62,52 @@ def relocation_owner_case(receiving,tmp_path):
         version=book.saved_book_version()
     records=bind_relocation_selection(tuple(replace(r,book_sha256=version) for r in records),occupied=())
     return authority,records,destination,source,target,raw
+
+
+@pytest.mark.parametrize('cut',['none','before_attempt_commit','after_attempt_commit'])
+def test_first_folder_attempt_is_bound_once_without_creating_a_folder(relocation_owner_case,monkeypatch,cut):
+    from magnolie_media_relocation_record import (MissingGifTargetDraft, bind_gif_relocation_folder_plan,
+        inspect_relocation_target_parents)
+    authority,records,destination,source,target,raw=relocation_owner_case
+    target.parent.rmdir();target.parent.parent.rmdir()
+    members=tuple(MissingGifTargetDraft(record.operation,record.book_sha256,record.preferences_sha256,
+        record.original_mapping_sha256,destination,record.source,record.source_parents,record.target,
+        inspect_relocation_target_parents(destination,record.target,lambda:True),record.file) for record in records)
+    plan=bind_gif_relocation_folder_plan(members,destination)
+    active=True;transactions=0
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        transaction=owner._transaction
+        @contextmanager
+        def cut_transaction():
+            nonlocal active,transactions
+            transactions+=1
+            with transaction():
+                yield
+                if transactions==2 and cut=='before_attempt_commit':raise OSError('before attempted folder commit')
+            if transactions==2 and cut=='after_attempt_commit':active=False
+        monkeypatch.setattr(owner,'_transaction',cut_transaction)
+        action=owner._issue_confirmed_action(lambda:active)
+        if cut=='before_attempt_commit':
+            with pytest.raises(OSError,match='before attempted folder commit'):
+                owner._spend_first_folder_attempt(action,journal,plan,destination)
+        elif cut=='after_attempt_commit':
+            with pytest.raises(TransferError,match='native_guard_changed'):
+                owner._spend_first_folder_attempt(action,journal,plan,destination)
+        else:
+            assert owner._spend_first_folder_attempt(action,journal,plan,destination).selection_sha256==plan.selection_sha256
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        intent=owner.read_folder_intent();assert intent.selection_sha256==plan.selection_sha256
+        row=owner._db.execute('SELECT value FROM meta WHERE key=?',(owner._FOLDER_ATTEMPT_KEY,)).fetchone()
+        if cut=='before_attempt_commit':assert row is None
+        else:
+            assert b'Animationen' not in row[0]
+            stored=strict_json(owner._protection.unseal(row[0],owner._FOLDER_ATTEMPT_DOMAIN))
+            assert stored['intent']==intent.wire() and stored['path']=='Animationen'
+            assert stored['parents']==[list(destination.ancestor_keys[0])]
+        with pytest.raises(TransferError,match='folder_plan_held'):
+            owner._spend_first_folder_attempt(owner._issue_confirmed_action(lambda:True),journal,plan,destination)
+        assert not journal.read().records
+    assert source.read_bytes()==raw and not target.parent.parent.exists()
 
 
 def test_confirmed_intent_is_independent_of_the_journal_and_survives_reopen(relocation_owner_case):

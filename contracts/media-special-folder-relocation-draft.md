@@ -201,6 +201,11 @@ in a separate owner row before any folder creation. A changed target parent,
 revoked action, or mismatched handoff cannot be used for preparation. A durable
 folder-plan row holds the ordinary rename path and supplies no restart or
 directory-creation authority. No folder or rename journal is created here.
+The private first-attempt transition additionally seals the exact first
+missing name and its existing parent chain under the same original action and
+exclusive lease. An interruption on either side of that commit does not allow
+another attempt. Even an isolated surviving attempt holds the ordinary path.
+This transition does not call mkdir or return permission to do so later.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in
