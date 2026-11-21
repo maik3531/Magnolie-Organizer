@@ -123,6 +123,17 @@ class NativeIncomingMediaInspectionTest {
         }
     }
 
+    @Test fun nativeWebpBoundsKeepTheOriginalExifBytes() = fixture<Unit> { root, io ->
+        val original = java.util.Base64.getDecoder().decode("UklGRlgAAABXRUJQVlA4WAoAAAAIAAAABgAACAAAVlA4ICQAAABQAQCdASoHAAkAAUAmJQBOgC6gAP77Lkvih5rewdyYwmkjsABFWElGDgAAAE1NACoAAAAIAAAAAAAA")
+        val file = File(root, "misleading.jpg").apply { writeBytes(original) }
+        readOnly(file).use { descriptor -> io {
+            val result = NativeIncomingMediaInspection.inspect(descriptor.fileDescriptor, file.length(), GalleryMediaType.IMAGES, "image/webp") { }
+            assertEquals(7, result.width); assertEquals(9, result.height)
+            assertEquals("image/webp", result.mimeType); assertFalse(result.grantsWriteAuthority)
+        } }
+        assertArrayEquals(original, file.readBytes())
+    }
+
     @Test fun claimedMimeGarbageDescriptorLengthAndUiThreadDoNotManufactureImageAdmission() = fixture<Unit> { root, io ->
         val png = File(root, "image.jpg")
         val bitmap = Bitmap.createBitmap(2, 3, Bitmap.Config.ARGB_8888)

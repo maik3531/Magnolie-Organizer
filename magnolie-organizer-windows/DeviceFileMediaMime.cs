@@ -26,6 +26,7 @@ internal static class NativeMediaContentMime
         {
             if (prefix.Length >= 6 && (prefix[..6].SequenceEqual("GIF87a"u8) || prefix[..6].SequenceEqual("GIF89a"u8)) &&
                 GifImage(prefix)) return "image/gif";
+            if (WebpImage(prefix, totalBytes)) return "image/webp";
             if (prefix.Length >= 33 && prefix[..16].SequenceEqual(new byte[] { 137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82 }))
             {
                 Dimensions(BinaryPrimitives.ReadInt32BigEndian(prefix[16..20]), BinaryPrimitives.ReadInt32BigEndian(prefix[20..24]));
@@ -113,5 +114,49 @@ internal static class NativeMediaContentMime
     {
         if (width is < 1 or > 32768 || height is < 1 or > 32768 || (long)width * height > 24000000)
             throw DeviceFileControl.Error("media_source_mime_dimensions");
+    }
+
+    private static bool WebpImage(ReadOnlySpan<byte> prefix, long totalBytes)
+    {
+        if (prefix.Length < 20 || !prefix[..4].SequenceEqual("RIFF"u8) || !prefix[8..12].SequenceEqual("WEBP"u8) ||
+            BinaryPrimitives.ReadUInt32LittleEndian(prefix[4..]) + 8L != totalBytes) return false;
+        (int Width, int Height)? canvas = null;
+        long offset = 12;
+        while (prefix.Length - offset >= 8)
+        {
+            var chunk = prefix[(int)offset..];
+            var kind = chunk[..4];
+            var size = BinaryPrimitives.ReadUInt32LittleEndian(chunk[4..]);
+            var end = offset + 8 + size + (size & 1);
+            if (size == 0 || end > totalBytes) return false;
+            var data = chunk[8..];
+            if (kind.SequenceEqual("VP8X"u8))
+            {
+                if (offset != 12 || size != 10 || data.Length < 10 || (data[0] & 0xc3) != 0 ||
+                    data[1] != 0 || data[2] != 0 || data[3] != 0) return false;
+                canvas = (1 + data[4] + (data[5] << 8) + (data[6] << 16), 1 + data[7] + (data[8] << 8) + (data[9] << 16));
+                Dimensions(canvas.Value.Width, canvas.Value.Height);
+            }
+            else if (kind.SequenceEqual("VP8 "u8))
+            {
+                if (size <= 10 || data.Length < 10 || (data[0] & 1) != 0 || !data[3..6].SequenceEqual(new byte[] { 0x9d, 1, 0x2a })) return false;
+                var dims = (BinaryPrimitives.ReadUInt16LittleEndian(data[6..]) & 0x3fff,
+                    BinaryPrimitives.ReadUInt16LittleEndian(data[8..]) & 0x3fff);
+                Dimensions(dims.Item1, dims.Item2);
+                return canvas is { } bounds ? dims == bounds : offset == 12 && end == totalBytes;
+            }
+            else if (kind.SequenceEqual("VP8L"u8))
+            {
+                if (size <= 5 || data.Length < 5 || data[0] != 0x2f) return false;
+                var bits = BinaryPrimitives.ReadUInt32LittleEndian(data[1..]);
+                if ((bits >> 29) != 0) return false;
+                var dims = (1 + (int)(bits & 0x3fff), 1 + (int)((bits >> 14) & 0x3fff));
+                Dimensions(dims.Item1, dims.Item2);
+                return canvas is { } bounds ? dims == bounds : offset == 12 && end == totalBytes;
+            }
+            else if (canvas is null || kind.SequenceEqual("ANIM"u8) || kind.SequenceEqual("ANMF"u8)) return false;
+            offset = end;
+        }
+        return false;
     }
 }

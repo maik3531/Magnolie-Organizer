@@ -14,6 +14,7 @@ from magnolie_telefon import now_ms
 
 
 GIF=bytes.fromhex('47494638396101000100800000000000ffffff')+2*bytes.fromhex('21f90400010000002c0000000001000100000202440100')+b';'
+WEBP_EXIF=base64.b64decode('UklGRlgAAABXRUJQVlA4WAoAAAAIAAAABgAACAAAVlA4ICQAAABQAQCdASoHAAkAAUAmJQBOgC6gAP77Lkvih5rewdyYwmkjsABFWElGDgAAAE1NACoAAAAIAAAAAAAA')
 
 
 def png(salt=0):
@@ -48,7 +49,7 @@ def readback(sender,cached,offer,*,publication='a'*64,mime='image/png'):
     return message(KIND,encode_body(context,binding),offer['expires_ms'])
 
 
-@pytest.mark.parametrize('mime,payload',[('image/png',png()),('image/gif',GIF)],ids=['png','two-image-gif'])
+@pytest.mark.parametrize('mime,payload',[('image/png',png()),('image/gif',GIF),('image/webp',WEBP_EXIF)],ids=['png','two-image-gif','webp-exif'])
 def test_actual_authenticated_cache_media_offer_chunks_saved_and_readback_keep_distinct_authorities(source,mime,payload):
     h=source;sender,cached,offer=media_offered(h,payload)
     try:

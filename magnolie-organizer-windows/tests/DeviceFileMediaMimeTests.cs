@@ -16,6 +16,17 @@ internal static class DeviceFileMediaMimeTests
         TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(gif, gif.Length, "video"), "GIF was relabeled as video.");
         foreach (var invalidGif in new[] { gif[..6], gif[..19].Append((byte)0x3b).ToArray(), gif[..31] })
             TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(invalidGif, invalidGif.Length, "images"), "Truncated or empty GIF obtained a MIME.");
+        foreach (var encoded in new[] {
+            "UklGRjAAAABXRUJQVlA4ICQAAABQAQCdASoHAAkAAUAmJQBOgC6gAP77Lkvih5rewdyYwmkjsAA=",
+            "UklGRh4AAABXRUJQVlA4TBEAAAAvBgACAAfQj0bUp/+BiOh/AAA=",
+            "UklGRlgAAABXRUJQVlA4WAoAAAAIAAAABgAACAAAVlA4ICQAAABQAQCdASoHAAkAAUAmJQBOgC6gAP77Lkvih5rewdyYwmkjsABFWElGDgAAAE1NACoAAAAIAAAAAAAA" })
+        {
+            var webp = Convert.FromBase64String(encoded);
+            TestAssert.That(NativeMediaContentMime.Identify(webp, webp.Length, "images") == "image/webp", "A valid static WebP original was not identified.");
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(webp, webp.Length, "video"), "WebP relabeled as video.");
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(webp[..22], webp.Length, "images"), "A truncated WebP prefix was admitted.");
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(webp, webp.Length + 1, "images"), "Untrusted RIFF length was admitted.");
+        }
         var video = new byte[] { 0,0,0,20,102,116,121,112,109,112,52,50,0,0,0,0,105,115,111,109 };
         TestAssert.That(NativeMediaContentMime.Identify(video, video.Length, "video") == "video/mp4", "MP4 ftyp was not identified.");
         "qt  "u8.CopyTo(video.AsSpan(8));

@@ -58,11 +58,47 @@ def _gif_image(prefix):
     return False
 
 
+def _webp_image(prefix, total_bytes):
+    if len(prefix)<20 or prefix[:4]!=b'RIFF' or prefix[8:12]!=b'WEBP':return False
+    if struct.unpack_from('<I',prefix,4)[0]+8!=total_bytes:return False
+    offset=12;canvas=None
+    while len(prefix)-offset>=8:
+        kind=prefix[offset:offset+4]
+        size=struct.unpack_from('<I',prefix,offset+4)[0]
+        start=offset+8;end=start+size+(size&1)
+        if not size or end>total_bytes:return False
+        if kind==b'VP8X':
+            if offset!=12 or size!=10 or len(prefix)-start<10:return False
+            # Static originals only here. An animation container must not be
+            # mistaken for a still image from a metadata or thumbnail chunk.
+            if prefix[start]&0xc3 or prefix[start+1:start+4]!=b'\0'*3:return False
+            canvas=(1+int.from_bytes(prefix[start+4:start+7],'little'),1+int.from_bytes(prefix[start+7:start+10],'little'))
+            _dimensions(*canvas)
+        elif kind==b'VP8 ':
+            if size<=10 or len(prefix)-start<10 or prefix[start]&1 or prefix[start+3:start+6]!=b'\x9d\x01\x2a':return False
+            width,height=struct.unpack_from('<HH',prefix,start+6)
+            size_found=(width&0x3fff,height&0x3fff)
+            _dimensions(*size_found)
+            return size_found==canvas if canvas is not None else offset==12 and end==total_bytes
+        elif kind==b'VP8L':
+            if size<=5 or len(prefix)-start<5 or prefix[start]!=0x2f:return False
+            bits=struct.unpack_from('<I',prefix,start+1)[0]
+            if bits>>29:return False
+            size_found=(1+(bits&0x3fff),1+((bits>>14)&0x3fff))
+            _dimensions(*size_found)
+            return size_found==canvas if canvas is not None else offset==12 and end==total_bytes
+        elif canvas is None or kind in (b'ANIM',b'ANMF'):
+            return False
+        offset=end
+    return False
+
+
 def identify(prefix, total_bytes, kind):
     if type(prefix) not in (bytes, bytearray) or type(total_bytes) is not int or len(prefix) > PREFIX_BYTES or total_bytes < len(prefix) or total_bytes < 1:
         raise TransferError('media_source_mime_bound')
     if kind == 'images':
         if prefix[:6] in (b'GIF87a',b'GIF89a') and _gif_image(prefix):return 'image/gif'
+        if _webp_image(prefix,total_bytes):return 'image/webp'
         if len(prefix) >= 33 and prefix[:16] == b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR':
             _dimensions(*struct.unpack_from('>ii', prefix, 16))
             if prefix[24] not in (1, 2, 4, 8, 16) or prefix[25] not in (0, 2, 3, 4, 6) or prefix[26] != 0 or prefix[27] != 0 or prefix[28] > 1:
