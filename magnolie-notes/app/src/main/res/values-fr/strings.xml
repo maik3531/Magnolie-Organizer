@@ -12,6 +12,7 @@
     <string name="webcam_beenden">Arrêter</string>
     <string name="telefon_erweitert_titel">Fonctions avancées</string>
     <string name="media_recovery_title">Récupération des photos et vidéos</string>
+    <string name="media_recovery_android_gallery">La galerie gère la corbeille des originaux du téléphone. Vérifiez la durée de conservation, par exemple 30 jours, dans la galerie et videz la corbeille depuis cette application. Les copies affichées ici sont distinctes.</string>
     <string name="media_recovery_hint">Copies de récupération locales chiffrées, disponibles même sans la connexion précédente. La copie de récupération et les médias existants sont conservés lors de la restauration.</string>
     <string name="media_recovery_refresh">Actualiser la liste de récupération</string>
     <string name="media_recovery_working">Vérification ou restauration des médias…</string>

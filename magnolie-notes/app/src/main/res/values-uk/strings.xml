@@ -12,6 +12,7 @@
     <string name="webcam_beenden">Зупинити</string>
     <string name="telefon_erweitert_titel">Розширені функції</string>
     <string name="media_recovery_title">Відновлення фото й відео</string>
+    <string name="media_recovery_android_gallery">Кошиком для оригіналів із телефона керує застосунок галереї. Перевірте в ньому строк зберігання, наприклад 30 днів, і спорожніть кошик там само. Показані тут копії зберігаються окремо.</string>
     <string name="media_recovery_hint">Локальні зашифровані копії для відновлення, доступні й без попереднього з’єднання. Під час відновлення копія та наявні медіафайли зберігаються.</string>
     <string name="media_recovery_refresh">Оновити список відновлення</string>
     <string name="media_recovery_working">Перевірка або відновлення медіафайлів…</string>

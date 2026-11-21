@@ -12,6 +12,7 @@
     <string name="webcam_beenden">Остановить</string>
     <string name="telefon_erweitert_titel">Расширенные функции</string>
     <string name="media_recovery_title">Восстановление фото и видео</string>
+    <string name="media_recovery_android_gallery">Корзиной для оригиналов с телефона управляет приложение галереи. Проверьте в нём срок хранения, например 30 дней, и очистите корзину там же. Показанные здесь копии хранятся отдельно.</string>
     <string name="media_recovery_hint">Локальные зашифрованные копии для восстановления, доступные и без прежнего подключения. При восстановлении копия и существующие медиафайлы сохраняются.</string>
     <string name="media_recovery_refresh">Обновить список восстановления</string>
     <string name="media_recovery_working">Проверка или восстановление медиафайлов…</string>

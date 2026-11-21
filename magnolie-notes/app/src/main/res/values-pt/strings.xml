@@ -12,6 +12,7 @@
     <string name="webcam_beenden">Parar</string>
     <string name="telefon_erweitert_titel">Funcionalidades avançadas</string>
     <string name="media_recovery_title">Recuperação de fotografias e vídeos</string>
+    <string name="media_recovery_android_gallery">A aplicação de galeria gere a reciclagem dos ficheiros originais do telemóvel. Consulte nessa aplicação o período de retenção, por exemplo 30 dias, e esvazie a reciclagem a partir daí. As cópias nesta lista são independentes.</string>
     <string name="media_recovery_hint">Cópias de recuperação locais encriptadas, também disponíveis sem a ligação anterior. A cópia de recuperação e os ficheiros multimédia existentes são preservados ao restaurar.</string>
     <string name="media_recovery_refresh">Atualizar lista de recuperação</string>
     <string name="media_recovery_working">A verificar ou restaurar ficheiros multimédia…</string>

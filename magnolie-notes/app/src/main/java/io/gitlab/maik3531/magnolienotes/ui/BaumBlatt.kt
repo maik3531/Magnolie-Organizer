@@ -159,7 +159,8 @@ fun BaumBlatt(
     handlungen: Baumhandlungen,
     telefon: TelefonUiZustand,
     telefonHandlungen: Telefonhandlungen,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    medienWiederherstellung: @Composable () -> Unit = {}
 ) {
     var telefonAppsOffen by remember { mutableStateOf(false) }
     var name by remember(zustand.name) { mutableStateOf(zustand.name) }
@@ -464,7 +465,8 @@ fun BaumBlatt(
                 MedienSyncEinstellungen(telefon, telefonHandlungen.beiMedienEinstellung, telefonHandlungen.beiMedienBerechtigungen,
                     telefonHandlungen.beiMedienSynchronisieren,
                     beiArchiv = { kind -> telefonHandlungen.beiMedienArchiv(kind.uriSegment) },
-                    beiEmpfang = { kind -> telefonHandlungen.beiMedienEmpfang(kind.uriSegment) })
+                    beiEmpfang = { kind -> telefonHandlungen.beiMedienEmpfang(kind.uriSegment) },
+                    wiederherstellung = medienWiederherstellung)
             }
         }
         if (!baumSichtbar) return@Column

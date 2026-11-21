@@ -12,6 +12,7 @@
     <string name="webcam_beenden">Stopp</string>
     <string name="telefon_erweitert_titel">Avanserte funksjoner</string>
     <string name="media_recovery_title">Gjenoppretting av bilder og videoer</string>
+    <string name="media_recovery_android_gallery">Galleriappen styrer papirkurven for telefonens originaler. Sjekk oppbevaringstiden der, for eksempel 30 dager, og tøm papirkurven i galleriappen. Kopiene i denne listen er separate.</string>
     <string name="media_recovery_hint">Lokale krypterte gjenopprettingskopier, også tilgjengelige uten den tidligere tilkoblingen. Gjenopprettingskopien og eksisterende medier beholdes ved gjenoppretting.</string>
     <string name="media_recovery_refresh">Oppdater gjenopprettingslisten</string>
     <string name="media_recovery_working">Kontrollerer eller gjenoppretter medier…</string>

@@ -12,6 +12,7 @@
     <string name="phone_screen_stop">إيقاف مشاركة الشاشة</string>
     <string name="telefon_erweitert_titel">ميزات متقدمة</string>
     <string name="media_recovery_title">استعادة الصور والفيديوهات</string>
+    <string name="media_recovery_android_gallery">يدير تطبيق المعرض سلة محذوفات الملفات الأصلية على الهاتف. تحقق فيه من مدة الاحتفاظ، مثل 30 يومًا، وأفرغ السلة من التطبيق نفسه. النسخ المعروضة هنا منفصلة عنها.</string>
     <string name="media_recovery_hint">نسخ استعادة محلية مشفرة، متاحة أيضًا دون الاتصال السابق. تُحفظ نسخة الاستعادة والوسائط الموجودة عند الاستعادة.</string>
     <string name="media_recovery_refresh">تحديث قائمة الاستعادة</string>
     <string name="media_recovery_working">جارٍ التحقق من الوسائط أو استعادتها…</string>

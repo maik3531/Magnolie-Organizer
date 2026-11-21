@@ -38,7 +38,8 @@ private fun MedienCheckbox(label: String, checked: Boolean, enabled: Boolean = t
 @Composable
 internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
     beiAenderung: (String, JsonElement, String) -> Unit, beiBerechtigungen: () -> Unit, beiSynchronisieren: () -> Unit,
-    beiEmpfang: (GalleryMediaType) -> Unit = {}, beiArchiv: (GalleryMediaType) -> Unit = {}) {
+     beiEmpfang: (GalleryMediaType) -> Unit = {}, beiArchiv: (GalleryMediaType) -> Unit = {},
+     wiederherstellung: @Composable () -> Unit = {}) {
     val values = telefon.mediaPreferencesValues
     if (!telefon.mediaPreferencesSupported || values == null) {
         Text(stringResource(R.string.medien_sync_titel), fontWeight = FontWeight.Bold, color = Magnolie.braun)
@@ -92,7 +93,8 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
         checkbox("photos_enabled", stringResource(R.string.medien_sync_fotos))
         checkbox("videos_enabled", stringResource(R.string.medien_sync_videos))
         checkbox("photos_only", stringResource(R.string.medien_sync_nur_fotos))
-        val receiving = enabled && telefon.mediaPreferencesReady && !telefon.mediaManualBusy && android.os.Build.VERSION.SDK_INT >= 30 &&
+         checkbox("skip_deletions", stringResource(R.string.personal_sync_skip_deletions))
+         val receiving = enabled && telefon.mediaPreferencesReady && !telefon.mediaManualBusy && android.os.Build.VERSION.SDK_INT >= 30 &&
             values["collection_mode"] != JsonPrimitive("import_only") &&
             values["direction"] in setOf(JsonPrimitive("two_way"), JsonPrimitive("pc_to_phone"))
         for ((kind, key, label) in listOf(Triple(GalleryMediaType.IMAGES, "photos_enabled", R.string.medien_sync_fotos),
@@ -103,7 +105,7 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
                 aktiv = receiving && flag(key)) { beiArchiv(kind) }
         }
         Text(stringResource(R.string.medien_pc_archiv_hinweis), color = Magnolie.braunHell)
-        checkbox("skip_deletions", stringResource(R.string.personal_sync_skip_deletions))
+         wiederherstellung()
         if (!telefon.mediaPreferencesReady) Text(stringResource(R.string.baum_wartet), color = Magnolie.braunHell)
         if (telefon.mediaManualBusy) Text(stringResource(R.string.baum_wartet), color = Magnolie.braunHell)
         if (telefon.mediaManualState in setOf("held", "review")) Text(stringResource(R.string.media_recovery_uncertain), color = Magnolie.braunHell)

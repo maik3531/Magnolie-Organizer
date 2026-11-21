@@ -12,6 +12,7 @@
     <string name="webcam_beenden">Zatrzymaj</string>
     <string name="telefon_erweitert_titel">Funkcje zaawansowane</string>
     <string name="media_recovery_title">Odzyskiwanie zdjęć i filmów</string>
+    <string name="media_recovery_android_gallery">Aplikacja galerii zarządza koszem na oryginalne pliki z telefonu. Sprawdź w niej okres przechowywania, na przykład 30 dni, i opróżnij kosz w tej aplikacji. Wyświetlane tutaj kopie są przechowywane osobno.</string>
     <string name="media_recovery_hint">Lokalne zaszyfrowane kopie odzyskiwania, dostępne również bez poprzedniego połączenia. Podczas przywracania kopia odzyskiwania i istniejące multimedia zostają zachowane.</string>
     <string name="media_recovery_refresh">Odśwież listę odzyskiwania</string>
     <string name="media_recovery_working">Sprawdzanie lub przywracanie multimediów…</string>

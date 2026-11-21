@@ -25,10 +25,10 @@ import io.gitlab.maik3531.magnolienotes.R
 import io.gitlab.maik3531.magnolienotes.daten.Ablage
 import io.gitlab.maik3531.magnolienotes.telefon.*
 
-/** Local recovery survives unpairing. Hidden when there is no existing archive;
- * displaying this panel never starts TelefonWerk or requests media permission. */
+/** Keep the Journal entry available offline, independent of live media.
+ * Displaying either fold never starts TelefonWerk or requests media permission. */
 @Composable
-internal fun MedienWiederherstellung(ablage: Ablage) {
+internal fun MedienWiederherstellung(ablage: Ablage, inMedien: Boolean = false) {
     val context = LocalContext.current
     val owner = remember(context) { NativeGalleryLocalRecovery(context) }
     var rows by remember { mutableStateOf<List<NativeGalleryRecoveryRow>>(emptyList()) }
@@ -44,13 +44,14 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
         session?.close(); owner.close(); thumbnails.values.forEach { it?.recycle() }; thumbnails.clear()
         preview?.second?.recycle(); preview = null
     } }
-    if (!owner.present) return
+    val archivePresent = owner.present
+    if (!inMedien && !archivePresent) return
 
     fun permit() = NativeGalleryTrashBookPermit.capture(ablage) {
         Ablage.hole(context) === ablage && ablage.synchronisationsSchreibbar()
     }
     fun refresh() {
-        if (busy) return
+        if (busy || !archivePresent) return
         busy = true; failed = false
         try {
             owner.refresh(permit()) { result ->
@@ -104,10 +105,15 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
         if (preview?.first?.let { it !in rows } == true) { preview?.second?.recycle(); preview = null }
     }
     MedienWiederherstellungListe(rows, busy, failed, ::refresh, thumbnails, ::showPreview,
-        options = { MedienVorschauOption(showThumbnails) { enabled ->
-             showThumbnails = enabled
-             if (!enabled) { thumbnails.values.forEach { it?.recycle() }; thumbnails.clear() }
-        } }, onExpandedChanged = { open ->
+        options = {
+            if (inMedien) Text(stringResource(R.string.media_recovery_android_gallery))
+            if (archivePresent) MedienVorschauOption(showThumbnails) { enabled ->
+                showThumbnails = enabled
+                if (!enabled) { thumbnails.values.forEach { it?.recycle() }; thumbnails.clear() }
+            }
+        }, archivePresent = archivePresent,
+        titleResource = if (inMedien) R.string.journal_restore else R.string.media_recovery_title,
+        onExpandedChanged = { open ->
             expanded = open
             if (open) refresh()
             else {
@@ -148,12 +154,13 @@ internal fun MedienVorschauOption(enabled: Boolean, changed: (Boolean) -> Unit) 
 internal fun MedienWiederherstellungListe(rows: List<NativeGalleryRecoveryRow>, busy: Boolean, failed: Boolean,
     refresh: () -> Unit, thumbnails: Map<String, Bitmap?> = emptyMap(),
     showPreview: ((NativeGalleryRecoveryRow) -> Unit)? = null, options: @Composable () -> Unit = {},
-    onExpandedChanged: (Boolean) -> Unit = {}, restore: (NativeGalleryRecoveryRow) -> Unit) {
+    onExpandedChanged: (Boolean) -> Unit = {}, titleResource: Int = R.string.media_recovery_title,
+    archivePresent: Boolean = true, restore: (NativeGalleryRecoveryRow) -> Unit) {
     var selected by remember { mutableStateOf<NativeGalleryRecoveryRow?>(null) }
     var expanded by remember { mutableStateOf(false) }
     LaunchedEffect(rows) { if (selected != null && selected !in rows) selected = null }
-    val title = stringResource(R.string.media_recovery_title)
-    Abschnitt(title, hinweis = if (expanded) stringResource(R.string.media_recovery_hint) else "", kopfAktion = {
+    val title = stringResource(titleResource)
+    Abschnitt(title, hinweis = if (expanded && archivePresent) stringResource(R.string.media_recovery_hint) else "", kopfAktion = {
         Papierknopf(if (expanded) "▾" else "▸", Modifier.semantics { contentDescription = title }) {
             expanded = !expanded
             if (!expanded) selected = null
@@ -162,6 +169,7 @@ internal fun MedienWiederherstellungListe(rows: List<NativeGalleryRecoveryRow>, 
     }) {
         if (!expanded) return@Abschnitt
         options()
+        if (!archivePresent) return@Abschnitt
         if (busy) Text(stringResource(R.string.media_recovery_working))
         if (failed) Text(stringResource(R.string.media_recovery_unavailable))
         Papierknopf(stringResource(R.string.media_recovery_refresh), Modifier.fillMaxWidth(), aktiv = !busy) { refresh() }

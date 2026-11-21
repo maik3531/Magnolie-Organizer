@@ -17,6 +17,7 @@
     <string name="telefon_erweitert_titel">Advanced features</string>
     <string name="medien_sync_gemeinsam_nicht_verfuegbar">Shared photo and video settings are not available on this connection.</string>
     <string name="media_recovery_title">Photo and video recovery</string>
+    <string name="media_recovery_android_gallery">Your gallery app manages the recycle bin for phone originals. Check its retention period there, for example 30 days, and use that app to empty it. The copies listed here are separate.</string>
     <string name="media_recovery_hint">Local encrypted recovery copies, also available without the former connection. The recovery copy and existing media are kept when restoring.</string>
     <string name="media_recovery_refresh">Refresh recovery list</string>
     <string name="media_recovery_working">Checking or restoring media…</string>

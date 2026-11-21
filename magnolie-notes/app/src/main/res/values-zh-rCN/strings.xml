@@ -12,6 +12,7 @@
     <string name="webcam_beenden">停止</string>
     <string name="telefon_erweitert_titel">高级功能</string>
     <string name="media_recovery_title">照片和视频恢复</string>
+    <string name="media_recovery_android_gallery">手机原始文件的回收站由图库应用管理。请在图库中查看保留期限（例如 30 天），并在其中清空回收站。此处列出的副本单独保存。</string>
     <string name="media_recovery_hint">本地加密恢复副本，即使没有原来的连接也可使用。恢复时会保留恢复副本和现有媒体。</string>
     <string name="media_recovery_refresh">刷新恢复列表</string>
     <string name="media_recovery_working">正在检查或恢复媒体…</string>

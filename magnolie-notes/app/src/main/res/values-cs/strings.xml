@@ -12,6 +12,7 @@
     <string name="webcam_beenden">Zastavit</string>
     <string name="telefon_erweitert_titel">Pokročilé funkce</string>
     <string name="media_recovery_title">Obnovení fotografií a videí</string>
+    <string name="media_recovery_android_gallery">Koš s originály z telefonu spravuje aplikace galerie. V ní zkontrolujte dobu uchování, například 30 dní, a případně koš vyprázdněte. Zde uvedené kopie jsou uloženy zvlášť.</string>
     <string name="media_recovery_hint">Místní šifrované kopie pro obnovení, dostupné i bez původního připojení. Při obnovení se kopie i stávající média zachovají.</string>
     <string name="media_recovery_refresh">Obnovit seznam pro obnovení</string>
     <string name="media_recovery_working">Kontrola nebo obnovování médií…</string>

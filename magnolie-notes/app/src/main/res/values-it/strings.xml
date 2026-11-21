@@ -12,6 +12,7 @@
     <string name="webcam_beenden">Interrompi</string>
     <string name="telefon_erweitert_titel">Funzioni avanzate</string>
     <string name="media_recovery_title">Recupero di foto e video</string>
+    <string name="media_recovery_android_gallery">La galleria gestisce il cestino degli originali del telefono. Controlla nella galleria il periodo di conservazione, per esempio 30 giorni, e svuota il cestino da lì. Le copie elencate qui sono separate.</string>
     <string name="media_recovery_hint">Copie di recupero locali crittografate, disponibili anche senza la connessione precedente. Durante il ripristino vengono conservati la copia di recupero e i contenuti multimediali esistenti.</string>
     <string name="media_recovery_refresh">Aggiorna elenco di recupero</string>
     <string name="media_recovery_working">Verifica o ripristino dei contenuti multimediali…</string>

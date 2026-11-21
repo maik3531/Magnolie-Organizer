@@ -1,5 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.ui
 
+import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
 import android.app.Application
 import android.os.Looper
 import android.view.View
@@ -38,6 +40,7 @@ class MedienSyncEinstellungenUiTest {
     private val changes = mutableListOf<Triple<String, JsonElement, String>>()
     private var permissions = 0
     private var runs = 0
+    private var recoveryOpened = 0
     private val receiving = mutableListOf<GalleryMediaType>()
     private val archiving = mutableListOf<GalleryMediaType>()
     private val clock = BroadcastFrameClock()
@@ -54,7 +57,12 @@ class MedienSyncEinstellungenUiTest {
         scope.launch { recomposer.runRecomposeAndApplyChanges() }
         view.setContent { MagnolieThema { MedienSyncEinstellungen(state.value, { field, value, version ->
             changes += Triple(field, value, version)
-        }, { permissions++ }, { runs++ }, { receiving += it }, { archiving += it }) } }
+        }, { permissions++ }, { runs++ }, { receiving += it }, { archiving += it }, wiederherstellung = {
+            MedienWiederherstellungListe(emptyList(), busy = false, failed = false, refresh = { error("No archive") },
+                options = { Text(stringResource(R.string.media_recovery_android_gallery)) },
+                onExpandedChanged = { if (it) recoveryOpened++ }, titleResource = R.string.journal_restore,
+                archivePresent = false, restore = { error("No archive") })
+        }) } }
         controller!!.start().resume().visible().windowFocusChanged(true); frames()
     }
     private fun frames() {
@@ -78,6 +86,22 @@ class MedienSyncEinstellungenUiTest {
             it.config.getOrNull(SemanticsProperties.ToggleableState) != null
     }
     private fun open() = click(nodes().single { text(it) == "▸ " + label(R.string.medien_sync_titel) })
+
+    @Test fun recoveryIsNestedAndReadingGalleryGuidanceNeverActivatesOrRequestsRights() {
+        launch()
+        val title = label(R.string.journal_restore)
+        val hint = label(R.string.media_recovery_android_gallery)
+        fun restoreFold() = nodes().filter { it.config.getOrNull(SemanticsProperties.ContentDescription)?.contains(title) == true }
+        assertTrue(restoreFold().isEmpty())
+        open()
+        assertFalse(nodes().any { text(it) == hint })
+        click(restoreFold().single())
+        assertEquals(1, recoveryOpened)
+        assertTrue(nodes().any { text(it) == hint })
+        assertFalse(nodes().any { text(it) == label(R.string.media_recovery_refresh) })
+        assertEquals(ToggleableState.Off, checkbox(R.string.medien_sync_aktivieren).config[SemanticsProperties.ToggleableState])
+        assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+    }
 
     @Test fun advancedSectionRequiresActiveNotesWifiButNotSharedSupport() {
         val connected = TelefonUiZustand(enabled = true, connection = TelefonVerbindungsstatus.ONLINE_WIFI,

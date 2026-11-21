@@ -12,6 +12,7 @@
     <string name="webcam_beenden">Detener</string>
     <string name="telefon_erweitert_titel">Funciones avanzadas</string>
     <string name="media_recovery_title">Recuperación de fotos y vídeos</string>
+    <string name="media_recovery_android_gallery">La aplicación de galería gestiona la papelera de los originales del teléfono. Consulta allí el plazo de conservación, por ejemplo 30 días, y vacía la papelera desde esa aplicación. Las copias de esta lista son independientes.</string>
     <string name="media_recovery_hint">Copias de recuperación locales cifradas, disponibles también sin la conexión anterior. Al restaurar se conservan la copia de recuperación y los archivos multimedia existentes.</string>
     <string name="media_recovery_refresh">Actualizar la lista de recuperación</string>
     <string name="media_recovery_working">Comprobando o restaurando archivos multimedia…</string>

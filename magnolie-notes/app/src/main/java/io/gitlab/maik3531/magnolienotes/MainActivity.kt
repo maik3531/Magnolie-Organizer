@@ -1276,6 +1276,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 )
 
                 3 -> BaumBlatt(
+                    medienWiederherstellung = { io.gitlab.maik3531.magnolienotes.ui.MedienWiederherstellung(ablage, inMedien = true) },
                     zustand = baumzustand,
                     bestand = bestand,
                     customFokus = customZiel,
