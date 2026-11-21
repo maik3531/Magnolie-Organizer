@@ -214,8 +214,11 @@ A late collision preserves both directories; a cut after installation without
 a result is held, not repeated or cleaned up automatically. The same live
 operation can now continue through a bounded, deduplicated parent list. Each
 child attempt uses the exact confirmed or newly recorded parent identities. A
-replaced parent holds before inserting a child. None of these results authorize
-a media rename or continuation after restart.
+replaced parent holds before inserting a child. While that same live operation
+continues, the completely recorded folder set can form exact rename candidates.
+The native source inode, original confirmed bytes and animation evidence are
+checked again; a local edit after folder creation holds. The candidates neither
+authorize a media rename nor permit continuation after restart.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in

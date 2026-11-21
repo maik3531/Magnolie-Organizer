@@ -239,6 +239,11 @@ class ProtectedRelocationOwner(NativeMediaRetention):
         return intent,created[0][1]
 
     def _create_confirmed_folders(self,action,journal,plan,destination,*,first_only=False):
+        with self._creating_confirmed_folders(action,journal,plan,destination,first_only=first_only) as (intent,created,_):
+            return intent,created
+
+    @contextmanager
+    def _creating_confirmed_folders(self,action,journal,plan,destination,*,first_only=False):
         from magnolie_media_relocation_record import _install_spent_folder, inspect_relocation_target_parents
         with self._confirming_folder_plan(action,journal,plan,destination) as (intent,lease):
             planned=plan.missing_parents();committed={};created=[];known={'':destination.ancestor_keys[0]}
@@ -271,7 +276,14 @@ class ProtectedRelocationOwner(NativeMediaRetention):
                 committed[key]=blob;require_result(path,parent_keys+(identity,),spent)
                 known[path]=identity;created.append((path,identity))
             for path,identity in created:require_result(path,chain(path)+(identity,),spent)
-            return intent,tuple(created)
+            yield intent,tuple(created),spent
+
+    def _materialize_confirmed_folder_selection(self,action,journal,plan,destination):
+        """Build rename candidates during the original action, not from a later restart."""
+        from magnolie_media_relocation_record import _materialize_gif_folder_plan
+        with self._creating_confirmed_folders(action,journal,plan,destination) as (intent,created,spent):
+            records=_materialize_gif_folder_plan(plan,destination,created,spent)
+            spent();return intent,records
 
     def record_confirmed_intent(self,action,records,destination,confirmed_sha256):
         with self._confirming_intent(action,records,destination,confirmed_sha256) as (intent,_):

@@ -131,6 +131,33 @@ def bind_gif_relocation_folder_plan(drafts,destination):
     return plan
 
 
+def _materialize_gif_folder_plan(plan,destination,created,current):
+    """Read exact completed endpoints; never mint new authority or mutate files."""
+    if (type(plan) is not GifRelocationFolderPlan or bind_gif_relocation_folder_plan(plan.members,destination)!=plan
+            or type(created) is not tuple or not callable(current)
+            or any(type(item) is not tuple or len(item)!=2 for item in created)
+            or tuple(path for path,_ in created)!=plan.missing_parents()):
+        raise TransferError('photo_relocation_folder_attempt_held')
+    original_keys={key for member in plan.members for key in (*member.source_parents,*member.target_parents.existing)}
+    created_keys=tuple(_native_key(key) for _,key in created)
+    if len(set(created_keys))!=len(created_keys) or original_keys.intersection(created_keys):
+        raise TransferError('photo_relocation_parent_changed')
+    def require_current():
+        if current() is not True:raise TransferError('photo_relocation_original_owner_ended')
+    folders=dict(created);records=[]
+    for member in plan.members:
+        require_current()
+        parts=member.target.split('/');existing=member.target_parents.existing
+        parents=existing+tuple(folders['/'.join(parts[:index])] for index in range(len(existing),len(parts)))
+        record=MediaRelocationRecord(member.operation,'0'*64,member.book_sha256,member.preferences_sha256,
+            member.original_mapping_sha256,destination.ancestor_keys[0],member.source_parents,parents,
+            member.source,member.target,member.file)
+        if record.observe_native(destination,current,require_animation=True)!='at_source':
+            raise TransferError('photo_relocation_original_location_unproven')
+        records.append(record)
+    require_current();return bind_relocation_selection(tuple(records),occupied=())
+
+
 def inspect_relocation_target_parents(destination,relative,current):
     """Read the longest safe named prefix and verify the first absent name."""
     from magnolie_photo_destination import require_media_directory

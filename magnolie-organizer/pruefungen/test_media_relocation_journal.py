@@ -202,6 +202,39 @@ def test_planned_child_uses_the_original_parent_result_without_replay(relocation
     assert source.read_bytes()==raw and not target.exists()
 
 
+@pytest.mark.parametrize('edited',[False,True],ids=['original','edit_after_folder_creation'])
+def test_completed_folder_plan_materializes_only_unchanged_original_endpoints(receiving,tmp_path,monkeypatch,edited):
+    from magnolie_media_relocation_record import (MissingGifTargetDraft, _materialize_gif_folder_plan,
+        bind_gif_relocation_folder_plan, inspect_relocation_target_parents)
+    authority=receiving[3]._authority
+    records,destination,source,target,raw=two_members(tmp_path/'relocation',ANIMATED)
+    target.parent.rmdir();target.parent.parent.rmdir()
+    with NativeMediaRetention(authority.binding.native_directory) as book:
+        version=book.saved_book_version()
+    members=tuple(MissingGifTargetDraft(record.operation,version,record.preferences_sha256,
+        record.original_mapping_sha256,destination,record.source,record.source_parents,record.target,
+        inspect_relocation_target_parents(destination,record.target,lambda:True),record.file) for record in records)
+    plan=bind_gif_relocation_folder_plan(members,destination)
+    def materialize(confirmed,root,created,current):
+        if edited:source.write_bytes(b'concurrent local edit')
+        return _materialize_gif_folder_plan(confirmed,root,created,current)
+    monkeypatch.setattr('magnolie_media_relocation_record._materialize_gif_folder_plan',materialize)
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        action=owner._issue_confirmed_action(lambda:True)
+        if edited:
+            with pytest.raises(TransferError,match='original_file_changed'):
+                owner._materialize_confirmed_folder_selection(action,journal,plan,destination)
+        else:
+            intent,materialized=owner._materialize_confirmed_folder_selection(action,journal,plan,destination)
+            assert intent.selection_sha256==plan.selection_sha256 and len(materialized)==2
+            folders=(destination.ancestor_keys[0],(target.parent.parent.stat().st_dev,target.parent.parent.stat().st_ino),
+                (target.parent.stat().st_dev,target.parent.stat().st_ino))
+            assert all(record.target_parents==folders and not record.grants_write_authority for record in materialized)
+            assert tuple(record.file for record in materialized)==tuple(member.file for member in members)
+        assert not journal.read().records and not list(target.parent.iterdir())
+    assert source.read_bytes()==(b'concurrent local edit' if edited else raw)
+
+
 def test_confirmed_intent_is_independent_of_the_journal_and_survives_reopen(relocation_owner_case):
     authority,records,destination,source,target,raw=relocation_owner_case
     selection=records[0].selection_sha256
