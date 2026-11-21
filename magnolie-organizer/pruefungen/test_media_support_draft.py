@@ -16,10 +16,12 @@ import magnolie_media_sync as media
 from magnolie_media_transport import NativeMediaSettingsTransport
 from magnolie_media_support import NativeMediaSupportAttempt, TTL, ack, offer, valid
 from magnolie_file_native_authority import capture_authenticated_binding
+from magnolie_file_desktop_connection import NativeDesktopFileConnection
 from magnolie_photo_preferences import ProtectedPhotoPreferences
 from test_media_transport import AT, PeerWire, incoming
 from test_file_authenticated_desktop import native
 from test_telefon import FakeBluetooth, _complete_peer
+from test_file_video_authority import ack_all
 
 
 FULL = [1, 2, 3, 4, 5, 7, 8, 11, 12, 13, 17, 18, 19, 20, 21, 22]
@@ -257,3 +259,71 @@ def test_legacy_rejection_does_not_stop_the_authenticated_parent(tmp_path, monke
         assert wire.receive() == dict(heartbeat, type='pong')
         assert service.store.peers == before
         assert not service._native_file_connections
+
+
+@pytest.mark.parametrize('transport', ['wifi', 'bluetooth'])
+def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox(native, monkeypatch, transport):
+    service, peer, _ = native
+    peer['capabilities'] = legacy_state()
+    service.store.save_peers()
+    monkeypatch.setattr(service, '_native_media_support_checked', True)
+    monkeypatch.setattr(service, '_resume_automatic_photos', lambda *args: None)
+    monkeypatch.setattr(NativeDesktopFileConnection, '_data_handlers_ready', True)
+    with wire_pair() as (channel, wire):
+        binding = capture_authenticated_binding(dict(service.store.identity), dict(peer), service._generation, service.store)
+        service._activate_connection(peer['device_id'], channel, transport, file_binding=binding)
+        def deliver(frame):
+            wire.send(frame)
+            service._payload(peer, channel, channel.receive())
+        try:
+            deliver(offer(phone.now_ms()))
+            assert not service._native_media_support and channel.send_seq==0  # Already authenticated, but no fresh controls.
+            ack_all(service, peer, channel)
+            remote_probe = offer(phone.now_ms())
+            deliver(remote_probe)
+            assert not service._native_file_connections
+            if transport=='bluetooth':
+                assert not service._native_media_support and channel.send_seq==0
+                return
+            owner=service._native_media_support[channel]
+            local=wire.receive();assert valid(local,phone.now_ms())
+            assert wire.receive()==ack(remote_probe) and not owner.supports(channel)
+            with monkeypatch.context() as patch:
+                patch.setattr(service.store,'outbox_policy',lambda *args,**kwargs:pytest.fail('Discovery ACK used the personal outbox'))
+                deliver(ack(local))
+                assert owner.supports(channel)
+                assert not service._native_file_connections  # Support does not create a file owner.
+                connection=service.open_native_file_connection(peer['device_id'],peer['static_public'],channel,binding.generation)
+                assert connection._media_source is None and not connection.desktop_snapshot()['shared_media']['configured']
+                selected=media.change(media.create(peer['device_id']),peer['device_id'],service.store.identity['device_id'],'enabled',True)
+                selected=media.change(selected,peer['device_id'],service.store.identity['device_id'],'direction','two_way')
+                def settings(body):
+                    message=incoming(body)
+                    at=phone.now_ms()
+                    return dict(message,created_ms=at,expires_ms=at+60_000)
+                proposal=settings(selected);deliver(proposal)
+                assert wire.receive()==ack(proposal)
+                reply=wire.receive();assert reply['kind']==media.KIND
+                deliver(ack(reply))
+                assert not connection.desktop_snapshot()['shared_media']['agreed']
+                echo=settings(reply['body']);deliver(echo)
+                assert wire.receive()==ack(echo)
+                assert connection.desktop_snapshot()['shared_media']['agreed']
+                assert connection._desktop_session is None and connection._preferences.read().policy is None
+                assert not connection._local().grants.receive_files and not connection._local().grants.send_files
+                send_seq=channel.send_seq
+                withdrawn=dict(offer(phone.now_ms()),kind='personal_sync.settings',body=dict(format=1,own_device=False))
+                service._observe_native_file_control(peer,channel,withdrawn['kind'],withdrawn,acknowledged=False)
+                assert not owner.supports(channel)
+                ack_all(service,peer,channel)
+                deliver(ack(local)) # Even after withdrawal this is not a personal ACK or a fresh attempt.
+                deliver(offer(phone.now_ms()))
+                assert not owner.supports(channel) and channel.send_seq==send_seq
+                assert 'shared_media' not in connection.desktop_snapshot()
+            assert peer['capabilities']['items']['device_status']['versions']==FULL
+            assert service._native_file_connections[channel] is connection
+            heartbeat=dict(type='ping',ping_id=str(uuid.uuid4()),sent_ms=phone.now_ms())
+            deliver(heartbeat)
+            assert wire.receive()==dict(heartbeat,type='pong')
+        finally:service._end_native_file_connection(channel)
+        assert not service._native_media_support

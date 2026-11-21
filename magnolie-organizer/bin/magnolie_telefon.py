@@ -2908,6 +2908,8 @@ class PhoneService:
         self._native_sending_setups = weakref.WeakKeyDictionary()
         self._native_file_controls = weakref.WeakKeyDictionary()
         self._native_file_control_receipts = weakref.WeakKeyDictionary()
+        self._native_media_support_checked = False  # Private integration only until matching counterpart acceptance.
+        self._native_media_support = weakref.WeakKeyDictionary()
         self._native_photo_activity = {}
         self._native_sync_activity = NativeSyncActivity(lambda:self.callback('personal_sync_activity', {}))
         self.note_sessions = weakref.WeakKeyDictionary()
@@ -3201,6 +3203,10 @@ class PhoneService:
         with self.lock:
             if channel in self._native_file_connections:
                 raise ValueError('file_desktop_connection_busy')
+            support=self._native_media_support.get(channel)
+            if (support is not None and (not support.supports(channel)
+                    or self._current_native_source_metadata(peer_id,static_public,channel,generation))):
+                support=None  # Do not replace the existing legacy composition.
         # No native peer/key/preference I/O while holding the service monitor.
         authority = self.open_native_file_authority(peer_id, static_public, channel, generation)
         try:
@@ -3213,7 +3219,7 @@ class PhoneService:
                 status_changed=lambda: self.callback('photo_sync', {}),
                 native_metadata_current=lambda:self._current_native_source_metadata(peer_id,static_public,channel,generation),
                 native_wifi_current=lambda:(self._current_native_source_metadata(peer_id,static_public,channel,generation)
-                    and self.connection_transports.get(peer_id)=='wifi'))
+                    and self.connection_transports.get(peer_id)=='wifi'),media_support=support)
         except BaseException:
             authority.close()
             raise
@@ -3226,7 +3232,7 @@ class PhoneService:
                     raise ValueError('media_destination_disable_first')
             with self.lock:
                 if (self._current_native_file_binding(peer_id, static_public, channel, generation) is not binding
-                        or channel in self._native_file_connections):
+                        or channel in self._native_file_connections or support is not None and not support.supports(channel)):
                     raise ValueError('file_desktop_native_owner_changed')
                 self._native_file_connections[channel] = connection
             return connection
@@ -3237,6 +3243,8 @@ class PhoneService:
     def _end_native_file_connection(self, channel):
         with self.lock:
             self._native_sending_setups.pop(channel,None)
+            support=self._native_media_support.pop(channel,None)
+            if support is not None:support.close()
             bindings = getattr(self, '_file_channel_bindings', None)
             owners = getattr(self, '_native_file_connections', None)
             if bindings is not None:
@@ -3534,6 +3542,8 @@ class PhoneService:
             # positive witness, even if a later persisted value looks identical.
             with self.lock:
                 self._native_file_controls.get(channel,{}).pop(kind,None)
+                support=self._native_media_support.get(channel)
+                if support is not None:support.close()
             return
         with self.lock:
             receipts=self._native_file_control_receipts.setdefault(channel,{})
@@ -3544,7 +3554,10 @@ class PhoneService:
                 if kind=='personal_sync.settings':
                     if body.get('own_device') is not False:return
                 elif body.get('revision',-1)<=previous.get('body',{}).get('revision',-1):return
-            self._native_file_controls.setdefault(channel,{})[kind]=json.loads(json.dumps(body))
+            controls=self._native_file_controls.setdefault(channel,{})
+            support=self._native_media_support.get(channel)
+            if support is not None and controls.get(kind)!=body:support.close()
+            controls[kind]=json.loads(json.dumps(body))
             receipts[kind]=json.loads(json.dumps(message))
         if self._native_photo_built:
             self._resume_automatic_photos(peer,channel)
@@ -3595,7 +3608,7 @@ class PhoneService:
             if connection is not None:connection.close()
             # Uncertain metadata is HOLD; no default record or automatic repair.
 
-    def _current_native_source_metadata(self,peer_id,static_public,channel,generation):
+    def _current_native_source_metadata(self,peer_id,static_public,channel,generation,*,require_legacy_shared=True):
         """Lock-free deny-only witness for source/socket worker callbacks.
 
         File/book/mapping authority is checked independently by the live source.
@@ -3610,11 +3623,46 @@ class PhoneService:
         peer=peers[0];personal=peer.get('personal_sync',{});status=peer.get('capabilities',{}).get('items',{}).get('device_status',{})
         return bool(peer.get('device_id')==peer_id and peer.get('static_public')==static_public and peer.get('state')=='paired'
             and personal.get('own_device') is True and personal.get('remote_own_device') is True
-            and status.get('available') is True and 21 in status.get('versions',[]) and 23 in status.get('versions',[])
+            and status.get('available') is True and 21 in status.get('versions',[])
+            and (not require_legacy_shared or 23 in status.get('versions',[]))
             and 'capabilities.update' in controls and 'grants.update' in controls
             and controls.get('capabilities.update')==peer.get('capabilities')
             and controls.get('grants.update')==peer.get('grants')
             and controls.get('personal_sync.settings')=={'format':1,'own_device':True})
+
+    def _begin_native_media_support(self,peer,channel):
+        # Private session reader only. No file owner, settings, grants or
+        # folders are opened here, and no packet is queued for later replay.
+        if not self._native_media_support_checked or not self._native_photo_built or type(channel) is not SecureChannel:return None
+        peer_id=peer.get('device_id');static_public=peer.get('static_public')
+        connection_type=self._native_file_module('magnolie_file_desktop_connection').NativeDesktopFileConnection
+        if not connection_type._data_handlers_ready:return None
+        from magnolie_media_support import NativeMediaSupportAttempt
+        with self.lock:
+            binding=self._file_channel_bindings.get(channel)
+            if binding is None or binding.pairing_epoch is None:return None
+            def current():
+                return (self._native_media_support_checked and connection_type._data_handlers_ready
+                    and self._file_channel_bindings.get(channel) is binding
+                    and self.connection_transports.get(peer_id)=='wifi'
+                    and self._current_native_source_metadata(peer_id,static_public,channel,binding.generation,require_legacy_shared=False))
+            if not current():return None
+            attempt=self._native_media_support.get(channel)
+            if attempt is not None:return attempt  # Never restart a retired original attempt.
+            attempt=NativeMediaSupportAttempt(channel,current)
+            self._native_media_support[channel]=attempt
+        attempt.send()  # No service monitor across authenticated output.
+        return attempt
+
+    def _native_media_support_ack(self,peer,channel,payload):
+        with self.lock:
+            attempt=self._native_media_support.get(channel)
+            binding=self._file_channel_bindings.get(channel)
+            if (attempt is None or binding is None or binding.peer_id!=peer.get('device_id')
+                    or binding.static_public!=peer.get('static_public') or not attempt.owns_ack(channel,payload)):
+                return False
+        attempt.receive(channel,payload)
+        return True # An obsolete original receipt still never reaches the personal outbox.
 
     def _native_photo_activity_changed(self, connection, owner, active):
         # These are in-process native owners, never serialized client claims.
@@ -9054,6 +9102,7 @@ class PhoneService:
             self.store.save_peers()
             if file_binding is not None:self._resume_automatic_photos(peer,channel)
             sock.settimeout(1)
+            self._begin_native_media_support(peer,channel)
             self._queue_native_screen_availability(peer_id, channel)
             self.callback("status", self.report())
             last_incoming = time.monotonic()
@@ -9207,6 +9256,13 @@ class PhoneService:
         # (including pre-activation, replay/scopes, and without a native owner).
         if payload.get('type') == 'desktop_screen_draft':
             return
+        if getattr(self,'_native_media_support_checked',False) and payload.get('kind')=='media_support.hello':
+            if scoped_reference is None and self._native_photo_built:
+                from magnolie_media_support import valid
+                if valid(payload,now_ms()):
+                    attempt=self._begin_native_media_support(peer,channel)
+                    if attempt is not None:attempt.receive(channel,payload)
+            return  # This private lane never persists a discovery message.
         if is_reserved_screen_control(payload):
             self._screen_dispatch.receive(peer, channel, payload)
             return
@@ -9238,6 +9294,9 @@ class PhoneService:
         if payload.get("type") == "ack" and set(payload) == {
                 "type", "message_id", "status", "error"}:
             phone_ack_contract.validate(payload)
+            if (scoped_reference is None and getattr(self,'_native_media_support_checked',False)
+                    and self._native_media_support_ack(peer,channel,payload)):
+                return
             screen = getattr(self, '_screen_dispatch', None)
             if screen is not None and screen.ack(channel, payload):
                 return

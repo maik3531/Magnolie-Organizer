@@ -53,7 +53,7 @@ class NativeDesktopFileConnection:
     _video_data_handlers_ready = True
 
     def __init__(self, authority, channel, *, released=lambda owner:None, activity_changed=None, status_changed=None,
-                 native_wifi_current=lambda:False,native_metadata_current=lambda:False):
+                 native_wifi_current=lambda:False,native_metadata_current=lambda:False,media_support=None):
         if not callable(native_wifi_current) or not callable(native_metadata_current):raise TransferError('media_source_native_wifi_required')
         self._native_wifi_current=native_wifi_current
         self._native_metadata_current=native_metadata_current
@@ -105,6 +105,7 @@ class NativeDesktopFileConnection:
         self._mappings = ProtectedPhotoMappings(authority)
         self._media_trash = None
         self._media_transport = self._media_source = self._media_sender = None
+        self._media_support = media_support
         self._media_pc_source = None
         self._media_sending_state = None
         self._media_sending_choice = None
@@ -119,7 +120,13 @@ class NativeDesktopFileConnection:
             peers=strict_json(authority.protection.read_native_peers_blob())['items']
             peer=peers[0] if len(peers)==1 else {}
             status=peer.get('capabilities',{}).get('items',{}).get('device_status',{})
-            if type(channel) is SecureChannel and status.get('available') is True and 23 in status.get('versions',[]):
+            if media_support is not None:
+                # The separately proven lane is settings-only until the
+                # counterpart and the original batch runtime are joined.
+                from magnolie_media_transport import NativeMediaSettingsTransport
+                self._media_transport=NativeMediaSettingsTransport(authority,
+                    lambda:not self._closed.is_set() and self._data_handlers_ready,support=media_support)
+            elif type(channel) is SecureChannel and status.get('available') is True and 23 in status.get('versions',[]):
                 from magnolie_media_transport import NativeMediaSettingsTransport
                 from magnolie_media_source import NativeMappedMediaSource
                 from magnolie_media_source_pc import NativeCollectionMediaSource
@@ -383,7 +390,7 @@ class NativeDesktopFileConnection:
 
     def _shared_schedule_changed(self):
         transport=self._media_transport
-        if transport is None:return
+        if transport is None or self._media_support is not None:return
         # Refresh native consent on this serialized observer lane, not inside
         # a source/mapping callback and not from a passive UI status request.
         try:self._local()
@@ -564,7 +571,7 @@ class NativeDesktopFileConnection:
             if token is not None:
                 from magnolie_media_sync import effective
                 value['mapped_direction']=effective(token.body)['direction']
-        if self._media_source is not None and self._media_transport is not None:
+        if self._media_transport is not None and (self._media_source is not None or self._media_support is not None):
             shared=self._media_transport.display_snapshot()
             if shared is not None:value['shared_media']=shared
         if self._media_collection_roots_state is not None:
@@ -582,10 +589,13 @@ class NativeDesktopFileConnection:
             raise TransferError('media_settings_native_choice_invalid')
         with self._operation():
             transport=self._media_transport
-            if self._media_source is None or transport is None:raise TransferError('media_source_native_composition_required')
+            if transport is None or (self._media_source is None and self._media_support is None):
+                raise TransferError('media_source_native_composition_required')
             def current():
                 self._ready()
-                if self._native_metadata_current() is not True:raise TransferError('media_source_current_metadata_required')
+                if self._media_support is not None:
+                    if not self._media_support.supports(self._channel):raise TransferError('media_settings_peer_unsupported')
+                elif self._native_metadata_current() is not True:raise TransferError('media_source_current_metadata_required')
                 return True
             with NativeMediaRetention(self._authority.binding.native_directory) as retention:
                 # Shared registers live in phone.db too. A maintenance writer

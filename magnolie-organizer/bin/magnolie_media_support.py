@@ -64,6 +64,11 @@ class NativeMediaSupportAttempt:
     def supports(self, channel):
         return self._live(channel) and self._established and not self._retired.is_set()
 
+    def owns_ack(self, channel, message):
+        """Retain receipt ownership even after retirement, never the outbox."""
+        return (channel is self._channel and self._sent and message.get('type')=='ack'
+                and message.get('message_id')==self._offer['message_id'])
+
     def _write(self, message):
         # The original channel calls this inside its writer gate. Do not take
         # the attempt lock or do any disk/remote work from the validation hook.

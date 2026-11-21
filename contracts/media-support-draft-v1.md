@@ -71,3 +71,15 @@ Windows kind allowlist rejects with `invalid_schema`, not `unsupported`, and
 the parent heartbeat continues. Neither counterpart test is an installed
 package or live-device check. Positive cross-platform discovery and selecting
 the production transport remain open.
+
+Linux also exercises the actual native reader with an explicitly injected
+private gate. The stock gate stays off. The authenticated Wi-Fi reader requires
+its exact paired parent, a native pairing epoch and acknowledged capability,
+grant and own-device metadata. It routes the original receipt outside the
+personal outbox, retires the observation on metadata withdrawal, and does not
+retry on that parent. A separately opened native connection can exchange
+protected settings through this witness without allocating a file worker,
+starting the scheduler or creating file grants. Delivery on Bluetooth cannot
+produce this observation. An existing file owner is not rebuilt or replaced
+to attach a late observation. Reciprocal Android dispatch and positive
+end-to-end file acceptance with all original native grants remain separate.
