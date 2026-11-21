@@ -2448,7 +2448,9 @@ const LINUX_FOTO_ZIELORDNER = {
   de: "<h3>Linux: Empfangsordner für Fotos wählen</h3><p>Öffnen Sie bei aktiver WLAN-Verbindung zum eigenen Notes-Telefon <b>Einstellungen ▸ Magnolie-Notes-Telefonverbindung ▸ Erweiterte Funktionen ▸ Fotos und Videos</b>. Lassen Sie den Abgleich ausgeschaltet und wählen Sie unter <b>Fotos · Zielordner</b> einen vorhandenen privaten Ordner. Er muss Ihnen gehören und darf für andere Benutzer auch nicht über eine Gruppe beschreibbar sein. Wurde der Standard-Bilderordner beim ersten Einschalten abgelehnt, wählen Sie hier einen privaten Ordner und schalten Sie den Abgleich danach erneut ein.</p><p>Die Ordnerwahl lässt den Abgleich ausgeschaltet. Sie erteilt keine Android-Medienfreigabe, überträgt oder verschiebt keine Dateien und ändert keine Ordnerrechte.</p>"
 };
 for (const language of Object.keys(HANDBUCH_ANHAENGE["phone-pairing"].inhalt)) {
-  HANDBUCH_ANHAENGE["phone-pairing"].inhalt[language] += LINUX_FOTO_ZIELORDNER[language] || LINUX_FOTO_ZIELORDNER.en;
+  HANDBUCH_ANHAENGE["phone-pairing"].inhalt[language] += (LINUX_FOTO_ZIELORDNER[language] || LINUX_FOTO_ZIELORDNER.en) +
+    (language === "de" ? "<p>Nach dem Öffnen eines bereits gespeicherten Buchs müssen Sie es für die Ordnerwahl nicht erneut speichern.</p>" :
+      "<p>After opening an already saved book, you do not need to save it again just to choose a folder.</p>");
 }
 for (const [language, text] of Object.entries(KDE_ZEICHEN_HILFE)) HANDBUCH_ANHAENGE["phone-pairing"].inhalt[language] += "<p>" + text + "</p>";
 for (const [language, text] of Object.entries(FAX_WEGE_HILFE)) HANDBUCH_ANHAENGE["sending-selected-notes"][language] += "<p>" + text + "</p>";

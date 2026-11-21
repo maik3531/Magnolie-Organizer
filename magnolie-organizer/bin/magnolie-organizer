@@ -27119,13 +27119,30 @@ class Fenster(_FENSTER_BASIS):
             fingerprint=nachricht["fingerprint"];fotos=nachricht["cmd"]=="telefon_fotoziel_waehlen";kind="images" if fotos else "video"
             saved=self._telefon_actor_buchnachweis();deadline=time.monotonic()+60
             observed=getattr(self,"_notes_actor_saved_data",None)
-            if (type(saved) is not dict or observed is None or len(observed)<3 or
-                    (saved.get("book_source"),saved.get("sequence"))!=observed[:2]):
-                raise ValueError("media_destination_original_saved_book_required")
-            book_version=observed[2]
+            if observed is None and saved is None:
+                # A freshly opened, already saved book has no SaveACK in this
+                # GUI process. The daemon still authenticates its durable hash
+                # and exact file witness against its existing protected record.
+                loaded_source=self._telefon_actor_buchquelle()
+                def loaded_version():
+                    data=self._aktuelle_daten
+                    if (loaded_source is None or self._telefon_actor_buchquelle()!=loaded_source
+                            or getattr(self,"_notes_actor_saved_data",None) is not None or self._ladefehler
+                            or self._speicher_laeuft or self._speicher_auftraege.unfinished_tasks
+                            or not isinstance(data,dict)):
+                        raise ValueError("media_destination_original_saved_book_required")
+                    return hashlib.sha256(json.dumps(data,ensure_ascii=False,sort_keys=True,separators=(",",":")).encode("utf-8")).hexdigest()
+                book_version=loaded_version()
+                def same_book():return loaded_version()==book_version
+            else:
+                if (type(saved) is not dict or observed is None or len(observed)<3 or
+                        (saved.get("book_source"),saved.get("sequence"))!=observed[:2]):
+                    raise ValueError("media_destination_original_saved_book_required")
+                book_version=observed[2]
+                def same_book():return self._telefon_actor_buchnachweis()==saved
             def current():
-                if (self._telefon is not source or self._gesperrt or not self._organizer_vertraut() or saved is None
-                        or self._telefon_actor_buchnachweis()!=saved or time.monotonic()>=deadline):
+                if (self._telefon is not source or self._gesperrt or not self._organizer_vertraut()
+                        or time.monotonic()>=deadline or not same_book()):
                     raise ValueError("media_destination_original_context_changed")
                 if book[0] is not None:book[0].require_current()
                 return True

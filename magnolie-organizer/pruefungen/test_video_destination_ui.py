@@ -1,6 +1,9 @@
 """Native picker callback/IPC, actual protected choices; no installed GUI claim."""
 import ast
 from contextlib import contextmanager
+import hashlib
+import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
 import threading
@@ -17,6 +20,7 @@ from magnolie_file_desktop_connection import NativeDesktopFileConnection
 import magnolie_hintergrund as background
 import magnolie_telefon as phone
 from magnolie_media_retention import NativeMediaRetention
+from magnolie_personal_actor_store import NativeBookOwnerScope
 
 
 def saved_book_inputs_for_root(root):
@@ -40,20 +44,22 @@ def prepare_choice(fixture,monkeypatch):
 
 
 @contextmanager
-def native_picker(fixture,tmp_path,selection,*,photos=False,clock=None):
+def native_picker(fixture,tmp_path,selection,*,photos=False,clock=None,cold=False):
     service,peer=fixture[:2]
     server=background.IPCServer(None,str(tmp_path/'video-picker.sock'),phone_backend=service,
         settings_getter=lambda:background.normalize_settings({})).start()
     try:
         tree=ast.parse((Path(__file__).parents[1]/'bin/magnolie-organizer').read_text())
-        method=next(node for cls in tree.body if isinstance(cls,ast.ClassDef) for node in cls.body
-            if isinstance(node,ast.FunctionDef) and node.name=='_telefon_videoziel_waehlen')
+        names={'_telefon_videoziel_waehlen','_telefon_actor_buchbindung','_telefon_actor_buchquelle','_telefon_actor_buchnachweis'}
+        methods=[node for cls in tree.body if isinstance(cls,ast.ClassDef) for node in cls.body
+            if isinstance(node,ast.FunctionDef) and node.name in names]
+        assert {node.name for node in methods}==names
         idle=Queue()
-        namespace={'_':lambda text:text,'threading':threading,'time':clock or time,'daten_datei':lambda:str(tmp_path/'daten.json'),
+        namespace={'_':lambda text:text,'threading':threading,'time':clock or time,'hashlib':hashlib,'json':json,'os':os,'daten_datei':lambda:str(tmp_path/'daten.json'),
             'GLib':SimpleNamespace(UserDirectory=SimpleNamespace(DIRECTORY_VIDEOS='native-videos',DIRECTORY_PICTURES='native-pictures'),
                 get_user_special_dir=lambda kind:str(tmp_path/('Native-Pictures' if photos else 'Native-Videos')) if kind==('native-pictures' if photos else 'native-videos') else pytest.fail('Wrong native folder'),
                 idle_add=lambda callback:idle.put(callback) or 1)}
-        exec(compile(ast.Module(body=[method],type_ignores=[]),'actual-native-picker-handler','exec'),namespace)
+        exec(compile(ast.Module(body=methods,type_ignores=[]),'actual-native-picker-handler','exec'),namespace)
         calls=[];answers=[]
         def choose(title,**options):
             assert threading.current_thread() is threading.main_thread()
@@ -65,6 +71,18 @@ def native_picker(fixture,tmp_path,selection,*,photos=False,clock=None):
             _organizer_vertraut=lambda:True,
             _notes_actor_saved_data=(proof['book_source'],proof['sequence'],inputs['book_version']),
             _telefon_actor_buchnachweis=lambda:dict(proof))
+        if cold:
+            del window._notes_actor_saved_data
+            window._notes_actor_book_owner=NativeBookOwnerScope()
+            window._notes_actor_book_owner.set_ready(True)
+            for name in names-{'_telefon_videoziel_waehlen'}:
+                setattr(window,name,namespace[name].__get__(window))
+            window._aktuelle_daten=json.loads((tmp_path/'daten.json').read_bytes())
+            window._operation_laeuft=window._sync_laeuft=window._wirklich_beenden=False
+            window._daten_dek_kennung=None
+            window._ladefehler=''
+            window._speicher_laeuft=False
+            window._speicher_auftraege=Queue()
         payload=dict(cmd='telefon_fotoziel_waehlen' if photos else 'telefon_videoziel_waehlen',kennung=peer['device_id'],fingerprint=phone.fingerprint(phone.unb64(peer['static_public'],32)))
         def invoke(extra=None):
             worker=namespace['_telefon_videoziel_waehlen'](window,{**payload,**(extra or {})})
@@ -102,6 +120,21 @@ def test_native_picker_private_ipc_saves_initial_custom_video_root_off_without_p
     assert after.policy.destination==before.policy.destination and after.policy.permission_epoch==before.policy.permission_epoch
     assert connection._preferences.local_grant(True).grants==grant
     assert receiving[2].send.call_count==sent and not list(target.iterdir())
+
+
+def test_video_picker_uses_existing_book_after_reopen_without_save_ack(receiving,tmp_path,monkeypatch):
+    prepare_choice(receiving,monkeypatch)
+    connection=receiving[3];before=connection._preferences.read();sent=receiving[2].send.call_count
+    book=tmp_path/'daten.json';book_before=book.read_bytes()
+    target=tmp_path/'After-Reopen-Video';target.mkdir(mode=0o700)
+    with native_picker(receiving,tmp_path,str(target),cold=True) as (window,invoke,calls,answers):
+        assert window._telefon_actor_buchnachweis() is None
+        assert invoke() is not None and len(calls)==1 and answers[-1][1]['ok']
+        assert window._telefon_actor_buchnachweis() is None
+    after=connection._preferences.read()
+    assert after.policy.videos.destination.path==str(target) and not after.include_videos
+    assert after.policy.destination==before.policy.destination and after.policy.permission_epoch==before.policy.permission_epoch
+    assert book.read_bytes()==book_before and receiving[2].send.call_count==sent and not list(target.iterdir())
 
 
 @pytest.mark.parametrize('injected',[False,True])
@@ -164,7 +197,7 @@ def test_native_photo_picker_private_ipc_keeps_disabled_state_and_original_files
     assert connection._preferences.read()==changed
 
 
-@pytest.mark.parametrize('case',['first','cancel','stale_book','unsafe_choice','failed_enable','legacy_failed_enable'])
+@pytest.mark.parametrize('case',['first','cancel','stale_book','unsafe_choice','failed_enable','legacy_failed_enable','cold','cold_dirty','cold_changed'])
 def test_native_photo_picker_before_successful_enable(native,tmp_path,monkeypatch,case):
     service,peer,_=native
     if case=='legacy_failed_enable':
@@ -201,17 +234,18 @@ def test_native_photo_picker_before_successful_enable(native,tmp_path,monkeypatc
             prefs=service._native_file_connections[channel]._preferences
             if before is None:assert prefs.read().policy is None
             else:assert prefs.read()==before
-            if case=='stale_book':book.write_bytes(saved_book+b' ')
+            if case in ('stale_book','cold_changed'):book.write_bytes(saved_book+b' ')
             if case=='unsafe_choice':return str(pictures)
             return None if case=='cancel' else str(target)
-        with native_picker((service,peer),tmp_path,choose,photos=True) as (_,invoke,calls,answers):
+        with native_picker((service,peer),tmp_path,choose,photos=True,cold=case.startswith('cold')) as (window,invoke,calls,answers):
+            if case=='cold_dirty':window._aktuelle_daten['notizen']=[{'titel':'Unsaved synthetic change'}]
             invoke()
-            assert len(calls)==1
-            assert answers[-1][1]['ok'] is (case not in ('stale_book','unsafe_choice'))
+            assert len(calls)==(0 if case=='cold_dirty' else 1)
+            assert answers[-1][1]['ok'] is (case not in ('stale_book','unsafe_choice','cold_dirty','cold_changed'))
             assert answers[-1][1].get('canceled',False) is (case=='cancel')
         connection=service._native_file_connections[channel]
         after=connection._preferences.read()
-        if case in ('cancel','stale_book','unsafe_choice'):
+        if case in ('cancel','stale_book','unsafe_choice','cold_dirty','cold_changed'):
             assert after.policy is None and not any(Path(service.store.root).glob('photo-preferences-v1-*'))
         else:
             assert after.associated and after.policy.destination.path==str(target)
@@ -223,7 +257,7 @@ def test_native_photo_picker_before_successful_enable(native,tmp_path,monkeypatc
                 assert after.policy.mapping_store==before.policy.mapping_store and after.policy.job_catalog==before.policy.job_catalog
         assert not connection._preferences.local_grant(True).grants.receive_files
         assert not channel.send.called and Path(service.store.peers_path).read_bytes()==paired_before
-        assert book.read_bytes()==saved_book+(b' ' if case=='stale_book' else b'')
+        assert book.read_bytes()==saved_book+(b' ' if case in ('stale_book','cold_changed') else b'')
         assert list(pictures.iterdir())==[original] and pictures.stat().st_mode & 0o777==0o775
         assert original.read_bytes()==b'original' and not list(target.iterdir())
     finally:service._end_native_file_connection(channel)
