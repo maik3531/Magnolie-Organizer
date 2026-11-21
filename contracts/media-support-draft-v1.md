@@ -129,6 +129,12 @@ of an existing PC edit on an unchanged phone inventory. The private Linux
 scheduler also exercises automatic phone-to-PC reception on that live WLAN
 parent. It checks all selected receive bindings, the selected WLAN mode and
 the same agreed intent, independently of the explicit start action. These are
-not tests of a packaged Android sender or automatic resume after reconnect.
+not tests of a packaged Android sender. On reconnect, private Linux restores
+only the protected previous one-way WLAN choice with a still-valid destination
+policy. The replacement channel must first establish fresh support; it then
+exchanges settings and file controls, which remain distinct. A test verifies
+that settings agreement without a new phone SEND/control echo still cannot
+start the scheduler. An actual automatic transfer after reconnect remains to
+be verified with the native phone sender.
 Outgoing/combined runs are held in this receiver composition rather than
 running only part of the direction or substituting a legacy batch.

@@ -3663,8 +3663,46 @@ class PhoneService:
             if (attempt is None or binding is None or binding.peer_id!=peer.get('device_id')
                     or binding.static_public!=peer.get('static_public') or not attempt.owns_ack(channel,payload)):
                 return False
+        was_supported=attempt.supports(channel)
         attempt.receive(channel,payload)
+        if not was_supported and attempt.supports(channel):
+            self._resume_private_media_receiver(peer,channel,binding,attempt)
         return True # An obsolete original receipt still never reaches the personal outbox.
+
+    def _resume_private_media_receiver(self,peer,channel,binding,attempt):
+        # Fresh support permits a read-only check, not a sync. Only previously
+        # enabled, protected one-way WLAN choices plus native consent can reopen
+        # the receiver to exchange fresh settings and native controls.
+        with self.lock:
+            if channel in self._native_file_connections or not attempt.supports(channel):return
+        connection=None
+        from cryptography.exceptions import InvalidTag
+        try:
+            from magnolie_media_sync import NativeMediaSettingsStore,effective,requested_for
+            from magnolie_photo_preferences import ProtectedPhotoPreferences
+            authority=self.open_native_file_authority(peer['device_id'],binding.static_public,channel,binding.generation)
+            try:
+                if not NativeMediaSettingsStore.has_stored_settings(authority):return
+                body=NativeMediaSettingsStore(authority,support=attempt).read()
+                if body is None or effective(body)['auto_mode']!='wifi' or any(requested_for(body,kind,to_phone=True) for kind in ('images','video')):return
+                kinds=[kind for kind in ('images','video') if requested_for(body,kind)]
+                if not kinds:return
+                prefs=ProtectedPhotoPreferences(authority)
+                try:saved=prefs.read()
+                finally:prefs.close()
+                policy=saved.policy
+                if (policy is None or not saved.associated or not policy.enabled or not saved.destination_available
+                        or policy.mapping_store is None or policy.job_catalog is None
+                        or 'video' in kinds and not saved.include_videos):return
+            finally:authority.close()
+            if not attempt.supports(channel):return
+            connection=self.open_native_file_connection(peer['device_id'],binding.static_public,channel,binding.generation)
+            if connection._media_support is not attempt or connection._preferences.read()!=saved or connection._media_transport._store.read()!=body:
+                connection.close();return
+            connection._media_transport.send_settings()
+            connection.send_controls() # Never a source command, permission request, directory creation or file offer.
+        except (ValueError,OSError,InvalidTag,sqlite3.Error):
+            if connection is not None:connection.close()
 
     def _native_photo_activity_changed(self, connection, owner, active):
         # These are in-process native owners, never serialized client claims.

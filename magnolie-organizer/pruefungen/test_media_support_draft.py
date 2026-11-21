@@ -353,6 +353,37 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
             assert wire.receive()==dict(heartbeat,type='pong')
         finally:service._end_native_file_connection(channel)
         assert not service._native_media_support
+        if automatic:
+            assert session.join(5)
+            exercise_private_reconnect(service,peer)
+
+
+def exercise_private_reconnect(service,peer):
+    with wire_pair() as (channel,wire):
+        binding=capture_authenticated_binding(dict(service.store.identity),dict(peer),service._generation,service.store)
+        service._activate_connection(peer['device_id'],channel,'wifi',file_binding=binding)
+        def deliver(frame):
+            wire.send(frame)
+            service._payload(peer,channel,channel.receive())
+        try:
+            ack_all(service,peer,channel)
+            assert not service._native_file_connections
+            probe=offer(phone.now_ms());deliver(probe)
+            local=wire.receive();assert valid(local,phone.now_ms()) and wire.receive()==ack(probe)
+            assert not service._native_file_connections  # Previously agreed choices are not fresh support.
+            deliver(ack(local))
+            connection=service._native_file_connections[channel]
+            settings=wire.receive();assert settings['kind']==media.KIND and media.effective(settings['body'])['auto_mode']=='wifi'
+            assert wire.receive()['kind']=='file_transfer.control'
+            assert not connection.desktop_snapshot()['shared_media']['agreed'] and connection._desktop_session is None
+            deliver(ack(settings))
+            assert not connection.desktop_snapshot()['shared_media']['agreed'] and connection._desktop_session is None
+            at=phone.now_ms();echo=dict(incoming(settings['body']),created_ms=at,expires_ms=at+60_000)
+            deliver(echo);assert wire.receive()==ack(echo)
+            assert connection.desktop_snapshot()['shared_media']['agreed']
+            assert connection._desktop_session is None  # No current phone SEND or file-control echo.
+            assert connection._preferences.read().policy.enabled
+        finally:service._end_native_file_connection(channel)
 
 
 def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_path,deliver,kind,monkeypatch,*,automatic):
