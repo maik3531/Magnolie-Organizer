@@ -125,7 +125,10 @@ owner without retrying its file action. The Linux private receiver permits an
 explicit phone-to-PC run only with previously granted native receiver and
 phone source controls. A loopback phone fixture exercises byte-identical JPEG
 and MP4 reception over the encrypted reader, separate targets, and preservation
-of an existing PC edit on an unchanged phone inventory. It does not test a
-packaged Android sender. Automatic and outgoing/combined runs are still held
-in this private receiver composition, rather than running only part of the
-requested direction or substituting a legacy batch.
+of an existing PC edit on an unchanged phone inventory. The private Linux
+scheduler also exercises automatic phone-to-PC reception on that live WLAN
+parent. It checks all selected receive bindings, the selected WLAN mode and
+the same agreed intent, independently of the explicit start action. These are
+not tests of a packaged Android sender or automatic resume after reconnect.
+Outgoing/combined runs are held in this receiver composition rather than
+running only part of the direction or substituting a legacy batch.

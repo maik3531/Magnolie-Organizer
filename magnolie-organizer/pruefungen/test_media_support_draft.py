@@ -262,9 +262,10 @@ def test_legacy_rejection_does_not_stop_the_authenticated_parent(tmp_path, monke
         assert not service._native_file_connections
 
 
-@pytest.mark.parametrize('transport,direction,kind', [
-    ('wifi','two_way','images'),('wifi','phone_to_pc','images'),('wifi','phone_to_pc','video'),('bluetooth','two_way','images')])
-def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox(native, monkeypatch, tmp_path, transport, direction, kind):
+@pytest.mark.parametrize('transport,direction,kind,automatic', [
+    ('wifi','two_way','images',False),('wifi','phone_to_pc','images',False),('wifi','phone_to_pc','video',False),
+    ('wifi','phone_to_pc','images',True),('bluetooth','two_way','images',False)])
+def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox(native, monkeypatch, tmp_path, transport, direction, kind, automatic):
     service, peer, _ = native
     peer['capabilities'] = legacy_state()
     service.store.save_peers()
@@ -302,6 +303,7 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
                 selected=media.change(selected,peer['device_id'],service.store.identity['device_id'],field,True)
                 if kind=='video':selected=media.change(selected,peer['device_id'],service.store.identity['device_id'],'photos_enabled',False)
                 selected=media.change(selected,peer['device_id'],service.store.identity['device_id'],'direction',direction)
+                if automatic:selected=media.change(selected,peer['device_id'],service.store.identity['device_id'],'auto_mode','wifi')
                 def settings(body):
                     message=incoming(body)
                     at=phone.now_ms()
@@ -324,13 +326,14 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
                 session=connection.desktop_session()
                 with pytest.raises(TransferError,match='photo_schedule_not_ready'):
                     session.start('sync_shared')  # Matching settings are not enough for the normal entry point.
-                session._run('sync_shared',None)  # Check the same worker's independent final guard as well.
-                expected=('media_source_native_composition_required' if direction=='two_way'
-                    else 'media_source_shared_incoming_review_required')
-                assert session.snapshot()['state']=='held' and session.snapshot()['error']==expected
+                if not automatic:
+                    session._run('sync_shared',None)  # Check the same worker's independent final guard as well.
+                    expected=('media_source_native_composition_required' if direction=='two_way'
+                        else 'media_source_shared_incoming_review_required')
+                    assert session.snapshot()['state']=='held' and session.snapshot()['error']==expected
                 assert connection._preferences.read().policy is None
                 if direction=='phone_to_pc':
-                    exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_path,deliver,kind,monkeypatch)
+                    exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_path,deliver,kind,monkeypatch,automatic=automatic)
                 send_seq=channel.send_seq
                 withdrawn=dict(offer(phone.now_ms()),kind='personal_sync.settings',body=dict(format=1,own_device=False))
                 service._observe_native_file_control(peer,channel,withdrawn['kind'],withdrawn,acknowledged=False)
@@ -352,7 +355,7 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
         assert not service._native_media_support
 
 
-def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_path,deliver,kind,monkeypatch):
+def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_path,deliver,kind,monkeypatch,*,automatic):
     from dataclasses import replace
     from hashlib import sha256
     from io import BytesIO
@@ -392,6 +395,14 @@ def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_p
     local=NativeLocalFileGrant(FileGrantState(1,'a'*64,True,False),object(),True)
     remote=NativeFileControlSession(phone_identity,lambda:pc,lambda:local)
     try:
+        ended=Event();activity=[]
+        if automatic:
+            def observe(owner,active):
+                assert owner is session
+                activity.append(active)
+                if not active:ended.set()
+            connection._activity_changed=observe
+            assert session._timer is None and session._schedule.mode=='manual'
         assert connection.send_controls()
         remote.observe_remote(FileControlPacket.parse(wire.receive()['body']),pc)
         packet=remote.packet();at=phone.now_ms()
@@ -430,7 +441,10 @@ def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_p
         first=replace(seed.files[0],path=path,size=len(original),sha256=sha256(original).hexdigest())
         batch=replace(seed,files=(first,),total_bytes=len(original))
         with phone_with_batches([batch],metadata_handler=metadata,content=original,wire=wire) as (chunks,saved,_,_,errors):
-            session.start('sync_shared')
+            if automatic:
+                assert session._schedule.mode=='automatic' and ended.wait(12), (session.snapshot()['error'],activity,commands,session._automatic_paused)
+                assert activity==[True,False]
+            else:session.start('sync_shared')
             assert session.join(35) and session.snapshot()['state']=='complete',session.snapshot()
             assert not errors and len(chunks)==len(saved)==1
         local_path=destination/first.path

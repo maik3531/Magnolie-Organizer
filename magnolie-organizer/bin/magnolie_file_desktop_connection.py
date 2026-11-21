@@ -391,14 +391,33 @@ class NativeDesktopFileConnection:
 
     def _shared_schedule_changed(self):
         transport=self._media_transport
-        if transport is None or self._media_support is not None:return
+        if transport is None:return
         # Refresh native consent on this serialized observer lane, not inside
         # a source/mapping callback and not from a passive UI status request.
         try:self._local()
         except (TransferError,OSError,InvalidTag):return
+        if self._media_support is not None:
+            if self._desktop_session is None:
+                kinds=self._private_receive_kinds()
+                if not kinds:return
+                from magnolie_media_sync import effective
+                token=transport.intent_for(kinds[0])
+                if token is None or effective(token.body)['auto_mode']!='wifi':return
+                try:
+                    for kind in kinds:self._receive_binding(media_type=kind)
+                except (TransferError,OSError,InvalidTag):return
+                self._desktop_session=NativePhotoDesktopSession(self)
+            self._desktop_session.shared_settings_changed()
+            return
         if self._desktop_session is None and any(transport.intent_for(kind,to_phone=True) is not None for kind in ('images','video')):
             self._desktop_session=NativePhotoDesktopSession(self)
         if self._desktop_session is not None:self._desktop_session.shared_settings_changed()
+
+    def _private_receive_kinds(self):
+        transport=self._media_transport
+        if not self._native_wifi_current() or any(transport.intent_for(kind,to_phone=True) is not None for kind in ('images','video')):
+            return ()
+        return tuple(kind for kind in ('images','video') if transport.intent_for(kind) is not None)
 
     def receive_media_ack(self,message):
         transport=self._media_transport
@@ -3074,6 +3093,18 @@ class NativePhotoDesktopSession:
         # source-policy witness; every scan/file still obtains fresh native grants.
         # Do not take the UI lock from the schedule's native-scope callback.
         transport=self.connection._media_transport
+        if getattr(self.connection,'_media_support',None) is not None:
+            kinds=self.connection._private_receive_kinds()
+            if not kinds:return None
+            try:
+                # Every selected type needs its own live native receive binding.
+                # No fallback to legacy photo-only scheduling for a mixed run.
+                bindings=[self.connection._receive_binding(media_type=kind) for kind in kinds]
+                token=transport.intent_for(kinds[0])
+                if token is None:return None
+                from hashlib import sha256
+                return NativePhotoSyncScope(bindings[0],sha256(canonical(token.body)).hexdigest(),self.connection)
+            except (TransferError,OSError,InvalidTag):return None
         if transport is not None:
             sending=self.connection._media_sending_state or {}
             outgoing=next((token for kind in ('images','video')
@@ -3105,12 +3136,14 @@ class NativePhotoDesktopSession:
         from magnolie_media_sync import effective
         transport=self.connection._media_transport
         sending=self.connection._media_sending_state or {}
+        private_media=getattr(self.connection,'_media_support',None) is not None
         token=next((value for kind in ('images','video')
             if sending.get('photos' if kind=='images' else 'videos') is True
-            and (value:=transport.intent_for(kind,to_phone=True)) is not None),None) if transport is not None else None
+            and (value:=transport.intent_for(kind,to_phone=True)) is not None),None) if transport is not None and not private_media else None
         if token is None and transport is not None:
             receiving=getattr(self.connection,'_media_receiving_state',{})
-            token=next((value for kind in ('images','video')
+            kinds=self.connection._private_receive_kinds() if private_media else ('images','video')
+            token=next((value for kind in kinds
                 if receiving.get('photos' if kind=='images' else 'videos') is True
                 and (value:=transport.intent_for(kind)) is not None),None)
         automatic=token is not None and effective(token.body)['auto_mode']=='wifi'
@@ -3139,8 +3172,9 @@ class NativePhotoDesktopSession:
                     run=self._schedule.take_due()
                     if run is None:continue
                     try:self.start('automatic',schedule_run=run)
-                    except Exception:
+                    except Exception as error:
                         self._schedule.finished(run);self._automatic_paused=True
+                        self._state='held';self._error=str(error)
         except Exception as error:
             with self._lock:self._state='held';self._error=str(error);self._automatic_paused=True
             self._notify()
@@ -3391,11 +3425,10 @@ class NativePhotoDesktopSession:
             transport=self.connection._media_transport
             private_media=getattr(self.connection,'_media_support',None) is not None
             if syncing and private_media:
-                if operation=='automatic':raise TransferError('media_source_wifi_automatic_composition_required')
                 if any(transport.intent_for(kind,to_phone=True) is not None for kind in ('images','video')):
                     # Do not silently complete the phone half of a two-way run.
                     raise TransferError('media_source_native_composition_required')
-                if not any(transport.intent_for(kind) is not None for kind in ('images','video')):
+                if not self.connection._private_receive_kinds():
                     raise TransferError('media_source_current_intent_required')
             if syncing and transport is not None and (private_media or transport._display_body is not None):
                 # Once shared settings exist, legacy selected-album actions
@@ -3522,7 +3555,7 @@ class NativePhotoDesktopSession:
                         transport.intent_for(kind) is not None or transport.intent_for(kind,to_phone=True) is not None)]
                     if not media_types:raise TransferError('media_source_current_intent_required')
                 if operation=='sync_selected':media_types=(['images'] if album_id is not None else [])+(['video'] if video_album_id is not None else [])
-                if (operation=='automatic' and 'video' not in media_types and self._video_enabled and self.connection._video_data_handlers_ready
+                if (operation=='automatic' and not private_media and 'video' not in media_types and self._video_enabled and self.connection._video_data_handlers_ready
                         and self.connection._authority.video_available()):media_types.append('video')
                 for media_type in media_types:
                     if self._stop.is_set():break
