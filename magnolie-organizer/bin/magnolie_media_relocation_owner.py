@@ -73,6 +73,8 @@ class ProtectedRelocationOwner(NativeMediaRetention):
     _FOLDER_ATTEMPT_DOMAIN='media-relocation-folder-attempt-v1/local'
     _FOLDER_RESULT_KEY='media_relocation_folder_result:local:v1'
     _FOLDER_RESULT_DOMAIN='media-relocation-folder-result-v1/local'
+    _FOLDER_PREPARED_KEY='media_relocation_folder_prepared:local:v1'
+    _FOLDER_PREPARED_DOMAIN='media-relocation-folder-prepared-v1/local'
     _MAX_CIPHER_BYTES=16384
 
     def __init__(self,authority,*,monotonic_ms=lambda:time.monotonic_ns()//1_000_000):
@@ -92,8 +94,8 @@ class ProtectedRelocationOwner(NativeMediaRetention):
         if self._held:raise TransferError('photo_relocation_owner_held')
         subject=self._subject()
         if self._folder_observed is not None or self._db.execute(
-                'SELECT 1 FROM meta WHERE key IN (?,?,?) OR key GLOB ? OR key GLOB ? LIMIT 1',
-                (self._FOLDER_KEY,self._FOLDER_ATTEMPT_KEY,self._FOLDER_RESULT_KEY,
+                'SELECT 1 FROM meta WHERE key IN (?,?,?,?) OR key GLOB ? OR key GLOB ? LIMIT 1',
+                (self._FOLDER_KEY,self._FOLDER_ATTEMPT_KEY,self._FOLDER_RESULT_KEY,self._FOLDER_PREPARED_KEY,
                  self._FOLDER_ATTEMPT_KEY+':*',self._FOLDER_RESULT_KEY+':*')).fetchone():
             raise TransferError('photo_relocation_folder_plan_held')
         actual=self._db.execute('SELECT value FROM meta WHERE key=?',(self._INTENT_KEY,)).fetchone()
@@ -280,10 +282,48 @@ class ProtectedRelocationOwner(NativeMediaRetention):
 
     def _materialize_confirmed_folder_selection(self,action,journal,plan,destination):
         """Build rename candidates during the original action, not from a later restart."""
+        with self._materializing_folder_selection(action,journal,plan,destination) as (intent,records,_):
+            return intent,records
+
+    @contextmanager
+    def _materializing_folder_selection(self,action,journal,plan,destination):
         from magnolie_media_relocation_record import _materialize_gif_folder_plan
         with self._creating_confirmed_folders(action,journal,plan,destination) as (intent,created,spent):
             records=_materialize_gif_folder_plan(plan,destination,created,spent)
-            spent();return intent,records
+            spent();yield intent,records,spent
+
+    def _prepare_after_gif_folder_creation(self,action,journal,plan,destination):
+        """Prepare the exact journal under the same live approval; never rename."""
+        from magnolie_media_relocation_journal import RelocationOwnerCheckpoint
+        with self._materializing_folder_selection(action,journal,plan,destination) as (folder_intent,records,current):
+            intent=RelocationOwnerIntent.for_selection(records,destination)
+            if ((intent.operation,intent.book_sha256,intent.destination_sha256,intent.mappings)!=
+                    (folder_intent.operation,folder_intent.book_sha256,folder_intent.destination_sha256,folder_intent.mappings)):
+                raise TransferError('photo_relocation_confirmation_changed')
+            initial=journal.read();current()
+            snapshot=journal.prepare(journal.issue_action(_native_current=current),initial,records,intent.selection_sha256,
+                destination,require_original=current)
+            if snapshot.records!=records or snapshot.attempts or snapshot.outcomes:
+                raise TransferError('photo_relocation_original_journal_changed')
+            checkpoint=RelocationOwnerCheckpoint.from_snapshot(snapshot,destination)
+            def require_journal():
+                if journal.require_prepared(checkpoint.prepared_version,intent.selection_sha256)!=snapshot:
+                    raise TransferError('photo_relocation_original_journal_changed')
+                current()
+            require_journal()
+            expected=canonical(dict(db=list(self._identity),subject=self._subject(),folder=folder_intent.wire(),
+                intent=intent.wire(),checkpoint=checkpoint.wire()))
+            with self._transaction():
+                current()
+                if self._db.execute('SELECT 1 FROM meta WHERE key=?',(self._FOLDER_PREPARED_KEY,)).fetchone():
+                    raise TransferError('photo_relocation_preparation_already_recorded')
+                blob=self._protection.seal(expected,self._FOLDER_PREPARED_DOMAIN)
+                self._db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(self._FOLDER_PREPARED_KEY,blob))
+                current()
+            if (self._db.execute('SELECT value FROM meta WHERE key=?',(self._FOLDER_PREPARED_KEY,)).fetchone()!=(blob,)
+                    or self._protection.unseal(blob,self._FOLDER_PREPARED_DOMAIN)!=expected):
+                raise TransferError('photo_relocation_original_checkpoint_changed')
+            require_journal();return folder_intent,checkpoint
 
     def record_confirmed_intent(self,action,records,destination,confirmed_sha256):
         with self._confirming_intent(action,records,destination,confirmed_sha256) as (intent,_):

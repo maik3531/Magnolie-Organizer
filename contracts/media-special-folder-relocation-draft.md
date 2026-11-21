@@ -219,6 +219,10 @@ continues, the completely recorded folder set can form exact rename candidates.
 The native source inode, original confirmed bytes and animation evidence are
 checked again; a local edit after folder creation holds. The candidates neither
 authorize a media rename nor permit continuation after restart.
+The private preparation path can bind the original folder plan, the exact
+materialized selection and the prepared rename journal in an independent sealed
+row. If approval ends after the journal commit but before that row is committed,
+the journal is not adopted or prepared again. No original is renamed here.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in
