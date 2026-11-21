@@ -18,8 +18,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.gitlab.maik3531.magnolienotes.R
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonUiZustand
+import io.gitlab.maik3531.magnolienotes.telefon.TelefonVerbindungsstatus
 import io.gitlab.maik3531.magnolienotes.telefon.GalleryMediaType
 import kotlinx.serialization.json.*
+
+internal fun TelefonUiZustand.erweiterteFunktionenSichtbar(): Boolean =
+    enabled && peer != null && connection == TelefonVerbindungsstatus.ONLINE_WIFI
 
 @Composable
 private fun MedienCheckbox(label: String, checked: Boolean, enabled: Boolean = true, change: (Boolean) -> Unit) {
@@ -35,8 +39,12 @@ private fun MedienCheckbox(label: String, checked: Boolean, enabled: Boolean = t
 internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
     beiAenderung: (String, JsonElement, String) -> Unit, beiBerechtigungen: () -> Unit, beiSynchronisieren: () -> Unit,
     beiEmpfang: (GalleryMediaType) -> Unit = {}, beiArchiv: (GalleryMediaType) -> Unit = {}) {
-    if (!telefon.mediaPreferencesSupported) return
-    val values = telefon.mediaPreferencesValues ?: return
+    val values = telefon.mediaPreferencesValues
+    if (!telefon.mediaPreferencesSupported || values == null) {
+        Text(stringResource(R.string.medien_sync_titel), fontWeight = FontWeight.Bold, color = Magnolie.braun)
+        Text(stringResource(R.string.medien_sync_gemeinsam_nicht_verfuegbar), color = Magnolie.braunHell)
+        return
+    }
     var offen by remember(telefon.peer?.device_id, telefon.peer?.static_public) { mutableStateOf(false) }
     fun flag(field: String) = values[field] == JsonPrimitive(true)
     fun change(field: String, value: JsonElement) {

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_sync_gemeinsam_nicht_verfuegbar">Gemeinsame Einstellungen für Fotos und Videos sind bei dieser Verbindung nicht verfügbar.</string>
     <string name="lan_freigabe_wartet">Lokales Netzwerk wartet auf Freigabe in den Android-App-Einstellungen.</string>
     <string name="webcam_kanal">Handy-Webcam</string>
     <string name="webcam_startet">Handy-Webcam wird gestartet…</string>

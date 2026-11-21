@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_sync_gemeinsam_nicht_verfuegbar">Общие настройки фотографий и видео недоступны при этом подключении.</string>
     <string name="phone_screen_notification">Демонстрация экрана телефона</string>
     <string name="phone_screen_stop">Остановить демонстрацию экрана</string>
     <string name="lan_freigabe_wartet">Локальная сеть ожидает разрешения в настройках приложения Android.</string>

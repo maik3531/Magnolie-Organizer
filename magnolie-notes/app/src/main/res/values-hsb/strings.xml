@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_sync_gemeinsam_nicht_verfuegbar">Zhromadne nastajenja za fota a wideja při tutym zwisku k dispoziciji njejsu.</string>
     <string name="phone_screen_notification">Dźělenje wobrazowki telefona</string>
     <string name="phone_screen_stop">Dźělenje wobrazowki skónčić</string>
     <string name="lan_freigabe_wartet">Lokalna syć čaka na dowolnosć w nastajenjach nałoženja Android.</string>

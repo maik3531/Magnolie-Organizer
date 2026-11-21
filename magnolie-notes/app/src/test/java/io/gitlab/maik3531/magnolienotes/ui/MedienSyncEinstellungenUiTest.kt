@@ -79,6 +79,16 @@ class MedienSyncEinstellungenUiTest {
     }
     private fun open() = click(nodes().single { text(it) == "▸ " + label(R.string.medien_sync_titel) })
 
+    @Test fun advancedSectionRequiresActiveNotesWifiButNotSharedSupport() {
+        val connected = TelefonUiZustand(enabled = true, connection = TelefonVerbindungsstatus.ONLINE_WIFI,
+            peer = TelefonPeer("synthetic-desktop", "Fixture", "synthetic-key"))
+        assertTrue(connected.erweiterteFunktionenSichtbar())
+        assertFalse(connected.copy(enabled = false, mediaPreferencesSupported = true).erweiterteFunktionenSichtbar())
+        assertFalse(connected.copy(peer = null, mediaPreferencesSupported = true).erweiterteFunktionenSichtbar())
+        for (status in TelefonVerbindungsstatus.entries.filterNot { it == TelefonVerbindungsstatus.ONLINE_WIFI })
+            assertFalse(status.name, connected.copy(connection = status, mediaPreferencesSupported = true).erweiterteFunktionenSichtbar())
+    }
+
     @Test fun masterStartsOffAndOnlyForwardsItsOwnVersionWithoutPermissionOrRun() {
         launch()
         val collapsedMaster = checkbox(R.string.medien_sync_aktivieren)
@@ -146,12 +156,20 @@ class MedienSyncEinstellungenUiTest {
         assertEquals(1, changes.size); assertTrue(receiving.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
     }
 
-    @Test fun unsupportedOrMissingNativeValuesNeverExposeMediaControls() {
-        state.value = state.value.copy(mediaPreferencesSupported = false); launch()
-        assertFalse(nodes().any { text(it).contains(label(R.string.medien_sync_titel)) })
+    @Test fun unsupportedOrMissingNativeValuesShowStatusWithoutMediaControls() {
+        fun assertStatusWithoutActions() {
+            assertTrue(nodes().any { text(it) == label(R.string.medien_sync_titel) })
+            assertTrue(nodes().any { text(it) == label(R.string.medien_sync_gemeinsam_nicht_verfuegbar) })
+            assertFalse(nodes().any { it.config.getOrNull(SemanticsActions.OnClick) != null })
+        }
+        state.value = state.value.copy(mediaPreferencesSupported = false, mediaPreferencesReady = true); launch()
+        assertStatusWithoutActions()
         state.value = state.value.copy(mediaPreferencesSupported = true, mediaPreferencesValues = null); frames()
-        assertFalse(nodes().any { text(it).contains(label(R.string.medien_sync_titel)) })
-        assertTrue(changes.isEmpty()); assertEquals(0, permissions)
+        assertStatusWithoutActions()
+        state.value = state.value.copy(mediaPreferencesValues = values, mediaPreferencesReady = false); frames()
+        assertTrue(nodes().any { text(it) == "▸ " + label(R.string.medien_sync_titel) })
+        assertEquals(ToggleableState.Off, checkbox(R.string.medien_sync_aktivieren).config[SemanticsProperties.ToggleableState])
+        assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
     }
 
     @Test fun photosOnlyForwardsItsIndependentVersionWithoutPermissionOrTransferAndWaitsForNativeState() {

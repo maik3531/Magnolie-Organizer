@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_sync_gemeinsam_nicht_verfuegbar">Gedeelde instellingen voor foto’s en video’s zijn niet beschikbaar via deze verbinding.</string>
     <string name="phone_screen_notification">Scherm van telefoon delen</string>
     <string name="phone_screen_stop">Scherm delen stoppen</string>
     <string name="lan_freigabe_wartet">Het lokale netwerk wacht op toestemming in de Android-appinstellingen.</string>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_sync_gemeinsam_nicht_verfuegbar">Wspólne ustawienia zdjęć i filmów nie są dostępne w tym połączeniu.</string>
     <string name="phone_screen_notification">Udostępnianie ekranu telefonu</string>
     <string name="phone_screen_stop">Zakończ udostępnianie ekranu</string>
     <string name="lan_freigabe_wartet">Sieć lokalna oczekuje na uprawnienie w ustawieniach aplikacji Android.</string>

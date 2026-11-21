@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_sync_gemeinsam_nicht_verfuegbar">As definições partilhadas para fotos e vídeos não estão disponíveis nesta ligação.</string>
     <string name="phone_screen_notification">Compartilhamento da tela do celular</string>
     <string name="phone_screen_stop">Parar de compartilhar a tela</string>
     <string name="lan_freigabe_wartet">A rede local aguarda permissão nas definições da aplicação Android.</string>

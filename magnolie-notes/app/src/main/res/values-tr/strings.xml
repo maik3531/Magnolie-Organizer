@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_sync_gemeinsam_nicht_verfuegbar">Fotoğraf ve video için ortak ayarlar bu bağlantıda kullanılamıyor.</string>
     <string name="phone_screen_notification">Telefon ekranı paylaşımı</string>
     <string name="phone_screen_stop">Ekran paylaşımını durdur</string>
     <string name="lan_freigabe_wartet">Yerel ağ, Android uygulama ayarlarında izin bekliyor.</string>

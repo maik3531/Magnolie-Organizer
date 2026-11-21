@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_sync_gemeinsam_nicht_verfuegbar">Sdílená nastavení fotografií a videí nejsou u tohoto připojení dostupná.</string>
     <string name="phone_screen_notification">Sdílení obrazovky telefonu</string>
     <string name="phone_screen_stop">Ukončit sdílení obrazovky</string>
     <string name="lan_freigabe_wartet">Místní síť čeká na udělení oprávnění v nastavení aplikace Android.</string>

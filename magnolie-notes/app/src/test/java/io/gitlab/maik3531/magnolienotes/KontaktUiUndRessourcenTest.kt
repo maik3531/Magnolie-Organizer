@@ -7,9 +7,10 @@ import java.io.File
 class KontaktUiUndRessourcenTest {
     @Test fun `Synchronisation Erweiterungen und Baum sind getrennt und anfangs geschlossen`() {
         val ui = File("app/src/main/java/io/gitlab/maik3531/magnolienotes/ui/BaumBlatt.kt").readText()
-        listOf("personalOffen", "erweitertOffen", "baumOffen").forEach { state ->
+        listOf("personalOffen", "baumOffen").forEach { state ->
             assertTrue(ui.contains("var $state by remember(peerScope) { mutableStateOf(false) }"))
         }
+        assertTrue(ui.contains("var erweitertOffen by remember(peerScope, erweitertSichtbar) { mutableStateOf(false) }"))
         val personal = ui.indexOf("if (personalOffen) Abschnitt(")
         val erweitert = ui.indexOf("if (erweitertOffen) Abschnitt(")
         val baum = ui.indexOf("if (!baumOffen) return@Column")
@@ -18,7 +19,8 @@ class KontaktUiUndRessourcenTest {
         assertTrue(ui.substring(personal, erweitert).contains("telefonHandlungen.beiKontakteLesen"))
         assertFalse(ui.substring(erweitert, baum).contains("telefonHandlungen.beiKontakteLesen"))
         assertTrue(ui.substring(erweitert, baum).contains("MedienSyncEinstellungen"))
-        assertTrue(ui.contains("if (telefon.mediaPreferencesSupported)"))
+        assertTrue(ui.contains("val erweitertSichtbar = telefon.erweiterteFunktionenSichtbar()"))
+        assertTrue(ui.contains("if (erweitertSichtbar)"))
         assertTrue(ui.contains("5f * yDpi / 25.4f"))
         assertTrue(ui.contains("if (customFokus != null) personalOffen = true"))
     }

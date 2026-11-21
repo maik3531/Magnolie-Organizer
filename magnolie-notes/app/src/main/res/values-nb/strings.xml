@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_sync_gemeinsam_nicht_verfuegbar">Felles innstillinger for bilder og videoer er ikke tilgjengelige på denne tilkoblingen.</string>
     <string name="phone_screen_notification">Deling av telefonskjermen</string>
     <string name="phone_screen_stop">Stopp skjermdeling</string>
     <string name="lan_freigabe_wartet">Lokalt nettverk venter på tillatelse i Androids appinnstillinger.</string>

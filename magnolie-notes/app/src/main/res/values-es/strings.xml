@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_sync_gemeinsam_nicht_verfuegbar">Los ajustes compartidos de fotos y vídeos no están disponibles en esta conexión.</string>
     <string name="phone_screen_notification">Compartir la pantalla del teléfono</string>
     <string name="phone_screen_stop">Dejar de compartir la pantalla</string>
     <string name="lan_freigabe_wartet">La red local espera permiso en los ajustes de la aplicación en Android.</string>

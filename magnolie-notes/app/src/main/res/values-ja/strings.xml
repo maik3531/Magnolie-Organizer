@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_sync_gemeinsam_nicht_verfuegbar">この接続では、写真と動画の共有設定を利用できません。</string>
     <string name="phone_screen_notification">スマートフォンの画面を共有中</string>
     <string name="phone_screen_stop">画面共有を終了</string>
     <string name="lan_freigabe_wartet">ローカルネットワークはAndroidのアプリ設定での権限付与を待っています。</string>

@@ -167,9 +167,10 @@ fun BaumBlatt(
     var loeschWarnung by remember { mutableStateOf<String?>(null) }
     var entfernenWarnung by remember { mutableStateOf<String?>(null) }
     val peerScope = telefon.peer?.let { it.device_id + ":" + it.static_public }
+    val erweitertSichtbar = telefon.erweiterteFunktionenSichtbar()
     var baumOffen by remember(peerScope) { mutableStateOf(false) }
     var personalOffen by remember(peerScope) { mutableStateOf(false) }
-    var erweitertOffen by remember(peerScope) { mutableStateOf(false) }
+    var erweitertOffen by remember(peerScope, erweitertSichtbar) { mutableStateOf(false) }
     LaunchedEffect(customFokus) { if (customFokus != null) personalOffen = true }
     val baumSichtbar = PersonalDesktopFeatures.treeVisible(telefon.peer,
         zustand.dienstAn || zustand.partner.isNotEmpty(), zustand.eingang.isNotEmpty() || zustand.kontaktEingang.isNotEmpty())
@@ -453,7 +454,7 @@ fun BaumBlatt(
                 }
             }
         }
-        if (telefon.mediaPreferencesSupported) {
+        if (erweitertSichtbar) {
             val metrics = LocalContext.current.resources.displayMetrics
             val yDpi = metrics.ydpi.takeIf { it.isFinite() && it > 0f } ?: metrics.densityDpi.toFloat()
             Box(Modifier.height(with(LocalDensity.current) { (5f * yDpi / 25.4f).toDp() }))

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_sync_gemeinsam_nicht_verfuegbar">此连接不支持使用共享的照片和视频设置。</string>
     <string name="phone_screen_notification">正在共享手机屏幕</string>
     <string name="phone_screen_stop">停止屏幕共享</string>
     <string name="lan_freigabe_wartet">本地网络正在等待 Android 应用设置中的权限授权。</string>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_sync_gemeinsam_nicht_verfuegbar">इस कनेक्शन पर फ़ोटो और वीडियो की साझा सेटिंग उपलब्ध नहीं हैं।</string>
     <string name="phone_screen_notification">फ़ोन की स्क्रीन साझा की जा रही है</string>
     <string name="phone_screen_stop">स्क्रीन साझा करना बंद करें</string>
     <string name="lan_freigabe_wartet">स्थानीय नेटवर्क Android ऐप सेटिंग में अनुमति की प्रतीक्षा कर रहा है।</string>
