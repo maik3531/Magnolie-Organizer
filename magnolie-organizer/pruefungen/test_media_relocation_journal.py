@@ -155,6 +155,8 @@ def test_journal_committed_without_outer_checkpoint_cannot_be_adopted(relocation
     with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
         assert owner.require_intent(intent) and journal.read().records==records
         with pytest.raises(TransferError,match='original_checkpoint_required'):owner.require_checkpoint(intent)
+        with pytest.raises(TransferError,match='original_checkpoint_required'):
+            owner.inspect_bound_recovery(journal,destination,require_original=lambda:True)
         with pytest.raises(TransferError,match='owner_already_recorded'):
             owner.prepare_original(owner._issue_confirmed_action(lambda:True),journal,records,destination,intent.selection_sha256)
     assert source.read_bytes()==raw and not target.exists()
@@ -194,7 +196,11 @@ def test_original_selection_pins_attempt_before_rename_and_outcome_after_sync(re
                 owner._move_original_animation_selection(action,journal,records,destination,intent.selection_sha256)
     with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
         before=journal.read();witness=owner.require_checkpoint(intent)
-        def inspect():return journal.inspect_original_recovery(witness,destination,require_original=lambda:owner.require_checkpoint(intent)==witness)
+        def inspect():return owner.inspect_bound_recovery(journal,destination,require_original=lambda:True)
+        with pytest.raises(TransferError,match='original_destination_required'):
+            owner.inspect_bound_recovery(journal,type(destination).capture(target.parent),require_original=lambda:True)
+        with pytest.raises(TransferError,match='original_owner_required'):
+            owner.inspect_bound_recovery(journal,destination,require_original=lambda:False)
         if cut is None:
             assert [v.state for v in inspect()]==['moved','moved'] and len(moves)==2
             assert all((tmp_path/'relocation'/r.target).read_bytes()==raw for r in records)
@@ -207,7 +213,7 @@ def test_original_selection_pins_attempt_before_rename_and_outcome_after_sync(re
                 with pytest.raises(TransferError,match='original_journal_changed'):inspect()
         with pytest.raises(TransferError,match='owner_already_recorded'):
             owner._move_original_animation_selection(owner._issue_confirmed_action(lambda:True),journal,records,destination,intent.selection_sha256)
-        assert journal.read()==before
+        assert journal.read()==before and owner.require_checkpoint(intent)==witness
     assert source.exists()==(cut in ('attempt','withdraw_after_attempt'))
     assert target.exists()==(cut in (None,'outcome'))
 

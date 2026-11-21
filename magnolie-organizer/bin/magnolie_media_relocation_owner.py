@@ -279,6 +279,25 @@ class ProtectedRelocationOwner(NativeMediaRetention):
             raise TransferError('photo_relocation_original_checkpoint_changed')
         return witness
 
+    def inspect_bound_recovery(self,journal,destination,*,require_original):
+        """Observe a restarted operation from its sealed owner, never its journal head."""
+        from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
+        if (type(journal) is not ProtectedMediaRelocationJournal or journal._authority is not self._authority
+                or not callable(require_original) or require_original() is not True):
+            raise TransferError('photo_relocation_original_owner_required')
+        intent=self.read_intent()
+        if intent is None:raise TransferError('photo_relocation_original_owner_required')
+        if relocation_destination_digest(destination)!=intent.destination_sha256:
+            raise TransferError('photo_relocation_original_destination_required')
+        witness=self.require_checkpoint(intent)
+        def current():
+            if require_original() is not True:
+                raise TransferError('photo_relocation_original_owner_ended')
+            if self.require_checkpoint(intent)!=witness:
+                raise TransferError('photo_relocation_original_checkpoint_changed')
+            return True
+        return journal.inspect_original_recovery(witness,destination,require_original=current)
+
     def observe_completed_target(self,intent,journal,mapping,accepted,receipt,current_binding,*,require_original):
         """Use the exact terminal selection for readback, never the old name.
 

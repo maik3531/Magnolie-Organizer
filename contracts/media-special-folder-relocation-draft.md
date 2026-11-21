@@ -139,6 +139,9 @@ entries. Even a spent attempt found at the target stays held until the original
 owner separately proves and commits the outcome. Missing or stale checkpoints
 fail the whole inspection. The sealed owner described below persists outside
 the journal; opening the journal alone does not establish that owner.
+The private owner entry point now reads its own sealed intent and checkpoint,
+requires the original destination, and supplies the live guard to inspection.
+It does not accept a caller's checkpoint or restart an operation.
 
 The owner's checkpoint has a strict, path-free encoding: the confirmed
 selection digest (including the operation, preferences, and exact members),
