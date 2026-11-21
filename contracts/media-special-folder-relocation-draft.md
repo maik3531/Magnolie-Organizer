@@ -5,6 +5,15 @@ or **Eigene Aufnahmen**. The relative target planner does not read or move any
 file. The current `keep_existing` choice changes routing only for future files;
 the native entry point still rejects `move_existing`.
 
+The Linux preparation store can persist one complete exact selection. It
+binds the root and both parent chains, current local bytes and original
+mapping fingerprints in the authenticated journal. The journal only records
+`prepared`: it does not perform or complete a rename. Readback distinguishes
+the two exclusive locations without traversing symlinks. Reopening the draft
+does not retry or finalize a move. Before calling it from the product, the
+native owner must bind the prepared journal identity to the saved operation
+so replacing or losing the entire store cannot admit a new preparation.
+
 ## Selection
 
 - Begin with an authenticated saved receive job, its immutable manifest,
