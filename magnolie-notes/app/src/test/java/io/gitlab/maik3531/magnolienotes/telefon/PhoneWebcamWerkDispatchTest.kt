@@ -78,8 +78,28 @@ class PhoneWebcamWerkDispatchTest {
                 TelefonKanonisch.bytes(payload), TelefonKanonisch.bytes(header))
             TelefonRahmen.schreiben(desktop.getOutputStream(), JsonObject(header + ("ciphertext" to JsonPrimitive(TelefonKrypto.b64(encrypted)))))
             val message = parent.receive()
-            if (message["type"] == JsonPrimitive("ack")) work.handleSessionAck(peer, message, session, 0, TelefonTransportArt.WIFI, parent)
+            if (message["type"] == JsonPrimitive("ack")) {
+                if (!work.receiveMediaSupportAck(peer, parent, 0, message))
+                    work.handleSessionAck(peer, message, session, 0, TelefonTransportArt.WIFI, parent)
+            }
             else work.receiveMessage(peer, message, parent, 0)
+        }
+        fun enablePrivateMediaSupport() {
+            field(TelefonWerk::class.java, "nativeMediaSupportChecked").setBoolean(work, true)
+            storage.setPersonalSync(true, false, false, false)
+            storage.savePeer(peer.copy(state = "paired", own_device = true, remote_own_device = true,
+                file_pairing_epoch = "a".repeat(64)))
+            val (identity, privateKey) = storage.identity("Controlled phone")
+            privateKey.fill(0)
+            @Suppress("UNCHECKED_CAST")
+            val identities = field(TelefonWerk::class.java, "fileChannelIdentities").get(work) as MutableMap<TelefonSecureChannel, NativeFileControlIdentity>
+            identities[parent] = NativeFilePairingAuthority.fromAuthenticatedIdentity(identity)
+        }
+        fun supportedMedia(): Boolean {
+            val readers = field(TelefonWerk::class.java, "mediaSupportReaders").get(work) as Map<*, *>
+            val reader = readers[parent] ?: return false
+            val attempt = field(reader.javaClass, "attempt").get(reader) as NativeMediaSupportAttempt?
+            return attempt?.supports(parent) == true
         }
         fun capabilities(revision: Long, supported: Boolean, marker: Int = 24): JsonObject {
             val items = TelefonCapabilities.phase1().toMutableMap()
@@ -129,6 +149,57 @@ class PhoneWebcamWerkDispatchTest {
             f.deliver(next)
             assertEquals(TelefonNachrichten.ack(next.string("message_id"), "accepted", "none"), f.receive())
             assertFalse(f.pipe.isClosed)
+        }
+    }
+
+    @Test fun mediaDiscoveryRequiresFreshWrittenControlsAndRetiresWithoutReplay() {
+        Fixture().use { f ->
+            f.enablePrivateMediaSupport()
+            fun remoteProbe() = NativeMediaSupportAttempt.offer(System.currentTimeMillis())
+            fun own(value: Boolean) = TelefonNachrichten.message("personal_sync.settings", buildJsonObject {
+                put("format", 1); put("own_device", value)
+            }, 60_000)
+            fun control(message: JsonObject) {
+                f.deliver(message)
+                assertEquals(TelefonNachrichten.ack(message.string("message_id"), "accepted", "none"), f.receive())
+            }
+            f.session.capabilitiesReceived = true
+            f.session.grantsReceived = true // Pre-write flags or saved state alone are insufficient.
+            f.desktop.soTimeout = 150
+            f.deliver(remoteProbe())
+            assertThrows(SocketTimeoutException::class.java) { f.receive() }
+            f.desktop.soTimeout = 3_000
+            control(TelefonNachrichten.message("capabilities.update",
+                TelefonNachrichten.capabilities(6, TelefonCapabilities.phase1(fileHandlersReady = true, videoHandlersReady = true)), 60_000))
+            control(TelefonNachrichten.message("grants.update", TelefonNachrichten.grants(6), 60_000))
+            assertFalse(f.supportedMedia())
+            val ownOn = own(true)
+            control(ownOn)
+            val local = f.receive()
+            assertTrue(NativeMediaSupportAttempt.valid(local, System.currentTimeMillis()))
+            val remote = remoteProbe()
+            f.deliver(remote)
+            assertEquals(NativeMediaSupportAttempt.ack(remote), f.receive())
+            assertFalse(f.supportedMedia())
+            f.deliver(NativeMediaSupportAttempt.ack(local))
+            assertTrue(f.supportedMedia())
+            control(own(false))
+            assertFalse(f.supportedMedia())
+            control(own(true))
+            f.deliver(NativeMediaSupportAttempt.ack(local))
+            f.deliver(remoteProbe())
+            assertFalse(f.supportedMedia())
+            f.desktop.soTimeout = 150
+            assertThrows(SocketTimeoutException::class.java) { f.receive() }
+            assertFalse(f.pipe.isClosed)
+            assertFalse(f.work.state.value.mediaPreferencesSupported)
+            f.context.openOrCreateDatabase("magnolie_phone.db", Context.MODE_PRIVATE, null).use { db ->
+                for (message in listOf(local, remote)) for (table in listOf("outbox", "inbox", "dedupe")) {
+                    db.rawQuery("SELECT COUNT(*) FROM $table WHERE message_id=?", arrayOf(message.string("message_id"))).use {
+                        assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
+                    }
+                }
+            }
         }
     }
 

@@ -684,6 +684,89 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private fun sharedBinding(peer: TelefonPeer) = SharedSettingsBinding(sharedActor, peer.device_id, peer.static_public)
 
     private val mediaSessions = java.util.IdentityHashMap<TelefonSecureChannel, MediaSyncTransport>()
+    @Volatile private var nativeMediaSupportChecked = false // Private acceptance only; never advertise a new status marker.
+    private val mediaSupportReaders = java.util.IdentityHashMap<TelefonSecureChannel, MediaSupportReader>()
+    private val mediaSupportControls = setOf("capabilities.update", "grants.update", "personal_sync.settings")
+
+    private class MediaSupportReader(val pipe: TelefonTcpRoehre, val generation: Long, val peerId: String,
+        val publicKey: String) {
+        val controls = mutableMapOf<String, JsonObject>() // Werk monitor; only successfully written ACKs.
+        var epoch: String? = null
+        var attempt: NativeMediaSupportAttempt? = null
+    }
+
+    @Synchronized private fun observeMediaSupportControl(sessionPeer: TelefonPeer, message: JsonObject, reply: JsonObject,
+        channel: TelefonSecureChannel, generation: Long, written: Boolean) {
+        if (!nativeMediaSupportChecked || !nativeGalleryHandlersReady) return
+        val kind = (message["kind"] as? JsonPrimitive)?.content ?: return
+        if (kind !in mediaSupportControls || reply["type"] != JsonPrimitive("ack") ||
+            reply["message_id"] != message["message_id"] || reply["error"] != JsonPrimitive("none") ||
+            reply["status"] !in setOf(JsonPrimitive("accepted"), JsonPrimitive("duplicate"))) return
+        val (transport, original) = activeTransport ?: return
+        val pipe = original as? TelefonTcpRoehre ?: return
+        if (transport != TelefonTransportArt.WIFI || !sessionTransportAktuell(channel, generation, establishedOnly = false) ||
+            System.currentTimeMillis() >= message.long("expires_ms") || !queue.receivedMatches(sessionPeer.device_id, message)) return
+        val peer = safePeer()?.takeIf { it.device_id == sessionPeer.device_id && it.static_public == sessionPeer.static_public } ?: return
+        val body = message["body"] as? JsonObject ?: return
+        val reader = mediaSupportReaders.getOrPut(channel) { MediaSupportReader(pipe, generation, peer.device_id, peer.static_public) }
+        if (reader.pipe !== pipe || reader.generation != generation || reader.peerId != peer.device_id ||
+            reader.publicKey != peer.static_public) { reader.attempt?.close(); return }
+        val previous = reader.controls[kind]
+        val current = when (kind) {
+            "capabilities.update" -> body.long("revision") == peer.remote_capabilities_revision
+            "grants.update" -> body.long("revision") == peer.remote_grants_revision
+            // Legacy personal sync retains remote_own_device after pairing.
+            // A validated false on the wire still withdraws this separate lane.
+            else -> body["own_device"] == JsonPrimitive(false) ||
+                body["own_device"] == JsonPrimitive(true) && peer.remote_own_device &&
+                (reply["status"] != JsonPrimitive("duplicate") || previous == null || previous == message)
+        }
+        if (!current) return // A replay of a superseded control is not a new witness.
+        if (previous != message) {
+            reader.controls.remove(kind)
+            reader.attempt?.close() // Sticky, before the acknowledgement can fail or block.
+        }
+        if (written) reader.controls[kind] = message
+    }
+
+    @Synchronized private fun mediaSupportReaderCurrent(reader: MediaSupportReader, channel: TelefonSecureChannel,
+        peer: TelefonPeer): Boolean = nativeMediaSupportChecked && nativeGalleryHandlersReady &&
+        sessionTransportAktuell(channel, reader.generation) && activeTransport?.first == TelefonTransportArt.WIFI &&
+        activeTransport?.second === reader.pipe && fileChannelIdentities.containsKey(channel) &&
+        peer.device_id == reader.peerId && peer.static_public == reader.publicKey && storage.personalOwnDevice() &&
+        peer.remote_device_status_available && DeviceFileControl.DISCOVERY_VERSION in peer.remote_device_status_versions &&
+        reader.controls["capabilities.update"]?.get("body")?.jsonObject?.long("revision") == peer.remote_capabilities_revision &&
+        reader.controls["grants.update"]?.get("body")?.jsonObject?.long("revision") == peer.remote_grants_revision &&
+        reader.controls["personal_sync.settings"]?.get("body")?.jsonObject?.get("own_device") == JsonPrimitive(true) &&
+        NativeFilePairingAuthority.currentEpoch(peer)?.let { reader.epoch == null || it == reader.epoch } == true
+
+    private fun beginMediaSupport(sessionPeer: TelefonPeer, channel: TelefonSecureChannel, generation: Long): NativeMediaSupportAttempt? {
+        val attempt = synchronized(this) {
+            val reader = mediaSupportReaders[channel] ?: return null
+            val peer = safePeer() ?: return null
+            if (reader.generation != generation || sessionPeer.device_id != peer.device_id || sessionPeer.static_public != peer.static_public ||
+                !mediaSupportReaderCurrent(reader, channel, peer)) { reader.attempt?.close(); return null }
+            reader.attempt?.let { return it } // Never renew on the original parent.
+            reader.epoch = NativeFilePairingAuthority.currentEpoch(peer)
+            NativeMediaSupportAttempt(channel, reader.pipe, {
+                // The writer gate must not acquire Werk or access storage. The
+                // reader retires before changed controls are written; teardown
+                // and original pipe/generation checks also guard the write.
+                nativeMediaSupportChecked && nativeGalleryHandlersReady && serviceRunning && pairingGeneration == generation &&
+                    activeChannel === channel && activeTransport?.second === reader.pipe
+            }).also { reader.attempt = it }
+        }
+        attempt.send()
+        return attempt
+    }
+
+    internal fun receiveMediaSupportAck(sessionPeer: TelefonPeer, channel: TelefonSecureChannel, generation: Long,
+        payload: JsonObject): Boolean {
+        val attempt = synchronized(this) { mediaSupportReaders[channel]?.attempt } ?: return false
+        if (!attempt.ownsAck(channel, payload)) return false
+        if (beginMediaSupport(sessionPeer, channel, generation) === attempt) attempt.receive(channel, payload)
+        return true
+    }
 
     @Synchronized private fun currentMediaBinding(): MediaSettingsBinding? {
         val channel = activeChannel ?: return null
@@ -2105,6 +2188,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         desktopScreenDraftDispatch.retire()
         contactGroupWriter.clear(); contactValueWriter.clear(); contactGroupTitleWriter.clear()
         val pipe = activeTransport?.second
+        activeChannel?.let { mediaSupportReaders[it]?.attempt?.close() }
         activeTransport = null
         activeChannel = null
         _state.value = _state.value.copy(mediaPreferencesSupported = false, mediaPreferencesReady = false,
@@ -2775,7 +2859,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         runCatching { enqueuePersonalSync(peer, "auto_wifi") }
                     }
                 }
-                sendDue(peer, channel, generation)
+                 beginMediaSupport(peer, channel, generation)
+                 sendDue(peer, channel, generation)
                 while (serviceRunning && storage.enabled()) {
                     val payload = channel.receive()
                     pruefeSitzungsTransport(pipe, generation)
@@ -2786,6 +2871,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         }
                         "pong" -> TelefonNachrichten.validateHeartbeat(payload)
                         "ack" -> {
+                            if (receiveMediaSupportAck(peer, channel, generation, payload)) continue
                             mediaTransport(channel)?.acknowledge(payload)
                              handleSessionAck(peer, payload, noteSession, generation, transport, channel)
                         }
@@ -2808,6 +2894,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         fileChannelIdentities.remove(channel)
                         noteSessions.remove(channel)
                         sessionPipes.remove(channel)
+                        mediaSupportReaders.remove(channel)?.attempt?.close()
                         mediaSessions.remove(channel)
                         contactGroupWriter.clear(channel); contactValueWriter.clear(channel); contactGroupTitleWriter.clear(channel)
                         retireInvalidPersonalActors()
@@ -2880,6 +2967,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     private fun receiveMessageCurrent(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                       generation: Long) {
+        if (nativeMediaSupportChecked && message["kind"] == JsonPrimitive(NativeMediaSupportAttempt.KIND)) {
+            if (NativeMediaSupportAttempt.valid(message, System.currentTimeMillis())) {
+                beginMediaSupport(sessionPeer, channel, generation)?.receive(channel, message)
+            }
+            return // Never store, replay, or share the private probe with other dispatchers.
+        }
         if (PhoneScreenControl.reserved(message)) {
             screenDispatch.receive(channel, message)
             return
@@ -2991,6 +3084,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val permissions = identifierPermissionMask()
         peerEffect(sessionPeer, generation) { receiveMessage(it, message, replies::add, noteSessions[channel]) }
         replies.forEach { reply ->
+            observeMediaSupportControl(sessionPeer, message, reply, channel, generation, false)
             observeNativeFileOwnDecision(sessionPeer, message, reply, channel, generation, false)
             if ((reply["body"] as? JsonObject)?.containsKey("identifiers") == true) {
                 peerEffect(sessionPeer, generation) { current ->
@@ -2998,8 +3092,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         System.currentTimeMillis() < message.long("expires_ms")) channel.send(reply)
                 }
             } else channel.send(reply)
+            observeMediaSupportControl(sessionPeer, message, reply, channel, generation, true)
             observeNativeFileOwnDecision(sessionPeer, message, reply, channel, generation, true)
         }
+        if (nativeMediaSupportChecked && activeChannel === channel && message["kind"].let {
+                it is JsonPrimitive && it.content in mediaSupportControls
+            }) beginMediaSupport(sessionPeer, channel, generation)
         if (message["kind"] == JsonPrimitive("capabilities.update") && replies.any {
                 it["type"] == JsonPrimitive("ack") && it["status"] == JsonPrimitive("accepted") }) {
             observeWebcamDiscovery(channel, generation, message["body"] as JsonObject)

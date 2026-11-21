@@ -20,7 +20,7 @@ internal class NativeMediaSupportAttempt(
     private val original = offer(wall())
     @Volatile private var retired = false
     @Volatile private var established = false
-    private var sent = false
+    @Volatile private var sent = false
     private var written = false
     private var localAck = false
     private var remoteClaimed = false
@@ -38,6 +38,10 @@ internal class NativeMediaSupportAttempt(
     }
 
     fun supports(from: TelefonSecureChannel): Boolean = live(from) && established && !retired
+
+    /** A late receipt remains private even after retirement. */
+    fun ownsAck(from: TelefonSecureChannel, frame: JsonObject): Boolean =
+        from === channel && sent && frame["type"] == JsonPrimitive("ack") && frame["message_id"] == original["message_id"]
 
     private fun write(frame: JsonObject): Boolean = try {
         channel.sendEphemeral(frame, pipe, {

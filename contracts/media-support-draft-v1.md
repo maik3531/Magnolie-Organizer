@@ -81,5 +81,16 @@ retry on that parent. A separately opened native connection can exchange
 protected settings through this witness without allocating a file worker,
 starting the scheduler or creating file grants. Delivery on Bluetooth cannot
 produce this observation. An existing file owner is not rebuilt or replaced
-to attach a late observation. Reciprocal Android dispatch and positive
-end-to-end file acceptance with all original native grants remain separate.
+to attach a late observation.
+
+For this Linux/Notes draft, Notes initiates after warm-up; Linux only responds
+from its active reader. Linux sends its capability and grant controls before
+reading the Android controls. Notes' replies to those controls precede its
+hello in the same ordered channel, so Linux can finish its control loop
+before dispatching the hello. This ordering needs a full-session interop test:
+a probe received by a pre-active reader may not be buffered or replayed. The
+Android private reader tracks only fresh acknowledged controls of that
+original transport, independently of legacy pre-write session flags. It does
+not use this observation for file access or batch authority. Android
+settings routing through this new observation and native file acceptance
+remain separate.

@@ -9102,7 +9102,9 @@ class PhoneService:
             self.store.save_peers()
             if file_binding is not None:self._resume_automatic_photos(peer,channel)
             sock.settimeout(1)
-            self._begin_native_media_support(peer,channel)
+            # Let the Notes reader initiate after its control phase. A
+            # desktop-first probe can reach Notes while its reader is still
+            # pre-active, where the private lane must not ACK or retain it.
             self._queue_native_screen_availability(peer_id, channel)
             self.callback("status", self.report())
             last_incoming = time.monotonic()
