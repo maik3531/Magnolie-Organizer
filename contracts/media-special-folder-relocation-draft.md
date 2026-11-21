@@ -185,7 +185,9 @@ and parent checks. A cut between commits remains held; restart cannot adopt a
 newer journal head or repeat the confirmation. The outer checkpoint is not
 an execution or restart grant. The current single peer-bound owner and the
 conservative hold for unmapped members are not the final conflict scope.
-The private GTK confirmation component defaults to No. An explicit Yes while
+The private GTK confirmation component lists the exact filenames read-only;
+the escaped relative source and target paths appear only in tooltips. It
+defaults to No. An explicit Yes while
 the original window and action are current returns the exact selection as a
 one-shot native handoff to the original caller. The same action and guard still
 apply when claiming it; its deadline is not renewed. Close acts as No and a

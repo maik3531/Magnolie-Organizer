@@ -19,6 +19,15 @@ from test_file_authenticated_desktop import native
 from test_file_desktop_receive import receiving, reconnect
 
 
+def _confirmation_listing(dialog,Gtk):
+    def walk(widget):
+        yield widget
+        if isinstance(widget,Gtk.Container):
+            for child in widget.get_children():yield from walk(child)
+    listing,=(widget for widget in walk(dialog.get_content_area()) if isinstance(widget,Gtk.TreeView))
+    return list(map(tuple,listing.get_model())),listing.get_tooltip_column(),listing.get_selection().get_mode()
+
+
 @pytest.mark.parametrize('response',['yes','no','close','revoked','expired','destroy_parent','revoked_after_yes','expired_after_yes'])
 def test_native_gif_dialog_is_one_shot_default_no_and_requires_live_yes(response):
     import gi
@@ -30,13 +39,16 @@ def test_native_gif_dialog_is_one_shot_default_no_and_requires_live_yes(response
     assert parent.get_mapped()
     owner=object();active=[True];now=[1];observed=[]
     action=NativePhotoDestinationAction(owner,lambda:now[0],native_current=lambda:active[0])
-    selection=bind_relocation_selection((record(),),occupied=())
+    member=replace(record(),source='Camera/clip & more.gif',target='Animationen/Camera/clip & more.gif')
+    selection=bind_relocation_selection((member,),occupied=())
+    listings=[]
 
     def respond():
         dialogs=[window for window in Gtk.Window.list_toplevels()
             if isinstance(window,Gtk.MessageDialog) and window.get_transient_for() is parent]
         dialog,=dialogs
         observed.append((dialog.get_modal(),dialog.get_default_widget() is dialog.get_widget_for_response(Gtk.ResponseType.NO)))
+        listings.append(_confirmation_listing(dialog,Gtk))
         if response=='destroy_parent':parent.destroy()
         else:
             if response=='revoked':active[0]=False
@@ -69,6 +81,8 @@ def test_native_gif_dialog_is_one_shot_default_no_and_requires_live_yes(response
                 with pytest.raises(TransferError,match='native_confirmation_ended'):result._claim(owner)
             else:assert result is None
         assert observed==[(True,True)]
+        assert listings==[([('clip & more.gif','Camera/clip &amp; more.gif\nAnimationen/Camera/clip &amp; more.gif')],
+            1,Gtk.SelectionMode.NONE)]
         if response!='destroy_parent':
             with pytest.raises(TransferError,match='action_not_current'):
                 _confirm_gif_relocation_selection(parent,selection,action,owner)
@@ -89,13 +103,14 @@ def test_native_gif_folder_plan_discloses_creation_but_changes_nothing(tmp_path,
     draft=MissingGifTargetDraft(entry.operation,entry.book_sha256,entry.preferences_sha256,entry.original_mapping_sha256,
         destination,entry.source,entry.source_parents,entry.target,planned,entry.file)
     plan=bind_gif_relocation_folder_plan((draft,),destination)
-    native_owner=object();active=[True];observed=[]
+    native_owner=object();active=[True];observed=[];listings=[]
     action=NativePhotoDestinationAction(native_owner,lambda:1,native_current=lambda:active[0])
     parent=Gtk.Window();parent.show()
     def respond():
         dialog,=(w for w in Gtk.Window.list_toplevels() if isinstance(w,Gtk.MessageDialog) and w.get_transient_for() is parent)
         observed.append((dialog.get_property('secondary-text'),
             dialog.get_default_widget() is dialog.get_widget_for_response(Gtk.ResponseType.NO)))
+        listings.append(_confirmation_listing(dialog,Gtk))
         if answer=='revoked':active[0]=False
         dialog.response(Gtk.ResponseType.NO if answer=='no' else Gtk.ResponseType.YES)
         return False
@@ -116,6 +131,7 @@ def test_native_gif_folder_plan_discloses_creation_but_changes_nothing(tmp_path,
         assert len(observed)==1 and observed[0][1]
         assert 'Create the missing folders' in observed[0][0]
         assert str(tmp_path) not in observed[0][0]
+        assert listings==[([(source.name,entry.source+'\n'+entry.target)],1,Gtk.SelectionMode.NONE)]
     finally:parent.destroy()
     assert source.read_bytes()==raw and not target.parent.parent.exists()
 

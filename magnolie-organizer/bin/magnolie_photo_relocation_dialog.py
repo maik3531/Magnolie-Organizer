@@ -52,7 +52,7 @@ def _confirm_gif_relocation_selection(parent, selection, action, native_owner):
         raise TransferError('photo_relocation_native_confirmation_required')
     detail=_("Move the %(count)d selected files into the Animations folder? "
         "The original files and edits are preserved. Choose No to leave them where they are.") % {'count': len(selection)}
-    if _run_gif_confirmation(parent,action,native_owner,detail):
+    if _run_gif_confirmation(parent,action,native_owner,detail,selection):
         return _ConfirmedGifSelection(selection,action,native_owner)
     return None
 
@@ -66,18 +66,18 @@ def _confirm_gif_folder_plan(parent,plan,action,native_owner):
         raise TransferError('photo_relocation_native_confirmation_required')
     detail=_("Create the missing folders in the Animations folder and move the %(count)d selected files? "
         "Choose No to leave the files and folders unchanged.") % {'count': len(plan.members)}
-    if _run_gif_confirmation(parent,action,native_owner,detail):
+    if _run_gif_confirmation(parent,action,native_owner,detail,plan.members):
         return _ConfirmedGifFolderPlan(plan,action,native_owner)
     return None
 
 
-def _run_gif_confirmation(parent,action,native_owner,detail):
+def _run_gif_confirmation(parent,action,native_owner,detail,members):
     if (threading.current_thread() is not threading.main_thread()
             or type(action) is not NativePhotoDestinationAction or not callable(action._native_current)):
         raise TransferError('photo_relocation_native_confirmation_required')
     import gi
     gi.require_version('Gtk','3.0')
-    from gi.repository import Gtk
+    from gi.repository import GLib, Gtk, Pango
     if not isinstance(parent, Gtk.Window) or not parent.get_mapped():
         raise TransferError('photo_relocation_native_confirmation_required')
     action.consume(native_owner)
@@ -94,6 +94,21 @@ def _run_gif_confirmation(parent,action,native_owner,detail):
             message_type=Gtk.MessageType.QUESTION, buttons=Gtk.ButtonsType.YES_NO,
             text=_("Move selected GIF animations?"))
         dialog.format_secondary_text(detail)
+        rows=Gtk.ListStore(str,str)
+        for member in members:
+            label=member.source.rsplit('/',1)[-1]
+            tooltip=GLib.markup_escape_text(member.source+'\n'+member.target)
+            rows.append((label,tooltip))
+        listing=Gtk.TreeView(model=rows)
+        listing.set_tooltip_column(1)
+        listing.get_selection().set_mode(Gtk.SelectionMode.NONE)
+        renderer=Gtk.CellRendererText(ellipsize=Pango.EllipsizeMode.MIDDLE)
+        listing.append_column(Gtk.TreeViewColumn(_("Files to move"),renderer,text=0))
+        scroller=Gtk.ScrolledWindow()
+        scroller.set_min_content_height(140)
+        scroller.add(listing)
+        dialog.get_content_area().pack_start(scroller,True,True,6)
+        scroller.show_all()
         dialog.set_default_response(Gtk.ResponseType.NO)
         dialog.get_widget_for_response(Gtk.ResponseType.NO).grab_focus()
         action.validate(native_owner)
