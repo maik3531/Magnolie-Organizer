@@ -205,9 +205,12 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
    const application = fs.readFileSync(path.join(__dirname, "../app/web/anwendung.js"), "utf8");
    const securityPage = application.slice(application.indexOf("function baueSeiteSicherungen("), application.indexOf("function baueSeiteSicherungen(") + 700);
    assert(!securityPage.includes("MagnolieMedia"), "Media history must not be configured under Security");
-   assert(application.includes("{ recovery, mountLive }"));
-   const combined = api.createPanel(peer, x => x, value => { messages.push(value); return true; }, async () => {},
-     () => true, { recovery, mountLive: root => root.append(w.document.createElement("aside")) });
+    assert(application.includes("{ recovery, mountLive, trashPolicy }"));
+    const policy = { an: true, tage: 0 }, policyChanges = [];
+    let currentBook = true;
+    const combined = api.createPanel(peer, x => x, value => { messages.push(value); return true; }, async () => {},
+      () => currentBook, { recovery, mountLive: root => root.append(w.document.createElement("aside")),
+        trashPolicy: { read: () => policy, change: values => { policyChanges.push({ ...values }); Object.assign(policy, values); } } });
    w.document.body.append(combined);
    assert.equal(recovery.parentElement.querySelector("summary").textContent, "Photos and videos");
     reply({ supported: false });
@@ -224,8 +227,20 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
     const trash = [...recovery.querySelectorAll("details")].find(fold => fold.querySelector("summary")?.textContent === "Media recycle bin");
     assert(trash && !trash.hidden && !trash.open, "Media trash belongs inside Restore, closed by default");
     const beforeTrashOpen = messages.length;
-    recovery.open = true; trash.open = true; await tick();
-    assert.equal(messages.length, beforeTrashOpen, "Opening either fold must not start an operation");
+     recovery.open = true; trash.open = true; await tick();
+     assert.equal(messages.length, beforeTrashOpen, "Opening either fold must not start an operation");
+     const trashEnabled = recovery.querySelector("[data-media-trash-enabled]"), trashDays = recovery.querySelector("[data-media-trash-days]");
+     assert(trashEnabled.checked && !trashDays.disabled);
+     assert.equal(trashDays.value, "0", "Existing Never value is shown under Restore");
+     assert.equal(policyChanges.length, 0, "Opening Restore does not change the policy");
+     trashEnabled.click();
+     assert.deepEqual(policy, { an: false, tage: 0 });
+     assert(trashDays.disabled && trashDays.value === "0");
+     assert.equal(messages.length, beforeTrashOpen, "Disabling retention cannot dispatch a native removal");
+     currentBook = false;
+     trashEnabled.click();
+     assert.deepEqual(policyChanges, [{ an: false }], "A stale book cannot change the policy");
+     currentBook = true;
     trash.open = false; recovery.open = false;
     assert(!recovery.open);
     refreshCombined.click(); await tick();

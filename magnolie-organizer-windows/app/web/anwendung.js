@@ -29479,8 +29479,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           const saveBefore = () => new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
           const recovery = window.MagnolieMedia.createRecoveryPanel(telefon.device_id, _, send, saveBefore);
           const mountLive = notesMedienWlanPeer() === telefon ? erweitert => baueNotesLiveMedien(erweitert, telefon) : null;
-          zeile.append(window.MagnolieMedia.createPanel(telefon.device_id, _, send, saveBefore, () => DATEN === mediaBook,
-            { recovery, mountLive }));
+          const currentMediaBook = () => !gesperrt && DATEN === mediaBook;
+          const trashPolicy = {
+            read: () => currentMediaBook() ? mediaBook.einstellungen.papierkorb : null,
+            change: values => {
+              if (!currentMediaBook()) return;
+              wendePapierkorbEinstellungenDatenAn(values); planeSpeichern();
+            }
+          };
+          zeile.append(window.MagnolieMedia.createPanel(telefon.device_id, _, send, saveBefore, currentMediaBook,
+            { recovery, mountLive, trashPolicy }));
         }
       }
       liste.append(zeile);

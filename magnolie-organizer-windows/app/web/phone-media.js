@@ -3,7 +3,7 @@
   "use strict";
   const pending = new Map();
   const panels = new Map();
-  function createPanel(peerId, translate, send, saveBefore, currentContext = () => true, { mountLive, recovery } = {}) {
+  function createPanel(peerId, translate, send, saveBefore, currentContext = () => true, { mountLive, recovery, trashPolicy } = {}) {
     const t = translate, root = document.createElement("details");
     root.className = "telefon-medien einst-gruppe"; root.hidden = true;
     const node = (tag, text) => { const e = document.createElement(tag); if (text) e.textContent = t(text); return e; };
@@ -13,6 +13,39 @@
     // a recovery fold. With local history, keep that fold alive across WLAN.
     const restoreArea = recovery || node("details");
     if (!recovery) restoreArea.append(node("summary", "Restore"));
+    if (trashPolicy) {
+      const settings = node("section"), enabled = node("input"), days = node("select");
+      settings.className = "telefon-medien-gruppe";
+      enabled.type = "checkbox"; enabled.dataset.mediaTrashEnabled = "true";
+      days.className = "feld"; days.dataset.mediaTrashDays = "true";
+      const enabledRow = node("label", "Use the recycle bin"), daysRow = node("label", "Delete permanently");
+      enabledRow.className = "hak"; enabledRow.prepend(enabled, document.createTextNode(" "));
+      daysRow.className = "formzeile"; daysRow.append(days);
+      const durations = new Map([[7, "after 7 days"], [30, "after 30 days"], [90, "after 90 days"],
+        [365, "after one year"], [0, "never – empty manually"]]);
+      for (const [value, text] of durations) {
+        const option = node("option", text); option.value = String(value); days.append(option);
+      }
+      settings.append(enabledRow, daysRow); restoreArea.append(settings);
+      const renderPolicy = () => {
+        const saved = currentContext() && trashPolicy.read();
+        settings.hidden = !saved;
+        if (!saved) return;
+        enabled.checked = saved.an; days.value = String(saved.tage); days.disabled = !saved.an;
+      };
+      const change = values => {
+        if (settings.isConnected && restoreArea.open && !restoreArea.hidden && currentContext()) trashPolicy.change(values);
+        renderPolicy();
+      };
+      enabled.addEventListener("change", () => change({ an: enabled.checked }));
+      days.addEventListener("change", () => {
+        const duration = Number(days.value);
+        if (!days.disabled && days.value && durations.has(duration)) change({ tage: duration });
+        else renderPolicy();
+      });
+      restoreArea.addEventListener("toggle", renderPolicy);
+      renderPolicy();
+    }
     restoreArea.append(trashArea);
     const advanced = node("details"); advanced.className = "telefon-erweitert telefon-freigaben einst-gruppe";
     advanced.hidden = !mountLive; advanced.open = false;
