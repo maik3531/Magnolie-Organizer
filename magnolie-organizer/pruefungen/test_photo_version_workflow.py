@@ -188,3 +188,63 @@ def test_pc_edit_during_version_download_is_held_before_publication_or_head_adva
         assert worker.progress()['error']=='file_desktop_photo_version_parent_edited'
     assert target.read_bytes()==b'concurrent PC edit must survive' and target.stat().st_ino==inode
     assert connection._mappings.read()==before and not list(receiving[4].glob('Versionen/**/*.jpg'))
+
+
+@pytest.mark.parametrize('complete',[False,True],ids=['intent_only','completed_move'])
+def test_photo_review_and_version_publication_respect_the_original_relocation_owner(receiving,complete):
+    from contextlib import closing
+    from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
+    from magnolie_media_relocation_owner import ProtectedRelocationOwner
+    from magnolie_media_relocation_record import MediaRelocationRecord, RelocationFileWitness, bind_relocation_selection
+    from magnolie_media_retention import NativeMediaRetention
+    from test_media_relocation_record import ANIMATED
+
+    connection=receiving[3];root=receiving[4];authority=connection._authority
+    seed=prepared(receiving)[0]
+    full=changed(replace(seed,files=(replace(seed.files[0],path='Camera/saved.gif'),)),'a',ANIMATED)
+    kinds={'Camera/saved.gif':'animation'}
+    state,chunks,saved=cycle(receiving,full,ANIMATED,media_kinds=kinds)
+    assert state['state']=='complete' and len(chunks)==len(saved)==1,state
+    snapshot,(mapping,),_=connection._mappings.candidate_page('images')
+    prefs=connection._preferences.read();jobs=connection._catalog.jobs()
+    old=root/mapping.relative_path;new=root/'Animationen'/mapping.relative_path
+    new.parent.parent.mkdir(mode=0o700);new.parent.mkdir(mode=0o700)
+    def key(path):
+        info=path.stat();return info.st_dev,info.st_ino
+    with NativeMediaRetention(authority.binding.native_directory) as book:
+        record=MediaRelocationRecord('4'*32,'0'*64,book.saved_book_version(),prefs.version,
+            mapping.protected_record_sha256,key(root),mapping.parent_keys,(key(root),key(new.parent.parent),key(new.parent)),
+            mapping.relative_path,str(new.relative_to(root)),RelocationFileWitness(mapping.file_key,len(ANIMATED),sha256(ANIMATED).hexdigest()))
+    selection=bind_relocation_selection((record,),occupied=());confirmed=selection[0].selection_sha256
+    def current():
+        return connection._mappings.lookup((mapping.association,))==(snapshot,(mapping,)) and connection._catalog.jobs()==jobs
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        action=owner._issue_confirmed_action(current)
+        if complete:owner._move_original_animation_selection(action,journal,selection,mapping.destination,confirmed)
+        else:owner.record_confirmed_intent(action,selection,mapping.destination,confirmed)
+
+    state,chunks,saved=cycle(receiving,changed(full,'b',ANIMATED),ANIMATED,media_kinds=kinds)
+    assert not chunks and not saved and current(),state
+    if not complete:
+        assert state['state']=='held' and state['error']=='photo_relocation_original_checkpoint_required',state
+        assert old.read_bytes()==ANIMATED and not new.exists()
+        return
+    assert state['state']=='complete' and state['known_files']==1,state
+    assert not old.exists() and new.read_bytes()==ANIMATED and key(new)==mapping.file_key
+    incoming=ANIMATED+b'synthetic phone version'
+    version=changed(full,'c',incoming)
+    with phone_batches(receiving,[version],insertion_witness=True,content=incoming,block_chunk=True,
+            media_kinds=kinds) as (chunks,saved,entered,release,errors):
+        worker=connection.start_album_worker(connection.issue_receive_action(),ALBUM,True)
+        try:
+            # This setup includes three protected reviews and stage creation.
+            # The offer and the in-flight chunk keep their real wire deadlines.
+            assert entered.wait(35),worker.progress()
+            new.write_bytes(b'concurrent saved GIF edit')
+        finally:release.set()
+        assert worker.join(30),worker.progress()
+        assert not errors and not saved and worker.progress()['state']=='held',worker.progress()
+        assert worker.progress()['error']=='file_desktop_photo_version_parent_edited'
+    assert not old.exists() and new.read_bytes()==b'concurrent saved GIF edit' and key(new)==mapping.file_key
+    assert connection._mappings.lookup((mapping.association,))==(snapshot,(mapping,))
+    assert not list(root.glob('Versionen/**/*.gif'))

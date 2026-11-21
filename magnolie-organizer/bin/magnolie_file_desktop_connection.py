@@ -5,7 +5,7 @@ OFF by default, including when a protected enabled preference exists. Constructi
 does not send packets, create preferences or start a worker. Accepted controllers
 may drive automatic runs only from protected explicit desktop mode consent.
 """
-from contextlib import contextmanager, ExitStack
+from contextlib import closing, contextmanager, ExitStack
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 import os
@@ -1548,7 +1548,7 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_source_offer_not_confirmed')
             self._correlate_source_offer(self._source_offer, clock)
 
-    def _require_unmapped_media(self, *, resume_owner=None):
+    def _require_unmapped_media(self, *, resume_owner=None, comparison=None):
         """Historical association wins over current target settings.
 
         This only fences new admission. It neither proves first use after lost
@@ -1584,6 +1584,8 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_photo_version_not_current')
             for association,record in zip(associations,records):
                 parent=parents.get(association.photo_id)
+                if parent is None and record is None and comparison is not None:
+                    comparison.require_unmapped()
                 if record is not None and (parent is None or parent!=record.protected_record_sha256):
                     raise TransferError('file_desktop_photo_mapping_requires_reconcile')
                 if parent is not None and record is None:raise TransferError('file_desktop_photo_version_not_current')
@@ -1609,7 +1611,6 @@ class NativeDesktopFileConnection:
         """
         from magnolie_photo_plan import (NativePhotoAssociation, NativePhotoBaseline, NativePhotoObservation,
             PhotoContentWitness, compare_photo)
-        from magnolie_photo_target import observe_saved_target
         from magnolie_photo_review import NativePhotoReview, NativePhotoReviewItem
         self._take_action(action)
         with self._operation(), ExitStack() as media:
@@ -1619,6 +1620,7 @@ class NativeDesktopFileConnection:
             if not self._source_media_pages or self._source_media_entries is None:
                 raise TransferError('file_desktop_source_media_history_required')
             require_activity=media.enter_context(self._saved_media_activity(action=action))
+            comparison=media.enter_context(self._relocation_comparison(require_activity))
             def observe_binding():
                 require_activity()
                 return self._receive_binding()
@@ -1641,6 +1643,7 @@ class NativeDesktopFileConnection:
                 for file, entry, mapping in zip(manifest.files, self._source_media_entries, records):
                     require_activity()
                     if mapping is None:
+                        comparison.require_unmapped()
                         items.append(NativePhotoReviewItem(file.id, entry.photo_id, 'new_photo'))
                         continue
                     job = owners.get(mapping.job_owner)
@@ -1669,7 +1672,7 @@ class NativeDesktopFileConnection:
                                     or receipt.parent_keys != mapping.parent_keys or receipt.sha256 != mapping.saved_sha256
                                     or receipt.size != mapping.saved_size):
                                 raise TransferError('file_desktop_saved_mapping_receipt_changed')
-                            desktop = observe_saved_target(job.accepted, receipt, observe_binding)
+                            desktop = comparison.observe(mapping, job.accepted, receipt, observe_binding)
                             association = NativePhotoAssociation(binding, first.source_epoch, entry.photo_id, mapping.protected_record_sha256)
                             baseline = NativePhotoBaseline(association, PhotoContentWitness(receipt.sha256, receipt.size), receipt.protected_record_sha256)
                             phone = NativePhotoObservation('present', PhotoContentWitness(file.sha256, file.size),
@@ -1938,11 +1941,15 @@ class NativeDesktopFileConnection:
                     if item.decision=='copy_phone_version'))!=selection.version_parents
                     or any(item.decision not in ('new_photo','copy_phone_version') for item in reviewed.items)):
                 raise TransferError('file_desktop_photo_version_review_changed')
-        with self._operation():
+        with self._operation(), ExitStack() as media:
             if self._run is not None or self._offer is None or self._offer['message_id'] != offer_id:
                 raise TransferError('file_desktop_offer_not_current')
             self._require_source_offer(clock)
-            observed_jobs=self._require_unmapped_media()
+            comparison=None
+            if self._source_media_pages:
+                activity=media.enter_context(self._saved_media_activity(action=action))
+                comparison=media.enter_context(self._relocation_comparison(activity))
+            observed_jobs=self._require_unmapped_media(comparison=comparison)
             snapshot = self._receiving_policy()
             binding = self._receive_binding()
             if binding != self._offer_binding or snapshot.version != self._offer_policy_version:
@@ -1978,6 +1985,7 @@ class NativeDesktopFileConnection:
             history = NativeMediaHistory.capture(accepted,self._source_media_pages,
                 mapping_store=self._verify_expected_mapping_store(),version_parents=parents) if self._source_media_pages else None
             self._verify_job_mapping_store(history)
+            if comparison is not None:comparison.require_current()
             action.validate(self)
             self._run = _NativeDesktopReceiveRun(snapshot.version, accepted,native_constraint=self._source_native_constraint,
                 media_type=self._source_run.media_type if self._source_run is not None else 'images')
@@ -2032,7 +2040,8 @@ class NativeDesktopFileConnection:
                     raise TransferError('file_desktop_resume_original_job_changed')
             self._require_source_offer(clock)
             activity=media.enter_context(self._saved_media_activity(action=action)) if self._source_media_pages else None
-            observed_jobs=self._require_unmapped_media(resume_owner=native_job_owner)
+            comparison=media.enter_context(self._relocation_comparison(activity)) if activity is not None else None
+            observed_jobs=self._require_unmapped_media(resume_owner=native_job_owner,comparison=comparison)
             snapshot = self._receiving_policy()
             binding = self._receive_binding()
             if binding != self._offer_binding or snapshot.version != self._offer_policy_version:
@@ -2059,7 +2068,7 @@ class NativeDesktopFileConnection:
                 current = NativeMediaHistory.capture(job.accepted,self._source_media_pages)
                 if (original.source_epoch,original.media_type,original.entries) != (current.source_epoch,current.media_type,current.entries):
                     raise TransferError('file_desktop_resume_media_association_changed')
-            if activity is not None:activity()
+            if comparison is not None:comparison.require_current()
             else:action.validate(self)
             self._run = _NativeDesktopReceiveRun(snapshot.version, job.accepted, job=job,native_constraint=self._source_native_constraint,
                 media_type=self._source_run.media_type if self._source_run is not None else 'images',
@@ -2160,6 +2169,17 @@ class NativeDesktopFileConnection:
                 current()
                 return result
 
+    @contextmanager
+    def _relocation_comparison(self, require_activity):
+        from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
+        from magnolie_media_relocation_owner import ProtectedRelocationOwner, RelocationComparison
+        require_activity()
+        with (closing(ProtectedRelocationOwner(self._authority)) as owner,
+              closing(ProtectedMediaRelocationJournal(self._authority)) as journal):
+            view=RelocationComparison(owner,journal,require_activity)
+            yield view
+            view.require_current()
+
     def publish_received(self, action, *, clock=now_ms):
         """Explicit native publication/readback only. Never overwrites a target;
         changed versions use separate immutable targets, not an in-place replace.
@@ -2173,7 +2193,7 @@ class NativeDesktopFileConnection:
             self._mutation_action = action
             try:
                 current()
-                self._verify_version_parent_targets(run)
+                self._verify_version_parent_targets(run,current)
                 run.receiver.publish_completed()
                 current()
                 run.receiver.commit_saved_receipts()
@@ -2186,16 +2206,21 @@ class NativeDesktopFileConnection:
             finally:
                 self._mutation_action = None
 
-    def _verify_version_parent_targets(self,run):
+    def _verify_version_parent_targets(self,run,require_activity):
         """A PC edit during download is still a conflict, not a new baseline.
 
         Only read the protected original target; publication always uses another
         no-replace path. Never change, rename or lock the user's original file.
         """
-        from magnolie_photo_target import observe_saved_target
         history=run.receiver._index.media_history
-        if history is None or not history.version_parents:return
+        if history is None:return
         protection=self._authority.protection
+        with self._relocation_comparison(require_activity) as comparison:
+            parents={photo for photo,_ in history.version_parents}
+            if any(entry.photo_id not in parents for entry in history.entries):comparison.require_unmapped()
+            if history.version_parents:self._compare_version_parents(run,history,comparison,protection)
+
+    def _compare_version_parents(self,run,history,comparison,protection):
         with self._catalog.inspect_jobs() as (parent,jobs):
             owners={job.owner:job for job in jobs}
             for photo,expected in history.version_parents:
@@ -2211,7 +2236,7 @@ class NativeDesktopFileConnection:
                     self._verify_completed_mapping_job(index,original,index.media_history)
                     receipt=next((receipt for receipt in index.saved_receipts() if receipt.file_id==mapping.source_file_id),None)
                     if receipt is None:raise TransferError('file_desktop_photo_version_parent_changed')
-                    observed=observe_saved_target(original.accepted,receipt,self._receive_binding).observation
+                    observed=comparison.observe(mapping,original.accepted,receipt,self._receive_binding).observation
                     if (observed.state!='present' or not observed.managed
                             or (observed.content.sha256,observed.content.size)!=(mapping.saved_sha256,mapping.saved_size)):
                         raise TransferError('file_desktop_photo_version_parent_edited')

@@ -313,3 +313,71 @@ class ProtectedRelocationOwner(NativeMediaRetention):
                 or any(record.phase!='moved' for _,record in snapshot.outcomes)):
             raise TransferError('photo_relocation_selection_held')
         return journal.observe_moved_saved_target(snapshot,mapping,accepted,receipt,current_binding,require_original=current)
+
+
+class RelocationComparison:
+    """Read-only comparison view inside the caller's existing media lane."""
+    def __init__(self,owner,journal,require_activity):
+        self._owner=owner;self._journal=journal;self._activity=require_activity
+        require_activity()
+        self._intent=owner.read_intent();self._snapshot=journal.read()
+        self._witness=None
+        if self._intent is None:
+            if self._snapshot.records:raise TransferError('photo_relocation_original_owner_required')
+        else:
+            self._witness=owner.require_checkpoint(self._intent)
+            snapshot=self._snapshot;witness=self._witness;intent=self._intent
+            if (not snapshot.associated or not snapshot.records
+                    or (snapshot.version,snapshot.outcome_version)!=(witness.prepared_version,witness.outcome_version)
+                    or any((record.operation,record.selection_sha256,record.book_sha256)!=(intent.operation,intent.selection_sha256,intent.book_sha256)
+                        for record in snapshot.records)
+                    or tuple(sorted(record.original_mapping_sha256 for record in snapshot.records))!=intent.mappings):
+                raise TransferError('photo_relocation_original_journal_changed')
+            ordinals=tuple(range(len(snapshot.records)))
+            if (snapshot.attempts!=ordinals or tuple(i for i,_ in snapshot.outcomes)!=ordinals
+                    or any(record.phase!='moved' for _,record in snapshot.outcomes)):
+                raise TransferError('photo_relocation_selection_held')
+        self._current()
+
+    def _current(self):
+        self._activity()
+        if self._owner.read_intent()!=self._intent:
+            raise TransferError('photo_relocation_original_owner_changed')
+        if self._intent is not None:
+            if self._owner.saved_book_version()!=self._intent.book_sha256:
+                raise TransferError('photo_relocation_original_book_changed')
+            if self._owner.require_checkpoint(self._intent)!=self._witness:
+                raise TransferError('photo_relocation_original_checkpoint_changed')
+        return True
+
+    def require_current(self):
+        self._current()
+        if self._journal.read()!=self._snapshot:
+            raise TransferError('photo_relocation_original_journal_changed')
+        return self._current()
+
+    def require_unmapped(self):
+        self._current()
+        # No authenticated association ties an unmapped member to a selection
+        # digest. Hold rather than treating an absent mapping as a new original.
+        if self._intent is not None:raise TransferError('photo_relocation_unmapped_target_held')
+
+    def observe(self,mapping,accepted,receipt,current_binding):
+        from magnolie_photo_target import observe_saved_target
+        self._current()
+        if self._intent is not None:
+            if mapping.protected_record_sha256 in self._intent.mappings:
+                # Construction pinned the entire terminal selection and the
+                # external witness. Keep that same witness live, rather than
+                # wrapping this guard in a second owner/checkpoint read loop.
+                if RelocationOwnerIntent.for_selection(self._snapshot.records,mapping.destination)!=self._intent:
+                    raise TransferError('photo_relocation_original_receipt_changed')
+                return self._journal.observe_moved_saved_target(self._snapshot,mapping,accepted,receipt,
+                    current_binding,require_original=self._current)
+            if any(record.file.file_key==mapping.file_key or
+                    (record.root_key==mapping.destination.ancestor_keys[0] and mapping.relative_path.casefold() in
+                    (record.source.casefold(),record.target.casefold())) for record in self._snapshot.records):
+                raise TransferError('photo_relocation_aliased_target_held')
+        def binding():
+            self._current();return current_binding()
+        return observe_saved_target(accepted,receipt,binding)

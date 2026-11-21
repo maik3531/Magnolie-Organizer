@@ -62,8 +62,7 @@ the authenticated original receipt and a shared media activity lease. It
 rechecks the moved checkpoint and both names after reading, and never falls
 back to the old path or rewrites the receipt. It preserves an edit on the
 same inode and classifies unchanged bytes independently of the new path. The
-native caller still has to supply the live book and exact checkpoint. No
-production workflow uses the bridge yet.
+native caller still has to supply the live book and exact checkpoint.
 
 An owner-bound comparison additionally requires the separate sealed terminal
 checkpoint and a complete selection of verified moved outcomes. If the
@@ -71,6 +70,19 @@ independent checkpoint is absent, the selection is partial, or the journal
 has advanced without the original owner, the comparison holds rather than
 trying the old path. This private comparison does not change any mapping or
 provide a new Saved receipt.
+
+Linux receive now checks this fence under its shared media activity lease in
+review, fresh admission, resume admission and pre-publication. Review and
+the pre-publication version-parent check compare the moved inode using its
+immutable original receipt. Admission checks the protected owner and mapping;
+it does not yet recheck version-parent bytes in the same admission lease.
+An incomplete owner operation holds the receive; with an intent present,
+an unmapped member is not treated as new. Alias evidence is not an alternate
+path. A synthetic GIF verified no download for an unchanged moved original
+and no version publication or Saved reply when that inode was edited during
+download. Ordinary receive still has no entry point to create an intent or
+move a file. SEND, recovery copies, trash, and Saved retry are not enabled by
+this comparison.
 
 ## Selection
 
@@ -104,17 +116,17 @@ uses the shared media lane. It distinguishes an unspent member at its source,
 spent attempts found at either endpoint, recorded outcomes and uncertain
 entries. Even a spent attempt found at the target stays held until the original
 owner separately proves and commits the outcome. Missing or stale checkpoints
-fail the whole inspection. The product still has no durable external owner
-that supplies this checkpoint after restart; opening the journal alone does not
-establish that owner.
+fail the whole inspection. The sealed owner described below persists outside
+the journal; opening the journal alone does not establish that owner.
 
 The owner's checkpoint has a strict, path-free encoding: the confirmed
 selection digest (including the operation, preferences, and exact members),
 saved-book digest, full destination digest, and both journal revisions. It is
-only metadata: decoding it cannot establish consent. The future owner must
-persist it separately and be able to hold affected comparisons when either
-store is missing or out of step. Until that store and native confirmation
-are connected, the product must not enable relocation.
+only metadata: decoding it cannot establish consent. The owner persists it
+separately and comparison holds when a surviving witness proves a store is
+missing or out of step. Coordinated loss or rollback of all witnesses is not
+covered. The product must not enable relocation without native confirmation,
+scoped recovery and coordination with other consumers.
 
 The first independent step is implemented privately: a one-shot native action
 can persist a sealed confirmation intent in the existing `phone.db` under the
@@ -129,8 +141,9 @@ primitive the same live confirmation and exclusive lane also bind each spent
 attempt in both stores before the rename, and each verified outcome after file
 and parent checks. A cut between commits remains held; restart cannot adopt a
 newer journal head or repeat the confirmation. The outer checkpoint is not
-an execution or restart grant. Using this fence in production comparisons
-and exposing explicit native confirmation are still open.
+an execution or restart grant. The current single peer-bound owner and the
+conservative hold for unmapped members are not the final conflict scope.
+Exposing explicit native confirmation remains open.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in
