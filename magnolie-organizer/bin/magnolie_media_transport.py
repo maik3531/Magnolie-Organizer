@@ -29,13 +29,14 @@ class NativeMediaSettingsTransport:
     MAX_TTL_MS=86400000
     MAX_MESSAGES=128
 
-    def __init__(self,authority,runtime_ready,*,clock=now_ms):
+    def __init__(self,authority,runtime_ready,*,clock=now_ms,support=None):
         from magnolie_file_native_authority import NativeDesktopFileAuthority
         if (type(authority) is not NativeDesktopFileAuthority or not callable(runtime_ready) or not callable(clock)
                 or type(authority.native_channel) is not SecureChannel):
             raise ValueError('native secure media transport required')
-        self._store=media.NativeMediaSettingsStore(authority);self._authority=authority
-        self._channel=authority.native_channel;self._ready=runtime_ready;self._clock=clock
+        self._store=media.NativeMediaSettingsStore(authority,support=support);self._authority=authority
+        self._channel=authority.native_channel;self._clock=clock
+        self._ready=runtime_ready if support is None else lambda:runtime_ready() is True and support.supports(self._channel)
         self._gate=threading.RLock();self._closed=threading.Event();self._withdrawn=threading.Event();self._generation=0
         self._sent=self._acknowledged=self._received=self._intent=None
         self._attempts={};self._received_ids={}

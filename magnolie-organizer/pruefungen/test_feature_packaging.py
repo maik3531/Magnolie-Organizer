@@ -34,7 +34,7 @@ def test_all_four_explicit_runtime_lists_match_current_source(enabled):
 @pytest.mark.parametrize('enabled', [False, True])
 def test_new_media_source_modules_are_staged_with_photo_sync_only(enabled, tmp_path):
     media = {path.name for path in (ROOT / 'bin').glob('magnolie_media_source*.py')} | {
-        'magnolie_media_sync.py', 'magnolie_media_transport.py'}
+        'magnolie_media_sync.py', 'magnolie_media_transport.py', 'magnolie_media_support.py'}
     assert len(media) >= 14
     selected = {'photo_sync': enabled, 'phone_camera': False}
     for kind, modules in package_modules(ROOT, {'photo_sync': False, 'phone_camera': False}).items():

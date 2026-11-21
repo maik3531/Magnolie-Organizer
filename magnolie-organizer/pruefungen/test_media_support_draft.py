@@ -1,125 +1,28 @@
-"""Opt-in #330 discovery design only. No product caller or capability change."""
+"""#330 discovery component over a private wire; no production dispatcher."""
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
 import socket
 import sys
-from threading import Event, Lock
+from threading import Event
 import uuid
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
 import magnolie_telefon as phone
+import magnolie_media_sync as media
+from magnolie_media_transport import NativeMediaSettingsTransport
+from magnolie_media_support import NativeMediaSupportAttempt, TTL, ack, offer, valid
 from magnolie_file_native_authority import capture_authenticated_binding
-from test_media_transport import PeerWire
+from magnolie_photo_preferences import ProtectedPhotoPreferences
+from test_media_transport import AT, PeerWire, incoming
+from test_file_authenticated_desktop import native
 from test_telefon import FakeBluetooth, _complete_peer
 
 
-KIND = 'media_support.hello'
-TTL = 10_000
 FULL = [1, 2, 3, 4, 5, 7, 8, 11, 12, 13, 17, 18, 19, 20, 21, 22]
-FIELDS = {'type', 'v', 'message_id', 'kind', 'created_ms', 'expires_ms', 'body'}
-
-
-def offer(at):
-    return dict(type='message', v=1, message_id=str(uuid.uuid4()), kind=KIND,
-                created_ms=at, expires_ms=at + TTL,
-                body=dict(format=1, feature='shared_settings'))
-
-
-def ack(message):
-    return dict(type='ack', message_id=message['message_id'], status='accepted', error='none')
-
-
-def valid(message, at):
-    if type(message) is not dict or set(message) != FIELDS:
-        return False
-    body = message['body']
-    return (message['type'] == 'message' and type(message['v']) is int and message['v'] == 1
-            and message['kind'] == KIND and phone.valid_uuid(message['message_id'], 4)
-            and type(message['created_ms']) is int and type(message['expires_ms']) is int
-            and 0 <= message['created_ms'] <= at < message['expires_ms'] <= 253402300799999
-            and message['expires_ms'] - message['created_ms'] <= TTL
-            and type(body) is dict and set(body) == {'format', 'feature'}
-            and type(body['format']) is int and body['format'] == 1 and body['feature'] == 'shared_settings')
-
-
-class ReferenceAttempt:
-    """One original attempt, intentionally only in this test module."""
-
-    def __init__(self, channel, current, wall, monotonic_ms):
-        self._channel, self._current, self._wall, self._clock = channel, current, wall, monotonic_ms
-        self._deadline = monotonic_ms() + TTL
-        self._state = Lock()
-        self._sent = self._written = self._local_ack = self._remote_ack = self._established = self._closed = False
-        self._remote_claimed = False
-        self._offer = offer(wall())
-
-    def _fresh_locked(self, channel):
-        if channel is not self._channel:
-            return False
-        if not self._current() or (not self._established and self._clock() >= self._deadline):
-            self._closed = True
-        return not self._closed
-
-    def _require_write(self):
-        # Called under the channel writer lock: no attempt lock or IO here.
-        if self._closed or not self._current() or (not self._established and self._clock() >= self._deadline):
-            raise PermissionError('original media discovery attempt retired')
-
-    def _write(self, message):
-        try:
-            self._channel.send_ephemeral(message, self._require_write)
-            return True
-        except (PermissionError, OSError, ValueError):
-            with self._state:
-                self._closed = True
-            return False
-
-    def _publish_locked(self):
-        self._established = self._written and self._local_ack and self._remote_ack
-
-    def send(self):
-        with self._state:
-            if self._sent or not self._fresh_locked(self._channel):
-                return False
-            self._sent = True
-        if not self._write(self._offer):
-            return False
-        with self._state:
-            self._written = self._fresh_locked(self._channel)
-            self._publish_locked()
-            return self._written
-
-    def receive(self, channel, message):
-        with self._state:
-            if type(message) is not dict or not self._fresh_locked(channel) or self._established:
-                return False
-            if message.get('type') == 'ack':
-                if not self._sent or self._local_ack or message.get('message_id') != self._offer['message_id']:
-                    return False
-                if message != ack(self._offer):
-                    self._closed = True
-                    return False
-                self._local_ack = True
-                self._publish_locked()
-                return True
-            if self._remote_claimed or not valid(message, self._wall()) or message['message_id'] == self._offer['message_id']:
-                return False
-            self._remote_claimed = True
-        if not self._write(ack(message)):
-            return False
-        with self._state:
-            self._remote_ack = self._fresh_locked(channel)
-            self._publish_locked()
-            return self._remote_ack
-
-    @property
-    def shared_settings_supported(self):
-        with self._state:
-            return self._fresh_locked(self._channel) and self._established
 
 
 @contextmanager
@@ -143,22 +46,91 @@ def test_encrypted_support_requires_both_completions_and_retains_every_legacy_ve
     at = phone.now_ms()
     legacy = legacy_state()
     with wire_pair() as (channel, wire):
-        attempt = ReferenceAttempt(channel, lambda: live[0], lambda: at, lambda: tick[0])
-        assert not attempt.shared_settings_supported and attempt.send() and not attempt.send()
+        attempt = NativeMediaSupportAttempt(channel, lambda: live[0], lambda: at, lambda: tick[0])
+        assert not attempt.supports(channel) and attempt.send() and not attempt.send()
         own = wire.receive()
         assert valid(own, at)
         wire.send(ack(own))
-        assert attempt.receive(channel, channel.receive()) and not attempt.shared_settings_supported
+        assert attempt.receive(channel, channel.receive()) and not attempt.supports(channel)
         remote = offer(at)
         assert not attempt.receive(object(), remote)
         wire.send(remote)
         assert attempt.receive(channel, channel.receive()) and wire.receive() == ack(remote)
-        assert attempt.shared_settings_supported
+        assert attempt.supports(channel)
         assert legacy == legacy_state() and len(legacy['items']['device_status']['versions']) == 16
         live[0] = False
-        assert not attempt.shared_settings_supported
+        assert not attempt.supports(channel)
         live[0] = True
-        assert not attempt.shared_settings_supported and not attempt.send()
+        assert not attempt.supports(channel) and not attempt.send()
+
+
+def test_full_legacy_schema_reaches_actual_settings_store_and_requires_separate_agreement(native):
+    service, peer, _ = native
+    peer['capabilities'] = legacy_state()
+    service.store.save_peers()
+    with wire_pair() as (channel, wire), wire_pair() as (foreign, foreign_wire):
+        binding = capture_authenticated_binding(dict(service.store.identity), dict(peer), service._generation, service.store)
+        service._activate_connection(peer['device_id'], channel, 'wifi', file_binding=binding)
+        authority = service.open_native_file_authority(peer['device_id'], peer['static_public'], channel, binding.generation)
+        preferences = ProtectedPhotoPreferences(authority)
+        live = [True]
+        attempt = NativeMediaSupportAttempt(channel, lambda: live[0], lambda: AT)
+        other = NativeMediaSupportAttempt(foreign, lambda: True, lambda: AT)
+        transport = None
+
+        def deliver(target, wire, message, receiver):
+            wire.send(message)
+            return receiver(target, target.receive())
+
+        def exchange(target, wire, owner):
+            assert owner.send()
+            sent = wire.receive()
+            assert deliver(target, wire, ack(sent), owner.receive)
+            remote = offer(AT)
+            assert deliver(target, wire, remote, owner.receive) and wire.receive() == ack(remote)
+            assert owner.supports(target)
+
+        try:
+            with pytest.raises(PermissionError, match='peer_unsupported'):
+                NativeMediaSettingsTransport(authority, lambda: True, support=attempt)
+            exchange(foreign, foreign_wire, other)
+            with pytest.raises(PermissionError, match='peer_unsupported'):
+                NativeMediaSettingsTransport(authority, lambda: True, support=other)
+            exchange(channel, wire, attempt)
+            transport = NativeMediaSettingsTransport(authority, lambda: True, clock=lambda: AT, support=attempt)
+            assert transport.display_snapshot()['configured'] is False
+            assert transport.intent_for('images') is None and preferences.read().policy is None
+            transport.change('enabled', True)
+            transport.change('direction', 'two_way')
+            transport.change('auto_mode', 'wifi')
+            transport.change('videos_enabled', True)
+            transport.change('skip_deletions', True)
+            sent = transport.send_settings()
+            assert sent == wire.receive()
+            assert deliver(channel, wire, ack(sent), transport.observe)
+            assert transport.intent_for('images') is None
+            echoed = incoming(sent['body'])
+            assert deliver(channel, wire, echoed, transport.observe) and wire.receive() == ack(echoed)
+            assert transport.intent_for('images', to_phone=True) is not None
+            assert transport.intent_for('video', to_phone=False) is not None  # settings only, not video-batch support
+            projection = transport.display_snapshot()
+            assert projection['agreed'] and {key:projection['values'][key] for key in
+                ('collection_mode','direction','auto_mode','skip_deletions')} == dict(
+                collection_mode='phone_inventory',direction='two_way',auto_mode='wifi',skip_deletions=True)
+            assert not preferences.local_grant(True).grants.send_files
+            assert not preferences.local_grant(True).grants.receive_files and preferences.read().policy is None
+            assert peer['capabilities']['items']['device_status']['versions'] == FULL
+
+            live[0] = False
+            assert transport.intent_for('images') is None and transport.display_snapshot() is None
+            with pytest.raises(PermissionError):transport.change('direction', 'phone_to_pc')
+            live[0] = True
+            assert transport.intent_for('images') is None
+            assert media.NativeMediaSettingsStore.has_stored_settings(authority)
+            assert preferences.read().policy is None
+        finally:
+            if transport is not None:transport.close()
+            attempt.close();other.close();preferences.close();authority.close()
 
 
 @pytest.mark.parametrize('field,value', [('format', True), ('feature', 'pc_image_batch'), ('grant', True)])
@@ -171,13 +143,13 @@ def test_draft_offers_neither_batching_nor_permissions(field, value):
 def test_stale_receipt_cannot_extend_the_local_deadline():
     tick = [100]
     with wire_pair() as (channel, wire):
-        attempt = ReferenceAttempt(channel, lambda: True, lambda: 100_000, lambda: tick[0])
+        attempt = NativeMediaSupportAttempt(channel, lambda: True, lambda: 100_000, lambda: tick[0])
         assert attempt.send()
         own = wire.receive()
         tick[0] += TTL
         assert not attempt.receive(channel, ack(own))
         assert not attempt.receive(channel, offer(100_000))
-        assert not attempt.shared_settings_supported
+        assert not attempt.supports(channel)
 
 
 @pytest.mark.parametrize('completion', ['written', 'failed', 'withdrawn', 'expired'])
@@ -195,7 +167,7 @@ def test_early_encrypted_receipt_waits_for_the_original_writer(monkeypatch, comp
                     raise OSError('synthetic incomplete write result')
 
         monkeypatch.setattr(channel, 'send_ephemeral', held_result)
-        attempt = ReferenceAttempt(channel, lambda: live[0], lambda: at, lambda: tick[0])
+        attempt = NativeMediaSupportAttempt(channel, lambda: live[0], lambda: at, lambda: tick[0])
         remote = offer(at)
         wire.send(remote)
         assert attempt.receive(channel, channel.receive()) and wire.receive() == ack(remote)
@@ -204,7 +176,7 @@ def test_early_encrypted_receipt_waits_for_the_original_writer(monkeypatch, comp
             own = wire.receive()
             wire.send(ack(own))
             assert attempt.receive(channel, channel.receive())
-            assert not attempt.shared_settings_supported
+            assert not attempt.supports(channel)
             if completion == 'withdrawn':
                 live[0] = False
             elif completion == 'expired':
@@ -213,13 +185,13 @@ def test_early_encrypted_receipt_waits_for_the_original_writer(monkeypatch, comp
             finish.set()
         assert result.result(timeout=2) == (completion == 'written')
         live[0] = True
-        assert attempt.shared_settings_supported == (completion == 'written') and not attempt.send()
+        assert attempt.supports(channel) == (completion == 'written') and not attempt.send()
 
 
 def test_failed_opposite_receipt_write_does_not_establish_support(monkeypatch):
     at = phone.now_ms()
     with wire_pair() as (channel, wire):
-        attempt = ReferenceAttempt(channel, lambda: True, lambda: at, lambda: 100)
+        attempt = NativeMediaSupportAttempt(channel, lambda: True, lambda: at, lambda: 100)
         assert attempt.send()
         own = wire.receive()
         wire.send(ack(own))
@@ -234,7 +206,7 @@ def test_failed_opposite_receipt_write_does_not_establish_support(monkeypatch):
         remote = offer(at)
         wire.send(remote)
         assert not attempt.receive(channel, channel.receive())
-        assert not attempt.shared_settings_supported
+        assert not attempt.supports(channel)
         assert not attempt.receive(channel, remote) and not attempt.send()
 
 
@@ -242,7 +214,7 @@ def test_failed_opposite_receipt_write_does_not_establish_support(monkeypatch):
 def test_matching_legacy_rejection_ends_only_that_attempt(error):
     at = phone.now_ms()
     with wire_pair() as (channel, wire):
-        attempt = ReferenceAttempt(channel, lambda: True, lambda: at, lambda: 100)
+        attempt = NativeMediaSupportAttempt(channel, lambda: True, lambda: at, lambda: 100)
         assert attempt.send()
         own = wire.receive()
         unrelated = dict(ack(offer(at)), status='rejected', error=error)
@@ -255,7 +227,7 @@ def test_matching_legacy_rejection_ends_only_that_attempt(error):
         assert not attempt.receive(channel, channel.receive())
         wire.send(ack(own))
         assert not attempt.receive(channel, channel.receive())
-        assert not attempt.shared_settings_supported and not attempt.send()
+        assert not attempt.supports(channel) and not attempt.send()
 
 
 def test_legacy_rejection_does_not_stop_the_authenticated_parent(tmp_path, monkeypatch):

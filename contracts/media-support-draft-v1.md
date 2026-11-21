@@ -57,10 +57,13 @@ channel; it does not by itself prove the remote side is proposing the feature.
   an already-started batch. Verify withdrawal and restart with existing saved
   choices as well as a new, default-off pairing before candidate packaging.
 
-`magnolie-organizer/pruefungen/test_media_support_draft.py` is an isolated
-reference check, not a product dispatcher. It verifies real encrypted local
-I/O, including the installed-era Linux legacy reader and continuing heartbeat
-after rejection. The Android Robolectric dispatch test verifies the current
+`magnolie-organizer/pruefungen/test_media_support_draft.py` exercises the
+reusable Linux support component and the actual protected settings store and
+transport over encrypted local I/O. The full 16-marker legacy set remains
+unchanged. Completed support on a different channel cannot open the store;
+support on the correct channel does not itself create preferences, mark them
+agreed or grant file access. The Linux tests also exercise the legacy reader
+and continuing heartbeat after rejection. The Android Robolectric dispatch test verifies the current
 pre-discovery receiver over a synthetic encrypted parent and continuing
 capability traffic. The Windows Core test uses the actual pre-discovery
 dispatcher and a paired synthetic store over encrypted loopback TCP; the

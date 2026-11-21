@@ -172,11 +172,16 @@ class NativeMediaSettingsStore:
         store._shared_settings_binding(authority.binding.peer_id,authority.binding.static_public)
         return present
 
-    def __init__(self,authority):
+    def __init__(self,authority,*,support=None):
         from magnolie_file_native_authority import NativeDesktopFileAuthority
         if type(authority) is not NativeDesktopFileAuthority:raise ValueError('native media settings authority required')
+        if support is not None:
+            from magnolie_media_support import NativeMediaSupportAttempt
+            if type(support) is not NativeMediaSupportAttempt:
+                raise ValueError('native media settings support witness required')
         import threading
         self._authority=authority;self._store=authority.binding.store_owner;self._gate=threading.RLock()
+        self._support=support
         self._peer_id=authority.binding.peer_id;self._public=authority.binding.static_public
         self._local=authority.identity.receiver_id
         peer=authority.current_peer()
@@ -189,6 +194,9 @@ class NativeMediaSettingsStore:
         peer=self._authority.current_peer()
         if peer is None or not peer.metadata_supported:raise PermissionError('media_settings_native_owner_changed')
         self._store._shared_settings_binding(self._peer_id,self._public)
+        if self._support is not None:
+            if not self._support.supports(self._authority.native_channel):raise PermissionError('media_settings_peer_unsupported')
+            return
         peers=strict_json(self._authority.protection.read_native_peers_blob())['items']
         status=peers[0]['capabilities'].get('items',{}).get('device_status',{}) if len(peers)==1 else {}
         if status.get('available') is not True or DISCOVERY_VERSION not in status.get('versions',[]):
