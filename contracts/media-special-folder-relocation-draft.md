@@ -234,8 +234,10 @@ commit prevents a rename; a split after a rename does not replay it. The
 folder-based terminal checkpoint now also binds the complete, exact set of
 folder attempt and result rows. A private read-only recovery entry checks this
 evidence and the original owner/journal agreement after reopen. A missing row
-or split holds; no entry is repaired, adopted, or replayed. This entry is not
-yet wired into the ordinary connection recovery or receive comparison.
+or split holds; no entry is repaired, adopted, or replayed. The same check
+now guards the connection's read-only recovery and receive comparison. A
+synthetic reconnect recognized the moved original without another download or
+Saved response. An incomplete or competing owner still holds.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in

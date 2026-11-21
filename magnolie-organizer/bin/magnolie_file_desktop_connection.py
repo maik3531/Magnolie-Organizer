@@ -2548,14 +2548,13 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_receive_already_active')
             with (closing(ProtectedRelocationOwner(self._authority)) as owner,
                     closing(ProtectedMediaRelocationJournal(self._authority)) as journal):
-                intent=owner.read_intent()
+                folder,intent,witness=owner._read_comparison_checkpoint()
                 prepared=journal.read()
                 if intent is None:
                     if prepared.associated or prepared.records or prepared.outcome_version is not None:
                         raise TransferError('photo_relocation_original_owner_required')
                     action.validate(self)
                     return ()  # No visible operation; not evidence of first use.
-                witness=owner.require_checkpoint(intent)
                 binding=self._receive_binding(media_type='images');policy=self._receiving_policy()
                 self._verify_expected_mapping_store()
                 snapshot,roots=self._mappings._lookup_relocation_originals(intent.mappings)
@@ -2568,11 +2567,14 @@ class NativeDesktopFileConnection:
                     raise TransferError('photo_relocation_original_mapping_changed')
                 def current():
                     action.validate(self)
+                    checkpoint_matches=(owner.require_checkpoint(intent)==witness if folder is None
+                        else owner.require_folder_checkpoint(folder)==(intent,witness))
                     if (self._receive_binding(media_type='images')!=binding or self._receiving_policy()!=policy
-                            or owner.require_checkpoint(intent)!=witness):
+                            or not checkpoint_matches):
                         raise TransferError('photo_relocation_original_owner_changed')
                     return True
-                result=owner.inspect_bound_recovery(journal,destination,require_original=current)
+                inspect=owner.inspect_bound_recovery if folder is None else owner.inspect_bound_folder_recovery
+                result=inspect(journal,destination,require_original=current)
                 if self._mappings.read()!=snapshot or journal.read()!=prepared:
                     raise TransferError('photo_relocation_original_mapping_changed')
                 current();return result

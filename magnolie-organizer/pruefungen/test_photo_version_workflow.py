@@ -224,7 +224,7 @@ def test_pc_edit_during_version_download_is_held_before_publication_or_head_adva
     assert connection._mappings.read()==before and not list(receiving[4].glob('Versionen/**/*.jpg'))
 
 
-@pytest.mark.parametrize('outcome',['intent_only','completed_move','independent_receive','version_alias'])
+@pytest.mark.parametrize('outcome',['intent_only','completed_move','independent_receive','version_alias','folder_completed'])
 def test_photo_review_and_version_publication_respect_the_original_relocation_owner(receiving,outcome):
     from contextlib import closing
     from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
@@ -251,6 +251,29 @@ def test_photo_review_and_version_publication_respect_the_original_relocation_ow
     mapping,=(entry for entry in mappings if entry.relative_path==path)
     prefs=connection._preferences.read();jobs=connection._catalog.jobs()
     old=root/mapping.relative_path;new=root/'Animationen'/mapping.relative_path
+    if outcome=='folder_completed':
+        from magnolie_media_relocation_record import (MissingGifTargetDraft, bind_gif_relocation_folder_plan,
+            inspect_relocation_target_parents)
+        relative=str(new.relative_to(root))
+        with NativeMediaRetention(authority.binding.native_directory) as book:
+            saved_book=book.saved_book_version()
+        parents=inspect_relocation_target_parents(mapping.destination,relative,lambda:True)
+        member=MissingGifTargetDraft('4'*32,saved_book,prefs.version,mapping.protected_record_sha256,
+            mapping.destination,mapping.relative_path,mapping.parent_keys,relative,parents,
+            RelocationFileWitness(mapping.file_key,len(ANIMATED),sha256(ANIMATED).hexdigest()))
+        plan=bind_gif_relocation_folder_plan((member,),mapping.destination)
+        def selected():return connection._mappings.lookup((mapping.association,))==(snapshot,(mapping,))
+        with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+            owner._move_after_confirmed_gif_folder_creation(owner._issue_confirmed_action(selected),journal,plan,mapping.destination)
+        with reconnect(receiving) as fresh:
+            reopened=fresh[3];prepared(fresh)
+            observed,=reopened._inspect_gif_relocation_recovery(reopened.issue_receive_action())
+            assert observed.state=='moved' and not observed.grants_write_authority
+            state,chunks,saved=cycle(fresh,changed(full,'b',ANIMATED),ANIMATED,media_kinds=kinds)
+            assert state['state']=='complete' and state['known_files']==1 and not chunks and not saved,state
+            assert reopened._mappings.lookup((mapping.association,))==(snapshot,(mapping,))
+        assert not old.exists() and new.read_bytes()==ANIMATED and new.stat().st_ino==mapping.file_key[1]
+        return
     target_chain=tuple(reversed(new.parents[:len(new.relative_to(root).parts)]))
     assert target_chain[0]==root
     # mkdir(parents=True) uses the host umask for intermediate parents, not

@@ -379,6 +379,9 @@ class ProtectedRelocationOwner(NativeMediaRetention):
         from magnolie_media_relocation_journal import RelocationOwnerCheckpoint
         if type(folder_intent) is not RelocationOwnerIntent or self.read_folder_intent()!=folder_intent:
             raise TransferError('photo_relocation_original_owner_changed')
+        if self._db.execute('SELECT 1 FROM meta WHERE key IN (?,?) LIMIT 1',
+                (self._INTENT_KEY,self._PREPARED_KEY)).fetchone():
+            raise TransferError('photo_relocation_original_owner_changed')
         subject=self._subject()
         sql='SELECT value FROM meta WHERE key=?'
         row=self._db.execute(sql,(self._FOLDER_PREPARED_KEY,)).fetchone()
@@ -401,6 +404,17 @@ class ProtectedRelocationOwner(NativeMediaRetention):
                 or self._db.execute(sql,(self._FOLDER_PREPARED_KEY,)).fetchone()!=row):
             raise TransferError('photo_relocation_original_checkpoint_changed')
         return intent,witness
+
+    def _read_comparison_checkpoint(self):
+        """Select the exact original owner, never treating a folder hold as absence."""
+        try:intent=self.read_intent()
+        except TransferError as error:
+            if str(error)!='photo_relocation_folder_plan_held':raise
+            folder=self.read_folder_intent()
+            if folder is None:raise
+            intent,witness=self.require_folder_checkpoint(folder)
+            return folder,intent,witness
+        return None,intent,self.require_checkpoint(intent) if intent is not None else None
 
     def record_confirmed_intent(self,action,records,destination,confirmed_sha256):
         with self._confirming_intent(action,records,destination,confirmed_sha256) as (intent,_):
@@ -653,12 +667,11 @@ class RelocationComparison:
         self._owner=owner;self._journal=journal;self._activity=require_activity
         self._mappings=mappings;self._roots=None
         require_activity()
-        self._intent=owner.read_intent();self._snapshot=journal.read()
-        self._witness=None
+        self._folder,self._intent,self._witness=owner._read_comparison_checkpoint()
+        self._snapshot=journal.read()
         if self._intent is None:
             if self._snapshot.records:raise TransferError('photo_relocation_original_owner_required')
         else:
-            self._witness=owner.require_checkpoint(self._intent)
             snapshot=self._snapshot;witness=self._witness;intent=self._intent
             if (not snapshot.associated or not snapshot.records
                     or (snapshot.version,snapshot.outcome_version)!=(witness.prepared_version,witness.outcome_version)
@@ -674,12 +687,16 @@ class RelocationComparison:
 
     def _current(self):
         self._activity()
-        if self._owner.read_intent()!=self._intent:
+        if self._folder is None and self._owner.read_intent()!=self._intent:
             raise TransferError('photo_relocation_original_owner_changed')
         if self._intent is not None:
             if self._owner.saved_book_version()!=self._intent.book_sha256:
                 raise TransferError('photo_relocation_original_book_changed')
-            if self._owner.require_checkpoint(self._intent)!=self._witness:
+            if self._folder is None:
+                checkpoint_matches=self._owner.require_checkpoint(self._intent)==self._witness
+            else:
+                checkpoint_matches=self._owner.require_folder_checkpoint(self._folder)==(self._intent,self._witness)
+            if not checkpoint_matches:
                 raise TransferError('photo_relocation_original_checkpoint_changed')
         return True
 
