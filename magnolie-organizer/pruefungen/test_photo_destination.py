@@ -32,6 +32,19 @@ def test_default_destination_is_created_only_by_exact_explicit_native_action(cho
     with pytest.raises(TransferError):controller.choose_default(action,pictures_provider=lambda:pictures)
     assert before=={path.name:path.read_bytes() for path in Path(service.store.root).iterdir() if path.is_file()}
 
+def test_group_writable_default_is_held_but_explicit_private_choice_is_available(chooser,tmp_path):
+    _,_,_,controller,pictures,_=chooser
+    pictures.chmod(0o775)
+    original=pictures/'existing.jpg';original.write_bytes(b'original')
+    with pytest.raises(TransferError,match='file_acceptance_unsafe_destination'):
+        controller.choose_default(controller.issue_action(),pictures_provider=lambda:pictures)
+    assert list(pictures.iterdir())==[original] and original.read_bytes()==b'original'
+    assert pictures.stat().st_mode & 0o777==0o775
+    private=tmp_path/'private-photo-choice';private.mkdir(mode=0o700)
+    choice=controller.choose_custom(controller.issue_action(),private)
+    assert controller.verify_choice(choice).path==str(private)
+    assert not choice.destination.grants_write_authority and not list(private.iterdir())
+
 @pytest.mark.parametrize('name',['../.config/Telefon','CON.foo','Phone: Photos\\Downloads','📱','Maiks  Telefon','Müllers Telefon'])
 def test_native_phone_name_becomes_one_safe_component_not_a_raw_path(name):
     component=photo_folder_component(name)
