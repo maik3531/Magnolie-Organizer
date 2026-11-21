@@ -17,6 +17,7 @@ from magnolie_media_retention import NativeMediaActivity, NativeMediaRetention
 from magnolie_photo_destination import NativePhotoDestinationAction, require_media_directory
 from magnolie_photo_mappings import NativeSavedPhotoMapping
 from magnolie_photo_preferences import ProtectedPhotoPreferences
+from magnolie_telefon import canonical
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,41 @@ class RelocationJournalSnapshot:
     outcome_version: str | None = None
     outcomes: tuple = ()
     attempts: tuple = ()
+
+
+@dataclass(frozen=True)
+class RelocationOwnerCheckpoint:
+    """Bounded metadata for an independent owner store; parsing is not authority."""
+    selection_sha256: str
+    book_sha256: str
+    destination_sha256: str
+    prepared_version: str
+    outcome_version: str
+
+    def __post_init__(self):
+        if not all(_hex(value) for value in vars(self).values()):
+            raise TransferError('photo_relocation_invalid_owner_checkpoint')
+
+    def wire(self):return dict(format=1,**vars(self))
+
+    @classmethod
+    def parse(cls,value):
+        if (type(value) is not dict or set(value)!=(set(cls.__annotations__)|{'format'})
+                or type(value['format']) is not int or value['format']!=1):
+            raise TransferError('photo_relocation_invalid_owner_checkpoint')
+        return cls(**{key:value[key] for key in cls.__annotations__})
+
+    @classmethod
+    def from_snapshot(cls,snapshot,destination):
+        if (type(snapshot) is not RelocationJournalSnapshot or not snapshot.associated or not snapshot.records
+                or type(destination) is not NativeAcceptedDestination
+                or snapshot.records[0].root_key!=destination.ancestor_keys[0]):
+            raise TransferError('photo_relocation_original_checkpoint_required')
+        original=snapshot.records[0]
+        # The selection digest commits to operation ID, preferences, members,
+        # endpoint chains and bytes. The destination also pins its full path.
+        address=sha256(b'magnolie-relocation-owner-destination-v1\0'+canonical(destination.wire())).hexdigest()
+        return cls(original.selection_sha256,original.book_sha256,address,snapshot.version,snapshot.outcome_version)
 
 
 @dataclass(frozen=True)
@@ -190,14 +226,13 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
         `expected` must come from the original owner outside this journal. In
         particular, reading a checkpoint after restart is not an owner proof.
         """
-        if (type(expected) is not RelocationJournalSnapshot or not expected.associated or not expected.records
-                or not _hex(expected.outcome_version) or type(destination) is not NativeAcceptedDestination
+        if (type(expected) is not RelocationOwnerCheckpoint or type(destination) is not NativeAcceptedDestination
                 or not callable(require_original)):
             raise TransferError('photo_relocation_original_checkpoint_required')
         with NativeMediaRetention(self._native_directory()) as retention:
             def current_book():
                 if require_original() is not True:raise TransferError('photo_relocation_original_owner_ended')
-                if retention.saved_book_version()!=expected.records[0].book_sha256:
+                if retention.saved_book_version()!=expected.book_sha256:
                     raise TransferError('photo_relocation_original_book_changed')
                 return True
             with retention.activity(current_book) as lease:
@@ -208,9 +243,8 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
                         def current():
                             lease();self._fresh();return True
                         self._schema();before=self._anchored_snapshot();current()
-                        if before!=expected:raise TransferError('photo_relocation_original_journal_changed')
-                        if destination.ancestor_keys[0]!=before.records[0].root_key:
-                            raise TransferError('photo_relocation_original_destination_required')
+                        if not before.records or RelocationOwnerCheckpoint.from_snapshot(before,destination)!=expected:
+                            raise TransferError('photo_relocation_original_journal_changed')
                         outcomes=dict(before.outcomes);attempts=set(before.attempts);observations=[]
                         for ordinal,record in enumerate(before.records):
                             state='held'

@@ -11,7 +11,7 @@ from test_media_relocation_record import ANIMATED, native_fixture
 from test_file_desktop_receive import receiving
 from test_file_authenticated_desktop import native, bind
 from magnolie_file_transfer import TransferError
-from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
+from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal, RelocationOwnerCheckpoint
 from magnolie_media_relocation_record import bind_relocation_selection
 from magnolie_media_retention import NativeMediaRetention, saved_book_retention
 from magnolie_optional_phone import selected_modules
@@ -126,12 +126,21 @@ def test_restart_inspection_needs_the_external_checkpoint_and_classifies_the_who
         prepared=journal.prepare(journal.issue_action(),journal.read(),selection,selection[0].selection_sha256,
             destination,require_original=lambda:True)
         checkpoint=journal.record_terminal(journal.issue_action(),prepared,1,'canceled',destination,require_original=lambda:True)
+        old_witness=RelocationOwnerCheckpoint.from_snapshot(prepared,destination)
+        witness=RelocationOwnerCheckpoint.from_snapshot(checkpoint,destination)
+        for malformed in (dict(witness.wire(),format=True),dict(witness.wire(),path=str(source)),
+                dict(witness.wire(),prepared_version=None),{k:v for k,v in witness.wire().items() if k!='book_sha256'}):
+            with pytest.raises(TransferError,match='invalid_owner_checkpoint'):
+                RelocationOwnerCheckpoint.parse(malformed)
         directory=Path(journal._native_directory())
         store=directory/journal._name;anchor=directory/journal._anchor.name
     with closing(ProtectedMediaRelocationJournal(authority)) as reopened:
-        def inspect(expected=checkpoint,current=lambda:True):
+        def inspect(expected=RelocationOwnerCheckpoint.parse(witness.wire()),current=lambda:True):
             return reopened.inspect_original_recovery(expected,destination,require_original=current)
-        with pytest.raises(TransferError,match='original_journal_changed'):inspect(prepared)
+        with pytest.raises(TransferError,match='original_journal_changed'):inspect(old_witness)
+        for field in ('selection_sha256','destination_sha256','prepared_version','outcome_version'):
+            with pytest.raises(TransferError,match='original_journal_changed'):inspect(replace(witness,**{field:'f'*64}))
+        with pytest.raises(TransferError,match='original_checkpoint_required'):inspect(checkpoint)
         with pytest.raises(TransferError,match='original_owner_ended'):inspect(current=lambda:False)
         observed=inspect()
         assert [(v.ordinal,v.state) for v in observed]==[(0,'prepared_at_source'),(1,'canceled')]
@@ -148,7 +157,7 @@ def test_restart_inspection_needs_the_external_checkpoint_and_classifies_the_who
     with closing(ProtectedMediaRelocationJournal(authority)) as reopened:
         assert not reopened.read().records
         with pytest.raises(TransferError,match='original_journal_changed'):
-            reopened.inspect_original_recovery(checkpoint,destination,require_original=lambda:True)
+            reopened.inspect_original_recovery(witness,destination,require_original=lambda:True)
     assert not store.exists() and not anchor.exists() and target.read_bytes()==raw and not source.exists()
 
 
@@ -275,7 +284,8 @@ def test_native_animation_rename_preserves_inode_bytes_mode_and_mtime(receiving,
         assert moved.attempts==(0,) and moved.outcomes==((0,replace(selection[0],phase='moved')),)
     with closing(ProtectedMediaRelocationJournal(authority)) as journal:
         assert journal.require_prepared(expected.version,version)==moved
-        observed,=journal.inspect_original_recovery(moved,destination,require_original=lambda:True)
+        observed,=journal.inspect_original_recovery(RelocationOwnerCheckpoint.from_snapshot(moved,destination),
+            destination,require_original=lambda:True)
         assert observed.state=='moved' and not observed.grants_write_authority
         with pytest.raises(TransferError,match='already_recorded'):
             journal.move_prepared_animation(journal.issue_action(),moved,0,destination,require_original=lambda:True)
@@ -303,7 +313,7 @@ def test_spent_native_attempt_cannot_replay_after_failure_or_revocation(receivin
         patch.setattr('magnolie_media_trash._move_no_replace',wrapped)
         append=journal._append_member
         def spend(*args):
-            result=append(*args);checkpoints.append(result)
+            result=append(*args);checkpoints.append(RelocationOwnerCheckpoint.from_snapshot(result,destination))
             if fault=='revoked_after_spend':withdrawn.append(True)
             return result
         patch.setattr(journal,'_append_member',spend)
@@ -313,11 +323,11 @@ def test_spent_native_attempt_cannot_replay_after_failure_or_revocation(receivin
     with closing(ProtectedMediaRelocationJournal(authority)) as journal:
         checkpoint,=checkpoints # Captured before the interruption, not adopted on restart.
         held=journal.require_prepared(expected.version,version)
-        assert held==checkpoint and held.attempts==(0,) and not held.outcomes
+        assert RelocationOwnerCheckpoint.from_snapshot(held,destination)==checkpoint and held.attempts==(0,) and not held.outcomes
         observed,=journal.inspect_original_recovery(checkpoint,destination,require_original=lambda:True)
         assert observed.state=={'late_collision':'held','revoked_after_spend':'held_spent_at_source',
             'interrupted_after_rename':'held_spent_at_target'}[fault]
-        assert not observed.grants_write_authority and journal.read()==checkpoint
+        assert not observed.grants_write_authority and journal.read()==held
         with pytest.raises(TransferError,match='attempt_already_spent'):
             journal.move_prepared_animation(journal.issue_action(),held,0,destination,require_original=lambda:True)
         if fault=='interrupted_after_rename':
@@ -345,7 +355,8 @@ def test_native_move_requires_original_saved_book_and_exclusive_media_lane(recei
             with saved_book_retention(directory,{'einstellungen':{'papierkorb':{'an':True,'tage':0}}}) as saved:pass
             assert not saved
             with pytest.raises(TransferError,match='original_book_changed'):
-                journal.inspect_original_recovery(prepared,destination,require_original=lambda:True)
+                journal.inspect_original_recovery(RelocationOwnerCheckpoint.from_snapshot(prepared,destination),
+                    destination,require_original=lambda:True)
             with pytest.raises(TransferError,match='original_book_changed'):
                 journal.move_prepared_animation(journal.issue_action(),prepared,0,destination,require_original=lambda:True)
             assert journal.require_prepared(prepared.version,version)==prepared

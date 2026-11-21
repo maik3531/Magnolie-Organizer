@@ -101,6 +101,14 @@ fail the whole inspection. The product still has no durable external owner
 that supplies this checkpoint after restart; opening the journal alone does not
 establish that owner.
 
+The owner's checkpoint has a strict, path-free encoding: the confirmed
+selection digest (including the operation, preferences, and exact members),
+saved-book digest, full destination digest, and both journal revisions. It is
+only metadata: decoding it cannot establish consent. The future owner must
+persist it separately and be able to hold affected comparisons when either
+store is missing or out of step. Until that store and native confirmation
+are connected, the product must not enable relocation.
+
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in
 the existing source directory; preserve local edits rather than replacing them
