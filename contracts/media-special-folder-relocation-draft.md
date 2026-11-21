@@ -115,8 +115,12 @@ exclusive media lane. It binds the original operation, selection, saved book,
 destination and exact historical mapping digests to the original local and
 paired identities. It cannot replace an existing intent or create a journal.
 An intent surviving a failure after commit is a hold, not proof of a completed
-preparation. Attaching the exact journal checkpoint in the live original
-operation and using this fence in production comparisons are still open.
+preparation. The live confirmation now binds the exact first prepared journal
+checkpoint in a second sealed row after the anchored preparation readback.
+No phone DB transaction spans journal I/O. A cut between the commits remains
+held; restart cannot adopt a newer journal head or repeat the confirmation.
+Promotion through spent attempts and outcomes, and using this fence in
+production comparisons, are still open.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in

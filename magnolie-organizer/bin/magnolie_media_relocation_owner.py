@@ -3,6 +3,7 @@
 No file moves, journal bootstrap, recovery or app bridge. A durable intent
 is a hold, not permission to resume a move after restart.
 """
+from contextlib import contextmanager
 from dataclasses import dataclass
 from hashlib import sha256
 import time
@@ -64,6 +65,8 @@ class ProtectedRelocationOwner(NativeMediaRetention):
     # Do not override the base retention KEY/DOMAIN: this is a separate row.
     _INTENT_KEY='media_relocation_owner:local:v1'
     _INTENT_DOMAIN='media-relocation-owner-v1/local'
+    _PREPARED_KEY='media_relocation_prepared:local:v1'
+    _PREPARED_DOMAIN='media-relocation-prepared-v1/local'
     _MAX_CIPHER_BYTES=16384
 
     def __init__(self,authority,*,monotonic_ms=lambda:time.monotonic_ns()//1_000_000):
@@ -93,6 +96,9 @@ class ProtectedRelocationOwner(NativeMediaRetention):
                     or body['subject']!=subject or canonical(body)!=plain):
                 raise TransferError('photo_relocation_original_owner_changed')
             intent=RelocationOwnerIntent.parse(body['intent'])
+        elif self._db.execute('SELECT 1 FROM meta WHERE key=?',(self._PREPARED_KEY,)).fetchone() is not None:
+            self._held=True
+            raise TransferError('photo_relocation_original_owner_changed')
         if self._observed is not None and intent!=self._observed or self._subject()!=subject:
             self._held=True
             raise TransferError('photo_relocation_original_owner_changed')
@@ -114,6 +120,11 @@ class ProtectedRelocationOwner(NativeMediaRetention):
         return NativePhotoDestinationAction(self,self._clock,native_current=lambda:native_current() is True)
 
     def record_confirmed_intent(self,action,records,destination,confirmed_sha256):
+        with self._confirming_intent(action,records,destination,confirmed_sha256) as (intent,_):
+            return intent
+
+    @contextmanager
+    def _confirming_intent(self,action,records,destination,confirmed_sha256):
         if type(action) is not NativePhotoDestinationAction:
             raise TransferError('photo_relocation_original_owner_required')
         action.consume(self)
@@ -142,4 +153,62 @@ class ProtectedRelocationOwner(NativeMediaRetention):
                 self._db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(self._INTENT_KEY,blob))
                 lease()
             self.require_intent(intent);lease()
-        return intent
+            yield intent,lease
+
+    def prepare_original(self,action,journal,records,destination,confirmed_sha256):
+        """Prepare and bind the exact readback while the original action lives.
+
+        No public setter for a checkpoint loaded after a restart. The intent
+        survives any split between independent commits and prevents a retry.
+        No media file is moved by this operation.
+        """
+        from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal, RelocationOwnerCheckpoint
+        if type(journal) is not ProtectedMediaRelocationJournal or journal._authority is not self._authority:
+            raise TransferError('photo_relocation_original_owner_required')
+        with self._confirming_intent(action,records,destination,confirmed_sha256) as (intent,lease):
+            def current():
+                lease();return self.require_intent(intent)
+            initial=journal.read();current()
+            snapshot=journal.prepare(journal.issue_action(_native_current=current),initial,records,confirmed_sha256,
+                destination,require_original=current)
+            if snapshot.records!=records or snapshot.attempts or snapshot.outcomes:
+                raise TransferError('photo_relocation_original_journal_changed')
+            checkpoint=RelocationOwnerCheckpoint.from_snapshot(snapshot,destination)
+            if journal.require_prepared(checkpoint.prepared_version,intent.selection_sha256)!=snapshot:
+                raise TransferError('photo_relocation_original_journal_changed')
+            subject=self._subject()
+            body=dict(db=list(self._identity),subject=subject,intent=intent.wire(),checkpoint=checkpoint.wire())
+            with self._transaction():
+                current()
+                if self._db.execute('SELECT 1 FROM meta WHERE key=?',(self._PREPARED_KEY,)).fetchone() is not None:
+                    raise TransferError('photo_relocation_preparation_already_recorded')
+                cipher=self._protection.seal(canonical(body),self._PREPARED_DOMAIN)
+                self._db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(self._PREPARED_KEY,cipher))
+                current()
+            if self.require_checkpoint(intent)!=checkpoint:
+                raise TransferError('photo_relocation_original_checkpoint_changed')
+            if journal.require_prepared(checkpoint.prepared_version,intent.selection_sha256)!=snapshot:
+                raise TransferError('photo_relocation_original_journal_changed')
+            current();return intent,checkpoint
+
+    def require_checkpoint(self,intent):
+        """Read the original outer checkpoint, not the journal's current head."""
+        from magnolie_media_relocation_journal import RelocationOwnerCheckpoint
+        self.require_intent(intent);subject=self._subject()
+        row=self._db.execute('SELECT value FROM meta WHERE key=?',(self._PREPARED_KEY,)).fetchone()
+        if row is None:raise TransferError('photo_relocation_original_checkpoint_required')
+        cipher,=row
+        if type(cipher) is not bytes or not 28<=len(cipher)<=self._MAX_CIPHER_BYTES:
+            raise TransferError('photo_relocation_invalid_owner_checkpoint')
+        plain=self._protection.unseal(cipher,self._PREPARED_DOMAIN);body=strict_json(plain)
+        if (type(body) is not dict or set(body)!={'db','subject','intent','checkpoint'} or canonical(body)!=plain
+                or body['db']!=list(self._identity) or body['subject']!=subject or body['intent']!=intent.wire()):
+            raise TransferError('photo_relocation_original_checkpoint_changed')
+        witness=RelocationOwnerCheckpoint.parse(body['checkpoint'])
+        if ((witness.selection_sha256,witness.book_sha256,witness.destination_sha256)!=
+                (intent.selection_sha256,intent.book_sha256,intent.destination_sha256) or self._subject()!=subject):
+            raise TransferError('photo_relocation_original_checkpoint_changed')
+        self.require_intent(intent)
+        if self._db.execute('SELECT value FROM meta WHERE key=?',(self._PREPARED_KEY,)).fetchone()!=row:
+            raise TransferError('photo_relocation_original_checkpoint_changed')
+        return witness

@@ -121,6 +121,45 @@ def test_owner_intent_fails_closed_after_row_loss(relocation_owner_case):
     assert source.read_bytes()==raw and not target.exists()
 
 
+def test_preparation_is_bound_to_original_owner_checkpoint_before_restart(relocation_owner_case):
+    authority,records,destination,source,target,raw=relocation_owner_case
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        intent,witness=owner.prepare_original(owner._issue_confirmed_action(lambda:True),journal,records,destination,
+            records[0].selection_sha256)
+        prepared=journal.read()
+        assert witness==RelocationOwnerCheckpoint.from_snapshot(prepared,destination)
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        def current():return owner.require_checkpoint(intent)==witness
+        assert [v.state for v in journal.inspect_original_recovery(owner.require_checkpoint(intent),destination,
+            require_original=current)]==['prepared_at_source','prepared_at_source']
+        # The newer journal head must not adopt itself into the outer store.
+        journal.record_terminal(journal.issue_action(),prepared,0,'canceled',destination,require_original=lambda:True)
+        assert owner.require_checkpoint(intent)==witness
+        with pytest.raises(TransferError,match='original_journal_changed'):
+            journal.inspect_original_recovery(witness,destination,require_original=current)
+    assert source.read_bytes()==raw and not target.exists()
+
+
+def test_journal_committed_without_outer_checkpoint_cannot_be_adopted(relocation_owner_case,monkeypatch):
+    authority,records,destination,source,target,raw=relocation_owner_case
+    active=True
+    intent=RelocationOwnerIntent.for_selection(records,destination)
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        original=journal.prepare
+        def interrupt(*args,**kwargs):
+            nonlocal active
+            result=original(*args,**kwargs);active=False;return result
+        monkeypatch.setattr(journal,'prepare',interrupt)
+        with pytest.raises(TransferError,match='native_guard_changed'):
+            owner.prepare_original(owner._issue_confirmed_action(lambda:active),journal,records,destination,intent.selection_sha256)
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        assert owner.require_intent(intent) and journal.read().records==records
+        with pytest.raises(TransferError,match='original_checkpoint_required'):owner.require_checkpoint(intent)
+        with pytest.raises(TransferError,match='owner_already_recorded'):
+            owner.prepare_original(owner._issue_confirmed_action(lambda:True),journal,records,destination,intent.selection_sha256)
+    assert source.read_bytes()==raw and not target.exists()
+
+
 @pytest.mark.parametrize('cut',['before_commit','after_commit'])
 def test_confirmation_cut_cannot_return_move_authority_or_bootstrap_journal(relocation_owner_case,monkeypatch,cut):
     authority,records,destination,source,target,raw=relocation_owner_case
