@@ -2139,10 +2139,19 @@ class NativeDesktopFileConnection:
         changed versions use separate immutable targets, not an in-place replace.
         """
         self._take_action(action)
-        with self._operation():
+        with self._operation(), ExitStack() as media:
             run = self._require_receiver()
             if not run.acceptance_sent:
                 raise TransferError('file_desktop_acceptance_not_sent')
+            if run.receiver._index.media_history is not None:
+                # Keep local relocation and media publication mutually exclusive,
+                # including the saved mapping and its first outbound receipt.
+                from magnolie_media_retention import NativeMediaRetention
+                retention=media.enter_context(NativeMediaRetention(self._authority.binding.native_directory))
+                def current():
+                    action.validate(self);return True
+                if media.enter_context(retention.activity(current)) is None:
+                    raise TransferError('file_desktop_media_activity_busy')
             self._mutation_action = action
             try:
                 action.validate(self)

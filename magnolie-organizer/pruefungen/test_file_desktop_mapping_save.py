@@ -33,6 +33,33 @@ def test_actual_mapping_is_durable_and_matches_original_receipt_before_saved_soc
     assert len(connection._catalog.jobs())==1
 
 
+def test_media_activity_blocks_publication_before_bytes_mapping_or_saved_and_releases_afterward(receiving):
+    from magnolie_media_retention import NativeMediaRetention
+    connection=receiving[3];receiver,_,association=save(receiving,publish=False)
+    directory=connection._authority.binding.native_directory
+    destination=receiving[4];before=set(destination.rglob('*'))
+    mapping=connection._mappings.lookup((association,))
+    with NativeMediaRetention(directory) as other:
+        with other.activity(exclusive=True) as relocation:
+            assert relocation is not None
+            with pytest.raises(TransferError,match='media_activity_busy'):
+                connection.publish_received(connection.issue_receive_action())
+            assert set(destination.rglob('*'))==before
+            assert not receiver._index.saved_receipts() and not saved_messages(receiving)
+            assert connection._mappings.lookup((association,))==mapping
+        seen=[]
+        def sent(message):
+            if message['kind']=='file_transfer.saved':
+                with other.activity(exclusive=True) as conflict:assert conflict is None
+                seen.append(message['kind'])
+        receiving[2].send.side_effect=sent
+        connection.publish_received(connection.issue_receive_action())
+        with other.activity(exclusive=True) as relocation:assert relocation is not None
+    assert seen==['file_transfer.saved'] and len(saved_messages(receiving))==1
+    _,(published,)=connection._mappings.lookup((association,))
+    assert published is not None and (destination/published.relative_path).read_bytes()==b'hello'
+
+
 @pytest.mark.parametrize('cache',['cleared','changed'])
 def test_original_protected_job_history_not_mutable_current_page_cache_supplies_mapping(receiving,cache):
     connection=receiving[3];receiver,pages,association=save(receiving,publish=False)
