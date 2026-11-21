@@ -48,6 +48,9 @@ def test_actual_worker_skips_unchanged_mapped_file_without_cache_or_phone_read(s
 def test_actual_worker_sends_changed_bytes_then_backs_up_archives_and_skips_second_pass(source,native,monkeypatch,trigger):
     with composition(source,native[0]) as h:
         owner=h.connection._local().owner;h.target.write_bytes(png())
+        pc_only=h.target.with_name('additional-PC-photo.png')
+        pc_only.write_bytes(png())
+        pc_only_before=(pc_only.stat().st_ino,pc_only.read_bytes())
         if trigger=='wifi':
             from magnolie_file_desktop_connection import NativePhotoDesktopSession
             monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',.1)
@@ -63,6 +66,9 @@ def test_actual_worker_sends_changed_bytes_then_backs_up_archives_and_skips_seco
             sender=h.connection._media_sender
             assert sender is not None and sender._controls is h.connection._controls
             cache=sender._cache;accepted=acceptance(sender,cache,offer)
+            assert len(cache.manifest.files)==1
+            assert set(offer['body']['originals'])=={cache.manifest.files[0].id}
+            assert not offer['body'].get('pc_origins')
             try:dispatch(h,native[0],accepted)
             except Exception as error:raise AssertionError(worker.progress()) from error
             for index in range(cache.manifest.files[0].chunks):
@@ -99,6 +105,7 @@ def test_actual_worker_sends_changed_bytes_then_backs_up_archives_and_skips_seco
             second=start(h);assert second.join(30),second.progress()
             assert second.progress()['state']=='complete' and second.progress()['known_files']==1,second.progress()
             assert second.progress()['saved_files']==0 and h.target.read_bytes()==png()
+            assert (pc_only.stat().st_ino,pc_only.read_bytes())==pc_only_before
             assert h.connection._local().owner is owner and h.connection._controls.packet().grants==controls.grants
         finally:
             if worker is not None:worker.stop();assert worker.join(30),worker.progress()
@@ -175,9 +182,11 @@ def test_normal_session_pc_only_manual_pass_never_discovers_or_requests_phone_re
         assert h.connection._mapped_worker is None and not h.source._prepared
 
 
-def test_import_only_scope_cannot_export_even_with_pc_to_phone_direction_and_native_send_consent(source,native,monkeypatch):
+@pytest.mark.parametrize('scope,direction',[('import_only','pc_to_phone'),('phone_inventory','phone_to_pc')])
+def test_import_only_does_not_send_pc_edits_even_with_native_send_consent(source,native,monkeypatch,scope,direction):
     with composition(source,native[0]) as h:
-        h.controller.change('collection_mode','import_only');h.controller.change('direction','pc_to_phone')
+        h.target.write_bytes(png())
+        h.controller.change('collection_mode',scope);h.controller.change('direction',direction)
         attempted=h.controller.send_settings();assert h.wire.receive()==attempted
         dispatch(h,native[0],dict(type='ack',message_id=attempted['message_id'],status='accepted',error='none'))
         dispatch(h,native[0],message('file_transfer.shared_settings',attempted['body']));assert h.wire.receive()['type']=='ack'
@@ -186,7 +195,7 @@ def test_import_only_scope_cannot_export_even_with_pc_to_phone_direction_and_nat
         monkeypatch.setattr(h.source,'plan',lambda *a,**k:pytest.fail('Import-only worker entered source planning'))
         worker=start(h);assert worker.join(30),worker.progress()
         assert worker.progress()['state']=='held' and worker.progress()['error']=='media_source_current_intent_required'
-        assert not h.source._prepared
+        assert not h.source._prepared and h.target.read_bytes()==png()
 
 
 @pytest.mark.parametrize('finish',['retry','stop','withdraw','other_error'])
