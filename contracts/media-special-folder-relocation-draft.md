@@ -118,6 +118,10 @@ this comparison.
   selection entry point can freeze an exact explicit list of up to 128 current
   image mappings under a single shared lease. All selected members must pass;
   it never silently drops one, creates missing parents, or grants a move.
+  Its separate folder-plan mode binds all verified members into one read-only
+  digest, including the existing inode prefixes and exact missing suffixes.
+  Common parents must agree in spelling, identity and existence. Creating a
+  folder changes the plan; neither the plan nor its members are rename records.
 - Bound the complete selection, and detect destination collisions, including
   case-folded equivalents and targets of members that are staying put. Never
   use a chain of moves to clear an occupied target. Only the user-confirmed

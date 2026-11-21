@@ -209,6 +209,7 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
 
 def test_native_gif_selection_freezes_only_the_exact_checked_originals_without_writing(receiving):
     from magnolie_media_relocation_owner import ProtectedRelocationOwner
+    from magnolie_media_relocation_record import bind_gif_relocation_folder_plan, bind_relocation_selection
     from magnolie_media_retention import NativeMediaActivity
     from test_media_relocation_record import ANIMATED
 
@@ -240,6 +241,20 @@ def test_native_gif_selection_freezes_only_the_exact_checked_originals_without_w
         with pytest.raises(TransferError,match='activity_busy'):preview()
     with pytest.raises(TransferError,match='target_parents_missing'):preview()
     assert not (target/'Animationen').exists()
+    plan=connection._preview_gif_relocation_selection(connection.issue_receive_action(),choices,_folder_plan=True)
+    assert not plan.grants_write_authority and [entry.source for entry in plan.members]==sorted(kinds)
+    assert all(entry.target_parents.missing==('Animationen','Camera') for entry in plan.members)
+    assert bind_gif_relocation_folder_plan(tuple(reversed(plan.members)),mappings[0].destination)==plan
+    first,second=plan.members
+    with pytest.raises(TransferError,match='invalid_folder_plan'):
+        altered=replace(first,target_parents=replace(first.target_parents,missing=('Camera',)))
+        bind_gif_relocation_folder_plan((altered,second),first.destination)
+    with pytest.raises(TransferError,match='parent_changed'):
+        conflicting=replace(second,target_parents=replace(second.target_parents,
+            existing=(second.destination.ancestor_keys[0],second.source_parents[1]),missing=('Camera',)))
+        bind_gif_relocation_folder_plan((first,conflicting),first.destination)
+    with pytest.raises(TransferError,match='invalid_selection'):bind_relocation_selection(plan.members,occupied=())
+    assert not (target/'Animationen').exists()
     parent=target/'Animationen/Camera';parent.parent.mkdir(mode=0o700);parent.mkdir(mode=0o700)
     second=target/other.path;second.write_bytes(b'unproven local content')
     with pytest.raises(TransferError,match='animation_unproven'):preview()
@@ -250,6 +265,8 @@ def test_native_gif_selection_freezes_only_the_exact_checked_originals_without_w
     assert {record.target for record in selection}=={'Animationen/'+path for path in kinds}
     assert {record.original_mapping_sha256 for record in selection}=={digest for _,digest in choices}
     assert len({record.selection_sha256 for record in selection})==1
+    assert bind_gif_relocation_folder_plan(tuple(replace(record,selection_sha256='0'*64,operation=plan.members[0].operation)
+        for record in selection),mappings[0].destination).selection_sha256!=plan.selection_sha256
     assert all(record.phase=='prepared' and not record.grants_write_authority for record in selection)
     assert all((target/mapping.relative_path).read_bytes()==ANIMATED for mapping in mappings)
     assert not list(parent.iterdir()) and not list(Path(native).glob('media-relocation-v1-*'))

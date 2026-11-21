@@ -58,6 +58,66 @@ class MissingGifTargetDraft:
     def grants_write_authority(self):return False
 
 
+@dataclass(frozen=True)
+class GifRelocationFolderPlan:
+    """Whole selection including missing parents; never accepted by the journal."""
+    members: tuple
+    selection_sha256: str
+
+    @property
+    def grants_write_authority(self):return False
+
+
+def bind_gif_relocation_folder_plan(drafts,destination):
+    """Commit to the existing inode chains and the exact missing names together."""
+    if (type(drafts) is not tuple or not 1<=len(drafts)<=128
+            or type(destination) is not NativeAcceptedDestination):
+        raise TransferError('photo_relocation_invalid_folder_plan')
+    members=[];prefixes={};subject=None;paths=set();inodes=set();mappings=set()
+    for draft in drafts:
+        if type(draft) is MediaRelocationRecord and draft.phase=='prepared' and draft.selection_sha256=='0'*64:
+            draft=MissingGifTargetDraft(draft.operation,draft.book_sha256,draft.preferences_sha256,draft.original_mapping_sha256,
+                destination,draft.source,draft.source_parents,draft.target,RelocationTargetParentObservation(draft.target_parents,()),draft.file)
+        if (type(draft) is not MissingGifTargetDraft or draft.destination!=destination
+                or not _hex(draft.book_sha256) or not _hex(draft.preferences_sha256) or not _hex(draft.original_mapping_sha256)
+                or type(draft.operation) is not str or len(draft.operation)!=32 or not _hex(draft.operation*2)
+                or type(draft.file) is not RelocationFileWitness or type(draft.target_parents) is not RelocationTargetParentObservation):
+            raise TransferError('photo_relocation_invalid_folder_plan')
+        current_subject=draft.operation,draft.book_sha256,draft.preferences_sha256
+        if subject is None:subject=current_subject
+        if current_subject!=subject or draft.file.file_key in inodes or draft.original_mapping_sha256 in mappings:
+            raise TransferError('photo_relocation_invalid_folder_plan')
+        inodes.add(draft.file.file_key);mappings.add(draft.original_mapping_sha256)
+        source=_portable_path(draft.source);target=_portable_path(draft.target)
+        if target!='Animationen/'+source:
+            raise TransferError('photo_relocation_invalid_folder_plan')
+        source_parts=source.split('/');target_parts=target.split('/')
+        root=destination.ancestor_keys[0];existing,missing=draft.target_parents.existing,draft.target_parents.missing
+        if (type(existing) is not tuple or not 1<=len(existing)<=len(target_parts) or existing[0]!=root
+                or type(missing) is not tuple or missing!=tuple(target_parts[len(existing)-1:-1])
+                or type(draft.source_parents) is not tuple or len(draft.source_parents)!=len(source_parts)
+                or draft.source_parents[0]!=root or any(_native_key(key)[0]!=root[0]
+                    for key in (*existing,*draft.source_parents,draft.file.file_key))):
+            raise TransferError('photo_relocation_invalid_folder_plan')
+        for parts,keys in ((source_parts,draft.source_parents),(target_parts,existing)):
+            path='/'.join(parts).casefold()
+            if path in paths:raise TransferError('photo_relocation_selection_collision')
+            paths.add(path)
+            for end in range(1,len(parts)):
+                prefix='/'.join(parts[:end]);identity=keys[end] if end<len(keys) else None
+                old=prefixes.setdefault(prefix.casefold(),(prefix,identity))
+                if old!=(prefix,identity):raise TransferError('photo_relocation_parent_changed')
+        members.append(draft)
+    if paths.intersection(prefixes):raise TransferError('photo_relocation_selection_collision')
+    members=tuple(sorted(members,key=lambda member:member.source))
+    bodies=[dict(operation=member.operation,book=member.book_sha256,preferences=member.preferences_sha256,
+        mapping=member.original_mapping_sha256,source=member.source,source_parents=[list(key) for key in member.source_parents],
+        target=member.target,existing=[list(key) for key in member.target_parents.existing],missing=list(member.target_parents.missing),
+        file=dict(file_key=list(member.file.file_key),size=member.file.size,sha256=member.file.sha256)) for member in members]
+    digest=sha256(b'magnolie-gif-folder-plan-v1\0'+canonical(dict(destination=destination.wire(),members=bodies))).hexdigest()
+    return GifRelocationFolderPlan(members,digest)
+
+
 def inspect_relocation_target_parents(destination,relative,current):
     """Read the longest safe named prefix and verify the first absent name."""
     from magnolie_photo_destination import require_media_directory
