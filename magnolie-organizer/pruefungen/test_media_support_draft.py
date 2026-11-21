@@ -17,6 +17,7 @@ from magnolie_media_transport import NativeMediaSettingsTransport
 from magnolie_media_support import NativeMediaSupportAttempt, TTL, ack, offer, valid
 from magnolie_file_native_authority import capture_authenticated_binding
 from magnolie_file_desktop_connection import NativeDesktopFileConnection
+from magnolie_file_transfer import TransferError
 from magnolie_photo_preferences import ProtectedPhotoPreferences
 from test_media_transport import AT, PeerWire, incoming
 from test_file_authenticated_desktop import native
@@ -261,8 +262,9 @@ def test_legacy_rejection_does_not_stop_the_authenticated_parent(tmp_path, monke
         assert not service._native_file_connections
 
 
-@pytest.mark.parametrize('transport', ['wifi', 'bluetooth'])
-def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox(native, monkeypatch, transport):
+@pytest.mark.parametrize('transport,direction,kind', [
+    ('wifi','two_way','images'),('wifi','phone_to_pc','images'),('wifi','phone_to_pc','video'),('bluetooth','two_way','images')])
+def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox(native, monkeypatch, tmp_path, transport, direction, kind):
     service, peer, _ = native
     peer['capabilities'] = legacy_state()
     service.store.save_peers()
@@ -296,7 +298,10 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
                 connection=service.open_native_file_connection(peer['device_id'],peer['static_public'],channel,binding.generation)
                 assert connection._media_source is None and not connection.desktop_snapshot()['shared_media']['configured']
                 selected=media.change(media.create(peer['device_id']),peer['device_id'],service.store.identity['device_id'],'enabled',True)
-                selected=media.change(selected,peer['device_id'],service.store.identity['device_id'],'direction','two_way')
+                field='videos_enabled' if kind=='video' else 'photos_enabled'
+                selected=media.change(selected,peer['device_id'],service.store.identity['device_id'],field,True)
+                if kind=='video':selected=media.change(selected,peer['device_id'],service.store.identity['device_id'],'photos_enabled',False)
+                selected=media.change(selected,peer['device_id'],service.store.identity['device_id'],'direction',direction)
                 def settings(body):
                     message=incoming(body)
                     at=phone.now_ms()
@@ -311,6 +316,21 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
                 assert connection.desktop_snapshot()['shared_media']['agreed']
                 assert connection._desktop_session is None and connection._preferences.read().policy is None
                 assert not connection._local().grants.receive_files and not connection._local().grants.send_files
+                from magnolie_media_retention import NativeMediaRetention
+                book=tmp_path/'daten.json'
+                book.write_text('{"einstellungen":{"papierkorb":{"an":true,"tage":0}}}',encoding='utf-8')
+                book.chmod(0o600)
+                with NativeMediaRetention(service.store.root) as policy:assert policy.adopt_existing_saved()
+                session=connection.desktop_session()
+                with pytest.raises(TransferError,match='photo_schedule_not_ready'):
+                    session.start('sync_shared')  # Matching settings are not enough for the normal entry point.
+                session._run('sync_shared',None)  # Check the same worker's independent final guard as well.
+                expected=('media_source_native_composition_required' if direction=='two_way'
+                    else 'media_source_shared_incoming_review_required')
+                assert session.snapshot()['state']=='held' and session.snapshot()['error']==expected
+                assert connection._preferences.read().policy is None
+                if direction=='phone_to_pc':
+                    exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_path,deliver,kind,monkeypatch)
                 send_seq=channel.send_seq
                 withdrawn=dict(offer(phone.now_ms()),kind='personal_sync.settings',body=dict(format=1,own_device=False))
                 service._observe_native_file_control(peer,channel,withdrawn['kind'],withdrawn,acknowledged=False)
@@ -320,6 +340,9 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
                 deliver(offer(phone.now_ms()))
                 assert not owner.supports(channel) and channel.send_seq==send_seq
                 assert 'shared_media' not in connection.desktop_snapshot()
+                session._run('sync_shared',None)
+                assert session.snapshot()['error']=='media_source_current_intent_required'
+                assert channel.send_seq==send_seq
             assert peer['capabilities']['items']['device_status']['versions']==FULL
             assert service._native_file_connections[channel] is connection
             heartbeat=dict(type='ping',ping_id=str(uuid.uuid4()),sent_ms=phone.now_ms())
@@ -327,3 +350,100 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
             assert wire.receive()==dict(heartbeat,type='pong')
         finally:service._end_native_file_connection(channel)
         assert not service._native_media_support
+
+
+def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_path,deliver,kind,monkeypatch):
+    from dataclasses import replace
+    from hashlib import sha256
+    from io import BytesIO
+    from PIL import Image
+    from magnolie_file_control import FileControlPacket,FileGrantState,NativeFilePeer,NativeLocalFileGrant,NativeFileControlSession
+    from magnolie_media_storage_bootstrap import NativeMediaStorageBootstrap
+    from magnolie_photo_destination import NativePhotoDestinationController
+    import magnolie_file_sources as sources
+    from magnolie_transfer_job_catalog import NativeJobCatalogIdentity
+    from test_file_desktop_album_worker import phone_batches
+    from test_file_desktop_media import manifest
+    from test_file_desktop_sources import response,ALBUM,CATALOG
+
+    destination=tmp_path/'explicit-photo-target';destination.mkdir(mode=0o700)
+    chooser=NativePhotoDestinationController(connection._authority)
+    try:
+        choice=chooser.choose_custom(chooser.issue_action(),destination)
+        prefs=connection._preferences
+        prefs.configure(prefs.issue_action(),prefs.read(),enabled=True,mode='manual',destination_choice=choice)
+    finally:chooser.close()
+    photo_directory=destination
+    if kind=='video':
+        from magnolie_photo_destination import NativeVideoDestinationController
+        destination=tmp_path/'explicit-video-target';destination.mkdir(mode=0o700)
+        chooser=NativeVideoDestinationController(connection._authority)
+        try:
+            choice=chooser.choose_custom(chooser.issue_action(),destination)
+            prefs.set_video_scope(prefs.issue_action(),prefs.read(),enabled=True,destination_choice=choice)
+        finally:chooser.close()
+    bootstrap=NativeMediaStorageBootstrap(connection._authority)
+    try:bootstrap.prepare(bootstrap.issue_action(),prefs.read())
+    finally:bootstrap.close()
+
+    identity=connection._authority.identity
+    pc=NativeFilePeer(identity.receiver_id,identity.receiver_identity_sha256,object(),True,True,True,True,True)
+    phone_identity=NativeJobCatalogIdentity(peer['device_id'],sha256(phone.unb64(peer['static_public'],32)).hexdigest())
+    local=NativeLocalFileGrant(FileGrantState(1,'a'*64,True,False),object(),True)
+    remote=NativeFileControlSession(phone_identity,lambda:pc,lambda:local)
+    try:
+        assert connection.send_controls()
+        remote.observe_remote(FileControlPacket.parse(wire.receive()['body']),pc)
+        packet=remote.packet();at=phone.now_ms()
+        deliver(dict(type='message',v=1,message_id=str(uuid.uuid4()),kind='file_transfer.control',
+            created_ms=at,expires_ms=at+60_000,body=packet.wire()))
+        remote.mark_sent(packet)
+        remote.observe_remote(FileControlPacket.parse(wire.receive()['body']),pc)
+        policy=prefs.read().policy
+        token=policy.videos.destination_token if kind=='video' else policy.destination_token
+        assert connection._receive_binding(media_type=kind)==remote.binding(token,sender_is_local=True)
+        commands=[]
+        def metadata(message):
+            operation=message['body']['operation'];commands.append(operation)
+            if operation=='status':
+                video_fields={'videos':dict(enabled=True,revision=1)} if kind=='video' else {}
+                deliver(response(message,sources.RESULT,version='b'*64,revision=2,enabled=True,associated=True,
+                    repair_pending=False,kinds=sorted(sources.KINDS),**video_fields))
+            elif operation=='discover':
+                video_fields={'media_type':'video'} if kind=='video' else {}
+                deliver(response(message,sources.CATALOG,version='b'*64,page=dict(format=1,catalog_id=CATALOG,
+                    after=0,next_cursor=None,coverage='full_videos' if kind=='video' else 'full_images',proves_deletion=False,
+                    albums=[dict(album_id=ALBUM,kind='camera',display_name='Camera',visible_images=1,needs_choice=False)]),**video_fields))
+            else:pytest.fail('A shared choice triggered an unrelated permission or configuration command')
+        fixture=(service,peer,channel,connection,destination)
+        seed=manifest(fixture)
+        if kind=='video':
+            from base64 import b64decode
+            from test_file_desktop_video_album_worker import video_phone
+            original=b64decode((Path(__file__).parent/'fixture-original-media.mp4.base64').read_text('ascii'))
+            path='Camera/video.mp4'
+            def phone_with_batches(batches,**options):return video_phone(fixture,destination,batches,monkeypatch,**options)
+        else:
+            raw=BytesIO();Image.new('RGB',(5,7),(12,34,56)).save(raw,format='JPEG');original=raw.getvalue()
+            path=seed.files[0].path
+            def phone_with_batches(batches,**options):return phone_batches(fixture,batches,**options)
+        first=replace(seed.files[0],path=path,size=len(original),sha256=sha256(original).hexdigest())
+        batch=replace(seed,files=(first,),total_bytes=len(original))
+        with phone_with_batches([batch],metadata_handler=metadata,content=original,wire=wire) as (chunks,saved,_,_,errors):
+            session.start('sync_shared')
+            assert session.join(35) and session.snapshot()['state']=='complete',session.snapshot()
+            assert not errors and len(chunks)==len(saved)==1
+        local_path=destination/first.path
+        assert local_path.read_bytes()==original and commands==['status','discover']
+        # Real local edits to a mapped original survive a subsequent no-change
+        # phone inventory. Neither the file bytes nor the transfer grant changes.
+        edited=b'private local edit of test original'
+        local_path.write_bytes(edited);inode=local_path.stat().st_ino
+        again=replace(batch,source_id='8'*32,transfer_id='9'*32,files=(replace(first,id='7'*32),))
+        with phone_with_batches([again],metadata_handler=metadata,content=original,wire=wire) as (chunks,saved,_,_,errors):
+            session.start('sync_shared')
+            assert session.join(35) and session.snapshot()['state']=='complete',session.snapshot()
+            assert not errors and not chunks and not saved
+        assert local_path.read_bytes()==edited and local_path.stat().st_ino==inode
+        if kind=='video':assert not list(photo_directory.iterdir())
+    finally:remote.close()

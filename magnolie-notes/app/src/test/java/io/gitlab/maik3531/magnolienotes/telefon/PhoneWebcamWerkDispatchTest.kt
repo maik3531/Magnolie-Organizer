@@ -190,8 +190,11 @@ class PhoneWebcamWerkDispatchTest {
             assertTrue(f.supportedMedia())
             assertNull(f.privateMediaSettings()) // Support alone may not create settings or a file owner.
             val (identity, secret) = f.storage.identity("Controlled phone"); secret.fill(0)
-            val chosen = MediaSyncSettings.change(MediaSyncSettings.create(f.peer.device_id), f.peer.device_id,
-                identity.device_id, "enabled", JsonPrimitive(true))
+            var chosen = MediaSyncSettings.create(f.peer.device_id)
+            for ((field, value) in mapOf("enabled" to JsonPrimitive(true), "photos_enabled" to JsonPrimitive(true),
+                "direction" to JsonPrimitive("pc_to_phone"), "collection_mode" to JsonPrimitive("entire_collection"))) {
+                chosen = MediaSyncSettings.change(chosen, f.peer.device_id, identity.device_id, field, value)
+            }
             fun settings(body: JsonObject) = TelefonNachrichten.message(MediaSyncSettings.KIND, body, 60_000)
             val proposal = settings(chosen)
             control(proposal)
@@ -200,13 +203,24 @@ class PhoneWebcamWerkDispatchTest {
             val lane = checkNotNull(f.privateMediaSettings())
             f.deliver(TelefonNachrichten.ack(echo.string("message_id"), "accepted", "none"))
             assertFalse(lane.matched()) // An ACK alone is not agreement on the merged settings.
+            assertNull(lane.incomingIntentFor(GalleryMediaType.IMAGES))
             val confirmation = settings(echo.getValue("body").jsonObject)
             control(confirmation)
             assertTrue(lane.matched())
             assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(f.work))
-            control(own(false))
-            assertFalse(f.supportedMedia())
-            assertFalse(lane.matched())
+            f.work.openNativeGalleryFileConnection(f.peer.device_id, f.peer.static_public, f.parent, 0) { true }.use { file ->
+                val token = checkNotNull(lane.incomingIntentFor(GalleryMediaType.IMAGES))
+                assertSame(lane, file.mediaAgreement)
+                assertSame(token, file.runtime.receiveConsentIntent(GalleryMediaType.IMAGES))
+                assertNull(lane.intentFor(GalleryMediaType.IMAGES))
+                assertNull(lane.incomingIntentFor(GalleryMediaType.VIDEO))
+                assertNull(file.runtime.currentRequest()) // No file-control grant or actual transfer.
+                control(own(false))
+                assertFalse(f.supportedMedia())
+                assertFalse(lane.matched())
+                assertNull(lane.incomingIntentFor(GalleryMediaType.IMAGES))
+                assertThrows(PhotoFolderScopeError::class.java) { file.runtime.receiveConsentIntent(GalleryMediaType.IMAGES) }
+            }
             control(own(true))
             f.deliver(NativeMediaSupportAttempt.ack(local))
             f.deliver(remoteProbe())

@@ -779,6 +779,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         if (!privateMediaSettingsCurrent(reader, attempt, channel, binding)) return null
         return reader.settings ?: NativeMediaSettingsLane(binding, mediaPreferences,
             ready = { privateMediaSettingsCurrent(reader, attempt, channel, binding) },
+            originalLive = { attempt.supports(channel) },
             write = { frame -> channel.sendEphemeral(frame, reader.pipe, {
                 check(attempt.supports(channel)) { "media_shared_original_reader_retired" }
             }) }).also { reader.settings = it }
@@ -910,7 +911,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val current = galleryFileConnection?.takeUnless { it.isEnded }
                 ?: DeviceFileControl.fail("file_control_native_handler_unavailable")
             if (activeChannel !== current.channel) DeviceFileControl.fail("gallery_incoming_foreign_connection")
-            Triple(current, peer.display_name, mediaSessions[current.channel]
+            Triple(current, peer.display_name, current.mediaAgreement
                 ?: DeviceFileControl.fail("gallery_incoming_current_intent_required"))
         }
         val documents = Ablage.hole(context)
@@ -1028,10 +1029,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 ?: DeviceFileControl.fail("file_control_native_identity_unavailable")
             peer = currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady())
                 ?: DeviceFileControl.fail("file_control_native_channel_changed")
+            val legacyAdvertised = safePeer()?.let { current -> current.device_id == peerId &&
+                MediaSyncSettings.DISCOVERY_VERSION in current.remote_device_status_versions &&
+                MediaSyncSettings.DISCOVERY_VERSION in sharedLocalCapabilities().getValue("device_status").versions } == true
+            val privateAgreement = if (legacyAdvertised) null else privateMediaSettings(channel)
+            val media = privateAgreement ?: when {
+                legacyAdvertised || queue.hasMediaSettings(peerId) -> mediaTransport(channel)
+                else -> null
+            }
             connection = NativeGalleryFileConnection(channel, requireIncomingAgreement = {
-                val current = synchronized(this) { mediaSessions[channel]?.takeIf { activeChannel === channel } }
-                    ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
-                if (!current.matched()) DeviceFileControl.fail("gallery_incoming_current_intent_required")
+                if (activeChannel !== channel || media?.matched() != true)
+                    DeviceFileControl.fail("gallery_incoming_current_intent_required")
             }, requestPcReplacement = { original, offer ->
                 NativeGalleryPcReplacementForeground.request(original) { activity, host ->
                     val documents = Ablage.hole(context)
@@ -1040,7 +1048,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     val archiveBook = NativeGalleryTrashBookPermit.capture(documents, ::unlocked)
                     NativeGalleryPcReplacementUiAction.request(activity, host, original, offer, book, archiveBook)
                 }
-            }) { released ->
+            }, mediaAgreement = media) { released ->
                 synchronized(this) { if (galleryFileConnection === released) galleryFileConnection = null }
             }
             galleryFileConnection = connection
@@ -1066,14 +1074,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 return path
             }
             val directory = directory(directory(root, "native-file-sources-v1"), name).toFile()
-            val sharedMedia = synchronized(this) {
-                val current = safePeer()
-                current?.device_id == peerId && MediaSyncSettings.DISCOVERY_VERSION in current.remote_device_status_versions &&
-                    MediaSyncSettings.DISCOVERY_VERSION in sharedLocalCapabilities().getValue("device_status").versions
-            } || queue.hasMediaSettings(peerId)
-            val media = if (sharedMedia) mediaTransport(channel) else null
+            val media = connection.mediaAgreement
             val currentPeer = { if (connection.isEnded) null else currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) }
-            val runtime = if (sharedMedia && media != null) NativeGalleryFileRuntime.withIncomingMedia(context, directory, identity, protection, channel,
+            val runtime = if (media != null) NativeGalleryFileRuntime.withIncomingMedia(context, directory, identity, protection, channel,
                 currentPeer, handlersReady, { nativeGalleryVideoHandlersReady }, { type -> media.intentFor(type) },
                 { type -> media.incomingIntentFor(type) }, {
                     android.os.Build.VERSION.SDK_INT >= 30 && handlersReady() &&

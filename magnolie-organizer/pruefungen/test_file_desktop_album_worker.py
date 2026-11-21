@@ -4,6 +4,7 @@ from dataclasses import replace
 from hashlib import sha256
 from pathlib import Path
 from queue import Queue
+from select import select
 import sys
 import threading
 import uuid
@@ -27,24 +28,37 @@ from test_file_desktop_resume_abandonment import receipt as abandonment_receipt
 
 @contextmanager
 def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, metadata_handler=None,
-        insertion_witness=False, content=b'hello', photo_ids=None, resume_job=None, resume_media=None,media_kinds=None):
+        insertion_witness=False, content=b'hello', photo_ids=None, resume_job=None, resume_media=None,media_kinds=None,wire=None):
     queue = Queue(); errors = []; chunks = []; saved = []
     saved_targets={}
     entered = threading.Event(); release = threading.Event()
+    done = threading.Event()
     run_ids = [str(uuid.uuid4()) for _ in batches]
+    def send(message):
+        if wire is None:dispatch(fixture,message)
+        else:
+            wire.send(message)
+            service,peer,channel=fixture[:3]
+            service._payload(peer,channel,channel.receive())
     def phone():
         index = 0; canceled = False; selected={};resume_id=str(uuid.uuid4());resume_canceled=False;resume_attempted=False
         try:
             while True:
-                message = queue.get()
+                if wire is None:message = queue.get()
+                else:
+                    if not select([wire.sock],[],[],.1)[0]:
+                        if done.is_set():return
+                        continue
+                    message=wire.receive()
+                    if message['type']=='ack':continue
                 if message is None: return
                 kind = message['kind']; body = message['body']
                 if kind == sources.REQUEST:
                     operation = body['operation']
                     if operation=='resume_lookup' and resume_job is not None:
-                        dispatch(fixture,resume_history(message,resume_job,attempt_phase='accepted' if resume_attempted else None));continue
+                         send(resume_history(message,resume_job,attempt_phase='accepted' if resume_attempted else None));continue
                     if operation=='abandon_resume' and resume_job is not None:
-                        dispatch(fixture,abandonment_receipt(message));resume_attempted=False;continue
+                        send(abandonment_receipt(message));resume_attempted=False;continue
                     if operation in ('resume_run','resume_status','resume_media_page','offer_resume','cancel_resume','end_resume') and resume_job is not None:
                         original=resume_job.accepted.manifest
                         if operation=='cancel_resume':resume_canceled=True
@@ -55,17 +69,17 @@ def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, met
                             for entry in value['body']['page']['entries']:
                                 entry['photo_id']=next(item.photo_id for item in resume_media.entries if item.file_id==entry['file_id'])
                                 entry['media_kind']=next(item.media_kind for item in resume_media.entries if item.file_id==entry['file_id'])
-                            dispatch(fixture,value);continue
+                            send(value);continue
                         options={}
                         if operation=='end_resume':options['run_ended']=True
                         if operation=='offer_resume':
                             resume_attempted=True
                             offered=create_offer(original);offered['expires_ms']=min(offered['expires_ms'],message['expires_ms'])
-                            dispatch(fixture,offered);options=dict(offer_id=offered['message_id'],manifest_sha256=original.fingerprint)
+                            send(offered);options=dict(offer_id=offered['message_id'],manifest_sha256=original.fingerprint)
                         value=response(message,sources.RUN_RESULT,version='b'*64,run_id=resume_id,
                             state='canceled_held' if resume_canceled else 'snapshot_ready',source_io_ended=True,**options)
                         value['expires_ms']=min(value['expires_ms'],message['expires_ms'])
-                        dispatch(fixture,value);continue
+                        send(value);continue
                     if metadata_handler is not None and operation in ('status','configure','configure_videos','discover','catalog_page','request_read'):
                         metadata_handler(message);continue
                     if operation=='batch_run':
@@ -91,30 +105,31 @@ def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, met
                             path=next(file.path for file in current.files if file.id==entry['file_id'])
                             entry['photo_id'] = photo_ids[path] if photo_ids is not None else sha256(f'worker-photo-{index}'.encode()).hexdigest()
                             if media_kinds is not None:entry['media_kind']=media_kinds[path]
-                        dispatch(fixture, value)
+                        send(value)
                     elif operation == 'offer_run':
                         offered = create_offer(current); offered['expires_ms'] = min(offered['expires_ms'], message['expires_ms'])
-                        dispatch(fixture, offered)
+                        send(offered)
                         value = result(message, run, final, offer_id=offered['message_id'], manifest_sha256=current.fingerprint)
-                        value['expires_ms'] = min(value['expires_ms'], offered['expires_ms']); dispatch(fixture, value)
+                        value['expires_ms'] = min(value['expires_ms'], offered['expires_ms']); send(value)
                     else:
                         state = 'canceled_held' if canceled else 'empty_ready' if current is None else 'snapshot_ready'
-                        dispatch(fixture, result(message, run, final, state=state))
+                        send(result(message, run, final, state=state))
                 elif kind == 'file_transfer.chunk.request':
                     chunks.append(body['file_id'])
                     if block_chunk is not None:
                         entered.set(); check = release.wait(10); assert check
-                    dispatch(fixture, chunk(message, content))
+                    send(chunk(message, content))
                 elif kind == 'file_transfer.saved':
-                    accepted=saved_targets[message['message_id']]
-                    assert all((Path(accepted.destination.path) / path).read_bytes() == content for _,path in accepted.targets)
+                    if wire is None:
+                        accepted=saved_targets[message['message_id']]
+                        assert all((Path(accepted.destination.path) / path).read_bytes() == content for _,path in accepted.targets)
                     saved.append(message)
         except BaseException as error:
             errors.append(error); fixture[3].close()
     def enqueue(message):
         if message['kind']=='file_transfer.saved':saved_targets[message['message_id']]=fixture[3]._run.accepted
         queue.put(message)
-    fixture[2].send.side_effect = enqueue
+    if wire is None:fixture[2].send.side_effect = enqueue
     peer = threading.Thread(target=phone, name='fixture-native-album-peer', daemon=True); peer.start()
     try: yield chunks, saved, entered, release, errors
     finally:
@@ -124,7 +139,8 @@ def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, met
             worker.stop(); worker.join(10)
             if not worker.io_ended: fixture[3].close(); worker.join(10)
             assert worker.io_ended
-        queue.put(None); peer.join(10); fixture[2].send.side_effect = None
+        done.set();queue.put(None);peer.join(10)
+        if wire is None:fixture[2].send.side_effect = None
         assert not peer.is_alive()
         if errors: raise errors[0]
 

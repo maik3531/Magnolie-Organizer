@@ -10,10 +10,11 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 internal class NativeGalleryFileConnection internal constructor(internal val channel: TelefonSecureChannel,
     private val requireIncomingAgreement: () -> Unit = {},
-    private val requestPcReplacement: (NativeGalleryFileConnection, JsonObject) -> Unit = { _, _ ->
-        DeviceFileControl.fail("gallery_pc_write_foreground_required")
-    },
-    private val released: (NativeGalleryFileConnection) -> Unit) : AutoCloseable {
+     private val requestPcReplacement: (NativeGalleryFileConnection, JsonObject) -> Unit = { _, _ ->
+         DeviceFileControl.fail("gallery_pc_write_foreground_required")
+     },
+     internal val mediaAgreement: NativeGalleryMediaAgreement? = null,
+     private val released: (NativeGalleryFileConnection) -> Unit) : AutoCloseable {
     private val ended = AtomicBoolean(false)
     private val permissionQueued = AtomicBoolean(false)
     private val cleanupReported = AtomicBoolean(false)

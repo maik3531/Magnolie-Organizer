@@ -2,10 +2,17 @@ package io.gitlab.maik3531.magnolienotes.telefon
 
 import kotlinx.serialization.json.*
 
+/** Settings intent only. The native file owner still checks its own authority. */
+internal interface NativeGalleryMediaAgreement {
+    fun matched(expected: JsonObject? = null): Boolean
+    fun intentFor(mediaType: GalleryMediaType): MediaSyncTransport.IntentToken?
+    fun incomingIntentFor(mediaType: GalleryMediaType): MediaSyncTransport.IntentToken?
+}
+
 /** One authenticated channel, never a file permission or source-worker owner. */
 internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
     private val storage: MediaSyncStorage, private val queue: TelefonQueue,
-    private val changed: () -> Unit = {}, private val ready: () -> Boolean) {
+    private val changed: () -> Unit = {}, private val ready: () -> Boolean) : NativeGalleryMediaAgreement {
     private var generation = 0L
     private var sent: JsonObject? = null
     private var acknowledged: JsonObject? = null
@@ -62,12 +69,12 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
 
     // Native source checks may hold their index lock. This projection MUST NOT
     // acquire transport/Werk/storage locks or manufacture any permission.
-    internal fun intentFor(mediaType: GalleryMediaType): Any? = currentIntent?.takeIf { it.requestedOutgoing(mediaType) }
+    override fun intentFor(mediaType: GalleryMediaType): IntentToken? = currentIntent?.takeIf { it.requestedOutgoing(mediaType) }
 
     // Incoming media needs a matched direction that includes PC → phone. This
     // remains intent only: never Android consent or a file-control grant. Keep
     // it lock-free for receiver/index guards just like the outgoing projection.
-    internal fun incomingIntentFor(mediaType: GalleryMediaType): Any? = currentIntent?.takeIf { it.requestedIncoming(mediaType) }
+    override fun incomingIntentFor(mediaType: GalleryMediaType): IntentToken? = currentIntent?.takeIf { it.requestedIncoming(mediaType) }
 
     private fun publish() {
         val body = try { if (ready()) storage.read(binding) else null }
@@ -85,7 +92,7 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
         previewPublished = false; changed()
     }
 
-    @Synchronized fun matched(expected: JsonObject? = null): Boolean {
+    @Synchronized override fun matched(expected: JsonObject?): Boolean {
         if (!ready()) return false
         val body = storage.read(binding) ?: return false
         return (expected == null || expected == body) && body == sent && body == acknowledged && body == received

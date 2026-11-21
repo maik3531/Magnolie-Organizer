@@ -117,3 +117,15 @@ does not set legacy media readiness. On hosts without native DPAPI it holds
 without storing settings or closing the parent. The focused fixture also
 contains a Windows-only positive arm with its own DPAPI key; it must be run
 on Windows before claiming protected Windows agreement.
+
+The private Android agreement can now supply the exact direction/type intent
+to an independently opened native gallery owner. Without a matching ACK and
+echo it supplies no intent, and withdrawal removes the intent from the same
+owner without retrying its file action. The Linux private receiver permits an
+explicit phone-to-PC run only with previously granted native receiver and
+phone source controls. A loopback phone fixture exercises byte-identical JPEG
+and MP4 reception over the encrypted reader, separate targets, and preservation
+of an existing PC edit on an unchanged phone inventory. It does not test a
+packaged Android sender. Automatic and outgoing/combined runs are still held
+in this private receiver composition, rather than running only part of the
+requested direction or substituting a legacy batch.

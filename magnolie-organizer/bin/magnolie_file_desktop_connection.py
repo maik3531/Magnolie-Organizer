@@ -121,8 +121,9 @@ class NativeDesktopFileConnection:
             peer=peers[0] if len(peers)==1 else {}
             status=peer.get('capabilities',{}).get('items',{}).get('device_status',{})
             if media_support is not None:
-                # The separately proven lane is settings-only until the
-                # counterpart and the original batch runtime are joined.
+                # No PC sender or collection scope before the separate batch
+                # handshake is joined. Explicit incoming work can use the
+                # normal receiver under the exact current WLAN agreement.
                 from magnolie_media_transport import NativeMediaSettingsTransport
                 self._media_transport=NativeMediaSettingsTransport(authority,
                     lambda:not self._closed.is_set() and self._data_handlers_ready,support=media_support)
@@ -3388,7 +3389,15 @@ class NativePhotoDesktopSession:
             book_fence=None
             shared_token=None
             transport=self.connection._media_transport
-            if syncing and transport is not None and transport._display_body is not None:
+            private_media=getattr(self.connection,'_media_support',None) is not None
+            if syncing and private_media:
+                if operation=='automatic':raise TransferError('media_source_wifi_automatic_composition_required')
+                if any(transport.intent_for(kind,to_phone=True) is not None for kind in ('images','video')):
+                    # Do not silently complete the phone half of a two-way run.
+                    raise TransferError('media_source_native_composition_required')
+                if not any(transport.intent_for(kind) is not None for kind in ('images','video')):
+                    raise TransferError('media_source_current_intent_required')
+            if syncing and transport is not None and (private_media or transport._display_body is not None):
                 # Once shared settings exist, legacy selected-album actions
                 # cannot bypass OFF/pending settings using receiving consent.
                 # The cache only selects this restrictive gate; actual intent
@@ -3540,7 +3549,7 @@ class NativePhotoDesktopSession:
                             self._state=progress['state'];self._error=progress['error']
                         if progress['state']!='complete':break
                         if not outgoing.requested_for(media_type):continue # PC-only never requests phone READ.
-                    if shared_constraint is not None and operation in ('automatic','sync_shared'):
+                    if shared_constraint is not None and (private_media or operation in ('automatic','sync_shared')):
                         self._prepare_shared_incoming(media_type)
                     elif media_type=='video':self._prepare_video()
                     catalog=self.connection._source_catalog

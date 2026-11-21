@@ -3217,7 +3217,8 @@ class PhoneService:
             connection = NativeDesktopFileConnection(authority, channel, released=released,
                 activity_changed=lambda owner, active: self._native_photo_activity_changed(connection, owner, active),
                 status_changed=lambda: self.callback('photo_sync', {}),
-                native_metadata_current=lambda:self._current_native_source_metadata(peer_id,static_public,channel,generation),
+                native_metadata_current=lambda:(support.supports(channel) if support is not None else
+                    self._current_native_source_metadata(peer_id,static_public,channel,generation)),
                 native_wifi_current=lambda:(self._current_native_source_metadata(peer_id,static_public,channel,generation)
                     and self.connection_transports.get(peer_id)=='wifi'),media_support=support)
         except BaseException:
