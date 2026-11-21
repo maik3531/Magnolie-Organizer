@@ -114,7 +114,10 @@ this comparison.
   holds the ordinary preview. An internal read-only draft can retain that
   suffix with the freshly proven original GIF and its exact mapping. It is
   not a prepared rename record or an instruction to create directories. The
-  preview does not yet enumerate a complete user-visible selection. The private native
+  preview does not yet enumerate a complete user-visible selection. Private
+  discovery inspects one bounded page of authenticated mappings at a time.
+  Continuation pins the mapping snapshot; only currently proven GIFs are
+  selectable, and the page makes no claim about unlisted files. The private native
   selection entry point can freeze an exact explicit list of up to 128 current
   image mappings under a single shared lease. All selected members must pass;
   it never silently drops one, creates missing parents, or grants a move.

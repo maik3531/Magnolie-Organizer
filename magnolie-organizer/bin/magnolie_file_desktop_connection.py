@@ -2404,14 +2404,20 @@ class NativeDesktopFileConnection:
             action.validate(self)
             return result
 
-    def _preview_gif_relocation_selection(self,action,choices,*,_with_evidence=False,_folder_plan=False):
+    def _discover_gif_relocation_page(self,action,*,after=None,expected=None,limit=8):
+        """Private native candidate page; discover without accepting or moving."""
+        if type(limit) is not int or not 1<=limit<=16:
+            raise TransferError('photo_relocation_invalid_selection')
+        return self._preview_gif_relocation_selection(action,None,_folder_plan=True,_discovery=(after,expected,limit))
+
+    def _preview_gif_relocation_selection(self,action,choices,*,_with_evidence=False,_folder_plan=False,_discovery=None):
         """Freeze an exact native selection, without prompting or persisting it."""
         from magnolie_file_control import _hex
         from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
         from magnolie_media_relocation_owner import ProtectedRelocationOwner
-        from magnolie_media_relocation_record import (bind_gif_relocation_folder_plan, bind_relocation_selection,
+        from magnolie_media_relocation_record import (MediaRelocationRecord, bind_gif_relocation_folder_plan, bind_relocation_selection,
             preview_original_gif_relocation)
-        if (type(choices) is not tuple or not 1<=len(choices)<=128
+        if _discovery is None and (type(choices) is not tuple or not 1<=len(choices)<=128
                 or any(type(choice) is not tuple or len(choice)!=2 or type(choice[0]) is not PhotoMappingAssociation
                     or choice[0].media_type!='images' or not _hex(choice[1]) for choice in choices)
                 or len({choice[0] for choice in choices})!=len(choices)):
@@ -2437,14 +2443,21 @@ class NativeDesktopFileConnection:
                     empty=journal.read()
                     if empty.associated or empty.records or empty.outcome_version is not None or owner.read_intent() is not None:
                         raise TransferError('photo_relocation_owner_already_recorded')
-                    associations=tuple(association for association,_ in choices)
                     self._verify_expected_mapping_store()
-                    snapshot,mappings=self._mappings.lookup(associations)
+                    if _discovery is None:
+                        associations=tuple(association for association,_ in choices)
+                        snapshot,mappings=self._mappings.lookup(associations)
+                    else:
+                        after,expected,limit=_discovery
+                        snapshot,page,next_cursor=self._mappings.candidate_page('images',after=after,expected=expected,limit=limit)
+                        mappings=tuple(mapping for mapping in page if mapping.destination==destination)
+                        associations=tuple(mapping.association for mapping in mappings)
+                        choices=tuple((mapping.association,mapping.protected_record_sha256) for mapping in mappings)
                     if (not snapshot.associated or any(mapping is None or mapping.protected_record_sha256!=digest
                             or mapping.destination!=destination for (_,digest),mapping in zip(choices,mappings))
                             or not self._open_catalog(allow_create=False)):
                         raise TransferError('photo_grouping_original_job_required')
-                    operation=uuid.uuid4().hex;records=[];protection=self._authority.protection
+                    operation=uuid.uuid4().hex;records=[];eligible=[];protection=self._authority.protection
                     with self._catalog.inspect_jobs() as (parent,jobs):
                         owners={job.owner:job for job in jobs}
                         for mapping in mappings:
@@ -2459,16 +2472,30 @@ class NativeDesktopFileConnection:
                                     self._verify_completed_mapping_job(index,job,history)
                                     receipt=next((item for item in index.saved_receipts() if item.file_id==mapping.source_file_id),None)
                                     if receipt is None:raise TransferError('photo_grouping_original_job_required')
-                                    records.append(preview_original_gif_relocation(mapping,job.accepted,history,receipt,
-                                        operation=operation,book_sha256=book,preferences_sha256=policy.version,
-                                        current_binding=live_binding,require_original=lease,_allow_missing_draft=_folder_plan))
+                                    try:
+                                        record=preview_original_gif_relocation(mapping,job.accepted,history,receipt,
+                                            operation=operation,book_sha256=book,preferences_sha256=policy.version,
+                                            current_binding=live_binding,require_original=lease,_allow_missing_draft=_folder_plan)
+                                    except TransferError as error:
+                                        if _discovery is None or str(error) not in ('photo_relocation_animation_unproven',
+                                                'photo_relocation_original_layout_required','photo_grouping_original_layout_required'):
+                                            raise
+                                        continue
+                                    records.append(record);eligible.append((mapping.association,mapping.protected_record_sha256))
                         if self._catalog.jobs()!=jobs:raise TransferError('photo_grouping_original_job_changed')
-                    selection=(bind_gif_relocation_folder_plan(tuple(records),destination) if _folder_plan
-                        else bind_relocation_selection(tuple(records),occupied=()))
+                    if _discovery is not None:
+                        if not records:selection=None
+                        elif all(type(record) is MediaRelocationRecord for record in records):
+                            selection=bind_relocation_selection(tuple(records),occupied=())
+                        else:selection=bind_gif_relocation_folder_plan(tuple(records),destination)
+                    else:
+                        selection=(bind_gif_relocation_folder_plan(tuple(records),destination) if _folder_plan
+                            else bind_relocation_selection(tuple(records),occupied=()))
                     if (self._mappings.lookup(associations)!=(snapshot,mappings) or journal.read()!=empty
                             or owner.read_intent() is not None):
                         raise TransferError('photo_relocation_preview_changed')
                     lease()
+                    if _discovery is not None:return snapshot,tuple(eligible),selection,next_cursor
                     if _with_evidence:
                         return selection,(policy,binding,destination,snapshot,jobs)
                     return selection

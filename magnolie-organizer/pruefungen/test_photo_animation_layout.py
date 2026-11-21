@@ -241,6 +241,16 @@ def test_native_gif_selection_freezes_only_the_exact_checked_originals_without_w
         with pytest.raises(TransferError,match='activity_busy'):preview()
     with pytest.raises(TransferError,match='target_parents_missing'):preview()
     assert not (target/'Animationen').exists()
+    def discover(**options):
+        return connection._discover_gif_relocation_page(connection.issue_receive_action(),**options)
+    observed,first_choices,first_plan,after=discover(limit=1)
+    assert observed==snapshot and after==mappings[0].association.key
+    assert first_choices==(choices[1],) and first_plan.members[0].source==mappings[0].relative_path
+    assert first_plan.missing_parents()==('Animationen','Animationen/Camera')
+    _,other_choices,other_plan,finished=discover(after=after,expected=observed,limit=1)
+    assert other_choices==(choices[0],) and other_plan.members[0].source==mappings[1].relative_path and finished is None
+    with pytest.raises(TransferError,match='candidate_snapshot_changed'):
+        discover(after=after,expected=replace(observed,version='0'*64),limit=1)
     plan=connection._preview_gif_relocation_selection(connection.issue_receive_action(),choices,_folder_plan=True)
     assert not plan.grants_write_authority and [entry.source for entry in plan.members]==sorted(kinds)
     assert all(entry.target_parents.missing==('Animationen','Camera') for entry in plan.members)
@@ -258,6 +268,12 @@ def test_native_gif_selection_freezes_only_the_exact_checked_originals_without_w
     parent=target/'Animationen/Camera';parent.parent.mkdir(mode=0o700);parent.mkdir(mode=0o700)
     second=target/other.path;second.write_bytes(b'unproven local content')
     with pytest.raises(TransferError,match='animation_unproven'):preview()
+    discovered,listed,selectable,finished=discover()
+    assert discovered==snapshot and len(listed)==1 and finished is None
+    proved,=selectable
+    assert proved.source==member.path and not proved.grants_write_authority
+    assert listed==tuple((mapping.association,mapping.protected_record_sha256) for mapping in mappings
+        if mapping.relative_path==member.path)
     assert not list(parent.iterdir())
     second.write_bytes(ANIMATED)
     selection=preview()
