@@ -67,6 +67,20 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
             with self._locked():
                 self._schema();return self._snapshot()
 
+    def require_prepared(self,expected_version,confirmed_sha256):
+        """Read the exact previous preparation; an absent store cannot be recreated.
+
+        A later native owner must keep these two witnesses outside this store.
+        A caller-supplied checkpoint, even if current, is not a rename grant.
+        """
+        if (not _hex(expected_version) or expected_version==self._absent or not _hex(confirmed_sha256)):
+            raise TransferError('photo_relocation_original_checkpoint_required')
+        current=self.read()
+        if (not current.associated or current.version!=expected_version or not current.records
+                or current.records[0].selection_sha256!=confirmed_sha256):
+            raise TransferError('photo_relocation_original_journal_changed')
+        return current
+
     def prepare(self,action,expected,records,confirmed_sha256,destination,*,require_original):
         """Store the whole exact selection or none. No files are moved here.
 

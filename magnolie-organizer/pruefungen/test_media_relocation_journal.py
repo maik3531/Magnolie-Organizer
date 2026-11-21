@@ -35,7 +35,9 @@ def test_protected_selection_reopens_after_fixture_rename_without_restarting_or_
         assert journal.read()==saved
     source.rename(target) # Isolated recovery fixture, not a product move.
     with closing(ProtectedMediaRelocationJournal(authority)) as reopened:
-        assert reopened.read()==saved
+        assert reopened.require_prepared(saved.version,version)==saved
+        with pytest.raises(TransferError,match='original_journal_changed'):
+            reopened.require_prepared(saved.version,'f'*64)
         assert reopened.read().records[0].observe_native(destination,lambda:True)=='at_target'
         assert reopened.read()==saved and target.read_bytes()==raw and not source.exists()
 
@@ -94,6 +96,22 @@ def test_missing_operation_member_is_not_an_empty_journal_on_reopen(receiving,tm
     with closing(sqlite3.connect(database)) as db, db:db.execute('DELETE FROM selection')
     with closing(ProtectedMediaRelocationJournal(authority)) as reopened:
         with pytest.raises(TransferError,match='original_journal_changed'):reopened.read()
+    assert source.read_bytes()==raw and not target.exists()
+
+
+def test_exact_checkpoint_holds_if_the_whole_journal_is_missing(receiving,tmp_path):
+    entry,destination,source,target,raw=native_fixture(tmp_path/'relocation')
+    selection=bind_relocation_selection((entry,),occupied=());revision=selection[0].selection_sha256
+    authority=receiving[3]._authority
+    with closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        snapshot=journal.prepare(journal.issue_action(),journal.read(),selection,revision,
+            destination,require_original=lambda:True)
+        journal_dir=Path(journal._native_directory())/journal._name
+    preserved=journal_dir.with_name('preserved-fixture-journal');journal_dir.rename(preserved)
+    with closing(ProtectedMediaRelocationJournal(authority)) as reopened:
+        with pytest.raises(TransferError,match='original_journal_changed'):
+            reopened.require_prepared(snapshot.version,revision)
+    assert not journal_dir.exists() and preserved.is_dir()
     assert source.read_bytes()==raw and not target.exists()
 
 
