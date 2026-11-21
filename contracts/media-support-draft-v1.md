@@ -138,3 +138,10 @@ start the scheduler. An actual automatic transfer after reconnect remains to
 be verified with the native phone sender.
 Outgoing/combined runs are held in this receiver composition rather than
 running only part of the direction or substituting a legacy batch.
+
+Format 3 has a separate explicit decoder admission in Linux, Windows, and
+Notes. The common canonical vector checks that even a one-file PC root is a
+whole batch, with the same embedded offer, and rejects it through unmodified
+ordinary file/media entry points. Format 2 stays readable. This admission is
+not set by settings discovery and no handler or transfer is advertised by the
+codec.

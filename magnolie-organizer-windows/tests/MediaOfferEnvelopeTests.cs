@@ -68,6 +68,24 @@ internal static class MediaOfferEnvelopeTests
         var successor = entire.DeepClone().AsObject(); successor["body"]!["pc_origins"]![FileId]!["previous_publication_sha256"] = new string('b', 64);
         TestAssert.That(MediaOfferEnvelope.Validate(successor, A, B, now).PcOrigins[FileId]!["previous_publication_sha256"]!.GetValue<string>() == new string('b', 64),
             "Opaque predecessor correlation was replaced with a phone reference or dropped.");
+        const string batchPath = "contracts/media-pc-batch-v3-vector.json";
+        var golden = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root(batchPath), batchPath)))!.AsObject();
+        var batch = entire.DeepClone().AsObject(); batch["body"]!["format"] = golden["body_format"]!.DeepClone();
+        var decodedBatch = MediaOfferEnvelope.Validate(batch, A, B, now, allowPcBatch: true);
+        var batchBytes = TelefonCrypto.Canonical(batch);
+        TestAssert.That(golden["base"]!.GetValue<string>() == "media-pc-origin-v1-vectors.json" && decodedBatch.PcBatch && !pc.PcBatch &&
+            decodedBatch.Manifest.Files.Count == 1 && JsonNode.DeepEquals(decodedBatch.Offer, pc.Offer) &&
+            batchBytes.Length == golden["canonical_bytes"]!.GetValue<int>() &&
+            Convert.ToHexString(SHA256.HashData(batchBytes)).ToLowerInvariant() == golden["canonical_sha256"]!.GetValue<string>() &&
+            JsonNode.DeepEquals(batch, MediaOfferEnvelope.Create(pc.Manifest, pc.Settings, pc.MediaType, pc.MimeTypes, pc.Originals, now,
+                entire["message_id"]!.GetValue<string>(), pc.PcOrigins, pcBatch: true)), "Explicit one-member batch mode lost its original offer/bytes.");
+        TestAssert.Throws<InvalidDataException>(() => MediaOfferEnvelope.Validate(batch, A, B, now), "Legacy path classified a one-member batch as an ordinary offer.");
+        TestAssert.Throws<InvalidDataException>(() => DeviceFileOfferEnvelope.Validate(batch, A, B, now), "A batch offer fell through to the ordinary file handler.");
+        foreach (var (key, wrong) in new (string, JsonNode)[] { ("pc_origins", new JsonObject()), ("originals", decoded.Originals), ("settings", decoded.Settings) })
+        {
+            var altered = batch.DeepClone().AsObject(); altered["body"]![key] = wrong.DeepClone();
+            TestAssert.Throws<InvalidDataException>(() => MediaOfferEnvelope.Validate(altered, A, B, now, allowPcBatch: true), "Incomplete or non-PC root passed the batch codec.");
+        }
         return Task.CompletedTask;
     }
 }

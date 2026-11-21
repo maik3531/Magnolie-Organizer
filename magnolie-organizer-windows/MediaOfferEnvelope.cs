@@ -6,34 +6,37 @@ namespace MagnolieOrganizer.Windows;
 // Explicit desktop media metadata bridge. Ordinary file offers stay unchanged.
 // Parsing grants no native source/receiver, current intent, book or gallery rights.
 internal sealed record NativeMediaOffer(JsonObject Offer, DeviceFileManifest Manifest, JsonObject Settings,
-    string MediaType, JsonObject MimeTypes, JsonObject Originals, JsonObject PcOrigins);
+    string MediaType, JsonObject MimeTypes, JsonObject Originals, JsonObject PcOrigins, bool PcBatch = false);
 
 internal static class MediaOfferEnvelope
 {
     internal const string Kind = "file_transfer.media_offer";
 
     internal static JsonObject Create(DeviceFileManifest manifest, JsonObject settings, string mediaType,
-        JsonObject mimeTypes, JsonObject originals, long now, string? messageId = null, JsonObject? pcOrigins = null)
+        JsonObject mimeTypes, JsonObject originals, long now, string? messageId = null, JsonObject? pcOrigins = null, bool pcBatch = false)
     {
         var message = DeviceFileOfferEnvelope.Create(manifest, now, messageId);
         var offer = message["body"]!.DeepClone();
         message["kind"] = Kind;
-        message["body"] = new JsonObject { ["format"] = pcOrigins is null ? 1 : 2, ["offer"] = offer, ["settings"] = settings.DeepClone(),
+        message["body"] = new JsonObject { ["format"] = pcBatch ? 3 : pcOrigins is null ? 1 : 2, ["offer"] = offer, ["settings"] = settings.DeepClone(),
             ["media_type"] = mediaType, ["mime_types"] = mimeTypes.DeepClone(), ["originals"] = originals.DeepClone() };
         if (pcOrigins is not null) message["body"]!["pc_origins"] = pcOrigins.DeepClone();
-        _ = Validate(message, manifest.SenderId, manifest.ReceiverId, now); return message;
+        _ = Validate(message, manifest.SenderId, manifest.ReceiverId, now, allowPcBatch: pcBatch); return message;
     }
 
-    internal static NativeMediaOffer Validate(JsonObject message, string senderId, string receiverId, long now)
+    internal static NativeMediaOffer Validate(JsonObject message, string senderId, string receiverId, long now, bool allowPcBatch = false)
     {
         if (TelefonCrypto.Canonical(message).Length > DeviceFileOfferEnvelope.MaximumApplicationBytes ||
             TelefonMessagingContract.String(message, "kind") != Kind || now >= TelefonProtocolContract.Integer(message["expires_ms"]))
             throw DeviceFileControl.Error("media_offer_invalid_envelope");
         var rawBody = message["body"] as JsonObject ?? throw DeviceFileControl.Error("media_offer_invalid_schema");
         var version = TelefonProtocolContract.Integer(rawBody["format"]);
+        if (version is not (1 or 2 or 3) || version == 3 && !allowPcBatch)
+            throw DeviceFileControl.Error("media_offer_invalid_schema");
+        var pcVersion = version is 2 or 3;
         var fields = new[] { "format", "offer", "settings", "media_type", "mime_types", "originals" };
-        var body = TelefonProtocolContract.ExactObject(rawBody, version == 2 ? fields.Append("pc_origins").ToArray() : fields);
-        if (version is not (1 or 2) || body["offer"] is not JsonObject rawOffer || body["settings"] is not JsonObject settings ||
+        var body = TelefonProtocolContract.ExactObject(rawBody, pcVersion ? fields.Append("pc_origins").ToArray() : fields);
+        if (body["offer"] is not JsonObject rawOffer || body["settings"] is not JsonObject settings ||
             body["mime_types"] is not JsonObject mime || body["originals"] is not JsonObject originals)
             throw DeviceFileControl.Error("media_offer_invalid_schema");
         var offer = message.DeepClone().AsObject(); offer["kind"] = DeviceFileOfferEnvelope.Kind; offer["body"] = rawOffer.DeepClone();
@@ -42,13 +45,15 @@ internal static class MediaOfferEnvelope
         MediaSyncSettings.ValidateStart(new JsonObject { ["format"] = 1, ["settings"] = settings.DeepClone() });
         if (!MediaSyncSettings.TransferRequestedFor(settings, kind, toPhone: true)) throw DeviceFileControl.Error("media_offer_sending_intent_required");
         var ids = manifest.Files.Select(file => file.Id).ToHashSet(StringComparer.Ordinal);
-        var pc = version == 2 ? body["pc_origins"] as JsonObject ?? throw DeviceFileControl.Error("media_offer_pc_origin_invalid") : new JsonObject();
+        var pc = pcVersion ? body["pc_origins"] as JsonObject ?? throw DeviceFileControl.Error("media_offer_pc_origin_invalid") : new JsonObject();
         if (!ids.SetEquals(mime.Select(item => item.Key)) || originals.Any(item => !ids.Contains(item.Key)) ||
             MediaSyncSettings.Effective(settings)["collection_mode"]!.GetValue<string>() == "phone_inventory" && originals.Count != ids.Count)
             throw DeviceFileControl.Error("media_offer_original_scope_required");
-        if (version == 2 && (pc.Count == 0 || MediaSyncSettings.Effective(settings)["collection_mode"]!.GetValue<string>() != "entire_collection" ||
+        if (pcVersion && (pc.Count == 0 || MediaSyncSettings.Effective(settings)["collection_mode"]!.GetValue<string>() != "entire_collection" ||
             pc.Any(item => !ids.Contains(item.Key) || originals.ContainsKey(item.Key)) || !ids.SetEquals(originals.Select(item => item.Key).Concat(pc.Select(item => item.Key)))))
             throw DeviceFileControl.Error("media_offer_pc_origin_scope_required");
+        if (version == 3 && (originals.Count != 0 || pc.Count != ids.Count || manifest.Files.Any(file => file.Size == 0)))
+            throw DeviceFileControl.Error("media_offer_pc_batch_scope_required");
         var pcIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var (_, value) in pc)
         {
@@ -74,6 +79,6 @@ internal static class MediaOfferEnvelope
                 !known.Add(DeviceFileControl.Digest("magnolie-media-offer-original-v1\0", original)))
                 throw DeviceFileControl.Error("media_offer_original_reference_invalid");
         }
-        return new(offer, manifest, settings.DeepClone().AsObject(), kind, mime.DeepClone().AsObject(), originals.DeepClone().AsObject(), pc.DeepClone().AsObject());
+        return new(offer, manifest, settings.DeepClone().AsObject(), kind, mime.DeepClone().AsObject(), originals.DeepClone().AsObject(), pc.DeepClone().AsObject(), version == 3);
     }
 }

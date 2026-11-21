@@ -78,5 +78,18 @@ class MediaOfferEnvelopeTest {
         invalid.forEach { reject { MediaOfferEnvelope.validate(it, a, b, v.long("now")) } }
         val next = tokenChanged(JsonObject(token + ("previous_publication_sha256" to JsonPrimitive("b".repeat(64)))))
         assertEquals("b".repeat(64), MediaOfferEnvelope.validate(next, a, b, v.long("now")).pcOrigins.getValue(fileId).previousPublication)
+        val golden = Json.parseToJsonElement(File("../contracts/media-pc-batch-v3-vector.json").readText()).jsonObject
+        val batch = body(selected, "format", golden.getValue("body_format")); val batchBytes = TelefonKanonisch.bytes(batch)
+        val whole = MediaOfferEnvelope.validate(batch, a, b, v.long("now"), allowPcBatch = true)
+        assertEquals("media-pc-origin-v1-vectors.json", golden.string("base"))
+        assertTrue(whole.pcBatch); assertFalse(decoded.pcBatch); assertEquals(1, whole.manifest.files.size)
+        assertEquals(decoded.offer, whole.offer)
+        assertEquals(golden.long("canonical_bytes"), batchBytes.size.toLong())
+        assertEquals(golden.string("canonical_sha256"), MessageDigest.getInstance("SHA-256").digest(batchBytes).joinToString("") { "%02x".format(it) })
+        reject { MediaOfferEnvelope.validate(batch, a, b, v.long("now")) }
+        reject { DeviceFileOfferEnvelope.validate(batch, a, b, v.long("now")) }
+        for ((key, wrong) in listOf("pc_origins" to buildJsonObject {}, "originals" to base.getValue("body").jsonObject.getValue("originals"),
+            "settings" to base.getValue("body").jsonObject.getValue("settings")))
+            reject { MediaOfferEnvelope.validate(body(batch, key, wrong), a, b, v.long("now"), allowPcBatch = true) }
     }
 }

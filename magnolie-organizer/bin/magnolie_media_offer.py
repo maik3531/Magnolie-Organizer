@@ -25,20 +25,21 @@ class NativeMediaOffer:
     mime_types: dict
     originals: dict
     pc_origins: dict = field(default_factory=dict)
+    pc_batch: bool = False
 
 
-def create_media_offer(manifest, settings, media_type, mime_types, originals, *, now=None, message_id=None, pc_origins=None):
+def create_media_offer(manifest, settings, media_type, mime_types, originals, *, now=None, message_id=None, pc_origins=None, pc_batch=False):
     now = now_ms() if now is None else now
     message = create_offer(manifest, now=now, message_id=message_id)
     message['kind'] = KIND
-    message['body'] = dict(format=1 if pc_origins is None else 2, offer=message['body'], settings=copy.deepcopy(settings),
+    message['body'] = dict(format=3 if pc_batch else 1 if pc_origins is None else 2, offer=message['body'], settings=copy.deepcopy(settings),
         media_type=media_type, mime_types=copy.deepcopy(mime_types), originals=copy.deepcopy(originals))
     if pc_origins is not None:message['body']['pc_origins'] = copy.deepcopy(pc_origins)
-    validate_media_offer(message, manifest.sender_id, manifest.receiver_id, now=now)
+    validate_media_offer(message, manifest.sender_id, manifest.receiver_id, now=now, allow_pc_batch=pc_batch)
     return message
 
 
-def validate_media_offer(message, sender_id, receiver_id, *, now=None):
+def validate_media_offer(message, sender_id, receiver_id, *, now=None, allow_pc_batch=False):
     def fail():raise TransferError('media_offer_invalid_envelope')
     now = now_ms() if now is None else now
     try:encoded = canonical(message)
@@ -47,9 +48,10 @@ def validate_media_offer(message, sender_id, receiver_id, *, now=None):
             or type(message.get('expires_ms')) is not int or now >= message['expires_ms']):fail()
     body = message.get('body')
     if type(body) is not dict:fail()
-    pc_version = type(body.get('format')) is int and body['format'] == 2
-    if (set(body) != {'format','offer','settings','media_type','mime_types','originals'} | ({'pc_origins'} if pc_version else set())
-            or type(body.get('format')) is not int or body['format'] not in (1, 2)):fail()
+    version = body.get('format')
+    if type(version) is not int or version not in (1, 2, 3) or version == 3 and allow_pc_batch is not True:fail()
+    pc_version = version in (2, 3)
+    if set(body) != {'format','offer','settings','media_type','mime_types','originals'} | ({'pc_origins'} if pc_version else set()):fail()
     offer = copy.deepcopy(message);offer['kind'] = FILE_OFFER;offer['body'] = copy.deepcopy(body['offer'])
     manifest = validate_offer(offer, sender_id, receiver_id, now=now)
     try:validate_start(dict(format=1, settings=body['settings']))
@@ -62,6 +64,7 @@ def validate_media_offer(message, sender_id, receiver_id, *, now=None):
     pc = body['pc_origins'] if pc_version else {}
     if (type(pc) is not dict or pc_version and (not pc or effective(body['settings'])['collection_mode'] != 'entire_collection'
             or set(pc) & set(originals) or set(pc) | set(originals) != ids)):fail()
+    if version == 3 and (originals or set(pc) != ids or any(file.size == 0 for file in manifest.files)):fail()
     pc_ids = set()
     for value in pc.values():
         if (type(value) is not dict or set(value) != {'format','origin_sha256','previous_publication_sha256'}
@@ -83,4 +86,4 @@ def validate_media_offer(message, sender_id, receiver_id, *, now=None):
         encoded = canonical(reference)
         if encoded in known:fail()
         known.add(encoded)
-    return NativeMediaOffer(offer, manifest, copy.deepcopy(body['settings']), kind, copy.deepcopy(mime), copy.deepcopy(originals), copy.deepcopy(pc))
+    return NativeMediaOffer(offer, manifest, copy.deepcopy(body['settings']), kind, copy.deepcopy(mime), copy.deepcopy(originals), copy.deepcopy(pc), version == 3)

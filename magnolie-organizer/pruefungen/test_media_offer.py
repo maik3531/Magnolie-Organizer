@@ -81,6 +81,26 @@ def test_opaque_pc_origin_v2_keeps_shared_bytes_and_does_not_invent_phone_proof(
     assert validate_media_offer(m, A, B, now=v['now']).pc_origins[FILE]['previous_publication_sha256'] == 'b' * 64
 
 
+def test_pc_batch_requires_explicit_admission_even_for_one_member():
+    v,_ = pc_message(); legacy = v['message']; now = v['now']
+    golden = json.loads((ROOT / 'contracts/media-pc-batch-v3-vector.json').read_text())
+    assert golden['base'] == 'media-pc-origin-v1-vectors.json'
+    batch = deepcopy(legacy); batch['body']['format'] = golden['body_format']
+    old = validate_media_offer(legacy, A, B, now=now, allow_pc_batch=True)
+    parsed = validate_media_offer(batch, A, B, now=now, allow_pc_batch=True)
+    assert not old.pc_batch and parsed.pc_batch and len(parsed.manifest.files) == 1
+    assert parsed.offer == old.offer and parsed.pc_origins == old.pc_origins
+    assert (len(canonical(batch)), sha256(canonical(batch)).hexdigest()) == (golden['canonical_bytes'], golden['canonical_sha256'])
+    assert create_media_offer(parsed.manifest, parsed.settings, parsed.media_type, parsed.mime_types, parsed.originals,
+        now=now, message_id=batch['message_id'], pc_origins=parsed.pc_origins, pc_batch=True) == batch
+    for admission in (False, 1, 'true'):
+        with pytest.raises(TransferError):validate_media_offer(batch, A, B, now=now, allow_pc_batch=admission)
+    with pytest.raises(TransferError):validate_offer(batch, A, B, now=now)
+    for field,value in [('pc_origins', {}), ('originals', vector()['message']['body']['originals']), ('settings', vector()['message']['body']['settings'])]:
+        changed = deepcopy(batch); changed['body'][field] = value
+        with pytest.raises(TransferError):validate_media_offer(changed, A, B, now=now, allow_pc_batch=True)
+
+
 @pytest.mark.parametrize('case', ['legacy','empty','bool_format','uppercase','bool_previous','missing_previous','path','foreign','overlap','inventory'])
 def test_opaque_pc_origin_is_strict_scope_bound_metadata_not_native_authority(case):
     v,_ = pc_message();b = v['message']['body'];pc = b['pc_origins'][FILE]

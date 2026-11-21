@@ -6,7 +6,8 @@ import kotlinx.serialization.json.*
  * phone proofs are independently required by the existing incoming owner. */
 internal data class NativeMediaOffer(val offer: JsonObject, val manifest: DeviceFileManifest,
     val settings: JsonObject, val kind: GalleryMediaType, val mimeTypes: Map<String, String>,
-    val originals: Map<String, GalleryPhoneMediaReference>, val pcOrigins: Map<String, GalleryPcMediaOrigin> = emptyMap())
+    val originals: Map<String, GalleryPhoneMediaReference>, val pcOrigins: Map<String, GalleryPcMediaOrigin> = emptyMap(),
+    val pcBatch: Boolean = false)
 
 /** Opaque PC source correlation only; never a phone reference or row authority. */
 internal class GalleryPcMediaOrigin private constructor(internal val body: JsonObject) {
@@ -28,11 +29,13 @@ internal object MediaOfferEnvelope {
     const val KIND = "file_transfer.media_offer"
 
     fun validate(message: JsonObject, senderId: String, receiverId: String,
-        now: Long = System.currentTimeMillis()): NativeMediaOffer {
+        now: Long = System.currentTimeMillis(), allowPcBatch: Boolean = false): NativeMediaOffer {
         if (TelefonKanonisch.bytes(message).size > TelefonParameter.ANWENDUNG_MAX ||
             message["kind"] != JsonPrimitive(KIND) || now >= message.long("expires_ms")) fail()
         val body = message["body"] as? JsonObject ?: fail()
-        val pcVersion = body["format"] == JsonPrimitive(2)
+        val pcBatch = body["format"] == JsonPrimitive(3)
+        if (pcBatch && !allowPcBatch) fail()
+        val pcVersion = body["format"] == JsonPrimitive(2) || pcBatch
         if (body.keys != setOf("format", "offer", "settings", "media_type", "mime_types", "originals") +
             (if (pcVersion) setOf("pc_origins") else emptySet()) || !pcVersion && body["format"] != JsonPrimitive(1)) fail()
         val rawOffer = body["offer"] as? JsonObject ?: fail()
@@ -50,6 +53,7 @@ internal object MediaOfferEnvelope {
         val pc = if (pcVersion) body["pc_origins"] as? JsonObject ?: fail() else JsonObject(emptyMap())
         if (pcVersion && (pc.isEmpty() || MediaSyncSettings.effective(settings).string("collection_mode") != "entire_collection" ||
             pc.keys.any { it !in ids || it in references } || pc.keys + references.keys != ids)) fail()
+        if (pcBatch && (references.isNotEmpty() || pc.keys != ids || manifest.files.any { it.size == 0L })) fail()
         val pcOrigins = pc.mapValues { (_, value) -> GalleryPcMediaOrigin.parse(value as? JsonObject ?: fail()) }
         if (pcOrigins.values.map { it.origin }.distinct().size != pcOrigins.size) fail()
         val types = mime.mapValues { (_, value) ->
@@ -63,7 +67,7 @@ internal object MediaOfferEnvelope {
             reference
         }
         if (originals.values.map { it.body }.distinct().size != originals.size) fail()
-        return NativeMediaOffer(offer, manifest, settings, kind, types, originals, pcOrigins)
+        return NativeMediaOffer(offer, manifest, settings, kind, types, originals, pcOrigins, pcBatch)
     }
     private fun fail(): Nothing = DeviceFileControl.fail("media_offer_invalid_envelope")
 }
