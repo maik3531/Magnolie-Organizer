@@ -11,6 +11,101 @@ internal sealed partial class TelefonConnection
     private bool fileMetadataRevoked;
     private JsonObject? fileOwnMetadataHistory;
 
+    private const string NativeMediaSupportKind = "media_support.hello";
+    internal bool NativeMediaSupportChecked { get; set; } // Private tests only; no setting or advertisement.
+    private volatile bool mediaSupportReaderActive;
+    private volatile bool mediaSupportRetired;
+    private string? mediaSupportId;
+    private long mediaSupportStarted;
+    private bool mediaSupportOppositeAckWritten;
+    private bool mediaSupportAccepted;
+
+    partial void SetNativeMediaSupportReader(bool active)
+    {
+        if (!active) RetireNativeMediaSupport();
+        mediaSupportReaderActive = active;
+    }
+
+    private void RetireNativeMediaSupport()
+    {
+        if (mediaSupportId is not null) mediaSupportRetired = true;
+    }
+
+    private bool NativeMediaSupportLifetime => NativeMediaSupportChecked && mediaSupportReaderActive && !mediaSupportRetired &&
+        !disposed && !cancellation.IsCancellationRequested && RemoteCloseReason.Length == 0 && transport == "wifi" &&
+        (mediaSupportAccepted || Environment.TickCount64 - mediaSupportStarted is >= 0 and < 10_000);
+
+    internal bool NativeMediaSupportEstablished => mediaSupportAccepted && NativeMediaSupportLifetime && FileMetadataReady();
+
+    private static bool ValidNativeMediaHello(JsonObject plain, long now)
+    {
+        if (plain.Count != 7 || plain["type"] is not JsonValue type || !type.TryGetValue<string>(out var frameType) || frameType != "message" ||
+            !TelefonProtocolContract.TryInteger(plain["v"], out var version) || version != 1 ||
+            plain["message_id"] is not JsonValue idValue || !idValue.TryGetValue<string>(out var id) ||
+            !Guid.TryParseExact(id, "D", out var parsed) || id != parsed.ToString("D") || id[14] != '4' || "89ab".IndexOf(id[19]) < 0 ||
+            !TelefonProtocolContract.TryInteger(plain["created_ms"], out var created) ||
+            !TelefonProtocolContract.TryInteger(plain["expires_ms"], out var expires) || created < 0 || created > now ||
+            expires <= now || expires > 253_402_300_799_999L || expires - created > 10_000 || plain["body"] is not JsonObject body ||
+            body.Count != 2 || !TelefonProtocolContract.TryInteger(body["format"], out var format) || format != 1) return false;
+        return body["feature"] is JsonValue feature && feature.TryGetValue<string>(out var name) && name == "shared_settings";
+    }
+
+    partial void RouteNativeMediaSupport(JsonObject plain, ref Task? handling)
+    {
+        if (NativeMediaSupportChecked && plain["kind"] is JsonValue kind && kind.TryGetValue<string>(out var name) && name == NativeMediaSupportKind)
+        {
+            handling = ReceiveNativeMediaHelloAsync(plain);
+            return;
+        }
+        if (mediaSupportId is null || !JsonNode.DeepEquals(plain["type"], JsonValue.Create("ack")) ||
+            !JsonNode.DeepEquals(plain["message_id"], JsonValue.Create(mediaSupportId))) return;
+        // Even late receipts belong only to this attempt, never the outbox.
+        handling = Task.CompletedTask;
+        if (!NativeMediaSupportLifetime || !mediaSupportOppositeAckWritten || !FileMetadataReady() ||
+            plain.Count != 4 || !JsonNode.DeepEquals(plain["status"], JsonValue.Create("accepted")) ||
+            !JsonNode.DeepEquals(plain["error"], JsonValue.Create("none"))) RetireNativeMediaSupport();
+        else mediaSupportAccepted = true;
+    }
+
+    private async Task ReceiveNativeMediaHelloAsync(JsonObject plain)
+    {
+        var now = Now();
+        if (!mediaSupportReaderActive || transport != "wifi" || mediaSupportId is not null ||
+            !ValidNativeMediaHello(plain, now) || !FileMetadataReady()) return;
+        mediaSupportStarted = Environment.TickCount64;
+        mediaSupportId = Guid.NewGuid().ToString("D");
+        var offer = new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = mediaSupportId,
+            ["kind"] = NativeMediaSupportKind, ["created_ms"] = now, ["expires_ms"] = now + 10_000,
+            ["body"] = new JsonObject { ["format"] = 1, ["feature"] = "shared_settings" } };
+        var ack = new JsonObject { ["type"] = "ack", ["message_id"] = plain["message_id"]!.DeepClone(),
+            ["status"] = "accepted", ["error"] = "none" };
+        try
+        {
+            if (await SendNativeMediaSupportFrameAsync(offer) && FileMetadataReady() && await SendNativeMediaSupportFrameAsync(ack) &&
+                NativeMediaSupportLifetime && FileMetadataReady()) mediaSupportOppositeAckWritten = true;
+            else RetireNativeMediaSupport();
+        }
+        catch { RetireNativeMediaSupport(); throw; }
+    }
+
+    private async Task<bool> SendNativeMediaSupportFrameAsync(JsonObject frame)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+        deadline.CancelAfter(TimeSpan.FromSeconds(10));
+        await writer.WaitAsync(deadline.Token);
+        try
+        {
+            // Check native metadata before acquiring the writer, never from
+            // its gate. Retirement/connection lifetime can only deny here.
+            if (!NativeMediaSupportLifetime) return false;
+            await TelefonCoordinator.WriteFrameAsync(stream, Seal(frame), deadline.Token);
+            lastSentMs = Now();
+            return true;
+        }
+        catch { stream.Dispose(); throw; }
+        finally { writer.Release(); }
+    }
+
     private static bool IsFileMetadata(string? kind) => kind is
         "capabilities.update" or "grants.update" or "personal_sync.settings";
 
@@ -18,6 +113,7 @@ internal sealed partial class TelefonConnection
     {
         var kind = message["kind"]?.GetValue<string>();
         if (!IsFileMetadata(kind)) return;
+        RetireNativeMediaSupport();
         InvalidateMediaSharedReceipts();
         var current = new FileMetadataAttempt(kind!, message.DeepClone().AsObject());
         lock (fileMetadataGate)

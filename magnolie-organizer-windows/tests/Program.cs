@@ -272,6 +272,7 @@ runner.Add("Notes contact group title / strict preparation and saved identity", 
 runner.Add("Shared preference storage / encryption / binding / restore", SharedSyncStorageTests.RunAsync);
 runner.Add("Shared preference transport / fresh controls / replay / reconnect", SharedSyncTransportTests.RunAsync);
 runner.Add("Media support draft / legacy encrypted receive and continuing heartbeat", SharedSyncTransportTests.LegacyMediaSupportAsync);
+runner.Add("Media support draft / original Windows WLAN reader and withdrawal", SharedSyncTransportTests.NativeMediaSupportAsync);
 runner.Add("Phone content scope / subset updates / removal / bounded manifests", PhoneContentScopeTests.RunAsync);
 runner.Add("Scoped run storage / immutable membership / separate time choice", ScopedRunStorageTests.RunAsync);
 runner.Add("Baum synchronization snapshot continuity", BaumSyncSnapshotTests.RunAsync);

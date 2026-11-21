@@ -79,6 +79,95 @@ internal static class SharedSyncTransportTests
         }
     }
 
+    internal static async Task NativeMediaSupportAsync()
+    {
+        using var fixture = new PhoneCameraParentTests.Fixture(filePairingEpoch: new string('a', 64), receive: (store, peer, message) =>
+        {
+            var body = message["body"]!.AsObject();
+            switch (message["kind"]!.GetValue<string>())
+            {
+                case "capabilities.update": store.UpdatePeerProtocol(peer.Id, TelefonProtocolContract.Integer(body["revision"]), body["items"]!.AsObject(), 0, null); break;
+                case "grants.update": store.UpdatePeerProtocol(peer.Id, 0, null, TelefonProtocolContract.Integer(body["revision"]), body["grants"]!.AsObject()); break;
+                case "personal_sync.settings": store.SetPersonalSettings(peer.Id, remoteOwnDevice: body["own_device"]!.GetValue<bool>()); break;
+                default: throw new InvalidOperationException("Unexpected ordinary dispatch");
+            }
+            return Task.FromResult<TelefonAck?>(null);
+        });
+        var connection = fixture.Connection;
+        fixture.Store.SavePeers([fixture.Peer]);
+        fixture.Store.Enabled = true;
+        fixture.Store.SetPersonalSettings(fixture.Peer.Id, ownDevice: true, remoteOwnDevice: true);
+        connection.NativeMediaSupportChecked = true;
+        long sent = 0, received = 0;
+        JsonObject Hello()
+        {
+            var hello = Message("media_support.hello", new JsonObject { ["format"] = 1, ["feature"] = "shared_settings" });
+            hello["expires_ms"] = TelefonProtocolContract.Integer(hello["created_ms"]) + 10_000;
+            return hello;
+        }
+        static JsonObject Ack(JsonObject frame) => new() { ["type"] = "ack", ["message_id"] = frame["message_id"]!.DeepClone(), ["status"] = "accepted", ["error"] = "none" };
+        async Task Ping()
+        {
+            var ping = new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() };
+            await fixture.Send(ping, sent++); ping["type"] = "pong";
+            TestAssert.That(JsonNode.DeepEquals(ping, await fixture.Read(received++)), "Original parent did not answer heartbeat.");
+        }
+        async Task Control(string kind, JsonObject body)
+        {
+            var packet = Message(kind, body);
+            await fixture.Send(packet, sent++);
+            var response = await fixture.Read(received++);
+            while (response["kind"]?.GetValue<string>() is SharedSyncSettings.Kind or PersonalSyncContract.DesktopFeaturesKind or TimeSyncContract.Settings)
+            {
+                await fixture.Send(Ack(response), sent++);
+                response = await fixture.Read(received++);
+            }
+            TestAssert.That(JsonNode.DeepEquals(Ack(packet), response), $"Expected {kind} acknowledgement before discovery, got {response}.");
+        }
+        var run = connection.RunAsync();
+        try
+        {
+            await fixture.Send(Hello(), sent++);
+            await Ping(); // A saved paired peer does not by itself authorize discovery.
+            var caps = TelefonProtocolContract.DesktopCapabilities();
+            caps["items"]!["device_status"]!["versions"] = new JsonArray(1, 2, 3, 4, 5, 7, 8, 11, 12, 13, 17, 18, 19, 20, 21, 22);
+            await Control("capabilities.update", caps);
+            await Control("grants.update", new JsonObject { ["revision"] = 1, ["grants"] = TelefonProtocolContract.DesktopGrants() });
+            await Control("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true });
+            var malformed = Hello(); malformed["body"]!["feature"] = "image_batch";
+            await fixture.Send(malformed, sent++);
+            await Ping();
+            var probe = Hello();
+            await fixture.Send(probe, sent++);
+            var reply = await fixture.Read(received++);
+            TestAssert.That(reply["kind"]!.GetValue<string>() == "media_support.hello" && !connection.NativeMediaSupportEstablished,
+                "A one-sided probe already authorized settings.");
+            TestAssert.That(JsonNode.DeepEquals(Ack(probe), await fixture.Read(received++)), "Remote probe did not get its exact ACK.");
+            await fixture.Send(Ack(reply), sent++);
+            await Ping();
+            TestAssert.That(connection.NativeMediaSupportEstablished && !connection.MediaSharedControlsReady, "Support was missing or granted the media runtime.");
+            await Control("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = false });
+            await Control("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true });
+            await fixture.Send(Ack(reply), sent++);
+            await fixture.Send(Hello(), sent++);
+            await Ping();
+            TestAssert.That(!connection.NativeMediaSupportEstablished && fixture.LegacyReceives == 5, "Withdrawal was reversed or discovery entered the ordinary dispatcher.");
+            foreach (var frame in new[] { malformed, probe, reply })
+            {
+                var id = frame["message_id"]!.GetValue<string>();
+                TestAssert.That(fixture.Store.OutboxMessage(fixture.Peer.Id, id) is null && !fixture.Store.ReceivedMatches(fixture.Peer.Id, frame),
+                    "A private probe entered durable phone storage.");
+            }
+            await fixture.Send(new JsonObject { ["type"] = "close", ["reason"] = "normal" }, sent++);
+            await run;
+        }
+        finally
+        {
+            connection.Dispose();
+            try { await run; } catch (Exception error) when (error is IOException or OperationCanceledException or ObjectDisposedException) { }
+        }
+    }
+
     internal static async Task RunAsync()
     {
         var root = Path.Combine(Path.GetTempPath(), "shared-sync-wire-" + Guid.NewGuid().ToString("N"));

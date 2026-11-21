@@ -2164,6 +2164,7 @@ internal sealed partial class TelefonConnection : IDisposable
     internal async Task RunAsync()
     {
         Task<JsonObject>? read = null;
+        SetNativeMediaSupportReader(true);
         try
         {
             while (!cancellation.IsCancellationRequested)
@@ -2180,7 +2181,7 @@ internal sealed partial class TelefonConnection : IDisposable
                 if (now - lastSentMs >= 25_000) await SendPlainAsync(new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = now });
             }
         }
-        finally { FenceWebcamParent(); RetireScreenControl(); }
+        finally { SetNativeMediaSupportReader(false); FenceWebcamParent(); RetireScreenControl(); }
     }
     internal async Task InitializeAsync(long capabilityRevision)
     {
@@ -2267,6 +2268,12 @@ internal sealed partial class TelefonConnection : IDisposable
 
     private async Task HandlePlainBoundAsync(JsonObject plain, JsonObject? scopedReference)
     {
+        if (scopedReference is null)
+        {
+            Task? mediaSupport = null;
+            RouteNativeMediaSupport(plain, ref mediaSupport);
+            if (mediaSupport is not null) { await mediaSupport; return; }
+        }
         if (plain["kind"]?.GetValue<string>() is MediaSyncSettings.StartKind or MediaSyncSettings.Kind)
         {
             Task? mediaHandling = null;
@@ -2524,6 +2531,8 @@ internal sealed partial class TelefonConnection : IDisposable
     }
     // Optional implementation is omitted entirely in builds without media.
     partial void BeginFileMetadataReceipt(JsonObject message, ref object? attempt);
+    partial void SetNativeMediaSupportReader(bool active);
+    partial void RouteNativeMediaSupport(JsonObject plain, ref Task? handling);
     partial void ReceiveNativeFileMessage(JsonObject message, ref Task? handling);
     partial void CloseNativeFileRoute();
     partial void ObserveFileMetadataWithdrawal(JsonObject message, TelefonAck ack, object? attempt);

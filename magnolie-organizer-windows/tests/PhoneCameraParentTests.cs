@@ -30,13 +30,15 @@ internal static class PhoneCameraParentTests
         private readonly TcpClient phone;
         private readonly CancellationTokenSource deadline = new(TimeSpan.FromSeconds(10));
         internal readonly TelefonStore Store;
-        internal readonly TelefonPeer Peer = new(Guid.NewGuid().ToString("D"), "Controlled original parent", new byte[32]);
+        internal readonly TelefonPeer Peer;
         internal readonly TelefonConnection Connection;
         internal int LegacyReceives;
         internal SemaphoreSlim Writer => (SemaphoreSlim)typeof(TelefonConnection).GetField("writer", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Connection)!;
         internal bool HasUnexpectedFrame => phone.GetStream().DataAvailable;
-        internal Fixture(string transport = "wifi")
+        internal Fixture(string transport = "wifi", string? filePairingEpoch = null,
+            Func<TelefonStore, TelefonPeer, JsonObject, Task<TelefonAck?>>? receive = null)
         {
+            Peer = new(Guid.NewGuid().ToString("D"), "Controlled original parent", new byte[32]) { FilePairingEpoch = filePairingEpoch };
             var paths = new WindowsPaths(root); Store = new TelefonStore(paths, new byte[32]);
             var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
             try
@@ -47,7 +49,7 @@ internal static class PhoneCameraParentTests
             finally { listener.Stop(); }
             Connection = new TelefonConnection(Peer, desktop.GetStream(), new byte[16],
                 Enumerable.Range(0, 72).Select(value => (byte)value).ToArray(), Store,
-                (_, _) => { LegacyReceives++; return Task.FromResult<TelefonAck?>(null); }, deadline.Token, transport);
+                (peer, payload) => { LegacyReceives++; return receive?.Invoke(Store, peer, payload) ?? Task.FromResult<TelefonAck?>(null); }, deadline.Token, transport);
         }
         internal async Task Send(JsonObject message, long sequence)
         {

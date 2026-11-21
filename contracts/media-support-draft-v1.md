@@ -104,3 +104,11 @@ Android private reader tracks only fresh acknowledged controls of that
 original transport, independently of legacy pre-write session flags. It does
 not use this observation for file access or batch authority. Wiring this
 agreement to explicit UI actions and native file acceptance remains separate.
+
+The Windows Core loopback also tests the private answering reader once the
+same paired parent has written its capability, grant and own-device ACKs.
+Malformed, early and withdrawn probes do not acquire a settings or file
+owner, and the ordinary heartbeat continues. The stock Windows gate stays
+off and its old rejection is still covered separately. Reciprocal Notes
+settings exchange with Windows and native Windows package acceptance are
+not covered by the Core loopback.
