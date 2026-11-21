@@ -4494,7 +4494,15 @@ print("— Magnolienbaum: Schlüssel und Paarung —")
 with open(os.path.join(QUELLWURZEL, "debian", "install"),
           encoding="utf-8") as datei:
     paket_installation = datei.read()
-pruefe(not any(marker in paket_installation.upper() for marker in (
+# Keep the note guard, but exempt only the exact staging entries of the two
+# native review implementations, not documents or other entries with that name.
+review_module = {
+    ("bin/magnolie_personal_actor_decision_review.py", "usr/bin"),
+    ("bin/magnolie_personal_actor_target_review.py", "usr/bin"),
+}
+dokumentpruefung = "\n".join(zeile for zeile in paket_installation.splitlines()
+                             if tuple(zeile.split()) not in review_module)
+pruefe(not any(marker in dokumentpruefung.upper() for marker in (
            "REVIEW", "ENTWURF", "OFFENE-PUNKTE", "ANALYSE", "AUDIT")),
        "interne Arbeitsnotizen werden nicht installiert")
 

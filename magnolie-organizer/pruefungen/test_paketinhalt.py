@@ -157,8 +157,11 @@ assert "web/kaffee-qr.mga" in install_manifest
 assert "web/kaffee-qr.png" not in install_manifest
 helper = "bin/magnolie_personal_sync.py"
 assert (ROOT / helper).is_file()
-assert f"{helper}          usr/bin" in install_manifest
-assert f"{helper}          usr/lib/magnolie-organizer" in install_manifest
+helper_destinations = [fields[1:] for line in install_manifest.splitlines()
+                       if (fields := line.split()) and fields[0] == helper]
+assert helper_destinations == [["usr/bin"]]
+assert "werkzeuge/phone_features.py debian/magnolie-organizer/usr/bin debian/magnolie-organizer/usr/share/magnolie-organizer" in text(ROOT / "debian/rules")
+assert "runtime = data_directory / 'python'" in text(ROOT / "werkzeuge/phone_features.py")
 assert "bin/magnolie_nextcloud.py              usr/bin" in install_manifest
 assert "bin/magnolie_cloud_backup.py           usr/bin" in install_manifest
 assert "bin/magnolie_akonadi.py                usr/bin" in install_manifest
@@ -302,7 +305,8 @@ assert "org.flatpak.Builder" in flatpak_builder
 assert "flatpak build-bundle" in flatpak_builder
 assert 'MAGNOLIE_CONTRIBUTOR_HASH' in flatpak_builder
 assert "0000000000000000000000000000000000000000000000000000000000000000" not in flatpak_manifest
-assert "if contributor_hash:" in flatpak_builder
+assert "if contributor_hash or raw_features is not None:" in flatpak_builder
+assert 'config = {"contributorHash": contributor_hash} if contributor_hash else {}' in flatpak_builder
 assert '--filesystem="$WURZEL"' in flatpak_builder
 assert '--default-branch="$ZWEIG"' in flatpak_builder
 assert '--override-source-date-epoch="$SOURCE_EPOCH"' in flatpak_builder
