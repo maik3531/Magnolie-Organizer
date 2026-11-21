@@ -2452,7 +2452,9 @@ for (const language of Object.keys(HANDBUCH_ANHAENGE["phone-pairing"].inhalt)) {
     (language === "de" ? "<p>Wenn gemeinsame Medieneinstellungen verfügbar sind, steht deren Ein/Aus-Schalter direkt in der Überschrift <b>Fotos und Videos</b>. Das Öffnen der Gruppe schaltet nichts ein. Die lokale Freigabe <b>Empfangen · Fotos</b> bleibt in der Gruppe getrennt.</p>" :
       "<p>When shared media settings are available, their on/off switch is in the <b>Photos and videos</b> heading. Opening the section does not turn anything on. The local <b>Receive · Photos</b> permission is separate inside the section.</p>") +
     (language === "de" ? "<p>Nach dem Öffnen eines bereits gespeicherten Buchs müssen Sie es für die Ordnerwahl nicht erneut speichern.</p>" :
-      "<p>After opening an already saved book, you do not need to save it again just to choose a folder.</p>");
+      "<p>After opening an already saved book, you do not need to save it again just to choose a folder.</p>") +
+    (language === "de" ? "<p>Unter Windows finden Sie <b>Wiederherstellen</b> bei vorhandenen Medienversionen in <b>Fotos und Videos</b>, nach den Zielordnern und vor <b>Jetzt synchronisieren</b>. Die lokale Wiederherstellung benötigt keine aktive Telefonverbindung.</p>" :
+      "<p>On Windows, when saved media versions are available, <b>Restore</b> is under <b>Photos and videos</b>, after the destination folders and before <b>Synchronize now</b>. Local recovery does not require an active phone connection.</p>");
 }
 for (const [language, text] of Object.entries(KDE_ZEICHEN_HILFE)) HANDBUCH_ANHAENGE["phone-pairing"].inhalt[language] += "<p>" + text + "</p>";
 for (const [language, text] of Object.entries(FAX_WEGE_HILFE)) HANDBUCH_ANHAENGE["sending-selected-notes"][language] += "<p>" + text + "</p>";

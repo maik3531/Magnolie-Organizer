@@ -210,10 +210,22 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
      () => true, { recovery, mountLive: root => root.append(w.document.createElement("aside")) });
    w.document.body.append(combined);
    assert.equal(recovery.parentElement.querySelector("summary").textContent, "Photos and videos");
-   reply({ supported: false });
-   assert(!combined.hidden && !recovery.hidden && !recovery.parentElement.hidden);
-   reply({ ...state, supported: true });
-   assert.equal(recovery.parentElement, combined.querySelector(".telefon-medien:not([hidden])"));
+    reply({ supported: false });
+    assert(!combined.hidden && !recovery.hidden && !recovery.parentElement.hidden);
+    const refreshCombined = [...combined.querySelectorAll("button")].find(button => button.textContent === "Refresh" && !recovery.contains(button));
+    refreshCombined.click(); await tick();
+    reply({ ...state, supported: true });
+    assert.equal(recovery.parentElement, combined.querySelector(".telefon-medien:not([hidden])"));
+    const target = recovery.parentElement.querySelector('[data-destination="images"]');
+    const start = [...recovery.parentElement.querySelectorAll("button")].find(button => button.textContent === "Synchronize now");
+    assert(target.compareDocumentPosition(recovery) & w.Node.DOCUMENT_POSITION_FOLLOWING);
+    assert(recovery.compareDocumentPosition(start) & w.Node.DOCUMENT_POSITION_FOLLOWING,
+      "Restore belongs after the destination and before the manual sync action");
+    assert(!recovery.open);
+    refreshCombined.click(); await tick();
+    reply({ supported: false });
+    assert.notEqual(recovery.parentElement, start.closest("details"));
+    assert(!recovery.hidden && !recovery.open);
    combined.remove();
   const legacyPanel = api.createPanel(peer, x => x, value => { messages.push(JSON.parse(JSON.stringify(value))); return true; }, async () => { saves++; });
   w.document.body.append(legacyPanel);

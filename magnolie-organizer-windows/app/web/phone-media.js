@@ -7,6 +7,7 @@
     const t = translate, root = document.createElement("details");
     root.className = "telefon-medien einst-gruppe"; root.hidden = true;
     const node = (tag, text) => { const e = document.createElement(tag); if (text) e.textContent = t(text); return e; };
+    const manualArea = node("section");
     const advanced = node("details"); advanced.className = "telefon-erweitert telefon-freigaben einst-gruppe";
     advanced.hidden = !mountLive; advanced.open = false;
     advanced.append(node("summary", "Advanced functions"), root);
@@ -17,7 +18,7 @@
     function updateVisibility() {
       if (recovery) {
         const parent = root.hidden ? recoveryOnly : root;
-        if (recovery.parentElement !== parent) parent.append(recovery);
+        if (recovery.parentElement !== parent) parent.insertBefore(recovery, parent === root ? manualArea : null);
         recoveryOnly.hidden = !root.hidden || recovery.hidden;
       }
       advanced.hidden = root.hidden && recoveryOnly.hidden && !mountLive;
@@ -29,7 +30,7 @@
     status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite");
     const note = node("p", "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet.");
     note.className = "einst-hinweis";
-    const rightsArea = node("section"), settingsArea = node("section"), manualArea = node("section");
+    const rightsArea = node("section"), settingsArea = node("section");
     for (const area of [rightsArea, settingsArea, manualArea]) area.className = "telefon-medien-gruppe";
     rightsArea.append(node("h4", "Access rights"));
     settingsArea.append(node("h4", "Synchronization settings"), note);
