@@ -7,12 +7,14 @@ the native entry point still rejects `move_existing`.
 
 The Linux preparation store can persist one complete exact selection. It
 binds the root and both parent chains, current local bytes and original
-mapping fingerprints in the authenticated journal. The journal only records
-`prepared`: it does not perform or complete a rename. Readback distinguishes
-the two exclusive locations without traversing symlinks. Reopening the draft
-does not retry or finalize a move. Before calling it from the product, the
-native owner must bind the prepared journal identity to the saved operation
-so replacing or losing the entire store cannot admit a new preparation.
+mapping fingerprints in the authenticated journal. Readback distinguishes
+the two exclusive locations without traversing symlinks. The draft can append
+a `moved` or `canceled` observation beside the immutable preparation after
+flushing both held parents and checking their identities again. It performs
+no rename or mapping change. Reopening never retries or finalizes a move by
+itself. Before calling it from the product, bind the preparation and latest
+outcome checkpoints to the original operation in another protected store so
+replacing, rolling back or losing this journal cannot admit a new action.
 
 ## Selection
 

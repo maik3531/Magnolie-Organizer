@@ -2,6 +2,7 @@
 from contextlib import closing
 from dataclasses import replace
 from pathlib import Path
+import os
 import sqlite3
 
 import pytest
@@ -113,6 +114,77 @@ def test_exact_checkpoint_holds_if_the_whole_journal_is_missing(receiving,tmp_pa
             reopened.require_prepared(snapshot.version,revision)
     assert not journal_dir.exists() and preserved.is_dir()
     assert source.read_bytes()==raw and not target.exists()
+
+
+def test_terminal_commit_keeps_the_original_preparation_and_rejects_replay(receiving,tmp_path):
+    selection,destination,source,target,raw=two_members(tmp_path/'relocation')
+    version=selection[0].selection_sha256;authority=receiving[3]._authority
+    with closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        prepared=journal.prepare(journal.issue_action(),journal.read(),selection,version,destination,require_original=lambda:True)
+        with pytest.raises(TransferError,match='original_location_unproven'):
+            journal.record_terminal(journal.issue_action(),prepared,0,'moved',destination,require_original=lambda:True)
+        assert journal.read()==prepared
+        source.rename(target)  # Simulate a process returning after the separately journaled rename.
+        moved=journal.record_terminal(journal.issue_action(),prepared,0,'moved',destination,require_original=lambda:True)
+        assert moved.version==prepared.version and moved.outcome_version!=prepared.outcome_version and moved.records==selection
+        assert moved.outcomes==((0,replace(selection[0],phase='moved')),)
+        with pytest.raises(TransferError,match='original_journal_changed'):
+            journal.record_terminal(journal.issue_action(),prepared,1,'canceled',destination,require_original=lambda:True)
+        with pytest.raises(TransferError,match='already_recorded'):
+            journal.record_terminal(journal.issue_action(),moved,0,'moved',destination,require_original=lambda:True)
+    with closing(ProtectedMediaRelocationJournal(authority)) as reopened:
+        fresh=reopened.require_prepared(prepared.version,version)
+        assert fresh==moved
+        done=reopened.record_terminal(reopened.issue_action(),fresh,1,'canceled',destination,require_original=lambda:True)
+        database=Path(reopened._native_directory())/reopened._name/'prefs.sqlite'
+    assert done.outcomes==moved.outcomes+((1,replace(selection[1],phase='canceled')),)
+    assert target.read_bytes()==source.with_name('later.gif').read_bytes()==raw and not source.exists()
+    with closing(sqlite3.connect(database)) as db, db:db.execute('DELETE FROM outcomes WHERE ordinal=0')
+    with closing(ProtectedMediaRelocationJournal(authority)) as reopened:
+        with pytest.raises(TransferError,match='original_journal_changed'):reopened.read()
+
+
+def test_terminal_parent_sync_failure_keeps_the_original_outcome_pending(receiving,tmp_path,monkeypatch):
+    entry,destination,source,target,raw=native_fixture(tmp_path/'relocation')
+    selection=bind_relocation_selection((entry,),occupied=());version=selection[0].selection_sha256
+    authority=receiving[3]._authority
+    with closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        prepared=journal.prepare(journal.issue_action(),journal.read(),selection,version,destination,require_original=lambda:True)
+        source.rename(target)
+        fsync=os.fsync;parents=[]
+        def fail_sync(fd):
+            value=os.fstat(fd);key=value.st_dev,value.st_ino
+            if key in (entry.source_parents[-1],entry.target_parents[-1]):
+                parents.append(key)
+                if key==entry.target_parents[-1]:raise OSError('fixture sync failure')
+            return fsync(fd)
+        with monkeypatch.context() as patch:
+            patch.setattr(os,'fsync',fail_sync)
+            with pytest.raises(OSError,match='fixture sync failure'):
+                journal.record_terminal(journal.issue_action(),prepared,0,'moved',destination,require_original=lambda:True)
+        assert parents==[entry.source_parents[-1],entry.target_parents[-1]]
+        assert journal.require_prepared(prepared.version,version)==prepared
+    assert target.read_bytes()==raw and not source.exists()
+
+
+def test_terminal_target_replaced_during_directory_sync_is_not_credited(receiving,tmp_path,monkeypatch):
+    entry,destination,source,target,raw=native_fixture(tmp_path/'relocation')
+    selection=bind_relocation_selection((entry,),occupied=());version=selection[0].selection_sha256
+    with closing(ProtectedMediaRelocationJournal(receiving[3]._authority)) as journal:
+        prepared=journal.prepare(journal.issue_action(),journal.read(),selection,version,destination,require_original=lambda:True)
+        source.rename(target)
+        previous=target.with_name('preserved.gif');sync=os.fsync
+        def replace_target(fd):
+            sync(fd)
+            info=os.fstat(fd)
+            if (info.st_dev,info.st_ino)==entry.target_parents[-1]:
+                target.rename(previous);target.write_bytes(raw)
+        monkeypatch.setattr(os,'fsync',replace_target)
+        with pytest.raises(TransferError,match='original_file_changed'):
+            journal.record_terminal(journal.issue_action(),prepared,0,'moved',destination,require_original=lambda:True)
+        assert journal.require_prepared(prepared.version,version)==prepared
+    assert target.stat().st_ino!=entry.file.file_key[1] and previous.stat().st_ino==entry.file.file_key[1]
+    assert target.read_bytes()==previous.read_bytes()==raw and not source.exists()
 
 
 def test_relocation_modules_follow_the_existing_optional_photo_composition():

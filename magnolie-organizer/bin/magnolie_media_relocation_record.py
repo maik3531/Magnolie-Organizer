@@ -118,6 +118,15 @@ class MediaRelocationRecord:
 
     def observe_native(self, destination, current, *, require_animation=False):
         """Read pinned endpoints. Never create, rename, recover or sync anything."""
+        return self._observe_native(destination,current,require_animation=require_animation,durable_phase=None)
+
+    def sync_terminal_evidence(self,destination,current,phase):
+        """Flush the same held directories after readback, without moving a file."""
+        if self.phase!='prepared' or phase not in ('moved','canceled'):
+            raise TransferError('photo_relocation_invalid_transition')
+        return self._observe_native(destination,current,require_animation=False,durable_phase=phase)
+
+    def _observe_native(self,destination,current,*,require_animation,durable_phase):
         if (type(destination) is not NativeAcceptedDestination or destination.ancestor_keys[0]!=self.root_key
                 or not callable(current) or type(require_animation) is not bool):
             raise TransferError('photo_relocation_original_destination_required')
@@ -182,18 +191,24 @@ class MediaRelocationRecord:
                     require_current()
                 ends.append((endpoint,exact));return observed
             observed_source,observed_target=inspect(source),inspect(target)
-            require_current();destination.verify()
-            for parent,part,fd,expected in held:
-                value=named(parent,part)
-                if value is None or directory(value)!=expected or directory(os.fstat(fd))!=expected:
-                    raise TransferError('photo_relocation_parent_changed')
-            for endpoint,expected in ends:
-                value=named(*endpoint)
-                if (signature(value) if value is not None else None)!=expected:
-                    raise TransferError('photo_relocation_original_file_changed')
-            require_current()
-            return self.observe(root_key=self.root_key,source_parents=self.source_parents,target_parents=self.target_parents,
+            def recheck():
+                require_current();destination.verify()
+                for parent,part,fd,expected in held:
+                    value=named(parent,part)
+                    if value is None or directory(value)!=expected or directory(os.fstat(fd))!=expected:
+                        raise TransferError('photo_relocation_parent_changed')
+                for endpoint,expected in ends:
+                    value=named(*endpoint)
+                    if (signature(value) if value is not None else None)!=expected:
+                        raise TransferError('photo_relocation_original_file_changed')
+                require_current()
+            witnessed=dict(root_key=self.root_key,source_parents=self.source_parents,target_parents=self.target_parents,
                 source=observed_source,target=observed_target)
+            recheck()
+            if durable_phase is None:return self.observe(**witnessed)
+            candidate=self.terminal_candidate(durable_phase,**witnessed)
+            os.fsync(source[0]);require_current();os.fsync(target[0]);recheck()
+            return candidate
 
 
 def bind_relocation_selection(records, *, occupied):

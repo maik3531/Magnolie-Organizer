@@ -1,9 +1,9 @@
 """Protected preparation for local special-folder relocation (#429).
 
-Not exposed to the UI. A durable intent alone neither permits a rename nor
-changes a saved mapping. No replay, resume or terminal write is provided here.
+Not exposed to the UI. This journal never moves files or changes a saved
+mapping. Terminal evidence is appended only after exact native readback.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from hashlib import sha256
 
 from magnolie_file_control import _hex
@@ -18,12 +18,15 @@ class RelocationJournalSnapshot:
     version: str
     associated: bool
     records: tuple
+    outcome_version: str | None = None
+    outcomes: tuple = ()
 
 
 class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
     _SCHEMA={
         'owner':'CREATE TABLE owner (id INTEGER PRIMARY KEY CHECK(id=1), payload BLOB NOT NULL)',
-        'selection':'CREATE TABLE selection (ordinal INTEGER PRIMARY KEY, payload BLOB NOT NULL)'}
+        'selection':'CREATE TABLE selection (ordinal INTEGER PRIMARY KEY, payload BLOB NOT NULL)',
+        'outcomes':'CREATE TABLE outcomes (ordinal INTEGER PRIMARY KEY, payload BLOB NOT NULL)'}
     MAX_DATABASE_BYTES=2*1024*1024
     MAX_MEMBERS=128
 
@@ -34,15 +37,16 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
         self._absent=sha256((self._domain+'absent').encode()).hexdigest()
 
     def _initial_owner(self):
-        return dict(pairing_epoch=self._peer().pairing_epoch,count=0,rows_sha256=sha256(b'').hexdigest())
+        empty=sha256(b'').hexdigest()
+        return dict(pairing_epoch=self._peer().pairing_epoch,count=0,rows_sha256=empty,outcome_count=0,outcomes_sha256=empty)
 
     def _snapshot(self):
         head=self._db.execute('SELECT id,payload FROM owner').fetchall()
         if len(head)!=1 or head[0][0]!=1:raise TransferError('photo_relocation_original_journal_required')
         blob=head[0][1];owner=self._unprotect(blob,'owner')
-        if (type(owner) is not dict or set(owner)!={'pairing_epoch','count','rows_sha256'}
-                or not _hex(owner['pairing_epoch']) or not _hex(owner['rows_sha256'])
-                or type(owner['count']) is not int or not 0<=owner['count']<=self.MAX_MEMBERS):
+        if (type(owner) is not dict or set(owner)!={'pairing_epoch','count','rows_sha256','outcome_count','outcomes_sha256'}
+                or any(not _hex(owner[name]) for name in ('pairing_epoch','rows_sha256','outcomes_sha256'))
+                or any(type(owner[name]) is not int or not 0<=owner[name]<=self.MAX_MEMBERS for name in ('count','outcome_count'))):
             raise TransferError('photo_relocation_invalid_journal')
         records=[];rows=sha256()
         for index,cipher in self._db.execute('SELECT ordinal,payload FROM selection ORDER BY ordinal'):
@@ -54,12 +58,21 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
         if (owner['count']!=len(records) or owner['rows_sha256']!=rows.hexdigest()
                 or records and bind_relocation_selection(records,occupied=())!=records):
             raise TransferError('photo_relocation_original_journal_changed')
-        version=sha256(blob).hexdigest();mark=(1 if records else 0,version)
+        outcomes=[];outcome_hash=sha256()
+        for index,cipher in self._db.execute('SELECT ordinal,payload FROM outcomes ORDER BY ordinal'):
+            if type(index) is not int or not 0<=index<len(records):raise TransferError('photo_relocation_invalid_outcome')
+            entry=MediaRelocationRecord.parse(self._unprotect(cipher,'outcome/'+str(index)))
+            if entry.phase not in ('moved','canceled') or replace(entry,phase='prepared')!=records[index]:
+                raise TransferError('photo_relocation_invalid_outcome')
+            outcome_hash.update(index.to_bytes(2,'big')+sha256(cipher).digest());outcomes.append((index,entry))
+        if owner['outcome_count']!=len(outcomes) or owner['outcomes_sha256']!=outcome_hash.hexdigest():
+            raise TransferError('photo_relocation_original_journal_changed')
+        version=sha256(blob).hexdigest();mark=(len(records)+len(outcomes),version)
         if self._last is not None and (mark[0]<self._last[0] or mark[0]==self._last[0] and mark!=self._last):
             raise TransferError('photo_relocation_journal_rollback')
         self._last=mark
-        return RelocationJournalSnapshot(version if records else self._absent,
-            owner['pairing_epoch']==self._peer().pairing_epoch,records)
+        return RelocationJournalSnapshot(owner['rows_sha256'] if records else self._absent,
+            owner['pairing_epoch']==self._peer().pairing_epoch,records,version,tuple(outcomes))
 
     def read(self):
         with self._operation():
@@ -114,6 +127,41 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
                         self._db.execute('INSERT INTO selection VALUES(?,?)',(index,cipher))
                         rows.update(sha256(cipher).digest())
                     owner=dict(self._initial_owner(),count=len(records),rows_sha256=rows.hexdigest())
+                    self._db.execute('UPDATE owner SET payload=? WHERE id=1',(self._protect(owner,'owner'),))
+                    current();self._db.commit();self._sync();current()
+                    return self._snapshot()
+                except BaseException:
+                    if self._db.in_transaction:self._db.rollback()
+                    self._uncertain=True
+                    raise
+
+    def record_terminal(self,action,expected,index,phase,destination,*,require_original):
+        """Append one proven outcome to the exact already prepared selection."""
+        if (type(action) is not NativePhotoDestinationAction or type(expected) is not RelocationJournalSnapshot
+                or not expected.associated or not expected.records or not _hex(expected.outcome_version)
+                or type(index) is not int or not 0<=index<len(expected.records) or not callable(require_original)):
+            raise TransferError('photo_relocation_original_checkpoint_required')
+        action.consume(self)
+        def current():
+            action.validate(self)
+            if require_original() is not True:raise TransferError('photo_relocation_original_owner_ended')
+            return True
+        with self._operation():
+            if not self._open():raise TransferError('photo_relocation_original_journal_changed')
+            with self._locked():
+                self._schema();before=self._snapshot();current()
+                if before!=expected:raise TransferError('photo_relocation_original_journal_changed')
+                if index in dict(before.outcomes):raise TransferError('photo_relocation_outcome_already_recorded')
+                entry=before.records[index].sync_terminal_evidence(destination,current,phase)
+                try:
+                    self._db.execute('BEGIN IMMEDIATE');current()
+                    cipher=self._protect(entry.wire(),'outcome/'+str(index))
+                    self._db.execute('INSERT INTO outcomes VALUES(?,?)',(index,cipher))
+                    outcomes=sha256()
+                    for ordinal,stored in self._db.execute('SELECT ordinal,payload FROM outcomes ORDER BY ordinal'):
+                        outcomes.update(ordinal.to_bytes(2,'big')+sha256(stored).digest())
+                    owner=dict(self._initial_owner(),count=len(before.records),rows_sha256=before.version,
+                        outcome_count=len(before.outcomes)+1,outcomes_sha256=outcomes.hexdigest())
                     self._db.execute('UPDATE owner SET payload=? WHERE id=1',(self._protect(owner,'owner'),))
                     current();self._db.commit();self._sync();current()
                     return self._snapshot()
