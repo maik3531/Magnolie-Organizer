@@ -17,6 +17,69 @@ from magnolie_telefon import canonical
 
 
 _MAX_DIRECTORY_ENTRIES = 10000
+_DIRECTORY_FLAGS = os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC
+
+
+def _require_unique_target_name(parent,name):
+    # A separate description ensures a repeat scan starts at the first entry.
+    folded=name.casefold();scan_fd=os.open('.',_DIRECTORY_FLAGS,dir_fd=parent)
+    try:
+        with os.scandir(scan_fd) as entries:
+            for index,entry in enumerate(entries):
+                if index>=_MAX_DIRECTORY_ENTRIES:
+                    raise TransferError('photo_relocation_target_inventory_unproven')
+                if entry.name!=name and entry.name.casefold()==folded:
+                    raise TransferError('photo_relocation_target_alias_collision')
+    finally:os.close(scan_fd)
+
+
+@dataclass(frozen=True)
+class RelocationTargetParentObservation:
+    """Existing inode chain and missing relative parents, not a mkdir grant."""
+    existing: tuple
+    missing: tuple
+
+
+def inspect_relocation_target_parents(destination,relative,current):
+    """Read the longest safe named prefix and verify the first absent name."""
+    from magnolie_photo_destination import require_media_directory
+    if type(destination) is not NativeAcceptedDestination or not callable(current):
+        raise TransferError('photo_relocation_original_destination_required')
+    parts=_portable_path(relative).split('/')[:-1]
+    require_media_directory(destination.path+'/'+relative)
+    def require_current():
+        if current() is not True:raise TransferError('photo_relocation_original_owner_ended')
+    def directory(info):
+        if (not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.geteuid() or info.st_mode&0o022
+                or info.st_dev!=destination.ancestor_keys[0][0]):
+            raise TransferError('photo_relocation_unsafe_parent')
+        return info.st_dev,info.st_ino
+    with ExitStack() as close:
+        def open_dir(path,*,dir_fd=None):
+            fd=os.open(path,_DIRECTORY_FLAGS,dir_fd=dir_fd);close.callback(os.close,fd);return fd
+        require_current();destination.verify();root=open_dir(destination.path)
+        existing=[directory(os.fstat(root))]
+        if existing[0]!=destination.ancestor_keys[0]:raise TransferError('photo_relocation_root_changed')
+        names=[];parent=root;missing=()
+        for index,name in enumerate(parts):
+            require_current();_require_unique_target_name(parent,name)
+            try:child=open_dir(name,dir_fd=parent)
+            except FileNotFoundError:
+                missing=tuple(parts[index:]);break
+            identity=directory(os.fstat(child));existing.append(identity)
+            names.append((parent,name,child,identity));parent=child
+        require_current();destination.verify()
+        for ancestor,name,child,identity in names:
+            _require_unique_target_name(ancestor,name)
+            if (directory(os.stat(name,dir_fd=ancestor,follow_symlinks=False))!=identity
+                    or directory(os.fstat(child))!=identity):
+                raise TransferError('photo_relocation_parent_changed')
+        if missing:
+            _require_unique_target_name(parent,missing[0])
+            try:os.stat(missing[0],dir_fd=parent,follow_symlinks=False)
+            except FileNotFoundError:pass
+            else:raise TransferError('photo_relocation_parent_changed')
+        require_current();return RelocationTargetParentObservation(tuple(existing),missing)
 
 
 def _native_key(value):
@@ -157,7 +220,7 @@ class MediaRelocationRecord:
             from magnolie_media_mime import ANIMATION_PROOF_BYTES, verified_gif_animation
             if not preview_animation and self.file.size>ANIMATION_PROOF_BYTES:
                 raise TransferError('photo_relocation_animation_unproven')
-        directory_flags=os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC
+        directory_flags=_DIRECTORY_FLAGS
         def require_current():
             if current() is not True:raise TransferError('photo_relocation_original_owner_ended')
         def key(value):return value.st_dev,value.st_ino
@@ -171,19 +234,6 @@ class MediaRelocationRecord:
         def named(parent,name):
             try:return os.stat(name,dir_fd=parent,follow_symlinks=False)
             except FileNotFoundError:return None
-        def require_unique_target_name(parent,name):
-            # Inspect the bound directory, not a reopened path. Use a separate
-            # description so a second scan never inherits a directory offset.
-            folded=name.casefold()
-            scan_fd=os.open('.',directory_flags,dir_fd=parent)
-            try:
-                with os.scandir(scan_fd) as entries:
-                    for index,entry in enumerate(entries):
-                        if index>=_MAX_DIRECTORY_ENTRIES:
-                            raise TransferError('photo_relocation_target_inventory_unproven')
-                        if entry.name!=name and entry.name.casefold()==folded:
-                            raise TransferError('photo_relocation_target_alias_collision')
-            finally:os.close(scan_fd)
         with ExitStack() as close:
             def track(fd):close.callback(os.close,fd);return fd
             require_current();destination.verify()
@@ -194,13 +244,13 @@ class MediaRelocationRecord:
                 *parts,leaf=relative.split('/');parent=root
                 for part,identity in zip(parts,expected[1:]):
                     if target_path:
-                        require_unique_target_name(parent,part)
+                        _require_unique_target_name(parent,part)
                         target_names.append((parent,part))
                     require_current();fd=track(os.open(part,directory_flags,dir_fd=parent))
                     if directory(os.fstat(fd))!=identity:raise TransferError('photo_relocation_parent_changed')
                     held.append((parent,part,fd,identity));parent=fd
                 if target_path:
-                    require_unique_target_name(parent,leaf)
+                    _require_unique_target_name(parent,leaf)
                     target_names.append((parent,leaf))
                 return parent,leaf
             source=parent_for(self.source,self.source_parents);target=parent_for(self.target,self.target_parents,target_path=True)
@@ -245,7 +295,7 @@ class MediaRelocationRecord:
             observed_source,observed_target=inspect(source),inspect(target)
             def recheck():
                 require_current();destination.verify()
-                for parent,name in target_names:require_unique_target_name(parent,name)
+                for parent,name in target_names:_require_unique_target_name(parent,name)
                 for parent,part,fd,expected in held:
                     value=named(parent,part)
                     if value is None or directory(value)!=expected or directory(os.fstat(fd))!=expected:
@@ -310,12 +360,12 @@ def preview_original_gif_relocation(mapping,accepted,history,receipt,*,operation
     # an actual animation before a draft is returned.
     target=plan_special_folder_path(origin.original_path,origin.mapped_path,was_animation=False,was_capture=False,
         verified_animation=True,verified_capture=False,setting='animation',separate=True)
-    destination=accepted.destination;root=Path(destination.path);parent=(root/target).parent
+    destination=accepted.destination;root=Path(destination.path)
     require_media_directory(root/origin.mapped_path);require_media_directory(root/target)
-    current();chain=NativeAcceptedDestination.capture(parent).ancestor_keys
-    depth=len(target.split('/'));target_parents=chain[:depth][::-1]
+    parents=inspect_relocation_target_parents(destination,target,current)
+    if parents.missing:raise TransferError('photo_relocation_target_parents_missing')
     draft=MediaRelocationRecord(operation,'0'*64,book_sha256,preferences_sha256,origin.mapping_sha256,
-        destination.ancestor_keys[0],mapping.parent_keys,target_parents,origin.mapped_path,target,
+        destination.ancestor_keys[0],mapping.parent_keys,parents.existing,origin.mapped_path,target,
         RelocationFileWitness(mapping.file_key,mapping.saved_size,mapping.saved_sha256))
     return draft._observe_native(destination,current,require_animation=True,durable_phase=None,preview_animation=True)
 

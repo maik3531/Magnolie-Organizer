@@ -108,7 +108,10 @@ this comparison.
   original accepted manifest, history and exact mapping/Saved evidence. It
   reads the current original inode, so a local edit can qualify only if its
   current bytes still prove GIF animation. The preview requires existing
-  safe target parents and creates no directory, journal, or consent. It does
+  safe target parents and creates no directory, journal, or consent. The native
+  parent inspection distinguishes an exact missing suffix from a linked,
+  aliased, unsafe or concurrently changed parent. A missing suffix currently
+  holds the preview; it is not an instruction to create directories. It does
   not yet enumerate a complete user-visible selection. The private native
   selection entry point can freeze an exact explicit list of up to 128 current
   image mappings under a single shared lease. All selected members must pass;

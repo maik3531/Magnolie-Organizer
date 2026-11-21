@@ -233,7 +233,7 @@ def test_native_gif_selection_freezes_only_the_exact_checked_originals_without_w
     with NativeMediaActivity(native) as activity, activity.activity(exclusive=True) as lease:
         assert lease is not None
         with pytest.raises(TransferError,match='activity_busy'):preview()
-    with pytest.raises(FileNotFoundError):preview()
+    with pytest.raises(TransferError,match='target_parents_missing'):preview()
     assert not (target/'Animationen').exists()
     parent=target/'Animationen/Camera';parent.parent.mkdir(mode=0o700);parent.mkdir(mode=0o700)
     second=target/other.path;second.write_bytes(b'unproven local content')

@@ -10,7 +10,8 @@ import pytest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'bin'))
 from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_file_transfer import TransferError
-from magnolie_media_relocation_record import MediaRelocationRecord, RelocationFileWitness, bind_relocation_selection
+from magnolie_media_relocation_record import (MediaRelocationRecord, RelocationFileWitness,
+    bind_relocation_selection, inspect_relocation_target_parents)
 
 
 def record():
@@ -144,6 +145,52 @@ def test_target_inventory_cap_is_not_a_proof_of_absence(tmp_path,monkeypatch):
     with pytest.raises(TransferError,match='target_inventory_unproven'):
         entry.observe_native(destination,lambda:True)
     assert source.read_bytes()==raw and not target.exists()
+
+
+def test_missing_target_parents_report_existing_prefix_without_creating_directories(tmp_path):
+    entry,destination,source,target,raw=native_fixture(tmp_path)
+    target.parent.rmdir();target.parent.parent.rmdir()
+    all_missing=inspect_relocation_target_parents(destination,entry.target,lambda:True)
+    assert all_missing.existing==(entry.root_key,) and all_missing.missing==('Animationen','Camera')
+    assert not target.parent.parent.exists()
+    target.parent.parent.mkdir(mode=0o700)
+    partial=inspect_relocation_target_parents(destination,entry.target,lambda:True)
+    assert partial.existing[0]==entry.root_key and len(partial.existing)==2 and partial.missing==('Camera',)
+    assert not target.parent.exists() and source.read_bytes()==raw
+    target.parent.mkdir(mode=0o700)
+    existing=inspect_relocation_target_parents(destination,entry.target,lambda:True)
+    assert existing.existing[:2]==partial.existing and len(existing.existing)==3 and not existing.missing
+    assert not target.exists() and source.read_bytes()==raw
+
+
+@pytest.mark.parametrize('fault',['alias','symlink','unsafe_mode','late_parent','withdrawal'])
+def test_target_parent_observation_holds_on_uncertainty(tmp_path,fault):
+    entry,destination,source,target,raw=native_fixture(tmp_path)
+    target.parent.rmdir();group=target.parent.parent;current=lambda:True
+    if fault=='alias':(group/'camera').mkdir(mode=0o700)
+    elif fault=='symlink':target.parent.symlink_to(source.parent,target_is_directory=True)
+    elif fault=='unsafe_mode':
+        target.parent.mkdir(mode=0o700);target.parent.chmod(0o775)
+    else:
+        calls=[]
+        def current():
+            calls.append(True)
+            if fault=='late_parent' and len(calls)==4:target.parent.mkdir(mode=0o700)
+            return fault!='withdrawal' or len(calls)<4
+    expected={'alias':'target_alias_collision','unsafe_mode':'unsafe_parent','late_parent':'parent_changed',
+        'withdrawal':'original_owner_ended'}
+    if fault=='symlink':
+        original=source.stat()
+        with pytest.raises(OSError):inspect_relocation_target_parents(destination,entry.target,current)
+        assert target.parent.is_symlink() and target.parent.readlink()==source.parent
+        # Path.exists() follows the link and therefore sees the original; no
+        # independent destination should appear behind that synthetic alias.
+        assert target.samefile(source) and source.stat().st_ino==original.st_ino
+        assert tuple(source.parent.iterdir())==(source,)
+    else:
+        with pytest.raises(TransferError,match=expected[fault]):inspect_relocation_target_parents(destination,entry.target,current)
+        assert not target.exists()
+    assert source.read_bytes()==raw
 
 
 def test_strict_roundtrip_and_evidence_is_not_saved_or_authority():
