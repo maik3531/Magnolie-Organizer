@@ -7556,6 +7556,27 @@ function knopfMit(text, wurzel) {
     direction: "pc_to_phone", auto_mode: "manual", skip_deletions: true, photos_only: false };
   fotoStand({ available: true, enabled: false, state: "off", albums: [],
     shared_media: { version: "d".repeat(64), values: sharedChoices, agreed: false } });
+  const sharedFold = bd.querySelector("details.notes-foto-sync");
+  assert.strictEqual(sharedFold.querySelectorAll("summary input").length, 1);
+  assert.strictEqual(sharedFold.querySelector("summary input").dataset.mediaSetting, "enabled");
+  assert.ok(sharedFold.querySelector('[data-media-receive="images"]') &&
+    !sharedFold.querySelector('summary [data-media-receive]'), "Lokale Empfangsfreigabe ist nicht die gemeinsame Aktivierung");
+  sharedFold.open = false;
+  const beforeFold = baumNachrichten.length;
+  sharedFold.querySelector("summary").click(); await tick();
+  assert.ok(sharedFold.open, "Die Überschrift öffnet die Mediengruppe");
+  assert.ok(!baumNachrichten.slice(beforeFold).some(value => value.cmd === "telefon_foto_aktion" || value.cmd === "telefon_medien_senden"),
+    "Aufklappen darf nichts aktivieren");
+  sharedFold.querySelector("summary").click();
+  assert.ok(!sharedFold.open);
+  const beforeActivation = baumNachrichten.length;
+  sharedFold.querySelector('summary [data-media-setting="enabled"]').click(); await tick(); await tick();
+  const activation = baumNachrichten.slice(beforeActivation).filter(value => value.cmd === "telefon_foto_aktion");
+  assert.strictEqual(activation.length, 1);
+  assert.deepStrictEqual(activation[0].request,
+    { action: "shared_setting", field: "enabled", value: true, version: "d".repeat(64) });
+  assert.ok(!bd.querySelector("details.notes-foto-sync").open, "Aktivierung klappt die Gruppe nicht auf");
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: activation[0].requestId, ok: true });
   assert.ok(bd.querySelector('[data-media-setting="collection_mode"]') && bd.querySelector('[data-media-setting="direction"]') &&
     bd.querySelector('[data-media-setting="auto_mode"]'), "Gemeinsamer Bereich, Richtung und Modus fehlen bei ausgeschaltetem Empfang");
   assert.deepStrictEqual(Array.from(bd.querySelectorAll('[data-media-setting]'), input => input.dataset.mediaSetting)

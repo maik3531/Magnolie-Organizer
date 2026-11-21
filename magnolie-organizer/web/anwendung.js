@@ -29589,10 +29589,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const an = document.createElement("input"); an.type = "checkbox";
       an.checked = stand.enabled === true; an.disabled = stand.busy === true && !an.checked;
       an.setAttribute("aria-label", _("Receive") + " · " + _("Photos"));
+      an.dataset.mediaReceive = "images";
       an.addEventListener("change", () => sende(an.checked ? "enable" : "disable"));
       const label = el("label", "telefon-medien-aktivierung"); label.title = _("Receive") + " · " + _("Photos"); label.append(an);
       label.addEventListener("click", event => event.stopPropagation());
-      label.addEventListener("keydown", event => event.stopPropagation()); titel.append(label);
+      label.addEventListener("keydown", event => event.stopPropagation());
+      if (stand.shared_media) {
+        const row = el("label", "hak"); row.append(an, document.createTextNode(" " + label.title));
+        gruppe.append(row);
+      } else titel.append(label);
       const sendeStand = stand.sending_consent || (stand.sending_setup ? { photos: false, videos: false, ...stand.sending_setup } : null);
       if (sendeStand) {
         const rights = el("section", "notes-medien-rechte"); rights.append(el("h4", null, _("Send")));
@@ -29638,7 +29643,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           });
           settings.append(formZeile(title, input));
         };
-        check("enabled", _("Enable photo and video synchronization"));
+        const activationText = _("Enable photo and video synchronization");
+        const activation = el("label", "telefon-medien-aktivierung"); activation.title = activationText;
+        const active = document.createElement("input"); active.type = "checkbox"; active.dataset.mediaSetting = "enabled";
+        active.setAttribute("aria-label", activationText);
+        active.checked = shared.values.enabled === true; active.disabled = waiting || stand.busy === true;
+        active.addEventListener("change", () => {
+          const wanted = active.checked; active.checked = shared.values.enabled === true;
+          telefonMedienEinstellung(peer, stand, "enabled", wanted);
+        });
+        activation.addEventListener("click", event => event.stopPropagation());
+        activation.addEventListener("keydown", event => event.stopPropagation());
+        activation.append(active); titel.append(activation);
         select("collection_mode", _("Scope"), [["phone_inventory", _("Only the phone inventory")],
           ["entire_collection", _("Entire collection"), true], ["import_only", _("Import phone → PC only")]]);
         select("auto_mode", _("Mode"), [["manual", pgettext("photo synchronization", "Manual")],
