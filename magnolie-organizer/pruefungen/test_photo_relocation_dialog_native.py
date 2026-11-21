@@ -120,7 +120,8 @@ def test_native_gif_folder_plan_discloses_creation_but_changes_nothing(tmp_path,
     assert source.read_bytes()==raw and not target.parent.parent.exists()
 
 
-def test_native_gif_dialog_prepares_only_its_fresh_original_selection(receiving,monkeypatch):
+@pytest.mark.parametrize('move',[False,True],ids=['prepare_journal','move'])
+def test_native_gif_dialog_prepares_only_its_fresh_original_selection(receiving,monkeypatch,move):
     import gi
     gi.require_version('Gtk','3.0')
     from gi.repository import GLib, Gtk
@@ -145,6 +146,7 @@ def test_native_gif_dialog_prepares_only_its_fresh_original_selection(receiving,
     source=root/mapping.relative_path;target=root/'Animationen'/mapping.relative_path
     target.parent.parent.mkdir(mode=0o700);target.parent.mkdir(mode=0o700)
     preview=connection._preview_gif_relocation_selection(connection.issue_receive_action(),choices)
+    handle=connection._move_confirmed_gif_relocation if move else connection._prepare_confirmed_gif_relocation
     parent=Gtk.Window();parent.show()
     alive=[True]
     def click(response):
@@ -158,16 +160,16 @@ def test_native_gif_dialog_prepares_only_its_fresh_original_selection(receiving,
         assert click(Gtk.ResponseType.NO) is None
         for unavailable in (None,preview[0].selection_sha256):
             with pytest.raises(TransferError,match='native_confirmation_required'):
-                connection._prepare_confirmed_gif_relocation(unavailable,choices)
+                handle(unavailable,choices)
         declined=click(Gtk.ResponseType.YES);alive[0]=False
         with pytest.raises(TransferError,match='native_guard_changed'):
-            connection._prepare_confirmed_gif_relocation(declined,choices)
+            handle(declined,choices)
         alive[0]=True
         stale=click(Gtk.ResponseType.YES)
         # A different valid animation on the same inode still needs its own confirmation.
         source.write_bytes(ANIMATED[:-1]+GIF_FRAME+b';')
         with pytest.raises(TransferError,match='confirmation_changed'):
-            connection._prepare_confirmed_gif_relocation(stale,choices)
+            handle(stale,choices)
         source.write_bytes(ANIMATED)
         interrupted=click(Gtk.ResponseType.YES)
         original_preview=connection._preview_gif_relocation_selection
@@ -178,32 +180,41 @@ def test_native_gif_dialog_prepares_only_its_fresh_original_selection(receiving,
                 return result
             patch.setattr(connection,'_preview_gif_relocation_selection',preview_then_change_catalog)
             with pytest.raises(TransferError,match='confirmation_changed'):
-                connection._prepare_confirmed_gif_relocation(interrupted,choices)
+                handle(interrupted,choices)
         with closing(ProtectedRelocationOwner(connection._authority)) as owner:
             assert owner.read_intent() is None
         accepted=click(Gtk.ResponseType.YES)
-        intent,witness=connection._prepare_confirmed_gif_relocation(accepted,choices)
+        before=source.stat()
+        intent,witness=handle(accepted,choices)
         with pytest.raises(TransferError,match='native_confirmation_ended'):
-            connection._prepare_confirmed_gif_relocation(accepted,choices)
+            handle(accepted,choices)
     finally:parent.destroy()
-    assert source.read_bytes()==ANIMATED and not target.exists()
+    actual,absent=(target,source) if move else (source,target)
+    assert actual.read_bytes()==ANIMATED and not absent.exists()
+    after=actual.stat()
+    assert (after.st_dev,after.st_ino,after.st_mode,after.st_mtime_ns)==(
+        before.st_dev,before.st_ino,before.st_mode,before.st_mtime_ns)
     assert connection._mappings.read()==mappings and connection._catalog.jobs()==jobs
     assert connection._preferences.read()==prefs and channel.send.call_count==messages
     with closing(ProtectedRelocationOwner(connection._authority)) as owner, closing(ProtectedMediaRelocationJournal(connection._authority)) as journal:
         assert owner.require_checkpoint(intent)==witness
         prepared=journal.read()
-        assert prepared.records==preview and not prepared.attempts and not prepared.outcomes
+        assert prepared.records==preview
+        if move:
+            assert prepared.attempts==(0,) and prepared.outcomes==((0,replace(preview[0],phase='moved')),)
+        else:assert not prepared.attempts and not prepared.outcomes
     with reconnect(receiving) as fresh:
         reopened=fresh[3];out=fresh[2].send.call_count
-        inode=source.stat().st_ino
+        inode=actual.stat().st_ino
         def inspect():return reopened._inspect_gif_relocation_recovery(reopened.issue_receive_action())
         observation,=inspect()
-        assert (observation.ordinal,observation.state,observation.grants_write_authority)==(0,'prepared_at_source',False)
+        assert (observation.ordinal,observation.state,observation.grants_write_authority)==(
+            0,'moved' if move else 'prepared_at_source',False)
         new=b'a later local edit'
-        source.write_bytes(new)
+        actual.write_bytes(new)
         observation,=inspect()
-        assert (observation.state,observation.grants_write_authority)==('held',False)
-        assert source.read_bytes()==new and source.stat().st_ino==inode and not target.exists()
+        assert (observation.state,observation.grants_write_authority)==('moved' if move else 'held',False)
+        assert actual.read_bytes()==new and actual.stat().st_ino==inode and not absent.exists()
         assert reopened._mappings.read()==mappings and fresh[2].send.call_count==out
         with (closing(ProtectedRelocationOwner(reopened._authority)) as owner,
                 closing(ProtectedMediaRelocationJournal(reopened._authority)) as journal):

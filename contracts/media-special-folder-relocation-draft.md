@@ -229,6 +229,10 @@ the live folder-based move. The synthetic original retained its bytes, inode,
 mode, and mtime, with mapping, receive jobs, and preferences unchanged.
 Reconnect verified the result without replay or wire output. The connection
 still exposes no user-facing move action.
+Existing target folders also have an isolated, live GTK handoff. It checks the
+same original selection and catalog, neither creates nor replaces folders, and
+preserves the original file identity and bytes. Decline, withdrawal, and stale
+evidence do not move a file; reconnect only inspects the persisted outcome.
 The private execution primitive can use that same live folder approval to move
 the original GIFs. Each file attempt and result advances the separate sealed
 folder checkpoint by exact compare-and-swap. A split before the attempt owner
