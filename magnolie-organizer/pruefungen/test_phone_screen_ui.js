@@ -9,7 +9,7 @@ const source = fs.readFileSync(path.join(__dirname, windows ? "../../magnolie-or
 const begin = source.indexOf("  function baueTelefonBildschirm(");
 const end = source.indexOf(windows ? "  const kdeDateisystemAnsichten" : "  function baueTelefonWebcam(", begin);
 assert(begin > 0 && end > begin);
-assert.match(source, windows ? /erweitert\.id = "kde-erweiterte-funktionen";[\s\S]{0,200}baueTelefonBildschirm\(erweitert\);/ :
+assert.match(source, windows ? /baueTelefonBildschirm\(erweitert, tools, id, visible\);/ :
   /"notes-live-media"\); erweitert\.append\(tools\);[\s\S]{0,200}baueTelefonBildschirm\(erweitert, tools\);/);
 const dom = new JSDOM("<details open></details>");
 const { document } = dom.window;
@@ -27,16 +27,16 @@ async function main() {
   // Let jsdom deliver the initial <details open> toggle before mounting.
   await new Promise(resolve => setTimeout(resolve, 0));
   const root = document.querySelector("details");
-  build(root, root);
+  build(root, root, "exact", () => root.isConnected && root.open);
   await Promise.resolve();
   const panel = document.querySelector("#telefon-bildschirm");
   const [start, stop, refresh] = panel.querySelectorAll("button");
-  assert.equal(panel.hidden, windows);
+  assert(!panel.hidden);
   assert(start.disabled);
   requests.shift().resolve({ok: true, screen: {included: false, peers: [{id: "unexpected", name: "Ignored"}]}});
   await tick();
-  assert.equal(panel.hidden, windows);
-  if (!windows) {
+  assert(!panel.hidden);
+  {
     assert.equal(panel.querySelector("summary").textContent, "Phone screen mirroring");
     assert.equal(panel.querySelector("[aria-live]").textContent, "Unavailable");
     assert(start.hidden && start.disabled && stop.hidden && stop.disabled);

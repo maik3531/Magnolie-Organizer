@@ -196,7 +196,7 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
    const recovery = api.createRecoveryPanel(peer, x => x, value => { recoveryMessages.push(value); return true; }, async () => {});
    w.document.body.append(recovery);
    assert(recovery.hidden && !recovery.open);
-   assert.equal(recovery.querySelector("summary").textContent, "Photos and videos · Restore");
+   assert.equal(recovery.querySelector("summary").textContent, "Restore");
    assert.deepEqual(recoveryMessages.map(message => message.media_type), ["images", "video"]);
    api.receive({ requestId: recoveryMessages[0].requestId, device_id: peer, ok: true, backups: [], backup_location: null });
    assert(recovery.hidden);
@@ -205,7 +205,16 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
    const application = fs.readFileSync(path.join(__dirname, "../app/web/anwendung.js"), "utf8");
    const securityPage = application.slice(application.indexOf("function baueSeiteSicherungen("), application.indexOf("function baueSeiteSicherungen(") + 700);
    assert(!securityPage.includes("MagnolieMedia"), "Media history must not be configured under Security");
-   assert(application.includes("zeile.append(window.MagnolieMedia.createRecoveryPanel(telefon.device_id"));
+   assert(application.includes("{ recovery, mountLive }"));
+   const combined = api.createPanel(peer, x => x, value => { messages.push(value); return true; }, async () => {},
+     () => true, { recovery, mountLive: root => root.append(w.document.createElement("aside")) });
+   w.document.body.append(combined);
+   assert.equal(recovery.parentElement.querySelector("summary").textContent, "Photos and videos");
+   reply({ supported: false });
+   assert(!combined.hidden && !recovery.hidden && !recovery.parentElement.hidden);
+   reply({ ...state, supported: true });
+   assert.equal(recovery.parentElement, combined.querySelector(".telefon-medien:not([hidden])"));
+   combined.remove();
   const legacyPanel = api.createPanel(peer, x => x, value => { messages.push(JSON.parse(JSON.stringify(value))); return true; }, async () => { saves++; });
   w.document.body.append(legacyPanel);
   reply({ supported: true, activation_required: true });

@@ -3,13 +3,27 @@
   "use strict";
   const pending = new Map();
   const panels = new Map();
-  function createPanel(peerId, translate, send, saveBefore, currentContext = () => true) {
+  function createPanel(peerId, translate, send, saveBefore, currentContext = () => true, { mountLive, recovery } = {}) {
     const t = translate, root = document.createElement("details");
     root.className = "telefon-medien einst-gruppe"; root.hidden = true;
     const node = (tag, text) => { const e = document.createElement(tag); if (text) e.textContent = t(text); return e; };
     const advanced = node("details"); advanced.className = "telefon-erweitert telefon-freigaben einst-gruppe";
-    advanced.hidden = true; advanced.open = false;
+    advanced.hidden = !mountLive; advanced.open = false;
     advanced.append(node("summary", "Advanced functions"), root);
+    const recoveryOnly = node("details"); recoveryOnly.className = "telefon-medien einst-gruppe";
+    recoveryOnly.hidden = true; recoveryOnly.append(node("summary", "Photos and videos"));
+    if (recovery) advanced.append(recoveryOnly);
+    if (mountLive) mountLive(advanced);
+    function updateVisibility() {
+      if (recovery) {
+        const parent = root.hidden ? recoveryOnly : root;
+        if (recovery.parentElement !== parent) parent.append(recovery);
+        recoveryOnly.hidden = !root.hidden || recovery.hidden;
+      }
+      advanced.hidden = root.hidden && recoveryOnly.hidden && !mountLive;
+    }
+    if (recovery) recovery.addEventListener("media-recovery-visibility", updateVisibility);
+    updateVisibility();
     const title = node("summary"), caption = node("span", "Photos and videos"), status = node("p", "Waiting for native media status");
     title.append(caption);
     status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite");
@@ -345,21 +359,21 @@
       }
       if (reply.supported === false) {
         clearPreviews();
-        advanced.hidden = root.hidden = true; native = null; busy = transfer = false; catalog = null;
+        root.hidden = true; updateVisibility(); native = null; busy = transfer = false; catalog = null;
         albumChoice.replaceChildren(); albumChoice.hidden = true; selectedAlbum = null; review.replaceChildren(); trashRows.replaceChildren(); nextTrash = null;
         more.hidden = moreTrash.hidden = true; toggle(); return;
       }
       if (!native && reply.supported !== true && action !== "status") return;
       if (!native && !reply.ok) return;
-      advanced.hidden = root.hidden = false;
+      root.hidden = false; updateVisibility();
       if (reply.activation_required === true) {
         // A compatible legacy pairing exposes only explicit activation, never
         // transfers, paths or stored permission defaults before initialization.
-        for (const child of root.children) child.hidden = child !== title && child !== status && child !== activate;
+        for (const child of root.children) if (child !== recovery) child.hidden = child !== title && child !== status && child !== activate;
         activate.hidden = false; activate.disabled = false; busy = false;
         status.textContent = t("Waiting for native media status"); return;
       }
-      for (const child of root.children) child.hidden = false;
+      for (const child of root.children) if (child !== recovery) child.hidden = false;
       activate.hidden = true;
       if (reply.state === "running" || reply.state === "stopping") {
         busy = true; toggle(); status.textContent = t(reply.state === "stopping" ? "Stopping… Waiting for the native operation to end." : "Comparing media content… The total is not known yet."); return;
@@ -548,11 +562,12 @@
   function createRecoveryPanel(peerId, translate, send, saveBefore) {
     const root = document.createElement("details"), title = document.createElement("summary");
     root.className = "telefon-medien-wiederherstellung einst-gruppe"; root.hidden = true;
-    title.textContent = translate("Photos and videos") + " · " + translate("Restore"); root.append(title);
+    title.textContent = translate("Restore"); root.append(title);
     for (const kind of ["images", "video"]) {
       const history = createBackupPanel(peerId, kind, translate, send, saveBefore);
       history.addEventListener("media-recovery-visibility", () => {
         root.hidden = [...root.querySelectorAll(".telefon-medien-sicherungen")].every(panel => panel.hidden);
+        root.dispatchEvent(new Event("media-recovery-visibility"));
       });
       root.append(history);
     }

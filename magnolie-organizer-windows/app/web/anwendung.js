@@ -29331,6 +29331,26 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     wurzel.append(ab);
   }
 
+  function notesMedienWlanPeer() {
+    const peers = telefonStand?.peers || [];
+    const peer = peers[0];
+    return telefonStand?.enabled && !telefonStand.binding_conflict && peers.length === 1 &&
+      peer.device_id && peer.fingerprint && peer.state === "online_wifi" && peer.transport === "wifi" ? peer : null;
+  }
+
+  function baueNotesLiveMedien(erweitert, peer) {
+    const tools = el("div", "notes-live-media"); erweitert.append(tools);
+    const book = DATEN, id = peer.device_id, fingerprint = peer.fingerprint;
+    const visible = () => {
+      const current = notesMedienWlanPeer();
+      return tools.isConnected && erweitert.open && !gesperrt && DATEN === book &&
+        current?.device_id === id && current.fingerprint === fingerprint &&
+        !tools.closest("#einstellungen-schleier")?.classList.contains("verborgen");
+    };
+    baueTelefonWebcam(erweitert, tools, id, visible);
+    baueTelefonBildschirm(erweitert, tools, id, visible);
+  }
+
   function baueTelefonverbindung(wurzel) {
     const ab = abschnitt(_("Magnolie Notes phone connection"),
       _("A separate encrypted connection for dial requests, device status and selected notifications."));
@@ -29343,9 +29363,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       _("Requires Magnolie Notes on Android. KDE Connect is not required.")));
     kdeAb.append(el("p", "einst-hinweis kde-app-voraussetzung",
       _("KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes.")));
-    // No released native advanced-feature availability projection exists yet.
-    // Keep the section absent, including during loading or with old counterparts;
-    // pairing, connection enablement or capability metadata alone is not readiness.
     if (!Bruecke.vorhanden) {
       ab.append(el("p", "einst-hinweis",
         _("The phone connection is available only in the installed application.")));
@@ -29457,11 +29474,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (telefon.device_id) {
         zeile.append(baueTelefonPersonalSync(telefon));
         const mediaBook = DATEN;
-        if (window.MagnolieMedia) zeile.append(window.MagnolieMedia.createPanel(telefon.device_id, _,
-          message => Bruecke.sende(message), () => new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject)), () => DATEN === mediaBook));
-        // Local recovery is independent of live phone/media capability.
-        if (window.MagnolieMedia?.createRecoveryPanel) zeile.append(window.MagnolieMedia.createRecoveryPanel(telefon.device_id, _,
-          message => Bruecke.sende(message), () => new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject))));
+        if (window.MagnolieMedia) {
+          const send = message => Bruecke.sende(message);
+          const saveBefore = () => new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+          const recovery = window.MagnolieMedia.createRecoveryPanel(telefon.device_id, _, send, saveBefore);
+          const mountLive = notesMedienWlanPeer() === telefon ? erweitert => baueNotesLiveMedien(erweitert, telefon) : null;
+          zeile.append(window.MagnolieMedia.createPanel(telefon.device_id, _, send, saveBefore, () => DATEN === mediaBook,
+            { recovery, mountLive }));
+        }
       }
       liste.append(zeile);
     }
@@ -29605,8 +29625,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     kdeBlock.append(clipboardLabel, autoClipboardLabel);
     erweitert.id = "kde-erweiterte-funktionen";
     erweitert.append(el("summary", null, _("Advanced functions")));
-    baueTelefonWebcam(erweitert);
-    baueTelefonBildschirm(erweitert);
     baueKdeEingabe(erweitert);
     baueKdeSpieler(erweitert);
     kdeBlock.append(erweitert);
@@ -29630,40 +29648,46 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     });
   }
 
-  function baueTelefonWebcam(wurzel) {
+  function baueTelefonWebcam(wurzel, container, peerId, visible) {
     const block = el("div", "einst-gruppe");
     block.id = "telefon-webcam";
-    block.hidden = true;
-    const status = el("p", "einst-hinweis", _("Off"));
+    const status = el("p", "einst-hinweis", _("Loading …"));
     status.setAttribute("aria-live", "polite");
+    const settings = el("div", "notes-webcam-controls");
+    const actions = el("div", "notes-webcam-actions");
     const peer = el("select"); peer.setAttribute("aria-label", _("Phone"));
     const start = el("button", null, _("Start"));
     const stop = el("button", null, _("Stop"));
     const refresh = el("button", null, _("Refresh"));
-    for (const button of [start, stop, refresh]) button.type = "button";
-    block.append(el("h4", null, _("Phone webcam")), status, peer, start, stop, refresh);
-    wurzel.append(block);
+    for (const button of [start, stop, refresh]) { button.type = "button"; button.className = "knopf klein"; }
+    stop.classList.add("rot");
+    actions.append(start, stop, refresh);
+    settings.append(peer, actions);
+    block.append(el("h4", null, _("Phone webcam")), status, settings);
+    container.append(block);
     let state = {}, pending = false;
     function draw(failed) {
-      block.hidden = state.included !== true;
+      const included = state.included === true;
       const selected = peer.value;
       peer.replaceChildren();
       for (const item of state.peers || []) {
+        if (item.id !== peerId) continue;
         const option = el("option", null, item.name); option.value = item.id; peer.append(option);
       }
       if (Array.from(peer.options).some(item => item.value === selected)) peer.value = selected;
       const running = state.phase && state.phase !== "off";
-      peer.hidden = start.hidden = !!running;
-      stop.hidden = !running || state.phase === "stopping";
-      peer.disabled = start.disabled = pending || !peer.value;
-      stop.disabled = pending || !state.run;
+      settings.hidden = !included;
+      peer.hidden = start.hidden = !included || !!running;
+      stop.hidden = !included || !running || state.phase === "stopping";
+      peer.disabled = start.disabled = !included || pending || !peer.value;
+      stop.disabled = pending || stop.hidden || !state.run;
       refresh.disabled = pending;
-      status.textContent = failed ? _("Unavailable") : state.phase === "active" ? _("Active") :
+      status.textContent = !included ? (pending ? _("Loading …") : _("Unavailable")) : failed ? _("Unavailable") : state.phase === "active" ? _("Active") :
         state.phase === "starting" ? _("Waiting for phone permission and capture …") : state.phase === "stopping" ?
           _("The previous webcam session must finish stopping first.") : peer.value ? _("Off") : _("Connect Magnolie Notes over WLAN first.");
     }
     async function request(cmd, args = {}) {
-      if (pending) return;
+      if (pending || !visible()) return;
       pending = true; draw(false);
       let failed = true;
       try {
@@ -29671,19 +29695,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         state = reply.webcam || {};
         failed = !reply.ok;
       } catch (_) { state = {}; }
-      finally { pending = false; if (block.isConnected) draw(failed); }
+      finally { pending = false; if (visible()) draw(failed); }
     }
-    start.addEventListener("click", () => { if (state.included === true && state.phase === "off" && peer.value) request("telefon_webcam_start", {peer: peer.value}); });
-    stop.addEventListener("click", () => { if (state.included === true && state.run) request("telefon_webcam_stop", {run: state.run}); });
+    draw(false);
+    start.addEventListener("click", () => { if (!start.hidden && !start.disabled && state.phase === "off" && peer.value === peerId) request("telefon_webcam_start", {peer: peerId}); });
+    stop.addEventListener("click", () => { if (!stop.hidden && !stop.disabled && state.run) request("telefon_webcam_stop", {run: state.run}); });
     refresh.addEventListener("click", () => request("telefon_webcam_stand"));
     wurzel.addEventListener("toggle", () => { if (wurzel.open) request("telefon_webcam_stand"); });
-    if (wurzel.open) request("telefon_webcam_stand");
+    if (wurzel.open) queueMicrotask(() => request("telefon_webcam_stand"));
   }
 
-  function baueTelefonBildschirm(wurzel) {
+  function baueTelefonBildschirm(wurzel, container, peerId, visible) {
     const block = el("details", "einst-gruppe");
     block.id = "telefon-bildschirm";
-    block.hidden = true;
     block.append(el("summary", null, _("Phone screen mirroring")));
     const status = el("p", "einst-hinweis");
     status.setAttribute("aria-live", "polite");
@@ -29694,29 +29718,31 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const refresh = el("button", null, _("Refresh"));
     for (const button of [start, stop, refresh]) button.type = "button";
     block.append(status, peer, start, stop, refresh);
-    wurzel.append(block);
+    container.append(block);
     let pending = false;
     let state = {};
     const draw = failed => {
-      block.hidden = state.included !== true;
+      const included = state.included === true;
       const selected = peer.value;
       peer.replaceChildren();
       for (const item of state.peers || []) {
+        if (item.id !== peerId) continue;
         const option = el("option", null, item.name);
         option.value = item.id;
         peer.append(option);
       }
       if (Array.from(peer.options).some(item => item.value === selected)) peer.value = selected;
-      peer.hidden = start.hidden = state.active === true || state.busy === true;
-      stop.hidden = state.active !== true;
-      peer.disabled = start.disabled = pending || state.active === true || state.busy === true || !peer.value;
-      stop.disabled = refresh.disabled = pending;
-      status.textContent = failed ? _("Screen mirroring did not start.") : state.active || state.busy ?
+      peer.hidden = start.hidden = !included || state.active === true || state.busy === true;
+      stop.hidden = !included || state.active !== true;
+      peer.disabled = start.disabled = start.hidden || pending || !peer.value;
+      stop.disabled = pending || stop.hidden; refresh.disabled = pending;
+      status.textContent = !included ? (pending ? _("Loading …") : _("Unavailable")) :
+        failed ? _("Screen mirroring did not start.") : state.active || state.busy ?
         _("The separate phone screen window is open or stopping.") : peer.value ?
           _("Your phone must approve screen sharing.") : _("Open Magnolie Notes on the paired phone over WLAN, then refresh.");
     };
     async function request(cmd, args = {}) {
-      if (pending) return;
+      if (pending || !visible()) return;
       pending = true;
       draw(false);
       try {
@@ -29729,12 +29755,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         draw(true);
       }
     }
-    start.addEventListener("click", () => request("telefon_screen_start", {peer: peer.value}));
-    stop.addEventListener("click", () => request("telefon_screen_stop"));
+    draw(false);
+    start.addEventListener("click", () => { if (!start.hidden && !start.disabled && peer.value === peerId) request("telefon_screen_start", {peer: peerId}); });
+    stop.addEventListener("click", () => { if (!stop.hidden && !stop.disabled) request("telefon_screen_stop"); });
     refresh.addEventListener("click", () => request("telefon_screen_stand"));
     wurzel.addEventListener("toggle", () => { if (wurzel.open) request("telefon_screen_stand"); });
     block.addEventListener("toggle", () => { if (block.open) request("telefon_screen_stand"); });
-    if (wurzel.open) request("telefon_screen_stand");
+    if (wurzel.open) queueMicrotask(() => request("telefon_screen_stand"));
   }
 
   const kdeDateisystemAnsichten = new Set();

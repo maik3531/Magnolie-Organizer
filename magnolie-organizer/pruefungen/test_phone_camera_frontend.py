@@ -21,8 +21,8 @@ def test_actual_advanced_ui_uses_ephemeral_choices_defaults_off_and_never_requir
     start = source.index('  function baueTelefonWebcam(')
     end = source.index('\n  const kdeDateisystemAnsichten', start)
     actual = source[start:end]
-    assert source.count('baueTelefonWebcam(erweitert)') == 1
-    assert source.index('erweitert.id = "kde-erweiterte-funktionen"') < source.index('baueTelefonWebcam(erweitert)')
+    assert source.count('baueTelefonWebcam(erweitert, tools)') == 1
+    assert source.index('baueTelefonWebcam(erweitert, tools)') < source.index('erweitert.id = "kde-erweiterte-funktionen"')
     assert 'telefonStand' not in actual and 'localStorage' not in actual
     harness = r'''
 const assert = (condition) => { if (!condition) throw new Error('UI assertion failed'); };
@@ -31,6 +31,7 @@ class Element {
   append(...children) {this.children.push(...children); if (this.tag==='select' && !this.value) this.value=children[0]?.value || '';}
   replaceChildren() {this.children=[];this.value='';}
   setAttribute() {}
+  closest() {return null;}
   addEventListener(event, callback) {this.events[event]=callback;}
 }
 const el=(tag,cls,text)=>new Element(tag,text), _=text=>text;
@@ -43,25 +44,25 @@ const Bruecke={sende:value=>{cancels.push(value);return true;}};
 let phase='off';
 const kdeMedienAnfordern=async(cmd,args)=>{
  calls.push({cmd,...args});
- if(cmd==='telefon_webcam_stand') return {ok:true,webcam:{included:true,enabled:phase!=='off',active:phase==='active',phase,lease:phase==='off'?'':'c'.repeat(64)}};
- if(args.request.action==='prepare') return {ok:true,webcam:{enabled:false,phase:'off',action:'a'.repeat(64),choices:[{token:'b'.repeat(64),phone:'Notes only',device:'Virtual output'}]}};
+ if(cmd==='telefon_webcam_stand') return {ok:true,webcam:{included:true,visible:true,enabled:phase!=='off',active:phase==='active',phase,lease:phase==='off'?'':'c'.repeat(64)}};
+ if(args.request.action==='prepare') return {ok:true,webcam:{included:true,visible:true,enabled:false,phase:'off',action:'a'.repeat(64),choices:[{token:'b'.repeat(64),phone:'Notes only',device:'Virtual output'}]}};
  if(args.request.action==='start') phase='starting';
  if(args.request.action==='stop') phase='off';
- return {ok:true,webcam:{enabled:phase!=='off',phase,lease:phase==='off'?'':'c'.repeat(64)}};
+ return {ok:true,webcam:{included:true,visible:true,enabled:phase!=='off',phase,lease:phase==='off'?'':'c'.repeat(64)}};
 };
 ACTUAL
 await (async()=>{
- const root=new Element('details');baueTelefonWebcam(root);
+  const root=new Element('details');baueTelefonWebcam(root,root);
  assert(calls.length===0); // Not even status/inventory while Advanced is closed.
- const block=root.children[0], buttons=block.children.filter(value=>value.tag==='button');
+  const block=root.children[0], settings=block.children.at(-1), buttons=settings.children.at(-1).children;
  const [prepare,start,stop]=buttons;
- const labels=block.children.filter(value=>value.tag==='label');
+  const labels=settings.children[1].children;
  assert(labels.every(label=>!label.children[0].checked));
- assert(start.disabled&&stop.disabled&&!prepare.disabled);
+  assert(start.disabled&&stop.disabled&&prepare.disabled);
  root.open=true;root.events.toggle();await Promise.resolve();await Promise.resolve();await Promise.resolve();
  assert(calls[0].cmd==='telefon_webcam_stand');
  await prepare.click();
- assert(calls.at(-1).request.provider==='auto'&&!start.disabled);
+  assert(calls.at(-1).request.provider==='notes'&&!start.disabled);
  await start.click();
  const request=calls.at(-1).request;
  assert(request.action==='start'&&request.action_token==='a'.repeat(64)&&request.choice_token==='b'.repeat(64));
@@ -76,7 +77,8 @@ await (async()=>{
 '''.replace('ACTUAL', actual)
     runtime = shutil.which('node') or shutil.which('bun')
     assert runtime, 'Existing JS runtime required'
-    result = subprocess.run([runtime, '-e', harness], capture_output=True, text=True, timeout=15)
+    script = '(async () => {\n' + harness + '\n})().catch(error => { console.error(error); process.exitCode = 1; });'
+    result = subprocess.run([runtime, '-e', script], capture_output=True, text=True, timeout=15)
     assert result.returncode == 0, result.stdout + result.stderr
 
 

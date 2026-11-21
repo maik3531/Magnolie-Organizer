@@ -694,6 +694,35 @@ async function run(web) {
     b.ack(); assert.equal(b.messages.filter(message => message.cmd === cmd).length, 1);
   });
 
+  if (fs.existsSync(path.join(web, "phone-media.js"))) await test("Notes live media belongs to Notes and requires one live WLAN peer", async b => {
+    b.w.eval(fs.readFileSync(path.join(web, "phone-media.js"), "utf8"));
+    const d = b.w.document;
+    const peer = { device_id: "notes-peer", fingerprint: "synthetic-pin", display_name: "Test Notes" };
+    const report = (peers, extra = {}) => b.w.App.telefonStand({ enabled: true, peers,
+      kdeconnect: { paired: 1, available: true, listening: true, device_id: "kde-peer" }, ...extra });
+    const webcam = () => d.querySelector("#telefon-webcam");
+    const screen = () => d.querySelector("#telefon-bildschirm");
+    const wifi = { ...peer, state: "online_wifi", transport: "wifi" };
+    report([{ ...peer, state: "offline", transport: "" }]);
+    b.t.oeffneEinstellungen(); d.querySelector("#einst-tab-baum").click();
+    assert(!webcam() && !screen(), "KDE pairing alone cannot show Notes live media");
+    report([wifi]);
+    const advanced = d.querySelector(".telefon-karte .telefon-erweitert");
+    assert(advanced && !advanced.hidden && !advanced.open);
+    assert(advanced.contains(webcam()) && advanced.contains(screen()));
+    assert(!d.querySelector(".telefon-kde-karte #telefon-webcam, .telefon-kde-karte #telefon-bildschirm"));
+    assert(!b.messages.some(m => /^telefon_(webcam|screen)_/.test(m.cmd)), "Closed section must not request a live operation");
+    const oldButton = webcam().querySelector("button:last-child");
+    report([{ ...peer, state: "online_bluetooth", transport: "bluetooth" }]);
+    assert(!webcam() && !screen());
+    oldButton.dispatchEvent(new b.w.Event("click"));
+    assert(!b.messages.some(m => /^telefon_(webcam|screen)_/.test(m.cmd)), "Detached tools cannot dispatch");
+    report([wifi], { binding_conflict: true }); assert(!webcam() && !screen());
+    report([wifi, { ...wifi, device_id: "other" }]); assert(!webcam() && !screen());
+    report([wifi]); assert(webcam() && screen());
+    report([wifi], { enabled: false }); assert(!webcam() && !screen());
+  });
+
   await test("duplicate pending Personal Sync joins save and retries failure", async b => {
     b.w.App.telefonStand({ peers: [{ device_id: "peer", display_name: "Synthetic" }] });
     b.t.daten().personalSync.applied_batches.push("pending-token");
