@@ -44,9 +44,11 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
       panel.querySelector('[data-appearance-test="sync"]').click(); assert(panel.querySelector('[data-appearance-shape="sync"]'));
       choose("mode", "phone"); assert.equal(panel.querySelector('[data-appearance-sample="tray"] svg').dataset.mode, "phone");
       choose("season", "crystals"); assert.equal(d.querySelector("#magnolie-saison").dataset.season, "crystals");
-      assert.equal(d.querySelectorAll("#magnolie-saison > svg").length, 28);
+      assert.equal(d.querySelectorAll("#magnolie-saison > svg").length, 34);
+      assert.equal(d.querySelectorAll("#magnolie-saison > svg[data-season-accent]").length, 6);
       for (const image of d.querySelectorAll("#magnolie-saison > svg")) assert(parseInt(image.style.width, 10) <= 37);
       choose("season", "stars"); assert.equal(d.querySelector("#magnolie-saison").dataset.season, "stars");
+      assert.equal(d.querySelectorAll("#magnolie-saison > svg[data-season-accent]").length, 6);
       choose("holiday", "santa"); assert(d.querySelector('.wo-tag [data-appearance-watermark="santa"]'));
       assert(d.querySelector("#magnolie-test-hinweis"));
       assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.saves().length, saves); assert.equal(b.messages.length, messages,

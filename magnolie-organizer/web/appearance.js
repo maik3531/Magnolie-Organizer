@@ -160,12 +160,19 @@
       desktop.querySelector("#magnolie-saison")?.remove(); backgroundKey = key;
       if (backdrop !== "none") {
         const layer = document.createElement("div"); layer.id = "magnolie-saison"; layer.setAttribute("aria-hidden", "true"); layer.dataset.season = backdrop;
-        for (let index = 0; index < 28; index++) {
+        function addMotif(left, top, size, angle, accent) {
           const image = backdrop === "stars" ? star() : crystal();
-          image.style.left = (index * 37 % 97) + "%"; image.style.top = (index * 53 % 95) + "%";
-          image.style.width = [12, 18, 23, 29, 35][index % 5] + "px"; image.style.transform = "rotate(" + (index * 29 % 60) + "deg)";
+          image.style.left = left + "%"; image.style.top = top + "%";
+          image.style.width = size + "px"; image.style.transform = "rotate(" + angle + "deg)";
+          if (accent) image.dataset.seasonAccent = accent;
           layer.append(image);
         }
+        for (let index = 0; index < 28; index++) {
+          addMotif(index * 37 % 97, index * 53 % 95, [12, 18, 23, 29, 35][index % 5], index * 29 % 60);
+        }
+        // Fixed accents in the gaps: subtle brightness variation without a redraw flicker.
+        for (const motif of [[7, 25, 15, 12, "soft"], [58, 36, 18, 33, "bright"], [86, 37, 13, 54, "soft"],
+          [20, 79, 17, 26, "soft"], [64, 53, 21, 8, "bright"], [73, 68, 14, 41, "soft"]]) addMotif(...motif);
         desktop.prepend(layer);
       }
     }

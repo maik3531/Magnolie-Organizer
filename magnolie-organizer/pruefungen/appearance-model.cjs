@@ -38,13 +38,20 @@ try {
     assert.equal(svg.querySelectorAll("image,script,foreignObject,a,animate,animateTransform").length, 0);
     assert(svg.querySelector('path[fill="none"]'), "Outlined detail must not be swallowed by a solid silhouette");
   }
+  const seasonalRules = [];
   for (const file of ["../web/stil.css", "../../magnolie-organizer-windows/app/web/stil.css"]) {
     const css = fs.readFileSync(path.join(__dirname, file), "utf8"), rule = css.match(/#magnolie-saison \{([^}]+)\}/)[1];
-    const opacity = Number(rule.match(/opacity:\s*([\d.]+)/)[1]);
-    assert(opacity >= .18 && opacity <= .25, "Winter motifs must be more visible without dominating the desktop");
+    const opacity = selector => Number(css.match(selector)[1]);
+    const base = opacity(/#magnolie-saison svg \{[^}]*opacity:\s*([\d.]+)/);
+    const soft = opacity(/#magnolie-saison svg\[data-season-accent="soft"\] \{\s*opacity:\s*([\d.]+)/);
+    const bright = opacity(/#magnolie-saison svg\[data-season-accent="bright"\] \{\s*opacity:\s*([\d.]+)/);
+    assert.equal(base, .22); assert(soft > base && bright > soft && bright <= .28, "Only a modest increase for the new accents");
+    assert(!rule.includes("opacity:"), "The parent must not flatten the three opacity levels");
+    seasonalRules.push([base, soft, bright]);
     assert(rule.includes("pointer-events: none"));
     assert(css.includes("@media print { #magnolie-saison, .magnolie-feiertags-schatten, #magnolie-test-hinweis { display: none !important; } }"));
   }
+  assert.deepEqual(...seasonalRules);
   assert.equal(appearance.stamp("<svg>"), null);
   assert.throws(() => appearance.tray({ connected: "paired" }));
   assert.throws(() => appearance.tray({ sync: "true" }));
@@ -54,7 +61,24 @@ try {
   const draft = dom.window.document.createElement("textarea"); draft.value = "Unsaved original"; desktop.append(draft); dom.window.document.body.append(desktop);
   for (const [today, expected] of [["2026-12-05", null], ["2026-12-06", "crystals"], ["2026-12-30", "stars"], ["2027-01-01", "stars"], ["2027-01-02", null]]) {
     appearance.update({ today, developer: false, locked: false });
-    assert.equal(desktop.querySelector("#magnolie-saison")?.dataset.season || null, expected);
+    const layer = desktop.querySelector("#magnolie-saison");
+    assert.equal(layer?.dataset.season || null, expected);
+    if (layer) {
+      const motifs = [...layer.children];
+      assert.equal(motifs.length, 34);
+      motifs.slice(0, 28).forEach((motif, index) => {
+        assert.equal(motif.dataset.seasonAccent, undefined);
+        assert.equal(motif.style.left, (index * 37 % 97) + "%");
+        assert.equal(motif.style.top, (index * 53 % 95) + "%");
+        assert.equal(motif.style.width, [12, 18, 23, 29, 35][index % 5] + "px");
+        assert.equal(motif.style.transform, "rotate(" + (index * 29 % 60) + "deg)");
+      });
+      assert.equal(layer.querySelectorAll('[data-season-accent="soft"]').length, 4);
+      assert.equal(layer.querySelectorAll('[data-season-accent="bright"]').length, 2);
+      assert.equal(new Set(motifs.map(motif => motif.style.left + ":" + motif.style.top)).size, 34);
+      appearance.update({ today, developer: false, locked: false });
+      assert.equal(desktop.querySelector("#magnolie-saison"), layer, "Repeated status updates must not redraw motifs");
+    }
     assert.equal(draft.value, "Unsaved original", "Date rollover may not replace an unsaved editor");
     assert.equal(dom.window.document.body.hasAttribute("data-appearance-test"), false);
   }
