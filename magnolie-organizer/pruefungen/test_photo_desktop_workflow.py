@@ -162,13 +162,19 @@ def native_ui(service, peer, request):
 
 def test_native_enable_permission_catalog_sync_and_repeat_preserve_pairing_and_pc_crop(native,tmp_path,monkeypatch,request):
     service,peer,_=native
+    peer['display_name']='Galaxy S23'
     peer.pop('file_pairing_epoch');service.store.save_peers()
     channel,binding=bind(service,peer)
     converge_controls(service,peer,channel)
     original=deepcopy(peer)
     pictures=tmp_path/'Native-Pictures';pictures.mkdir(mode=0o700)
+    videos=tmp_path/'Native-Videos';videos.mkdir(mode=0o700)
     from gi.repository import GLib
-    monkeypatch.setattr(GLib,'get_user_special_dir',lambda kind:str(pictures))
+    lookups=[]
+    def native_directory(kind):
+        lookups.append(kind)
+        return str({GLib.UserDirectory.DIRECTORY_PICTURES:pictures,GLib.UserDirectory.DIRECTORY_VIDEOS:videos}[kind])
+    monkeypatch.setattr(GLib,'get_user_special_dir',native_directory)
     monkeypatch.setattr(NativeDesktopFileConnection,'_data_handlers_ready',True)
     monkeypatch.setattr(service.store,'save_peers',lambda:pytest.fail('Native activation used normalizing full-list writer'))
     monkeypatch.setattr(phone.PhoneStore,'__init__',lambda *args,**kwargs:pytest.fail('Native activation reconstructed identity/store'))
@@ -190,6 +196,9 @@ def test_native_enable_permission_catalog_sync_and_repeat_preserve_pairing_and_p
         assert session.join(10) and session.snapshot()['state']=='albums',session.snapshot()
         assert session.snapshot()['albums'][0]['album_id']==ALBUM
         target=Path(session.snapshot()['destination'])
+        assert target==pictures/'Galaxy S23-Fotos' and list(pictures.iterdir())==[target]
+        assert lookups==[GLib.UserDirectory.DIRECTORY_PICTURES] and not list(videos.iterdir())
+        assert connection._preferences.read().policy.videos is None  # Photo enable never activates video.
         fixture=(service,peer,channel,connection,target)
         # Match the real saved-book prerequisite used by the receiving fixture.
         # A second pass can create a version backup; control/data ACKs alone

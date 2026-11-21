@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import replace
 import json
+from pathlib import Path
 
 import pytest
 
@@ -83,22 +84,37 @@ def test_native_video_session_fresh_positive_handshake_typed_catalog_actual_sync
     assert connection._preferences.read().policy.destination==photo_root
 
 
-def test_native_video_session_default_uses_native_videos_and_does_not_create_photo_choice_or_request_read_on_inspection(receiving,tmp_path,monkeypatch):
+@pytest.mark.parametrize('unsafe_base',[False,True])
+def test_native_video_session_default_uses_native_videos_and_does_not_create_photo_choice_or_request_read_on_inspection(receiving,tmp_path,monkeypatch,unsafe_base):
     batches=prepared_images(receiving)[:1];connection=receiving[3];service,peer,channel=receiving[:3]
+    peer['display_name']='Galaxy S23'
     peer['capabilities']['items']['device_status']['versions'].append(22);service.store.save_peers();ack_all(service,peer,channel)
     monkeypatch.setattr(service,'_resume_automatic_photos',lambda *args:None)
     monkeypatch.setattr(NativeDesktopFileConnection,'_video_data_handlers_ready',True)
     from gi.repository import GLib
     videos=tmp_path/'Native-Videos';videos.mkdir(mode=0o700);seen=[]
+    if unsafe_base:videos.chmod(0o775)
+    original=videos/'existing.mp4';original.write_bytes(b'keep existing video')
     def native_dir(kind):
         seen.append(kind);assert kind==GLib.UserDirectory.DIRECTORY_VIDEOS;return str(videos)
     monkeypatch.setattr(GLib,'get_user_special_dir',native_dir)
     session=connection.desktop_session();assert not seen
+    before=connection._preferences.read()
+    assert before.policy.videos is None and not before.include_videos
     with session_phone(receiving,videos,batches,monkeypatch,video_enabled=False,read_allowed=False,grant_on_read=False) as (commands,(chunks,saved,_,_,_)):
         action(receiving,'videos_enable');assert session.join(20),session.snapshot()
-        state=session.snapshot();assert state['state']=='permission_required',state
-        from pathlib import Path
-        target=Path(state['video_destination']);assert target.parent==videos and target.name.endswith('-Videos')
+        state=session.snapshot()
+        assert connection._preferences.read().policy.destination==before.policy.destination
+        assert seen==[GLib.UserDirectory.DIRECTORY_VIDEOS] and original.read_bytes()==b'keep existing video'
+        if unsafe_base:
+            assert state['state']=='held' and state['error']=='file_acceptance_unsafe_destination',state
+            projected=service.photo_sync_state(peer['device_id'])
+            assert projected['video_supported'] and not projected['video_enabled'] and not projected['video_destination']
+            assert not commands and not chunks and not saved and connection._preferences.read()==before
+            assert list(videos.iterdir())==[original] and videos.stat().st_mode & 0o777==0o775
+            return
+        assert state['state']=='permission_required',state
+        target=Path(state['video_destination']);assert target==videos/'Galaxy S23-Videos'
         assert seen and not chunks and not saved and not any(body['operation']=='request_read' for body in commands)
         action(receiving,'videos_request_read');assert session.join(20),session.snapshot()
         assert session.snapshot()['state']=='permission_required' and not chunks and not saved
