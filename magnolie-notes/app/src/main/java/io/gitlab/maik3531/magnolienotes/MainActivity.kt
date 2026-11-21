@@ -369,9 +369,6 @@ private fun MainActivity.Startblatt(gewuenschteAufgabe: androidx.compose.runtime
     }
     LaunchedEffect(zustand, einrichtungsschritt) {
         if (zustand == StartZustand.Bereit && einrichtungsschritt < 0) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                benachrichtigungsFreigabe.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
             Erinnerung.allesNeuStellen(this@Startblatt)
             TelefonWerk.get(this@Startblatt).refreshModules()
         }
@@ -426,7 +423,9 @@ private fun MainActivity.Startblatt(gewuenschteAufgabe: androidx.compose.runtime
                 confirmButton = {
                     TextButton(onClick = {
                         if (einrichtungsschritt < Ersteinrichtung.schritte.lastIndex) einrichtungsschritt++
-                        else if (Ersteinrichtung.abschliessen(this@Startblatt)) einrichtungsschritt = -1
+                        else if (Ersteinrichtung.abschliessenMitBenachrichtigungsfrage(this@Startblatt) {
+                            benachrichtigungsFreigabe.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }) einrichtungsschritt = -1
                     }) { Text(stringResource(R.string.ok)) }
                 },
                 dismissButton = {

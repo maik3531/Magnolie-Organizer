@@ -1,7 +1,11 @@
 package io.gitlab.maik3531.magnolienotes
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.annotation.StringRes
+import androidx.core.content.ContextCompat
 
 data class Einrichtungsschritt(@StringRes val titel: Int, val texte: List<Int>)
 
@@ -25,4 +29,15 @@ object Ersteinrichtung {
     fun abschliessen(context: Context): Boolean =
         context.getSharedPreferences(ABLAGE, Context.MODE_PRIVATE).edit()
             .putBoolean(ABGESCHLOSSEN, true).commit()
+
+    /** Nur vom letzten Schritt der Ersteinrichtung, nie beim normalen Start. */
+    internal fun abschliessenMitBenachrichtigungsfrage(context: Context, anfragen: () -> Unit): Boolean {
+        if (abgeschlossen(context)) return true
+        if (!abschliessen(context)) return false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            anfragen()
+        }
+        return true
+    }
 }

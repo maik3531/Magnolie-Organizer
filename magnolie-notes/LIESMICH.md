@@ -16,6 +16,14 @@ Der vollständige Fotoabgleich sowie Webcam/Mikrofon und Bildschirmspiegelung si
 noch keine freigegebenen APK-Funktionen. Vorbereitung im Quellcode oder im Manifest
 ist keine Veröffentlichungsabnahme; siehe [F-DROID.md](F-DROID.md).
 
+## Benachrichtigungen unter Android
+
+Ab Android 13 kann Notes beim Abschluss der Ersteinrichtung nach der
+Benachrichtigungsberechtigung fragen. Nach einem Update oder einem normalen
+Start fragt Notes nicht erneut. Sie können Ihre Entscheidung jederzeit bewusst
+über **Einstellungen → Benachrichtigungen** in den Android-App-Einstellungen
+ändern.
+
 ## Entwicklungsstand 1.0.14
 
 Die App-Version ist jetzt **1.0.14**, der Android-Versionscode **14**. Der
