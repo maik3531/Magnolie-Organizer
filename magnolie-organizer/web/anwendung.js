@@ -31723,41 +31723,42 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function baueMedienVersionswahl(fold, state) {
-      if (state.error) fold.append(el("p", "einst-warnung", _("Failed") + " · " + _("Refresh")));
-      const refresh = knopf(_("Refresh"), "klein", () => medienBackupAnfordern());
-      refresh.dataset.backupRecovery = "refresh"; refresh.disabled = !!state.pending; fold.append(refresh);
-      const sources = medienBackupQuellen(), selected = sources.find(source => medienBackupQuelleKey(source) === state.sourceKey);
-      if (sources.length) {
-        const choice = document.createElement("select"); choice.dataset.backupRecovery = "source";
-        choice.setAttribute("aria-label", _("Source"));
-        for (const source of sources) {
-          const option = document.createElement("option"); option.value = medienBackupQuelleKey(source); option.textContent = source.path;
-          choice.append(option);
-        }
-        choice.value = state.sourceKey; choice.disabled = !!state.pending;
-        choice.addEventListener("change", () => {
-          if (state.pending) { choice.value = state.sourceKey; return; }
-          const source = medienBackupQuellen().find(item => medienBackupQuelleKey(item) === choice.value);
-          if (!source) return;
-          state.sourceKey = choice.value; state.entries = []; state.nextVersions = null;
-          medienBackupAnfordern("versions", source);
-        });
-        fold.append(formZeile(_("Source"), choice));
-      }
-      for (const entry of state.entries) {
-        const row = el("div", "pk-zeile"); row.dataset.backupVersion = entry.id;
-        row.append(el("span", "pk-name", entry.name), el("span", "pk-wann", journalDatum(new Date(entry.saved_ms).toISOString())));
-        const restore = knopf(_("Restore"), "klein", () => medienBackupAnfordern("restore", selected, entry));
-        restore.dataset.backupRecovery = "restore"; restore.disabled = !!state.pending || !selected; row.append(restore); fold.append(row);
-      }
-      if (state.nextSources !== null) {
-        const more = knopf(_("Show more"), "klein", () => medienBackupAnfordern("sources", null, null, state.nextSources));
-        more.dataset.backupRecovery = "more-sources"; more.disabled = !!state.pending; fold.append(more);
-      }
-      if (state.nextVersions !== null && selected) {
-        const more = knopf(_("Show more"), "klein", () => medienBackupAnfordern("versions", selected, null, state.nextVersions));
-        more.dataset.backupRecovery = "more-versions"; more.disabled = !!state.pending; fold.append(more);
-      }
+    if (state.error) fold.append(el("p", "einst-warnung", _("Failed") + " · " + _("Refresh")));
+    const refresh = knopf(_("Refresh"), "klein", () => medienBackupAnfordern());
+    refresh.dataset.backupRecovery = "refresh"; refresh.disabled = !!state.pending; fold.append(refresh);
+    const sources = medienBackupQuellen(), selected = sources.find(source => medienBackupQuelleKey(source) === state.sourceKey);
+    if (sources.length > 1 || sources.length && state.nextSources !== null) {
+      const choice = document.createElement("select"); choice.dataset.backupRecovery = "source";
+      choice.setAttribute("aria-label", _("Source"));
+      sources.forEach((source, index) => {
+        const option = document.createElement("option"); option.value = medienBackupQuelleKey(source);
+        option.textContent = _("Source") + " " + zahlText(index + 1);
+        choice.append(option);
+      });
+      choice.value = state.sourceKey; choice.disabled = !!state.pending;
+      choice.addEventListener("change", () => {
+        if (state.pending) { choice.value = state.sourceKey; return; }
+        const source = medienBackupQuellen().find(item => medienBackupQuelleKey(item) === choice.value);
+        if (!source) return;
+        state.sourceKey = choice.value; state.entries = []; state.nextVersions = null;
+        medienBackupAnfordern("versions", source);
+      });
+      fold.append(formZeile(_("Source"), choice));
+    }
+    for (const entry of state.entries) {
+      const row = el("div", "pk-zeile"); row.dataset.backupVersion = entry.id;
+      row.append(el("span", "pk-name", entry.name), el("span", "pk-wann", journalDatum(new Date(entry.saved_ms).toISOString())));
+      const restore = knopf(_("Restore"), "klein", () => medienBackupAnfordern("restore", selected, entry));
+      restore.dataset.backupRecovery = "restore"; restore.disabled = !!state.pending || !selected; row.append(restore); fold.append(row);
+    }
+    if (state.nextSources !== null) {
+      const more = knopf(_("Show more"), "klein", () => medienBackupAnfordern("sources", null, null, state.nextSources));
+      more.dataset.backupRecovery = "more-sources"; more.disabled = !!state.pending; fold.append(more);
+    }
+    if (state.nextVersions !== null && selected) {
+      const more = knopf(_("Show more"), "klein", () => medienBackupAnfordern("versions", selected, null, state.nextVersions));
+      more.dataset.backupRecovery = "more-versions"; more.disabled = !!state.pending; fold.append(more);
+    }
   }
 
   function medienBackupErgebnis(value) {

@@ -59,6 +59,27 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
       assert.ok(!root().hidden && root().textContent.includes(locale === "de" ? "Fotos und Videos" : "Photos and videos"));
       assert.equal(root().querySelector("[data-media-trash-days]").value, "0", "A saved Never selection must not default back to 30 days");
       assert.equal(root().querySelector("[data-media-trash-enabled]").checked, true);
+      const backupCalls = () => b.messages.filter(message => message.cmd === "medien_backup");
+      const backupReply = rows => {
+        const request = backupCalls().at(-1);
+        b.w.App.medienBackupStand({ ok: true, supported: true, request_id: request.request_id,
+          action: request.action, entries: rows, total: rows.length, next_cursor: null });
+      };
+      assert.equal(backupCalls().at(-1).action, "sources");
+      const versions = [{ id: "c".repeat(64), record_sha256: "d".repeat(64), name: "older.png", saved_ms: 1700000000000 }];
+      const sources = ["a", "b"].map((key, index) => ({ scope: key.repeat(64), source_id: key.repeat(64),
+        path: `/private/media/Backup-${index}`, selected: index === 0 }));
+      const originalTrashMount = root();
+      backupReply(sources); backupReply(versions);
+      assert.equal(root(), originalTrashMount, "Backup replies must not replace the native trash mount");
+      const recovery = root().closest("[data-media-backup-recovery]");
+      const sourceChoice = recovery.querySelector('[data-backup-recovery="source"]');
+      assert.deepEqual([...sourceChoice.options].map(option => option.textContent), locale === "de" ? ["Quelle 1", "Quelle 2"] : ["Source 1", "Source 2"]);
+      assert.ok(!recovery.outerHTML.includes("/private/media/Backup-"), "Technical storage paths must not appear in Restore");
+      sourceChoice.selectedIndex = 1; sourceChoice.dispatchEvent(new b.w.Event("change"));
+      assert.equal(backupCalls().at(-1).scope, sources[1].scope);
+      assert.equal(backupCalls().at(-1).source_id, sources[1].source_id);
+      backupReply(versions);
       assert.equal(root().querySelector("img"), null, "Native filenames must use text, never HTML");
       const restore = () => root().querySelector("[data-media-restore]");
       assert.ok(restore()); restore().click();
