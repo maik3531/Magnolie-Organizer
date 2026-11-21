@@ -1,9 +1,11 @@
 """Opt-in #330 discovery design only. No product caller or capability change."""
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
 import socket
 import sys
+from threading import Event, Lock
 import uuid
 
 import pytest
@@ -45,15 +47,17 @@ def valid(message, at):
 
 
 class ReferenceAttempt:
-    """Single-reader/writer model, intentionally only in this test module."""
+    """One original attempt, intentionally only in this test module."""
 
     def __init__(self, channel, current, wall, monotonic_ms):
         self._channel, self._current, self._wall, self._clock = channel, current, wall, monotonic_ms
         self._deadline = monotonic_ms() + TTL
+        self._state = Lock()
         self._sent = self._written = self._local_ack = self._remote_ack = self._established = self._closed = False
+        self._remote_claimed = False
         self._offer = offer(wall())
 
-    def _fresh(self, channel):
+    def _fresh_locked(self, channel):
         if channel is not self._channel:
             return False
         if not self._current() or (not self._established and self._clock() >= self._deadline):
@@ -61,46 +65,61 @@ class ReferenceAttempt:
         return not self._closed
 
     def _require_write(self):
-        if not self._fresh(self._channel):
+        # Called under the channel writer lock: no attempt lock or IO here.
+        if self._closed or not self._current() or (not self._established and self._clock() >= self._deadline):
             raise PermissionError('original media discovery attempt retired')
 
-    def send(self):
-        if self._sent or not self._fresh(self._channel):
-            return False
-        self._sent = True
+    def _write(self, message):
         try:
-            self._channel.send_ephemeral(self._offer, self._require_write)
+            self._channel.send_ephemeral(message, self._require_write)
+            return True
         except (PermissionError, OSError, ValueError):
-            self._closed = True
+            with self._state:
+                self._closed = True
             return False
-        self._written = self._fresh(self._channel)
-        return self._written
+
+    def _publish_locked(self):
+        self._established = self._written and self._local_ack and self._remote_ack
+
+    def send(self):
+        with self._state:
+            if self._sent or not self._fresh_locked(self._channel):
+                return False
+            self._sent = True
+        if not self._write(self._offer):
+            return False
+        with self._state:
+            self._written = self._fresh_locked(self._channel)
+            self._publish_locked()
+            return self._written
 
     def receive(self, channel, message):
-        if type(message) is not dict or not self._fresh(channel) or self._established:
+        with self._state:
+            if type(message) is not dict or not self._fresh_locked(channel) or self._established:
+                return False
+            if message.get('type') == 'ack':
+                if not self._sent or self._local_ack or message.get('message_id') != self._offer['message_id']:
+                    return False
+                if message != ack(self._offer):
+                    self._closed = True
+                    return False
+                self._local_ack = True
+                self._publish_locked()
+                return True
+            if self._remote_claimed or not valid(message, self._wall()) or message['message_id'] == self._offer['message_id']:
+                return False
+            self._remote_claimed = True
+        if not self._write(ack(message)):
             return False
-        if message.get('type') == 'ack':
-            if not self._written or self._local_ack or message.get('message_id') != self._offer['message_id']:
-                return False
-            if message != ack(self._offer):
-                self._closed = True
-                return False
-            self._local_ack = True
-        elif not self._remote_ack and valid(message, self._wall()) and message['message_id'] != self._offer['message_id']:
-            try:
-                channel.send_ephemeral(ack(message), self._require_write)
-            except (PermissionError, OSError, ValueError):
-                self._closed = True
-                return False
-            self._remote_ack = self._fresh(channel)
-        else:
-            return False
-        self._established = self._written and self._local_ack and self._remote_ack
-        return True
+        with self._state:
+            self._remote_ack = self._fresh_locked(channel)
+            self._publish_locked()
+            return self._remote_ack
 
     @property
     def shared_settings_supported(self):
-        return self._fresh(self._channel) and self._established
+        with self._state:
+            return self._fresh_locked(self._channel) and self._established
 
 
 @contextmanager
@@ -159,6 +178,64 @@ def test_stale_receipt_cannot_extend_the_local_deadline():
         assert not attempt.receive(channel, ack(own))
         assert not attempt.receive(channel, offer(100_000))
         assert not attempt.shared_settings_supported
+
+
+@pytest.mark.parametrize('completion', ['written', 'failed', 'withdrawn', 'expired'])
+def test_early_encrypted_receipt_waits_for_the_original_writer(monkeypatch, completion):
+    at, tick, live = phone.now_ms(), [100], [True]
+    with wire_pair() as (channel, wire), ThreadPoolExecutor(max_workers=1) as worker:
+        original_write = channel.send_ephemeral
+        finish = Event()
+
+        def held_result(payload, current):
+            original_write(payload, current)
+            if payload['type'] == 'message':
+                assert finish.wait(2)
+                if completion == 'failed':
+                    raise OSError('synthetic incomplete write result')
+
+        monkeypatch.setattr(channel, 'send_ephemeral', held_result)
+        attempt = ReferenceAttempt(channel, lambda: live[0], lambda: at, lambda: tick[0])
+        remote = offer(at)
+        wire.send(remote)
+        assert attempt.receive(channel, channel.receive()) and wire.receive() == ack(remote)
+        result = worker.submit(attempt.send)
+        try:
+            own = wire.receive()
+            wire.send(ack(own))
+            assert attempt.receive(channel, channel.receive())
+            assert not attempt.shared_settings_supported
+            if completion == 'withdrawn':
+                live[0] = False
+            elif completion == 'expired':
+                tick[0] += TTL
+        finally:
+            finish.set()
+        assert result.result(timeout=2) == (completion == 'written')
+        live[0] = True
+        assert attempt.shared_settings_supported == (completion == 'written') and not attempt.send()
+
+
+def test_failed_opposite_receipt_write_does_not_establish_support(monkeypatch):
+    at = phone.now_ms()
+    with wire_pair() as (channel, wire):
+        attempt = ReferenceAttempt(channel, lambda: True, lambda: at, lambda: 100)
+        assert attempt.send()
+        own = wire.receive()
+        wire.send(ack(own))
+        assert attempt.receive(channel, channel.receive())
+
+        def failed_write(payload, current):
+            assert payload['type'] == 'ack'
+            current()
+            raise OSError('synthetic failed opposite receipt write')
+
+        monkeypatch.setattr(channel, 'send_ephemeral', failed_write)
+        remote = offer(at)
+        wire.send(remote)
+        assert not attempt.receive(channel, channel.receive())
+        assert not attempt.shared_settings_supported
+        assert not attempt.receive(channel, remote) and not attempt.send()
 
 
 @pytest.mark.parametrize('error', ['unsupported', 'invalid_schema'])

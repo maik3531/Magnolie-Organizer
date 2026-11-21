@@ -50,7 +50,8 @@ channel; it does not by itself prove the remote side is proposing the feature.
   Keep that receipt bound to the original attempt and do not publish support
   before the write succeeds. A write failure or retirement discards the
   receipt. Serialize establishment and withdrawal against the same owner;
-  the test reference is single-reader/writer and does not prove these races.
+  the test reference checks receipt-before-write-completion, write failure,
+  withdrawal and expiry. This is not a production-dispatch concurrency proof.
 - Withdrawal or lack of a current support observation is not an instruction to
   reset preferences, clear an opt-out or fall back to legacy transfer for
   an already-started batch. Verify withdrawal and restart with existing saved
