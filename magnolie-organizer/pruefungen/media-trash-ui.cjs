@@ -234,6 +234,44 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
       assert.equal(b.t.daten().einstellungen.papierkorb.tage, 0);
       assert.equal(calls().length, beforeOptOut, "Disabling the saved policy must not empty media trash");
       assert.ok(restore(), "Existing trash stays visible and restorable after opting out"); cases++;
+
+      const empty = () => root().querySelector("[data-media-trash-empty]");
+      const version = "c".repeat(64);
+      const rows = [row(), row(2), { ...row(3), state: "prepared" }];
+      const overview = { entries: rows, total: rows.length, next_cursor: null, empty_revision: version, empty_count: 2 };
+      const refresh = () => d.querySelector("#medien-papierkorb-aktualisieren").click();
+      const paged = { entries: Array.from({ length: 128 }, (_, index) => row(index + 1)), total: 129,
+        next_cursor: 128, empty_revision: version, empty_count: 129 };
+      refresh(); answer(paged); root().lastElementChild.click();
+      answer({ ...paged, entries: [row(129)], next_cursor: null, empty_revision: "d".repeat(64) });
+      assert.equal(root().querySelectorAll("[data-media-restore]").length, 128);
+      assert.equal(empty(), null, "Mixed inventory revisions must not authorize emptying the newer overview");
+      refresh(); answer(overview);
+      called = calls().length; empty().click();
+      assert.equal(calls().length, called, "Opening the bulk confirmation cannot purge media");
+      d.querySelector("#dialog-nein").click(); await tick(); assert.equal(calls().length, called);
+      empty().click(); refresh(); answer({ ...overview, empty_revision: "d".repeat(64) });
+      called = calls().length; d.querySelector("#dialog-ja").click(); await tick();
+      assert.equal(calls().length, called, "An older confirmation cannot authorize a refreshed inventory");
+      empty().click(); d.querySelector("#dialog-ja").click(); await tick();
+      assert.deepEqual(calls().at(-1), { cmd: "medien_papierkorb", request_id: calls().at(-1).request_id,
+        action: "empty", version: "d".repeat(64), count: 2, confirmed: true });
+      answer({ ok: false, completed_count: 1 });
+      assert.equal(root().querySelectorAll("[data-media-restore]").length, 3, "An interrupted empty operation must not claim an empty list");
+      assert.equal(empty(), null, "A partial result requires a fresh overview before another confirmation");
+      refresh(); answer(overview);
+      empty().click(); d.querySelector("#dialog-ja").click(); await tick();
+      answer({ completed_count: 2 });
+      assert.equal(calls().at(-1).action, "list");
+      answer({ entries: [rows[2]], total: 1, next_cursor: null, empty_count: 0, empty_revision: version });
+      assert.equal(root().querySelectorAll("[data-media-restore]").length, 1);
+      assert.ok(root().querySelector("[data-media-cancel]") && !empty(), "Unmoved originals are not discarded by emptying trash"); cases++;
+
+      refresh(); answer(overview);
+      empty().click(); called = calls().length;
+      b.w.App.init({ gesperrt: true });
+      d.querySelector("#dialog-ja")?.click(); await tick();
+      assert.equal(calls().length, called, "Locking invalidates an open bulk confirmation"); cases++;
     } finally { b.close(); }
   }
   console.log(`Media recycle bin UI: ${cases} frontend/locale cases PASS; 19 catalogs checked. No installed GUI acceptance claimed.`);

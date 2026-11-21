@@ -40,7 +40,8 @@ def test_native_projection_and_offline_restore_use_only_opaque_ids_and_keep_note
 
 
 @pytest.mark.parametrize('extra',[{'path':'/untrusted'},{'scope':'a'*64},{'cursor':True},{'cursor':-1},
-    {'cursor':16385},{'fingerprint':'a'*64},{'request_id':'bad space'},{'action':'delete'},{'action':'restore'}, {'action':'purge'}])
+    {'cursor':16385},{'fingerprint':'a'*64},{'request_id':'bad space'},{'action':'delete'},{'action':'restore'}, {'action':'purge'},
+    {'action':'empty','version':'a'*64,'count':True,'confirmed':True}, {'action':'empty','version':'a'*64,'count':1,'confirmed':False}])
 def test_invalid_ui_requests_are_rejected_before_native_history_io(tmp_path,extra,monkeypatch):
     ui=NativeMediaTrashUi(str(tmp_path),lambda:True)
     monkeypatch.setattr(ui,'_scopes',lambda:pytest.fail('Malformed browser request reached native history scan'))
@@ -101,6 +102,63 @@ def test_projection_pages_real_entries_without_discarding_history(mappings,monke
         assert first['total']==second['total']==2 and len(first['entries'])==len(second['entries'])==1
         assert first['entries'][0]['operation']!=second['entries'][0]['operation'] and second['next_cursor'] is None
         assert owner.read()[0].count==2
+    finally:owner.close()
+
+
+@pytest.mark.parametrize('fault',[None,'stale','partial','uncertain'])
+def test_empty_uses_complete_confirmed_inventory_and_never_purges_pending_originals(mappings,monkeypatch,fault):
+    fixture,mapping_store=mappings
+    receiver,pages,_=save(fixture,count=3)
+    _,records=mapping_store.commit_received(mapping_store.issue_action(),mapping_store.read(),receiver,pages)
+    owner=ProtectedMediaTrash(fixture[3]._authority)
+    try:
+        files={}
+        for i,record in enumerate(records):
+            snapshot,_=owner.read()
+            snapshot,entry=owner.prepare_local(owner.issue_action(),snapshot,mapping_store,record.association,record.protected_record_sha256)
+            files[entry.operation]=paths((fixture,),entry)
+            if i<2:owner.trash(owner.issue_action(),snapshot,entry.operation,lambda:True)
+            else:pending=entry.operation
+        sent=fixture[2].send.call_count
+        ui=NativeMediaTrashUi(str(fixture[0].store.root),lambda:True);monkeypatch.setattr(ui,'PAGE_SIZE',1)
+        first=ui.handle(request());second=ui.handle(request(cursor=first['next_cursor']))
+        version=first['empty_revision'];count=first['empty_count']
+        assert count==second['empty_count']==2 and second['empty_revision']==version and first['total']==3
+        selected=request('empty',version=version,count=count,confirmed=True)
+        if fault=='stale':
+            with pytest.raises(TransferError,match='stale_choice'):ui.handle(dict(selected,count=1))
+            snapshot,_=owner.read();owner.cancel_prepared(owner.issue_action(),snapshot,pending,lambda:True)
+            with pytest.raises(TransferError,match='stale_choice'):ui.handle(selected)
+        else:
+            if fault=='uncertain':
+                def lost_completion(step):
+                    if step=='purge_bytes_released':raise TransferError('fixture_reply_uncertain')
+                init=ProtectedMediaTrash.__init__
+                def guarded_init(self,*args,**kwargs):
+                    init(self,*args,**kwargs,boundary=lost_completion)
+                monkeypatch.setattr(ProtectedMediaTrash,'__init__',guarded_init)
+            if fault=='partial':
+                purge=ProtectedMediaTrash.purge_manual
+                calls=[]
+                def guarded(self,*args):
+                    calls.append(args[2])
+                    if len(calls)>1:raise TransferError('fixture_withdrawal')
+                    return purge(self,*args)
+                monkeypatch.setattr(ProtectedMediaTrash,'purge_manual',guarded)
+            result=ui.handle(selected)
+            assert result['ok'] is (fault is None) and result['completed_count']=={None:2,'partial':1,'uncertain':0}[fault]
+            with pytest.raises(TransferError,match='stale_choice'):ui.handle(selected)
+        _,entries=owner.read()
+        states={item.operation:item.state for item in entries}
+        assert states[pending]==('canceled' if fault=='stale' else 'prepared') and files[pending][0].is_file()
+        assert sum(state=='purged' for state in states.values())=={None:2,'stale':0,'partial':1,'uncertain':0}[fault]
+        assert all(payload.is_file()==(states[key]=='trashed') for key,(_,payload) in files.items())
+        if fault=='uncertain':
+            interrupted=[item for item in entries if item.state=='purge_prepared']
+            assert len(interrupted)==1
+            operation=interrupted[0].operation
+            assert (files[operation][1].parent/('.magnolie-purge-'+operation)/'payload').stat().st_size==0
+        assert fixture[2].send.call_count==sent
     finally:owner.close()
 
 

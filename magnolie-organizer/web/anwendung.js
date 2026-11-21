@@ -31808,7 +31808,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
   }
 
-  const medienPapierkorb = { supported: null, entries: [], total: 0, next: null, pending: null, error: false };
+  const medienPapierkorb = { supported: null, entries: [], total: 0, next: null, pending: null, error: false, empty: null };
   const medienVorschaubilder = new Map();
   let medienVorschauWartend = [], medienVorschauBeobachter = null, medienVorschauSchliessen = null, medienThumbnailsAn = false;
   const medienVorschauSchluessel = entry => entry.scope + "." + entry.operation + "." + entry.version;
@@ -31857,7 +31857,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     medienVorschauSchliessen?.(false); medienVorschauBeobachter?.disconnect(); medienVorschauBeobachter = null;
     medienVorschauWartend = []; medienVorschaubilder.clear();
     medienThumbnailsAn = false;
-    Object.assign(medienPapierkorb, { supported: null, entries: [], total: 0, next: null, pending: null, error: false });
+    Object.assign(medienPapierkorb, { supported: null, entries: [], total: 0, next: null, pending: null, error: false, empty: null });
     const root = $("#medien-papierkorb"); if (root) {
       root.querySelectorAll("img").forEach(bild => bild.removeAttribute("src"));
       root.replaceChildren(); root.hidden = true;
@@ -31868,11 +31868,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (!Bruecke.vorhanden || gesperrt || medienPapierkorb.pending) return;
     const request_id = uid(), request = { cmd: "medien_papierkorb", request_id, action };
     if (action === "list") request.cursor = cursor;
+    else if (action === "empty") {
+      if (entry !== medienPapierkorb.empty || !entry?.count) return;
+      Object.assign(request, { version: entry.version, count: entry.count, confirmed: true });
+    }
     else Object.assign(request, { scope: entry.scope, operation: entry.operation, version: entry.version });
     if (action === "purge") request.confirmed = true;
     const vorschau = ["thumbnail", "preview"].includes(action);
     if (vorschau && !medienPapierkorb.entries.includes(entry)) return;
-    const pending = { request_id, action, entry, cursor, timer: null, root: $("#medien-papierkorb") };
+    const pending = { request_id, action, entry, cursor, empty: medienPapierkorb.empty, timer: null, root: $("#medien-papierkorb") };
+    if (!vorschau) medienPapierkorb.empty = null;
+    if (action === "empty") medienPapierkorb.next = null;
     medienPapierkorb.pending = pending; if (!vorschau) medienPapierkorb.error = false;
     if (action === "thumbnail") medienVorschaubilder.set(medienVorschauSchluessel(entry), { status: "pending" });
     pending.timer = setTimeout(() => {
@@ -31894,6 +31900,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       "Permanently delete all %(count)s items? This cannot be undone.", 1), _("Delete permanently"));
     if (!yes || gesperrt || medienPapierkorb.pending || medienPapierkorb.entries !== rows || !rows.includes(entry)) { starteMedienVorschaubilder(); return; }
     medienPapierkorbAnfordern("purge", entry);
+  }
+
+  async function medienPapierkorbLeeren(root) {
+    const selected = medienPapierkorb.empty;
+    if (gesperrt || !selected?.count || medienPapierkorb.pending) return;
+    const yes = await frage(uebersetztMehrzahl(
+      "Permanently delete the one item? This cannot be undone.",
+      "Permanently delete all %(count)s items? This cannot be undone.", selected.count), _("Empty recycle bin"));
+    if (!yes || gesperrt || !root.isConnected || root !== $("#medien-papierkorb") || medienPapierkorb.empty !== selected) return;
+    medienPapierkorbAnfordern("empty", selected);
   }
 
   function zeichneMedienPapierkorb() {
@@ -31946,6 +31962,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (medienPapierkorb.error) root.append(el("p", "einst-warnung", _("Failed") + " · " + _("Refresh")));
     const refresh = knopf(_("Refresh"), "klein", () => medienPapierkorbAnfordern());
     refresh.disabled = !!medienPapierkorb.pending; refresh.id = "medien-papierkorb-aktualisieren"; root.append(refresh);
+    if (medienPapierkorb.empty?.count) {
+      const empty = knopf(_("Empty recycle bin"), "klein", () => medienPapierkorbLeeren(root));
+      empty.dataset.mediaTrashEmpty = "true"; empty.disabled = !!medienPapierkorb.pending; root.append(empty);
+    }
     const list = el("div", "papierkorb-liste");
     for (const entry of medienPapierkorb.entries) {
       const row = el("div", "pk-zeile"); row.dataset.mediaOperation = entry.operation; row.dataset.mediaType = entry.media_type;
@@ -31985,7 +32005,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     clearTimeout(pending.timer); medienPapierkorb.pending = null;
     if (value.supported === false && !["thumbnail", "preview"].includes(pending.action)) {
       medienVorschauSchliessen?.(false); medienVorschaubilder.clear(); medienVorschauWartend = [];
-      Object.assign(medienPapierkorb, { supported: false, entries: [], total: 0, next: null, error: false });
+      Object.assign(medienPapierkorb, { supported: false, entries: [], total: 0, next: null, error: false, empty: null });
       zeichneMedienPapierkorb(); return;
     }
     medienPapierkorb.supported = value.supported === true || medienPapierkorb.supported;
@@ -32010,6 +32030,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     const fail = () => { medienPapierkorb.error = true; zeichneMedienPapierkorb(); };
     if (value.ok !== true || value.action !== pending.action) { fail(); return; }
+    if (pending.action === "empty") {
+      if (value.completed_count !== pending.entry.count) { fail(); return; }
+      medienPapierkorb.entries = medienPapierkorb.entries.filter(entry => !["trashed", "purge_prepared"].includes(entry.state));
+      medienPapierkorb.total = Math.max(0, medienPapierkorb.total - pending.entry.count);
+      medienPapierkorb.next = null;
+      zeichneMedienPapierkorb(); medienPapierkorbAnfordern(); return;
+    }
     if (pending.action !== "list") {
       const completed = value.completed;
       if (!completed || completed.scope !== pending.entry.scope || completed.operation !== pending.entry.operation ||
@@ -32035,6 +32062,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       fail(); return;
     }
     const rows = pending.cursor ? medienPapierkorb.entries.slice() : [];
+    const empty = typeof value.empty_revision === "string" && /^[0-9a-f]{64}$/.test(value.empty_revision) &&
+      Number.isSafeInteger(value.empty_count) && value.empty_count > 0 && value.empty_count <= value.total
+      ? { version: value.empty_revision, count: value.empty_count } : null;
+    if (pending.cursor && (empty?.version !== pending.empty?.version || empty?.count !== pending.empty?.count)) {
+      medienPapierkorb.next = null; fail(); return;
+    }
     if (!pending.cursor) {
       medienVorschauSchliessen?.(false); medienVorschaubilder.clear(); medienVorschauWartend = [];
     }
@@ -32042,7 +32075,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const index = rows.findIndex(old => old.scope === entry.scope && old.operation === entry.operation);
       if (index >= 0) rows[index] = entry; else rows.push(entry);
     }
-    Object.assign(medienPapierkorb, { entries: rows, total: value.total, next: value.next_cursor, error: false });
+    Object.assign(medienPapierkorb, { entries: rows, total: value.total, next: value.next_cursor, error: false, empty });
     zeichneMedienPapierkorb();
   }
 

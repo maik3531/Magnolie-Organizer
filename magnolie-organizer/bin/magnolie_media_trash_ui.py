@@ -1,5 +1,6 @@
 """Native local trash projection: opaque IDs, never browser filesystem paths."""
 from contextlib import contextmanager
+from hashlib import sha256
 import os
 from pathlib import Path
 import re
@@ -8,6 +9,7 @@ import time
 from magnolie_file_transfer import TransferError
 from magnolie_media_trash import NativeLocalMediaTrashAuthority,ProtectedMediaTrash
 from magnolie_photo_preferences import ProtectedPhotoPreferences
+from magnolie_telefon import canonical
 
 
 class NativeMediaTrashUi:
@@ -55,7 +57,7 @@ class NativeMediaTrashUi:
             return tuple(sorted(anchors))
         finally:os.close(fd)
 
-    def _list(self,cursor):
+    def _inventory(self):
         rows=[]
         scopes=self._scopes()
         for scope in scopes:
@@ -68,10 +70,44 @@ class NativeMediaTrashUi:
                     rows.append(dict(scope=scope,operation=entry.operation,version=snapshot.version,
                         name=entry.mapping.relative_path.split('/')[-1],media_type=entry.mapping.association.media_type,state=entry.state))
         self._current()
+        return scopes,rows
+
+    @staticmethod
+    def _empty_selection(scopes,rows):
+        # Bind the confirmation to the complete overview, not a browser page.
+        revision=sha256(canonical(dict(scopes=list(scopes),rows=rows))).hexdigest()
+        return revision,[row for row in rows if row['state'] in ('trashed','purge_prepared')]
+
+    def _list(self,cursor):
+        scopes,rows=self._inventory()
+        revision,selected=self._empty_selection(scopes,rows)
         if cursor>len(rows):raise TransferError('media_trash_page_changed')
         next_cursor=cursor+self.PAGE_SIZE
         return dict(entries=rows[cursor:next_cursor],next_cursor=next_cursor if next_cursor<len(rows) else None,
-            total=len(rows),scopes=list(scopes))
+            total=len(rows),scopes=list(scopes),empty_revision=revision,empty_count=len(selected))
+
+    def _empty(self,request):
+        scopes,rows=self._inventory();revision,selected=self._empty_selection(scopes,rows)
+        if revision!=request['version'] or len(selected)!=request['count']:
+            raise TransferError('media_trash_stale_choice')
+        completed=0;versions={row['scope']:row['version'] for row in selected}
+        try:
+            for row in selected:
+                self._current()
+                with self._owner(row['scope']) as owner:
+                    snapshot,entries=owner.read()
+                    if snapshot.version!=versions[row['scope']]:raise TransferError('media_trash_stale_choice')
+                    entry=next((item for item in entries if item.operation==row['operation']),None)
+                    if entry is None or entry.state!=row['state']:raise TransferError('media_trash_stale_choice')
+                    # Each original continues to use the existing durable purge
+                    # journal. Never replace a stale member or retry an uncertain one.
+                    updated,entry=owner.purge_manual(owner.issue_action(),snapshot,entry.operation,self._current)
+                    if entry.state!='purged':raise TransferError('media_trash_purge_not_current')
+                    versions[row['scope']]=updated.version;completed+=1
+        except Exception:
+            # Even zero verified completions does not prove that no bytes were released.
+            return dict(ok=False,supported=True,request_id=request['request_id'],action='empty',completed_count=completed)
+        return dict(ok=True,supported=True,request_id=request['request_id'],action='empty',completed_count=completed)
 
     @staticmethod
     def validate_request(request):
@@ -92,11 +128,17 @@ class NativeMediaTrashUi:
                     or re.fullmatch(pattern,request[key]) is None for key,pattern in (
                         ('scope',r'[0-9a-f]{64}'),('operation',r'[0-9a-f]{32}'),('version',r'[0-9a-f]{64}')))):
                 raise TransferError('media_trash_invalid_request')
+        elif action=='empty':
+            if (set(request)!=fields|{'version','count','confirmed'} or request['confirmed'] is not True
+                    or type(request['version']) is not str or re.fullmatch(r'[0-9a-f]{64}',request['version']) is None
+                    or type(request['count']) is not int or not 1<=request['count']<=NativeMediaTrashUi.MAX_SCOPES*ProtectedMediaTrash.MAX_OPERATIONS):
+                raise TransferError('media_trash_invalid_request')
         else:raise TransferError('media_trash_invalid_request')
         return action
 
     def handle(self,request):
         action=self.validate_request(request);self._current()
+        if action=='empty':return self._empty(request)
         restored_name=None
         if action!='list':
             with self._owner(request['scope']) as owner:
