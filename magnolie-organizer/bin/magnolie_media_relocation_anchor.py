@@ -9,8 +9,8 @@ from magnolie_telefon import canonical, strict_json
 
 
 class RelocationAnchor:
-    # Empty, prepared, and up to 128 individually verified outcomes.
-    MAX_EVENTS=130
+    # Empty, prepared, and up to 128 spent attempts plus 128 outcomes.
+    MAX_EVENTS=258
     MAX_EVENT_BYTES=2048
     MAX_BYTES=MAX_EVENTS*(4+MAX_EVENT_BYTES)
 
@@ -39,7 +39,7 @@ class RelocationAnchor:
 
     @staticmethod
     def _checkpoint(snapshot):
-        return (snapshot.version,snapshot.outcome_version,len(snapshot.records),len(snapshot.outcomes))
+        return (snapshot.version,snapshot.outcome_version,len(snapshot.records),len(snapshot.attempts),len(snapshot.outcomes))
 
     def _read(self,fd):
         stamp=self._file(fd);data=os.pread(fd,stamp[1]+1,0)
@@ -57,7 +57,7 @@ class RelocationAnchor:
             if (type(event) is not dict or set(event)!={'format','store','index','previous','checkpoint'}
                     or type(event['format']) is not int or event['format']!=1 or event['store']!=self._store_identity()
                     or type(event['index']) is not int or event['index']!=index or event['previous']!=digest or canonical(event)!=plain
-                    or type(event['checkpoint']) is not list or len(event['checkpoint'])!=4):
+                    or type(event['checkpoint']) is not list or len(event['checkpoint'])!=5):
                 raise TransferError('photo_relocation_original_anchor_changed')
             checkpoint=tuple(event['checkpoint'])
             self._transition(previous,checkpoint,index)
@@ -67,20 +67,21 @@ class RelocationAnchor:
         return previous,digest
 
     def _transition(self,before,after,index):
-        version,head,records,outcomes=after
-        if (not _hex(version) or not _hex(head) or type(records) is not int or type(outcomes) is not int
-                or not 0<=outcomes<=records<=self._journal.MAX_MEMBERS):
+        version,head,records,attempts,outcomes=after
+        if (not _hex(version) or not _hex(head) or any(type(value) is not int for value in (records,attempts,outcomes))
+                or not 0<=max(attempts,outcomes)<=records<=self._journal.MAX_MEMBERS or min(attempts,outcomes)<0):
             raise TransferError('photo_relocation_invalid_anchor_checkpoint')
         if index==0:
-            valid=before is None and records==outcomes==0 and version==self._journal._absent
+            valid=before is None and records==attempts==outcomes==0 and version==self._journal._absent
         elif index==1:
-            valid=before is not None and before[2:]==(0,0) and records>0 and outcomes==0 and version!=before[0] and head!=before[1]
+            valid=before is not None and before[2:]==(0,0,0) and records>0 and attempts==outcomes==0 and version!=before[0] and head!=before[1]
         else:
-            valid=before is not None and version==before[0] and head!=before[1] and records==before[2] and outcomes==before[3]+1==index-1
+            valid=(before is not None and version==before[0] and head!=before[1] and records==before[2]
+                and (attempts-before[3],outcomes-before[4]) in ((1,0),(0,1)) and attempts+outcomes==index-1)
         if not valid:raise TransferError('photo_relocation_invalid_anchor_checkpoint')
 
     def _append(self,fd,before,digest,checkpoint):
-        index=0 if before is None else 1 if before[2]==0 else before[3]+2
+        index=0 if before is None else 1 if before[2]==0 else before[3]+before[4]+2
         self._transition(before,checkpoint,index)
         blob=self._journal._protection().seal(canonical(dict(format=1,store=self._store_identity(),index=index,
             previous=digest,checkpoint=list(checkpoint))),self._domain)

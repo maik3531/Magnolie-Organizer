@@ -89,9 +89,9 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
         assert original_current() and original.read_bytes()==ANIMATED and not destination.exists()
         with pytest.raises(TransferError,match='moved_mapping_required'):
             journal.resolve_moved_read_location(prepared,mapping,require_original=original_current)
-        original.rename(destination) # Isolated fixture, not a product move.
-        committed=journal.record_terminal(journal.issue_action(),prepared,0,'moved',mapping.destination,
+        committed=journal.move_prepared_animation(journal.issue_action(),prepared,0,mapping.destination,
             require_original=original_current)
+        assert committed.attempts==(0,) and committed.outcomes[0][1].phase=='moved'
         with pytest.raises(TransferError,match='original_journal_changed'):
             journal.resolve_moved_read_location(prepared,mapping,require_original=original_current)
         local_edit=b'edited again after moving'

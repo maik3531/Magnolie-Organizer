@@ -10,8 +10,11 @@ binds the root and both parent chains, current local bytes and original
 mapping fingerprints in the authenticated journal. Readback distinguishes
 the two exclusive locations without traversing symlinks. The draft can append
 a `moved` or `canceled` observation beside the immutable preparation after
-flushing both held parents and checking their identities again. It performs
-no rename or mapping change. Reopening never retries or finalizes a move by
+flushing both held parents and checking their identities again. The private
+Linux GIF primitive records a spent attempt before calling the native
+no-replace rename, synchronizes the original file, and checks both endpoints
+again before recording an outcome. It is not exposed through the product UI
+and changes no stored mapping. Reopening never retries or finalizes a move by
 itself. An independent sealed file in the native store pins the database
 identity and each preparation or outcome revision, and is flushed before
 committing the corresponding database change. A cut between those writes,
@@ -20,6 +23,13 @@ No stale checkpoint can refresh itself from either side. This does not attest
 against coordinated loss or rollback of both stores: the future product owner
 must still bind the operation to the live saved book and hold any missing
 selection there rather than creating a new one.
+
+The native no-replace syscall protects the target name. It does not atomically
+compare the source inode. A conflicting non-cooperating writer can still
+make the outcome uncertain; the draft neither deletes nor attempts a rollback
+in such a case. Do not expose this as unconditional safe relocation in the
+product. The native owner must coordinate other Organizer writers and all
+path consumers; conflict handling and operation-wide acceptance remain open.
 
 The read-only path projection needs the exact anchored `moved` outcome and
 the unchanged protected mapping. It checks both names and their directories

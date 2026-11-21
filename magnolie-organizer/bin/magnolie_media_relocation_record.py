@@ -136,7 +136,12 @@ class MediaRelocationRecord:
         if self._observe_native(destination,current,require_animation=False,durable_phase=None,location_only=True)!='at_target':
             raise TransferError('photo_relocation_original_location_unproven')
 
-    def _observe_native(self,destination,current,*,require_animation,durable_phase,location_only=False):
+    def _rename_prepared_animation(self,destination,current):
+        """Only the native journal calls this after spending the exact attempt."""
+        if self.phase!='prepared':raise TransferError('photo_relocation_invalid_transition')
+        self._observe_native(destination,current,require_animation=True,durable_phase=None,rename=True)
+
+    def _observe_native(self,destination,current,*,require_animation,durable_phase,location_only=False,rename=False):
         if (type(destination) is not NativeAcceptedDestination or destination.ancestor_keys[0]!=self.root_key
                 or not callable(current) or type(require_animation) is not bool):
             raise TransferError('photo_relocation_original_destination_required')
@@ -172,6 +177,7 @@ class MediaRelocationRecord:
                 return parent,leaf
             source=parent_for(self.source,self.source_parents);target=parent_for(self.target,self.target_parents)
             ends=[]
+            payloads={}
             def inspect(endpoint):
                 require_current();parent,leaf=endpoint;before=named(parent,leaf)
                 if before is None:
@@ -187,6 +193,7 @@ class MediaRelocationRecord:
                 # Read the verified descriptor rather than reopening a raced name.
                 fd=track(os.open('/proc/self/fd/'+str(opened),os.O_RDONLY|os.O_CLOEXEC|os.O_NONBLOCK))
                 if signature(os.fstat(fd))!=exact:raise TransferError('photo_relocation_original_file_changed')
+                if rename:payloads[endpoint]=fd
                 digest=sha256();remaining=self.file.size; animation=bytearray() if require_animation else None
                 while remaining:
                     require_current();raw=os.read(fd,min(remaining,1024*1024))
@@ -217,6 +224,21 @@ class MediaRelocationRecord:
             witnessed=dict(root_key=self.root_key,source_parents=self.source_parents,target_parents=self.target_parents,
                 source=observed_source,target=observed_target)
             recheck()
+            if rename:
+                from magnolie_media_trash import _move_no_replace
+                if self.observe(**witnessed)!='at_source':raise TransferError('photo_relocation_original_location_unproven')
+                # No overwrite, cross-volume copy, or compensating removal.
+                # A concurrent external namespace edit may leave uncertainty;
+                # only the exact same inode at the target can be credited.
+                os.fsync(payloads[source])
+                recheck()
+                _move_no_replace(source[0],source[1],target[1],target_parent=target[0])
+                ends.clear()
+                observed_source,observed_target=inspect(source),inspect(target)
+                recheck()
+                if observed_source is not None or observed_target!=self.file:
+                    raise TransferError('photo_relocation_original_location_unproven')
+                return None
             if location_only:return 'at_target' if observed_source is None and observed_target is True else 'held'
             if durable_phase is None:return self.observe(**witnessed)
             candidate=self.terminal_candidate(durable_phase,**witnessed)

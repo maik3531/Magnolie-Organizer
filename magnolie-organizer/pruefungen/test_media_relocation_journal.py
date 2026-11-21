@@ -7,7 +7,7 @@ import sqlite3
 
 import pytest
 
-from test_media_relocation_record import native_fixture
+from test_media_relocation_record import ANIMATED, native_fixture
 from test_file_desktop_receive import receiving
 from test_file_authenticated_desktop import native, bind
 from magnolie_file_transfer import TransferError
@@ -225,3 +225,58 @@ def test_relocation_modules_follow_the_existing_optional_photo_composition():
     modules={'magnolie_media_relocation_record.py','magnolie_media_relocation_journal.py','magnolie_media_relocation_anchor.py'}
     assert not selected_modules(modules,dict(photo_sync=False,phone_camera=True))
     assert selected_modules(modules,dict(photo_sync=True,phone_camera=False))==modules
+
+
+def test_native_animation_rename_preserves_inode_bytes_mode_and_mtime(receiving,tmp_path):
+    entry,destination,source,target,raw=native_fixture(tmp_path/'relocation',ANIMATED)
+    selection=bind_relocation_selection((entry,),occupied=());version=selection[0].selection_sha256
+    authority=receiving[3]._authority;original=source.stat()
+    with closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        expected=journal.prepare(journal.issue_action(),journal.read(),selection,version,destination,require_original=lambda:True)
+        moved=journal.move_prepared_animation(journal.issue_action(),expected,0,destination,require_original=lambda:True)
+        assert moved.attempts==(0,) and moved.outcomes==((0,replace(selection[0],phase='moved')),)
+    with closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        assert journal.require_prepared(expected.version,version)==moved
+        with pytest.raises(TransferError,match='already_recorded'):
+            journal.move_prepared_animation(journal.issue_action(),moved,0,destination,require_original=lambda:True)
+    current=target.stat()
+    assert (current.st_dev,current.st_ino,current.st_mode,current.st_mtime_ns)==(original.st_dev,original.st_ino,original.st_mode,original.st_mtime_ns)
+    assert target.read_bytes()==raw and not source.exists()
+
+
+@pytest.mark.parametrize('fault',['late_collision','revoked_after_spend','interrupted_after_rename'])
+def test_spent_native_attempt_cannot_replay_after_failure_or_revocation(receiving,tmp_path,monkeypatch,fault):
+    from magnolie_media_trash import _move_no_replace
+    entry,destination,source,target,raw=native_fixture(tmp_path/'relocation',ANIMATED)
+    authority=receiving[3]._authority;selection=bind_relocation_selection((entry,),occupied=());version=selection[0].selection_sha256
+    moves=[];withdrawn=[]
+    def wrapped(*args,**kw):
+        moves.append(True)
+        if fault=='late_collision':target.write_bytes(b'foreign target')
+        _move_no_replace(*args,**kw)
+        if fault=='interrupted_after_rename':raise OSError('fixture interruption after atomic rename')
+    with closing(ProtectedMediaRelocationJournal(authority)) as journal, monkeypatch.context() as patch:
+        expected=journal.prepare(journal.issue_action(),journal.read(),selection,version,destination,require_original=lambda:True)
+        patch.setattr('magnolie_media_trash._move_no_replace',wrapped)
+        if fault=='revoked_after_spend':
+            append=journal._append_member
+            def spend(*args):
+                result=append(*args);withdrawn.append(True)
+                return result
+            patch.setattr(journal,'_append_member',spend)
+        error=TransferError if fault=='revoked_after_spend' else OSError
+        with pytest.raises(error):
+            journal.move_prepared_animation(journal.issue_action(),expected,0,destination,require_original=lambda:not withdrawn)
+    with closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        held=journal.require_prepared(expected.version,version)
+        assert held.attempts==(0,) and not held.outcomes
+        with pytest.raises(TransferError,match='attempt_already_spent'):
+            journal.move_prepared_animation(journal.issue_action(),held,0,destination,require_original=lambda:True)
+        if fault=='interrupted_after_rename':
+            evidence=journal.record_terminal(journal.issue_action(),held,0,'moved',destination,require_original=lambda:True)
+            assert evidence.outcomes==((0,replace(selection[0],phase='moved')),)
+    assert len(moves)==(0 if fault=='revoked_after_spend' else 1)
+    if fault=='interrupted_after_rename':assert target.read_bytes()==raw and not source.exists()
+    else:assert source.read_bytes()==raw
+    if fault=='late_collision':assert target.read_bytes()==b'foreign target'
+    if fault=='revoked_after_spend':assert not target.exists()
