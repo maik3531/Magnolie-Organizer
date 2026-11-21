@@ -1612,12 +1612,16 @@ class NativeDesktopFileConnection:
         from magnolie_photo_target import observe_saved_target
         from magnolie_photo_review import NativePhotoReview, NativePhotoReviewItem
         self._take_action(action)
-        with self._operation():
+        with self._operation(), ExitStack() as media:
             if self._run is not None or self._offer is None:
                 raise TransferError('file_desktop_offer_not_current')
             self._require_source_offer(clock)
             if not self._source_media_pages or self._source_media_entries is None:
                 raise TransferError('file_desktop_source_media_history_required')
+            require_activity=media.enter_context(self._saved_media_activity(action=action))
+            def observe_binding():
+                require_activity()
+                return self._receive_binding()
             self._verify_expected_mapping_store()
             binding = self._receive_binding()
             manifest = validate_offer(self._offer, binding.sender_id, binding.receiver_id, now=clock())
@@ -1635,7 +1639,7 @@ class NativeDesktopFileConnection:
             with self._catalog.inspect_jobs() as (parent, jobs):
                 owners = {job.owner: job for job in jobs}
                 for file, entry, mapping in zip(manifest.files, self._source_media_entries, records):
-                    action.validate(self); self._receive_binding()
+                    require_activity()
                     if mapping is None:
                         items.append(NativePhotoReviewItem(file.id, entry.photo_id, 'new_photo'))
                         continue
@@ -1665,7 +1669,7 @@ class NativeDesktopFileConnection:
                                     or receipt.parent_keys != mapping.parent_keys or receipt.sha256 != mapping.saved_sha256
                                     or receipt.size != mapping.saved_size):
                                 raise TransferError('file_desktop_saved_mapping_receipt_changed')
-                            desktop = observe_saved_target(job.accepted, receipt, self._receive_binding)
+                            desktop = observe_saved_target(job.accepted, receipt, observe_binding)
                             association = NativePhotoAssociation(binding, first.source_epoch, entry.photo_id, mapping.protected_record_sha256)
                             baseline = NativePhotoBaseline(association, PhotoContentWitness(receipt.sha256, receipt.size), receipt.protected_record_sha256)
                             phone = NativePhotoObservation('present', PhotoContentWitness(file.sha256, file.size),
@@ -1678,7 +1682,7 @@ class NativeDesktopFileConnection:
                                 mapping.protected_record_sha256 if kind=='copy_phone_version' else None))
                 if self._catalog.jobs() != jobs or self._mappings.lookup(associations,contents=contents) != (snapshot, records):
                     raise TransferError('file_desktop_photo_mapping_changed')
-            action.validate(self); self._receive_binding()
+            require_activity()
             if clock() >= self._offer['expires_ms']:
                 raise TransferError('file_desktop_offer_expired')
             return NativePhotoReview(manifest.fingerprint, tuple(items))
@@ -2015,7 +2019,7 @@ class NativeDesktopFileConnection:
         authority. Phone restart READ renewal must be proved separately there.
         """
         self._take_action(action)
-        with self._operation():
+        with self._operation(), ExitStack() as media:
             if self._run is not None or self._offer is None or self._offer['message_id'] != offer_id:
                 raise TransferError('file_desktop_offer_not_current')
             if self._source_run is not None and self._source_run.media_type=='video' and (
@@ -2027,6 +2031,7 @@ class NativeDesktopFileConnection:
                 if native_job_owner != selected.job.owner:
                     raise TransferError('file_desktop_resume_original_job_changed')
             self._require_source_offer(clock)
+            activity=media.enter_context(self._saved_media_activity(action=action)) if self._source_media_pages else None
             observed_jobs=self._require_unmapped_media(resume_owner=native_job_owner)
             snapshot = self._receiving_policy()
             binding = self._receive_binding()
@@ -2054,14 +2059,16 @@ class NativeDesktopFileConnection:
                 current = NativeMediaHistory.capture(job.accepted,self._source_media_pages)
                 if (original.source_epoch,original.media_type,original.entries) != (current.source_epoch,current.media_type,current.entries):
                     raise TransferError('file_desktop_resume_media_association_changed')
-            action.validate(self)
+            if activity is not None:activity()
+            else:action.validate(self)
             self._run = _NativeDesktopReceiveRun(snapshot.version, job.accepted, job=job,native_constraint=self._source_native_constraint,
                 media_type=self._source_run.media_type if self._source_run is not None else 'images',
                 resume_source_run_id=self._resume_source_id)
             self._run.receiver = NativeFileReceiveOperation.resume(self._catalog, job, self._receive_binding,
                 protection.seal, protection.unseal, self._publication_gate)
             if self._run.stop_requested.is_set(): raise TransferError('file_desktop_receive_stop_requested')
-            action.validate(self)
+            if activity is not None:activity()
+            else:action.validate(self)
             self._run.acceptance = self._run.receiver.acceptance_message(self._offer, now=clock())
             self._send_data(self._run.acceptance, clock, action=action)
             if self._run.stop_requested.is_set(): raise TransferError('file_desktop_receive_stop_requested')

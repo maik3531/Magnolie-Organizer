@@ -7,6 +7,8 @@ import sys
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
+from magnolie_file_transfer import TransferError
+from magnolie_media_retention import NativeMediaRetention
 from test_file_authenticated_desktop import native
 from test_file_desktop_receive import receiving, reconnect
 from test_file_desktop_sources import ready_source, request, response
@@ -43,6 +45,15 @@ def test_second_native_album_review_preserves_original_target_and_requests_no_ph
         monkeypatch.setattr('magnolie_file_desktop_connection.NativeFileReceiveOperation.accept', forbidden)
         monkeypatch.setattr('magnolie_file_desktop_connection.NativeFileReceiveOperation.resume', forbidden)
         count = fresh[2].send.call_count
+        if change == 'none':
+            directory=current._authority.binding.native_directory
+            with NativeMediaRetention(directory) as other, other.activity(exclusive=True) as relocation:
+                assert relocation is not None
+                with monkeypatch.context() as patch:
+                    patch.setattr('magnolie_photo_target.observe_saved_target',forbidden)
+                    with pytest.raises(TransferError,match='media_activity_busy'):
+                        current.review_pending_photos(current.issue_receive_action())
+                assert fresh[2].send.call_count==count and current._run is None
         review = current.review_pending_photos(current.issue_receive_action())
         assert review.manifest_sha256 == full.fingerprint and len(review.items) == 1
         assert review.items[0].file_id == 'a' * 32 and review.items[0].decision == expected

@@ -7,6 +7,7 @@ import pytest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'bin'))
 from magnolie_file_transfer import TransferError
 from magnolie_file_receive import NativeFileReceiveOperation
+from magnolie_media_retention import NativeMediaRetention
 from test_file_authenticated_desktop import native
 from test_file_desktop_receive import receiving,accept
 from test_file_desktop_sources import request,ready_source
@@ -29,9 +30,18 @@ def retry_offer(fixture,change=None):
     return receiver,job,original,offered
 
 
-def test_new_exact_page_attempt_can_resume_same_original_association_without_rewriting_history(receiving):
+def test_new_exact_page_attempt_can_resume_same_original_association_without_rewriting_history(receiving,monkeypatch):
     connection=receiving[3];receiver,job,original,offered=retry_offer(receiving)
     assert connection._source_media_pages[0].request_id!=original.attempts[0][0]
+    count=receiving[2].send.call_count
+    directory=connection._authority.binding.native_directory
+    def forbidden(*args,**kwargs):raise AssertionError('busy resume must not reopen receive stage')
+    with NativeMediaRetention(directory) as other, other.activity(exclusive=True) as relocation, monkeypatch.context() as patch:
+        assert relocation is not None
+        patch.setattr(NativeFileReceiveOperation,'resume',forbidden)
+        with pytest.raises(TransferError,match='media_activity_busy'):
+            connection.resume_pending_offer(connection.issue_receive_action(),offered['message_id'],job.owner)
+        assert connection._run is None and receiving[2].send.call_count==count
     connection.resume_pending_offer(connection.issue_receive_action(),offered['message_id'],job.owner)
     assert connection._run.receiver._index.media_history==original
     assert connection._run.receiver.progress().owner==job.owner
