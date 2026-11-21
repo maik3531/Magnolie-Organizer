@@ -27,6 +27,16 @@ internal static class DeviceFileMediaMimeTests
             TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(webp[..22], webp.Length, "images"), "A truncated WebP prefix was admitted.");
             TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(webp, webp.Length + 1, "images"), "Untrusted RIFF length was admitted.");
         }
+        var bmp = Convert.FromHexString("424d4e000000000000003600000028000000020000000300000001001800000000001800000000000000000000000000000000000000" +
+            "0c22384e5a2000000c22384e5a2000000c22384e5a200000");
+        TestAssert.That(NativeMediaContentMime.Identify(bmp, bmp.Length, "images") == "image/bmp", "Uncompressed 24-bit BMP was not recognized.");
+        TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(bmp, bmp.Length, "video"), "BMP was relabeled as video.");
+        foreach (var (offset, value) in new (int, uint)[] { (2, 79), (10, 53), (10, 56), (14, 12), (18, 100_000), (22, 0x80000000), (30, 1), (34, 1) })
+        {
+            var broken = bmp.ToArray();
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(broken.AsSpan(offset), value);
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(broken, broken.Length, "images"), "Malformed BMP obtained a MIME.");
+        }
         var video = new byte[] { 0,0,0,20,102,116,121,112,109,112,52,50,0,0,0,0,105,115,111,109 };
         TestAssert.That(NativeMediaContentMime.Identify(video, video.Length, "video") == "video/mp4", "MP4 ftyp was not identified.");
         "qt  "u8.CopyTo(video.AsSpan(8));

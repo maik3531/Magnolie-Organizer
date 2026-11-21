@@ -134,6 +134,23 @@ class NativeIncomingMediaInspectionTest {
         assertArrayEquals(original, file.readBytes())
     }
 
+    @Test fun nativeBmpBoundsRecognizeAnOriginalEvenWithAnUnrelatedFilename() = fixture<Unit> { root, io ->
+        // A 2x3 bottom-up 24-bit DIB with two padding bytes on each row.
+        val original = java.nio.ByteBuffer.allocate(78).order(java.nio.ByteOrder.LITTLE_ENDIAN).apply {
+            put('B'.code.toByte()); put('M'.code.toByte()); putInt(capacity()); putInt(0); putInt(54)
+            putInt(40); putInt(2); putInt(3); putShort(1); putShort(24); putInt(0); putInt(24)
+            repeat(4) { putInt(0) }
+            repeat(3) { put(byteArrayOf(12, 34, 56, 78, 90, 32, 0, 0)) }
+        }.array()
+        val file = File(root, "unknown.dat").apply { writeBytes(original) }
+        readOnly(file).use { descriptor -> io {
+            val result = NativeIncomingMediaInspection.inspect(descriptor.fileDescriptor, file.length(), GalleryMediaType.IMAGES, "image/bmp") { }
+            assertEquals(2, result.width); assertEquals(3, result.height)
+            assertEquals("image/bmp", result.mimeType); assertFalse(result.grantsWriteAuthority)
+        } }
+        assertArrayEquals(original, file.readBytes())
+    }
+
     @Test fun claimedMimeGarbageDescriptorLengthAndUiThreadDoNotManufactureImageAdmission() = fixture<Unit> { root, io ->
         val png = File(root, "image.jpg")
         val bitmap = Bitmap.createBitmap(2, 3, Bitmap.Config.ARGB_8888)

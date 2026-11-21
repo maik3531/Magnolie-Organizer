@@ -93,12 +93,24 @@ def _webp_image(prefix, total_bytes):
     return False
 
 
+def _bmp_image(prefix,total_bytes):
+    # Only the verified 40-byte Windows DIB, uncompressed packed RGB pixels.
+    if len(prefix)<54 or prefix[:2]!=b'BM':return False
+    length,reserved,offset,dib,width,height,planes,bits,compression,size=struct.unpack_from('<IIIIiiHHII',prefix,2)
+    if (length!=total_bytes or reserved or offset<54 or dib!=40 or planes!=1
+            or bits!=24 or compression!=0):return False
+    _dimensions(width,abs(height))
+    pixel_bytes=((width*bits+31)//32)*4*abs(height)
+    return size in (0,pixel_bytes) and offset+pixel_bytes<=total_bytes
+
+
 def identify(prefix, total_bytes, kind):
     if type(prefix) not in (bytes, bytearray) or type(total_bytes) is not int or len(prefix) > PREFIX_BYTES or total_bytes < len(prefix) or total_bytes < 1:
         raise TransferError('media_source_mime_bound')
     if kind == 'images':
         if prefix[:6] in (b'GIF87a',b'GIF89a') and _gif_image(prefix):return 'image/gif'
         if _webp_image(prefix,total_bytes):return 'image/webp'
+        if _bmp_image(prefix,total_bytes):return 'image/bmp'
         if len(prefix) >= 33 and prefix[:16] == b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR':
             _dimensions(*struct.unpack_from('>ii', prefix, 16))
             if prefix[24] not in (1, 2, 4, 8, 16) or prefix[25] not in (0, 2, 3, 4, 6) or prefix[26] != 0 or prefix[27] != 0 or prefix[28] > 1:

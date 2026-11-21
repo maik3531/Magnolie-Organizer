@@ -11,6 +11,7 @@ from magnolie_media_mime import identify, PREFIX_BYTES
 from magnolie_file_published_readback import KIND, destination_token, encode_body
 from magnolie_file_transfer import TransferError
 from magnolie_telefon import now_ms
+from test_media_original_bmp import original_bmp
 
 
 GIF=bytes.fromhex('47494638396101000100800000000000ffffff')+2*bytes.fromhex('21f90400010000002c0000000001000100000202440100')+b';'
@@ -49,7 +50,8 @@ def readback(sender,cached,offer,*,publication='a'*64,mime='image/png'):
     return message(KIND,encode_body(context,binding),offer['expires_ms'])
 
 
-@pytest.mark.parametrize('mime,payload',[('image/png',png()),('image/gif',GIF),('image/webp',WEBP_EXIF)],ids=['png','two-image-gif','webp-exif'])
+@pytest.mark.parametrize('mime,payload',[('image/png',png()),('image/gif',GIF),('image/webp',WEBP_EXIF),('image/bmp',original_bmp())],
+    ids=['png','two-image-gif','webp-exif','bmp24'])
 def test_actual_authenticated_cache_media_offer_chunks_saved_and_readback_keep_distinct_authorities(source,mime,payload):
     h=source;sender,cached,offer=media_offered(h,payload)
     try:

@@ -27,6 +27,7 @@ internal static class NativeMediaContentMime
             if (prefix.Length >= 6 && (prefix[..6].SequenceEqual("GIF87a"u8) || prefix[..6].SequenceEqual("GIF89a"u8)) &&
                 GifImage(prefix)) return "image/gif";
             if (WebpImage(prefix, totalBytes)) return "image/webp";
+            if (BmpImage(prefix, totalBytes)) return "image/bmp";
             if (prefix.Length >= 33 && prefix[..16].SequenceEqual(new byte[] { 137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82 }))
             {
                 Dimensions(BinaryPrimitives.ReadInt32BigEndian(prefix[16..20]), BinaryPrimitives.ReadInt32BigEndian(prefix[20..24]));
@@ -114,6 +115,27 @@ internal static class NativeMediaContentMime
     {
         if (width is < 1 or > 32768 || height is < 1 or > 32768 || (long)width * height > 24000000)
             throw DeviceFileControl.Error("media_source_mime_dimensions");
+    }
+
+    private static bool BmpImage(ReadOnlySpan<byte> prefix, long totalBytes)
+    {
+        if (prefix.Length < 54 || !prefix[..2].SequenceEqual("BM"u8) ||
+            BinaryPrimitives.ReadUInt32LittleEndian(prefix[2..]) != totalBytes ||
+            BinaryPrimitives.ReadUInt32LittleEndian(prefix[6..]) != 0 ||
+            BinaryPrimitives.ReadUInt32LittleEndian(prefix[14..]) != 40 ||
+            BinaryPrimitives.ReadUInt16LittleEndian(prefix[26..]) != 1 ||
+            BinaryPrimitives.ReadUInt16LittleEndian(prefix[28..]) != 24 ||
+            BinaryPrimitives.ReadUInt32LittleEndian(prefix[30..]) != 0) return false;
+        var offset = BinaryPrimitives.ReadUInt32LittleEndian(prefix[10..]);
+        if (offset < 54) return false;
+        var width = BinaryPrimitives.ReadInt32LittleEndian(prefix[18..]);
+        var height = BinaryPrimitives.ReadInt32LittleEndian(prefix[22..]);
+        if (height == int.MinValue) throw DeviceFileControl.Error("media_source_mime_dimensions");
+        var rows = Math.Abs(height);
+        Dimensions(width, rows);
+        var pixels = ((width * 24L + 31) / 32) * 4 * rows;
+        var declared = BinaryPrimitives.ReadUInt32LittleEndian(prefix[34..]);
+        return (declared == 0 || declared == pixels) && offset + pixels <= totalBytes;
     }
 
     private static bool WebpImage(ReadOnlySpan<byte> prefix, long totalBytes)
