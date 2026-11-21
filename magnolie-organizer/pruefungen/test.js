@@ -7511,6 +7511,7 @@ function knopfMit(text, wurzel) {
   assert.ok(!offlineMedia.open && !offlinePhotos.open && !offlineRestore.open,
     "Lokales Wiederherstellen liegt auch offline unter Erweiterte Funktionen → Fotos und Videos");
   assert.strictEqual(offlineRestore.querySelector("summary").textContent, "Wiederherstellen");
+  assert.ok(!bd.querySelector("#telefon-webcam, #telefon-bildschirm"), "Offline bleiben Live-Medien verborgen, lokale Wiederherstellung bleibt getrennt erreichbar");
   assert.ok(telefonAbschnitt.textContent.includes("8741") &&
     !telefonAbschnitt.textContent.includes("1739") && kdeAbschnitt.textContent.includes("1739") &&
     !kdeAbschnitt.textContent.includes("8741"),
@@ -7531,6 +7532,12 @@ function knopfMit(text, wurzel) {
   assert.ok(bd.querySelector(".notes-erweiterte-funktionen[data-local-media-only]") &&
     !bd.querySelector(".notes-foto-sync input, .notes-foto-sync [data-photo-manual-sync]"),
     "Verbindung allein ist keine native Fotobereitschaft");
+  const webcamPanel = bd.querySelector(".telefon-karte .notes-erweiterte-funktionen .notes-live-media > #telefon-webcam");
+  assert.ok(webcamPanel && bd.querySelector(".telefon-karte .notes-erweiterte-funktionen .notes-live-media > #telefon-bildschirm"),
+    "Die bestätigte Notes-WLAN-Verbindung zeigt beide Einträge in derselben Gruppe wie Fotos und Videos");
+  assert.ok(!bd.querySelector(".telefon-kde-karte #telefon-webcam, .telefon-kde-karte #telefon-bildschirm"));
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, ok: true });
+  assert.strictEqual(bd.querySelector("#telefon-webcam"), webcamPanel, "Eine reine Foto-Aktualisierung ersetzt keine Webcam-Bedienung");
   const setupBefore = baumNachrichten.length;
   fotoStand({ available: true, enabled: false, state: "off", albums: [], sending_setup: { version: "c".repeat(64) } });
   assert.ok(bd.querySelector(".notes-erweiterte-funktionen:not([data-local-media-only]) > .notes-foto-sync > [data-media-backup-recovery]"));
@@ -7826,6 +7833,7 @@ function knopfMit(text, wurzel) {
   fotoStand({ available: true, enabled: true, state: "recover_saved", busy: true, recovery_supported: true, recovery: recoveryJobs, albums: [] });
   assert.ok([...bd.querySelectorAll("[data-photo-recovery]")].every(button => button.disabled), "keine überlappenden Wiederherstellungsaktionen");
   fotoStand({ available: true }, { enabled: false });
+  assert.ok(!bd.querySelector("#telefon-webcam, #telefon-bildschirm"), "Deaktivierte Notes-Verbindung blendet beide Live-Medien aus");
   assert.ok(!bd.querySelector(".notes-foto-sync input, .notes-foto-sync [data-photo-manual-sync]"), "Ausschalten blendet Notes-Fotocontrols vollständig aus");
   assert.ok(bd.querySelector(".telefon-karte [data-local-media-only] > .notes-foto-sync > [data-media-backup-recovery]") && !bd.querySelector(".notes-backup-ordner"),
     "Lokale Wiederherstellung braucht weder aktive Medien noch technische Sicherungsordner-Konfiguration");

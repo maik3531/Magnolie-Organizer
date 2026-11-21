@@ -9,7 +9,8 @@ const source = fs.readFileSync(path.join(__dirname, windows ? "../../magnolie-or
 const begin = source.indexOf("  function baueTelefonBildschirm(");
 const end = source.indexOf(windows ? "  const kdeDateisystemAnsichten" : "  function baueTelefonWebcam(", begin);
 assert(begin > 0 && end > begin);
-assert.match(source, /erweitert\.id = "kde-erweiterte-funktionen";[\s\S]{0,200}baueTelefonBildschirm\(erweitert\);/);
+assert.match(source, windows ? /erweitert\.id = "kde-erweiterte-funktionen";[\s\S]{0,200}baueTelefonBildschirm\(erweitert\);/ :
+  /"notes-live-media"\); erweitert\.append\(tools\);[\s\S]{0,200}baueTelefonBildschirm\(erweitert, tools\);/);
 const dom = new JSDOM("<details open></details>");
 const { document } = dom.window;
 const el = (name, css, text) => {
@@ -19,14 +20,15 @@ const el = (name, css, text) => {
   return node;
 };
 const requests = [];
-const build = new Function("el", "_", "kdeMedienAnfordern", `${source.slice(begin, end)}\nreturn baueTelefonBildschirm;`)(
-  el, value => value, (cmd, args) => new Promise(resolve => requests.push({cmd, args, resolve})));
+const build = new Function("el", "_", "kdeMedienAnfordern", "gesperrt", `${source.slice(begin, end)}\nreturn baueTelefonBildschirm;`)(
+  el, value => value, (cmd, args) => new Promise(resolve => requests.push({cmd, args, resolve})), false);
 const tick = () => new Promise(resolve => setImmediate(resolve));
 async function main() {
   // Let jsdom deliver the initial <details open> toggle before mounting.
   await new Promise(resolve => setTimeout(resolve, 0));
   const root = document.querySelector("details");
-  build(root);
+  build(root, root);
+  await Promise.resolve();
   const panel = document.querySelector("#telefon-bildschirm");
   const [start, stop, refresh] = panel.querySelectorAll("button");
   assert.equal(panel.hidden, windows);

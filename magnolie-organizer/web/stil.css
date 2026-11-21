@@ -6116,6 +6116,14 @@ body[data-linien="aus"] #tb-notiz {
   gap: 7px;
 }
 .notes-foto-sync > summary { display: flex; align-items: center; gap: 14px; }
+.notes-live-media, .notes-webcam-controls { display: grid; gap: 8px; min-width: 0; }
+.notes-webcam-controls[hidden] { display: none; }
+.notes-webcam-controls > select { width: fit-content; max-width: 100%; }
+.notes-webcam-options, .notes-webcam-actions { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.notes-webcam-options > label { display: inline-flex; align-items: flex-start; gap: 6px; min-width: 0; max-width: 100%; }
+.notes-webcam-options > label > input { flex: none; margin: 0.2em 0 0; }
+.notes-webcam-options > label > span, .notes-webcam-actions > button { overflow-wrap: anywhere; }
+.notes-webcam-actions > button { max-width: 100%; white-space: normal; }
 .telefon-medien-aktivierung { display: inline-flex; align-items: center; padding: 4px; }
 .telefon-medien-aktivierung input { margin: 0; }
 .kde-empfangsordner {

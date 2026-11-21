@@ -26446,6 +26446,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const alteSeite = wurzel.querySelector(".einst-seite");
     const gleicheSeite = alteSeite && alteSeite.id === "einst-seite-" + einstSeite;
     const rollposition = gleicheSeite ? alteSeite.scrollTop : 0;
+    wurzel.querySelector(".notes-live-media")?.entfernen();
     wurzel.textContent = "";
 
     const reiter = el("div", "einst-reiter");
@@ -29505,12 +29506,29 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return fold;
   }
 
-  function baueTelefonErweiterteMedien(ansicht) {
-    const erweitert = el("details", "einst-gruppe notes-erweiterte-funktionen");
-    erweitert.open = ansicht.offen === true; erweitert.append(el("summary", null, _("Advanced functions")));
+  function baueTelefonErweiterteMedien(wurzel, ansicht, livePeer) {
+    let erweitert = wurzel.querySelector(":scope > .notes-erweiterte-funktionen");
+    if (!erweitert) {
+      erweitert = el("details", "einst-gruppe notes-erweiterte-funktionen");
+      erweitert.append(el("summary", null, _("Advanced functions"))); wurzel.append(erweitert);
+    }
+    erweitert.open = ansicht.offen === true;
     const gruppe = el("details", "einst-gruppe notes-foto-sync"); gruppe.open = ansicht.medienOffen === true;
     const titel = el("summary"); titel.append(el("span", null, _("Photos and videos"))); gruppe.append(titel);
-    erweitert.append(gruppe);
+    erweitert.querySelector(":scope > .notes-foto-sync")?.remove();
+    erweitert.querySelector(":scope > summary").after(gruppe);
+    const key = livePeer ? JSON.stringify([livePeer.device_id, livePeer.fingerprint]) : "";
+    if ((erweitert.dataset.livePhone || "") !== key) {
+      erweitert.querySelector(":scope > .notes-live-media")?.entfernen();
+      delete erweitert.dataset.livePhone;
+      if (key) {
+        erweitert.dataset.livePhone = key;
+        const tools = el("div", "notes-live-media"); erweitert.append(tools);
+        const webcam = baueTelefonWebcam(erweitert, tools);
+        const screen = baueTelefonBildschirm(erweitert, tools);
+        tools.entfernen = () => { webcam(); screen(); tools.remove(); };
+      }
+    }
     return { erweitert, gruppe, titel };
   }
 
@@ -29526,18 +29544,22 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         });
         else Object.assign(telefonLokaleMedienAnsicht, foldState);
       }
-      wurzel.replaceChildren();
       delete wurzel.dataset.photoPeer;
-      if (!Bruecke.vorhanden || gesperrt) continue;
+      if (!Bruecke.vorhanden || gesperrt) {
+        wurzel.querySelector(".notes-live-media")?.entfernen(); wurzel.replaceChildren();
+        continue;
+      }
       const peers = telefonStand?.peers || [];
       const peer = peers[0], stand = peer?.photo_sync;
+      const livePeer = telefonStand?.enabled && !telefonStand.binding_conflict && peers.length === 1 &&
+        peer.device_id && peer.fingerprint && peer.state === "online_wifi" && peer.transport === "wifi" ? peer : null;
       // Native readiness only, never ContributorKey, Notes-content grants or KDE.
       if (!telefonStand?.enabled || telefonStand.binding_conflict || peers.length !== 1 ||
           stand?.available !== true || !peer.own_device || !peer.remote_own_device || !peer.transport) {
         // Local restore remains reachable without granting or exposing phone controls.
-        const { erweitert, gruppe } = baueTelefonErweiterteMedien(telefonLokaleMedienAnsicht);
+        const { erweitert, gruppe } = baueTelefonErweiterteMedien(wurzel, telefonLokaleMedienAnsicht, livePeer);
         erweitert.dataset.localMediaOnly = "true";
-        gruppe.append(baueMedienBackupWiederherstellung()); wurzel.append(erweitert);
+        gruppe.append(baueMedienBackupWiederherstellung());
         zeichneMedienBackupWiederherstellung(gruppe.querySelector("[data-media-backup-recovery]"));
         continue;
       }
@@ -29555,7 +29577,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       wurzel.dataset.photoPeer = peer.device_id;
       const ansicht = telefonFotoAnsichten.get(peer.device_id) || { offen: false, album: "" };
-      const { erweitert, gruppe, titel } = baueTelefonErweiterteMedien(ansicht);
+      const { erweitert, gruppe, titel } = baueTelefonErweiterteMedien(wurzel, ansicht, livePeer);
+      erweitert.hidden = false; delete erweitert.dataset.localMediaOnly;
       const sende = (action, album_id, job_owner, historical_choice) => {
         telefonFotoFehler.delete(peer.device_id);
         const request = { action }; if (album_id !== undefined) request.album_id = album_id;
@@ -29826,7 +29849,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }
         gruppe.append(manuell);
       }
-      wurzel.append(erweitert); zeichneMedienBackupWiederherstellung(backupRecovery);
+      zeichneMedienBackupWiederherstellung(backupRecovery);
     }
   }
 
@@ -30111,8 +30134,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const erweitert = el("details", "einst-gruppe kde-erweiterte-funktionen");
     erweitert.id = "kde-erweiterte-funktionen";
     erweitert.append(el("summary", null, _("Advanced functions")));
-    baueTelefonWebcam(erweitert);
-    baueTelefonBildschirm(erweitert);
     baueKdeEingabe(erweitert);
     baueKdeSpieler(erweitert);
     kdeBlock.append(erweitert);
@@ -30140,7 +30161,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   // Ephemeral native choices only. Never use preferences, phone paths or URLs.
-  function baueTelefonBildschirm(wurzel) {
+  function baueTelefonBildschirm(wurzel, container) {
     const block = el("details", "einst-gruppe");
     block.id = "telefon-bildschirm";
     block.append(el("summary", null, _("Phone screen mirroring")));
@@ -30153,9 +30174,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const refresh = el("button", null, _("Refresh"));
     for (const button of [start, stop, refresh]) button.type = "button";
     block.append(status, peer, start, stop, refresh);
-    wurzel.append(block);
+    container.append(block);
     let pending = false;
     let state = {};
+    let mounted = true;
+    const visible = () => mounted && block.isConnected && wurzel.open && !gesperrt &&
+      !block.closest("#einstellungen-schleier")?.classList.contains("verborgen");
     const draw = failed => {
       const included = state.included === true;
       const selected = peer.value;
@@ -30176,7 +30200,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           _("Your phone must approve screen sharing.") : _("Open Magnolie Notes on the paired phone over WLAN, then refresh.");
     };
     async function request(cmd, args = {}) {
-      if (pending) return;
+      if (pending || !visible()) return;
       pending = true;
       draw(false);
       try {
@@ -30195,31 +30219,30 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     start.addEventListener("click", () => { if (!start.disabled && !start.hidden) request("telefon_screen_start", {peer: peer.value}); });
     stop.addEventListener("click", () => { if (!stop.disabled && !stop.hidden) request("telefon_screen_stop"); });
     refresh.addEventListener("click", () => request("telefon_screen_stand"));
-    wurzel.addEventListener("toggle", () => { if (wurzel.open) request("telefon_screen_stand"); });
+    const toggle = () => { if (wurzel.open) request("telefon_screen_stand"); };
+    wurzel.addEventListener("toggle", toggle);
     block.addEventListener("toggle", () => { if (block.open) request("telefon_screen_stand"); });
-    if (wurzel.open) request("telefon_screen_stand");
+    if (wurzel.open) queueMicrotask(toggle);
+    return () => { mounted = false; wurzel.removeEventListener("toggle", toggle); };
   }
 
-  function baueTelefonWebcam(wurzel) {
+  function baueTelefonWebcam(wurzel, container) {
     const block = el("div", "einst-gruppe"); block.id = "telefon-webcam";
     block.append(el("h4", null, _("Phone webcam")), el("p", "einst-hinweis",
       _("Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission.")));
     block.append(el("p", "einst-hinweis", _("During initial setup, a restart may be required to install a necessary driver.")));
     const status = el("p", "einst-hinweis", _("Loading …"));
     status.setAttribute("aria-live", "polite");
-    const settings = el("div");
-    const provider = el("select");
-    for (const [value, label] of [["auto", _("Automatic")], ["notes", "Magnolie Notes"], ["kdeconnect", "KDE Connect"]]) {
-      const option = el("option", null, label); option.value = value; provider.append(option);
-    }
-    provider.setAttribute("aria-label", _("Phone webcam"));
+    const settings = el("div", "notes-webcam-controls");
     const choices = el("select"); choices.hidden = true; choices.setAttribute("aria-label", _("Camera"));
     const muted = el("input"); muted.type = "checkbox";
     const front = el("input"); front.type = "checkbox";
-    const muteLabel = el("label"); muteLabel.append(muted, document.createTextNode(_("Mute microphone")));
-    const frontLabel = el("label"); frontLabel.append(front, document.createTextNode(_("Use front camera")));
+    const muteLabel = el("label"); muteLabel.append(muted, el("span", null, _("Mute microphone")));
+    const frontLabel = el("label"); frontLabel.append(front, el("span", null, _("Use front camera")));
     let action = "", installOffer = "", lease = "", busy = false, confirming = false, installationPending = false, revision = 0, enabled = false, ready = false, timer = null;
-    const visible = () => block.isConnected && wurzel.open && !gesperrt;
+    let mounted = true;
+    const visible = () => mounted && block.isConnected && wurzel.open && !gesperrt &&
+      !block.closest("#einstellungen-schleier")?.classList.contains("verborgen");
     const reasonText = reason => ({
       virtual_camera_missing: _("An existing virtual camera driver is required. Nothing was installed."),
       driver_not_installed: _("Please install the v4l2loopback driver using the system package manager."),
@@ -30244,7 +30267,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       prepare.disabled = !ready || busy || confirming || installationPending || enabled;
       start.disabled = !ready || busy || confirming || enabled || !action || !choices.value;
       stop.disabled = !ready || busy || !lease;
-      provider.disabled = busy || enabled;
+      prepare.hidden = enabled || !!action;
+      start.hidden = enabled || !action;
+      stop.hidden = !lease;
       choices.disabled = busy || enabled;
       muted.disabled = front.disabled = busy || enabled;
     }
@@ -30265,7 +30290,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const result = await kdeMedienAnfordern(payload ? "telefon_webcam_aktion" : "telefon_webcam_stand",
         payload ? { request: payload } : {});
       busy = false;
-      if (!block.isConnected) return;
+      if (!block.isConnected) return result.webcam;
       if (result.ok && result.webcam) apply(result.webcam);
       else { ready = false; discard(); status.textContent = _("Unavailable"); }
       return result.webcam;
@@ -30280,7 +30305,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (prepare.disabled || !visible()) return;
       discard();
       const original = revision;
-      let value = await request({action: "prepare", provider: provider.value});
+      let value = await request({action: "prepare", provider: "notes"});
       if (!visible() || original !== revision) {
         if (value?.action) Bruecke.sende({cmd: "telefon_webcam_aktion", request: {action: "cancel", action_token: value.action}});
         if (value?.install_token) Bruecke.sende({cmd: "telefon_webcam_aktion", request: {action: "cancel", action_token: value.install_token}});
@@ -30318,22 +30343,25 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       await request({action: "start", action_token: token, choice_token: choice, muted: muted.checked, front: front.checked});
     });
     const stop = knopf(_("Stop"), "klein rot", () => { if (!stop.disabled && visible()) request({action: "stop", lease}); });
-    provider.addEventListener("change", discard);
     choices.addEventListener("change", controls);
-    settings.append(provider, prepare, choices, muteLabel, frontLabel, start, stop);
+    const options = el("div", "notes-webcam-options"); options.append(muteLabel, frontLabel);
+    const actions = el("div", "notes-webcam-actions"); actions.append(prepare, start, stop);
+    settings.append(choices, options, actions);
     block.append(status, settings);
-    wurzel.append(block); controls();
+    container.append(block); controls();
     async function refresh() {
       clearTimeout(timer);
       if (!visible()) return;
       await request();
       if (visible()) timer = setTimeout(refresh, 2000);
     }
-    wurzel.addEventListener("toggle", () => {
+    const toggle = () => {
       clearTimeout(timer);
       if (wurzel.open) refresh(); else discard();
-    });
-    if (wurzel.open) refresh();
+    };
+    wurzel.addEventListener("toggle", toggle);
+    if (wurzel.open) queueMicrotask(refresh);
+    return () => { mounted = false; wurzel.removeEventListener("toggle", toggle); clearTimeout(timer); discard(); };
   }
 
   const kdeDateisystemAnsichten = new Set();
@@ -31633,7 +31661,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     for (const root of einzelneWurzel ? [einzelneWurzel] : document.querySelectorAll("[data-media-backup-recovery]")) {
       root.replaceChildren(); root.hidden = gesperrt || !Bruecke.vorhanden || state.supported === false;
       const local = root.closest("[data-local-media-only]");
-      if (local) local.hidden = root.hidden;
+      if (local) local.hidden = root.hidden && !local.dataset.livePhone;
       if (root.hidden) continue;
       const fold = el("details", "einst-gruppe"); fold.open = state.open;
       fold.append(el("summary", null, _("Restore")));
