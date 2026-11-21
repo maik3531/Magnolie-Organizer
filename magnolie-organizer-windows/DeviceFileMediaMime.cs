@@ -72,6 +72,79 @@ internal static class NativeMediaContentMime
         }
         throw DeviceFileControl.Error("media_source_mime_unknown");
     }
+    // Shared #749 diagnostic subset: classic TIFF, one uncompressed RGB strip.
+    // Not wired to Identify or to any native publication/capability.
+    internal static bool ProbeTiffRgbImage(ReadOnlySpan<byte> prefix, long totalBytes)
+    {
+        if (prefix.Length is < 8 or > PrefixBytes || totalBytes < prefix.Length) return false;
+        var little = prefix[..4].SequenceEqual("II\x2a\0"u8);
+        if (!little && !prefix[..4].SequenceEqual("MM\0\x2a"u8)) return false;
+        try
+        {
+            var directory = checked((int)TiffU32(prefix, 4, little));
+            if (directory < 8 || (directory & 1) != 0 || directory > prefix.Length - 2) return false;
+            var count = TiffU16(prefix, directory, little);
+            var end = directory + 2 + 12 * count + 4;
+            if (count is < 1 or > 64 || end > prefix.Length || TiffU32(prefix, end - 4, little) != 0) return false;
+            ReadOnlySpan<int> sizes = [0,1,1,2,4,8,1,1,2,4,8,4,8];
+            var fields = new Dictionary<int, TiffField>();
+            var ranges = new List<(long Start, long End)> { (0, 8), (directory, end) };
+            var previous = 0;
+            for (var position = directory + 2; position < end - 4; position += 12)
+            {
+                var tag = TiffU16(prefix, position, little);
+                var type = TiffU16(prefix, position + 2, little);
+                var items = TiffU32(prefix, position + 4, little);
+                if (tag <= previous || type < 1 || type >= sizes.Length || items == 0 || tag is 322 or 323 or 324 or 325 or 330 or 338) return false;
+                var length = (long)sizes[type] * items;
+                var start = position + 8;
+                if (length > 4)
+                {
+                    start = checked((int)TiffU32(prefix, start, little));
+                    if (start < 8 || (start & 1) != 0 || start + length > prefix.Length) return false;
+                    ranges.Add((start, start + length));
+                }
+                fields.Add(tag, new(type, items, start));
+                previous = tag;
+            }
+            var width = TiffScalar(prefix, fields, 256, little, allowLong: true);
+            var height = TiffScalar(prefix, fields, 257, little, allowLong: true);
+            Dimensions(checked((int)width), checked((int)height));
+            var bits = fields[258];
+            if (bits.Type != 3 || bits.Items != 3 || TiffU16(prefix, bits.Start, little) != 8 ||
+                TiffU16(prefix, bits.Start + 2, little) != 8 || TiffU16(prefix, bits.Start + 4, little) != 8) return false;
+            if (TiffScalar(prefix, fields, 259, little) != 1 || TiffScalar(prefix, fields, 262, little) != 2 ||
+                TiffScalar(prefix, fields, 266, little, fallback: 1) != 1 || TiffScalar(prefix, fields, 277, little) != 3 ||
+                TiffScalar(prefix, fields, 284, little, fallback: 1) != 1 || TiffScalar(prefix, fields, 278, little, allowLong: true) < height) return false;
+            var strip = TiffScalar(prefix, fields, 273, little, allowLong: true);
+            var bytes = TiffScalar(prefix, fields, 279, little, allowLong: true);
+            if (strip < 8 || bytes != 3L * width * height || (long)strip + bytes > totalBytes) return false;
+            ranges.Add((strip, (long)strip + bytes));
+            ranges.Sort((left, right) => left.Start.CompareTo(right.Start));
+            for (var i = 1; i < ranges.Count; i++)
+                if (ranges[i - 1].End > ranges[i].Start) return false;
+            return true;
+        }
+        catch (Exception error) when (error is InvalidDataException or KeyNotFoundException or OverflowException) { return false; }
+    }
+
+    private readonly record struct TiffField(ushort Type, uint Items, int Start);
+
+    private static ushort TiffU16(ReadOnlySpan<byte> prefix, int at, bool little) => little
+        ? BinaryPrimitives.ReadUInt16LittleEndian(prefix[at..]) : BinaryPrimitives.ReadUInt16BigEndian(prefix[at..]);
+
+    private static uint TiffU32(ReadOnlySpan<byte> prefix, int at, bool little) => little
+        ? BinaryPrimitives.ReadUInt32LittleEndian(prefix[at..]) : BinaryPrimitives.ReadUInt32BigEndian(prefix[at..]);
+
+    private static uint TiffScalar(ReadOnlySpan<byte> prefix, Dictionary<int, TiffField> fields, int tag,
+        bool little, bool allowLong = false, uint? fallback = null)
+    {
+        if (!fields.TryGetValue(tag, out var field)) return fallback ?? throw DeviceFileControl.Error("media_tiff_required_tag");
+        if (field.Items != 1 || (field.Type != 3 && !(allowLong && field.Type == 4)))
+            throw DeviceFileControl.Error("media_tiff_scalar_type");
+        return field.Type == 3 ? TiffU16(prefix, field.Start, little) : TiffU32(prefix, field.Start, little);
+    }
+
     // Probe only. Keep Identify strict until the selected native counterpart
     // verifies the complete file and has permission to publish an original.
     internal static bool ProbeFiniteWebmVideo(ReadOnlySpan<byte> prefix, long totalBytes)

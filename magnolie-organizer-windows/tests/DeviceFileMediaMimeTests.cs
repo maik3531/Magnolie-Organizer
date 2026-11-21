@@ -72,6 +72,40 @@ internal static class DeviceFileMediaMimeTests
         return Task.CompletedTask;
     }
 
+    internal static Task TiffProbeAsync()
+    {
+        const string relative = "contracts/media-tiff-probe-vectors.json";
+        var vectors = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root(relative), relative)))!.AsObject();
+        byte[]? little = null;
+        foreach (var order in new[] { "little", "big" })
+        {
+            var record = vectors[order]!.AsObject();
+            var raw = Convert.FromBase64String(record["base64"]!.GetValue<string>());
+            TestAssert.That(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(raw)).ToLowerInvariant() ==
+                record["sha256"]!.GetValue<string>(), "The TIFF original changed.");
+            TestAssert.That(NativeMediaContentMime.ProbeTiffRgbImage(raw, raw.Length), "Valid TIFF held: " + order);
+            TestAssert.That(!NativeMediaContentMime.ProbeTiffRgbImage(raw.AsSpan(0, raw.Length - 1), raw.Length) &&
+                !NativeMediaContentMime.ProbeTiffRgbImage(raw, raw.Length - 1), "Truncated TIFF accepted.");
+            foreach (var kind in new[] { "images", "video" })
+                TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(raw, raw.Length, kind), "Probe enabled TIFF transfer.");
+            if (order == "little") little = raw;
+        }
+        var original = little!;
+        const int ifd = 44;
+        var mutations = new (int Offset, uint Value, bool Wide)[] {
+            (2,43,false), (4,4,true), (ifd+2+12,256,false), (ifd,48,false), (ifd+2+12*15,ifd,true),
+            (ifd+2+12*13+8,230,true), (ifd+2+12*6+8,ifd,true), (ifd+2+12*10+8,35,true),
+            (ifd+2+12*3+8,5,false), (ifd+2+8,0,false), (ifd+2+12*11+8,2,false) };
+        foreach (var (offset,value,wide) in mutations)
+        {
+            var changed = original.ToArray();
+            if (wide) System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(changed.AsSpan(offset), value);
+            else System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(changed.AsSpan(offset), (ushort)value);
+            TestAssert.That(!NativeMediaContentMime.ProbeTiffRgbImage(changed, changed.Length), $"Unproven TIFF layout at {offset} was accepted.");
+        }
+        return Task.CompletedTask;
+    }
+
     internal static Task WebmProbeAsync()
     {
         const string relative = "contracts/media-webm-probe-vectors.json";
