@@ -10,10 +10,11 @@ import pytest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'bin'))
 from magnolie_file_transfer import TransferError
-from magnolie_media_relocation_record import bind_relocation_selection
+from magnolie_media_relocation_record import (MissingGifTargetDraft, bind_gif_relocation_folder_plan,
+    bind_relocation_selection, inspect_relocation_target_parents)
 from magnolie_photo_destination import NativePhotoDestinationAction
-from magnolie_photo_relocation_dialog import _confirm_gif_relocation_selection
-from test_media_relocation_record import ANIMATED, GIF_FRAME, record
+from magnolie_photo_relocation_dialog import _confirm_gif_folder_plan, _confirm_gif_relocation_selection
+from test_media_relocation_record import ANIMATED, GIF_FRAME, native_fixture, record
 from test_file_authenticated_desktop import native
 from test_file_desktop_receive import receiving, reconnect
 
@@ -74,6 +75,49 @@ def test_native_gif_dialog_is_one_shot_default_no_and_requires_live_yes(response
         assert not any(isinstance(window,Gtk.MessageDialog) and window.get_transient_for() is parent
             for window in Gtk.Window.list_toplevels())
     finally:parent.destroy()
+
+
+@pytest.mark.parametrize('answer',['yes','no','revoked'])
+def test_native_gif_folder_plan_discloses_creation_but_changes_nothing(tmp_path,answer):
+    import gi
+    gi.require_version('Gtk','3.0')
+    from gi.repository import GLib, Gtk
+    assert Gtk.init_check()[0], 'Run under an isolated GTK display (Xvfb)'
+    entry,destination,source,target,raw=native_fixture(tmp_path,ANIMATED)
+    target.parent.rmdir();target.parent.parent.rmdir()
+    planned=inspect_relocation_target_parents(destination,entry.target,lambda:True)
+    draft=MissingGifTargetDraft(entry.operation,entry.book_sha256,entry.preferences_sha256,entry.original_mapping_sha256,
+        destination,entry.source,entry.source_parents,entry.target,planned,entry.file)
+    plan=bind_gif_relocation_folder_plan((draft,),destination)
+    native_owner=object();active=[True];observed=[]
+    action=NativePhotoDestinationAction(native_owner,lambda:1,native_current=lambda:active[0])
+    parent=Gtk.Window();parent.show()
+    def respond():
+        dialog,=(w for w in Gtk.Window.list_toplevels() if isinstance(w,Gtk.MessageDialog) and w.get_transient_for() is parent)
+        observed.append((dialog.get_property('secondary-text'),
+            dialog.get_default_widget() is dialog.get_widget_for_response(Gtk.ResponseType.NO)))
+        if answer=='revoked':active[0]=False
+        dialog.response(Gtk.ResponseType.NO if answer=='no' else Gtk.ResponseType.YES)
+        return False
+    try:
+        with pytest.raises(TransferError,match='native_confirmation_required'):
+            _confirm_gif_folder_plan(parent,replace(plan,selection_sha256='0'*64),action,native_owner)
+        GLib.idle_add(respond)
+        if answer=='revoked':
+            with pytest.raises(TransferError,match='native_guard_changed'):
+                _confirm_gif_folder_plan(parent,plan,action,native_owner)
+        else:
+            result=_confirm_gif_folder_plan(parent,plan,action,native_owner)
+            if answer=='no':assert result is None
+            else:
+                selected,require_original=result._claim(native_owner)
+                assert selected is plan and require_original() is True
+                with pytest.raises(TransferError,match='native_confirmation_ended'):result._claim(native_owner)
+        assert len(observed)==1 and observed[0][1]
+        assert 'Create the missing folders' in observed[0][0]
+        assert str(tmp_path) not in observed[0][0]
+    finally:parent.destroy()
+    assert source.read_bytes()==raw and not target.parent.parent.exists()
 
 
 def test_native_gif_dialog_prepares_only_its_fresh_original_selection(receiving,monkeypatch):

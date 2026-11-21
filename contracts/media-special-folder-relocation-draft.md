@@ -192,6 +192,10 @@ handoff for preparation only. It compares a fresh read-only preview to the
 entire confirmed selection, then carries the same catalog, mapping, policy and
 binding witnesses into exclusive preparation. A changed catalog at that boundary
 holds without intent. Neither preparation nor its result authorizes a rename.
+When the separate read-only folder plan includes missing parents, a private
+GTK variant discloses folder creation explicitly. No is still the default.
+Yes hands the exact plan back under the original action; the existing rename
+preparation rejects this separate handoff type. The dialog creates no folders.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in
