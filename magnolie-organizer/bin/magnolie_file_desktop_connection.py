@@ -1548,7 +1548,7 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_source_offer_not_confirmed')
             self._correlate_source_offer(self._source_offer, clock)
 
-    def _require_unmapped_media(self, *, resume_owner=None, comparison=None):
+    def _require_unmapped_media(self, *, resume_owner=None):
         """Historical association wins over current target settings.
 
         This only fences new admission. It neither proves first use after lost
@@ -1584,8 +1584,6 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_photo_version_not_current')
             for association,record in zip(associations,records):
                 parent=parents.get(association.photo_id)
-                if parent is None and record is None and comparison is not None:
-                    comparison.require_unmapped()
                 if record is not None and (parent is None or parent!=record.protected_record_sha256):
                     raise TransferError('file_desktop_photo_mapping_requires_reconcile')
                 if parent is not None and record is None:raise TransferError('file_desktop_photo_version_not_current')
@@ -1648,7 +1646,7 @@ class NativeDesktopFileConnection:
             for file, entry, mapping in zip(manifest.files, self._source_media_entries, records):
                 require_activity()
                 if mapping is None:
-                    comparison.require_unmapped()
+                    comparison.require_unmapped(PhotoMappingAssociation(first.source_epoch,entry.photo_id,first.media_type))
                     items.append(NativePhotoReviewItem(file.id, entry.photo_id, 'new_photo'))
                     continue
                 job = owners.get(mapping.job_owner)
@@ -1954,7 +1952,7 @@ class NativeDesktopFileConnection:
                             if item.decision=='copy_phone_version'))!=selection.version_parents
                             or any(item.decision not in ('new_photo','copy_phone_version') for item in reviewed.items)):
                         raise TransferError('file_desktop_photo_version_review_changed')
-            observed_jobs=self._require_unmapped_media(comparison=comparison)
+            observed_jobs=self._require_unmapped_media()
             snapshot = self._receiving_policy()
             binding = self._receive_binding()
             if binding != self._offer_binding or snapshot.version != self._offer_policy_version:
@@ -1990,7 +1988,9 @@ class NativeDesktopFileConnection:
             history = NativeMediaHistory.capture(accepted,self._source_media_pages,
                 mapping_store=self._verify_expected_mapping_store(),version_parents=parents) if self._source_media_pages else None
             self._verify_job_mapping_store(history)
-            if comparison is not None:comparison.require_current()
+            if comparison is not None:
+                self._verify_relocation_outputs(accepted,history,comparison)
+                comparison.require_current()
             action.validate(self)
             self._run = _NativeDesktopReceiveRun(snapshot.version, accepted,native_constraint=self._source_native_constraint,
                 media_type=self._source_run.media_type if self._source_run is not None else 'images')
@@ -2047,7 +2047,7 @@ class NativeDesktopFileConnection:
             self._require_source_offer(clock)
             activity=media.enter_context(self._saved_media_activity(action=action)) if self._source_media_pages else None
             comparison=media.enter_context(self._relocation_comparison(activity)) if activity is not None else None
-            observed_jobs=self._require_unmapped_media(resume_owner=native_job_owner,comparison=comparison)
+            observed_jobs=self._require_unmapped_media(resume_owner=native_job_owner)
             snapshot = self._receiving_policy()
             binding = self._receive_binding()
             if binding != self._offer_binding or snapshot.version != self._offer_policy_version:
@@ -2074,6 +2074,7 @@ class NativeDesktopFileConnection:
                 current = NativeMediaHistory.capture(job.accepted,self._source_media_pages)
                 if (original.source_epoch,original.media_type,original.entries) != (current.source_epoch,current.media_type,current.entries):
                     raise TransferError('file_desktop_resume_media_association_changed')
+                self._verify_relocation_outputs(job.accepted,original,comparison)
                 if original.version_parents:
                     self._compare_version_parents(job.accepted.binding,original,comparison)
             if comparison is not None:comparison.require_current()
@@ -2184,7 +2185,7 @@ class NativeDesktopFileConnection:
         require_activity()
         with (closing(ProtectedRelocationOwner(self._authority)) as owner,
               closing(ProtectedMediaRelocationJournal(self._authority)) as journal):
-            view=RelocationComparison(owner,journal,require_activity)
+            view=RelocationComparison(owner,journal,require_activity,self._mappings)
             yield view
             view.require_current()
 
@@ -2223,9 +2224,17 @@ class NativeDesktopFileConnection:
         history=run.receiver._index.media_history
         if history is None:return
         with self._relocation_comparison(require_activity) as comparison:
-            parents={photo for photo,_ in history.version_parents}
-            if any(entry.photo_id not in parents for entry in history.entries):comparison.require_unmapped()
+            self._verify_relocation_outputs(run.accepted,history,comparison)
             if history.version_parents:self._compare_version_parents(run.accepted.binding,history,comparison)
+
+    @staticmethod
+    def _verify_relocation_outputs(accepted,history,comparison):
+        parents={photo for photo,_ in history.version_parents};targets=dict(accepted.targets)
+        for entry in history.entries:
+            if entry.photo_id not in parents:
+                association=PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type)
+                comparison.require_unmapped(association)
+            comparison.require_unreserved_output(accepted.destination,targets[entry.file_id])
 
     def _compare_version_parents(self,binding,history,comparison):
         protection=self._authority.protection

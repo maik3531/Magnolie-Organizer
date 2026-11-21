@@ -224,8 +224,8 @@ def test_pc_edit_during_version_download_is_held_before_publication_or_head_adva
     assert connection._mappings.read()==before and not list(receiving[4].glob('Versionen/**/*.jpg'))
 
 
-@pytest.mark.parametrize('complete',[False,True],ids=['intent_only','completed_move'])
-def test_photo_review_and_version_publication_respect_the_original_relocation_owner(receiving,complete):
+@pytest.mark.parametrize('outcome',['intent_only','completed_move','independent_receive','version_alias'])
+def test_photo_review_and_version_publication_respect_the_original_relocation_owner(receiving,outcome):
     from contextlib import closing
     from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
     from magnolie_media_relocation_owner import ProtectedRelocationOwner
@@ -235,36 +235,74 @@ def test_photo_review_and_version_publication_respect_the_original_relocation_ow
 
     connection=receiving[3];root=receiving[4];authority=connection._authority
     seed=prepared(receiving)[0]
-    full=changed(replace(seed,files=(replace(seed.files[0],path='Camera/saved.gif'),)),'a',ANIMATED)
-    kinds={'Camera/saved.gif':'animation'}
-    state,chunks,saved=cycle(receiving,full,ANIMATED,media_kinds=kinds)
+    path='Camera/saved.gif';options={};version=None
+    if outcome=='version_alias':
+        baseline=changed(replace(seed,files=(replace(seed.files[0],path='Camera/baseline.gif'),)),'1',ANIMATED)
+        assert cycle(receiving,baseline,ANIMATED)[0]['state']=='complete'
+        _,(prior,),_=connection._mappings.candidate_page('images')
+        version=changed(baseline,'c',ANIMATED+b'phone edit')
+        path=photo_version_path(prior.association,version.files[0])
+        options['photo_ids']={path:sha256(b'different original on phone').hexdigest()}
+    full=changed(replace(seed,files=(replace(seed.files[0],path=path),)),'a',ANIMATED)
+    kinds={path:'animation'}
+    state,chunks,saved=cycle(receiving,full,ANIMATED,media_kinds=kinds,**options)
     assert state['state']=='complete' and len(chunks)==len(saved)==1,state
-    snapshot,(mapping,),_=connection._mappings.candidate_page('images')
+    snapshot,mappings,_=connection._mappings.candidate_page('images')
+    mapping,=(entry for entry in mappings if entry.relative_path==path)
     prefs=connection._preferences.read();jobs=connection._catalog.jobs()
     old=root/mapping.relative_path;new=root/'Animationen'/mapping.relative_path
-    new.parent.parent.mkdir(mode=0o700);new.parent.mkdir(mode=0o700)
+    target_chain=tuple(reversed(new.parents[:len(new.relative_to(root).parts)]))
+    assert target_chain[0]==root
+    # mkdir(parents=True) uses the host umask for intermediate parents, not
+    # the requested leaf mode. Create each synthetic parent explicitly.
+    for parent in target_chain[1:]:parent.mkdir(mode=0o700)
     def key(path):
         info=path.stat();return info.st_dev,info.st_ino
+    target_parents=tuple(key(parent) for parent in target_chain)
     with NativeMediaRetention(authority.binding.native_directory) as book:
         record=MediaRelocationRecord('4'*32,'0'*64,book.saved_book_version(),prefs.version,
-            mapping.protected_record_sha256,key(root),mapping.parent_keys,(key(root),key(new.parent.parent),key(new.parent)),
+            mapping.protected_record_sha256,key(root),mapping.parent_keys,target_parents,
             mapping.relative_path,str(new.relative_to(root)),RelocationFileWitness(mapping.file_key,len(ANIMATED),sha256(ANIMATED).hexdigest()))
     selection=bind_relocation_selection((record,),occupied=());confirmed=selection[0].selection_sha256
     def current():
         return connection._mappings.lookup((mapping.association,))==(snapshot,(mapping,)) and connection._catalog.jobs()==jobs
     with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
         action=owner._issue_confirmed_action(current)
-        if complete:owner._move_original_animation_selection(action,journal,selection,mapping.destination,confirmed)
+        if outcome!='intent_only':owner._move_original_animation_selection(action,journal,selection,mapping.destination,confirmed)
         else:owner.record_confirmed_intent(action,selection,mapping.destination,confirmed)
 
-    state,chunks,saved=cycle(receiving,changed(full,'b',ANIMATED),ANIMATED,media_kinds=kinds)
+    state,chunks,saved=cycle(receiving,changed(full,'b',ANIMATED),ANIMATED,media_kinds=kinds,**options)
     assert not chunks and not saved and current(),state
-    if not complete:
+    if outcome=='intent_only':
         assert state['state']=='held' and state['error']=='photo_relocation_original_checkpoint_required',state
         assert old.read_bytes()==ANIMATED and not new.exists()
         return
     assert state['state']=='complete' and state['known_files']==1,state
     assert not old.exists() and new.read_bytes()==ANIMATED and key(new)==mapping.file_key
+    if outcome=='version_alias':
+        state,chunks,saved=cycle(receiving,version,ANIMATED+b'phone edit')
+        assert state['state']=='held' and state['error']=='photo_relocation_aliased_target_held',state
+        assert not chunks and not saved and current()
+        assert not old.exists() and new.read_bytes()==ANIMATED and key(new)==mapping.file_key
+        assert (root/prior.relative_path).read_bytes()==ANIMATED
+        return
+    if outcome=='independent_receive':
+        def offer(path,marker):
+            synthetic=b'other original'
+            modified=changed(replace(full,files=(replace(full.files[0],path=path),)),marker,synthetic)
+            return cycle(receiving,modified,synthetic,media_kinds={path:'image'},
+                photo_ids={path:sha256(path.encode()).hexdigest()})
+        before=connection._catalog.jobs()
+        for path,marker in (('Camera/SAVED.GIF','d'),('Animationen/Camera/saved.gif','e')):
+            state,chunks,saved=offer(path,marker)
+            assert state['state']=='held' and state['error']=='photo_relocation_aliased_target_held',state
+            assert not chunks and not saved and connection._catalog.jobs()==before
+        state,chunks,saved=offer('Camera/other.jpg','f')
+        assert state['state']=='complete' and len(chunks)==len(saved)==1,state
+        assert (root/'Camera/other.jpg').read_bytes()==b'other original'
+        assert not old.exists() and new.read_bytes()==ANIMATED and key(new)==mapping.file_key
+        assert connection._mappings.lookup((mapping.association,))[1]==(mapping,)
+        return
     incoming=ANIMATED+b'synthetic phone version'
     version=changed(full,'c',incoming)
     with phone_batches(receiving,[version],insertion_witness=True,content=incoming,block_chunk=True,

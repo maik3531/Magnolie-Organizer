@@ -11,7 +11,7 @@ import time
 from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_file_control import _hex
 from magnolie_file_native_authority import NativeDesktopFileAuthority
-from magnolie_file_transfer import TransferError
+from magnolie_file_transfer import TransferError, _portable_path
 from magnolie_media_relocation_record import bind_relocation_selection
 from magnolie_media_retention import NativeMediaRetention
 from magnolie_photo_destination import NativePhotoDestinationAction, require_media_directory
@@ -317,8 +317,9 @@ class ProtectedRelocationOwner(NativeMediaRetention):
 
 class RelocationComparison:
     """Read-only comparison view inside the caller's existing media lane."""
-    def __init__(self,owner,journal,require_activity):
+    def __init__(self,owner,journal,require_activity,mappings):
         self._owner=owner;self._journal=journal;self._activity=require_activity
+        self._mappings=mappings;self._roots=None
         require_activity()
         self._intent=owner.read_intent();self._snapshot=journal.read()
         self._witness=None
@@ -354,13 +355,42 @@ class RelocationComparison:
         self._current()
         if self._journal.read()!=self._snapshot:
             raise TransferError('photo_relocation_original_journal_changed')
+        if self._roots is not None and self._mappings.read()!=self._roots[0]:
+            raise TransferError('photo_relocation_original_mapping_changed')
         return self._current()
 
-    def require_unmapped(self):
+    def _original_mappings(self):
+        if self._roots is None:
+            snapshot,mappings=self._mappings._lookup_relocation_originals(self._intent.mappings)
+            records={item.original_mapping_sha256:item for item in self._snapshot.records}
+            for mapping in mappings:
+                item=records[mapping.protected_record_sha256]
+                if (relocation_destination_digest(mapping.destination)!=self._intent.destination_sha256
+                        or (mapping.relative_path,mapping.parent_keys,mapping.file_key)!=(item.source,item.source_parents,item.file.file_key)):
+                    raise TransferError('photo_relocation_original_mapping_changed')
+            self._roots=snapshot,mappings
+        return self._roots[1]
+
+    def require_unmapped(self,association):
+        if self._intent is None:return
         self._current()
-        # No authenticated association ties an unmapped member to a selection
-        # digest. Hold rather than treating an absent mapping as a new original.
-        if self._intent is not None:raise TransferError('photo_relocation_unmapped_target_held')
+        if any(mapping.association==association for mapping in self._original_mappings()):
+            raise TransferError('photo_relocation_unmapped_target_held')
+
+    def require_unreserved_output(self,destination,relative_path):
+        if self._intent is None:return
+        self._current()
+        original=self._original_mappings()[0].destination;relative=_portable_path(relative_path).casefold()
+        if destination!=original:
+            # Related roots and aliases cannot be compared just by relative path.
+            if (destination.ancestor_keys[0] in original.ancestor_keys
+                    or original.ancestor_keys[0] in destination.ancestor_keys):
+                raise TransferError('photo_relocation_aliased_target_held')
+            return
+        def overlap(left,right):
+            return left==right or left.startswith(right+'/') or right.startswith(left+'/')
+        if any(overlap(relative,path.casefold()) for item in self._snapshot.records for path in (item.source,item.target)):
+            raise TransferError('photo_relocation_aliased_target_held')
 
     def observe(self,mapping,accepted,receipt,current_binding):
         from magnolie_photo_target import observe_saved_target

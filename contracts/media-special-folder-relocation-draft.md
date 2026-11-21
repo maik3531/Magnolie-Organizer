@@ -77,12 +77,14 @@ uses the moved inode and its immutable original receipt. Fresh admission
 repeats the version review in the same connection operation and lease as
 acceptance. Resume rechecks the version parent before reopening its original
 stage. Both recheck the owner and journal before emitting ACCEPT.
-An incomplete owner operation holds the receive; with an intent present,
-an unmapped member is not treated as new. Alias evidence is not an alternate
-path. A private mapping lookup now resolves the complete historical root set
-by exact protected digests even after a version advances the current head.
-Missing or non-root evidence holds; this lookup does not yet lift any receive
-hold. A synthetic GIF verified no download for an unchanged moved original
+An incomplete owner operation still holds the receive. With a complete
+terminal witness, the receiver authenticates all selected historical mapping
+roots by exact protected digests, even after a version advances a head. Only an
+independent association with a disjoint output route may be admitted as new.
+Existing and proposed version outputs must not reuse either reserved name.
+Admission, resume and publication enforce this; alias evidence does not supply
+an alternate path. Missing or non-root evidence holds. A synthetic GIF verified
+no download for an unchanged moved original
 and no version publication or Saved reply when that inode was edited during
 download. Ordinary receive still has no entry point to create an intent or
 move a file. SEND, recovery copies, trash, and Saved retry are not enabled by
