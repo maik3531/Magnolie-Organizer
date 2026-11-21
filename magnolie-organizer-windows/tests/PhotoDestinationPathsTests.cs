@@ -36,8 +36,13 @@ internal static class PhotoDestinationPathsTests
                 VideoDestinationPaths.FolderComponent("📱") == "Telefon-Videos", "Video destination name projection mismatch.");
             TestAssert.That(PhotoDestinationPaths.FolderComponent("Pixel 9", "Maik") == "Pixel 9-Fotos" &&
                 VideoDestinationPaths.FolderComponent("Pixel 9", "Maik") == "Pixel 9-Videos", "Username replaced a known phone name.");
+            foreach (var present in new[] { "📱", "._/📱" })
+                TestAssert.That(PhotoDestinationPaths.FolderComponent(present, "Maik") == "Telefon-Fotos" &&
+                    VideoDestinationPaths.FolderComponent(present, "Maik") == "Telefon-Videos" &&
+                    PhotoDestinationPaths.NativeFolderComponent(present) == "Telefon-Fotos" &&
+                    VideoDestinationPaths.NativeFolderComponent(present) == "Telefon-Videos", "An existing unsanitizable phone name reused the account name.");
             TestAssert.That(PhotoDestinationPaths.FolderComponent("", "Maik") == "Maik-Fotos" &&
-                VideoDestinationPaths.FolderComponent("", "../Maik/Downloads") == "Maik_Downloads-Videos", "Missing phone-name fallback was unsafe or ignored.");
+                VideoDestinationPaths.FolderComponent("\t ", "../Maik/Downloads") == "Maik_Downloads-Videos", "Missing phone-name fallback was unsafe or ignored.");
             TestAssert.That(!Directory.EnumerateFileSystemEntries(parent).Any(), "Native path projection created a folder without an explicit user choice.");
         }
         finally { Directory.Delete(parent); }

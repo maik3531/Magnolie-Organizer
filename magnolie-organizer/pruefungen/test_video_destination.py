@@ -110,6 +110,8 @@ def test_video_folder_name_is_one_safe_native_component(name):
 def test_phone_name_wins_and_username_is_only_a_safe_fallback(folder):
     suffix='-Videos' if folder is video_folder_component else '-Fotos'
     assert folder('Pixel 9',fallback_user_name='Maik')=='Pixel 9'+suffix
+    assert folder('📱',fallback_user_name='Maik')=='Telefon'+suffix
+    assert folder('._/📱',fallback_user_name='Maik')=='Telefon'+suffix
     assert folder('',fallback_user_name='Maik')=='Maik'+suffix
     assert folder('   ',fallback_user_name='../Maik/Downloads')=='Maik_Downloads'+suffix
     assert folder('',fallback_user_name='')=='Telefon'+suffix
@@ -122,6 +124,25 @@ def test_known_native_phone_name_does_not_even_read_the_account_name(video):
     try:
         choice=controller.choose_default(controller.issue_action(),videos_provider=lambda:videos)
         assert Path(choice.destination.path).name==video_folder_component(peer['display_name'])
+    finally:controller.close()
+
+
+@pytest.mark.parametrize('kind',['photo','video'])
+def test_present_unsanitizable_phone_name_never_reads_account_and_keeps_original_target(video,monkeypatch,kind):
+    _,_,authority,_,pictures,clock,_,videos=video
+    cls=NativePhotoDestinationController if kind=='photo' else NativeVideoDestinationController
+    controller=cls(authority,monotonic_ms=lambda:clock[0],
+        username_provider=lambda:pytest.fail('Present phone name incorrectly read the local account'))
+    peer=replace(authority.current_peer(),display_name='📱')
+    monkeypatch.setattr(controller,'_peer',lambda:peer)
+    base,argument,suffix=(pictures,'pictures_provider','-Fotos') if kind=='photo' else (videos,'videos_provider','-Videos')
+    existing=base/('old-account'+suffix);existing.mkdir(mode=0o700)
+    content=existing/'original';content.write_bytes(b'preserve edited original');inode=content.stat().st_ino
+    try:
+        selected=controller.choose_default(controller.issue_action(),**{argument:lambda:base})
+        assert Path(selected.destination.path)==base/('Telefon'+suffix)
+        assert not selected.destination.grants_write_authority and not any(Path(selected.destination.path).iterdir())
+        assert content.stat().st_ino==inode and content.read_bytes()==b'preserve edited original'
     finally:controller.close()
 
 

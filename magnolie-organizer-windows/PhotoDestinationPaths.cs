@@ -20,11 +20,14 @@ internal static class PhotoDestinationPaths
     internal static string FolderComponent(string name, string fallbackUserName = "")
         => MediaFolderComponent(name, "-Fotos", fallbackUserName);
 
-    internal static string NativeFolderComponent(string phoneName) => FolderComponent(phoneName, Environment.UserName);
+    internal static string NativeFolderComponent(string phoneName)
+        => FolderComponent(phoneName, string.IsNullOrWhiteSpace(phoneName) ? Environment.UserName : "");
 
     internal static string MediaFolderComponent(string name, string suffix, string fallbackUserName = "")
     {
         if (name is null) throw new InvalidDataException("photo_destination_native_name_required");
+        // An unusable folder component does not make the original phone name absent.
+        if (string.IsNullOrWhiteSpace(name) && fallbackUserName.Length != 0) return MediaFolderComponent(fallbackUserName, suffix);
         var safe = new StringBuilder();
         foreach (var rune in name.Normalize(NormalizationForm.FormC).EnumerateRunes())
         {
@@ -35,7 +38,6 @@ internal static class PhotoDestinationPaths
         }
         var words = string.Join(" ", safe.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim(' ', '_');
         var limited = string.Concat(words.EnumerateRunes().Take(60).Select(rune => rune.ToString())).TrimEnd(' ', '_');
-        if (limited.Length == 0 && fallbackUserName.Length != 0) return MediaFolderComponent(fallbackUserName, suffix);
         return (limited.Length == 0 ? "Telefon" : limited) + suffix;
     }
 }
@@ -54,5 +56,6 @@ internal static class VideoDestinationPaths
     }
 
     internal static string FolderComponent(string name, string fallbackUserName = "") => PhotoDestinationPaths.MediaFolderComponent(name, "-Videos", fallbackUserName);
-    internal static string NativeFolderComponent(string phoneName) => FolderComponent(phoneName, Environment.UserName);
+    internal static string NativeFolderComponent(string phoneName)
+        => FolderComponent(phoneName, string.IsNullOrWhiteSpace(phoneName) ? Environment.UserName : "");
 }

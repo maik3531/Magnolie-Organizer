@@ -140,9 +140,9 @@ def _safe_media_name(name):
     return ' '.join(safe.split()).strip(' _')[:60].rstrip(' _')
 
 def _media_folder_component(name,suffix,fallback_user_name):
-    # The phone's native name always wins. Never replace it with the account name.
     safe=_safe_media_name(name)
-    if not safe:safe=_safe_media_name(fallback_user_name)
+    # An unusable folder component is not evidence that the phone name was absent.
+    if not name.strip():safe=_safe_media_name(fallback_user_name)
     return (safe or 'Telefon')+suffix
 
 class NativePhotoDestinationAction:
@@ -221,7 +221,7 @@ class NativePhotoDestinationController:
             raise TransferError(unavailable)
         base=NativeAcceptedDestination.capture(pictures)
         require_media_directory(base.path)
-        fallback=self._username() if not _safe_media_name(peer.display_name) else ''
+        fallback=self._username() if not peer.display_name.strip() else ''
         component=folder_component(peer.display_name,fallback_user_name=fallback)
         self._peer();base.verify()
         fd=os.open(base.path,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
