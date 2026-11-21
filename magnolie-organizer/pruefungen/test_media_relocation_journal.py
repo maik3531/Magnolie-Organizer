@@ -161,6 +161,47 @@ def test_first_planned_folder_is_installed_no_replace_and_bound_to_its_inode(rel
     else:assert folder.stat().st_ino==name_moves[0][1] and not stage.exists()
 
 
+@pytest.mark.parametrize('interrupted',[False,True],ids=['shared_chain','replaced_parent'])
+def test_planned_child_uses_the_original_parent_result_without_replay(relocation_owner_case,monkeypatch,interrupted):
+    from magnolie_media_relocation_record import (MissingGifTargetDraft, bind_gif_relocation_folder_plan,
+        inspect_relocation_target_parents)
+    authority,records,destination,source,target,raw=relocation_owner_case
+    folder=target.parent.parent;target.parent.rmdir();folder.rmdir()
+    members=tuple(MissingGifTargetDraft(record.operation,record.book_sha256,record.preferences_sha256,
+        record.original_mapping_sha256,destination,record.source,record.source_parents,record.target,
+        inspect_relocation_target_parents(destination,record.target,lambda:True),record.file) for record in records)
+    plan=bind_gif_relocation_folder_plan(members,destination)
+    assert plan.missing_parents()==('Animationen','Animationen/Camera')
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        if interrupted:
+            bind=owner._bind_folder_attempt
+            def replace_before_child(intent,root,path,parent_keys,ordinal,lease,committed):
+                if ordinal==1:
+                    folder.rename(folder.with_name('independent-fixture-parent'))
+                    folder.mkdir(mode=0o700)
+                return bind(intent,root,path,parent_keys,ordinal,lease,committed)
+            monkeypatch.setattr(owner,'_bind_folder_attempt',replace_before_child)
+            with pytest.raises(TransferError,match='confirmation_changed'):
+                owner._create_confirmed_folders(owner._issue_confirmed_action(lambda:True),journal,plan,destination)
+            assert not target.parent.exists() and not list(folder.iterdir())
+        else:
+            intent,created=owner._create_confirmed_folders(owner._issue_confirmed_action(lambda:True),journal,plan,destination)
+            assert intent.selection_sha256==plan.selection_sha256 and tuple(path for path,_ in created)==plan.missing_parents()
+            assert target.parent.stat().st_ino==created[1][1][1] and not list(target.parent.iterdir())
+        assert not journal.read().records
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        first,=owner._db.execute('SELECT value FROM meta WHERE key=?',(owner._FOLDER_RESULT_KEY,)).fetchone()
+        child=owner._db.execute('SELECT value FROM meta WHERE key=?',(owner._FOLDER_RESULT_KEY+':1',)).fetchone()
+        first_result=strict_json(owner._protection.unseal(first,owner._FOLDER_RESULT_DOMAIN))
+        if interrupted:assert child is None
+        else:
+            result=strict_json(owner._protection.unseal(child[0],owner._FOLDER_RESULT_DOMAIN))
+            assert result['attempt']['parents'][-1]==first_result['created']
+        with pytest.raises(TransferError,match='folder_plan_held|confirmation_changed'):
+            owner._create_confirmed_folders(owner._issue_confirmed_action(lambda:True),journal,plan,destination)
+    assert source.read_bytes()==raw and not target.exists()
+
+
 def test_confirmed_intent_is_independent_of_the_journal_and_survives_reopen(relocation_owner_case):
     authority,records,destination,source,target,raw=relocation_owner_case
     selection=records[0].selection_sha256

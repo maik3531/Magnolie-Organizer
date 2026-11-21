@@ -91,8 +91,10 @@ class ProtectedRelocationOwner(NativeMediaRetention):
     def _read_intent(self):
         if self._held:raise TransferError('photo_relocation_owner_held')
         subject=self._subject()
-        if self._folder_observed is not None or self._db.execute('SELECT 1 FROM meta WHERE key IN (?,?,?) LIMIT 1',
-                (self._FOLDER_KEY,self._FOLDER_ATTEMPT_KEY,self._FOLDER_RESULT_KEY)).fetchone():
+        if self._folder_observed is not None or self._db.execute(
+                'SELECT 1 FROM meta WHERE key IN (?,?,?) OR key GLOB ? OR key GLOB ? LIMIT 1',
+                (self._FOLDER_KEY,self._FOLDER_ATTEMPT_KEY,self._FOLDER_RESULT_KEY,
+                 self._FOLDER_ATTEMPT_KEY+':*',self._FOLDER_RESULT_KEY+':*')).fetchone():
             raise TransferError('photo_relocation_folder_plan_held')
         actual=self._db.execute('SELECT value FROM meta WHERE key=?',(self._INTENT_KEY,)).fetchone()
         intent=None
@@ -196,58 +198,80 @@ class ProtectedRelocationOwner(NativeMediaRetention):
 
     @contextmanager
     def _first_folder_attempt(self,action,journal,plan,destination):
-        from magnolie_media_relocation_record import inspect_relocation_target_parents
         with self._confirming_folder_plan(action,journal,plan,destination) as (intent,lease):
-            member=next(item for item in plan.members if item.target_parents.missing)
-            parents=member.target_parents
-            # Pin the nearest existing directory chain and exactly one absent
-            # component. The later native syscall must still use this chain.
-            parts=member.target.split('/')[:len(parents.existing)]
-            body=dict(format=1,db=list(self._identity),subject=self._subject(),intent=intent.wire(),
-                path='/'.join(parts),parents=[list(key) for key in parents.existing])
-            if inspect_relocation_target_parents(destination,member.target,lease)!=parents:
-                raise TransferError('photo_relocation_confirmation_changed')
-            expected=canonical(body)
-            with self._transaction():
-                lease()
-                if self.read_folder_intent()!=intent or self._db.execute('SELECT 1 FROM meta WHERE key=?',
-                        (self._FOLDER_ATTEMPT_KEY,)).fetchone():
-                    raise TransferError('photo_relocation_folder_attempt_held')
-                blob=self._protection.seal(expected,self._FOLDER_ATTEMPT_DOMAIN)
-                self._db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(self._FOLDER_ATTEMPT_KEY,blob))
-                lease()
-            def spent():
-                lease()
-                row=self._db.execute('SELECT value FROM meta WHERE key=?',(self._FOLDER_ATTEMPT_KEY,)).fetchone()
-                if (row!=(blob,) or self._protection.unseal(row[0],self._FOLDER_ATTEMPT_DOMAIN)!=expected
-                        or self.read_folder_intent()!=intent):
-                    raise TransferError('photo_relocation_folder_attempt_held')
-                return lease()
-            spent();yield intent,body,spent
+            path=plan.missing_parents()[0]
+            member=next(item for item in plan.members if item.target.startswith(path+'/'))
+            body,spent=self._bind_folder_attempt(intent,destination,path,member.target_parents.existing,0,lease,{})
+            yield intent,body,spent
+
+    def _bind_folder_attempt(self,intent,destination,path,parent_keys,ordinal,lease,committed):
+        from magnolie_media_relocation_record import inspect_relocation_target_parents
+        suffix=':'+str(ordinal) if ordinal else ''
+        key=self._FOLDER_ATTEMPT_KEY+suffix
+        body=dict(format=1,db=list(self._identity),subject=self._subject(),intent=intent.wire(),
+            path=path,parents=[list(value) for value in parent_keys])
+        def current():
+            lease()
+            if (self.read_folder_intent()!=intent or any(
+                    self._db.execute('SELECT value FROM meta WHERE key=?',(name,)).fetchone()!=(cipher,)
+                    for name,cipher in committed.items())):
+                raise TransferError('photo_relocation_folder_attempt_held')
+            return lease()
+        observed=inspect_relocation_target_parents(destination,path+'/probe',current)
+        if observed.existing!=parent_keys or observed.missing!=(path.rsplit('/',1)[-1],):
+            raise TransferError('photo_relocation_confirmation_changed')
+        expected=canonical(body)
+        with self._transaction():
+            current()
+            if self._db.execute('SELECT 1 FROM meta WHERE key=?',(key,)).fetchone():
+                raise TransferError('photo_relocation_folder_attempt_held')
+            blob=self._protection.seal(expected,self._FOLDER_ATTEMPT_DOMAIN)
+            self._db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,blob))
+            current()
+        if (self._db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()!=(blob,)
+                or self._protection.unseal(blob,self._FOLDER_ATTEMPT_DOMAIN)!=expected):
+            raise TransferError('photo_relocation_folder_attempt_held')
+        committed[key]=blob;current();return body,current
 
     def _create_first_confirmed_folder(self,action,journal,plan,destination):
         """Create only the first planned parent and bind its verified native inode."""
+        intent,created=self._create_confirmed_folders(action,journal,plan,destination,first_only=True)
+        return intent,created[0][1]
+
+    def _create_confirmed_folders(self,action,journal,plan,destination,*,first_only=False):
         from magnolie_media_relocation_record import _install_spent_folder, inspect_relocation_target_parents
-        with self._first_folder_attempt(action,journal,plan,destination) as (intent,attempt,spent):
-            parent_path=attempt['path'];parent_keys=tuple(tuple(key) for key in attempt['parents'])
-            identity=_install_spent_folder(destination,parent_path,parent_keys,intent.operation,spent)
-            def require_result():
-                # Probe the created directory as a parent, without opening a
-                # media file or inventing an identity for any remaining suffix.
-                observed=inspect_relocation_target_parents(destination,parent_path+'/probe',spent)
-                if observed.missing or observed.existing!=parent_keys+(identity,):
+        with self._confirming_folder_plan(action,journal,plan,destination) as (intent,lease):
+            planned=plan.missing_parents();committed={};created=[];known={'':destination.ancestor_keys[0]}
+            for member in plan.members:
+                parts=member.target.split('/')
+                for index,identity in enumerate(member.target_parents.existing):
+                    known['/'.join(parts[:index])]=identity
+            def chain(path):
+                parts=path.split('/')
+                return tuple(known['/'.join(parts[:index])] for index in range(len(parts)))
+            def require_result(path,keys,current):
+                observed=inspect_relocation_target_parents(destination,path+'/probe',current)
+                if observed.missing or observed.existing!=keys:
                     raise TransferError('photo_relocation_parent_changed')
-            require_result()
-            expected=canonical(dict(attempt=attempt,created=list(identity)))
-            with self._transaction():
-                spent()
-                blob=self._protection.seal(expected,self._FOLDER_RESULT_DOMAIN)
-                self._db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(self._FOLDER_RESULT_KEY,blob))
-                spent()
-            if (self._db.execute('SELECT value FROM meta WHERE key=?',(self._FOLDER_RESULT_KEY,)).fetchone()!=(blob,)
-                    or self._protection.unseal(blob,self._FOLDER_RESULT_DOMAIN)!=expected):
-                raise TransferError('photo_relocation_folder_attempt_held')
-            require_result();return intent,identity
+            for ordinal,path in enumerate(planned[:1] if first_only else planned):
+                parent_keys=chain(path)
+                attempt,spent=self._bind_folder_attempt(intent,destination,path,parent_keys,ordinal,lease,committed)
+                identity=_install_spent_folder(destination,path,parent_keys,intent.operation,spent)
+                require_result(path,parent_keys+(identity,),spent)
+                expected=canonical(dict(attempt=attempt,created=list(identity)))
+                key=self._FOLDER_RESULT_KEY+(':'+str(ordinal) if ordinal else '')
+                with self._transaction():
+                    spent()
+                    blob=self._protection.seal(expected,self._FOLDER_RESULT_DOMAIN)
+                    self._db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,blob))
+                    spent()
+                if (self._db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()!=(blob,)
+                        or self._protection.unseal(blob,self._FOLDER_RESULT_DOMAIN)!=expected):
+                    raise TransferError('photo_relocation_folder_attempt_held')
+                committed[key]=blob;require_result(path,parent_keys+(identity,),spent)
+                known[path]=identity;created.append((path,identity))
+            for path,identity in created:require_result(path,chain(path)+(identity,),spent)
+            return intent,tuple(created)
 
     def record_confirmed_intent(self,action,records,destination,confirmed_sha256):
         with self._confirming_intent(action,records,destination,confirmed_sha256) as (intent,_):

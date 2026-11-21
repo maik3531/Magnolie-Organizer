@@ -17,6 +17,7 @@ from magnolie_telefon import canonical
 
 
 _MAX_DIRECTORY_ENTRIES = 10000
+_MAX_PLANNED_FOLDERS = 128
 _DIRECTORY_FLAGS = os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC
 
 
@@ -67,6 +68,16 @@ class GifRelocationFolderPlan:
     @property
     def grants_write_authority(self):return False
 
+    def missing_parents(self):
+        paths=set()
+        for member in self.members:
+            parts=member.target.split('/')
+            for index in range(len(member.target_parents.existing),len(parts)):
+                paths.add('/'.join(parts[:index]))
+        if len(paths)>_MAX_PLANNED_FOLDERS:
+            raise TransferError('photo_relocation_invalid_folder_plan')
+        return tuple(sorted(paths,key=lambda path:(path.count('/'),path)))
+
 
 def bind_gif_relocation_folder_plan(drafts,destination):
     """Commit to the existing inode chains and the exact missing names together."""
@@ -115,7 +126,9 @@ def bind_gif_relocation_folder_plan(drafts,destination):
         target=member.target,existing=[list(key) for key in member.target_parents.existing],missing=list(member.target_parents.missing),
         file=dict(file_key=list(member.file.file_key),size=member.file.size,sha256=member.file.sha256)) for member in members]
     digest=sha256(b'magnolie-gif-folder-plan-v1\0'+canonical(dict(destination=destination.wire(),members=bodies))).hexdigest()
-    return GifRelocationFolderPlan(members,digest)
+    plan=GifRelocationFolderPlan(members,digest)
+    plan.missing_parents()
+    return plan
 
 
 def inspect_relocation_target_parents(destination,relative,current):

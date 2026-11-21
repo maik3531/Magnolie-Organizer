@@ -211,8 +211,11 @@ holds the parent descriptor, stages an empty private directory, and publishes
 it without replacing an occupied name. It records the verified new inode only
 after filesystem sync. The private staging name is excluded from media scans.
 A late collision preserves both directories; a cut after installation without
-a result is held, not repeated or cleaned up automatically. The next parent
-and media rename are not enabled by this result.
+a result is held, not repeated or cleaned up automatically. The same live
+operation can now continue through a bounded, deduplicated parent list. Each
+child attempt uses the exact confirmed or newly recorded parent identities. A
+replaced parent holds before inserting a child. None of these results authorize
+a media rename or continuation after restart.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in
