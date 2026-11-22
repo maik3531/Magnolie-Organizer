@@ -427,21 +427,29 @@ def test_actual_gui_worker_proxy_and_unix_daemon_prepare_driver_only_after_enabl
     finally:server.close()
 
 
-def test_ui_to_real_daemon_signed_parent_and_encrypted_av_reuses_original_held_video(connected, tmp_path, monkeypatch):
+@pytest.mark.parametrize('first_stream', ['video', 'audio'])
+def test_ui_to_real_daemon_signed_parent_and_encrypted_av_reuses_original_held_video(connected, tmp_path, monkeypatch, first_stream):
     service, _, client = connected
-    video = Output('/controlled/original-video')
+    videos, audios = [], []
+
+    def output(collection, identity):
+        value = Output(identity)
+        collection.append(value)
+        return value
+
     manager = NativeWebcamUi(service,
         inventory=lambda: [dict(path='/dev/video42', label='Controlled virtual output')],
-        video_factory=lambda choice: video)
+        video_factory=lambda choice: output(videos, choice['path']))
     service._native_webcam_ui = manager
     monkeypatch.setattr('magnolie_phone_webcam.NativeWebcamSession',
-        lambda *args, **settings: NativeWebcamSession(*args, audio_factory=Output, **settings))
+        lambda *args, **settings: NativeWebcamSession(*args, audio_factory=lambda identity: output(audios, identity), **settings))
     server = background.IPCServer(None, path=str(tmp_path / 'av.sock'), phone_backend=service).start()
     try:
         proxy = background.PhoneServiceProxy(path=server.path)
         prepared = proxy.webcam_action(dict(action='prepare', provider='notes'))
         result = proxy.webcam_action(dict(action='start', action_token=prepared['action'],
             choice_token=prepared['choices'][0]['token'], muted=False, front=False))
+        video, = videos
         owner = manager.owner
         client.ack(client.receive())
         original = probe(); client.request(original); offer = client.report('offer')
@@ -451,15 +459,54 @@ def test_ui_to_real_daemon_signed_parent_and_encrypted_av_reuses_original_held_v
             client.report('send')
             outputs = owner.exchange.run.outputs
             assert outputs.video is video and not proxy.webcam_status()['active']
-            sender.send('video', 0, 0, b'v' * VIDEO_BYTES)
-            assert video.arrived.wait(2)
-            assert not proxy.webcam_status()['active']
-            sender.send('audio', 0, 0, b'a' * AUDIO_BYTES)
-            assert outputs.audio.arrived.wait(2)
-            assert proxy.webcam_status()['active']
+            packets = {'video': (video, b'v' * VIDEO_BYTES), 'audio': (outputs.audio, b'a' * AUDIO_BYTES)}
+            second = 'audio' if first_stream == 'video' else 'video'
+            first_output, first_data = packets[first_stream]
+            sender.send(first_stream, 0, 0, first_data)
+            assert first_output.arrived.wait(2)
+            with outputs.lock:
+                assert set(outputs.positions) == {first_stream}
+                assert not proxy.webcam_status()['active']
+            second_output, second_data = packets[second]
+            sender.send(second, 0, 0, second_data)
+            assert second_output.arrived.wait(2)
+            with outputs.lock:
+                assert proxy.webcam_status()['active'] and outputs.audio is audios[0]
             proxy.webcam_action(dict(action='stop', lease=result['lease']))
             assert owner.done.wait(4); owner.worker.join(1)
             assert owner.is_completely_stopped() and video.closed and outputs.audio.closed
             assert not proxy.webcam_status()['active']
+
+        assert client.report('stop')['session'] == offer['session']
+        withdrawn = client.receive()
+        assert 24 not in withdrawn['body']['items']['device_status']['versions']
+        client.ack(withdrawn)
+        prepared = proxy.webcam_action(dict(action='prepare', provider='notes'))
+        muted = proxy.webcam_action(dict(action='start', action_token=prepared['action'],
+            choice_token=prepared['choices'][0]['token'], muted=True, front=False))
+        successor = manager.owner
+        assert successor is not owner and successor.channel is owner.channel is client.channel
+        assert result['lease'] != muted['lease'] and len(videos) == 2 and len(audios) == 1
+        client.ack(client.receive())
+        fresh = probe(); client.request(fresh); mute_offer = client.report('offer')
+        assert mute_offer['muted'] and mute_offer['session'] != offer['session']
+        with socket.create_connection(('127.0.0.1', mute_offer['port']), timeout=2) as media:
+            sender = WebcamMediaSocket(media, mute_offer['session'], bytes.fromhex(mute_offer['secret']), successor.current, sending=True)
+            client.request(dict(fresh, op='prepared', session=mute_offer['session']))
+            client.report('send')
+            mute_outputs = successor.exchange.run.outputs
+            assert mute_outputs.video is videos[1] and mute_outputs.audio is None and len(audios) == 1
+            assert not proxy.webcam_status()['active']
+            sender.send('video', 0, 0, b'm' * VIDEO_BYTES)
+            assert videos[1].arrived.wait(2)
+            with mute_outputs.lock:
+                assert proxy.webcam_status()['active'] and proxy.webcam_status()['muted']
+                assert video.frames == [b'v' * VIDEO_BYTES] and audios[0].frames == [b'a' * AUDIO_BYTES]
+            proxy.webcam_action(dict(action='stop', lease=muted['lease']))
+            assert successor.done.wait(4); successor.worker.join(1)
+            assert successor.is_completely_stopped() and videos[1].closed and len(audios) == 1
+        assert client.report('stop')['session'] == mute_offer['session']
+        client.ack(client.receive())
+        assert not proxy.webcam_status()['active']
     finally:
         server.close()
