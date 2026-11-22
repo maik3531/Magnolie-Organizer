@@ -10,9 +10,9 @@ from magnolie_file_desktop_connection import NativeDesktopFileConnection
 from magnolie_file_transfer import TransferError
 
 
-def test_separate_video_readiness_remains_off_even_with_acknowledged_peer_and_native_video_consent(receiving,tmp_path,monkeypatch):
+def test_disabled_video_handlers_block_binding_even_with_acknowledged_peer_and_native_video_consent(receiving,tmp_path,monkeypatch):
     prepare(receiving,tmp_path,monkeypatch);connection=receiving[3]
-    assert not connection._video_data_handlers_ready
+    monkeypatch.setattr(connection,'_video_data_handlers_ready',False)
     with pytest.raises(TransferError,match='video_data_join_unavailable'):connection._receive_binding(media_type='video')
     assert connection._receive_binding().destination_token==connection._preferences.read().policy.destination_token
     assert connection._run is None and connection._catalog is None

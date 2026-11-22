@@ -1,4 +1,4 @@
-"""Actual reserved desktop video metadata lane, with production gates still shut."""
+"""Actual reserved desktop video metadata lane, separate from data readiness."""
 from pathlib import Path
 import pytest
 
@@ -53,6 +53,7 @@ def test_separate_video_config_and_catalog_require_current_native_scope_without_
         page=dict(format=1,catalog_id=CATALOG,after=0,next_cursor=None,coverage='full_videos',proves_deletion=False,
             albums=[dict(album_id=ALBUM,kind='camera',display_name='Camera',visible_images=1,needs_choice=False)])))
     assert connection._source_catalog.media_type=='video'
+    monkeypatch.setattr(connection,'_video_data_handlers_ready',False)
     for options,error in (({},'album_not_current'),(dict(media_type='video'),'video_data_join_unavailable')):
         with pytest.raises(TransferError,match=error):request(receiving,'run',album_id=ALBUM,desktop_choice=True,**options)
     assert connection._source_pending is None and connection._run is None and connection._catalog is None
