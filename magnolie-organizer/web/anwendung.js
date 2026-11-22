@@ -30269,23 +30269,25 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const update = el("button", null, _("Refresh"));
     arm.type = stop.type = update.type = "button";
     block.append(arm, stop, update, status); container.append(block);
-    let pending = false, mounted = true, active = false;
+    let pending = false, mounted = true, active = false, lease = "";
     const visible = () => mounted && block.isConnected && wurzel.open && !gesperrt &&
       !block.closest("#einstellungen-schleier")?.classList.contains("verborgen");
     const draw = () => {
       arm.hidden = pending || active;
-      stop.hidden = pending || !active;
+      stop.hidden = pending || !active || !lease;
       update.disabled = pending;
     };
     async function request(action) {
       if (!visible() || pending) return;
       pending = true; draw();
       try {
-        const result = await kdeMedienAnfordern("telefon_desktop_mirror_" + action, action === "arm" ? {peer} : {});
+        const args = action === "arm" ? {peer} : action === "stop" ? {lease} : {};
+        const result = await kdeMedienAnfordern("telefon_desktop_mirror_" + action, args);
         if (!mounted) return;
         const state = result.desktopMirror;
         block.hidden = state?.included !== true;
         active = state?.active === true;
+        lease = active && typeof state?.lease === "string" && /^[0-9a-f]{32}$/.test(state.lease) ? state.lease : "";
         status.textContent = !result.ok ? _("Screen mirroring did not start.") : active ?
           _("Request screen viewing in Magnolie Notes, then confirm on this computer.") : "";
       } finally {

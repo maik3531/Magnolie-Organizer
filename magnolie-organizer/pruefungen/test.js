@@ -7553,13 +7553,15 @@ function knopfMit(text, wurzel) {
   const mirrorArm = mirrorMessages().at(-1);
   assert.strictEqual(mirrorArm.cmd, "telefon_desktop_mirror_arm");
   assert.strictEqual(mirrorArm.peer, fotoPeer.device_id);
-  bw.App.kdeMedien({ requestId: mirrorArm.requestId, ok: true, desktopMirror: {included: true, active: true} });
+  const mirrorLease = "a".repeat(32);
+  bw.App.kdeMedien({ requestId: mirrorArm.requestId, ok: true, desktopMirror: {included: true, active: true, lease: mirrorLease} });
   await tick();
   const mirrorStop = Array.from(mirrorPanel.querySelectorAll("button"))[1];
   assert.ok(!mirrorStop.hidden);
   mirrorStop.click();
   const mirrorStopRequest = mirrorMessages().at(-1);
   assert.strictEqual(mirrorStopRequest.cmd, "telefon_desktop_mirror_stop");
+  assert.strictEqual(mirrorStopRequest.lease, mirrorLease);
   bw.App.kdeMedien({ requestId: mirrorStopRequest.requestId, ok: true, desktopMirror: {included: true, active: false} });
   await tick();
   mirrorFold.open = false;

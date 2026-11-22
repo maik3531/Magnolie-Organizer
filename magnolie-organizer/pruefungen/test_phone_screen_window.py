@@ -147,7 +147,7 @@ def organizer_hooks():
     from magnolie_hintergrund import PhoneServiceProxy
     from gi.repository import Gio
     namespace = {"Gtk": Gtk, "GLib": GLib, "Gio": Gio, "PhoneService": PhoneService, "PhoneServiceProxy": PhoneServiceProxy,
-                 "threading": threading, "time": time, "_": lambda text: text}
+                 "threading": threading, "time": time, "os": os, "_": lambda text: text}
     exec(compile(hooks, str(source), "exec"), namespace)
     return type("OrganizerHooks", (Gtk.Window,), dict({name: namespace[name] for name in names}, _native_screen_view_checked=False))()
 

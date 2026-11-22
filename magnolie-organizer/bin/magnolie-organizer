@@ -21810,18 +21810,30 @@ class Fenster(_FENSTER_BASIS):
         peer = message.get("peer")
         included = self._private_desktop_mirror_ui and type(phone) is PhoneService
 
+        def current_lease():
+            held = getattr(self, "_desktop_mirror_lease", None)
+            if included and self._telefon is phone and not self._gesperrt and held is not None and held[0] is phone:
+                return held[1]
+            return None
+
         def respond(ok):
             active = (getattr(self, "_desktop_mirror_pending", None) is not None or
                       getattr(self, "_desktop_mirror_owner", None) is not None)
+            state = {"included": included and self._telefon is phone and not self._gesperrt, "active": active}
+            lease = current_lease()
+            if active and lease is not None:
+                state["lease"] = lease
             self.antwort("App.kdeMedien", {"requestId": message.get("requestId"), "ok": ok,
-                "desktopMirror": {"included": included and self._telefon is phone and not self._gesperrt,
-                                  "active": active}})
+                "desktopMirror": state})
 
         if cmd == "telefon_desktop_mirror_stand":
             respond(True); return
         if cmd == "telefon_desktop_mirror_stop":
-            self._desktop_mirror_stop()
-            respond(True); return
+            lease = message.get("lease")
+            matches = type(lease) is str and lease == current_lease()
+            if matches:
+                self._desktop_mirror_stop()
+            respond(matches); return
 
         def require_owner():
             if (self._telefon is not phone or self._gesperrt or self._beenden_angefragt or self._wirklich_beenden):
@@ -21847,6 +21859,7 @@ class Fenster(_FENSTER_BASIS):
         except (PermissionError, ValueError, OSError, RuntimeError):
             respond(False); return
 
+        arm_lease = self._desktop_mirror_lease = (phone, os.urandom(16).hex())
         pending = self._desktop_mirror_pending = Gio.Cancellable()
         unmap = self.connect("unmap", lambda *_: pending.cancel())
 
@@ -21867,6 +21880,8 @@ class Fenster(_FENSTER_BASIS):
                 def ended(_cleanup):
                     if self._desktop_mirror_owner is owner:
                         self._desktop_mirror_owner = None
+                        if self._desktop_mirror_lease is arm_lease:
+                            self._desktop_mirror_lease = None
 
                 owner = phone.begin_private_desktop_mirror(selection, mode="monitor", bus=bus, provider=provider,
                     parent=self, session_lock=monitor, ended=ended, require_owner=require_owner)
@@ -21875,6 +21890,8 @@ class Fenster(_FENSTER_BASIS):
             except (PermissionError, ValueError, OSError, RuntimeError):
                 pass
             finally:
+                if not ok and self._desktop_mirror_lease is arm_lease:
+                    self._desktop_mirror_lease = None
                 if not self._wirklich_beenden:
                     respond(ok)
             return False

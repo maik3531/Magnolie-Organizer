@@ -89,8 +89,8 @@ def test_mirror_organizer_entry_checks_original_after_provider_read(connected, m
     monkeypatch.setattr(portal, 'read_desktop_screen_provider', provider)
     app.show_all()
 
-    def command(action):
-        app._desktop_mirror_ui(dict(cmd=f'telefon_desktop_mirror_{action}', peer=peer['device_id'], requestId=action))
+    def command(action, **extra):
+        app._desktop_mirror_ui(dict(cmd=f'telefon_desktop_mirror_{action}', peer=peer['device_id'], requestId=action, **extra))
 
     try:
         command('stand')
@@ -119,11 +119,25 @@ def test_mirror_organizer_entry_checks_original_after_provider_read(connected, m
         command('arm')
         wait_for(lambda: len(replies) == 4)
         assert replies[-1][1]['ok'] and replies[-1][1]['desktopMirror']['active']
+        first_lease = replies[-1][1]['desktopMirror'].get('lease', 'old')
         owner = app._desktop_mirror_owner
         assert owner._original.channel is client.channel
         factory.assert_not_called()
         _, dialog = show(owner, client, 1)
         dialog.response(Gtk.ResponseType.CANCEL)
+        wait_for(lambda: app._desktop_mirror_owner is None)
+        command('arm')
+        wait_for(lambda: len(replies) == 5)
+        second = app._desktop_mirror_owner
+        assert second is not None and second is not owner
+        command('stop', lease=first_lease)
+        assert not second._stopping.is_set() and not replies[-1][1]['ok']
+        second_lease = replies[4][1]['desktopMirror']['lease']
+        assert second_lease and second_lease != first_lease
+        command('stop')
+        assert not second._stopping.is_set() and not replies[-1][1]['ok']
+        command('stop', lease=second_lease)
+        assert replies[-1][1]['ok']
         wait_for(lambda: app._desktop_mirror_owner is None)
         factory.assert_not_called()
         ping(client)
