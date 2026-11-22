@@ -28,6 +28,13 @@ class DesktopScreenProvider:
     input_devices: int = 0
     screen_version: int = 0
 
+    def supports_mode(self, mode):
+        if not self.owner or self.screen_version < 3:
+            return False
+        if mode == 'extend':
+            return self.extended_output
+        return bool(self.mirror_sources & {'monitor': MONITOR, 'window': WINDOW}.get(mode, 0))
+
 
 def read_desktop_screen_provider(bus, cancellable=None):
     """Read-only candidates, pinned to one unique owner for this observation.

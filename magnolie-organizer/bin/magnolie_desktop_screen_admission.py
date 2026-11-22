@@ -5,7 +5,6 @@ from time import monotonic
 
 from magnolie_desktop_screen_attempt import DesktopScreenDraftAttempt
 from magnolie_desktop_screen_control import MAX_SETUP_MS, DesktopScreenSetupWindow
-from magnolie_desktop_screen_portal import MONITOR, WINDOW
 from magnolie_phone_screen_window import GLib, Gtk
 
 
@@ -51,10 +50,8 @@ class DesktopScreenDraftAdmission:
                  require_owner=None):
         if current_thread() is not main_thread() or not isinstance(parent, Gtk.Window):
             raise RuntimeError('desktop_screen_native_main_required')
-        sources = {'monitor': MONITOR, 'window': WINDOW}
         if (not parent.get_visible() or not parent.get_realized() or not parent_handle or bus is None or
-                provider.owner is None or provider.screen_version < 3 or
-                not (provider.extended_output if mode == 'extend' else provider.mirror_sources & sources.get(mode, 0))):
+                provider is None or not provider.supports_mode(mode)):
             raise PermissionError('desktop_screen_native_mode_unavailable')
         self._unlocked = session_lock.claim()
         self._stopping = Event()
@@ -63,6 +60,7 @@ class DesktopScreenDraftAdmission:
         self._pending = self._attempt = self._dialog = self._confirm = None
         self._showing = False
         self._terminal = False
+        self._cleanup_unconfirmed = False
         self._cleanup = None
         self._ended = ended
         self._parent = parent
@@ -75,6 +73,14 @@ class DesktopScreenDraftAdmission:
         self._destroy_id = parent.connect('destroy', lambda _: self.close())
         self._unmap_id = parent.connect('unmap', self._parent_unmapped) if require_parent else None
         GLib.timeout_add(25, self._tick)
+
+    @property
+    def stop_state(self):
+        if self._cleanup_unconfirmed:
+            return 'cleanup_unconfirmed'
+        if self._stopping.is_set() and not self._terminal:
+            return 'stopping'
+        return None
 
     def _parent_unmapped(self, _parent):
         # A quick hide/show must not revive a pending local confirmation.
@@ -138,6 +144,7 @@ class DesktopScreenDraftAdmission:
             cleanup.local.reader_drained and cleanup.local.encoder_drained and not cleanup.local.virtual_start_submitted)
         if clean and not self._original.release():
             return True  # Retirement raced the last reader handoff.
+        self._cleanup_unconfirmed = not clean
         self._terminal = True  # Unconfirmed cleanup deliberately keeps the slot.
         for handler in (self._destroy_id, self._unmap_id):
             if handler is not None and self._parent.handler_is_connected(handler):

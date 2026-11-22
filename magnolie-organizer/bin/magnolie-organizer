@@ -21810,16 +21810,29 @@ class Fenster(_FENSTER_BASIS):
         peer = message.get("peer")
         included = self._private_desktop_mirror_ui and type(phone) is PhoneService
 
+        def stop_state():
+            owner = getattr(self, "_desktop_mirror_owner", None)
+            if owner is not None:
+                return owner.stop_state
+            pending = getattr(self, "_desktop_mirror_pending", None)
+            if pending is not None and pending.is_cancelled():
+                return "stopping"
+            return None
+
         def current_lease():
             held = getattr(self, "_desktop_mirror_lease", None)
-            if included and self._telefon is phone and not self._gesperrt and held is not None and held[0] is phone:
+            if (included and self._telefon is phone and not self._gesperrt and held is not None and held[0] is phone
+                    and stop_state() is None):
                 return held[1]
             return None
 
-        def respond(ok):
+        def respond(ok, status=None):
             active = (getattr(self, "_desktop_mirror_pending", None) is not None or
                       getattr(self, "_desktop_mirror_owner", None) is not None)
             state = {"included": included and self._telefon is phone and not self._gesperrt, "active": active}
+            status = stop_state() or status
+            if state["included"] and status is not None:
+                state["status"] = status
             lease = current_lease()
             if active and lease is not None:
                 state["lease"] = lease
@@ -21870,15 +21883,21 @@ class Fenster(_FENSTER_BASIS):
             if self.handler_is_connected(unmap):
                 self.disconnect(unmap)
             ok = False
+            status = None
             try:
-                if pending.is_cancelled() or bus is None:
+                if pending.is_cancelled():
                     return False
                 require_owner()
                 parent.require_current()
                 require_unlocked()
+                if bus is None or provider is None or not provider.supports_mode("monitor"):
+                    status = "portal_unavailable"
+                    return False
 
                 def ended(_cleanup):
-                    if self._desktop_mirror_owner is owner:
+                    # Do not let a new phone service or peer acquire a fresh
+                    # slot while this original capture has uncertain cleanup.
+                    if self._desktop_mirror_owner is owner and owner.stop_state != "cleanup_unconfirmed":
                         self._desktop_mirror_owner = None
                         if self._desktop_mirror_lease is arm_lease:
                             self._desktop_mirror_lease = None
@@ -21893,7 +21912,7 @@ class Fenster(_FENSTER_BASIS):
                 if not ok and self._desktop_mirror_lease is arm_lease:
                     self._desktop_mirror_lease = None
                 if not self._wirklich_beenden:
-                    respond(ok)
+                    respond(ok, status)
             return False
 
         def discover():

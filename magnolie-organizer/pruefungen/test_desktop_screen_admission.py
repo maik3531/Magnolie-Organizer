@@ -150,6 +150,128 @@ def test_mirror_organizer_entry_checks_original_after_provider_read(connected, m
         monitor.close()
 
 
+@pytest.fixture
+def mirror_app(connected, monkeypatch):
+    service, peer, _ = connected
+    app = organizer_hooks()
+    app._telefon = service
+    app._private_desktop_mirror_ui = True
+    app._gesperrt = app._beenden_angefragt = app._wirklich_beenden = False
+    lock = app._phone_screen_session_lock = PhoneScreenSessionLock()
+    lock._lease = object()
+    replies = []
+    app.antwort = lambda target, value: replies.append(value) if target == 'App.kdeMedien' else None
+    factory = Mock()
+    monkeypatch.setattr(admission, 'DesktopScreenDraftAttempt', factory)
+    app.show_all()
+
+    def command(action, **extra):
+        count = len(replies)
+        app._desktop_mirror_ui(dict(cmd=f'telefon_desktop_mirror_{action}', peer=peer['device_id'], requestId=action, **extra))
+        wait_for(lambda: len(replies) > count)
+        return replies[-1]
+
+    try:
+        yield app, command, factory
+    finally:
+        app._desktop_mirror_stop()
+        if factory.called:
+            owner = app._desktop_mirror_owner
+            if owner is not None and owner._cleanup is None:
+                factory.call_args.kwargs['ended'](DesktopScreenAttemptCleanup(ScreenRunCleanup(True, True, True), True))
+            if owner is not None:
+                wait_for(lambda: owner._terminal)
+        wait_for(lambda: getattr(app, '_desktop_mirror_pending', None) is None)
+        app.destroy()
+        lock.close()
+
+
+@pytest.mark.parametrize('native', [True], indirect=True)
+@pytest.mark.parametrize('unavailable', [None, DesktopScreenProvider(),
+    DesktopScreenProvider(':1.245', MONITOR, False, 0, 2), DesktopScreenProvider(':1.245', WINDOW, True, 0, 6)])
+def test_mirror_reports_unavailable_portal_without_arming(connected, mirror_app, monkeypatch, unavailable):
+    from gi.repository import Gio
+    import magnolie_desktop_screen_portal as portal
+
+    service, _, client = connected
+    app, command, factory = mirror_app
+    bus = None if unavailable is None else object()
+    monkeypatch.setattr(Gio, 'bus_get_sync', lambda *_: bus)
+    query = Mock(return_value=unavailable)
+    monkeypatch.setattr(portal, 'read_desktop_screen_provider', query)
+
+    assert not command('stand')['desktopMirror']['active']
+    query.assert_not_called()
+    result = command('arm')
+    assert not result['ok'] and result['desktopMirror'] == dict(included=True, active=False, status='portal_unavailable')
+    assert getattr(app, '_desktop_mirror_owner', None) is None and app._desktop_mirror_lease is None
+    assert service._desktop_screen_draft_dispatch._owner is None
+    query.assert_called_once()
+    factory.assert_not_called()
+    ping(client)
+
+
+@pytest.mark.parametrize('native', [True], indirect=True)
+@pytest.mark.parametrize('transport,local,confirmed', [
+    (True, ScreenRunCleanup(True, True, True), True),
+    (False, ScreenRunCleanup(True, True, True), False),
+    (True, ScreenRunCleanup(False, True, True), False),
+    (True, ScreenRunCleanup(True, False, True), False),
+    (True, ScreenRunCleanup(True, True, False), False),
+])
+def test_mirror_stop_reports_drain_and_retains_uncertain_owner(connected, mirror_app, monkeypatch, transport, local, confirmed):
+    from gi.repository import Gio
+    import magnolie_desktop_screen_portal as portal
+
+    service, _, client = connected
+    app, command, factory = mirror_app
+    monkeypatch.setattr(Gio, 'bus_get_sync', lambda *_: object())
+    query = Mock(return_value=DesktopScreenProvider(':1.245', MONITOR, False, 0, 6))
+    monkeypatch.setattr(portal, 'read_desktop_screen_provider', query)
+    result = command('arm')
+    assert result['ok']
+    lease = result['desktopMirror']['lease']
+    owner = app._desktop_mirror_owner
+    _, dialog = show(owner, client, 1)
+    dialog.response(Gtk.ResponseType.ACCEPT)
+    factory.return_value.begin.assert_called_once()
+    result = command('stop', lease=lease)
+    stopping = dict(included=True, active=True, status='stopping')
+    assert result['ok'] and result['desktopMirror'] == stopping
+    result = command('arm')
+    assert not result['ok'] and result['desktopMirror'] == stopping
+    factory.return_value.stop.assert_called_once()
+    factory.call_args.kwargs['ended'](DesktopScreenAttemptCleanup(local, transport))
+    wait_for(lambda: owner._terminal)
+    dispatch = service._desktop_screen_draft_dispatch
+    if confirmed:
+        assert app._desktop_mirror_owner is None and dispatch._owner is None
+        assert command('stand')['desktopMirror'] == dict(included=True, active=False)
+        assert command('arm')['ok']
+    else:
+        held = dict(included=True, active=True, status='cleanup_unconfirmed')
+        assert app._desktop_mirror_owner is owner and dispatch._owner is owner._original
+        assert command('stand')['desktopMirror'] == held
+        assert not command('stop', lease=lease)['ok']
+        result = command('arm')
+        assert not result['ok'] and result['desktopMirror'] == held
+        # A replacement service would have a different dispatch slot. The
+        # Organizer must still refuse before selecting a reader on that service.
+        successor = object.__new__(type(service))
+        successor.private_desktop_mirror_candidate = Mock(side_effect=AssertionError('new candidate selected'))
+        app._telefon = successor
+        try:
+            result = command('arm')
+            assert not result['ok'] and result['desktopMirror'] == held
+            successor.private_desktop_mirror_candidate.assert_not_called()
+            assert app._desktop_mirror_owner is owner
+        finally:
+            app._telefon = service
+        query.assert_called_once()
+        factory.return_value.stop.assert_called_once()
+    ping(client)
+
+
 @pytest.mark.parametrize('native,private_mirror', [(False, False), (True, True)], indirect=['native'])
 def test_private_native_mirror_entry_keeps_consent_and_never_resolves_replacement(connected, monkeypatch, private_mirror):
     service, peer, client = connected

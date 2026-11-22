@@ -30269,12 +30269,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const update = el("button", null, _("Refresh"));
     arm.type = stop.type = update.type = "button";
     block.append(arm, stop, update, status); container.append(block);
-    let pending = false, mounted = true, active = false, lease = "";
+    let pending = false, mounted = true, checked = false, active = false, lease = "";
     const visible = () => mounted && block.isConnected && wurzel.open && !gesperrt &&
       !block.closest("#einstellungen-schleier")?.classList.contains("verborgen");
     const draw = () => {
-      arm.hidden = pending || active;
-      stop.hidden = pending || !active || !lease;
+      arm.hidden = pending || !checked || active;
+      stop.hidden = pending || !checked || !active || !lease;
       update.disabled = pending;
     };
     async function request(action) {
@@ -30285,10 +30285,20 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const result = await kdeMedienAnfordern("telefon_desktop_mirror_" + action, args);
         if (!mounted) return;
         const state = result.desktopMirror;
-        block.hidden = state?.included !== true;
-        active = state?.active === true;
+        checked = typeof state?.included === "boolean" && typeof state.active === "boolean";
+        if (!checked) {
+          status.textContent = _("Screen mirroring status is unknown. Refresh to check again.");
+          return;
+        }
+        block.hidden = !state.included;
+        active = state.active;
         lease = active && typeof state?.lease === "string" && /^[0-9a-f]{32}$/.test(state.lease) ? state.lease : "";
-        status.textContent = !result.ok ? _("Screen mirroring did not start.") : active ?
+        status.textContent = state.status === "portal_unavailable" ?
+          _("Screen sharing is unavailable in this desktop session. No screen sharing was started.") :
+          state.status === "cleanup_unconfirmed" ? _("The system did not confirm that screen mirroring stopped. You cannot start another session here.") :
+          state.status === "stopping" ? _("Stopping screen mirroring. Refresh to check whether it has stopped.") :
+          !result.ok && action === "stop" ? _("The stop request no longer matches the current session.") :
+          !result.ok ? _("Screen mirroring did not start.") : active ?
           _("Request screen viewing in Magnolie Notes, then confirm on this computer.") : "";
       } finally {
         pending = false; draw();

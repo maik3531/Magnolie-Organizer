@@ -10590,6 +10590,21 @@ msgstr "Fordere die Bildschirmansicht in Magnolie Notes an und bestätige sie da
 msgid "Screen mirroring did not start."
 msgstr "Die Bildschirmspiegelung wurde nicht gestartet."
 
+msgid "Screen sharing is unavailable in this desktop session. No screen sharing was started."
+msgstr "In dieser Desktop-Sitzung ist keine Bildschirmfreigabe verfügbar. Es wurde keine Freigabe gestartet."
+
+msgid "The system did not confirm that screen mirroring stopped. You cannot start another session here."
+msgstr "Das System hat das Ende der Bildschirmspiegelung nicht bestätigt. Hier kann keine neue Spiegelung gestartet werden."
+
+msgid "Stopping screen mirroring. Refresh to check whether it has stopped."
+msgstr "Die Bildschirmspiegelung wird beendet. Aktualisiere die Anzeige, um zu prüfen, ob sie beendet ist."
+
+msgid "The stop request no longer matches the current session."
+msgstr "Die Stopp-Anfrage gehört nicht mehr zur aktuellen Sitzung."
+
+msgid "Screen mirroring status is unknown. Refresh to check again."
+msgstr "Der Zustand der Bildschirmspiegelung ist unbekannt. Aktualisiere die Anzeige, um ihn erneut abzufragen."
+
 msgid "Show phone screen"
 msgstr "Handybildschirm einblenden"
 
