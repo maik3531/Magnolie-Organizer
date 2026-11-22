@@ -56,6 +56,26 @@ class MediaOfferEnvelopeTest {
         val selected = body(body(message, "settings", settings), "originals", buildJsonObject {})
         assertTrue(MediaOfferEnvelope.validate(selected, a, b, vector.long("now")).originals.isEmpty())
     }
+
+    @Test fun offerStillValidatesEveryRegisterEvenWhenThatMediaTypeIsNotSelected() {
+        val fixture = vector(); val message = fixture.getValue("message").jsonObject; val now = fixture.long("now")
+        val settings = message.getValue("body").jsonObject.getValue("settings").jsonObject
+        val fields = settings.getValue("settings").jsonObject
+        val video = fields.getValue("videos_enabled").jsonObject
+        val (origin, raw) = video.entries.first()
+        val edit = raw.jsonObject
+        val invalid = listOf(
+            JsonObject(video + (origin to JsonObject(edit + ("counter" to JsonPrimitive("0"))))),
+            JsonObject(video + (origin to JsonObject(edit + ("value" to JsonPrimitive("false"))))),
+            JsonObject(video + (origin to JsonObject(edit + ("extra" to JsonPrimitive(false)))))
+        )
+        for (replacement in invalid) {
+            val changed = JsonObject(settings + ("settings" to JsonObject(fields + ("videos_enabled" to replacement))))
+            reject { MediaOfferEnvelope.validate(body(message, "settings", changed), a, b, now) }
+        }
+        assertEquals(settings, MediaOfferEnvelope.validate(message, a, b, now).settings)
+    }
+
     @Test fun opaquePcOriginVersionTwoHasSharedBytesWithoutPhoneProofOrNativePaths() {
         val v = vector(); val base = v.getValue("message").jsonObject
         val pc = Json.parseToJsonElement(File("../contracts/media-pc-origin-v1-vectors.json").readText()).jsonObject

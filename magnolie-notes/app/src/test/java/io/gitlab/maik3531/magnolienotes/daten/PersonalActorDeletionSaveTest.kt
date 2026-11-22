@@ -10,6 +10,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
 import java.io.IOException
+import java.security.MessageDigest
 import javax.crypto.spec.SecretKeySpec
 import kotlinx.serialization.json.*
 
@@ -45,6 +46,24 @@ class PersonalActorDeletionSaveTest {
         fun apply(proposals: List<PersonalDeletionProposal>, choices: List<AppliedPersonalDecision>,
             after: PersonalContentSelection, beforeBook: Bestand = storage.bestand.value): String = storage.personalSyncApplyActorDeletionOnce(
                 PEER, RUN, TOKEN, beforeBook, PersonalSync.livePersonalContent(beforeBook), after, proposals, choices, emptyList())
+    }
+
+    @Test fun savedBookWitnessUsesTheExactSha256OfTheEncryptedWritePlaintext() {
+        val f = Fixture()
+        val crypto = DatenDateiKrypto(key = { SecretKeySpec(ByteArray(32) { 19 }, "AES") })
+        fun requireHash(): JsonObject {
+            val saved = requireNotNull(f.storage.personalActorSavedBookState())
+            val plaintext = crypto.entschluesseln(f.file.readBytes(), f.file.name)
+            val expected = MessageDigest.getInstance("SHA-256").digest(plaintext).joinToString("") { "%02x".format(it) }
+            assertEquals(expected, saved.getValue("sha256").jsonPrimitive.content)
+            return saved
+        }
+        val before = requireHash()
+        f.storage.setzeNotiz(Notiz("unicode", "Änderung", "Grüße · 📷"))
+        val after = requireHash()
+        assertNotEquals(before["sha256"], after["sha256"])
+        assertEquals(before["book_source"], after["book_source"])
+        assertEquals(before.getValue("sequence").jsonPrimitive.long + 1, after.getValue("sequence").jsonPrimitive.long)
     }
 
     @Test fun completeReviewUsesOneEncryptedWriteAndReplayUsesNone() {

@@ -66,6 +66,27 @@ class TelefonProtokollTest {
         }
     }
 
+    @Test fun `Rahmen vergleicht literale und maskierte Schluessel pro Objekt`() {
+        fun framed(text: String): JsonObject {
+            val raw = text.encodeToByteArray()
+            val bytes = java.nio.ByteBuffer.allocate(4 + raw.size).putInt(raw.size).put(raw).array()
+            return TelefonRahmen.lesen(ByteArrayInputStream(bytes))
+        }
+        for (text in listOf(
+            """{"format":1,"\u0066ormat":2}""",
+            """{"nested":[{"\u0061":1,"a":2}]}""",
+            """{"ä":1,"\u00e4":2}""",
+            """{"a\"b":1,"a\u0022b":2}""",
+            """{"a\\b":1,"a\u005cb":2}"""
+        )) {
+            val failure = org.junit.Assert.assertThrows(TelefonProtokollFehler::class.java) { framed(text) }
+            assertEquals("Doppelter JSON-Schlüssel.", failure.message)
+        }
+        val valid = framed("""{"a":1,"nested":[{"\u0061":"text, \"key\": 2"},{"a":3}],"ä":4,"":5}""")
+        assertEquals(setOf("a", "nested", "ä", ""), valid.keys)
+        assertEquals(JsonPrimitive(5), valid[""])
+    }
+
     @Test fun `Statusvertrag und Capabilities bleiben getrennt`() {
         val body = DeviceStatusCollector.body(DeviceStatus("123e4567-e89b-12d3-a456-426614174000", "Pixel", "Google",
             osVersion = "16", batteryPercent = 73, charging = "charging", capturedMs = 1_786_617_000_000))

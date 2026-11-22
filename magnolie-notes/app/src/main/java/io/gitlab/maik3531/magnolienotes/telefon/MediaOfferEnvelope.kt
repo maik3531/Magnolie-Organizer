@@ -42,16 +42,16 @@ internal object MediaOfferEnvelope {
         val offer = JsonObject(message.toMutableMap().apply { put("kind", JsonPrimitive(DeviceFileOfferEnvelope.KIND)); put("body", rawOffer) })
         val manifest = DeviceFileOfferEnvelope.validate(offer, senderId, receiverId, now)
         val settings = body["settings"] as? JsonObject ?: fail()
-        MediaSyncSettings.validateStart(buildJsonObject { put("format", 1); put("settings", settings) })
         val kind = GalleryMediaType.entries.singleOrNull { JsonPrimitive(it.uriSegment) == body["media_type"] } ?: fail()
-        if (!MediaSyncSettings.transferRequestedFor(settings, kind.uriSegment, toPhone = true)) fail()
+        val effective = MediaSyncSettings.effectiveForRequestedTransfer(settings, kind.uriSegment, toPhone = true) ?: fail()
+        val collection = effective.string("collection_mode")
         val ids = manifest.files.map { it.id }.toSet()
         val mime = body["mime_types"] as? JsonObject ?: fail()
         val references = body["originals"] as? JsonObject ?: fail()
         if (mime.keys != ids || references.keys.any { it !in ids } ||
-            MediaSyncSettings.effective(settings).string("collection_mode") == "phone_inventory" && references.keys != ids) fail()
+            collection == "phone_inventory" && references.keys != ids) fail()
         val pc = if (pcVersion) body["pc_origins"] as? JsonObject ?: fail() else JsonObject(emptyMap())
-        if (pcVersion && (pc.isEmpty() || MediaSyncSettings.effective(settings).string("collection_mode") != "entire_collection" ||
+        if (pcVersion && (pc.isEmpty() || collection != "entire_collection" ||
             pc.keys.any { it !in ids || it in references } || pc.keys + references.keys != ids)) fail()
         if (pcBatch && (references.isNotEmpty() || pc.keys != ids || manifest.files.any { it.size == 0L })) fail()
         val pcOrigins = pc.mapValues { (_, value) -> GalleryPcMediaOrigin.parse(value as? JsonObject ?: fail()) }

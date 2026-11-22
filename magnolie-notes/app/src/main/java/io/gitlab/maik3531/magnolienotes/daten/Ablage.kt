@@ -7,6 +7,7 @@ import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.system.ErrnoException
 import android.system.OsConstants
 import io.gitlab.maik3531.magnolienotes.R
+import io.gitlab.maik3531.magnolienotes.telefon.NativeHex
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -271,8 +272,9 @@ class Ablage private constructor(
         }
     }
 
-    private fun actorBookHash(encoded: String): String = MessageDigest.getInstance("SHA-256")
-        .digest(encoded.encodeToByteArray()).joinToString("") { "%02x".format(it) }
+    private fun actorBookHash(encoded: String): String = NativeHex.lower(
+        MessageDigest.getInstance("SHA-256").digest(encoded.encodeToByteArray())
+    )
 
     init {
         // Vor jeglicher Recovery-Bereinigung muss Aliasverlust erkannt sein.

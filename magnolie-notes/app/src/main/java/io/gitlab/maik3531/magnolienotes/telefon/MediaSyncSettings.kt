@@ -49,22 +49,28 @@ internal object MediaSyncSettings {
         })
     }
 
-    private fun registers(field: String, raw: JsonElement): JsonObject {
-        require(field in fields)
+    private fun translatedRegister(field: String, raw: JsonElement): JsonObject {
         // Registers are evaluated individually: activation and photo selection
         // must never share an edit clock just because both are Boolean values.
-        return SharedSyncSettings.validate(buildJsonObject {
+        return buildJsonObject {
             put("format", SharedSyncSettings.VERSION)
             put("settings", buildJsonObject { put(fields.getValue(field), settingRegister(field, raw, true)) })
-        })
+        }
     }
 
-    fun validate(body: JsonObject): JsonObject {
+    private fun registers(field: String, raw: JsonElement): JsonObject =
+        SharedSyncSettings.validate(translatedRegister(field, raw))
+
+    private fun checkedFields(body: JsonObject): JsonObject {
         TelefonNachrichten.exact(body, setOf("format", "settings"))
         require(body["format"] == JsonPrimitive(VERSION))
         val values = body["settings"] as? JsonObject ?: error("Missing media settings")
         require(values.size in 1..fields.size && values.keys.all { it in fields })
-        values.forEach { (field, raw) -> registers(field, raw) }
+        return values
+    }
+
+    fun validate(body: JsonObject): JsonObject {
+        checkedFields(body).forEach { (field, raw) -> registers(field, raw) }
         return body
     }
 
@@ -104,11 +110,12 @@ internal object MediaSyncSettings {
     }
 
     fun configured(body: JsonObject): JsonObject {
-        validate(body)
-        val values = body.getValue("settings").jsonObject.mapValues { (field, raw) ->
-            settingValue(field, SharedSyncSettings.effective(registers(field, raw)).getValue(fields.getValue(field)), false)
+        val checked = checkedFields(body)
+        val values = checked.mapValues { (field, raw) ->
+            // effective validates the whole translated register before evaluating it.
+            settingValue(field, SharedSyncSettings.effective(translatedRegister(field, raw)).getValue(fields.getValue(field)), false)
         }.toMutableMap()
-        body.getValue("settings").jsonObject["auto_mode"]?.jsonObject?.let { modes ->
+        checked["auto_mode"]?.jsonObject?.let { modes ->
             val newest = modes.values.maxOf { it.jsonObject.getValue("counter").jsonPrimitive.long }
             values["auto_mode"] = JsonPrimitive(if (modes.values.any { edit ->
                 edit.jsonObject.getValue("counter").jsonPrimitive.long == newest &&
@@ -135,18 +142,26 @@ internal object MediaSyncSettings {
         return validate(JsonObject(body + ("settings" to JsonObject(values))))
     }
 
-    fun transferRequestedFor(body: JsonObject, mediaType: String, toPhone: Boolean): Boolean {
-        if (!requestedFor(body, mediaType)) return false
-        val direction = effective(body).string("direction")
-        return direction == "two_way" || direction == (if (toPhone) "pc_to_phone" else "phone_to_pc")
+    fun transferRequestedFor(body: JsonObject, mediaType: String, toPhone: Boolean): Boolean =
+        effectiveForRequestedTransfer(body, mediaType, toPhone) != null
+
+    /** One fully validated projection for the current call. Not a native intent/grant. */
+    fun effectiveForRequestedTransfer(body: JsonObject, mediaType: String, toPhone: Boolean): JsonObject? {
+        val values = completeEffective(body, mediaType)
+        if (!requested(values, mediaType)) return null
+        val direction = values.string("direction")
+        return values.takeIf { direction == "two_way" || direction == (if (toPhone) "pc_to_phone" else "phone_to_pc") }
     }
 
-    fun requestedFor(body: JsonObject, mediaType: String): Boolean {
+    fun requestedFor(body: JsonObject, mediaType: String): Boolean = requested(completeEffective(body, mediaType), mediaType)
+
+    private fun completeEffective(body: JsonObject, mediaType: String): JsonObject {
         require(body["settings"]?.jsonObject?.size == fields.size && mediaType in setOf("images", "video"))
-        val values = effective(body)
-        return values.getValue("enabled").jsonPrimitive.boolean &&
-            values.getValue(if (mediaType == "images") "photos_enabled" else "videos_enabled").jsonPrimitive.boolean
+        return effective(body)
     }
+
+    private fun requested(values: JsonObject, mediaType: String): Boolean = values.getValue("enabled").jsonPrimitive.boolean &&
+        values.getValue(if (mediaType == "images") "photos_enabled" else "videos_enabled").jsonPrimitive.boolean
 
     fun merge(body: JsonObject, incoming: JsonObject, localActor: String, peerActor: String): JsonObject =
         mergeOwned(body, incoming, localActor, peerActor, false)

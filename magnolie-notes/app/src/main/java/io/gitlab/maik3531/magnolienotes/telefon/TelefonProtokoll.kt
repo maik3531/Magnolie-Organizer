@@ -164,8 +164,13 @@ object TelefonRahmen {
                         var j = ende + 1
                         while (j < text.length && text[j].isWhitespace()) j++
                         if (j < text.length && text[j] == ':') {
-                            val schluessel = TelefonKanonisch.json.parseToJsonElement(text.substring(start, ende + 1)).let {
-                                (it as JsonPrimitive).content
+                            // An unescaped printable ASCII key already has its
+                            // decoded spelling. Other keys still go through JSON
+                            // decoding, so an escaped alias matches a literal key.
+                            val schluessel = if ((start + 1 until ende).all { text[it] in ' '..'~' && text[it] != '\\' }) {
+                                text.substring(start + 1, ende)
+                            } else {
+                                (TelefonKanonisch.json.parseToJsonElement(text.substring(start, ende + 1)) as JsonPrimitive).content
                             }
                             if (!ebene.schluessel.add(schluessel)) return true
                             ebene.erwartet = false
