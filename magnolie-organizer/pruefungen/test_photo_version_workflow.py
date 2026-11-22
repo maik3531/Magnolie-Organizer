@@ -224,7 +224,7 @@ def test_pc_edit_during_version_download_is_held_before_publication_or_head_adva
     assert connection._mappings.read()==before and not list(receiving[4].glob('Versionen/**/*.jpg'))
 
 
-@pytest.mark.parametrize('outcome',['intent_only','completed_move','independent_receive','version_alias','folder_completed','folder_then_book_save'])
+@pytest.mark.parametrize('outcome',['intent_only','completed_move','independent_receive','version_alias','folder_completed','folder_then_book_save','folder_then_same_bytes_save'])
 def test_photo_review_and_version_publication_respect_the_original_relocation_owner(receiving,outcome):
     from contextlib import closing
     from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
@@ -251,7 +251,7 @@ def test_photo_review_and_version_publication_respect_the_original_relocation_ow
     mapping,=(entry for entry in mappings if entry.relative_path==path)
     prefs=connection._preferences.read();jobs=connection._catalog.jobs()
     old=root/mapping.relative_path;new=root/'Animationen'/mapping.relative_path
-    if outcome in ('folder_completed','folder_then_book_save'):
+    if outcome in ('folder_completed','folder_then_book_save','folder_then_same_bytes_save'):
         from magnolie_media_relocation_record import (MissingGifTargetDraft, bind_gif_relocation_folder_plan,
             inspect_relocation_target_parents)
         relative=str(new.relative_to(root))
@@ -272,16 +272,19 @@ def test_photo_review_and_version_publication_respect_the_original_relocation_ow
             state,chunks,saved=cycle(fresh,changed(full,'b',ANIMATED),ANIMATED,media_kinds=kinds)
             assert state['state']=='complete' and state['known_files']==1 and not chunks and not saved,state
             assert reopened._mappings.lookup((mapping.association,))==(snapshot,(mapping,))
-            if outcome=='folder_then_book_save':
+            if outcome in ('folder_then_book_save','folder_then_same_bytes_save'):
                 from magnolie_media_retention import saved_book_retention
                 from magnolie_telefon import canonical, strict_json
                 native_root=Path(reopened._authority.binding.native_directory)
                 book_path=native_root.parent/'daten.json'
-                changed_book=strict_json(book_path.read_bytes())
-                changed_book['relocation_regression_fixture']='unrelated book edit'
+                original_bytes=book_path.read_bytes()
+                changed_book=strict_json(original_bytes)
+                if outcome=='folder_then_book_save':
+                    changed_book['relocation_regression_fixture']='unrelated book edit'
                 with saved_book_retention(native_root,changed_book) as publication:
-                    book_path.write_bytes(canonical(changed_book))
+                    book_path.write_bytes(canonical(changed_book) if outcome=='folder_then_book_save' else original_bytes)
                 assert not publication
+                if outcome=='folder_then_same_bytes_save':assert book_path.read_bytes()==original_bytes
                 with NativeMediaRetention(native_root) as book:assert book.saved_book_version()!=saved_book
                 state,chunks,saved=cycle(fresh,changed(full,'c',ANIMATED),ANIMATED,media_kinds=kinds)
                 assert state['state']=='held' and state['error']=='photo_relocation_original_book_changed',state
