@@ -11,6 +11,8 @@
     <string name="webcam_stoppt">Спыненне вэб-камеры тэлефона…</string>
     <string name="webcam_beenden">Спыніць</string>
     <string name="telefon_erweitert_titel">Пашыраныя функцыі</string>
+    <string name="telefon_desktop_spiegelung_start">Запытаць прагляд экрана камп’ютара</string>
+    <string name="telefon_desktop_spiegelung_nicht_verfuegbar">Прагляд экрана недаступны праз гэта злучэнне Wi-Fi.</string>
     <string name="media_recovery_title">Аднаўленне фота і відэа</string>
     <string name="media_recovery_android_gallery">Кошыкам арыгіналаў на тэлефоне кіруе праграма галерэі. У ёй можна праверыць тэрмін захоўвання, напрыклад 30 дзён, і ачысціць кошык. Паказаныя тут копіі захоўваюцца асобна.</string>
     <string name="media_recovery_hint">Лакальныя зашыфраваныя копіі для аднаўлення, даступныя і без ранейшага злучэння. Пры аднаўленні копія і наяўныя медыяфайлы захоўваюцца.</string>

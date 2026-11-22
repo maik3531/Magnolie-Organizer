@@ -11,6 +11,8 @@
     <string name="webcam_stoppt">Остановка веб-камеры телефона…</string>
     <string name="webcam_beenden">Остановить</string>
     <string name="telefon_erweitert_titel">Расширенные функции</string>
+    <string name="telefon_desktop_spiegelung_start">Запросить просмотр экрана компьютера</string>
+    <string name="telefon_desktop_spiegelung_nicht_verfuegbar">Просмотр экрана через это подключение Wi-Fi недоступен.</string>
     <string name="media_recovery_title">Восстановление фото и видео</string>
     <string name="media_recovery_android_gallery">Корзиной для оригиналов с телефона управляет приложение галереи. Проверьте в нём срок хранения, например 30 дней, и очистите корзину там же. Показанные здесь копии хранятся отдельно.</string>
     <string name="media_recovery_hint">Локальные зашифрованные копии для восстановления, доступные и без прежнего подключения. При восстановлении копия и существующие медиафайлы сохраняются.</string>

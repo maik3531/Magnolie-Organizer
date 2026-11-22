@@ -11,6 +11,8 @@
     <string name="webcam_stoppt">Deteniendo la cámara web del teléfono…</string>
     <string name="webcam_beenden">Detener</string>
     <string name="telefon_erweitert_titel">Funciones avanzadas</string>
+    <string name="telefon_desktop_spiegelung_start">Solicitar ver la pantalla del ordenador</string>
+    <string name="telefon_desktop_spiegelung_nicht_verfuegbar">No se puede ver la pantalla a través de esta conexión Wi-Fi.</string>
     <string name="media_recovery_title">Recuperación de fotos y vídeos</string>
     <string name="media_recovery_android_gallery">La aplicación de galería gestiona la papelera de los originales del teléfono. Consulta allí el plazo de conservación, por ejemplo 30 días, y vacía la papelera desde esa aplicación. Las copias de esta lista son independientes.</string>
     <string name="media_recovery_hint">Copias de recuperación locales cifradas, disponibles también sin la conexión anterior. Al restaurar se conservan la copia de recuperación y los archivos multimedia existentes.</string>

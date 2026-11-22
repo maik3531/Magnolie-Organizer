@@ -2,6 +2,8 @@ package io.gitlab.maik3531.magnolienotes.telefon
 
 import android.os.Looper
 import androidx.activity.ComponentActivity
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.JsonObject
 
 /** Private attachment to the established, authenticated WLAN reader. It does
@@ -14,34 +16,35 @@ internal class DesktopScreenDraftNotesDispatch {
 
     private class Slot(val original: Original, val attempt: DesktopScreenDraftPhoneAttempt)
 
-    @Volatile private var current: Original? = null
+    private val current = MutableStateFlow<Original?>(null)
+    val originals = current.asStateFlow()
     @Volatile private var slot: Slot? = null
 
     @Synchronized
     fun bind(original: Original): Original {
-        current = original
+        current.value = original
         return original
     }
 
     @Synchronized
     fun retire(channel: TelefonSecureChannel? = null) {
-        if (channel == null || current?.channel === channel) current = null
+        if (channel == null || current.value?.channel === channel) current.value = null
         // The owner's live guard fences PREPARED/media and its main-context
         // tick closes the viewer. Neither the session reader nor Werk joins it.
     }
 
     fun candidate(deviceId: String, publicKey: String): Original {
-        val original = checkNotNull(current)
+        val original = checkNotNull(current.value)
         check(original.deviceId == deviceId && original.key == publicKey)
         requireLive(original)
         return original
     }
 
     private fun requireLive(original: Original) {
-        check(current === original)
+        check(current.value === original)
         original.live()
         original.channel.requireOriginalWlanPipe(original.pipe)
-        check(current === original)
+        check(current.value === original)
     }
 
     /** Only an explicit native action can take this slot. A replacement source
@@ -69,7 +72,7 @@ internal class DesktopScreenDraftNotesDispatch {
      * up by the sender's payload or borrowed from the latest connection. */
     fun receive(original: Original, frame: JsonObject): Boolean {
         val owner = slot?.takeIf { it.original === original } ?: return false
-        if (current !== original) return false
+        if (current.value !== original) return false
         return owner.attempt.receive(original.channel, frame)
     }
 }

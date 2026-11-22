@@ -1276,6 +1276,22 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
 
                 3 -> BaumBlatt(
                     medienWiederherstellung = { io.gitlab.maik3531.magnolienotes.ui.MedienWiederherstellung(ablage, inMedien = true) },
+                    desktopSpiegelungStart = telefonWerk.privateDesktopMirrorOriginals?.let { sources ->
+                        val original by sources.collectAsState()
+                        val activity = zusammenhang as? ComponentActivity
+                        val peer = telefonZustand.peer
+                        val selected = original?.takeIf {
+                            peer != null && it.deviceId == peer.device_id && it.key == peer.static_public &&
+                                runCatching { telefonWerk.desktopScreenDraftCandidate(peer.device_id, peer.static_public) === it }
+                                    .getOrDefault(false)
+                        }
+                        if (activity == null || selected == null) null else ({
+                            // Capture the displayed original. A replacement may not accept this click.
+                            runCatching { telefonWerk.beginPrivateDesktopMirror(activity, selected) }
+                                .onFailure { sage(zusammenhang.getString(R.string.telefon_desktop_spiegelung_nicht_verfuegbar)) }
+                            Unit
+                        })
+                    },
                     zustand = baumzustand,
                     bestand = bestand,
                     customFokus = customZiel,

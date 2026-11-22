@@ -146,6 +146,16 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val screenDispatch = PhoneScreenNotesDispatch(context)
     private val desktopScreenDraftDispatch = DesktopScreenDraftNotesDispatch()
 
+    // Private build composition only; never advertised or enabled by saved settings.
+    private val privateDesktopMirrorUi = false
+    internal val privateDesktopMirrorOriginals
+        get() = desktopScreenDraftDispatch.originals.takeIf { privateDesktopMirrorUi }
+
+    internal fun beginPrivateDesktopMirror(activity: ComponentActivity, original: DesktopScreenDraftNotesDispatch.Original) {
+        check(privateDesktopMirrorUi)
+        desktopScreenDraftDispatch.begin(activity, original, mode = 1) // View only, not an extension.
+    }
+
     internal fun desktopScreenDraftCandidate(deviceId: String, publicKey: String) =
         desktopScreenDraftDispatch.candidate(deviceId, publicKey)
 

@@ -11,6 +11,8 @@
     <string name="webcam_stoppt">Arrêt de la webcam du téléphone…</string>
     <string name="webcam_beenden">Arrêter</string>
     <string name="telefon_erweitert_titel">Fonctions avancées</string>
+    <string name="telefon_desktop_spiegelung_start">Demander à voir l’écran de l’ordinateur</string>
+    <string name="telefon_desktop_spiegelung_nicht_verfuegbar">Il est impossible de voir l’écran via cette connexion Wi-Fi.</string>
     <string name="media_recovery_title">Récupération des photos et vidéos</string>
     <string name="media_recovery_android_gallery">La galerie gère la corbeille des originaux du téléphone. Vérifiez la durée de conservation, par exemple 30 jours, dans la galerie et videz la corbeille depuis cette application. Les copies affichées ici sont distinctes.</string>
     <string name="media_recovery_hint">Copies de récupération locales chiffrées, disponibles même sans la connexion précédente. La copie de récupération et les médias existants sont conservés lors de la restauration.</string>

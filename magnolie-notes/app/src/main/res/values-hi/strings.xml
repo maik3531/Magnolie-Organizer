@@ -11,6 +11,8 @@
     <string name="webcam_stoppt">फ़ोन वेबकैम बंद हो रहा है…</string>
     <string name="webcam_beenden">बंद करें</string>
     <string name="telefon_erweitert_titel">उन्नत सुविधाएँ</string>
+    <string name="telefon_desktop_spiegelung_start">कंप्यूटर की स्क्रीन देखने का अनुरोध करें</string>
+    <string name="telefon_desktop_spiegelung_nicht_verfuegbar">इस वाई-फ़ाई कनेक्शन पर स्क्रीन नहीं देखी जा सकती।</string>
     <string name="media_recovery_title">फ़ोटो और वीडियो पुनर्प्राप्ति</string>
     <string name="media_recovery_android_gallery">फ़ोन की मूल फ़ाइलों का रीसायकल बिन गैलरी ऐप संभालता है। फ़ाइलें कितने समय तक रखी जाती हैं, जैसे 30 दिन, यह उसी ऐप में देखें और वहीं बिन खाली करें। यहाँ दी गई प्रतियाँ अलग हैं।</string>
     <string name="media_recovery_hint">स्थानीय एन्क्रिप्ट की गई पुनर्प्राप्ति प्रतियाँ, जो पुराने कनेक्शन के बिना भी उपलब्ध हैं। बहाल करते समय पुनर्प्राप्ति प्रति और मौजूदा मीडिया सुरक्षित रहते हैं।</string>

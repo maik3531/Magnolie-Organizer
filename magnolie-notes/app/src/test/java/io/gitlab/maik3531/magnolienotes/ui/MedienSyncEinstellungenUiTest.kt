@@ -15,6 +15,8 @@ import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.state.ToggleableState
 import io.gitlab.maik3531.magnolienotes.R
+import io.gitlab.maik3531.magnolienotes.daten.Baumzustand
+import io.gitlab.maik3531.magnolienotes.daten.Bestand
 import io.gitlab.maik3531.magnolienotes.telefon.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
@@ -50,20 +52,24 @@ class MedienSyncEinstellungenUiTest {
     private lateinit var view: ComposeView
     private var frame = 0L
 
-    private fun launch() {
+    private fun launch(content: @Composable () -> Unit = { mediaContent() }) {
         controller = Robolectric.buildActivity(ComponentActivity::class.java).create()
         view = ComposeView(controller!!.get()); view.setParentCompositionContext(recomposer)
         controller!!.get().setContentView(view)
         scope.launch { recomposer.runRecomposeAndApplyChanges() }
-        view.setContent { MagnolieThema { MedienSyncEinstellungen(state.value, { field, value, version ->
+        view.setContent { MagnolieThema { content() } }
+        controller!!.start().resume().visible().windowFocusChanged(true); frames()
+    }
+    @Composable
+    private fun mediaContent() {
+        MedienSyncEinstellungen(state.value, { field, value, version ->
             changes += Triple(field, value, version)
         }, { permissions++ }, { runs++ }, { receiving += it }, { archiving += it }, wiederherstellung = {
             MedienWiederherstellungListe(emptyList(), busy = false, failed = false, refresh = { error("No archive") },
                 options = { Text(stringResource(R.string.media_recovery_android_gallery)) },
                 onExpandedChanged = { if (it) recoveryOpened++ }, titleResource = R.string.journal_restore,
                 archivePresent = false, restore = { error("No archive") })
-        }) } }
-        controller!!.start().resume().visible().windowFocusChanged(true); frames()
+        })
     }
     private fun frames() {
         repeat(12) {
@@ -111,6 +117,55 @@ class MedienSyncEinstellungenUiTest {
         assertFalse(connected.copy(peer = null, mediaPreferencesSupported = true).erweiterteFunktionenSichtbar())
         for (status in TelefonVerbindungsstatus.entries.filterNot { it == TelefonVerbindungsstatus.ONLINE_WIFI })
             assertFalse(status.name, connected.copy(connection = status, mediaPreferencesSupported = true).erweiterteFunktionenSichtbar())
+    }
+
+    @Test fun desktopMirrorActionIsCollapsedAndOnlyExplicitClickStartsIt() {
+        val pc = TelefonPeer("synthetic-desktop", "Fixture", "synthetic-key")
+        val connection = mutableStateOf(TelefonUiZustand(enabled = true, peer = pc,
+            connection = TelefonVerbindungsstatus.ONLINE_WIFI))
+        val originalPresent = mutableStateOf(true)
+        var starts = 0
+        val start: () -> Unit = { starts++ }
+        val unexpected: () -> Nothing = { error("No unrelated setup, media or pairing action") }
+        val book = Baumhandlungen(
+            beiName = {}, beiDienst = {}, beiBluetooth = {}, beiAutoWlan = {}, beiBluetoothZiel = { _, _ -> },
+            beiFernziel = { _, _, _ -> }, beiAllesSynchronisieren = {}, beiKontaktSync = { _, _ -> },
+            beiKontakteSynchronisieren = {}, kontaktImportVorschau = null, beiKontaktImport = {},
+            beiKontaktImportBestaetigen = {}, beiKontaktImportAbbrechen = {}, beiKontaktLoeschSync = { _, _ -> },
+            beiKontaktVorschlag = {}, beiKontaktVorschlagAblehnen = {}, beiDubletteOeffnen = {}, beiDubletteVerknuepfen = {},
+            beiKontaktGruppeImportieren = { _, _ -> }, beiKontaktGruppeAblehnen = {}, beiSichereKontaktGruppenImportieren = {},
+            beiAlleKontaktKartenAblehnen = {}, beiPaarungsdatei = {}, beiPaarungstext = {}, beiEigeneDatei = {},
+            beiSuchen = {}, beiAnfragen = {}, beiBestaetigen = {}, beiEntfernen = {}, beiSenden = {},
+            beiVertrauen = { _, _ -> }, beiEingangAnnehmen = {}, beiEingangAblehnen = {}, beiMeldungenLeeren = {}
+        )
+        val phone = Telefonhandlungen(
+            { unexpected() }, unexpected, { unexpected() }, { unexpected() }, { unexpected() }, { unexpected() },
+            { unexpected() }, unexpected, unexpected, { unexpected() }, { unexpected() }, unexpected,
+            { unexpected() }, { unexpected() }, { unexpected() }, unexpected, { unexpected() }, { unexpected() },
+            { _, _, _ -> unexpected() }, { unexpected() }, { unexpected() }, { unexpected() }, unexpected,
+            { _, _ -> unexpected() }, { unexpected() }, { unexpected() }, { _, _, _ -> unexpected() },
+            { _, _, _ -> unexpected() }, unexpected, unexpected
+        )
+        launch {
+            BaumBlatt(Baumzustand(dienstAn = false), Bestand(), null, {}, "", emptyList(), emptyList(),
+                false, emptyList(), book, connection.value, phone, desktopSpiegelungStart = start.takeIf { originalPresent.value })
+        }
+        val title = label(R.string.telefon_erweitert_titel)
+        val button = label(R.string.telefon_desktop_spiegelung_start)
+        fun mirror() = nodes().filter { text(it) == button }
+        assertTrue(mirror().isEmpty())
+        click(nodes().single { text(it) == "▸ " + title })
+        assertEquals(0, starts)
+        click(mirror().single())
+        assertEquals(1, starts)
+        originalPresent.value = false
+        frames()
+        assertTrue(mirror().isEmpty())
+        originalPresent.value = true
+        connection.value = connection.value.copy(connection = TelefonVerbindungsstatus.ONLINE_BLUETOOTH)
+        frames()
+        assertTrue(mirror().isEmpty())
+        assertEquals(1, starts)
     }
 
     @Test fun masterStartsOffAndOnlyForwardsItsOwnVersionWithoutPermissionOrRun() {

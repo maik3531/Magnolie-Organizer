@@ -11,6 +11,8 @@
     <string name="webcam_stoppt">Webkamera telefona so zastaja…</string>
     <string name="webcam_beenden">Zastajić</string>
     <string name="telefon_erweitert_titel">Rozšěrjene funkcije</string>
+    <string name="telefon_desktop_spiegelung_start">Wo napohlad wobrazowki ličaka prosyć</string>
+    <string name="telefon_desktop_spiegelung_nicht_verfuegbar">Napohlad wobrazowki přez tutón WLAN-zwisk k dispoziciji njeje.</string>
     <string name="media_recovery_title">Wobnowjenje fotow a widejow</string>
     <string name="media_recovery_android_gallery">Galerijowa aplikacija zarjaduje papjernik za originale telefona. Přepruwujće tam dobu składowanja, na přikład 30 dnjow, a tam papjernik wuprózdńće. Tu pokazane kopije su wot papjernika dźělene.</string>
     <string name="media_recovery_hint">Lokalne zaklučowane kopije za wobnowjenje, kotrež su tež bjez prjedawšeho zwiska k dispoziciji. Při wobnowjenju so kopija a eksistowace medije wobchowaja.</string>

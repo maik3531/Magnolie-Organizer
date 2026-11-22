@@ -160,7 +160,8 @@ fun BaumBlatt(
     telefon: TelefonUiZustand,
     telefonHandlungen: Telefonhandlungen,
     modifier: Modifier = Modifier,
-    medienWiederherstellung: @Composable () -> Unit = {}
+    medienWiederherstellung: @Composable () -> Unit = {},
+    desktopSpiegelungStart: (() -> Unit)? = null
 ) {
     var telefonAppsOffen by remember { mutableStateOf(false) }
     var name by remember(zustand.name) { mutableStateOf(zustand.name) }
@@ -462,6 +463,9 @@ fun BaumBlatt(
             Papierknopf((if (erweitertOffen) "▾ " else "▸ ") + stringResource(R.string.telefon_erweitert_titel),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) { erweitertOffen = !erweitertOffen }
             if (erweitertOffen) Abschnitt(ueberschrift = stringResource(R.string.telefon_erweitert_titel)) {
+                desktopSpiegelungStart?.let { start ->
+                    Papierknopf(stringResource(R.string.telefon_desktop_spiegelung_start), beiKlick = start)
+                }
                 MedienSyncEinstellungen(telefon, telefonHandlungen.beiMedienEinstellung, telefonHandlungen.beiMedienBerechtigungen,
                     telefonHandlungen.beiMedienSynchronisieren,
                     beiArchiv = { kind -> telefonHandlungen.beiMedienArchiv(kind.uriSegment) },

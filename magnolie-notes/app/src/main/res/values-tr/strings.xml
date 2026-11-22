@@ -11,6 +11,8 @@
     <string name="webcam_stoppt">Telefon web kamerası durduruluyor…</string>
     <string name="webcam_beenden">Durdur</string>
     <string name="telefon_erweitert_titel">Gelişmiş özellikler</string>
+    <string name="telefon_desktop_spiegelung_start">Bilgisayar ekranını görüntülemeyi iste</string>
+    <string name="telefon_desktop_spiegelung_nicht_verfuegbar">Bu Wi-Fi bağlantısı üzerinden ekran görüntülenemiyor.</string>
     <string name="media_recovery_title">Fotoğraf ve video kurtarma</string>
     <string name="media_recovery_android_gallery">Telefondaki özgün dosyaların çöp kutusunu galeri uygulaması yönetir. Saklama süresini (örneğin 30 gün) oradan kontrol edin ve kutuyu aynı uygulamada boşaltın. Burada listelenen kopyalar ayrı tutulur.</string>
     <string name="media_recovery_hint">Önceki bağlantı olmadan da kullanılabilen yerel şifreli kurtarma kopyaları. Geri yükleme sırasında kurtarma kopyası ve mevcut medya korunur.</string>

@@ -11,6 +11,8 @@
     <string name="webcam_stoppt">Stopper telefonwebkamera…</string>
     <string name="webcam_beenden">Stop</string>
     <string name="telefon_erweitert_titel">Avancerede funktioner</string>
+    <string name="telefon_desktop_spiegelung_start">Anmod om at se computerens skærm</string>
+    <string name="telefon_desktop_spiegelung_nicht_verfuegbar">Skærmvisning er ikke tilgængelig via denne Wi-Fi-forbindelse.</string>
     <string name="media_recovery_title">Gendannelse af billeder og videoer</string>
     <string name="media_recovery_android_gallery">Galleriappen styrer papirkurven for telefonens originaler. Tjek opbevaringstiden i appen, f.eks. 30 dage, og tøm papirkurven samme sted. Kopierne på denne liste er adskilt fra papirkurven.</string>
     <string name="media_recovery_hint">Lokale krypterede gendannelseskopier, også tilgængelige uden den tidligere forbindelse. Gendannelseskopien og eksisterende medier bevares ved gendannelse.</string>

@@ -11,6 +11,8 @@
     <string name="webcam_stoppt">A parar a webcam do telemóvel…</string>
     <string name="webcam_beenden">Parar</string>
     <string name="telefon_erweitert_titel">Funcionalidades avançadas</string>
+    <string name="telefon_desktop_spiegelung_start">Pedir para ver o ecrã do computador</string>
+    <string name="telefon_desktop_spiegelung_nicht_verfuegbar">Não é possível ver o ecrã através desta ligação Wi-Fi.</string>
     <string name="media_recovery_title">Recuperação de fotografias e vídeos</string>
     <string name="media_recovery_android_gallery">A aplicação de galeria gere a reciclagem dos ficheiros originais do telemóvel. Consulte nessa aplicação o período de retenção, por exemplo 30 dias, e esvazie a reciclagem a partir daí. As cópias nesta lista são independentes.</string>
     <string name="media_recovery_hint">Cópias de recuperação locais encriptadas, também disponíveis sem a ligação anterior. A cópia de recuperação e os ficheiros multimédia existentes são preservados ao restaurar.</string>

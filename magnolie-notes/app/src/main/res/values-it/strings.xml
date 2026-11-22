@@ -11,6 +11,8 @@
     <string name="webcam_stoppt">Arresto della webcam del telefono…</string>
     <string name="webcam_beenden">Interrompi</string>
     <string name="telefon_erweitert_titel">Funzioni avanzate</string>
+    <string name="telefon_desktop_spiegelung_start">Chiedi di vedere lo schermo del computer</string>
+    <string name="telefon_desktop_spiegelung_nicht_verfuegbar">Non è possibile vedere lo schermo tramite questa connessione Wi-Fi.</string>
     <string name="media_recovery_title">Recupero di foto e video</string>
     <string name="media_recovery_android_gallery">La galleria gestisce il cestino degli originali del telefono. Controlla nella galleria il periodo di conservazione, per esempio 30 giorni, e svuota il cestino da lì. Le copie elencate qui sono separate.</string>
     <string name="media_recovery_hint">Copie di recupero locali crittografate, disponibili anche senza la connessione precedente. Durante il ripristino vengono conservati la copia di recupero e i contenuti multimediali esistenti.</string>

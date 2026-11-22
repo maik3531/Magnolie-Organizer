@@ -11,6 +11,8 @@
     <string name="webcam_stoppt">スマートフォンのウェブカメラを停止中…</string>
     <string name="webcam_beenden">停止</string>
     <string name="telefon_erweitert_titel">高度な機能</string>
+    <string name="telefon_desktop_spiegelung_start">パソコンの画面の表示をリクエスト</string>
+    <string name="telefon_desktop_spiegelung_nicht_verfuegbar">この Wi-Fi 接続では画面を表示できません。</string>
     <string name="media_recovery_title">写真と動画の復元</string>
     <string name="media_recovery_android_gallery">スマートフォンの元ファイルのごみ箱は、ギャラリーアプリが管理します。保存期間（例：30日）をそのアプリで確認し、ごみ箱もそこで空にしてください。ここに表示されるコピーは別に保存されています。</string>
     <string name="media_recovery_hint">以前の接続がなくても利用できる、ローカルの暗号化された復元用コピーです。復元時も復元用コピーと既存のメディアは保持されます。</string>

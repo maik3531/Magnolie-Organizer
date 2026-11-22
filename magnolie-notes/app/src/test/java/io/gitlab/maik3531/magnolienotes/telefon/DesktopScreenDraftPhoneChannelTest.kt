@@ -134,4 +134,32 @@ class DesktopScreenDraftPhoneChannelTest {
             }
         }
     }
+
+    @Test fun mirrorUiSourceKeepsExactOriginalAndIgnoresUnrelatedRetirement() {
+        ServerSocket(0, 2, InetAddress.getByName("127.0.0.1")).use { listener ->
+            TelefonTcpRoehre("127.0.0.1", port = listener.localPort).use { pipe ->
+                listener.accept().use {
+                    channel(pipe).use { first ->
+                        channel(pipe).use { next ->
+                            val dispatch = DesktopScreenDraftNotesDispatch()
+                            val originals = dispatch.originals
+                            assertNull(originals.value)
+                            val displayed = dispatch.bind(DesktopScreenDraftNotesDispatch.Original("pc", "key", "Desktop", first, pipe) {})
+                            assertSame(displayed, originals.value)
+                            assertSame(displayed, dispatch.candidate("pc", "key"))
+                            assertThrows(IllegalStateException::class.java) { dispatch.candidate("pc", "wrong") }
+                            val replacement = dispatch.bind(DesktopScreenDraftNotesDispatch.Original("pc", "key", "Desktop", next, pipe) {})
+                            assertNotSame(displayed, originals.value)
+                            dispatch.retire(first)
+                            assertSame(replacement, originals.value)
+                            assertSame(replacement, dispatch.candidate("pc", "key"))
+                            dispatch.retire(next)
+                            assertNull(originals.value)
+                            assertThrows(IllegalStateException::class.java) { dispatch.candidate("pc", "key") }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

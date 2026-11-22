@@ -11,6 +11,8 @@
     <string name="webcam_stoppt">Zatrzymywanie kamery internetowej telefonu…</string>
     <string name="webcam_beenden">Zatrzymaj</string>
     <string name="telefon_erweitert_titel">Funkcje zaawansowane</string>
+    <string name="telefon_desktop_spiegelung_start">Poproś o wyświetlenie ekranu komputera</string>
+    <string name="telefon_desktop_spiegelung_nicht_verfuegbar">Nie można wyświetlić ekranu przez to połączenie Wi-Fi.</string>
     <string name="media_recovery_title">Odzyskiwanie zdjęć i filmów</string>
     <string name="media_recovery_android_gallery">Aplikacja galerii zarządza koszem na oryginalne pliki z telefonu. Sprawdź w niej okres przechowywania, na przykład 30 dni, i opróżnij kosz w tej aplikacji. Wyświetlane tutaj kopie są przechowywane osobno.</string>
     <string name="media_recovery_hint">Lokalne zaszyfrowane kopie odzyskiwania, dostępne również bez poprzedniego połączenia. Podczas przywracania kopia odzyskiwania i istniejące multimedia zostają zachowane.</string>

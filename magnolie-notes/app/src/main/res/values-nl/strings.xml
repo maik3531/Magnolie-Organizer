@@ -11,6 +11,8 @@
     <string name="webcam_stoppt">Telefoonwebcam stoppen…</string>
     <string name="webcam_beenden">Stoppen</string>
     <string name="telefon_erweitert_titel">Geavanceerde functies</string>
+    <string name="telefon_desktop_spiegelung_start">Vragen om het computerscherm te bekijken</string>
+    <string name="telefon_desktop_spiegelung_nicht_verfuegbar">Het scherm kan niet worden bekeken via deze wifi-verbinding.</string>
     <string name="media_recovery_title">Herstel van foto’s en video’s</string>
     <string name="media_recovery_android_gallery">De galerie-app beheert de prullenbak voor de originele bestanden op de telefoon. Controleer daar de bewaartermijn, bijvoorbeeld 30 dagen, en leeg de prullenbak in die app. De hier getoonde kopieën staan daar los van.</string>
     <string name="media_recovery_hint">Lokale versleutelde herstelkopieën, ook beschikbaar zonder de eerdere verbinding. De herstelkopie en bestaande media blijven bij het herstellen behouden.</string>
