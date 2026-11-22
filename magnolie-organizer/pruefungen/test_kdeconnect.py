@@ -1421,7 +1421,8 @@ def wait_for_receive(events, kind, count=1):
     return result
 
 
-def test_file_batch_one_complete_offer_one_destination_and_no_later_authorization():
+@pytest.mark.parametrize('standalone_during_batch', [False, True])
+def test_file_batch_one_complete_offer_one_destination_and_no_later_authorization(standalone_during_batch):
     events = []
     with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads, \
             tempfile.TemporaryDirectory() as selected:
@@ -1433,14 +1434,20 @@ def test_file_batch_one_complete_offer_one_destination_and_no_later_authorizatio
         try:
             streams = [PayloadStream([b"one", b""]), PayloadStream([b"two", b""]),
                        PayloadStream([b"later", b""])]
+            if standalone_during_batch:
+                streams.insert(1, PayloadStream([b"separate", b""]))
             with mock.patch.object(backend, "_payload_tls_connection", side_effect=streams):
                 first = share_packet(name="one.txt", size=3, numberOfFiles=2, totalPayloadSize=6)
                 second = share_packet(name="two.txt", size=3, numberOfFiles=2, totalPayloadSize=6)
                 # Equal timestamp packet IDs can legitimately occur in KDE.
                 second["id"] = first["id"]
                 backend._handle_receive_packet(worker, first)
+                if standalone_during_batch:
+                    backend._handle_receive_packet(worker, share_packet(name="separate.txt", size=8))
                 backend._handle_receive_packet(worker, second)
-                offer = wait_for_receive(events, "file_proposal")[0]
+                before = 2 if standalone_during_batch else 1
+                proposals = wait_for_receive(events, "file_proposal", before)
+                offer = next(item for item in proposals if "files" in item)
                 assert offer["files"] == [{"name": "one.txt", "size": 3},
                                           {"name": "two.txt", "size": 3}]
                 assert os.listdir(selected) == []
@@ -1449,9 +1456,13 @@ def test_file_batch_one_complete_offer_one_destination_and_no_later_authorizatio
                 assert result["kind"] == "file" and len(result["files"]) == 2
                 assert open(os.path.join(selected, "one.txt"), "rb").read() == b"one"
                 assert open(os.path.join(selected, "two.txt"), "rb").read() == b"two"
+                if standalone_during_batch:
+                    separate = next(item for item in proposals if item["name"] == "separate.txt")
+                    assert not os.path.exists(os.path.join(selected, "separate.txt"))
+                    backend.reject_receive(separate["id"])
                 assert backend._receive_slots == 0
                 backend._handle_receive_packet(worker, share_packet(name="later.txt", size=5))
-                later = wait_for_receive(events, "file_proposal", 2)[1]
+                later = wait_for_receive(events, "file_proposal", before + 1)[before]
                 assert later["id"] != offer["id"]
                 assert not os.path.exists(os.path.join(selected, "later.txt"))
                 backend.reject_receive(later["id"])

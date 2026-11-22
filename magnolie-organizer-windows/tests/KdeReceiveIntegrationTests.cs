@@ -21,10 +21,11 @@ internal static class KdeReceiveIntegrationTests
             ["payloadSize"] = size, ["payloadTransferInfo"] = new JsonObject { ["port"] = port } }.ToJsonString() + "\n");
 
     private static async Task SendAsync(SslStream control, X509Certificate2 certificate, string desktopPin,
-        string name, byte[] data, long count, long total, CancellationToken cancellation)
+        string name, byte[] data, long count, long total, CancellationToken cancellation, Func<Task>? afterAnnouncement = null)
     {
         var listener = KdeConnectTests.BindKdeListener();
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var send = ServeAsync();
         async Task ServeAsync()
         {
@@ -40,14 +41,17 @@ internal static class KdeReceiveIntegrationTests
                 ServerCertificate = certificate, ClientCertificateRequired = true, EnabledSslProtocols = SslProtocols.Tls12,
                 CertificateRevocationCheckMode = X509RevocationMode.NoCheck
             }, cancellation);
+            await ready.Task.WaitAsync(cancellation);
             await tls.WriteAsync(data, cancellation); await tls.FlushAsync(cancellation);
         }
         try
         {
             await control.WriteAsync(Announcement(name, data.Length, port, count, total), cancellation);
+            if (afterAnnouncement is not null) await afterAnnouncement();
+            ready.SetResult();
             await send.WaitAsync(cancellation);
         }
-        finally { listener.Stop(); }
+        finally { ready.TrySetCanceled(); listener.Stop(); }
     }
 
     private static async Task WaitAsync(Func<bool> ready, CancellationToken cancellation)
@@ -96,8 +100,21 @@ internal static class KdeReceiveIntegrationTests
                 using var client = phone.Client; using var stream = phone.Stream;
                 using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 await KdeConnectTests.WaitForDeviceAsync(backend, PhoneId);
-                await SendAsync(stream, certificate, desktopPin, "first.txt", [1], 2, 3, deadline.Token);
+                await SendAsync(stream, certificate, desktopPin, "first.txt", [1], 2, 2, deadline.Token);
                 TestAssert.That(proposals.IsEmpty && !Directory.EnumerateFiles(selected).Any(), "Incomplete batch acquired acceptance or a destination file.");
+                await SendAsync(stream, certificate, desktopPin, "separate.txt", [4], 1, 1, deadline.Token, async () =>
+                {
+                    var update = new JsonObject { ["id"] = 2, ["type"] = KdeShareProtocol.Update,
+                        ["body"] = new JsonObject { ["numberOfFiles"] = 2, ["totalPayloadSize"] = 3 } };
+                    await stream.WriteAsync(Encoding.UTF8.GetBytes(update.ToJsonString() + "\n"), deadline.Token);
+                    await WaitAsync(() => backend.FileReceiveStatus()["reserved_bytes"]!.GetValue<long>() == 4, deadline.Token);
+                });
+                await WaitAsync(() => proposals.Count == 1, deadline.Token);
+                var separate = proposals.Single();
+                TestAssert.That(separate.Files.Select(value => value.Name).SequenceEqual(["separate.txt"]),
+                    "An independent file was added to the open batch.");
+                await backend.RejectFileReceiveAsync(separate.Id);
+                TestAssert.That(proposals.TryDequeue(out _), "Standalone proposal unexpectedly disappeared.");
                 await SendAsync(stream, certificate, desktopPin, "second.txt", [2, 2], 2, 3, deadline.Token);
                 await WaitAsync(() => proposals.Count == 1, deadline.Token);
                 var proposal = proposals.Single();

@@ -2284,9 +2284,12 @@ class KDEConnectSMSBackend(_KdeMcpControl):
         # Give each received announcement its own local staging token.
         member_id = uuid.uuid4().int
         with self._state_lock:
+            # A standalone announcement is not a member of the open list.
+            # In particular, Android does not join packets without a file count.
+            grouped = parsed.get("number_of_files", 1) > 1
             current = next(((key, value) for key, value in self._receive_batches.items()
-                            if value.connection is worker and value.accepting_announcements), None)
-            if current or parsed.get("number_of_files", 1) > 1:
+                            if value.connection is worker and value.accepting_announcements), None) if grouped else None
+            if grouped:
                 if not current:
                     if not self._reserve_receive():
                         return

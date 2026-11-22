@@ -12,7 +12,7 @@ internal sealed partial class KdeConnectDirectBackend
 {
     private sealed record ReceivePreferences(bool Enabled, string DeviceId, string Directory, long Epoch, Func<bool> Permitted);
     private sealed class ReceiveContext(string id, Connection connection, ReceivePreferences preferences,
-        KdeReceiveSource source, DateTimeOffset deadline, long bytes, CancellationToken cancellation)
+        KdeReceiveSource source, DateTimeOffset deadline, long bytes, bool grouped, CancellationToken cancellation)
     {
         internal readonly string Id = id;
         internal readonly Connection Connection = connection;
@@ -20,6 +20,7 @@ internal sealed partial class KdeConnectDirectBackend
         internal readonly ReceivePreferences Preferences = preferences;
         internal readonly KdeReceiveSource Source = source;
         internal readonly DateTimeOffset Deadline = deadline;
+        internal readonly bool Grouped = grouped;
         internal readonly CancellationTokenSource Cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         internal readonly HashSet<Guid> Emitted = [];
         internal readonly HashSet<string> RawDownloads = new(StringComparer.Ordinal);
@@ -173,7 +174,7 @@ internal sealed partial class KdeConnectDirectBackend
                 if (!store.LoadPeers().Any(peer => peer.Paired && peer.Id == preferences.DeviceId && peer.CertificatePin == pin)) return;
                 if (packet.Type == KdeShareProtocol.Update)
                 {
-                    context = receiveContexts.Values.LastOrDefault(value => value.Valid && value.Phase == "collecting" &&
+                    context = receiveContexts.Values.LastOrDefault(value => value.Grouped && value.Valid && value.Phase == "collecting" &&
                         ReferenceEquals(value.Connection, connection));
                     if (context is null) return;
                     var update = KdeShareProtocol.ParseUpdate(packet.Body);
@@ -181,8 +182,11 @@ internal sealed partial class KdeConnectDirectBackend
                     return;
                 }
                 var announcement = KdeShareProtocol.Parse(packet);
-                context = receiveContexts.Values.FirstOrDefault(value => value.Valid && value.Phase == "collecting" &&
-                    ReferenceEquals(value.Connection, connection) && value.Batch!.AcceptingAnnouncements);
+                // A standalone announcement never joins or cancels the open list.
+                context = announcement.NumberOfFiles > 1
+                    ? receiveContexts.Values.FirstOrDefault(value => value.Grouped && value.Valid && value.Phase == "collecting" &&
+                        ReferenceEquals(value.Connection, connection) && value.Batch!.AcceptingAnnouncements)
+                    : null;
                 if (context is null)
                 {
                     if (receiveContexts.Count >= 8) throw new InvalidOperationException("incoming_offer_limit_reached");
@@ -192,7 +196,7 @@ internal sealed partial class KdeConnectDirectBackend
                         throw new InvalidDataException("incoming_staging_quota_exceeded");
                     var id = Guid.NewGuid().ToString("N");
                     context = new(id, connection, preferences, new(preferences.DeviceId, pin, connection, preferences.Epoch),
-                        DateTimeOffset.UtcNow.AddMinutes(10), total, lifetime.Token);
+                        DateTimeOffset.UtcNow.AddMinutes(10), total, count > 1, lifetime.Token);
                     context.Cancellation.CancelAfter(TimeSpan.FromMinutes(10));
                     context.Batch = new(context.Source, receiveRoot, count, total, context.Deadline, () => CurrentReceiveSource(context));
                     receiveContexts.Add(id, context);
