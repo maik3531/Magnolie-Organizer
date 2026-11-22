@@ -115,7 +115,9 @@ class NativeWebcamUi:
     def _wait_devices(self, current):
         deadline = time.monotonic() + 2
         while True:
-            current(); devices = self.inventory()[:8]
+            current()
+            devices = self.inventory()[:8]
+            current()
             if devices or time.monotonic() >= deadline: return devices
             time.sleep(.05)
 
@@ -145,18 +147,19 @@ class NativeWebcamUi:
         if not sources:
             return dict(self.status(), choices=[], action='', reason='phone_unavailable')
         if original_sources is not None:
-            for source in original_sources: self._source_current(source)
             sources = original_sources
+
+        def current():
+            for source in sources: self._source_current(source)
+
+        current()
         devices = self.inventory()[:8]  # Explicit native action only; no base startup/status probe.
+        current()
         if not devices and not setup_allowed:
-            def current_after_install():
-                for source in sources: self._source_current(source)
-            devices = self._wait_devices(current_after_install)
+            devices = self._wait_devices(current)
             if not devices:
                 return dict(self.status(), choices=[], action='', reason='driver_setup_failed')
         if not devices:
-            def current():
-                for source in sources: self._source_current(source)
             setup = self.setup
             if setup is None:
                 from magnolie_phone_camera_setup import prepare_driver
@@ -186,6 +189,7 @@ class NativeWebcamUi:
                 choices[token] = source, dict(device)
         action = dict(token=secrets.token_hex(32), issued=self.clock(), choices=choices)
         with self.lock:
+            current()
             self.action = action
         return dict(self.status(), reason='', action=action['token'], choices=[
             dict(token=token, phone=source['label'], device=device['label'], provider='notes')

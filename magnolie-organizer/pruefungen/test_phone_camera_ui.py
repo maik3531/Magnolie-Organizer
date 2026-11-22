@@ -129,6 +129,37 @@ def test_admin_setup_context_change_cannot_admit_replacement_source(connected):
     assert manager.action is None and service._native_webcam_owner is None
 
 
+@pytest.mark.parametrize('after_setup', [False, True])
+def test_phone_retired_during_video_inventory_never_gets_a_start_choice(connected, after_setup):
+    service, peer, client = connected
+    setup_done = False
+
+    def setup(current):
+        nonlocal setup_done
+        current()
+        assert after_setup
+        setup_done = True
+        return ''
+
+    def inventory():
+        if after_setup and not setup_done:
+            return []
+        with service.lock:
+            service.connection_transports[peer['device_id']] = 'bluetooth'
+        return [dict(path='/dev/video42', label='Controlled metadata-only output')]
+
+    manager = NativeWebcamUi(service, inventory=inventory, setup=setup,
+        video_factory=lambda _: pytest.fail('Preparation must never open a capture stream'))
+    try:
+        with pytest.raises(PermissionError, match='webcam_original_choice_changed'):
+            manager.prepare('notes')
+        assert manager.action is None and service._native_webcam_owner is None
+        assert setup_done == after_setup
+    finally:
+        with service.lock:
+            service.connection_transports[peer['device_id']] = 'wifi'
+
+
 def test_concurrent_enable_cannot_launch_second_administrator_setup(connected):
     service,_,_=connected;calls=[]
     manager=NativeWebcamUi(service,inventory=lambda:[],setup=lambda _:calls.append(True))
