@@ -74,8 +74,8 @@ def test_private_native_mirror_entry_keeps_consent_and_never_resolves_replacemen
     transport = service.connection_transports
     owner = None
 
-    def begin(mode='monitor'):
-        return service.begin_private_desktop_mirror(peer_id, client.channel, mode=mode,
+    def begin(selection=None, mode='monitor'):
+        return service.begin_private_desktop_mirror(selection, mode=mode,
             provider=DesktopScreenProvider(':1.245', MONITOR | WINDOW, True, 0, 6), bus=object(),
             parent=parent, session_lock=lock, ended=ended.append)
 
@@ -84,16 +84,22 @@ def test_private_native_mirror_entry_keeps_consent_and_never_resolves_replacemen
         assert (service._desktop_screen_draft_dispatch is not None) == private_mirror
         if not private_mirror:
             with pytest.raises(PermissionError, match='private_mirror_unavailable'):
+                service.private_desktop_mirror_candidate(peer_id)
+            with pytest.raises(PermissionError, match='private_mirror_unavailable'):
                 begin()
             ping(client)
             return
+        selection = service.private_desktop_mirror_candidate(peer_id)
+        assert selection.channel is client.channel and service._desktop_screen_draft_dispatch._owner is None
         with pytest.raises(PermissionError, match='private_mirror_unavailable'):
-            begin('extend')
+            begin(selection, 'extend')
+        with pytest.raises(PermissionError, match='original_selection_required'):
+            begin()
         with service.lock:
             service.connections[peer_id] = object()  # A different active route, not the selected one.
         try:
             with pytest.raises(PermissionError, match='reader_retired'):
-                begin()
+                begin(selection)
         finally:
             with service.lock:
                 service.connections[peer_id] = client.channel
@@ -101,11 +107,21 @@ def test_private_native_mirror_entry_keeps_consent_and_never_resolves_replacemen
             transport[peer_id] = 'bluetooth'
         try:
             with pytest.raises(PermissionError, match='reader_retired'):
-                begin()
+                begin(selection)
         finally:
             with service.lock:
                 transport[peer_id] = 'wifi'
-        owner = begin()
+        with service.lock:
+            original_generation = service._generation
+            service._generation += 1
+        try:
+            with pytest.raises(PermissionError, match='reader_retired'):
+                begin(selection)
+            assert service._desktop_screen_draft_dispatch._owner is None
+        finally:
+            with service.lock:
+                service._generation = original_generation
+        owner = begin(selection)
         assert owner._parent_handle == f'x11:{parent.get_window().get_xid():x}'
         late = request()
         client.send(dict(late, body=dict(late['body'], op='prepared', mode=1,
@@ -140,7 +156,8 @@ def test_private_mirror_parent_disappearing_before_accept_never_starts_portal(co
     ended = []
 
     def begin():
-        return service.begin_private_desktop_mirror(peer['device_id'], client.channel, mode='window',
+        selection = service.private_desktop_mirror_candidate(peer['device_id'])
+        return service.begin_private_desktop_mirror(selection, mode='window',
             provider=DesktopScreenProvider(':1.245', WINDOW, False, 0, 6), bus=object(),
             parent=parent, session_lock=lock, ended=ended.append)
 

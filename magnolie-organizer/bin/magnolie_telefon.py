@@ -3089,17 +3089,23 @@ class PhoneService:
     def begin_native_screen(self, peer_id, width, height, density, native_start, *, expected=None):
         return self._screen_dispatch.begin(peer_id, width, height, density, native_start, expected=expected)
 
-    def begin_private_desktop_mirror(self, peer_id, original_channel, *, mode, bus, provider,
-                                     parent, session_lock, ended):
+    def private_desktop_mirror_candidate(self, peer_id):
+        dispatch = self._desktop_screen_draft_dispatch
+        if dispatch is None:
+            raise PermissionError('desktop_screen_private_mirror_unavailable')
+        return dispatch.select(peer_id)
+
+    def begin_private_desktop_mirror(self, selection, *, mode, bus, provider, parent, session_lock, ended):
         """Native-only admission. No lookup/fallback to a replacement channel."""
         dispatch = self._desktop_screen_draft_dispatch
         if dispatch is None or mode not in ('monitor', 'window'):
             raise PermissionError('desktop_screen_private_mirror_unavailable')
+        dispatch.require_selection(selection)
         from magnolie_desktop_screen_admission import DesktopScreenDraftAdmission, _NativeX11PortalParent
         portal_parent = _NativeX11PortalParent(parent)
-        return DesktopScreenDraftAdmission(dispatch, peer_id, original_channel, mode=mode, bus=bus,
+        return DesktopScreenDraftAdmission(dispatch, selection.peer_id, selection.channel, mode=mode, bus=bus,
             provider=provider, parent=parent, parent_handle=portal_parent.handle, session_lock=session_lock, ended=ended,
-            require_parent=portal_parent.require_current)
+            require_parent=portal_parent.require_current, selection=selection)
 
     def end_native_webcam(self, original_owner):
         with self.lock:
