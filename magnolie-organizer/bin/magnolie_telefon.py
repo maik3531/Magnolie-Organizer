@@ -2878,7 +2878,8 @@ class PhoneService:
     # until both controllers and frontend review/receipt union are accepted.
     _actor_mixed_ready = False
 
-    def __init__(self, root, display_name, callback=None, bluetooth_backend=None, call_audio=None, *, native_screen_ui=False):
+    def __init__(self, root, display_name, callback=None, bluetooth_backend=None, call_audio=None, *,
+                 native_screen_ui=False, private_desktop_mirror_ui=False):
         self.store = PhoneStore(root, display_name)
         self._native_photo_built = optional_phone.available('photo_sync')
         self._native_camera_built = optional_phone.available('phone_camera')
@@ -2888,7 +2889,10 @@ class PhoneService:
         self._webcam_probe_tokens = weakref.WeakKeyDictionary()
         from magnolie_phone_screen_control import PhoneScreenDesktopDispatch
         self._screen_dispatch = PhoneScreenDesktopDispatch(self)
-        self._desktop_screen_draft_dispatch = None  # No installed/native caller yet.
+        self._desktop_screen_draft_dispatch = None
+        if private_desktop_mirror_ui is True:
+            from magnolie_desktop_screen_dispatch import DesktopScreenDraftDispatch
+            self._desktop_screen_draft_dispatch = DesktopScreenDraftDispatch(self)
         self.native_screen_included = native_screen_ui is True
         self._mcp_worker = threading.local()
         self._mcp_operations = threading.Lock()
@@ -3084,6 +3088,16 @@ class PhoneService:
 
     def begin_native_screen(self, peer_id, width, height, density, native_start, *, expected=None):
         return self._screen_dispatch.begin(peer_id, width, height, density, native_start, expected=expected)
+
+    def begin_private_desktop_mirror(self, peer_id, original_channel, *, mode, bus, provider,
+                                     parent, parent_handle, session_lock, ended):
+        """Native-only admission. No lookup/fallback to a replacement channel."""
+        dispatch = self._desktop_screen_draft_dispatch
+        if dispatch is None or mode not in ('monitor', 'window'):
+            raise PermissionError('desktop_screen_private_mirror_unavailable')
+        from magnolie_desktop_screen_admission import DesktopScreenDraftAdmission
+        return DesktopScreenDraftAdmission(dispatch, peer_id, original_channel, mode=mode, bus=bus,
+            provider=provider, parent=parent, parent_handle=parent_handle, session_lock=session_lock, ended=ended)
 
     def end_native_webcam(self, original_owner):
         with self.lock:

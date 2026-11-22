@@ -59,6 +59,72 @@ def show(owner, client, wire_mode=2):
     return frame, owner._dialog
 
 
+@pytest.mark.parametrize('native,private_mirror', [(False, False), (True, True)], indirect=['native'])
+def test_private_native_mirror_entry_keeps_consent_and_never_resolves_replacement(connected, monkeypatch, private_mirror):
+    service, peer, client = connected
+    assert Gtk.init_check()[0], 'run under Xvfb or an isolated GTK display'
+    factory = Mock()
+    monkeypatch.setattr(admission, 'DesktopScreenDraftAttempt', factory)
+    parent = Gtk.Window()
+    parent.show_all()
+    lock = PhoneScreenSessionLock()
+    lock._lease = object()
+    ended = []
+    peer_id = peer['device_id']
+    transport = service.connection_transports
+    owner = None
+
+    def begin(mode='monitor'):
+        return service.begin_private_desktop_mirror(peer_id, client.channel, mode=mode,
+            provider=DesktopScreenProvider(':1.245', MONITOR | WINDOW, True, 0, 6), bus=object(),
+            parent=parent, parent_handle='x11:245', session_lock=lock, ended=ended.append)
+
+    try:
+        assert not service.native_screen_included  # No phone → PC capability change.
+        assert (service._desktop_screen_draft_dispatch is not None) == private_mirror
+        if not private_mirror:
+            with pytest.raises(PermissionError, match='private_mirror_unavailable'):
+                begin()
+            ping(client)
+            return
+        with pytest.raises(PermissionError, match='private_mirror_unavailable'):
+            begin('extend')
+        with service.lock:
+            service.connections[peer_id] = object()  # A different active route, not the selected one.
+        try:
+            with pytest.raises(PermissionError, match='reader_retired'):
+                begin()
+        finally:
+            with service.lock:
+                service.connections[peer_id] = client.channel
+        with service.lock:
+            transport[peer_id] = 'bluetooth'
+        try:
+            with pytest.raises(PermissionError, match='reader_retired'):
+                begin()
+        finally:
+            with service.lock:
+                transport[peer_id] = 'wifi'
+        owner = begin()
+        late = request()
+        client.send(dict(late, body=dict(late['body'], op='prepared', mode=1,
+            session='12' * 16, transcript='ab' * 32)))
+        ping(client)
+        assert owner._pending is None and owner._dialog is None
+        _, dialog = show(owner, client, 1)
+        factory.assert_not_called()
+        dialog.get_default_widget().clicked()
+        wait_for(lambda: ended == [None])
+        factory.assert_not_called()
+        ping(client)
+    finally:
+        if owner is not None:
+            owner.close()
+            wait_for(lambda: owner._terminal)
+        parent.destroy()
+        lock.close()
+
+
 def test_wrong_mode_expiry_and_denial_never_start_portal(connected, gtk_owner):
     _, _, client = connected
     arm, _, _, factory, _, ended = gtk_owner

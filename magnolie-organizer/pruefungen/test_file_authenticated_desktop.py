@@ -19,8 +19,9 @@ from magnolie_file_transfer import TransferError
 from test_telefon import _complete_peer,FakeBluetooth
 
 @pytest.fixture
-def native(tmp_path, monkeypatch):
-    service=phone.PhoneService(str(tmp_path/'telephone'),'Fixture PC',bluetooth_backend=FakeBluetooth())
+def native(tmp_path, monkeypatch, request):
+    service=phone.PhoneService(str(tmp_path/'telephone'),'Fixture PC',bluetooth_backend=FakeBluetooth(),
+        private_desktop_mirror_ui=getattr(request, 'param', False))
     # Explicit feature-complete native test build; unconfigured product builds stay closed.
     monkeypatch.setattr(service, '_native_photo_built', True)
     private=X25519PrivateKey.from_private_bytes(bytes([2])*32)
