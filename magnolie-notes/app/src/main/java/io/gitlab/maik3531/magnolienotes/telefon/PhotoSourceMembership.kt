@@ -59,6 +59,10 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
     fun end() { held = null }
 
     private fun value(revision: Long): JsonObject {
+        // digest(bytes) resets the engine after each independent hash.
+        // Only this fresh index aggregation uses the engine.
+        val sha256 = MessageDigest.getInstance("SHA-256")
+        fun hash(bytes: ByteArray) = NativeHex.lower(sha256.digest(bytes))
         val schema = mutableMapOf<String, String>()
         val auto = mapOf("sqlite_autoindex_source_meta_1" to "source_meta", "sqlite_autoindex_source_jobs_1" to "source_jobs")
         val seen = mutableSetOf<String>()
@@ -90,7 +94,7 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
                 if (members.size >= PhotoSourceJobIndex.MAX_JOBS) fail("photo_jobs_unbounded_index")
                 val id = it.getString(0); val bytes = it.getBlob(1); val job = decode(id, bytes)
                 plain += job.plainBytes; budget += job.cipherBudget
-                members += JsonObject(mapOf("id" to JsonPrimitive(id), "sha256" to JsonPrimitive(digest(bytes))))
+                members += JsonObject(mapOf("id" to JsonPrimitive(id), "sha256" to JsonPrimitive(hash(bytes))))
             }
         }
         if (plain > DeviceFileManifest.MAX_TOTAL_BYTES || budget > PhotoSourceJobIndex.MAX_CIPHER_BYTES)
@@ -123,11 +127,11 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
                 val known = name.startsWith(GalleryKnownPhoneMedia.PREFIX) && DeviceFileControl.hash(name.removePrefix(GalleryKnownPhoneMedia.PREFIX))
                 if (known && ++knownPhoneMedia > GalleryKnownPhoneMedia.MAX_RECORDS) fail("gallery_known_phone_media_capacity")
                 val pcPlan = name.startsWith(GalleryPcReplacementPlan.PREFIX) &&
-                    Regex("[0-9a-f]{32}").matches(name.removePrefix(GalleryPcReplacementPlan.PREFIX))
+                    PC_RECORD_ID.matches(name.removePrefix(GalleryPcReplacementPlan.PREFIX))
                 if (pcPlan && ++pcReplacementPlans > GalleryPcReplacementPlan.MAX_RECORDS) fail("gallery_pc_replacement_plan_capacity")
-                val pcStage = name.startsWith(GalleryPcStageRecord.PREFIX) && Regex("[0-9a-f]{32}").matches(name.removePrefix(GalleryPcStageRecord.PREFIX))
+                val pcStage = name.startsWith(GalleryPcStageRecord.PREFIX) && PC_RECORD_ID.matches(name.removePrefix(GalleryPcStageRecord.PREFIX))
                 if (pcStage && ++pcStages > GalleryPcStageRecord.MAX_RECORDS) fail("gallery_pc_stage_capacity")
-                val pcBeforeWrite = name.startsWith(GalleryPcPreWriteRecord.PREFIX) && Regex("[0-9a-f]{32}").matches(name.removePrefix(GalleryPcPreWriteRecord.PREFIX))
+                val pcBeforeWrite = name.startsWith(GalleryPcPreWriteRecord.PREFIX) && PC_RECORD_ID.matches(name.removePrefix(GalleryPcPreWriteRecord.PREFIX))
                 if (pcBeforeWrite && ++pcBeforeWrites > GalleryPcPreWriteRecord.MAX_RECORDS) fail("gallery_pc_before_write_capacity")
                 if ((name !in setOf("format", "gallery-policy-v1", "gallery-policy-v1-repair") &&
                     !incoming && !acceptance && !known && !pcPlan && !pcStage && !pcBeforeWrite && (remoteJob == null || members.none { member -> member["id"] == JsonPrimitive(remoteJob) })) ||
@@ -136,14 +140,14 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
                     fail("photo_jobs_membership_unknown_metadata")
                 val bytes = it.getBlob(1)
                 if (bytes.size !in 28..DeviceTransferProtection.MAX_CLEAR_BYTES + 28) fail("photo_jobs_membership_invalid")
-                metadata += JsonObject(mapOf("name" to JsonPrimitive(name), "sha256" to JsonPrimitive(digest(bytes))))
+                metadata += JsonObject(mapOf("name" to JsonPrimitive(name), "sha256" to JsonPrimitive(hash(bytes))))
             }
         }
         return JsonObject(mapOf("format" to JsonPrimitive(1), "root_key" to JsonPrimitive(rootKey),
             "database_key" to JsonPrimitive(databaseKey), "revision" to JsonPrimitive(revision),
             "count" to JsonPrimitive(members.size), "plain_bytes" to JsonPrimitive(plain), "cipher_budget" to JsonPrimitive(budget),
-            "members_sha256" to JsonPrimitive(digest(TelefonKanonisch.bytes(JsonArray(members)))),
-            "metadata_count" to JsonPrimitive(metadata.size), "metadata_sha256" to JsonPrimitive(digest(TelefonKanonisch.bytes(JsonArray(metadata))))))
+            "members_sha256" to JsonPrimitive(hash(TelefonKanonisch.bytes(JsonArray(members)))),
+            "metadata_count" to JsonPrimitive(metadata.size), "metadata_sha256" to JsonPrimitive(hash(TelefonKanonisch.bytes(JsonArray(metadata))))))
     }
 
     private fun blob(): ByteArray? = db.query("source_meta", arrayOf("sealed"), "name=?", arrayOf(NAME), null, null, null).use {
@@ -158,6 +162,7 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
     }
     companion object {
         const val NAME = "membership-v1"
+        private val PC_RECORD_ID = Regex("[0-9a-f]{32}")
         private val POSITIVE_REVISION = Regex("[1-9][0-9]*")
         private val SCHEMA_WHITESPACE = Regex("\\s+")
         private fun digest(bytes: ByteArray) = NativeHex.lower(MessageDigest.getInstance("SHA-256").digest(bytes))
