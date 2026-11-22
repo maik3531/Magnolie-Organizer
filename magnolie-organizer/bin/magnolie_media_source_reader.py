@@ -88,7 +88,7 @@ class _NativeSourceCacheReader:
                 if witness['size']!=expected:raise TransferError('media_source_cache_original_member_required')
                 members.update(canonical(dict(index=index,**witness)));self._chunks.append(witness)
             if members.hexdigest()!=self._members_sha256:raise TransferError('media_source_cache_membership_changed')
-            self._guard();self._layout()
+            self._layout()  # Also rechecks the full guard before listing.
         except BaseException:
             self._close_owned();raise
 
@@ -157,8 +157,10 @@ class _NativeSourceCacheReader:
     def manifest(self):self._permission();return self._manifest
 
     def read_chunk(self,index):
-        self._permission()
-        if type(index) is not int or not 0<=index<self._count:raise TransferError('media_source_cache_invalid_chunk')
+        if type(index) is not int or not 0<=index<self._count:
+            self._permission()  # Preserve denial for an expired/foreign reader.
+            raise TransferError('media_source_cache_invalid_chunk')
+        # The entry layout already guards permission before any cache I/O.
         self._layout();plain,_=self._plain('chunk-%08x.enc'%index,self._chunks[index]);self._layout();return plain
 
     def verify(self):

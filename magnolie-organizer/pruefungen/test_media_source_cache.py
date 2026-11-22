@@ -65,6 +65,26 @@ def test_existing_source_cache_never_overwrites_adopts_or_duplicates_even_a_veri
     assert {p.name:p.read_bytes() for p in cached.directory.iterdir()}==before and h.target.read_bytes()==b'hello'
 
 
+def test_prepared_chunk_checks_one_admission_and_revalidates_after_actual_io(source,monkeypatch):
+    h=source;cached=freeze(h)
+    with pytest.raises(TransferError,match='media_source_cache_live_lease_required'), h.source.prepared_cache(cached.manifest.source_id) as reader:
+        calls=[];permission=reader._permission
+        def checked():
+            calls.append('guard');permission()
+        def observed(phase):
+            if phase=='source_cache_cipher_read':calls.append('read')
+        monkeypatch.setattr(reader,'_permission',checked)
+        monkeypatch.setattr(h.source,'_boundary',observed)
+        assert reader.read_chunk(0)==b'hello'
+        # Entry layout, cipher open, after read, after unseal, exit layout.
+        assert calls==['guard','guard','read','guard','guard','guard']
+        def revoke_after_read(phase):
+            if phase=='source_cache_cipher_read':reader.close()
+        monkeypatch.setattr(h.source,'_boundary',revoke_after_read)
+        reader.read_chunk(0)
+        pytest.fail('read returned bytes after revocation')
+
+
 def test_interrupted_source_cache_keeps_durable_intent_and_original_bytes_without_sealed_manifest_or_retry_adoption(source):
     h=source
     def stop(phase):
