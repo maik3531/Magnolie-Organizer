@@ -62,12 +62,14 @@ def test_exact_duplicate_control_preserves_existing_media_support_but_changed_co
             deliver(ack(own))
             support=service._native_media_support[channel]
             assert support.supports(channel) and not service._native_file_connections
+            original=service.photo_sync_state(peer['device_id'])['shared_media']
             for kind,previous in list(service._native_file_control_receipts[channel].items()):
                 sent=channel.send_seq
                 service._observe_native_file_control(peer,channel,kind,deepcopy(previous),duplicate=True,acknowledged=False)
                 assert support.supports(channel)
                 service._observe_native_file_control(peer,channel,kind,deepcopy(previous),duplicate=True)
                 assert support.supports(channel) and channel.send_seq==sent
+                assert service.photo_sync_state(peer['device_id'])['shared_media']==original
             kind='capabilities.update'
             different=deepcopy(service._native_file_control_receipts[channel][kind])
             different['body']['revision']+=1
@@ -75,6 +77,73 @@ def test_exact_duplicate_control_preserves_existing_media_support_but_changed_co
             assert not support.supports(channel)
             ack_all(service,peer,channel)
             assert not support.supports(channel) and not service._native_file_connections
+            assert 'shared_media' not in service.photo_sync_state(peer['device_id'])
+        finally:service._end_native_file_connection(channel)
+
+
+@pytest.mark.parametrize('hello_first,video',[(True,True),(False,True),(False,False)])
+def test_negotiated_shared_settings_visible_off_without_creating_file_owner(native,monkeypatch,hello_first,video):
+    from magnolie_media_retention import NativeMediaRetention
+    service,peer,_=native
+    peer['capabilities']=legacy_state()
+    if not video:peer['capabilities']['items']['device_status']['versions'].remove(22)
+    service.store.save_peers()
+    monkeypatch.setattr(service,'_native_media_support_checked',True)
+    monkeypatch.setattr(service,'_resume_automatic_photos',lambda *_:None)
+    book=Path(service.store.root).parent/'daten.json'
+    book.write_text('{"einstellungen":{"papierkorb":{"an":true,"tage":30}}}');book.chmod(0o600)
+    with NativeMediaRetention(service.store.root) as retention:assert retention.adopt_existing_saved()
+    with wire_pair() as (channel,wire):
+        binding=capture_authenticated_binding(dict(service.store.identity),dict(peer),service._generation,service.store)
+        service._activate_connection(peer['device_id'],channel,'wifi',file_binding=binding)
+        def deliver(message):
+            wire.send(message);service._payload(peer,channel,channel.receive())
+
+        try:
+            ack_all(service,peer,channel)
+            assert 'shared_media' not in service.photo_sync_state(peer['device_id'])
+            def native_paths():
+                return {p.name for p in Path(service.store.root).iterdir() if p.name not in {'phone.db-wal','phone.db-shm'}}
+            before=native_paths()
+            remote=offer(phone.now_ms())
+            if hello_first:
+                deliver(remote)
+                own=wire.receive();assert wire.receive()==ack(remote)
+                assert 'shared_media' not in service.photo_sync_state(peer['device_id'])
+                deliver(ack(own))
+            else:
+                service._begin_native_media_support(peer,channel)
+                deliver(ack(wire.receive()))
+                assert 'shared_media' not in service.photo_sync_state(peer['device_id'])
+                deliver(remote);assert wire.receive()==ack(remote)
+            assert service._native_media_support[channel].supports(channel)
+            state=service.photo_sync_state(peer['device_id'])
+            assert state['shared_media']['values']==media.DEFAULTS
+            assert not state['shared_media']['configured'] and not state['shared_media']['agreed']
+            assert not state['enabled'] and not state['shared_media']['values']['enabled']
+            assert state.get('video_supported',False) is video
+            assert 'sending_setup' not in state
+            deliver(remote) # Duplicate cannot refresh the preview or emit another ACK.
+            assert service.photo_sync_state(peer['device_id'])['shared_media']==state['shared_media']
+            assert not service._native_file_connections and native_paths()==before
+            authority=service.open_native_file_authority(peer['device_id'],peer['static_public'],channel,binding.generation)
+            try:assert not media.NativeMediaSettingsStore.has_stored_settings(authority)
+            finally:authority.close()
+            fingerprint=phone.fingerprint(phone.unb64(peer['static_public'],32))
+            request=dict(action='shared_setting',field='auto_mode',value='wifi',version='f'*64)
+            with pytest.raises(ValueError,match='media_settings_native_choice_changed'):
+                service.photo_sync_action(peer['device_id'],fingerprint,request)
+            assert not service._native_file_connections
+            request['version']=state['shared_media']['version']
+            result=service.photo_sync_action(peer['device_id'],fingerprint,request)
+            outbound=wire.receive()
+            assert outbound['kind']==media.KIND and media.configured(outbound['body'])['auto_mode']=='wifi'
+            assert result['shared_media']['configured'] and not result['shared_media']['agreed']
+            assert not result['enabled'] and not result['shared_media']['values']['enabled']
+            connection=service._native_file_connections[channel]
+            assert connection._catalog is connection._run is None and connection._media_transport.intent_for('images') is None
+            support=service._native_media_support[channel];support.close()
+            assert 'shared_media' not in service.photo_sync_state(peer['device_id'])
         finally:service._end_native_file_connection(channel)
 
 

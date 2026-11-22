@@ -2910,6 +2910,8 @@ class PhoneService:
         self._native_file_control_receipts = weakref.WeakKeyDictionary()
         self._native_media_support_checked = False  # Private integration only until matching counterpart acceptance.
         self._native_media_support = weakref.WeakKeyDictionary()
+        self._native_media_settings_previews = weakref.WeakKeyDictionary()
+        self._native_media_support_projected = weakref.WeakSet()
         self._native_photo_activity = {}
         self._native_sync_activity = NativeSyncActivity(lambda:self.callback('personal_sync_activity', {}))
         self.note_sessions = weakref.WeakKeyDictionary()
@@ -3196,7 +3198,7 @@ class PhoneService:
                 and controls.get('grants.update')==peer.get('grants')
                 and controls.get('personal_sync.settings')=={'format':1,'own_device':True})
 
-    def open_native_file_connection(self, peer_id, static_public, channel, generation, *, destination_setup=False):
+    def open_native_file_connection(self, peer_id, static_public, channel, generation, *, destination_setup=False, expected_media_support=None):
         NativeDesktopFileConnection = self._native_file_module('magnolie_file_desktop_connection').NativeDesktopFileConnection
         binding = self._current_native_file_binding(peer_id, static_public, channel, generation)
         if binding is None:
@@ -3208,6 +3210,8 @@ class PhoneService:
             if (support is not None and (not support.supports(channel)
                     or self._current_native_source_metadata(peer_id,static_public,channel,generation))):
                 support=None  # Do not replace the existing legacy composition.
+            if expected_media_support is not None and support is not expected_media_support:
+                raise ValueError('media_settings_native_choice_changed')
         # No native peer/key/preference I/O while holding the service monitor.
         authority = self.open_native_file_authority(peer_id, static_public, channel, generation)
         try:
@@ -3237,7 +3241,10 @@ class PhoneService:
                 if (self._current_native_file_binding(peer_id, static_public, channel, generation) is not binding
                         or channel in self._native_file_connections or support is not None and not support.supports(channel)):
                     raise ValueError('file_desktop_native_owner_changed')
+                if expected_media_support is not None and self._native_media_support.get(channel) is not expected_media_support:
+                    raise ValueError('media_settings_native_choice_changed')
                 self._native_file_connections[channel] = connection
+                self._native_media_settings_previews.pop(channel,None)
             return connection
         except BaseException:
             connection.close()
@@ -3246,6 +3253,7 @@ class PhoneService:
     def _end_native_file_connection(self, channel):
         with self.lock:
             self._native_sending_setups.pop(channel,None)
+            self._native_media_settings_previews.pop(channel,None)
             support=self._native_media_support.pop(channel,None)
             if support is not None:support.close()
             bindings = getattr(self, '_file_channel_bindings', None)
@@ -3293,6 +3301,11 @@ class PhoneService:
             if setup is not None:
                 state['sending_setup']=setup
                 if video_available:state['video_supported']=True
+            with self.lock:
+                preview=self._native_media_settings_previews.get(channel)
+                if preview is not None and preview[0] is self._native_media_support.get(channel) and preview[0].supports(channel):
+                    state['shared_media']=copy.deepcopy(preview[2])
+                    if video_available:state['video_supported']=True
             return state
         state=connection.desktop_snapshot()
         if binding.pairing_epoch is not None:state['photo_destination_setup']=True
@@ -3500,8 +3513,17 @@ class PhoneService:
                         or fingerprint(unb64(binding.static_public,32)).lower()!=expected_fingerprint.lower()):
                     raise ValueError('phone_control_conflict')
                 connection=self._native_file_connections.get(channel)
-            if connection is None:raise ValueError('photo_sync_not_enabled')
-            return connection.native_shared_media_setting(request['field'],request['value'],request['version'])
+                preview=self._native_media_settings_previews.get(channel) if connection is None else None
+                version=request['version']
+                if connection is None:
+                    if preview is None or self._native_media_support.get(channel) is not preview[0] or not preview[0].supports(channel):
+                        raise ValueError('photo_sync_not_enabled')
+                    if preview[2]['version']!=version:raise ValueError('media_settings_native_choice_changed')
+                    version=preview[1]
+            if connection is None:
+                connection=self.open_native_file_connection(peer_id,binding.static_public,channel,binding.generation,
+                    expected_media_support=preview[0])
+            return connection.native_shared_media_setting(request['field'],request['value'],version)
         if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','video_album_id','job_owner','historical_choice'}
                  or request['action'] not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic',
                     'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together',
@@ -3661,6 +3683,7 @@ class PhoneService:
             attempt=support.NativeMediaSupportAttempt(channel,current)
             self._native_media_support[channel]=attempt
         attempt.send()  # No service monitor across authenticated output.
+        self._project_native_media_support(peer,channel,attempt)
         return attempt
 
     def _native_media_support_ack(self,peer,channel,payload):
@@ -3670,11 +3693,22 @@ class PhoneService:
             if (attempt is None or binding is None or binding.peer_id!=peer.get('device_id')
                     or binding.static_public!=peer.get('static_public') or not attempt.owns_ack(channel,payload)):
                 return False
-        was_supported=attempt.supports(channel)
         attempt.receive(channel,payload)
-        if not was_supported and attempt.supports(channel):
-            self._resume_private_media_receiver(peer,channel,binding,attempt)
+        self._project_native_media_support(peer,channel,attempt)
         return True # An obsolete original receipt still never reaches the personal outbox.
+
+    def _project_native_media_support(self,peer,channel,attempt):
+        # Either receipt can finish the original exchange (or post-write
+        # publication of our own offer can be last). Claim the transition once.
+        with self.lock:
+            binding=self._file_channel_bindings.get(channel)
+            if (binding is None or binding.peer_id!=peer.get('device_id') or binding.static_public!=peer.get('static_public')
+                    or self._native_media_support.get(channel) is not attempt or not attempt.supports(channel)
+                    or attempt in self._native_media_support_projected
+                    or self._current_native_source_metadata(binding.peer_id,binding.static_public,channel,binding.generation)):
+                return
+            self._native_media_support_projected.add(attempt)
+        self._resume_private_media_receiver(peer,channel,binding,attempt)
 
     def _resume_private_media_receiver(self,peer,channel,binding,attempt):
         # Fresh support permits a read-only check, not a sync. Only previously
@@ -3689,8 +3723,18 @@ class PhoneService:
             preferences = self._native_file_module('magnolie_photo_preferences')
             authority=self.open_native_file_authority(peer['device_id'],binding.static_public,channel,binding.generation)
             try:
-                if not media.NativeMediaSettingsStore.has_stored_settings(authority):return
                 body=media.NativeMediaSettingsStore(authority,support=attempt).read()
+                # Discovery exposes the existing settings (or explicit off defaults),
+                # never creates a file owner, persists defaults, sends or grants.
+                version=hashlib.sha256(canonical(body)).hexdigest()
+                preview=dict(version=hashlib.sha256(canonical([str(uuid.uuid4()),version])).hexdigest(),
+                    values=media.configured(body) if body is not None else dict(media.DEFAULTS),
+                    configured=body is not None,agreed=False)
+                with self.lock:
+                    if (self._native_media_support.get(channel) is not attempt or not attempt.supports(channel)
+                            or channel in self._native_file_connections):return
+                    self._native_media_settings_previews[channel]=(attempt,version,preview)
+                self.callback('photo_sync',{})
                 if body is None or media.effective(body)['auto_mode']!='wifi' or any(media.requested_for(body,kind,to_phone=True) for kind in ('images','video')):return
                 kinds=[kind for kind in ('images','video') if media.requested_for(body,kind)]
                 if not kinds:return
@@ -3703,7 +3747,8 @@ class PhoneService:
                         or 'video' in kinds and not saved.include_videos):return
             finally:authority.close()
             if not attempt.supports(channel):return
-            connection=self.open_native_file_connection(peer['device_id'],binding.static_public,channel,binding.generation)
+            connection=self.open_native_file_connection(peer['device_id'],binding.static_public,channel,binding.generation,
+                expected_media_support=attempt)
             if connection._media_support is not attempt or connection._preferences.read()!=saved or connection._media_transport._store.read()!=body:
                 connection.close();return
             connection._media_transport.send_settings()
@@ -9310,7 +9355,9 @@ class PhoneService:
                 support = self._native_file_module('magnolie_media_support')
                 if support.valid(payload,now_ms()):
                     attempt=self._begin_native_media_support(peer,channel)
-                    if attempt is not None:attempt.receive(channel,payload)
+                    if attempt is not None:
+                        attempt.receive(channel,payload)
+                        self._project_native_media_support(peer,channel,attempt)
             return  # This private lane never persists a discovery message.
         if is_reserved_screen_control(payload):
             self._screen_dispatch.receive(peer, channel, payload)
