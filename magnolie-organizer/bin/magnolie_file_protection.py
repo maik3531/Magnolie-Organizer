@@ -134,7 +134,9 @@ class ExistingFileTransferProtection:
                 if (not stat.S_ISREG(before.st_mode) or before.st_uid!=os.geteuid() or before.st_mode&0o077
                         or before.st_nlink!=1 or not 29<=before.st_size<=self.MAX_PLAIN_BYTES+28):
                     raise TransferError('file_authority_unsafe_native_peers')
-                blob=source.read(self.MAX_PLAIN_BYTES+29)
+                # Bound the read by this descriptor's verified size. One
+                # extra byte still exposes any growth during the read.
+                blob=source.read(before.st_size+1)
                 after=os.fstat(source.fileno())
                 named=os.stat('peers.json',dir_fd=self._root_fd,follow_symlinks=False)
                 if len(blob)!=before.st_size or self._signature(before)!=self._signature(after) or self._signature(named)!=self._signature(after):

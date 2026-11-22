@@ -90,6 +90,42 @@ def test_immutable_peer_projection_reuse_still_reads_authenticates_and_checks_th
         assert authority.current_peer() is None # No revival from the old projection.
     finally:authority.close()
 
+@pytest.mark.parametrize('grow',[False,True])
+def test_native_peer_read_uses_open_file_size_and_rejects_growth(native,monkeypatch,grow):
+    import os
+
+    service,peer,_=native;channel,binding=bind(service,peer)
+    authority=service.open_native_file_authority(peer['device_id'],peer['static_public'],channel,binding.generation)
+    peers=Path(service.store.peers_path);size=peers.stat().st_size
+    identity=(peers.stat().st_dev,peers.stat().st_ino)
+    actual_fdopen=os.fdopen;reads=[]
+
+    class PeerReader:
+        def __init__(self,source):self.source=source
+        def __enter__(self):self.source.__enter__();return self
+        def __exit__(self,*args):return self.source.__exit__(*args)
+        def fileno(self):return self.source.fileno()
+        def read(self,maximum):
+            reads.append(maximum)
+            if grow:
+                with peers.open('ab') as target:target.write(b'x')
+            return self.source.read(maximum)
+
+    def observe(fd,*args,**kwargs):
+        value=os.fstat(fd);source=actual_fdopen(fd,*args,**kwargs)
+        return PeerReader(source) if (value.st_dev,value.st_ino)==identity else source
+
+    try:
+        monkeypatch.setattr(os,'fdopen',observe)
+        if grow:
+            with pytest.raises(TransferError,match='file_authority_native_peers_changed'):
+                authority.protection.read_native_peers_blob()
+        else:
+            assert phone.strict_json(authority.protection.read_native_peers_blob())['items']==[peer]
+        assert reads==[size+1]
+    finally:authority.close()
+
+
 def test_normal_legacy_factory_reads_native_peer_metadata_without_normalizing_personal_peer(native,monkeypatch):
     service,peer,_=native;channel,binding=bind(service,peer)
     monkeypatch.setattr(service.store,'peer',lambda *args:pytest.fail('Native factory normalized a personal peer'))
