@@ -44,6 +44,40 @@ def legacy_state():
     return phone.validate_capabilities(capabilities)
 
 
+def test_exact_duplicate_control_preserves_existing_media_support_but_changed_control_retires(native,monkeypatch):
+    service,peer,_=native
+    peer['capabilities']=legacy_state();service.store.save_peers()
+    monkeypatch.setattr(service,'_native_media_support_checked',True)
+    monkeypatch.setattr(service,'_resume_automatic_photos',lambda *_:None)
+    with wire_pair() as (channel,wire):
+        binding=capture_authenticated_binding(dict(service.store.identity),dict(peer),service._generation,service.store)
+        service._activate_connection(peer['device_id'],channel,'wifi',file_binding=binding)
+        def deliver(message):
+            wire.send(message);service._payload(peer,channel,channel.receive())
+
+        try:
+            ack_all(service,peer,channel)
+            remote=offer(phone.now_ms());deliver(remote)
+            own=wire.receive();assert wire.receive()==ack(remote)
+            deliver(ack(own))
+            support=service._native_media_support[channel]
+            assert support.supports(channel) and not service._native_file_connections
+            for kind,previous in list(service._native_file_control_receipts[channel].items()):
+                sent=channel.send_seq
+                service._observe_native_file_control(peer,channel,kind,deepcopy(previous),duplicate=True,acknowledged=False)
+                assert support.supports(channel)
+                service._observe_native_file_control(peer,channel,kind,deepcopy(previous),duplicate=True)
+                assert support.supports(channel) and channel.send_seq==sent
+            kind='capabilities.update'
+            different=deepcopy(service._native_file_control_receipts[channel][kind])
+            different['body']['revision']+=1
+            service._observe_native_file_control(peer,channel,kind,different,duplicate=True,acknowledged=False)
+            assert not support.supports(channel)
+            ack_all(service,peer,channel)
+            assert not support.supports(channel) and not service._native_file_connections
+        finally:service._end_native_file_connection(channel)
+
+
 def test_encrypted_support_requires_both_completions_and_retains_every_legacy_version():
     live, tick = [True], [100]
     at = phone.now_ms()

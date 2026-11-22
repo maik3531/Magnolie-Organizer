@@ -3544,7 +3544,13 @@ class PhoneService:
             # A changed/uncertain metadata exchange cannot reuse an older
             # positive witness, even if a later persisted value looks identical.
             with self.lock:
-                self._native_file_controls.get(channel,{}).pop(kind,None)
+                controls=self._native_file_controls.get(channel,{})
+                previous=self._native_file_control_receipts.get(channel,{}).get(kind)
+                if duplicate and previous==message and controls.get(kind)==body:
+                    # The original exact ACK already completed on this channel.
+                    # A repeated receipt neither grants anything nor withdraws it.
+                    return
+                controls.pop(kind,None)
                 support=self._native_media_support.get(channel)
                 if support is not None:support.close()
             return
