@@ -191,10 +191,12 @@ class NativeFilePublisher:
 
     def _fresh(self):
         self._directories()
-        if self._current() != self.binding:
-            raise TransferError("native_publication_binding_revoked")
         if self._accepted is not None:
+            # The constructor pins the same binding. Acceptance verifies it
+            # freshly on both sides of the destination check.
             self._accepted.verify(self._current)
+        elif self._current() != self.binding:
+            raise TransferError("native_publication_binding_revoked")
 
     def _cache_entries(self):
         names = set()

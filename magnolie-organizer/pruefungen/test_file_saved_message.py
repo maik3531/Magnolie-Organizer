@@ -6,7 +6,7 @@ import pytest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'bin'))
 from magnolie_file_acceptance import NativeAcceptedTransfer
-from magnolie_file_saved_message import parse_saved
+from magnolie_file_saved_message import create_saved,parse_saved
 from magnolie_file_transfer import FileManifest,ManifestFile,TransferError
 from test_file_receive import Fixture,feed
 from test_file_chunk_message import NOW
@@ -82,3 +82,38 @@ def test_confirmation_still_requires_current_native_binding_and_strict_deadline(
     with pytest.raises(TransferError):parse_saved(message,op.job.accepted.manifest,now=NOW+60_000)
     f.current=replace(f.binding,permission_epoch='b'*64)
     with pytest.raises(TransferError):op.saved_receipt_message(now=NOW)
+
+
+def test_complete_batch_fingerprints_acceptance_once_without_caching_current_binding(fixture,monkeypatch):
+    f=fixture
+    payloads=(b'hello',b'world')
+    files=tuple(ManifestFile(str(i)*32,f'Camera/{i}.jpg',len(data),sha256(data).hexdigest())
+        for i,data in enumerate(payloads,1))
+    manifest=FileManifest('a'*32,'b'*32,f.binding.sender_id,f.binding.receiver_id,files,10)
+    accepted=NativeAcceptedTransfer.capture(manifest,f.binding,{file.id:file.path for file in files},f.destination,lambda:f.current)
+    op=f.accept(accepted=accepted)
+    for file,data in zip(files,payloads):op.receive_chunk(file.id,0,data)
+    op.publish_completed();receipts=op.commit_saved_receipts()
+    expected=op.saved_receipt_message(now=NOW)['body']
+    original=NativeAcceptedTransfer.fingerprint.fget
+    calls=[];checks=[]
+
+    def fingerprint(value):
+        calls.append(value)
+        return original(value)
+
+    def current():
+        checks.append(True)
+        return f.current
+
+    monkeypatch.setattr(NativeAcceptedTransfer,'fingerprint',property(fingerprint))
+    assert create_saved(accepted,receipts,current,op.job.owner,now=NOW)['body']==expected
+    assert calls==[accepted] and len(checks)==4
+
+    def revoke_during_format(value):
+        f.current=replace(f.binding,permission_epoch='c'*64)
+        return original(value)
+
+    monkeypatch.setattr(NativeAcceptedTransfer,'fingerprint',property(revoke_during_format))
+    with pytest.raises(TransferError,match='file_acceptance_binding_revoked'):
+        create_saved(accepted,receipts,current,op.job.owner,now=NOW)

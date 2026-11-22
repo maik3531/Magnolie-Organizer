@@ -8,6 +8,7 @@ import sys
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
+from magnolie_file_acceptance import NativeAcceptedDestination, NativeAcceptedTransfer
 from magnolie_file_publish import NativeFilePublisher
 from magnolie_file_transfer import CHUNK_BYTES, ResumeLedger, TransferError
 from test_file_transfer_stage import FixtureCipher, binding, description, stage
@@ -64,6 +65,39 @@ def fixture(tmp_path):
         yield f
     finally:
         f.close()
+
+
+def test_accepted_publication_checks_binding_on_both_sides_of_destination(fixture, monkeypatch):
+    f = fixture
+    accepted = NativeAcceptedTransfer.capture(f.manifest, f.binding, {f.file.id: f.file.path},
+        f.destination, lambda: f.current)
+    publisher = f.open(accepted=accepted)
+    checks = []
+    verify = NativeAcceptedDestination.verify
+
+    def current():
+        checks.append("binding")
+        return f.current
+
+    def verify_destination(destination):
+        assert destination is accepted.destination
+        checks.append("destination")
+        verify(destination)
+
+    monkeypatch.setattr(publisher, "_current", current)
+    monkeypatch.setattr(NativeAcceptedDestination, "verify", verify_destination)
+    publisher._fresh()
+    assert checks == ["binding", "destination", "binding"]
+
+    def revoke_during_verify(destination):
+        verify_destination(destination)
+        f.current = None
+
+    checks.clear()
+    monkeypatch.setattr(NativeAcceptedDestination, "verify", revoke_during_verify)
+    with pytest.raises(TransferError, match="file_acceptance_binding_revoked"):
+        publisher._fresh()
+    assert checks == ["binding", "destination", "binding"] and not f.target.exists()
 
 
 @pytest.mark.parametrize("data", [b"hello", b"", b"a" * CHUNK_BYTES + b"tail"])

@@ -52,21 +52,27 @@ def create_saved(accepted,receipts,current_binding,owner,*,now=None,message_id=N
     accepted.verify(current_binding)
     if any(type(receipt) is not NativeSavedFileReceipt for receipt in receipts):raise TransferError('file_saved_native_context_required')
     indexed={receipt.file_id:receipt for receipt in receipts}
-    if len(indexed)!=len(receipts) or set(indexed)!={file.id for file in accepted.manifest.files}:
+    manifest=accepted.manifest
+    if len(indexed)!=len(receipts) or set(indexed)!={file.id for file in manifest.files}:
         raise TransferError('file_saved_incomplete_native_receipts')
+    # These are immutable acceptance facts, not current authority. Validate
+    # the live binding again after the full receipt has been constructed.
+    manifest_sha256=manifest.fingerprint
+    acceptance_sha256=accepted.fingerprint
+    targets=dict(accepted.targets)
     members=[]
-    for file in accepted.manifest.files:
+    for file in manifest.files:
         receipt=indexed[file.id]
-        if (receipt.owner!=owner or receipt.manifest_sha256!=accepted.manifest.fingerprint or receipt.accepted_sha256!=accepted.fingerprint
-                or receipt.relative_path!=dict(accepted.targets)[file.id] or receipt.size!=file.size or receipt.sha256!=file.sha256):
+        if (receipt.owner!=owner or receipt.manifest_sha256!=manifest_sha256 or receipt.accepted_sha256!=acceptance_sha256
+                or receipt.relative_path!=targets[file.id] or receipt.size!=file.size or receipt.sha256!=file.sha256):
             raise TransferError('file_saved_native_receipt_changed')
         members.append(dict(file_id=file.id,size=file.size,sha256=file.sha256,receipt_sha256=receipt.protected_record_sha256))
     at=now_ms() if now is None else now
-    body=dict(format=1,transfer_id=accepted.manifest.transfer_id,manifest_sha256=accepted.manifest.fingerprint,
-              acceptance_sha256=accepted.fingerprint,permission_epoch=accepted.binding.permission_epoch,
+    body=dict(format=1,transfer_id=manifest.transfer_id,manifest_sha256=manifest_sha256,
+              acceptance_sha256=acceptance_sha256,permission_epoch=accepted.binding.permission_epoch,
               destination_token=accepted.binding.destination_token,receipts=members)
     message=dict(type='message',v=1,message_id=str(uuid.uuid4()) if message_id is None else message_id,kind=KIND,
                  created_ms=at,expires_ms=at+MAX_TTL_MS,body=body)
-    parse_saved(message,accepted.manifest,now=at)
+    parse_saved(message,manifest,now=at)
     accepted.verify(current_binding)
     return message
