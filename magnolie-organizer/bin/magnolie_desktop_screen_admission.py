@@ -47,7 +47,8 @@ class DesktopScreenDraftAdmission:
     """
 
     def __init__(self, dispatch, peer_id, channel, *, mode, bus, provider,
-                 parent, parent_handle, session_lock, ended, require_parent=None, selection=None):
+                 parent, parent_handle, session_lock, ended, require_parent=None, selection=None,
+                 require_owner=None):
         if current_thread() is not main_thread() or not isinstance(parent, Gtk.Window):
             raise RuntimeError('desktop_screen_native_main_required')
         sources = {'monitor': MONITOR, 'window': WINDOW}
@@ -66,6 +67,7 @@ class DesktopScreenDraftAdmission:
         self._ended = ended
         self._parent = parent
         self._require_parent = require_parent or (lambda: None)
+        self._require_owner = require_owner or (lambda: None)
         self._mode, self._wire_mode = mode, 2 if mode == 'extend' else 1
         self._bus, self._provider, self._parent_handle = bus, provider, parent_handle
         self._deadline = monotonic() + MAX_SETUP_MS / 1000
@@ -85,6 +87,7 @@ class DesktopScreenDraftAdmission:
             raise PermissionError('desktop_screen_native_admission_retired')
         original.require_current()
         self._unlocked()
+        self._require_owner()
         if self._stopping.is_set():
             raise PermissionError('desktop_screen_native_admission_retired')
 

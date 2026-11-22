@@ -3095,7 +3095,8 @@ class PhoneService:
             raise PermissionError('desktop_screen_private_mirror_unavailable')
         return dispatch.select(peer_id)
 
-    def begin_private_desktop_mirror(self, selection, *, mode, bus, provider, parent, session_lock, ended):
+    def begin_private_desktop_mirror(self, selection, *, mode, bus, provider, parent, session_lock, ended,
+                                     require_owner=None):
         """Native-only admission. No lookup/fallback to a replacement channel."""
         dispatch = self._desktop_screen_draft_dispatch
         if dispatch is None or mode not in ('monitor', 'window'):
@@ -3105,7 +3106,7 @@ class PhoneService:
         portal_parent = _NativeX11PortalParent(parent)
         return DesktopScreenDraftAdmission(dispatch, selection.peer_id, selection.channel, mode=mode, bus=bus,
             provider=provider, parent=parent, parent_handle=portal_parent.handle, session_lock=session_lock, ended=ended,
-            require_parent=portal_parent.require_current, selection=selection)
+            require_parent=portal_parent.require_current, selection=selection, require_owner=require_owner)
 
     def end_native_webcam(self, original_owner):
         with self.lock:

@@ -1,5 +1,6 @@
 """Real GTK approval and signed PhoneService test parent; no compositor capture."""
 
+from threading import Event
 from time import time_ns
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -7,7 +8,7 @@ from unittest.mock import Mock
 import pytest
 
 from test_desktop_screen_dispatch import connected, native, ping, request
-from test_phone_screen_window import GLib, Gtk, PhoneScreenSessionLock, wait_for
+from test_phone_screen_window import GLib, Gtk, PhoneScreenSessionLock, organizer_hooks, wait_for
 import magnolie_desktop_screen_admission as admission
 import magnolie_desktop_screen_attempt as runs
 import magnolie_desktop_screen_control as control
@@ -57,6 +58,82 @@ def show(owner, client, wire_mode=2):
     client.send(frame)
     wait_for(lambda: owner._dialog is not None and owner._dialog.get_visible())
     return frame, owner._dialog
+
+
+@pytest.mark.parametrize('native', [True], indirect=True)
+def test_mirror_organizer_entry_checks_original_after_provider_read(connected, monkeypatch):
+    from gi.repository import Gio
+    import magnolie_desktop_screen_portal as portal
+
+    service, peer, client = connected
+    app = organizer_hooks()
+    app._telefon = service
+    app._private_desktop_mirror_ui = True
+    app._gesperrt = app._beenden_angefragt = app._wirklich_beenden = False
+    monitor = app._phone_screen_session_lock = PhoneScreenSessionLock()
+    monitor._lease = object()
+    replies = []
+    app.antwort = lambda target, value: replies.append((target, value))
+    bus = object()
+    started, resume = Event(), Event()
+    factory = Mock()
+    monkeypatch.setattr(admission, 'DesktopScreenDraftAttempt', factory)
+    monkeypatch.setattr(Gio, 'bus_get_sync', lambda *_: bus)
+
+    def provider(actual_bus, cancellable):
+        assert actual_bus is bus and not cancellable.is_cancelled()
+        started.set()
+        assert resume.wait(2)
+        return DesktopScreenProvider(':1.245', MONITOR, False, 0, 6)
+
+    monkeypatch.setattr(portal, 'read_desktop_screen_provider', provider)
+    app.show_all()
+
+    def command(action):
+        app._desktop_mirror_ui(dict(cmd=f'telefon_desktop_mirror_{action}', peer=peer['device_id'], requestId=action))
+
+    try:
+        command('stand')
+        assert replies[-1][1]['desktopMirror'] == dict(included=True, active=False)
+        assert not started.is_set() and service._desktop_screen_draft_dispatch._owner is None
+        command('arm')
+        assert started.wait(2)
+        app.hide(); app.show_all()
+        resume.set()
+        wait_for(lambda: len(replies) == 2)
+        assert not replies[-1][1]['ok'] and service._desktop_screen_draft_dispatch._owner is None
+
+        started.clear(); resume.clear()
+        command('arm')
+        assert started.wait(2)
+        with service.lock:
+            service.connection_transports[peer['device_id']] = 'bluetooth'
+        try:
+            resume.set()
+            wait_for(lambda: len(replies) == 3)
+            assert not replies[-1][1]['ok'] and service._desktop_screen_draft_dispatch._owner is None
+        finally:
+            with service.lock:
+                service.connection_transports[peer['device_id']] = 'wifi'
+
+        command('arm')
+        wait_for(lambda: len(replies) == 4)
+        assert replies[-1][1]['ok'] and replies[-1][1]['desktopMirror']['active']
+        owner = app._desktop_mirror_owner
+        assert owner._original.channel is client.channel
+        factory.assert_not_called()
+        _, dialog = show(owner, client, 1)
+        dialog.response(Gtk.ResponseType.CANCEL)
+        wait_for(lambda: app._desktop_mirror_owner is None)
+        factory.assert_not_called()
+        ping(client)
+    finally:
+        resume.set()
+        app._desktop_mirror_stop()
+        wait_for(lambda: getattr(app, '_desktop_mirror_pending', None) is None and
+                 getattr(app, '_desktop_mirror_owner', None) is None)
+        app.destroy()
+        monitor.close()
 
 
 @pytest.mark.parametrize('native,private_mirror', [(False, False), (True, True)], indirect=['native'])

@@ -140,12 +140,13 @@ def organizer_hooks():
     window = next(node for node in code.body if isinstance(node, ast.ClassDef) and node.name == "Fenster")
     names = {"_phone_screen_begin_original", "_phone_screen_begin_local", "_phone_screen_attach", "_phone_screen_stop", "_phone_screen_drained", "_phone_screen_ui",
              "_phone_screen_daemon_ui", "_phone_screen_window_if_any",
-             "_tray_telefone_aktualisieren", "_beenden_endgueltig"}
+             "_tray_telefone_aktualisieren", "_beenden_endgueltig", "_desktop_mirror_ui", "_desktop_mirror_stop"}
     hooks = ast.Module(body=[node for node in window.body if isinstance(node, ast.FunctionDef) and node.name in names],
                        type_ignores=[])
     import time
     from magnolie_hintergrund import PhoneServiceProxy
-    namespace = {"Gtk": Gtk, "GLib": GLib, "PhoneService": PhoneService, "PhoneServiceProxy": PhoneServiceProxy,
+    from gi.repository import Gio
+    namespace = {"Gtk": Gtk, "GLib": GLib, "Gio": Gio, "PhoneService": PhoneService, "PhoneServiceProxy": PhoneServiceProxy,
                  "threading": threading, "time": time, "_": lambda text: text}
     exec(compile(hooks, str(source), "exec"), namespace)
     return type("OrganizerHooks", (Gtk.Window,), dict({name: namespace[name] for name in names}, _native_screen_view_checked=False))()

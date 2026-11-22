@@ -29526,7 +29526,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const tools = el("div", "notes-live-media"); erweitert.append(tools);
         const webcam = baueTelefonWebcam(erweitert, tools);
         const screen = baueTelefonBildschirm(erweitert, tools);
-        tools.entfernen = () => { webcam(); screen(); tools.remove(); };
+        const mirror = baueDesktopSpiegelung(erweitert, tools, livePeer.device_id);
+        tools.entfernen = () => { webcam(); screen(); mirror(); tools.remove(); };
       }
     }
     return { erweitert, gruppe, titel };
@@ -30257,6 +30258,47 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     block.addEventListener("toggle", () => { if (block.open) request("telefon_screen_stand"); });
     if (wurzel.open) queueMicrotask(toggle);
     return () => { mounted = false; wurzel.removeEventListener("toggle", toggle); };
+  }
+
+  function baueDesktopSpiegelung(wurzel, container, peer) {
+    const block = el("div", "einst-gruppe"); block.id = "desktop-spiegelung";
+    block.hidden = true;
+    const status = el("p", "einst-hinweis"); status.setAttribute("aria-live", "polite");
+    const arm = el("button", null, _("Prepare to share the computer screen"));
+    const stop = el("button", null, _("Stop screen mirroring"));
+    const update = el("button", null, _("Refresh"));
+    arm.type = stop.type = update.type = "button";
+    block.append(arm, stop, update, status); container.append(block);
+    let pending = false, mounted = true, active = false;
+    const visible = () => mounted && block.isConnected && wurzel.open && !gesperrt &&
+      !block.closest("#einstellungen-schleier")?.classList.contains("verborgen");
+    const draw = () => {
+      arm.hidden = pending || active;
+      stop.hidden = pending || !active;
+      update.disabled = pending;
+    };
+    async function request(action) {
+      if (!visible() || pending) return;
+      pending = true; draw();
+      try {
+        const result = await kdeMedienAnfordern("telefon_desktop_mirror_" + action, action === "arm" ? {peer} : {});
+        if (!mounted) return;
+        const state = result.desktopMirror;
+        block.hidden = state?.included !== true;
+        active = state?.active === true;
+        status.textContent = !result.ok ? _("Screen mirroring did not start.") : active ?
+          _("Request screen viewing in Magnolie Notes, then confirm on this computer.") : "";
+      } finally {
+        pending = false; draw();
+      }
+    }
+    arm.addEventListener("click", () => { if (!block.hidden && !arm.hidden) request("arm"); });
+    stop.addEventListener("click", () => { if (!block.hidden && !stop.hidden) request("stop"); });
+    update.addEventListener("click", () => { if (!block.hidden) request("stand"); });
+    const refresh = () => { if (wurzel.open) request("stand"); };
+    wurzel.addEventListener("toggle", refresh);
+    if (wurzel.open) queueMicrotask(refresh);
+    return () => { mounted = false; wurzel.removeEventListener("toggle", refresh); };
   }
 
   function baueTelefonWebcam(wurzel, container) {

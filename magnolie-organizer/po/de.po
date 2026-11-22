@@ -10581,6 +10581,12 @@ msgstr "Handybildschirm"
 msgid "Phone screen mirroring"
 msgstr "Handy-Bildschirmspiegelung"
 
+msgid "Prepare to share the computer screen"
+msgstr "Freigabe des Computerbildschirms vorbereiten"
+
+msgid "Request screen viewing in Magnolie Notes, then confirm on this computer."
+msgstr "Fordere die Bildschirmansicht in Magnolie Notes an und bestätige sie dann an diesem Computer."
+
 msgid "Screen mirroring did not start."
 msgstr "Die Bildschirmspiegelung wurde nicht gestartet."
 
