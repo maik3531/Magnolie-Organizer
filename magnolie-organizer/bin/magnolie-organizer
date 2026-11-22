@@ -21864,7 +21864,10 @@ class Fenster(_FENSTER_BASIS):
         try:
             require_owner()
             selection = phone.private_desktop_mirror_candidate(peer)
-            parent = _NativeX11PortalParent(self)
+            try:
+                parent = _NativeX11PortalParent(self)
+            except PermissionError:
+                respond(False, "parent_unavailable"); return
             monitor = getattr(self, "_phone_screen_session_lock", None)
             if monitor is None:
                 monitor = self._phone_screen_session_lock = PhoneScreenSessionLock().start()

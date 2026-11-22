@@ -7558,6 +7558,11 @@ function knopfMit(text, wurzel) {
   assert.match(mirrorStatus.textContent, /Screen sharing is unavailable|Bildschirmfreigabe verfügbar/);
   assert.ok(!mirrorPrepare.hidden && mirrorStop.hidden);
   mirrorPrepare.click();
+  mirrorReply(false, {included: true, active: false, status: "parent_unavailable"});
+  await tick();
+  assert.match(mirrorStatus.textContent, /This desktop window cannot be used|Dieses Desktop-Fenster kann nicht/);
+  assert.ok(!mirrorPrepare.hidden && mirrorStop.hidden);
+  mirrorPrepare.click();
   const mirrorArm = mirrorMessages().at(-1);
   assert.strictEqual(mirrorArm.cmd, "telefon_desktop_mirror_arm");
   assert.strictEqual(mirrorArm.peer, fotoPeer.device_id);

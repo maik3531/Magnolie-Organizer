@@ -187,6 +187,34 @@ def mirror_app(connected, monkeypatch):
 
 
 @pytest.mark.parametrize('native', [True], indirect=True)
+def test_mirror_reports_unavailable_native_parent_before_portal_probe(connected, mirror_app, monkeypatch):
+    import gi
+    import magnolie_desktop_screen_portal as portal
+
+    service, _, client = connected
+    app, command, factory = mirror_app
+    require = gi.require_version
+
+    def missing_x11(namespace, version):
+        if namespace == 'GdkX11':
+            raise ValueError('missing synthetic namespace')
+        return require(namespace, version)
+
+    monkeypatch.setattr(gi, 'require_version', missing_x11)
+    query = Mock()
+    monkeypatch.setattr(portal, 'read_desktop_screen_provider', query)
+    assert command('stand')['desktopMirror'] == dict(included=True, active=False)
+    result = command('arm')
+    assert not result['ok'] and result['desktopMirror'] == dict(included=True, active=False, status='parent_unavailable')
+    assert getattr(app, '_desktop_mirror_pending', None) is None
+    assert getattr(app, '_desktop_mirror_lease', None) is None
+    assert service._desktop_screen_draft_dispatch._owner is None
+    query.assert_not_called()
+    factory.assert_not_called()
+    ping(client)
+
+
+@pytest.mark.parametrize('native', [True], indirect=True)
 @pytest.mark.parametrize('unavailable', [None, DesktopScreenProvider(),
     DesktopScreenProvider(':1.245', MONITOR, False, 0, 2), DesktopScreenProvider(':1.245', WINDOW, True, 0, 6)])
 def test_mirror_reports_unavailable_portal_without_arming(connected, mirror_app, monkeypatch, unavailable):

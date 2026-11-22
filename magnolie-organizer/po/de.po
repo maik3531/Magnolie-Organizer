@@ -10622,3 +10622,6 @@ msgstr "Bildschirm dieses Handys ansehen?"
 
 msgid "Your phone must approve screen sharing."
 msgstr "Die Bildschirmfreigabe muss auf dem Handy bestätigt werden."
+
+msgid "This desktop window cannot be used for screen sharing. No screen sharing was started."
+msgstr "Dieses Desktop-Fenster kann nicht für die Bildschirmfreigabe verwendet werden. Es wurde keine Freigabe gestartet."

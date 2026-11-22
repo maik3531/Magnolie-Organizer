@@ -30293,7 +30293,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         block.hidden = !state.included;
         active = state.active;
         lease = active && typeof state?.lease === "string" && /^[0-9a-f]{32}$/.test(state.lease) ? state.lease : "";
-        status.textContent = state.status === "portal_unavailable" ?
+        status.textContent = state.status === "parent_unavailable" ?
+          _("This desktop window cannot be used for screen sharing. No screen sharing was started.") :
+          state.status === "portal_unavailable" ?
           _("Screen sharing is unavailable in this desktop session. No screen sharing was started.") :
           state.status === "cleanup_unconfirmed" ? _("The system did not confirm that screen mirroring stopped. You cannot start another session here.") :
           state.status === "stopping" ? _("Stopping screen mirroring. Refresh to check whether it has stopped.") :
