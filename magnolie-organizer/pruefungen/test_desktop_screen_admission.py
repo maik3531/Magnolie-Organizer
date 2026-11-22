@@ -77,7 +77,7 @@ def test_private_native_mirror_entry_keeps_consent_and_never_resolves_replacemen
     def begin(mode='monitor'):
         return service.begin_private_desktop_mirror(peer_id, client.channel, mode=mode,
             provider=DesktopScreenProvider(':1.245', MONITOR | WINDOW, True, 0, 6), bus=object(),
-            parent=parent, parent_handle='x11:245', session_lock=lock, ended=ended.append)
+            parent=parent, session_lock=lock, ended=ended.append)
 
     try:
         assert not service.native_screen_included  # No phone → PC capability change.
@@ -106,6 +106,7 @@ def test_private_native_mirror_entry_keeps_consent_and_never_resolves_replacemen
             with service.lock:
                 transport[peer_id] = 'wifi'
         owner = begin()
+        assert owner._parent_handle == f'x11:{parent.get_window().get_xid():x}'
         late = request()
         client.send(dict(late, body=dict(late['body'], op='prepared', mode=1,
             session='12' * 16, transcript='ab' * 32)))
@@ -120,6 +121,53 @@ def test_private_native_mirror_entry_keeps_consent_and_never_resolves_replacemen
     finally:
         if owner is not None:
             owner.close()
+            wait_for(lambda: owner._terminal)
+        parent.destroy()
+        lock.close()
+
+
+@pytest.mark.parametrize('native', [True], indirect=True)
+def test_private_mirror_parent_disappearing_before_accept_never_starts_portal(connected, monkeypatch):
+    service, peer, client = connected
+    assert Gtk.init_check()[0], 'run under Xvfb or an isolated GTK display'
+    factory = Mock()
+    monkeypatch.setattr(admission, 'DesktopScreenDraftAttempt', factory)
+    parent = Gtk.Window()
+    parent.show_all()
+    lock = PhoneScreenSessionLock()
+    lock._lease = object()
+    owner = None
+    ended = []
+
+    def begin():
+        return service.begin_private_desktop_mirror(peer['device_id'], client.channel, mode='window',
+            provider=DesktopScreenProvider(':1.245', WINDOW, False, 0, 6), bus=object(),
+            parent=parent, session_lock=lock, ended=ended.append)
+
+    try:
+        owner = begin()
+        _, dialog = show(owner, client, 1)
+        parent.hide()
+        parent.show_all()  # Do not let a quick hide/show resurrect the first request.
+        dialog.response(Gtk.ResponseType.ACCEPT)
+        wait_for(lambda: owner._terminal)
+        assert ended == [None]
+        factory.assert_not_called()
+        ping(client)
+        owner = begin()  # Only a new native action can re-arm.
+        assert owner._pending is None
+        _, new_dialog = show(owner, client, 1)
+        new_dialog.response(Gtk.ResponseType.ACCEPT)
+        factory.assert_called_once()
+        assert factory.call_args.kwargs['parent_window'] == f'x11:{parent.get_window().get_xid():x}'
+        factory.return_value.begin.assert_called_once()
+        parent.hide()
+        factory.return_value.stop.assert_not_called()  # Hiding is not an active stop.
+    finally:
+        if owner is not None:
+            owner.close()
+            if factory.called and owner._cleanup is None:
+                factory.call_args.kwargs['ended'](DesktopScreenAttemptCleanup(ScreenRunCleanup(True, True, True), True))
             wait_for(lambda: owner._terminal)
         parent.destroy()
         lock.close()

@@ -9,6 +9,35 @@ from magnolie_desktop_screen_portal import MONITOR, WINDOW
 from magnolie_phone_screen_window import GLib, Gtk
 
 
+class _NativeX11PortalParent:
+    """Derive the portal parent from the original GTK window, never a caller ID."""
+    def __init__(self, parent):
+        if current_thread() is not main_thread() or not isinstance(parent, Gtk.Window):
+            raise RuntimeError('desktop_screen_native_main_required')
+        self._parent = parent
+        self._window = parent.get_window()
+        try:
+            import gi
+            gi.require_version('GdkX11', '3.0')
+            from gi.repository import GdkX11
+        except (ImportError, ValueError) as exc:
+            raise PermissionError('desktop_screen_native_parent_export_unavailable') from exc
+        if not isinstance(self._window, GdkX11.X11Window):
+            # Wayland must use its own native export; there is no X11 fallback.
+            raise PermissionError('desktop_screen_native_parent_export_unavailable')
+        self._xid = self._window.get_xid()
+        self.require_current()
+        self.handle = f'x11:{self._xid:x}'
+
+    def require_current(self):
+        if current_thread() is not main_thread():
+            raise RuntimeError('desktop_screen_native_main_required')
+        if (not self._xid or self._window.is_destroyed() or self._parent.get_window() is not self._window or
+                not self._parent.get_visible() or not self._parent.get_mapped() or
+                self._window.get_xid() != self._xid):
+            raise PermissionError('desktop_screen_native_parent_retired')
+
+
 class DesktopScreenDraftAdmission:
     """Arm only after a native action selects this exact paired phone and mode.
 
@@ -18,7 +47,7 @@ class DesktopScreenDraftAdmission:
     """
 
     def __init__(self, dispatch, peer_id, channel, *, mode, bus, provider,
-                 parent, parent_handle, session_lock, ended):
+                 parent, parent_handle, session_lock, ended, require_parent=None):
         if current_thread() is not main_thread() or not isinstance(parent, Gtk.Window):
             raise RuntimeError('desktop_screen_native_main_required')
         sources = {'monitor': MONITOR, 'window': WINDOW}
@@ -36,12 +65,20 @@ class DesktopScreenDraftAdmission:
         self._cleanup = None
         self._ended = ended
         self._parent = parent
+        self._require_parent = require_parent or (lambda: None)
         self._mode, self._wire_mode = mode, 2 if mode == 'extend' else 1
         self._bus, self._provider, self._parent_handle = bus, provider, parent_handle
         self._deadline = monotonic() + MAX_SETUP_MS / 1000
         self._original = dispatch.attach(peer_id, channel, self._receive)
         self._destroy_id = parent.connect('destroy', lambda _: self.close())
+        self._unmap_id = parent.connect('unmap', self._parent_unmapped) if require_parent else None
         GLib.timeout_add(25, self._tick)
+
+    def _parent_unmapped(self, _parent):
+        # A quick hide/show must not revive a pending local confirmation.
+        # After approval the active transfer owns its normal stop lifecycle.
+        if self._attempt is None:
+            self.close()
 
     def _require_live(self, original):
         if self._stopping.is_set():
@@ -80,6 +117,7 @@ class DesktopScreenDraftAdmission:
                 with self._state:
                     pending, attempt = self._pending, self._attempt
                 if attempt is None:
+                    self._require_parent()
                     deadline = pending[1].deadline if pending is not None else self._deadline
                     if monotonic() >= deadline or not self._parent.get_visible():
                         self.close()
@@ -98,8 +136,9 @@ class DesktopScreenDraftAdmission:
         if clean and not self._original.release():
             return True  # Retirement raced the last reader handoff.
         self._terminal = True  # Unconfirmed cleanup deliberately keeps the slot.
-        if self._parent.handler_is_connected(self._destroy_id):
-            self._parent.disconnect(self._destroy_id)
+        for handler in (self._destroy_id, self._unmap_id):
+            if handler is not None and self._parent.handler_is_connected(handler):
+                self._parent.disconnect(handler)
         self._ended(cleanup)
         return False
 
@@ -127,6 +166,7 @@ class DesktopScreenDraftAdmission:
             return
         try:
             self._require_live(self._original)
+            self._require_parent()
             with self._state:
                 request, setup = self._pending
             deadline = setup.deadline
