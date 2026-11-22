@@ -3148,7 +3148,8 @@ class PhoneService:
         channel.send({'type': 'ack', 'message_id': payload['message_id'], 'status': status, 'error': error})
 
     def _native_file_module(self, name):
-        if (not self._native_photo_built or name not in ('magnolie_file_native_authority', 'magnolie_file_desktop_connection')):
+        if (not self._native_photo_built or name not in ('magnolie_file_native_authority', 'magnolie_file_desktop_connection',
+                'magnolie_media_support', 'magnolie_media_sync', 'magnolie_photo_preferences')):
             raise ValueError('file_feature_not_in_build')
         return importlib.import_module(name)
 
@@ -3639,7 +3640,7 @@ class PhoneService:
         peer_id=peer.get('device_id');static_public=peer.get('static_public')
         connection_type=self._native_file_module('magnolie_file_desktop_connection').NativeDesktopFileConnection
         if not connection_type._data_handlers_ready:return None
-        from magnolie_media_support import NativeMediaSupportAttempt
+        support = self._native_file_module('magnolie_media_support')
         with self.lock:
             binding=self._file_channel_bindings.get(channel)
             if binding is None or binding.pairing_epoch is None:return None
@@ -3651,7 +3652,7 @@ class PhoneService:
             if not current():return None
             attempt=self._native_media_support.get(channel)
             if attempt is not None:return attempt  # Never restart a retired original attempt.
-            attempt=NativeMediaSupportAttempt(channel,current)
+            attempt=support.NativeMediaSupportAttempt(channel,current)
             self._native_media_support[channel]=attempt
         attempt.send()  # No service monitor across authenticated output.
         return attempt
@@ -3678,16 +3679,16 @@ class PhoneService:
         connection=None
         from cryptography.exceptions import InvalidTag
         try:
-            from magnolie_media_sync import NativeMediaSettingsStore,effective,requested_for
-            from magnolie_photo_preferences import ProtectedPhotoPreferences
+            media = self._native_file_module('magnolie_media_sync')
+            preferences = self._native_file_module('magnolie_photo_preferences')
             authority=self.open_native_file_authority(peer['device_id'],binding.static_public,channel,binding.generation)
             try:
-                if not NativeMediaSettingsStore.has_stored_settings(authority):return
-                body=NativeMediaSettingsStore(authority,support=attempt).read()
-                if body is None or effective(body)['auto_mode']!='wifi' or any(requested_for(body,kind,to_phone=True) for kind in ('images','video')):return
-                kinds=[kind for kind in ('images','video') if requested_for(body,kind)]
+                if not media.NativeMediaSettingsStore.has_stored_settings(authority):return
+                body=media.NativeMediaSettingsStore(authority,support=attempt).read()
+                if body is None or media.effective(body)['auto_mode']!='wifi' or any(media.requested_for(body,kind,to_phone=True) for kind in ('images','video')):return
+                kinds=[kind for kind in ('images','video') if media.requested_for(body,kind)]
                 if not kinds:return
-                prefs=ProtectedPhotoPreferences(authority)
+                prefs=preferences.ProtectedPhotoPreferences(authority)
                 try:saved=prefs.read()
                 finally:prefs.close()
                 policy=saved.policy
@@ -9300,8 +9301,8 @@ class PhoneService:
             return
         if getattr(self,'_native_media_support_checked',False) and payload.get('kind')=='media_support.hello':
             if scoped_reference is None and self._native_photo_built:
-                from magnolie_media_support import valid
-                if valid(payload,now_ms()):
+                support = self._native_file_module('magnolie_media_support')
+                if support.valid(payload,now_ms()):
                     attempt=self._begin_native_media_support(peer,channel)
                     if attempt is not None:attempt.receive(channel,payload)
             return  # This private lane never persists a discovery message.
