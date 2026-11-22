@@ -606,6 +606,37 @@ async function run(web) {
     assert.equal(b.t.daten().aufgaben[0].titel, "Local draft");
   }, { aufgaben: [{ id: "task", uid: "task", titel: "Original", geaendert: 100 }] });
 
+  await test("contact merge preserves local messenger targets and adds only distinct targets", async b => {
+    const contact = b.t.daten().kontakte[0];
+    const incoming = { sozialeMedien: [
+      { dienst: "whatsapp", wert: "+49 170 1234567" },
+      { dienst: "whatsapp", wert: "https://wa.me/491701234567" },
+      { dienst: "threema", wert: "https://threema.id/ABC12345" },
+      { dienst: "signal", wert: "+49 170 1234567" },
+      { dienst: "whatsapp", wert: "+49 171 1234567" },
+      { dienst: "whatsapp", wert: "https://wa.me/491711234567" },
+      { dienst: "threema", wert: "XYZ98765" },
+      { dienst: "telegram", wert: "new_profile" }
+    ] };
+    const before = plain(contact.sozialeMedien);
+    assert.equal(before.length, 2);
+    const expected = before.concat([incoming.sozialeMedien[3], incoming.sozialeMedien[4], incoming.sozialeMedien[6], incoming.sozialeMedien[7]]);
+    b.t.mergeKontakte([incoming], contact.id);
+    assert.deepEqual(plain(contact.sozialeMedien), expected);
+    contact.sozialeMedien.push({ dienst: "whatsapp", wert: "+491701234567" });
+    b.t.mergeKontakte([incoming], contact.id);
+    assert.deepEqual(plain(contact.sozialeMedien), expected, "Already imported duplicate was not removed on recheck");
+    const differentAction = { dienst: "whatsapp", wert: "+491701234567", aktionArt: "website", aktionZiel: "https://example.invalid/other" };
+    contact.sozialeMedien.push(differentAction);
+    b.t.mergeKontakte([incoming], contact.id);
+    assert.deepEqual(plain(contact.sozialeMedien), [...expected, differentAction], "A distinct local action was lost");
+    b.t.mergeKontakte([incoming], contact.id);
+    assert.deepEqual(plain(contact.sozialeMedien), [...expected, differentAction]);
+  }, { einstellungen: { regional: { homeCountry: "DE" } }, kontakte: [{ id: "messenger", vorname: "Fixture", sozialeMedien: [
+    { dienst: "whatsapp", wert: "0170 / 1234567", aktionArt: "website", aktionZiel: "https://example.invalid/manual" },
+    { dienst: "threema", wert: "abc12345" }
+  ] }] });
+
   await test("contact draft saves into current objects after metadata sync", async b => {
     b.t.zustand().adressen.auswahlId = "contact"; b.t.zustand().adressen.modus = "bearbeiten";
     await b.t.wechsel("adressen"); b.input("#kontakt-nachname", "Local draft");

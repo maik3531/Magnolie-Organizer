@@ -3563,6 +3563,43 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return aus;
   }
 
+  function vereineSozialeMedien(lokal, eingang, land = telefonHeimatland()) {
+    // Only compare targets during a merge; keep stored text and actions intact.
+    function ziel({ dienst, wert }) {
+      let nummer = "", id = "";
+      if (dienst === "whatsapp") {
+        const link = wert.match(/^https?:\/\/(?:www\.)?wa\.me\/([1-9][0-9]{5,14})\/?$/i);
+        nummer = link ? "+" + link[1] : wert;
+      } else if (dienst === "signal") {
+        const link = wert.match(/^https?:\/\/signal\.me\/#p\/(\+[1-9][0-9]{5,14})$/i);
+        nummer = link ? link[1] : wert;
+      } else if (dienst === "threema") {
+        const link = wert.match(/^https?:\/\/(?:www\.)?threema\.id\/([a-z0-9]{8})\/?$/i);
+        id = (link?.[1] || wert).toUpperCase();
+        if (!/^(?:[A-Z0-9]{8}|\*[A-Z0-9]{7})$/.test(id)) id = "";
+      }
+      const erreichbar = nummer && telefonSchluessel(nummer, land);
+      return JSON.stringify([dienst, erreichbar || id ? "target" : "text", erreichbar || id || kanonischerText(wert)]);
+    }
+    const neu = sozialeMedienListe({ sozialeMedien: eingang });
+    const beruehrt = new Set(neu.map(ziel)), nachZiel = new Map(), aus = [];
+    for (const eintrag of sozialeMedienListe({ sozialeMedien: lokal })) {
+      const key = ziel(eintrag), vorhanden = nachZiel.get(key) || [];
+      const gleich = beruehrt.has(key) && vorhanden.find(alt => !alt.aktionArt || !eintrag.aktionArt ||
+        alt.aktionArt === eintrag.aktionArt && alt.aktionZiel === eintrag.aktionZiel);
+      if (gleich) {
+        if (!gleich.aktionArt && eintrag.aktionArt) Object.assign(gleich, { aktionArt: eintrag.aktionArt, aktionZiel: eintrag.aktionZiel });
+      } else {
+        aus.push(eintrag); vorhanden.push(eintrag); nachZiel.set(key, vorhanden);
+      }
+    }
+    for (const eintrag of neu) {
+      const key = ziel(eintrag);
+      if (!nachZiel.has(key)) { aus.push(eintrag); nachZiel.set(key, [eintrag]); }
+    }
+    return aus;
+  }
+
   function setzeSozialeMedien(kontakt, eintraege) {
     kontakt.sozialeMedien = sozialeMedienListe({ sozialeMedien: eintraege });
     return kontakt;
@@ -5931,7 +5968,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
             uebernehmeTelefonKontaktWerte(kontakt, fields, { deviceId: lauf.deviceId, fingerprint, uid })) geaendert = true;
         for (const { kontakt, social, groups, uid } of socialUpdates) {
           if (!DATEN.kontakte.includes(kontakt)) continue;
-          const old = sozialeMedienListe(kontakt), combined = sozialeMedienListe({ sozialeMedien: [...old, ...social] });
+          const old = sozialeMedienListe(kontakt), combined = vereineSozialeMedien(old, social);
           if (JSON.stringify(old) !== JSON.stringify(combined)) { kontakt.sozialeMedien = combined; geaendert = true; }
           if (Array.isArray(groups) && JSON.stringify(kontaktGruppen(kontakt)) === gruppenVorher.get(kontakt)) {
             if (uebernehmeTelefonKontaktGruppen(kontakt, groups, {
@@ -34880,8 +34917,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const anschriftenVorher = JSON.stringify(anschriftListe(vorhanden));
         setzeAnschriftListe(vorhanden, anschriftListe(vorhanden).concat(anschriftListe(k)));
         const sozialeVorher = JSON.stringify(sozialeMedienListe(vorhanden));
-        setzeSozialeMedien(vorhanden,
-          sozialeMedienListe(vorhanden).concat(sozialeMedienListe(k)));
+        vorhanden.sozialeMedien = vereineSozialeMedien(sozialeMedienListe(vorhanden), sozialeMedienListe(k));
         if (JSON.stringify(telefonListe(vorhanden)) !== telefoneVorher ||
           JSON.stringify(anschriftListe(vorhanden)) !== anschriftenVorher ||
           JSON.stringify(kontaktpersonenListe(vorhanden)) !== kontaktpersonenVorher ||
