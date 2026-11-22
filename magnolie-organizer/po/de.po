@@ -6186,6 +6186,9 @@ msgstr ""
 msgid "Restore"
 msgstr "Wiederherstellen"
 
+msgid "Restore media"
+msgstr "Medien wiederherstellen"
+
 msgid "Restore a Magnolie backup after startup"
 msgstr "Aus einer Magnolie-Sicherung wiederherstellen"
 

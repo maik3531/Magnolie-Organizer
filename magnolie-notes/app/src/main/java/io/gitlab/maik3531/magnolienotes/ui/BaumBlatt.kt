@@ -40,8 +40,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -456,9 +454,6 @@ fun BaumBlatt(
             }
         }
         if (erweitertSichtbar) {
-            val metrics = LocalContext.current.resources.displayMetrics
-            val yDpi = metrics.ydpi.takeIf { it.isFinite() && it > 0f } ?: metrics.densityDpi.toFloat()
-            Box(Modifier.height(with(LocalDensity.current) { (5f * yDpi / 25.4f).toDp() }))
             Papierknopf((if (erweitertOffen) "▾ " else "▸ ") + stringResource(R.string.telefon_erweitert_titel),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) { erweitertOffen = !erweitertOffen }
             if (erweitertOffen) Abschnitt(ueberschrift = stringResource(R.string.telefon_erweitert_titel)) {

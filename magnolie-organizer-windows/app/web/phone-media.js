@@ -50,11 +50,22 @@
     const advanced = node("details"); advanced.className = "telefon-erweitert telefon-freigaben einst-gruppe";
     advanced.hidden = !mountLive; advanced.open = false;
     advanced.append(node("summary", "Advanced functions"), root);
+    const offline = !!recovery && !mountLive;
+    const mount = offline ? node("div") : advanced;
+    if (offline) {
+      recovery.querySelector(":scope > summary").textContent = t("Restore media");
+      mount.append(recovery, advanced);
+    }
     const recoveryOnly = node("details"); recoveryOnly.className = "telefon-medien einst-gruppe";
     recoveryOnly.hidden = true; recoveryOnly.append(node("summary", "Photos and videos"));
-    if (recovery) advanced.append(recoveryOnly);
+    if (recovery && !offline) advanced.append(recoveryOnly);
     if (mountLive) mountLive(advanced);
     function updateVisibility() {
+      if (offline) {
+        advanced.hidden = true;
+        trashArea.hidden = true;
+        return;
+      }
       if (recovery) {
         trashArea.hidden = root.hidden;
         recovery.hidden = root.hidden && ![...recovery.querySelectorAll(".telefon-medien-sicherungen")].some(panel => !panel.hidden);
@@ -565,10 +576,12 @@
       }
       toggle();
     }
-    request("status", {}, false);
     for (const old of panels.keys()) if (!old.isConnected) panels.delete(old);
-    panels.set(root, { peerId, refresh: () => { if (busy) deferredStatus = true; else request("status", {}, false); } });
-    return advanced;
+    if (!offline) {
+      request("status", {}, false);
+      panels.set(root, { peerId, refresh: () => { if (busy) deferredStatus = true; else request("status", {}, false); } });
+    }
+    return mount;
   }
   function createBackupPanel(peerId, mediaType, translate, send, saveBefore) {
     const t = translate, root = document.createElement("details"), title = document.createElement("summary"), rows = document.createElement("ul"), status = document.createElement("p");

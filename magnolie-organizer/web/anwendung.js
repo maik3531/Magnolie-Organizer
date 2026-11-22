@@ -29553,6 +29553,24 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const peer = peers[0], stand = peer?.photo_sync;
       const livePeer = telefonStand?.enabled && !telefonStand.binding_conflict && peers.length === 1 &&
         peer.device_id && peer.fingerprint && peer.state === "online_wifi" && peer.transport === "wifi" ? peer : null;
+      if (!livePeer) {
+        const live = wurzel.querySelector(".notes-erweiterte-funktionen");
+        if (live) {
+          live.querySelector(".notes-live-media")?.entfernen();
+          live.remove();
+        }
+        Object.assign(telefonLokaleMedienAnsicht, { offen: false, medienOffen: false });
+        for (const ansicht of telefonFotoAnsichten.values()) Object.assign(ansicht, { offen: false, medienOffen: false });
+        let restore = wurzel.querySelector(":scope > [data-media-backup-recovery]");
+        if (!restore) {
+          restore = baueMedienBackupWiederherstellung();
+          restore.dataset.offlineMediaRecovery = "true";
+          wurzel.append(restore);
+          zeichneMedienBackupWiederherstellung(restore);
+        }
+        continue;
+      }
+      wurzel.querySelector(":scope > [data-offline-media-recovery]")?.remove();
       // Native readiness only, never ContributorKey, Notes-content grants or KDE.
       if (!telefonStand?.enabled || telefonStand.binding_conflict || peers.length !== 1 ||
           stand?.available !== true || !peer.own_device || !peer.remote_own_device || !peer.transport) {
@@ -31707,7 +31725,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       root.replaceChildren(); medienWiederherstellungSichtbarkeit(root);
       if (root.hidden) continue;
       const fold = el("details", "einst-gruppe"); fold.open = state.open;
-      fold.append(el("summary", null, _("Restore")));
+      fold.append(el("summary", null, root.dataset.offlineMediaRecovery ? _("Restore media") : _("Restore")));
       fold.addEventListener("toggle", () => {
         if (!fold.isConnected) return;
         state.open = fold.open;

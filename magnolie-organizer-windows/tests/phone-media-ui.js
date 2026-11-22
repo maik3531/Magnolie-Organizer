@@ -248,7 +248,23 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
     assert.notEqual(recovery.parentElement, start.closest("details"));
     assert(!recovery.hidden && !recovery.open);
     assert(trash.hidden, "History stays reachable offline without exposing phone-dependent actions");
-   combined.remove();
+    combined.remove();
+    const offlineMessages = [];
+    const sendOffline = value => { offlineMessages.push(value); return true; };
+    const offlineRecovery = api.createRecoveryPanel(peer, x => x, sendOffline, async () => {});
+    const offline = api.createPanel(peer, x => x, sendOffline, async () => {}, () => true, { recovery: offlineRecovery });
+    w.document.body.append(offline);
+    const offlineLive = offline.querySelector(".telefon-erweitert");
+    assert(offlineMessages.every(message => message.action === "backup_list"));
+    api.receive({ requestId: offlineMessages.find(message => message.action === "backup_list").requestId, device_id: peer,
+      ok: true, backups: [backup], backup_location: backupLocation(true), location_id: backupDefault });
+    assert(offlineLive.hidden && !offlineLive.open && !offlineRecovery.closest(".telefon-erweitert"));
+    assert(!offlineRecovery.hidden && !offlineRecovery.open);
+    assert.equal(offlineRecovery.querySelector("summary").textContent, "Restore media");
+    assert(offlineRecovery.querySelector("[data-media-thumbnails]")?.closest("details")?.hidden === true);
+    const offlineCount = offlineMessages.length;
+    offlineRecovery.open = true; await tick(); assert.equal(offlineMessages.length, offlineCount);
+    offline.remove();
    const emptyPanel = api.createPanel(peer, x => x, value => { messages.push(value); return true; }, async () => {});
    w.document.body.append(emptyPanel); reply(state);
    const emptyButton = text => [...emptyPanel.querySelectorAll("button")].find(button => button.textContent === text);

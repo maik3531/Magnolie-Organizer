@@ -7505,12 +7505,10 @@ function knopfMit(text, wurzel) {
   assert.ok(telefonAbschnitt && kdeAbschnitt &&
     telefonAbschnitt.compareDocumentPosition(kdeAbschnitt) & bw.Node.DOCUMENT_POSITION_FOLLOWING,
   "Magnolie-Telefonverbindung und KDE-SMS sind nicht getrennt oder falsch geordnet");
-  const offlineMedia = telefonAbschnitt.querySelector(".notes-erweiterte-funktionen[data-local-media-only]");
-  const offlinePhotos = offlineMedia.querySelector(":scope > .notes-foto-sync");
-  const offlineRestore = offlinePhotos.querySelector(":scope > [data-media-backup-recovery] > details");
-  assert.ok(!offlineMedia.open && !offlinePhotos.open && !offlineRestore.open,
-    "Lokales Wiederherstellen liegt auch offline unter Erweiterte Funktionen → Fotos und Videos");
-  assert.strictEqual(offlineRestore.querySelector("summary").textContent, "Wiederherstellen");
+  const offlineRestore = telefonAbschnitt.querySelector("[data-notes-photo-root] > [data-media-backup-recovery] > details");
+  assert.ok(!telefonAbschnitt.querySelector(".notes-erweiterte-funktionen, .notes-foto-sync") && offlineRestore && !offlineRestore.open,
+    "Ohne Notes-WLAN ist nur die getrennte lokale Medien-Wiederherstellung sichtbar");
+  assert.strictEqual(offlineRestore.querySelector("summary").textContent, "Medien wiederherstellen");
   assert.ok(!bd.querySelector("#telefon-webcam, #telefon-bildschirm"), "Offline bleiben Live-Medien verborgen, lokale Wiederherstellung bleibt getrennt erreichbar");
   assert.ok(telefonAbschnitt.textContent.includes("8741") &&
     !telefonAbschnitt.textContent.includes("1739") && kdeAbschnitt.textContent.includes("1739") &&
@@ -7538,6 +7536,13 @@ function knopfMit(text, wurzel) {
   assert.ok(!bd.querySelector(".telefon-kde-karte #telefon-webcam, .telefon-kde-karte #telefon-bildschirm"));
   bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, ok: true });
   assert.strictEqual(bd.querySelector("#telefon-webcam"), webcamPanel, "Eine reine Foto-Aktualisierung ersetzt keine Webcam-Bedienung");
+  webcamPanel.closest("details.notes-erweiterte-funktionen").open = true;
+  fotoStand(undefined, { peers: [{ ...fotoPeer, state: "paired", transport: "offline" }] });
+  assert.ok(!bd.querySelector(".notes-erweiterte-funktionen, #telefon-webcam"));
+  assert.ok(bd.querySelector("[data-notes-photo-root] > [data-media-backup-recovery]"));
+  fotoStand(undefined);
+  assert.equal(bd.querySelector("details.notes-erweiterte-funktionen").open, false,
+    "Nach Verbindungsverlust startet die Live-Rubrik wieder eingeklappt");
   const setupBefore = baumNachrichten.length;
   fotoStand({ available: true, enabled: false, state: "off", albums: [], sending_setup: { version: "c".repeat(64) } });
   assert.ok(bd.querySelector(".notes-erweiterte-funktionen:not([data-local-media-only]) > .notes-foto-sync > [data-media-backup-recovery]"));
@@ -7882,7 +7887,8 @@ function knopfMit(text, wurzel) {
   fotoStand({ available: true }, { enabled: false });
   assert.ok(!bd.querySelector("#telefon-webcam, #telefon-bildschirm"), "Deaktivierte Notes-Verbindung blendet beide Live-Medien aus");
   assert.ok(!bd.querySelector(".notes-foto-sync input, .notes-foto-sync [data-photo-manual-sync]"), "Ausschalten blendet Notes-Fotocontrols vollständig aus");
-  assert.ok(bd.querySelector(".telefon-karte [data-local-media-only] > .notes-foto-sync > [data-media-backup-recovery]") && !bd.querySelector(".notes-backup-ordner"),
+  assert.ok(bd.querySelector(".telefon-karte [data-notes-photo-root] > [data-media-backup-recovery]") &&
+    !bd.querySelector(".notes-erweiterte-funktionen, .notes-backup-ordner"),
     "Lokale Wiederherstellung braucht weder aktive Medien noch technische Sicherungsordner-Konfiguration");
   Array.from(bd.querySelectorAll(".einst-reiter-knopf")).find(button => button.textContent === "Sicherheit").click();
   assert.ok(!bd.querySelector("[data-media-backup-recovery]"), "Keine zusätzliche Medien-Sicherungsoption unter Sicherheit");
