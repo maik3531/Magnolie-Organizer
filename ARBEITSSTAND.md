@@ -34,7 +34,17 @@ verschlüsselten Testkanal trotz unveränderter höherer Fähigkeitsrevision und
 verspäteter älterer Meldung auf beiden Seiten erhalten. Kein Dateivorgang.
 Das ist kein installierter WLAN- oder Gerätenachweis.
 
-**Als Nächstes:** den sicheren Rückweg für bereits zugeordnete Handydateien
+**Vorrangig [#763](https://github.com/maik3531/Magnolie-Organizer/issues/763):**
+Eine zuvor aktive Telefonverbindung muss nach einem Notes-Update ohne Öffnen
+der App oder manuelles Umschalten wiederkommen. AUS muss AUS bleiben. Der
+Notes-Fix besteht drei Quelltests auf `work/763-notes-integration`
+(`381d2a5724c54e79bd4d8925fa4ae3bbf4d75626`). Der getrennte, noch nicht
+übernommene `main`-Kandidat ist `work/763-notes-main-candidate`
+(`452e7b7004617a982dc0f10058af8042c47510a4`). Dessen eigener Lauf wurde
+vor dem Start durch die Temperaturvorprüfung gesperrt. Die installierte
+Wiederverbindung ohne Benutzeraktion ist noch nicht nachgewiesen.
+
+**Danach #330:** den sicheren Rückweg für bereits zugeordnete Handydateien
 getrennt nachweisen. Den allgemeinen Neuimport dafür nicht verwenden; die
 ursprüngliche Galerie-ID muss erhalten bleiben. Native Windows- und
 Geräteabnahme stehen ebenfalls aus. Kein weiteres Benutzer-Testpaket; die installierte Ausgabe
