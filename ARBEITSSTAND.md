@@ -41,8 +41,12 @@ Notes-Fix besteht drei Quelltests auf `work/763-notes-integration`
 (`381d2a5724c54e79bd4d8925fa4ae3bbf4d75626`). Der getrennte, noch nicht
 übernommene `main`-Kandidat ist `work/763-notes-main-candidate`
 (`452e7b7004617a982dc0f10058af8042c47510a4`). Dessen eigener Lauf wurde
-vor dem Start durch die Temperaturvorprüfung gesperrt. Die installierte
-Wiederverbindung ohne Benutzeraktion ist noch nicht nachgewiesen.
+vor dem Start durch die Temperaturvorprüfung gesperrt. Die isolierte
+Upgrade-Prüfung für AN und AUS ist vorbereitet: Sie kontrolliert den Dienst
+und die authentifizierte WLAN-Verbindung noch vor dem Öffnen von Notes.
+Die Messlogik ist mit zwölf Einzeltests geprüft; der alte Kandidat wird vor
+dem Start abgelehnt. Der passende quellgebundene Nachfolger und der
+installierte Nachweis stehen noch aus.
 
 **Danach #330:** den sicheren Rückweg für bereits zugeordnete Handydateien
 getrennt nachweisen. Den allgemeinen Neuimport dafür nicht verwenden; die
