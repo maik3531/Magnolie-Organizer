@@ -127,3 +127,48 @@ X11 wird dafür nicht pauschal ausgeschlossen; ohne verifizierten
 lokalen Sperrzustand gibt es jedoch keinen Start. Die echte Erweiterung
 ist eine eigene Funktion und setzt einen nachgewiesenen zusätzlichen
 Ausgang voraus.
+
+## Notes #758: genaue JVM-Verbindungsablehnung – 24. November 2026
+
+Der Quellfix [dc1a97e](https://github.com/maik3531/Magnolie-Organizer/commit/dc1a97e51d78afa74de705857fc4c8e20c389b92)
+ist in `main` enthalten. `Transport.kt` erkennt im vorhandenen Connect-Schritt
+jetzt auch die beiden vollständigen Meldungen `Connection refused (connect failed)`
+und `Verbindungsaufbau abgelehnt (connect failed)`. Ein vorhandenes Android-Errno
+hat weiterhin Vorrang. Timeout, Reset, Teiltreffer und Fehler nach dem
+Verbindungsaufbau ergeben weiterhin keine sichere Nichtannahme.
+
+Geprüft auf der Standardbasis `832519716085cda7fcb720cc5d425999f9bddac6`
+mit diesem Fix, Linux und Temurin/OpenJDK 21.0.13.1, unveränderter
+Gradle-/SDK-Konfiguration und strikter Abhängigkeitsprüfung. Die Release-Unit-Tests
+liefen mit `-PmagnolieFdroid=true`, ohne Produktionssignierung oder Installation.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `Baum1ReceiptTest`, `C.UTF-8` | 12 bestanden, keine Fehler oder Skips |
+| `Baum1ReceiptTest`, `de_DE.UTF-8` | 12 bestanden, keine Fehler oder Skips |
+| Vollständiges `testReleaseUnitTest` nach Einrichtung des benötigten Test-Elternordners | 2.497 Tests: 2.485 bestanden, 6 fehlgeschlagen, 6 übersprungen; Gate nicht bestanden |
+| Gezielter Host-Nachlauf mit vollständigen Voraussetzungen | 16 bestanden, keine Fehler oder Skips |
+
+Der echte Loopback-Ablehnungs-/Wiederholungsfall besteht in beiden Locales und
+im Vollgate: Die Sendung bleibt mit unverändertem verschlüsseltem Umschlag
+erhalten und wird nach Erreichbarkeit erfolgreich zugestellt. Die ergänzten
+Tests prüfen außerdem Android-Errno-Konflikte und mehrdeutige Meldungen.
+
+Die fünf fehlgeschlagenen `PairedPublishedReadbackTest`-Fälle des Vollgates
+konnten ihren Python-Testhost wegen fehlendem `pytest` nicht starten. Die sechs
+übersprungenen Desktop-Screen-Interop-Fälle benötigen ihr ausdrückliches
+Host-Test-Opt-in. Der getrennte Nachlauf mit `pytest` 8.3.5,
+`MAGNOLIE_PYTHON`, `MAGNOLIE_DESKTOP_SCREEN_INTEROP=1` und den vorhandenen
+synthetischen Linux-Gegenstellen bestand alle fünf Readback-Fälle sowie
+`DesktopScreenDraftInteropTest` und alle zehn `DesktopScreenViewerTest`-Fälle.
+Der No-Skip-Guard blieb unverändert. Diese Nachläufe sind eigene Prüfnachweise.
+
+**Offen: [#764](https://github.com/maik3531/Magnolie-Organizer/issues/764).**
+`KontaktUiUndRessourcenTest` verlangt noch den mit #755 bewusst entfernten
+zusätzlichen 5-mm-Abstand. Diese veraltete Testannahme korrigieren und danach
+das vollständige Release-Unit-Gate mit den belegten Voraussetzungen ausführen.
+Die Oberfläche wurde für #758 nicht geändert.
+
+Die Nachweise gelten für die Standardquelle. Die oben benannte private
+Notes-Integration zu #330 war hier nicht verfügbar und ist damit nicht
+mitgeprüft. Native Android-/Geräte- und Paketabnahmen bleiben separat offen.
