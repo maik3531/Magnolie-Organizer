@@ -110,10 +110,11 @@ Im ersten vollständigen Notes-Lauf bestanden der neue Spiegelungstest
 und die drei Update-Regressionsfälle. Ein älterer Job-Test setzte die
 aktuell notwendige Einstellung „AN“ in seiner Testumgebung nicht.
 Nur diese Testvoraussetzung wurde danach korrigiert. Der vollständige
-Folgelauf bestand alle 2.594 Fälle ohne Fehler oder Skips. Das signierte
-APK und die nativen Upgrade-Nachweise stehen vor einer Übergabe.
-Der erste Signierversuch wurde von der Startprüfung vor Gradle
-angehalten; es ist kein APK aus diesem Versuch entstanden.
+Folgelauf bestand alle 2.594 Fälle ohne Fehler oder Skips. Der spätere
+kanonisch signierte Build bestätigt dieselben 2.594 APK-gebundenen
+Testfälle und das bisherige Produktionszertifikat. Die nativen
+Upgrade-Nachweise stehen vor einer Übergabe; das Paket wurde nicht
+auf einem Nutzergerät installiert oder veröffentlicht.
 Handy → Organizer benötigt keinen Wayland-Bildschirmmitschnitt auf Linux.
 X11 wird dafür nicht pauschal ausgeschlossen; ohne verifizierten
 lokalen Sperrzustand gibt es jedoch keinen Start. Die echte Erweiterung
