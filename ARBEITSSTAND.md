@@ -21,7 +21,7 @@ eigenen Git-Arbeitsbaum auf dieser Revision anlegen.
 | #330, Linux – manuelle Bild-Gesamtsammlung | `work/330-linux-manual-images` | `6fcaa6cd1d058f29d6b89e5efb940b509f639a5e` |
 | #330, Android Notes | `work/330-notes-settings` | `3fb976ecd45fbb6c4ad7a6f059990aa1eaa40d9e` |
 | #330, Windows (nur Quelle) | `work/330-windows-media` | `7c83bdee58f2d56235032735b02952a2fc162caf` |
-| [#245](https://github.com/maik3531/Magnolie-Organizer/issues/245), Linux – Spiegelung | `work/245-logind-owner` | `64d9b3c94865d95082aa8a7467b864f7b718ad03` |
+| [#245](https://github.com/maik3531/Magnolie-Organizer/issues/245), Linux – Spiegelung | `work/245-logind-owner` | `56256831ee946dded9d77ca6263f01e92e676e6f` |
 
 **Geprüft:** Linux-Oberfläche und beide Seiten des Einstellungsabgleichs in
 Quell-/Loopback-Tests. Der Abgleich startet keinen Medienvorgang. Linux
@@ -85,3 +85,4 @@ des installierten Organizers; der native Spiegelungslauf bleibt offen.
 Der Organizer unterscheidet in der
 geprüften Oberfläche eine nicht bestätigte oder gesperrte Desktopsitzung
 vom fehlenden WLAN-Gegenpart. Der Start bleibt in diesem Fall gesperrt.
+Der Hinweis ist in allen 19 Linux-Sprachkatalogen geprüft.
