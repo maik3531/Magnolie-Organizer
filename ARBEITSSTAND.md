@@ -28,9 +28,16 @@ Dateivorgang aufgrund eines fehlenden Zielordners oder einer nicht
 unterstützten Richtung sicher gesperrt bleibt. Windows: String-/UI- und
 portable Prüfungen sowie Windows-Zielkompilierung, kein nativer Medienlauf.
 
-**Offen:** kombinierte Wiederholungsprobe für verspätete Kontrollmeldungen,
-sicherer Rückweg für bereits zugeordnete Handydateien, native Windows- und
-Geräteabnahme. Kein weiteres Benutzer-Testpaket; die installierte Ausgabe
+Die kombinierte Wiederholungsprobe ist auf den verlinkten Linux-/Notes-Pins
+bestanden: Nach erneutem Verbinden blieb die Übereinkunft auf demselben
+verschlüsselten Testkanal trotz unveränderter höherer Fähigkeitsrevision und
+verspäteter älterer Meldung auf beiden Seiten erhalten. Kein Dateivorgang.
+Das ist kein installierter WLAN- oder Gerätenachweis.
+
+**Als Nächstes:** den sicheren Rückweg für bereits zugeordnete Handydateien
+getrennt nachweisen. Den allgemeinen Neuimport dafür nicht verwenden; die
+ursprüngliche Galerie-ID muss erhalten bleiben. Native Windows- und
+Geräteabnahme stehen ebenfalls aus. Kein weiteres Benutzer-Testpaket; die installierte Ausgabe
 nicht aus ihrer Versionsnummer ableiten. [Webcam #503](https://github.com/maik3531/Magnolie-Organizer/issues/503),
 [Spiegelung #245](https://github.com/maik3531/Magnolie-Organizer/issues/245)
 und [Erweiterung #727](https://github.com/maik3531/Magnolie-Organizer/issues/727)
