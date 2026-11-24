@@ -112,9 +112,11 @@ aktuell notwendige Einstellung „AN“ in seiner Testumgebung nicht.
 Nur diese Testvoraussetzung wurde danach korrigiert. Der vollständige
 Folgelauf bestand alle 2.594 Fälle ohne Fehler oder Skips. Der spätere
 kanonisch signierte Build bestätigt dieselben 2.594 APK-gebundenen
-Testfälle und das bisherige Produktionszertifikat. Die nativen
-Upgrade-Nachweise stehen vor einer Übergabe; das Paket wurde nicht
-auf einem Nutzergerät installiert oder veröffentlicht.
+Testfälle und das bisherige Produktionszertifikat. Im isolierten
+Upgrade-Fall AN nahm Notes den Dienst und die authentifizierte
+WLAN-Verbindung vor Öffnen der App wieder auf; Paarung und Rechte
+blieben erhalten. Der getrennte native AUS-Nachweis steht vor einer
+Übergabe noch aus. Kein Nutzergerät wurde verändert.
 Handy → Organizer benötigt keinen Wayland-Bildschirmmitschnitt auf Linux.
 X11 wird dafür nicht pauschal ausgeschlossen; ohne verifizierten
 lokalen Sperrzustand gibt es jedoch keinen Start. Die echte Erweiterung
