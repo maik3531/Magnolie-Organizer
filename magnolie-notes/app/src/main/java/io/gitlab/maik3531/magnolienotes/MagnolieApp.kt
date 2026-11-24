@@ -11,7 +11,6 @@ import androidx.work.WorkManager
 import io.gitlab.maik3531.magnolienotes.baum.BaumDienst
 import io.gitlab.maik3531.magnolienotes.baum.Baumwerk
 import io.gitlab.maik3531.magnolienotes.journal.AndroidJournal
-import io.gitlab.maik3531.magnolienotes.telefon.TelefonAblage
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonDienst
 import io.gitlab.maik3531.magnolienotes.daten.Ablage
 import io.gitlab.maik3531.magnolienotes.daten.StartFehlerArt
@@ -129,9 +128,7 @@ class MagnolieApp : Application() {
         }, nachBereit = { werk ->
             // Persistierte Dienste werden erst nach vollstaendig erfolgreichem Start aktiviert.
             if (werk.zustand.value.dienstAn) runCatching { BaumDienst.starten(this@MagnolieApp) }
-            if (TelefonAblage.get(this@MagnolieApp).enabled()) runCatching {
-                TelefonDienst.start(this@MagnolieApp)
-            }
+            runCatching { TelefonDienst.resumeIfEnabled(this@MagnolieApp) }
         })
     }
 

@@ -189,6 +189,14 @@
                 android:value="User-initiated ongoing time tracking with a visible status notification" />
         </service>
 
+        <receiver
+            android:name=".telefon.TelefonUpdateEmpfaenger"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".telefon.TelefonDienst"
             android:exported="false"

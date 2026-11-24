@@ -30,7 +30,7 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
     val directory = File(app.filesDir, "telefon").apply { mkdirs() }
     private val identityFile = File(directory, "identity.json")
     private val peersFile = File(directory, "peers.bin")
-    private val settings = app.getSharedPreferences("magnolie_phone_settings", Context.MODE_PRIVATE)
+    private val settings = settings(app)
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = false }
 
     init {
@@ -384,6 +384,12 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
     companion object {
         private const val FILE_AUTHORITY_LIMIT = 4 * 1024 * 1024
         const val KEY_ALIAS = "magnolie_phone_storage_v1"
+        private fun settings(context: Context) =
+            context.getSharedPreferences("magnolie_phone_settings", Context.MODE_PRIVATE)
+        // Lifecycle entry points read just the persisted switch, without
+        // constructing storage or running migrations before application readiness.
+        internal fun wasEnabled(context: Context): Boolean = settings(context).getBoolean("enabled", false)
+
         @Volatile private var instance: TelefonAblage? = null
         fun get(context: Context) = instance ?: synchronized(this) {
             instance ?: TelefonAblage(context).also { instance = it }

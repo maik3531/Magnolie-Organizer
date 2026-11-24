@@ -47,15 +47,22 @@ class TelefonDienst : Service() {
             TelefonWerk.get(this).serviceStopped()
             VerbindungsHinweis.entfernen(this); stopSelf(); return START_NOT_STICKY
         }
+        if (!TelefonAblage.wasEnabled(this)) {
+            // A queued foreground start can race a deliberate stop.
+            if (intent != null) foreground()
+            VerbindungsHinweis.entfernen(this)
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
         foreground()
         if (startJob?.isActive == true) return START_STICKY
         startJob = scope.launch {
-            if (!(application as MagnolieApp).awaitReady()) {
+            if (!(application as MagnolieApp).awaitReady() || !TelefonAblage.wasEnabled(this@TelefonDienst)) {
                 VerbindungsHinweis.entfernen(this@TelefonDienst)
-                stopSelf(startId)
+                // A duplicate start may have arrived while we waited.
+                stopSelf()
                 return@launch
             }
-            TelefonAblage.get(this@TelefonDienst).setEnabled(true)
             val current = TelefonWerk.get(this@TelefonDienst)
             werk = current
             val started = runCatching { withContext(Dispatchers.IO) { current.serviceStarted() } }
@@ -123,7 +130,14 @@ class TelefonDienst : Service() {
     companion object {
         const val STOP = "io.gitlab.maik3531.magnolienotes.telefon.STOP"
         private const val CHANNEL = "magnolie_phone"
-        fun start(context: Context) { TelefonAblage.get(context).setEnabled(true); context.startForegroundService(Intent(context, TelefonDienst::class.java)) }
+        fun start(context: Context) {
+            TelefonAblage.get(context).setEnabled(true)
+            resumeIfEnabled(context)
+        }
+        internal fun resumeIfEnabled(context: Context) {
+            if (TelefonAblage.wasEnabled(context))
+                context.startForegroundService(Intent(context, TelefonDienst::class.java))
+        }
         fun stop(context: Context) {
             TelefonAblage.get(context).setEnabled(false)
             TelefonWerk.get(context).serviceStopped()
