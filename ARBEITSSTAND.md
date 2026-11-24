@@ -223,3 +223,32 @@ erfolgt über den bestehenden GitHub-Pages-Ablauf aus `main`.
 Nächster inhaltlicher Schritt: Bei belegter Artikeladresse den angekündigten
 Beitrag anhand der Originalseite neu einordnen. Einreichungsliste und private
 Recherchebelege bleiben außerhalb des öffentlichen Repositorys.
+
+## Presseschau #768: Preisbestätigung und Abendprüfung – 24. November 2026
+
+FindOpenSources zeigt die korrigierte Preiskennzeichnung „Free“ in allen sechs
+angebotenen Sprachfassungen. Die englische Preis-FAQ ist ebenfalls angepasst;
+die deutschen und niederländischen FAQ enthalten noch den alten Preistext.
+Die Abgrenzung zwischen Organizer und Android Notes sowie die genauere
+Lizenzangabe bleiben in #595 offen. Der direkte öffentliche Abruf war am Abend
+wieder möglich; die frühere Abrufgrenze ist damit im aktuellen Eintrag ersetzt.
+
+Unstock ist nun durch direkt gelesene Vergleichsseiten und das App-Profil
+belegt. Diese Ansichten zählen gemeinsam als eine Fundstelle. Die Übersicht
+nennt jetzt wie Rubrik und Markdown-Liste 17 Verzeichnis- und Listenfundstellen.
+Der erneute Abgleich aller 308 Einreichungsdatensätze und ergänzender öffentlicher
+Suchtreffer ergab keine zusätzliche bestätigte Veröffentlichung gegenüber dem
+Vormittag. Nicht indexierte Inhalte bleiben unbestätigt; bei zwei Empfängern
+lieferte nur eines der beiden Suchsysteme eine auswertbare Antwort. Für die
+LinuxParty-Ankündigung vom 27. November ist weiterhin keine Artikeladresse
+bestätigt; auch der aktuelle öffentliche Feed enthält keinen Magnolie-Beitrag.
+
+Geprüft auf Standardbasis `aacbf6ee2020fb4157165d8636a515136bd1d497` mit diesen
+Inhaltsänderungen: 20 Rechtsübersetzungen und 64 statische Ausgaben konsistent,
+562 Sprachrouting-Prüfungen bestanden, Website-Build mit 62 HTML-Seiten und
+Prüfung der lokalen Links erfolgreich; `git diff --check` ohne Befund. Die
+Inhaltsänderung wird über den bestehenden GitHub-Pages-Ablauf veröffentlicht.
+
+Nächster inhaltlicher Schritt: Belegte neue Artikeladressen ergänzen und die
+noch offenen FindOpenSources-Metadaten bei einer späteren Rückmeldung prüfen.
+Es wurden keine erneuten Einreichungen oder Nachrichten versendet.

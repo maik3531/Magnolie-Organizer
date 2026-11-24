@@ -2,7 +2,7 @@
 
 [Zur Zeitungsseite der Magnolie Presseschau](https://maik3531.github.io/Magnolie-Organizer/presse/)
 
-**Prüfstand: 24. November 2026 (MEZ)**
+**Prüfstand: 24. November 2026, Abend (MEZ)**
 
 > **Herzlichen Dank an alle, die über Magnolie berichten, das Projekt vorstellen oder weiterempfehlen. Eure Unterstützung hilft, Magnolie bekannter und noch mehr Menschen zugänglich zu machen.**
 >
@@ -144,11 +144,11 @@ Softwarekatalogeintrag zum Windows-Organizer mit Beschreibung, Downloadverweis u
 
 [Beste Notizen-App für Android: privat zuerst (Nov. 2026) · Unstock](https://getunstock.com/de/replace/notes)
 
-Vergleichsübersicht zu Notiz-Apps für Android mit einer Erwähnung von Magnolie Notes. Die [spanische Sprachfassung](https://getunstock.com/es/replace/notes) gehört zu derselben Fundstelle.
+Vergleichsübersicht zu Notiz-Apps für Android mit einer Erwähnung von Magnolie Notes und einem [eigenen App-Profil](https://getunstock.com/apps/magnolie-notes). Das Profil verlinkt F-Droid; ein eigener Funktionstest ist dort nicht ausgewiesen. Die [spanische Sprachfassung](https://getunstock.com/es/replace/notes) und das App-Profil gehören zu derselben Fundstelle.
 
 **Datum:** November 2026 ist der Monatsstand im Seitentitel; der genaue Veröffentlichungstag ist nicht belegt.
 
-**Nachweis:** Im aktuellen Suchindex belegt; Direktabruf gesperrt.
+**Nachweis:** Deutsche und englische Vergleichsseite sowie App-Profil am 24. November 2026 abends direkt gelesen.
 
 ### Englisch
 
@@ -192,9 +192,11 @@ Offizieller F-Droid-Katalogeintrag der separaten Android-App für lokale Notizen
 
 Softwareverzeichnis mit einer Vorstellung von Magnolie Organizer und Verweisen auf die offiziellen Projektquellen.
 
-**Datum:** Am 20. November 2026 direkt geprüft. Der 13. November 2026 ist der vom Verzeichnis genannte Prüfstand; die Erstveröffentlichung ist nicht belegt.
+Die Preiskennzeichnung ist in allen sechs angebotenen Sprachfassungen auf „Free“ korrigiert. Die englische Preis-FAQ nennt ebenfalls kostenlose Nutzung; die deutsche und niederländische FAQ sind noch nicht angepasst. Die Abgrenzung zwischen Desktop-Organizer und der separaten Android-App Magnolie Notes sowie die Lizenzpräzisierung von GPL-3.0 auf GPL-3.0-or-later bleiben offen.
 
-**Nachweis:** Originalseite am 20. November 2026 direkt gelesen · erneuter Abruf am 24. November 2026 mit HTTP 403 nicht möglich.
+**Datum:** Am 24. November 2026 abends erneut direkt geprüft. Der 13. November 2026 ist der vom Verzeichnis genannte Prüfstand; die Erstveröffentlichung ist nicht belegt.
+
+**Nachweis:** Originalseite und fünf Sprachfassungen am 24. November 2026 abends direkt gelesen; Preisänderung zusätzlich durch die Portalantwort bestätigt.
 
 #### LibHunt
 
@@ -448,7 +450,7 @@ Laut der an Maik Walter übermittelten Redaktionszusage wurde die eingereichte P
 
 Die **Zuordnung zu LinuxParty wird aus dem identischen Titel der dokumentierten Einreichung abgeleitet**: „Magnolie Organizer: agenda libre para Linux y Windows con 20 idiomas“.
 
-Bei der Nachprüfung am 24. November 2026 ist weiterhin keine öffentliche Artikeladresse bestätigt. **Diese Ankündigung zählt nicht als veröffentlichter Originalartikel.**
+Bei der Nachprüfung am 24. November 2026 abends ist weiterhin keine öffentliche Artikeladresse bestätigt. **Diese Ankündigung zählt nicht als veröffentlichter Originalartikel.**
 
 [Zum Medium LinuxParty](https://www.linuxparty.es/)
 
