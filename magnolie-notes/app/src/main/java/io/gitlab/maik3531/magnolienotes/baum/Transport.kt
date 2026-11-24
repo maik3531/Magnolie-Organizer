@@ -35,8 +35,12 @@ internal fun verbindungAbgelehnt(error: java.net.ConnectException): Boolean {
     val errno = (error.cause as? android.system.ErrnoException)?.errno
     if (errno != null) return errno == android.system.OsConstants.ECONNREFUSED
     // Android supplies errno; JVM sockets may expose only the localized OS text.
+    // OpenJDK 21 can append " (connect failed)"; accept only the exact known forms.
     val refused = runCatching { android.system.Os.strerror(android.system.OsConstants.ECONNREFUSED) }.getOrNull()
-    return error.message in setOf("Connection refused", "Verbindungsaufbau abgelehnt") ||
+    return error.message in setOf(
+        "Connection refused", "Verbindungsaufbau abgelehnt",
+        "Connection refused (connect failed)", "Verbindungsaufbau abgelehnt (connect failed)"
+    ) ||
         (!refused.isNullOrEmpty() && error.message == refused)
 }
 

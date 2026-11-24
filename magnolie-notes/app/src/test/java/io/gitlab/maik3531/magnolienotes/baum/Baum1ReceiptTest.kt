@@ -78,14 +78,48 @@ class Baum1ReceiptTest {
             assertFalse(Baum1Quittung.pruefen(key, "alpha", "beta", envelope, invalid))
     }
 
-    @Test fun timeoutsResetsAndRefusedHostnamesAreNeverProofOfNoAcceptance() {
-        assertFalse(verbindungAbgelehnt(java.net.ConnectException("Failed to connect to refused.example: Connection timed out")))
-        assertFalse(verbindungAbgelehnt(java.net.ConnectException("Connection refused").apply {
-            initCause(android.system.ErrnoException("connect", android.system.OsConstants.ETIMEDOUT))
+    @Test fun exactJvmConnectionRefusalMessagesAreRecognized() {
+        for (message in listOf(
+            "Connection refused", "Verbindungsaufbau abgelehnt",
+            "Connection refused (connect failed)", "Verbindungsaufbau abgelehnt (connect failed)"
+        )) assertTrue(message, verbindungAbgelehnt(java.net.ConnectException(message)))
+    }
+
+    @Test fun androidErrnoTakesPrecedenceOverJvmConnectionRefusalMessages() {
+        for (message in listOf(
+            "Connection refused", "Verbindungsaufbau abgelehnt",
+            "Connection refused (connect failed)", "Verbindungsaufbau abgelehnt (connect failed)"
+        )) for (errno in listOf(android.system.OsConstants.ETIMEDOUT, android.system.OsConstants.ECONNRESET)) {
+            assertFalse("$message; errno=$errno", verbindungAbgelehnt(java.net.ConnectException(message).apply {
+                initCause(android.system.ErrnoException("connect", errno))
+            }))
+        }
+        assertTrue(verbindungAbgelehnt(java.net.ConnectException("different localized text").apply {
+            initCause(android.system.ErrnoException("connect", android.system.OsConstants.ECONNREFUSED))
         }))
+    }
+
+    @Test fun timeoutsResetsAndRefusedHostnamesAreNeverProofOfNoAcceptance() {
+        for (message in listOf(
+            null, "", "Failed to connect to refused.example: Connection timed out",
+            "Connection timed out (connect failed)", "Connection reset (connect failed)",
+            "Failed to connect to refused.example: Connection refused (connect failed)",
+            "Connection refused (connect failed): Connection timed out",
+            "Verbindungsaufbau abgelehnt (connect failed): Connection reset",
+            "Fehler: Verbindungsaufbau abgelehnt (connect failed)",
+            "Connection refused (connect failed) (connect failed)",
+            "Verbindungsaufbau abgelehnt (connect failed) (connect failed)",
+            " Connection refused (connect failed)", "Connection refused (connect failed) ",
+            " Verbindungsaufbau abgelehnt (connect failed)", "Verbindungsaufbau abgelehnt (connect failed) "
+        )) assertFalse(message, verbindungAbgelehnt(java.net.ConnectException(message)))
         val a = identity("a"); val b = identity("b")
         val wire = Baum1.baue(a, b.kennung, b.oeffentlich, body(), 1)
-        for (failure in listOf(java.net.ConnectException("Connection refused"), java.net.SocketTimeoutException(), java.net.SocketException("reset"))) {
+        for (failure in listOf(
+            java.net.ConnectException("Connection refused"),
+            java.net.ConnectException("Connection refused (connect failed)"),
+            java.net.ConnectException("Verbindungsaufbau abgelehnt (connect failed)"),
+            java.net.SocketTimeoutException(), java.net.SocketException("reset")
+        )) {
             val transport = object : Transport {
                 override val bezeichnung = "after-connect fixture"
                 override fun anfrage(pfad: String, nutzlast: JsonObject, zeitgrenzeMs: Int): JsonObject = throw failure
