@@ -141,6 +141,8 @@ Geprüft auf der Standardbasis `832519716085cda7fcb720cc5d425999f9bddac6`
 mit diesem Fix, Linux und Temurin/OpenJDK 21.0.13.1, unveränderter
 Gradle-/SDK-Konfiguration und strikter Abhängigkeitsprüfung. Die Release-Unit-Tests
 liefen mit `-PmagnolieFdroid=true`, ohne Produktionssignierung oder Installation.
+Die folgende Tabelle dokumentiert den damaligen #758-Lauf. Der anschließende
+vollständig grüne Release-Unit-Lauf steht im Abschnitt zu #764.
 
 | Prüfung | Ergebnis |
 | --- | --- |
@@ -163,12 +165,36 @@ synthetischen Linux-Gegenstellen bestand alle fünf Readback-Fälle sowie
 `DesktopScreenDraftInteropTest` und alle zehn `DesktopScreenViewerTest`-Fälle.
 Der No-Skip-Guard blieb unverändert. Diese Nachläufe sind eigene Prüfnachweise.
 
-**Offen: [#764](https://github.com/maik3531/Magnolie-Organizer/issues/764).**
-`KontaktUiUndRessourcenTest` verlangt noch den mit #755 bewusst entfernten
-zusätzlichen 5-mm-Abstand. Diese veraltete Testannahme korrigieren und danach
-das vollständige Release-Unit-Gate mit den belegten Voraussetzungen ausführen.
-Die Oberfläche wurde für #758 nicht geändert.
+**Folgebefund: [#764](https://github.com/maik3531/Magnolie-Organizer/issues/764).**
+`KontaktUiUndRessourcenTest` verlangte noch den mit #755 entfernten zusätzlichen
+5-mm-Abstand. Diese unbegründete Testannahme ist mit dem unten dokumentierten
+Arbeitsschritt beseitigt. Die Oberfläche wurde für #758 nicht geändert.
 
 Die Nachweise gelten für die Standardquelle. Die oben benannte private
 Notes-Integration zu #330 war hier nicht verfügbar und ist damit nicht
 mitgeprüft. Native Android-/Geräte- und Paketabnahmen bleiben separat offen.
+
+## Notes #764: unbegründete Abstandsforderung entfernt – 24. November 2026
+
+**Die 5 mm waren keine Vorgabe des Nutzers.** Er hat diese fälschlich übernommene
+Annahme ausdrücklich widerrufen. Der Quellfix
+[3ac8f0a](https://github.com/maik3531/Magnolie-Organizer/commit/3ac8f0a360f6c2b79fad81d369d2d97b48ce4b3d)
+entfernt deshalb ausschließlich die entsprechende Assertion aus
+`KontaktUiUndRessourcenTest`. Die funktionalen Prüfungen für getrennte,
+anfangs geschlossene Bereiche bleiben erhalten; eine neue numerische
+Abstandsvorgabe wird nicht eingeführt. Der Produktcode bleibt der mit #755
+korrigierte Stand mit normalem Schaltflächenabstand.
+
+| Prüfung auf dem korrigierten Quellstand | Ergebnis |
+| --- | --- |
+| `KontaktUiUndRessourcenTest` | 4 bestanden, keine Fehler oder Skips |
+| Vollständiges bestehendes `testReleaseUnitTest` | **2.497 bestanden, 0 Fehler, 0 Skips; BUILD SUCCESSFUL** |
+
+Der vollständige Lauf enthält auch alle zwölf Wiederholungs-/Quittungstests aus
+#758, alle fünf `PairedPublishedReadbackTest`-Fälle sowie die elf
+Desktop-Screen-Interop-/Viewer-Fälle. Verwendet wurden die zuvor belegten
+Host-Testvoraussetzungen mit `pytest` 8.3.5 und
+`MAGNOLIE_DESKTOP_SCREEN_INTEROP=1`. Testfilter, Buildkonfiguration und
+No-Skip-Guard sind unverändert. #764 ist damit als Testkorrektur abgeschlossen;
+die oben genannten privaten Integrations- und nativen Paketabnahmen bleiben
+getrennte Aufgaben.
