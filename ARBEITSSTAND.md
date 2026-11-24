@@ -21,6 +21,7 @@ eigenen Git-Arbeitsbaum auf dieser Revision anlegen.
 | #330, Linux – manuelle Bild-Gesamtsammlung | `work/330-linux-manual-images` | `6fcaa6cd1d058f29d6b89e5efb940b509f639a5e` |
 | #330, Android Notes | `work/330-notes-settings` | `3fb976ecd45fbb6c4ad7a6f059990aa1eaa40d9e` |
 | #330, Windows (nur Quelle) | `work/330-windows-media` | `7c83bdee58f2d56235032735b02952a2fc162caf` |
+| [#245](https://github.com/maik3531/Magnolie-Organizer/issues/245), Linux – Spiegelung | `work/245-logind-owner` | `a4f271c297ee68cddfd890372b49932979945ef8` |
 
 **Geprüft:** Linux-Oberfläche und beide Seiten des Einstellungsabgleichs in
 Quell-/Loopback-Tests. Der Abgleich startet keinen Medienvorgang. Linux
@@ -75,3 +76,8 @@ nicht aus ihrer Versionsnummer ableiten. [Webcam #503](https://github.com/maik35
 [Spiegelung #245](https://github.com/maik3531/Magnolie-Organizer/issues/245)
 und [Erweiterung #727](https://github.com/maik3531/Magnolie-Organizer/issues/727)
 bleiben getrennte Abnahmen.
+
+Bei #245 darf ein neuer Sitzungsdienst die frühere Sperrfreigabe nicht
+übernehmen. Die Korrektur besteht 22 isolierte Fenstertests. Die echte
+Zuordnung des Organizer-Prozesses zur grafischen Sitzung und der native
+Spiegelungslauf bleiben offen.
