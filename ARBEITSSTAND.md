@@ -18,7 +18,7 @@ eigenen Git-Arbeitsbaum auf dieser Revision anlegen.
 | Aufgabe | Integrationszweig | Quellstand |
 | --- | --- | --- |
 | [#330](https://github.com/maik3531/Magnolie-Organizer/issues/330), Linux | `work/330-linux-settings` | `c418ddfaf5c9de1e422b03fdecb8bb9f92e72747` |
-| #330, Linux – manuelle Bild-Gesamtsammlung | `work/330-linux-manual-images` | `668a5763298538813a79a82d5663303464887a8a` |
+| #330, Linux – manuelle Bild-Gesamtsammlung | `work/330-linux-manual-images` | `6fcaa6cd1d058f29d6b89e5efb940b509f639a5e` |
 | #330, Android Notes | `work/330-notes-settings` | `3fb976ecd45fbb6c4ad7a6f059990aa1eaa40d9e` |
 | #330, Windows (nur Quelle) | `work/330-windows-media` | `7c83bdee58f2d56235032735b02952a2fc162caf` |
 
@@ -37,7 +37,10 @@ Das ist kein installierter WLAN- oder Gerätenachweis.
 
 Die manuelle Bild-Gesamtsammlung kann auf dem separaten Linux-Zweig starten,
 wenn das lokale Senderecht, eine ausdrücklich gewählte Bildquelle und der
-kompatible Gegenpart vorliegen. Drei verschlüsselte Quelltests bestanden:
+kompatible, empfangsbereite Gegenpart vorliegen. Der Organizer lässt den
+Start sichtbar, aber deaktiviert, solange die Voraussetzungen fehlen.
+Eine passive Statusabfrage startet nichts. Oberfläche und drei
+verschlüsselte Quelltests bestanden:
 Abschluss mit zwei Originalen und Archiv, echter Widerruf, sowie sicheres
 Anhalten vor dem Versand einer geänderten zugeordneten Handydatei. Der
 Rückweg für „Nur Handybestand“ ist dadurch nicht freigegeben.
