@@ -22,6 +22,7 @@ eigenen Git-Arbeitsbaum auf dieser Revision anlegen.
 | #330, Android Notes | `work/330-notes-settings` | `3fb976ecd45fbb6c4ad7a6f059990aa1eaa40d9e` |
 | #330, Windows (nur Quelle) | `work/330-windows-media` | `7c83bdee58f2d56235032735b02952a2fc162caf` |
 | [#245](https://github.com/maik3531/Magnolie-Organizer/issues/245), Linux – Spiegelung | `work/245-logind-owner` | `e1810778903a4fe534120742b93703684c1e86e6` |
+| #245, Linux – privates Testpaket auf installierter Basis | `work/245-user-deb` | `47c84874c069c4700a42d79bc38795005e14320d` |
 
 **Geprüft:** Linux-Oberfläche und beide Seiten des Einstellungsabgleichs in
 Quell-/Loopback-Tests. Der Abgleich startet keinen Medienvorgang. Linux
@@ -97,6 +98,11 @@ die Freigabe auf demselben Kanal.
 Für einen späteren privat installierten Nutzertest ist ein kleiner,
 isoliert geprüfter Diagnoseumfang vorbereitet. Die Paketfreigabe und
 die native Geräteabnahme stehen noch aus.
+Die getrennte Integration für diesen Test basiert direkt auf dem bereits
+installierten Linux-Teststand. Browser-Test und 126 isolierte Quelltests
+sind bestanden. Erst der Binärvergleich und eine In-place-Startprobe im
+Gast prüfen, ob der Kandidat die vorhandenen Foto-/Video- und Kamerafunktionen
+im tatsächlichen Paket beibehält.
 Handy → Organizer benötigt keinen Wayland-Bildschirmmitschnitt auf Linux.
 X11 wird dafür nicht pauschal ausgeschlossen; ohne verifizierten
 lokalen Sperrzustand gibt es jedoch keinen Start. Die echte Erweiterung
