@@ -21,7 +21,7 @@ eigenen Git-Arbeitsbaum auf dieser Revision anlegen.
 | #330, Linux – manuelle Bild-Gesamtsammlung | `work/330-linux-manual-images` | `6fcaa6cd1d058f29d6b89e5efb940b509f639a5e` |
 | #330, Android Notes | `work/330-notes-settings` | `3fb976ecd45fbb6c4ad7a6f059990aa1eaa40d9e` |
 | #330, Windows (nur Quelle) | `work/330-windows-media` | `7c83bdee58f2d56235032735b02952a2fc162caf` |
-| [#245](https://github.com/maik3531/Magnolie-Organizer/issues/245), Linux – Spiegelung | `work/245-logind-owner` | `1d82f5ddca45d975aac46ad5f613917bd78ccf05` |
+| [#245](https://github.com/maik3531/Magnolie-Organizer/issues/245), Linux – Spiegelung | `work/245-logind-owner` | `45457cd8a2bcf4898b04bc129a49c8ca22a36a57` |
 
 **Geprüft:** Linux-Oberfläche und beide Seiten des Einstellungsabgleichs in
 Quell-/Loopback-Tests. Der Abgleich startet keinen Medienvorgang. Linux
@@ -87,6 +87,10 @@ Der Organizer unterscheidet in der
 geprüften Oberfläche eine nicht bestätigte oder gesperrte Desktopsitzung
 vom fehlenden WLAN-Gegenpart. Der Start bleibt in diesem Fall gesperrt.
 Der Hinweis ist in allen 19 Linux-Sprachkatalogen geprüft.
+Ein zusätzlicher isolierter Test mit echtem GTK-Viewer, lokalem
+Hintergrunddienst und verschlüsseltem Testgegenpart bestätigt: Ein
+simuliertes logind-Sperrsignal stoppt die Ansicht auch ohne weitere
+Bilder, lässt die Datenverbindung auslaufen und erhält den Telefon-Steuerkanal.
 Handy → Organizer benötigt keinen Wayland-Bildschirmmitschnitt auf Linux.
 X11 wird dafür nicht pauschal ausgeschlossen; ohne verifizierten
 lokalen Sperrzustand gibt es jedoch keinen Start. Die echte Erweiterung
