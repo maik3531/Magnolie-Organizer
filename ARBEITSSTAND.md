@@ -62,9 +62,11 @@ installierte Nachweis stehen noch aus.
 **Danach #330:** den sicheren Rückweg für bereits zugeordnete Handydateien
 getrennt nachweisen. Den allgemeinen Neuimport dafür nicht verwenden; die
 ursprüngliche Galerie-ID muss erhalten bleiben. Dafür ist auf
-`work/330-notes-original-hold-draft` (`0784caba82e7f7e2d1da70142c37f26a02afb39b`)
-eine **noch ungeprüfte** Sperre gegen versehentlichen Neuimport vorbereitet.
-Sie ersetzt keinen Rückweg. Native Windows- und
+`work/330-notes-original-hold-draft` (`99215564ee45244d25a12c437fea6a1fdbbc53a7`)
+eine **noch ungeprüfte** Sperre gegen versehentlichen Neuimport und gegen
+eine Auswahl zwischen widersprüchlichen Galerie-Zuordnungen vorbereitet.
+Ein sicherer Rückweg mit Schutz vor gleichzeitigen Änderungen ist damit
+noch nicht nachgewiesen. Native Windows- und
 Geräteabnahme stehen ebenfalls aus. Kein weiteres Benutzer-Testpaket; die installierte Ausgabe
 nicht aus ihrer Versionsnummer ableiten. [Webcam #503](https://github.com/maik3531/Magnolie-Organizer/issues/503),
 [Spiegelung #245](https://github.com/maik3531/Magnolie-Organizer/issues/245)
