@@ -2,7 +2,7 @@
 
 [Zur Zeitungsseite der Magnolie Presseschau](https://maik3531.github.io/Magnolie-Organizer/presse/)
 
-**Prüfstand: 20. November 2026 (MEZ)**
+**Prüfstand: 24. November 2026 (MEZ)**
 
 > **Herzlichen Dank an alle, die über Magnolie berichten, das Projekt vorstellen oder weiterempfehlen. Eure Unterstützung hilft, Magnolie bekannter und noch mehr Menschen zugänglich zu machen.**
 >
@@ -14,13 +14,13 @@ Diese Sammlung enthält Originalartikel, redaktionelle Erwähnungen, Softwarever
 | --- | ---: |
 | Veröffentlichte Originalartikel in anderen Medien | 5 |
 | Redaktionelle Erwähnung im Wochenrückblick | 1 |
-| Aktuell belegte Verzeichnis- und Listenfundstellen | 16 |
+| Aktuell belegte Verzeichnis- und Listenfundstellen | 17 |
 | Eigener veröffentlichter Originalbeitrag | 1 |
 | Historische Nachweise ohne aktuelle Inhaltsbestätigung | 2 |
 | Weiterverbreitungen und Feedspuren | 6 |
 | Angekündigte Veröffentlichung | 1 |
 
-Damit sind **6 veröffentlichte Originalbeiträge** erfasst: fünf Artikel in anderen Medien und ein eigener Projektbeitrag. Die übrigen Fundstellen werden gesondert gezählt. Mehrere Sprachfassungen oder Ansichten desselben Eintrags zählen zusammen als eine Fundstelle.
+Damit sind **6 veröffentlichte Originalbeiträge** erfasst: fünf Artikel in anderen Medien und ein eigener Projektbeitrag. Die übrigen Fundstellen werden gesondert gezählt. Mehrere Sprachfassungen oder Ansichten desselben Eintrags zählen zusammen als eine Fundstelle. Der Gesamtprüfstand bezeichnet den letzten Abgleich; ältere Einzelbelege behalten ihr eigenes Abrufdatum.
 
 ## 1. Berichte ohne dokumentierte Einreichung
 
@@ -124,7 +124,7 @@ Eingereichte Vorstellung des Desktop-Organizers und seiner mehrsprachigen Oberfl
 
 ## 4. Verzeichnisse und weitere Erwähnungen
 
-**16 aktuell belegte Fundstellen**, nach Sprache geordnet. Softwarekataloge, App-Seiten, Vergleichs- und Aktualisierungslisten zählen als eigene Fundstellen, nicht als Presseartikel. Magnolie Notes ist die separate Android-App.
+**17 aktuell belegte Fundstellen**, nach Sprache geordnet. Softwarekataloge, App-Seiten, Vergleichs- und Aktualisierungslisten zählen als eigene Fundstellen, nicht als Presseartikel. Magnolie Notes ist die separate Android-App.
 
 **So sind die Belege zu lesen:** „Originalseite aktuell abgerufen“ bedeutet, dass der Projektinhalt direkt sichtbar war. „Suchindex“ belegt die konkrete Originalseite über den Index; der jeweilige Direktabrufstatus steht beim Eintrag. Ein Verzeichniseintrag oder seine aktuelle Erreichbarkeit belegt keinen unabhängigen Funktionstest.
 
@@ -138,7 +138,7 @@ Softwarekatalogeintrag zum Windows-Organizer mit Beschreibung, Downloadverweis u
 
 **Datum:** Eingetragen und aktualisiert am 19. November 2026; beide Angaben stehen ausdrücklich auf der Originalseite.
 
-**Nachweis:** Originalseite am 20. November 2026 direkt abgerufen.
+**Nachweis:** Originalseite am 24. November 2026 direkt abgerufen.
 
 #### Unstock
 
@@ -190,11 +190,11 @@ Offizieller F-Droid-Katalogeintrag der separaten Android-App für lokale Notizen
 
 [Magnolie-Organizer](https://findopensources.com/software/magnolie-organizer)
 
-Softwareverzeichnis mit einer Vorstellung von Magnolie Organizer und Verweisen auf die offiziellen Projektquellen. Der bereits bekannte Eintrag ist wieder direkt erreichbar.
+Softwareverzeichnis mit einer Vorstellung von Magnolie Organizer und Verweisen auf die offiziellen Projektquellen.
 
 **Datum:** Am 20. November 2026 direkt geprüft. Der 13. November 2026 ist der vom Verzeichnis genannte Prüfstand; die Erstveröffentlichung ist nicht belegt.
 
-**Nachweis:** Originalseite aktuell abgerufen.
+**Nachweis:** Originalseite am 20. November 2026 direkt gelesen · erneuter Abruf am 24. November 2026 mit HTTP 403 nicht möglich.
 
 #### LibHunt
 
@@ -204,7 +204,17 @@ Projektprofil mit Repository-Daten und automatisch zusammengestellten Alternativ
 
 **Datum:** Hauptprofil am 20. November 2026 erneut direkt geprüft. Erstveröffentlichung nicht belegt.
 
-**Nachweis:** Projektprofil aktuell direkt abgerufen.
+**Nachweis:** Hauptprofil am 20. November 2026 direkt gelesen · erneuter Abruf am 24. November 2026 mit HTTP 403 nicht möglich; Vergleichsansicht weiterhin im Suchindex belegt.
+
+#### LicitPro
+
+[Magnolie Notes](https://licitpro.fr/en/resource/magnolie-notes)
+
+Dokumentationsbasierter Verzeichniseintrag zu Magnolie Notes mit GitHub und F-Droid als Quellen. LicitPro hat die Anwendung nach eigener Angabe nicht selbst getestet. Die Seite vermischt Android- und Desktop-Angaben; diese werden hier nicht übernommen.
+
+**Datum:** Technische Prüfung: 21. November 2026; GitHub-Datenprüfung: 22. November 2026. Beide Angaben sind Prüfzeitpunkte; die Erstveröffentlichung ist nicht belegt.
+
+**Nachweis:** Originalseite am 24. November 2026 direkt abgerufen.
 
 #### LiteFile
 
@@ -214,7 +224,7 @@ Softwareverzeichnis mit Beschreibung des Windows-Organizers und Downloadinformat
 
 **Datum:** Aktualisiert am 18. November 2026; die Erstveröffentlichung ist nicht belegt.
 
-**Nachweis:** Originalseite aktuell abgerufen.
+**Nachweis:** Originalseite am 24. November 2026 direkt abgerufen.
 
 #### PatchBot
 
@@ -234,7 +244,7 @@ Produkteintrag im Bereich Produktivität. Die Seite kennzeichnet die autorisiert
 
 **Datum:** Das Verzeichnis nennt den 18. November 2026 als Prüfdatum; die Erstveröffentlichung ist nicht belegt.
 
-**Nachweis:** Originalseite am 20. November 2026 direkt abgerufen.
+**Nachweis:** Originalseite am 24. November 2026 direkt abgerufen.
 
 #### TechTools Launchpad
 
@@ -274,7 +284,7 @@ Ausführlicher Softwareeintrag auf Grundlage der Projektdokumentation. Die Seite
 
 **Datum:** Erstveröffentlichung nicht belegt.
 
-**Nachweis:** Originalseite am 20. November 2026 direkt abgerufen.
+**Nachweis:** Originalseite am 24. November 2026 direkt abgerufen.
 
 ### Russisch
 
@@ -304,9 +314,9 @@ Russischsprachiger Softwarekatalog mit Beschreibung und Verweis auf das Windows-
 
 Android-Katalogseite für Magnolie Notes mit chinesischer Oberfläche und englischer Beschreibung. Die dortige Versionsangabe scheint Angaben zum Desktop-Organizer zu übernehmen und wird hier nicht als Notes-Version bestätigt.
 
-**Datum:** Erstveröffentlichung nicht belegt.
+**Datum:** Aktualisiert am 16. November 2026; die Erstveröffentlichung ist nicht belegt.
 
-**Nachweis:** Im aktuellen Suchindex belegt; Direktabruf gesperrt.
+**Nachweis:** Originalseite am 24. November 2026 direkt abgerufen.
 
 ## 5. Historische Nachweise
 
@@ -316,7 +326,7 @@ Android-Katalogseite für Magnolie Notes mit chinesischer Oberfläche und englis
 
 [Magnolie-Organizer · SilentStars](https://silentstars.dev/projects/maik3531--magnolie-organizer/)
 
-Historisches Repository-Profil mit Projektbeschreibung und Metadaten. Beim jüngsten Direktabruf lieferte die genaue Adresse „nicht gefunden“ (404).
+Historisches Repository-Profil mit Projektbeschreibung und Metadaten. Der Suchindex enthält weiterhin Text; die Originaladresse lieferte bei der erneuten Prüfung am 24. November 2026 „nicht gefunden“ (404).
 
 **Datum:** Historisch beobachtet am 12. und 17. November 2026. Erstveröffentlichung nicht belegt.
 
@@ -438,7 +448,7 @@ Laut der an Maik Walter übermittelten Redaktionszusage wurde die eingereichte P
 
 Die **Zuordnung zu LinuxParty wird aus dem identischen Titel der dokumentierten Einreichung abgeleitet**: „Magnolie Organizer: agenda libre para Linux y Windows con 20 idiomas“.
 
-Eine öffentliche Artikeladresse ist noch nicht bestätigt. **Diese Ankündigung zählt nicht als veröffentlichter Originalartikel.**
+Bei der Nachprüfung am 24. November 2026 ist weiterhin keine öffentliche Artikeladresse bestätigt. **Diese Ankündigung zählt nicht als veröffentlichter Originalartikel.**
 
 [Zum Medium LinuxParty](https://www.linuxparty.es/)
 
