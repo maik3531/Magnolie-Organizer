@@ -198,3 +198,28 @@ Host-Testvoraussetzungen mit `pytest` 8.3.5 und
 No-Skip-Guard sind unverändert. #764 ist damit als Testkorrektur abgeschlossen;
 die oben genannten privaten Integrations- und nativen Paketabnahmen bleiben
 getrennte Aufgaben.
+
+## Presseschau #765: Veröffentlichungsabgleich – 24. November 2026
+
+Die Presseschau und `docs/PRESSE.md` führen jetzt zusätzlich den direkt
+bestätigten LicitPro-Verzeichniseintrag zu Magnolie Notes. Damit sind 17
+Verzeichnis- und Listenfundstellen erfasst. Die dort genannten Prüfzeitpunkte
+werden nicht als Erstveröffentlichung ausgegeben; die dokumentationsbasierte
+Beschreibung zählt nicht als unabhängiger Praxistest. Der Abgleich ergab keinen
+zusätzlichen Originalartikel bei den geprüften Einreichungsempfängern.
+
+OpenAPK konnte erneut direkt gelesen werden. Die aktuellen Abrufgrenzen von
+FindOpenSources, LibHunt und SilentStars sind getrennt von früheren Belegen
+vermerkt. Die LinuxParty-Zusage bleibt für den 27. November angekündigt;
+eine veröffentlichte Artikeladresse ist am 24. November nicht bestätigt.
+
+Geprüft auf der Standardbasis `92677041f7cb6678c0318f6acd2ec4c457992d7b`
+mit diesen Inhaltsänderungen: 20 Rechtsübersetzungen und 64 statische Ausgaben
+konsistent, 562 Sprachrouting-Prüfungen bestanden, Website-Build mit 62
+HTML-Seiten und Prüfung der lokalen Links erfolgreich. Es wurden ausschließlich
+Website-Inhalte und diese Arbeitsstandsnotiz geändert. Die Veröffentlichung
+erfolgt über den bestehenden GitHub-Pages-Ablauf aus `main`.
+
+Nächster inhaltlicher Schritt: Bei belegter Artikeladresse den angekündigten
+Beitrag anhand der Originalseite neu einordnen. Einreichungsliste und private
+Recherchebelege bleiben außerhalb des öffentlichen Repositorys.
