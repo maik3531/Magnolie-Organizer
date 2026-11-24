@@ -101,9 +101,11 @@ isoliert geprüfter Diagnoseumfang vorbereitet. Die Paketfreigabe und
 die native Geräteabnahme stehen noch aus.
 Die getrennte Integration für diesen Test basiert direkt auf dem bereits
 installierten Linux-Teststand. Browser-Test und 126 isolierte Quelltests
-sind bestanden. Erst der Binärvergleich und eine In-place-Startprobe im
-Gast prüfen, ob der Kandidat die vorhandenen Foto-/Video- und Kamerafunktionen
-im tatsächlichen Paket beibehält.
+sind bestanden. Binärvergleich und In-place-Startprobe im Debian-Gast
+bestätigen die vorhandenen Foto-/Video- und Kamerafunktionen in der
+Paketkomposition sowie eine inaktive Spiegelung ohne Gegenstelle. Das ist
+kein Beleg für eine Aufnahme oder eine echte Sperre. Das passende
+signierte Notes-Paket und der gemeinsame Bildtest stehen noch aus.
 Handy → Organizer benötigt keinen Wayland-Bildschirmmitschnitt auf Linux.
 X11 wird dafür nicht pauschal ausgeschlossen; ohne verifizierten
 lokalen Sperrzustand gibt es jedoch keinen Start. Die echte Erweiterung
