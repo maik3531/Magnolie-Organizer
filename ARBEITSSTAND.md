@@ -23,7 +23,7 @@ eigenen Git-Arbeitsbaum auf dieser Revision anlegen.
 | #330, Windows (nur Quelle) | `work/330-windows-media` | `7c83bdee58f2d56235032735b02952a2fc162caf` |
 | [#245](https://github.com/maik3531/Magnolie-Organizer/issues/245), Linux – Spiegelung | `work/245-logind-owner` | `e1810778903a4fe534120742b93703684c1e86e6` |
 | #245, Linux – privates Testpaket auf installierter Basis | `work/245-user-deb` | `47c84874c069c4700a42d79bc38795005e14320d` |
-| #245/#763, Notes – Testpaket-Entwurf (noch nicht gebaut) | `work/245-notes-user-draft` | `0355970de7604004f84de0ca265ebf5b5c6fc95b` |
+| #245/#763, Notes – Testpaket-Entwurf (noch kein APK) | `work/245-notes-user-draft` | `5993dbb3d289f20e2852a21cd20d28053a6ba72c` |
 
 **Geprüft:** Linux-Oberfläche und beide Seiten des Einstellungsabgleichs in
 Quell-/Loopback-Tests. Der Abgleich startet keinen Medienvorgang. Linux
@@ -106,6 +106,11 @@ bestätigen die vorhandenen Foto-/Video- und Kamerafunktionen in der
 Paketkomposition sowie eine inaktive Spiegelung ohne Gegenstelle. Das ist
 kein Beleg für eine Aufnahme oder eine echte Sperre. Das passende
 signierte Notes-Paket und der gemeinsame Bildtest stehen noch aus.
+Im ersten vollständigen Notes-Lauf bestanden der neue Spiegelungstest
+und die drei Update-Regressionsfälle. Ein älterer Job-Test setzte die
+aktuell notwendige Einstellung „AN“ in seiner Testumgebung nicht.
+Nur diese Testvoraussetzung wurde danach korrigiert; das vollständige
+Notes-Paketgate und die native Prüfung stehen vor einer Übergabe.
 Handy → Organizer benötigt keinen Wayland-Bildschirmmitschnitt auf Linux.
 X11 wird dafür nicht pauschal ausgeschlossen; ohne verifizierten
 lokalen Sperrzustand gibt es jedoch keinen Start. Die echte Erweiterung
