@@ -79,10 +79,11 @@ bleiben getrennte Abnahmen.
 Bei #245 darf ein neuer Sitzungsdienst die frühere Sperrfreigabe nicht
 übernehmen. 38 isolierte Tests prüfen u. a. den D-Bus-Namenswechsel,
 die Entfernung der gebundenen Sitzung und den Ausschluss nichtgrafischer,
-entfernter oder nicht eindeutig bekannter Sitzungen. Beim Start über
-KDEs Ausführen-Dialog erkannte logind keine
-Sitzung des gestarteten Gastprozesses. Das ist kein vollständiger Test
-des installierten Organizers; der native Spiegelungslauf bleibt offen.
+entfernter oder nicht eindeutig bekannter Sitzungen. Im KDE-/Wayland-Gast
+ordnete logind weder der PID des tatsächlich installierten Organizers
+noch dem Prozess an der von GTK verwendeten Wayland-Verbindung eine
+Sitzung zu. Das rechtfertigt keine Startfreigabe; der native
+Spiegelungslauf bleibt offen.
 Der Organizer unterscheidet in der
 geprüften Oberfläche eine nicht bestätigte oder gesperrte Desktopsitzung
 vom fehlenden WLAN-Gegenpart. Der Start bleibt in diesem Fall gesperrt.
