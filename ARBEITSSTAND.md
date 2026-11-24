@@ -115,8 +115,13 @@ kanonisch signierte Build bestätigt dieselben 2.594 APK-gebundenen
 Testfälle und das bisherige Produktionszertifikat. Im isolierten
 Upgrade-Fall AN nahm Notes den Dienst und die authentifizierte
 WLAN-Verbindung vor Öffnen der App wieder auf; Paarung und Rechte
-blieben erhalten. Der getrennte native AUS-Nachweis steht vor einer
-Übergabe noch aus. Kein Nutzergerät wurde verändert.
+blieben erhalten. Der getrennte native AUS-Fall blieb 35 Sekunden
+ohne Vordergrunddienst und ohne WLAN-Verbindung, ebenfalls bei
+erhaltener Paarung und unveränderten Rechten. Das genaue Paar liegt
+für den ausdrücklich gewünschten lokalen Privattest bereit.
+Der eigentliche Bild- und Sperrtest durch den Nutzer steht noch aus;
+kein Nutzergerät wurde automatisch verändert und kein Testpaket
+öffentlich veröffentlicht.
 Handy → Organizer benötigt keinen Wayland-Bildschirmmitschnitt auf Linux.
 X11 wird dafür nicht pauschal ausgeschlossen; ohne verifizierten
 lokalen Sperrzustand gibt es jedoch keinen Start. Die echte Erweiterung
