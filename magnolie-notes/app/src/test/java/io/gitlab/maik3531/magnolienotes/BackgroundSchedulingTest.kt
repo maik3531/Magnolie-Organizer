@@ -76,12 +76,24 @@ class BackgroundSchedulingTest {
     @Test fun repeatedServiceStartsOwnOneStartupJobAndDestroyCancelsIt() {
         val controller = Robolectric.buildService(TelefonDienst::class.java).create()
         val service = controller.get()
-        // Keep the real service at its startup barrier, without invoking Keystore or radio.
-        Service::class.java.getDeclaredField("mApplication").apply { isAccessible = true }.set(service, MagnolieApp())
-        repeat(8) { service.onStartCommand(Intent(), 0, it + 1) }
-        val scope = TelefonDienst::class.java.getDeclaredField("scope").apply { isAccessible = true }.get(service) as CoroutineScope
-        assertEquals(1, scope.coroutineContext[Job]!!.children.count())
-        controller.destroy()
+        val settings = service.getSharedPreferences("magnolie_phone_settings", Context.MODE_PRIVATE)
+        val previous = settings.all["enabled"]
+        val scope = try {
+            // Model an explicitly enabled connection without invoking Keystore or radio.
+            check(settings.edit().putBoolean("enabled", true).commit())
+            Service::class.java.getDeclaredField("mApplication").apply { isAccessible = true }.set(service, MagnolieApp())
+            repeat(8) { assertEquals(Service.START_STICKY, service.onStartCommand(Intent(), 0, it + 1)) }
+            (TelefonDienst::class.java.getDeclaredField("scope").apply { isAccessible = true }.get(service) as CoroutineScope)
+                .also { assertEquals(1, it.coroutineContext[Job]!!.children.count()) }
+        } finally {
+            try {
+                controller.destroy()
+            } finally {
+                check(settings.edit().apply {
+                    if (previous is Boolean) putBoolean("enabled", previous) else remove("enabled")
+                }.commit())
+            }
+        }
         assertTrue(scope.coroutineContext[Job]!!.isCancelled)
     }
 }
