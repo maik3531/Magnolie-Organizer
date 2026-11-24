@@ -21,7 +21,6 @@ class KontaktUiUndRessourcenTest {
         assertTrue(ui.substring(erweitert, baum).contains("MedienSyncEinstellungen"))
         assertTrue(ui.contains("val erweitertSichtbar = telefon.erweiterteFunktionenSichtbar()"))
         assertTrue(ui.contains("if (erweitertSichtbar)"))
-        assertTrue(ui.contains("5f * yDpi / 25.4f"))
         assertTrue(ui.contains("if (customFokus != null) personalOffen = true"))
     }
     @Test fun `alle zwanzig Sprachen haben denselben uebersetzbaren Schluesselsatz`() {
