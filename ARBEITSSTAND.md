@@ -62,9 +62,12 @@ installierte Nachweis stehen noch aus.
 **Danach #330:** den sicheren Rückweg für bereits zugeordnete Handydateien
 getrennt nachweisen. Den allgemeinen Neuimport dafür nicht verwenden; die
 ursprüngliche Galerie-ID muss erhalten bleiben. Dafür ist auf
-`work/330-notes-original-hold-draft` (`99215564ee45244d25a12c437fea6a1fdbbc53a7`)
+`work/330-notes-original-hold-draft` (`86315e3b870f9779a89122a69c59f0f99fb0ac3e`)
 eine **noch ungeprüfte** Sperre gegen versehentlichen Neuimport und gegen
 eine Auswahl zwischen widersprüchlichen Galerie-Zuordnungen vorbereitet.
+Der Entwurf kann bei neu bestätigten Originalen das Android-Volume geschützt
+speichern und das wiedergefundene Original lesend gegen Revision und
+Dateihash prüfen. Alte Einträge ohne Volume werden nicht umgedeutet.
 Ein sicherer Rückweg mit Schutz vor gleichzeitigen Änderungen ist damit
 noch nicht nachgewiesen. Native Windows- und
 Geräteabnahme stehen ebenfalls aus. Kein weiteres Benutzer-Testpaket; die installierte Ausgabe
