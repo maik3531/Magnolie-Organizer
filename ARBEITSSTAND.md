@@ -23,6 +23,7 @@ eigenen Git-Arbeitsbaum auf dieser Revision anlegen.
 | #330, Windows (nur Quelle) | `work/330-windows-media` | `7c83bdee58f2d56235032735b02952a2fc162caf` |
 | [#245](https://github.com/maik3531/Magnolie-Organizer/issues/245), Linux – Spiegelung | `work/245-logind-owner` | `e1810778903a4fe534120742b93703684c1e86e6` |
 | #245, Linux – privates Testpaket auf installierter Basis | `work/245-user-deb` | `47c84874c069c4700a42d79bc38795005e14320d` |
+| #245/#763, Notes – Testpaket-Entwurf (noch nicht gebaut) | `work/245-notes-user-draft` | `0355970de7604004f84de0ca265ebf5b5c6fc95b` |
 
 **Geprüft:** Linux-Oberfläche und beide Seiten des Einstellungsabgleichs in
 Quell-/Loopback-Tests. Der Abgleich startet keinen Medienvorgang. Linux
