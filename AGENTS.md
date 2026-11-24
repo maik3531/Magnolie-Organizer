@@ -29,6 +29,25 @@ Programmdaten, Tags und Downloadpaketen.
 
 ## Jede Änderung gehört zu einem GitHub-Issue
 
+## Übergabe zwischen Werkzeugen
+
+Der zuletzt geprüfte Arbeitsstand darf nicht nur im Gespräch eines Assistenten
+stehen. Bei Übernahme zuerst `git status`, die maßgebliche entfernte
+Standardbasis und `ARBEITSSTAND.md` lesen. Wenn dort eine Abweichung von `main`
+vermerkt ist, den benannten Commit und Zweig prüfen, bevor Pakete, Tests oder
+Produktänderungen daraus abgeleitet werden. Ein lokales Paket mit gleicher
+Versionsnummer beweist keinen identischen Quellstand.
+
+Nach jedem verifizierten Arbeitsschritt den Arbeitsstand mit Issue, Quellstand,
+tatsächlich bestandenen Tests, offenen Grenzen und nächstem Schritt
+aktualisieren. Geprüfte Standardänderungen mit dem aktuellen `main`
+zusammenführen und normal per Git sichern. Noch nicht zusammenführbare,
+private Integrationsstände auf ausdrücklich benannten, entfernten
+Git-Arbeitszweigen sichern statt nur in `/tmp`, in lokalen Commits oder in
+zusätzlichen Archiven. Die öffentliche Übersicht enthält keine Zugangsdaten,
+privaten Nachweise oder internen Ablageadressen. Ein Quell-Push ändert keine
+Geräte und gibt keine Pakete frei.
+
 ## Wiederholbare Veröffentlichungen
 
 Für Veröffentlichungen den vorhandenen dokumentierten Bauablauf wiederverwenden.
