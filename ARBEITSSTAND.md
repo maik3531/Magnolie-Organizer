@@ -1,5 +1,76 @@
 # Aktueller Arbeitsstand
 
+## Mac #770: Systemkalender als lokale Termin-Kopien – 25. November 2026
+
+**Quellpatch auf `work/770-macos-calendar-import`, aufbauend auf dem gesicherten
+AirPlay-Commit `25c5a849a89d8846b211ff98922a708dcc7e127d` aus #721.** Die erneut
+abgerufene Standardbasis bleibt `00776ce70e155c7a607ed55a4502d6fcee5a860c`.
+Nutzerauftrag: ohne eigene iPhone-App weiterentwickeln; Patches im Issue zur
+späteren Codex-Übernahme bereitstellen. Kein Merge nach `main`, kein Paketbau
+oder Release aus diesem Schritt.
+
+Der neue parameterlose Mac-Befehl `macos_kalender_importieren` öffnet einen
+nativen EventKit-Kalender-/Datumsdialog. Nach ausdrücklich angeforderter
+Systemfreigabe werden höchstens 366 Tage, 10.000 Datensätze und 16 MiB gelesen
+und geprüft. Einfache Einzeltermine werden über den bestehenden kanonischen
+ICS-Codec vorbereitet. Präzise UTC-Zeiten einschließlich Sekunden und Folds
+sowie DATE-/Ganztagsgrenzen bleiben erhalten. Serien, Alarme, Teilnehmer,
+Geburtstagsquellen und sonst nicht unverändert abbildbare Termine erscheinen
+mit Gründen als Ausschlüsse.
+
+Die Vorschau unterscheidet neue, bereits übernommene, an der Quelle geänderte
+und ausgeschlossene Termine. Herkunft bindet tatsächlichen Kalender,
+Ereigniskennung und Elternkonto; gleiche Titel sind keine Dublettenidentität.
+Vorhandene Kopien und lokale Bearbeitungen werden nicht überschrieben,
+Papierkorbeinträge nicht neu angelegt. Nach Bestätigung wird die Quelle erneut
+gelesen. Der private UI-Vorschlag prüft Buchinhalt, Generation/Zeitzone,
+Sperre/Restore und auch zwischenzeitlich geöffnete Editorentwürfe vor und nach
+dem bestehenden Recovery-Checkpoint. Erfolg erst nach dauerhafter Speicherquittung;
+gescheiterte Abschlussspeicherung bleibt ausdrücklich ungespeichert sichtbar.
+
+Gezielte Mac-Projektion in Normalisierung, Termin-Editor und Erinnerungsprüfung
+verhindert erfundene Standardalarme bei den neuen Kopien. Bewusst im Editor
+gesetzte Standardalarme oder einzelne lokale VALARMs bleiben nutzbar. Der
+native bestätigte/vorläufige Status folgt dem vorhandenen editierbaren
+`vorlaeufig`-Vertrag; sein ursprünglicher EventKit-Wert bleibt in der Herkunft.
+Keine widersprüchliche zusätzliche rohe STATUS-Zeile.
+
+| Tatsächlich geprüfter Umfang | Ergebnis |
+| --- | --- |
+| Neue Übernahme mit echter projizierter UI, vollständigen synthetischen DTOs, echtem Editor/Kalender/Erinnerungsplan und synthetischem nativen Speichertransport | 258 Assertions bestanden; Node 24.22.3, CI-JSDOM 26.1.0 |
+| Bestehender allgemeiner UI-Host-Vertrag | 109 Assertions bestanden; gleiche CI-JSDOM-Version |
+| Zusammengehöriger abschließender Python-Lauf | 5/5 Tests bestanden: neuer Import, vorhandener UI-Host, Bridgeinventar, Alarmadapter-/Ankerabweichung, Freeze-/Manipulationserkennung |
+| Eingangsdateien im gezielten Importprüfer | Unverändert im abschließenden Lauf; zwischenzeitliche Änderungen werden ausdrücklich zurückgewiesen |
+| Statisches Quellaudit | 420 Eingangsdateien; neuer Befehl inventarisiert; kein Freeze und kein dauerhaft erzeugter Bundle-Stand |
+| Swift-Kern/SDK-Verträge | 16 XCTest-Fälle angelegt; nicht ausgeführt, `swift`/`swiftc` hier nicht vorhanden |
+| Python-Syntax, JSON-Ressource und Diff-Whitespace | Geprüft |
+| Native AppKit-/EventKit-/WKWebView-Ausführung, echte Mac-/iPhone-Konten und Geräte | Nicht durchgeführt |
+
+Ein erster zusätzlicher allgemeiner UI-Lauf mit JSDOM 31.0.1 vermisste den
+Capability-Block. Der unveränderte Test bestand anschließend sowohl gegen den
+Vorgängerstand als auch gegen den aktuellen Stand mit 31.0.1 und mit der
+CI-Vorgabe 26.1.0. Kein reproduzierter Produktfehler oder belegter genereller
+JSDOM-31-Fehler; keine Testbedingung abgeschwächt. Die vollständige frühere
+Sprachkatalogprüfung bleibt mangels `msgfmt`/erzeugter Kataloge unbestätigt und
+wird nicht aus den gezielten englischen UI-Prüfungen abgeleitet.
+
+Details, Bedienung, Grenzen, wiederholbarer Prüfbefehl und native Restmatrix:
+`Magnolie-Organizer-macOS-Beta/SYSTEM-CALENDAR-IMPORT.md`.
+`systemAccountSyncImplemented` bleibt false. Keine automatische Aktualisierung,
+Rückschreibung oder Löschung in Apple-Konten. JSON-Sicherungen erhalten die
+Herkunftserweiterungen; der strenge ICS-Export solcher Kopien bleibt bis zu einer
+vollständigen Herkunftsabbildung gesperrt. Erinnerungen, Kontakte und Apple
+Notes sind weiterhin eigene offene Anschlussaufgaben ohne neue iPhone-App.
+
+Separater statischer Befund #771: Der ältere allgemeine EventKit-Leseguard
+erlaubt 1464 Tage, während Apple Fenster über vier Jahre verkürzt. Die neue
+Übernahme bleibt bereits vor dem nativen Read unter dieser Grenze (366 Tage).
+Keine native Reproduktion oder Datenverlustbehauptung; kein nachgewiesener
+Linux-/Windows-Fehler. Gemeinsame kanonische Produktdateien wurden hier nicht
+verändert. Als Nächstes native Kompilierung und tatsächliche Kalender-/Rechte-/
+Abbruch-/Speicher-/Wiederöffnungsfälle auf beiden Mac-Architekturen abnehmen;
+danach den getrennten Aufgaben-/Kontakt-/Notizenanschluss fortsetzen.
+
 ## Mac #721: eingebauter iPhone-AirPlay-Empfänger – 25. November 2026
 
 **Prüfbarer Quellpatch auf `work/721-macos-airplay`, Basis

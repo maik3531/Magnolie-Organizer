@@ -9,6 +9,7 @@ SCOPES = {
     "karte": "partial: Apple Maps adaptation or selected OSM/Google HTTPS location/route; native handler unverified",
     "sozial": "partial: bounded HTTPS web services/templates; explicit no custom process/tel/SMS; native handler unverified",
     "notiz_dateien_importieren": "source: additive selected TXT/literal Markdown/PDF/image notes; explicit preview + recovery + save ACK; native picker unverified",
+    "macos_kalender_importieren": "source: explicit EventKit calendar/date picker, reviewed additive local copies + recovery + save ACK; no sync; native execution unverified (#770)",
     "drucken": "source: isolated JS-free print renderer and AppKit system print/PDF dialog; native acceptance pending",
     "handbuch_oeffnen": "source: bundled canonical 2.0.30 manual; isolated local WKWebView/search; native validation pending",
     "bereit": "source: load/new/locked document; native local startup verified",

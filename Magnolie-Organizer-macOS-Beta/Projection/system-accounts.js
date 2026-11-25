@@ -1,10 +1,10 @@
 "use strict";
 
-// macOS discovery and source selection only. Shared Organizer settings remain
+// Shared Organizer settings remain
 // the sole stored selection; discovering/denying access never rewrites them.
 (() => {
   let view = null, snapshot = null, pending = null;
-  const note = "macOS system sources can be discovered and selected. Full synchronization is not available yet. Selecting a source does not import or change its data.";
+  const note = "macOS system sources can be discovered and selected. Calendar appointments can be copied with a separate preview. Full synchronization is not available yet. Selecting a source does not import or change its data.";
   function node(tag, text) {
     const item = document.createElement(tag);
     if (text !== undefined) item.textContent = text;
@@ -37,6 +37,11 @@
     const refresh = node("button", tr("Refresh")); refresh.type = "button";
     refresh.id = "macos-system-refresh"; refresh.disabled = !!pending;
     refresh.addEventListener("click", () => request()); root.append(refresh);
+    const importCalendar = node("button", tr("Import") + ": macOS " + tr("Calendars"));
+    importCalendar.type = "button"; importCalendar.id = "macos-system-calendar-import";
+    importCalendar.disabled = !!pending;
+    importCalendar.addEventListener("click", () => window.App.macOSBetaStartCalendarImport());
+    root.append(importCalendar);
     const chosen = settings();
     const selected = [...new Set([...(chosen.kalenderUids || []), ...(chosen.kalenderUid ? [chosen.kalenderUid] : [])])];
     const calendars = Array.isArray(snapshot?.kalender) ? snapshot.kalender : [];

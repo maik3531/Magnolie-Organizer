@@ -227,6 +227,28 @@ def project(snapshot, target):
     text = replace_once(text, "  function normalisiere(roh) {",
                         "  function normalisiere(roh) { return window.MacBeta.preserve(roh, normalisiereDesktop(roh)); }\n"
                         "  function normalisiereDesktop(roh) {")
+    # #770: an imported EventKit copy carries no native alarm mapping. Preserve
+    # its explicit opt-out on reload instead of canonical legacy defaults
+    # silently enabling the Organizer's standard reminder for the new copy.
+    reminder_default = '''        standardErinnerung: ![1, 2, 3, 4, 5, 6, 7]
+          .includes(Number(t.individuelleErinnerungTage)) ||
+          t.standardErinnerung === undefined ? true : !!t.standardErinnerung,'''
+    text = replace_once(text, reminder_default,
+                        '''        standardErinnerung: t.nativeCalendarImport?.version === 1 && t.standardErinnerung === false
+          ? false : ![1, 2, 3, 4, 5, 6, 7].includes(Number(t.individuelleErinnerungTage)) ||
+            t.standardErinnerung === undefined ? true : !!t.standardErinnerung,''')
+    # Preserve that opt-out through ordinary local edits as well. The existing
+    # checkbox remains visible for native copies even with no custom-day offset,
+    # so enabling an Organizer reminder is an intentional user choice.
+    text = replace_once(text, '''      standardZeile.style.display = hatIndividuelle ? "" : "none";
+      if (!hatIndividuelle) standardHak.checked = true;''',
+                        '''      const nativeCalendarCopy = !neu && termin.nativeCalendarImport?.version === 1;
+      standardZeile.style.display = hatIndividuelle || nativeCalendarCopy ? "" : "none";
+      if (!hatIndividuelle && !nativeCalendarCopy) standardHak.checked = true;''')
+    text = replace_once(text, '''        standardErinnerung: erinnerungsTageAusText(individuellFeld.value)
+          ? standardHak.checked : true,''',
+                        '''        standardErinnerung: erinnerungsTageAusText(individuellFeld.value) || (!neu && termin.nativeCalendarImport?.version === 1)
+          ? standardHak.checked : true,''')
     text = replace_once(text, "  function baueSeiteSync(wurzel) {", '''  function baueSeiteSync(wurzel) {
     const systemSources = el("div"); wurzel.append(systemSources);
     window.MacBetaSystemAccounts.render(systemSources, { tr: _, id: uid,
@@ -302,6 +324,10 @@ def project(snapshot, target):
                         '    { id: "ort", name: msgid("Country & holidays") },')
     note_import = snapshot[str((BETA / "Projection/note-file-import.js").relative_to(REPO))].decode()
     text = replace_once(text, "  const App = {", note_import + "\n  const App = {\n    macOSBetaStartNoteImport, macOSBetaImportNoteFiles,")
+    calendar_import = snapshot[str((BETA / "Projection/system-calendar-import.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", calendar_import + "\n  const App = {\n"
+                        "    macOSBetaStartCalendarImport, macOSBetaPrepareCalendarImport,\n"
+                        "    macOSBetaCommitCalendarImport, macOSBetaCancelCalendarImport,")
     text = replace_once(text, "  const App = {", '''  let macOSBetaPreparedRestore = null;
   const App = {
     macOSBetaPrepareNativeRestore(text, operationID) {
@@ -360,6 +386,8 @@ def project(snapshot, target):
     reminder = text[reminder_start:reminder_end]
     reminder = replace_once(reminder, "if (Bruecke.vorhanden) return;",
                             "if (!initialisiert || gesperrt) return;")
+    reminder = replace_once(reminder, "      if (!tage || t.standardErinnerung !== false) {",
+                            "      if (t.nativeCalendarImport?.version === 1 ? t.standardErinnerung !== false : !tage || t.standardErinnerung !== false) {")
     task_start = reminder.index("    for (const aufgabe of DATEN.aufgaben.concat(customAufgabenFuerErinnerung())) {")
     task_end = reminder.index("\n    }\n  }", task_start) + len("\n    }")
     reminder = reminder[:task_start] + '''    for (const aufgabe of DATEN.aufgaben.concat(customAufgabenFuerErinnerung())) {

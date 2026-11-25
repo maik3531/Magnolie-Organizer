@@ -124,7 +124,7 @@ als auch aus dem tatsächlich eingebundenen UxPlay-Protokoll-/Rendererbestand.
 
 | Funktion | Technisch möglicher Weg ohne eigene iPhone-App | Tatsächlicher Magnolie-Quellstand und offene Arbeit |
 | --- | --- | --- |
-| Termine | Apple Kalender am iPhone; gemeinsames iCloud-/CalDAV-Konto; EventKit am Mac | `SystemAccounts` besitzt Lesen, quellengebundene Snapshots und revisionsgebundene Änderungen an Titel/Notiz/Ort bestehender nicht wiederkehrender Termine. Vollständiger Organizer-Abgleich, Anlage/Löschung, Konflikte und sichere Serienabbildung bleiben offen. |
+| Termine | Apple Kalender am iPhone; gemeinsames iCloud-/CalDAV-Konto; EventKit am Mac | #770 ergänzt die bewusste additive Übernahme unterstützter Einzeltermine mit nativer Kalender-/Zeitraumauswahl, Vorschau, Dublettenschutz, erneuter Quellenprüfung und dauerhaftem Speichern. Lokale Kopien, kein Rückabgleich; native Swift-/Kontenprüfung offen. Details: [SYSTEM-CALENDAR-IMPORT.md](SYSTEM-CALENDAR-IMPORT.md). Vollständiger Organizer-Abgleich, native Anlage/Löschung und sichere Serienabbildung bleiben offen. |
 | Aufgaben und Erinnerungen | Apple Erinnerungen am iPhone/Mac; EventKit für die freigegebenen Listen; bei iCloud dasselbe aktivierte Konto | Lesen/Snapshots und begrenzte Textänderungen sind vorbereitet. `NativeSystemRecordReader` kennzeichnet die nicht vollständig verfügbare Hierarchie. Keine Zusage für verlustfreie Unteraufgaben, Serien oder vollständigen Rückabgleich. |
 | Kontakte und Geburtstage | Apple Kontakte; gemeinsames iCloud-/CardDAV-Konto; Contacts-Framework am Mac | Containergebundene, nicht vereinheitlichte vCard-Snapshots existieren. Status ist ausdrücklich `readOnly: true`; vollständige Feldabbildung und sichere Schreibtransaktionen fehlen. Geburtstage benötigen dieselbe geprüfte Kontaktabbildung. |
 | Apple-Notizen als Text/Datei | Apple Notes exportiert Markdown/PDF beziehungsweise Originalanhänge; Übernahme über Dateien/AirDrop oder auf demselben Mac | `NoteFileImportHost` übernimmt TXT/MD als editierbaren Literaltext, PDF/Bilder als Originalanhänge mit Vorschau, Auswahlprüfung und Speichern. Das ist ein bewusster Import, kein laufender Abgleich. |
@@ -148,8 +148,10 @@ EventKit-/Contacts-Zugriffe in Magnolie machen diesen Transport nicht zu einem
 rein lokalen Direktabgleich.
 
 Die aktuelle Mac-Quelle meldet weiter
-`systemAccountSyncImplemented: false`. In `main.swift` sind Quellenauswahl und
-Systemfreigabe angebunden. Das Vorhandensein der Methoden in `SystemAccounts`
+`systemAccountSyncImplemented: false`. In `main.swift` sind Quellenauswahl,
+Systemfreigabe und mit #770 die bestätigte lokale Kalenderübernahme angebunden.
+Der neue Import benötigt keine weiteren Programme auf dem Mac oder iPhone.
+Das Vorhandensein der Methoden in `SystemAccounts`
 und `NativeSystemRecordReader` ist kein Beleg, dass bereits alle Organizer-
 Datensätze vollständig und automatisch in beide Richtungen abgeglichen werden.
 

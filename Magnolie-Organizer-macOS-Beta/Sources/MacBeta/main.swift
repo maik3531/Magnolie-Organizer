@@ -12,6 +12,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private lazy var communication = CommunicationLaunchBroker(system: CommunicationSystemLauncher())
     private var manual: ManualHost?
     private var noteFileImport: NoteFileImportHost?
+    private var systemCalendarImport: SystemCalendarImportHost?
     private var airPlay: AirPlayHost?
     private var window: NSWindow!
     private var web: WKWebView!
@@ -78,6 +79,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         appMenu.addItem(withTitle: tr("About") + " " + name, action: #selector(about), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "Enable in-app notifications...", action: #selector(consent), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "List macOS calendars (read-only)...", action: #selector(calendars), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: tr("Import macOS calendar appointments") + "…", action: #selector(startSystemCalendarImport), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "List macOS reminder lists (read-only)...", action: #selector(reminders), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "macOS " + tr("Contacts") + "…", action: #selector(systemContacts), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "Import note files…", action: #selector(startNoteFileImport), keyEquivalent: "").target = self
@@ -101,7 +103,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     @objc private func about() {
         alert((Bundle.main.object(forInfoDictionaryKey: "MagnolieBetaVersion") as? String ?? "") + "\n" +
               "Development Beta. Native validation is still required. JSON backup/restore and recovery-backed local editing; " +
-              "no sync, background wake, auto-update or system-account integration.")
+              "local calendar copies from macOS accounts; no sync, background wake or auto-update.")
     }
     private func tr(_ text: String) -> String { catalog[text] ?? text }
     @objc private func showAirPlay() {
@@ -256,6 +258,60 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     @objc private func startNoteFileImport() {
         web.evaluateJavaScript("window.App?.macOSBetaStartNoteImport()")
     }
+    @objc private func startSystemCalendarImport() {
+        guard plain != nil, !restoring, !closePending else { alert("Unlock first."); return }
+        web.evaluateJavaScript("window.App?.macOSBetaStartCalendarImport()")
+    }
+    private func importSystemCalendar() throws {
+        guard plain != nil, !restoring, !closePending, let database = calendarDatabase else {
+            throw BetaError("Calendar import is not available while the document is locked or closing.")
+        }
+        let generation = documentGeneration
+        let requestedZone = regional(plain)["timeZone"] as? String ?? "system"
+        let systemZone = TimeZone.current.identifier
+        let displayZone = requestedZone.isEmpty || requestedZone == "system" ? systemZone : requestedZone
+        let context = try CalendarTimeContext(database: database, systemIdentifier: systemZone)
+        Task { @MainActor in
+            let current = { [weak self] in
+                guard let self else { return false }
+                return self.plain != nil && !self.restoring && !self.closePending && self.documentGeneration == generation &&
+                    (self.regional(self.plain)["timeZone"] as? String ?? "system") == requestedZone && TimeZone.current.identifier == systemZone
+            }
+            guard current() else { return }
+            if self.systemCalendarImport == nil { self.systemCalendarImport = SystemCalendarImportHost() }
+            await self.systemCalendarImport!.begin(accounts: self.systemAccounts, context: context, displayTimeZone: displayZone,
+                isCurrent: current, translate: { self.tr($0) },
+                prepare: { payload in
+                    guard current() else { throw BetaError("The document or timezone changed. Start the calendar import again.") }
+                    return try await self.calendarImportUI("return window.App.macOSBetaPrepareCalendarImport(payload);", arguments: ["payload": payload])
+                }, commit: { token in
+                    guard current() else { throw BetaError("The document or timezone changed. Start the calendar import again.") }
+                    return try await self.calendarImportUI("return await window.App.macOSBetaCommitCalendarImport(token);", arguments: ["token": token])
+                }, cancel: { token in
+                    // Never clear a proposal in another document generation.
+                    guard self.documentGeneration == generation else { return }
+                    _ = try? await self.calendarImportUI("return window.App.macOSBetaCancelCalendarImport(token);", arguments: ["token": token])
+                })
+        }
+    }
+    @MainActor private func calendarImportUI(_ script: String, arguments: [String: Any]) async throws -> [String: Any] {
+        // Return the bounded, user-facing canonical error instead of WebKit's
+        // generic "JavaScript exception" (especially after a failed final save).
+        let guarded = "try { " + script + " } catch (error) { return { calendarImportError: String(error?.message || error).slice(0, 2048) }; }"
+        let value: Any = try await withCheckedThrowingContinuation { continuation in
+            web.callAsyncJavaScript(guarded, arguments: arguments, in: nil, in: .page) { (result: Result<Any, Error>) in
+                continuation.resume(with: result)
+            }
+        }
+        guard let result = value as? [String: Any] else { throw BetaError("The calendar preview is invalid.") }
+        if let message = result["calendarImportError"] as? String {
+            if message.hasPrefix("Imported appointments remain unsaved.") {
+                throw BetaError("Imported appointments remain unsaved. Save the pending changes before importing again.")
+            }
+            throw BetaError(String(message.prefix(2048)))
+        }
+        return result
+    }
     private func importNoteFiles() {
         let generation = documentGeneration
         Task { @MainActor in
@@ -321,6 +377,8 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         case .notiz_dateien_importieren:
             guard plain != nil, !restoring else { throw BetaError("Unlock first.") }
             importNoteFiles()
+        case .macos_kalender_importieren:
+            try importSystemCalendar()
         case .handbuch_oeffnen: openManual()
         case .bereit:
             guard !initialized else { throw BetaError("Duplicate initialization refused.") }

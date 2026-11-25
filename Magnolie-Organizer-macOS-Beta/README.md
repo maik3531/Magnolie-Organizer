@@ -65,7 +65,7 @@ toolchain is required to run the bundle. A current SDK/toolchain is required to 
 | Export | Source-preserving appointment/task/anniversary ICS, recurrence/exceptions and historical/future timezone definitions; unsupported or contradictory records fail the whole export |
 | Clipboard/attachments | Text clipboard; attachment Save for PDF/JPEG/PNG/GIF/WebP data URLs, not automatic attachment opening |
 | Reminders | Open-app checker with independent one-off early/due task reminders, connected to permission-gated macOS notifications; no persistent scheduler |
-| macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; full import/synchronization remains unfinished |
+| macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; #770 adds reviewed additive copies of supported single calendar appointments (see [SYSTEM-CALENDAR-IMPORT.md](SYSTEM-CALENDAR-IMPORT.md)); new native validation, reminders/contacts mapping and full synchronization remain unfinished |
 | DAV accounts | Canonical native configuration, Keychain credentials, revision-bound verified save/rollback and explicit collection discovery; 19 native account tests |
 | DAV calendar foundations | Complete typed REPORT snapshot decoding and surgical component edits preserving resource siblings; native tests pass on both architectures; no record-sync coordinator yet |
 | iPhone AirPlay receiver | Source-integrated UxPlay receiver, native Start/Stop/PIN panel and self-contained bundle build; no separately installed receiver required; new native Swift/build/device checks remain pending (see [AIRPLAY.md](AIRPLAY.md)) |
@@ -108,6 +108,12 @@ source checkpoint, not a completed native parity acceptance.
   canonical importer; source headers are retained by file hash in the same saved
   profile transaction. Independent native import/reexport checks pass on both
   architectures. vCard/CSV/archive import remains unfinished.
+- The new EventKit calendar-copy path (#770) is a bounded local import with a
+  source/date picker, preview, re-read and durable save acknowledgement. It does
+  not enable automatic updates or writing back to Apple Calendar. Rich or
+  ambiguous records are listed as exclusions. Native execution is unverified;
+  JSON backups preserve the new provenance fields, while strict ICS export of
+  these provenance-bearing copies remains blocked pending a complete codec.
 - ICS exports retain source recurrence/exception/timezone properties and validate
   structured times against them. Tasks and anniversaries have dedicated export
   kinds. Unsupported or conflicting data aborts the complete export. Independent
