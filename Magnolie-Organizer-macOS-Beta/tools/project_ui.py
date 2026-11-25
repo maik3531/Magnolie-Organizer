@@ -328,6 +328,10 @@ def project(snapshot, target):
     text = replace_once(text, "  const App = {", calendar_import + "\n  const App = {\n"
                         "    macOSBetaStartCalendarImport, macOSBetaPrepareCalendarImport,\n"
                         "    macOSBetaCommitCalendarImport, macOSBetaCancelCalendarImport,")
+    apple_notes_import = snapshot[str((BETA / "Projection/apple-notes-import.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", apple_notes_import + "\n  const App = {\n"
+                        "    macOSBetaStartAppleNotesImport, macOSBetaPrepareAppleNotesImport,\n"
+                        "    macOSBetaCommitAppleNotesImport, macOSBetaCancelAppleNotesImport,")
     text = replace_once(text, "  const App = {", '''  let macOSBetaPreparedRestore = null;
   const App = {
     macOSBetaPrepareNativeRestore(text, operationID) {

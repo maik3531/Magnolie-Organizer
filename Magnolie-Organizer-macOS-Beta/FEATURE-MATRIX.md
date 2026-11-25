@@ -1,6 +1,6 @@
 # macOS Beta Feature Matrix — 2.0.30-beta.1
 
-Updated 2026-11-25 (calendar-copy source patch #770; earlier native evidence below remains tied to its original baseline).
+Updated 2026-11-25 (Apple Notes text-copy source patch #772, following calendar copies #770; earlier native evidence below remains tied to its original baseline).
 The target remains the same UI and functionality as the current
 Linux/Windows Organizer. This phase does **not** achieve native feature parity.
 Native builds, ad-hoc signing, core/WKWebView tests and the real bundle lifecycle
@@ -40,6 +40,7 @@ alone do not establish macOS behavior.
 | AppKit/WKWebView host | Both architectures passed real WKWebView tests and application save/quit/reopen at the earlier baseline | New native modules require renewed builds; permission/native-dialog/upgrade acceptance remains open |
 | Notifications | Open/unlocked/consented checker only; one-off early/due task calculations tested | P0 for reminder parity: durable scheduler, restart deduplication, recurrence, wake/closed-app delivery, denial/revocation |
 | macOS calendar copies | #770: explicit native source/date picker, bounded one-way copies of supported single appointments, preview, stable source identity, re-read before commit, recovery and durable-save acknowledgement; actual projected JS checks with synthetic native transport | New Swift source and EventKit/AppKit execution unverified; series/alarms/participants and unrepresentable records are excluded; no automatic update/delete/write-back; see `SYSTEM-CALENDAR-IMPORT.md` |
+| Apple Notes text copies | #772: direct NSAppleScript reader, explicit account/folder/note selection, full plaintext preview, exact source identity, source reread, canonical local note transaction and durable-save acknowledgement; no additional application | New Swift/AppKit/Notes-Dictionary/TCC execution unverified; protected notes and notes reporting attachments excluded; only reviewed text is copied, no source writes or synchronization; see `APPLE-NOTES-IMPORT.md` |
 | macOS reminders | Async EventKit facade, explicit OS permission actions, native settings source selection; unavailable sources preserved | Complete task/component/hierarchy mapping, import/edit/sync coordinator and actual account/permission acceptance; sync remains disabled |
 | System contacts | Contacts.framework discovery, bounded vCard reads and explicit OS access facade | Full UI import/sync integration and real account permission acceptance |
 | DAV/CalDAV/CardDAV/Nextcloud/Graph | Native DAV configuration/discovery GUI, bounded HTTPS protocol (20 tests), Keychain storage, 19 account/boundary/transaction cases, 15 typed calendar-snapshot tests and sibling-preserving resource-patch tests pass on both architectures | Real server/account GUI acceptance and complete conflict/deletion/local-commit synchronization coordinator; Graph unsupported |

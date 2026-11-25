@@ -13,6 +13,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private var manual: ManualHost?
     private var noteFileImport: NoteFileImportHost?
     private var systemCalendarImport: SystemCalendarImportHost?
+    private var appleNotesImport: AppleNotesImportHost?
     private var airPlay: AirPlayHost?
     private var window: NSWindow!
     private var web: WKWebView!
@@ -83,6 +84,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         appMenu.addItem(withTitle: "List macOS reminder lists (read-only)...", action: #selector(reminders), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "macOS " + tr("Contacts") + "…", action: #selector(systemContacts), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "Import note files…", action: #selector(startNoteFileImport), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: tr("Text copies from Apple Notes") + "…", action: #selector(startAppleNotesImport), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: tr("iPhone screen mirroring") + "…", action: #selector(showAirPlay), keyEquivalent: "").target = self
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: tr("Quit") + " " + name, action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -262,6 +264,51 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         guard plain != nil, !restoring, !closePending else { alert("Unlock first."); return }
         web.evaluateJavaScript("window.App?.macOSBetaStartCalendarImport()")
     }
+    @objc private func startAppleNotesImport() {
+        guard plain != nil, !restoring, !closePending else { alert("Unlock first."); return }
+        web.evaluateJavaScript("window.App?.macOSBetaStartAppleNotesImport()")
+    }
+    private func importAppleNotes() throws {
+        guard plain != nil, !restoring, !closePending else {
+            throw BetaError("Apple Notes import is not available while the document is locked or closing.")
+        }
+        let generation = documentGeneration
+        Task { @MainActor in
+            let current = { [weak self] in
+                guard let self else { return false }
+                return self.plain != nil && !self.restoring && !self.closePending && self.documentGeneration == generation
+            }
+            guard current() else { return }
+            if self.appleNotesImport == nil { self.appleNotesImport = AppleNotesImportHost() }
+            await self.appleNotesImport!.begin(isCurrent: current, translate: { self.tr($0) },
+                prepare: { payload in
+                    guard current() else { throw BetaError("The document changed. Start the Apple Notes import again.") }
+                    return try await self.appleNotesImportUI("return window.App.macOSBetaPrepareAppleNotesImport(payload);", arguments: ["payload": payload])
+                }, commit: { token in
+                    guard current() else { throw BetaError("The document changed. Start the Apple Notes import again.") }
+                    return try await self.appleNotesImportUI("return await window.App.macOSBetaCommitAppleNotesImport(token);", arguments: ["token": token])
+                }, cancel: { token in
+                    guard self.documentGeneration == generation else { return }
+                    _ = try? await self.appleNotesImportUI("return window.App.macOSBetaCancelAppleNotesImport(token);", arguments: ["token": token])
+                })
+        }
+    }
+    @MainActor private func appleNotesImportUI(_ script: String, arguments: [String: Any]) async throws -> [String: Any] {
+        let guarded = "try { " + script + " } catch (error) { return { appleNotesImportError: String(error?.message || error).slice(0, 2048) }; }"
+        let value: Any = try await withCheckedThrowingContinuation { continuation in
+            web.callAsyncJavaScript(guarded, arguments: arguments, in: nil, in: .page) { (result: Result<Any, Error>) in
+                continuation.resume(with: result)
+            }
+        }
+        guard let result = value as? [String: Any] else { throw BetaError("The Apple Notes preview is invalid.") }
+        if let message = result["appleNotesImportError"] as? String {
+            if message.hasPrefix("Imported notes remain unsaved.") {
+                throw BetaError("Imported notes remain unsaved. Save the pending changes before importing again.")
+            }
+            throw BetaError(String(message.prefix(2048)))
+        }
+        return result
+    }
     private func importSystemCalendar() throws {
         guard plain != nil, !restoring, !closePending, let database = calendarDatabase else {
             throw BetaError("Calendar import is not available while the document is locked or closing.")
@@ -379,6 +426,8 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             importNoteFiles()
         case .macos_kalender_importieren:
             try importSystemCalendar()
+        case .macos_apple_notizen_importieren:
+            try importAppleNotes()
         case .handbuch_oeffnen: openManual()
         case .bereit:
             guard !initialized else { throw BetaError("Duplicate initialization refused.") }

@@ -1,5 +1,74 @@
 # Aktueller Arbeitsstand
 
+## Mac #772: direkte Apple-Notizen als lokale Textkopien – 25. November 2026
+
+**Quellpatch auf `work/772-apple-notes-copy`, Basis Kalenderpatch
+`2b3a7cea5093b80de1dd14bdf5afaf84231d66ad` aus #770.** Die abgerufene
+Standardbasis ist `00776ce70e155c7a607ed55a4502d6fcee5a860c`. Weiterhin gilt der
+Nutzerauftrag, konkrete Patches im Issue zur späteren Codex-Prüfung und Übernahme
+bereitzustellen. Kein Merge nach `main`, kein installierbares Paket und kein Release.
+
+Der neue parameterlose Befehl `macos_apple_notizen_importieren` startet die
+ausdrückliche Konto-/Ordner-/Notizauswahl. Der eingebaute Reader verwendet feste
+NSAppleScript-Handler, typisierte Apple-Event-Argumente und Antworten sowie eine
+prozessweit serielle Hintergrundqueue. Die reguläre Automation-Zweckbeschreibung
+ist ergänzt. Keine zusätzliche Anwendung, kein `osascript`, keine private
+Notes-Datenbank und keine Apple-Notes-Schreib- oder Löschbefehle. Notizen vom
+iPhone müssen im gewählten vorhandenen Mac-Notizkonto verfügbar sein.
+
+Bis zu 32 ausgewählte Notizen werden als bewusste Textkopien vorbereitet;
+Schutzstatus, Anhänge, Titel, Plaintext, HTML-Repräsentation, Änderungsinformation
+und tatsächliche Konto-/Ordner-/Notizkennungen werden geprüft. Geschützte und
+anhangshaltige Notizen liefern keine Bodies und erscheinen als Ausschlüsse.
+Je Text-/HTML-Feld gelten 1 MiB; Nachweis und finale Nutzlast sind unabhängig auf
+8 MiB begrenzt. Dies sind Antwort-/Verarbeitungsgrenzen, keine zugesicherte
+Vorab-Allokationsgrenze innerhalb der Apple-App.
+
+Die Vorschau zeigt die vollständigen Texte und das tatsächliche Zielnotizbuch.
+Die Kopieridentität bindet bytegenau Konto und Notiz, der Ordner gehört zur
+Revision. Wiederimport, geänderte Quelle und Ordnerwechsel überschreiben keine
+lokale Bearbeitung; Papierkorbeinträge werden nicht neu angelegt. Nach Freigabe
+wird dieselbe Auswahl erneut gelesen. Der private UI-Vorschlag bindet Buch,
+Zielnotizbuch, Entwürfe einschließlich ausstehender Notizeditor-Snapshots und eine
+begrenzte Gültigkeit. Nur neue kanonische Notizen werden normalisiert. Erfolg
+folgt erst nach Recovery-Checkpoint und dauerhafter Speicherquittung.
+
+Quell-HTML bleibt inaktive Herkunft und wird nicht gerendert. Leere Inhalte,
+LF, Tabs, Emoji und kombinierende Zeichen bleiben in der geprüften Projektion
+erhalten; CR/CRLF und sonst durch den vorhandenen Editor veränderte Texte werden
+sichtbar ausgeschlossen. Formatierung, Checklisten, Tabellen, Zeichnungen und
+andere Notes-Funktionen werden nicht als entsprechende Funktionen konvertiert.
+Die Textkopie ist kein vollständiges Notes-Archiv oder laufender Abgleich.
+
+| Tatsächlich geprüfter Umfang | Ergebnis |
+| --- | --- |
+| Neue Notes-Übernahme mit tatsächlicher kanonischer UI und synthetischen nativen Daten/Antworten | 155 Prüfungen bestanden; Node 24.22.3, CI-JSDOM 26.1.0 |
+| Bestehende Notizdateiübernahme | 23 Prüfungen bestanden |
+| Bestehende Kalenderübernahme | 258 Prüfungen bestanden |
+| Allgemeiner UI-Host | 109 Assertions bestanden |
+| Gemeinsamer abschließender Python-Lauf | 6/6 Tests bestanden, einschließlich Bridgeinventar und Freeze-/Manipulationserkennung |
+| Quellaudit, JSON/Plist, Python-Syntax und Diff-Whitespace | 424 Eingangsdateien; neuer Befehl und Automation-Zweckbeschreibung vorhanden; kein Freeze oder dauerhaft erzeugter Bundle-Stand |
+| Neue Swift-Kern-/Bridgeverträge | 18 XCTest-Methoden vorbereitet, nicht ausgeführt; `swift`/`swiftc` hier nicht vorhanden |
+| Native Swift-/AppKit-/Notes-Dictionary-/Automation-Ausführung und echte Mac-/iPhone-Konten | Nicht durchgeführt |
+
+Native Restmatrix und Quellen: `Magnolie-Organizer-macOS-Beta/APPLE-NOTES-IMPORT.md`.
+Die genaue Dictionary und Rückgabetypen, stabile zurückgelieferte Objektreferenzen,
+Zugriff/Entzug, gesperrte/komplexe Notizen, Laufzeit und Abbruch sowie dauerhafte
+Wiederöffnung müssen auf macOS 12.7 und einem aktuellen unterstützten macOS für
+Intel/Apple Silicon geprüft werden. Ein Apple-Event-Timeout oder Task-Abbruch
+behauptet keine harte Beendigung der Zielanwendung. Native Ergebnisse nach
+Abbruch/Dokumentwechsel werden verworfen; blockierte Aufrufe erzeugen keine Queue
+weiterer Importe. Die vollständige Sprachkatalogprüfung bleibt mangels `msgfmt`
+offen. JavaScript-Prüfungen sind keine native Freigabe.
+
+Separater bestätigter Befund #773: Der ältere Kalender-Importknopf in den
+Einstellungen lässt den Einstellungsmodal offen und blockiert damit die spätere
+Vorschau. Reproduziert über den echten projizierten Knopf mit synthetischem
+Transport. Der neue Notes-Einstieg schließt ausschließlich diesen eigenen
+Einstellungsdialog nach dem bestehenden Speicher-Guard; andere Modale bleiben
+geschützt. Die entsprechende Kalenderkorrektur wird getrennt bearbeitet.
+Keine gemeinsame Linux-/Windows-Quelldatei geändert oder dortige Behebung behauptet.
+
 ## Mac #770: Systemkalender als lokale Termin-Kopien – 25. November 2026
 
 **Quellpatch auf `work/770-macos-calendar-import`, aufbauend auf dem gesicherten

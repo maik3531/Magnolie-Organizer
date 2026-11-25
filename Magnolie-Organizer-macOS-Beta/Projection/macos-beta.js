@@ -101,6 +101,7 @@
     },
     noteImportBlocked() { return !ready || restorePending; },
     calendarImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
+    appleNotesImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
     calendarMetadata(data, payload, commit) {
       const metadata = payload.icsImportMetadata;
       if (!metadata) return false;

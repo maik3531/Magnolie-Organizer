@@ -66,6 +66,7 @@ toolchain is required to run the bundle. A current SDK/toolchain is required to 
 | Clipboard/attachments | Text clipboard; attachment Save for PDF/JPEG/PNG/GIF/WebP data URLs, not automatic attachment opening |
 | Reminders | Open-app checker with independent one-off early/due task reminders, connected to permission-gated macOS notifications; no persistent scheduler |
 | macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; #770 adds reviewed additive copies of supported single calendar appointments (see [SYSTEM-CALENDAR-IMPORT.md](SYSTEM-CALENDAR-IMPORT.md)); new native validation, reminders/contacts mapping and full synchronization remain unfinished |
+| Apple Notes | #772 adds direct NSAppleScript source for selected local plaintext copies with full text review, exact native identities, source reread and durable save; no extra app or source writes. Native Dictionary/TCC/build/device validation remains pending; see [APPLE-NOTES-IMPORT.md](APPLE-NOTES-IMPORT.md) |
 | DAV accounts | Canonical native configuration, Keychain credentials, revision-bound verified save/rollback and explicit collection discovery; 19 native account tests |
 | DAV calendar foundations | Complete typed REPORT snapshot decoding and surgical component edits preserving resource siblings; native tests pass on both architectures; no record-sync coordinator yet |
 | iPhone AirPlay receiver | Source-integrated UxPlay receiver, native Start/Stop/PIN panel and self-contained bundle build; no separately installed receiver required; new native Swift/build/device checks remain pending (see [AIRPLAY.md](AIRPLAY.md)) |
@@ -334,6 +335,18 @@ New source still requires native execution; host projection tests alone do not
 prove the handbook runs on Monterey or other macOS versions.
 
 ## Import selected note files
+
+The separate **Text copies from Apple Notes…** action now has a direct native
+source implementation in #772. It reads selected notes through Foundation
+NSAppleScript, uses the existing Notes app, and requires the normal macOS
+Automation permission. It does not install a helper program or require an iPhone
+app. Notes from an iPhone must already be available in the selected Mac account.
+Only the reviewed plaintext is copied; protected notes and notes reporting
+attachments are excluded. Full text, source identities, repeat-import handling,
+source revalidation and durable-save behavior are documented in
+[APPLE-NOTES-IMPORT.md](APPLE-NOTES-IMPORT.md). This new path has not been run or
+compiled on a Mac here; the installed Notes scripting Dictionary and TCC flow
+remain explicit native acceptance gates.
 
 The native “Import note files…” action prepares an additive import from explicitly
 selected TXT, Markdown, PDF, JPEG, PNG, GIF or WebP files. It does not restore a

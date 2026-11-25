@@ -42,6 +42,11 @@
     importCalendar.disabled = !!pending;
     importCalendar.addEventListener("click", () => window.App.macOSBetaStartCalendarImport());
     root.append(importCalendar);
+    const importNotes = node("button", tr("Text copies from Apple Notes"));
+    importNotes.type = "button"; importNotes.id = "macos-apple-notes-import";
+    importNotes.disabled = !!pending;
+    importNotes.addEventListener("click", () => window.App.macOSBetaStartAppleNotesImport());
+    root.append(importNotes);
     const chosen = settings();
     const selected = [...new Set([...(chosen.kalenderUids || []), ...(chosen.kalenderUid ? [chosen.kalenderUid] : [])])];
     const calendars = Array.isArray(snapshot?.kalender) ? snapshot.kalender : [];

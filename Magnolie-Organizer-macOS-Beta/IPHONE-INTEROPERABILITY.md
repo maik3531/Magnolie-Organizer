@@ -128,7 +128,7 @@ als auch aus dem tatsächlich eingebundenen UxPlay-Protokoll-/Rendererbestand.
 | Aufgaben und Erinnerungen | Apple Erinnerungen am iPhone/Mac; EventKit für die freigegebenen Listen; bei iCloud dasselbe aktivierte Konto | Lesen/Snapshots und begrenzte Textänderungen sind vorbereitet. `NativeSystemRecordReader` kennzeichnet die nicht vollständig verfügbare Hierarchie. Keine Zusage für verlustfreie Unteraufgaben, Serien oder vollständigen Rückabgleich. |
 | Kontakte und Geburtstage | Apple Kontakte; gemeinsames iCloud-/CardDAV-Konto; Contacts-Framework am Mac | Containergebundene, nicht vereinheitlichte vCard-Snapshots existieren. Status ist ausdrücklich `readOnly: true`; vollständige Feldabbildung und sichere Schreibtransaktionen fehlen. Geburtstage benötigen dieselbe geprüfte Kontaktabbildung. |
 | Apple-Notizen als Text/Datei | Apple Notes exportiert Markdown/PDF beziehungsweise Originalanhänge; Übernahme über Dateien/AirDrop oder auf demselben Mac | `NoteFileImportHost` übernimmt TXT/MD als editierbaren Literaltext, PDF/Bilder als Originalanhänge mit Vorschau, Auswahlprüfung und Speichern. Das ist ein bewusster Import, kein laufender Abgleich. |
-| Apple-Notizen automatisch am Mac | Gezielte AppleScript-Anbindung an die vorhandene Mac-App ist technisch möglich; für iPhone-Inhalte müssen sie dort über das eingerichtete Notizkonto verfügbar sein | Kein solcher Connector vorhanden. Er benötigt native Automation-Freigabe, feste Konto-/Ordneridentität, Änderungserkennung und Tests für gesperrte Notizen, Anhänge, Formatverlust und Konflikte. Keine allgemeine Apple-Notes-API verfügbar. |
+| Apple-Notizen direkt am Mac | Gezielte NSAppleScript-Anbindung an die vorhandene Mac-App; iPhone-Inhalte müssen dort über das eingerichtete Notizkonto verfügbar sein | #772 ergänzt einen Quellpatch für bewusst ausgewählte Textkopien: Konto/Ordner/Notizen wählen, vollständigen Text prüfen, Quelle erneut lesen und dauerhaft speichern. Geschützte Notizen und Notizen mit gemeldeten Anhängen werden ausgeschlossen. Keine Rückschreibung oder Automatik. Dictionary, Automation-Freigabe, nativer Bau und echte Kontenprüfung bleiben offen; siehe [APPLE-NOTES-IMPORT.md](APPLE-NOTES-IMPORT.md). |
 | Fotos, PDF, Zeichnungen, andere Dateien | Vorhandener Apple-Dateiexport/AirDrop, anschließend Magnolies bewusster Import | Eine Bild-/PDF-Datei kann übernommen werden. Editierbare Apple-Zeichenstriche, Apple Pencil-Druckdaten und Live-Digitizerereignisse sind damit nicht belegt. Kein automatischer Galerieabgleich über AirPlay. |
 | Bildschirm und Ton | iPhone-Kontrollzentrum, AirPlay und der in Magnolie eingebaute Empfänger | Anschluss in diesem Patch; echte Geräteabnahme offen. Die Bedienung des iPhones bleibt am iPhone. |
 | Schichtplan, Mülltermine, Jahrestage und weitere Kalenderinhalte | Soweit sinnvoll über konkret abgebildete Kalenderereignisse/ICS; iPhone zeigt sie in Apple Kalender | Die Semantik muss pro Magnolie-Funktion geprüft werden. Eigene Planungsregeln, Gesundheits-/Messwerttabellen und weitere Magnolie-Daten erhalten durch AirPlay keinen gemeinsamen Datensatzkanal. |
@@ -157,10 +157,11 @@ Datensätze vollständig und automatisch in beide Richtungen abgeglichen werden.
 
 Für Apple Notes hat Apples Developer Technical Support im Januar 2026
 [ausdrücklich die fehlende allgemeine Notes-API bestätigt](https://developer.apple.com/forums/thread/813810),
-zugleich aber den AppleScript-Zugriff am Mac bestätigt. Ein nativer Mac-
-Connector wäre deshalb eine mögliche weitere Entwicklung ohne eigene iPhone-
-Notes-App. Das ist eine Architekturfolgerung aus Apples Auskunft, keine bereits
-bestandene Magnolie-Integration. iOS-Kurzbefehle erlauben vom Nutzer eingerichtete
+zugleich aber den AppleScript-Zugriff am Mac bestätigt. #772 implementiert auf
+dieser Grundlage einen begrenzten nativen Mac-Connector für ausgewählte
+Textkopien, ohne eigene iPhone-Notes-App. Der Quellpatch enthält den Auswahl-,
+Prüf- und Speicherablauf; eine tatsächlich bestandene Mac-Notes-Integration ist
+damit noch nicht nachgewiesen. iOS-Kurzbefehle erlauben vom Nutzer eingerichtete
 Abläufe; sie stellen laut derselben Apple-Auskunft keine allgemeine von fremden
 Apps aufrufbare Notes-API bereit.
 
@@ -179,9 +180,10 @@ Die AirPlay-Arbeit darf diese Datenfunktionen nicht als schon implementierten
 Zusatz freischalten. Der nächste getrennt abnehmbare Datenanschluss ist die
 Vervollständigung der vorhandenen EventKit-/Contacts-Adapter: zunächst geprüfte
 Übernahme ausgewählter Quellen, danach nur bestätigte verlustfreie Änderungen
-mit Rücklesen, Konfliktbehandlung und Widerruf. Apple-Notizen benötigen einen
-eigenen Mac-Connector oder den bestehenden Dateiimport. Eine eigene iPhone-App
-ist für diese Wege keine Voraussetzung.
+mit Rücklesen, Konfliktbehandlung und Widerruf. Für Apple-Notizen steht nun der
+getrennte Textkopie-Quellpatch #772 zur nativen Prüfung bereit; der vorhandene
+Dateiimport bleibt für ausgewählte Exporte und Anhänge erhalten. Eine eigene
+iPhone-App ist für diese Wege keine Voraussetzung.
 
 ## Dateiübertragung und Livezeichnen unterscheiden
 
