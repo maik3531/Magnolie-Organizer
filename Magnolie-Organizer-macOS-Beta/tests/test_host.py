@@ -419,6 +419,39 @@ class ProjectionTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             print(result.stdout.strip())
 
+    def test_additive_system_contact_copy_contract(self):
+        runtime = self.javascript()
+        info = plistlib.loads(self.snapshot[str((BETA / "Resources/Info.plist").relative_to(projection.REPO))])
+        self.assertTrue(info.get("NSContactsUsageDescription"))
+        self.assertIn("macos_kontakte_importieren", projection.commands(self.snapshot))
+        self.assertIn("| `macos_kontakte_importieren` |", bridge_coverage.report(self.snapshot))
+        canonical = self.snapshot[str((projection.LINUX / "web/anwendung.js").relative_to(projection.REPO))].decode()
+        # Each independently important birthday path is an exact audited anchor.
+        for anchor in ["const geburtstag = kanonischesGeburtsdatum(S(k.geburtstag),", "const kontakteNachName = new Map();", "const verknuepft = d.jahrestage.find((j) => j.kontaktId === k.id &&",
+                       'const fNotiz = eingabe("textarea", k ? k.notiz : "");',
+                       'form.append(formZeile(_("Note"), fNotiz));',
+                       "notiz: fNotiz.value, foto: fotoWert, fotoManuell: fotoManuell,",
+                       "if ([...kontaktpersonFotos].some(p => kontaktpersonen.includes(p)))",
+                       'email: emails[0] || "", emails: emails, emailEintraege: saubereEmails,',
+                       "const birthday = DATEN.jahrestage.find(item => item.kontaktId === ziel.id && istGeburtstagTyp(item.typ));",
+                       "function verknuepfeKontaktGeburtstag(kontakt) {",
+                       "telefonListe(k).forEach((telefon) => fuege(telefonBezeichnung(telefon), telefon.wert));",
+                       "const jahrestag = k.geburtstag ? { datum: k.geburtstag,",
+                       "if (args.anniversaries !== undefined || args.birth_date !== undefined) {",
+                       "if (args.birth_date !== undefined) {\n        if (args.birth_date && !gueltigesJahresdatum(args.birth_date))"]:
+            with self.subTest(anchor=anchor), self.assertRaisesRegex(ValueError, "Canonical UI anchor changed"):
+                projection.project_contact_copy_birthdays(canonical.replace(anchor, "/* synthetic drift */", 1))
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-system-contact-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            args = [runtime]
+            if Path(runtime).name == "deno":
+                args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
+            result = subprocess.run(args + ["tests/system_contact_import.mjs", str(target)], cwd=BETA,
+                                    capture_output=True, text=True, timeout=120)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            print(result.stdout.strip())
+
     def test_communication_published_ui_payloads(self):
         runtime = self.javascript()
         args = [runtime]

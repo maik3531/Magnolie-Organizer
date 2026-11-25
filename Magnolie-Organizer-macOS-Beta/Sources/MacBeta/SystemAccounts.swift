@@ -47,6 +47,26 @@ final class SystemAccounts {
     func readContacts(sourceUID: String) async throws -> [[String: Any]] {
         try await perform { try $0.readContacts(sourceUID: sourceUID, control: $1) }
     }
+    /// Explicit selected-contact copy APIs. The older whole-source readers keep
+    /// their original contracts; only value DTOs cross the private store queue.
+    func contactCopySources() async throws -> [SystemContactImport.Source] {
+        try Task.checkCancellation()
+        let result = try await perform { try $0.contactCopySources(control: $1) }
+        try Task.checkCancellation()
+        return result
+    }
+    func contactCopySummaries(source: SystemContactImport.Source) async throws -> [SystemContactReader.Summary] {
+        try Task.checkCancellation()
+        let result = try await perform { try $0.contactCopySummaries(source: source, control: $1) }
+        try Task.checkCancellation()
+        return result
+    }
+    func contactCopySnapshot(source: SystemContactImport.Source, identifiers: [String]) async throws -> SystemContactImport.Snapshot {
+        try Task.checkCancellation()
+        let result = try await perform { try $0.contactCopySnapshot(source: source, identifiers: identifiers, control: $1) }
+        try Task.checkCancellation()
+        return result
+    }
     func readReminders(sourceUID: String) async throws -> [[String: Any]] {
         let control = SystemSourceReadControl()
         return try await withTaskCancellationHandler(operation: {
@@ -344,6 +364,30 @@ private final class SystemAccountStore {
         return try result.map { value in
             try control.check()
             var snapshot = value; snapshot["revision"] = try SystemSourcePolicy.revision(value); return snapshot
+        }
+    }
+    // #775: use the existing store, authorization policy and read control, without
+    // changing the old full-source snapshot semantics or fetching vCard note keys.
+    func contactCopySources(control: SystemSourceReadControl) throws -> [SystemContactImport.Source] {
+        dispatchPrecondition(condition: .onQueue(queue))
+        return try SystemContactReader.sources(store: contacts, control: control, requireAccess: { try self.requireContactCopyAccess() })
+    }
+    func contactCopySummaries(source: SystemContactImport.Source, control: SystemSourceReadControl) throws -> [SystemContactReader.Summary] {
+        dispatchPrecondition(condition: .onQueue(queue))
+        return try SystemContactReader.summaries(store: contacts, source: source, control: control, requireAccess: { try self.requireContactCopyAccess() })
+    }
+    func contactCopySnapshot(source: SystemContactImport.Source, identifiers: [String],
+                             control: SystemSourceReadControl) throws -> SystemContactImport.Snapshot {
+        dispatchPrecondition(condition: .onQueue(queue))
+        return try SystemContactReader.snapshot(store: contacts, source: source, identifiers: identifiers,
+            control: control, requireAccess: { try self.requireContactCopyAccess() })
+    }
+    private func requireContactCopyAccess() throws {
+        do { try requireAccess(.contacts) }
+        catch {
+            // The same policy is checked again after reads. Do not claim that no
+            // source data was ever read if access was revoked during that read.
+            throw BetaError("macOS Contacts access is unavailable. No contacts were copied. Check Privacy & Security → Contacts before trying again.")
         }
     }
     private func typedSource(_ calendar: EKCalendar, kind: SystemSourcePolicy.Kind) throws -> SystemSourceSnapshot.Source {

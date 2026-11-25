@@ -4,7 +4,7 @@
 // the sole stored selection; discovering/denying access never rewrites them.
 (() => {
   let view = null, snapshot = null, pending = null;
-  const note = "macOS system sources can be discovered and selected. Calendar appointments can be copied with a separate preview. Full synchronization is not available yet. Selecting a source does not import or change its data.";
+  const note = "macOS system sources can be discovered and selected. Calendar appointments and contacts can be copied with a separate preview. Full synchronization is not available yet. Selecting a source does not import or change its data.";
   function node(tag, text) {
     const item = document.createElement(tag);
     if (text !== undefined) item.textContent = text;
@@ -20,9 +20,10 @@
   }
   function draw() {
     if (!view?.root.isConnected) return;
-    const { root, tr, settings, change } = view;
+    const { root, tr: sharedText, settings, change } = view;
+    const tr = text => window.MacBeta.text?.(text) || sharedText(text);
     root.textContent = "";
-    root.append(node("h3", tr("System internet accounts")), node("p", note));
+    root.append(node("h3", tr("System internet accounts")), node("p", tr(note)));
     const state = node("p", snapshot?.fehler || (pending ? tr("Loading …") : ""));
     state.id = "macos-system-status"; state.setAttribute("role", "status"); root.append(state);
     const permissions = snapshot?.permissions || {};
@@ -42,6 +43,11 @@
     importCalendar.disabled = !!pending;
     importCalendar.addEventListener("click", () => window.App.macOSBetaStartCalendarImport());
     root.append(importCalendar);
+    const importContacts = node("button", tr("Copy macOS contacts"));
+    importContacts.type = "button"; importContacts.id = "macos-system-contact-import";
+    importContacts.disabled = !!pending;
+    importContacts.addEventListener("click", () => window.App.macOSBetaStartContactImport());
+    root.append(importContacts);
     const importNotes = node("button", tr("Text copies from Apple Notes"));
     importNotes.type = "button"; importNotes.id = "macos-apple-notes-import";
     importNotes.disabled = !!pending;

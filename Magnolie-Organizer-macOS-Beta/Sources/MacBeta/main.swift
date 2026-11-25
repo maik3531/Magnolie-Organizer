@@ -14,6 +14,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private var noteFileImport: NoteFileImportHost?
     private var systemCalendarImport: SystemCalendarImportHost?
     private var appleNotesImport: AppleNotesImportHost?
+    private var contactImport: SystemContactImportHost?
     private var airPlay: AirPlayHost?
     private var window: NSWindow!
     private var web: WKWebView!
@@ -83,6 +84,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         appMenu.addItem(withTitle: tr("Import macOS calendar appointments") + "…", action: #selector(startSystemCalendarImport), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "List macOS reminder lists (read-only)...", action: #selector(reminders), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "macOS " + tr("Contacts") + "…", action: #selector(systemContacts), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: tr("Copy macOS contacts") + "…", action: #selector(startContactImport), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "Import note files…", action: #selector(startNoteFileImport), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: tr("Text copies from Apple Notes") + "…", action: #selector(startAppleNotesImport), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: tr("iPhone screen mirroring") + "…", action: #selector(showAirPlay), keyEquivalent: "").target = self
@@ -268,6 +270,51 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         guard plain != nil, !restoring, !closePending else { alert("Unlock first."); return }
         web.evaluateJavaScript("window.App?.macOSBetaStartAppleNotesImport()")
     }
+    @objc private func startContactImport() {
+        guard plain != nil, !restoring, !closePending else { alert("Unlock first."); return }
+        web.evaluateJavaScript("window.App?.macOSBetaStartContactImport()")
+    }
+    private func importContacts() throws {
+        guard plain != nil, !restoring, !closePending else {
+            throw BetaError("Contact copying is not available while the document is locked or closing.")
+        }
+        let generation = documentGeneration
+        Task { @MainActor in
+            let current = { [weak self] in
+                guard let self else { return false }
+                return self.plain != nil && !self.restoring && !self.closePending && self.documentGeneration == generation
+            }
+            guard current() else { return }
+            if self.contactImport == nil { self.contactImport = SystemContactImportHost() }
+            await self.contactImport!.begin(accounts: self.systemAccounts, isCurrent: current, translate: { self.tr($0) },
+                prepare: { payload in
+                    guard current() else { throw BetaError("The document changed. Start the contact copy again.") }
+                    return try await self.contactImportUI("return window.App.macOSBetaPrepareContactImport(payload);", arguments: ["payload": payload])
+                }, commit: { token in
+                    guard current() else { throw BetaError("The document changed. Start the contact copy again.") }
+                    return try await self.contactImportUI("return await window.App.macOSBetaCommitContactImport(token);", arguments: ["token": token])
+                }, cancel: { token in
+                    guard self.documentGeneration == generation else { return }
+                    _ = try? await self.contactImportUI("return window.App.macOSBetaCancelContactImport(token);", arguments: ["token": token])
+                })
+        }
+    }
+    @MainActor private func contactImportUI(_ script: String, arguments: [String: Any]) async throws -> [String: Any] {
+        let guarded = "try { " + script + " } catch (error) { return { contactImportError: String(error?.message || error).slice(0, 2048) }; }"
+        let value: Any = try await withCheckedThrowingContinuation { continuation in
+            web.callAsyncJavaScript(guarded, arguments: arguments, in: nil, in: .page) { (result: Result<Any, Error>) in
+                continuation.resume(with: result)
+            }
+        }
+        guard let result = value as? [String: Any] else { throw BetaError("The contact preview is invalid.") }
+        if let message = result["contactImportError"] as? String {
+            if message.hasPrefix("Imported contacts remain unsaved.") {
+                throw BetaError("Imported contacts remain unsaved. Save the pending changes before importing again.")
+            }
+            throw BetaError(String(message.prefix(2048)))
+        }
+        return result
+    }
     private func importAppleNotes() throws {
         guard plain != nil, !restoring, !closePending else {
             throw BetaError("Apple Notes import is not available while the document is locked or closing.")
@@ -428,6 +475,8 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             try importSystemCalendar()
         case .macos_apple_notizen_importieren:
             try importAppleNotes()
+        case .macos_kontakte_importieren:
+            try importContacts()
         case .handbuch_oeffnen: openManual()
         case .bereit:
             guard !initialized else { throw BetaError("Duplicate initialization refused.") }

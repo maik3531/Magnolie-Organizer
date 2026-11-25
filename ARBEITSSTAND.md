@@ -1,5 +1,80 @@
 # Aktueller Arbeitsstand
 
+## Mac #775: ausgewählte Systemkontakte als lokale Kopien – 25. November 2026
+
+**Aktueller vollständiger Arbeitszweig: `work/775-macos-contact-copy`, Basis
+`f32f4daa71acea7f76fb9f58ff0f8d4794f728ab` aus #774.** Er enthält weiterhin
+AirPlay #721, Kalender #770, direkte Apple-Notes-Textkopien #772 und die
+Einstellungs-Guards #773/#774. Die entfernte Standardbasis wurde als
+`00776ce70e155c7a607ed55a4502d6fcee5a860c` bestätigt. Gemäß Nutzerauftrag wird
+der prüfbare Quellpatch im Issue und auf dem Arbeitszweig für die spätere
+Codex-Übernahme bereitgestellt; kein Merge nach `main` und kein Paket/Release.
+
+Der neue parameterlose Befehl `macos_kontakte_importieren` öffnet die native
+Adressbuch-/Kontaktauswahl. Der direkte Contacts-Reader nutzt die vorhandene
+serielle Store-Queue und ausdrückliche Systemfreigabe. Zunächst liest er
+Kennungen/Namen, danach nur die ausgewählten nicht vereinheitlichten Kontakte.
+Containerzugehörigkeit, Quellmetadaten und Berechtigung werden vor/nach dem
+Detailabruf und nach der Vorschau erneut geprüft. Kein Note-Key, kein breiter
+vCard-Descriptor, keine private Datenbank und keine Quellschreiboperation.
+
+Bis zu 100 Kontakte und 16 MiB werden als bewusste lokale Kopien vorbereitet.
+Standardfelder, Mehrfachwerte, Labels, Originalfotos und unterstützte Geburtstage
+laufen durch die tatsächliche kanonische Normalisierung. Nur ausdrücklich
+angezeigte E-Mail-Kleinschreibung ist zugelassen; andere verlustbehaftete Fälle
+werden sichtbar ausgeschlossen. Zusätzliche gelesene öffentliche Felder bleiben
+als gekennzeichnete Ursprungsdaten erhalten, ohne vollständige Provider-Sicherung
+zu behaupten. Das entitlementgeschützte Kontakt-Notizfeld wird nicht angefordert.
+
+Native Herkunft und unabhängige lokale IDs bleiben getrennt. Gleiche Namen,
+E-Mail-Adressen oder Telefonnummern führen zu keiner Zusammenführung. Bekannte,
+veränderte und im Papierkorb liegende Kopien werden nicht überschrieben oder
+neu angelegt. Der Vorschlag bindet das tatsächliche Buch und dessen Inhalt,
+läuft nach fünf Minuten ab, prüft Entwürfe/Restore erneut und verwendet
+Wiederherstellungspunkt plus dauerhafte Speicherquittung. Fehler nach dem
+Anhängen lassen die Kopien ausdrücklich ungespeichert sichtbar.
+
+Für `birthdayPolicy: "contact-only"` bleibt das Datum direkt am Kontakt; 14 enge
+Mac-Projektionsanker verhindern automatische Jahrestage/namensgleiche Zuordnung
+und bewahren die Semantik im Editor, beim Laden, im Druck-/ODS-Fallback und bei
+MCP-`birth_date`. Jahrfreier 29.02. und ein ausdrücklich vorhandenes Jahr 1604
+bleiben erhalten. Die unabhängige Durchsicht fand eine Lücke bei ungültigen
+Texteingaben im neuen Geburtstagsfeld; sie wurde innerhalb dieses neuen
+Anschlusses korrigiert. `31.02.2000` und `12.` behalten nun den gesamten Kontakt,
+die Eingabe und den Editorfokus; bewusstes Leeren bleibt möglich. Gewöhnliche
+Kontakte und ausdrücklich angeforderte Jahrestagsmutationen bleiben unverändert.
+
+Der abschließende von Root ausgeführte gemeinsame Lauf bestand **6/6
+Testgruppen** in 20,627 Sekunden, Node 24.22.3 / CI-JSDOM 26.1.0:
+
+| Prüfung | Tatsächlich bestanden |
+| --- | --- |
+| Kontaktkopien mit gemeinsamem vollständigem Core-Fixture, echtem Editor, Settings, MCP und ODS | 230 Prüfungen sowie Driftprüfung der 14 Geburtstagsanker |
+| Apple-Notes-Textkopien einschließlich Kontoentwürfen | 179 Prüfungen |
+| Systemkalenderkopien einschließlich Settings-Einstieg | 307 Prüfungen |
+| Allgemeiner tatsächlicher UI-Host-Vertrag | 109 Assertions |
+| Bridgeinventar mit neuer expliziter Fähigkeit | Bestanden |
+| Freeze-/Manipulationserkennung | Bestanden |
+
+Native Nutzlasten und Transportantworten sind synthetisch. Der getrennte
+Kontakt-Runner bestand ebenfalls 230 Prüfungen mit unveränderter
+Eingabeinventur. 25 neue Swift-Core-/Bridge-Testmethoden sind vorbereitet,
+**hier weder kompiliert noch ausgeführt**. Zusätzlich tatsächlich geprüft:
+JSON-/Plist-Format, Fixture-Identität, PNG-Struktur/CRC/Scanlines und sauberes
+Diff-Whitespace. Finale Produktinventur: **428 Eingangsdateien**, SHA-256 der
+sortierten Inventur `791b8f37633ef06cb44171bc6c42f758777f36e4a0c10eb4c0b73c652bb33968`;
+kein SourceFreeze und kein dauerhaft erzeugter Bundle-Stand.
+
+Native Swift-/Contacts-/ImageIO-/AppKit-/Konten- und Geräteabnahme bleibt gemäß
+[SYSTEM-CONTACT-IMPORT.md](Magnolie-Organizer-macOS-Beta/SYSTEM-CONTACT-IMPORT.md)
+offen. Vollständige Sprachkatalog-/Paketprüfung wird nicht aus den ergänzten
+und tatsächlich geprüften deutschen Mac-UI-Texten abgeleitet. Der gemeinsame
+Normalizer anderer Editionen kennt die neue Geburtstagsregel noch nicht;
+die konkrete Quellenabweichung und gesonderte Linux-/Windows-Austauschprüfung
+stehen in **#776**. Kein dortiger nativer Datenverlust oder Alarm behauptet.
+Nächster Schritt ist die Codex-Übernahme und native Abnahme des gesicherten
+Gesamtzweigs; Erinnerungen behalten ihren getrennten offenen Abbildungsumfang.
+
 ## Mac #774: Kontoentwürfe beim Notes-Import erhalten – 25. November 2026
 
 **Aktueller vollständiger Arbeitszweig: `work/774-notes-account-draft`, Basis

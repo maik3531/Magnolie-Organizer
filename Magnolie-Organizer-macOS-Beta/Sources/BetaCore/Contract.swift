@@ -13,6 +13,7 @@ public enum Command: String, CaseIterable {
     case notiz_dateien_importieren
     case macos_kalender_importieren
     case macos_apple_notizen_importieren
+    case macos_kontakte_importieren
     case handbuch_oeffnen
     case `import`
     case bereit, entsperren, speichern, kennwort_setzen

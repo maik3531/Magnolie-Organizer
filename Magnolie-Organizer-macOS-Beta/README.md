@@ -65,7 +65,7 @@ toolchain is required to run the bundle. A current SDK/toolchain is required to 
 | Export | Source-preserving appointment/task/anniversary ICS, recurrence/exceptions and historical/future timezone definitions; unsupported or contradictory records fail the whole export |
 | Clipboard/attachments | Text clipboard; attachment Save for PDF/JPEG/PNG/GIF/WebP data URLs, not automatic attachment opening |
 | Reminders | Open-app checker with independent one-off early/due task reminders, connected to permission-gated macOS notifications; no persistent scheduler |
-| macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; #770 adds reviewed additive copies of supported single calendar appointments (see [SYSTEM-CALENDAR-IMPORT.md](SYSTEM-CALENDAR-IMPORT.md)); new native validation, reminders/contacts mapping and full synchronization remain unfinished |
+| macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; #770 adds reviewed single calendar copies and #775 adds selected local contact copies through Contacts. Both preserve existing records and require a fresh source read plus durable save. Native validation, reminder mapping and full synchronization remain unfinished; see [SYSTEM-CALENDAR-IMPORT.md](SYSTEM-CALENDAR-IMPORT.md) and [SYSTEM-CONTACT-IMPORT.md](SYSTEM-CONTACT-IMPORT.md) |
 | Apple Notes | #772 adds direct NSAppleScript source for selected local plaintext copies with full text review, exact native identities, source reread and durable save; no extra app or source writes. Native Dictionary/TCC/build/device validation remains pending; see [APPLE-NOTES-IMPORT.md](APPLE-NOTES-IMPORT.md) |
 | DAV accounts | Canonical native configuration, Keychain credentials, revision-bound verified save/rollback and explicit collection discovery; 19 native account tests |
 | DAV calendar foundations | Complete typed REPORT snapshot decoding and surgical component edits preserving resource siblings; native tests pass on both architectures; no record-sync coordinator yet |
@@ -333,6 +333,24 @@ Native WebKit tests load these actual generated resources and exercise search,
 result navigation, language selection, isolation and blocked external scripts.
 New source still requires native execution; host projection tests alone do not
 prove the handbook runs on Monterey or other macOS versions.
+
+## Copy selected macOS contacts
+
+**Copy macOS contacts…** in the application menu or System internet accounts
+starts the native Contacts permission, address-book and contact selection in
+#775. The iPhone data must already be available in the chosen Mac account.
+No separate helper program or Magnolie iPhone app is required. The source is
+read only; the reviewed records become editable local contacts in the current
+Organizer document. A sync-source selection is not a local destination book.
+
+The selection is bounded to 100 contacts and 16 MiB, with source identities and
+public fields read again after review. Existing copies, local edits and trash
+entries are retained. Contact notes and provider-specific fields are explicitly
+outside this copy. Birthdays stay on these contacts without automatically
+creating or matching anniversary entries. The existing normalizer, recovery
+checkpoint and durable-save acknowledgement remain the local write authority.
+See [SYSTEM-CONTACT-IMPORT.md](SYSTEM-CONTACT-IMPORT.md) for exact field coverage,
+review behavior, test evidence and the required native macOS acceptance.
 
 ## Import selected note files
 

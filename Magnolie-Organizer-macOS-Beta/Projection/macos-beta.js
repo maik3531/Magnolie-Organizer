@@ -4,6 +4,7 @@
 (() => {
   const allowed = new Set(/*GENERATED_COMMANDS*/[]);
   const identity = /*GENERATED_IDENTITY*/{};
+  const nativeText = /*GENERATED_NATIVE_TEXT*/{};
   const methods = new Set(["adressWeg", "handbuchGeoeffnet", "init", "gespeichert", "kennwortStand", "ablage", "sicherungFertig",
     "printErgebnis", "exportErgebnis", "importErgebnis", "notizAnhangDateiErgebnis", "erinnerungStand", "vorBeenden", "mutationsSnapshot",
     "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis", "feiertageErgebnis", "edsStatus", "baumBriefkastenStatus",
@@ -25,7 +26,13 @@
     nativeRestoreOperation = null; nativeRestoreApplied = null;
     document.body.inert = false; document.body.removeAttribute("aria-busy");
   }
-  const tr = text => window.MagnolieI18n.gettext(text);
+  // Mac-specific controls share the native supplementary translations without
+  // replacing the canonical frontend catalogs or their plural rules.
+  const tr = text => {
+    const locale = window.MagnolieI18n.locale?.() || "en";
+    const translated = nativeText[locale]?.[text] ?? nativeText[locale.split("-")[0]]?.[text];
+    return typeof translated === "string" && translated ? translated : window.MagnolieI18n.gettext(text);
+  };
 
   function show(text) {
     const target = document.getElementById("macos-beta-status");
@@ -90,6 +97,7 @@
   }
   window.MacBeta = Object.freeze({
     preserve,
+    text: tr,
     accountControls(account, refresh) {
       const form = document.getElementById("nextcloud-konto");
       if (!form || !account || (typeof account.revision === "string" && /^[a-f0-9]{64}$/.test(account.revision))) return;
@@ -102,6 +110,7 @@
     noteImportBlocked() { return !ready || restorePending; },
     calendarImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
     appleNotesImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
+    contactImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
     calendarMetadata(data, payload, commit) {
       const metadata = payload.icsImportMetadata;
       if (!metadata) return false;
