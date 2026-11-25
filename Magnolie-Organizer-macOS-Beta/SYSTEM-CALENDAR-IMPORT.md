@@ -39,6 +39,18 @@ als Abnahme dieses Anschlusses.
 Die Auswahl bereits bekannter Systemquellen in den Einstellungen startet keinen
 Import. Die neue Aktion besitzt ihren eigenen nativen Auswahl- und Prüfablauf.
 
+Nachtrag [#773](https://github.com/maik3531/Magnolie-Organizer/issues/773): Der
+Startknopf bei den Systemkonten verlässt den eigenen Einstellungsdialog nach
+dem bestehenden Editor-/Speicher-Guard über dessen kanonischen Schließpfad.
+Andernfalls blockierte der noch offene Einstellungsmodal die spätere native
+Vorschau. Weitere offene Dialoge bleiben geschützt; die Vorschauprüfung wird
+nicht gelockert. Der Knopf bleibt während einer unvollständigen Quellenanfrage
+gesperrt und startet ausschließlich den parameterlosen nativen Auswahlweg.
+Ungespeicherte DAV-/Nextcloud-Eingaben werden gesondert vor dem Start und erneut
+vor dem Schließen geprüft, einschließlich einer alleinigen Kennworteingabe.
+Solche sichtbaren Entwürfe bleiben erhalten und blockieren den Import mit einem
+Hinweis. Der Start speichert oder verwirft keine Kontokonfiguration automatisch.
+
 ## Was übernommen wird
 
 Unterstützte einzelne Termine werden als **bearbeitbare lokale Kopien** angelegt.

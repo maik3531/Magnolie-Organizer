@@ -92,6 +92,143 @@ async function commit(b, review, options) {
   return outcome.value;
 }
 
+function openSourceSettings(b, reply = true) {
+  const { w, t, messages } = b;
+  t.oeffneEinstellungen(); w.document.querySelector("#einst-tab-sync").click();
+  const request = messages.filter(message => message.cmd === "eds_status" && message.requestId).at(-1);
+  if (reply) w.MacBeta.receive("edsStatus", { requestId: request.requestId, kalender: [], adressbuecher: [] });
+  return { request, button: () => w.document.querySelector("#macos-system-calendar-import"),
+    visible: () => !w.document.querySelector("#einstellungen-schleier").classList.contains("verborgen"),
+    starts: () => messages.filter(message => message.cmd === "macos_kalender_importieren") };
+}
+
+{
+  // #773 exercises the actual registered Settings modal, not just its hidden
+  // page builder. Native payloads/ACKs remain explicitly synthetic.
+  const b = await context(), { w, t, messages } = b;
+  try {
+    const entry = openSourceSettings(b, false);
+    equal(entry.button().disabled, true, "Real calendar source button waits for outstanding EDS request");
+    entry.button().click(); equal(entry.starts(), [], "Pending EDS request prevents native calendar picker start");
+    w.MacBeta.receive("edsStatus", { requestId: "stale", kalender: [], adressbuecher: [] });
+    equal(entry.button().disabled, true, "Foreign EDS reply cannot release the calendar source button");
+    w.MacBeta.receive("edsStatus", { requestId: entry.request.requestId, kalender: [], adressbuecher: [] });
+    equal(entry.button().disabled, false, "Correlated EDS reply releases the real calendar source button");
+    t.daten().futureRoot.sourceButtonEdit = "save before picker";
+    entry.button().click();
+    equal([entry.starts().length, entry.visible()], [0, true], "Settings and picker wait for the ordinary document save ACK");
+    const startSave = messages.filter(message => message.cmd === "speichern").at(-1);
+    equal(JSON.parse(startSave.text).futureRoot.sourceButtonEdit, "save before picker", "Actual start save contains the pending document change");
+    await b.pump();
+    equal(entry.starts(), [{ cmd: "macos_kalender_importieren" }], "Actual calendar button sends only the parameterless native command");
+    equal(entry.visible(), false, "Canonical close removes the Settings parent modal before native selection");
+    const native = sourceShapeDraft("from-settings", { title: "Calendar copied from Settings", tentative: true,
+      location: "Room A, West; Floor 2", url: "https://example.invalid/calendar-copy" });
+    const before = JSON.stringify(t.daten()), review = w.App.macOSBetaPrepareCalendarImport(payload([native]));
+    equal([review.newCount, review.existingCount, review.changedCount, review.excluded.length], [1, 0, 0, 0], "Full source-shaped DTO can prepare after the real Settings entry");
+    equal(JSON.stringify(t.daten()), before, "Button-based preparation remains model-read-only");
+    let finished = false;
+    const pending = w.App.macOSBetaCommitCalendarImport(review.token).then(value => { finished = true; return { value }; }, error => ({ error }));
+    await b.pump({ ackSnapshots: false });
+    equal(messages.filter(message => message.cmd === "mutations_snapshot").at(-1).reason, "pre-system-calendar-import", "Button-based copy uses the existing recovery checkpoint");
+    equal([finished, JSON.stringify(t.daten())], [false, before], "No mutation while the native checkpoint remains unacknowledged");
+    await b.pump({ ackSaves: false });
+    equal([finished, t.daten().termine.length], [false, 1], "Checkpoint allows append but cannot report durable copy success");
+    await b.pump(); const outcome = await pending;
+    if (outcome.error) throw outcome.error;
+    equal([finished, outcome.value.count], [true, 1], "Actual source-button flow finishes only after final save ACK");
+    const copied = t.daten().termine[0];
+    equal([copied.nativeCalendarImport, copied.nativeSystemRecord, copied.icsRoundtrip],
+      [native.nativeCalendarImport, native.nativeSystemRecord, native.icsRoundtrip], "Full provenance and precise ICS survive button-to-save flow");
+    equal(t.daten().futureRoot.sourceButtonEdit, "save before picker", "Unrelated pending change survives the whole source-button flow");
+  } finally { b.close(); }
+}
+
+for (const stage of ["before-start", "during-save"]) {
+  const b = await context(), { w, t } = b;
+  try {
+    const entry = openSourceSettings(b);
+    t.daten().futureRoot.modalRace = stage;
+    if (stage === "during-save") entry.button().click();
+    t.oeffneTerminBlatt(null, "2026-05-10");
+    const editor = w.document.querySelector("#tb-titel");
+    if (stage === "before-start") w.App.macOSBetaStartCalendarImport();
+    await b.pump();
+    equal([entry.starts().length, entry.visible(), editor.isConnected], [0, true, true], "Additional modal prevents close/start and remains intact: " + stage);
+    equal([t.daten().termine.length, t.daten().futureRoot.modalRace], [0, stage], "Additional modal guard preserves the existing document: " + stage);
+  } finally { b.close(); }
+}
+
+{
+  const b = await context(), { w, t } = b;
+  try {
+    t.oeffneTerminBlatt(null, "2026-05-10");
+    const title = w.document.querySelector("#tb-titel");
+    title.value = "Keep this unsaved local appointment"; title.dispatchEvent(new w.Event("input", { bubbles: true }));
+    const entry = openSourceSettings(b);
+    entry.button().click();
+    const cancel = [...w.document.querySelectorAll("#aenderungen-schleier button")].find(button => button.textContent === "Cancel");
+    assert.ok(cancel, "Real canonical navigation guard asks about the pending editor draft"); checks++;
+    equal([entry.starts().length, entry.visible(), title.value], [0, true, "Keep this unsaved local appointment"], "Start waits for the actual editor decision");
+    cancel.click(); await b.pump();
+    equal([entry.starts().length, entry.visible(), title.isConnected, title.value, t.daten().termine.length],
+      [0, true, true, "Keep this unsaved local appointment", 0], "Cancelling the navigation guard preserves both dialogs and the exact editor draft");
+  } finally { b.close(); }
+}
+
+{
+  const b = await context(), { t } = b;
+  try {
+    const entry = openSourceSettings(b);
+    t.daten().futureRoot.unsavedStart = "Keep this change after storage failure";
+    const before = JSON.stringify(t.daten());
+    entry.button().click(); await b.pump({ save: false });
+    equal([entry.starts().length, entry.visible(), JSON.stringify(t.daten())], [0, true, before], "Failed start save keeps Settings and all pending data without opening a picker");
+    t.speichereJetzt(); await b.pump();
+    entry.button().click(); await b.pump();
+    equal([entry.starts(), entry.visible(), JSON.stringify(t.daten())], [[{ cmd: "macos_kalender_importieren" }], false, before],
+      "Explicit successful save retry permits a fresh start without losing pending changes");
+  } finally { b.close(); }
+}
+
+for (const stage of ["before-start", "during-save"]) for (const fieldID of ["briefkasten-url", "briefkasten-kennwort"]) {
+  const b = await context(), { w, t, messages } = b;
+  try {
+    const entry = openSourceSettings(b);
+    const account = { kontoArt: "nextcloud", davAktiv: false, briefkastenAktiv: false,
+      url: "https://cloud.example.test", benutzer: "synthetic-user", kennwortVorhanden: false,
+      revision: "1".repeat(64), zustand: "nicht_eingerichtet", fehler: "", fehlerCode: "none" };
+    w.MacBeta.receive("baumBriefkastenStatus", account);
+    const request = messages.filter(message => message.cmd === "eds_status" && message.requestId).at(-1);
+    w.MacBeta.receive("edsStatus", { requestId: request.requestId, kalender: [], adressbuecher: [] });
+    const url = w.document.querySelector("#briefkasten-url"), password = w.document.querySelector("#briefkasten-kennwort");
+    equal([url.disabled, password.disabled, entry.button().disabled], [false, false, false], "Actual DAV fields are enabled only with a valid native revision");
+    t.daten().futureRoot.accountDraftRace = stage;
+    const before = JSON.stringify(t.daten()), savesBefore = messages.filter(message => message.cmd === "speichern").length;
+    if (stage === "during-save") entry.button().click();
+    const field = w.document.getElementById(fieldID), value = fieldID === "briefkasten-url"
+      ? "https://unsaved.example.test/dav" : "public-synthetic-unsaved-app-password";
+    field.value = value; field.dispatchEvent(new w.Event("input", { bubbles: true }));
+    if (stage === "before-start") {
+      entry.button().click();
+      equal(messages.filter(message => message.cmd === "speichern").length, savesBefore, "Existing account draft blocks navigation/save before any document write");
+    }
+    await b.pump();
+    equal([entry.starts().length, entry.visible(), field.isConnected, field.value, JSON.stringify(t.daten())], [0, true, true, value, before],
+      "Uncommitted account field is retained without close or picker: " + fieldID + "/" + stage);
+    equal([url.value, password.value], fieldID === "briefkasten-url" ? [value, ""] : [account.url, value],
+      "Password-only case has no URL edit or account changed-listener side effect");
+    equal(messages.filter(message => message.cmd === "baum_briefkasten_speichern").length, 0, "Calendar start cannot save or discard the separate native account draft");
+    equal(w.document.querySelector("#zettel").textContent, "Save or discard the account changes before importing.", "Blocked account draft receives an actionable notice");
+    if (stage === "before-start" && fieldID === "briefkasten-kennwort") {
+      t.schliesseEinstellungen();
+      equal([entry.visible(), field.value], [false, value], "Explicit user close can leave the password value in hidden DOM");
+      w.App.macOSBetaStartCalendarImport(); await b.pump();
+      equal(entry.starts(), [{ cmd: "macos_kalender_importieren" }], "Hidden DOM after conscious close does not falsely block a fresh native-menu start");
+    }
+  } finally { b.close(); }
+}
+
 {
   // The native read panel is not a DOM modal. A user can open a fresh editor
   // while it is reading; its unsaved fields are not yet part of DATEN.

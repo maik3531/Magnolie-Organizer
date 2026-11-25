@@ -1,5 +1,38 @@
 # Aktueller Arbeitsstand
 
+## Mac #773: Kalenderimport aus den Einstellungen – 25. November 2026
+
+**Quellpatch auf `work/773-calendar-settings-entry`, Basis
+`6ffe768f382fbbca3e8f531c93f9ee197eba59a7` aus #772.** Der reproduzierte Fehler
+im bestehenden Kalender-Startpfad #770 ist korrigiert: Nach Navigations-Guard
+und dauerhafter Speicherquittung schließt ausschließlich der eigene
+Einstellungsdialog über dessen kanonischen Pfad. Zusätzliche Modale, abgebrochene
+Editorentwürfe und fehlgeschlagene Speicherung verhindern weiterhin den Start.
+Der native Befehl bleibt parameterlos; die Vorschaugrenzen bleiben unverändert.
+
+Separate DAV-/Nextcloud-Entwürfe liegen nicht im gewöhnlichen Buch-Save oder im
+aktiven Organizer-Editor. Deshalb prüft der Start sichtbare Einstellungen vor
+Navigation/Speicherung und erneut nach dem Save-ACK auf geänderte Kontofelder
+oder eine nichtleere Kennworteingabe. Die Felder bleiben erhalten; es gibt weder
+automatisches Speichern noch Verwerfen. Versteckte alte Kennwortfelder nach
+einem bewussten Schließen blockieren spätere Menüstarts nicht.
+
+Der vorhandene gezielte Kalenderprüfer bestand mit **307 Assertions**, Node
+24.22.3 / CI-JSDOM 26.1.0 und stabiler Eingangsdatei-Inventur. Er führt den echten
+Settings-Knopf mit korrelierter Quellenantwort und vollständigem synthetischem
+Kalender-DTO bis zur Vorschau, zum Recovery-Checkpoint und zur dauerhaften
+Speicherquittung aus. Zusätzliche Modale, tatsächliche Editorentwürfe,
+Speicherfehler sowie URL- und alleinige Kennworteingaben vor/während des
+Start-Speicherns sind geprüft. Diff-Whitespace sauber.
+
+Keine Swift-/EventKit-/native Mac-Prüfung aus diesem JS-Nachweis abgeleitet;
+keine gemeinsame Linux-/Windows-Quelldatei geändert. Kein Merge oder Paket.
+Bei derselben Prüfung ist die gesonderte Kontoentwurfslücke im neuen
+Notes-Start #772 konkret reproduziert worden; sie wird anschließend als
+eigenständiger Patch zu #774 behoben. Die Reproduktion verwendet ausschließlich
+erfundene Werte und zeigt Verlust ungespeicherter Eingaben, keine Veränderung
+gespeicherter Zugangsdaten.
+
 ## Mac #772: direkte Apple-Notizen als lokale Textkopien – 25. November 2026
 
 **Quellpatch auf `work/772-apple-notes-copy`, Basis Kalenderpatch

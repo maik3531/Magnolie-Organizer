@@ -13,13 +13,33 @@
   function macOSBetaCalendarImportHasDraft() {
     return !!aenderungsGuard || editorIstGeaendert() || modalStapel.some(item => item.schleier.isConnected);
   }
+  function macOSBetaCalendarImportHasSettingsDraft() {
+    // These account fields are separate from DATEN and the active form editor.
+    // A password-only edit does not set nextcloudEntwurfGeaendert.
+    return !$("#einstellungen-schleier").classList.contains("verborgen") &&
+      (nextcloudEntwurfGeaendert || !!$("#briefkasten-kennwort")?.value);
+  }
   function macOSBetaStartCalendarImport() {
     if (macOSBetaCalendarImportBlocked()) return;
     if (macOSBetaCalendarProposal && macOSBetaCalendarProposal.state === "prepared" &&
         macOSBetaCalendarImportExpired(macOSBetaCalendarProposal)) macOSBetaCalendarProposal = null;
     if (macOSBetaCalendarProposal) { zettel("A calendar import is already being reviewed."); return; }
+    if (macOSBetaCalendarImportHasSettingsDraft()) {
+      zettel(_("Save or discard the account changes before importing.")); return;
+    }
     navigiereMitGuard(() => nachDauerhaftemSpeichern(() => {
-      if (!macOSBetaCalendarImportBlocked() && !Bruecke.sende({ cmd: "macos_kalender_importieren" }))
+      if (macOSBetaCalendarImportBlocked()) return;
+      const settings = $("#einstellungen-schleier");
+      if (modalStapel.some(item => item.schleier.isConnected && item.schleier !== settings)) {
+        zettel("Finish or close the current editor before reviewing a calendar import."); return;
+      }
+      if (macOSBetaCalendarImportHasSettingsDraft()) {
+        zettel(_("Save or discard the account changes before importing.")); return;
+      }
+      // #773: the System Sources button lives inside Settings. Close only this
+      // parent modal after the save ACK so the native result can be reviewed.
+      if (!settings.classList.contains("verborgen")) schliesseEinstellungen();
+      if (!Bruecke.sende({ cmd: "macos_kalender_importieren" }))
         zettel("The macOS calendar import could not be opened.");
     }, error => zettel(error.message)));
   }

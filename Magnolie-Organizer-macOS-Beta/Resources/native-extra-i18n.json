@@ -176,7 +176,8 @@
     "Apple Notes source identities are missing or ambiguous. No notes were copied.": "Quellkennungen von Apple Notizen fehlen oder sind nicht eindeutig. Es wurden keine Notizen kopiert.",
     "The selected Apple Notes source exceeds the read limits. Choose a smaller folder or selection.": "Die gewählte Quelle überschreitet die Lesegrenzen. Wählen Sie einen kleineren Ordner oder weniger Notizen.",
     "Apple Notes changed during reading. Review a new copy proposal.": "Apple Notizen hat sich während des Lesens geändert. Prüfen Sie einen neuen Übernahmevorschlag.",
-    "This version of Apple Notes did not provide the required scripting fields. No notes were copied.": "Diese Version von Apple Notizen hat die benötigten Informationen nicht bereitgestellt. Es wurden keine Notizen kopiert."
+    "This version of Apple Notes did not provide the required scripting fields. No notes were copied.": "Diese Version von Apple Notizen hat die benötigten Informationen nicht bereitgestellt. Es wurden keine Notizen kopiert.",
+    "Save or discard the account changes before importing.": "Speichern oder verwerfen Sie zuerst die Änderungen am Konto, bevor Sie Daten übernehmen."
   },
   "es": {
     "Undo": "Deshacer",
