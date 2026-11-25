@@ -104,6 +104,83 @@ umfasst echte iPhones, Kopplung, Bild/Ton, Drehung, Latenz/Bildrate, längere
 Sitzungen, Verbindungsabbruch und erneutes Verbinden. Es gibt hierfür bisher
 keinen bestandenen nativen Magnolie-Gerätetest.
 
+### Implementierter Anschluss vom 25. November 2026
+
+Der Quellpatch zu #721 enthält jetzt den Empfänger direkt unter `Receiver/`,
+den nativen Magnolie-Host mit Start/Stop/PIN sowie den Bundlebau mit seinen
+Bibliotheken. Für diesen Weg installiert der Anwender kein separates UxPlay.
+Details und der genaue Prüfstatus stehen in [AIRPLAY.md](AIRPLAY.md) und
+[AIRPLAY-BUILD.md](AIRPLAY-BUILD.md). Der Patch ersetzt den bisherigen reinen
+Integrationsvorschlag; native Swift-/Mac-/iPhone-Abnahmen bleiben erforderlich.
+
+## Datenfunktionen ohne eigene iPhone-App – Prüfung vom 25. November 2026
+
+Der Nutzer hat zusätzlich die Prüfung von Notizen, Terminen und weiteren
+Organizer-Funktionen beauftragt. Die vorhandenen Apple-Apps können dafür als
+Gegenstellen dienen. Die AirPlay-Verbindung selbst liefert Medien und keine
+Notiz-, Kalender- oder Kontaktdatensätze. Diese Aussage folgt sowohl aus
+[Apples AirPlay-Funktionsbeschreibung](https://support.apple.com/guide/iphone/stream-video-and-audio-from-your-iphone-iphd668e80e6/ios)
+als auch aus dem tatsächlich eingebundenen UxPlay-Protokoll-/Rendererbestand.
+
+| Funktion | Technisch möglicher Weg ohne eigene iPhone-App | Tatsächlicher Magnolie-Quellstand und offene Arbeit |
+| --- | --- | --- |
+| Termine | Apple Kalender am iPhone; gemeinsames iCloud-/CalDAV-Konto; EventKit am Mac | `SystemAccounts` besitzt Lesen, quellengebundene Snapshots und revisionsgebundene Änderungen an Titel/Notiz/Ort bestehender nicht wiederkehrender Termine. Vollständiger Organizer-Abgleich, Anlage/Löschung, Konflikte und sichere Serienabbildung bleiben offen. |
+| Aufgaben und Erinnerungen | Apple Erinnerungen am iPhone/Mac; EventKit für die freigegebenen Listen; bei iCloud dasselbe aktivierte Konto | Lesen/Snapshots und begrenzte Textänderungen sind vorbereitet. `NativeSystemRecordReader` kennzeichnet die nicht vollständig verfügbare Hierarchie. Keine Zusage für verlustfreie Unteraufgaben, Serien oder vollständigen Rückabgleich. |
+| Kontakte und Geburtstage | Apple Kontakte; gemeinsames iCloud-/CardDAV-Konto; Contacts-Framework am Mac | Containergebundene, nicht vereinheitlichte vCard-Snapshots existieren. Status ist ausdrücklich `readOnly: true`; vollständige Feldabbildung und sichere Schreibtransaktionen fehlen. Geburtstage benötigen dieselbe geprüfte Kontaktabbildung. |
+| Apple-Notizen als Text/Datei | Apple Notes exportiert Markdown/PDF beziehungsweise Originalanhänge; Übernahme über Dateien/AirDrop oder auf demselben Mac | `NoteFileImportHost` übernimmt TXT/MD als editierbaren Literaltext, PDF/Bilder als Originalanhänge mit Vorschau, Auswahlprüfung und Speichern. Das ist ein bewusster Import, kein laufender Abgleich. |
+| Apple-Notizen automatisch am Mac | Gezielte AppleScript-Anbindung an die vorhandene Mac-App ist technisch möglich; für iPhone-Inhalte müssen sie dort über das eingerichtete Notizkonto verfügbar sein | Kein solcher Connector vorhanden. Er benötigt native Automation-Freigabe, feste Konto-/Ordneridentität, Änderungserkennung und Tests für gesperrte Notizen, Anhänge, Formatverlust und Konflikte. Keine allgemeine Apple-Notes-API verfügbar. |
+| Fotos, PDF, Zeichnungen, andere Dateien | Vorhandener Apple-Dateiexport/AirDrop, anschließend Magnolies bewusster Import | Eine Bild-/PDF-Datei kann übernommen werden. Editierbare Apple-Zeichenstriche, Apple Pencil-Druckdaten und Live-Digitizerereignisse sind damit nicht belegt. Kein automatischer Galerieabgleich über AirPlay. |
+| Bildschirm und Ton | iPhone-Kontrollzentrum, AirPlay und der in Magnolie eingebaute Empfänger | Anschluss in diesem Patch; echte Geräteabnahme offen. Die Bedienung des iPhones bleibt am iPhone. |
+| Schichtplan, Mülltermine, Jahrestage und weitere Kalenderinhalte | Soweit sinnvoll über konkret abgebildete Kalenderereignisse/ICS; iPhone zeigt sie in Apple Kalender | Die Semantik muss pro Magnolie-Funktion geprüft werden. Eigene Planungsregeln, Gesundheits-/Messwerttabellen und weitere Magnolie-Daten erhalten durch AirPlay keinen gemeinsamen Datensatzkanal. |
+
+### Belastbare Schnittstellen und ihre Grenzen
+
+Apple dokumentiert mit [EventKit](https://developer.apple.com/documentation/eventkit.md)
+Zugriff auf Kalender und Erinnerungen einschließlich Erstellen/Ändern und
+Änderungsbenachrichtigungen. Das
+[Contacts-Framework](https://developer.apple.com/documentation/contacts/cncontactstore.md)
+stellt entsprechende Kontaktzugriffe bereit. Die
+[iPhone-Kontoeinrichtung](https://support.apple.com/en-ie/guide/iphone/ipha0d932e96/26/ios/26)
+nennt CalDAV und CardDAV ausdrücklich. Das vermeidet eine neue Magnolie-App auf
+dem iPhone. Der Transport zwischen den Geräten erfolgt bei diesem Aufbau über
+den eingerichteten Kontodienst. Bei iCloud nutzt er iCloud; die lokalen
+EventKit-/Contacts-Zugriffe in Magnolie machen diesen Transport nicht zu einem
+rein lokalen Direktabgleich.
+
+Die aktuelle Mac-Quelle meldet weiter
+`systemAccountSyncImplemented: false`. In `main.swift` sind Quellenauswahl und
+Systemfreigabe angebunden. Das Vorhandensein der Methoden in `SystemAccounts`
+und `NativeSystemRecordReader` ist kein Beleg, dass bereits alle Organizer-
+Datensätze vollständig und automatisch in beide Richtungen abgeglichen werden.
+
+Für Apple Notes hat Apples Developer Technical Support im Januar 2026
+[ausdrücklich die fehlende allgemeine Notes-API bestätigt](https://developer.apple.com/forums/thread/813810),
+zugleich aber den AppleScript-Zugriff am Mac bestätigt. Ein nativer Mac-
+Connector wäre deshalb eine mögliche weitere Entwicklung ohne eigene iPhone-
+Notes-App. Das ist eine Architekturfolgerung aus Apples Auskunft, keine bereits
+bestandene Magnolie-Integration. iOS-Kurzbefehle erlauben vom Nutzer eingerichtete
+Abläufe; sie stellen laut derselben Apple-Auskunft keine allgemeine von fremden
+Apps aufrufbare Notes-API bereit.
+
+Der heute vorhandene Dateiweg bleibt konkret nutzbar in einem entsprechend
+geprüften Magnolie-Bau. Apple beschreibt
+[Notizexport am Mac](https://support.apple.com/guide/notes/import-export-and-print-notes-not201900c07/mac)
+und [am iPhone](https://support.apple.com/guide/iphone/iphdf551cfa2/ios).
+Markdown ist versionsabhängig; die bestehende Dokumentation unten trennt die
+älteren PDF-Wege. Anhänge nicht allein durch den PDF-Gesamtexport einer Notiz
+sichern: Apple nennt dort die Beschränkung auf die erste Seite eingebetteter
+mehrseitiger PDFs/Scans.
+
+### Konkrete Fortsetzung innerhalb von #121
+
+Die AirPlay-Arbeit darf diese Datenfunktionen nicht als schon implementierten
+Zusatz freischalten. Der nächste getrennt abnehmbare Datenanschluss ist die
+Vervollständigung der vorhandenen EventKit-/Contacts-Adapter: zunächst geprüfte
+Übernahme ausgewählter Quellen, danach nur bestätigte verlustfreie Änderungen
+mit Rücklesen, Konfliktbehandlung und Widerruf. Apple-Notizen benötigen einen
+eigenen Mac-Connector oder den bestehenden Dateiimport. Eine eigene iPhone-App
+ist für diese Wege keine Voraussetzung.
+
 ## Dateiübertragung und Livezeichnen unterscheiden
 
 Der geprüfte iOS-Pluginbestand unterstützt Dateien, Fotos/Videos und bewusstes

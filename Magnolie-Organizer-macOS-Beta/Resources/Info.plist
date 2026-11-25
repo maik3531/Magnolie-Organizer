@@ -16,4 +16,6 @@
   <key>NSCalendarsFullAccessUsageDescription</key><string>Access calendars that you select in macOS for reading and explicitly requested changes.</string>
   <key>NSRemindersFullAccessUsageDescription</key><string>Access reminder lists that you select in macOS for reading and explicitly requested changes.</string>
   <key>NSContactsUsageDescription</key><string>Read contacts from address books that you select in macOS. Your account credentials remain with macOS.</string>
+  <key>NSLocalNetworkUsageDescription</key><string>Receive the iPhone screen and sound over AirPlay after you start mirroring in Magnolie.</string>
+  <key>NSBonjourServices</key><array><string>_airplay._tcp</string><string>_raop._tcp</string></array>
 </dict></plist>

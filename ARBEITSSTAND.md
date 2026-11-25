@@ -1,5 +1,50 @@
 # Aktueller Arbeitsstand
 
+## Mac #721: eingebauter iPhone-AirPlay-Empfänger – 25. November 2026
+
+**Prüfbarer Quellpatch auf `work/721-macos-airplay`, Basis
+`00776ce70e155c7a607ed55a4502d6fcee5a860c`; Übernahme und native Abnahme offen.**
+Der Nutzer möchte Patches im Issue zur späteren Prüfung/Übernahme mit Codex.
+Dieser Anschluss wird deshalb als benannter Arbeitszweig bereitgestellt.
+
+UxPlay 1.73.7 ist mit Versions-/Quellenhashes und erhaltenen Lizenzen direkt
+unter `Magnolie-Organizer-macOS-Beta/Receiver` enthalten. Der native Mac-Host
+bietet Start/Stop/PIN, verarbeitet ausschließlich feste lokale Statusereignisse
+und besitzt seinen eigenen Empfängerprozess. Das iPhone benötigt nur seine
+vorhandene Bildschirmsynchronisierung. Der zusätzliche Bundlebau nimmt ein
+ausdrücklich vorbereitetes SDK, baut den Helfer und liefert GStreamer/OpenSSL 3/
+libplist samt Bibliothekskette, Quellen und Lizenzhinweisen innerhalb der App.
+Eine Installation zusätzlicher Empfängerprogramme beim Anwender entfällt in
+einem erfolgreich so gebauten Paket. Noch kein solches natives Paket erstellt.
+
+| Prüfung dieses Patches | Ergebnis |
+| --- | --- |
+| Echter portabler C++-IPC-/Registrierungscode, `-Wall -Wextra -Werror` | 11 Tests bestanden |
+| Synthetische Paket-/Bibliotheks-/Relocation-/Quellenfälle | 25 Tests bestanden |
+| Versionierter Upstream-Abgleich | 76 vendorte Dateien geprüft; lokaler Delta-Patch gegen sauberen v1.73.7-Stand anwendbar |
+| Bestehende Host-Prüfungen für Identität, Freeze-/Manipulationserkennung und Ablehnung falscher Linux-Bauzusage | 3 Tests bestanden |
+| Bestehender vollständiger UI-Projektionstest | Fehlgeschlagen an fehlender Bauvoraussetzung: 0 statt 19 erzeugte Sprachkataloge; `msgfmt` in dieser Umgebung nicht vorhanden |
+| Neuer portabler Swift-Vertrag, Decoder, Bundlepfade und private Ablage | 27 XCTest-Fälle vorbereitet; nicht ausgeführt, keine vorhandene Swift-Toolchain |
+| Native Swift/AppKit-/GStreamer-Kompilierung, Codesign, echter Mac/iPhone-Lauf | Nicht ausgeführt |
+
+Die Katalogvorbereitung bleibt der bestehende `po_zu_js.py`-/`msgfmt`-Weg.
+Es wurden weder Tests abgeschwächt noch Ersatzkataloge erzeugt, um die fehlende
+Voraussetzung zu verdecken. Die oben genannten gezielten AirPlay-Prüfungen
+belegen keinen vollständigen Mac-Build. Der UI-Audit liest die neuen Quellen;
+Produkt- und Gerätefreigabe bleiben getrennt.
+
+Der ergänzende Nutzerauftrag zu Notizen, Terminen und weiteren iPhone-Funktionen
+ist in `IPHONE-INTEROPERABILITY.md` gegen Apple-Primärquellen und vorhandenen
+Magnolie-Code geprüft: Kalender/Erinnerungen über EventKit, Kontakte über
+Contacts und gemeinsame Konten, Notizen über bestehenden Dateiimport oder einen
+noch zu entwickelnden AppleScript-Connector am Mac. Eine eigene iPhone-App ist
+dafür keine Voraussetzung. AirPlay liefert keinen Datensatzabgleich; der
+bestehende Status `systemAccountSyncImplemented: false` bleibt zutreffend.
+
+Nächster Schritt: Patch mit Codex übernehmen, die vorhandene Katalogvorbereitung
+ausführen und native Swift-/Bundle-/iPhone-Abnahme für Intel und Apple Silicon
+nach `AIRPLAY.md` durchführen. Keine Release-Veröffentlichung erfolgt.
+
 `main` ist die Standardquelle. Dieser Eintrag trennt den verifizierten
 Quellstand von der installierten Produktversion. Die nachfolgenden
 Integrationsstände sind noch nicht Teil von `main`. Ihre Git-Zweige beim

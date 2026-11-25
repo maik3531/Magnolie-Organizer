@@ -12,6 +12,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private lazy var communication = CommunicationLaunchBroker(system: CommunicationSystemLauncher())
     private var manual: ManualHost?
     private var noteFileImport: NoteFileImportHost?
+    private var airPlay: AirPlayHost?
     private var window: NSWindow!
     private var web: WKWebView!
     private var store: AtomicStore!
@@ -80,6 +81,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         appMenu.addItem(withTitle: "List macOS reminder lists (read-only)...", action: #selector(reminders), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "macOS " + tr("Contacts") + "…", action: #selector(systemContacts), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "Import note files…", action: #selector(startNoteFileImport), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: tr("iPhone screen mirroring") + "…", action: #selector(showAirPlay), keyEquivalent: "").target = self
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: tr("Quit") + " " + name, action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let helpItem = NSMenuItem(), help = NSMenu(title: tr("Help"))
@@ -102,6 +104,16 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
               "no sync, background wake, auto-update or system-account integration.")
     }
     private func tr(_ text: String) -> String { catalog[text] ?? text }
+    @objc private func showAirPlay() {
+        guard plain != nil, !restoring, !closePending else { alert("Unlock first."); return }
+        if airPlay == nil {
+            airPlay = AirPlayHost(profileDirectory: store.file.deletingLastPathComponent(), mayStart: { [weak self] in
+                guard let self else { return false }
+                return self.plain != nil && !self.restoring && !self.closePending
+            }, translate: { [weak self] in self?.tr($0) ?? $0 })
+        }
+        airPlay?.show()
+    }
     private func regional(_ text: String?) -> [String: Any] {
         let root = text.flatMap { try? Document.plain($0) }
         return (root?["einstellungen"] as? [String: Any])?["regional"] as? [String: Any] ?? [:]
@@ -164,6 +176,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         decisionHandler(allowed ? .allow : .cancel)
     }
     private func invalidateRestoreUI() {
+        airPlay?.suspend()
         davAccounts?.invalidateBookAdmission()
         if restoreState != .activeIO { restoreState = .blockedRestartRequired }
     }
@@ -417,6 +430,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             guard plain != nil, let selection else { throw BetaError("This backup cannot be used.") }
             // The native latch closes synchronously, before Task enqueue or any await.
             let transition = try davAccounts.suspendBookAdmission()
+            airPlay?.suspend()
             restoreState = .activeIO; documentGeneration = UUID()
             let generation = documentGeneration, path = request.text("pfad"), password = request.text("kennwort")
             Task { @MainActor in
@@ -669,6 +683,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         if restoreState == .blockedRestartRequired { return .terminateNow }
         if closeApproved || web == nil { return .terminateNow }
         if closePending { return .terminateCancel }
+        airPlay?.stop()
         closePending = true; send("vorBeenden")
         DispatchQueue.main.asyncAfter(deadline: .now() + 35) {
             if self.closePending {
@@ -678,6 +693,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         }
         return .terminateLater
     }
+    func applicationWillTerminate(_ notification: Notification) { airPlay?.suspend() }
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound])

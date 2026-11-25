@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Local unsigned/ad-hoc debug bundle only. No production build, installer, upload or publication."""
+import argparse
 import json
 import os
 import platform
@@ -10,9 +11,14 @@ import subprocess
 import sys
 from pathlib import Path
 from project_ui import BETA, GENERATED, verify
+from airplay_bundle import build_airplay_bundle
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--airplay-sdk", type=Path,
+                        help="Local, source/license-complete AirPlay SDK; builds the internal receiver into the app")
+    arguments = parser.parse_args()
     if platform.system() != "Darwin":
         raise RuntimeError("Apple macOS host required. Linux, jsdom and QEMU are not macOS build or emulation evidence.")
     for tool in ("xcrun", "swift", "codesign"):
@@ -58,12 +64,18 @@ def main():
     assert info["CFBundleVersion"] == identity["bundleVersion"]
     assert info["LSMinimumSystemVersion"] == minimum
     shutil.copytree(GENERATED, contents / "Resources/UI")
+    airplay = None
+    if arguments.airplay_sdk is not None:
+        airplay = build_airplay_bundle(BETA, app, arguments.airplay_sdk, platform.machine(), minimum)
     (contents / "Resources/Magnolie Organizer macOS Beta-build.json").write_text(json.dumps({
         "name": identity["name"], "version": identity["version"], "configuration": "debug", "architecture": platform.machine(),
         "sourceInputs": manifest["inputs"], "swiftTestsPassed": True,
         "minimumSystemVersion": minimum, "machOMinimumVerified": True,
         "montereyRuntimeValidated": False,
         "nativeUIValidated": False, "productionRelease": False,
+        "airplayBundled": airplay is not None,
+        "airplayDependencyClosureVerified": airplay is not None,
+        "airplayNativeDeviceValidated": False,
         "signing": "ad-hoc development only, not notarized"
     }, indent=2) + "\n")
     verify()  # Refuse a source change during the native build as well.
@@ -71,6 +83,10 @@ def main():
     # Replace it only inside this newly created, versioned development bundle.
     subprocess.run(["codesign", "--force", "--sign", "-", str(app)], check=True)
     subprocess.run(["codesign", "--verify", "--strict", str(app)], check=True)
+    if airplay is not None:
+        # Helpers/libraries were signed individually before the outer bundle;
+        # this verifies the enclosing seals without modifying nested signatures.
+        subprocess.run(["codesign", "--verify", "--strict", "--deep", str(app)], check=True)
     print(str(app))
     print("Development bundle only. No native UI test, notarization, release approval or publication implied.")
 

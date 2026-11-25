@@ -21,12 +21,15 @@ def digest(data):
 
 
 def inputs():
-    roots = [LINUX / "web", LINUX / "symbole", REPO / "contracts", REPO / "port-adapters", BETA / "Projection", BETA / "Sources", BETA / "Resources", REPO / "magnolie-handbuch/web"]
+    roots = [LINUX / "web", LINUX / "symbole", REPO / "contracts", REPO / "port-adapters", BETA / "Projection", BETA / "Sources", BETA / "Resources", BETA / "Receiver", REPO / "magnolie-handbuch/web"]
     files = []
     for root in roots:
         if root.is_symlink():
             raise ValueError("Symlinked source root refused: " + str(root))
         for file in sorted(root.rglob("*")):
+            if root == BETA / "Receiver" and any(part in {".build", "build", "CMakeFiles", "__pycache__"}
+                                                  for part in file.relative_to(root).parts):
+                continue
             if file.is_symlink():
                 raise ValueError("Symlinked source refused: " + str(file))
             if file.is_file():
@@ -36,7 +39,7 @@ def inputs():
               REPO / "magnolie-organizer-windows/BridgeDispatcherContract.cs",
               REPO / "magnolie-organizer-windows/EncryptionService.cs",
               REPO / "magnolie-handbuch/web/mobile-downloads.json",
-              BETA / "Package.swift", BETA / "tools/build_dev.py", Path(__file__).resolve()]
+              BETA / "Package.swift", BETA / "tools/build_dev.py", BETA / "tools/airplay_bundle.py", Path(__file__).resolve()]
     return {str(file.relative_to(REPO)): file.read_bytes() for file in sorted(set(files))}
 
 

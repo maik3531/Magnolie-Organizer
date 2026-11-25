@@ -68,6 +68,7 @@ toolchain is required to run the bundle. A current SDK/toolchain is required to 
 | macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; full import/synchronization remains unfinished |
 | DAV accounts | Canonical native configuration, Keychain credentials, revision-bound verified save/rollback and explicit collection discovery; 19 native account tests |
 | DAV calendar foundations | Complete typed REPORT snapshot decoding and surgical component edits preserving resource siblings; native tests pass on both architectures; no record-sync coordinator yet |
+| iPhone AirPlay receiver | Source-integrated UxPlay receiver, native Start/Stop/PIN panel and self-contained bundle build; no separately installed receiver required; new native Swift/build/device checks remain pending (see [AIRPLAY.md](AIRPLAY.md)) |
 
 "Implemented source" is not a statement of native build or runtime validation.
 Current-source integration and the remaining macOS/Android Organizer parity work
@@ -151,10 +152,15 @@ source checkpoint, not a completed native parity acceptance.
   JavaScript-disabled WKWebView with no native bridge, network or local-file access.
   AppKit supplies the system print dialog and its Save as PDF action. The native
   PDF-engine test does not establish manual print-panel or physical-paper acceptance.
-- No Graph sync, Magnolia tree, phone/SMS/Bluetooth, weather download,
+- No Graph sync, Magnolia tree, phone data sync/SMS/Bluetooth, weather download,
   tray/background service, autostart, scheduled backup, office export,
   full ICS/vCard/CSV import, updater, manual downloader, contributor validation or
   native protected-image rendering is implemented.
+- The separately developed iPhone AirPlay receiver requires the explicit
+  [AirPlay bundle build](AIRPLAY-BUILD.md). Its source integration does not imply
+  a native build or iPhone acceptance. AirPlay supplies screen/audio; calendar,
+  contact and Apple Notes connections are documented independently in
+  [IPHONE-INTEROPERABILITY.md](IPHONE-INTEROPERABILITY.md).
 - Unsupported desktop controls retain an explicit Beta limitation notice or
   receive a negative response. They do not signify native feature parity.
 - This is a non-sandboxed development shell, not a hardened/notarized distribution.
