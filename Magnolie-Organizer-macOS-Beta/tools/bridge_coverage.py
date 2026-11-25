@@ -12,6 +12,7 @@ SCOPES = {
     "macos_kalender_importieren": "source: explicit EventKit calendar/date picker, reviewed additive local copies + recovery + save ACK; no sync; native execution unverified (#770)",
     "macos_apple_notizen_importieren": "source: explicit Apple Notes folder/note selection, reviewed additive plaintext copies + re-read + recovery + save ACK; no source writes or sync; native execution unverified (#772)",
     "macos_kontakte_importieren": "source: explicit Contacts container/contact selection, reviewed additive public-field copies + re-read + recovery + save ACK; no source writes or sync; native execution unverified (#775)",
+    "macos_erinnerungen_importieren": "source: explicit EventKit reminder list/item selection, reviewed standalone local task copies + re-read + recovery + save ACK; hierarchy unavailable, no source writes or sync; native execution unverified (#777)",
     "drucken": "source: isolated JS-free print renderer and AppKit system print/PDF dialog; native acceptance pending",
     "handbuch_oeffnen": "source: bundled canonical 2.0.30 manual; isolated local WKWebView/search; native validation pending",
     "bereit": "source: load/new/locked document; native local startup verified",

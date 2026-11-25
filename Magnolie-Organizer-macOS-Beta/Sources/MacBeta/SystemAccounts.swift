@@ -67,6 +67,35 @@ final class SystemAccounts {
         try Task.checkCancellation()
         return result
     }
+    /// Deliberate selected Reminder copies. No native object crosses this
+    /// boundary, and the older whole-list readers retain their own semantics.
+    func reminderCopySources() async throws -> [SystemReminderImport.Source] {
+        try Task.checkCancellation()
+        let result = try await perform { try $0.reminderCopySources(control: $1) }
+        try Task.checkCancellation()
+        return result
+    }
+    func reminderCopySummaries(source: SystemReminderImport.Source) async throws -> [SystemReminderReader.Summary] {
+        try Task.checkCancellation()
+        let control = SystemSourceReadControl()
+        let result: [SystemReminderReader.Summary] = try await withTaskCancellationHandler(operation: {
+            try await withCheckedThrowingContinuation { continuation in
+                queue.async {
+                    self.worker().reminderCopySummaries(source: source, control: control) {
+                        continuation.resume(with: $0)
+                    }
+                }
+            }
+        }, onCancel: { control.cancel() })
+        try Task.checkCancellation()
+        return result
+    }
+    func reminderCopySnapshot(source: SystemReminderImport.Source, identifiers: [String]) async throws -> SystemReminderImport.Snapshot {
+        try Task.checkCancellation()
+        let result = try await perform { try $0.reminderCopySnapshot(source: source, identifiers: identifiers, control: $1) }
+        try Task.checkCancellation()
+        return result
+    }
     func readReminders(sourceUID: String) async throws -> [[String: Any]] {
         let control = SystemSourceReadControl()
         return try await withTaskCancellationHandler(operation: {
@@ -388,6 +417,31 @@ private final class SystemAccountStore {
             // The same policy is checked again after reads. Do not claim that no
             // source data was ever read if access was revoked during that read.
             throw BetaError("macOS Contacts access is unavailable. No contacts were copied. Check Privacy & Security → Contacts before trying again.")
+        }
+    }
+    func reminderCopySources(control: SystemSourceReadControl) throws -> [SystemReminderImport.Source] {
+        dispatchPrecondition(condition: .onQueue(queue))
+        return try SystemReminderReader.sources(store: events, queue: queue, control: control,
+            requireAccess: { try self.requireReminderCopyAccess() })
+    }
+    func reminderCopySummaries(source: SystemReminderImport.Source, control: SystemSourceReadControl,
+                               completion: @escaping (Result<[SystemReminderReader.Summary], Error>) -> Void) {
+        dispatchPrecondition(condition: .onQueue(queue))
+        SystemReminderReader.summaries(store: events, queue: queue, source: source, control: control,
+            requireAccess: { try self.requireReminderCopyAccess() }, completion: completion)
+    }
+    func reminderCopySnapshot(source: SystemReminderImport.Source, identifiers: [String],
+                             control: SystemSourceReadControl) throws -> SystemReminderImport.Snapshot {
+        dispatchPrecondition(condition: .onQueue(queue))
+        return try SystemReminderReader.snapshot(store: events, queue: queue, source: source,
+            identifiers: identifiers, control: control, requireAccess: { try self.requireReminderCopyAccess() })
+    }
+    private func requireReminderCopyAccess() throws {
+        do { try requireAccess(.reminders) }
+        catch {
+            // Access may be revoked after an earlier read. Do not claim that
+            // no system data was read; this path has made no local/source write.
+            throw BetaError("macOS Reminders access is unavailable. No reminder copy was imported. Check Privacy & Security → Reminders before trying again.")
         }
     }
     private func typedSource(_ calendar: EKCalendar, kind: SystemSourcePolicy.Kind) throws -> SystemSourceSnapshot.Source {

@@ -125,7 +125,7 @@ als auch aus dem tatsächlich eingebundenen UxPlay-Protokoll-/Rendererbestand.
 | Funktion | Technisch möglicher Weg ohne eigene iPhone-App | Tatsächlicher Magnolie-Quellstand und offene Arbeit |
 | --- | --- | --- |
 | Termine | Apple Kalender am iPhone; gemeinsames iCloud-/CalDAV-Konto; EventKit am Mac | #770 ergänzt die bewusste additive Übernahme unterstützter Einzeltermine mit nativer Kalender-/Zeitraumauswahl, Vorschau, Dublettenschutz, erneuter Quellenprüfung und dauerhaftem Speichern. Lokale Kopien, kein Rückabgleich; native Swift-/Kontenprüfung offen. Details: [SYSTEM-CALENDAR-IMPORT.md](SYSTEM-CALENDAR-IMPORT.md). Vollständiger Organizer-Abgleich, native Anlage/Löschung und sichere Serienabbildung bleiben offen. |
-| Aufgaben und Erinnerungen | Apple Erinnerungen am iPhone/Mac; EventKit für die freigegebenen Listen; bei iCloud dasselbe aktivierte Konto | Lesen/Snapshots und begrenzte Textänderungen sind vorbereitet. `NativeSystemRecordReader` kennzeichnet die nicht vollständig verfügbare Hierarchie. Keine Zusage für verlustfreie Unteraufgaben, Serien oder vollständigen Rückabgleich. |
+| Aufgaben und Erinnerungen | Apple Erinnerungen am iPhone/Mac; EventKit für die freigegebenen Listen; bei iCloud dasselbe aktivierte Konto | #777 ergänzt die bewusste Übernahme ausgewählter offener und erledigter Einträge als eigenständige lokale Aufgaben: vollständige Feldvorschau, erneut gelesene Quellen, unveränderte Bestandsaufgaben und dauerhaftes Speichern. Serien und Alarme werden ausgelassen. Die nicht verfügbare Hierarchie, Tags, Markierungen, Anhänge und Zuweisungen bleiben ausdrücklich unbekannt; kein Rückabgleich und keine neue Benachrichtigung. Native Swift-/Kontenprüfung offen. Details: [SYSTEM-REMINDER-IMPORT.md](SYSTEM-REMINDER-IMPORT.md). |
 | Kontakte und Geburtstage | Apple Kontakte; gemeinsames iCloud-/CardDAV-Konto; Contacts-Framework am Mac | #775 ergänzt die bewusste Übernahme ausgewählter Kontakte als lokale Kopien mit eigener Vorschau, gezielter öffentlicher Feldabbildung, erneuter Quellenprüfung und dauerhafter Speicherquittung. Geburtstage bleiben am Kontakt und erzeugen keine Jahrestagseinträge. Kontaktnotizen, unbekannte Providerfelder und nicht sicher abbildbare Sonderfälle sind ausdrücklich begrenzt. Kein Rückabgleich; native Swift-/Kontenprüfung offen. Details: [SYSTEM-CONTACT-IMPORT.md](SYSTEM-CONTACT-IMPORT.md). |
 | Apple-Notizen als Text/Datei | Apple Notes exportiert Markdown/PDF beziehungsweise Originalanhänge; Übernahme über Dateien/AirDrop oder auf demselben Mac | `NoteFileImportHost` übernimmt TXT/MD als editierbaren Literaltext, PDF/Bilder als Originalanhänge mit Vorschau, Auswahlprüfung und Speichern. Das ist ein bewusster Import, kein laufender Abgleich. |
 | Apple-Notizen direkt am Mac | Gezielte NSAppleScript-Anbindung an die vorhandene Mac-App; iPhone-Inhalte müssen dort über das eingerichtete Notizkonto verfügbar sein | #772 ergänzt einen Quellpatch für bewusst ausgewählte Textkopien: Konto/Ordner/Notizen wählen, vollständigen Text prüfen, Quelle erneut lesen und dauerhaft speichern. Geschützte Notizen und Notizen mit gemeldeten Anhängen werden ausgeschlossen. Keine Rückschreibung oder Automatik. Dictionary, Automation-Freigabe, nativer Bau und echte Kontenprüfung bleiben offen; siehe [APPLE-NOTES-IMPORT.md](APPLE-NOTES-IMPORT.md). |
@@ -149,8 +149,9 @@ rein lokalen Direktabgleich.
 
 Die aktuelle Mac-Quelle meldet weiter
 `systemAccountSyncImplemented: false`. In `main.swift` sind Quellenauswahl,
-Systemfreigabe, mit #770 die bestätigte lokale Kalenderübernahme und mit #775
-die bestätigte lokale Kontaktübernahme angebunden.
+Systemfreigabe, mit #770 die bestätigte lokale Kalenderübernahme, mit #775
+die bestätigte lokale Kontaktübernahme und mit #777 eigenständige lokale
+Aufgabenkopien aus Erinnerungen angebunden.
 Der neue Import benötigt keine weiteren Programme auf dem Mac oder iPhone.
 Das Vorhandensein der Methoden in `SystemAccounts`
 und `NativeSystemRecordReader` ist kein Beleg, dass bereits alle Organizer-
@@ -177,12 +178,12 @@ mehrseitiger PDFs/Scans.
 
 ### Konkrete Fortsetzung innerhalb von #121
 
-Die AirPlay-Arbeit darf diese Datenfunktionen nicht als schon implementierten
-Zusatz freischalten. Der nächste getrennt abnehmbare Datenanschluss ist die
-Vervollständigung der vorhandenen EventKit-/Contacts-Adapter: zunächst geprüfte
-Übernahme ausgewählter Quellen, danach nur bestätigte verlustfreie Änderungen
-mit Rücklesen, Konfliktbehandlung und Widerruf. Für Apple-Notizen steht nun der
-getrennte Textkopie-Quellpatch #772 zur nativen Prüfung bereit; der vorhandene
+Die AirPlay-Arbeit schaltet keinen Datensynchronisationskanal frei. Die
+getrennten Quellpatches #770, #772, #775 und #777 stellen jetzt ausgewählte
+Kalender-, Notiz-, Kontakt- und Aufgabenkopien zur nativen Prüfung bereit.
+Nächster Schritt sind ihre tatsächlichen Mac-/Konten- und Geräteabnahmen.
+Vollständiger Rückabgleich braucht anschließend pro Datenart belegte
+Feldabbildung, Rücklesen, Konfliktbehandlung und Widerruf. Der vorhandene
 Dateiimport bleibt für ausgewählte Exporte und Anhänge erhalten. Eine eigene
 iPhone-App ist für diese Wege keine Voraussetzung.
 

@@ -418,6 +418,10 @@ def project(snapshot, target):
     text = replace_once(text, "  const App = {", contact_import + "\n  const App = {\n"
                         "    macOSBetaStartContactImport, macOSBetaPrepareContactImport,\n"
                         "    macOSBetaCommitContactImport, macOSBetaCancelContactImport,")
+    reminder_import = snapshot[str((BETA / "Projection/system-reminder-import.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", reminder_import + "\n  const App = {\n"
+                        "    macOSBetaStartReminderImport, macOSBetaPrepareReminderImport,\n"
+                        "    macOSBetaCommitReminderImport, macOSBetaCancelReminderImport,")
     text = replace_once(text, "  const App = {", '''  let macOSBetaPreparedRestore = null;
   const App = {
     macOSBetaPrepareNativeRestore(text, operationID) {

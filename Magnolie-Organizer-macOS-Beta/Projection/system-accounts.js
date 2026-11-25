@@ -4,7 +4,7 @@
 // the sole stored selection; discovering/denying access never rewrites them.
 (() => {
   let view = null, snapshot = null, pending = null;
-  const note = "macOS system sources can be discovered and selected. Calendar appointments and contacts can be copied with a separate preview. Full synchronization is not available yet. Selecting a source does not import or change its data.";
+  const note = "macOS system sources can be discovered and selected. Calendar appointments, reminders and contacts can be copied with a separate preview. Full synchronization is not available yet. Selecting a source does not import or change its data.";
   function node(tag, text) {
     const item = document.createElement(tag);
     if (text !== undefined) item.textContent = text;
@@ -43,6 +43,11 @@
     importCalendar.disabled = !!pending;
     importCalendar.addEventListener("click", () => window.App.macOSBetaStartCalendarImport());
     root.append(importCalendar);
+    const importReminders = node("button", tr("Copy macOS reminders"));
+    importReminders.type = "button"; importReminders.id = "macos-system-reminder-import";
+    importReminders.disabled = !!pending;
+    importReminders.addEventListener("click", () => window.App.macOSBetaStartReminderImport());
+    root.append(importReminders);
     const importContacts = node("button", tr("Copy macOS contacts"));
     importContacts.type = "button"; importContacts.id = "macos-system-contact-import";
     importContacts.disabled = !!pending;

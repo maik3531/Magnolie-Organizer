@@ -65,7 +65,7 @@ toolchain is required to run the bundle. A current SDK/toolchain is required to 
 | Export | Source-preserving appointment/task/anniversary ICS, recurrence/exceptions and historical/future timezone definitions; unsupported or contradictory records fail the whole export |
 | Clipboard/attachments | Text clipboard; attachment Save for PDF/JPEG/PNG/GIF/WebP data URLs, not automatic attachment opening |
 | Reminders | Open-app checker with independent one-off early/due task reminders, connected to permission-gated macOS notifications; no persistent scheduler |
-| macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; #770 adds reviewed single calendar copies and #775 adds selected local contact copies through Contacts. Both preserve existing records and require a fresh source read plus durable save. Native validation, reminder mapping and full synchronization remain unfinished; see [SYSTEM-CALENDAR-IMPORT.md](SYSTEM-CALENDAR-IMPORT.md) and [SYSTEM-CONTACT-IMPORT.md](SYSTEM-CONTACT-IMPORT.md) |
+| macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; #770 adds reviewed single calendar copies, #775 local contact copies and #777 selected reminders as independent local tasks. Each preserves existing records and requires a fresh source read plus durable save. Native validation, complete reminder fidelity and full synchronization remain unfinished; see [SYSTEM-CALENDAR-IMPORT.md](SYSTEM-CALENDAR-IMPORT.md), [SYSTEM-CONTACT-IMPORT.md](SYSTEM-CONTACT-IMPORT.md) and [SYSTEM-REMINDER-IMPORT.md](SYSTEM-REMINDER-IMPORT.md) |
 | Apple Notes | #772 adds direct NSAppleScript source for selected local plaintext copies with full text review, exact native identities, source reread and durable save; no extra app or source writes. Native Dictionary/TCC/build/device validation remains pending; see [APPLE-NOTES-IMPORT.md](APPLE-NOTES-IMPORT.md) |
 | DAV accounts | Canonical native configuration, Keychain credentials, revision-bound verified save/rollback and explicit collection discovery; 19 native account tests |
 | DAV calendar foundations | Complete typed REPORT snapshot decoding and surgical component edits preserving resource siblings; native tests pass on both architectures; no record-sync coordinator yet |
@@ -166,7 +166,7 @@ source checkpoint, not a completed native parity acceptance.
 - The separately developed iPhone AirPlay receiver requires the explicit
   [AirPlay bundle build](AIRPLAY-BUILD.md). Its source integration does not imply
   a native build or iPhone acceptance. AirPlay supplies screen/audio; calendar,
-  contact and Apple Notes connections are documented independently in
+  reminder, contact and Apple Notes connections are documented independently in
   [IPHONE-INTEROPERABILITY.md](IPHONE-INTEROPERABILITY.md).
 - Unsupported desktop controls retain an explicit Beta limitation notice or
   receive a negative response. They do not signify native feature parity.
@@ -333,6 +333,31 @@ Native WebKit tests load these actual generated resources and exercise search,
 result navigation, language selection, isolation and blocked external scripts.
 New source still requires native execution; host projection tests alone do not
 prove the handbook runs on Monterey or other macOS versions.
+
+## Copy selected macOS reminders
+
+**Copy macOS reminders…** in the application menu or System internet accounts
+opens explicit EventKit permission, reminder-list and item selection in #777.
+Open and completed entries are offered. The iPhone reminders must already be
+available in the selected Mac account; the connection needs no helper program
+or Magnolie iPhone app.
+
+Up to 100 selected records and 16 MiB become reviewed, independent local tasks.
+Title, plain note, completion state, supported dates and an explicitly displayed
+three-level priority mapping enter the existing task editor. DATE and floating
+clock values retain their meaning; explicit timezones use the document's time
+database. Recurrences, alarms and values the editor cannot preserve are visibly
+excluded. Public EventKit does not expose complete Reminders-app semantics:
+hierarchy, tags, flags, attachments, assignments and rich text are explicitly
+unavailable, never assumed absent. Copies have no source parent relationship
+and do not enable task notifications.
+
+The reader checks list/account membership and re-reads selected public fields
+after review. Existing, changed and trashed local copies remain intact. The
+transaction probes the canonical task graph before mutation, creates a recovery
+checkpoint and requires a durable-save acknowledgement. Source data is read
+only; this is not synchronization. See [SYSTEM-REMINDER-IMPORT.md](SYSTEM-REMINDER-IMPORT.md)
+for field coverage, limits and the required native acceptance.
 
 ## Copy selected macOS contacts
 

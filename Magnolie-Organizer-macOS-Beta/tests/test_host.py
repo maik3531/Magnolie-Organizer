@@ -452,6 +452,24 @@ class ProjectionTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             print(result.stdout.strip())
 
+    def test_additive_system_reminder_copy_contract(self):
+        runtime = self.javascript()
+        info = plistlib.loads(self.snapshot[str((BETA / "Resources/Info.plist").relative_to(projection.REPO))])
+        self.assertTrue(info.get("NSRemindersUsageDescription"))
+        self.assertTrue(info.get("NSRemindersFullAccessUsageDescription"))
+        self.assertIn("macos_erinnerungen_importieren", projection.commands(self.snapshot))
+        self.assertIn("| `macos_erinnerungen_importieren` |", bridge_coverage.report(self.snapshot))
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-system-reminder-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            args = [runtime]
+            if Path(runtime).name == "deno":
+                args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
+            result = subprocess.run(args + ["tests/system_reminder_import.mjs", str(target)], cwd=BETA,
+                                    capture_output=True, text=True, timeout=120)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            print(result.stdout.strip())
+
     def test_communication_published_ui_payloads(self):
         runtime = self.javascript()
         args = [runtime]

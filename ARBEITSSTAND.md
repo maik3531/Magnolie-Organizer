@@ -1,5 +1,103 @@
 # Aktueller Arbeitsstand
 
+## Mac #777: Apple-Erinnerungen als eigenständige lokale Aufgaben – 25. November 2026
+
+**Aktueller vollständiger Arbeitszweig: `work/777-macos-reminder-copy`, Basis
+`a706c57132d3646139464d7d432abe3f860514d6` aus #775.** Der Zweig enthält weiter
+AirPlay #721, Kalender #770, Apple-Notes-Textkopien #772, die Einstellungs-
+Korrekturen #773/#774 und Kontakte #775. Die entfernte Standardbasis wurde als
+`00776ce70e155c7a607ed55a4502d6fcee5a860c` bestätigt. Gemäß Nutzerauftrag
+werden überprüfbare Quellpatches im Issue und auf dem Arbeitszweig für die
+spätere Codex-Übernahme bereitgestellt; kein Merge nach `main`, kein Paket
+und keine Veröffentlichung.
+
+Der parameterlose Befehl `macos_erinnerungen_importieren` ist im nativen Menü
+und unter den System-Internetkonten angebunden. Der neue direkte
+EventKit-Reader nutzt die bestehende serielle Store-Queue und ausdrückliche
+Systemfreigabe. Auswahl von Liste/Konto und offenen oder erledigten Einträgen,
+vollständige Vorschau, erneuter ausgewählter Quellenabruf und dauerhafte
+Speicherquittung sind verbunden. Die älteren allgemeinen Reader/Snapshots
+behalten ihre getrennten Verträge und Einschränkungen.
+
+Bis zu 100 Einträge und 16 MiB werden als eigenständige lokale Aufgaben
+vorbereitet. Titel, Klartextnotiz, Erledigtstatus, unterstützte Daten und eine
+sichtbar erklärte Gruppierung in drei Prioritäten werden übernommen.
+Originalwerte und tatsächlich gelesene öffentliche Felder bleiben passiver
+Quellenbeleg. Unteraufgabenbeziehungen, Tags, Markierungen, Anhänge,
+Zuweisungen, Rich Text und Provider-Sonderfelder werden als nicht verfügbar
+gekennzeichnet; ihre Abwesenheit wird nicht erfunden. Serien und Alarme
+werden sichtbar ausgeschlossen. Es gibt keine Quelländerung, keinen
+Rückabgleich, keine neue Benachrichtigung und keine zusätzliche iPhone-App.
+
+DATE und floating werden direkt als unveränderte Gregorianische
+Kalenderwerte abgebildet. Eine fehlende eigene DateComponents-Zeitzone wird
+weder durch Kalender-, Objekt- noch Systemzeitzone ersetzt. Die Prüfung
+deckte eine zusätzliche Verankerung durch den bisherigen Kalenderdecoder
+auf; der neue Civil-Pfad erhält auch floating Uhrzeiten in Sommerzeitlücken
+und -überlappungen. Nur ausdrücklich gebundene Zeiten verwenden die
+gepinnten Zeitzonendaten; mehrdeutige Zeiten, Subminuten und nicht
+bearbeitbare Kombinationen werden sichtbar ausgeschlossen.
+
+Quellidentitäten werden bytegenau verglichen, alle neun Listen-/Kontofelder
+und ausgewählten Rohdatensätze einschließlich Ausschlüssen neu geprüft.
+Das ist eine Revision gelesener Felder, kein atomarer Serverstand. EventKit
+liefert für die Eintragsauswahl bereits vollständige EKReminder-Objekte;
+die Metadatengrenze von 10.000 greift nach dem Callback und ist keine
+Zusicherung über dessen interne Allokation. Abbruch/20-Sekunden-Frist
+beenden die eigene Fortsetzung genau einmal; verspätete Ergebnisse werden
+verworfen, ohne sofortigen Abbruch synchroner Systemzugriffe zu behaupten.
+
+Die tatsächliche kanonische UI erzeugt neue lokale IDs und Zeitstempel.
+Sie prüft den gesamten Aufgabenbaum auf Klonen und hängt neue Wurzelaufgaben
+erst nach bestätigtem Erhalt aller Bestandsaufgaben an. Lokale Änderungen,
+bekannte Kopien und Papierkorbeinträge bleiben erhalten. Vorschautoken,
+fünfminütige Frist, konkretes Buch samt vollständigem Inhalt, Zeitzone,
+Entwürfe, Wiederherstellungspunkt und Save-ACK sind gebunden.
+
+Die unabhängige Prüfung reproduzierte einen Folgefehler nach dem Anhängen:
+Eine Ausnahme im öffentlichen Renderer-Hook ließ die neue Kopie im Buch und
+einen Speichertimer aktiv, meldete aber nur den Darstellungsfehler. Der
+neue Anschluss unterscheidet jetzt bestätigtes Save-NACK von noch nicht
+bestätigter Speicherung. Eine echte UI-Regression prüft Erhalt, Save-Retry
+und Wiedererkennung ohne Duplikat. Der gleiche Quellpfad älterer
+Kalender-/Notes-/Kontaktkopien wird getrennt in **#778** geprüft.
+
+Der von Root ausgeführte gemeinsame Lauf bestand **7/7 Testgruppen** in
+29,029 Sekunden, Node 24.22.3 / CI-JSDOM 26.1.0:
+
+| Prüfung | Tatsächlich bestanden |
+| --- | --- |
+| Erinnerungskopien mit vollständigem gemeinsamem Core-Fixture und echter projizierter UI | 369 Prüfungen |
+| Kontaktkopien einschließlich Geburtstag/Editor und 14 Anker-Driftprüfungen | 230 Prüfungen |
+| Apple-Notes-Textkopien einschließlich Kontoentwürfen | 179 Prüfungen |
+| Systemkalenderkopien einschließlich Settings-Einstieg | 307 Prüfungen |
+| Allgemeiner tatsächlicher UI-Host-Vertrag | 109 Assertions |
+| Bridgeinventar | Bestanden |
+| Freeze-/Manipulationserkennung | Bestanden |
+
+Danach wurde ausschließlich der deutsche native Berechtigungsfehlertext
+ergänzt. Der abschließende getrennte Erinnerungs-Runner bestand auf diesen
+finalen Eingaben erneut **369 Prüfungen mit unveränderter Eingabeinventur**.
+Vier deutsche UI-/Vorschauprüfungen sind enthalten. Native Nutzlasten und
+Transportantworten sind synthetisch. 31 neue Swift-Core-/Bridge-Testmethoden
+sind vorbereitet, **hier weder kompiliert noch ausgeführt**. Tatsächlich
+geprüft sind außerdem JSON-/Plist-Format, Übereinstimmung der 20 Rohfelder,
+unabhängiger Identitätshash, vollständige ergänzte deutsche Meldungen und
+sauberes Diff-Whitespace. Die finale Produktinventur enthält **432 Dateien**,
+SHA-256 der sortierten Inventur
+`39622893d7205e8485d8f47cdea8ebdefe378cb566c75a223a071a8ed2a75754`.
+Kein SourceFreeze und kein dauerhaft erzeugter Bundle-Stand.
+
+Native Swift-/EventKit-/AppKit-/TCC-/Konten- und Geräteabnahme bleibt gemäß
+[SYSTEM-REMINDER-IMPORT.md](Magnolie-Organizer-macOS-Beta/SYSTEM-REMINDER-IMPORT.md)
+offen. Der gemeinsame Aufgaben-Normalizer anderer Editionen übernimmt die
+neuen Herkunftsfelder nicht wie der Mac-Erhaltungsvertrag. Diese konkrete
+Quellenabweichung und die gesonderte Linux-/Windows-JSON-Austauschprüfung
+stehen in **#779**; kein dortiger nativer Datenverlust wird behauptet.
+**#776** bleibt der separate Kontaktgeburtstagsfall. Nächster Schritt ist
+die Codex-Übernahme und native Abnahme des gesicherten Gesamtzweigs sowie
+die getrennte Bearbeitung der benannten Folgeprüfungen.
+
 ## Mac #775: ausgewählte Systemkontakte als lokale Kopien – 25. November 2026
 
 **Aktueller vollständiger Arbeitszweig: `work/775-macos-contact-copy`, Basis
