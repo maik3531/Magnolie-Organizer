@@ -252,3 +252,33 @@ Inhaltsänderung wird über den bestehenden GitHub-Pages-Ablauf veröffentlicht.
 Nächster inhaltlicher Schritt: Belegte neue Artikeladressen ergänzen und die
 noch offenen FindOpenSources-Metadaten bei einer späteren Rückmeldung prüfen.
 Es wurden keine erneuten Einreichungen oder Nachrichten versendet.
+
+## Linux #753: Messpatch zur Übernahme – 25. November 2026
+
+Auf der Standardbasis `00776ce70e155c7a607ed55a4502d6fcee5a860c` ist eine
+ausdrücklich aktivierbare, ausschließlich testseitige Phasenmessung für den
+synthetischen automatischen WLAN-Fotoempfang vorbereitet. Übergabe als
+vollständiger Patch in #753 zur anschließenden Prüfung und Übernahme mit Codex.
+Die benannten privaten #330-Integrationszweige sind damit nicht mitgeprüft.
+
+`--photo-receive-timing=JSON` erfasst Aufrufzahlen, inklusive/exklusive monotone
+Laufzeiten, aktive Aufrufe und Ereigniszähler. Der Snapshot wird unmittelbar
+nach der unveränderten 12-Sekunden-Ereigniswartephase atomar eingefroren; spätere
+Saved-/End-Ereignisse verändern ihn nicht. `deadline_met` bezeichnet nur das
+Activity-End-Ereignis. Die bisherigen Assertions für `complete`, Originalbytes,
+genau eine Übertragung und Erhalt lokaler Bearbeitungen bleiben erforderlich.
+Anleitung: `magnolie-organizer/pruefungen/PHOTO_RECEIVE_TIMING.md`.
+
+Geprüft mit Python 3.13.5 und pytest 8.4.2: elf Recorder-/Verdrahtungsprüfungen
+und alle fünf Varianten des vorhandenen Reader-Integrationstests bestanden
+gemeinsam (**16 bestanden in 28,85 s**). Die unveränderte isolierte Basisprobe
+bestand in 11,70 s Gesamt-Testzeit. Der letzte instrumentierte automatische
+Lauf erreichte das Aktivitätsende nach 7,219 s Ereigniswartezeit: ein Chunk,
+ein Saved, keine Fehler der synthetischen Gegenstelle. Diese unterschiedlichen
+Zeitgrößen und Läufe sind kein Geschwindigkeitsvergleich.
+
+Offen bleibt die Ursache der in #753 zuvor beobachteten Überschreitung.
+Nächster Schritt: den Messpatch in der betroffenen Linux-Umgebung anwenden und
+den eingefrorenen roten Checkpoint mit den hier grünen Quellmessungen
+vergleichen. Produktcode, Fristen, Freigaben und Dauerhaftigkeitsgrenzen wurden
+für diesen Messpatch nicht geändert; keine native Geräte-/Paketabnahme.

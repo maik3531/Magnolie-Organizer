@@ -28,7 +28,7 @@ from test_file_desktop_resume_abandonment import receipt as abandonment_receipt
 
 @contextmanager
 def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, metadata_handler=None,
-        insertion_witness=False, content=b'hello', photo_ids=None, resume_job=None, resume_media=None,media_kinds=None,wire=None):
+        insertion_witness=False, content=b'hello', photo_ids=None, resume_job=None, resume_media=None,media_kinds=None,wire=None,observe=None):
     queue = Queue(); errors = []; chunks = []; saved = []
     saved_targets={}
     entered = threading.Event(); release = threading.Event()
@@ -116,6 +116,7 @@ def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, met
                         send(result(message, run, final, state=state))
                 elif kind == 'file_transfer.chunk.request':
                     chunks.append(body['file_id'])
+                    if observe is not None:observe('chunk_request')
                     if block_chunk is not None:
                         entered.set(); check = release.wait(10); assert check
                     send(chunk(message, content))
@@ -124,8 +125,11 @@ def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, met
                         accepted=saved_targets[message['message_id']]
                         assert all((Path(accepted.destination.path) / path).read_bytes() == content for _,path in accepted.targets)
                     saved.append(message)
+                    if observe is not None:observe('saved_message')
         except BaseException as error:
-            errors.append(error); fixture[3].close()
+            errors.append(error)
+            if observe is not None:observe('peer_error')
+            fixture[3].close()
     def enqueue(message):
         if message['kind']=='file_transfer.saved':saved_targets[message['message_id']]=fixture[3]._run.accepted
         queue.put(message)
