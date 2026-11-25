@@ -1,5 +1,47 @@
 # Aktueller Arbeitsstand
 
+## Mac #774: Kontoentwürfe beim Notes-Import erhalten – 25. November 2026
+
+**Aktueller vollständiger Arbeitszweig: `work/774-notes-account-draft`, Basis
+`fbb50c2c9146091a778fdb45608b315a67d64899` aus #773.** Dieser Zweig enthält
+die direkte Apple-Notes-Textkopie #772 sowie die getrennten Korrekturen #773 und
+#774, aufbauend auf Kalender #770 und AirPlay #721. Die Patches bleiben für die
+spätere Codex-Übernahme bereitgestellt; `main` und Pakete sind unverändert.
+
+Die mit erfundenen Testdaten tatsächlich reproduzierte Lücke im neuen Notes-
+Start ist geschlossen: Separate Server-/Benutzerentwürfe und eine alleinige
+Kennworteingabe in sichtbaren Einstellungen blockieren den Import vor der
+Navigation und erneut nach dem Save-ACK. Dialog, Werte und Buchdaten bleiben
+erhalten; weder native Notes-Auswahl noch DAV-Speicherung werden gestartet.
+Verborgene alte Felder nach bewusstem Schließen blockieren spätere Menüstarts
+nicht. Die vorherige Reproduktion betraf nur ungespeicherte Formulareingaben,
+keine bereits gespeicherten Zugangsdaten oder tatsächlichen Nutzerkonten.
+
+Der gezielte Notes-Runner bestand mit **179 Prüfungen** und stabiler
+Eingangsdatei-Inventur. Der anschließend von Root gemeinsam ausgeführte Lauf
+gegen den vollständigen aktuellen Stand bestand **3/3 Testgruppen**:
+
+| Abschließende Prüfung | Ergebnis |
+| --- | --- |
+| Apple-Notes-Textkopien, tatsächlicher Settings-Knopf und Kontoentwürfe | 179 Prüfungen bestanden |
+| Systemkalenderkopien einschließlich Settings-Einstieg und Kontoentwürfen | 307 Prüfungen bestanden |
+| Allgemeiner tatsächlicher UI-Host-Vertrag | 109 Assertions bestanden |
+
+Node 24.22.3 / CI-JSDOM 26.1.0; native Quellnutzlasten und Transportantworten sind
+synthetisch. Der zuvor abgeschlossene #772-Lauf bestand zusätzlich die
+Notizdateiübernahme (23 Prüfungen), das Bridgeinventar und die Freeze-/
+Manipulationserkennung. Die neue Korrektur verändert nur den Notes-Startpfad,
+seine Regressionstests und Dokumentation. Finales Quellaudit: 424 Eingangsdateien,
+kein Freeze oder dauerhaft erzeugter Bundle-Stand; Diff-Whitespace sauber.
+
+18 neue Swift-Core-/Bridge-Tests aus #772 bleiben mangels Swift/Mac unkompiliert
+und unausgeführt. Native Notes-Dictionary, Automation-Berechtigung, stabile
+Objektreferenzen und die echten Mac-/iPhone-Daten müssen nach
+`APPLE-NOTES-IMPORT.md` geprüft werden. Vollständige Sprachkatalog-/Native-Bau-
+und Geräteabnahme werden durch diese Projektionsprüfungen nicht behauptet.
+Nächster Schritt ist die native Übernahme-/Abnahme dieses gesamten Zweigs;
+Kontakte und Erinnerungen behalten ihre getrennten offenen Abbildungsaufgaben.
+
 ## Mac #773: Kalenderimport aus den Einstellungen – 25. November 2026
 
 **Quellpatch auf `work/773-calendar-settings-entry`, Basis

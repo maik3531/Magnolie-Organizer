@@ -249,6 +249,47 @@ for (const stage of ["checkpoint", "saving"]) {
   } finally { b.close(); }
 }
 
+for (const stage of ["before-start", "during-save"]) for (const fieldID of ["briefkasten-url", "briefkasten-kennwort"]) {
+  const b = await context(), { w, t, messages } = b;
+  try {
+    t.oeffneEinstellungen(); w.document.querySelector("#einst-tab-sync").click();
+    const account = { kontoArt: "nextcloud", davAktiv: false, briefkastenAktiv: false,
+      url: "https://cloud.example.test", benutzer: "synthetic-user", kennwortVorhanden: false,
+      revision: "1".repeat(64), zustand: "nicht_eingerichtet", fehler: "", fehlerCode: "none" };
+    w.MacBeta.receive("baumBriefkastenStatus", account);
+    const request = messages.filter(message => message.cmd === "eds_status" && message.requestId).at(-1);
+    w.MacBeta.receive("edsStatus", { requestId: request.requestId, kalender: [], adressbuecher: [] });
+    const button = () => w.document.querySelector("#macos-apple-notes-import");
+    const visible = () => !w.document.querySelector("#einstellungen-schleier").classList.contains("verborgen");
+    const starts = () => messages.filter(message => message.cmd === "macos_apple_notizen_importieren");
+    const url = w.document.querySelector("#briefkasten-url"), password = w.document.querySelector("#briefkasten-kennwort");
+    equal([url.disabled, password.disabled, button().disabled], [false, false, false], "Real DAV fields and Notes button are enabled with a valid native revision");
+    t.daten().futureRoot.accountDraftRace = stage;
+    const before = JSON.stringify(t.daten()), savesBefore = messages.filter(message => message.cmd === "speichern").length;
+    if (stage === "during-save") button().click();
+    const field = w.document.getElementById(fieldID), value = fieldID === "briefkasten-url"
+      ? "https://unsaved.example.test/dav" : "public-synthetic-unsaved-app-password";
+    field.value = value; field.dispatchEvent(new w.Event("input", { bubbles: true }));
+    if (stage === "before-start") {
+      button().click();
+      equal(messages.filter(message => message.cmd === "speichern").length, savesBefore, "Existing account draft blocks Notes navigation/save before any document write");
+    }
+    await b.pump();
+    equal([starts().length, visible(), field.isConnected, field.value, JSON.stringify(t.daten())], [0, true, true, value, before],
+      "Notes start preserves account input without closing Settings or opening its picker: " + fieldID + "/" + stage);
+    equal([url.value, password.value], fieldID === "briefkasten-url" ? [value, ""] : [account.url, value],
+      "Password-only Notes case does not rely on a URL edit or changed-listener flag");
+    equal(messages.filter(message => message.cmd === "baum_briefkasten_speichern").length, 0, "Notes start cannot save or discard the native account draft");
+    equal(w.document.querySelector("#zettel").textContent, "Save or discard the account changes before importing.", "Blocked Notes start explains the pending account edit");
+    if (stage === "before-start" && fieldID === "briefkasten-kennwort") {
+      t.schliesseEinstellungen();
+      equal([visible(), field.value], [false, value], "Conscious close can leave an old password in hidden DOM");
+      w.App.macOSBetaStartAppleNotesImport(); await b.pump();
+      equal(starts(), [{ cmd: "macos_apple_notizen_importieren" }], "Hidden stale password does not block a subsequent Notes menu start");
+    }
+  } finally { b.close(); }
+}
+
 {
   const b = await context(), { w, t } = b;
   try {

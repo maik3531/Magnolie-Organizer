@@ -11,6 +11,12 @@
     return !!aenderungsGuard || editorIstGeaendert() || modalStapel.some(item => item.schleier.isConnected) ||
       !!ausstehenderNotizSnapshot || notizSnapshotTimer !== null;
   }
+  function macOSBetaAppleNotesHasSettingsDraft() {
+    // #774: account fields are separate from DATEN and the active form editor.
+    // A password-only edit does not set nextcloudEntwurfGeaendert.
+    return !$("#einstellungen-schleier").classList.contains("verborgen") &&
+      (nextcloudEntwurfGeaendert || !!$("#briefkasten-kennwort")?.value);
+  }
   function macOSBetaAppleNotesExpired(proposal) {
     return Date.now() >= proposal.expires || performance.now() >= proposal.monotonicExpires;
   }
@@ -26,11 +32,17 @@
     if (macOSBetaAppleNotesBlocked()) return;
     macOSBetaAppleNotesDiscardObsoleteReview();
     if (macOSBetaAppleNotesProposal) { zettel("An Apple Notes copy is already being reviewed."); return; }
+    if (macOSBetaAppleNotesHasSettingsDraft()) {
+      zettel(_("Save or discard the account changes before importing.")); return;
+    }
     navigiereMitGuard(() => nachDauerhaftemSpeichern(() => {
       if (macOSBetaAppleNotesBlocked()) return;
       const settings = $("#einstellungen-schleier");
       if (modalStapel.some(item => item.schleier.isConnected && item.schleier !== settings)) {
         zettel("Finish or close the current editor before reviewing Apple Notes copies."); return;
+      }
+      if (macOSBetaAppleNotesHasSettingsDraft()) {
+        zettel(_("Save or discard the account changes before importing.")); return;
       }
       // The System Sources button lives inside the Settings modal. Leave it via
       // the canonical close path before opening the native picker; otherwise

@@ -42,6 +42,16 @@ werden nicht durch erfundene Normalwerte ersetzt.
    Erfolgsmeldung. Nach einem Speicherfehler bleiben die sichtbaren Kopien
    ausdrücklich ungespeichert; diese Änderungen zuerst speichern.
 
+Nachtrag [#774](https://github.com/maik3531/Magnolie-Organizer/issues/774): Der
+Importstart schützt auch separat gehaltene Kontoeingaben in den Einstellungen.
+Eine noch nicht gespeicherte Server-/Benutzeränderung oder alleinige
+Kennworteingabe hält den Dialog offen und verhindert den nativen Start.
+Die Prüfung erfolgt vor der Navigation und erneut nach der gewöhnlichen
+Buch-Speicherquittung. Diese Quittung speichert keine Kontokonfiguration.
+Magnolie übernimmt oder verwirft solche Eingaben nicht automatisch. Bereits
+bewusst geschlossene Einstellungen werden durch alte verborgene Feldwerte
+nicht erneut zum Hindernis für einen Menüstart.
+
 Ein Abbruch während des Lesens verwirft das Ergebnis. Ein bereits wartender
 Apple-Event-Aufruf kann weiterhin zurückkehren; `Task.cancel()` ist keine harte
 Beendigung von AppleScript. Der Host und die serialisierte Leserinstanz bleiben
