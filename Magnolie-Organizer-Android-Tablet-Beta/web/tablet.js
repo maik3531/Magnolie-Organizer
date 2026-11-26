@@ -55,7 +55,7 @@
     for (const [art,label] of [['events','Calendars'],['contacts','Contacts']]) {
       const row=document.createElement('p'),button=document.createElement('button');
       button.type='button';button.dataset.systemAccess=art;button.id='tablet-system-access-'+art;
-      button.textContent=tr('Allow access')+': '+tr(label);
+      button.textContent=systemText('allowAccess')+': '+tr(label);
       button.disabled=!!systemPending || !!pendingSystemImport || systemPermissions[art]==='authorized';
       button.addEventListener('click',()=>{
         if(systemPending || !loaded || blocked || replacement) return;
@@ -82,8 +82,8 @@
       sourceLabel.append(select);root.append(sourceLabel);
       if (art==='events') {
         const range=document.createElement('div');
-        for (const [key,title] of [['from','Start date'],['to','End date']]) {
-          const label=document.createElement('label');label.textContent=tr(title)+' ';
+        for (const [key,title] of [['from','startDate'],['to','endDate']]) {
+          const label=document.createElement('label');label.textContent=systemText(title)+' ';
           const input=document.createElement('input');input.type='date';input.id='tablet-system-'+key;input.value=systemDates[key];
           input.disabled=!!pendingSystemImport;input.addEventListener('change',()=>{systemDates[key]=input.value;});
           label.append(input);range.append(label);
@@ -156,7 +156,8 @@
           window.MagnolieI18n.ngettext('%(count)s existing entry skipped.','%(count)s existing entries skipped.',plan.skipped)
             .replace('%(count)s',String(plan.skipped))),
           ()=>finish(tr('Warning: The data could not be saved.')));
-      } catch (_) {finish(tr('Import failed.'));}
+      } catch (error) {finish(['legacy_identity_conflict','identity_conflict'].includes(error?.message) ?
+        systemText('identityConflict') : tr('Import failed.'));}
     },()=>finish(tr('Warning: The data could not be saved.'))).then(ok=>{if(!ok)finish(tr('Cancel'));})
       .catch(()=>finish(tr('Import failed.')));
   }

@@ -10,11 +10,11 @@ import android.provider.CalendarContract.Events
 import android.provider.CalendarContract.Instances
 import android.provider.ContactsContract.Data
 import android.provider.ContactsContract.RawContacts
+import android.provider.Settings.Secure
 import org.json.JSONObject
 
-/** Explicit read-only import from one provider source. No provider mutation API is used. Refs #791. */
+/** Explicit read-only import from one provider source. No provider mutation API is used. Refs #791, #799, #800. */
 internal class AndroidSystemRecords(private val context: Context) {
-    private data class RawContact(val id: String, val version: String, val name: String)
     private data class CalendarSource(val id: String, val accountType: String?, val accountName: String?)
     private class Budget {
         private var rows = 0
@@ -55,11 +55,11 @@ internal class AndroidSystemRecords(private val context: Context) {
         return result
     }
 
-    private fun rawContacts(request: SystemImportRequest, control: AndroidSystemSources.Control, current: () -> Unit): List<RawContact> {
+    private fun rawContacts(request: SystemImportRequest, control: AndroidSystemSources.Control, current: () -> Unit): List<SystemImportPolicy.RawContact> {
         current()
         val projection = arrayOf(RawContacts._ID, RawContacts.VERSION, RawContacts.DISPLAY_NAME_PRIMARY,
-            RawContacts.ACCOUNT_NAME, RawContacts.ACCOUNT_TYPE, RawContacts.DATA_SET)
-        val found = ArrayList<RawContact>()
+            RawContacts.ACCOUNT_NAME, RawContacts.ACCOUNT_TYPE, RawContacts.DATA_SET, RawContacts.SOURCE_ID, RawContacts.BACKUP_ID)
+        val found = ArrayList<SystemImportPolicy.RawContact>()
         val budget = Budget()
         val cursor = context.contentResolver.query(RawContacts.CONTENT_URI, projection,
             RawContacts.DELETED + "=0", null, RawContacts._ID + " ASC", control.signal) ?: error("provider_unavailable")
@@ -69,9 +69,10 @@ internal class AndroidSystemRecords(private val context: Context) {
                 it.text(RawContacts.ACCOUNT_TYPE), it.text(RawContacts.ACCOUNT_NAME), it.text(RawContacts.DATA_SET))
             if (source == request.sourceUid) {
                 check(found.size < SystemImportPolicy.MAX_RECORDS) { "record_limit" }
-                found.add(RawContact(it.text(RawContacts._ID) ?: error("provider_unavailable"),
+                found.add(SystemImportPolicy.RawContact(it.text(RawContacts._ID) ?: error("provider_unavailable"),
                     it.text(RawContacts.VERSION) ?: error("provider_unavailable"),
-                    budget.text(it.text(RawContacts.DISPLAY_NAME_PRIMARY)).orEmpty()))
+                    budget.text(it.text(RawContacts.DISPLAY_NAME_PRIMARY)).orEmpty(),
+                    budget.text(it.text(RawContacts.SOURCE_ID)), budget.text(it.text(RawContacts.BACKUP_ID))))
             }
         } }
         current()
@@ -80,7 +81,15 @@ internal class AndroidSystemRecords(private val context: Context) {
     }
 
     private fun contacts(request: SystemImportRequest, control: AndroidSystemSources.Control, current: () -> Unit): JSONObject {
-        val before = rawContacts(request, control, current)
+        current()
+        val deviceId = Secure.getString(context.contentResolver, Secure.ANDROID_ID)
+        return SystemImportPolicy.readContacts(request, deviceId,
+            { rawContacts(request, control, current) },
+            { before -> contactDetails(before, control, current) }, control::check)
+    }
+
+    private fun contactDetails(before: List<SystemImportPolicy.RawContact>, control: AndroidSystemSources.Control,
+                               current: () -> Unit): Map<String, List<SystemImportPolicy.Detail>> {
         val details = before.associate { it.id to ArrayList<SystemImportPolicy.Detail>() }
         val budget = Budget()
         val fields = arrayOf(Data.DATA1, Data.DATA2, Data.DATA3, Data.DATA4, Data.DATA5,
@@ -105,16 +114,8 @@ internal class AndroidSystemRecords(private val context: Context) {
                 details.getValue(rawId).add(SystemImportPolicy.Detail(mime, values))
             } }
         }
-        // RawContacts.VERSION changes whenever the raw row or related Data changes.
-        // A changed/deleted/new row rejects the entire candidate, never a partial import.
-        check(before == rawContacts(request, control, current)) { "provider_changed" }
-        val output = SystemImportPolicy.Batch(request)
-        for (raw in before) {
-            control.check()
-            val data = SystemImportPolicy.contact(request.sourceUid, raw.id, raw.name, details.getValue(raw.id))
-            output.add(data.getString("uid"), data)
-        }
-        return output.result()
+        current()
+        return details
     }
 
     private fun calendarSource(request: SystemImportRequest, control: AndroidSystemSources.Control, current: () -> Unit): CalendarSource {
@@ -143,7 +144,8 @@ internal class AndroidSystemRecords(private val context: Context) {
         val builder = Instances.CONTENT_URI.buildUpon()
         ContentUris.appendId(builder, window.queryFrom); ContentUris.appendId(builder, window.queryTo)
         val projection = arrayOf(Instances.EVENT_ID, Instances.BEGIN, Instances.END, Events.ALL_DAY,
-            Events.TITLE, Events.DESCRIPTION, Events.EVENT_LOCATION, Events.CALENDAR_ID, Events.STATUS)
+            Events.TITLE, Events.DESCRIPTION, Events.EVENT_LOCATION, Events.CALENDAR_ID, Events.STATUS,
+            Events.RRULE, Events.RDATE, Events.ORIGINAL_ID, Events.ORIGINAL_INSTANCE_TIME, Events.ORIGINAL_SYNC_ID, Events.ORIGINAL_ALL_DAY)
         val selection = Events.CALENDAR_ID + "=? AND (" + Events.STATUS + " IS NULL OR " + Events.STATUS + "<>?)"
         val cursor = context.contentResolver.query(builder.build(), projection, selection,
             arrayOf(source.id, Events.STATUS_CANCELED.toString()), Instances.BEGIN + " ASC," + Instances.EVENT_ID + " ASC", control.signal)
@@ -160,9 +162,15 @@ internal class AndroidSystemRecords(private val context: Context) {
             // timed instants and all-day UTC date spans separately using their original domains.
             if (window.contains(begin, end, allDay)) {
                 check(found.size < SystemImportPolicy.MAX_RECORDS) { "record_limit" }
+                val originalTime = it.text(Events.ORIGINAL_INSTANCE_TIME)?.let { value -> value.toLongOrNull() ?: error("provider_unavailable") }
+                val originalAllDay = when (it.text(Events.ORIGINAL_ALL_DAY)) {
+                    null -> null; "0" -> false; "1" -> true; else -> error("provider_unavailable")
+                }
                 found.add(SystemImportPolicy.CalendarInstance(it.text(Instances.EVENT_ID) ?: error("provider_unavailable"),
                     begin, end, allDay, budget.text(it.text(Events.TITLE)).orEmpty(),
-                    budget.text(it.text(Events.DESCRIPTION)).orEmpty(), budget.text(it.text(Events.EVENT_LOCATION)).orEmpty()))
+                    budget.text(it.text(Events.DESCRIPTION)).orEmpty(), budget.text(it.text(Events.EVENT_LOCATION)).orEmpty(),
+                    budget.text(it.text(Events.RRULE)), budget.text(it.text(Events.RDATE)), budget.text(it.text(Events.ORIGINAL_ID)),
+                    originalTime, budget.text(it.text(Events.ORIGINAL_SYNC_ID)), originalAllDay))
             }
         } }
         current()
@@ -170,6 +178,8 @@ internal class AndroidSystemRecords(private val context: Context) {
     }
 
     private fun calendar(request: SystemImportRequest, control: AndroidSystemSources.Control, current: () -> Unit): JSONObject {
+        current()
+        val deviceId = Secure.getString(context.contentResolver, Secure.ANDROID_ID)
         val source = calendarSource(request, control, current)
         val first = instances(request, source, control, current)
         // CalendarContract exposes no general collection revision. Two equal bounded reads
@@ -179,8 +189,9 @@ internal class AndroidSystemRecords(private val context: Context) {
         val output = SystemImportPolicy.Batch(request)
         for (instance in first) {
             control.check()
-            val data = SystemImportPolicy.calendar(request.sourceUid, instance)
-            output.add(data.getString("uid"), data)
+            val identity = SystemImportPolicy.eventIdentity(request.sourceUid, instance, deviceId)
+            val data = SystemImportPolicy.calendar(identity, instance)
+            output.add(identity.recordId, data, identity)
         }
         return output.result()
     }

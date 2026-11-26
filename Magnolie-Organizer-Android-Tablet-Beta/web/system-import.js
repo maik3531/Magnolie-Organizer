@@ -1,4 +1,4 @@
-/* Explicit Android copies. Provider data never grants synchronization authority. Refs #791. */
+/* Explicit Android copies. Provider data never grants synchronization authority. Refs #791, #799, #800. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.TabletSystemImport = factory();
@@ -35,9 +35,24 @@
     require(Array.isArray(payload.records) && payload.records.length <= MAX_RECORDS && bytes(payload) <= MAX_BYTES, 'record_limit');
     const collection = request.art === 'contacts' ? 'kontakte' : 'termine';
     require(Array.isArray(book[collection]), 'invalid_book');
+    const contacts = request.art === 'contacts';
+    require(payload.identitySchema === 2, 'invalid_identity');
+    // Old experimental copies lack the provider's stable identity. Neither a
+    // recycled row ID nor matching names/phone numbers can prove equivalence.
+    require(!payload.records.length || !book[collection].some(row =>
+      row.androidSystemImport?.kind === request.art && row.androidSystemImport.sourceUid === request.sourceUid &&
+      row.androidSystemImport.schema !== 2), 'legacy_identity_conflict');
     const existing = new Set(book[collection].flatMap(row => [row.id, row.uid,
       row.androidSystemImport?.recordId].filter(value => typeof value === 'string' && value)));
-    const seen = new Set(), rows = [];
+    const existingRows = new Map();
+    if (contacts) for (const row of book.kontakte) {
+      const origin = row.androidSystemImport;
+      if (origin?.schema === 2 && origin.kind === 'contacts' && origin.sourceUid === request.sourceUid && origin.rowBinding) {
+        const ids = existingRows.get(origin.rowBinding) || new Set();
+        ids.add(origin.recordId); existingRows.set(origin.rowBinding, ids);
+      }
+    }
+    const seen = new Set(), seenRows = new Map(), rows = [];
     let skipped = 0;
     for (const record of payload.records) {
       const prefix = request.art === 'contacts' ? 'android-contact:' : 'android-event:';
@@ -47,10 +62,23 @@
       require(data && typeof data === 'object' && !Array.isArray(data) && data.uid === record.recordId, 'invalid_record');
       const fields = request.art === 'contacts' ? contactFields : eventFields;
       require(Object.keys(data).every(key => fields.has(key)) && data.sync === false, 'invalid_record');
+      require((contacts ? ['source-id','backup-id','device-raw-id'] : ['single-event','recurring-instance'])
+        .includes(record.identityKind), 'invalid_identity');
+      if (contacts) {
+        require(/^android-contact-row:[0-9a-f]{64}$/.test(record.rowBinding || ''), 'invalid_identity');
+        require(!seenRows.has(record.rowBinding) || seenRows.get(record.rowBinding) === record.recordId, 'identity_conflict');
+        seenRows.set(record.rowBinding, record.recordId);
+      }
+      // A stable provider identity remains known even when a resync assigns it
+      // another local row. Such known copies never overwrite local edits.
       if (existing.has(record.recordId)) { skipped++; continue; }
+      if (contacts) {
+        const prior = existingRows.get(record.rowBinding);
+        require(!prior || [...prior].every(id => id === record.recordId), 'identity_conflict');
+      }
       let row = {...copy(data), id:record.recordId, uid:record.recordId, sync:false, syncQuellen:{},
-        androidSystemImport:{schema:1,kind:request.art,sourceUid:request.sourceUid,recordId:record.recordId,
-          scope:payload.scope}};
+        androidSystemImport:{schema:2,kind:request.art,sourceUid:request.sourceUid,recordId:record.recordId,
+          scope:payload.scope,identityKind:record.identityKind,...(contacts ? {rowBinding:record.rowBinding} : {})}};
       if (request.art === 'events') {
         require(Array.isArray(row.icsRoundtrip) && row.icsRoundtrip.length === 2 &&
           row.icsRoundtrip.every(line => typeof line === 'string' && /^(DTSTART|DTEND)(;VALUE=DATE)?:[0-9TZ]+$/.test(line)) &&

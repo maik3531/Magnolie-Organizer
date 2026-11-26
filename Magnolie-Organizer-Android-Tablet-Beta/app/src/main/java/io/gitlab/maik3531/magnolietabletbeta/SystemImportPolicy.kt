@@ -85,8 +85,9 @@ internal data class SystemImportWindow(val from: Long, val to: Long, val dayFrom
     }
 }
 
-/** Pure, bounded projections; provider-only and unsupported metadata grants no authority. */
+/** Pure, bounded projections; provider-only metadata grants no authority. Refs #791, #799, #800. */
 internal object SystemImportPolicy {
+    const val IDENTITY_SCHEMA = 2
     const val MAX_RECORDS = 5000
     const val MAX_ROWS = 50_000
     const val MAX_BYTES = 4 * 1024 * 1024
@@ -105,24 +106,118 @@ internal object SystemImportPolicy {
         }
     }
     data class CalendarInstance(val eventId: String, val begin: Long, val end: Long,
-        val allDay: Boolean, val title: String, val description: String, val location: String)
+        val allDay: Boolean, val title: String, val description: String, val location: String,
+        val recurrenceRule: String? = null, val recurrenceDates: String? = null, val originalId: String? = null,
+        val originalInstanceTime: Long? = null, val originalSyncId: String? = null, val originalAllDay: Boolean? = null)
+    data class RawContact(val id: String, val version: String, val name: String,
+        val sourceId: String?, val backupId: String?)
+    sealed interface Identity { val recordId: String; val kind: String }
+    data class ContactIdentity(override val recordId: String, override val kind: String, val rowBinding: String): Identity
+    data class EventIdentity(override val recordId: String, override val kind: String): Identity
+
+    private fun deviceScope(deviceId: String?): String {
+        // On minSdk 26+, ANDROID_ID is scoped to app signing key, Android user and device.
+        // Never substitute an empty/global device scope or disclose the value to the renderer.
+        require(deviceId != null && deviceId.matches(Regex("[0-9a-fA-F]{1,16}"))) { "provider_unavailable" }
+        return deviceId.lowercase().padStart(16, '0')
+    }
+
+    /** A provider row number is not an account's stable contact identity. */
+    fun contactIdentity(source: String, raw: RawContact, deviceId: String?): ContactIdentity {
+        require(raw.id.matches(Regex("[0-9]+")) && raw.id.toLongOrNull() != null) { "provider_unavailable" }
+        val scope = deviceScope(deviceId)
+        for (value in listOf(raw.sourceId, raw.backupId))
+            require(value == null || value.toByteArray(Charsets.UTF_8).size <= 8192) { "record_limit" }
+        val kind: String
+        val identity: Array<String>
+        when {
+            !raw.sourceId.isNullOrEmpty() -> { kind = "source-id"; identity = arrayOf(raw.sourceId) }
+            !raw.backupId.isNullOrEmpty() -> { kind = "backup-id"; identity = arrayOf(raw.backupId) }
+            else -> { kind = "device-raw-id"; identity = arrayOf(scope, raw.id) }
+        }
+        val binding = SystemSourcePolicy.uid(SystemSourcePolicy.Kind.CONTACTS, source, "device-raw-id", scope, raw.id)
+        return ContactIdentity(recordId(SystemSourcePolicy.Kind.CONTACTS, source, kind, *identity), kind,
+            "android-contact-row:" + binding.substringAfter(':'))
+    }
+
+    /** Times describe an event; only a recurring instance uses its original slot as identity. */
+    fun eventIdentity(source: String, instance: CalendarInstance, deviceId: String?): EventIdentity {
+        val scope = deviceScope(deviceId)
+        fun validId(value: String?) = value != null && value.matches(Regex("[0-9]+")) && value.toLongOrNull() != null
+        require(validId(instance.eventId)) { "provider_unavailable" }
+        for (value in listOf(instance.recurrenceRule, instance.recurrenceDates, instance.originalSyncId))
+            require(value == null || value.toByteArray(Charsets.UTF_8).size <= MAX_TEXT_BYTES) { "record_limit" }
+        val recurring = !instance.recurrenceRule.isNullOrEmpty() || !instance.recurrenceDates.isNullOrEmpty()
+        val exception = !instance.originalId.isNullOrEmpty() || instance.originalInstanceTime != null || !instance.originalSyncId.isNullOrEmpty()
+        val kind: String
+        val id: String
+        if (exception) {
+            require(!recurring && validId(instance.originalId) && instance.originalId != instance.eventId &&
+                instance.originalInstanceTime != null) { "provider_unavailable" }
+            val original = instance.originalInstanceTime
+            require(original in -62_135_596_800_000L..253_402_300_799_999L) { "provider_unavailable" }
+            require(instance.originalAllDay != true || original % SystemImportWindow.DAY == 0L) { "provider_unavailable" }
+            kind = "recurring-instance"
+            id = recordId(SystemSourcePolicy.Kind.EVENTS, source, kind, scope, instance.originalId!!, original.toString())
+        } else if (recurring) {
+            kind = "recurring-instance"
+            id = recordId(SystemSourcePolicy.Kind.EVENTS, source, kind, scope, instance.eventId, instance.begin.toString())
+        } else {
+            kind = "single-event"
+            id = recordId(SystemSourcePolicy.Kind.EVENTS, source, kind, scope, instance.eventId)
+        }
+        return EventIdentity(id, kind)
+    }
+
+    /** The same snapshot/detail/snapshot sequence is used by the real Android provider adapter. */
+    fun readContacts(request: SystemImportRequest, deviceId: String?, snapshot: () -> List<RawContact>,
+                     readDetails: (List<RawContact>) -> Map<String, List<Detail>>, checkpoint: () -> Unit): JSONObject {
+        require(request.kind == SystemSourcePolicy.Kind.CONTACTS) { "invalid_request" }
+        checkpoint()
+        val before = snapshot()
+        require(before.size <= MAX_RECORDS) { "record_limit" }
+        val ids = before.map { it.id }.toSet()
+        check(ids.size == before.size) { "provider_changed" }
+        checkpoint()
+        val details = readDetails(before)
+        check(details.keys == ids) { "provider_changed" }
+        checkpoint()
+        // Include source/backup identity even if a provider fails to bump VERSION for it.
+        check(before == snapshot()) { "provider_changed" }
+        val output = Batch(request)
+        for (raw in before) {
+            checkpoint()
+            val identity = contactIdentity(request.sourceUid, raw, deviceId)
+            val data = contact(identity, raw.name, details.getValue(raw.id))
+            output.add(identity.recordId, data, identity)
+        }
+        checkpoint()
+        return output.result()
+    }
 
     class Batch(private val request: SystemImportRequest) {
         private val records = JSONArray()
         private val ids = HashSet<String>()
         private var bytes = request.reply().toString().toByteArray(Charsets.UTF_8).size + 256
-        fun add(id: String, data: JSONObject) {
+        fun add(id: String, data: JSONObject, identity: Identity? = null) {
             require(records.length() < MAX_RECORDS) { "record_limit" }
             require(ids.add(id)) { "provider_changed" }
             require(data.optString("uid") == id) { "provider_unavailable" }
+            require(when (request.kind) {
+                SystemSourcePolicy.Kind.CONTACTS -> identity is ContactIdentity
+                SystemSourcePolicy.Kind.EVENTS -> identity is EventIdentity
+            }) { "provider_unavailable" }
+            require(identity != null && identity.recordId == id) { "provider_unavailable" }
             val record = JSONObject().put("recordId", id).put("data", data)
+                .put("identityKind", identity.kind)
+            if (identity is ContactIdentity) record.put("rowBinding", identity.rowBinding)
             bytes += record.toString().toByteArray(Charsets.UTF_8).size + 1
             require(bytes <= MAX_BYTES) { "record_limit" }
             records.put(record)
         }
         fun result(): JSONObject = request.reply().put("ok", true).put("complete", true)
             .put("scope", if (request.kind == SystemSourcePolicy.Kind.CONTACTS) "source-contacts" else "calendar-instances-window")
-            .put("records", records)
+            .put("records", records).put("identitySchema", IDENTITY_SCHEMA)
     }
 
     fun recordId(kind: SystemSourcePolicy.Kind, source: String, vararg identity: String): String =
@@ -145,10 +240,9 @@ internal object SystemImportPolicy {
         .put("typen", JSONArray(types(row.value(2).toIntOrNull(), phone, email)))
         .also { if (row.value(2) == "0" && row.value(3).isNotEmpty()) it.put("label", row.value(3)) }
 
-    fun contact(source: String, rawId: String, displayName: String, details: List<Detail>): JSONObject {
-        require(rawId.matches(Regex("[0-9]+"))) { "provider_unavailable" }
+    fun contact(identity: ContactIdentity, displayName: String, details: List<Detail>): JSONObject {
         require(details.size <= MAX_ROWS && displayName.toByteArray().size <= MAX_TEXT_BYTES) { "record_limit" }
-        val result = JSONObject().put("uid", recordId(SystemSourcePolicy.Kind.CONTACTS, source, rawId))
+        val result = JSONObject().put("uid", identity.recordId)
             .put("anzeigename", displayName).put("sync", false)
         val phones = JSONArray(); val emails = JSONArray(); val addresses = JSONArray()
         val notes = ArrayList<String>(); val organizations = ArrayList<String>()
@@ -196,15 +290,14 @@ internal object SystemImportPolicy {
         else null
     } catch (_: Exception) { null }
 
-    fun calendar(source: String, instance: CalendarInstance): JSONObject {
+    fun calendar(identity: EventIdentity, instance: CalendarInstance): JSONObject {
         require(instance.eventId.matches(Regex("[0-9]+")) && instance.end >= instance.begin) { "provider_unavailable" }
         for (text in listOf(instance.title, instance.description, instance.location))
             require(text.toByteArray(Charsets.UTF_8).size <= MAX_TEXT_BYTES) { "record_limit" }
         val start = Instant.ofEpochMilli(instance.begin).atOffset(ZoneOffset.UTC)
         val end = Instant.ofEpochMilli(instance.end).atOffset(ZoneOffset.UTC)
         require(start.year in 1..9999 && end.year in 1..9999) { "provider_unavailable" }
-        val id = recordId(SystemSourcePolicy.Kind.EVENTS, source, instance.eventId, instance.begin.toString())
-        val result = JSONObject().put("uid", id).put("titel", instance.title).put("notiz", instance.description)
+        val result = JSONObject().put("uid", identity.recordId).put("titel", instance.title).put("notiz", instance.description)
             .put("ort", instance.location).put("sync", false).put("standardErinnerung", false)
             .put("wiederholung", JSONObject().put("art", "none").put("bis", ""))
             .put("icsAnzeigeZeitzone", "UTC").put("icsEndeFehlt", false)

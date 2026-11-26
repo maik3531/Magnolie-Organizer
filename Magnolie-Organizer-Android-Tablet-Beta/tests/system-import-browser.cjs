@@ -12,6 +12,9 @@ const assert = require("node:assert/strict");
 const { chromium } = require(process.env.MAGNOLIE_PLAYWRIGHT || "playwright");
 const web = path.resolve(__dirname, "../app/build/generated/projection/assets/web");
 const output = process.env.MAGNOLIE_TABLET_SYSTEM_OUTPUT;
+const systemStrings = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../web/system-import-i18n.json"), "utf8"));
+const betaStrings = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../web/beta-i18n.json"), "utf8"));
+const systemKeys = ["title", "copyNote", "windowNote", "busy", "scope", "allowAccess", "startDate", "endDate", "identityConflict"];
 const contactsSource = "android-contacts:" + "a".repeat(64);
 const eventsSource = "android-events:" + "b".repeat(64);
 const cases = [
@@ -25,6 +28,11 @@ function check(value, label) { checks++; if (!value) failures.push(label); }
 
 (async () => {
   assert.ok(fs.existsSync(path.join(web, "index.html")), "Generate the tablet projection first");
+  check(Object.keys(systemStrings).length === 20 && Object.keys(systemStrings).sort().join() === Object.keys(betaStrings).sort().join(),
+    "Android import text covers the same 20 locales as the tablet UI");
+  check(Object.values(systemStrings).every(strings => Object.keys(strings).sort().join() === [...systemKeys].sort().join() &&
+    systemKeys.every(key => typeof strings[key] === "string" && strings[key].trim())),
+  "All 20 locales contain exactly the nine nonempty Android import text keys");
   if (output) fs.mkdirSync(output, { recursive: true });
   const browser = await chromium.launch({ headless: true,
     executablePath: process.env.MAGNOLIE_CHROMIUM || undefined });
@@ -79,14 +87,14 @@ function check(value, label) { checks++; if (!value) failures.push(label); }
           finish(request) {
             const recordId = "android-event:" + request.requestId.replace(/-/g, "").repeat(2);
             const day = request.dateFrom?.replace(/-/g, "");
-            const records = request.art === "events" ? [{ recordId, data: {
+            const records = request.art === "events" ? [{ recordId, identityKind: "single-event", data: {
               uid: recordId, titel: "Synthetic browser appointment", notiz: "", ort: "",
               datum: request.dateFrom, zeit: "09:00", endDatum: "", endZeit: "10:00", icsAnzeigeZeitzone: "UTC",
               icsRoundtrip: ["DTSTART:" + day + "T090000Z", "DTEND:" + day + "T100000Z"],
               wiederholung: { art: "none", bis: "" }, sync: false, standardErinnerung: false,
               icsEndeFehlt: false, icsNullDauer: false,
             } }] : [];
-            reply("androidSystemImport", { ...request, kind: request.art, ok: true, complete: true,
+            reply("androidSystemImport", { ...request, kind: request.art, ok: true, complete: true, identitySchema: 2,
               scope: request.art === "contacts" ? "source-contacts" : "calendar-instances-window", records });
           },
           releaseSave() { acknowledge(saves.shift()); },
@@ -115,6 +123,15 @@ function check(value, label) { checks++; if (!value) failures.push(label); }
       check(await page.evaluate(() => document.activeElement.id === "einstellungen-zu"), prefix + "opening settings focuses its close control");
       await page.locator("#einst-tab-sync").tap();
       await page.waitForFunction(() => document.querySelector("#tablet-system-source-contacts")?.options.length === 2);
+      check(await page.locator('[data-system-access="contacts"]').textContent() === "Zugriff erlauben: Adressen" &&
+        await page.locator('[data-system-access="events"]').textContent() === "Zugriff erlauben: Kalender",
+      prefix + "both permission controls use the German Android import labels");
+      check(await page.locator("#tablet-system-from").evaluate(element => element.labels[0].textContent.trim()) === "Startdatum" &&
+        await page.locator("#tablet-system-to").evaluate(element => element.labels[0].textContent.trim()) === "Enddatum",
+      prefix + "date fields use German labels without English fallback");
+      check(await page.evaluate(() => window.Tablet.systemText("identityConflict")) ===
+        "Übernahme gestoppt: Eine vorhandene Android-Kopie lässt sich nicht eindeutig zuordnen. Vorhandene Einträge bleiben unverändert.",
+      prefix + "identity conflict message is available in German");
 
       const active = () => page.evaluate(() => ({ id: document.activeElement?.id || document.activeElement?.tagName,
         inside: document.getElementById("einstellungen-blatt").contains(document.activeElement) }));

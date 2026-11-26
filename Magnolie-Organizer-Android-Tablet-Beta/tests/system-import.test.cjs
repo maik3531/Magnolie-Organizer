@@ -1,5 +1,5 @@
 'use strict';
-// Real generated organizer + synthetic Android provider/SaveACK. Refs #791/#682.
+// Real generated organizer + synthetic Android provider/SaveACK. Refs #791/#682/#799/#800.
 // This exercises the actual UI and core; it is not Android permission/provider proof.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {webcrypto}=require('node:crypto');
@@ -56,11 +56,12 @@ function check(value,label){assert.ok(value,label);checks++;console.log('PASS '+
       const requests=messages.filter(m=>m.cmd==='android_systemimport');assert.equal(requests.length,count+1);
       return requests.at(-1);
     }
-    function contact(letter='c',name='Ada') {const recordId='android-contact:'+letter.repeat(64);return {recordId,data:{uid:recordId,
+    function contact(letter='c',name='Ada') {const recordId='android-contact:'+letter.repeat(64);return {recordId,
+      identityKind:'source-id',rowBinding:'android-contact-row:'+letter.repeat(64),data:{uid:recordId,
       anzeigename:name,vorname:name,nachname:'Example',firma:'',notiz:'Preserved note',sync:false,
       telefone:[{wert:'+4930123456',typen:['WORK']}],emailEintraege:[{wert:'ada@example.test',typen:['WORK']}],
       anschriften:[],geburtstag:'--02-29'}};}
-    function result(request,records,extra={}) {return {...request,kind:request.art,ok:true,complete:true,
+    function result(request,records,extra={}) {return {...request,kind:request.art,ok:true,complete:true,identitySchema:2,
       scope:request.art==='contacts'?'source-contacts':'calendar-instances-window',records,...extra};}
     let request=await start(),before=JSON.stringify(disk),c=contact();
     holdSave=true;reply('androidSystemImport',result(request,[c]));await wait();await wait();
@@ -72,6 +73,8 @@ function check(value,label){assert.ok(value,label);checks++;console.log('PASS '+
     check(disk.notizen[0].text==='Unrelated text','unrelated notes remain unchanged');
     const reopened=w.Tablet.validateImport(JSON.stringify(disk));
     check(reopened.kontakte[0].uid===c.recordId && reopened.kontakte[0].androidSystemImport.recordId===c.recordId,'copy identity survives validated book reopen');
+    check(reopened.kontakte[0].androidSystemImport.schema===2 && reopened.kontakte[0].androidSystemImport.identityKind==='source-id' &&
+      reopened.kontakte[0].androidSystemImport.rowBinding===c.rowBinding,'stable contact identity metadata survives canonical save and reopen');
     check(reopened.jahrestage.length===1 && reopened.jahrestage[0].kontaktId===c.recordId &&
       T.normalisiere(reopened).jahrestage.length===1,'derived contact birthday remains stable across consecutive reopens');
     const api={empty:T.leereDaten,normalize:T.normalisiere,projectEvent:w.MagnolieTabletActions.systemEvent};
@@ -84,9 +87,43 @@ function check(value,label){assert.ok(value,label);checks++;console.log('PASS '+
     const conflictBefore=JSON.stringify(conflictBook);
     assert.throws(()=>w.TabletSystemImport.prepare(result(pureRequest,[c]),pureRequest,conflictBook,api),/existing_record_conflict|unstable_reopen/);
     check(JSON.stringify(conflictBook)===conflictBefore,'ambiguous existing birthday is rejected without linking or folding old entries');
+    const stableBook=JSON.parse(JSON.stringify(reopened));stableBook.kontakte[0].notiz='Local identity copy';
+    const reassigned=contact();reassigned.rowBinding='android-contact-row:'+'9'.repeat(64);
+    let stablePlan=w.TabletSystemImport.prepare(result(pureRequest,[reassigned]),pureRequest,stableBook,api);
+    check(stablePlan.added===0 && stablePlan.skipped===1 && stableBook.kontakte[0].notiz==='Local identity copy',
+      'same provider contact with a reassigned local row keeps the existing local copy');
+    const newPerson=contact('f','Different person');newPerson.rowBinding=c.rowBinding;
+    const stableBefore=JSON.stringify(stableBook);
+    assert.throws(()=>w.TabletSystemImport.prepare(result(pureRequest,[newPerson]),pureRequest,stableBook,api),/identity_conflict/);
+    check(JSON.stringify(stableBook)===stableBefore,'new identity on a previously copied provider row rejects without replacing another person');
+    const fallbackBook=JSON.parse(JSON.stringify(stableBook));fallbackBook.kontakte[0].androidSystemImport.identityKind='device-raw-id';
+    assert.throws(()=>w.TabletSystemImport.prepare(result(pureRequest,[newPerson]),pureRequest,fallbackBook,api),/identity_conflict/);
+    check(fallbackBook.kontakte.length===1,'local fallback gaining a different source identity is not silently merged');
+    const legacyBook=JSON.parse(JSON.stringify(stableBook));legacyBook.kontakte[0].androidSystemImport.schema=1;
+    assert.throws(()=>w.TabletSystemImport.prepare(result(pureRequest,[contact('f')]),pureRequest,legacyBook,api),/legacy_identity_conflict/);
+    check(legacyBook.kontakte.length===1,'experimental contact copies without a stable identity require review before new copies');
+    const emptyLegacyPlan=w.TabletSystemImport.prepare(result(pureRequest,[]),pureRequest,legacyBook,api);
+    check(emptyLegacyPlan.added===0 && emptyLegacyPlan.skipped===0,'an empty source result does not invent a legacy identity conflict');
+    const otherSourceBook=JSON.parse(JSON.stringify(legacyBook));otherSourceBook.kontakte[0].androidSystemImport.sourceUid='android-contacts:'+'8'.repeat(64);
+    check(w.TabletSystemImport.prepare(result(pureRequest,[contact('f','Other')]),pureRequest,otherSourceBook,api).added===1,
+      'legacy copies from another source do not block the selected source');
+    for(const [label,change] of [
+      ['missing row binding',{rowBinding:undefined}],['unknown identity kind',{identityKind:'guessed-name'}]
+    ]){
+      assert.throws(()=>w.TabletSystemImport.prepare(result(pureRequest,[{...contact('f'),...change}]),pureRequest,T.leereDaten(),api),/invalid_identity/);
+      check(true,label+' cannot authorize a contact copy');
+    }
+    const duplicateRow=contact('f','Duplicate row');duplicateRow.rowBinding=c.rowBinding;
+    assert.throws(()=>w.TabletSystemImport.prepare(result(pureRequest,[c,duplicateRow]),pureRequest,T.leereDaten(),api),/identity_conflict/);
+    check(true,'two payload identities cannot claim the same local provider row');
+    assert.throws(()=>w.TabletSystemImport.prepare(result(pureRequest,[c],{identitySchema:1}),pureRequest,T.leereDaten(),api),/invalid_identity/);
+    check(true,'obsolete native identity schema is rejected');
     T.daten().kontakte[0].notiz='Locally edited';T.speichereJetzt();await wait();
     request=await start();reply('androidSystemImport',result(request,[contact('c','Changed remotely')]));await wait();await wait();
     check(disk.kontakte.length===1 && disk.kontakte[0].vorname==='Ada' && disk.kontakte[0].notiz==='Locally edited','repeated import skips existing identities and preserves local edits');
+    request=await start();before=JSON.stringify(disk);reply('androidSystemImport',result(request,[newPerson]));await wait();await wait();
+    check(JSON.stringify(disk)===before && w.document.getElementById('tablet-status').textContent===w.TabletSystemStrings.en.identityConflict,
+      'identity conflict is visible and leaves the complete saved book unchanged');
     for(const [label,change] of [
       ['partial result',{complete:false}],['wrong source',{sourceUid:eventsSource}],['duplicate record',{records:[contact('d'),contact('d')]}],
       ['provider failure',{ok:false,errorCode:'permission_required'}],['invalid sync grant',{records:[{...contact('d'),data:{...contact('d').data,sync:true}}]}]
@@ -110,13 +147,22 @@ function check(value,label){assert.ok(value,label);checks++;console.log('PASS '+
     w.document.getElementById('tablet-system-to').value='2030-03-31';w.document.getElementById('tablet-system-to').dispatchEvent(new w.Event('change'));
     request=await start('events');
     check(request.to-request.from===23*3600000,'calendar date window follows the book time zone across DST');
-    const eventId='android-event:'+'e'.repeat(64),event={recordId:eventId,data:{uid:eventId,titel:'Android event',notiz:'Exact instant',ort:'',
+    const eventId='android-event:'+'e'.repeat(64),event={recordId:eventId,identityKind:'single-event',data:{uid:eventId,titel:'Android event',notiz:'Exact instant',ort:'',
       datum:'2030-03-31',zeit:'09:00',endDatum:'',endZeit:'10:00',icsAnzeigeZeitzone:'UTC',
       icsRoundtrip:['DTSTART:20300331T090000Z','DTEND:20300331T100000Z'],wiederholung:{art:'none',bis:''},
       sync:false,standardErinnerung:false,icsEndeFehlt:false,icsNullDauer:false}};
     reply('androidSystemImport',result(request,[event]));await wait();await wait();
     check(disk.termine.length===1 && disk.termine[0].zeit==='11:00' && disk.termine[0].icsAnzeigeZeitzone==='Europe/Berlin','UTC provider instant displays in the organizer time zone');
     check(disk.termine[0].icsRoundtrip.includes('DTSTART:20300331T090000Z') && disk.termine[0].wiederholung.art==='none','original instant survives without invented recurrence rules');
+    check(disk.termine[0].androidSystemImport.schema===2 && disk.termine[0].androidSystemImport.identityKind==='single-event',
+      'calendar copy persists the exact native identity contract');
+    const movedEvent=JSON.parse(JSON.stringify(event));movedEvent.data.zeit='12:00';movedEvent.data.endZeit='13:00';
+    movedEvent.data.icsRoundtrip=['DTSTART:20300331T120000Z','DTEND:20300331T130000Z'];
+    request=await start('events');reply('androidSystemImport',result(request,[movedEvent]));await wait();await wait();
+    check(disk.termine.length===1 && disk.termine[0].zeit==='11:00','rescheduled provider event with the same identity does not add or overwrite the local copy');
+    const oldEventBook=JSON.parse(JSON.stringify(disk));oldEventBook.termine[0].androidSystemImport.schema=1;
+    assert.throws(()=>w.TabletSystemImport.prepare(result(request,[movedEvent]),request,oldEventBook,api),/legacy_identity_conflict/);
+    check(oldEventBook.termine.length===1,'old experimental calendar identities are not heuristically migrated');
     request=await start('contacts');before=JSON.stringify(disk);failSave=true;
     reply('androidSystemImport',result(request,[contact('d')]));await wait();await wait();
     check(JSON.stringify(disk)===before && !w.document.getElementById('tablet-status').textContent.startsWith('Imported:'),'failed native save never reports import success');

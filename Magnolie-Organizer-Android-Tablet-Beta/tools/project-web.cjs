@@ -236,7 +236,7 @@ generated.set('assets/web/tablet.js',Buffer.concat([buffers.get(path.join(root,'
 generated.set('assets/web/tablet.css',Buffer.concat([generated.get('assets/web/tablet.css'),
   Buffer.from('\n'),buffers.get(path.join(parent,'port-adapters/legacy-display.css'))]));
 const systemStrings=JSON.parse(buffers.get(path.join(root,'web/system-import-i18n.json')));
-const systemKeys=['title','copyNote','windowNote','busy','scope'];
+const systemKeys=['title','copyNote','windowNote','busy','scope','allowAccess','startDate','endDate','identityConflict'];
 if (Object.keys(systemStrings).sort().join() !== Object.keys(JSON.parse(buffers.get(path.join(root,'web/beta-i18n.json')))).sort().join() ||
     Object.values(systemStrings).some(value=>Object.keys(value).sort().join()!==[...systemKeys].sort().join() || systemKeys.some(key=>typeof value[key]!=='string' || !value[key].trim())))
   throw Error('Complete Android import translations in all 20 locales are required');
