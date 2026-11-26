@@ -1,0 +1,5 @@
+$ node --require /workspace/scratch/acde70e8594b/tablet-setup-ci-followup/probe-timezone-inputs.cjs magnolie-organizer-windows/tests/setup-holidays.js
+Setup holidays: 88 cross-desktop cases passed; 20 languages.
+Timezone input probe: stale-cache; desktop cache reads=0; mutated payload reads=0.
+
+exit=0

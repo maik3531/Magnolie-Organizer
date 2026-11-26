@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-11-26T11:04:38Z",
+  "source": "GitHub Actions API job logs and run metadata (read-only)",
+  "repository": "maik3531/Magnolie-Organizer",
+  "run": {
+    "id": 45806941029,
+    "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45806941029",
+    "event": "workflow_dispatch",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "failure",
+    "headSha": "e7d396ed39641338ce9a7b57929623bc1dbd2fe1",
+    "headBranch": "work/android-tablet-20261126",
+    "startedAt": "2026-11-26T11:02:50Z",
+    "updatedAt": "2026-11-26T11:04:19Z"
+  },
+  "job": {
+    "id": 139864580229,
+    "name": "tablet-build-only-no-native-acceptance",
+    "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45806941029/job/139864580229",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1
+    },
+    {
+      "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2
+    },
+    {
+      "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3
+    },
+    {
+      "name": "Bind the tablet to the unchanged current checkout",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4
+    },
+    {
+      "name": "Prepare the existing resource-limited build gate",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5
+    },
+    {
+      "name": "Build and verify debug APKs within the original locks and resource limits",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 6
+    },
+    {
+      "name": "Prepare the official Android runtime image",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 7
+    },
+    {
+      "name": "Exercise the candidate in the owned Android tablet emulator",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 8
+    },
+    {
+      "name": "Verify Android DAV parser and Keystore transactions independently of UI timing",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 9
+    },
+    {
+      "name": "Exercise actual ICS import and export file pickers independently",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 10
+    },
+    {
+      "name": "Verify health, custom design and drawing in an isolated component session",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 11
+    },
+    {
+      "name": "Compare actual WebView and native time-zone clocks against independent golden data",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 12
+    },
+    {
+      "name": "Collect synthetic native evidence",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 13
+    },
+    {
+      "name": "Preserve build diagnostics even when a gate fails",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 14
+    },
+    {
+      "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 27
+    },
+    {
+      "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 28
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 29
+    }
+  ],
+  "failure": {
+    "stepNumber": 6,
+    "command": [
+      "node",
+      "/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js"
+    ],
+    "timestamp": "2026-11-26T11:04:16.1377697Z",
+    "exitCode": 1,
+    "reason": "ENOENT reading /home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer/web/normative-timezones.js at setup-holidays.js:26:13",
+    "phase": "offline source checks before Gradle"
+  },
+  "scope": {
+    "gradleResultAvailable": false,
+    "apkVerified": false,
+    "nativeAcceptance": false,
+    "productionRelease": false
+  },
+  "diagnosticArtifact": {
+    "id": 15109927624,
+    "name": "Android-Tablet-2.0.30Beta-build-only-no-native-acceptance-and-proof",
+    "size_in_bytes": 38313,
+    "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/artifacts/15109927624",
+    "archive_download_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/artifacts/15109927624/zip",
+    "expired": false,
+    "created_at": "2026-11-26T11:04:16Z",
+    "expires_at": "2026-12-10T11:04:16Z",
+    "updated_at": "2026-11-26T11:04:16Z",
+    "digest": "sha256:082a179a46828cf43eb4c969be85edc65d9c6200b69066381eef3170f568b05e",
+    "workflow_run": {
+      "id": 45806941029,
+      "repository_id": 1332679672,
+      "head_repository_id": 1332679672,
+      "head_branch": "work/android-tablet-20261126",
+      "head_sha": "e7d396ed39641338ce9a7b57929623bc1dbd2fe1"
+    },
+    "kind": "failure diagnostics; not a successful APK result"
+  },
+  "excerpt": {
+    "file": "run-45806941029-job-139864580229-failure.log",
+    "originalJobLogFirstLine": 1599,
+    "originalJobLogLastLine": 1624,
+    "verbatim": true
+  }
+}

@@ -1,0 +1,26 @@
+2026-11-26T11:04:15.6702940Z 
+2026-11-26T11:04:15.6704286Z [2026-11-26T11:04:15+00:00] elapsed=22.1s check {"command": ["node", "/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js"]}
+2026-11-26T11:04:15.6705888Z [2026-11-26T11:04:15+00:00] elapsed=22.1s command-started {"pid": 11155}
+2026-11-26T11:04:16.1341522Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-exited {"pid": 11155, "actualExit": 1}
+2026-11-26T11:04:16.1353422Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-reaped {"pid": 11155, "actualExit": 1}
+2026-11-26T11:04:16.1377697Z [2026-11-26T11:04:16+00:00] elapsed=22.6s failed {"reason": "Command '['node', '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js']' returned non-zero exit status 1.", "output": "node:fs:440\n    return binding.readFileUtf8(path, stringToFlags(options.flag));\n                   ^\n\nError: ENOENT: no such file or directory, open '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer/web/normative-timezones.js'\n    at Object.readFileSync (node:fs:440:20)\n    at boot (/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js:26:13)\n    at Object.<anonymous> (/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js:43:15)\n    at Module._compile (node:internal/modules/cjs/loader:1781:14)\n    at Object..js (node:internal/modules/cjs/loader:1913:10)\n    at Module.load (node:internal/modules/cjs/loader:1505:32)\n    at Function._load (node:internal/modules/cjs/loader:1309:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49 {\n  errno: -2,\n  code: 'ENOENT',\n  syscall: 'open',\n  path: '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer/web/normative-timezones.js'\n}\n\nNode.js v22.23.5\n"}
+2026-11-26T11:04:16.1388463Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-reaped {"pid": 11155, "actualExit": 1}
+2026-11-26T11:04:16.1396631Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-reaped {"pid": 11146, "actualExit": 0}
+2026-11-26T11:04:16.1408531Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-reaped {"pid": 11106, "actualExit": 0}
+2026-11-26T11:04:16.1420515Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-reaped {"pid": 11099, "actualExit": 0}
+2026-11-26T11:04:16.1432705Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-reaped {"pid": 11091, "actualExit": 0}
+2026-11-26T11:04:16.1444483Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-reaped {"pid": 11084, "actualExit": 0}
+2026-11-26T11:04:16.1456636Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-reaped {"pid": 11077, "actualExit": 0}
+2026-11-26T11:04:16.1469102Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-reaped {"pid": 11076, "actualExit": 0}
+2026-11-26T11:04:16.1481273Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-reaped {"pid": 11071, "actualExit": 0}
+2026-11-26T11:04:16.1493867Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-reaped {"pid": 11070, "actualExit": 0}
+2026-11-26T11:04:16.1506622Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-reaped {"pid": 11043, "actualExit": 0}
+2026-11-26T11:04:16.1519302Z [2026-11-26T11:04:16+00:00] elapsed=22.6s child-reaped {"pid": 11041, "actualExit": 0}
+2026-11-26T11:04:16.1531601Z [2026-11-26T11:04:16+00:00] elapsed=22.6s finished {"exitCode": 1}
+2026-11-26T11:04:16.1683002Z Finished with result: exit-code
+2026-11-26T11:04:16.1683470Z Main processes terminated with: code=exited/status=1
+2026-11-26T11:04:16.1683913Z Service runtime: 22.684s
+2026-11-26T11:04:16.1684387Z CPU time consumed: 18.490s
+2026-11-26T11:04:16.1684693Z Memory peak: 750.0M
+2026-11-26T11:04:16.1684928Z Memory swap peak: 0B
+2026-11-26T11:04:16.1704533Z ##[error]Process completed with exit code 1.

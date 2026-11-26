@@ -373,6 +373,18 @@ Rohbelege, Quellhashes und Reproduktion stehen in
 `pruefnachweise/android-tablet-followup-2026-11-26/`. Diese Zahlen sind
 spezifische Hostnachweise, kein gemeinsamer Androidlauf.
 
+Der echte Actions-Baulauf 45806941029 auf `e7d396e` bestand Vorbereitung,
+Readiness, Provenienz und die 194/46 Web-/Importchecks. Er stoppte vor Gradle,
+weil der gemeinsame Desktop-Setuptest einen nicht vorhandenen generierten
+Zeitzonencache erwartete. Folgepatch 8 zu #790 erzeugt den bestehenden Bootstrap
+für diesen Test im Speicher; 88 Cross-Desktop-Fälle in 20 Sprachen sind bestanden.
+Veraltete Caches werden nicht gelesen, beschädigte normative Daten bleiben ein
+harter Fehler. Neue Projektion:
+`3dcf2073c46012e193900fce971a5bab91cefd5194f433bac7169e7f98917907`.
+Alle 83 Laufzeitdateien sind exakt identisch zum zuvor geprüften Stand; nur der
+gemeinsame Test ist als Projektionsquelle verändert. Der nächste vollständige
+APK-Lauf muss den korrigierten Quellstand prüfen.
+
 Ein vollständiger neuer Gradle-/D8-/APK-Bau, Android-Provider-/Berechtigungsdialoge,
 TalkBack, IME, Stift, native Pixel-/SAF-/Restore-/Neustartmatrix und tatsächliche
 HTTPS-/Clipboard-Bedienung sind damit nicht abgenommen. Historische native

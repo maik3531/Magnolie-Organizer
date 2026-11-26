@@ -442,6 +442,19 @@ under `pruefnachweise/android-tablet-followup-2026-11-26/` at the repository roo
 The import status now stays inside the settings dialog in a persistent live
 region ([#801](https://github.com/maik3531/Magnolie-Organizer/issues/801)).
 
+The first complete build-only attempt (Actions run 45806941029, #790) passed
+checkout, provenance, preparation, readiness and the 194/46 web/integration
+checks, then stopped before Gradle: the shared desktop setup test expected a
+generated timezone cache absent from a fresh checkout. That test now builds
+the existing verified timezone bootstrap in memory from the checked-in sources.
+All 88 cross-desktop setup cases in 20 languages pass; stale desktop caches are
+not read, and corrupt normative data still fails. The resulting projection is
+`3dcf2073c46012e193900fce971a5bab91cefd5194f433bac7169e7f98917907`;
+all 83 generated runtime files are byte-identical to the tested projection above.
+The next complete APK attempt must bind this updated source hash. The original
+CI failure and targeted correction are recorded in the evidence folder's
+`ci-run-45806941029/` subdirectory.
+
 ## Later Acceptance
 
 Coordinate one emulator/VM at a time using the existing resource gates. The

@@ -3,6 +3,11 @@
 const fs = require("node:fs"), path = require("node:path"), assert = require("node:assert/strict");
 const { JSDOM } = require("jsdom");
 const root = path.resolve(__dirname, "../..");
+// Refs #790: a fresh checkout has no generated desktop cache. Validate and build
+// the shared timezone assets in memory, without changing the canonical sources.
+const timezoneRoot = path.join(root, "port-adapters/timezones");
+const normativeTimezones = require(path.join(timezoneRoot, "projection-assets.cjs"))(
+  name => fs.readFileSync(path.join(timezoneRoot, name)))["normative-timezones.js"].toString("utf8");
 const key = "Show school holidays for %(state)s in the calendar?";
 const unavailable = "School holidays are not available for this region.";
 const plain = x => JSON.parse(JSON.stringify(x));
@@ -23,7 +28,7 @@ function boot(web, data = {}, setup, language = "en") {
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
   if (language !== "en") w.eval(fs.readFileSync(path.join(web, "i18n", language + ".js"), "utf8"));
   w.MagnolieI18n.setLocale(language);
-  w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
+  w.eval(normativeTimezones);
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
   w.App.init({ daten: data, neu: false, setupSelections: setup, regional: { language, timeZone: "UTC" } });
   const t = w.OrganizerTest;

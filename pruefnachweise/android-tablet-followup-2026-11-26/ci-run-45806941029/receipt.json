@@ -1,0 +1,27 @@
+{
+  "baseCommit": "78af080850280674423a4fde975023a389e618a6",
+  "source": "magnolie-organizer-windows/tests/setup-holidays.js",
+  "sourceSha256": "401a75060f7a90f4cf12f962c6097bb089eff7debc471be29b71bea150d4209a",
+  "node": "v24.22.3",
+  "jsdom": "26.1.0",
+  "checks": [
+    {
+      "name": "setup-after",
+      "exit": 0,
+      "expectedExit": 0
+    },
+    {
+      "name": "setup-stale-cache",
+      "exit": 0,
+      "expectedExit": 0
+    },
+    {
+      "name": "setup-corrupt-tzdb",
+      "exit": 1,
+      "expectedExit": 1
+    }
+  ],
+  "desktopCacheFilesRemainAbsent": true,
+  "apkBuild": false,
+  "nativeRuntimeTest": false
+}
