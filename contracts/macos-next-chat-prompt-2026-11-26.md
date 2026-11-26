@@ -10,7 +10,7 @@ Bestandsprüfung und setzt bereits erledigte Schritte nicht erneut in Gang.
 | Bedeutung | Gesicherter Anker |
 | --- | --- |
 | Repository | [maik3531/Magnolie-Organizer](https://github.com/maik3531/Magnolie-Organizer) |
-| Vorgesehener Arbeits-/Übergabezweig | `work/macos-issue-fixes-20261126`; tatsächlichen Remote-Stand vor Fortsetzung lesen |
+| Veröffentlichter Arbeits-/Übergabezweig | `work/macos-issue-fixes-20261126`; tatsächlichen Remote-Stand vor Fortsetzung lesen |
 | Vollständiger ursprünglicher Übergabecommit einschließlich Bericht | `0dfeb1b30a208480eb6901e3d3148a5efeaae5ff` |
 | Zuletzt vollständig geprüfter Codecommit dieser Übergabe | `7c9cf20394aef73d261a77f746ebca7340826d30` |
 | Über die API angelegter Quellcommit A | `8efc6834abd16f18300f3d59a1897c81758b0c34` |
@@ -22,11 +22,7 @@ Ankern, nicht eine identische Commit-Historie. Für originale Einzelcommits und
 Patchreihenfolge die Wiederherstellungsanleitung verwenden. Einen späteren
 Dokumentations-Head nicht als neuen vollständig getesteten Codecommit ausgeben.
 
-**Publikationsstatus bei Erstellung der Vorlage:** Der Quell-/Issue-Abschluss
-lief noch; es waren noch nicht alle vorgesehenen Issue-Kommentare nachgewiesen.
-Diese historische Angabe ist kein aktueller Restauftrag. Ob inzwischen alles
-abgeschlossen wurde, ergibt sich aus den Publikationsbelegen, dem Remote-Zweig
-und den tatsächlich vorhandenen Issue-Kommentaren.
+**Verifizierter Abschluss am 26. November 2026:** Der Arbeitszweig ist veröffentlicht. Alle **31 Issue-Kommentare** wurden angelegt und mit identischem vollständigem Text zurückgelesen. Ihre Dokument- und Patchlinks sind an `cf7b3f2bf4e8afee662a4926f32fc989d7ff7df8` gebunden. [Die vollständigen Kommentar-URLs und Rücklesebelege](macos-issue-publication-receipts-2026-11-26.md) dokumentieren den Abschluss. Die native Mac-Abnahme und die ausdrücklich genannten Restarbeiten bleiben offen. Ein neuer Chat prüft den heutigen Stand und veröffentlicht diese Übergabe nicht erneut.
 
 ## Maßgebliche Dokumente
 
@@ -94,6 +90,8 @@ ZUERST BESTAND PRÜFEN
 2. Diese Dateien lesen:
    - contracts/macos-issue-handoff-2026-11-26.md
    - contracts/macos-issue-inventory-2026-11-26.json
+   - contracts/macos-issue-publication-receipts-2026-11-26.md
+   - contracts/macos-issue-publication-receipts-2026-11-26.json
    - contracts/macos-verification-2026-11-26/README.md
    - contracts/macos-issue-publication-2026-11-26/CODEX-RESTORE.md
    - Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md
@@ -108,6 +106,13 @@ ZUERST BESTAND PRÜFEN
    Bereits passende Kommentare nicht erneut posten. Einen fehlenden oder
    nachweislich veralteten Teil gezielt ergänzen und den Abschluss belegen.
    Keine pauschale Aussage „alle Kommentare veröffentlicht“ ohne Einzelabgleich.
+
+BEREITS ABGESCHLOSSENE ÜBERGABE
+Der Zweig und alle 31 Kommentare sind veröffentlicht und zurückgelesen.
+Die Kommentarlinks verwenden den festen Dokumentations-/Artefaktcommit
+cf7b3f2bf4e8afee662a4926f32fc989d7ff7df8. Die Publikationsbelege enthalten
+alle Kommentar-IDs, URLs und Text-Hashes. Diese Schritte nicht neu ausführen.
+Native Abnahme und die dokumentierten technischen Reste bleiben offen.
 
 QUELLANKER
 - Vollständiger ursprünglicher Übergabecommit:

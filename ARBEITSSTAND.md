@@ -1,5 +1,28 @@
 # Aktueller Arbeitsstand
 
+## Veröffentlicht: 31 Mac-Issue-Übergaben – 26. November 2026
+
+Der Arbeitszweig `work/macos-issue-fixes-20261126` ist auf GitHub verfügbar.
+**Alle 31 zugeordneten Issue-Kommentare sind veröffentlicht und einzeln mit
+identischem vollständigem Text zurückgelesen.** Die festen Beleglinks zeigen
+auf den Dokumentations-/Artefaktstand `cf7b3f2bf4e8afee662a4926f32fc989d7ff7df8`.
+[Alle Kommentar-URLs und Publikationsbelege](contracts/macos-issue-publication-receipts-2026-11-26.md)
+sowie [Zusammenfassung und Fortsetzungs-Prompt](contracts/macos-next-chat-prompt-2026-11-26.md)
+sichern die Übergabe unabhängig vom bisherigen Chat.
+
+API-Quellcommit `8efc6834abd16f18300f3d59a1897c81758b0c34` enthält exakt den
+Originaltree von `0dfeb1b30a208480eb6901e3d3148a5efeaae5ff`; die ursprünglichen
+Einzelcommits sind im geprüften Git-Bundle erhalten. Die
+[Wiederherstellungsanleitung](contracts/macos-issue-publication-2026-11-26/CODEX-RESTORE.md)
+ordnet die unterschiedlichen Commitmetadaten und die 24 Patchdateien zu.
+Nachfolgende Publikationsbelege ändern keine Produktquellen.
+
+Die zusätzlichen [Dell-/NFC-Befunde](contracts/windows-dell-nfc-research-2026-11-26.md)
+und [sechs Windows-Featurevorschläge](contracts/windows-feature-opportunities-2026-11-26.md)
+sind recherchierte Entwicklungsaufträge, keine implementierte neue Authentisierung.
+Die native Mac-Abnahme und die nachstehenden technischen Restpunkte bleiben
+offen. `main`, Issue-Zustände und veröffentlichte Pakete wurden nicht verändert.
+
 ## Mac-Issue-Audit, aktuelle Importe und Apple-Abgleich – 26. November 2026
 
 **Vollständiger Prüfzweig: `work/macos-issue-fixes-20261126`.** Der abschließend
