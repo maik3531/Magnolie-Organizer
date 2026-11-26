@@ -1,0 +1,621 @@
+From 52a22ff8c14244cd79a4267fe875cef9bfcf8cd4 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 06:48:19 +0100
+Subject: [PATCH] fix(macos): bind native legacy calendar aliases to the shared
+ import (Refs #465)
+
+---
+ .../Projection/calendar-legacy-alias.js       |  82 ++++++++++
+ .../Projection/macos-beta.js                  |   1 +
+ .../Sources/BetaCore/ICalendarImport.swift    |   7 +
+ .../Sources/MacBeta/main.swift                |   2 +-
+ .../LegacyAndroidAliasEvidenceTests.swift     |  18 +++
+ .../tests/legacy_calendar_aliases.mjs         | 147 ++++++++++++++++++
+ .../tests/test_host.py                        |   6 +
+ .../tools/check_legacy_calendar_aliases.py    |  99 ++++++++++++
+ .../tools/project_ui.py                       |  22 +++
+ ...acos-465-native-calendar-alias-adoption.md | 123 +++++++++++++++
+ 10 files changed, 506 insertions(+), 1 deletion(-)
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Projection/calendar-legacy-alias.js
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tests/legacy_calendar_aliases.mjs
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tools/check_legacy_calendar_aliases.py
+ create mode 100644 contracts/macos-465-native-calendar-alias-adoption.md
+
+diff --git a/Magnolie-Organizer-macOS-Beta/Projection/calendar-legacy-alias.js b/Magnolie-Organizer-macOS-Beta/Projection/calendar-legacy-alias.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e0051348939effe969791e1d248259c03e2bf7d
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Projection/calendar-legacy-alias.js
+@@ -0,0 +1,82 @@
++  // #465: consume the native reader's exact, transient legacy-hash evidence.
++  // Selection, ambiguity checks and mutation remain in the shared desktop
++  // alias planner/merge. A book field is never sufficient to register evidence.
++  const macOSBetaNativeCalendarEvidence = new WeakMap();
++  function macOSBetaCalendarAliasIdentities(rows) {
++    const sourceUIDs = new Set(), occurrences = new Set();
++    return JSON.stringify(rows.map(row => {
++      if (!row || typeof row !== "object" || typeof row.uid !== "string" ||
++          !Array.isArray(row.icsRoundtrip) || row.icsRoundtrip.some(line => typeof line !== "string"))
++        throw alterAndroidTerminKonflikt();
++      const sourceUID = JSON.stringify([row.icsQuelleId || "", row.uid]);
++      const identity = alteAndroidTerminIdentitaet(row);
++      if (sourceUIDs.has(sourceUID) || (identity && occurrences.has(identity.key))) throw alterAndroidTerminKonflikt();
++      sourceUIDs.add(sourceUID); if (identity) occurrences.add(identity.key);
++      return [row.uid, row.icsQuelleId || "", row.icsSerienUid || "",
++        row.icsRoundtrip.filter(line => /^RECURRENCE-ID[;:]/i.test(line))];
++    }));
++  }
++  function macOSBetaRegisterCalendarAliases(payload) {
++    const proof = payload.legacyAndroidAliases, rows = payload.termine, metadata = payload.icsImportMetadata;
++    const object = value => value && typeof value === "object" && !Array.isArray(value);
++    const exactKeys = (value, keys) => object(value) && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
++    if (!exactKeys(proof, ["version", "algorithm", "sourceSHA256", "appointmentCount", "entries"]) ||
++        proof.version !== 1 || proof.algorithm !== "android-jsonobject-quote-v1" ||
++        typeof proof.sourceSHA256 !== "string" || !/^[a-f0-9]{64}$/.test(proof.sourceSHA256) ||
++        !object(metadata) || metadata.version !== 1 || metadata.sourceSHA256 !== proof.sourceSHA256 ||
++        !Array.isArray(rows) || rows.length > 50000 || proof.appointmentCount !== rows.length ||
++        !Array.isArray(proof.entries) || !proof.entries.length || proof.entries.length > rows.length ||
++        new TextEncoder().encode(JSON.stringify(payload)).length > 96 * 1024 * 1024)
++      throw alterAndroidTerminKonflikt();
++    const entries = new Map(), indexes = new Set(), identities = new Set();
++    for (const entry of proof.entries) {
++      if (!exactKeys(entry, ["appointmentIndex", "canonicalUID", "legacyUID", "sourceID", "wireUID", "recurrenceLine"]) ||
++          !Number.isInteger(entry.appointmentIndex) || entry.appointmentIndex < 0 || entry.appointmentIndex >= rows.length ||
++          indexes.has(entry.appointmentIndex) ||
++          ["canonicalUID", "legacyUID", "sourceID", "wireUID", "recurrenceLine"].some(key => typeof entry[key] !== "string" || !entry[key]))
++        throw alterAndroidTerminKonflikt();
++      const row = rows[entry.appointmentIndex], identity = alteAndroidTerminIdentitaet(row);
++      if (!identity || row.uid !== entry.canonicalUID || row.icsQuelleId !== entry.sourceID ||
++          row.icsSerienUid !== entry.wireUID ||
++          identity.key !== JSON.stringify([entry.sourceID, entry.wireUID, entry.recurrenceLine]) ||
++          entry.canonicalUID === entry.legacyUID ||
++          !entry.canonicalUID.startsWith(entry.wireUID + "-magnolie-instanz-") ||
++          !entry.legacyUID.startsWith(entry.wireUID + "-magnolie-instanz-") ||
++          !/-magnolie-instanz-[a-f0-9]{16}$/.test(entry.canonicalUID) ||
++          !/-magnolie-instanz-[a-f0-9]{16}$/.test(entry.legacyUID) || identities.has(identity.key))
++        throw alterAndroidTerminKonflikt();
++      indexes.add(entry.appointmentIndex); identities.add(identity.key);
++      entries.set(JSON.stringify([identity.key, entry.canonicalUID]), entry.legacyUID);
++    }
++    macOSBetaNativeCalendarEvidence.set(proof, { book: DATEN, before: JSON.stringify(DATEN),
++      proof: JSON.stringify(proof), metadata: JSON.stringify(metadata), count: rows.length,
++      identities: macOSBetaCalendarAliasIdentities(rows), entries });
++  }
++  function macOSBetaNativeCalendarAliases(payload) {
++    if (!Object.hasOwn(payload, "legacyAndroidAliases")) return null;
++    const proof = macOSBetaNativeCalendarEvidence.get(payload.legacyAndroidAliases);
++    if (!proof || DATEN !== proof.book || gesperrt || !initialisiert ||
++        window.MacBeta.calendarImportBlocked() || JSON.stringify(DATEN) !== proof.before ||
++        JSON.stringify(payload.legacyAndroidAliases) !== proof.proof ||
++        JSON.stringify(payload.icsImportMetadata) !== proof.metadata ||
++        !Array.isArray(payload.termine) || payload.termine.length !== proof.count ||
++        macOSBetaCalendarAliasIdentities(payload.termine) !== proof.identities)
++      throw alterAndroidTerminKonflikt();
++    return proof.entries;
++  }
++  function macOSBetaNativeCalendarResult(payload) {
++    if (!payload || payload.fehler || payload.abgebrochen || !Object.hasOwn(payload, "legacyAndroidAliases"))
++      return App.importErgebnis(payload);
++    let owned;
++    try {
++      if (gesperrt || !initialisiert || window.MacBeta.calendarImportBlocked()) throw alterAndroidTerminKonflikt();
++      // Own the callback data. Later native/UI caller mutations cannot replace
++      // the registered source or aliases. Shallow normalization copies retain
++      // this private sidecar object's identity, including the >1000-row path.
++      owned = structuredClone(payload);
++      macOSBetaRegisterCalendarAliases(owned);
++    } catch { return App.importErgebnis({ fehler: _("Conflict") }); }
++    // Only pure registration failures are translated above. Do not turn a
++    // later renderer/save failure into a pre-mutation alias rejection.
++    return App.importErgebnis(owned);
++  }
+diff --git a/Magnolie-Organizer-macOS-Beta/Projection/macos-beta.js b/Magnolie-Organizer-macOS-Beta/Projection/macos-beta.js
+index d5e976ea8817a556c0ade14ff71d587e522dd937..8b129ac96c1f6ee8cdcd1148f73c3eca9ba34a68 100644
+--- a/Magnolie-Organizer-macOS-Beta/Projection/macos-beta.js
++++ b/Magnolie-Organizer-macOS-Beta/Projection/macos-beta.js
+@@ -251,6 +251,7 @@
+         ready = payload.gesperrt !== true;
+       } else {
+         if (method === "sicherungAusgewaehlt" && payload.abgebrochen) return;
++        if (method === "importErgebnis") return window.App.macOSBetaNativeCalendarResult(payload);
+         window.App[method](payload);
+       }
+     }
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarImport.swift b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarImport.swift
+index 0e8b4d4fcc86bc5e3aa6c2e20a1b2cea7e08ba38..ef424b1b8554c82cade400da51b0feca7c4aecd0 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarImport.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarImport.swift
+@@ -37,6 +37,13 @@ public enum ICalendarImport {
+             ["termine": appointments, "aufgaben": tasks, "jahrestage": anniversaries,
+              "icsImportMetadata": ["version": 1, "calendarProperties": calendarProperties, "sourceSHA256": sourceSHA256]]
+         }
++        /// Native callback envelope only. The alias evidence must never be
++        /// persisted as book data or folded into the source metadata.
++        public var response: [String: Any] {
++            var value = document
++            if let legacyAndroidAliases { value["legacyAndroidAliases"] = legacyAndroidAliases.payload }
++            return value
++        }
+     }
+     static func validateProjection(_ document: [String: Any], aliases: LegacyAndroidAliases?, maximum: Int = maximumProjectedBytes) throws {
+         let documentSize = try JSONSerialization.data(withJSONObject: document).count
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
+index f1f85f0ed3ec3f0f1b9dc62cf3f365320e7382a2..56436e9bb56f01f2175315884198653672f49f7e 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
+@@ -837,7 +837,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+                     let handle = try FileHandle(forReadingFrom: url)
+                     defer { try? handle.close() }
+                     let bytes = try handle.read(upToCount: ICalendarImport.maximumBytes + 1) ?? Data()
+-                    response = try ICalendarImport.decode(bytes, context: timeContext, displayTimeZone: zone, sourceName: sourceName).document
++                    response = try ICalendarImport.decode(bytes, context: timeContext, displayTimeZone: zone, sourceName: sourceName).response
+                 } catch { response = ["fehler": error.localizedDescription] }
+                 DispatchQueue.main.async {
+                     guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
+diff --git a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/LegacyAndroidAliasEvidenceTests.swift b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/LegacyAndroidAliasEvidenceTests.swift
+index b41ac9236635b5585e06e0d841ebb043f4d3cd95..ad70bc23d59528e8aa390a1796243b0502b8651c 100644
+--- a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/LegacyAndroidAliasEvidenceTests.swift
++++ b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/LegacyAndroidAliasEvidenceTests.swift
+@@ -76,4 +76,22 @@ final class LegacyAndroidAliasEvidenceTests: XCTestCase {
+         XCTAssertThrowsError(try ICalendarImport.validateProjection(result.document, aliases: proof, maximum: documentBytes + sidecarBytes + 63))
+         XCTAssertEqual(ICalendarImport.maximumProjectedBytes, 96 * 1024 * 1024)
+     }
++    func testNativeResponseTransportsEvidenceWithoutChangingPersistableDocument() throws {
++        let text = try source()
++        let result = try ICalendarImport.decode(Data(text.utf8), context: CalendarTestContext.make(),
++            displayTimeZone: "UTC", sourceName: "caldav-series-resource.ics")
++        let response = result.response
++        let proof = try XCTUnwrap(response["legacyAndroidAliases"] as? [String: Any])
++        XCTAssertEqual(proof["sourceSHA256"] as? String, sha(text))
++        XCTAssertEqual(try Document.encode(proof), try Document.encode(XCTUnwrap(result.legacyAndroidAliases).payload))
++        var document = response; document.removeValue(forKey: "legacyAndroidAliases")
++        XCTAssertEqual(try Document.encode(document), try Document.encode(result.document))
++        XCTAssertNil(result.document["legacyAndroidAliases"])
++        XCTAssertNil((response["icsImportMetadata"] as? [String: Any])?["legacyAndroidAliases"])
++        // Optional actual-Swift DTO for the existing host UI probe. Its absence
++        // does not bypass any assertion above or imply native UI acceptance.
++        if let path = ProcessInfo.processInfo.environment["MACOS_BETA_LEGACY_ALIAS_ENVELOPE"] {
++            try Data(Document.encode(response).utf8).write(to: URL(fileURLWithPath: path), options: .atomic)
++        }
++    }
+ }
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/legacy_calendar_aliases.mjs b/Magnolie-Organizer-macOS-Beta/tests/legacy_calendar_aliases.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..105a5d769747e2a76bccdb6d2094f91d141c4723
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tests/legacy_calendar_aliases.mjs
+@@ -0,0 +1,147 @@
++import assert from "node:assert/strict";
++import fs from "node:fs";
++import { boot, tick } from "./ui_harness.mjs";
++
++const [root, fixturePath] = process.argv.slice(2), fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
++const probe = process.argv.includes("--probe"), clone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
++let checks = 0;
++const equal = (actual, expected, label) => { assert.deepEqual(clone(actual), clone(expected), label); checks++; };
++const ok = (value, label) => { assert.ok(value, label); checks++; };
++const b = await boot(root), { w, t, messages, timers } = b;
++const incoming = fixture.base, alias = incoming.legacyAndroidAliases.entries[0];
++const localFields = ["futureMetadata", "alarme", "teilnehmer", "kalenderAnhaenge", "providerMetadaten"];
++const old = { termine: clone(incoming.termine), aufgaben: [{ id: "task-reference", titel: "Keep link", terminId: "legacy-instance-local", notiz: "Keep" }],
++  kontakte: [], notizen: [], jahrestage: [], futureRoot: { keep: true },
++  einstellungen: { allgemein: { handbuchHinweisGezeigt: true } } };
++for (const [index, row] of old.termine.entries()) row.id = "record-" + index;
++const legacy = old.termine[alias.appointmentIndex];
++Object.assign(legacy, { id: "legacy-instance-local", uid: alias.legacyUID, titel: "Old retained row", geaendert: 1,
++  futureMetadata: { nested: ["keep", 1] },
++  alarme: [{ id: "local-alarm", offsetMinuten: 5, aktion: "display", aktiviert: true, related: "START", quelle: "magnolie", bearbeitbar: true }],
++  teilnehmer: [{ id: "local-person", uri: "mailto:old@example.invalid", name: "Keep", status: "accepted" }],
++  kalenderAnhaenge: [{ id: "local-file", uri: "https://example.invalid/keep", name: "Keep.txt", mimeType: "text/plain", groesse: 3 }],
++  providerMetadaten: { legacy: { id: "keep" } } });
++const init = () => w.MacBeta.receive("init", { daten: clone(old), neu: false, regional: { language: "en", timeZone: "UTC" } });
++const saved = () => messages.filter(message => message.cmd === "speichern");
++async function finish(result) {
++  let settled = false, failure;
++  Promise.resolve(result).then(() => { settled = true; }, error => { settled = true; failure = error; });
++  for (let attempt = 0; attempt < 100 && !settled; attempt++) {
++    for (const timer of timers) if (!timer.cancelled && !timer.fired && timer.delay === 0) { timer.fired = true; timer.fn(); }
++    await tick();
++  }
++  assert.ok(settled, "Calendar callback did not finish");
++  if (failure) throw failure;
++  await tick();
++}
++async function receive(payload) { await finish(w.MacBeta.receive("importErgebnis", payload)); }
++function saveAndReopen() {
++  t.speichereJetzt(); const save = saved().at(-1);
++  ok(save && typeof save.text === "string", "Actual save envelope is available");
++  const stored = JSON.parse(save.text);
++  ok(!save.text.includes('"legacyAndroidAliases"'), "Native alias proof must never be persisted");
++  w.MacBeta.receive("gespeichert", { id: save.id, ok: true });
++  w.MacBeta.receive("init", { daten: stored, neu: false, regional: { language: "en", timeZone: "UTC" } });
++  return stored;
++}
++try {
++  // This deliberately excludes WebCrypto. It proves native evidence adoption,
++  // not a claim that any particular installed WebKit lacks crypto.subtle.
++  equal(w.crypto.subtle, undefined, "Use the existing harness without injected WebCrypto");
++  init();
++  const preserved = clone(t.daten().termine.find(row => row.id === legacy.id));
++  for (let pass = 0; pass < 2; pass++) {
++    await receive(clone(incoming));
++    const current = t.daten().termine.find(row => row.id === legacy.id);
++    equal(current.titel, incoming.termine[alias.appointmentIndex].titel, "Native evidence must update the exact old alias without WebCrypto");
++    equal(t.daten().termine.length, 2, "Reimport must not append an exception duplicate");
++    equal(current.uid, alias.legacyUID, "Keep the old primary UID");
++    for (const key of localFields) equal(current[key], preserved[key], "Retain local/unknown field " + key);
++    equal(t.daten().aufgaben[0].terminId, legacy.id, "Keep existing local reference");
++    equal(saveAndReopen().termine.length, 2, "Save and frontend reopen retain the pair");
++  }
++  if (probe) process.exit(0);
++
++  for (const [name, variant] of Object.entries(fixture.variants)) {
++    init(); await receive(clone(variant));
++    const count = ["source", "wire"].includes(name) ? 4 : 3;
++    equal(t.daten().termine.length, count, "Do not alias a different complete native identity: " + name);
++    equal(saveAndReopen().termine.length, count, "Save/reopen keeps distinct identity: " + name);
++  }
++  for (const kind of ["two_old", "old_and_canonical", "old_and_unknown", "unknown_hash", "two_incoming"]) {
++    init(); const attempt = clone(incoming), current = t.daten().termine.find(row => row.id === legacy.id);
++    if (kind === "two_old") t.daten().termine.push({ ...clone(current), id: "second-old-local" });
++    if (kind === "old_and_canonical") t.daten().termine.push({ ...clone(incoming.termine[alias.appointmentIndex]), id: "already-canonical" });
++    if (kind === "old_and_unknown") t.daten().termine.push({ ...clone(current), id: "unknown-second-local", uid: "unknown-instance" });
++    if (kind === "unknown_hash") current.uid = "caldav-series-1-magnolie-instanz-0000000000000000";
++    if (kind === "two_incoming") {
++      attempt.termine.push({ ...clone(attempt.termine[alias.appointmentIndex]), uid: alias.canonicalUID + "-other" });
++      attempt.legacyAndroidAliases.appointmentCount++;
++    }
++    attempt.notizen = [{ titel: "Must not import", text: "Ambiguous alias" }];
++    attempt.aufgaben = [{ uid: "must-not-import", titel: "Ambiguous alias" }];
++    attempt.kontakte = [{ uid: "must-not-import", vorname: "Keep out" }];
++    const before = JSON.stringify(t.daten()), saves = saved().length;
++    await receive(attempt);
++    equal(JSON.stringify(t.daten()), before, "Ambiguous evidence must not mutate any collection: " + kind);
++    equal(saved().length, saves, "Ambiguous evidence must not queue a save: " + kind);
++    ok(w.document.body.textContent.includes("Import failed"), "Report ambiguous import: " + kind);
++  }
++  const corruptions = {
++    sourceHash: value => { value.legacyAndroidAliases.sourceSHA256 = "0".repeat(64); },
++    count: value => { value.legacyAndroidAliases.appointmentCount++; },
++    index: value => { value.legacyAndroidAliases.entries[0].appointmentIndex = 0; },
++    canonical: value => { value.legacyAndroidAliases.entries[0].canonicalUID = "wrong-magnolie-instanz-" + "0".repeat(16); },
++    legacy: value => { value.legacyAndroidAliases.entries[0].legacyUID = "caldav-series-1-magnolie-instanz-" + "0".repeat(16); },
++    source: value => { value.legacyAndroidAliases.entries[0].sourceID = "ics:" + "c".repeat(64); },
++    wire: value => { value.legacyAndroidAliases.entries[0].wireUID += "-other"; },
++    rid: value => { value.legacyAndroidAliases.entries[0].recurrenceLine += "Z"; },
++    algorithm: value => { value.legacyAndroidAliases.algorithm = "other"; },
++    duplicateEntry: value => { value.legacyAndroidAliases.entries.push(clone(value.legacyAndroidAliases.entries[0])); },
++    absentEntry: value => { value.legacyAndroidAliases.entries = []; },
++    extraKey: value => { value.legacyAndroidAliases.authorization = true; },
++    rowIdentity: value => { value.termine[alias.appointmentIndex].icsQuelleId += "-other"; },
++    duplicateRID: value => { value.termine[alias.appointmentIndex].icsRoundtrip.push(alias.recurrenceLine); }
++  };
++  for (const [name, corrupt] of Object.entries(corruptions)) {
++    init(); const attempt = clone(incoming); corrupt(attempt);
++    const before = JSON.stringify(t.daten()), saves = saved().length;
++    await receive(attempt);
++    equal(JSON.stringify(t.daten()), before, "Reject corrupt native binding before mutation: " + name);
++    equal(saved().length, saves, "Reject corrupt native binding before save: " + name);
++  }
++  init();
++  const directBefore = JSON.stringify(t.daten());
++  await finish(w.App.importErgebnis(clone(incoming)));
++  equal(JSON.stringify(t.daten()), directBefore, "A sidecar without native callback registration is not proof");
++
++  const large = clone(incoming);
++  for (let index = 0; index < 999; index++) large.termine.push({ uid: "ordinary-" + index,
++    titel: "Ordinary " + index, datum: "2030-01-01", zeit: "10:00", geaendert: 1,
++    icsQuelleId: alias.sourceID, icsSerienUid: "", icsRoundtrip: ["UID:ordinary-" + index, "DTSTART:20300101T100000"] });
++  large.legacyAndroidAliases.appointmentCount = large.termine.length;
++  init(); await receive(clone(large));
++  equal(t.daten().termine.length, 1001, "Chunked normalization retains transient native proof");
++  equal(t.daten().termine.find(row => row.id === legacy.id).uid, alias.legacyUID, "Chunked import preserves the old UID");
++  equal(saveAndReopen().termine.length, 1001, "Chunked saved result reopens without alias proof");
++
++  init(); const ongoing = w.MacBeta.receive("importErgebnis", clone(large));
++  t.daten().aufgaben[0].notiz = "Concurrent book edit";
++  const changed = JSON.stringify(t.daten());
++  await finish(ongoing);
++  equal(JSON.stringify(t.daten()), changed, "Changed book invalidates evidence before any collection mutation");
++
++  init(); const detached = clone(incoming), pending = w.MacBeta.receive("importErgebnis", detached);
++  detached.legacyAndroidAliases.entries[0].legacyUID = "tampered";
++  detached.termine[alias.appointmentIndex].titel = "Caller mutation";
++  await finish(pending);
++  equal(t.daten().termine.find(row => row.id === legacy.id).titel, incoming.termine[alias.appointmentIndex].titel,
++    "Native callback owns its input snapshot");
++
++  init();
++  const replacement = w.MacBeta.receive("importErgebnis", clone(large));
++  init(); const reopened = JSON.stringify(t.daten());
++  await finish(replacement);
++  equal(JSON.stringify(t.daten()), reopened, "Document replacement rejects a pending older alias receipt");
++  console.log(`Mac legacy calendar aliases: ${checks} checks passed; ${fixture.nativeEnvelope ? "actual Swift base DTO" : "synthetic native sidecar over actual Python codec"}, actual projected UI, synthetic Save ACK/frontend reopen; no native AppKit/disk evidence.`);
++} finally { b.close(); }
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/test_host.py b/Magnolie-Organizer-macOS-Beta/tests/test_host.py
+index 6425fdf8127c38f746b4305a0c72b6159b86e5ba..7553b63e485b3e824943a8c9533d097f71f81950 100644
+--- a/Magnolie-Organizer-macOS-Beta/tests/test_host.py
++++ b/Magnolie-Organizer-macOS-Beta/tests/test_host.py
+@@ -402,6 +402,12 @@ class ProjectionTests(unittest.TestCase):
+             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+             print(result.stdout.strip())
+ 
++    def test_native_legacy_calendar_alias_evidence_contract(self):
++        result = subprocess.run([sys.executable, "tools/check_legacy_calendar_aliases.py", "--js-runtime", self.javascript()],
++                                cwd=BETA, capture_output=True, text=True, timeout=150)
++        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
++        print(result.stdout.strip())
++
+     def test_additive_apple_notes_copy_contract(self):
+         runtime = self.javascript()
+         info = plistlib.loads(self.snapshot[str((BETA / "Resources/Info.plist").relative_to(projection.REPO))])
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/check_legacy_calendar_aliases.py b/Magnolie-Organizer-macOS-Beta/tools/check_legacy_calendar_aliases.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..6fe698801a23c265a97210095860f4b0da58cd55
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tools/check_legacy_calendar_aliases.py
+@@ -0,0 +1,99 @@
++#!/usr/bin/env python3
++"""Check native-shaped alias transport against real projected UI; native Swift DTO is optional."""
++import argparse
++import hashlib
++import json
++from pathlib import Path
++import subprocess
++import tempfile
++
++from check_calendar import canonical
++import project_ui
++
++
++def fixtures():
++    module = canonical()
++    path = project_ui.REPO / "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/resources/calendar-import-v2.0.30.json"
++    text = next(row["importSource"] for row in json.loads(path.read_text())["cases"] if row["name"] == "caldav-series-resource")
++    source_name = "caldav-series-resource.ics"
++    source = "ics:" + hashlib.sha256((source_name + "\nTeam Calendar").encode()).hexdigest()
++    rid = "RECURRENCE-ID;TZID=Europe/Berlin:20261102T100000"
++
++    def response(value, params=None, source_id=source):
++        params = {"TZID": "Europe/Berlin"} if params is None else params
++        result = module.ics_lesen(value, quellenname=source_name, quellen_id=source_id)
++        payload = {key: result[key] for key in ["termine", "aufgaben", "jahrestage"]}
++        source_hash = hashlib.sha256(value.encode()).hexdigest()
++        payload["icsImportMetadata"] = {"version": 1, "sourceSHA256": source_hash,
++            "calendarProperties": ["VERSION:2.0", "PRODID:-//Example Corp//CalDAV 1.0//EN", "X-WR-CALNAME:Team Calendar"]}
++        entries = []
++        for index, row in enumerate(payload["termine"]):
++            raw = next((line for line in row["icsRoundtrip"] if line.startswith("RECURRENCE-ID")), None)
++            if raw is None:
++                continue
++            current = json.dumps([params, raw.split(":", 1)[1]], ensure_ascii=False, sort_keys=True, separators=(",", ":"))
++            wire = row["icsSerienUid"]
++            assert row["uid"] == wire + "-magnolie-instanz-" + hashlib.sha256(current.encode()).hexdigest()[:16]
++            legacy = wire + "-magnolie-instanz-" + hashlib.sha256(current.replace("/", "\\/").encode()).hexdigest()[:16]
++            entries.append({"appointmentIndex": index, "canonicalUID": row["uid"], "legacyUID": legacy,
++                "sourceID": row["icsQuelleId"], "wireUID": wire, "recurrenceLine": raw})
++        assert entries
++        payload["legacyAndroidAliases"] = {"version": 1, "algorithm": "android-jsonobject-quote-v1",
++            "sourceSHA256": source_hash, "appointmentCount": len(payload["termine"]), "entries": entries}
++        return payload
++
++    base = response(text)
++    assert base["legacyAndroidAliases"]["entries"][0]["legacyUID"] == "caldav-series-1-magnolie-instanz-7f5e24178d89f683"
++    variants = {
++        "source": response(text, source_id="ics:" + "b" * 64),
++        "wire": response(text.replace("UID:caldav-series-1", "UID:other-series-465")),
++        "rid": response(text.replace(rid, rid.replace("20261102", "20261109"))),
++        "tzid": response(text.replace(rid, rid.replace("Europe/Berlin", "Europe/Paris")), {"TZID": "Europe/Paris"}),
++        "range": response(text.replace(rid, rid.replace("RECURRENCE-ID;", "RECURRENCE-ID;RANGE=THISANDFUTURE;")),
++            {"RANGE": "THISANDFUTURE", "TZID": "Europe/Berlin"}),
++        "value": response(text.replace(rid, rid.replace("RECURRENCE-ID;", "RECURRENCE-ID;VALUE=DATE-TIME;")),
++            {"TZID": "Europe/Berlin", "VALUE": "DATE-TIME"})}
++    return {"base": base, "variants": variants, "nativeEnvelope": False}
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--js-runtime", required=True)
++    parser.add_argument("--native-envelope", type=Path)
++    parser.add_argument("--baseline-ref", help="Project the earlier committed UI for a regression reproduction, without changing files")
++    args = parser.parse_args()
++    fixture = fixtures()
++    if args.native_envelope:
++        response = json.loads(args.native_envelope.read_text())
++        assert response["legacyAndroidAliases"] == fixture["base"]["legacyAndroidAliases"]
++        assert response["icsImportMetadata"]["sourceSHA256"] == fixture["base"]["icsImportMetadata"]["sourceSHA256"]
++        fixture["base"] = response
++        fixture["nativeEnvelope"] = True
++    snapshot = project_ui.inputs()
++    projector = project_ui.project
++    if args.baseline_ref:
++        def committed(path):
++            return subprocess.check_output(["git", "show", args.baseline_ref + ":" + path], cwd=project_ui.REPO)
++        for relative in ["Projection/macos-beta.js", "Sources/BetaCore/ICalendarImport.swift", "Sources/MacBeta/main.swift", "tools/project_ui.py"]:
++            key = "Magnolie-Organizer-macOS-Beta/" + relative
++            snapshot[key] = committed(key)
++        namespace = {"__file__": str(project_ui.BETA / "tools/project_ui.py"), "__name__": "legacy_alias_baseline_projection"}
++        exec(compile(snapshot["Magnolie-Organizer-macOS-Beta/tools/project_ui.py"], namespace["__file__"], "exec"), namespace)
++        projector = namespace["project"]
++    with tempfile.TemporaryDirectory(prefix="macOS-Beta-calendar-alias-") as directory:
++        root = Path(directory)
++        projector(snapshot, root / "UI")
++        (root / "fixture.json").write_text(json.dumps(fixture))
++        command = [args.js_runtime]
++        if Path(args.js_runtime).name == "deno":
++            command += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
++        command += ["tests/legacy_calendar_aliases.mjs", str(root / "UI"), str(root / "fixture.json")]
++        if args.baseline_ref:
++            command.append("--probe")
++        subprocess.run(command, cwd=project_ui.BETA, check=True, timeout=120)
++    if not args.baseline_ref and project_ui.inventory(project_ui.inputs()) != project_ui.inventory(snapshot):
++        raise RuntimeError("Sources changed during legacy calendar alias checks.")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+index f2d6e7f2a13ac175d43c66d9f10512ef49604806..b8c00b16e13b178e542a9b55e438be5d08616db4 100644
+--- a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
++++ b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+@@ -406,6 +406,28 @@ def project(snapshot, target):
+                         '    { id: "ort", name: msgid("Country & holidays") },')
+     note_import = snapshot[str((BETA / "Projection/note-file-import.js").relative_to(REPO))].decode()
+     text = replace_once(text, "  const App = {", note_import + "\n  const App = {\n    macOSBetaStartNoteImport, macOSBetaImportNoteFiles,")
++    legacy_alias = snapshot[str((BETA / "Projection/calendar-legacy-alias.js").relative_to(REPO))].decode()
++    text = replace_once(text, "  const App = {", legacy_alias + "\n  const App = {\n    macOSBetaNativeCalendarResult,")
++    text = replace_once(text, "  async function bereiteAlteAndroidTerminAliase(nutzlast) {",
++                        "  async function bereiteAlteAndroidTerminAliase(nutzlast) {\n"
++                        "    const nativeAliases = macOSBetaNativeCalendarAliases(nutzlast);")
++    legacy_digest = '''      const text = personalSyncKanonisch([id.params, id.wert]).replace(/\\//g, "\\\\/");
++      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
++      if (DATEN !== bestand || gesperrt || JSON.stringify(DATEN.termine) !== vorher) throw alterAndroidTerminKonflikt();
++      const alt = id.serie + "-magnolie-instanz-" + Array.from(new Uint8Array(digest), x => x.toString(16).padStart(2, "0")).join("").slice(0, 16);'''
++    text = replace_once(text, legacy_digest, '''      let alt;
++      if (nativeAliases) {
++        alt = nativeAliases.get(JSON.stringify([id.key, t.uid]));
++        if (!alt) throw alterAndroidTerminKonflikt();
++      } else {
++''' + "\n".join("  " + line for line in legacy_digest.replace("const alt =", "alt =").splitlines()) + '''
++      }''')
++    text = replace_once(text,
++                        "  function wendeDateiImportDatenAn(nutzlast, termineNormalisiert = false, kontaktPruefung = null, leise = false, notizbuchId = null) {",
++                        "  function wendeDateiImportDatenAn(nutzlast, termineNormalisiert = false, kontaktPruefung = null, leise = false, notizbuchId = null) {\n"
++                        "    macOSBetaNativeCalendarAliases(nutzlast); // Validate before mutating any collection.")
++    text = replace_once(text, "          App.importErgebnis({ ...nutzlast, termine: termine }, true);",
++                        "          return App.importErgebnis({ ...nutzlast, termine: termine }, true);")
+     calendar_import = snapshot[str((BETA / "Projection/system-calendar-import.js").relative_to(REPO))].decode()
+     text = replace_once(text, "  const App = {", calendar_import + "\n  const App = {\n"
+                         "    macOSBetaStartCalendarImport, macOSBetaPrepareCalendarImport,\n"
+diff --git a/contracts/macos-465-native-calendar-alias-adoption.md b/contracts/macos-465-native-calendar-alias-adoption.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..bd85f47c08f54cdf72d91021602f049721bd0518
+--- /dev/null
++++ b/contracts/macos-465-native-calendar-alias-adoption.md
+@@ -0,0 +1,123 @@
++# Mac #465: native Altkennungsbelege bis zur bestehenden Importlogik führen
++
++Stand: 26. November 2026. Patchbasis:
++`79a4b98d11425460c8990253c8b974969ce3c837`, auf dem vollständigen
++Mac-Zweig `616069f15fed21d8d8d05c8ef795f4ed21bd059c`.
++Der vorangehende #771-Fix ist unabhängig von der Aliaszuordnung.
++
++## Bestätigter Befund und begrenzter Fix
++
++Der Swift-Reader hatte seit `405406b9` einen getrennten
++`ICalendarImport.Result.legacyAndroidAliases`-Beleg. Er bindet die historische
++Android-Hashkennung an den SHA-256 der tatsächlich eingelesenen ICS-Bytes,
++die Gesamtzahl und Position der Termine, Quellkennung, ursprüngliche Wire-UID
++und vollständige rohe `RECURRENCE-ID`-Zeile. Die native Hostantwort verwendete
++jedoch nur `.document` und übertrug diesen Beleg nicht.
++
++Die aktuelle Mac-Projektion enthält bereits die gemeinsame Desktop-
++Aliaslogik aus #462. Deshalb wird deren Fehlen nicht behauptet. Sie konnte
++die alte Kennung bisher nur erneut über `crypto.subtle` berechnen.
++Der neue Patch führt die schon vorhandenen nativen Belege bis zu diesem
++Planer. Ein zweiter Merge oder eine UID-/Titel-/Datumsheuristik entsteht nicht.
++
++`Result.response` ergänzt die temporären Belege in der Hostantwort. `document`
++und `icsImportMetadata` bleiben unverändert und ohne Belegfelder. Die schon
++vorhandene gemeinsame 96-MiB-Projektionsgrenze zählt Dokument und Sidecar.
++
++Der Mac-Callback übernimmt eine eigene Kopie der Antwort. Er registriert den
++Sidecar nur für diesen Empfang in einer `WeakMap`, gebunden an:
++
++- exakten aktuellen Buchgegenstand und vollständigen Buchinhalt;
++- Sidecar-Version/Algorithmus, Quellhash und zugehörige Metadaten;
++- Terminzahl, Positionen und alle gelieferten Terminidentitäten;
++- kanonische/alte UID, Quelle, Wire-UID und unveränderte rohe RID;
++- eindeutige Indizes, Quell-/UID-Kombinationen und Serieninstanzidentitäten.
++
++Vor dem Plan und vor jeder Sammlungsmutation werden diese Bindungen erneut
++geprüft. Ein gleichnamiges Feld aus einem Buch oder eine direkte unregistrierte
++Importnutzlast ist keine native Evidenz. Die bestehende Desktoplogik entscheidet
++weiter, ob genau ein vorhandener Datensatz mit der bewiesenen Altkennung
++existiert. Unbekannte Hashes, zwei vorhandene Zeilen oder mehrdeutige Eingänge
++scheitern vor der Mutation. Alte lokale ID/UID, Verweise, Unknowns, lokale
++Alarme, Teilnehmer, Anhänge und Providerlisten bleiben wie bisher erhalten.
++
++Der bestehende Normalisierungspfad für mehr als 1000 Termine behält die
++Objektidentität des temporären Sidecars. Sein rekursiver Aufruf wird jetzt
++auch zurückgegeben, damit die native Callback-Promise bis zur abschließenden
++Prüfung reicht. Während der Teilverarbeitung geänderte oder neu geöffnete
++Bücher verwerfen den alten Eingang. Reine Registrierungsfehler werden als
++Importkonflikt gemeldet; spätere Merge-/Darstellungsfehler werden nicht durch
++den neuen Wrapper als unveränderte Vorbereitung ausgegeben.
++
++## Reproduktion und tatsächlich ausgeführte Prüfungen
++
++Die neue Regression wurde zunächst gegen die vorangehende, unveränderte
++Projektion `79a4b98d` ausgeführt. Ohne eingespritztes WebCrypto ignoriert diese
++den nativen Sidecar; der Titel der alten Zeile bleibt stehen. Die positive
++Adoptionsassertion scheitert. **Das ist ein reproduzierter Host-/DOM-Befund,
++keine Behauptung, dass ein bestimmtes installiertes WebKit WebCrypto vermisst.**
++
++Mit dem Patch bestehen unter Linux, Node 24.22.3 und JSDOM 26.1.0 fünf gezielte
++Testgruppen:
++
++| Prüfung | Ergebnis |
++| --- | --- |
++| Native Aliasadoption im tatsächlich projizierten UI | 101 Prüfungen |
++| Allgemeiner UI-/Hostvertrag | 109 Assertions |
++| Bestehende Systemkalenderkopien | 307 Prüfungen |
++| Reproduzierbare vollständige Projektion | Bestanden |
++| Freeze- und Manipulationserkennung | Bestanden |
++
++Die Aliasprüfung verwendet den echten aktuellen Pythoncodec als unabhängige
++Dokumentquelle und synthetische Sidecars nach dem Swift-Vertrag. Belegt sind
++zwei Wiederimporte, tatsächliche Save-Nutzlasten und erneutes Frontend-`init`,
++sechs Grenzen für Quelle/Wire-UID/RID/TZID/RANGE/VALUE, fünf Mehrdeutigkeiten,
++14 manipulierte Bindungen, 1001 Termine mit Teilverarbeitung, konkurrierende
++Buchänderung, Dokumentwechsel und Erhalt der eigenen Eingangskopie.
++Save-ACKs sind synthetisch; es wurden keine echten Dateien neu geöffnet.
++
++Die vorhandenen 19 UI-Kataloge wurden mit `po_zu_js.py` und GNU `msgfmt` aus
++den unveränderten PO-Quellen vorbereitet. `git diff --check` und Python-
++Syntaxprüfung bestehen. Es wurden keine gemeinsamen Linux-/Windows-
++Produktdateien geändert.
++
++## Nachprüfung mit Codex
++
++```sh
++cd Magnolie-Organizer-macOS-Beta
++MACOS_BETA_JSDOM=/path/to/jsdom/lib/api.js \
++  python3 tools/check_legacy_calendar_aliases.py --js-runtime /path/to/node
++```
++
++Die alte Fehlerphase lässt sich mit demselben Runner und
++`--baseline-ref 79a4b98d11425460c8990253c8b974969ce3c837` wiederholen;
++dieser gezielte Baseline-Lauf soll an der Adoptionsassertion scheitern.
++
++Ein zusätzlicher Swift-Test prüft die native Antwort, die Quellbindung und
++den getrennten unveränderten Dokumentwert. **Er ist hier nicht kompiliert
++oder ausgeführt**, da kein Swift-/macOS-System verfügbar ist. Auf macOS kann
++der Test einen tatsächlichen Swift-DTO für denselben UI-Runner schreiben:
++
++```sh
++MACOS_BETA_LEGACY_ALIAS_ENVELOPE=/absolute/path/to/native-alias-envelope.json \
++  swift test --jobs 2 --filter LegacyAndroidAliasEvidenceTests
++MACOS_BETA_JSDOM=/path/to/jsdom/lib/api.js \
++  python3 tools/check_legacy_calendar_aliases.py --js-runtime /path/to/node \
++  --native-envelope /absolute/path/to/native-alias-envelope.json
++```
++
++Auch dieser DTO-Lauf ersetzt nicht den echten AppKit-Dateidialog,
++WKWebView-Callback und dauerhaften Save/Reopen auf Intel und Apple Silicon.
++
++## Verbleibender Umfang von #465
++
++Bereits doppelt gespeicherte Ausnahmezeilen werden ausdrücklich **nicht**
++automatisch repariert. Solche Mehrdeutigkeiten werden in der neuen Suite
++ohne Mutation abgewiesen. Eine ausdrücklich bestätigte exakte Paarreparatur
++muss Unknowns, widersprüchliche lokale Listen, alle Verweise und
++Komponentenassoziationen gesondert auflösen und native Wiederöffnung belegen.
++Der strenge Reopenvalidator bleibt unverändert. Der Tablet-Port und die
++Android-Pause aus #423 bleiben eigenständiger Restumfang.
++
++Dies ist eine Quellstandsicherung für die spätere Prüfung/Anwendung,
++keine native Gesamtabnahme, Installation oder Veröffentlichung.
+-- 
+2.56.1
+

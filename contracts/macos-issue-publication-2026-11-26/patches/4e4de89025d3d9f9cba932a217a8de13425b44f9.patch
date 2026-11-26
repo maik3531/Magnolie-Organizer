@@ -1,0 +1,92 @@
+From 4e4de89025d3d9f9cba932a217a8de13425b44f9 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 07:01:04 +0100
+Subject: [PATCH] test(macos): isolate complete historical alias projection
+ inputs
+
+Refs #465. Rebuild historical catalogs from the selected commit so later shared UI changes cannot break the regression probe before alias adoption.
+---
+ .../tools/check_legacy_calendar_aliases.py    | 45 ++++++++++++++-----
+ 1 file changed, 35 insertions(+), 10 deletions(-)
+
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/check_legacy_calendar_aliases.py b/Magnolie-Organizer-macOS-Beta/tools/check_legacy_calendar_aliases.py
+index 6fe698801a23c265a97210095860f4b0da58cd55..8ae4a58233b31c0b82466077b3199f264ea966b3 100644
+--- a/Magnolie-Organizer-macOS-Beta/tools/check_legacy_calendar_aliases.py
++++ b/Magnolie-Organizer-macOS-Beta/tools/check_legacy_calendar_aliases.py
+@@ -5,12 +5,44 @@ import hashlib
+ import json
+ from pathlib import Path
+ import subprocess
++import sys
++import tarfile
+ import tempfile
+ 
+ from check_calendar import canonical
+ import project_ui
+ 
+ 
++def baseline_projection(reference, directory):
++    """Keep the old projector and every tracked input in the same Git tree.
++
++    The current fixture/runner deliberately exercise the historical UI. Ignored
++    gettext assets are rebuilt with that tree's generator and PO files instead
++    of borrowing catalogs or product sources from the current working copy.
++    """
++    commit = subprocess.check_output(["git", "rev-parse", "--verify", "--end-of-options",
++        reference + "^{commit}"], cwd=project_ui.REPO, text=True).strip()
++    archive = directory / "baseline.tar"
++    with archive.open("wb") as output:
++        subprocess.run(["git", "archive", "--format=tar", commit], cwd=project_ui.REPO,
++            stdout=output, check=True)
++    source = directory / "baseline"
++    with tarfile.open(archive) as bundle:
++        bundle.extractall(source, filter="data")
++    archive.unlink()
++    linux = source / "magnolie-organizer"
++    for language in (linux / "po/LINGUAS").read_text().split():
++        subprocess.run([sys.executable, str(linux / "werkzeuge/po_zu_js.py"), language,
++            str(linux / "po" / (language + ".po")), str(linux / "web/i18n" / (language + ".js"))], check=True)
++    path = source / "Magnolie-Organizer-macOS-Beta/tools/project_ui.py"
++    namespace = {"__file__": str(path), "__name__": "legacy_alias_baseline_projection"}
++    exec(compile(path.read_bytes(), str(path), "exec"), namespace)
++    snapshot = namespace["inputs"]()
++    print("Historical projection: " + commit + "; all tracked inputs from Git; "
++          "gettext catalogs rebuilt from historical PO files; current regression fixture.", flush=True)
++    return snapshot, namespace["project"]
++
++
+ def fixtures():
+     module = canonical()
+     path = project_ui.REPO / "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/resources/calendar-import-v2.0.30.json"
+@@ -60,7 +92,7 @@ def main():
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument("--js-runtime", required=True)
+     parser.add_argument("--native-envelope", type=Path)
+-    parser.add_argument("--baseline-ref", help="Project the earlier committed UI for a regression reproduction, without changing files")
++    parser.add_argument("--baseline-ref", help="Project an isolated committed tree with its own rebuilt gettext catalogs (requires msgfmt); current regression fixture, no working-copy changes")
+     args = parser.parse_args()
+     fixture = fixtures()
+     if args.native_envelope:
+@@ -71,17 +103,10 @@ def main():
+         fixture["nativeEnvelope"] = True
+     snapshot = project_ui.inputs()
+     projector = project_ui.project
+-    if args.baseline_ref:
+-        def committed(path):
+-            return subprocess.check_output(["git", "show", args.baseline_ref + ":" + path], cwd=project_ui.REPO)
+-        for relative in ["Projection/macos-beta.js", "Sources/BetaCore/ICalendarImport.swift", "Sources/MacBeta/main.swift", "tools/project_ui.py"]:
+-            key = "Magnolie-Organizer-macOS-Beta/" + relative
+-            snapshot[key] = committed(key)
+-        namespace = {"__file__": str(project_ui.BETA / "tools/project_ui.py"), "__name__": "legacy_alias_baseline_projection"}
+-        exec(compile(snapshot["Magnolie-Organizer-macOS-Beta/tools/project_ui.py"], namespace["__file__"], "exec"), namespace)
+-        projector = namespace["project"]
+     with tempfile.TemporaryDirectory(prefix="macOS-Beta-calendar-alias-") as directory:
+         root = Path(directory)
++        if args.baseline_ref:
++            snapshot, projector = baseline_projection(args.baseline_ref, root)
+         projector(snapshot, root / "UI")
+         (root / "fixture.json").write_text(json.dumps(fixture))
+         command = [args.js_runtime]
+-- 
+2.56.1
+

@@ -1,0 +1,244 @@
+From e925f9f44de0fedbdd222908e0a05e7229a3bb70 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 06:42:09 +0100
+Subject: [PATCH] fix(macos): settle file-note imports after renderer errors
+ (Refs #781)
+
+---
+ .../Projection/note-file-import.js            | 45 +++++++++----
+ .../Sources/MacBeta/main.swift                |  8 ++-
+ .../tests/note_file_import.mjs                | 44 ++++++++++++-
+ contracts/macos-781-note-file-completion.md   | 66 +++++++++++++++++++
+ 4 files changed, 148 insertions(+), 15 deletions(-)
+ create mode 100644 contracts/macos-781-note-file-completion.md
+
+diff --git a/Magnolie-Organizer-macOS-Beta/Projection/note-file-import.js b/Magnolie-Organizer-macOS-Beta/Projection/note-file-import.js
+index be69403e3465e8a9147f14e3b528eee46bc656d8..b1ed1eb903d09fa0c9ba01a092f05f1f5b7e640b 100644
+--- a/Magnolie-Organizer-macOS-Beta/Projection/note-file-import.js
++++ b/Magnolie-Organizer-macOS-Beta/Projection/note-file-import.js
+@@ -5,6 +5,16 @@
+   }
+   function macOSBetaImportNoteFiles(payload) {
+     return new Promise((resolve, reject) => {
++      let appended = false, saveConfirmed = false;
++      const failed = (error, saveRejected = false) => {
++        if (appended && !saveConfirmed) {
++          const prefix = window.MacBeta.text(saveRejected
++            ? "Imported notes remain unsaved. Save the pending changes before importing again."
++            : "Note copies were added, but saving was not confirmed. Check and save the pending changes before importing again.");
++          error = new Error(prefix + " " + String(error?.message || error));
++        }
++        reject(error);
++      };
+       try {
+         if (window.MacBeta.noteImportBlocked() || gesperrt || !initialisiert || !antwortErhalten || !Array.isArray(payload?.items) ||
+             !payload.items.length || payload.items.length > 32) throw new Error("Note import is not available.");
+@@ -36,17 +46,28 @@
+             note.id !== candidates[i].id || note.text !== candidates[i].text || note.titel !== candidates[i].titel ||
+             kanonischerEntwurf(note.anhaenge) !== kanonischerEntwurf(candidates[i].anhaenge))) throw new Error("Note import would lose content.");
+         mitMutationsSnapshot("pre-note-file-import", () => {
+-          if (DATEN !== book || gesperrt || window.MacBeta.noteImportBlocked()) { reject(new Error("The document changed.")); return; }
+-          const ids = new Set(book.notizen.map(note => note.id));
+-          for (const note of normalized) {
+-            if (ids.has(note.id)) { reject(new Error("Note identity conflict.")); return; }
+-            ids.add(note.id);
+-          }
+-          book.notizen.push(...normalized);
+-          zeichneAlles();
+-          nachDauerhaftemSpeichern(() => resolve({ ok: true, count: normalized.length, ids: normalized.map(note => note.id) }),
+-            error => reject(new Error("Imported notes remain unsaved. Save the pending changes before importing again. " + error.message)));
+-        }, reject);
+-      } catch (error) { reject(error); }
++          // #781: this callback runs after the outer try/catch has returned.
++          // A renderer exception must settle the original import Promise too.
++          try {
++            if (DATEN !== book || gesperrt || window.MacBeta.noteImportBlocked()) throw new Error("The document changed.");
++            const ids = new Set(book.notizen.map(note => note.id));
++            for (const note of normalized) {
++              if (ids.has(note.id)) throw new Error("Note identity conflict.");
++              ids.add(note.id);
++            }
++            book.notizen.push(...normalized);
++            appended = true;
++            planeSpeichern(); zeichneAlles();
++            nachDauerhaftemSpeichern(() => {
++              saveConfirmed = true;
++              if (DATEN !== book || gesperrt || window.MacBeta.noteImportBlocked() ||
++                  normalized.some(note => !book.notizen.includes(note))) {
++                failed(new Error("The document changed before the note-file import save completed.")); return;
++              }
++              resolve({ ok: true, count: normalized.length, ids: normalized.map(note => note.id) });
++            }, error => failed(error, true));
++          } catch (error) { failed(error); }
++        }, failed);
++      } catch (error) { failed(error); }
+     });
+   }
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
+index b25a99a60a33a968878436fe5d84782aed78ee2e..f1f85f0ed3ec3f0f1b9dc62cf3f365320e7382a2 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
+@@ -477,11 +477,17 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+             guard self.plain != nil, !self.restoring else { return }
+             if self.noteFileImport == nil { self.noteFileImport = NoteFileImportHost() }
+             self.noteFileImport!.begin(parent: self.window, isCurrent: { self.plain != nil && !self.restoring && self.documentGeneration == generation }) { payload, finished in
+-                self.web.callAsyncJavaScript("return await window.App.macOSBetaImportNoteFiles(payload)", arguments: ["payload": payload], in: nil, in: .page) { (result: Result<Any, Error>) in
++                self.web.callAsyncJavaScript("""
++                    try { return await window.App.macOSBetaImportNoteFiles(payload); }
++                    catch (error) { return { noteFileImportError: String(error?.message || error).slice(0, 2048) }; }
++                    """, arguments: ["payload": payload], in: nil, in: .page) { (result: Result<Any, Error>) in
+                     defer { finished() }
+                     guard self.documentGeneration == generation, !self.restoring else { return }
+                     switch result {
+                     case .success(let value):
++                        if let result = value as? [String: Any], let message = result["noteFileImportError"] as? String {
++                            self.alert(String(message.prefix(2048))); return
++                        }
+                         guard let result = value as? [String: Any], result["ok"] as? Bool == true else { self.alert("Note import did not receive a durable save acknowledgement."); return }
+                         self.alert("New notes imported and saved: \(result["count"] as? Int ?? 0)")
+                     case .failure(let error): self.alert(error.localizedDescription)
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/note_file_import.mjs b/Magnolie-Organizer-macOS-Beta/tests/note_file_import.mjs
+index a1a15d2d0ab8043bfbaf782232b3212a9942e7f1..9812c4e3accf42d2d29ecabf4af8aec977dd5910 100644
+--- a/Magnolie-Organizer-macOS-Beta/tests/note_file_import.mjs
++++ b/Magnolie-Organizer-macOS-Beta/tests/note_file_import.mjs
+@@ -6,11 +6,11 @@ const b=await boot(process.argv[2]);const {w,t,messages}=b;
+ const original={termine:[],aufgaben:[],kontakte:[],notizen:[{id:'existing',titel:'same.pdf',text:'',future:{retain:17}}],futureRoot:{keep:'opaque'},einstellungen:{allgemein:{handbuchHinweisGezeigt:true}}};
+ w.MacBeta.receive('init',{daten:original,neu:false,regional:{language:'en',timeZone:'UTC'}});
+ const seen=new Set();
+-async function pump({snapshot=true,save=true}={}) {
++async function pump({snapshot=true,save=true,ackSaves=true}={}) {
+   for(let n=0;n<8;n++) {
+     for(const m of [...messages]) {
+       const key=m.cmd+':'+(m.id??m.token??'');if(seen.has(key))continue;
+-      if(m.cmd==='speichern'){seen.add(key);w.MacBeta.receive('gespeichert',{id:m.id,ok:save,fehler:save?'':'Synthetic save failure'});}
++      if(m.cmd==='speichern'&&ackSaves){seen.add(key);w.MacBeta.receive('gespeichert',{id:m.id,ok:save,fehler:save?'':'Synthetic save failure'});}
+       if(m.cmd==='mutations_snapshot'){seen.add(key);w.MacBeta.receive('mutationsSnapshot',{token:m.token,ok:snapshot,fehler:snapshot?'':'Synthetic recovery failure'});}
+     }
+     await tick();
+@@ -66,11 +66,51 @@ try {
+      equal(surface.textContent,literal,'1MiB escaped literal renders without truncation or interpretation');
+    }
+  }
++ // #781: exercise the actual asynchronous checkpoint callback, not a copied helper.
++ for (const [locale, prefix] of [['en', 'Note copies were added, but saving was not confirmed.'],
++                                ['de', 'Notizkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt.']]) {
++   w.MacBeta.receive('init',{daten:JSON.parse(JSON.stringify(t.daten())),neu:false,regional:{language:locale,timeZone:'UTC'}});
++   await pump();
++   const retained=JSON.stringify(t.daten().notizen), count=t.daten().notizen.length;
++   const appearance=w.MagnolieAppearance;
++   w.MagnolieAppearance={...appearance,update(){throw new Error('Synthetic renderer failure after file append');}};
++   let settled=false;
++   const failedRender=w.App.macOSBetaImportNoteFiles({items:[item('renderer-'+locale+'.txt','Exact file text <b>literal</b>')]}).then(
++     value=>{settled=true;return {value};},error=>{settled=true;return {error:error.message};});
++   try { await pump(); } finally { w.MagnolieAppearance=appearance; }
++   equal(settled,true,'Async renderer failure settles original Promise: '+locale);
++   const outcome=await failedRender;
++   assert.ok(outcome.error?.startsWith(prefix),JSON.stringify(outcome));checks++;
++   equal(t.daten().notizen.length,count+1,'Mutation stays visible after failure: '+locale);
++   equal(JSON.stringify(t.daten().notizen.slice(0,count)),retained,'Existing notes unchanged: '+locale);
++   equal(t.daten().notizen.at(-1).text,'Exact file text <b>literal</b>','Appended original content retained: '+locale);
++   const id=t.daten().notizen.at(-1).id;
++   t.speichereJetzt();await pump();
++   const saved=JSON.parse(messages.filter(message=>message.cmd==='speichern').at(-1).text);
++   equal(saved.notizen.filter(note=>note.id===id).length,1,'Retry saves exactly the existing copy: '+locale);
++   w.MacBeta.receive('init',{daten:saved,neu:false,regional:{language:locale,timeZone:'UTC'}});await pump();
++   equal(t.daten().notizen.filter(note=>note.id===id).length,1,'Reopen preserves exactly the saved copy: '+locale);
++ }
++ w.MacBeta.receive('init',{daten:JSON.parse(JSON.stringify(t.daten())),neu:false,regional:{language:'en',timeZone:'UTC'}});t.speichereJetzt();await pump();
+  const beforeFailedWrite=t.daten().notizen.length;
+  const failedWrite=w.App.macOSBetaImportNoteFiles({items:[item('pending.txt','retain unsaved import')]}).then(()=>null,e=>e.message);
+  await pump({save:false});assert.match(await failedWrite,/unsaved/);checks++;
+  equal(t.daten().notizen.length,beforeFailedWrite+1,'Failed final write leaves imported notes visible for save retry');
+  t.speichereJetzt();await pump();
++ // The final ACK belongs to a particular saved snapshot, not any current UI state.
++ let ackSettled=false;
++ const ackPending=w.App.macOSBetaImportNoteFiles({items:[item('ack-bound.txt','ACK-bound copy')]}).then(
++   value=>{ackSettled=true;return {value};},error=>{ackSettled=true;return {error:error.message};});
++ await pump({ackSaves:false});
++ equal(ackSettled,false,'No import success before final Save-ACK');
++ const waiting=messages.filter(message=>message.cmd==='speichern').at(-1);
++ w.MacBeta.receive('gespeichert',{id:waiting.id+10000,ok:true});await tick();
++ equal(ackSettled,false,'An unrelated ACK cannot complete this import');
++ const removed=t.daten().notizen.pop();
++ equal(removed.titel,'ack-bound.txt','Only the imported fixture is removed while save is pending');
++ await pump();const ackOutcome=await ackPending;
++ assert.match(ackOutcome.error||'',/document changed before the note-file import save completed/);checks++;
++ t.speichereJetzt();await pump();
+  stable=JSON.stringify(t.daten());
+  w.App.macOSBetaStartNoteImport();await pump();
+  equal(messages.filter(m=>m.cmd==='notiz_dateien_importieren').at(-1),{cmd:'notiz_dateien_importieren'},'Actual import action sends picker command without path or document body');
+diff --git a/contracts/macos-781-note-file-completion.md b/contracts/macos-781-note-file-completion.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..ee01c88a482ad7aaafb8c72fca306ffa1dc7f2e2
+--- /dev/null
++++ b/contracts/macos-781-note-file-completion.md
+@@ -0,0 +1,66 @@
++# #781 — Dateinotizimport nach Darstellungsfehler abschließen
++
++Produktbefund auf `616069f15fed21d8d8d05c8ef795f4ed21bd059c`; Patchbasis
++`a26bb1302f3f5b772b83c9530f3098df34262f20` mit den Hinweisen aus #778.
++
++## Ursache und belegte Auswirkung
++
++`macOSBetaImportNoteFiles()` registriert einen asynchronen Callback für den
++Wiederherstellungspunkt. Der äußere `try/catch` ist beendet, wenn dieser
++Callback später läuft. Wirft `zeichneAlles()` nach dem Anhängen der Notizen,
++wird deshalb weder die Save-ACK-Anmeldung erreicht noch das ursprüngliche
++Import-Promise abgeschlossen.
++
++Die Fehler-Injektion im öffentlichen `MagnolieAppearance.update`-Hook wurde
++an der tatsächlichen generierten Oberfläche mit synthetischer Textdatei
++ausgeführt: `appended: true`, `settledRenderer: false`, die Exception trat
++beim Snapshot-Callback aus. Ein begrenzter 250-ms-Beobachter meldete Timeout.
++Das ist ein reproduzierter JS-Transaktionsfehler, kein behaupteter nativer
++Mac-Absturz oder bereits eingetretener Benutzerdateiverlust.
++
++## Änderung
++
++- Der asynchrone Callback besitzt einen eigenen `try/catch`. Alle Fehler
++  erreichen das ursprüngliche Import-Promise.
++- Nach dem Anhängen wird zuerst das Speichern eingeplant. Ein Rendererfehler
++  erhält denselben präzisen Hinweis wie #778: Kopien stehen im Dokument,
++  ihre Speicherung ist aber noch nicht bestätigt.
++- Ein tatsächlich abgelehntes Save-ACK bleibt ausdrücklich ein ungespeicherter
++  Zustand. Keine Rücknahme und kein Speichererfolg werden erfunden.
++- Erfolg nach ACK erfordert weiterhin dasselbe Dokument, erlaubten Zustand
++  und die tatsächliche Anwesenheit aller hinzugefügten Notizobjekte.
++- Der Swift-Host übernimmt den konkreten Promise-Fehler als strukturiertes
++  Ergebnis. Sein bestehendes `defer { finished() }` beendet die laufende
++  Dateiauswahl-/Importoperation auch beim Fehler; überholte Dokumentgenerationen
++  werden weiterhin ignoriert. Die übernommene Fehlermeldung ist auf 2048 Zeichen
++  begrenzt.
++
++Der Dateiimport bleibt bewusst additiv. Er erhält keine neue automatische
++Quell-Deduplikation; ein erneutes absichtliches Auswählen derselben Datei ist
++eine neue Importaktion. Der geprüfte Retry speichert die bereits vorhandene
++Kopie, statt die Datei erneut zu importieren.
++
++## Tatsächliche Prüfungen
++
++Node 24.22.3 / JSDOM 26.1.0, Linux-Prüfhost:
++
++```sh
++python3 -m unittest discover -s Magnolie-Organizer-macOS-Beta/tests \
++  -p test_host.py -k additive_selected_note_files_contract -v
++```
++
++**41 Hostprüfungen bestanden**, einschließlich aller bisherigen Importfälle
++und neuer Fehlerfälle in Englisch und Deutsch: Promise-Abschluss, präziser
++Hinweis, unveränderte Bestandsnotizen, exakter Text der angehängten Kopie,
++kanonischer Save-Retry und erneut geladenes Buch mit genau derselben lokalen
++Notiz-ID. Eine falsche ACK-ID lässt den Import warten; eine passende ACK nach
++Entfernung der importierten Notiz meldet keinen Importerfolg. JavaScript-Syntax und Diff-Whitespace geprüft.
++
++Die nativen Nutzlasten und Speicherquittungen waren synthetisch. Swift,
++AppKit-Dateiauswahl, echtes WKWebView und nativer Datenträger wurden hier nicht
++ausgeführt. Codex soll den Swift-Bau auf beiden Architekturen prüfen und den
++Fehlerpfad im tatsächlichen Dateiauswahldialog abnehmen. Der Patch baut auf den
++deutschen/englischen Speicherhinweisen aus #778 auf.
++
++Andere Editionen besitzen andere Dateiimporttransaktionen. Aus diesem
++Mac-Nachweis wird kein ausgeführter Linux-/Windows-Produktfix abgeleitet.
+-- 
+2.56.1
+

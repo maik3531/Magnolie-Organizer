@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "method": "Fresh separate bare repository, fetch only original main prerequisite history, verify bundle, fetch advertised branch, compare exact commit/tree/count, git fsck --strict --no-reflogs --no-dangling",
+  "prerequisiteFetched": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+  "advertisedBundleRef": "refs/heads/work/macos-issue-fixes-20261126",
+  "restoredHead": "0dfeb1b30a208480eb6901e3d3148a5efeaae5ff",
+  "restoredTree": "d731a6bd56acd68e79aab83fbadb19ab94ad6547",
+  "restoredCommitsBeyondMain": 32,
+  "bundleVerifyExitCode": 0,
+  "fetchExitCode": 0,
+  "strictFsckExitCode": 0,
+  "networkUsed": false,
+  "mainMerged": false,
+  "originalBranchChanged": false,
+  "nativeTestsClaimed": false
+}

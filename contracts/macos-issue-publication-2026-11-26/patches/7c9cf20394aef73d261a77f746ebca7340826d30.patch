@@ -1,0 +1,44 @@
+From 7c9cf20394aef73d261a77f746ebca7340826d30 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 08:42:44 +0100
+Subject: [PATCH] Keep pure Mac adapter oracles independent of import bundle
+ setup
+
+Refs #785 #783. Load the import-codec recipe only during full source capture or projection, preserving file-based standalone adapter imports. The current occurrence UI test passes 29 checks and still rejects the old full UI; promoted hooks pass 44 checks and runtime projectors retain identical bytes across 37 clocks and 370 locale formats. No native execution claim.
+---
+ Magnolie-Organizer-macOS-Beta/tools/project_ui.py | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+index 2bc4f0d92ca633ce50d96dd8bd54d8c00f8b55d9..3aa6df0dc54530e9a73b2142b9e8d1b9430f71e8 100644
+--- a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
++++ b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+@@ -8,7 +8,6 @@ import re
+ import shutil
+ import sys
+ import tempfile
+-import project_import_helper
+ 
+ BETA = Path(__file__).resolve().parents[1]
+ REPO = BETA.parent
+@@ -22,6 +21,9 @@ def digest(data):
+ 
+ 
+ def inputs():
++    # Standalone adapter oracles load this file without the tools search path.
++    # Only a full source capture/build needs the separate import-codec recipe.
++    import project_import_helper
+     roots = [LINUX / "web", LINUX / "symbole", REPO / "contracts", REPO / "port-adapters", BETA / "Projection", BETA / "Sources", BETA / "Resources", BETA / "Receiver", REPO / "magnolie-handbuch/web"]
+     files = []
+     for root in roots:
+@@ -254,6 +256,7 @@ def shared_catalogs(snapshot):
+ 
+ def project(snapshot, target):
+     """Also used by host tests in a temporary directory, without creating a source freeze."""
++    import project_import_helper
+     if target.exists():
+         raise ValueError("Projection destination must not exist.")
+     target.mkdir(parents=True)
+-- 
+2.56.1
+

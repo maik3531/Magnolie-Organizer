@@ -1,0 +1,488 @@
+From a26bb1302f3f5b772b83c9530f3098df34262f20 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 06:33:30 +0100
+Subject: [PATCH] fix(macos): report unconfirmed saving after import render
+ failure
+
+Preserve imported calendar, Notes and contact copies, distinguish save NACK from post-append rendering failure, and cover retry/reopen without duplicates in the actual projected UI. Refs #778.
+---
+ .../Projection/apple-notes-import.js          |  18 ++-
+ .../Projection/system-calendar-import.js      |  18 ++-
+ .../Projection/system-contact-import.js       |  18 ++-
+ .../Resources/native-extra-i18n.json          |   5 +-
+ .../Sources/MacBeta/main.swift                |   9 ++
+ .../tests/apple_notes_import.mjs              |  39 ++++++-
+ .../tests/system_calendar_import.mjs          |  51 +++++++++
+ .../tests/system_contact_import.mjs           |  38 ++++++-
+ .../macos-778-import-save-diagnostics.md      | 107 ++++++++++++++++++
+ 9 files changed, 291 insertions(+), 12 deletions(-)
+ create mode 100644 contracts/macos-778-import-save-diagnostics.md
+
+diff --git a/Magnolie-Organizer-macOS-Beta/Projection/apple-notes-import.js b/Magnolie-Organizer-macOS-Beta/Projection/apple-notes-import.js
+index 088e0899face4b9d4c1c76782722eb44f9a2305f..78a85aabd547947c33cc9cf94a45a9b8b4409bd7 100644
+--- a/Magnolie-Organizer-macOS-Beta/Projection/apple-notes-import.js
++++ b/Magnolie-Organizer-macOS-Beta/Projection/apple-notes-import.js
+@@ -221,8 +221,18 @@
+   function macOSBetaCommitAppleNotesImport(token) {
+     return new Promise((resolve, reject) => {
+       const proposal = macOSBetaAppleNotesProposal;
+-      let ownsProposal = false;
+-      const failed = error => {
++      let ownsProposal = false, appended = false, saveConfirmed = false;
++      const failed = (error, saveRejected = false) => {
++        // #778: the renderer may fail after the local append and before the
++        // save callback is registered. Report the mutation, never a rollback or
++        // an unobserved write failure; a scheduled save may still be pending.
++        if (appended && !saveConfirmed) {
++          const prefix = saveRejected
++            ? window.MacBeta.text("Imported notes remain unsaved. Save the pending changes before importing again.")
++            : window.MacBeta.text("Note copies were added, but saving was not confirmed. Check and save the pending changes before importing again.");
++          const detail = String(error?.message || error);
++          if (!detail.startsWith(prefix)) error = new Error(prefix + " " + detail);
++        }
+         if (ownsProposal && macOSBetaAppleNotesProposal === proposal) macOSBetaAppleNotesProposal = null;
+         reject(error);
+       };
+@@ -240,15 +250,17 @@
+             macOSBetaAppleNotesRequireCurrent(proposal);
+             proposal.state = "saving";
+             proposal.book.notizen.push(...proposal.candidates);
++            appended = true;
+             planeSpeichern(); zeichneAlles();
+             nachDauerhaftemSpeichern(() => {
++              saveConfirmed = true;
+               if (DATEN !== proposal.book || macOSBetaAppleNotesBlocked() ||
+                   proposal.candidates.some(note => !DATEN.notizen.includes(note))) {
+                 failed(new Error("The document changed before the Apple Notes copy save completed.")); return;
+               }
+               if (macOSBetaAppleNotesProposal === proposal) macOSBetaAppleNotesProposal = null;
+               resolve({ ok: true, count: proposal.candidates.length, ids: proposal.candidates.map(note => note.id) });
+-            }, error => failed(new Error("Imported notes remain unsaved. Save the pending changes before importing again. " + error.message)));
++            }, error => failed(error, true));
+           } catch (error) { failed(error); }
+         }, failed);
+       } catch (error) { failed(error); }
+diff --git a/Magnolie-Organizer-macOS-Beta/Projection/system-calendar-import.js b/Magnolie-Organizer-macOS-Beta/Projection/system-calendar-import.js
+index 5e5657be27a22c3bcdfa171fa3e477526900cce6..fc24c48e6ecb45daa68fb788cd93b796c0256da2 100644
+--- a/Magnolie-Organizer-macOS-Beta/Projection/system-calendar-import.js
++++ b/Magnolie-Organizer-macOS-Beta/Projection/system-calendar-import.js
+@@ -223,8 +223,18 @@
+   function macOSBetaCommitCalendarImport(token) {
+     return new Promise((resolve, reject) => {
+       const proposal = macOSBetaCalendarProposal;
+-      let ownsProposal = false;
+-      const failed = error => {
++      let ownsProposal = false, appended = false, saveConfirmed = false;
++      const failed = (error, saveRejected = false) => {
++        // #778: the renderer may fail after the local append and before the
++        // save callback is registered. Report the mutation, never a rollback or
++        // an unobserved write failure; a scheduled save may still be pending.
++        if (appended && !saveConfirmed) {
++          const prefix = saveRejected
++            ? window.MacBeta.text("Imported appointments remain unsaved. Save the pending changes before importing again.")
++            : window.MacBeta.text("Appointment copies were added, but saving was not confirmed. Check and save the pending changes before importing again.");
++          const detail = String(error?.message || error);
++          if (!detail.startsWith(prefix)) error = new Error(prefix + " " + detail);
++        }
+         if (ownsProposal && macOSBetaCalendarProposal === proposal) macOSBetaCalendarProposal = null;
+         reject(error);
+       };
+@@ -243,16 +253,18 @@
+             macOSBetaCalendarImportRequireCurrent(proposal);
+             proposal.state = "saving";
+             proposal.book.termine.push(...proposal.candidates);
++            appended = true;
+             planeSpeichern();
+             zeichneAlles();
+             nachDauerhaftemSpeichern(() => {
++              saveConfirmed = true;
+               if (DATEN !== proposal.book || macOSBetaCalendarImportBlocked() ||
+                   proposal.candidates.some(record => !DATEN.termine.includes(record))) {
+                 failed(new Error("The document changed before the calendar import save completed.")); return;
+               }
+               if (macOSBetaCalendarProposal === proposal) macOSBetaCalendarProposal = null;
+               resolve({ ok: true, count: proposal.candidates.length, ids: proposal.candidates.map(record => record.id) });
+-            }, error => failed(new Error("Imported appointments remain unsaved. Save the pending changes before importing again. " + error.message)));
++            }, error => failed(error, true));
+           } catch (error) { failed(error); }
+         }, failed);
+       } catch (error) { failed(error); }
+diff --git a/Magnolie-Organizer-macOS-Beta/Projection/system-contact-import.js b/Magnolie-Organizer-macOS-Beta/Projection/system-contact-import.js
+index 13e734c80a0fdf78a35de47af6e933025ecc7cfd..420183e2c7611fe2fab20fa3dac9af5b75dd026f 100644
+--- a/Magnolie-Organizer-macOS-Beta/Projection/system-contact-import.js
++++ b/Magnolie-Organizer-macOS-Beta/Projection/system-contact-import.js
+@@ -285,8 +285,18 @@
+   function macOSBetaCommitContactImport(token) {
+     return new Promise((resolve, reject) => {
+       const proposal = macOSBetaContactProposal;
+-      let ownsProposal = false;
+-      const failed = error => {
++      let ownsProposal = false, appended = false, saveConfirmed = false;
++      const failed = (error, saveRejected = false) => {
++        // #778: the renderer may fail after the local append and before the
++        // save callback is registered. Report the mutation, never a rollback or
++        // an unobserved write failure; a scheduled save may still be pending.
++        if (appended && !saveConfirmed) {
++          const prefix = saveRejected
++            ? window.MacBeta.text("Imported contacts remain unsaved. Save the pending changes before importing again.")
++            : window.MacBeta.text("Contact copies were added, but saving was not confirmed. Check and save the pending changes before importing again.");
++          const detail = String(error?.message || error);
++          if (!detail.startsWith(prefix)) error = new Error(prefix + " " + detail);
++        }
+         if (ownsProposal && macOSBetaContactProposal === proposal) macOSBetaContactProposal = null;
+         reject(error);
+       };
+@@ -304,15 +314,17 @@
+             macOSBetaContactRequireCurrent(proposal);
+             proposal.state = "saving";
+             proposal.book.kontakte.push(...proposal.candidates);
++            appended = true;
+             planeSpeichern(); zeichneAlles();
+             nachDauerhaftemSpeichern(() => {
++              saveConfirmed = true;
+               if (DATEN !== proposal.book || macOSBetaContactBlocked() ||
+                   proposal.candidates.some(contact => !DATEN.kontakte.includes(contact))) {
+                 failed(new Error(macOSBetaContactTr("The document changed before the Contacts copy save completed."))); return;
+               }
+               if (macOSBetaContactProposal === proposal) macOSBetaContactProposal = null;
+               resolve({ ok: true, count: proposal.candidates.length, ids: proposal.candidates.map(contact => contact.id) });
+-            }, error => failed(new Error(macOSBetaContactTr("Imported contacts remain unsaved. Save the pending changes before importing again.") + " " + error.message)));
++            }, error => failed(error, true));
+           } catch (error) { failed(error); }
+         }, failed);
+       } catch (error) { failed(error); }
+diff --git a/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json b/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
+index 234ca49b6360fefba6318a7abb2daef3e4050039..41d80a7a1cb7ddeb62fbea3161d5871a4320bee3 100644
+--- a/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
++++ b/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
+@@ -409,7 +409,10 @@
+     "macOS reminder copy: too many reminder recurrence rules.": "Die Anzahl der Wiederholungsregeln überschreitet die Lesegrenze.",
+     "Floating time; no source time zone is assigned.": "Uhrzeit ohne Zeitzonenbindung; die Quelle weist ihr keine Zeitzone zu.",
+     "Task copies were added, but saving was not confirmed. Check and save the pending changes before importing again.": "Aufgabenkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt. Prüfen und speichern Sie die ausstehenden Änderungen vor einer erneuten Übernahme.",
+-    "macOS Reminders access is unavailable. No reminder copy was imported. Check Privacy & Security → Reminders before trying again.": "Der macOS-Zugriff auf Erinnerungen ist nicht verfügbar. Es wurde keine Erinnerungskopie übernommen. Prüfen Sie Datenschutz & Sicherheit → Erinnerungen vor einem erneuten Versuch."
++    "macOS Reminders access is unavailable. No reminder copy was imported. Check Privacy & Security → Reminders before trying again.": "Der macOS-Zugriff auf Erinnerungen ist nicht verfügbar. Es wurde keine Erinnerungskopie übernommen. Prüfen Sie Datenschutz & Sicherheit → Erinnerungen vor einem erneuten Versuch.",
++    "Appointment copies were added, but saving was not confirmed. Check and save the pending changes before importing again.": "Terminkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt. Prüfen und speichern Sie die ausstehenden Änderungen vor einer erneuten Übernahme.",
++    "Note copies were added, but saving was not confirmed. Check and save the pending changes before importing again.": "Notizkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt. Prüfen und speichern Sie die ausstehenden Änderungen vor einer erneuten Übernahme.",
++    "Contact copies were added, but saving was not confirmed. Check and save the pending changes before importing again.": "Kontaktkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt. Prüfen und speichern Sie die ausstehenden Änderungen vor einer erneuten Übernahme."
+   },
+   "es": {
+     "Undo": "Deshacer",
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
+index 82bcde582854d31dbbcd7a7b6c6e44e30b1e692f..b25a99a60a33a968878436fe5d84782aed78ee2e 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
+@@ -364,6 +364,9 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+         }
+         guard let result = value as? [String: Any] else { throw BetaError("The contact preview is invalid.") }
+         if let message = result["contactImportError"] as? String {
++            if message.hasPrefix("Contact copies were added, but saving was not confirmed.") {
++                throw BetaError("Contact copies were added, but saving was not confirmed. Check and save the pending changes before importing again.")
++            }
+             if message.hasPrefix("Imported contacts remain unsaved.") {
+                 throw BetaError("Imported contacts remain unsaved. Save the pending changes before importing again.")
+             }
+@@ -405,6 +408,9 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+         }
+         guard let result = value as? [String: Any] else { throw BetaError("The Apple Notes preview is invalid.") }
+         if let message = result["appleNotesImportError"] as? String {
++            if message.hasPrefix("Note copies were added, but saving was not confirmed.") {
++                throw BetaError("Note copies were added, but saving was not confirmed. Check and save the pending changes before importing again.")
++            }
+             if message.hasPrefix("Imported notes remain unsaved.") {
+                 throw BetaError("Imported notes remain unsaved. Save the pending changes before importing again.")
+             }
+@@ -455,6 +461,9 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+         }
+         guard let result = value as? [String: Any] else { throw BetaError("The calendar preview is invalid.") }
+         if let message = result["calendarImportError"] as? String {
++            if message.hasPrefix("Appointment copies were added, but saving was not confirmed.") {
++                throw BetaError("Appointment copies were added, but saving was not confirmed. Check and save the pending changes before importing again.")
++            }
+             if message.hasPrefix("Imported appointments remain unsaved.") {
+                 throw BetaError("Imported appointments remain unsaved. Save the pending changes before importing again.")
+             }
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/apple_notes_import.mjs b/Magnolie-Organizer-macOS-Beta/tests/apple_notes_import.mjs
+index 3c739d7e98110b7feb5dcaeb5c85cfa267a84505..87b5fab353ca2dbe27990d8684212fd0bab4607f 100644
+--- a/Magnolie-Organizer-macOS-Beta/tests/apple_notes_import.mjs
++++ b/Magnolie-Organizer-macOS-Beta/tests/apple_notes_import.mjs
+@@ -211,7 +211,10 @@ for (const stage of ["checkpoint", "saving"]) {
+     throws(() => w.App.macOSBetaPrepareAppleNotesImport(payload([item("must-wait")])), /already/, "In-flight proposal remains owned after reinitialization: " + stage);
+     w.App.macOSBetaStartAppleNotesImport();
+     equal(messages.filter(message => message.cmd === "macos_apple_notizen_importieren").length, 0, "Start cannot replace an in-flight operation: " + stage);
+-    await b.pump(); assert.match((await pending).message, /stale|document changed/i); checks++;
++    await b.pump(); const failure = await pending;
++    assert.match(failure.message, /stale|document changed/i); checks++;
++    equal(/copies were added|remain unsaved|saving was not confirmed/i.test(failure.message), false,
++      "Pre-append rejection or observed save ACK keeps its specific document-change diagnosis: " + stage);
+     equal(t.daten().notizen.length, 1, "Obsolete in-flight callback never appends to replacement document: " + stage);
+     const current = w.App.macOSBetaPrepareAppleNotesImport(payload([item("after-completion")]));
+     equal(w.App.macOSBetaCancelAppleNotesImport(current.token).cancelled, true, "New review works after old operation settles: " + stage);
+@@ -408,4 +411,38 @@ for (const stage of ["before-prepare", "before-commit", "during-checkpoint"]) {
+   } finally { b.close(); }
+ }
+ 
++// #778: exercise the public renderer hook after the real canonical append.
++for (const language of ["en", "de"]) {
++  const b = await context(), { w, t, messages } = b;
++  const appearance = w.MagnolieAppearance;
++  try {
++    w.MagnolieI18n.setLocale(language);
++    t.speichereJetzt(); await b.pump();
++    const original = JSON.stringify(t.daten().notizen), originalCount = t.daten().notizen.length;
++    const review = w.App.macOSBetaPrepareAppleNotesImport(payload([item("render-failure")]));
++    try {
++      w.MagnolieAppearance = { ...appearance, update() { throw new Error("Synthetic renderer failure after append"); } };
++      await rejects(commit(b, review), language === "de"
++        ? /Notizkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt\..*Synthetic renderer failure after append/
++        : /Note copies were added, but saving was not confirmed\..*Synthetic renderer failure after append/,
++        "Actual renderer failure explains local mutation and unconfirmed persistence");
++    } finally { w.MagnolieAppearance = appearance; }
++    equal(t.daten().notizen.length, originalCount + 1, "Added copy survives renderer failure for save retry");
++    equal(JSON.stringify(t.daten().notizen.slice(0, originalCount)), original, "Renderer failure preserves all pre-existing records and local edits");
++    equal(t.daten().notizen.at(-1).nativeAppleNotesImport.identifier, "render-failure", "Renderer failure retains exact native provenance");
++    t.speichereJetzt(); await b.pump();
++    const saved = JSON.parse(messages.filter(message => message.cmd === "speichern").at(-1).text);
++    equal(saved.notizen, t.daten().notizen, "Actual retry save contains both existing records and the added copy");
++    const retry = w.App.macOSBetaPrepareAppleNotesImport(payload([item("render-failure")]));
++    equal([retry.newCount, retry.existingCount], [0, 1], "Save retry preserves provenance and prevents duplicate import");
++    w.App.macOSBetaCancelAppleNotesImport(retry.token);
++    w.MacBeta.receive("init", { daten: saved, neu: false, regional: { language, timeZone: "UTC" } });
++    t.zustand().notizen.notizbuchId = "target-book"; t.zustand().notizen.auswahlId = null;
++    await b.pump();
++    const reopened = w.App.macOSBetaPrepareAppleNotesImport(payload([item("render-failure")]));
++    equal([reopened.newCount, reopened.existingCount], [0, 1], "Reopened retry-save bytes still prevent duplicate import");
++    w.App.macOSBetaCancelAppleNotesImport(reopened.token);
++  } finally { w.MagnolieAppearance = appearance; b.close(); }
++}
++
+ console.log(`Mac Apple Notes plaintext copy: ${checks} projected UI checks; synthetic native records/transport, not AppleScript or macOS evidence.`);
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/system_calendar_import.mjs b/Magnolie-Organizer-macOS-Beta/tests/system_calendar_import.mjs
+index b816d05ae5e65cb4dcd1b38045f8a18a2fd20e07..2e201e24f62f3cfb78324ba5b84591313e99ce0e 100644
+--- a/Magnolie-Organizer-macOS-Beta/tests/system_calendar_import.mjs
++++ b/Magnolie-Organizer-macOS-Beta/tests/system_calendar_import.mjs
+@@ -493,4 +493,55 @@ for (const stage of ["before-start", "during-save"]) for (const fieldID of ["bri
+     equal(messages.filter(message => message.cmd === "erinnerung_zeigen").length, reminders + 1, "Existing ordinary-event reminder behavior remains unchanged");
+   } finally { b.close(); }
+ }
++// #778: an already observed save ACK is distinct from unconfirmed saving.
++for (const stage of ["checkpoint", "saving"]) {
++  const b = await context(), { w, t } = b;
++  try {
++    const review = w.App.macOSBetaPrepareCalendarImport(payload([draft("old-generation")]));
++    const pending = w.App.macOSBetaCommitCalendarImport(review.token).then(() => null, error => error);
++    if (stage === "saving") await b.pump({ ackSaves: false });
++    w.MacBeta.receive("init", { daten: clone(initial), neu: false, regional: { language: "en", timeZone: "UTC" } });
++    await b.pump(); const failure = await pending;
++    assert.match(failure.message, /stale|document changed/i); checks++;
++    equal(/copies were added|remain unsaved|saving was not confirmed/i.test(failure.message), false,
++      "Pre-append rejection or observed save ACK keeps its specific document-change diagnosis: " + stage);
++    equal(t.daten().termine.length, 0, "Obsolete import never changes replacement document: " + stage);
++  } finally { b.close(); }
++}
++
++// #778: exercise the public renderer hook after the real canonical append.
++for (const language of ["en", "de"]) {
++  const b = await context(), { w, t, messages } = b;
++  const appearance = w.MagnolieAppearance;
++  try {
++    w.MagnolieI18n.setLocale(language);
++    await commit(b, w.App.macOSBetaPrepareCalendarImport(payload([draft("existing-copy")])));
++    t.daten().termine[0].titel = "Keep this local calendar edit";
++    t.speichereJetzt(); await b.pump();
++    const original = JSON.stringify(t.daten().termine), originalCount = t.daten().termine.length;
++    const review = w.App.macOSBetaPrepareCalendarImport(payload([draft("render-failure")]));
++    try {
++      w.MagnolieAppearance = { ...appearance, update() { throw new Error("Synthetic renderer failure after append"); } };
++      await rejects(commit(b, review), language === "de"
++        ? /Terminkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt\..*Synthetic renderer failure after append/
++        : /Appointment copies were added, but saving was not confirmed\..*Synthetic renderer failure after append/,
++        "Actual renderer failure explains local mutation and unconfirmed persistence");
++    } finally { w.MagnolieAppearance = appearance; }
++    equal(t.daten().termine.length, originalCount + 1, "Added copy survives renderer failure for save retry");
++    equal(JSON.stringify(t.daten().termine.slice(0, originalCount)), original, "Renderer failure preserves all pre-existing records and local edits");
++    equal(t.daten().termine.at(-1).nativeCalendarImport.identifier, "render-failure", "Renderer failure retains exact native provenance");
++    t.speichereJetzt(); await b.pump();
++    const saved = JSON.parse(messages.filter(message => message.cmd === "speichern").at(-1).text);
++    equal(saved.termine, t.daten().termine, "Actual retry save contains both existing records and the added copy");
++    const retry = w.App.macOSBetaPrepareCalendarImport(payload([draft("render-failure")]));
++    equal([retry.newCount, retry.existingCount], [0, 1], "Save retry preserves provenance and prevents duplicate import");
++    w.App.macOSBetaCancelCalendarImport(retry.token);
++    w.MacBeta.receive("init", { daten: saved, neu: false, regional: { language, timeZone: "UTC" } });
++    await b.pump();
++    const reopened = w.App.macOSBetaPrepareCalendarImport(payload([draft("render-failure")]));
++    equal([reopened.newCount, reopened.existingCount], [0, 1], "Reopened retry-save bytes still prevent duplicate import");
++    w.App.macOSBetaCancelCalendarImport(reopened.token);
++  } finally { w.MagnolieAppearance = appearance; b.close(); }
++}
++
+ console.log(`Mac native calendar import: ${checks} projected UI checks; synthetic EventKit payload/transport, not native access evidence.`);
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/system_contact_import.mjs b/Magnolie-Organizer-macOS-Beta/tests/system_contact_import.mjs
+index 5b719a137ef64fd0f60624cff6d551b317075b5c..dbfe27ea04d524abd650507b180aff94a87e2a9c 100644
+--- a/Magnolie-Organizer-macOS-Beta/tests/system_contact_import.mjs
++++ b/Magnolie-Organizer-macOS-Beta/tests/system_contact_import.mjs
+@@ -323,7 +323,10 @@ for (const stage of ["prepared", "checkpoint", "saving"]) {
+       throws(() => w.App.macOSBetaPrepareContactImport(payload([item("wait")])), /already/, "In-flight review remains owned across initialization: " + stage);
+       w.App.macOSBetaStartContactImport();
+       equal(messages.filter(message => message.cmd === "macos_kontakte_importieren").length, 0, "In-flight state cannot open another native picker");
+-      await b.pump(); ok(/stale|document changed/i.test((await pending).message), "Old generation's completion is rejected: " + stage);
++      await b.pump(); const failure = await pending;
++      ok(/stale|document changed/i.test(failure.message), "Old generation's completion is rejected: " + stage);
++      equal(/copies were added|remain unsaved|saving was not confirmed/i.test(failure.message), false,
++        "Pre-append rejection or observed save ACK keeps its specific document-change diagnosis: " + stage);
+       equal(t.daten().kontakte.length, 1, "Replacement document never receives old-generation candidates");
+     }
+   } finally { b.close(); }
+@@ -491,4 +494,37 @@ for (const stage of ["before-start", "during-save"]) for (const fieldID of ["bri
+   } finally { b.close(); }
+ }
+ 
++// #778: exercise the public renderer hook after the real canonical append.
++for (const language of ["en", "de"]) {
++  const b = await context(), { w, t, messages } = b;
++  const appearance = w.MagnolieAppearance;
++  try {
++    w.MagnolieI18n.setLocale(language);
++    t.speichereJetzt(); await b.pump();
++    const original = JSON.stringify(t.daten().kontakte), originalCount = t.daten().kontakte.length;
++    const review = w.App.macOSBetaPrepareContactImport(payload([item("render-failure")]));
++    try {
++      w.MagnolieAppearance = { ...appearance, update() { throw new Error("Synthetic renderer failure after append"); } };
++      await rejects(commit(b, review), language === "de"
++        ? /Kontaktkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt\..*Synthetic renderer failure after append/
++        : /Contact copies were added, but saving was not confirmed\..*Synthetic renderer failure after append/,
++        "Actual renderer failure explains local mutation and unconfirmed persistence");
++    } finally { w.MagnolieAppearance = appearance; }
++    equal(t.daten().kontakte.length, originalCount + 1, "Added copy survives renderer failure for save retry");
++    equal(JSON.stringify(t.daten().kontakte.slice(0, originalCount)), original, "Renderer failure preserves all pre-existing records and local edits");
++    equal(t.daten().kontakte.at(-1).nativeContactImport.identifier, "render-failure", "Renderer failure retains exact native provenance");
++    t.speichereJetzt(); await b.pump();
++    const saved = JSON.parse(messages.filter(message => message.cmd === "speichern").at(-1).text);
++    equal(saved.kontakte, t.daten().kontakte, "Actual retry save contains both existing records and the added copy");
++    const retry = w.App.macOSBetaPrepareContactImport(payload([item("render-failure")]));
++    equal([retry.newCount, retry.existingCount], [0, 1], "Save retry preserves provenance and prevents duplicate import");
++    w.App.macOSBetaCancelContactImport(retry.token);
++    w.MacBeta.receive("init", { daten: saved, neu: false, regional: { language, timeZone: "UTC" } });
++    await b.pump();
++    const reopened = w.App.macOSBetaPrepareContactImport(payload([item("render-failure")]));
++    equal([reopened.newCount, reopened.existingCount], [0, 1], "Reopened retry-save bytes still prevent duplicate import");
++    w.App.macOSBetaCancelContactImport(reopened.token);
++  } finally { w.MagnolieAppearance = appearance; b.close(); }
++}
++
+ console.log(`Mac system Contacts copy: ${checks} projected UI checks; full synthetic native records/transport, not Contacts.framework or macOS evidence.`);
+diff --git a/contracts/macos-778-import-save-diagnostics.md b/contracts/macos-778-import-save-diagnostics.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..c725b1b5a5d8a37f7a9feef67e05bb3ba9af6160
+--- /dev/null
++++ b/contracts/macos-778-import-save-diagnostics.md
+@@ -0,0 +1,107 @@
++# Mac-Importe: Speicherzustand nach Darstellungsfehler (#778)
++
++## Ausgangspunkt und Fehlernachweis
++
++Basis: `616069f15fed21d8d8d05c8ef795f4ed21bd059c`, der gemeinsame Arbeitszweig
++aus #777 mit Kalender-, Apple-Notes- und Kontaktkopien aus #770, #772 und #775.
++Dieser Patch ist zur späteren Prüfung/Übernahme vorbereitet; er ist keine
++Veröffentlichung und kein nativer Mac-Freigabenachweis.
++
++Alle drei Commit-Handler hängen bestätigte Kandidaten an das lokale Buch an
++und rufen dann `planeSpeichern()` und `zeichneAlles()` auf. Erst anschließend
++wird der dauerhafte Save-ACK-Callback registriert. Eine Ausnahme im öffentlichen
++`MagnolieAppearance.update`-Hook erreicht deshalb den bisherigen Fehlerpfad,
++obwohl die lokale Mutation bereits erfolgt ist und ein Save-Timer laufen kann.
++
++Die drei neuen Regressionen wurden **vor dem Produktfix** gegen die reale
++erzeugte Oberfläche ausgeführt. Jeder Runner scheiterte mit
++`actual: Error: Synthetic renderer failure after append` an der Erwartung,
++dass die Meldung zusätzlich die hinzugefügte Kopie und die noch nicht bestätigte
++Speicherung erklärt. Die Ausnahme wurde über den öffentlichen Renderer-Hook
++ausgelöst; die Commit-Handler und der gemeinsame Renderer wurden nicht ersetzt.
++
++Damit ist dieser Darstellungsfehlerpfad für jeden der drei Anschlüsse
++synthetisch reproduziert. Tatsächlicher Datenverlust, ein nativer Absturz
++oder ein falsches Erfolgs-ACK werden daraus nicht abgeleitet.
++
++## Änderung
++
++- `appended` wird erst nach erfolgreichem Anhängen gesetzt.
++- Ein Folgefehler vor beobachtetem Save-ACK meldet: Kopien hinzugefügt,
++  Speicherung noch nicht bestätigt; ausstehende Änderungen prüfen/speichern.
++- Ein tatsächliches Save-NACK behält seinen getrennten Hinweis auf noch
++  ungespeicherte Kopien.
++- Nach beobachtetem Save-ACK bleibt ein Dokumentwechsel beim spezifischen
++  Dokumentwechsel-Fehler. Er wird nicht als unbestätigte Speicherung umgedeutet.
++- Fehler vor der Mutation erhalten keinen Hinweis auf angeblich hinzugefügte
++  Kopien. Token-, Checkpoint-, Entwurfs-, Herkunfts- und Dokumentguards bleiben
++  erhalten.
++- Die drei neuen Meldungen sind auf Deutsch angebunden. Die native
++  Fehlerklassifikation verwendet wie beim Erinnerungsimport den vollständigen
++  übersetzbaren Meldungsschlüssel.
++
++Es gibt keine Rücknahme, keine automatische Wiederholung und keine neue
++Speicher-Erfolgsbehauptung. Die angehängten Kopien bleiben verfügbar, damit
++ein erneutes Speichern und die bestehende Herkunftserkennung funktionieren.
++
++## Geprüfte Quellen und Regressionen
++
++| Anschluss | Produktpfad | Regression |
++| --- | --- | --- |
++| Kalender | `Projection/system-calendar-import.js`, `macOSBetaCommitCalendarImport` | `tests/system_calendar_import.mjs` |
++| Apple Notes | `Projection/apple-notes-import.js`, `macOSBetaCommitAppleNotesImport` | `tests/apple_notes_import.mjs` |
++| Kontakte | `Projection/system-contact-import.js`, `macOSBetaCommitContactImport` | `tests/system_contact_import.mjs` |
++
++Alle Pfade in dieser Tabelle liegen unter `Magnolie-Organizer-macOS-Beta`.
++Die native Klassifikation steht in `Sources/MacBeta/main.swift`; deutsche
++Texte stehen in `Resources/native-extra-i18n.json`.
++
++Prüfumgebung: Linux, Node **24.22.3**, JSDOM **26.1.0**. Verwendet wurden die
++vorhandenen Projektionsrunner, die aus den tatsächlichen kanonischen Quellen
++eine temporäre Mac-Oberfläche erzeugen und unveränderte Eingaben nachprüfen.
++Systemdaten, Checkpoint- und Save-Antworten sind ausdrücklich synthetisch.
++
++| Runner | Ergebnis |
++| --- | --- |
++| `check_system_calendar_import.py` | **327 Prüfungen bestanden** |
++| `check_apple_notes_import.py` | **195 Prüfungen bestanden** |
++| `check_system_contact_import.py` | **246 Prüfungen bestanden** |
++| Summe | **768 Prüfungen bestanden**, drei Runner mit Exitcode 0 |
++
++Die Ergänzung umfasst **52 neue Assertions**. Die bestehenden positiven
++Importe, Save-NACKs, Entwurfs-/Settings-/Token- und Herkunftsfälle bleiben in
++denselben Runnern enthalten. Neue Fälle prüfen für jeden Anschluss Englisch
++und Deutsch, Erhalt der Kopie und vorhandener lokaler Datensätze, Herkunft,
++die tatsächlich gesendeten Retry-Savebytes sowie Wiederöffnen dieser Bytes
++ohne doppelte Kopie. Zusätzlich werden Vor-Mutation-Fehler und ein bereits
++beobachtetes Save-ACK von unbestätigter Speicherung unterschieden.
++
++Wiederholung aus dem Repository-Stamm mit installierter vorhandener
++Desktop-JSDOM-Abhängigkeit:
++
++```sh
++python Magnolie-Organizer-macOS-Beta/tools/check_system_calendar_import.py --js-runtime node
++python Magnolie-Organizer-macOS-Beta/tools/check_apple_notes_import.py --js-runtime node
++python Magnolie-Organizer-macOS-Beta/tools/check_system_contact_import.py --js-runtime node
++git diff --check
++```
++
++Liegt JSDOM außerhalb des Repositorys, kann der bestehende Runner über
++`MACOS_BETA_JSDOM` auf dessen `jsdom/lib/api.js` zeigen. Kein Test oder
++Produktguard wird dafür abgeschwächt.
++
++## Noch offen und andere Plattformen
++
++Swift-/AppKit-/WKWebView-Kompilierung und echte Speicher-/Wiederöffnungsabnahme
++auf Intel- und Apple-Silicon-Macs wurden hier nicht ausgeführt. Insbesondere
++die native Alertdarstellung, Systemkonten, Rechte und tatsächliche Datenträger-
++Dauerhaftigkeit benötigen weiterhin den bestehenden nativen Abnahmeweg.
++Die deutschen UI-Tests sind kein vollständiger Sprachkatalognachweis.
++
++Die drei Transaktionen liegen ausschließlich in der Mac-Projektion.
++Linux/Windows verwenden andere native Importwege. Der gemeinsame Renderer
++kann zwar grundsätzlich werfen, daraus folgt aber weder derselbe Ablauf noch
++ein bereits nachgewiesener Plattformfehler. Dieser Patch verändert keine
++gemeinsame Linux-/Windows-Produktdatei. Die getrennten Austauschfragen #776
++und #779 bleiben eigene Aufgaben.
++
+-- 
+2.56.1
+

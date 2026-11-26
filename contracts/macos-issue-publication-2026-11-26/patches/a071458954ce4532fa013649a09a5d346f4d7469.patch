@@ -1,0 +1,1997 @@
+From a071458954ce4532fa013649a09a5d346f4d7469 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 08:33:52 +0100
+Subject: [PATCH] Connect native system sync grants, journal and durable UI
+ handoff (Refs #786)
+
+---
+ .../Projection/macos-beta.js                  |  30 +-
+ .../Projection/note-file-import.js            |   6 +-
+ .../Projection/system-account-sync.js         | 155 +++++++++
+ .../Projection/system-accounts.js             |  50 ++-
+ .../Resources/native-extra-i18n.json          |  51 ++-
+ .../Sources/BetaCore/Contract.swift           |  14 +
+ .../BetaCore/SystemAccountSyncLedger.swift    | 311 ++++++++++++++++++
+ .../MacBeta/AppleNotesImportHost.swift        |   1 +
+ .../Sources/MacBeta/NoteFileImportHost.swift  |   1 +
+ .../MacBeta/SystemAccountSyncHost.swift       | 213 ++++++++++++
+ .../MacBeta/SystemCalendarImportHost.swift    |   1 +
+ .../MacBeta/SystemContactImportHost.swift     |   1 +
+ .../MacBeta/SystemReminderImportHost.swift    |   1 +
+ .../Sources/MacBeta/main.swift                | 105 +++++-
+ .../SystemAccountSyncLedgerTests.swift        | 191 +++++++++++
+ .../tests/system_account_sync.mjs             | 248 ++++++++++++++
+ .../tests/test_host.py                        |  20 ++
+ .../tests/ui_host.mjs                         |   2 +-
+ .../tools/bridge_coverage.py                  |   5 +-
+ .../tools/project_ui.py                       |   6 +-
+ .../macos-786-system-sync-transaction.md      | 182 ++++++++++
+ 21 files changed, 1559 insertions(+), 35 deletions(-)
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Projection/system-account-sync.js
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncLedger.swift
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncHost.swift
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncLedgerTests.swift
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tests/system_account_sync.mjs
+ create mode 100644 contracts/macos-786-system-sync-transaction.md
+
+diff --git a/Magnolie-Organizer-macOS-Beta/Projection/macos-beta.js b/Magnolie-Organizer-macOS-Beta/Projection/macos-beta.js
+index 8b129ac96c1f6ee8cdcd1148f73c3eca9ba34a68..ff3a240e72d59bcaf45b41d4cf21280720a48407 100644
+--- a/Magnolie-Organizer-macOS-Beta/Projection/macos-beta.js
++++ b/Magnolie-Organizer-macOS-Beta/Projection/macos-beta.js
+@@ -8,12 +8,12 @@
+   const methods = new Set(["adressWeg", "handbuchGeoeffnet", "init", "gespeichert", "kennwortStand", "ablage", "sicherungFertig",
+     "printErgebnis", "exportErgebnis", "importErgebnis", "notizAnhangDateiErgebnis", "erinnerungStand", "vorBeenden", "mutationsSnapshot",
+     "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis", "feiertageErgebnis", "edsStatus", "baumBriefkastenStatus",
+-    "baumBriefkastenGespeichert", "baumBriefkastenPruefung", "baumDavPruefung"]);
++    "baumBriefkastenGespeichert", "baumBriefkastenPruefung", "baumDavPruefung", "macOSBetaSystemSyncFinished"]);
+   const unsupported = "Not implemented in Magnolie Organizer macOS Beta. Nothing was changed.";
+   const notice = "macOS Beta: local editing/deletion with pre-change recovery files; encrypted JSON backup and full JSON restore; calendar, task and anniversary ICS; " +
+-    "attachment Save; clipboard; reminders only while open. No sync, background " +
++    "attachment Save; clipboard; reminders only while open; explicitly enabled macOS system-account field synchronization. No general DAV/phone sync, background " +
+     "wake, auto-update, password change/removal or office export. Printing uses the system print dialog, including Save as PDF. Native feature acceptance remains incomplete.";
+-  let ready = false, restorePending = false, nativeRestoreLocked = false;
++  let ready = false, restorePending = false, nativeRestoreLocked = false, systemSyncActive = false;
+   let nativeRestoreOperation = null, nativeRestoreApplied = null, nativeRestoreRestartRequired = false;
+   function lockNativeRestore() {
+     nativeRestoreLocked = true;
+@@ -24,7 +24,9 @@
+     if (nativeRestoreRestartRequired) return;
+     nativeRestoreLocked = false; restorePending = false;
+     nativeRestoreOperation = null; nativeRestoreApplied = null;
+-    document.body.inert = false; document.body.removeAttribute("aria-busy");
++    document.body.inert = systemSyncActive;
++    if (systemSyncActive) document.body.setAttribute("aria-busy", "true");
++    else document.body.removeAttribute("aria-busy");
+   }
+   // Mac-specific controls share the native supplementary translations without
+   // replacing the canonical frontend catalogs or their plural rules.
+@@ -59,6 +61,7 @@
+       notiz_anhang_datei: "notizAnhangDateiErgebnis", sicherung_waehlen: "sicherungAusgewaehlt",
+       sicherung_wiederherstellen: "sicherungWiederhergestellt",
+       regional_einstellungen: "regionalErgebnis", eds_status: "edsStatus", macos_systemzugriff: "edsStatus",
++      macos_system_sync: "macOSBetaSystemSyncFinished",
+       gesamtarchiv_exportieren: "gesamtarchivExportiert", gesamtarchiv_importieren: "gesamtarchivImportiert"
+     };
+     if (command === "sync") app.syncFehler(payload.fehler);
+@@ -107,11 +110,20 @@
+       button.addEventListener("click", () => { button.disabled = true; refresh(); });
+       form.append(button);
+     },
+-    noteImportBlocked() { return !ready || restorePending; },
+-    calendarImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
+-    appleNotesImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
+-    contactImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
+-    reminderImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
++    systemSyncBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
++    systemSyncLock(value) {
++      systemSyncActive = value === true;
++      if (systemSyncActive) show(tr("Synchronizing …"));
++      if (systemSyncActive || nativeRestoreLocked || nativeRestoreRestartRequired) {
++        document.body.inert = true; document.body.setAttribute("aria-busy", "true");
++      } else { document.body.inert = false; document.body.removeAttribute("aria-busy"); }
++    },
++    systemSyncNotice(text) { show(String(text)); },
++    noteImportBlocked() { return !ready || restorePending || systemSyncActive; },
++    calendarImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired || systemSyncActive; },
++    appleNotesImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired || systemSyncActive; },
++    contactImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired || systemSyncActive; },
++    reminderImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired || systemSyncActive; },
+     calendarMetadata(data, payload, commit) {
+       const metadata = payload.icsImportMetadata;
+       if (!metadata) return false;
+diff --git a/Magnolie-Organizer-macOS-Beta/Projection/note-file-import.js b/Magnolie-Organizer-macOS-Beta/Projection/note-file-import.js
+index b1ed1eb903d09fa0c9ba01a092f05f1f5b7e640b..df8cc29ca13b22847a6df8319620416b78e033e9 100644
+--- a/Magnolie-Organizer-macOS-Beta/Projection/note-file-import.js
++++ b/Magnolie-Organizer-macOS-Beta/Projection/note-file-import.js
+@@ -1,7 +1,9 @@
+   // Port glue around canonical note constructors, normalizer and save authority.
+   function macOSBetaStartNoteImport() {
+-    if (gesperrt) return;
+-    navigiereMitGuard(() => nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "notiz_dateien_importieren" })));
++    if (gesperrt || window.MacBeta.noteImportBlocked()) return;
++    navigiereMitGuard(() => nachDauerhaftemSpeichern(() => {
++      if (!gesperrt && !window.MacBeta.noteImportBlocked()) Bruecke.sende({ cmd: "notiz_dateien_importieren" });
++    }));
+   }
+   function macOSBetaImportNoteFiles(payload) {
+     return new Promise((resolve, reject) => {
+diff --git a/Magnolie-Organizer-macOS-Beta/Projection/system-account-sync.js b/Magnolie-Organizer-macOS-Beta/Projection/system-account-sync.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..ed432444951b1cc941a538e3d19043763f2f83ef
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Projection/system-account-sync.js
+@@ -0,0 +1,155 @@
++  // #786: a native-granted field synchronization, separate from local copy imports.
++  // Native authority, baseline and journal never come from this JavaScript object.
++  let macOSBetaSystemSync = null;
++  const macOSBetaSyncText = text => window.MacBeta.text(text);
++  function macOSBetaSyncCanonical(value) {
++    if (Array.isArray(value)) return "[" + value.map(macOSBetaSyncCanonical).join(",") + "]";
++    if (value && typeof value === "object") return "{" + Object.keys(value).filter(key =>
++      value[key] !== undefined && typeof value[key] !== "function" && typeof value[key] !== "symbol").sort().map(key =>
++      JSON.stringify(key) + ":" + macOSBetaSyncCanonical(value[key])).join(",") + "}";
++    return JSON.stringify(value) ?? "null";
++  }
++  function macOSBetaSyncSettingsDraft() {
++    return nextcloudEntwurfGeaendert || !!$("#briefkasten-kennwort")?.value;
++  }
++  function macOSBetaSyncHasDraft() {
++    const settings = $("#einstellungen-schleier");
++    return !!aenderungsGuard || editorIstGeaendert() ||
++      modalStapel.some(item => item.schleier.isConnected && item.schleier !== settings) ||
++      !!ausstehenderNotizSnapshot || notizSnapshotTimer !== null || macOSBetaSyncSettingsDraft();
++  }
++  function macOSBetaSyncAvailable() {
++    return initialisiert && antwortErhalten && !gesperrt && !window.MacBeta.systemSyncBlocked();
++  }
++  function macOSBetaStartSystemSync(selection) {
++    if (macOSBetaSystemSync || !macOSBetaSyncAvailable()) return false;
++    if (!selection || typeof selection.sourceUID !== "string" || !selection.sourceUID ||
++        !["events", "contacts", "reminders"].includes(selection.kind) ||
++        !selection.sourceUID.startsWith("macos-" + selection.kind + ":")) return false;
++    if (macOSBetaSyncSettingsDraft()) {
++      zettel(macOSBetaSyncText("Save or discard the account changes before synchronizing.")); return false;
++    }
++    const operation = { requestId: uid(), book: DATEN, phase: "preparing" };
++    macOSBetaSystemSync = operation;
++    const fail = error => macOSBetaSystemSyncFinished({ requestId: operation.requestId, ok: false,
++      fehler: String(error?.message || error || macOSBetaSyncText("System synchronization could not start.")) });
++    let admitted = false;
++    try {
++      navigiereMitGuard(() => { admitted = true; }).then(() => {
++        if (!admitted) { macOSBetaSystemSync = null; window.MacBetaSystemAccounts?.refreshSyncControls(); return; }
++        if (DATEN !== operation.book || !macOSBetaSyncAvailable()) throw new Error(macOSBetaSyncText("The current book changed; synchronization was not started."));
++        nachDauerhaftemSpeichern(() => {
++          try {
++            if (DATEN !== operation.book || !macOSBetaSyncAvailable() || macOSBetaSyncHasDraft())
++              throw new Error(macOSBetaSyncText("Finish or close the current editor before synchronizing."));
++            const settings = $("#einstellungen-schleier");
++            if (!settings.classList.contains("verborgen")) schliesseEinstellungen();
++            operation.content = macOSBetaSyncCanonical(DATEN);
++            operation.epoch = DATEN.syncEpoch;
++            operation.timeZone = organizerZeitzone();
++            operation.phase = "requested";
++            window.MacBeta.systemSyncLock(true);
++            const message = { cmd: "macos_system_sync", requestId: operation.requestId,
++              sourceUID: selection.sourceUID, kind: selection.kind, action: selection.action === "revoke" ? "revoke" : "run",
++              start: selection.kind === "events" ? String(selection.start || "") : "",
++              end: selection.kind === "events" ? String(selection.end || "") : "", timeZone: operation.timeZone };
++            if (!Bruecke.sende(message)) throw new Error(macOSBetaSyncText("System synchronization could not start."));
++          } catch (error) { fail(error); }
++        }, fail);
++      }).catch(fail);
++    } catch (error) { fail(error); }
++    window.MacBetaSystemAccounts?.refreshSyncControls();
++    return true;
++  }
++  function macOSBetaStartSelectedSystemSync(stumm = false) {
++    // Scheduled desktop/DAV/phone paths are not implicitly native Apple grants.
++    if (stumm) return;
++    const selection = window.MacBetaSystemAccounts?.syncSelection();
++    if (!selection) { zettel(macOSBetaSyncText("Choose one macOS source in System internet accounts.")); return; }
++    macOSBetaStartSystemSync(selection);
++  }
++  function macOSBetaSyncCurrent(requestId, unchanged = true) {
++    const current = macOSBetaSystemSync;
++    if (!current || current.requestId !== requestId || !["requested", "prepared", "saving", "saved"].includes(current.phase) ||
++        !macOSBetaSyncAvailable() || DATEN !== current.book || DATEN.syncEpoch !== current.epoch ||
++        organizerZeitzone() !== current.timeZone || macOSBetaSyncHasDraft() ||
++        (unchanged && macOSBetaSyncCanonical(DATEN) !== current.content))
++      throw new Error(macOSBetaSyncText("The current book changed; the synchronization journal was retained."));
++    return current;
++  }
++  function macOSBetaAdmitSystemSync(requestId, inputText) {
++    const current = macOSBetaSyncCurrent(requestId);
++    if (typeof inputText !== "string" || new TextEncoder().encode(inputText).length > 64 * 1024 * 1024 ||
++        macOSBetaSyncCanonical(JSON.parse(inputText)) !== current.content)
++      throw new Error(macOSBetaSyncText("The saved book does not match the current synchronization request."));
++    return { ok: true, requestId, epoch: current.epoch };
++  }
++  function macOSBetaPrepareSystemSync(requestId, runID, candidateText) {
++    const current = macOSBetaSyncCurrent(requestId);
++    if (!["requested", "prepared"].includes(current.phase) || (current.runID && current.runID !== runID) || typeof runID !== "string" || !runID ||
++        typeof candidateText !== "string" || new TextEncoder().encode(candidateText).length > 64 * 1024 * 1024)
++      throw new Error(macOSBetaSyncText("Invalid system synchronization candidate."));
++    const raw = JSON.parse(candidateText);
++    if (!raw || typeof raw !== "object" || Array.isArray(raw) || raw.syncEpoch !== current.epoch ||
++        !["termine", "aufgaben", "kontakte", "notizen"].every(key => Array.isArray(raw[key])))
++      throw new Error(macOSBetaSyncText("Invalid system synchronization candidate."));
++    // Probe a detached copy with its relationship context. Only new/changed
++    // rows may use the result; untouched rows and other domains remain exact.
++    // Applying the whole normalized book would renumber unrelated task roots.
++    const normalized = kopie(raw), probed = normalisiere(kopie(raw));
++    for (const key of ["termine", "kontakte", "aufgaben"]) {
++      const existing = new Map(DATEN[key].map(row => [row.id, row]));
++      normalized[key] = raw[key].map(row => {
++        const old = existing.get(row.id);
++        if (old && macOSBetaSyncCanonical(old) === macOSBetaSyncCanonical(row)) return kopie(row);
++        const matches = probed[key].filter(item => item.id === row.id);
++        if (matches.length !== 1)
++          throw new Error(macOSBetaSyncText("Invalid system synchronization candidate."));
++        const value = matches[0];
++        if (key === "aufgaben" && Number.isSafeInteger(row.reihenfolge)) value.reihenfolge = row.reihenfolge;
++        return window.MacBeta.preserve(row, value);
++      });
++    }
++    macOSBetaSyncCurrent(requestId);
++    const text = JSON.stringify(normalized);
++    current.prepared = normalized; current.preparedText = text; current.runID = runID; current.phase = "prepared";
++    return { ok: true, requestId, runID, text };
++  }
++  async function macOSBetaCommitSystemSync(requestId, runID, candidateText) {
++    const current = macOSBetaSyncCurrent(requestId);
++    if (current.phase !== "prepared" || current.runID !== runID || typeof candidateText !== "string" ||
++        macOSBetaSyncCanonical(JSON.parse(candidateText)) !== macOSBetaSyncCanonical(JSON.parse(current.preparedText)))
++      throw new Error(macOSBetaSyncText("Stale system synchronization candidate."));
++    DATEN = current.prepared; current.book = DATEN; current.content = macOSBetaSyncCanonical(DATEN); current.phase = "saving";
++    let renderingFailed = false;
++    // Register persistence before rendering: renderer failure must never turn an
++    // already applied candidate into a fictional rollback or a success without ACK.
++    const saved = new Promise((resolve, reject) => {
++      nachDauerhaftemSpeichern(() => {
++        try {
++          macOSBetaSyncCurrent(requestId);
++          current.phase = "saved"; resolve(true);
++        } catch (error) { reject(error); }
++      }, error => reject(new Error(macOSBetaSyncText("Synchronization changes are in the current book but saving was not confirmed. Retry saving; the native journal is retained.") + " " + error.message)));
++    });
++    try { terminIndexVeraltet = true; jahrestagIndexVeraltet = true; zeichneAlles(); }
++    catch (_) { renderingFailed = true; }
++    await saved;
++    return { ok: true, requestId, runID, text: JSON.stringify(DATEN), renderingFailed };
++  }
++  function macOSBetaSystemSyncFinished(value) {
++    const current = macOSBetaSystemSync;
++    if (!current || !value || value.requestId !== current.requestId) return;
++    const sameBook = DATEN === current.book;
++    macOSBetaSystemSync = null;
++    window.MacBeta.systemSyncLock(false);
++    window.MacBetaSystemAccounts?.refreshSyncControls();
++    if (sameBook) {
++      const message = value.ok === true
++      ? macOSBetaSyncText(value.revoked === true ? "System synchronization permission removed." : "System synchronization was saved and verified.") +
++        (value.bericht ? " " + value.bericht : "")
++      : String(value.fehler || macOSBetaSyncText("System synchronization was not completed. Pending evidence was retained."));
++      window.MacBeta.systemSyncNotice(message); zettel(message);
++    }
++  }
++  function macOSBetaSystemSyncBusy() { return macOSBetaSystemSync !== null; }
+diff --git a/Magnolie-Organizer-macOS-Beta/Projection/system-accounts.js b/Magnolie-Organizer-macOS-Beta/Projection/system-accounts.js
+index c2a5651a231286f155d00e5ca335358002f31524..58e7b5ff59162b857675e47d050eb144536c2843 100644
+--- a/Magnolie-Organizer-macOS-Beta/Projection/system-accounts.js
++++ b/Magnolie-Organizer-macOS-Beta/Projection/system-accounts.js
+@@ -3,8 +3,8 @@
+ // Shared Organizer settings remain
+ // the sole stored selection; discovering/denying access never rewrites them.
+ (() => {
+-  let view = null, snapshot = null, pending = null;
+-  const note = "macOS system sources can be discovered and selected. Calendar appointments, reminders and contacts can be copied with a separate preview. Full synchronization is not available yet. Selecting a source does not import or change its data.";
++  let view = null, snapshot = null, pending = null, syncChoice = null;
++  const note = "Discover macOS sources, copy selected items, or enable field synchronization for one source. Synchronization first links supported native entries, then exchanges changes to those linked entries. Existing copies and other local entries are not exported. Native confirmation is required once for each source and book.";
+   function node(tag, text) {
+     const item = document.createElement(tag);
+     if (text !== undefined) item.textContent = text;
+@@ -90,8 +90,46 @@
+     book.value = chosen.adressbuchUid || "";
+     book.addEventListener("change", () => change({ adressbuchUid: book.value }));
+     const label = node("label", tr("Address book") + " "); label.append(book); root.append(label);
+-    const sync = node("button", tr("Synchronize now")); sync.id = "sync-jetzt"; sync.disabled = true; sync.type = "button";
+-    root.append(sync);
++    const syncSection = node("fieldset"); syncSection.id = "macos-system-sync";
++    syncSection.append(node("legend", tr("macOS field synchronization")),
++      node("p", tr("Only supported fields of linked entries are synchronized. New local entries, deletions, recurring events and unsupported fields are not sent. The first run is additive. This is not full Linux synchronization parity.")),
++      node("p", tr("Apple APIs cannot atomically protect the comparison and save against another app. Conflicts or uncertain writes retain the journal and stop automatic repetition.")));
++    const sources = [...calendars, ...books].filter(source => source.systemSyncFields === true &&
++      typeof source.uid === "string" && ["events", "contacts", "reminders"].includes(source.art));
++    if (!syncChoice || (!syncChoice.sourceUID && !syncChoice.explicit)) {
++      const year = new Date().getFullYear();
++      const initial = sources.find(source => selected.includes(source.uid) || chosen.adressbuchUid === source.uid) || sources[0];
++      syncChoice = { sourceUID: initial?.uid || "", start: `${year}-01-01`, end: `${year + 1}-01-01` };
++    }
++    const sourceSelect = node("select"); sourceSelect.id = "macos-system-sync-source";
++    const noSource = node("option", tr("Choose one macOS source")); noSource.value = ""; sourceSelect.append(noSource);
++    for (const source of sources) { const option = node("option", `${tr(source.art === "events" ? "Calendars" : source.art === "contacts" ? "Contacts" : "Tasks")}: ${source.name}`); option.value = source.uid; sourceSelect.append(option); }
++    sourceSelect.value = sources.some(source => source.uid === syncChoice.sourceUID) ? syncChoice.sourceUID : "";
++    sourceSelect.disabled = !!pending || !!window.App?.macOSBetaSystemSyncBusy?.();
++    sourceSelect.addEventListener("change", () => { syncChoice.sourceUID = sourceSelect.value; syncChoice.explicit = true; draw(); });
++    const sourceLabel = node("label", tr("Source") + " "); sourceLabel.append(sourceSelect); syncSection.append(sourceLabel);
++    const currentSource = sources.find(source => source.uid === sourceSelect.value);
++    if (currentSource?.art === "events") {
++      for (const [key, label] of [["start", "Window start (UTC)"], ["end", "Window end, exclusive (UTC)"]]) {
++        const input = node("input"); input.type = "date"; input.id = "macos-system-sync-" + key; input.value = syncChoice[key];
++        input.disabled = sourceSelect.disabled;
++        input.addEventListener("change", () => { syncChoice[key] = input.value; });
++        const row = node("label", tr(label) + " "); row.append(input); syncSection.append(row);
++      }
++    }
++    const sync = node("button", tr("Synchronize now")); sync.id = "sync-jetzt"; sync.type = "button";
++    sync.disabled = sourceSelect.disabled || !currentSource || snapshot?.systemAccountSyncImplemented !== true;
++    sync.addEventListener("click", () => { const selection = syncSelection(); if (selection) window.App.macOSBetaStartSystemSync(selection); });
++    const revoke = node("button", tr("Remove synchronization permission")); revoke.type = "button"; revoke.id = "macos-system-sync-revoke";
++    revoke.disabled = sync.disabled;
++    revoke.addEventListener("click", () => { const selection = syncSelection(); if (selection) window.App.macOSBetaStartSystemSync({ ...selection, action: "revoke" }); });
++    syncSection.append(sync, revoke); root.append(syncSection);
++  }
++  function syncSelection() {
++    if (!syncChoice || snapshot?.systemAccountSyncImplemented !== true) return null;
++    const source = [...(snapshot.kalender || []), ...(snapshot.adressbuecher || [])].find(item =>
++      item.uid === syncChoice.sourceUID && item.systemSyncFields === true);
++    return source ? { sourceUID: source.uid, kind: source.art, start: syncChoice.start, end: syncChoice.end } : null;
+   }
+   function update(value) {
+     if (!value || typeof value !== "object") return;
+@@ -107,7 +145,7 @@
+       // A page rebuild does not cancel the OS consent dialog or forget its request.
+       draw();
+       if (!pending) request();
+-    }, update,
+-    reset() { view = null; snapshot = null; pending = null; }
++    }, update, syncSelection, refreshSyncControls: draw,
++    reset() { view = null; snapshot = null; pending = null; syncChoice = null; }
+   });
+ })();
+diff --git a/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json b/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
+index 9de416b16b722e3a3c26bcb58d52498482a617f2..78cbb8a1617780d79b611064e573424c1e2abbfe 100644
+--- a/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
++++ b/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
+@@ -457,7 +457,56 @@
+     "File import is not available while the document is locked or closing.": "Der Dateiimport ist bei gesperrtem oder schließendem Dokument nicht verfügbar.",
+     "Invalid home country for import.": "Das Heimatland für den Import ist ungültig.",
+     "Invalid file import response.": "Die Antwort zum Dateiimport ist ungültig.",
+-    "Invalid file import format or operation token.": "Das Dateiimportformat oder der Vorgangstoken ist ungültig."
++    "Invalid file import format or operation token.": "Das Dateiimportformat oder der Vorgangstoken ist ungültig.",
++    "Discover macOS sources, copy selected items, or enable field synchronization for one source. Synchronization first links supported native entries, then exchanges changes to those linked entries. Existing copies and other local entries are not exported. Native confirmation is required once for each source and book.": "Suchen Sie macOS-Quellen, kopieren Sie ausgewählte Einträge oder aktivieren Sie die Feldsynchronisation für eine Quelle. Dabei werden zuerst unterstützte native Einträge verknüpft und anschließend Änderungen dieser verknüpften Einträge ausgetauscht. Vorhandene Kopien und andere lokale Einträge werden nicht exportiert. Jede Quelle muss für das jeweilige Buch einmal im nativen Dialog freigegeben werden.",
++    "macOS field synchronization": "macOS-Feldsynchronisation",
++    "Only supported fields of linked entries are synchronized. New local entries, deletions, recurring events and unsupported fields are not sent. The first run is additive. This is not full Linux synchronization parity.": "Es werden nur unterstützte Felder verknüpfter Einträge synchronisiert. Neue lokale Einträge, Löschungen, Terminserien und nicht unterstützte Felder werden nicht exportiert. Der erste Lauf ergänzt Einträge. Der vollständige Linux-Synchronisationsumfang ist damit noch nicht erreicht.",
++    "Apple APIs cannot atomically protect the comparison and save against another app. Conflicts or uncertain writes retain the journal and stop automatic repetition.": "Die Apple-APIs können Vergleich und Speicherung gegenüber einer anderen App nicht atomar schützen. Bei Konflikten oder ungewissen Schreibvorgängen bleibt das Journal erhalten; eine automatische Wiederholung wird gestoppt.",
++    "Choose one macOS source": "Eine macOS-Quelle auswählen",
++    "Choose one macOS source in System internet accounts.": "Wählen Sie unter System-Internetkonten eine macOS-Quelle aus.",
++    "Window start (UTC)": "Beginn des Zeitfensters (UTC)",
++    "Window end, exclusive (UTC)": "Ende des Zeitfensters, nicht eingeschlossen (UTC)",
++    "Remove synchronization permission": "Synchronisationsfreigabe entfernen",
++    "Save or discard the account changes before synchronizing.": "Speichern oder verwerfen Sie die Kontoänderungen vor der Synchronisation.",
++    "Finish or close the current editor before synchronizing.": "Schließen Sie die aktuelle Bearbeitung ab oder schließen Sie den Editor vor der Synchronisation.",
++    "System synchronization could not start.": "Die Systemsynchronisation konnte nicht gestartet werden.",
++    "The current book changed; synchronization was not started.": "Das aktuelle Buch wurde geändert; die Synchronisation wurde nicht gestartet.",
++    "The current book changed; the synchronization journal was retained.": "Das aktuelle Buch wurde geändert; das Synchronisationsjournal bleibt erhalten.",
++    "The saved book does not match the current synchronization request.": "Das gespeicherte Buch passt nicht zur aktuellen Synchronisationsanfrage.",
++    "Invalid system synchronization candidate.": "Ungültiger Ergebniskandidat für die Systemsynchronisation.",
++    "Stale system synchronization candidate.": "Der Ergebniskandidat für die Systemsynchronisation ist nicht mehr aktuell.",
++    "Synchronization changes are in the current book but saving was not confirmed. Retry saving; the native journal is retained.": "Die Synchronisationsänderungen befinden sich im aktuellen Buch, ihre Speicherung wurde jedoch nicht bestätigt. Speichern Sie erneut; das native Journal bleibt erhalten.",
++    "System synchronization permission removed.": "Die Systemsynchronisationsfreigabe wurde entfernt.",
++    "System synchronization was saved and verified.": "Die Systemsynchronisation wurde gespeichert und geprüft.",
++    "System synchronization was not completed. Pending evidence was retained.": "Die Systemsynchronisation wurde nicht abgeschlossen. Ausstehende Nachweise bleiben erhalten.",
++    "Enable macOS field synchronization?": "macOS-Feldsynchronisation aktivieren?",
++    "This permission applies to this Organizer book and the selected source and calendar window. The first run adds supported native entries. Later runs exchange supported field changes only for those linked entries.": "Diese Freigabe gilt für dieses Organizer-Buch sowie die gewählte Quelle und das Kalenderzeitfenster. Der erste Lauf ergänzt unterstützte native Einträge. Spätere Läufe tauschen unterstützte Feldänderungen nur für diese verknüpften Einträge aus.",
++    "Existing copies and unrelated local entries are not exported. No native entries are created or deleted. Recurring events and unsupported fields are excluded. Removing the permission stops future synchronization.": "Vorhandene Kopien und andere lokale Einträge werden nicht exportiert. Native Einträge werden weder angelegt noch gelöscht. Terminserien und nicht unterstützte Felder sind ausgeschlossen. Das Entfernen der Freigabe beendet die künftige Synchronisation.",
++    "Apple APIs do not provide atomic comparison-and-save protection. Another app can change an item between the comparison and save. Uncertain results retain the journal and are never automatically repeated.": "Die Apple-APIs schützen Vergleich und Speicherung nicht atomar. Eine andere App kann einen Eintrag zwischen Vergleich und Speicherung verändern. Bei ungewissen Ergebnissen bleibt das Journal erhalten; der Schreibvorgang wird nie automatisch wiederholt.",
++    "Enable field synchronization": "Feldsynchronisation aktivieren",
++    "Supported entries": "Unterstützte Einträge",
++    "Excluded entries": "Ausgeschlossene Einträge",
++    "Conflicts retained": "Erhaltene Konflikte",
++    "System synchronization permission was not granted.": "Die Systemsynchronisation wurde nicht freigegeben.",
++    "A pending synchronization belongs to an earlier source binding. Its evidence was retained.": "Eine ausstehende Synchronisation gehört zu einer früheren Quellenbindung. Ihre Nachweise bleiben erhalten.",
++    "The saved book changed before synchronization; no new write was started.": "Das gespeicherte Buch wurde vor der Synchronisation geändert; kein neuer Schreibvorgang wurde gestartet.",
++    "The previously saved transaction was verified without repeating native writes.": "Die bereits gespeicherte Transaktion wurde geprüft, ohne native Schreibvorgänge zu wiederholen.",
++    "A previous synchronization has uncertain writes or a changed book. Its journal was retained; writes were not repeated.": "Eine frühere Synchronisation enthält ungewisse Schreibvorgänge oder ein verändertes Buch. Ihr Journal bleibt erhalten; Schreibvorgänge wurden nicht wiederholt.",
++    "System synchronization evidence is missing.": "Der Nachweis für die Systemsynchronisation fehlt.",
++    "A native synchronization write has no verified readback.": "Für einen nativen Synchronisationsschreibvorgang fehlt der geprüfte Rückabruf.",
++    "The synchronization candidate could not be prepared.": "Der Synchronisationskandidat konnte nicht vorbereitet werden.",
++    "The staged synchronization candidate changed during recovery.": "Der vorgemerkte Synchronisationskandidat wurde bei der Wiederaufnahme verändert.",
++    "System synchronization did not receive a matching save acknowledgement.": "Die Systemsynchronisation hat keine passende Speicherquittung erhalten.",
++    "The data was saved, but the view could not be refreshed. Reopen the Organizer.": "Die Daten wurden gespeichert, die Ansicht konnte jedoch nicht aktualisiert werden. Öffnen Sie den Organizer erneut.",
++    "System synchronization is not available while the book is locked, closing or busy.": "Die Systemsynchronisation ist nicht verfügbar, während das Buch gesperrt, beschäftigt oder beim Schließen ist.",
++    "The synchronization timezone changed.": "Die Synchronisationszeitzone wurde geändert.",
++    "System synchronization UI acknowledgement timed out; its journal was retained.": "Die Zeit für die Oberflächenquittung der Systemsynchronisation ist abgelaufen; ihr Journal bleibt erhalten.",
++    "Invalid system synchronization UI response.": "Ungültige Antwort der Systemsynchronisationsoberfläche.",
++    "Please wait for the current system synchronization.": "Bitte warten Sie auf die aktuelle Systemsynchronisation.",
++    "The approved source or calendar window changed. Remove its previous synchronization permission before authorizing a new binding.": "Die freigegebene Quelle oder das Kalenderzeitfenster wurde geändert. Entfernen Sie die bisherige Synchronisationsfreigabe vor einer neuen Freigabe.",
++    "A pending system synchronization must be inspected before its authority can be removed.": "Eine ausstehende Systemsynchronisation muss geprüft werden, bevor ihre Freigabe entfernt werden kann.",
++    "Uncertain system synchronization writes cannot be repeated.": "Ungewisse Systemsynchronisationsschreibvorgänge dürfen nicht wiederholt werden.",
++    "The saved book does not confirm this system synchronization; its journal was retained.": "Das gespeicherte Buch bestätigt diese Systemsynchronisation nicht; ihr Journal bleibt erhalten."
+   },
+   "es": {
+     "Undo": "Deshacer",
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift
+index 0b1af89b9841b51100901351fc58574735b52b19..f8c236ea1565b4a2d874a48a02b2e1f12eb4c04a 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift
+@@ -15,6 +15,7 @@ public enum Command: String, CaseIterable {
+     case macos_apple_notizen_importieren
+     case macos_kontakte_importieren
+     case macos_erinnerungen_importieren
++    case macos_system_sync
+     case handbuch_oeffnen
+     case `import`
+     case bereit, entsperren, speichern, kennwort_setzen
+@@ -73,6 +74,9 @@ public struct Request {
+             schema["requestId"] = "string"; optional = ["requestId"]
+         case .macos_systemzugriff:
+             schema.merge(["art": "string", "requestId": "string"]) { _, b in b }
++        case .macos_system_sync:
++            schema.merge(["requestId": "string", "sourceUID": "string", "kind": "string", "action": "string",
++                          "start": "string", "end": "string", "timeZone": "string"]) { _, b in b }
+         case .regional_einstellungen: schema["regional"] = "object"
+         case .mail:
+             schema.merge(["email": "string", "name": "string"]) { _, b in b }
+@@ -137,6 +141,16 @@ public struct Request {
+                 throw BetaError("Invalid file import format or operation token.")
+             }
+         }
++        if command == .macos_system_sync {
++            guard let kind = SystemSourcePolicy.Kind(rawValue: fields["kind"] as? String ?? ""),
++                  ["run", "revoke"].contains(fields["action"] as? String ?? ""),
++                  let sourceUID = fields["sourceUID"] as? String,
++                  !(fields["timeZone"] as? String ?? "").isEmpty,
++                  (fields["timeZone"] as? String ?? "").utf8.count <= 256,
++                  (fields["start"] as? String ?? "").utf8.count <= 10,
++                  (fields["end"] as? String ?? "").utf8.count <= 10 else { throw BetaError("Invalid system synchronization request.") }
++            _ = try SystemSourcePolicy.identifier(sourceUID, kind: kind)
++        }
+         if let revision = fields["expectedRevision"] as? String {
+             guard revision.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil else {
+                 throw BetaError("Invalid account revision.")
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncLedger.swift b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncLedger.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..6c19da7c228b4c2ce6bbb2ba920ce22fca1e760a
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncLedger.swift
+@@ -0,0 +1,311 @@
++import Foundation
++import CryptoKit
++
++/// Native authority and transaction evidence for the bounded system-account field sync.
++/// This store is separate from the book, imports, DAV credentials and the DAV journal.
++/// The host serializes all access. No method accepts a WebView "saved"/"verified" flag.
++public final class SystemAccountSyncLedger {
++    public static let maximumBytes = 64 * 1024 * 1024
++    public struct Binding: Codable, Equatable {
++        public let epoch: String, sourceUID: String, sourceFingerprint: String, scope: String
++        public init(epoch: UUID, sourceUID: String, sourceFingerprint: String, scope: String) throws {
++            self.epoch = epoch.uuidString.lowercased(); self.sourceUID = sourceUID
++            self.sourceFingerprint = sourceFingerprint; self.scope = scope
++            try validate()
++        }
++        fileprivate func validate() throws {
++            guard UUID(uuidString: epoch) != nil, !sourceUID.isEmpty, sourceUID.utf8.count <= 4096,
++                  ["macos-events:", "macos-reminders:", "macos-contacts:"].contains(where: { sourceUID.hasPrefix($0) }),
++                  sourceFingerprint.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil,
++                  !scope.isEmpty, scope.utf8.count <= 4096 else { throw BetaError("Invalid system synchronization binding.") }
++        }
++        public static func == (a: Self, b: Self) -> Bool {
++            OpaqueUTF8Identity(parts: [a.epoch, a.sourceUID, a.sourceFingerprint, a.scope]) ==
++            OpaqueUTF8Identity(parts: [b.epoch, b.sourceUID, b.sourceFingerprint, b.scope])
++        }
++    }
++    public struct Grant: Codable {
++        public let id: String, binding: Binding
++        public fileprivate(set) var enabled: Bool
++        public fileprivate(set) var baseline: Data?
++    }
++    public struct Operation: Codable {
++        public let id: String, payload: Data
++        public init(id: String, payload: Data) throws {
++            guard !id.isEmpty, id.utf8.count <= 1024 else { throw BetaError("Invalid system synchronization operation.") }
++            _ = try Self.object(payload)
++            self.id = id; self.payload = payload
++        }
++        private static func object(_ data: Data) throws -> [String: Any] { try SystemAccountSyncLedger.object(data) }
++    }
++    public struct Run: Codable {
++        public let id: String, grantID: String, binding: Binding, input: Data, plan: Data, operations: [Operation]
++        public fileprivate(set) var started: [String], readbacks: [String: Data], rejected: [String]
++        public fileprivate(set) var candidate: Data?, nextBaseline: Data?
++        public fileprivate(set) var readbackBudgets: [String: Int]
++        public fileprivate(set) var candidateBudget: Int?, baselineBudget: Int?
++        public var uncertain: Bool { started.contains { readbacks[$0] == nil && !rejected.contains($0) } }
++        public var allAcknowledged: Bool { operations.allSatisfy { readbacks[$0.id] != nil } }
++        public var withoutEffects: Bool { candidate == nil && readbacks.isEmpty && started.allSatisfy { rejected.contains($0) } }
++    }
++    private struct State: Codable { let version: Int; var grants: [Grant]; var runs: [Run] }
++    private let store: AtomicStore, keys: any DAVSyncJournalKeyStore, key: DAVSyncJournalKey, namespace: String
++    private var state: State
++    private var poisoned = false
++
++    public convenience init(profileDirectory: URL) throws {
++        try self.init(profileDirectory: profileDirectory, keys: KeychainDAVSyncJournalKeyStore(
++            operations: SystemDAVKeychainOperations(), service: "io.gitlab.maik3531.MagnolieOrganizer.macOSBeta.system-account-sync-key.v1"))
++    }
++    internal init(profileDirectory: URL, keys: any DAVSyncJournalKeyStore) throws {
++        let directory = profileDirectory.appendingPathComponent("SystemAccounts-Sync", isDirectory: true)
++        store = try AtomicStore(directory: directory)
++        namespace = Self.digest(Data(("Magnolie-SystemAccountSync-v1\0" + directory.standardizedFileURL.path).utf8))
++        self.keys = keys
++        let saved = try store.load()
++        key = try keys.load(namespace: namespace, allowCreate: saved == nil)
++        if let saved {
++            let envelope = try Document.object(saved)
++            guard envelope["format"] as? String == "magnolie-system-sync-v1",
++                  envelope["keyID"] as? String == key.id.base64EncodedString(),
++                  let text = envelope["ciphertext"] as? String, let ciphertext = Data(base64Encoded: text),
++                  ciphertext.count <= Self.maximumBytes else { throw BetaError("The system synchronization journal is damaged; evidence was retained.") }
++            let clear = try AES.GCM.open(AES.GCM.SealedBox(combined: ciphertext), using: SymmetricKey(data: key.bytes),
++                                         authenticating: Data(namespace.utf8))
++            state = try JSONDecoder().decode(State.self, from: clear)
++            try Self.validate(state)
++            guard try store.durableSnapshotBytes() == Data(saved.utf8) else { throw BetaError("System synchronization journal durability could not be verified.") }
++        } else {
++            guard key.newlyCreated else { throw BetaError("A system synchronization journal is missing; existing authority was not reset.") }
++            state = State(version: 1, grants: [], runs: [])
++            try persist(state)
++        }
++    }
++    private static func digest(_ data: Data) -> String { SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
++    private static func object(_ data: Data) throws -> [String: Any] {
++        guard !data.isEmpty, data.count <= maximumBytes, let text = String(data: data, encoding: .utf8) else {
++            throw BetaError("System synchronization data exceeds its limit.")
++        }
++        return try Document.object(text)
++    }
++    public static func encoded(_ object: [String: Any]) throws -> Data {
++        let data = Data(try Document.encode(object).utf8); _ = try self.object(data); return data
++    }
++    public static func decoded(_ data: Data) throws -> [String: Any] { try object(data) }
++    public static func equal(_ a: Data, _ b: Data) throws -> Bool {
++        try Data(Document.encode(object(a)).utf8) == Data(Document.encode(object(b)).utf8)
++    }
++    /// Normalization may add ordinary defaults, but may not change or remove any
++    /// native-planned value, record, identity, array entry or pre-existing book field.
++    public static func verifyNormalizedCandidate(required: Data, proposed: Data) throws {
++        var nodes = 0
++        func check(_ expected: Any, _ actual: Any, depth: Int) throws {
++            nodes += 1
++            guard depth < 64, nodes <= 2_000_000 else { throw BetaError("System synchronization candidate structure is too large.") }
++            if let a = expected as? [String: Any] {
++                guard let b = actual as? [String: Any] else { throw BetaError("System synchronization normalization changed a planned value.") }
++                let indexed = Dictionary(uniqueKeysWithValues: b.map { (OpaqueUTF8Identity($0.key), $0.value) })
++                for (key, value) in a {
++                    guard let next = indexed[OpaqueUTF8Identity(key)] else { throw BetaError("System synchronization normalization dropped a planned field.") }
++                    try check(value, next, depth: depth + 1)
++                }
++            } else if let a = expected as? [Any] {
++                guard let b = actual as? [Any], a.count == b.count else { throw BetaError("System synchronization normalization changed a planned collection.") }
++                for (left, right) in zip(a, b) { try check(left, right, depth: depth + 1) }
++            } else {
++                guard try Data(Document.encode(expected).utf8) == Data(Document.encode(actual).utf8) else { throw BetaError("System synchronization normalization changed a planned value.") }
++            }
++        }
++        try check(object(required), object(proposed), depth: 0)
++    }
++    private static func validate(_ state: State) throws {
++        guard state.version == 1, state.grants.count <= 128, state.runs.count <= 16,
++              Set(state.grants.map(\.id)).count == state.grants.count,
++              Set(state.runs.map(\.id)).count == state.runs.count else { throw BetaError("Invalid system synchronization journal state.") }
++        for grant in state.grants {
++            guard UUID(uuidString: grant.id) != nil else { throw BetaError("Invalid system synchronization grant.") }
++            try grant.binding.validate(); if let baseline = grant.baseline { _ = try object(baseline) }
++        }
++        for run in state.runs {
++            try run.binding.validate(); _ = try object(run.input); _ = try object(run.plan)
++            guard UUID(uuidString: run.id) != nil, state.grants.contains(where: { $0.enabled && $0.id == run.grantID && $0.binding == run.binding }),
++                  run.operations.count <= 1000, Set(run.operations.map(\.id)).count == run.operations.count,
++                  Set(run.started).count == run.started.count, Set(run.rejected).count == run.rejected.count else {
++                throw BetaError("Invalid system synchronization run.")
++            }
++            let ids = Set(run.operations.map(\.id))
++            guard Set(run.started).isSubset(of: ids), Set(run.readbacks.keys).isSubset(of: Set(run.started)),
++                  Set(run.rejected).isSubset(of: Set(run.started)), Set(run.rejected).isDisjoint(with: Set(run.readbacks.keys)),
++                  (run.candidate == nil) == (run.nextBaseline == nil) else { throw BetaError("Invalid system synchronization operation evidence.") }
++            for operation in run.operations { _ = try Operation(id: operation.id, payload: operation.payload) }
++            for readback in run.readbacks.values { _ = try object(readback) }
++            if let candidate = run.candidate, let baseline = run.nextBaseline {
++                guard run.allAcknowledged else { throw BetaError("Unacknowledged system synchronization result.") }
++                _ = try object(candidate); _ = try object(baseline)
++            }
++            if let candidateBudget = run.candidateBudget, let baselineBudget = run.baselineBudget {
++                guard (1...maximumBytes).contains(candidateBudget), (1...maximumBytes).contains(baselineBudget),
++                      Set(run.readbackBudgets.keys) == ids,
++                      run.readbackBudgets.values.allSatisfy({ (1...maximumBytes).contains($0) }),
++                      run.readbacks.allSatisfy({ $0.value.count <= (run.readbackBudgets[$0.key] ?? 0) }),
++                      (run.candidate?.count ?? 0) <= candidateBudget, (run.nextBaseline?.count ?? 0) <= baselineBudget else {
++                    throw BetaError("Invalid system synchronization capacity reservation.")
++                }
++            } else {
++                guard run.candidateBudget == nil, run.baselineBudget == nil, run.readbackBudgets.isEmpty,
++                      run.started.isEmpty, run.candidate == nil else { throw BetaError("Missing system synchronization capacity reservation.") }
++            }
++        }
++    }
++    private func current() throws {
++        guard !poisoned else { throw BetaError("System synchronization storage is blocked; restart and inspect retained evidence.") }
++        let present = try keys.load(namespace: namespace, allowCreate: false)
++        guard present.id == key.id, present.bytes == key.bytes else { throw BetaError("System synchronization authority changed.") }
++    }
++    private func persist(_ next: State) throws {
++        try current(); try Self.validate(next)
++        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
++        let clear = try encoder.encode(next)
++        // Data is Base64 without optional slash escapes, so encodedBytes below
++        // is an upper bound for every reserved payload. Reserve slots before a
++        // provider write, including retained runs, so an ordinary acknowledged
++        // result cannot first discover an unfillable journal at stage().
++        func encodedBytes(_ count: Int) -> Int { 4 * ((count + 2) / 3) }
++        var reserved = clear.count
++        for run in next.runs where run.candidateBudget != nil {
++            reserved += 8192 + run.operations.count * 2048
++            for (id, budget) in run.readbackBudgets { reserved += encodedBytes(budget) - encodedBytes(run.readbacks[id]?.count ?? 0) }
++            reserved += encodedBytes(run.candidateBudget!) - encodedBytes(run.candidate?.count ?? 0)
++            reserved += encodedBytes(run.baselineBudget!) - encodedBytes(run.nextBaseline?.count ?? 0)
++        }
++        guard reserved <= Self.maximumBytes - 4096 else { throw BetaError("System synchronization journal capacity reached; no further native write was started.") }
++        let sealed = try AES.GCM.seal(clear, using: SymmetricKey(data: key.bytes), authenticating: Data(namespace.utf8))
++        guard let bytes = sealed.combined else { throw BetaError("System synchronization encryption failed.") }
++        let text = try Document.encode(["format": "magnolie-system-sync-v1", "keyID": key.id.base64EncodedString(), "ciphertext": bytes.base64EncodedString()])
++        do { try store.commit(text); state = next }
++        catch { poisoned = true; throw error }
++    }
++    public func grant(for binding: Binding) throws -> Grant? {
++        try current(); try binding.validate()
++        return state.grants.first { $0.enabled && $0.binding == binding }
++    }
++    /// The native host calls this only after its own explicit source/book confirmation.
++    @discardableResult public func authorize(_ binding: Binding) throws -> Grant {
++        if let existing = try grant(for: binding) { return existing }
++        guard !state.grants.contains(where: { $0.enabled && $0.binding.epoch == binding.epoch &&
++            OpaqueUTF8Identity($0.binding.sourceUID) == OpaqueUTF8Identity(binding.sourceUID) }) else {
++            throw BetaError("The approved source or calendar window changed. Remove its previous synchronization permission before authorizing a new binding.")
++        }
++        // Revocation removes authority, not the private proven correspondence.
++        // An explicitly re-approved observation window of the same source/zone
++        // can reuse its baseline without cloning already-linked local entries.
++        let prior = state.grants.last { !$0.enabled && $0.binding.epoch == binding.epoch &&
++            OpaqueUTF8Identity($0.binding.sourceUID) == OpaqueUTF8Identity(binding.sourceUID) && $0.binding.sourceFingerprint == binding.sourceFingerprint }
++        if let index = state.grants.firstIndex(where: { $0.binding == binding }) {
++            var next = state, restored = next.grants.remove(at: index)
++            restored.enabled = true; restored.baseline = prior?.baseline ?? restored.baseline
++            next.grants.append(restored); try persist(next); return restored
++        }
++        guard state.grants.count < 128 else { throw BetaError("System synchronization grant capacity reached.") }
++        let grant = Grant(id: UUID().uuidString, binding: binding, enabled: true, baseline: prior?.baseline)
++        var next = state; next.grants.append(grant); try persist(next); return grant
++    }
++    public func revoke(_ binding: Binding) throws {
++        try current()
++        guard !state.runs.contains(where: { $0.binding == binding }) else { throw BetaError("A pending system synchronization must be inspected before its authority can be removed.") }
++        var next = state
++        for index in next.grants.indices where next.grants[index].binding == binding { next.grants[index].enabled = false }
++        try persist(next)
++    }
++    public func revokeSource(epoch: UUID, sourceUID: String) throws {
++        try current()
++        let matches: (Binding) -> Bool = { UUID(uuidString: $0.epoch) == epoch && OpaqueUTF8Identity($0.sourceUID) == OpaqueUTF8Identity(sourceUID) }
++        guard !state.runs.contains(where: { matches($0.binding) && !$0.withoutEffects }) else { throw BetaError("A pending system synchronization must be inspected before its authority can be removed.") }
++        var next = state; next.runs.removeAll { matches($0.binding) && $0.withoutEffects }
++        for index in next.grants.indices where matches(next.grants[index].binding) { next.grants[index].enabled = false }
++        try persist(next)
++    }
++    public func pendingSource(epoch: UUID, sourceUID: String) throws -> Run? {
++        try current()
++        return state.runs.first { UUID(uuidString: $0.binding.epoch) == epoch && OpaqueUTF8Identity($0.binding.sourceUID) == OpaqueUTF8Identity(sourceUID) }
++    }
++    public func pending(_ binding: Binding) throws -> Run? {
++        try current(); return state.runs.first { $0.binding == binding }
++    }
++    public func begin(binding: Binding, input: Data, plan: Data, operations: [Operation]) throws -> Run {
++        guard let grant = try grant(for: binding), try pending(binding) == nil else { throw BetaError("System synchronization is not authorized or a transaction is still pending.") }
++        let run = Run(id: UUID().uuidString, grantID: grant.id, binding: binding, input: input, plan: plan,
++                      operations: operations, started: [], readbacks: [:], rejected: [], candidate: nil, nextBaseline: nil,
++                      readbackBudgets: [:], candidateBudget: nil, baselineBudget: nil)
++        var next = state; next.runs.append(run); try persist(next); return run
++    }
++    private func index(_ runID: String) throws -> Int {
++        try current()
++        guard let index = state.runs.firstIndex(where: { $0.id == runID }) else { throw BetaError("Unknown system synchronization transaction.") }
++        return index
++    }
++    public func reserve(runID: String, readbacks: [String: Int], candidate: Int, baseline: Int) throws {
++        let index = try index(runID), run = state.runs[index]
++        if let oldCandidate = run.candidateBudget {
++            guard oldCandidate == candidate, run.baselineBudget == baseline, run.readbackBudgets == readbacks else {
++                throw BetaError("A frozen system synchronization capacity reservation changed.")
++            }
++            return
++        }
++        guard run.started.isEmpty else { throw BetaError("System synchronization capacity must be reserved before writing.") }
++        var next = state; next.runs[index].readbackBudgets = readbacks
++        next.runs[index].candidateBudget = candidate; next.runs[index].baselineBudget = baseline; try persist(next)
++    }
++    /// No staged local result, no acknowledged remote write and no uncertain
++    /// attempt: these exact recorded states prove there is no effect to recover.
++    public func discardWithoutEffects(runID: String) throws {
++        let index = try index(runID)
++        guard state.runs[index].withoutEffects else { throw BetaError("System synchronization evidence with possible effects cannot be discarded.") }
++        var next = state; next.runs.remove(at: index); try persist(next)
++    }
++    public func willApply(runID: String, operationID: String) throws {
++        let index = try index(runID), run = state.runs[index]
++        guard run.candidate == nil, run.candidateBudget != nil, run.baselineBudget != nil, run.readbackBudgets[operationID] != nil,
++              !run.started.contains(operationID), run.operations.contains(where: { $0.id == operationID }),
++              !run.uncertain, run.rejected.isEmpty else { throw BetaError("Uncertain system synchronization writes cannot be repeated.") }
++        var next = state; next.runs[index].started.append(operationID); try persist(next)
++    }
++    public func acknowledge(runID: String, operationID: String, readback: Data) throws {
++        let index = try index(runID), run = state.runs[index]; _ = try Self.object(readback)
++        guard run.started.contains(operationID), !run.rejected.contains(operationID), run.readbacks[operationID] == nil,
++              let budget = run.readbackBudgets[operationID], readback.count <= budget else {
++            throw BetaError("Stale system synchronization write receipt.")
++        }
++        var next = state; next.runs[index].readbacks[operationID] = readback; try persist(next)
++    }
++    public func rejectBeforeWrite(runID: String, operationID: String) throws {
++        let index = try index(runID), run = state.runs[index]
++        guard run.started.contains(operationID), run.readbacks[operationID] == nil, !run.rejected.contains(operationID) else {
++            throw BetaError("Stale system synchronization rejection.")
++        }
++        var next = state; next.runs[index].rejected.append(operationID); try persist(next)
++    }
++    public func stage(runID: String, candidate: Data, baseline: Data) throws {
++        let index = try index(runID), run = state.runs[index]
++        _ = try Self.object(candidate); _ = try Self.object(baseline)
++        guard run.allAcknowledged, let candidateBudget = run.candidateBudget, let baselineBudget = run.baselineBudget,
++              candidate.count <= candidateBudget, baseline.count <= baselineBudget else { throw BetaError("System synchronization still has unconfirmed writes or exceeds its reserved result size.") }
++        if let existing = run.candidate {
++            guard try Self.equal(existing, candidate), run.nextBaseline == baseline else { throw BetaError("Conflicting system synchronization candidate.") }
++            return
++        }
++        var next = state; next.runs[index].candidate = candidate; next.runs[index].nextBaseline = baseline; try persist(next)
++    }
++    /// Actual private-store fsync/read/decryption evidence is the only completion input.
++    /// A lost frontend ACK is harmless: the exact staged on-disk candidate can finish later.
++    public func complete(runID: String, evidence: DAVBookDiskSnapshot.Evidence) throws {
++        let index = try index(runID), run = state.runs[index]
++        guard run.allAcknowledged, let candidate = run.candidate, let baseline = run.nextBaseline,
++              UUID(uuidString: run.binding.epoch) == evidence.epoch,
++              try Self.equal(candidate, Self.encoded(evidence.book)),
++              let grantIndex = state.grants.firstIndex(where: { $0.enabled && $0.id == run.grantID && $0.binding == run.binding }) else {
++            throw BetaError("The saved book does not confirm this system synchronization; its journal was retained.")
++        }
++        var next = state; next.grants[grantIndex].baseline = baseline; next.runs.remove(at: index); try persist(next)
++    }
++}
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/AppleNotesImportHost.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/AppleNotesImportHost.swift
+index 3a95c2175b8c9a9b81f8c6425348dd8e2253e726..2498f6593fb5dffbe7c9e90a22bf75725f22e921 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/AppleNotesImportHost.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/AppleNotesImportHost.swift
+@@ -9,6 +9,7 @@ import BetaCore
+ final class AppleNotesImportHost {
+     private let reader = AppleNotesReader()
+     private var busy = false
++    var active: Bool { busy }
+     private var cancelled = false
+     private var progress: NSPanel?
+     private var cancelActiveRead: (() -> Void)?
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/NoteFileImportHost.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/NoteFileImportHost.swift
+index e20a76e93361f80166e54555634707713d45f8a5..409d1586529150530cb3ab5c8be96e50a67a879d 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/NoteFileImportHost.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/NoteFileImportHost.swift
+@@ -5,6 +5,7 @@ import BetaCore
+ /// Selected-file authority only; no directory watch, network or profile restore.
+ @MainActor final class NoteFileImportHost {
+     private var busy = false
++    var active: Bool { busy }
+     func begin(parent: NSWindow, isCurrent: @escaping () -> Bool,
+                deliver: @escaping ([String: Any], @escaping () -> Void) -> Void) {
+         guard !busy, isCurrent() else { return }
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncHost.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncHost.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..3a42eb0858199baab2da20b74c4df5dada1db872
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncHost.swift
+@@ -0,0 +1,213 @@
++#if os(macOS)
++import AppKit
++import BetaCore
++
++/// Native user authorization + durable intent/readback/candidate/disk transaction.
++/// A source's observed revision is not an atomic Apple API compare-and-swap.
++@MainActor
++final class SystemAccountSyncHost {
++    private let ledger: SystemAccountSyncLedger
++    init(profileDirectory: URL) throws { ledger = try SystemAccountSyncLedger(profileDirectory: profileDirectory) }
++
++    private func requireCurrent(_ current: () -> Bool) throws {
++        guard current() else { throw BetaError("The current book changed; the synchronization journal was retained.") }
++    }
++    private func date(_ text: String) throws -> Date {
++        let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX")
++        formatter.calendar = Calendar(identifier: .gregorian); formatter.timeZone = TimeZone(secondsFromGMT: 0)
++        formatter.dateFormat = "yyyy-MM-dd"; formatter.isLenient = false
++        guard text.count == 10, let value = formatter.date(from: text), formatter.string(from: value) == text else {
++            throw BetaError("Please enter a valid date.")
++        }
++        return value
++    }
++    private func authorize(_ source: SystemAccountSync.Source, binding: SystemAccountSyncLedger.Binding,
++                           count: Int, excluded: Int, tr: (String) -> String) throws {
++        if try ledger.grant(for: binding) != nil { return }
++        let alert = NSAlert(); alert.messageText = tr("Enable macOS field synchronization?")
++        var sourceDescription = source.title + "\n" + source.sourceUID + "\n" + source.displayTimeZone
++        if source.kind == .events, let start = source.scope["start"] as? NSNumber, let end = source.scope["end"] as? NSNumber {
++            let formatter = ISO8601DateFormatter(); formatter.timeZone = TimeZone(secondsFromGMT: 0)
++            sourceDescription += "\n" + tr("Window start (UTC)") + ": " + formatter.string(from: Date(timeIntervalSince1970: start.doubleValue)) +
++                "\n" + tr("Window end, exclusive (UTC)") + ": " + formatter.string(from: Date(timeIntervalSince1970: end.doubleValue))
++        }
++        alert.informativeText = sourceDescription + "\n\n" +
++            tr("This permission applies to this Organizer book and the selected source and calendar window. The first run adds supported native entries. Later runs exchange supported field changes only for those linked entries.") + "\n\n" +
++            tr("Existing copies and unrelated local entries are not exported. No native entries are created or deleted. Recurring events and unsupported fields are excluded. Removing the permission stops future synchronization.") + "\n\n" +
++            tr("Apple APIs do not provide atomic comparison-and-save protection. Another app can change an item between the comparison and save. Uncertain results retain the journal and are never automatically repeated.") + "\n\n" +
++            tr("Supported entries") + ": \(count)\n" + tr("Excluded entries") + ": \(excluded)"
++        alert.addButton(withTitle: tr("Enable field synchronization")); alert.addButton(withTitle: tr("Cancel"))
++        guard alert.runModal() == .alertFirstButtonReturn else { throw BetaError("System synchronization permission was not granted.") }
++        try ledger.authorize(binding)
++    }
++
++    func begin(request: Request, accounts: SystemAccounts, context: CalendarTimeContext,
++               isCurrent: @escaping () -> Bool, disk: @escaping () throws -> DAVBookDiskSnapshot.Evidence,
++               candidateWrite: @escaping (String?) -> Void,
++               ui: @escaping (String, [String: Any]) async throws -> [String: Any],
++               translate tr: @escaping (String) -> String) async -> [String: Any] {
++        let requestID = request.text("requestId")
++        var activeRunID: String?
++        do {
++            try requireCurrent(isCurrent)
++            let initialDisk = try disk(), initial = try SystemAccountSyncLedger.encoded(initialDisk.book)
++            let admission = try await ui("return window.App.macOSBetaAdmitSystemSync(requestId, input);",
++                                         ["requestId": requestID, "input": String(decoding: initial, as: UTF8.self)])
++            try requireCurrent(isCurrent)
++            guard admission["ok"] as? Bool == true, admission["requestId"] as? String == requestID else {
++                throw BetaError("The saved book does not match the current synchronization request.")
++            }
++            if request.text("action") == "revoke" {
++                try ledger.revokeSource(epoch: initialDisk.epoch, sourceUID: request.text("sourceUID"))
++                return ["ok": true, "revoked": true, "requestId": requestID]
++            }
++            guard let kind = SystemSourcePolicy.Kind(rawValue: request.text("kind")) else { throw BetaError("Invalid macOS source kind.") }
++            let start: Date, end: Date
++            if kind == .events { start = try date(request.text("start")); end = try date(request.text("end")); try SystemSourcePolicy.requireWindow(start: start, end: end) }
++            else { start = Date(timeIntervalSince1970: 0); end = Date(timeIntervalSince1970: 1) }
++            try await accounts.requestAccess(kind)
++            try requireCurrent(isCurrent)
++            let snapshot = try await accounts.syncSnapshot(sourceUID: request.text("sourceUID"), start: start, end: end,
++                                                           context: context, displayTimeZone: request.text("timeZone"))
++            try requireCurrent(isCurrent)
++            let scope = try Document.encode(["scope": snapshot.source.scope, "displayTimeZone": snapshot.source.displayTimeZone,
++                                             "contract": "system-account-fields-v1"])
++            let binding = try SystemAccountSyncLedger.Binding(epoch: initialDisk.epoch, sourceUID: snapshot.source.sourceUID,
++                                                              sourceFingerprint: snapshot.source.fingerprint, scope: scope)
++            if let prior = try ledger.pendingSource(epoch: initialDisk.epoch, sourceUID: snapshot.source.sourceUID) {
++                if prior.withoutEffects { try ledger.discardWithoutEffects(runID: prior.id) }
++                else if prior.binding != binding { throw BetaError("A pending synchronization belongs to an earlier source binding. Its evidence was retained.") }
++            }
++            try authorize(snapshot.source, binding: binding, count: snapshot.records.count, excluded: snapshot.excluded.count, tr: tr)
++            try requireCurrent(isCurrent)
++            guard try SystemAccountSyncLedger.equal(initial, SystemAccountSyncLedger.encoded(disk().book)) else {
++                throw BetaError("The saved book changed before synchronization; no new write was started.")
++            }
++            var run: SystemAccountSyncLedger.Run
++            let plan: SystemAccountSync.Plan
++            if let prior = try ledger.pending(binding) {
++                run = prior; plan = try SystemAccountSync.Plan(payload: SystemAccountSyncLedger.decoded(prior.plan))
++                if let candidate = prior.candidate, try SystemAccountSyncLedger.equal(candidate, initial) {
++                    try ledger.complete(runID: prior.id, evidence: disk())
++                    return ["ok": true, "requestId": requestID, "bericht": tr("The previously saved transaction was verified without repeating native writes.")]
++                }
++                guard try SystemAccountSyncLedger.equal(prior.input, initial), !prior.uncertain, prior.rejected.isEmpty else {
++                    throw BetaError("A previous synchronization has uncertain writes or a changed book. Its journal was retained; writes were not repeated.")
++                }
++            } else {
++                let baseline: SystemAccountSync.Baseline?
++                if let data = try ledger.grant(for: binding)?.baseline {
++                    baseline = try SystemAccountSync.Baseline(payload: SystemAccountSyncLedger.decoded(data))
++                } else { baseline = nil }
++                plan = try SystemAccountSync.prepare(snapshot: snapshot, currentBook: initialDisk.book, baseline: baseline, context: context)
++                let operations = try plan.operations.map { try SystemAccountSyncLedger.Operation(id: $0.id, payload: SystemAccountSyncLedger.encoded($0.payload)) }
++                run = try ledger.begin(binding: binding, input: initial, plan: SystemAccountSyncLedger.encoded(plan.payload), operations: operations)
++            }
++            activeRunID = run.id
++            if run.candidate == nil {
++                // Prove current shared-UI representability before touching any
++                // provider. Final readbacks are probed again before staging.
++                let required = try SystemAccountSyncLedger.encoded(plan.candidateBook)
++                let preflight = try await ui("return window.App.macOSBetaPrepareSystemSync(requestId, runID, candidate);",
++                    ["requestId": requestID, "runID": run.id, "candidate": String(decoding: required, as: UTF8.self)])
++                try requireCurrent(isCurrent)
++                guard preflight["ok"] as? Bool == true, preflight["requestId"] as? String == requestID,
++                      preflight["runID"] as? String == run.id, let text = preflight["text"] as? String else {
++                    throw BetaError("The synchronization candidate could not be prepared.")
++                }
++                try SystemAccountSyncLedger.verifyNormalizedCandidate(required: required, proposed: Data(text.utf8))
++                if run.candidateBudget == nil {
++                    var readbackBudgets: [String: Int] = [:]
++                    for operation in plan.operations {
++                        // Actual readbacks are admitted only inside these bounds.
++                        // The before/desired/native patch plus growth allowance
++                        // covers stable full-field copies and provider timestamps.
++                        let budget = try SystemAccountSyncLedger.encoded(operation.before.payload).count +
++                            SystemAccountSyncLedger.encoded(operation.desiredRecord).count +
++                            4 * SystemAccountSyncLedger.encoded(operation.nativePatch).count + 65_536
++                        readbackBudgets[operation.id] = budget
++                    }
++                    let growth = readbackBudgets.values.reduce(0, +) * 2 + 65_536
++                    try ledger.reserve(runID: run.id, readbacks: readbackBudgets,
++                                       candidate: Data(text.utf8).count + growth,
++                                       baseline: SystemAccountSyncLedger.encoded(plan.nextBaseline.payload).count + growth)
++                    guard let reserved = try ledger.pending(binding) else { throw BetaError("System synchronization evidence is missing.") }
++                    run = reserved
++                }
++            }
++            // Re-entering a prepared run is safe only for operations with no
++            // recorded attempt. In-flight/unknown outcomes never become retries.
++            for operation in plan.operations where run.readbacks[operation.id] == nil {
++                try requireCurrent(isCurrent)
++                guard try SystemAccountSyncLedger.equal(initial, SystemAccountSyncLedger.encoded(disk().book)) else {
++                    throw BetaError("The saved book changed before synchronization; no new write was started.")
++                }
++                try ledger.willApply(runID: run.id, operationID: operation.id)
++                do {
++                    let readback = try await accounts.applySync(operation: operation, source: plan.source, context: context)
++                    try operation.validateReadback(readback)
++                    // Persist the real outcome even if the WebView disappeared
++                    // meanwhile. That does not authorize another operation.
++                    try ledger.acknowledge(runID: run.id, operationID: operation.id,
++                                           readback: SystemAccountSyncLedger.encoded(readback.payload))
++                } catch let rejection as SystemAccountSync.RejectedBeforeWrite {
++                    try ledger.rejectBeforeWrite(runID: run.id, operationID: operation.id)
++                    throw rejection
++                }
++                try requireCurrent(isCurrent)
++                guard let updated = try ledger.pending(binding) else { throw BetaError("System synchronization evidence is missing.") }
++                run = updated
++            }
++            try requireCurrent(isCurrent)
++            let candidate: Data
++            if let staged = run.candidate { candidate = staged }
++            else {
++                let readbacks = try plan.operations.map { operation -> SystemAccountSync.Record in
++                    guard let value = run.readbacks[operation.id] else { throw BetaError("A native synchronization write has no verified readback.") }
++                    return try SystemAccountSync.Record(payload: SystemAccountSyncLedger.decoded(value))
++                }
++                let finalized = try plan.finalize(readbacks: readbacks)
++                let required = try SystemAccountSyncLedger.encoded(finalized.candidateBook)
++                let prepared = try await ui("return window.App.macOSBetaPrepareSystemSync(requestId, runID, candidate);",
++                    ["requestId": requestID, "runID": run.id, "candidate": String(decoding: required, as: UTF8.self)])
++                try requireCurrent(isCurrent)
++                guard prepared["ok"] as? Bool == true, prepared["requestId"] as? String == requestID,
++                      prepared["runID"] as? String == run.id, let text = prepared["text"] as? String else {
++                    throw BetaError("The synchronization candidate could not be prepared.")
++                }
++                candidate = Data(text.utf8)
++                try SystemAccountSyncLedger.verifyNormalizedCandidate(required: required, proposed: candidate)
++                let baseline = try finalized.normalizedBaseline(in: SystemAccountSyncLedger.decoded(candidate), source: plan.source)
++                try ledger.stage(runID: run.id, candidate: candidate, baseline: SystemAccountSyncLedger.encoded(baseline.payload))
++            }
++            // Recovery also prepares the exact previously staged candidate, then
++            // verifies that the current normalizer has not changed that evidence.
++            if run.candidate != nil {
++                let prepared = try await ui("return window.App.macOSBetaPrepareSystemSync(requestId, runID, candidate);",
++                    ["requestId": requestID, "runID": run.id, "candidate": String(decoding: candidate, as: UTF8.self)])
++                guard prepared["ok"] as? Bool == true, let text = prepared["text"] as? String,
++                      try SystemAccountSyncLedger.equal(candidate, Data(text.utf8)) else { throw BetaError("The staged synchronization candidate changed during recovery.") }
++            }
++            try requireCurrent(isCurrent)
++            let candidateText = String(decoding: candidate, as: UTF8.self)
++            candidateWrite(candidateText); defer { candidateWrite(nil) }
++            let committed = try await ui("return await window.App.macOSBetaCommitSystemSync(requestId, runID, candidate);",
++                ["requestId": requestID, "runID": run.id, "candidate": candidateText])
++            try requireCurrent(isCurrent)
++            guard committed["ok"] as? Bool == true, committed["requestId"] as? String == requestID,
++                  committed["runID"] as? String == run.id, let text = committed["text"] as? String,
++                  try SystemAccountSyncLedger.equal(candidate, Data(text.utf8)) else {
++                throw BetaError("System synchronization did not receive a matching save acknowledgement.")
++            }
++            try ledger.complete(runID: run.id, evidence: disk())
++            var summary = tr("Conflicts retained") + ": \(plan.conflicts.count); " + tr("Excluded entries") + ": \(plan.excluded.count)."
++            if committed["renderingFailed"] as? Bool == true { summary += " " + tr("The data was saved, but the view could not be refreshed. Reopen the Organizer.") }
++            return ["ok": true, "requestId": requestID, "bericht": summary]
++        } catch {
++            candidateWrite(nil)
++            if let activeRunID { try? ledger.discardWithoutEffects(runID: activeRunID) }
++            return ["ok": false, "requestId": requestID, "fehler": tr(error.localizedDescription)]
++        }
++    }
++}
++#endif
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemCalendarImportHost.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemCalendarImportHost.swift
+index ce1b314e6abf77a02e248b750e4e3ae059a77658..bae07891a412520363a3b900bace25c6ab7a35bb 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemCalendarImportHost.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemCalendarImportHost.swift
+@@ -8,6 +8,7 @@ import BetaCore
+ @MainActor
+ final class SystemCalendarImportHost {
+     private var busy = false
++    var active: Bool { busy }
+     private var cancelled = false
+     private var progress: NSPanel?
+     private var activeRead: Task<SystemSourceSnapshot, Error>?
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemContactImportHost.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemContactImportHost.swift
+index 6f9dc6cd0abc49c067a5eac466668cd5df6c21eb..35996a7c0f38a0cb47c3ed4f6d50020c9d79d8e6 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemContactImportHost.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemContactImportHost.swift
+@@ -8,6 +8,7 @@ import BetaCore
+ @MainActor
+ final class SystemContactImportHost {
+     private var busy = false
++    var active: Bool { busy }
+     private var cancelled = false
+     private var progress: NSPanel?
+     private var cancelActiveRead: (() -> Void)?
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemReminderImportHost.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemReminderImportHost.swift
+index 6155bc026404db2c3049010349de621771a532cd..d1dbe5c62289deb12332d20bb26f56cb47974cf7 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemReminderImportHost.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemReminderImportHost.swift
+@@ -8,6 +8,7 @@ import BetaCore
+ @MainActor
+ final class SystemReminderImportHost {
+     private var busy = false
++    var active: Bool { busy }
+     private var cancelled = false
+     private var progress: NSPanel?
+     private var cancelActiveRead: (() -> Void)?
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
+index 176faa56b7c990643c4953d7182096ef1edb4ae5..da7c8d43ae3bb8e8d6de2a4adce2f0b2fc59fd40 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
+@@ -17,6 +17,10 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+     private var contactImport: SystemContactImportHost?
+     private var reminderImport: SystemReminderImportHost?
+     private var fileImport: FileImportHost?
++    private var systemSync: SystemAccountSyncHost?
++    private var systemSyncBusy = false
++    private var systemSyncCandidate: String?
++    private var systemSyncRequestID: String?
+     private var airPlay: AirPlayHost?
+     private var window: NSWindow!
+     private var web: WKWebView!
+@@ -110,7 +114,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+     @objc private func about() {
+         alert((Bundle.main.object(forInfoDictionaryKey: "MagnolieBetaVersion") as? String ?? "") + "\n" +
+               "Development Beta. Native validation is still required. JSON backup/restore and recovery-backed local editing; " +
+-              "local calendar copies from macOS accounts; no sync, background wake or auto-update.")
++              "local copies and explicitly enabled macOS system-account field synchronization; no general DAV/phone sync, background wake or auto-update.")
+     }
+     private func tr(_ text: String) -> String { catalog[text] ?? text }
+     @objc private func showAirPlay() {
+@@ -282,14 +286,14 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+         web.evaluateJavaScript("window.App?.macOSBetaStartReminderImport()")
+     }
+     private func importFile(_ request: Request) throws {
+-        guard plain != nil, !restoring, !closePending, let database = calendarDatabase else {
++        guard plain != nil, !restoring, !closePending, !systemSyncBusy, let database = calendarDatabase else {
+             throw BetaError("File import is not available while the document is locked or closing.")
+         }
+         let generation = documentGeneration, format = request.text("art")
+         Task { @MainActor in
+             let current = { [weak self] in
+                 guard let self else { return false }
+-                return self.plain != nil && !self.restoring && !self.closePending && self.documentGeneration == generation
++                return self.plain != nil && !self.restoring && !self.closePending && !self.systemSyncBusy && self.documentGeneration == generation
+             }
+             guard current() else { return }
+             if self.fileImport == nil { self.fileImport = FileImportHost() }
+@@ -331,7 +335,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+         return result
+     }
+     private func importReminders() throws {
+-        guard plain != nil, !restoring, !closePending, let database = calendarDatabase else {
++        guard plain != nil, !restoring, !closePending, !systemSyncBusy, let database = calendarDatabase else {
+             throw BetaError("Reminder copying is not available while the document is locked or closing.")
+         }
+         let generation = documentGeneration
+@@ -342,7 +346,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+         Task { @MainActor in
+             let current = { [weak self] in
+                 guard let self else { return false }
+-                return self.plain != nil && !self.restoring && !self.closePending && self.documentGeneration == generation &&
++                return self.plain != nil && !self.restoring && !self.closePending && !self.systemSyncBusy && self.documentGeneration == generation &&
+                     (self.regional(self.plain)["timeZone"] as? String ?? "system") == requestedZone && TimeZone.current.identifier == systemZone
+             }
+             guard current() else { return }
+@@ -381,14 +385,14 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+         return result
+     }
+     private func importContacts() throws {
+-        guard plain != nil, !restoring, !closePending else {
++        guard plain != nil, !restoring, !closePending, !systemSyncBusy else {
+             throw BetaError("Contact copying is not available while the document is locked or closing.")
+         }
+         let generation = documentGeneration
+         Task { @MainActor in
+             let current = { [weak self] in
+                 guard let self else { return false }
+-                return self.plain != nil && !self.restoring && !self.closePending && self.documentGeneration == generation
++                return self.plain != nil && !self.restoring && !self.closePending && !self.systemSyncBusy && self.documentGeneration == generation
+             }
+             guard current() else { return }
+             if self.contactImport == nil { self.contactImport = SystemContactImportHost() }
+@@ -425,14 +429,14 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+         return result
+     }
+     private func importAppleNotes() throws {
+-        guard plain != nil, !restoring, !closePending else {
++        guard plain != nil, !restoring, !closePending, !systemSyncBusy else {
+             throw BetaError("Apple Notes import is not available while the document is locked or closing.")
+         }
+         let generation = documentGeneration
+         Task { @MainActor in
+             let current = { [weak self] in
+                 guard let self else { return false }
+-                return self.plain != nil && !self.restoring && !self.closePending && self.documentGeneration == generation
++                return self.plain != nil && !self.restoring && !self.closePending && !self.systemSyncBusy && self.documentGeneration == generation
+             }
+             guard current() else { return }
+             if self.appleNotesImport == nil { self.appleNotesImport = AppleNotesImportHost() }
+@@ -469,7 +473,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+         return result
+     }
+     private func importSystemCalendar() throws {
+-        guard plain != nil, !restoring, !closePending, let database = calendarDatabase else {
++        guard plain != nil, !restoring, !closePending, !systemSyncBusy, let database = calendarDatabase else {
+             throw BetaError("Calendar import is not available while the document is locked or closing.")
+         }
+         let generation = documentGeneration
+@@ -480,7 +484,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+         Task { @MainActor in
+             let current = { [weak self] in
+                 guard let self else { return false }
+-                return self.plain != nil && !self.restoring && !self.closePending && self.documentGeneration == generation &&
++                return self.plain != nil && !self.restoring && !self.closePending && !self.systemSyncBusy && self.documentGeneration == generation &&
+                     (self.regional(self.plain)["timeZone"] as? String ?? "system") == requestedZone && TimeZone.current.identifier == systemZone
+             }
+             guard current() else { return }
+@@ -524,9 +528,9 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+     private func importNoteFiles() {
+         let generation = documentGeneration
+         Task { @MainActor in
+-            guard self.plain != nil, !self.restoring else { return }
++            guard self.plain != nil, !self.restoring, !self.systemSyncBusy else { return }
+             if self.noteFileImport == nil { self.noteFileImport = NoteFileImportHost() }
+-            self.noteFileImport!.begin(parent: self.window, isCurrent: { self.plain != nil && !self.restoring && self.documentGeneration == generation }) { payload, finished in
++            self.noteFileImport!.begin(parent: self.window, isCurrent: { self.plain != nil && !self.restoring && !self.systemSyncBusy && self.documentGeneration == generation }) { payload, finished in
+                 self.web.callAsyncJavaScript("""
+                     try { return await window.App.macOSBetaImportNoteFiles(payload); }
+                     catch (error) { return { noteFileImportError: String(error?.message || error).slice(0, 2048) }; }
+@@ -586,9 +590,83 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+         guard result as? Bool == true else { throw BetaError("Restore validation did not complete.") }
+     }
+ 
++    private func startSystemSync(_ request: Request) throws {
++        guard !systemSyncBusy, fileImport?.active != true, noteFileImport?.active != true, systemCalendarImport?.active != true,
++              appleNotesImport?.active != true, contactImport?.active != true, reminderImport?.active != true,
++              let plain, !restoring, !closePending, let database = calendarDatabase else {
++            throw BetaError("System synchronization is not available while the book is locked, closing or busy.")
++        }
++        let requestedZone = regional(plain)["timeZone"] as? String ?? "system"
++        let systemZone = TimeZone.current.identifier
++        let displayZone = requestedZone.isEmpty || requestedZone == "system" ? systemZone : requestedZone
++        guard request.text("timeZone") == displayZone else { throw BetaError("The synchronization timezone changed.") }
++        let context = try CalendarTimeContext(database: database, systemIdentifier: systemZone)
++        let generation = documentGeneration
++        // Close native mutation admission synchronously, before queuing any work.
++        systemSyncBusy = true; systemSyncRequestID = request.text("requestId")
++        Task { @MainActor in
++            let current = { [weak self] in
++                guard let self else { return false }
++                return self.systemSyncBusy && self.plain != nil && !self.restoring && !self.closePending &&
++                    self.documentGeneration == generation && TimeZone.current.identifier == systemZone &&
++                    (self.regional(self.plain)["timeZone"] as? String ?? "system") == requestedZone
++            }
++            var result: [String: Any]
++            do {
++                guard current() else { throw BetaError("The current book changed; synchronization was not started.") }
++                if self.systemSync == nil { self.systemSync = try SystemAccountSyncHost(profileDirectory: self.store.file.deletingLastPathComponent()) }
++                result = await self.systemSync!.begin(request: request, accounts: self.systemAccounts, context: context,
++                    isCurrent: current,
++                    disk: {
++                        guard current() else { throw BetaError("The current book changed; the synchronization journal was retained.") }
++                        return try DAVBookDiskSnapshot.read(store: self.store, encryption: self.encryption)
++                    }, candidateWrite: { self.systemSyncCandidate = $0 },
++                    ui: { script, arguments in
++                        guard current() else { throw BetaError("The current book changed; the synchronization journal was retained.") }
++                        return try await self.systemSyncUI(script, arguments: arguments)
++                    }, translate: { self.tr($0) })
++            } catch { result = ["ok": false, "requestId": request.text("requestId"), "fehler": self.tr(error.localizedDescription)] }
++            self.systemSyncBusy = false; self.systemSyncCandidate = nil; self.systemSyncRequestID = nil
++            guard self.documentGeneration == generation, self.plain != nil, !self.restoring else { return }
++            self.send("macOSBetaSystemSyncFinished", result)
++        }
++    }
++    @MainActor private func systemSyncUI(_ script: String, arguments: [String: Any]) async throws -> [String: Any] {
++        let guarded = "try { " + script + " } catch (error) { return { ok: false, uiError: String(error?.message || error).slice(0, 2000) }; }"
++        return try await withCheckedThrowingContinuation { continuation in
++            var settled = false
++            let timeout = DispatchWorkItem {
++                guard !settled else { return }; settled = true
++                continuation.resume(throwing: BetaError("System synchronization UI acknowledgement timed out; its journal was retained."))
++            }
++            DispatchQueue.main.asyncAfter(deadline: .now() + 45, execute: timeout)
++            web.callAsyncJavaScript(guarded, arguments: arguments, in: nil, in: .page) { (result: Result<Any, Error>) in
++                guard !settled else { return }; settled = true; timeout.cancel()
++                switch result {
++                case .success(let value):
++                    guard let response = value as? [String: Any] else {
++                        continuation.resume(throwing: BetaError("Invalid system synchronization UI response.")); return
++                    }
++                    if let error = response["uiError"] as? String { continuation.resume(throwing: BetaError(error)); return }
++                    continuation.resume(returning: response)
++                case .failure(let error): continuation.resume(throwing: error)
++                }
++            }
++        }
++    }
+     private func dispatch(_ request: Request) throws {
+         guard !restoring else { throw BetaError("Please wait.") }
++        if systemSyncBusy {
++            // An exact transport duplicate must not settle the active UI request
++            // with a failure while its native transaction is still running.
++            if request.command == .macos_system_sync, request.text("requestId") == systemSyncRequestID { return }
++            guard request.command == .speichern, let candidate = systemSyncCandidate,
++                  try SystemAccountSyncLedger.equal(Data(request.text("text").utf8), Data(candidate.utf8)) else {
++                throw BetaError("Please wait for the current system synchronization.")
++            }
++        }
+         switch request.command {
++        case .macos_system_sync: try startSystemSync(request)
+         case .notiz_dateien_importieren:
+             guard plain != nil, !restoring else { throw BetaError("Unlock first.") }
+             importNoteFiles()
+@@ -927,6 +1005,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+     func windowShouldClose(_ sender: NSWindow) -> Bool { NSApp.terminate(nil); return false }
+     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+         if fileImport?.active == true { return .terminateCancel }
++        if systemSyncBusy { return .terminateCancel }
+         if restoreState == .activeIO { return .terminateCancel }
+         if restoreState == .blockedRestartRequired { return .terminateNow }
+         if closeApproved || web == nil { return .terminateNow }
+diff --git a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncLedgerTests.swift b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncLedgerTests.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..ac97b2d1e6018139047f4c7f549ecf566a5a9f32
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncLedgerTests.swift
+@@ -0,0 +1,191 @@
++import Foundation
++import XCTest
++@testable import BetaCore
++
++private final class SystemSyncMemoryKeys: DAVSyncJournalKeyStore {
++    var values: [String: DAVSyncJournalKey] = [:]
++    func load(namespace: String, allowCreate: Bool) throws -> DAVSyncJournalKey {
++        if let key = values[namespace] { return key }
++        guard allowCreate else { throw DAVSyncJournalError.missingKey }
++        let key = try DAVSyncJournalKey(id: Data(repeating: 13, count: 32), bytes: Data(repeating: 29, count: 32))
++        values[namespace] = key
++        return try DAVSyncJournalKey(id: key.id, bytes: key.bytes, newlyCreated: true)
++    }
++}
++
++final class SystemAccountSyncLedgerTests: XCTestCase {
++    typealias Ledger = SystemAccountSyncLedger
++    private func directory() throws -> URL {
++        let path = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().appendingPathComponent("system-sync-" + UUID().uuidString)
++        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
++        addTeardownBlock { try? FileManager.default.removeItem(at: path) }; return path
++    }
++    private func binding(_ epoch: UUID, source: String = "synthetic-source", scope: String = "window-v1") throws -> Ledger.Binding {
++        try Ledger.Binding(epoch: epoch, sourceUID: SystemSourcePolicy.uid(.events, source),
++                           sourceFingerprint: String(repeating: "a", count: 64), scope: scope)
++    }
++    private func book(_ epoch: UUID, title: String = "Original synthetic title") -> [String: Any] {
++        ["termine": [["id": "synthetic-local-id", "titel": title, "future": ["keep": true]]],
++         "aufgaben": [], "kontakte": [], "notizen": [], "futureRoot": ["keep": true],
++         "syncEpoch": epoch.uuidString, "syncMetadaten": ["syncEpoch": epoch.uuidString]]
++    }
++    private func staged(_ ledger: Ledger, binding: Ledger.Binding, before: [String: Any], candidate: [String: Any]) throws -> Ledger.Run {
++        try ledger.authorize(binding)
++        let operation = try Ledger.Operation(id: "synthetic-op", payload: Ledger.encoded(["desired": "Private synthetic contact value"]))
++        let run = try ledger.begin(binding: binding, input: Ledger.encoded(before), plan: Ledger.encoded(["syntheticPlan": true]), operations: [operation])
++        try ledger.reserve(runID: run.id, readbacks: [operation.id: 4096], candidate: 65536, baseline: 4096)
++        try ledger.willApply(runID: run.id, operationID: operation.id)
++        try ledger.acknowledge(runID: run.id, operationID: operation.id, readback: Ledger.encoded(["actualReadback": true]))
++        try ledger.stage(runID: run.id, candidate: Ledger.encoded(candidate), baseline: Ledger.encoded(["syntheticBaseline": "after-readback"]))
++        return run
++    }
++
++    func testImportedMetadataCannotAuthorizeAProviderWrite() throws {
++        let root = try directory(), ledger = try Ledger(profileDirectory: root, keys: SystemSyncMemoryKeys())
++        let epoch = UUID(), bound = try binding(epoch)
++        var imported = book(epoch)
++        imported["nativeContactImport"] = ["version": 1, "sourceUID": bound.sourceUID, "syncAllowed": true]
++        XCTAssertNil(try ledger.grant(for: bound))
++        XCTAssertThrowsError(try ledger.begin(binding: bound, input: Ledger.encoded(imported), plan: Ledger.encoded([:]), operations: []))
++        XCTAssertNil(try ledger.pending(bound))
++    }
++
++    func testNativeGrantIsSourceScopeEpochBoundAndPersistedEncrypted() throws {
++        let root = try directory(), keys = SystemSyncMemoryKeys(), epoch = UUID(), bound = try binding(epoch)
++        var ledger: Ledger? = try Ledger(profileDirectory: root, keys: keys)
++        let grant = try ledger!.authorize(bound)
++        _ = try staged(ledger!, binding: bound, before: book(epoch), candidate: book(epoch, title: "Changed"))
++        let encrypted = try AtomicStore.read(root.appendingPathComponent("SystemAccounts-Sync/organizer.json"))!
++        XCTAssertNil(encrypted.range(of: Data("Private synthetic contact value".utf8)))
++        XCTAssertNil(encrypted.range(of: Data("synthetic-local-id".utf8)))
++        ledger = nil
++        ledger = try Ledger(profileDirectory: root, keys: keys)
++        XCTAssertEqual(try ledger!.grant(for: bound)?.id, grant.id)
++        XCTAssertNil(try ledger!.grant(for: binding(UUID())))
++        XCTAssertNil(try ledger!.grant(for: binding(epoch, source: "other-source")))
++        XCTAssertNil(try ledger!.grant(for: binding(epoch, scope: "changed-window")))
++        XCTAssertThrowsError(try ledger!.authorize(binding(epoch, scope: "changed-window")))
++    }
++
++    func testAttemptIsDurableBeforeProviderAndUncertainRestartNeverRetries() throws {
++        let root = try directory(), keys = SystemSyncMemoryKeys(), epoch = UUID(), bound = try binding(epoch)
++        var ledger: Ledger? = try Ledger(profileDirectory: root, keys: keys)
++        try ledger!.authorize(bound)
++        let operation = try Ledger.Operation(id: "uncertain-operation", payload: Ledger.encoded(["write": "value"]))
++        let run = try ledger!.begin(binding: bound, input: Ledger.encoded(book(epoch)), plan: Ledger.encoded([:]), operations: [operation])
++        try ledger!.reserve(runID: run.id, readbacks: [operation.id: 4096], candidate: 65536, baseline: 4096)
++        try ledger!.willApply(runID: run.id, operationID: operation.id)
++        ledger = nil
++        ledger = try Ledger(profileDirectory: root, keys: keys)
++        XCTAssertTrue(try XCTUnwrap(ledger!.pending(bound)).uncertain)
++        XCTAssertThrowsError(try ledger!.willApply(runID: run.id, operationID: operation.id))
++        XCTAssertThrowsError(try ledger!.stage(runID: run.id, candidate: Ledger.encoded(book(epoch)), baseline: Ledger.encoded([:])))
++        XCTAssertThrowsError(try ledger!.revokeSource(epoch: epoch, sourceUID: bound.sourceUID))
++        XCTAssertNil(try ledger!.grant(for: bound)?.baseline)
++    }
++
++    func testOnlyIndependentActualDiskCandidateAdvancesBaseline() throws {
++        for encrypted in [false, true] {
++            let root = try directory(), store = try AtomicStore(directory: root)
++            _ = try store.load()
++            let epoch = UUID(), before = book(epoch), candidate = book(epoch, title: "Acknowledged native result"), bound = try binding(epoch)
++            let encryption: Encryption? = try (encrypted ? Encryption.create(password: "synthetic-test-only-password") : nil)
++            func save(_ book: [String: Any]) throws {
++                let plain = try Document.encode(book); try store.commit(encryption?.encrypt(plain) ?? plain)
++            }
++            try save(before)
++            let ledger = try Ledger(profileDirectory: root, keys: SystemSyncMemoryKeys())
++            let run = try staged(ledger, binding: bound, before: before, candidate: candidate)
++            // Neither a completed provider call nor staging is a local save receipt.
++            XCTAssertNil(try ledger.grant(for: bound)?.baseline)
++            XCTAssertThrowsError(try ledger.complete(runID: run.id, evidence: DAVBookDiskSnapshot.read(store: store, encryption: encryption)))
++            XCTAssertNotNil(try ledger.pending(bound))
++            try save(candidate) // Simulate lost WebView ACK: only the actual file exists.
++            try ledger.complete(runID: run.id, evidence: DAVBookDiskSnapshot.read(store: store, encryption: encryption))
++            XCTAssertNil(try ledger.pending(bound))
++            XCTAssertTrue(try Ledger.equal(XCTUnwrap(ledger.grant(for: bound)?.baseline), Ledger.encoded(["syntheticBaseline": "after-readback"])))
++            try ledger.revokeSource(epoch: epoch, sourceUID: bound.sourceUID)
++            XCTAssertNil(try ledger.grant(for: bound))
++            let renewed = try ledger.authorize(bound)
++            XCTAssertTrue(try Ledger.equal(XCTUnwrap(renewed.baseline), Ledger.encoded(["syntheticBaseline": "after-readback"])))
++        }
++    }
++
++    func testWrongEpochAndCandidateRetainStagedEvidence() throws {
++        let root = try directory(), store = try AtomicStore(directory: root); _ = try store.load()
++        let epoch = UUID(), bound = try binding(epoch), ledger = try Ledger(profileDirectory: root, keys: SystemSyncMemoryKeys())
++        let candidate = book(epoch, title: "Planned result")
++        let run = try staged(ledger, binding: bound, before: book(epoch), candidate: candidate)
++        try store.commit(Document.encode(book(epoch, title: "Concurrent different value")))
++        XCTAssertThrowsError(try ledger.complete(runID: run.id, evidence: DAVBookDiskSnapshot.read(store: store)))
++        try store.commit(Document.encode(book(UUID(), title: "Planned result")))
++        XCTAssertThrowsError(try ledger.complete(runID: run.id, evidence: DAVBookDiskSnapshot.read(store: store)))
++        XCTAssertNotNil(try ledger.pending(bound)); XCTAssertNil(try ledger.grant(for: bound)?.baseline)
++    }
++
++    func testNativePrewriteRejectionIsDistinctFromUncertainWrite() throws {
++        let root = try directory(), epoch = UUID(), bound = try binding(epoch), ledger = try Ledger(profileDirectory: root, keys: SystemSyncMemoryKeys())
++        try ledger.authorize(bound)
++        let operation = try Ledger.Operation(id: "rejected", payload: Ledger.encoded(["write": true]))
++        let run = try ledger.begin(binding: bound, input: Ledger.encoded(book(epoch)), plan: Ledger.encoded([:]), operations: [operation])
++        try ledger.reserve(runID: run.id, readbacks: [operation.id: 4096], candidate: 65536, baseline: 4096)
++        try ledger.willApply(runID: run.id, operationID: operation.id)
++        try ledger.rejectBeforeWrite(runID: run.id, operationID: operation.id)
++        let pending = try XCTUnwrap(ledger.pending(bound))
++        XCTAssertFalse(pending.uncertain); XCTAssertEqual(pending.rejected, [operation.id])
++        XCTAssertThrowsError(try ledger.acknowledge(runID: run.id, operationID: operation.id, readback: Ledger.encoded([:])))
++        XCTAssertThrowsError(try ledger.willApply(runID: run.id, operationID: operation.id))
++        XCTAssertNil(try ledger.grant(for: bound)?.baseline)
++        try ledger.discardWithoutEffects(runID: run.id)
++        XCTAssertNil(try ledger.pending(bound))
++        XCTAssertNotNil(try ledger.grant(for: bound))
++    }
++
++    func testCapacityIsReservedBeforeAnyNativeWrite() throws {
++        let root = try directory(), epoch = UUID(), bound = try binding(epoch), ledger = try Ledger(profileDirectory: root, keys: SystemSyncMemoryKeys())
++        try ledger.authorize(bound)
++        let operation = try Ledger.Operation(id: "capacity", payload: Ledger.encoded(["write": true]))
++        let run = try ledger.begin(binding: bound, input: Ledger.encoded(book(epoch)), plan: Ledger.encoded([:]), operations: [operation])
++        XCTAssertThrowsError(try ledger.willApply(runID: run.id, operationID: operation.id))
++        XCTAssertThrowsError(try ledger.reserve(runID: run.id, readbacks: [operation.id: Ledger.maximumBytes], candidate: Ledger.maximumBytes, baseline: Ledger.maximumBytes))
++        XCTAssertTrue(try XCTUnwrap(ledger.pending(bound)).withoutEffects)
++        try ledger.discardWithoutEffects(runID: run.id)
++        XCTAssertNil(try ledger.pending(bound))
++    }
++
++    func testOversizedReadbackRemainsUncertainAndDoesNotConsumeUnreservedSpace() throws {
++        let root = try directory(), epoch = UUID(), bound = try binding(epoch), ledger = try Ledger(profileDirectory: root, keys: SystemSyncMemoryKeys())
++        try ledger.authorize(bound)
++        let operation = try Ledger.Operation(id: "bounded-readback", payload: Ledger.encoded(["write": true]))
++        let run = try ledger.begin(binding: bound, input: Ledger.encoded(book(epoch)), plan: Ledger.encoded([:]), operations: [operation])
++        try ledger.reserve(runID: run.id, readbacks: [operation.id: 128], candidate: 65536, baseline: 4096)
++        try ledger.willApply(runID: run.id, operationID: operation.id)
++        XCTAssertThrowsError(try ledger.acknowledge(runID: run.id, operationID: operation.id, readback: Ledger.encoded(["unexpected": String(repeating: "x", count: 1024)])))
++        XCTAssertTrue(try XCTUnwrap(ledger.pending(bound)).uncertain)
++        XCTAssertThrowsError(try ledger.discardWithoutEffects(runID: run.id))
++        XCTAssertNil(try ledger.grant(for: bound)?.baseline)
++    }
++
++    func testCandidateProbeAllowsDefaultsButRejectsLossOrValueChanges() throws {
++        let required: [String: Any] = ["rows": [["id": "one", "title": "Native result", "privateFuture": ["keep": true]]]]
++        let defaults: [String: Any] = ["rows": [["id": "one", "title": "Native result", "privateFuture": ["keep": true], "ordinaryDefault": ""]]]
++        XCTAssertNoThrow(try Ledger.verifyNormalizedCandidate(required: Ledger.encoded(required), proposed: Ledger.encoded(defaults)))
++        let alterations: [[String: Any]] = [["rows": [["id": "one", "title": "Different"]]], ["rows": []], ["rows": [["id": "renamed", "title": "Native result"]]]]
++        for altered in alterations {
++            XCTAssertThrowsError(try Ledger.verifyNormalizedCandidate(required: Ledger.encoded(required), proposed: Ledger.encoded(altered)))
++        }
++        let nfd = try Ledger.encoded(["opaque": "cafe\u{301}"]), nfc = try Ledger.encoded(["opaque": "caf\u{e9}"])
++        XCTAssertFalse(try Ledger.equal(nfd, nfc))
++        XCTAssertThrowsError(try Ledger.verifyNormalizedCandidate(required: nfd, proposed: nfc))
++    }
++
++    func testRevocationRemovesNativeAuthorityAndMissingJournalDoesNotRecreateIt() throws {
++        let root = try directory(), keys = SystemSyncMemoryKeys(), epoch = UUID(), bound = try binding(epoch)
++        var ledger: Ledger? = try Ledger(profileDirectory: root, keys: keys)
++        try ledger!.authorize(bound); try ledger!.revokeSource(epoch: epoch, sourceUID: bound.sourceUID)
++        XCTAssertNil(try ledger!.grant(for: bound))
++        ledger = nil
++        try FileManager.default.removeItem(at: root.appendingPathComponent("SystemAccounts-Sync/organizer.json"))
++        XCTAssertThrowsError(try Ledger(profileDirectory: root, keys: keys))
++    }
++}
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/system_account_sync.mjs b/Magnolie-Organizer-macOS-Beta/tests/system_account_sync.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..21f86d7d48b43f4e39650535e8af7feab593d3db
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tests/system_account_sync.mjs
+@@ -0,0 +1,248 @@
++import assert from "node:assert/strict";
++import fs from "node:fs";
++import { boot, tick } from "./ui_harness.mjs";
++
++// Actual projected Organizer UI. Provider outcomes, save ACK and final native
++// disk verification are synthetic here; XCTest covers the native ledger path.
++let checks = 0;
++const clone = value => JSON.parse(JSON.stringify(value));
++const equal = (a, b, label) => { assert.deepEqual(clone(a), clone(b), label); checks++; };
++const ok = (value, label) => { assert.ok(value, label); checks++; };
++const selection = { sourceUID: "macos-events:Zml4dHVyZQ==", kind: "events", start: "2026-01-01", end: "2027-01-01" };
++const source = { uid: selection.sourceUID, art: "events", name: "Synthetic calendar", systemSyncFields: true, readOnly: false };
++const contacts = { uid: "macos-contacts:Ym9vaw==", art: "contacts", name: "Synthetic contacts", systemSyncFields: true, readOnly: true };
++const reminders = { uid: "macos-reminders:bGlzdA==", art: "reminders", name: "Synthetic reminders", systemSyncFields: true, readOnly: false };
++const fixture = JSON.parse(fs.readFileSync(process.env.MACOS_BETA_SYSTEM_SYNC_UI_FIXTURE ||
++  new URL("../Tests/BetaCoreTests/Fixtures/system-account-sync-ui.json", import.meta.url), "utf8"));
++function preserves(required, proposed, path = "book") {
++  if (Array.isArray(required)) {
++    assert.ok(Array.isArray(proposed), path); assert.equal(proposed.length, required.length, path);
++    required.forEach((value, index) => preserves(value, proposed[index], path + "[" + index + "]"));
++  } else if (required && typeof required === "object") {
++    assert.ok(proposed && typeof proposed === "object" && !Array.isArray(proposed), path);
++    for (const [key, value] of Object.entries(required)) { assert.ok(Object.hasOwn(proposed, key), path + "." + key); preserves(value, proposed[key], path + "." + key); }
++  } else assert.deepEqual(proposed, required, path);
++}
++
++async function context(locale = "en") {
++  const b = await boot(process.argv[2]), seen = new Set();
++  b.pump = async (save = true) => {
++    for (let step = 0; step < 6; step++) {
++      for (const message of [...b.messages]) if (message.cmd === "speichern" && !seen.has(message.id)) {
++        seen.add(message.id); b.w.MacBeta.receive("gespeichert", { id: message.id, ok: save, fehler: save ? "" : "Synthetic save failure" });
++      }
++      await tick();
++    }
++  };
++  b.w.MacBeta.receive("init", { daten: {
++    termine: [{ id: "existing-event", uid: "existing-event-uid", titel: "Existing event", datum: "2026-11-01", zeit: "10:00", dauer: 60, futureEvent: { retain: true } }],
++    aufgaben: [{ id: "existing-task", titel: "Existing task", kinder: [], futureTask: { retain: true } }],
++    kontakte: [{ id: "existing-contact", vorname: "Existing", nachname: "Contact", futureContact: { retain: true } }],
++    notizen: [{ id: "existing-note", titel: "Existing note", text: "Retain me", futureNote: { retain: true } }],
++    futureRoot: { retain: true }, einstellungen: { allgemein: { handbuchHinweisGezeigt: true } }
++  }, neu: false, regional: { language: locale, timeZone: "UTC" } });
++  b.t.speichereJetzt(); await b.pump();
++  b.starts = () => b.messages.filter(message => message.cmd === "macos_system_sync");
++  b.start = async (value = selection) => {
++    b.w.App.macOSBetaStartSystemSync(value); await b.pump();
++    const request = b.starts().at(-1); ok(request, "A valid manual source start reaches the native command");
++    equal(b.w.App.macOSBetaAdmitSystemSync(request.requestId, JSON.stringify(b.t.daten())),
++      { ok: true, requestId: request.requestId, epoch: b.t.daten().syncEpoch }, "Admission matches the actual current saved model");
++    return request;
++  };
++  b.page = () => {
++    b.t.oeffneEinstellungen(); b.w.document.getElementById("einst-tab-sync").click();
++    const status = b.messages.filter(message => message.cmd === "eds_status").at(-1);
++    b.w.MacBeta.receive("edsStatus", { requestId: status.requestId, macos: true, verfuegbar: true, buchOk: true,
++      systemAccountSyncImplemented: true, permissions: { events: "authorized", contacts: "authorized", reminders: "authorized" },
++      kalender: [source, reminders], adressbuecher: [contacts], fehler: "" });
++    return b.w.document.getElementById("macos-system-sync");
++  };
++  return b;
++}
++
++for (const locale of ["en", "de"]) {
++  const b = await context(locale);
++  try {
++    const before = JSON.stringify(b.t.daten()), page = b.page();
++    ok(page, "Real settings contain a separate native field-sync section");
++    ok(page.textContent.includes(locale === "de" ? "Feldsynchronisation" : "field synchronization"), "The new section is localized: " + locale);
++    ok(page.textContent.includes(locale === "de" ? "nicht exportiert" : "not sent"), "Bounded write scope is explained: " + locale);
++    ok(page.textContent.includes(locale === "de" ? "atomar" : "atomically"), "Apple comparison/save limitation is explicit: " + locale);
++    equal(b.w.document.getElementById("macos-system-sync-source").options.length, 4, "Calendar, contact and reminder source capabilities are separate from copy/read-only labels");
++    equal([b.starts().length, JSON.stringify(b.t.daten())], [0, before], "Rendering and discovery grant no authority and mutate no book");
++    b.w.document.getElementById("sync-jetzt").click(); await b.pump();
++    equal(b.starts().length, 1, "Actual sync button uses the bounded native request once");
++    equal(b.starts()[0].sourceUID, source.uid, "Selected native source is carried unchanged");
++  } finally { b.close(); }
++}
++
++{
++  const b = await context();
++  try {
++    b.t.daten().futureRoot.pending = "before start";
++    b.w.App.macOSBetaStartSystemSync(selection); b.w.App.macOSBetaStartSystemSync(selection); await tick();
++    equal(b.starts(), [], "No system account read/write is dispatched before the initial save ACK");
++    await b.pump(); equal(b.starts().length, 1, "Duplicate starts share one pending save/request");
++    const request = b.starts()[0];
++    equal(b.w.document.body.inert, true, "The native phase locks ordinary editing");
++    assert.throws(() => b.w.App.macOSBetaAdmitSystemSync(request.requestId, JSON.stringify({ ...b.t.daten(), futureRoot: {} })), /saved book/); checks++;
++    b.w.MacBeta.receive("macOSBetaSystemSyncFinished", { requestId: "stale", ok: true });
++    equal(b.w.document.body.inert, true, "A stale native completion cannot unlock the active request");
++    b.w.MacBeta.receive("macOSBetaSystemSyncFinished", { requestId: request.requestId, ok: false, fehler: "Synthetic cancelled native consent" });
++    equal([b.w.document.body.inert, b.w.App.macOSBetaSystemSyncBusy()], [false, false], "Native consent cancellation releases controls");
++    ok(b.w.document.getElementById("zettel").textContent.includes("cancelled native consent"), "Consent cancellation is not a success");
++  } finally { b.close(); }
++}
++
++for (const kind of ["events", "contacts", "reminders"]) {
++  const b = await context();
++  try {
++    const selected = kind === "events" ? selection : { sourceUID: kind === "contacts" ? contacts.uid : reminders.uid, kind };
++    const request = await b.start(selected), before = clone(b.t.daten()), candidate = clone(before);
++    const key = kind === "events" ? "termine" : kind === "contacts" ? "kontakte" : "aufgaben";
++    const field = kind === "contacts" ? "vorname" : "titel";
++    candidate[key][0][field] = "Native supported field change";
++    const runID = "synthetic-run-" + kind;
++    const prepared = b.w.App.macOSBetaPrepareSystemSync(request.requestId, runID, JSON.stringify(candidate));
++    equal(b.t.daten(), before, "Candidate normalization probe does not mutate the current book: " + kind);
++    let finished = false;
++    const completion = b.w.App.macOSBetaCommitSystemSync(request.requestId, runID, prepared.text).then(value => { finished = true; return value; });
++    await tick(); equal(finished, false, "Commit awaits the actual save ACK: " + kind);
++    equal(b.t.daten()[key][0][field], "Native supported field change", "Candidate is visible in the current model while awaiting its save: " + kind);
++    equal(b.w.document.body.inert, true, "Save ACK alone has not released the native transaction: " + kind);
++    await b.pump(); const receipt = await completion;
++    equal([receipt.ok, receipt.requestId, receipt.runID], [true, request.requestId, runID], "UI returns a correlated save receipt: " + kind);
++    equal(b.w.document.body.inert, true, "Independent native disk verification is still required: " + kind);
++    const after = clone(b.t.daten()); after[key][0][field] = before[key][0][field];
++    equal(after, before, "Other domains, local IDs and future fields survive: " + kind);
++    b.w.MacBeta.receive("macOSBetaSystemSyncFinished", { requestId: request.requestId, ok: true });
++    equal(b.w.document.body.inert, false, "Only final correlated native verification unlocks: " + kind);
++    ok(b.w.document.getElementById("zettel").textContent.includes("saved and verified"), "Success appears after final native confirmation: " + kind);
++  } finally { b.close(); }
++}
++
++for (const row of fixture.rows) {
++  const b = await context();
++  try {
++    const selected = row.kind === "events" ? selection : { sourceUID: row.kind === "contacts" ? contacts.uid : reminders.uid, kind: row.kind };
++    const request = await b.start(selected), before = clone(b.t.daten()), candidate = clone(before);
++    const key = row.kind === "events" ? "termine" : row.kind === "contacts" ? "kontakte" : "aufgaben";
++    const id = crypto.randomUUID();
++    candidate[key].push({ ...clone(row.canonicalRecord), id, uid: id, sync: false, syncQuellen: {}, syncKalenderUid: "", geaendert: Date.now(),
++      ...(row.kind === "reminders" ? { elternUid: "", reihenfolge: before.aufgaben.filter(task => !task.elternUid).length } : {}) });
++    const prepared = b.w.App.macOSBetaPrepareSystemSync(request.requestId, "fixture-" + row.kind, JSON.stringify(candidate));
++    preserves(candidate, JSON.parse(prepared.text)); checks++;
++    equal(b.t.daten(), before, "Real copy-derived candidate remains a nonmutating preflight: " + row.kind);
++    const completion = b.w.App.macOSBetaCommitSystemSync(request.requestId, "fixture-" + row.kind, prepared.text);
++    await b.pump(); const receipt = await completion;
++    equal([receipt.ok, b.t.daten()[key].length, b.t.daten()[key].at(-1).id], [true, before[key].length + 1, id], "Source-shaped first adoption survives the actual normalizer and ACK: " + row.kind);
++    if (row.kind === "contacts") {
++      equal(b.t.daten().jahrestage, before.jahrestage, "Contact-only birthday adoption creates no calendar anniversary or implicit name link");
++      equal(b.t.daten().kontakte.at(-1).geburtstag, "--02-29", "Yearless leap birthday survives the sync candidate");
++    }
++  } finally { b.close(); }
++}
++
++{
++  const b = await context();
++  try {
++    const request = await b.start(), before = clone(b.t.daten()), candidate = clone(before);
++    candidate.termine[0].ort = "x".repeat(1001);
++    const prepared = b.w.App.macOSBetaPrepareSystemSync(request.requestId, "invalid-field-probe", JSON.stringify(candidate));
++    assert.throws(() => preserves(candidate, JSON.parse(prepared.text)), /ort/); checks++;
++    equal(b.t.daten(), before, "Changed existing records undergo the real normalizer probe before any candidate is applied");
++    equal(b.messages.filter(message => message.cmd === "speichern").at(-1).text, JSON.stringify(before), "A rejected planned field has no result-save message");
++  } finally { b.close(); }
++}
++
++{
++  const b = await context();
++  try {
++    const request = await b.start(), candidate = clone(b.t.daten()); candidate.termine[0].titel = "Pending native result";
++    const prepared = b.w.App.macOSBetaPrepareSystemSync(request.requestId, "nack-run", JSON.stringify(candidate));
++    const rejected = assert.rejects(b.w.App.macOSBetaCommitSystemSync(request.requestId, "nack-run", prepared.text), /saving was not confirmed/);
++    await b.pump(false); await rejected; checks++;
++    equal(b.t.daten().termine[0].titel, "Pending native result", "Save NACK does not invent rollback of an applied result");
++    b.w.MacBeta.receive("macOSBetaSystemSyncFinished", { requestId: request.requestId, ok: false, fehler: "Synthetic retained journal" });
++    b.t.speichereJetzt(); await b.pump();
++    await b.start(); equal(b.t.daten().termine.length, 1, "A later explicit retry saves/rechecks the same candidate without duplicating records");
++  } finally { b.close(); }
++}
++
++{
++  const b = await context();
++  try {
++    const request = await b.start(), before = clone(b.t.daten()), candidate = clone(before); candidate.termine[0].titel = "Rendered later";
++    const prepared = b.w.App.macOSBetaPrepareSystemSync(request.requestId, "renderer-run", JSON.stringify(candidate));
++    const original = b.w.MagnolieAppearance; b.w.MagnolieAppearance = { ...original, update() { throw new Error("Synthetic renderer failure"); } };
++    const completion = b.w.App.macOSBetaCommitSystemSync(request.requestId, "renderer-run", prepared.text);
++    await b.pump(); const receipt = await completion; b.w.MagnolieAppearance = original;
++    equal([receipt.ok, receipt.renderingFailed], [true, true], "Renderer failure does not lose the previously registered real save ACK");
++    equal([b.t.daten().termine[0].titel, b.t.daten().notizen], ["Rendered later", before.notizen], "Rendered failure retains applied and unrelated data");
++  } finally { b.close(); }
++}
++
++{
++  const b = await context();
++  try {
++    b.t.daten().futureRoot.pending = "force an outstanding initial save";
++    b.w.App.macOSBetaStartSystemSync(selection); await tick();
++    b.t.oeffneTerminBlatt(null, "2026-11-01");
++    const input = b.w.document.getElementById("tb-titel"); input.value = "Late editor draft"; input.dispatchEvent(new b.w.Event("input", { bubbles: true }));
++    await b.pump(); equal(b.starts(), [], "An editor opened while saving blocks the subsequent native request");
++    equal([input.isConnected, input.value], [true, "Late editor draft"], "Late draft is retained");
++  } finally { b.close(); }
++}
++
++{
++  const b = await context();
++  try {
++    b.t.daten().futureRoot.pending = "save failure before native start";
++    b.w.App.macOSBetaStartSystemSync(selection); await b.pump(false);
++    equal([b.starts(), b.w.App.macOSBetaSystemSyncBusy(), b.w.document.body.inert], [[], false, false], "Initial save NACK starts no provider operation and frees the UI");
++    b.t.speichereJetzt(); await b.pump();
++    const request = await b.start({ ...selection, action: "revoke" });
++    equal(request.action, "revoke", "Revocation is a distinct native action, never an imported permission flag");
++    const before = clone(b.t.daten());
++    b.w.MacBeta.receive("macOSBetaSystemSyncFinished", { requestId: request.requestId, ok: true, revoked: true });
++    equal(b.t.daten(), before, "Revoking native authority does not delete local entries");
++  } finally { b.close(); }
++}
++
++for (const choice of ["Cancel", "Discard"]) {
++  const b = await context();
++  try {
++    b.t.oeffneTerminBlatt(null, "2026-11-01");
++    const input = b.w.document.getElementById("tb-titel"); input.value = "Pre-existing editor draft"; input.dispatchEvent(new b.w.Event("input", { bubbles: true }));
++    b.w.App.macOSBetaStartSystemSync(selection);
++    const button = [...b.w.document.querySelectorAll("#aenderungen-schleier button")].find(item => item.textContent === choice);
++    ok(button, "Existing unsaved-editor guard is used for " + choice); button.click(); await b.pump();
++    equal(b.starts().length, choice === "Cancel" ? 0 : 1, "Outer guard finishes before native synchronization: " + choice);
++    if (choice === "Cancel") equal([input.isConnected, input.value], [true, "Pre-existing editor draft"], "Cancelled sync preserves the real editor draft");
++  } finally { b.close(); }
++}
++
++{
++  const b = await context();
++  try {
++    b.w.MacBeta.send({ cmd: "sicherung_wiederherstellen", pfad: "synthetic-restore.json", kennwort: "" }, "hostTest");
++    b.w.App.macOSBetaStartSystemSync(selection); await b.pump();
++    equal(b.starts(), [], "An active native restore blocks a stale system-sync entry");
++  } finally { b.close(); }
++}
++
++{
++  const b = await context();
++  try {
++    const request = await b.start(), candidate = clone(b.t.daten()); candidate.termine[0].titel = "Provider result";
++    b.t.daten().termine[0].titel = "Concurrent local change";
++    assert.throws(() => b.w.App.macOSBetaPrepareSystemSync(request.requestId, "changed-run", JSON.stringify(candidate)), /current book changed/); checks++;
++    equal(b.t.daten().termine[0].titel, "Concurrent local change", "Programmatic concurrent changes are never overwritten by a late native candidate");
++    const beforeStarts = b.messages.length;
++    b.w.App.macOSBetaStartNoteImport(); b.w.App.macOSBetaStartCalendarImport(); b.w.App.macOSBetaStartContactImport(); b.w.App.macOSBetaStartReminderImport();
++    await tick(); equal(b.messages.length, beforeStarts, "Other native copy/import entry points are blocked during sync");
++  } finally { b.close(); }
++}
++console.log(JSON.stringify({ issue: 786, actualProjectedUIChecks: checks, locales: ["en", "de"],
++  sourceShapedFixture: fixture.provenance, syntheticProviderAndDiskReceipts: true, nativeExecution: false }));
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/test_host.py b/Magnolie-Organizer-macOS-Beta/tests/test_host.py
+index 6cd17ba55d871fe3ee20d8923a1b4f9b8f5c6f57..30f986a4ad7c7c37ff24e6cdb53ab4330393b523 100644
+--- a/Magnolie-Organizer-macOS-Beta/tests/test_host.py
++++ b/Magnolie-Organizer-macOS-Beta/tests/test_host.py
+@@ -416,6 +416,26 @@ class ProjectionTests(unittest.TestCase):
+             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+             print(result.stdout.strip())
+ 
++    def test_system_account_sync_transaction(self):
++        runtime = self.javascript()
++        for anchor in ['  function baueSeiteSync(wurzel) {', '  function starteSync(stumm) {']:
++            changed = dict(self.snapshot)
++            key = "magnolie-organizer/web/anwendung.js"
++            changed[key] = changed[key].replace(anchor.encode(), b"/* system-sync source drift */", 1)
++            with self.subTest(anchor=anchor), tempfile.TemporaryDirectory(prefix="macOS-system-sync-drift-") as temp:
++                with self.assertRaisesRegex(ValueError, "Canonical UI anchor changed"):
++                    projection.project(changed, Path(temp) / "UI")
++        with tempfile.TemporaryDirectory(prefix="macOS-system-sync-") as temp:
++            target = Path(temp) / "UI"
++            projection.project(self.snapshot, target)
++            args = [runtime]
++            if Path(runtime).name == "deno":
++                args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
++            result = subprocess.run(args + ["tests/system_account_sync.mjs", str(target)], cwd=BETA,
++                                    capture_output=True, text=True, timeout=120)
++            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
++            print(result.stdout.strip())
++
+     def test_additive_system_calendar_import_contract(self):
+         runtime = self.javascript()
+         with tempfile.TemporaryDirectory(prefix="macOS-Beta-system-calendar-") as temp:
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/ui_host.mjs b/Magnolie-Organizer-macOS-Beta/tests/ui_host.mjs
+index 4f764ec17c44e0912bf7bce5cb7b7a8337573b33..607898bece3761b4cd4110378bdb7eda9a1a8d3a 100644
+--- a/Magnolie-Organizer-macOS-Beta/tests/ui_host.mjs
++++ b/Magnolie-Organizer-macOS-Beta/tests/ui_host.mjs
+@@ -53,7 +53,7 @@ try {
+   t.baueEinstellungen();
+   w.document.getElementById("einst-tab-sync").click();
+   const accountPage = w.document.getElementById("einst-seite-sync");
+-  assert.match(accountPage.textContent, /Full synchronization is not available/); assertions++;
++  assert.match(accountPage.textContent, /not full Linux synchronization parity/); assertions++;
+   assert.equal(accountPage.querySelector("#sync-jetzt").disabled, true); assertions++;
+   assert.equal(accountPage.querySelectorAll("[data-system-access]").length, 3); assertions++;
+   assert.ok(messages.some(m => m.cmd === "eds_status")); assertions++;
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/bridge_coverage.py b/Magnolie-Organizer-macOS-Beta/tools/bridge_coverage.py
+index 9852485ffe067ae7dd446ac4e1229ae10f4decce..d035a5ffd4c91d98c5de1ed4f1e0dc8870c21dc4 100644
+--- a/Magnolie-Organizer-macOS-Beta/tools/bridge_coverage.py
++++ b/Magnolie-Organizer-macOS-Beta/tools/bridge_coverage.py
+@@ -13,6 +13,7 @@ SCOPES = {
+     "macos_apple_notizen_importieren": "source: explicit Apple Notes folder/note selection, reviewed additive plaintext copies + re-read + recovery + save ACK; no source writes or sync; native execution unverified (#772)",
+     "macos_kontakte_importieren": "source: explicit Contacts container/contact selection, reviewed additive public-field copies + re-read + recovery + save ACK; no source writes or sync; native execution unverified (#775)",
+     "macos_erinnerungen_importieren": "source: explicit EventKit reminder list/item selection, reviewed standalone local task copies + re-read + recovery + save ACK; hierarchy unavailable, no source writes or sync; native execution unverified (#777)",
++    "macos_system_sync": "source: explicit native source/book/window grant; additive first linking and bounded two-way field updates; encrypted intent/readback journal + actual saved-disk baseline commit; no create/delete/automatic schedule; Apple API execution unverified (#786)",
+     "drucken": "source: isolated JS-free print renderer and AppKit system print/PDF dialog; native acceptance pending",
+     "handbuch_oeffnen": "source: bundled canonical 2.0.30 manual; isolated local WKWebView/search; native validation pending",
+     "bereit": "source: load/new/locked document; native local startup verified",
+@@ -35,8 +36,8 @@ SCOPES = {
+     "baum_briefkasten_speichern": "partial: revision-bound config/credential transaction; Nextcloud mailbox unsupported",
+     "baum_briefkasten_pruefen": "partial: explicit bounded DAV collection discovery; no data synchronization",
+     "baum_dav_pruefen": "partial: correlated read-only DAV connection discovery; no data synchronization",
+-    "eds_status": "partial: passive native EventKit/Contacts discovery; no synchronization",
+-    "macos_systemzugriff": "partial: explicit OS access prompt and refreshed source status; no synchronization",
++    "eds_status": "partial: passive native EventKit/Contacts discovery and field-sync capabilities; discovery itself grants no write authority",
++    "macos_systemzugriff": "partial: explicit OS access prompt and refreshed source status; separate native field-sync grant required",
+     "feiertage": "source: bounded HTTPS public/school holiday retrieval with regional scope; native service tests/live public retrieval passed; full UI acceptance pending",
+     "erinnerung_zeigen": "partial: open/unlocked/consented session only; delivery untested",
+     "erinnerung_einrichten": "LIMITATION RESPONSE ONLY: no native scheduler is configured",
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+index e09a45832a88bc10af677ebc646d9786f2e37f5f..2bc4f0d92ca633ce50d96dd8bd54d8c00f8b55d9 100644
+--- a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
++++ b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+@@ -349,7 +349,7 @@ def project(snapshot, target):
+       send: message => Bruecke.sende(message) });
+     baueNextcloudKonto(wurzel); return;''')
+     text = replace_once(text, "  function starteSync(stumm) {", '''  function starteSync(stumm) {
+-    if (!stumm) zettel("macOS system source synchronization is not implemented. No system data was changed."); return;''')
++    macOSBetaStartSelectedSystemSync(stumm); return;''')
+     # #784: the Mac device page offers only existing local import paths. Keep
+     # desktop phone/Notes/KDE services out of this page until a real Mac adapter
+     # exists; the external KDE Connect application remains a file-transfer route.
+@@ -423,6 +423,10 @@ def project(snapshot, target):
+     text = replace_once(text, '    { id: "ort", name: msgid("Country & holidays") },',
+                         '    { id: "regional", name: msgid("Language and regional display") },\n'
+                         '    { id: "ort", name: msgid("Country & holidays") },')
++    system_sync = snapshot[str((BETA / "Projection/system-account-sync.js").relative_to(REPO))].decode()
++    text = replace_once(text, "  const App = {", system_sync + "\n  const App = {\n"
++                        "    macOSBetaStartSystemSync, macOSBetaSystemSyncBusy, macOSBetaAdmitSystemSync,\n"
++                        "    macOSBetaPrepareSystemSync, macOSBetaCommitSystemSync, macOSBetaSystemSyncFinished,")
+     note_import = snapshot[str((BETA / "Projection/note-file-import.js").relative_to(REPO))].decode()
+     text = replace_once(text, "  const App = {", note_import + "\n  const App = {\n    macOSBetaStartNoteImport, macOSBetaImportNoteFiles,")
+     legacy_alias = snapshot[str((BETA / "Projection/calendar-legacy-alias.js").relative_to(REPO))].decode()
+diff --git a/contracts/macos-786-system-sync-transaction.md b/contracts/macos-786-system-sync-transaction.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..bfa11af841cc5448e042046eb03928d52558ccda
+--- /dev/null
++++ b/contracts/macos-786-system-sync-transaction.md
+@@ -0,0 +1,182 @@
++# #786 – nativer Transaktionsanschluss für begrenzte macOS-Feldsynchronisation
++
++## Zweck und Abhängigkeit
++
++Dieser Folgepatch verbindet den Provider-/Planer-Vertrag aus
++[macos-786-native-system-sync.md](macos-786-native-system-sync.md) mit der
++tatsächlichen gemeinsamen Organizer-Oberfläche und einer dauerhaften nativen
++Transaktion. Er setzt den integrierten Providerstand `d57ef304` voraus
++(ursprünglicher Providercommit `fdeb6d71`, Basis `9f35d4d0`). Er benennt keine
++Kopie in Synchronisation um und aktiviert keine allgemeine DAV-, Telefon- oder
++Magnolie-Notes-Brücke.
++
++Hier stehen **Linux x86_64, Python und Node/JSDOM** zur Verfügung. Swift, xcrun,
++EventKit, Contacts, AppKit und WKWebView sind nicht vorhanden. Die neuen
++Swift-Tests sind vorbereitet, hier weder kompiliert noch ausgeführt. Eine
++spätere passende macOS-VM/CI-Umgebung genügt für native Prüfungen; physische
++Mac-Hardware ist keine Voraussetzung dieses Vertrags. Ein CI-Workflow ist
++noch kein bestandener nativer Nachweis.
++
++## Tatsächlicher Ablauf
++
++1. Die neue Sektion unter System-Internetkonten wählt genau eine native Quelle.
++   Kontakte behalten die vorhandene `readOnly`-Discoveryaussage; die getrennte
++   `systemSyncFields`-Fähigkeit beschreibt nur den neuen begrenzten Adapter.
++   Die Oberfläche erklärt Erstadoption, Feldumfang, nicht unterstützte
++   Neuanlagen/Löschungen/Serien und die fehlende atomare Apple-CAS-Garantie.
++2. Der vorhandene Entwurfs-/Navigationsguard wird vollständig beendet. Vor dem
++   Dispatch muss das aktuelle Buch dauerhaft gespeichert sein. Doppelte
++   Starts, neue Entwürfe während des Save-ACK und laufender Restore werden
++   abgefangen. Ein Kontoentwurf bleibt erhalten.
++3. `macos_system_sync` erhält Quelle, Art, Aktion, Kalenderfenster, Anzeigezone
++   und `requestId`. Buchdaten, Freigaben oder Baselines kommen nicht aus
++   diesem Request. `DAVBookDiskSnapshot.read` liest die tatsächliche native
++   Datei mit bestehender Speicherlease, Datei-/Verzeichnisbarrieren und
++   gegebenenfalls authentifizierter Entschlüsselung. Die UI muss genau dieses
++   Buch wiedererkennen.
++4. Der native Dialog erteilt einmal eine Freigabe für Quelle/Fingerprint,
++   gespeicherten `syncEpoch`, Zeitfenster und Anzeigezone. Importherkunft,
++   gleichnamige Kontakte, kopierte Provider-IDs oder JSON-Flags erteilen
++   keinerlei Freigabe. Die Freigabe liegt ausschließlich im verschlüsselten
++   nativen Ledger. Widerruf entfernt die Berechtigung; belegte private
++   Zuordnungen bleiben für eine ausdrücklich erneut genehmigte gleiche
++   Quellenbindung erhalten, damit Reaktivierung keine Kopien erzeugen muss.
++5. Der reine Planer liefert Kandidat und eingefrorene Feldoperationen.
++   Vor dem ersten Providerwrite prüft die wirkliche UI einen abgetrennten
++   Normalizerlauf. Nur neue/geänderte Zeilen werden daraus übernommen;
++   unveränderte Zeilen, andere Bereiche und die vorhandene Aufgabenreihenfolge
++   bleiben exakt erhalten. Ein nativer Supersetbeweis weist geänderte oder
++   verlorene geplante Werte zurück; zusätzliche normale Objektdefaults sind
++   zulässig.
++6. `SystemAccountSyncLedger` reserviert dauerhaft Platz für alle zukünftigen
++   Readbacks, den normalisierten Kandidaten und die nächste Baseline. Die
++   Berechnung berücksichtigt JSON-/Base64-Mehrbedarf und andere behaltene
++   Läufe. Ohne passende Reservierung darf `willApply` keinen Write beginnen.
++   Jedes begonnene Write wird **vor** dem nativen Aufruf gespeichert; nur ein
++   tatsächlicher, quell- und feldgeprüfter Readback wird quittiert.
++7. Nach den Providerantworten wird der endgültige Kandidat erneut in der UI
++   geprüft und exakt im Ledger vorgemerkt. `normalizedBaseline` bindet
++   ausschließlich konfliktfreie Baselineeinträge an die tatsächlich
++   normalisierten lokalen Felder. Zurückgestellte Konflikte behalten ihre
++   alte Baseline und verschwinden nicht durch einen Defaultwert.
++8. Die UI übernimmt den Kandidaten und wartet auf Save-ACK. Der Save-Callback
++   wird vor dem Renderer registriert; ein Rendererfehler behauptet keinen
++   Rollback. Die native Schreibsperre erlaubt währenddessen nur den exakt
++   vorgemerkten Buchkandidaten. Erst ein unabhängiger erneuter Diskabruf mit
++   passendem Epoch und vollständigem Kandidateninhalt bestätigt den Abschluss.
++   Danach wird die Baseline atomar fortgeschrieben und der passende Lauf
++   entfernt. Eine verlorene UI-Quittung kann anhand des tatsächlich bereits
++   gespeicherten Kandidaten beendet werden, ohne Providerwrites zu wiederholen.
++
++Der Host sperrt parallele Mutationen und Beenden während der Transaktion.
++Dateiimporte aus #785 müssen diese Sperre in beiden Richtungen beachten:
++`dispatch` blockiert neue Importstarts; `startSystemSync` darf nicht starten,
++während `fileImport.active` ist. Die Integration enthält diese Gegenprüfung.
++
++## Fehler- und Wiederaufnahmegrenzen
++
++Das eigene Ledger verwendet einen privaten `AtomicStore`-Unterordner und einen
++separaten Keychain-Schlüssel für AES-GCM. Es verwendet nicht die noch ohne
++produktiven Abschlussprüfer bestehende DAV-Journal-Retirement-API. Fehlendes
++Journal bei vorhandenem Schlüssel wird nicht zu leerem Zustand umgedeutet.
++Das Ledger verwaltet keine Providerkennwörter; seine Buch-, Baseline- und
++Journalpayloads bleiben verschlüsselt. Ein manuell zurückgespielter älterer gültiger Journalstand über
++Prozessstarts hinweg hat keinen zusätzlichen Hardware-/Keychain-Zähler gegen
++Rollback; normale Buchwiederherstellung erhält eine neue native Epoch.
++
++Nachweislich wirkungslose Läufe dürfen entfernt werden: kein gestagter
++Kandidat, kein ACK und entweder gar kein begonnener Write oder ausschließlich
++typisierte Ablehnungen **vor** dem nativen Save. Unsichere Versuche,
++Teil-ACKs und gestagte Kandidaten bleiben erhalten. Bei einem ungewissen
++Write oder Teil-ACK mit späterer Ablehnung fehlt in dieser Fassung weiterhin
++eine geführte manuelle Recovery-Oberfläche. Codex darf das Journal nicht
++löschen oder einen unbedingten Retry ergänzen; zuerst müssen die tatsächlichen
++nativen IDs/Felder erneut gelesen und gegen die eingefrorenen Belege geprüft
++werden.
++
++Die Quellenliste muss eine Quelle noch anzeigen können, um ihre Freigabe über
++den neuen UI-Knopf zu entfernen. Eine Verwaltung aller gespeicherten Freigaben
++auch bei entzogener TCC-Berechtigung/verschwundener Quelle bleibt ein konkreter
++UI-Folgeschritt; die native `revokeSource`-Operation benötigt keinen Providerabruf.
++
++Der Umfang bleibt manuell gestartet: unterstützte native Einträge werden
++zuerst neu gebunden, danach unterstützte Feldänderungen abgeglichen. Es gibt
++keinen Export beliebiger neuer lokaler Einträge, keine native Anlage/Löschung,
++keine implizite Adoption vorhandener Kopien, keine Behandlung bloßer Abwesenheit
++als Löschbeweis und keinen periodischen Scheduler. Apple Notes bleiben beim
++getrennten Textkopiepfad. Eine zusätzliche Magnolie-Notes-App wird nicht benötigt.
++KDE Connect bleibt ein eigenständiger zulässiger Geräte-/Dateiweg.
++
++## Tatsächlich ausgeführte UI-Prüfung
++
++`ProjectionTests.test_system_account_sync_transaction` arbeitet mit der
++wirklich erzeugten gemeinsamen UI, öffentlichem Rendererhook und dem echten
++Speicher-/Editorzustand. Der aktuelle Lauf enthält **107 Checks** in EN/DE:
++Quellenkontrollen, keine Rechte durch Discovery, Save vor Dispatch, Doppelstart,
++falscher/staler Buchbeleg, Kandidatenprobe, Save-ACK/NACK, verlorener ACK/Retry,
++Rendererfehler, späte und vorbestehende Entwürfe, Restore, konkurrierende lokale
++Änderungen, unveränderte fremde Bereiche und Kopierstarter während Sync.
++Die gemeinsame Dreierfixture aus dem Providerpatch umfasst Termine, Kontakte
++und Erinnerungen einschließlich Herkunft, jahrfreiem Schaltgeburtstag und
++vorhandener Aufgabenreihenfolge. Ihre Herkunft ist ausdrücklich synthetisch
++und manuell aus den bereits geprüften Kopiefixtures abgeleitet, nicht durch
++Swift-Ausführung erzeugt. Die native Transport-/Diskantwort wird simuliert.
++
++Die unabhängige Quellprüfung führte zusätzlich zu konkreten Korrekturen:
++Kapazität vor Writes reservieren; sichere Nullwirkungsläufe freigeben; Baseline
++erst an normalisierten, dauerhaft belegten Feldern fortschreiben. Die
++bestehenden Import-/Host-/Reproduzierbarkeitsgruppen werden im finalen
++Issue-Nachweis mit ihren einzelnen Ergebnissen aufgeführt, nicht als neue
++Apple-API-Prüfungen oder als eine addierte Assertionzahl.
++
++## Konkrete native Abnahme für Codex
++
++In einer geeigneten macOS-VM/CI mit passendem Xcode zunächst den integrierten
++Quellstand samt SHA sichern, vorhandenen dokumentierten UI-/Runtime-Bauablauf
++verwenden und die getrennten Produkt-/Testgrenzen beibehalten:
++
++```sh
++swift build --product 'Magnolie Organizer macOS Beta'
++swift test --filter SystemAccountSync
++```
++
++Die Providergruppe enthält 26 vorbereitete Methoden, die Ledgergruppe 10.
++Das sind vorbereitete Prüfungen, keine hier ausgeführten Ergebnisse. Die
++Ledgergruppe muss tatsächliche temporäre private Stores prüfen: Klartext und
++verschlüsseltes Buch, unabhängiger Diskabruf, falscher Kandidat/Epoch,
++verlustfreie Defaultprüfung, NFC/NFD-Unterscheidung, fehlender Schlüssel/
++fehlendes Journal, Kapazität **vor** Write, ungewisser Neustart, Revoke sowie
++Nullwirkungsabbruch. Die Coregruppe prüft zusätzlich Plan-/Quellen-/Feldverträge,
++Richtungen, Konflikte, Datumsdarstellungen und Quellenänderungen.
++
++Danach die tatsächlich aus Swift exportierte Fixture mit
++`MACOS_BETA_SYSTEM_SYNC_FIXTURE_OUTPUT` erzeugen und als
++`MACOS_BETA_SYSTEM_SYNC_UI_FIXTURE` dem neuen JSDOM-Runner geben. Diese zweite
++Runde soll die bisher synthetische Quelle ersetzen und denselben Inhalt über
++Core → echte UI → gespeichertes JSON beweisen. Der Providervertrag benennt den
++zugehörigen XCTest-Export. Kein vorhandenes synthetisches JSON als bereits
++native erzeugte Ausgabe etikettieren.
++
++Für die echten Frameworkadapter eine angemeldete grafische macOS-Sitzung mit
++temporärem App-Profil und ausschließlich eigens angelegten Testdaten verwenden:
++
++| Prüfung | Voraussetzungen | Erwartetes Ergebnis |
++| --- | --- | --- |
++| TCC verweigert, dann ausdrücklich erlaubt | Gebautes App-Bundle mit UsageDescriptions; echte grafische Sitzung | Keine Providerwrites bei Ablehnung; getrennte native Sync-Freigabe nach Zugriff weiterhin nötig |
++| Erste Runde je Kalender/Kontakte/Erinnerungen | Tatsächlich verfügbarer lokaler beschreibbarer Kalender, Kontaktecontainer bzw. Erinnerungsliste, höchstens 100 Einträge | Lokale neue IDs, unveränderte native IDs/Anzahl; keine Fernanlage oder Löschung; durable Baseline erst nach Diskbeleg |
++| Organizer → native App | Bereits bestätigte Baseline; je ein unterstütztes Feld ändern | Genau eine Änderung am gebundenen bestehenden nativen Objekt; unveränderte Felder/Identität im Readback |
++| Native App → Organizer | Native Änderung nach bestätigter Baseline | Derselbe lokale Datensatz wird aktualisiert; keine zusätzliche Kopie, keine fremde Bereichsänderung |
++| Gleichzeitige Änderungen | Dasselbe Feld beidseitig verschieden ändern | Konflikt bleibt erhalten, kein Last-write-wins; derselbe Konflikt bleibt beim Folgelauf bestehen |
++| Verlorener Save-ACK | Kandidat tatsächlich speichern, Frontendantwort gezielt unterdrücken | Neustart/erneuter Start bestätigt tatsächliche Datei und beendet Journal ohne erneuten Providerwrite |
++| Absturz an Writegrenze | Kontrollierter synthetischer Adapter/Prozessprüfer vor/nach Save; keine echten persönlichen Konten | In-flight ohne beweiskräftige Antwort bleibt ungewiss; kein automatischer Retry, keine vorgezogene Baseline |
++| Speicher-/Kapazitätsfehler | Gezielt erschöpfte reservierte Kapazität bzw. fehlschlagende private Datei | Kapazitätsfehler vor erstem Write; Savefehler lässt Kandidat/Journal sichtbar bestehen |
++| Konkurrenz/Beenden | Dateiimport aktiv oder System-Sync aktiv; Schließen/Restore versuchen | Kein paralleler Import-/Syncstart; native Mutation/Schließen bleibt bis zum eindeutigen Abschluss gesperrt |
++| Apple-Racegrenze | Zweite App verändert/löscht dasselbe Objekt zwischen Vergleich und Save | Reale Grenze dokumentieren: keine atomare CAS-Zusage. Identitätswechsel/abweichender Readback bleiben ungewiss; kein blinder Retry |
++
++Eine leere Cloud-VM muss weder einen nutzbaren lokalen EKSource noch einen
++beschreibbaren Kontaktecontainer, iCloud, Netzwerkfreigaben oder bereits
++erteiltes TCC besitzen. Fehlende Voraussetzungen als **nicht ausgeführt** mit
++konkretem Grund erfassen. Die synthetischen Core-/WebKit-Prüfungen können ohne
++persönliche Apple-Konten laufen; tatsächliche Konten/Gegenstellen und der
++separate Apple-Notes-Automationspfad benötigen jeweils ihre eigenen verfügbaren
++Voraussetzungen und Belege.
+-- 
+2.56.1
+

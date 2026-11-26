@@ -1,0 +1,7 @@
+macos-issue-fixes-0dfeb1b30a208480eb6901e3d3148a5efeaae5ff.bundle is okay
+The bundle contains this ref:
+0dfeb1b30a208480eb6901e3d3148a5efeaae5ff refs/heads/work/macos-issue-fixes-20261126
+The bundle requires these 2 refs:
+d4da48a5eadd0bda22422b924bef4ee3b4324040 
+00776ce70e155c7a607ed55a4502d6fcee5a860c 
+The bundle uses this hash algorithm: sha1

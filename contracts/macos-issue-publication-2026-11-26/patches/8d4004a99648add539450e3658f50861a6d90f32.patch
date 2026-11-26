@@ -1,0 +1,52 @@
+From 8d4004a99648add539450e3658f50861a6d90f32 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 08:41:12 +0100
+Subject: [PATCH] Refs #785 #121: exercise the native platform gate with the
+ current build contract
+
+---
+ Magnolie-Organizer-macOS-Beta/tests/test_host.py | 5 ++++-
+ Magnolie-Organizer-macOS-Beta/tools/build_dev.py | 4 ++--
+ 2 files changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/test_host.py b/Magnolie-Organizer-macOS-Beta/tests/test_host.py
+index 30f986a4ad7c7c37ff24e6cdb53ab4330393b523..9dd58d977f40ff259c0b398c97197fbd774b689d 100644
+--- a/Magnolie-Organizer-macOS-Beta/tests/test_host.py
++++ b/Magnolie-Organizer-macOS-Beta/tests/test_host.py
+@@ -353,7 +353,10 @@ class ProjectionTests(unittest.TestCase):
+ 
+     @unittest.skipIf(platform.system() == "Darwin", "Negative Linux-only build gate")
+     def test_no_linux_native_build_claim(self):
+-        result = subprocess.run([sys.executable, "tools/build_dev.py"], cwd=BETA, capture_output=True, text=True)
++        # Exercise the actual platform gate after valid CLI parsing. A missing
++        # required runtime argument would only test argparse, not Mac admission.
++        result = subprocess.run([sys.executable, "tools/build_dev.py", "--import-runtime", "/not-a-native-import-sdk"],
++                                cwd=BETA, capture_output=True, text=True)
+         self.assertNotEqual(result.returncode, 0)
+         self.assertIn("Apple macOS host required", result.stderr)
+ 
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/build_dev.py b/Magnolie-Organizer-macOS-Beta/tools/build_dev.py
+index aab49f67b2d08bdaa7adb85ec5c2ea1e43355b46..86268a8e4a06b77c51c0be39b5bffb781664beab 100644
+--- a/Magnolie-Organizer-macOS-Beta/tools/build_dev.py
++++ b/Magnolie-Organizer-macOS-Beta/tools/build_dev.py
+@@ -23,7 +23,7 @@ def main():
+                         help="Private CPython SDK built by tools/import_python_bundle.py; no system-Python fallback")
+     arguments = parser.parse_args()
+     if platform.system() != "Darwin":
+-        raise RuntimeError("Apple macOS host required. Linux, jsdom and QEMU are not macOS build or emulation evidence.")
++        raise RuntimeError("Apple macOS host required. Linux and UI-only tests do not provide Apple's SDK; use a suitable macOS VM or runner.")
+     for tool in ("xcrun", "swift", "codesign"):
+         if not shutil.which(tool):
+             raise RuntimeError("Missing Apple developer tool: " + tool)
+@@ -67,7 +67,7 @@ def main():
+     assert info["CFBundleVersion"] == identity["bundleVersion"]
+     assert info["LSMinimumSystemVersion"] == minimum
+     shutil.copytree(GENERATED, contents / "Resources/UI")
+-    # The helper is not web-readable and runs only via the native bounded pipe.
++    # The helper is not web-readable and runs only via bounded native stdio.
+     helper = contents / "Resources/UI/ImportHelper"
+     if not (helper / "manifest.json").is_file() or not (helper / "helper.py").is_file():
+         raise RuntimeError("Verified current-source import helper is missing.")
+-- 
+2.56.1
+

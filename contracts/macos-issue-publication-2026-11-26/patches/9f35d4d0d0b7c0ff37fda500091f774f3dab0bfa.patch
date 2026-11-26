@@ -1,0 +1,491 @@
+From 9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 07:15:58 +0100
+Subject: [PATCH] fix(macos): show supported device import routes
+
+Refs #784. Replace unavailable desktop phone and Notes status cards with existing Mac copy and selected-file imports; preserve save, draft and restore guards.
+---
+ .../Projection/device-import-page.js          |  71 ++++++++
+ .../Resources/native-extra-i18n.json          |  13 +-
+ .../tests/device_import_page.mjs              | 170 ++++++++++++++++++
+ .../tests/test_host.py                        |  21 +++
+ .../tools/project_ui.py                       |   9 +
+ contracts/macos-784-device-import-page.md     | 135 ++++++++++++++
+ 6 files changed, 418 insertions(+), 1 deletion(-)
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Projection/device-import-page.js
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tests/device_import_page.mjs
+ create mode 100644 contracts/macos-784-device-import-page.md
+
+diff --git a/Magnolie-Organizer-macOS-Beta/Projection/device-import-page.js b/Magnolie-Organizer-macOS-Beta/Projection/device-import-page.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..8bf525024753595c04b9e3844476c80c6604b363
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Projection/device-import-page.js
+@@ -0,0 +1,71 @@
++  // #784: use existing Mac import paths, without starting desktop device services.
++  let macOSBetaDevicePending = null;
++  function macOSBetaDeviceImport(start, file = false) {
++    if (macOSBetaDevicePending || macOSBetaCalendarImportBlocked()) return;
++    if (macOSBetaCalendarImportHasSettingsDraft()) {
++      zettel(window.MacBeta.text("Save or discard the account changes before importing.")); return;
++    }
++    const operation = { book: DATEN };
++    macOSBetaDevicePending = operation;
++    const controls = () => document.querySelectorAll("#einst-seite-baum [data-macos-device-import]");
++    for (const item of controls()) item.disabled = true;
++    const finish = () => {
++      if (macOSBetaDevicePending !== operation) return;
++      macOSBetaDevicePending = null;
++      for (const item of controls()) item.disabled = macOSBetaCalendarImportBlocked();
++    };
++    const failed = error => { finish(); zettel(String(error?.message || error)); };
++    let admitted = false;
++    try {
++      // Finish the navigation guard before invoking an existing starter, which
++      // has its own guard. Otherwise a synchronous discard can swallow it.
++      navigiereMitGuard(() => { admitted = true; }).then(() => {
++        if (!admitted || DATEN !== operation.book || macOSBetaCalendarImportBlocked()) { finish(); return; }
++        nachDauerhaftemSpeichern(() => {
++          try {
++            if (DATEN !== operation.book || macOSBetaCalendarImportBlocked()) return;
++            const settings = $("#einstellungen-schleier");
++            if (modalStapel.some(item => item.schleier.isConnected && item.schleier !== settings)) {
++              zettel(window.MacBeta.text("Finish or close the current editor before importing.")); return;
++            }
++            if (macOSBetaCalendarImportHasSettingsDraft()) {
++              zettel(window.MacBeta.text("Save or discard the account changes before importing.")); return;
++            }
++            if (file && !settings.classList.contains("verborgen")) schliesseEinstellungen();
++            start();
++          } finally { finish(); }
++        }, failed);
++      }).catch(failed);
++    } catch (error) { failed(error); }
++  }
++
++  function macOSBetaDeviceImportPage(root) {
++    const tr = text => window.MacBeta.text(text);
++    const button = (id, label, action, file = false) => {
++      const item = knopf(tr(label), "", () => macOSBetaDeviceImport(action, file));
++      item.id = id;
++      item.dataset.macosDeviceImport = "true";
++      item.disabled = !!macOSBetaDevicePending || macOSBetaCalendarImportBlocked();
++      return item;
++    };
++    const files = abschnitt(tr("Files from your devices"),
++      tr("Save files received with KDE Connect or AirDrop on this Mac, then select them here."));
++    const fileActions = el("div", "knopfreihe");
++    fileActions.append(
++      button("macos-device-note-files", "Import note files…", macOSBetaStartNoteImport, true),
++      button("macos-device-calendar-file", "Import calendar file (.ics)…", () => starteImport("ics"), true));
++    files.append(fileActions,
++      el("p", "einst-hinweis", tr("TXT and Markdown become text notes. PDF and JPEG/PNG/GIF/WebP files remain attachments. Calendar files use the ICS import.")),
++      el("p", "einst-hinweis", tr("Use KDE Connect in its own app for supported transfers. Direct phone control, pairing and synchronization from Magnolie are not available in this macOS version.")));
++    const copies = abschnitt(tr("Local copies from macOS apps"),
++      tr("Choose items from Calendar, Contacts, Reminders or Apple Notes. Review the local copies before saving. Changes in Magnolie do not synchronize back."));
++    const copyActions = el("div", "knopfreihe");
++    copyActions.append(
++      button("macos-device-calendar-copy", "Import macOS calendar appointments", macOSBetaStartCalendarImport),
++      button("macos-device-contact-copy", "Copy macOS contacts", macOSBetaStartContactImport),
++      button("macos-device-reminder-copy", "Copy macOS reminders", macOSBetaStartReminderImport),
++      button("macos-device-apple-notes-copy", "Text copies from Apple Notes", macOSBetaStartAppleNotesImport));
++    copies.append(copyActions);
++    root.append(files, copies,
++      el("p", "einst-hinweis", tr("Magnolia tree sharing is not available in this macOS version.")));
++  }
+diff --git a/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json b/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
+index ff6a17dd2eaacd14ea01a7c873a5bcac8fe9ed79..9ae98ffc4e4dbacfb0821f423bffcf95d305d9ab 100644
+--- a/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
++++ b/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
+@@ -413,7 +413,18 @@
+     "macOS Reminders access is unavailable. No reminder copy was imported. Check Privacy & Security → Reminders before trying again.": "Der macOS-Zugriff auf Erinnerungen ist nicht verfügbar. Es wurde keine Erinnerungskopie übernommen. Prüfen Sie Datenschutz & Sicherheit → Erinnerungen vor einem erneuten Versuch.",
+     "Appointment copies were added, but saving was not confirmed. Check and save the pending changes before importing again.": "Terminkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt. Prüfen und speichern Sie die ausstehenden Änderungen vor einer erneuten Übernahme.",
+     "Note copies were added, but saving was not confirmed. Check and save the pending changes before importing again.": "Notizkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt. Prüfen und speichern Sie die ausstehenden Änderungen vor einer erneuten Übernahme.",
+-    "Contact copies were added, but saving was not confirmed. Check and save the pending changes before importing again.": "Kontaktkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt. Prüfen und speichern Sie die ausstehenden Änderungen vor einer erneuten Übernahme."
++    "Contact copies were added, but saving was not confirmed. Check and save the pending changes before importing again.": "Kontaktkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt. Prüfen und speichern Sie die ausstehenden Änderungen vor einer erneuten Übernahme.",
++    "Devices and imports": "Geräte und Importe",
++    "Files from your devices": "Dateien von Ihren Geräten",
++    "Save files received with KDE Connect or AirDrop on this Mac, then select them here.": "Speichern Sie mit KDE Connect oder AirDrop empfangene Dateien auf diesem Mac und wählen Sie sie anschließend hier aus.",
++    "Import note files…": "Notizdateien importieren …",
++    "Import calendar file (.ics)…": "Kalenderdatei (.ics) importieren …",
++    "TXT and Markdown become text notes. PDF and JPEG/PNG/GIF/WebP files remain attachments. Calendar files use the ICS import.": "TXT und Markdown werden zu Textnotizen. PDF sowie JPEG/PNG/GIF/WebP bleiben Dateianhänge. Kalenderdateien werden über den ICS-Import übernommen.",
++    "Use KDE Connect in its own app for supported transfers. Direct phone control, pairing and synchronization from Magnolie are not available in this macOS version.": "Nutzen Sie KDE Connect in dessen eigener App für die dort unterstützten Übertragungen. Direkte Telefonsteuerung, Kopplung und Synchronisierung aus Magnolie sind in dieser macOS-Ausgabe noch nicht verfügbar.",
++    "Local copies from macOS apps": "Lokale Kopien aus Mac-Apps",
++    "Choose items from Calendar, Contacts, Reminders or Apple Notes. Review the local copies before saving. Changes in Magnolie do not synchronize back.": "Wählen Sie Einträge aus Kalender, Kontakte, Erinnerungen oder Apple Notizen. Prüfen Sie die lokalen Kopien vor dem Speichern. Änderungen in Magnolie werden nicht zurücksynchronisiert.",
++    "Magnolia tree sharing is not available in this macOS version.": "Die Freigabe über den Magnolienbaum ist in dieser macOS-Ausgabe noch nicht verfügbar.",
++    "Finish or close the current editor before importing.": "Schließen Sie die aktuelle Bearbeitung ab oder schließen Sie den Editor, bevor Sie importieren."
+   },
+   "es": {
+     "Undo": "Deshacer",
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/device_import_page.mjs b/Magnolie-Organizer-macOS-Beta/tests/device_import_page.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..5bcbafbf4c09bd1bb09e1733680fdfe78a3c0735
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tests/device_import_page.mjs
+@@ -0,0 +1,170 @@
++import assert from "node:assert/strict";
++import { boot, tick } from "./ui_harness.mjs";
++
++// #784: real generated settings and import entry points; native replies are synthetic.
++let checks = 0;
++const clone = value => JSON.parse(JSON.stringify(value));
++const equal = (actual, expected, label) => { assert.deepEqual(clone(actual), clone(expected), label); checks++; };
++const ok = (value, label) => { assert.ok(value, label); checks++; };
++const actions = [
++  ["macos-device-note-files", { cmd: "notiz_dateien_importieren" }],
++  ["macos-device-calendar-file", { cmd: "import", art: "ics" }],
++  ["macos-device-calendar-copy", { cmd: "macos_kalender_importieren" }],
++  ["macos-device-contact-copy", { cmd: "macos_kontakte_importieren" }],
++  ["macos-device-reminder-copy", { cmd: "macos_erinnerungen_importieren" }],
++  ["macos-device-apple-notes-copy", { cmd: "macos_apple_notizen_importieren" }]
++];
++const actionCommands = new Set(actions.map(([, message]) => message.cmd));
++async function context(locale = "en") {
++  const b = await boot(process.argv[2]), seen = new Set();
++  b.pump = async (save = true) => {
++    for (let step = 0; step < 8; step++) {
++      for (const message of [...b.messages]) {
++        const key = message.cmd + ":" + (message.id || message.token || "");
++        if (seen.has(key)) continue;
++        if (message.cmd === "speichern") {
++          seen.add(key); b.w.MacBeta.receive("gespeichert", { id: message.id, ok: save, fehler: save ? "" : "Synthetic save failure" });
++        }
++      }
++      await tick();
++    }
++  };
++  b.w.MacBeta.receive("init", { daten: { termine: [], aufgaben: [], kontakte: [], notizen: [], futureRoot: { keep: true },
++    einstellungen: { allgemein: { handbuchHinweisGezeigt: true } } }, neu: false, regional: { language: locale, timeZone: "UTC" } });
++  b.t.speichereJetzt(); await b.pump();
++  b.page = () => {
++    b.t.oeffneEinstellungen(); b.w.document.getElementById("einst-tab-baum").click();
++    return b.w.document.getElementById("einst-seite-baum");
++  };
++  b.visible = () => !b.w.document.getElementById("einstellungen-schleier").classList.contains("verborgen");
++  b.starts = () => b.messages.filter(message => actionCommands.has(message.cmd));
++  return b;
++}
++
++for (const [locale, title, text] of [["en", "Devices and imports", "Save files received with KDE Connect or AirDrop on this Mac"],
++                                   ["de", "Geräte und Importe", "Speichern Sie mit KDE Connect oder AirDrop empfangene Dateien"]]) {
++  const b = await context(locale);
++  try {
++    const before = JSON.stringify(b.t.daten());
++    b.t.oeffneEinstellungen(); const count = b.messages.length;
++    const page = b.page(); await tick();
++    equal(b.w.document.getElementById("einst-tab-baum").textContent, title, "Device settings have an accurate localized tab label");
++    ok(page.textContent.includes(text), "Actual page explains the existing external file route: " + locale);
++    ok(page.textContent.includes(locale === "de" ? "noch nicht verfügbar" : "not available"), "Direct control limitation is explicit: " + locale);
++    ok(page.textContent.includes(locale === "de" ? "nicht zurücksynchronisiert" : "do not synchronize back"), "Apple source copies remain local: " + locale);
++    equal([...page.querySelectorAll("button")].map(button => button.id), actions.map(([id]) => id), "Only six implemented import entry points are offered");
++    equal(page.querySelectorAll('[data-telefon-backend], [data-media-backup-recovery], a[href$=".apk"], #telefon-an').length, 0, "No companion download, phone pairing or unsupported media controls");
++    assert.doesNotMatch(page.textContent, /Magnolie Notes|One moment|Einen Moment|Loading|Wird geladen/); checks++;
++    equal(b.messages.length, count, "Opening the device page starts no native discovery, pairing or media service");
++    equal(JSON.stringify(b.t.daten()), before, "Rendering leaves existing settings, records and grants unchanged");
++  } finally { b.close(); }
++}
++
++for (const [id, request] of actions) {
++  const b = await context();
++  try {
++    b.page(); b.t.daten().futureRoot.pending = id;
++    const before = JSON.stringify(b.t.daten());
++    b.w.document.getElementById(id).click(); await tick();
++    equal(b.starts(), [], "Picker waits for the pending save ACK: " + id);
++    equal(b.visible(), true, "Settings stay open while the pending save is unconfirmed: " + id);
++    const save = b.messages.filter(message => message.cmd === "speichern").at(-1);
++    equal(JSON.parse(save.text).futureRoot.pending, id, "Actual start-save preserves the pending local change: " + id);
++    await b.pump();
++    equal(b.starts(), [request], "Existing typed request is dispatched exactly once: " + id);
++    equal(b.visible(), false, "Settings close before the existing picker/review path: " + id);
++    equal(JSON.stringify(b.t.daten()), before, "Opening a picker imports no data and grants no source rights: " + id);
++    b.w.MacBeta.receive("failure", { cmd: request.cmd, ok: false, fehler: "Synthetic picker unavailable" }); await tick();
++    ok(b.w.document.getElementById("macos-beta-status").textContent.includes("Synthetic picker unavailable"), "Native rejection is visible, never an import success: " + id);
++    equal(JSON.stringify(b.t.daten()), before, "Failed native opening preserves the entire book: " + id);
++  } finally { b.close(); }
++}
++
++for (const [id, request] of actions) {
++  const b = await context();
++  try {
++    b.page(); b.t.daten().futureRoot.pending = "double-start:" + id;
++    const button = b.w.document.getElementById(id);
++    button.click(); button.click();
++    button.dispatchEvent(new b.w.MouseEvent("click", { bubbles: true }));
++    b.page();
++    for (const [other] of actions) b.w.document.getElementById(other).dispatchEvent(new b.w.MouseEvent("click", { bubbles: true }));
++    equal([...b.w.document.querySelectorAll("[data-macos-device-import]")].every(item => item.disabled), true, "All rebuilt page controls share the pending-start latch: " + id);
++    await tick(); equal(b.starts(), [], "Repeated and competing starts remain behind the save ACK: " + id);
++    await b.pump(); equal(b.starts(), [request], "One save ACK releases exactly the first selected import: " + id);
++    b.page();
++    equal([...b.w.document.querySelectorAll("[data-macos-device-import]")].some(item => item.disabled), false, "Completed entry does not leave the page permanently disabled: " + id);
++  } finally { b.close(); }
++}
++
++for (const [id, request] of actions.slice(0, 2)) {
++  const b = await context();
++  try {
++    b.page(); b.t.daten().futureRoot.pending = id;
++    const before = JSON.stringify(b.t.daten());
++    b.w.document.getElementById(id).click(); await b.pump(false);
++    equal([b.starts(), b.visible(), JSON.stringify(b.t.daten())], [[], true, before], "Save failure retains page and pending data without a picker: " + id);
++    equal(b.w.document.getElementById(id).disabled, false, "Save failure releases the pending-start latch: " + id);
++    b.t.speichereJetzt(); await b.pump();
++    b.w.document.getElementById(id).click(); await b.pump();
++    equal(b.starts(), [request], "Explicit save retry permits a fresh file import: " + id);
++  } finally { b.close(); }
++
++  const draft = await context();
++  try {
++    draft.page(); draft.t.oeffneTerminBlatt(null, "2026-12-01");
++    const field = draft.w.document.getElementById("tb-titel"); field.value = "Retain this draft";
++    field.dispatchEvent(new draft.w.Event("input", { bubbles: true }));
++    draft.w.document.getElementById(id).click();
++    const cancel = [...draft.w.document.querySelectorAll("#aenderungen-schleier button")].find(button => button.textContent === "Cancel");
++    ok(cancel, "Existing unsaved-editor decision is required before file selection: " + id);
++    cancel.click(); await draft.pump();
++    equal([draft.starts(), draft.visible(), field.isConnected, field.value], [[], true, true, "Retain this draft"], "Cancelled navigation retains the exact draft: " + id);
++    equal(draft.w.document.getElementById(id).disabled, false, "Cancelled navigation allows an explicit retry: " + id);
++    draft.w.document.getElementById(id).click();
++    const discard = [...draft.w.document.querySelectorAll("#aenderungen-schleier button")].find(button => button.textContent === "Discard");
++    ok(discard, "Retry uses the same real editor guard: " + id);
++    discard.click(); await draft.pump();
++    equal(draft.starts(), [request], "Explicit discard reaches the existing starter after its outer guard has finished: " + id);
++  } finally { draft.close(); }
++
++  const late = await context();
++  try {
++    late.page(); late.t.daten().futureRoot.pending = "late-modal:" + id;
++    late.w.document.getElementById(id).click(); await tick();
++    late.t.oeffneTerminBlatt(null, "2026-12-01");
++    const field = late.w.document.getElementById("tb-titel"); field.value = "Draft opened while saving";
++    field.dispatchEvent(new late.w.Event("input", { bubbles: true }));
++    await late.pump();
++    equal([late.starts(), late.visible(), field.isConnected, field.value], [[], true, true, "Draft opened while saving"], "An editor opened during the save keeps its draft and blocks the picker: " + id);
++    ok(late.w.document.getElementById("zettel").textContent.includes("Finish or close the current editor"), "Post-ACK modal guard explains why selection did not start: " + id);
++    equal(late.w.document.getElementById(id).disabled, false, "Post-ACK rejection releases the pending-start latch: " + id);
++  } finally { late.close(); }
++
++  const account = await context();
++  try {
++    account.page(); account.w.document.getElementById("einst-tab-sync").click();
++    account.w.MacBeta.receive("baumBriefkastenStatus", { kontoArt: "nextcloud", davAktiv: false, briefkastenAktiv: false,
++      url: "https://cloud.example.invalid", benutzer: "synthetic", kennwortVorhanden: false, revision: "1".repeat(64),
++      zustand: "nicht_eingerichtet", fehler: "", fehlerCode: "none" });
++    const field = account.w.document.getElementById("briefkasten-url"); field.value = "https://changed.example.invalid";
++    field.dispatchEvent(new account.w.Event("input", { bubbles: true }));
++    account.w.document.getElementById("einst-tab-baum").click(); account.w.document.getElementById(id).click(); await account.pump();
++    equal([account.starts(), account.visible()], [[], true], "A retained account draft blocks file entry: " + id);
++    ok(account.w.document.getElementById("zettel").textContent.includes("Save or discard the account changes"), "Account draft guard explains the required action: " + id);
++  } finally { account.close(); }
++}
++
++{
++  const b = await context();
++  try {
++    b.page(); const before = JSON.stringify(b.t.daten());
++    b.w.MacBeta.send({ cmd: "sicherung_wiederherstellen", pfad: "synthetic-pending-restore.json", kennwort: "" }, "hostTest");
++    for (const [id] of actions) b.w.document.getElementById(id).click();
++    await b.pump();
++    equal(b.starts(), [], "Stale page controls cannot start imports during native restore");
++    equal(JSON.stringify(b.t.daten()), before, "Restore latch preserves existing book and grants");
++  } finally { b.close(); }
++}
++console.log(JSON.stringify({ issue: 784, projectedDevicePageChecks: checks, locales: ["en", "de"],
++  existingImportActions: actions.length, syntheticNativeTransport: true, nativeExecution: false }));
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/test_host.py b/Magnolie-Organizer-macOS-Beta/tests/test_host.py
+index d34585ec4463f18c71f718376000135bece227f5..6cd17ba55d871fe3ee20d8923a1b4f9b8f5c6f57 100644
+--- a/Magnolie-Organizer-macOS-Beta/tests/test_host.py
++++ b/Magnolie-Organizer-macOS-Beta/tests/test_host.py
+@@ -395,6 +395,27 @@ class ProjectionTests(unittest.TestCase):
+             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+             print(result.stdout.strip())
+ 
++    def test_device_page_existing_import_capabilities(self):
++        runtime = self.javascript()
++        for anchor in ['  function baueSeiteBaum(wurzel) {',
++                       '        (einstSeite === s.id ? " aktiv" : ""), _(s.name));']:
++            changed = dict(self.snapshot)
++            key = "magnolie-organizer/web/anwendung.js"
++            changed[key] = changed[key].replace(anchor.encode(), b"/* device-page source drift */", 1)
++            with self.subTest(anchor=anchor), tempfile.TemporaryDirectory(prefix="macOS-device-drift-") as temp:
++                with self.assertRaisesRegex(ValueError, "Canonical UI anchor changed"):
++                    projection.project(changed, Path(temp) / "UI")
++        with tempfile.TemporaryDirectory(prefix="macOS-device-page-") as temp:
++            target = Path(temp) / "UI"
++            projection.project(self.snapshot, target)
++            args = [runtime]
++            if Path(runtime).name == "deno":
++                args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
++            result = subprocess.run(args + ["tests/device_import_page.mjs", str(target)], cwd=BETA,
++                                    capture_output=True, text=True, timeout=120)
++            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
++            print(result.stdout.strip())
++
+     def test_additive_system_calendar_import_contract(self):
+         runtime = self.javascript()
+         with tempfile.TemporaryDirectory(prefix="macOS-Beta-system-calendar-") as temp:
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+index d267d74e7d8fc5e1bd8e4e03a9b5b524d3c89b3f..008df00b88322d62c9b2a093f5adf8fcea539bd9 100644
+--- a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
++++ b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+@@ -342,6 +342,15 @@ def project(snapshot, target):
+     baueNextcloudKonto(wurzel); return;''')
+     text = replace_once(text, "  function starteSync(stumm) {", '''  function starteSync(stumm) {
+     if (!stumm) zettel("macOS system source synchronization is not implemented. No system data was changed."); return;''')
++    # #784: the Mac device page offers only existing local import paths. Keep
++    # desktop phone/Notes/KDE services out of this page until a real Mac adapter
++    # exists; the external KDE Connect application remains a file-transfer route.
++    device_page = snapshot[str((BETA / "Projection/device-import-page.js").relative_to(REPO))].decode()
++    text = replace_once(text, "  function baueSeiteBaum(wurzel) {",
++                        device_page + "\n  function baueSeiteBaum(wurzel) {\n"
++                        "    macOSBetaDeviceImportPage(wurzel); return;")
++    text = replace_once(text, '        (einstSeite === s.id ? " aktiv" : ""), _(s.name));',
++                        '        (einstSeite === s.id ? " aktiv" : ""), s.id === "baum" ? window.MacBeta.text("Devices and imports") : _(s.name));')
+     for function in ["baueSicherungsdateien"]:
+         anchor = "  function " + function + "(wurzel) {"
+         text = replace_once(text, anchor, anchor + '''
+diff --git a/contracts/macos-784-device-import-page.md b/contracts/macos-784-device-import-page.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..1f5b312e29a4ede87c351450654318af7e385e39
+--- /dev/null
++++ b/contracts/macos-784-device-import-page.md
+@@ -0,0 +1,135 @@
++# Mac-Geräteseite mit vorhandenen Importwegen — #784
++
++## Bestätigter Ausgangsbefund
++
++Die tatsächliche Mac-Projektion des aktuellen gemeinsamen Quellstands
++`c9c3ebebd621e3562c601a2fa6d49909ca42fadd` zeigte im Einstellungsreiter
++„Magnolia tree“ die drei Karten „Magnolie Notes phone connection“, „KDE Connect“
++und „Magnolienbaum“ jeweils mit dauerhaftem „One moment…“. Zusätzlich war
++„Restore media / Refresh“ bedienbar. Die dazugehörigen Telefon-, Notes-, KDE-
++und Medienbefehle haben noch keinen Mac-Handler. Die bestehende Bridge wies sie
++ab; die allgemeinen Desktop-Karten warteten trotzdem auf Statusantworten.
++
++Der Befund wurde mit dem vorhandenen JSDOM-Host auf der vollständig erzeugten
++Oberfläche reproduziert. Eine separate Magnolie-Notes-Begleitapp wird für die
++Mac-Importwege nicht vorausgesetzt. Ein vorhandener externer KDE-Connect-Client
++und die direkte Steuerung dieses Clients aus Magnolie sind getrennte Funktionen.
++
++## Änderung
++
++Zwei genaue Anker in `tools/project_ui.py` ersetzen nur die Darstellung dieses
++Mac-Einstellungsreiters und seine Beschriftung. `Projection/device-import-page.js`
++baut „Geräte und Importe“ mit den vorhandenen Formular- und Buttonbausteinen.
++Die gemeinsamen Linux-/Windows-Quelldateien, die native Befehlsliste und sämtliche
++nativen Importhandler bleiben unverändert.
++
++Die Seite bietet genau sechs bestehende Einstiege:
++
++| Aktion | Bestehender Anschluss |
++| --- | --- |
++| Notizdateien auswählen | `macOSBetaStartNoteImport` → `notiz_dateien_importieren` |
++| Kalenderdatei auswählen | `starteImport("ics")` → `import` mit `art: "ics"` |
++| Termine aus Mac-Kalendern kopieren | `macOSBetaStartCalendarImport` |
++| Mac-Kontakte kopieren | `macOSBetaStartContactImport` |
++| Mac-Erinnerungen kopieren | `macOSBetaStartReminderImport` |
++| Textkopien aus Apple Notizen | `macOSBetaStartAppleNotesImport` |
++
++Dateien werden zuerst über die eigene KDE-Connect-App oder AirDrop auf dem Mac
++gespeichert und anschließend bewusst ausgewählt. Der vorhandene Dateiimport
++unterstützt TXT und Markdown als Textnotizen, PDF und JPEG/PNG/GIF/WebP als
++Anhänge sowie ICS-Kalenderdateien. Die Seite verspricht keine automatische
++Ordnerüberwachung, Konvertierung anderer Formate oder direkte Telefonsteuerung.
++
++Die Apple-Einstiege verwenden ihre vorhandene Auswahl, Vorschau, Prüfung und
++Speicherung lokaler Kopien. Die Seite erklärt ausdrücklich, dass lokale
++Änderungen nicht zurücksynchronisiert werden. Für direkte Telefonsteuerung,
++Kopplung, Synchronisierung und Magnolienbaum-Freigabe zeigt sie eine klare
++Nichtverfügbarkeitsmeldung. Sie startet keine Abfragen an fehlende Dienste und
++enthält keine wirkungslosen Pairing-, Aktualisierungs- oder Medienknöpfe.
++Dies ist keine grundsätzliche Sperre von KDE Connect; eine spätere direkte
++Magnolie-Anbindung benötigt einen eigenen tatsächlichen Mac-Handler.
++
++## Bestehende Speicher- und Entwurfsgrenzen
++
++Alle sechs Aktionen teilen eine Wartesperre, solange ein Einstieg auf eine
++Entwurfsentscheidung oder Speicherquittung wartet. Wiederholte und konkurrierende
++Klicks, auch nach einem Neuaufbau der Seite, reihen keinen zweiten Pickerstart
++ein. Save-NACK, Entwurfsabbruch und abgewiesene Starts geben die Knöpfe wieder
++frei. Die Sperre bleibt an genau den laufenden Start gebunden.
++
++Der vorhandene Navigationsguard wird vollständig abgeschlossen, bevor die
++dauerhafte Speicherquittung und ein vorhandener Importstarter verwendet werden.
++Dadurch kann auch ein ausdrücklich verworfener Entwurf den verschachtelten
++Guard eines bisherigen Starters nicht versehentlich blockieren. Die vier Apple-
++Aktionen verwenden unverändert diese bisherigen Starter. Die zwei Dateieinstiege
++schließen die Einstellungen nach der Speicherquittung vor der Dateiauswahl. Die Bereitschafts-/Restoreprüfung und der Kontenentwurfsguard
++werden vor und nach der Speicherquittung geprüft. Ein weiteres offenes Modal
++verhindert den Dateistart. Der Callback bleibt an dasselbe Buch gebunden.
++Erst danach schließt der kanonische Settings-Abschluss die Einstellungsseite.
++
++Ein Save-NACK lässt Seite, Buch und ausstehende Änderungen bestehen. Ein
++abgebrochener Entwurfsdialog lässt den Editor mit seinem Inhalt bestehen.
++Das Öffnen eines Pickers importiert noch nichts und meldet keinen
++Import-Erfolg. Vorschau, Recovery-Checkpoint und tatsächlicher Import-Save-ACK
++bleiben Aufgaben der vorhandenen Importpfade.
++
++## Ausgeführte Prüfungen
++
++Umgebung: Linux, Node 24.22.3, JSDOM 26.1.0. Die vorhandenen 19 generierten
++Kataloge wurden mit `po_zu_js.py` und GNU gettext 0.21 vorbereitet.
++Native Antworten in den Hosttests sind synthetisch.
++
++| Prüfung | Tatsächliches Ergebnis |
++| --- | --- |
++| Neue Geräteeinstiege | 118 Prüfungen an der tatsächlichen projizierten UI in EN/DE; 2 absichtlich zerstörte Projektionsanker abgewiesen |
++| Notizdateiimport | 41 bestehende Hostprüfungen bestanden |
++| Mac-Kalenderkopien | 327 bestehende UI-Prüfungen bestanden |
++| Apple-Notes-Textkopien | 195 bestehende UI-Prüfungen bestanden |
++| Mac-Kontaktkopien | 246 bestehende UI-Prüfungen bestanden |
++| Mac-Erinnerungskopien | 369 bestehende UI-Prüfungen bestanden |
++| Allgemeiner tatsächlicher UI-Host | 109 bestehende Assertions bestanden |
++| Vollständige/reproduzierbare Projektion | Bestanden |
++| Freeze-/Manipulationserkennung | Bestanden |
++
++Der abschließende gemeinsame Lauf aller neun Gruppen bestand in 40,367 Sekunden
++mit Exitcode 0. Der neue Test prüft die sechs
++tatsächlichen Buttons und ihre Nachrichten, keine Dienste beim Seitenaufbau,
++die genaue EN-/DE-Beschriftung, fehlende Begleitapp-/APK-Voraussetzungen,
++Save-ACK, Save-NACK mit erneutem Speichern, Entwurfsabbruch, erhaltenen
++Kontenentwurf, Restore-Sperre und sichtbare native Ablehnung ohne Buchänderung.
++Die unabhängige Prüfung fand und reproduzierte zunächst doppelt aufgereihte
++Pickerstarts vor einem Save-ACK. Die Korrektur wird nun für alle sechs Aktionen
++mit doppelten und konkurrierenden Klicks sowie Seitenneuaufbau geprüft.
++Die Regression umfasst außerdem einen erst während des Speicherns geöffneten
++Editor und den bewussten Discard-Retry. Der unabhängige Prüfer wiederholte die
++118 Prüfungen erfolgreich und führte zusätzlich den Entwurf-verwerfen-Pfad
++für alle sechs Aktionen aus: jeweils genau eine erwartete Nachricht.
++
++```sh
++python3 tests/test_host.py ProjectionTests.test_device_page_existing_import_capabilities
++python3 tests/test_host.py \
++  ProjectionTests.test_additive_selected_note_files_contract \
++  ProjectionTests.test_additive_system_calendar_import_contract \
++  ProjectionTests.test_additive_apple_notes_copy_contract \
++  ProjectionTests.test_additive_system_contact_copy_contract \
++  ProjectionTests.test_additive_system_reminder_copy_contract \
++  ProjectionTests.test_actual_generated_ui_host_contract \
++  ProjectionTests.test_projection_is_reproducible_and_full_ui \
++  ProjectionTests.test_freeze_and_generated_tamper_detection
++```
++
++Arbeitsverzeichnis: `Magnolie-Organizer-macOS-Beta`; `MACOS_BETA_JSDOM` kann auf
++die vorhandene `jsdom/lib/api.js` zeigen. Der neue Test ist in den normalen
++Hostlauf eingebunden. Elf deutsche Ergänzungen verwenden das vorhandene
++`native-extra-i18n.json`; Englisch ist der bestehende MsgID-Fallback.
++Bestehende Übersetzungen und andere Sprachkataloge wurden nicht geändert.
++
++## Grenzen
++
++Hier wurden weder Swift noch AppKit/WKWebView ausgeführt. Reale Dateiauswahl,
++KDE-Connect-/AirDrop-Übertragung, Systemberechtigungen und Datenträgerdauerhaftigkeit
++bleiben native Abnahme. Es wurde keine KDE-Connect-Installation verändert,
++keine Telefonkopplung vorgenommen und kein neuer Syncdienst implementiert.
++Die Prüfung in zwei Sprachen ist keine sprachliche Abnahme aller 19 Kataloge.
++Andere Desktop-Einstellungsseiten werden durch diesen engen Seitenpatch nicht
++als vollständig an den Mac angepasst ausgewiesen.
+-- 
+2.56.1
+
