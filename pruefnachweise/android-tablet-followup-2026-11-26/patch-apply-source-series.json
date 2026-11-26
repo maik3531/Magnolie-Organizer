@@ -1,0 +1,56 @@
+{
+  "base": "29acde7e3df2b8bcaaab0cc19b3377b8dbf4bd14",
+  "patches": [
+    {
+      "n": 1,
+      "file": "0001-import-focus.patch",
+      "sha256": "c741a28135d8cc2bfce4fab7ca1338b7fba47ca8cfc9e45162bed77208e627cf",
+      "bytes": 21009,
+      "localCommit": "3706308662ed03bd3a10a817340910d60e9d65f4",
+      "resultTree": "0a13c7658ae340f21164b17b517fe3b0b7d0563e"
+    },
+    {
+      "n": 2,
+      "file": "0002-tablet-build-only.patch",
+      "sha256": "17ae09fdd5364ce58b98e0c2144c88ff43ae48b1cede7010b45e435d8b4d7dfe",
+      "bytes": 17592,
+      "localCommit": "3fc22d007acf4ab63e6c73917403bde0d506e7ff",
+      "resultTree": "0f51a8cbdc84ea406de8a852985f800af590244b"
+    },
+    {
+      "n": 3,
+      "file": "0003-window-ownership-diagnostics.patch",
+      "sha256": "ef92e1d737c479d78ce2ab9d8ca144e6ac291e235948f25c4359b615ea20f91c",
+      "bytes": 14758,
+      "localCommit": "114b7da3400da62a8fcd9bb0d3c39ffe6937a756",
+      "resultTree": "bb57cf7c35b03be6559519c14f005baeda2d6650"
+    },
+    {
+      "n": 4,
+      "file": "0004-provider-identities.patch",
+      "sha256": "2a31f0d246ca9cd8310e10f6081dc039932bd3244dcf9c2e691a85d6685ff9a6",
+      "bytes": 86503,
+      "localCommit": "305d671538c12c9e398302b8b34130ed0eae98e2",
+      "resultTree": "a7ee0afd7201d138a53900749a89734ca2ae9713"
+    },
+    {
+      "n": 5,
+      "file": "0005-visible-import-status.patch",
+      "sha256": "22f96582549728ae6e489fea14a5337b83f1f71982d37f665f1ea168dd7d69a4",
+      "bytes": 21961,
+      "localCommit": "6073673a5d9011d3fea6e98a785f6a97f48168aa",
+      "resultTree": "fa10b9cd211068847f7dc7e8dbaec59a471d8ef6"
+    },
+    {
+      "n": 6,
+      "file": "0006-followup-documentation.patch",
+      "sha256": "74caf389bdb57a813711f0848f3102d0f77e0522e736b2e8604b1d025560ec1f",
+      "bytes": 23554,
+      "localCommit": "dbe791faab785741ff9c6519ea443d69405ee00b",
+      "resultTree": "4f5b27a2357b1eeb5cd01f6552d6ebd3aed4d12c"
+    }
+  ],
+  "verifiedPatchCount": 6,
+  "resultTree": "4f5b27a2357b1eeb5cd01f6552d6ebd3aed4d12c",
+  "scope": "First six source/documentation patches; final evidence patch is checked separately at publication."
+}
