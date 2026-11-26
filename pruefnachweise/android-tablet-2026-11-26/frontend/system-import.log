@@ -1,0 +1,32 @@
+PASS generated UI initialization and first synthetic native SaveACK complete
+PASS tablet setup omits Notes/KDE pairing tab
+PASS startup and discovery do not read record bodies or prompt for permission
+PASS provider completion does not claim durable success before native SaveACK
+PASS no import success while SaveACK is pending
+PASS contact content and unknown birthday year survive canonical normalization and save
+PASS import grants no provider-write or sync authority
+PASS unrelated notes remain unchanged
+PASS copy identity survives validated book reopen
+PASS derived contact birthday remains stable across consecutive reopens
+PASS new contact normalization uses the existing home country instead of a default
+PASS ambiguous existing birthday is rejected without linking or folding old entries
+PASS repeated import skips existing identities and preserves local edits
+PASS partial result changes no saved data
+PASS wrong source changes no saved data
+PASS duplicate record changes no saved data
+PASS provider failure changes no saved data
+PASS invalid sync grant changes no saved data
+PASS unrelated request callback is ignored
+PASS old native revision cannot overwrite a newer book
+PASS cancelled provider result cannot be applied later
+PASS revoked contact permission disables the import control
+PASS calendar date window follows the book time zone across DST
+PASS UTC provider instant displays in the organizer time zone
+PASS original instant survives without invented recurrence rules
+PASS failed native save never reports import success
+PASS unsaved complete copy remains available for an explicit save retry
+PASS explicit attachment action reaches native unchanged after a durable save guard
+PASS native rejection of an unsaved attachment stays visible
+PASS attachment path does not enable other communication commands
+PASS no uncaught generated-UI errors
+31 Android copy/attachment integration checks passed; synthetic provider and storage, no Android runtime.

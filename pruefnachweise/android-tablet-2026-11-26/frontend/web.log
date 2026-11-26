@@ -1,0 +1,102 @@
+PASS startup timing observation: fixed bounded fields, original clock/navigation values, no URL/query/private text
+PASS deferred startup: actual complete script HTML, all requests before first response, reverse response order, DCL/adapter/native bootstrap ordering
+PASS 20 manual beta locales
+PASS generated core differs only by reviewed guards, deferred startup ordering, regional entry, DAV prefixes and native detection suppression
+PASS desktop font families, faces and licenses use the live bundled Windows bytes
+PASS real binder initializes through JSON bridge and saves
+PASS both canonical binder pages present
+PASS calendar/tasks/contacts/notes use canonical JSON persistence
+PASS calendar, tasks and consented custom alarm projections
+PASS custom module revocation removes alarms
+PASS unsupported recurrence is never scheduled as a false one-off
+PASS reload restores actual calendar and custom data
+PASS canonical section renders: kalender
+PASS canonical section renders: aufgaben
+PASS canonical section renders: adressen
+PASS canonical section renders: notizen
+PASS canonical section renders: planer
+PASS canonical section renders: gesundheit
+PASS actual contact SMS/call actions and SMS context planning are disabled without sending
+PASS unsupported attachment picker is visibly disabled
+PASS current Undo/Redo, context Tab help and school-holiday keys resolve in all 20 locales
+PASS explicit native consent re-enables imported reminder projection and persists it
+PASS DAV setup tab is available while desktop tree integration stays disabled
+PASS actual canonical DAV form is isolated from Linux, Graph, mailbox and phone configuration
+PASS source discovery never requests Android permissions automatically
+PASS explicit calendar permission action is typed and does not mutate source selections
+PASS denied contacts access preserves selections and Android task providers stay unsupported
+PASS system source refresh is correlated and performs no permission request
+PASS capability exceptions enable only actual native DAV account controls
+PASS missing native account snapshot disables mutation without inventing account revision or changing profile
+PASS explicit read-only Refresh obtains real native status and recovers account controls without changing profile
+PASS actual DAV GUI save sends account revision and app password to the native account service only
+PASS account save and saved callback never insert credentials or account configuration into Organizer JSON
+PASS stale GUI revision is not silently replaced and native conflict cannot change account or book
+PASS actual connection-test GUI uses current account revision; failed discovery preserves the full document
+PASS canonical source renderer retains unavailable imported UIDs alongside cached native DAV choices
+PASS actual cached-source controls persist through canonical UID selection handlers without dropping an offline calendar
+PASS permission revocation or missing provider arrays preserve every saved source selection
+PASS synchronization stays explicitly unsupported even after account configuration and successful discovery
+PASS DAV callback router forwards all supported callbacks only in the loaded writable page
+PASS native holiday retrieval and period controls are available
+PASS canonical regional holiday request carries actual native document authority
+PASS native holiday result uses the canonical importer and durable save protocol
+PASS failed retrieval preserves the complete existing holiday cache
+PASS native-only time-zone management cannot open an unsupported MCP transaction
+PASS local regional form persists through native save ACK without desktop MCP
+PASS imported automatic time-zone mode is preserved without unsupported native MCP polling
+PASS regional choices survive a real binder reload from native document data
+PASS failed pre-change save keeps regional preferences intact and makes retry available
+PASS failed regional write reports failure and retains the visible unsaved choice for retry
+PASS retry after failed regional persistence commits the chosen preferences
+PASS unimplemented bridge calls reject instead of ACK
+PASS saved mobile contact accepts canonical VOICE enrichment but rejects lost phone types
+PASS shared normalizer validates JSON import, rejects dropped records
+PASS actual instrumentation calendar editor scenario persists its new record
+PASS actual instrumentation task editor scenario preserves early and due reminders
+PASS actual instrumentation contact editor scenario persists its new record
+PASS actual instrumentation note scenario confirms the creation dialog and saves editor title/body
+PASS actual instrumentation custom designer and time editor scenario persists its new item
+PASS actual native navigation fixture invalidates a primed index and projects all 17 old series
+PASS startup diagnostics expose fixed technical fields without document or status message content
+PASS ICS result from an obsolete book revision cannot mutate the current page
+PASS ICS merges through shared UI and saves its source metadata with records in one native book save
+PASS ICS picker is consumed only after durable book-save acknowledgement
+PASS duplicate/no-op ICS import still finishes its one-shot picker without duplicating records
+PASS actual native SAF fixture uses canonical stable task UID and preserves external UID/source; the former raw-UID wait cannot succeed
+PASS native SAF fixture preserves task fields and adds one record per collection without changing unrelated data
+PASS actual native fixture records and source SHA share the durable envelope before its picker is completed
+PASS source-qualified recurrence override keeps unchanged published canonical UID and raw RID after durable merge
+PASS source-qualified recurrence reimport retains canonical identities without duplicate records and finishes its durable picker
+PASS common ICS merge preserves two source-qualified task graphs sharing external parent and child UIDs
+PASS cancelled older ICS result cannot consume the new picker or mutate its book
+PASS invalid ICS source metadata rejects the whole candidate before the shared merge
+PASS failed atomic ICS save reports failure without writing records or metadata to the native book
+PASS retry commits the complete unsaved ICS merge with its metadata
+PASS reopened book retains both source-qualified task graphs without cross-linking parents
+PASS reopened native book retains the merged ICS records and source metadata
+PASS failed or obsolete-revision ICS read releases its picker and JSON backup import remains an explicit independent format
+PASS German import flow explains ICS merge and confirmed JSON replacement without English implementation text
+PASS ICS export explains its unencrypted format separately from complete encrypted JSON backup
+PASS ics-termine uses a bounded native-authority request without a password dialog and reports write failure
+PASS ics-aufgaben uses a bounded native-authority request without a password dialog and reports write failure
+PASS ics-jahrestage uses a bounded native-authority request without a password dialog and reports write failure
+PASS ICS export completion requires its correlated current-session native result
+PASS ICS picker is not requested when preceding durable book save fails
+PASS SAF ICS cancellation has no successful export acknowledgement
+PASS SAF export is gated by durable save failure
+PASS DAV callbacks cannot mutate account UI or source selections during replacement
+PASS restore authorization submits no imported body or file-supplied authority
+PASS uncertain restore stays fenced through late cancel/error/ready and explicit save/pause flush
+PASS DAV callbacks stay fenced after storage becomes uncertain
+PASS DAV callbacks are ignored before native initialization is acknowledged
+PASS no uncaught browser errors, including teardown
+Custom consent/identity contract: both desktop sources passed (not runtime integration).
+PASS projected core passes shared custom identity/revocation vectors
+Actual common App.importErgebnis and durable native-save envelope: two VALARMs and source display preserved.
+PASS standard web gate verifies actual imported/saved alarm golden, current canonical normalizers and the unchanged published reference
+PASS drawing release: 10 tools, owner/coalescing/current endpoint, tap/cancel/pressure/eraser, actual200000-point limit, Undo/Redo (synthetic events/mock canvas)
+PASS drawing completion: 10 tools, exact model/direct commands, erasure, Undo/Redo, idle-finish bounds (mock canvas; native pixels remain required)
+Shared occurrence identity: 29 tablet checks; actual App/normalizer/save/reopen, host JS only.
+Shared actual domain forms: 23 host checks passed; native canvas/IME/device acceptance not claimed.
+194 checks passed; no emulator run.

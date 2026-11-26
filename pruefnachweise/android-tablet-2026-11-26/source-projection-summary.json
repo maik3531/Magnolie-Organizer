@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "sourceMode": "current-checkout",
+  "portCommit": "f64efcb2cf056107468a77d6597762d0706c68c9",
+  "desktopCommit": "f64efcb2cf056107468a77d6597762d0706c68c9",
+  "gitTree": "0cd7dd930922933cf40444251f65d1ec1c7a0009",
+  "inputSetSha256": "5d14eac1de81a6cddd7514fd73765422a902f050a5444a85a80af203da6156c1",
+  "nativeAcceptance": false,
+  "productionRelease": false,
+  "projectionSourceHash": "7e12da62e214e085154204b0dc8fd5f49c09c087af71d66c534d47133ea662eb",
+  "projectionManifestSha256": "98e195229c9dbfbbaf026e28d292bc641ba833a13c459d7f2e5a865998d660bd",
+  "generatedCatalogsVerified": true,
+  "apkBuild": false,
+  "scope": "Committed checkout and generated projection only; no APK candidate supplied",
+  "inputCount": 455
+}

@@ -1,0 +1,48 @@
+[
+  {
+    "file": "core-1.13.1.aar",
+    "url": "https://dl.google.com/dl/android/maven2/androidx/core/core/1.13.1/core-1.13.1.aar",
+    "bytes": 1270406,
+    "repository_sha1": "4606d420282fe1e5c8d5c4e647ec188e1045b7be",
+    "sha256": "2c27de199535675005553066597a4b20fa1eea7c228ab4ef6b32b5fe39ca1f59",
+    "classes_file": "core-1.13.1-classes.jar",
+    "classes_sha256": "f03039a7d2ef503c930af60136635a5aa5a9986b40f53b207186194495be76cb"
+  },
+  {
+    "file": "webkit-1.12.1.aar",
+    "url": "https://dl.google.com/dl/android/maven2/androidx/webkit/webkit/1.12.1/webkit-1.12.1.aar",
+    "bytes": 173950,
+    "repository_sha1": "952ea5c16ab05a40f3b95c68e38c56cdc1ef2e97",
+    "sha256": "18a0a51ad129e0c8563f031d46c8a7e61169f56ae84e562a0d75686941262111",
+    "classes_file": "webkit-1.12.1-classes.jar",
+    "classes_sha256": "b03291b19348fdb4e7c5a97b316a19d71a583f45e68fd2b9ea2ea0a867e25cad"
+  },
+  {
+    "file": "annotation-jvm-1.8.1.jar",
+    "url": "https://dl.google.com/dl/android/maven2/androidx/annotation/annotation-jvm/1.8.1/annotation-jvm-1.8.1.jar",
+    "bytes": 56126,
+    "repository_sha1": "b8a16fe526014b7941c1debaccaf9c5153692dbb",
+    "sha256": "9aab326d9492800991854360ac248f493ce7f7c3183519309b78ace9e240f6f6"
+  },
+  {
+    "file": "okhttp-4.12.0.jar",
+    "url": "https://repo.maven.apache.org/maven2/com/squareup/okhttp3/okhttp/4.12.0/okhttp-4.12.0.jar",
+    "bytes": 789531,
+    "repository_sha1": "2f4525d4a200e97e1b87449c2cd9bd2e25b7e8cd",
+    "sha256": "b1050081b14bb7a3a7e55a4d3ef01b5dcfabc453b4573a4fc019767191d5f4e0"
+  },
+  {
+    "file": "okio-jvm-3.6.0.jar",
+    "url": "https://repo.maven.apache.org/maven2/com/squareup/okio/okio-jvm/3.6.0/okio-jvm-3.6.0.jar",
+    "bytes": 359580,
+    "repository_sha1": "5600569133b7bdefe1daf9ec7f4abeb6d13e1786",
+    "sha256": "67543f0736fc422ae927ed0e504b98bc5e269fda0d3500579337cb713da28412"
+  },
+  {
+    "file": "threetenbp-1.7.5.jar",
+    "url": "https://repo.maven.apache.org/maven2/org/threeten/threetenbp/1.7.5/threetenbp-1.7.5.jar",
+    "bytes": 515351,
+    "repository_sha1": "8abe59f42bb57139d0e2690c154fe1e14e199879",
+    "sha256": "58c5593452f871ebf736dfda3bf8f3bc0de4e92cec61bc19c8ad81f9dfb70d72"
+  }
+]

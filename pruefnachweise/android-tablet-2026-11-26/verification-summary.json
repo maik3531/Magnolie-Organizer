@@ -1,0 +1,55 @@
+{
+  "sourceCommit": "f64efcb2cf056107468a77d6597762d0706c68c9",
+  "sourceTree": "0cd7dd930922933cf40444251f65d1ec1c7a0009",
+  "projectionSourceHash": "7e12da62e214e085154204b0dc8fd5f49c09c087af71d66c534d47133ea662eb",
+  "nativeInputComparison": {
+    "sourceHashes": {
+      "files": 38,
+      "mismatches": 0,
+      "verifiedAgainstSourceCommit": "f64efcb2cf056107468a77d6597762d0706c68c9"
+    },
+    "testInputHashes": {
+      "files": 7,
+      "mismatches": 0,
+      "verifiedAgainstSourceCommit": "f64efcb2cf056107468a77d6597762d0706c68c9"
+    },
+    "resourceInputHashes": {
+      "files": 22,
+      "mismatches": 0,
+      "verifiedAgainstSourceCommit": "f64efcb2cf056107468a77d6597762d0706c68c9"
+    }
+  },
+  "frontend": {
+    "import": {
+      "exitCode": 0,
+      "checks": 31,
+      "log": "frontend/system-import.log"
+    },
+    "web": {
+      "exitCode": 0,
+      "checks": 194,
+      "log": "frontend/web.log"
+    },
+    "layout": {
+      "exitCode": 0,
+      "checks": 150,
+      "passed": 150,
+      "cases": 10,
+      "log": "frontend/layout.log",
+      "details": "frontend/layout-results.json"
+    }
+  },
+  "native": {
+    "jvmPassed": 31,
+    "jvmFailed": 0,
+    "jvmSkipped": 0,
+    "kotlinProductFiles": 38,
+    "androidApi": "37.2",
+    "resourceCompiler": "aapt2 36",
+    "receipt": "native/receipt.json"
+  },
+  "apkBuild": false,
+  "gradleFullBuild": false,
+  "nativeRuntimeTest": false,
+  "productionRelease": false
+}

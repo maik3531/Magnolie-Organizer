@@ -1,0 +1,33 @@
+{
+  "base": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+  "localSourceCommit": "f64efcb2cf056107468a77d6597762d0706c68c9",
+  "remoteSourceCommit": "aac1fbc1f6c7b33a19fda0a6ba514752eec069bf",
+  "resultingTree": "0cd7dd930922933cf40444251f65d1ec1c7a0009",
+  "exactTreeMatch": true,
+  "patches": [
+    {
+      "file": "0001-Android-Tablet-direkte-Systemdatenkopien-und-gespeic.patch",
+      "sha256": "888234d3e2d3716267fb132e4e7678d9e0c1070bb659b9d1b2174023eb52897c",
+      "bytes": 141734,
+      "applyCheck": "passed"
+    },
+    {
+      "file": "0002-Android-Tablet-Buchansicht-und-Touchziele-an-Fenster.patch",
+      "sha256": "5898a7273376837b598858e3fc356b657dac6e4bb5e4eeed50c374bea6402e60",
+      "bytes": 23972,
+      "applyCheck": "passed"
+    },
+    {
+      "file": "0003-Android-Tablet-aktuellen-Checkout-binden-und-Buildwe.patch",
+      "sha256": "a1cc2c863ca88a95af13e2f2e5c54258aff0961b6d3c68ee3618cedaab590e90",
+      "bytes": 46399,
+      "applyCheck": "passed"
+    },
+    {
+      "file": "0004-Android-Tablet-Umfang-Issue-Audit-und-offene-Abnahme.patch",
+      "sha256": "1a5d61958f0be085fd7f8d528f49a7b25956548141c6489e9a9e0b5987d7c369",
+      "bytes": 60032,
+      "applyCheck": "passed"
+    }
+  ]
+}
