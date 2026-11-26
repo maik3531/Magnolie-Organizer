@@ -586,6 +586,12 @@ class ProjectionTests(unittest.TestCase):
             self.assertIn('"adressWeg"', adapter)
             for command in ["mail", "karte", "sozial"]:
                 self.assertIn(command + ': "adressWeg"', adapter)
+            # #796: a supplied projection must use its own generated provider. A
+            # missing asset must never borrow the raw checkout's bootstrap.
+            (target / "web/normative-timezones.js").unlink()
+            missing = subprocess.run(phone.args, cwd=BETA, capture_output=True, text=True, timeout=120)
+            self.assertNotEqual(missing.returncode, 0)
+            self.assertIn("normative-timezones.js", missing.stdout + missing.stderr)
 
     def test_shared_legacy_css_fallbacks(self):
         runtime = self.javascript()

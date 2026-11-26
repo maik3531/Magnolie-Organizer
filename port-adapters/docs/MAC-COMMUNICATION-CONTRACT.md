@@ -18,8 +18,15 @@ The published callback is `App.adressWeg({ok,womit,name,fehler})`, with no `mcpN
 
 Validation is deliberately separated:
 
-- `port-adapters/tests/communication-payloads.cjs` invokes the actual canonical UI functions in an in-memory host and compares 15 captured payloads with `Tests/BetaCoreTests/Fixtures/communication-ui-payloads.json`. Captures from the exact published tag and current shared source match. The test includes all four map preferences, each as location and route, mail (including an international domain), custom HTTPS (including port 8443),, website template, Telegram and the program request that the Mac policy explicitly rejects.
+- `port-adapters/tests/communication-payloads.cjs` invokes the actual canonical UI functions in an in-memory host and compares 15 captured payloads with `Tests/BetaCoreTests/Fixtures/communication-ui-payloads.json`. Captures from the exact published tag and current shared source match. The test includes all four map preferences, each as location and route, mail (including an international domain), custom HTTPS (including port 8443), website template, Telegram and the program request that the Mac policy explicitly rejects.
+- The harness follows the selected HTML's script order. Only when no web-path argument is supplied and phone mode is off, it assembles the default raw checkout's declared `normative-timezones.js` in memory with the existing shared provider recipe and its payload/provenance/license checks (#796). Every explicitly supplied web path, including the canonical source directory, must contain its own bootstrap; the harness refuses missing or misordered providers instead of substituting a different source or host timezone rules. The host test removes that file from its owned projection to verify this refusal.
 - A separate `--phone-projection` host path captures nine real projected country/IDD/extension requests (GB/US/FR/IN/DE/AT/CH) in `communication-phone-payloads.json`. Current and exact-tag canonical projections both match. These are separate from the unchanged published payload contract above.
 - `CommunicationLaunchPolicyTests` covers both sets of typed golden requests, every supported web service, encoding and negative URL/header/type/bounds vectors.
 - `CommunicationLaunchBrokerTests` uses a mock resolver/opener, including absent/invalid handler, acceptance/error, replacement/cancel and stale-document completions. Tests never open a real external application.
 - Actual Swift compilation and macOS system-handler behavior require the Mac runner. A host JavaScript pass or mocked acceptance is not native handler acceptance, installed mail-client validation or a release acceptance result.
+
+The cold-checkout harness correction preserves both historical fixtures byte for
+byte: `communication-ui-payloads.json` SHA256
+`d968eeab38914061d6a83e70576fe6b0a267ee52f9477bd3bc82990f92d0e206` and
+`communication-phone-payloads.json` SHA256
+`d772b03395c00e24121901c5f3d3f4d32a28178b1131ffabcf969e4c313a5c19`.
