@@ -1,0 +1,534 @@
+{
+  "schema": 1,
+  "kind": "macos-stability-handoff-completion",
+  "recordedAfterPublicationAndReadbackUTC": "2026-11-26 14:15:14 UTC",
+  "repository": "maik3531/Magnolie-Organizer",
+  "reviewBranch": "work/macos-issue-fixes-20261126",
+  "nativeSource": {
+    "commit": "3f3ec069895dec254c53660d14e6851cb23077cd",
+    "tree": "176fa7f362227c92ec4d7c4bf08d09b855951ae7",
+    "runId": 45827353062,
+    "runNumber": 104,
+    "attempt": 1,
+    "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062",
+    "conclusion": "success",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "evidence": "Magnolie-Organizer-macOS-Beta/verification/native-run-104.json"
+  },
+  "finalDocumentationPublication": {
+    "commit": "cd32218e03beda19602ebc3a9fd8b1a9d658581d",
+    "parent": "a341cb0a64f670b8a24075ec47725bbcb1a410b4",
+    "tree": "0bbfa70bb9686c88ed8843001d2766104a0780ef",
+    "changedFiles": 57,
+    "totalBytes": 4121768,
+    "actualGitFetchedAndEveryBlobComparedToLocalBytes": true,
+    "cleanWorktreeAfterReadback": true,
+    "sourceOrWorkflowFilesChanged": false,
+    "files": [
+      {
+        "path": "ARBEITSSTAND.md",
+        "mode": "100644",
+        "bytes": 69737,
+        "sha256": "48f962c208bc6042ffa6cebd053151255e65865bc5eff72a9d0825ea29a5894f",
+        "gitBlob": "fc1952e2b0e8bc1dcc2f7fccc0a6c33d5409c591"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+        "mode": "100644",
+        "bytes": 23008,
+        "sha256": "6c1c686e4baccc49efe0f37f6600fbc38ab30c8cb107d8d5de5d5b0960e82ee5",
+        "gitBlob": "b852c0746984595dd606e684a3aa7b2cc09a21fa"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/CURRENT-SOURCE-CANDIDATE.md",
+        "mode": "100644",
+        "bytes": 12548,
+        "sha256": "f88b5cddc5410165715cc9d7c1c54607ae438d7a5baf768ff088a9ae9531bbf0",
+        "gitBlob": "2840b3539142f6941a5593da8e2439253f2334a9"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md",
+        "mode": "100644",
+        "bytes": 15515,
+        "sha256": "f3d94c48130c87389e0fd6182ddd3d12dba63bddfef2eb31d2769b8f9c574687",
+        "gitBlob": "1f10eba6d2e400097c45105d8f9d6cf1b080fa1a"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md",
+        "mode": "100644",
+        "bytes": 14152,
+        "sha256": "17e41f008ac6f0d5036d0205841b6d46a431155dc25f917d92efd0493205175e",
+        "gitBlob": "ebe58beebf26620c795e2ee4da4a8050ac5761ab"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md",
+        "mode": "100644",
+        "bytes": 42705,
+        "sha256": "1359e8643721633d774c64553b6f95df389c479fbc35113a88066a40e2971a23",
+        "gitBlob": "16f9c1e7d428285686bb8820d6cb2aa0a524ac90"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/README.md",
+        "mode": "100644",
+        "bytes": 34557,
+        "sha256": "4ae2928661363efbdb0c1afc31659e1c5056c7147f28690a3b762b74ebe94f7d",
+        "gitBlob": "0bdb8aff80163750a988cbe9604a27fd66a62637"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/STABILITY-VERIFICATION-2026-11-26.md",
+        "mode": "100644",
+        "bytes": 25820,
+        "sha256": "d575a2d139d44c50db1c94e006d1cf611c579285c1da8cfb62bd5d88f1254499",
+        "gitBlob": "6cad3bd478dcb59f0e3a9de3a1da71eebb9ec91a"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/native-run-104.json",
+        "mode": "100644",
+        "bytes": 112604,
+        "sha256": "d1f92ec58881c04746655dc0a8e0b9d41293bafd315b21d7974b56de5a873c98",
+        "gitBlob": "9c1dc9892f02f4adb4f04cf1c7c7e6c955b1e2c1"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/SHA256SUMS",
+        "mode": "100644",
+        "bytes": 115,
+        "sha256": "65e797d3bbdf0ee9f4bef1fb082f2338079d30fe0b0eabcf24041c531f5d4be0",
+        "gitBlob": "5b487c9fa341bad7d334293d0346dffe1715783c"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/artifact-metadata.json",
+        "mode": "100644",
+        "bytes": 841,
+        "sha256": "1f94c994533d55e4390c3785a9f68d29d3a52c3ff306d29b74d3f37d835ae98f",
+        "gitBlob": "99c5d04d8cd17533ff4c1e20755b335db94bcc1c"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/bundle-console.log.gz",
+        "mode": "100644",
+        "bytes": 111331,
+        "sha256": "d33b412ce9c30e6b76574b936a63f6ecf815e2f62a055ef281771ffcae9e95af",
+        "gitBlob": "57355f0422a66fe3b473eb4376edd96baffa6a64"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/bundle-smoke-first-window.json",
+        "mode": "100644",
+        "bytes": 1972,
+        "sha256": "6db9f0fcf280c410a1e683bf133cf775ec63a36d46ce2923beb5fd2256ac05b8",
+        "gitBlob": "a81d69b1f3e71cdce28ea4225408c88595f24c8b"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/bundle-smoke-observations.json",
+        "mode": "100644",
+        "bytes": 227,
+        "sha256": "20316cb38dbd2d45400becf92f4cb9c28564c8b448f5f045fe6243e04e047830",
+        "gitBlob": "d8df8238c9c13198ced706d9073df92ddec5323c"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/bundle-smoke-progress.log.gz",
+        "mode": "100644",
+        "bytes": 417,
+        "sha256": "1a8c05a1ac192898f24b4a80b179cdec6e0fb5639cd4c7105f3de6315d44259d",
+        "gitBlob": "045f887cb535e8cf1ae24d4f2fdd7d72d615363a"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/bundle-smoke.json",
+        "mode": "100644",
+        "bytes": 700,
+        "sha256": "170545c0d9477c59951df0b8e1689071fb6fdc05cc2bc0677e0d9e78ab00cff9",
+        "gitBlob": "ccfb422119fde869a910ad6e157328336c15b1c3"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/download-proof.json",
+        "mode": "100644",
+        "bytes": 2557,
+        "sha256": "2935fc176e919afdde6b7378332e1fa9605a7e041d174415149f7acb26cbaa05",
+        "gitBlob": "6d6010a9a5373d4099097dfa2d064129d3424521"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/environment-arm64.json",
+        "mode": "100644",
+        "bytes": 2376,
+        "sha256": "4567d50d23a2368d4e9d57cf42f487a6188b904d47026ac936a4d0aa94eaa801",
+        "gitBlob": "05de23aa6038c24ecc4ec944dbe0f82c24c8bbbf"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/import-python-arm64.json",
+        "mode": "100644",
+        "bytes": 103029,
+        "sha256": "f0e344658955de893c1e808aa7fc8a4d06dcc005ddaa3280e9563c8a70784e9b",
+        "gitBlob": "679676f4067baa86f706f56e2e1ada3647bcf4be"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/import-python-arm64.log.gz",
+        "mode": "100644",
+        "bytes": 28513,
+        "sha256": "d3598c7951d8def9823fe1c78283a65376d824bc901a6364b42e007f68451b4c",
+        "gitBlob": "58076d12707bde32038d9042071e495188ead9b1"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/independent-candidate-audit.json",
+        "mode": "100644",
+        "bytes": 11171,
+        "sha256": "5b7b5c8667768c0955dbdee64a5b40b5603d99359714bfd3564ae96306b53707",
+        "gitBlob": "95fedd0e7ec4c1bc3a2c59992d302e2a5f77d8db"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/job-139934825830.log.gz",
+        "mode": "100644",
+        "bytes": 768439,
+        "sha256": "7404948d8fff36d994d4a1d562dca48f7a3434258900360b54cf4e62ff75c85b",
+        "gitBlob": "6a2ea0825959ded98455b76010ccdf3a38099d22"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/native-file-import-process-arm64.json",
+        "mode": "100644",
+        "bytes": 17871,
+        "sha256": "d10854840bc30fc9557e913109bf313774a0a26d33f1c43c4da60c38fe47d753",
+        "gitBlob": "0f8932162ae17335e3cfb7cf18d947091d88f0ea"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/screenshot-review.json",
+        "mode": "100644",
+        "bytes": 923,
+        "sha256": "e6bd66d1df55ffd94415f3556270a47f31cc4d92d0a385de440c6995ab4df0a1",
+        "gitBlob": "94d81f3ff92725f46194df16ccd69b3ccef6688e"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/swift-release-arm64.log.gz",
+        "mode": "100644",
+        "bytes": 37549,
+        "sha256": "10ecb52378e016195bfe44664e753b7eb962b28b469d75093f5e2720fdbef3c7",
+        "gitBlob": "3293a867f5ddd1d78fac0bf7efc3906fabdd6b2f"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/arm64/test-results.json",
+        "mode": "100644",
+        "bytes": 10751,
+        "sha256": "dd50349c77c3e7e50374be5a839704330ddb50040f74df4685b5d049888430ac",
+        "gitBlob": "336837324331c399fe762c389560feed93721dae"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/artifacts-final.json",
+        "mode": "100644",
+        "bytes": 1889,
+        "sha256": "f1770ab9f86024036264a36a6c9dbb0cf447eda6ea8d479629b6488f15f6011e",
+        "gitBlob": "ba7a29a6533af659fd55aaa43fb6e317f8bde639"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/durable-evidence-manifest.json",
+        "mode": "100644",
+        "bytes": 18394,
+        "sha256": "54863d03d2f0c519b64ed327c9b88238f5ed564fc17bde39a6fb1c0a8262e845",
+        "gitBlob": "e258a6c24c64ab538b98e3127b118ef57df2437b"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/SHA256SUMS",
+        "mode": "100644",
+        "bytes": 116,
+        "sha256": "91724264c1ed9dedbd51e311e000a09fabe060654231713977c2fef98e3d43e6",
+        "gitBlob": "ffeb0b8727e0d70025776b9e63cbf78e1e4fe940"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/artifact-metadata.json",
+        "mode": "100644",
+        "bytes": 842,
+        "sha256": "7ffe3d2ef45cb577a9d5fda578ddb5fb8c0c6d9378332620a4a20a206b037b34",
+        "gitBlob": "b83e69b9106eecb476958314f90be458523df8d4"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/bundle-console.log.gz",
+        "mode": "100644",
+        "bytes": 131638,
+        "sha256": "2bb933855266c77b8238df4ae948a3ba5f0914539c648c73abcfc6d1608d4b4b",
+        "gitBlob": "fa5c49a46fedef424f97fb7090b6f981965f0547"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/bundle-smoke-first-window.json",
+        "mode": "100644",
+        "bytes": 1975,
+        "sha256": "cd75cc86ff09ec0cb1b4ea01485426d5c4be6330ef5f7f4ab0a716420d5324c5",
+        "gitBlob": "f41a954cc2c90d813586c431f4b7b26419592c49"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/bundle-smoke-observations.json",
+        "mode": "100644",
+        "bytes": 227,
+        "sha256": "e72f570bd51b33d347bff96b9cb5664963a68e074d82ad9af4dce6da8a9e5a63",
+        "gitBlob": "13d29296a64b19a6b232e490330c29800b266b91"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/bundle-smoke-progress.log.gz",
+        "mode": "100644",
+        "bytes": 417,
+        "sha256": "3779ed128c1755c41794784e82dd162f8c72fddf24380e31e3a0bbc88c262f61",
+        "gitBlob": "9dcaa871b631da4a422778999404296f917ad935"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/bundle-smoke.json",
+        "mode": "100644",
+        "bytes": 700,
+        "sha256": "f8b21cfd4fd2a6c0a78b4d124be5b4505eee4a11190122b3af2c8b5d7748b0e8",
+        "gitBlob": "fab36413471b76bac2ecfb9c554d4f0b023ae4de"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/download-proof.json",
+        "mode": "100644",
+        "bytes": 2564,
+        "sha256": "a3d672f4b4f27788b6afb53b1ca812ecba84acad469f83b40736f185f3482c1b",
+        "gitBlob": "d2a80d1cc576f0861c25853f97e70f56e9a2f7fa"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/environment-x86_64.json",
+        "mode": "100644",
+        "bytes": 2337,
+        "sha256": "d52cee967c77c77c05d8715f117d83bb38f13f741146547f33d32730ddd167f1",
+        "gitBlob": "1009643ae7a4b34ccddd221b8b84480e43123ed3"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/import-python-x86_64.json",
+        "mode": "100644",
+        "bytes": 103030,
+        "sha256": "c74f277d81db0b7dc000e01050c0a156b686f45a6e1423917b0735ca9f7ce9a1",
+        "gitBlob": "d4819690b4cabf016f31cffc4dcddf1c82ce5cad"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/import-python-x86_64.log.gz",
+        "mode": "100644",
+        "bytes": 28343,
+        "sha256": "57fe9a90a63606cfc50746eb4ee58289be13869924a2958bb8831eda60400a32",
+        "gitBlob": "b36ea5fcd1b00abcfe678942675908c4b52d1c4b"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/independent-candidate-audit.json",
+        "mode": "100644",
+        "bytes": 11488,
+        "sha256": "7127e85260292eac6ac6f587f53540d4810990547f0ea5aef74a340efcbc633c",
+        "gitBlob": "72b311333a5d5d08bf45dd3fa7b188c0b3ed4a09"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/job-139934826621.log.gz",
+        "mode": "100644",
+        "bytes": 784216,
+        "sha256": "6742eb7372bdd664de11974cdb191b4deceac2402eed5f1fe18ca21194817616",
+        "gitBlob": "201f56581697c9cf1bee49945f6874c2a4dcff60"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/native-file-import-process-x86_64.json",
+        "mode": "100644",
+        "bytes": 17872,
+        "sha256": "88578568a31c5f7b8f1a664fdeb16248026f59efb6087401987a8f5e4f977805",
+        "gitBlob": "2114f89f9429b9fea61cb50133939b5d2b132ba4"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/screenshot-review.json",
+        "mode": "100644",
+        "bytes": 1046,
+        "sha256": "91b8716fa1fb24a1d1cad34ceba827bd3be17bb0757711c30f6f316b420f7a8f",
+        "gitBlob": "31a9b8f4bd75ecf2853b2bdd15e0c6e544f778b4"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/swift-release-x86_64.log.gz",
+        "mode": "100644",
+        "bytes": 38157,
+        "sha256": "0c1cacb3e9ac6816e46edf52289cfb290c44aa5dccd472149e491d59b2f46133",
+        "gitBlob": "d499a17f456c905e63833849d2d2248f10c7a211"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/intel/test-results.json",
+        "mode": "100644",
+        "bytes": 10755,
+        "sha256": "6cd34dbca1c53e3e440fafc35abdcf54aec7aeca45d84e7295a9c0491a8926be",
+        "gitBlob": "f9ebb93c21e39c2d8210d5f297c7f0113878fadf"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/jobs-final.json",
+        "mode": "100644",
+        "bytes": 14825,
+        "sha256": "ee4c23b2b5c4ee9d23b81cfaed484c8c709fc281dabde0199d27ccf27f6d4e41",
+        "gitBlob": "7f0bcef31261a8d34944ff1f4e1b8ac84bc57604"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/run-final.json",
+        "mode": "100644",
+        "bytes": 14673,
+        "sha256": "9812e01f7fe8395f822b81c0f4f8b644db43f9636422aba645222a7b51dd23db",
+        "gitBlob": "597d6bb33c258a532c1426090abd1b767d23c79b"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/run104-evidence.original.json.gz",
+        "mode": "100644",
+        "bytes": 19178,
+        "sha256": "fe308ecdcd3c3497381714e1554968b72222b51b30a7cd86012caf169a6ad6e3",
+        "gitBlob": "8e49cd9d94a2431e23b4a202548840d4643b83ad"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/sources.json",
+        "mode": "100644",
+        "bytes": 982713,
+        "sha256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c",
+        "gitBlob": "02e2cab706e34abc8750413fcd11a36794ed428d"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/native-run-104/swift-context-callers.json",
+        "mode": "100644",
+        "bytes": 10293,
+        "sha256": "8101ab49b68f7e1c80149f2f0dd0428eeff2ec5ca670d35a3a54754bf4744b67",
+        "gitBlob": "fd77bf837bd55397a0f399eed6aae68f4a0f20b9"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/windows-run-552/WINDOWS-RUN-552-FINAL.md",
+        "mode": "100644",
+        "bytes": 7637,
+        "sha256": "62f2e3dd7dff242e2c8ecf46c8e651465c250aa0e1695069029166dee4083a3c",
+        "gitBlob": "ba82f2f82787bc7398c5e00bc75f313beb3b55b3"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/windows-run-552/github-final-capture.json",
+        "mode": "100644",
+        "bytes": 20109,
+        "sha256": "c6a0d3db25892822b0e33b78fe90176f00dd10f9182bbd9223a5e12f73bfbf52",
+        "gitBlob": "e8927758c438a286fb990290a39999b592e724a1"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/windows-run-552/job-139910440584.log",
+        "mode": "100644",
+        "bytes": 127333,
+        "sha256": "d2c4887b4495c502b905e19969f9995b3280386d542f5153873ec1bb6d440c27",
+        "gitBlob": "0eee278f2ca3f9a626c46b536da49c26f14facec"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/windows-run-552/job-139910440584.normalized.log",
+        "mode": "100644",
+        "bytes": 125732,
+        "sha256": "93d24adb009fa049bad4105bef734b022413176e220c1790f122ee5f1f84bd91",
+        "gitBlob": "b843555a9e0d11f095ce5a30ab4bcdf1e3e4cc1d"
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/windows-run-552/windows-run-552-final.json",
+        "mode": "100644",
+        "bytes": 147530,
+        "sha256": "4eef124736e9b773625c04a9514df327232eebeabe2434bf62e673a760daa451",
+        "gitBlob": "0c52df2e88b24d07532e758fa84f5d22cf9fa4c7"
+      },
+      {
+        "path": "contracts/macos-next-chat-prompt-2026-11-26.md",
+        "mode": "100644",
+        "bytes": 23496,
+        "sha256": "c8c22ec837e9aa4c1733ea140282f701135a8a1f1def64ff447614937e056984",
+        "gitBlob": "9f119ca11d0a1a15ddb9ec30df8b95844c5a99a6"
+      },
+      {
+        "path": "contracts/macos-stable-integration-2026-11-26.md",
+        "mode": "100644",
+        "bytes": 22815,
+        "sha256": "0f919f3547f4223a3d4f9497d20279de26f426586f86092660b2169558b86523",
+        "gitBlob": "a7c0690b13bec08f09d3058d0bd650fdaec5c714"
+      }
+    ]
+  },
+  "mainRefReadback": {
+    "ref": "refs/heads/main",
+    "node_id": "REF_kwDOT28T-K9yZWZzL2hlYWRzL21haW4",
+    "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/refs/heads/main",
+    "object": {
+      "sha": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+      "type": "commit",
+      "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/commits/d4da48a5eadd0bda22422b924bef4ee3b4324040"
+    }
+  },
+  "reviewRefReadbackBeforeThisReceipt": {
+    "ref": "refs/heads/work/macos-issue-fixes-20261126",
+    "node_id": "REF_kwDOT28T-NoAKnJlZnMvaGVhZHMvd29yay9tYWNvcy1pc3N1ZS1maXhlcy0yMDI2MTEyNg",
+    "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/refs/heads/work/macos-issue-fixes-20261126",
+    "object": {
+      "sha": "cd32218e03beda19602ebc3a9fd8b1a9d658581d",
+      "type": "commit",
+      "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/commits/cd32218e03beda19602ebc3a9fd8b1a9d658581d"
+    }
+  },
+  "issueComments": [
+    {
+      "issue": 121,
+      "commentId": 7194448337,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7194448337",
+      "marker": "macos-stability-2026-11-26:121",
+      "body": "<!-- macos-stability-2026-11-26:121 -->\n## Erweiterte Stabilitätsprüfung und gesicherte spätere Übernahme\n\nDer Folgeauftrag ist auf `work/macos-issue-fixes-20261126` dokumentiert. Der finale Berichts-/Belegcommit ist [`cd32218e`](https://github.com/maik3531/Magnolie-Organizer/commit/cd32218e03beda19602ebc3a9fd8b1a9d658581d); der tatsächlich nativ geprüfte Quellcommit bleibt **`3f3ec069895dec254c53660d14e6851cb23077cd`**, Tree `176fa7f362227c92ec4d7c4bf08d09b855951ae7`.\n\n**[Mac-Lauf #104](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062) ist auf ARM64 und Intel vollständig erfolgreich**, Attempt 1, 26. November 2026, 14:15:18–14:49:42 Uhr Europe/Berlin. Pro Architektur: 26 Runtime-, 27 AirPlay- und 17 Helperfälle bestanden; Host 34 bestanden und ein Linux-only Skip. Vier Debug-Kontexte und ein zusätzlicher optimierter Swift-Kontext enthalten dieselben 501 Testnamen, keine Fehler; 4/5/5/6/6 dokumentierte Skips. Die echte Swift→gebündelte-Python-Probe besteht 9/9 Kriterien, der tatsächliche App-Lebenszyklus 7/7. Beide fertigen Pakete bestehen zusätzlich je 65/65 unabhängige Byteaudit-Kriterien.\n\nDie Nachprüfung hat #806 (eindeutige macOS-Deploymentmetadaten einschließlich korrigierter moderner vtool-Ausgabe), den engen AirPlay-Testwurzelrest #793 und #808 (Archivzeitstempel beim XZ-Bau) konkret reproduziert und korrigiert. Die fehlgeschlagenen Läufe #100/#102/#103 bleiben mit ihren ursprünglichen Belegen erhalten. Gemeinsame Regressionen, funktionaler Restore aller 24 Originalpatches und die konfliktfreie Integration gegen die geprüfte Main-Basis sind ebenfalls dokumentiert. Die 0/23-Commitprobe gilt für Main `d4da48a5` und den Quellkandidaten `3f3ec069`, nicht für spätere Dokumentationscommits.\n\nDer getrennte Windows-Lauf #552 auf `8c860a14` reproduziert **#794**: 551/552 Core-Testgruppen bestanden, Cleanupfehler an der noch geöffneten `phone.db`; kein Windows-Produktfix in diesem Mac-Folgeauftrag.\n\n- [Endgültiger Stabilitätsbericht](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/Magnolie-Organizer-macOS-Beta/STABILITY-VERIFICATION-2026-11-26.md)\n- [Dauerhafter nativer Gesamtbeleg, vollständige Originalprotokolle und Dateimanifest](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/Magnolie-Organizer-macOS-Beta/verification/native-run-104.json)\n- [Plan für spätere Änderungen und stabile Integration](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/contracts/macos-stable-integration-2026-11-26.md)\n- [Kopierfertiger Fortsetzungsprompt](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/contracts/macos-next-chat-prompt-2026-11-26.md)\n\nDie originalen Übergabekommentare und historischen Belege bleiben unverändert. Die Entwicklungspakete bleiben Debug/ad hoc; Picker-/Editor-/Importpersistenz-, Monterey-, TCC-, Konten-/Geräte- und Produktionsfreigaben sowie die dokumentierten offenen Teile von #785/#786/#511/#465 bleiben gesonderte Gates. Ein neuer Integrationscommit benötigt passende eigene Quellen-/Test-/Paketbelege. Dieser Abschluss führt keinen Main-Merge, keine Issue-Schließung und keine Release-Veröffentlichung aus.",
+      "exactReadback": true,
+      "previousCommentsCompared": 31,
+      "previousCommentBodiesUnchanged": true
+    },
+    {
+      "issue": 806,
+      "commentId": 7194450806,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/806#issuecomment-7194450806",
+      "marker": "macos-stability-2026-11-26:806",
+      "body": "<!-- macos-stability-2026-11-26:806 -->\n## Korrektur nativ auf beiden Architekturen bestätigt\n\nDer erste enge Fix [`6599dcb2`](https://github.com/maik3531/Magnolie-Organizer/commit/6599dcb2a7d337f4b248b8b172e5e18c537a2dfa) verlangt eine eindeutige macOS-Plattform-/Deploymentdeklaration. Nach dem tatsächlichen positiven Darwin-Fehler in #100 trennt [`62523306`](https://github.com/maik3531/Magnolie-Organizer/commit/625233067cd49e204786deb5706e6bc08ef85c4e) moderne `LC_BUILD_VERSION.minos`-Werte von zusätzlichen Compiler-/Linker-`version`-Feldern; der erlaubte Legacy-AirPlay-Pfad liest weiterhin sein eigenes `version`-Feld.\n\n**[Lauf #104](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062) auf `3f3ec069` besteht vollständig auf ARM64 und Intel.** Je 26 Runtimebuilderfälle ohne Skip, einschließlich der echten positiven Darwin-Mach-O-Datei und der iOS-/Catalyst-/Simulator-Negativfälle; dazu 27/27 AirPlay-Grenzfälle. Anschließend bestehen die echten XZ-/CPython-Bauten, Relokations-, Signatur-, App- und Paketgates. Die tatsächlichen Paketheader bestätigen die jeweilige CPU, macOS-Plattform 1 und Mindestversion 12.7.0. Beide Pakete bestehen je 65 unabhängige Byteprüfungen.\n\nDie ursprünglichen #100-Fehlerdaten und die Vorher-/Nachherbelege sind erhalten. Die isoliert geänderten Metadatenfixtures verletzen Signaturen und belegen keinen Durchlass durch den vollständigen Signaturpfad. Der AirPlay-Receiver wurde dadurch nicht als optionales Paket mit echter Gerätegegenstelle abgenommen; Monterey-Ausführung und Produktionsfreigabe bleiben getrennt.\n\n[Finaler Bericht](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/Magnolie-Organizer-macOS-Beta/STABILITY-VERIFICATION-2026-11-26.md) · [Nativer Gesamtbeleg](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/Magnolie-Organizer-macOS-Beta/verification/native-run-104.json). Issue bleibt für die reviewbare spätere Übernahme offen.",
+      "exactReadback": true,
+      "previousCommentsCompared": 0,
+      "previousCommentBodiesUnchanged": true
+    },
+    {
+      "issue": 808,
+      "commentId": 7194451385,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/808#issuecomment-7194451385",
+      "marker": "macos-stability-2026-11-26:808",
+      "body": "<!-- macos-stability-2026-11-26:808 -->\n## Archivzeitstempelfix mit realem Bau bestätigt\n\nFixcommit [`3f3ec069895dec254c53660d14e6851cb23077cd`](https://github.com/maik3531/Magnolie-Organizer/commit/3f3ec069895dec254c53660d14e6851cb23077cd) übernimmt nach validiertem exklusivem Kopieren und Modussetzung die Archiv-mtime regulärer Quelldateien. Pins, Hashes, Pfad-/Link-/Größengrenzen und Baubefehle bleiben unverändert.\n\nDer tatsächliche #103-Abbruch bleibt erhalten: `configure` besteht, anschließend löst die durch Extraktion verkehrte Zeitreihenfolge `am--refresh` / das fehlende `aclocal-1.18` aus. Die Linux-Vorherprobe mit unverändertem Extraktor und echtem gepinntem XZ-Archiv reproduziert den Fehler. Der neue echte Make-Test scheitert vorher und besteht nachher; unveränderte ältere Eingaben lösen keine Regenerierung aus, ein tatsächliches späteres `touch` weiterhin einen Rebuild. Der produktive lokale XZ-Bauhelper besteht anschließend configure, statischen lib-only-Bau und private Installation; alle 655 Quelldateien stimmen in Bytes und mtime mit dem Archiv überein.\n\n**[Mac-Lauf #104](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062) auf genau dem Fixcommit besteht vollständig auf ARM64 und Intel**, einschließlich tatsächlichem XZ-/CPython-Runtimebau, je 26/26 Runtimebuilderfällen ohne Skip, neuer Prozessprobe, Swift-Kontexten, Signaturen, App-Lebenszyklus und Paketierung. Beide Entwicklungspakete bestehen zusätzlich je 65/65 unabhängige Byteaudit-Kriterien.\n\n[Finaler Bericht mit ursprünglichem Fehler und separatem Fixnachweis](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/Magnolie-Organizer-macOS-Beta/STABILITY-VERIFICATION-2026-11-26.md) · [Dauerhafter #104-Abschluss mit vollständigen nativen Originalprotokollen](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/Magnolie-Organizer-macOS-Beta/verification/native-run-104.json). Keine Issue-Schließung oder Produktionsfreigabe aus diesem Nachweis.",
+      "exactReadback": true,
+      "previousCommentsCompared": 0,
+      "previousCommentBodiesUnchanged": true
+    },
+    {
+      "issue": 793,
+      "commentId": 7194451879,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/793#issuecomment-7194451879",
+      "marker": "macos-stability-2026-11-26:793",
+      "body": "<!-- macos-stability-2026-11-26:793 -->\n## Ergänzender AirPlay-Testwurzelrest bestätigt behoben\n\nDer historische Kommentar zu den früheren ImportHelper-/Host-Testwurzeln bleibt unverändert. Die erweiterte AirPlay-Suite zeigte in #102 auf beiden Macs einen weiteren eigenen Callerrest: zwei Vergleiche der selbst erzeugten Testwurzel verwendeten `/var`, während der Produktpfad korrekt nach `/private/var` aufgelöst war.\n\n[`f7957801ba99c0e65e7eaeb70f69824efcd55fd0`](https://github.com/maik3531/Magnolie-Organizer/commit/f7957801ba99c0e65e7eaeb70f69824efcd55fd0) kanonisiert ausschließlich die unmittelbar selbst erzeugte Testwurzel in `BundleCase.setUp`. Produktcode und SDK-/Symlink-/Quellpfadgrenzen bleiben erhalten. Ein tatsächlicher temporärer Linux-Elternalias reproduziert beide Fehler vor dem Fix; nachher bestehen beide gezielten Fälle und die ganze 27-Fälle-Suite.\n\n#103 bestätigte bereits 27/27 Fälle auf beiden Macs. Der jetzt vollständig erfolgreiche **[Lauf #104](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062) auf `3f3ec069`** bestätigt erneut 27/27 AirPlayfälle sowie die vollständige nachfolgende Runtime-/Swift-/App-/Paketkette auf ARM64 und Intel. Das ist eine native Bauprüfer-Suite, keine Geräteabnahme des optionalen AirPlay-Receivers.\n\n[Finaler Bericht einschließlich erhaltenem #102-Fehlerbeleg](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/Magnolie-Organizer-macOS-Beta/STABILITY-VERIFICATION-2026-11-26.md) · [Nativer #104-Gesamtbeleg](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/Magnolie-Organizer-macOS-Beta/verification/native-run-104.json). Issue bleibt für die spätere Übernahme offen.",
+      "exactReadback": true,
+      "previousCommentsCompared": 1,
+      "previousCommentBodiesUnchanged": true
+    },
+    {
+      "issue": 794,
+      "commentId": 7194452245,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/794#issuecomment-7194452245",
+      "marker": "macos-stability-2026-11-26:794",
+      "body": "<!-- macos-stability-2026-11-26:794 -->\n## Wiederholung auf neuerem Quellstand: Windows #552 bleibt fehlgeschlagen\n\nDer automatische [Windows-Lauf Nr. 552 / 45820275770](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45820275770), Attempt 1, auf `8c860a14f7e10904c1b3a159ae84619c2c24ba82` ist abgeschlossen: **551/552 Core-Testgruppen bestanden**, dieselbe einzelne Gruppe „Media support draft / original Windows WLAN reader and withdrawal“ scheitert.\n\nDas originale Log zeigt `System.IO.IOException` beim Löschen der weiter geöffneten `phone.db`: `PhoneCameraParentTests.Fixture.Dispose():93` → `SharedSyncTransportTests.NativeMediaSupportAsync():201`. Die vier relevanten C#-Dateien sind gegenüber dem vorherigen Fehlerstand unverändert. Die genaue verbleibende Handle-/Cleanupursache ist noch nicht bestimmt; eine zusätzliche SQLite-Poolverbindung bleibt eine Hypothese.\n\nDie #787-Quell-/Privatpfad-/Provenienz-/Prüfsummenfixtures bestehen. Das Gesamtgate für das Quellarchiv endet wegen CoreTests mit Fehler; ZIP-, Installer- und Artefaktupload werden nicht ausgeführt, die Artefaktliste ist leer. Das native Mac-Ergebnis #104 ist getrennt erfolgreich und behebt diesen Windows-Befund nicht.\n\n[Lesefassung mit vollständigem Kontext](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/windows-run-552/WINDOWS-RUN-552-FINAL.md) · [Strukturierter Abschluss mit allen 1164 Logzeilen](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/windows-run-552/windows-run-552-final.json) · [Originales Log mit unveränderten UTF-8-BOM-/CRLF-Bytes](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/Magnolie-Organizer-macOS-Beta/verification/stability-2026-11-26/windows-run-552/job-139910440584.log).\n\nDer Folgeauftrag sichert die Wiederholung und die Quellen-/Loghashes; er enthält keinen Windows-Produktfix. #794 bleibt offen und im [stabilen Übernahmeplan](https://github.com/maik3531/Magnolie-Organizer/blob/cd32218e03beda19602ebc3a9fd8b1a9d658581d/contracts/macos-stable-integration-2026-11-26.md) als eigener Freigabepunkt vermerkt.",
+      "exactReadback": true,
+      "previousCommentsCompared": 0,
+      "previousCommentBodiesUnchanged": true
+    }
+  ],
+  "preservation": {
+    "originalHandoffCommentsWereNotRepostedOrModified": true,
+    "allImmediatelyPriorCommentBodiesComparedAndUnchanged": true,
+    "frozenFailureAndSuccessCapturesPreserved": true,
+    "originalNativeJobAndSupplementalLogsRetainedLosslessly": true,
+    "windowsOriginalUTF8BOMAndCRLFBytesPreserved": true
+  },
+  "laterIntegration": {
+    "entryReport": "Magnolie-Organizer-macOS-Beta/STABILITY-VERIFICATION-2026-11-26.md",
+    "plan": "contracts/macos-stable-integration-2026-11-26.md",
+    "nextChatPrompt": "contracts/macos-next-chat-prompt-2026-11-26.md",
+    "note": "Resolve repository-root paths through the project checkout. Read current remote refs before integrating later source changes. Native success binds 3f3ec069; documentation and receipt commits do not silently change that test anchor.",
+    "openGates": [
+      "Windows #794",
+      "actual picker/editor/import save and reopen plus remaining #785 features",
+      "remaining #786 account/provider/system-sync scope",
+      "opaque whole-path preservation #511",
+      "explicit duplicate repair #465",
+      "actual macOS 12.7 execution",
+      "full native interaction/accessibility/permission/failure recovery",
+      "actual supported account and device counterparts",
+      "production packaging, signing, notarization, Gatekeeper and upgrade acceptance"
+    ]
+  },
+  "actionsNotPerformed": [
+    "main merge",
+    "issue closure",
+    "release publication"
+  ],
+  "receiptScope": "This additive record contains verified documentation publication metadata and exact issue-comment readbacks. It is not a new product test or native build."
+}
