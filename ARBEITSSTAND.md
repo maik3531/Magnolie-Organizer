@@ -36,6 +36,19 @@ echte Apple-Ausgabestruktur ab. Lokal bestehen danach 24 Runtimefälle mit
 einem zusätzlichen Darwin-only Skip und 27 AirPlayfälle. Ein neuer nativer Lauf ist für diesen
 Nachbesserungsstand erforderlich. Der fehlgeschlagene #100-Beleg bleibt erhalten.
 
+[Lauf #102](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45823313660)
+prüft `625233067cd49e204786deb5706e6bc08ef85c4e`. Beide abgeschlossenen
+Mac-Jobs bestätigen je **25 Runtimefälle ohne Skip**, einschließlich der
+echten Mach-O-Positiv-/Fremdplattformprobe. Die erstmals nativ mitlaufende
+AirPlay-Suite zeigt danach zwei Testwurzelvergleiche mit `/var` statt
+`/private/var`. Dieser Callerrest gehört zu #793: Ein echter temporärer
+Linux-Elternalias reproduziert beide Fehler. Nur die unmittelbar selbst erzeugte
+Wurzel in `BundleCase.setUp` wird nun kanonisiert; Produktcode und SDK-/Linkgrenzen
+bleiben unverändert. Danach bestehen lokal 27/27 AirPlayfälle und gezielt beide
+zuvor gescheiterten Fälle unter dem echten Elternalias. Der eigentliche
+Runtimebau und die weiteren nativen Gates benötigen einen neuen Folgelauf.
+#102 endete auf beiden Architekturen mit genau diesem Testwurzelbefund.
+
 ## Fortsetzung: native Mac-Läufe und konkrete Folgefixes – 26. November 2026
 
 **Nativer Abschluss auf ARM64 und Intel:** [#97 / 45807249788](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)

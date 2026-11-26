@@ -60,7 +60,8 @@ class BundleCase(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+        # Refs #793: canonicalize only our newly created root, including macOS's /var parent alias.
+        self.root = Path(self.temporary.name).resolve(strict=True)
         self.sdk = self.root / "sdk"
         self.sdk.mkdir()
         self.framework = self.sdk / "GStreamer.framework"
