@@ -17,6 +17,7 @@ from unittest.mock import patch, Mock
 BETA = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BETA / "tools"))
 import project_ui as projection
+from project_import_helper import canonical_temporary_root
 import crypto_vectors
 import bridge_coverage
 import check_editor
@@ -101,6 +102,7 @@ class ProjectionTests(unittest.TestCase):
         prefix = "magnolie-handbuch/web/"
         self.assertEqual(json.loads(self.snapshot[prefix + "version.json"])["version"], "2.0.30")
         with tempfile.TemporaryDirectory() as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             manual = [name for name in self.snapshot if name.startswith(prefix)]
@@ -142,6 +144,7 @@ class ProjectionTests(unittest.TestCase):
 
     def test_projection_is_reproducible_and_full_ui(self):
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-host-") as temp:
+            temp = canonical_temporary_root(temp)
             a, b = Path(temp) / "a", Path(temp) / "b"
             projection.project(self.snapshot, a)
             projection.project(self.snapshot, b)
@@ -202,12 +205,14 @@ class ProjectionTests(unittest.TestCase):
         key = projection.LINUX.relative_to(projection.REPO).as_posix() + "/web/anwendung.js"
         changed[key] = changed[key].replace(b"function normalisiere(roh)", b"function differentNormalizer(roh)")
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-drift-") as temp:
+            temp = canonical_temporary_root(temp)
             with self.assertRaisesRegex(ValueError, "anchor changed"):
                 projection.project(changed, Path(temp) / "UI")
 
     def test_shared_display_alarm_adapter_binding_and_anchor_drift(self):
         helper = self.snapshot["port-adapters/display-alarm-roundtrip.js"].decode()
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-alarm-projection-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             app = (target / "web/anwendung.js").read_text()
@@ -226,11 +231,13 @@ class ProjectionTests(unittest.TestCase):
         self.assertEqual(changed[key].count(before), 1)
         changed[key] = changed[key].replace(before, b'const trigger = "different canonical alarm builder";')
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-alarm-drift-") as temp:
+            temp = canonical_temporary_root(temp)
             with self.assertRaisesRegex(ValueError, "anchor changed"):
                 projection.project(changed, Path(temp) / "UI")
 
     def test_drawing_finish_projection_and_exact_renderer_commands(self):
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-drawing-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             runtime = self.javascript()
@@ -243,6 +250,7 @@ class ProjectionTests(unittest.TestCase):
         key = "magnolie-organizer/web/zeichenblatt.js"
         changed[key] += b"\n// canonical drift"
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-drawing-drift-") as temp:
+            temp = canonical_temporary_root(temp)
             with self.assertRaisesRegex(ValueError, "Canonical drawing source changed"):
                 projection.project(changed, Path(temp) / "UI")
         patch_key = "port-adapters/drawing-finish-patch.json"
@@ -254,6 +262,7 @@ class ProjectionTests(unittest.TestCase):
             changed = dict(self.snapshot)
             changed[patch_key] = json.dumps(dict(original_patch, **{field: value})).encode()
             with self.subTest(field=field), tempfile.TemporaryDirectory(prefix="macOS-Beta-drawing-manifest-") as temp:
+                temp = canonical_temporary_root(temp)
                 with self.assertRaisesRegex(ValueError, message):
                     projection.project(changed, Path(temp) / "UI")
 
@@ -276,6 +285,7 @@ class ProjectionTests(unittest.TestCase):
             key = "port-adapters/" + name
             self.assertEqual(projection.inventory(self.snapshot)[key], projection.digest(self.snapshot[key]))
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-occurrence-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             # The runner's inverseChecks still exercise both current and 067c
@@ -288,11 +298,13 @@ class ProjectionTests(unittest.TestCase):
         # that contract must not be silently turned into a current Mac build.
         historical = dict(self.snapshot); historical[app_key] = published
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-old-contact-contract-") as temp:
+            temp = canonical_temporary_root(temp)
             with self.assertRaisesRegex(ValueError, "Canonical contact-only birthday anchor changed"):
                 projection.project(historical, Path(temp) / "UI")
         changed = dict(self.snapshot)
         changed[app_key] = changed[app_key].replace(b"function termineStarkIdentisch(links, rechts)", b"function changedTerminIdentity(links, rechts)")
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-occurrence-drift-") as temp:
+            temp = canonical_temporary_root(temp)
             with self.assertRaisesRegex(ValueError, "anchor changed"):
                 projection.project(changed, Path(temp) / "UI")
         changed = dict(self.snapshot)
@@ -300,6 +312,7 @@ class ProjectionTests(unittest.TestCase):
         manifest = json.loads(changed[patch_key]); manifest["sha256"] = "0" * 64
         changed[patch_key] = json.dumps(manifest).encode()
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-occurrence-manifest-") as temp:
+            temp = canonical_temporary_root(temp)
             with self.assertRaisesRegex(ValueError, "patch manifest changed"):
                 projection.project(changed, Path(temp) / "UI")
 
@@ -315,16 +328,19 @@ class ProjectionTests(unittest.TestCase):
                 variant = dict(self.snapshot)
                 variant[key] = variant[key].replace(source, replacement)
                 with tempfile.TemporaryDirectory(prefix="macOS-Beta-catch-binding-") as temp:
+                    temp = canonical_temporary_root(temp)
                     projection.project(variant, Path(temp) / "UI")
         old = b"const before = await tools[0].call({}, signal);"
         self.assertEqual(changed[key].count(old), 1)
         changed[key] = changed[key].replace(old, b"const before = await differentRegionalSource();")
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-regional-drift-") as temp:
+            temp = canonical_temporary_root(temp)
             with self.assertRaisesRegex(ValueError, "anchor changed"):
                 projection.project(changed, Path(temp) / "UI")
 
     def test_freeze_and_generated_tamper_detection(self):
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-freeze-test-") as temp:
+            temp = canonical_temporary_root(temp)
             freeze, generated = Path(temp) / "freeze.json", Path(temp) / "UI"
             freeze.write_text(json.dumps({"inputs": projection.inventory(self.snapshot)}))
             projection.project(self.snapshot, generated)
@@ -375,6 +391,7 @@ class ProjectionTests(unittest.TestCase):
     def test_actual_generated_ui_host_contract(self):
         runtime = self.javascript()
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-ui-host-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             args = [runtime]
@@ -388,6 +405,7 @@ class ProjectionTests(unittest.TestCase):
     def test_additive_selected_note_files_contract(self):
         runtime = self.javascript()
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-note-import-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             args = [runtime]
@@ -406,9 +424,11 @@ class ProjectionTests(unittest.TestCase):
             key = "magnolie-organizer/web/anwendung.js"
             changed[key] = changed[key].replace(anchor.encode(), b"/* device-page source drift */", 1)
             with self.subTest(anchor=anchor), tempfile.TemporaryDirectory(prefix="macOS-device-drift-") as temp:
+                temp = canonical_temporary_root(temp)
                 with self.assertRaisesRegex(ValueError, "Canonical UI anchor changed"):
                     projection.project(changed, Path(temp) / "UI")
         with tempfile.TemporaryDirectory(prefix="macOS-device-page-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             args = [runtime]
@@ -426,9 +446,11 @@ class ProjectionTests(unittest.TestCase):
             key = "magnolie-organizer/web/anwendung.js"
             changed[key] = changed[key].replace(anchor.encode(), b"/* system-sync source drift */", 1)
             with self.subTest(anchor=anchor), tempfile.TemporaryDirectory(prefix="macOS-system-sync-drift-") as temp:
+                temp = canonical_temporary_root(temp)
                 with self.assertRaisesRegex(ValueError, "Canonical UI anchor changed"):
                     projection.project(changed, Path(temp) / "UI")
         with tempfile.TemporaryDirectory(prefix="macOS-system-sync-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             args = [runtime]
@@ -442,6 +464,7 @@ class ProjectionTests(unittest.TestCase):
     def test_additive_system_calendar_import_contract(self):
         runtime = self.javascript()
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-system-calendar-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             args = [runtime]
@@ -465,6 +488,7 @@ class ProjectionTests(unittest.TestCase):
         self.assertIn("macos_apple_notizen_importieren", projection.commands(self.snapshot))
         self.assertIn("| `macos_apple_notizen_importieren` |", bridge_coverage.report(self.snapshot))
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-apple-notes-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             args = [runtime]
@@ -500,6 +524,7 @@ class ProjectionTests(unittest.TestCase):
             with self.subTest(anchor=anchor), self.assertRaisesRegex(ValueError, "Canonical contact-only birthday anchor changed"):
                 projection.project_contact_copy_birthdays(canonical.replace(anchor, "/* synthetic drift */", 1))
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-system-contact-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             args = [runtime]
@@ -518,6 +543,7 @@ class ProjectionTests(unittest.TestCase):
         self.assertIn("macos_erinnerungen_importieren", projection.commands(self.snapshot))
         self.assertIn("| `macos_erinnerungen_importieren` |", bridge_coverage.report(self.snapshot))
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-system-reminder-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             args = [runtime]
@@ -545,6 +571,7 @@ class ProjectionTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         print(result.stdout.strip())
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-communication-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             app = (target / "web/anwendung.js").read_text()
@@ -563,6 +590,7 @@ class ProjectionTests(unittest.TestCase):
     def test_shared_legacy_css_fallbacks(self):
         runtime = self.javascript()
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-legacy-css-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             args = [runtime]
@@ -577,6 +605,7 @@ class ProjectionTests(unittest.TestCase):
     def test_shared_display_alarm_actual_form(self):
         runtime = self.javascript()
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-alarm-form-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             args = [runtime]
@@ -615,6 +644,7 @@ class ProjectionTests(unittest.TestCase):
     def test_recovery_regional_keyboard_contract(self):
         runtime = self.javascript()
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-recovery-host-") as temp:
+            temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             args = [runtime]

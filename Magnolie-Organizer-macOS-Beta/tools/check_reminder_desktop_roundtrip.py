@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 
 from project_ui import REPO, inputs, inventory, project
+from project_import_helper import canonical_temporary_root
 
 
 def main():
@@ -15,7 +16,7 @@ def main():
     args = parser.parse_args()
     snapshot = inputs()
     with tempfile.TemporaryDirectory(prefix="macOS-Beta-reminder-desktop-") as temporary:
-        target = Path(temporary) / "UI"
+        target = canonical_temporary_root(temporary) / "UI"
         project(snapshot, target)
         environment = dict(os.environ, MACOS_BETA_REVIEW_UI=str(target))
         command = [args.js_runtime]

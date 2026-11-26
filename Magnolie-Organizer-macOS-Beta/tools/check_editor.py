@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 from project_ui import BETA, inputs, inventory, project
+from project_import_helper import canonical_temporary_root
 
 
 def technical_swift_tail(output):
@@ -62,7 +63,7 @@ def main():
     args = parser.parse_args()
     snapshot = inputs()
     with tempfile.TemporaryDirectory(prefix="macOS-Beta-editor-") as temp:
-        root = Path(temp)
+        root = canonical_temporary_root(temp)
         project(snapshot, root / "UI")
         command = [args.js_runtime]
         if Path(args.js_runtime).name == "deno":

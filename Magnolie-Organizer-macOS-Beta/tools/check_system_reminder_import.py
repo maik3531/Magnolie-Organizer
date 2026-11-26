@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 
 from project_ui import BETA, inputs, inventory, project
+from project_import_helper import canonical_temporary_root
 
 
 def main():
@@ -14,7 +15,7 @@ def main():
     args = parser.parse_args()
     snapshot = inputs()
     with tempfile.TemporaryDirectory(prefix="macOS-Beta-system-reminder-") as temporary:
-        root = Path(temporary) / "UI"
+        root = canonical_temporary_root(temporary) / "UI"
         project(snapshot, root)
         command = [args.js_runtime]
         if Path(args.js_runtime).name == "deno":

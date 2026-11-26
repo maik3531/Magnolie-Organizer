@@ -58,6 +58,19 @@ def safe_path(root, name):
     return path
 
 
+def canonical_temporary_root(directory):
+    """#793: normalize only a freshly owned TemporaryDirectory before adding children.
+
+    macOS may spell its temporary parent through /var -> /private/var.
+    The owned directory itself must remain real; projection roots and child
+    paths still pass through the unchanged no-symlink safe_path boundary.
+    """
+    root = Path(directory)
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("Temporary projection root must be a real directory")
+    return root.resolve(strict=True)
+
+
 class Inputs:
     def __init__(self, snapshot):
         self.available = snapshot

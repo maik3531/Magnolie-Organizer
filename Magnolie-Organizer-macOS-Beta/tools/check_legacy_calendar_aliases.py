@@ -11,6 +11,7 @@ import tempfile
 
 from check_calendar import canonical
 import project_ui
+from project_import_helper import canonical_temporary_root
 
 
 def baseline_projection(reference, directory):
@@ -104,7 +105,7 @@ def main():
     snapshot = project_ui.inputs()
     projector = project_ui.project
     with tempfile.TemporaryDirectory(prefix="macOS-Beta-calendar-alias-") as directory:
-        root = Path(directory)
+        root = canonical_temporary_root(directory)
         if args.baseline_ref:
             snapshot, projector = baseline_projection(args.baseline_ref, root)
         projector(snapshot, root / "UI")

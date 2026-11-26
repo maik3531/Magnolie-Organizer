@@ -1,7 +1,7 @@
 # Fortsetzung der nativen Mac-Verifikation
 
 Stand: 26. November 2026. Zugeordnet zu #121, #783, #785, #786 und dem
-konkreten nativen Compilerbefund #788 sowie Runtimebefund #789. Der
+konkreten nativen Compilerbefund #788, Runtimebefund #789 und Prüftreiberbefund #793. Der
 plattformübergreifende Quellarchivbefund #787 wird separat korrigiert.
 
 ## Übernommener und erneut bestätigter Stand
@@ -163,7 +163,68 @@ ausdrücklich und ist selbst kein nativer Mac-Baunachweis.
 Ein unabhängiger Review hat die Korrektur mit CPythons tatsächlichen
 `configure.ac`-/`Makefile.pre.in`-Regeln und der echten XZ-Bauprobe abgeglichen;
 kein blockierender Befund. Die bestehende native Workflow-Schnittstelle bleibt
-kompatibel. Der tatsächliche Mac-Folgelauf dieses Korrekturstands steht aus.
+kompatibel. Der tatsächliche Mac-Folgelauf dieses Korrekturstands unter
+[#93 / 45791918626](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45791918626)
+prüft genau den veröffentlichten Commit
+`cc9dc29a606658b7937eb7261409564c96f93775`; ARM64-Job `139812810788`, Intel-Job
+`139812811365`. **Beide Architekturen haben den tatsächlichen Runtime-Schritt
+bestanden.** Die gesicherten Runtime-Manifeste bestätigen jeweils:
+
+| Nachweis | ARM64 und Intel |
+| --- | --- |
+| Interpreter | CPython 3.15.2, jeweilige native Architektur |
+| Isolierter Start / erforderlicher Modulabschluss | Bestanden, einschließlich `lzma` nach Entfernen der Bauquelle |
+| Inventar | Je 704 Dateien und 52 geprüfte Mach-O-Dateien |
+| Minimum OS der Mach-O-Dateien | 12.7 |
+| Dynamische Abhängigkeiten | Nur zulässige Apple-Systembibliotheken |
+| `_lzma` | Nur `/usr/lib/libSystem.B.dylib`; private liblzma 5.8.4 statisch eingebunden |
+| XZ-Lizenzdateien | Beide vorhanden, mit den originalen Quellhashes inventarisiert |
+| Native UI validiert | Nein; gesonderter späterer Schritt |
+
+Die je 13 Runtimebuildertests bestanden auch auf den beiden echten Mac-Hosts.
+Quellbindung und beide Zeitzonenreferenzphasen waren ebenfalls erfolgreich.
+Die Jobs scheiterten erst im nachfolgenden Host-/Apple-Prüfschritt an dem
+nachstehend getrennten Testpfadbefund. Die komplette App-Abnahme wurde
+dadurch noch nicht erreicht.
+
+## #793: eigene temporäre Prüfwurzeln auf macOS
+
+Im Setup von `tests/test_import_helper.py` ruft der Treiber
+`project_snapshot` mit einer selbst erzeugten temporären Wurzel auf. Die
+strikte Funktion `safe_path` prüft auch alle Eltern und weist den macOS-
+Temppfad über `/var` zurück, weil er über den Systemalias `/private/var`
+führt. Beide tatsächlichen Jobs meldeten
+`ValueError: Symlinked projection path refused`; es wurden in dieser Suite
+**0 Tests** ausgeführt. XCTest, Bundlebau, App-Smoke und Paketierung wurden
+übersprungen. Der Nachweis ist dem begrenzten Folgeissue
+[#793](https://github.com/maik3531/Magnolie-Organizer/issues/793) zugeordnet.
+
+Der Fehler wurde zusätzlich unter Linux mit einem tatsächlich angelegten
+Elternsymlink und einer darunter selbst erzeugten `TemporaryDirectory`
+reproduziert. Die Korrektur betrifft ausschließlich unmittelbar selbst
+erzeugte temporäre Wurzeln der Prüftreiber. Rootlinks und Nichtverzeichnisse
+werden zuerst abgewiesen; anschließend wird die eigene Wurzel kanonisiert,
+bevor Unterpfade erzeugt werden. `safe_path`, Benutzerargumente, allgemeine
+Projektions-/Quellpfade und die Ablehnung innerer Links bleiben unverändert.
+
+Die gemeinsame Funktion `canonical_temporary_root` wird nur an den frisch
+selbst angelegten Tempwurzeln der zehn betroffenen Check-Runner,
+`project_ui.verify`, der `ProjectionTests` und `ImportHelperTests` eingesetzt.
+Der Produktionspfad `safe_path` bleibt textgleich. Die drei gezielten
+`ProjectionPathTests` bestehen lokal, auch mit dem Tempstamm selbst unter
+einem echten Elternsymlink. Sie zeigen den vorherigen Fehler, danach echte
+Dateiprojektion und Verifikation sowie die unveränderte Ablehnung von
+Root-, Verzeichnis-, Datei- und defekten Links. Alle 14 geänderten Python-
+Dateien wurden syntaktisch geparst; die Diffprüfung bestand.
+
+```sh
+python3 -B Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py ProjectionPathTests
+```
+
+Die vollständigen ImportHelper-/Hostgruppen wurden auf diesem Linux-
+Arbeitsplatz wegen fehlender gettext-/Parserabhängigkeiten nicht erneut
+ausgeführt. Der anschließende native Folgelauf enthält diese unveränderten
+Prüfungen und bleibt für ihren aktuellen Erfolg maßgeblich.
 
 ## #787: bestätigte Auswirkung auf Desktop-Quellarchive
 
@@ -202,10 +263,32 @@ Diffreview fand keinen blockierenden Befund.
 
 `magnolie-organizer-windows/tests/release-packaging.ps1` enthält die nativen
 Windows-Regressionen einschließlich Junction und ZIP-Injektion. Mangels
-PowerShell auf diesem Linux-Arbeitsplatz wurde dieser Teil hier nicht
-ausgeführt. Ein neuer Windows-CI-Lauf muss die tatsächliche Korrektur des
-Windows-Archivblockers bestätigen. Die Python-Prüfungen sind kein vollständiger
-Debian-/RPM-Bau oder Installationsnachweis.
+PowerShell auf diesem Linux-Arbeitsplatz wurde dieser Teil hier nicht lokal
+ausgeführt. Der tatsächliche [Windows-Folgelauf 45788221321](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45788221321)
+auf `689266570cda17f463132a182c02d78ea732dfbd` hat ihn inzwischen bestanden.
+Das [Live-Log, Job 139800326781 / Schritt 9 / Zeile 33](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45788221321/job/139800326781#step:9:34)
+meldet ausdrücklich:
+
+```text
+Windows source, private-path, new-fixture, provenance and flat-checksum fixtures passed.
+```
+
+Anschließend laufen die CoreTests aus dem Standalone-Quellarchiv. Der gesamte
+Windows-Paketlauf ist dadurch noch nicht als erfolgreich belegt. Die
+Python-Prüfungen sind ebenfalls kein vollständiger Debian-/RPM-Bau oder
+Installationsnachweis.
+
+## Neue Issue-Belege der Fortsetzung
+
+Die drei gezielten Folgekommentare wurden veröffentlicht beziehungsweise
+fortgeschrieben und jeweils mit identischem vollständigem Text zurückgelesen:
+
+- [#787: Desktop-Archivkorrektur und nativer Windows-Regressionserfolg](https://github.com/maik3531/Magnolie-Organizer/issues/787#issuecomment-7187382569)
+- [#788: native Bestätigung der beiden Swift-Compilerfixes](https://github.com/maik3531/Magnolie-Organizer/issues/788#issuecomment-7187382083)
+- [#789: privater Runtimefix, Tests und genaue native Folgeprüfung](https://github.com/maik3531/Magnolie-Organizer/issues/789#issuecomment-7188020232)
+
+Die ursprünglichen 31 Übergabekommentare und deren eingefrorene
+Publikationsbelege wurden dabei nicht verändert.
 
 ## Unveränderte Abnahmegrenzen
 

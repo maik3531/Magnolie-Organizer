@@ -669,6 +669,7 @@ def frozen(snapshot):
 
 
 def verify():
+    from project_import_helper import canonical_temporary_root
     snapshot = inputs()
     freeze = frozen(snapshot)
     manifest = json.loads((GENERATED / "ProjectionManifest.json").read_text())
@@ -676,7 +677,7 @@ def verify():
         raise ValueError("Generated payload differs from its frozen input/output manifest.")
     # A manifest is not authority for hand-edited payloads; reproduce the projection and compare.
     with tempfile.TemporaryDirectory(prefix="macOS-Beta-check-") as temp:
-        expected = Path(temp) / "UI"
+        expected = canonical_temporary_root(temp) / "UI"
         project(snapshot, expected)
         if tree_hashes(expected) != tree_hashes(GENERATED):
             raise ValueError("Generated UI is not the reproducible canonical projection.")

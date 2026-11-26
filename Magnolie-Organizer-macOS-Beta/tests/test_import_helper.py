@@ -58,7 +58,7 @@ class ImportHelperTests(unittest.TestCase):
         sys.dont_write_bytecode = True
         cls.helper_python = os.environ.get("MACOS_BETA_IMPORT_PYTHON", sys.executable)
         cls.temporary = tempfile.TemporaryDirectory(prefix="magnolie-import-helper-test-")
-        cls.directory = Path(cls.temporary.name)
+        cls.directory = projector.canonical_temporary_root(cls.temporary.name)
         cls.bundle = cls.directory / "ImportHelper"
         cls.snapshot = projector.input_snapshot(REPO)
         with mock.patch.object(projector.urllib.request, "urlopen", side_effect=AssertionError("Projection must remain offline")):
@@ -323,6 +323,60 @@ class ImportHelperTests(unittest.TestCase):
             self.assertEqual(self.request(b"test")["error"]["code"], "bundle_invalid")
         finally:
             module.write_bytes(before)
+
+
+class ProjectionPathTests(unittest.TestCase):
+    def test_owned_temporary_parent_alias_is_normalized_before_projection(self):
+        """#793: reproduce a macOS-shaped parent alias with real filesystem links."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve(strict=True)
+            real_parent = root / "private"; real_parent.mkdir()
+            alias = root / "var"; alias.symlink_to(real_parent, target_is_directory=True)
+            with tempfile.TemporaryDirectory(dir=alias) as owned:
+                with self.assertRaisesRegex(ValueError, "Symlinked projection path"):
+                    projector.safe_path(Path(owned) / "ImportHelper", "nested/fixture.txt")
+                canonical = projector.canonical_temporary_root(owned)
+                self.assertEqual(canonical, real_parent / Path(owned).name)
+                output = canonical / "ImportHelper"
+                payload = {"nested/fixture.txt": b"reviewed fixture bytes"}
+                # Isolate the path boundary; reads/writes, links and verification are real.
+                with mock.patch.object(projector, "build", return_value=(payload, {"fixture": True})):
+                    projector.project_snapshot({}, output)
+                    projector.project_snapshot({}, output, verify=True)
+                self.assertEqual((output / "nested/fixture.txt").read_bytes(), payload["nested/fixture.txt"])
+
+    def test_temporary_root_itself_cannot_be_a_link_or_a_missing_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve(strict=True)
+            real = root / "real"; real.mkdir()
+            link = root / "link"; link.symlink_to(real, target_is_directory=True)
+            broken = root / "broken"; broken.symlink_to(root / "absent", target_is_directory=True)
+            file = root / "file"; file.write_bytes(b"file")
+            for invalid in (link, broken, root / "missing", file):
+                with self.subTest(path=invalid.name), self.assertRaisesRegex(ValueError, "real directory"):
+                    projector.canonical_temporary_root(invalid)
+
+    def test_canonical_temporary_parent_does_not_authorize_projection_links(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = projector.canonical_temporary_root(directory)
+            outside = root / "outside"; outside.mkdir()
+            (outside / "fixture.txt").write_bytes(b"preserved")
+            for case in ("root", "directory", "file", "broken"):
+                with self.subTest(case=case):
+                    output = root / ("output-" + case)
+                    if case == "root":
+                        output.symlink_to(outside, target_is_directory=True)
+                    else:
+                        output.mkdir()
+                        if case == "directory":
+                            (output / "nested").symlink_to(outside, target_is_directory=True)
+                        else:
+                            (output / "nested").mkdir()
+                            target = outside / ("absent" if case == "broken" else "fixture.txt")
+                            (output / "nested/fixture.txt").symlink_to(target)
+                    with self.assertRaisesRegex(ValueError, "Symlinked projection path"):
+                        projector.safe_path(output, "nested/fixture.txt")
+            self.assertEqual((outside / "fixture.txt").read_bytes(), b"preserved")
 
 
 if __name__ == "__main__":

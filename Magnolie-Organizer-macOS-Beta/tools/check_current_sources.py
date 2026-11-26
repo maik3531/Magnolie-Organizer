@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 
 from project_ui import BETA, commands, digest, inputs, inventory, project
+from project_import_helper import canonical_temporary_root
 
 
 def main():
@@ -21,7 +22,7 @@ def main():
     desktop.update(re.findall(r'\["([a-z][a-z0-9_]+)"\]\s*=\s*S\(', windows))
     native = set(commands(snapshot))
     with tempfile.TemporaryDirectory(prefix="macOS-current-source-") as temporary:
-        root = Path(temporary)
+        root = canonical_temporary_root(temporary)
         project(snapshot, root / "UI")
         contract = root / "contract.json"
         contract.write_text(json.dumps({"allowed": sorted(native), "unavailable": sorted(desktop - native)}))

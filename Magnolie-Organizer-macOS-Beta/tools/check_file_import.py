@@ -23,7 +23,7 @@ def main():
     args = parser.parse_args()
     snapshot = project_ui.inputs()
     with tempfile.TemporaryDirectory(prefix="macOS-file-import-ui-") as directory:
-        root = Path(directory)
+        root = project_import_helper.canonical_temporary_root(directory)
         ui = args.ui
         if ui is None:
             ui = root / "UI"

@@ -8,6 +8,7 @@ import tempfile
 
 from check_editor import run_swift
 from project_ui import BETA, inputs, inventory, project
+from project_import_helper import canonical_temporary_root
 
 
 def main():
@@ -17,7 +18,7 @@ def main():
     args = parser.parse_args()
     snapshot = inputs()
     with tempfile.TemporaryDirectory(prefix="macOS-Beta-opaque-json-") as temporary:
-        root = Path(temporary)
+        root = canonical_temporary_root(temporary)
         project(snapshot, root / "UI")
         command = [args.js_runtime]
         if Path(args.js_runtime).name == "deno":

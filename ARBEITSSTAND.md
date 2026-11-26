@@ -31,7 +31,25 @@ symlinkfrei; Modulmenge, Architektur-/Mindestversions-/Systemlink-, Signatur-
 und Relokationsgates bleiben erhalten. Die XZ-Quelle und ihre begrenzte
 statische Linux-Baufolge wurden tatsächlich geprüft; dies ersetzt keinen
 nativen Mac-Runtime-Erfolg. Die erweiterte Runtimebuilder-Suite besteht lokal
-mit **13/13 Tests**. Der native Folgelauf dieses Fixes steht noch aus.
+mit **13/13 Tests**. [Mac-Lauf #93 / 45791918626](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45791918626)
+hat auf genau dem veröffentlichten Fixcommit
+`cc9dc29a606658b7937eb7261409564c96f93775` den Runtimebau auf **ARM64 und Intel
+bestanden**: isolierter Modulabschluss einschließlich LZMA, je 704
+inventarisierte Dateien und 52 Mach-O-Dateien, Mindestversion 12.7, nur
+Systembibliotheksabhängigkeiten sowie beide originalen XZ-Lizenztexte.
+
+Beide Jobs zeigten danach denselben nächsten Prüftreiberrest
+[#793](https://github.com/maik3531/Magnolie-Organizer/issues/793): selbst erzeugte
+temporäre Wurzeln laufen über den macOS-Systemalias `/var`, den die strikte
+Projektion zurückweist. Die ImportHelper-Suite kam deshalb auf 0 ausgeführte
+Tests; XCTest und Bundle-/App-Abnahme wurden noch nicht erreicht. Der
+Callerfix kanonisiert nur unmittelbar selbst angelegte Tempwurzeln; die
+allgemeine Quell-/Projektionspfadprüfung bleibt unverändert. Ein echter
+Linux-Elternsymlink hat den ursprünglichen Fehler reproduziert. Danach
+bestanden alle drei gezielten Dateisystemregressionen, auch mit einem
+Elternalias im Tempstamm. Die vollständig betroffenen Check-/Testaufrufer
+verwenden denselben engen Korrekturpfad; `safe_path` bleibt textgleich.
+Der vollständige aktuelle Host-/Apple-Erfolg ist noch nativ zu prüfen.
 
 Der zusätzliche Desktop-Archivblocker
 [#787](https://github.com/maik3531/Magnolie-Organizer/issues/787) ist im Quellstand
@@ -41,8 +59,9 @@ Pflichtdateien und die Inhalts-/Pfadprüfung bleiben erhalten. Die Regression
 reproduzierte vor dem Fix beide Python-Varianten; danach bestanden 7/7 Tests
 und die byte-/modusgleiche Projektion aller 138 ausgewählten echten Verträge.
 Der native [Windows-Folgelauf 45788221321](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45788221321)
-auf dem Archivfix hat die frühere Abbruchstelle passiert und führt im
-Standalone-Quellarchivschritt die CoreTests aus. Ein erfolgreicher Gesamt-
+auf dem Archivfix hat die erweiterten nativen Archivregressionen mit explizitem
+Erfolgsmarker bestanden und führt im Standalone-Quellarchivschritt die
+CoreTests aus. Ein erfolgreicher Gesamt-
 Windowslauf wird erst nach dessen Abschluss behauptet. Der Stand und die
 Grenzen der nativen Fortsetzung stehen in
 [NATIVE-VERIFICATION-2026-11-26.md](Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md).
