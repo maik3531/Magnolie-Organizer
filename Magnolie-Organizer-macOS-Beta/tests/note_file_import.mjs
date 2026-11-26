@@ -6,11 +6,11 @@ const b=await boot(process.argv[2]);const {w,t,messages}=b;
 const original={termine:[],aufgaben:[],kontakte:[],notizen:[{id:'existing',titel:'same.pdf',text:'',future:{retain:17}}],futureRoot:{keep:'opaque'},einstellungen:{allgemein:{handbuchHinweisGezeigt:true}}};
 w.MacBeta.receive('init',{daten:original,neu:false,regional:{language:'en',timeZone:'UTC'}});
 const seen=new Set();
-async function pump({snapshot=true,save=true}={}) {
+async function pump({snapshot=true,save=true,ackSaves=true}={}) {
   for(let n=0;n<8;n++) {
     for(const m of [...messages]) {
       const key=m.cmd+':'+(m.id??m.token??'');if(seen.has(key))continue;
-      if(m.cmd==='speichern'){seen.add(key);w.MacBeta.receive('gespeichert',{id:m.id,ok:save,fehler:save?'':'Synthetic save failure'});}
+      if(m.cmd==='speichern'&&ackSaves){seen.add(key);w.MacBeta.receive('gespeichert',{id:m.id,ok:save,fehler:save?'':'Synthetic save failure'});}
       if(m.cmd==='mutations_snapshot'){seen.add(key);w.MacBeta.receive('mutationsSnapshot',{token:m.token,ok:snapshot,fehler:snapshot?'':'Synthetic recovery failure'});}
     }
     await tick();
@@ -66,10 +66,50 @@ try {
      equal(surface.textContent,literal,'1MiB escaped literal renders without truncation or interpretation');
    }
  }
+ // #781: exercise the actual asynchronous checkpoint callback, not a copied helper.
+ for (const [locale, prefix] of [['en', 'Note copies were added, but saving was not confirmed.'],
+                                ['de', 'Notizkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt.']]) {
+   w.MacBeta.receive('init',{daten:JSON.parse(JSON.stringify(t.daten())),neu:false,regional:{language:locale,timeZone:'UTC'}});
+   await pump();
+   const retained=JSON.stringify(t.daten().notizen), count=t.daten().notizen.length;
+   const appearance=w.MagnolieAppearance;
+   w.MagnolieAppearance={...appearance,update(){throw new Error('Synthetic renderer failure after file append');}};
+   let settled=false;
+   const failedRender=w.App.macOSBetaImportNoteFiles({items:[item('renderer-'+locale+'.txt','Exact file text <b>literal</b>')]}).then(
+     value=>{settled=true;return {value};},error=>{settled=true;return {error:error.message};});
+   try { await pump(); } finally { w.MagnolieAppearance=appearance; }
+   equal(settled,true,'Async renderer failure settles original Promise: '+locale);
+   const outcome=await failedRender;
+   assert.ok(outcome.error?.startsWith(prefix),JSON.stringify(outcome));checks++;
+   equal(t.daten().notizen.length,count+1,'Mutation stays visible after failure: '+locale);
+   equal(JSON.stringify(t.daten().notizen.slice(0,count)),retained,'Existing notes unchanged: '+locale);
+   equal(t.daten().notizen.at(-1).text,'Exact file text <b>literal</b>','Appended original content retained: '+locale);
+   const id=t.daten().notizen.at(-1).id;
+   t.speichereJetzt();await pump();
+   const saved=JSON.parse(messages.filter(message=>message.cmd==='speichern').at(-1).text);
+   equal(saved.notizen.filter(note=>note.id===id).length,1,'Retry saves exactly the existing copy: '+locale);
+   w.MacBeta.receive('init',{daten:saved,neu:false,regional:{language:locale,timeZone:'UTC'}});await pump();
+   equal(t.daten().notizen.filter(note=>note.id===id).length,1,'Reopen preserves exactly the saved copy: '+locale);
+ }
+ w.MacBeta.receive('init',{daten:JSON.parse(JSON.stringify(t.daten())),neu:false,regional:{language:'en',timeZone:'UTC'}});t.speichereJetzt();await pump();
  const beforeFailedWrite=t.daten().notizen.length;
  const failedWrite=w.App.macOSBetaImportNoteFiles({items:[item('pending.txt','retain unsaved import')]}).then(()=>null,e=>e.message);
  await pump({save:false});assert.match(await failedWrite,/unsaved/);checks++;
  equal(t.daten().notizen.length,beforeFailedWrite+1,'Failed final write leaves imported notes visible for save retry');
+ t.speichereJetzt();await pump();
+ // The final ACK belongs to a particular saved snapshot, not any current UI state.
+ let ackSettled=false;
+ const ackPending=w.App.macOSBetaImportNoteFiles({items:[item('ack-bound.txt','ACK-bound copy')]}).then(
+   value=>{ackSettled=true;return {value};},error=>{ackSettled=true;return {error:error.message};});
+ await pump({ackSaves:false});
+ equal(ackSettled,false,'No import success before final Save-ACK');
+ const waiting=messages.filter(message=>message.cmd==='speichern').at(-1);
+ w.MacBeta.receive('gespeichert',{id:waiting.id+10000,ok:true});await tick();
+ equal(ackSettled,false,'An unrelated ACK cannot complete this import');
+ const removed=t.daten().notizen.pop();
+ equal(removed.titel,'ack-bound.txt','Only the imported fixture is removed while save is pending');
+ await pump();const ackOutcome=await ackPending;
+ assert.match(ackOutcome.error||'',/document changed before the note-file import save completed/);checks++;
  t.speichereJetzt();await pump();
  stable=JSON.stringify(t.daten());
  w.App.macOSBetaStartNoteImport();await pump();

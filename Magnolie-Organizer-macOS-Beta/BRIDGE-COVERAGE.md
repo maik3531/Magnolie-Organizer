@@ -5,7 +5,7 @@ This is a command inventory, **not a passed-feature count or a native validation
 Static literal calls are compared with the Windows typed contract. Computed command names
 and native-only menu actions need the separate feature matrix; absence here is not support.
 
-Frontend SHA-256: `bbb7341c9d3c69256ef0e2655382d71ab39191e2d72e59a6fc8fb9d5126ba3b6`
+Frontend SHA-256: `8166790025d0ba8bf4495b73346ba42cbb6eac8dd98c918eea40ec696ef69b63`
 Windows contract SHA-256: `7d1245d48d7b378832cadf2291ee5eb23d59339d0a0fad87f77754ab97a07c51`
 
 | Command | Shared frontend literal | Windows contract | macOS Beta scope |
@@ -50,7 +50,7 @@ Windows contract SHA-256: `7d1245d48d7b378832cadf2291ee5eb23d59339d0a0fad87f7775
 | `contributor_pruefen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `debug_startphase` | yes | — | UNSUPPORTED: negative Beta response |
 | `drucken` | yes | yes | source: isolated JS-free print renderer and AppKit system print/PDF dialog; native acceptance pending |
-| `eds_status` | yes | yes | partial: passive native EventKit/Contacts discovery; no synchronization |
+| `eds_status` | yes | yes | partial: passive native EventKit/Contacts discovery and field-sync capabilities; discovery itself grants no write authority |
 | `eigenes_profil_office` | yes | yes | UNSUPPORTED: negative Beta response |
 | `eigenes_profil_telefon` | yes | yes | UNSUPPORTED: negative Beta response |
 | `entsperren` | yes | yes | partial: v1/v2 Apple crypto fixtures verified; full password lifecycle pending |
@@ -74,7 +74,7 @@ Windows contract SHA-256: `7d1245d48d7b378832cadf2291ee5eb23d59339d0a0fad87f7775
 | `graph_mcp_status` | — | yes | UNSUPPORTED: negative Beta response |
 | `handbuch_herunterladen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `handbuch_oeffnen` | yes | yes | source: bundled canonical 2.0.30 manual; isolated local WKWebView/search; native validation pending |
-| `import` | yes | yes | partial: native selected UTF-8 ICS file; atomic codec and canonical merge; no vCard/CSV/archive import |
+| `import` | yes | yes | source: selected ICS/VCS/LCS, OR6/CSV, vCard/CSV, Claws/LDIF, ZIP and waste files through current private parser; canonical merge/Save-ACK; archive/local discovery open; native runtime untested |
 | `import_lokal` | yes | yes | UNSUPPORTED: negative Beta response |
 | `internet_konten_mcp` | — | yes | UNSUPPORTED: negative Beta response |
 | `internet_konten_status` | — | yes | UNSUPPORTED: negative Beta response |
@@ -123,8 +123,12 @@ Windows contract SHA-256: `7d1245d48d7b378832cadf2291ee5eb23d59339d0a0fad87f7775
 | `kontakt_originalquellen_update` | yes | yes | UNSUPPORTED: negative Beta response |
 | `kontakt_originalquellen_widerrufen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `lo_benutzer` | yes | yes | UNSUPPORTED: negative Beta response |
+| `macos_apple_notizen_importieren` | — | — | source: explicit Apple Notes folder/note selection, reviewed additive plaintext copies + re-read + recovery + save ACK; no source writes or sync; native execution unverified (#772) |
+| `macos_erinnerungen_importieren` | — | — | source: explicit EventKit reminder list/item selection, reviewed standalone local task copies + re-read + recovery + save ACK; hierarchy unavailable, no source writes or sync; native execution unverified (#777) |
 | `macos_kalender_importieren` | — | — | source: explicit EventKit calendar/date picker, reviewed additive local copies + recovery + save ACK; no sync; native execution unverified (#770) |
-| `macos_systemzugriff` | — | — | partial: explicit OS access prompt and refreshed source status; no synchronization |
+| `macos_kontakte_importieren` | — | — | source: explicit Contacts container/contact selection, reviewed additive public-field copies + re-read + recovery + save ACK; no source writes or sync; native execution unverified (#775) |
+| `macos_system_sync` | — | — | source: explicit native source/book/window grant; additive first linking and bounded two-way field updates; encrypted intent/readback journal + actual saved-disk baseline commit; no create/delete/automatic schedule; Apple API execution unverified (#786) |
+| `macos_systemzugriff` | — | — | partial: explicit OS access prompt and refreshed source status; separate native field-sync grant required |
 | `mail` | yes | yes | partial: bounded single-recipient mailto to resolved system app; open acceptance only; native handler unverified |
 | `mcp_antwort` | yes | yes | UNSUPPORTED: negative Beta response |
 | `medien_backup` | yes | — | UNSUPPORTED: negative Beta response |

@@ -9895,3 +9895,11 @@ msgstr "要查看这部手机的屏幕吗？"
 
 msgid "Your phone must approve screen sharing."
 msgstr "请在手机上确认共享屏幕。"
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Birthday stored with this contact; no calendar entry."
+msgstr "出生日期保存在此联系人中；不会创建日历条目。"
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Please enter a valid birth date."
+msgstr "请输入有效的出生日期。"

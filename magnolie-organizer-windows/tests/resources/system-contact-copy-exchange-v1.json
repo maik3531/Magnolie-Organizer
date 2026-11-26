@@ -1,0 +1,218 @@
+{
+  "version": 1,
+  "source": {
+    "sourceUID": "macos-contacts:Y29udGFpbmVyLW9uZQ==",
+    "containerID": "container-one",
+    "title": "Selected address book",
+    "nativeType": "container:2"
+  },
+  "records": [
+    {
+      "identifier": "contact-one",
+      "title": "Dr. Ada Byron Lovelace Fellow",
+      "fields": {
+        "namePrefix": "Dr.",
+        "givenName": "Ada",
+        "middleName": "Byron",
+        "familyName": "Lovelace",
+        "previousFamilyName": "Byron",
+        "nameSuffix": "Fellow",
+        "nickname": "Enchantress",
+        "phoneticGivenName": "Ay-da",
+        "phoneticMiddleName": "",
+        "phoneticFamilyName": "",
+        "phoneticOrganizationName": "",
+        "organizationName": "Analytical Society",
+        "departmentName": "Research",
+        "jobTitle": "Writer",
+        "unification": "nonUnifiedContainer",
+        "unavailableKeys": [
+          "note"
+        ],
+        "contactType": 0,
+        "phoneNumbers": [
+          {
+            "identifier": "phone-home",
+            "label": "_$!<Home>!$_",
+            "labelKind": "home",
+            "value": "+44 20 7946 0958"
+          },
+          {
+            "identifier": "phone-mobile",
+            "label": "_$!<Mobile>!$_",
+            "labelKind": "mobile",
+            "value": "+44 7700 900123"
+          },
+          {
+            "identifier": "phone-custom",
+            "label": "Studio",
+            "labelKind": "custom",
+            "value": "+44 20 7946 0959"
+          }
+        ],
+        "emailAddresses": [
+          {
+            "identifier": "mail-work",
+            "label": "_$!<Work>!$_",
+            "labelKind": "work",
+            "value": "Ada@Example.Test"
+          },
+          {
+            "identifier": "mail-custom",
+            "label": "Research desk",
+            "labelKind": "custom",
+            "value": "Research@Example.Test"
+          }
+        ],
+        "postalAddresses": [
+          {
+            "identifier": "address-home",
+            "label": "_$!<Home>!$_",
+            "labelKind": "home",
+            "value": {
+              "street": "12 St James Square\nSecond floor",
+              "city": "London",
+              "state": "Greater London",
+              "postalCode": "SW1Y 4LB",
+              "country": "United Kingdom",
+              "isoCountryCode": "GB",
+              "subAdministrativeArea": "Westminster",
+              "subLocality": "St James"
+            }
+          }
+        ],
+        "urlAddresses": [
+          {
+            "identifier": "url-home",
+            "label": "_$!<HomePage>!$_",
+            "labelKind": "homePage",
+            "value": "https://example.test/ada?x=1&y=2"
+          }
+        ],
+        "contactRelations": [
+          {
+            "identifier": "relation-one",
+            "label": "Colleague",
+            "labelKind": "custom",
+            "value": "Charles Babbage"
+          }
+        ],
+        "socialProfiles": [
+          {
+            "identifier": "social-one",
+            "label": null,
+            "labelKind": "none",
+            "value": {
+              "username": "ada",
+              "service": "Example",
+              "urlString": "https://social.example.test/ada",
+              "userIdentifier": "native-social-id"
+            }
+          }
+        ],
+        "instantMessageAddresses": [
+          {
+            "identifier": "im-one",
+            "label": "Research chat",
+            "labelKind": "custom",
+            "value": {
+              "username": "ada",
+              "service": "Example messenger"
+            }
+          }
+        ],
+        "dates": [],
+        "birthday": {
+          "calendar": "gregorian",
+          "month": 2,
+          "day": 29
+        },
+        "nonGregorianBirthday": null,
+        "imageDataAvailable": true,
+        "imageData": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEUlEQVR4nGNoUFjwH4QZYAwATPQI/aJXiG4AAAAASUVORK5CYII=",
+        "imageMIME": "image/png"
+      },
+      "failure": null
+    }
+  ],
+  "expectedContact": {
+    "vorname": "Ada",
+    "nachname": "Lovelace",
+    "anzeigename": "Dr. Ada Byron Lovelace Fellow",
+    "firma": "Analytical Society",
+    "telefone": [
+      {
+        "wert": "+44 20 7946 0958",
+        "typen": [
+          "HOME",
+          "VOICE"
+        ],
+        "label": ""
+      },
+      {
+        "wert": "+44 7700 900123",
+        "typen": [
+          "CELL"
+        ],
+        "label": ""
+      },
+      {
+        "wert": "+44 20 7946 0959",
+        "typen": [
+          "VOICE"
+        ],
+        "label": "Studio"
+      }
+    ],
+    "emailEintraege": [
+      {
+        "wert": "Ada@Example.Test",
+        "typen": [
+          "WORK",
+          "INTERNET"
+        ],
+        "label": ""
+      },
+      {
+        "wert": "Research@Example.Test",
+        "typen": [
+          "INTERNET"
+        ],
+        "label": "Research desk"
+      }
+    ],
+    "anschriften": [
+      {
+        "postfach": "",
+        "zusatz": "",
+        "strasse": "12 St James Square\nSecond floor",
+        "ort": "London",
+        "region": "Greater London",
+        "plz": "SW1Y 4LB",
+        "land": "United Kingdom",
+        "typen": [
+          "HOME"
+        ],
+        "label": ""
+      }
+    ],
+    "foto": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEUlEQVR4nGNoUFjwH4QZYAwATPQI/aJXiG4AAAAASUVORK5CYII=",
+    "geburtstag": "--02-29",
+    "geburtstagJahrUnbekannt": true,
+    "vcardRoundtrip": [
+      "N:Lovelace;Ada;Byron;Dr.;Fellow",
+      "FN:Dr. Ada Byron Lovelace Fellow",
+      "ORG:Analytical Society;Research",
+      "URL:https://example.test/ada?x=1&y=2"
+    ]
+  },
+  "expectedNotices": [
+    "native-contact-address-details-in-source",
+    "native-contact-extra-public-fields-in-source",
+    "native-contact-name-details-in-source",
+    "native-contact-organization-details-in-source",
+    "native-contact-public-fields-only",
+    "native-contact-url-labels-in-source"
+  ],
+  "expectedIdentity": "fd47215c53b33b21449f5403f6b09eb7520b778cc2c8c95ec92cd5c76b1856b9"
+}

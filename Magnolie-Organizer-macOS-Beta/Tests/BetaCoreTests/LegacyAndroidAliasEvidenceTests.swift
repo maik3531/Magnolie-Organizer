@@ -76,4 +76,22 @@ final class LegacyAndroidAliasEvidenceTests: XCTestCase {
         XCTAssertThrowsError(try ICalendarImport.validateProjection(result.document, aliases: proof, maximum: documentBytes + sidecarBytes + 63))
         XCTAssertEqual(ICalendarImport.maximumProjectedBytes, 96 * 1024 * 1024)
     }
+    func testNativeResponseTransportsEvidenceWithoutChangingPersistableDocument() throws {
+        let text = try source()
+        let result = try ICalendarImport.decode(Data(text.utf8), context: CalendarTestContext.make(),
+            displayTimeZone: "UTC", sourceName: "caldav-series-resource.ics")
+        let response = result.response
+        let proof = try XCTUnwrap(response["legacyAndroidAliases"] as? [String: Any])
+        XCTAssertEqual(proof["sourceSHA256"] as? String, sha(text))
+        XCTAssertEqual(try Document.encode(proof), try Document.encode(XCTUnwrap(result.legacyAndroidAliases).payload))
+        var document = response; document.removeValue(forKey: "legacyAndroidAliases")
+        XCTAssertEqual(try Document.encode(document), try Document.encode(result.document))
+        XCTAssertNil(result.document["legacyAndroidAliases"])
+        XCTAssertNil((response["icsImportMetadata"] as? [String: Any])?["legacyAndroidAliases"])
+        // Optional actual-Swift DTO for the existing host UI probe. Its absence
+        // does not bypass any assertion above or imply native UI acceptance.
+        if let path = ProcessInfo.processInfo.environment["MACOS_BETA_LEGACY_ALIAS_ENVELOPE"] {
+            try Data(Document.encode(response).utf8).write(to: URL(fileURLWithPath: path), options: .atomic)
+        }
+    }
 }

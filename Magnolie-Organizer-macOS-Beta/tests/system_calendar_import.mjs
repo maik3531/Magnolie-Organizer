@@ -493,4 +493,55 @@ for (const stage of ["before-start", "during-save"]) for (const fieldID of ["bri
     equal(messages.filter(message => message.cmd === "erinnerung_zeigen").length, reminders + 1, "Existing ordinary-event reminder behavior remains unchanged");
   } finally { b.close(); }
 }
+// #778: an already observed save ACK is distinct from unconfirmed saving.
+for (const stage of ["checkpoint", "saving"]) {
+  const b = await context(), { w, t } = b;
+  try {
+    const review = w.App.macOSBetaPrepareCalendarImport(payload([draft("old-generation")]));
+    const pending = w.App.macOSBetaCommitCalendarImport(review.token).then(() => null, error => error);
+    if (stage === "saving") await b.pump({ ackSaves: false });
+    w.MacBeta.receive("init", { daten: clone(initial), neu: false, regional: { language: "en", timeZone: "UTC" } });
+    await b.pump(); const failure = await pending;
+    assert.match(failure.message, /stale|document changed/i); checks++;
+    equal(/copies were added|remain unsaved|saving was not confirmed/i.test(failure.message), false,
+      "Pre-append rejection or observed save ACK keeps its specific document-change diagnosis: " + stage);
+    equal(t.daten().termine.length, 0, "Obsolete import never changes replacement document: " + stage);
+  } finally { b.close(); }
+}
+
+// #778: exercise the public renderer hook after the real canonical append.
+for (const language of ["en", "de"]) {
+  const b = await context(), { w, t, messages } = b;
+  const appearance = w.MagnolieAppearance;
+  try {
+    w.MagnolieI18n.setLocale(language);
+    await commit(b, w.App.macOSBetaPrepareCalendarImport(payload([draft("existing-copy")])));
+    t.daten().termine[0].titel = "Keep this local calendar edit";
+    t.speichereJetzt(); await b.pump();
+    const original = JSON.stringify(t.daten().termine), originalCount = t.daten().termine.length;
+    const review = w.App.macOSBetaPrepareCalendarImport(payload([draft("render-failure")]));
+    try {
+      w.MagnolieAppearance = { ...appearance, update() { throw new Error("Synthetic renderer failure after append"); } };
+      await rejects(commit(b, review), language === "de"
+        ? /Terminkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt\..*Synthetic renderer failure after append/
+        : /Appointment copies were added, but saving was not confirmed\..*Synthetic renderer failure after append/,
+        "Actual renderer failure explains local mutation and unconfirmed persistence");
+    } finally { w.MagnolieAppearance = appearance; }
+    equal(t.daten().termine.length, originalCount + 1, "Added copy survives renderer failure for save retry");
+    equal(JSON.stringify(t.daten().termine.slice(0, originalCount)), original, "Renderer failure preserves all pre-existing records and local edits");
+    equal(t.daten().termine.at(-1).nativeCalendarImport.identifier, "render-failure", "Renderer failure retains exact native provenance");
+    t.speichereJetzt(); await b.pump();
+    const saved = JSON.parse(messages.filter(message => message.cmd === "speichern").at(-1).text);
+    equal(saved.termine, t.daten().termine, "Actual retry save contains both existing records and the added copy");
+    const retry = w.App.macOSBetaPrepareCalendarImport(payload([draft("render-failure")]));
+    equal([retry.newCount, retry.existingCount], [0, 1], "Save retry preserves provenance and prevents duplicate import");
+    w.App.macOSBetaCancelCalendarImport(retry.token);
+    w.MacBeta.receive("init", { daten: saved, neu: false, regional: { language, timeZone: "UTC" } });
+    await b.pump();
+    const reopened = w.App.macOSBetaPrepareCalendarImport(payload([draft("render-failure")]));
+    equal([reopened.newCount, reopened.existingCount], [0, 1], "Reopened retry-save bytes still prevent duplicate import");
+    w.App.macOSBetaCancelCalendarImport(reopened.token);
+  } finally { w.MagnolieAppearance = appearance; b.close(); }
+}
+
 console.log(`Mac native calendar import: ${checks} projected UI checks; synthetic EventKit payload/transport, not native access evidence.`);

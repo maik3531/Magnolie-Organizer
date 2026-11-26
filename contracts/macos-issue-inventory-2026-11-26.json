@@ -1,0 +1,1673 @@
+{
+  "repository": "maik3531/Magnolie-Organizer",
+  "date": "2026-11-26",
+  "branch": "work/macos-issue-fixes-20261126",
+  "base": "616069f15fed21d8d8d05c8ef795f4ed21bd059c",
+  "mainAtAudit": "00776ce70e155c7a607ed55a4502d6fcee5a860c",
+  "enumeration": {
+    "method": "Initial paginated GitHub REST inventory followed by the complete delivery API snapshot; pull requests counted separately. Issue identity sets reconciled exactly.",
+    "initialOpenIssues": 123,
+    "initialOpenPRs": 1,
+    "initialMacScope": 26,
+    "openIssues": 128,
+    "openPRs": 1,
+    "explicitAndSharedMacScope": 31,
+    "excludedOpenIssueCount": 97,
+    "originalMacIssueNumbers": [
+      121,
+      451,
+      452,
+      453,
+      454,
+      458,
+      464,
+      465,
+      468,
+      472,
+      511,
+      680,
+      682,
+      683,
+      721,
+      749,
+      770,
+      771,
+      772,
+      773,
+      774,
+      775,
+      776,
+      777,
+      778,
+      779
+    ],
+    "createdMacIssueNumbers": [
+      781,
+      783,
+      784,
+      785,
+      786
+    ],
+    "deliveryIssueNumbers": [
+      42,
+      53,
+      58,
+      64,
+      65,
+      75,
+      113,
+      121,
+      128,
+      146,
+      148,
+      149,
+      153,
+      156,
+      158,
+      159,
+      161,
+      168,
+      192,
+      193,
+      194,
+      237,
+      242,
+      243,
+      245,
+      254,
+      258,
+      269,
+      272,
+      273,
+      274,
+      275,
+      276,
+      278,
+      290,
+      292,
+      294,
+      295,
+      302,
+      306,
+      321,
+      322,
+      326,
+      330,
+      335,
+      336,
+      337,
+      338,
+      375,
+      380,
+      382,
+      384,
+      389,
+      392,
+      395,
+      434,
+      441,
+      449,
+      451,
+      452,
+      453,
+      454,
+      458,
+      461,
+      463,
+      464,
+      465,
+      468,
+      471,
+      472,
+      500,
+      503,
+      511,
+      517,
+      536,
+      538,
+      558,
+      566,
+      569,
+      571,
+      578,
+      595,
+      597,
+      611,
+      615,
+      641,
+      647,
+      659,
+      680,
+      682,
+      683,
+      687,
+      689,
+      691,
+      695,
+      711,
+      712,
+      721,
+      727,
+      731,
+      746,
+      747,
+      748,
+      749,
+      751,
+      753,
+      756,
+      759,
+      760,
+      761,
+      762,
+      763,
+      767,
+      770,
+      771,
+      772,
+      773,
+      774,
+      775,
+      776,
+      777,
+      778,
+      779,
+      781,
+      783,
+      784,
+      785,
+      786
+    ],
+    "deliverySnapshot": "audit/delivery-open-issues.json",
+    "closedReviewedNumbers": [
+      9,
+      455,
+      460
+    ],
+    "deliverySnapshotSHA256": "008b36176d486ecd0bc817702cc4cc4b25bf7ac5fa824e75088c315928cf086c",
+    "initialExcludedPullRequestNumbers": [
+      561
+    ]
+  },
+  "closedReviewed": [
+    9,
+    455,
+    460
+  ],
+  "createdIssues": [
+    781,
+    783,
+    784,
+    785,
+    786
+  ],
+  "issues": [
+    {
+      "n": 121,
+      "title": "Nach Gesamtabnahme: macOS- und Android-Organizer auf Funktions- und Darstellungsparität bringen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121",
+      "state": "open",
+      "status": "Übergreifende Übergabe und Abgleich",
+      "assessment": "Der vollständige Mac-Arbeitszweig enthält die vorhandenen Apple-Kopieranschlüsse, die neuen Fehlerkorrekturen und den Catch-up-Fix #783. Der Mac-Build restaurierte bisher gemeinsame Quellen von v2.0.30; der neue Patch bindet den aktuellen Checkout direkt an Git-Blobs und Projektionsnachweise. #784 korrigiert die Mac-Geräteseite. #785 verbindet aktuelle klassische Datei-/OR6-Parser samt privater Laufzeit mit dem nativen Picker und der bestehenden Vorschau-/Save-Transaktion. #786 ergänzt einen bewusst gebundenen manuellen Dreiwege-Feldabgleich mit Apple-Kalendern, Kontakten und Erinnerungen. Daraus folgt keine vollständige Linux-/Windows-Parität.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md",
+        "Magnolie-Organizer-macOS-Beta/BRIDGE-COVERAGE.md",
+        "Magnolie-Organizer-macOS-Beta/IPHONE-INTEROPERABILITY.md",
+        "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+        "contracts/macos-cloud-environment-2026-11-26.json",
+        "Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md",
+        "contracts/macos-786-native-system-sync.md"
+      ],
+      "commits": [
+        "0a14d268913337bd436e560ab47f670ed43d89c3",
+        "9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa",
+        "6341a2f1fa188a15ba63fd43bacf4dccfc148dfc",
+        "62835e02e422bfcd8ae0fccea36dac08813e42cf",
+        "6372a409b849dffa2856d8e0993cfaef96b44a3d",
+        "e2a71b5eaf2635b38f0496bb8df9bb6cbf387121",
+        "d57ef304417695dea5f488842bc3b49432f7bbf2",
+        "2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa",
+        "c903f436fe7853d5f92b7d40b64ed9121bd5d6fa",
+        "a071458954ce4532fa013649a09a5d346f4d7469",
+        "1a24abefcfdc58689fb5291cb5c4c60c1af189d5",
+        "8d4004a99648add539450e3658f50861a6d90f32",
+        "136922870a3a3ee2caf6d6be431b00a67ff9fcce",
+        "7c9cf20394aef73d261a77f746ebca7340826d30"
+      ],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "Der vollständige API-Abgleich ergibt 123 Ausgangsissues mit 26 Mac-Zuordnungen und 97 begründeten Ausschlüssen; fünf im Audit angelegte Issues erweitern den aktuellen Umfang auf 128 offene Issues und 31 Mac-Zuordnungen. Ein offener PR bleibt ausgeschlossen. Die geschlossenen #9/#455/#460 werden separat nachverfolgt. Die tatsächlichen Einzelprüfungen stehen bei #783/#784/#785/#786; die abschließende Integrationsprüfung wird separat an ihren Quellcommit gebunden.",
+      "remaining": "Keine eigene Magnolie-Notes-Begleitapp voraussetzen. Apple-Schnittstellen und vorhandenes KDE Connect bleiben passende Mac-Wege; der externe KDE-Client ist noch kein direkter Magnolie-Geräteadapter. Offen bleiben echte Mac-VM-/Provider-/Geräteabnahmen, der .magnolie-Gesamtarchivanschluss und lokale Profilerkennung aus #785, vollständige Synchronisationsparität einschließlich Automatik/Create/Delete/weiterer Felder sowie Apple-Notes-Rückabgleich aus #786 und die Implementierungsreste #465/#511.",
+      "dependsOnIssues": [
+        465,
+        511,
+        721,
+        770,
+        772,
+        775,
+        776,
+        777,
+        778,
+        779,
+        781,
+        783,
+        784,
+        785,
+        786
+      ],
+      "documentation": "Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 451,
+      "title": "CSS-Kompatibilität: native Auswahl-/Markerabnahme und Engine-Zielmatrix (Rest aus #446)",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/451",
+      "state": "open",
+      "status": "Vorhandener Fix; native Abnahme offen",
+      "assessment": "Der gemeinsame CSS-Kompatibilitätsfix ist vorhanden. Die aktuelle Mac-Projektion übernimmt die gemeinsamen Styles; für eine erneute Produktänderung ist im geprüften Issue kein zusätzlicher Mac-Defekt belegt.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Projection/macos-beta.css",
+        "Magnolie-Organizer-macOS-Beta/tools/project_ui.py"
+      ],
+      "commits": [
+        "668fb3f69e39e7943ae6e2ff94347ffc74aa418d"
+      ],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "Quellvergleich des bestehenden Fixes 668fb3f6 und der tatsächlichen Mac-Projektion. Der aktuelle Hosttest für gemeinsame CSS-Fallbacks ist in der Gesamtprüfung enthalten.",
+      "remaining": "In einer echten WKWebView Auswahlmarkierung, Marker, Tastatur-/Mausbedienung und Ziel-Engineversion dokumentieren. DOM-/Stringtests ersetzen diese Gestenabnahme nicht.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 452,
+      "title": "Tablet/TZDB: ThreeTenBP liefert falsche Gaza-/Hebron-Zeiten und erfolgreiche falsche ICS-Roundtrips",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/452",
+      "state": "open",
+      "status": "Tablet-Befund; Mac-Implementierung getrennt",
+      "assessment": "Der konkrete Gaza-/Hebron-Fehler betrifft ThreeTenBP im Tablet-Port. Der Mac verwendet CalendarTimeContext mit normativen Definitionen und bereits typisierten Zeitquellen. Ein Kotlin-/ThreeTenBP-Fix kann nicht als Mac-Patch übernommen werden.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CalendarTimeContext.swift",
+        "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/CalendarTimeContextTests.swift"
+      ],
+      "commits": [
+        "8003f3dc78fade781526b7d5087d26ff8ba6d089"
+      ],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "Vorhandener Mac-Fix 8003f3dc und zugehörige Swift-Testquellen geprüft. Historische native Mac-Läufe sind an die alte gemeinsame Desktopbasis gebunden.",
+      "remaining": "Die aktuelle Mac-Zeitzonenmatrix unter #680 ausführen; den Tablet-Befund nicht durch einen Mac-Quelltest schließen.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 453,
+      "title": "ICS-Ports: eigene VTIMEZONE-TZIDs kollidieren mit privaten UTC-Stringmarkern",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/453",
+      "state": "open",
+      "status": "Bereits vorhandener Mac-Fix belegt",
+      "assessment": "Die kollidierenden privaten UTC-Stringmarker wurden bereits durch CalendarTimeSource ersetzt. Eigene Quell-Definitionen behalten Vorrang. CalendarTimeContext.swift und der relevante Test sind gegenüber dem vorhandenen Fix unverändert.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CalendarTimeContext.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarImport.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarExport.swift",
+        "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/CalendarTimeContextTests.swift"
+      ],
+      "commits": [
+        "8003f3dc78fade781526b7d5087d26ff8ba6d089"
+      ],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "Der konkrete Test testSourceDefinitionsTakePriorityOverNamedProviderAndFormerMarkers bestand auf ARM64 und Intel in Run 42562106430, Portcommit cbdc0876. Das ist ein historischer Swift-Core-Beleg; der Workflow verwendete dabei Desktop 067c.",
+      "remaining": "Vorhandenen Fix nicht erneut implementieren. Nach #783 die aktuelle Gesamtprojektion nativ prüfen; andere Ports bleiben separat offen.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 454,
+      "title": "Mac/Tablet: persistierte Sync-Epoche und Löschquarantäne bei Wiederherstellung ergänzen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/454",
+      "state": "open",
+      "status": "Mac-Quellfix vorhanden; Integration nachprüfen",
+      "assessment": "NativeBookRestore/DAVBookRestore setzen Sync-Epoche und Löschquarantäne im vorhandenen Mac-Pfad. Die beiden Quellen und drei Regressionstestdateien sind gegenüber dem erfolgreichen Stand 798771ed unverändert.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/NativeBookRestore.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/DAVBookRestore.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift",
+        "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/NativeBookRestoreTests.swift"
+      ],
+      "commits": [
+        "c3fe0d990031c9e594b1ba0401d698526794902d",
+        "535d2ee567d7510638e767a2db9204dcddddc93d"
+      ],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "Historischer nativer Run 42547724299 erfolgreich, späterer Core-Lauf 42562106430 ebenfalls erfolgreich. Quellgleichheit wurde gezielt überprüft.",
+      "remaining": "Auf dem aktuellen Kandidaten echten Dateidialog, Wiederherstellung, Neustart und Abbruch-/Crashgrenzen mit synthetischem Buch prüfen. Tablet-Rest sowie vollständige Sync-Koordination bleiben getrennt. Keine leeren UI-Felder als neue native Autorität interpretieren.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 458,
+      "title": "Zeichenblatt: geringe Rasterabweichung nach Undo/Redo bei identischem Vektormodell untersuchen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/458",
+      "state": "open",
+      "status": "Vorhandener Zeichenfix; Pixelabnahme offen",
+      "assessment": "Der gemeinsame Zeichenabschluss ist bereits über drawing-finish-patch.json kanonisiert. Der Live- und Replaypfad verwendet den vorhandenen Fix 61ad9ac6; eine weitere Lockerung des Pixelvergleichs wäre kein Produktfix.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/tools/project_ui.py",
+        "Magnolie-Organizer-macOS-Beta/tests/test_host.py"
+      ],
+      "commits": [
+        "61ad9ac6cafc717314032c87543687e54ad464f6"
+      ],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "Manifest-/Projektionsvergleich und vorhandene Zeichenregressionen geprüft. Frühere grüne Mac-Gates gelten für ihre jeweilige Kombination aus Port- und alter Desktopquelle.",
+      "remaining": "Native Pixel-/Eingabeprobe auf aktueller WKWebView samt Screenshot/Hash wiederholen. Der gesonderte Tablet-RGBA-Befund wird nicht als behoben behauptet.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 464,
+      "title": "Serientermine: verschiedene Ausnahmen am selben Zielzeitpunkt werden zusammengefaltet",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/464",
+      "state": "open",
+      "status": "Vorhandener Identitätsfix übernommen",
+      "assessment": "Der vorhandene Occurrence-Vertrag unterscheidet Quelle, Wire-UID, Master-/RID-Zuordnung und rohe Parameter. Die gemeinsame Normalisierung und der Portadapter sind bereits im Zweig; gleiche Zielzeit allein ist keine Duplikatidentität.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/tools/project_ui.py"
+      ],
+      "commits": [
+        "4546356d3d87ab0f9b8b8fd57ca5ec8b24950b7a",
+        "b4ff5f19084f01d1882eef1f70b03b421d9406d2"
+      ],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "Vorhandene Commits 4546356d und b4ff5f19 geprüft. Die aktualisierte aktuelle UI besteht 29 Occurrence-Prüfungen; historische Adapterinversen bleiben eigene Orakel.",
+      "remaining": "Aktuelle native Import-/Save-/Reopenmatrix offen. Bei Altbestandskennungen den ergänzenden Patch #465 beachten; gespeicherte doppelte Paare nicht heuristisch zusammenfalten.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 465,
+      "title": "ICS-Altbestand: verbleibende Port-Abnahme und exakte Reparatur bereits gespeicherter Ausnahme-Duplikate",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/465",
+      "state": "open",
+      "status": "Neuer Teilfix: native Aliasbelege anbinden",
+      "assessment": "Der Swift-Reader erzeugte legacyAndroidAliases, main.swift übertrug jedoch nur document und verwarf diese Belege. Der Patch sendet eine getrennte response und registriert den Sidecar flüchtig, an Quellhash, Zeilenidentität, vollständige RID und konkreten Buchstand gebunden. Die vorhandene gemeinsame Auswahl-/Merge-Logik bleibt zuständig; nur erneutes Hashen wird durch den nachgewiesenen nativen Beleg ersetzt. Der neue klassische ICS-Dateiweg #785 erhält denselben ausschließlich transienten Belegvertrag: kanonische RID-/UID-Prüfung und alter Android-Alias sind an die tatsächlich ausgewählten vollständigen Bytes gebunden, auch bei ZIP.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarImport.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift",
+        "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/LegacyAndroidAliasEvidenceTests.swift",
+        "Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py",
+        "Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py"
+      ],
+      "commits": [
+        "52a22ff8c14244cd79a4267fe875cef9bfcf8cd4",
+        "4e4de89025d3d9f9cba932a217a8de13425b44f9"
+      ],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "101 neue UI-Prüfungen: zweimaliger Wiederimport, Save-Nutzlast/Reopen, sechs Identitätsgrenzen, fünf Mehrdeutigkeiten, 14 manipulierte Bindungen, 1001 Termine sowie konkurrierende Buchänderung. Der alte Adapter ignoriert den Sidecar im gezielten Probeaufbau ohne eingespritztes WebCrypto. Ein neuer Swift-DTO-Test ist vorbereitet, nicht ausgeführt. Zusätzlich prüft test_import_helper.py den neuen ICS-Sidecar gegen den bekannten festen Altalias und gegen den unveränderten aktuellen Desktopparser; diese Pythonprüfung ist kein Swift-/Pickerbeleg.",
+      "remaining": "Keine automatische Reparatur bereits doppelt gespeicherter Bücher. Exakte bestätigte Paar-/Referenzreparatur, Tablet-Rest und echte AppKit/WKWebView-/Datenträgerabnahme bleiben offen. Keine Behauptung über fehlendes WebCrypto eines installierten WebKit.",
+      "documentation": "contracts/macos-465-native-calendar-alias-adoption.md",
+      "relatedIssues": [
+        464,
+        785
+      ],
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 468,
+      "title": "Zeichenblatt: Pointerup-Korrektur in Portprojektionen übernehmen und native Eingabe abnehmen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/468",
+      "state": "open",
+      "status": "Vorhandener Mac-Pointerfix belegt",
+      "assessment": "Der Pointerrelease-Fix aus cbdc0876 ist im gemeinsamen drawing-finish-Manifest unverändert vorhanden und wird von der Mac-Projektion angewendet.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/tools/project_ui.py"
+      ],
+      "commits": [
+        "cbdc0876ea31015a334d64c36b6f63ff3497053f"
+      ],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "Run 42562106430 bestand nativ auf Intel und ARM64. Der genaue Portcommit und die damalige Desktop 067c-Basis sind dokumentiert; keine aktuelle UI-/Paketabnahme daraus abgeleitet.",
+      "remaining": "Nach der Umstellung #783 auf aktuellen Quellen erneut reale Eingabe/Pointerup prüfen. Der offene Tablet-Teil ist durch diesen Mac-Beleg nicht erledigt.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 472,
+      "title": "Tablet-Abnahme: leere UI-Epochenplatzhalter vom nativen Speichervertrag unterscheiden",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/472",
+      "state": "open",
+      "status": "Kein zusätzlicher Mac-Laufzeitfehler bestätigt",
+      "assessment": "Das Issue behandelt leere UI-Epochenplatzhalter im Tablet-Testvergleich. Der Mac hält seine native Epoche über den bestehenden Speicher-/Restorevertrag fest. Ein globales Entfernen solcher Felder würde den Vertrag abschwächen.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/OrdinarySaveEpochPolicy.swift"
+      ],
+      "commits": [],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "Mac-Epochenpinning, OrdinarySaveEpochPolicy und Restorepfade mit dem Issue abgeglichen. Kein neuer Mac-Produktpatch aus diesem Tablet-Comparatorbefund abgeleitet.",
+      "remaining": "Strengen nativen Vergleich behalten. Bei aktueller Mac-Abnahme erst dauerhaft gespeicherte Epoche und danach UI-Abbildung vergleichen; den Tablet-Testfehler separat bearbeiten.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 511,
+      "title": "Fortsetzung #455: opaque Unicode-JSON-Schlüssel verlustfrei bis zum nativen Mac-Buch erhalten",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/511",
+      "state": "open",
+      "status": "Neuer Teilfix: bytegenaue Verlustprüfung",
+      "assessment": "Document.assertNoLoss verwendete Swift-Stringgleichheit für Schlüssel und Datensatz-IDs; dadurch konnte eine NFC/NFD-Umbenennung einzeln gültiger Dokumente den Verlustschutz umgehen. Der Patch verwendet OpaqueUTF8Identity. Der Scanner unterscheidet echte doppelte Schlüssel von Unicode-Schlüsselpaaren, die Foundation nicht verlustfrei repräsentieren kann, und meldet letztere präzise.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/NativeBookRestore.swift"
+      ],
+      "commits": [
+        "55a312701a259c9c91d11d3dfb95efdd9a73f0eb"
+      ],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "20 Prüfungen im tatsächlichen projizierten UI sowie zwei Hostgruppen bestanden. Zehn Swift-Regressionsmethoden einschließlich AtomicStore/Recovery sind vorbereitet, hier weder kompiliert noch ausgeführt.",
+      "remaining": "Vollständige verlustfreie Unterstützung gleichzeitig vorhandener kanonisch äquivalenter JSON-Schlüssel bleibt offen. Der Schutz bleibt vor Foundation aktiv. Scanner allein nicht lockern; Parser, Speicher-, Restore-, DAV- und Swift/WK-Grenzen gemeinsam auf eine verlustfreie Darstellung umstellen.",
+      "documentation": "Magnolie-Organizer-macOS-Beta/JSON-IDENTITY-511.md",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 680,
+      "title": "Zeitzonen: nativer Linux-Journal-Restore und verbleibende macOS-/Tablet-/Android-Matrix – Rest #661",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/680",
+      "state": "open",
+      "status": "Aktuelle native Zeitmatrix noch erforderlich",
+      "assessment": "Die normativen Zeitquellen und gemeinsame UI/Worker-Logik sind vorhanden. Aus früheren Linux- oder Mac-Core-Prüfungen folgt kein aktueller vollständiger Mac-Journal-/Neustartnachweis.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CalendarTimeContext.swift",
+        "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/NormativeTimeZoneTests.swift",
+        "Magnolie-Organizer-macOS-Beta/tools/check_calendar.py"
+      ],
+      "commits": [],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "Quellen und bestehender Abnahmeumfang des Issues abgeglichen. Der Catch-up-Patch #783 macht erstmals die aktuelle gemeinsame Quelle im Mac-Kandidaten eindeutig nachvollziehbar. #785 serialisiert dieselbe normative TZDB-Quelle in gebündelte TZif-Dateien: 439 Regeln bestanden den vollständigen Roundtrip, alle 597 Namen/Aliasse wurden vom echten Python-ZoneInfo gelesen. Dieser Parsernachweis ersetzt weder Swift/WKWebView noch nativen Restore.",
+      "remaining": "37 unveränderte Referenzuhren in Main und echtem Worker, UTC→NY→UTC, DATE/floating, eigene VTIMEZONE, historische Sekunden, Gap/Fold sowie nativen Restore und getrennten Neustart mit Quell-/Paket-/Payloadhash prüfen. Kein OS-Timer-/Hintergrunddienstnachweis aus Zeitberechnung ableiten.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 682,
+      "title": "Kalenderanhänge: echte HTTPS-/Clipboard-Handler und native Portmatrix – Rest #651",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/682",
+      "state": "open",
+      "status": "Handler vorhanden; echte OS-Abnahme offen",
+      "assessment": "CommunicationLaunchPolicy und Host-Generationguard begrenzen Kalenderanhangs-URLs bereits. Die gemeinsame Formular-/Metadatenkorrektur kann übernommen werden; AppKit-Zwischenablage und tatsächlicher HTTPS-Handler bleiben eigene native Anschlüsse.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CommunicationLaunchPolicy.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift"
+      ],
+      "commits": [],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "Vorhandene Mac-Policy-/Hostquellen und Issue-Nachweise geprüft; keine zusätzliche Mac-Quellregression reproduziert.",
+      "remaining": "Mit synthetischem Buch die sieben URLfälle und tatsächliches Speichern/Neuöffnen auf Mac prüfen. Echten HTTPS-Aufruf und Clipboard nur im ausdrücklich freigegebenen Testweg abnehmen; bestehende Geräte-/Browser-/Kontenpausen nicht aus allgemeinem Catch-up aufheben.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 683,
+      "title": "CalDAV: echter Testserver, Legacy-Baselines und Konfliktmatrix nach installierter Farbformularabnahme – Rest #652",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/683",
+      "state": "open",
+      "status": "Codec vorhanden; DAV-Koordination offen",
+      "assessment": "Der historische Mac-Farb-/ICS-Ansatz 0c367735 und native DAV-Bausteine sind vorhanden. Sie ersetzen keine vollständige Synchronisationskoordination mit Konflikten, Löschungen und dauerhaft bestätigtem lokalen Commit.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarExport.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/DAVSyncPlanner.swift"
+      ],
+      "commits": [
+        "0c36773585617747c902fdfb62693ce28148f48e"
+      ],
+      "commentsFile": "older-mac-issues.json",
+      "checks": "Quellbezug und bereits belegte Desktop-Formular-/Codecprüfungen abgeglichen. Erfolgreicher Codec oder HTTP-Status gilt nicht als bestätigter Mac-Providerabschluss.",
+      "remaining": "Geeigneten freigegebenen Testserver verwenden: Farbe setzen/ändern/leeren, If-Match/412, parallele Remoteänderung, alte cleanHash-Baseline, unveränderte fremde Parameter, Reimport/erneuter Sync/Neustart. Mac-Apple-/DAV-Wege separat anbinden, kein Notes-Protokoll als Ersatz. #786 ergänzt separat einen begrenzten Apple-Systemkontenfeldabgleich; dessen lokaler EventKit-/Contacts-Readback ist kein belegter CalDAV-Serverabschluss.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 721,
+      "title": "Mac/iPhone: AirPlay-Bildschirmspiegelung mit UxPlay integrieren und nativ prüfen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/721",
+      "state": "open",
+      "status": "Vorhandener AirPlay-Patch in Gesamtfolge",
+      "assessment": "Der vorhandene Quellpatch integriert UxPlay samt Bibliotheken und nativem Start/Stop/PIN. Er bleibt Teil der vollständigen Übergabefolge. AirPlay ist der Bildschirm-/Tonweg; KDE Connect und die Apple-Datenanschlüsse bleiben eigenständige mögliche Verbindungen.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/AIRPLAY.md",
+        "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/AirPlayHost.swift"
+      ],
+      "commits": [
+        "25c5a849a89d8846b211ff98922a708dcc7e127d"
+      ],
+      "commentsFile": "new-mac-issues.json",
+      "checks": "Verfügbarer Commit 25c5a849, AIRPLAY.md und AIRPLAY-BUILD.md sowie Abhängigkeit zur gemeinsamen Mac-Folge geprüft. Kein neuer nativer Geräteerfolg behauptet.",
+      "remaining": "Auf Intel/ARM64 tatsächlich bauen, Bibliotheken/Signierung prüfen und echtes iPhone für Kopplung, Bild/Ton, Rotation, Abbruch/Neuverbindung abnehmen. Spiegelung erteilt weder Fernsteuerungs- noch Daten-Syncrechte.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 749,
+      "title": "Medienabgleich: Originalformate über JPEG/PNG und MP4/MOV hinaus, einschließlich iPhone",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/749",
+      "state": "open",
+      "status": "Mac-Format-/Transportmatrix als eigener Rest",
+      "assessment": "Das Issue betrifft echte Medienbytes und Originalformate. Die gemeinsame UI kann aktuelle Korrekturen erhalten; ein Linux-/Windows- oder Notes-Medienadapter wird dadurch nicht zum Mac-/iPhone-Adapter. Vorhandenes KDE Connect bleibt ausdrücklich als Dateiweg vorgesehen.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/IPHONE-INTEROPERABILITY.md",
+        "Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md"
+      ],
+      "commits": [],
+      "commentsFile": "new-mac-issues.json",
+      "checks": "Mac-Quellstand und vorhandene Datei-/Notizimportgrenzen geprüft. Es gibt im Mac-Command-Enum derzeit keine implementierte KDE-Medien-Syncaktion. Dies ist eine Anschlusslücke, kein Ausschluss der vorhandenen KDE-App.",
+      "remaining": "Pro tatsächlich angebotenem Client/Format byteidentisches Original samt Metadaten, Übertragung und Wiederherstellung prüfen. Nicht pauschal über Dateiendung freigeben; keine automatische Transkodierung. Native KDE-Fähigkeit/CLI beziehungsweise App-Übergabe getrennt nachweisen; keine eigene Notes-App voraussetzen.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 770,
+      "title": "Mac/iPhone: ausgewählte Systemkalender-Termine nativ in Magnolie übernehmen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/770",
+      "state": "open",
+      "status": "Vorhandener Kalenderanschluss plus Folgefixes",
+      "assessment": "Die bewussten lokalen Kalenderkopien aus 2b3a7cea und der Einstellungsdialogfix #773 sind bereits enthalten. Der neue Patch #778 ergänzt korrekte Fehlerphasen nach dem Anhängen; #771 begrenzt den gesonderten allgemeinen EventKit-Reader.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Projection/system-calendar-import.js",
+        "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemCalendarImportHost.swift",
+        "Magnolie-Organizer-macOS-Beta/tests/system_calendar_import.mjs"
+      ],
+      "commits": [
+        "2b3a7cea5093b80de1dd14bdf5afaf84231d66ad",
+        "fbb50c2c9146091a778fdb45608b315a67d64899",
+        "a26bb1302f3f5b772b83c9530f3098df34262f20",
+        "e89d2eec099a933ddbad4bdc529eb7f7698af2ed"
+      ],
+      "commentsFile": "new-mac-issues.json",
+      "checks": "Aktuelle Kalender-UI: 327 Prüfungen einschließlich Darstellungsfehler, vorhandener Kopien, exakter Save-Nutzlast, Wiederholen des Speicherns und Wiedererkennung. Native Antworten/ACKs sind synthetisch.",
+      "remaining": "EventKit-Berechtigung, Auswahl, erneuten Quellenabruf und dauerhafte Speicherung auf Intel/ARM64 abnehmen. Die übernommenen Termine bleiben lokale Kopien; automatische Updates/Löschungen/Rückschreiben oder Notes-Sync werden nicht freigeschaltet. Der ausdrücklich gebundene manuelle Feldabgleich wird getrennt in #786 behandelt; Kopierherkunft allein erteilt dafür weiterhin keine Berechtigung.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 771,
+      "title": "Mac EventKit: Vierjahresgrenze des allgemeinen Quellenlesers darf keinen vollständigen Zeitraum vortäuschen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/771",
+      "state": "open",
+      "status": "Neuer Fix: vollständige EventKit-Zeitfenster",
+      "assessment": "Der allgemeine requireWindow-Guard erlaubte 1464 Tage und konnte damit die Vierkalenderjahresgrenze einer EventKit-Abfrage überschreiten. Er begrenzt den Zeitraum jetzt konservativ auf 366 verstrichene Tage, bevor die native Abfrage beginnt. Der neue #770-Kopierweg verwendete diese Grenze bereits.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemSourcePolicy.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccounts.swift",
+        "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemSourcePolicyTests.swift"
+      ],
+      "commits": [
+        "e89d2eec099a933ddbad4bdc529eb7f7698af2ed"
+      ],
+      "commentsFile": "new-mac-issues.json",
+      "checks": "Sieben Datums-/Dauerfixtures unabhängig nachgerechnet; bestehende Kalenderprüfung bestanden. Vier neue und zwei angepasste Swift-Testmethoden sind vorbereitet, hier nicht ausgeführt. Kein unvollständiges Ergebnis wird als vollständiger großer Zeitraum ausgegeben.",
+      "remaining": "Produktentscheidung bewusst enger: Aufrufer müssen größere Bereiche getrennt auswählen. Keine unbewiesene Segmentierungs-/Deduplizierlogik. EventKit-Kompilierung und reale native Grenzabnahme offen.",
+      "documentation": "contracts/macos-771-eventkit-window.md",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 772,
+      "title": "Mac: ausgewählte Apple-Notizen direkt als lokale Textkopien übernehmen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/772",
+      "state": "open",
+      "status": "Vorhandene Apple-Notes-Kopien plus Folgefix",
+      "assessment": "Der direkte NSAppleScript-Anschluss 6ffe768f, der Entwurfsschutz #774 und die neue Speicherdiagnose #778 sind in der Folge enthalten. Die vorhandene Apple-Notes-App liefert bewusst ausgewählte Textkopien; dies ist keine neue Magnolie-Notes-Begleitapp.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Projection/apple-notes-import.js",
+        "Magnolie-Organizer-macOS-Beta/APPLE-NOTES-IMPORT.md",
+        "Magnolie-Organizer-macOS-Beta/tests/apple_notes_import.mjs"
+      ],
+      "commits": [
+        "6ffe768f382fbbca3e8f531c93f9ee197eba59a7",
+        "f32f4daa71acea7f76fb9f58ff0f8d4794f728ab",
+        "a26bb1302f3f5b772b83c9530f3098df34262f20"
+      ],
+      "commentsFile": "new-mac-issues.json",
+      "checks": "Aktuelle Apple-Notes-UI: 195 Prüfungen einschließlich Entwurfs-/Kontoschutz, Fehler vor/nach Anhängen, Save-NACK/ACK sowie lokalem Speichern und Wiedererkennung. Native Quellen sind synthetisch.",
+      "remaining": "Apple-Notes-Dictionary, Automation-Freigabe, reale Auswahl/Konten und Swift/AppKit auf beiden Architekturen prüfen. Anhänge/geschützte Inhalte und kontinuierlicher Rückabgleich bleiben begrenzt/offen. #786 schafft keinen Apple-Notes-Rückabgleich; dafür fehlen weiterhin ein belegter öffentlicher Schreibvertrag sowie eigene Konflikt-/Recovery-Prüfungen.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 773,
+      "title": "Mac-Kalenderimport: offener Einstellungsdialog blockiert die native Vorschau",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/773",
+      "state": "open",
+      "status": "Vorhandener Einstellungsdialogfix beibehalten",
+      "assessment": "Der vorhandene Kalender-Settings-Guard fbb50c2c schließt die bestätigte unveränderte Einstellungsansicht vor der nativen Vorschau und bewahrt echte Entwürfe. Eine zweite Implementierung ist nicht nötig.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Projection/system-calendar-import.js",
+        "Magnolie-Organizer-macOS-Beta/tests/system_calendar_import.mjs"
+      ],
+      "commits": [
+        "fbb50c2c9146091a778fdb45608b315a67d64899",
+        "a26bb1302f3f5b772b83c9530f3098df34262f20"
+      ],
+      "commentsFile": "new-mac-issues.json",
+      "checks": "Im aktuellen Kalendervertrag mit 327 UI-Prüfungen enthalten; ursprünglicher Fix und Folgepatch #778 verlinkt.",
+      "remaining": "Nativen AppKit-Dialogfluss und Fokus auf dem aktuellen Kandidaten prüfen. Gemeinsame Quellenänderungen dürfen den Entwurfsschutz nicht umgehen.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 774,
+      "title": "Mac-Notes-Import: ungespeicherte Kontoeingaben beim automatischen Schließen erhalten",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/774",
+      "state": "open",
+      "status": "Vorhandenen Kontoeingabeschutz beibehalten",
+      "assessment": "Der vorhandene Notes-Draftguard f32f4daa erhält noch nicht gespeicherte Kontoeingaben beim Übergang zur nativen Auswahl. Die neue Speicherdiagnose #778 ergänzt einen anderen Fehlerzeitpunkt.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Projection/apple-notes-import.js",
+        "Magnolie-Organizer-macOS-Beta/tests/apple_notes_import.mjs"
+      ],
+      "commits": [
+        "f32f4daa71acea7f76fb9f58ff0f8d4794f728ab",
+        "a26bb1302f3f5b772b83c9530f3098df34262f20"
+      ],
+      "commentsFile": "new-mac-issues.json",
+      "checks": "Im aktuellen Apple-Notes-Vertrag mit 195 UI-Prüfungen enthalten; keine pauschale Erfolgsmeldung bei unbestätigtem Speichern.",
+      "remaining": "Echten Notes-/AppKit-Übergang, Abbruch und Fokus auf beiden Mac-Architekturen abnehmen. Keine neue Begleitapp und kein automatischer Konten-/Notes-Sync.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 775,
+      "title": "Mac/iPhone: ausgewählte Systemkontakte nativ als lokale Kopien übernehmen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/775",
+      "state": "open",
+      "status": "Vorhandene Kontaktkopien plus Austauschfix",
+      "assessment": "Der Contacts-Anschluss a706c571 ist enthalten. #778 präzisiert die Fehlerphase nach dem Anhängen; #776 überträgt den Kontaktgeburtstagsvertrag in die tatsächlichen gemeinsamen Linux-/Windows-Quellen und entfernt die doppelte Mac-Sonderimplementierung.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Projection/system-contact-import.js",
+        "Magnolie-Organizer-macOS-Beta/SYSTEM-CONTACT-IMPORT.md",
+        "Magnolie-Organizer-macOS-Beta/tests/system_contact_import.mjs"
+      ],
+      "commits": [
+        "a706c57132d3646139464d7d432abe3f860514d6",
+        "a26bb1302f3f5b772b83c9530f3098df34262f20",
+        "c9c3ebebd621e3562c601a2fa6d49909ca42fadd"
+      ],
+      "commentsFile": "new-mac-issues.json",
+      "checks": "246 Mac-UI-Prüfungen plus 16 absichtlich beschädigte Anker; zusätzlich 321 Prüfungen an beiden Desktop-UIs für Editor, MCP, JSON/Restore, ODS und Namensvettern. Herkunft bleibt passiv.",
+      "remaining": "Contacts.framework, reale Konto-/Kontaktidentitäten, Fotos und dauerhafte Speicherung nativ prüfen. Kontaktkopien erteilen keine Quellschreib-/Sync-Rechte; bestehende beschädigte Jahrestage nicht anhand von Namen reparieren. Der ausdrücklich gebundene manuelle Feldabgleich wird getrennt in #786 behandelt; Kopierherkunft allein erteilt dafür weiterhin keine Berechtigung.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 776,
+      "title": "Kontaktkopien: reine Kontaktgeburtstage aus dem Mac-Patch beim JSON-Austausch plattformübergreifend prüfen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/776",
+      "state": "open",
+      "status": "Neuer Fix: Kontaktgeburtstage plattformübergreifend",
+      "assessment": "Vor dem Fix wurde 1604-02-29 in beiden Desktop-UIs zu --02-29 und ein fremder namensgleicher Jahrestag verknüpft/überschrieben. Der enge public-fields/contact-only-Vertrag gilt nun in beiden kanonischen Quellen für Normalisierung, Editor, Mutator/MCP, JSON-Import, Kontaktkarte und ODS. Die Mac-Projektion prüft 16 genaue gemeinsame Anker.",
+      "files": [
+        "magnolie-organizer/web/anwendung.js",
+        "magnolie-organizer-windows/app/web/anwendung.js",
+        "magnolie-organizer-windows/tests/contact-copy-birthday.js"
+      ],
+      "commits": [
+        "c9c3ebebd621e3562c601a2fa6d49909ca42fadd"
+      ],
+      "commentsFile": "new-mac-issues.json",
+      "checks": "321 Desktop-Assertions, 246 Mac-UI-Prüfungen, 16 Driftanker und 29 Occurrence-Prüfungen bestanden; bestehende birthday-display-Regressionen auf beiden UIs grün. 38 PO-Kataloge kompiliert. Ein unabhängiger Reviewer wiederholte die zentralen Läufe erfolgreich.",
+      "remaining": "Native Datenträger-/Installationsabnahme offen. Ältere installierte Versionen ohne Patch bleiben inkompatibel. Der unabhängige bestehende Lokalisierungstest scheitert an Restore media in de.po ohne POT-Eintrag; kein Erfolg dieses breiteren Gates behauptet. Keine Notes-/Syncadapter geändert.",
+      "documentation": "contracts/macos-776-contact-only-birthday-exchange.md",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 777,
+      "title": "Mac/iPhone: ausgewählte Apple-Erinnerungen als lokale Aufgaben übernehmen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/777",
+      "state": "open",
+      "status": "Vorhandene lokale Erinnerungskopien abgesichert",
+      "assessment": "Der vollständige Ausgangsstand 616069f1 enthält bewusst ausgewählte Apple-Erinnerungen als eigenständige lokale Aufgaben. Der neue #779-Test prüft den tatsächlichen Austausch mit Linux/Windows und Rückkehr zum Mac.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Projection/system-reminder-import.js",
+        "Magnolie-Organizer-macOS-Beta/SYSTEM-REMINDER-IMPORT.md",
+        "Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs"
+      ],
+      "commits": [
+        "616069f15fed21d8d8d05c8ef795f4ed21bd059c",
+        "540eae279638ee260cdaf392096fca922adc02f1"
+      ],
+      "commentsFile": "new-mac-issues.json",
+      "checks": "369 vorhandene Reminder-UI-Prüfungen sowie 80 neue Assertions für beide Desktop-UIs und Mac-Wiederimport. Unbekannte Herkunftsfelder bleiben erhalten; keine automatische Alarm-/Sync-/Delegationsfreigabe.",
+      "remaining": "31 vorhandene Swift-Testmethoden und echte EventKit-/Konten-/Save-/Reopenabnahme sind weiterhin nativ auszuführen. Hierarchie, Serien, Alarme und nicht angebotene Quellfelder nicht erfinden. Kein Rückabgleich durch bloße Herkunftsmetadaten. Der ausdrücklich gebundene manuelle Feldabgleich wird getrennt in #786 behandelt; Kopierherkunft allein erteilt dafür weiterhin keine Berechtigung.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 778,
+      "title": "Mac: Speicherzustand nach Darstellungsfehler bei Kalender-, Notes- und Kontaktkopien prüfen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/778",
+      "state": "open",
+      "status": "Neuer Fix: ehrlicher Speicherzustand nach Rendererfehler",
+      "assessment": "Kalender-, Apple-Notes- und Kontaktimport hängten Kopien an, konnten danach aber nur einen allgemeinen Rendererfehler melden. Drei reproduzierte Regressionen belegen den Pfad. appended/saveConfirmed trennen jetzt Fehler vor Mutation, unbestätigtes Speichern, tatsächliches Save-NACK und bereits beobachtetes ACK; Kopien bleiben für einen Speicherretry erhalten.",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Projection/system-calendar-import.js",
+        "Magnolie-Organizer-macOS-Beta/Projection/apple-notes-import.js",
+        "Magnolie-Organizer-macOS-Beta/Projection/system-contact-import.js"
+      ],
+      "commits": [
+        "a26bb1302f3f5b772b83c9530f3098df34262f20"
+      ],
+      "commentsFile": "new-mac-issues.json",
+      "checks": "Getrennte UI-Läufe: Kalender 327 Prüfungen, Apple Notes 195, Kontakte 246; keine addierte Gesamt-Testzahl. 52 neue Assertions prüfen Englisch/Deutsch, Bestands- und Herkunftserhalt, genaue Retry-Savebytes, Wiederöffnen sowie korrekte Fehlerphase. Native Quellen/Save-ACKs synthetisch.",
+      "remaining": "Swift/AppKit/WKWebView und echte dauerhafte Speicherung auf Intel/ARM64 nachprüfen. Kein Rollback und keine erfolgreiche Speicherung erfinden. Der zusätzlich gefundene Dateinotiz-Callbackfehler ist getrennt unter #781 behoben.",
+      "documentation": "contracts/macos-778-import-save-diagnostics.md",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 779,
+      "title": "Aufgabenkopien: Herkunft beim JSON-Austausch mit Linux und Windows prüfen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/779",
+      "state": "open",
+      "status": "Regression belegt: vermuteter Verlust tritt nicht auf",
+      "assessment": "Der ursprüngliche Befund betrachtete nur den expliziten Aufgabenaufbau. Der vollständige Normalisierer ruft anschließend bewahreUnbekannteFelder auf und erhält nativeReminderImport/nativeReminderRecord bereits. Deshalb ist kein zusätzlicher Produkt-Spread nötig. Der Patch ergänzt echte Austauschregressionen und präzisiert den Issue-Befund.",
+      "files": [
+        "magnolie-organizer/web/anwendung.js",
+        "magnolie-organizer-windows/app/web/anwendung.js",
+        "magnolie-organizer-windows/tests/native-reminder-provenance.js",
+        "Magnolie-Organizer-macOS-Beta/tools/check_reminder_desktop_roundtrip.py"
+      ],
+      "commits": [
+        "540eae279638ee260cdaf392096fca922adc02f1"
+      ],
+      "commentsFile": "new-mac-issues.json",
+      "checks": "80 Assertions auf tatsächlichen Linux-/Windows-Frontends und projiziertem Mac: JSON laden, Aufgabenformular bearbeiten, Save-Nutzlast, Journal/Backup/Archivcallbacks, Wiederöffnen und Mac-Wiederimport ohne Duplikat/Überschreiben. Unbekannte/Unicode-Metadaten und Papierkorbschutz erhalten.",
+      "remaining": "Die Prüfung gilt für die untersuchten Quellen. Native Datenträger-/Dialog-/Paketabnahme und beliebige alte installierte Versionen sind dadurch nicht belegt. Herkunft aktiviert keine Synchronisation oder Alarme.",
+      "documentation": "contracts/macos-779-reminder-provenance.md",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 781,
+      "title": "Mac-Dateinotizen: Import nach Darstellungsfehler im Snapshot-Callback beenden und Speicherzustand erhalten",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/781",
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Projection/note-file-import.js"
+      ],
+      "commits": [
+        "e925f9f44de0fedbdd222908e0a05e7229a3bb70"
+      ],
+      "status": "Neuer Fix: Dateinotiz-Promise zuverlässig abschließen",
+      "assessment": "Ein Rendererfehler im asynchronen Snapshot-Callback lag außerhalb des äußeren try/catch: Notizen waren angehängt, die Import-Promise blieb offen. Der Patch fängt den Callbackfehler ab, beendet die Operation, plant das Speichern vor dem Rendern und prüft nach ACK Buchzustand und Identität. Die Fehlernachricht über die Swift/WK-Brücke ist begrenzt.",
+      "checks": "41 tatsächliche Host-/DOM-Prüfungen: Literaltext/Anhänge, Snapshot-/Save-NACK, Rendererfehler EN/DE, Promise-Abschluss, Originalsicherung, exakte Retrybytes, Reopen, falsches ACK und entfernte importierte Notiz. Baseline zeigte timeout=true bei bereits angehängter Kopie.",
+      "remaining": "Swift-Kompilierung, echter Dateidialog und dauerhafter Mac-Speicher-/Neustartnachweis offen. Dateiimport ist bewusst additiv; Wiederholen heißt hier Speichern der vorhandenen Kopien, nicht automatisch erneut dieselbe Datei importieren.",
+      "documentation": "contracts/macos-781-note-file-completion.md",
+      "state": "open",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 783,
+      "title": "macOS-Kandidaten bauen trotz aktuellem Checkout weiter die veröffentlichte Desktopbasis v2.0.30",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/783",
+      "files": [
+        ".github/workflows/ports-2.0.30.yml",
+        "Magnolie-Organizer-macOS-Beta/tools/candidate_sources.py",
+        "Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py",
+        "Magnolie-Organizer-macOS-Beta/tools/check_current_sources.py",
+        "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+        "contracts/macos-cloud-environment-2026-11-26.json"
+      ],
+      "commits": [
+        "0a14d268913337bd436e560ab47f670ed43d89c3",
+        "2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa",
+        "c903f436fe7853d5f92b7d40b64ed9121bd5d6fa",
+        "1a24abefcfdc58689fb5291cb5c4c60c1af189d5",
+        "7c9cf20394aef73d261a77f746ebca7340826d30"
+      ],
+      "status": "Neuer Catch-up-Fix: tatsächliche aktuelle Quellen",
+      "assessment": "Der aktive Mac-Job stellte nach dem Checkout alle gemeinsamen Produktquellen auf 067c3893/v2.0.30 zurück. Der Fix verwendet für Mac den unveränderten konkreten Checkout und bindet Quell-/Buildbelege daran. Der Tablet-Job und historische Referenzorakel behalten ihre getrennten Baselines.",
+      "checks": "7/7 funktionale Quelltests mit SHA-1 und gesondert 7/7 mit SHA-256 bestanden; direkte Git-Blob-/Modusbindung erkennt auch versteckte assume-unchanged-/skip-worktree-Abweichungen. Am geprüften #776-Integrationsstand vor #785/#786 bestand die tatsächliche generierte UI 27 Assertions, 30 originale Notizsuchtests und die Abweisung 181 nicht implementierter Desktopbefehle ohne native Zustellung; gemeinsamer Frontend-SHA256 8166790025d0ba8bf4495b73346ba42cbb6eac8dd98c918eea40ec696ef69b63. Zwei unabhängige Reviews bestanden. Zwei Swift-Capability-Tests waren vorbereitet, hier nicht ausgeführt. #121/#783 ergänzt den tatsächlichen Cloud-Umgebungsbeleg und konkrete native VM-Prüfschritte. Der abschließende dateibasierte Adaptertest benötigt keinen Importbundle-Bootstrap mehr: 7c9cf203 lädt den neuen Helper erst bei vollständiger Inventur/Projektion. Historische Ablehnungsregeln und unabhängige Python-/JS-Adaptervergleiche bleiben erhalten.",
+      "remaining": "Aktuelle gemeinsame Quellen aktivieren nur konkret angebundene native Fähigkeiten. Keine eigene Notes-Begleitapp; vorhandenes KDE Connect und Apple-Programme bleiben passende Wege. Die Datei-/Parserlücke wird durch #785 und der begrenzte Systemabgleich durch #786 gesondert implementiert und geprüft. Neue ARM64-/Intel-, macOS-12.7-, WKWebView- und Bundleabnahmen bleiben offen. Historische grüne Läufe verwendeten Desktop 067c und belegen die neue Gesamtfolge nicht.",
+      "documentation": "Magnolie-Organizer-macOS-Beta/CURRENT-SOURCE-CANDIDATE.md",
+      "dependsOnIssues": [
+        776
+      ],
+      "state": "open",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 784,
+      "title": "Mac-Geräteseite: Notes-Voraussetzung und endlose Statusanzeige durch passende Apple-/KDE-Dateiwege ersetzen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/784",
+      "state": "open",
+      "status": "Neuer Fix: passende Mac-Geräte- und Importseite",
+      "assessment": "Die tatsächlich projizierte Geräteseite zeigte eine Magnolie-Notes-Begleitapp-Voraussetzung, dauerhafte Ladefelder und nicht angebundene Medienaktionen. Der Mac-spezifische Hook ersetzt dies durch sechs vorhandene bewusst gestartete Apple-/Dateiimporte, passende EN/DE-Texte und einen ehrlichen KDE-Connect-/AirDrop-Dateiweg. Er aktiviert weder Notes-Kopplung noch ein nicht implementiertes KDE-Protokoll. Wiederholte oder konkurrierende Klicks, Save-NACK und während des Speicherns geöffnete Entwürfe sind gebunden.",
+      "commits": [
+        "9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa"
+      ],
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Projection/device-import-page.js",
+        "Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json",
+        "Magnolie-Organizer-macOS-Beta/tools/project_ui.py",
+        "Magnolie-Organizer-macOS-Beta/tests/device_import_page.mjs"
+      ],
+      "documentation": "contracts/macos-784-device-import-page.md",
+      "dependsOnIssues": [
+        770,
+        772,
+        775,
+        777,
+        781,
+        783
+      ],
+      "checks": "118 Prüfungen an der tatsächlichen projizierten UI in EN/DE sowie zwei absichtlich beschädigte Projektionsanker bestanden. Der dokumentierte gemeinsame Lauf der neun bestehenden/neuen Hostgruppen bestand in 40,367 s; die Einzelumfänge stehen im Vertrag und werden nicht addiert. Ein unabhängiger Review wiederholte die 118 Checks und prüfte Discard-Retry für alle sechs Aktionen. Native Antworten/Save-ACKs waren synthetisch.",
+      "remaining": "Echte WKWebView, Dateiauswahl, KDE-/AirDrop-Transport und Systemberechtigungen in einer passenden macOS-VM abnehmen. Ein vorhandener externer KDE-Client ist kein schon implementierter direkter Magnolie-Steuerungsadapter. Die klassische Formatparität folgt separat aus #785; die manuelle Systemabgleichsfunktion aus #786. Zwei geprüfte Sprachen sind keine Abnahme aller Kataloge.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 785,
+      "title": "Mac-Importparität: aktuelle OR6-/Dateiparser und vollständige native Importwege anbinden",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/785",
+      "state": "open",
+      "status": "Neuer Importpatch: aktuelle klassische Formate und OR6; Archiv-/Discovery-Rest offen",
+      "assessment": "Der frühere Mac-Dispatcher nahm nur art=ics an, obwohl die aktuelle gemeinsame UI weitere Formate anbot. Der Patch verbindet ICS/VCS/LCS, Lotus OR6/CSV, vCard/CSV, Claws/LDIF und deren klassische ZIP-Routen sowie die Müllterminvorschau mit dem nativen Dateipicker, einem begrenzten privaten Parserprozess und den tatsächlichen gemeinsamen Vorschau-/Merge-/Save-ACK-Pfaden. Der Build projiziert eine ausdrücklich überprüfte Closure aus aktuellem Linuxcode; magnolie_or6.py bleibt bytegleich. Keine Desktop-GUI-, Telefon-, Notes- oder Syncmodule werden im Helper gestartet. Der #465-Sidecar bleibt erhalten. macOS 12.7 bleibt Ziel, ohne System-Python-Fallback.",
+      "commits": [
+        "6341a2f1fa188a15ba63fd43bacf4dccfc148dfc",
+        "62835e02e422bfcd8ae0fccea36dac08813e42cf",
+        "6372a409b849dffa2856d8e0993cfaef96b44a3d",
+        "e2a71b5eaf2635b38f0496bb8df9bb6cbf387121",
+        "dc8036514b54dc50e3c3a2bc69e343383ff7da79",
+        "c903f436fe7853d5f92b7d40b64ed9121bd5d6fa",
+        "8d4004a99648add539450e3658f50861a6d90f32",
+        "136922870a3a3ee2caf6d6be431b00a67ff9fcce",
+        "7c9cf20394aef73d261a77f746ebca7340826d30"
+      ],
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py",
+        "Magnolie-Organizer-macOS-Beta/ImportHelper/closure-policy.json",
+        "Magnolie-Organizer-macOS-Beta/ImportHelper/helper.py",
+        "Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py",
+        "Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py",
+        "Magnolie-Organizer-macOS-Beta/Resources/ImportPython.json",
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/FileImportProtocol.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportHost.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportProcess.swift",
+        "Magnolie-Organizer-macOS-Beta/Projection/file-import.js",
+        "Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py",
+        "Magnolie-Organizer-macOS-Beta/tests/file_import.mjs",
+        "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/FileImportProtocolTests.swift"
+      ],
+      "documentation": "Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md",
+      "additionalDocumentation": [
+        "Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md"
+      ],
+      "dependsOnIssues": [
+        465,
+        776,
+        778,
+        783
+      ],
+      "checks": "tests/test_import_helper.py: 14/14 Gruppen in 26,143 s mit tatsächlichen isolierten CPython-3.12.14-Prozessen; alle 27 originalen hashgebundenen OR6-Dateien vollständig gegen aktuellen Originalparser und unabhängige bekannte Werte verglichen. Aktuelle Desktop-Goldens, ZIP-/XML-/Quell-/EOF-/Outputgrenzen, Sprach-/Länderkontext, 439 normative TZif-Roundtrips/597 Namen sowie Code-/Abhängigkeitsmanipulation geprüft. tools/check_file_import.py + tests/file_import.mjs: 90 Checks mit echten OR6-Bytes durch Helper, tatsächliche projizierte Mac-UI, reale Kontaktvorschau, synthetische Save-ACKs, Reopen, Deduplizierung, Buchdrift, falsches ACK, NACK und Rendererfehler; UI-SHA256 687613277c399ce05ca9b3f5ee6500b57b16d8d23a303e06fbf67d3ed6b022e8. Sieben Runtimebuilder-Python-Tests und der tatsächliche offizielle CPython-3.15.2-Download samt begrenzter Extraktion bestanden separat. Zehn Swift-Protokolltests sind vorbereitet, hier nicht kompiliert oder ausgeführt. Die endgültige gemeinsame Integration wird separat dokumentiert. Root wiederholte am exakten Stand c903f436 die sieben Runtimebuilder-Tests (Exit 0, 0,055 s) und die 14 Parsergruppen (Exit 0, 26,694 s); diese Wiederholungen schließen die Header-/Manifestkorrektur dc803651 ein, ersetzen aber nicht den noch getrennten finalen UI-/Gesamtlauf. Die unabhängige Runtimeprüfung belegte den zstd-Configure-Fallback mit der tatsächlichen gepinnten Quelle unter Linux; der Patch 13692287 deaktiviert die beiden optionalen Module. Der finale Root-Hostlauf und die tatsächliche aktuelle Projektion sind im Schlussnachweis verlinkt; die ursprünglichen Testtreiberfehler und ihre Korrekturen bleiben dort sichtbar.",
+      "remaining": "Codex muss private CPython 3.15.2 samt Helper auf ARM64 und Intel bauen, Mach-O/Signatur/Relokation und echten Start unter macOS 12.7 sowie neuerem Gast prüfen; danach echte Picker-, Vorschau-, Save-/Reopen- und Mülltokenpfade. Das .magnolie-Gesamtarchiv ist keine klassische ZIP-Route: gesamtarchiv_waehlen mit Kennwort-/Integritätsprüfung, Recovery, vollständiger Vorschau und nativer Restore-Transaktion verbinden. import_lokal benötigt eine tatsächlich verfügbare Mac-Quellwahl statt Linux-Profilpfaden. OR6 kann nicht mehr garantieren als die aktuelle gemeinsame Quelle; offene Detailbefunde #243/#578/#611/#615 bleiben bestehen. Keine vollständige Import-/Paketabnahme aus Python-/JSDOM-Erfolg ableiten.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json"
+    },
+    {
+      "n": 786,
+      "title": "macOS-Systemkonten: echten Apple-Kalender-, Kontakt- und Erinnerungsabgleich anbinden",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/786",
+      "state": "open",
+      "status": "Neuer Teilabgleich: gebundene Apple-Felder; native Abnahme und Vollparität offen",
+      "assessment": "Core/Provider d57ef304 und Host/UI/Ledger a0714589 ergänzen zusammen einen bewusst freigegebenen manuellen Dreiwege-Feldabgleich bestehender gebundener EventKit-Kalender-, Erinnerungs- und Contacts-Datensätze. Zuerst werden unterstützte native Zeilen mit neuen lokalen IDs angebunden; spätere einseitige Feldänderungen können in beide Richtungen übernommen werden, parallele Änderungen bleiben Konflikte. Die Freigabe bindet native Quelle, gespeichertes Buch/Epoche, Kalenderfenster und Anzeigezone. Native Identität, Baseline, frisches Lesen vor dem Schreiben, anschließender Readback, ein separat verschlüsseltes Intent-/Wiederaufnahmejournal und unabhängig zurückgelesene tatsächliche Buchbytes begrenzen den Abschluss. Bloßes UI-Save-ACK oder passive Kopierherkunft genügt nicht. Dateiimport und Systemabgleich sperren parallele Starts wechselseitig.",
+      "commits": [
+        "d57ef304417695dea5f488842bc3b49432f7bbf2",
+        "c903f436fe7853d5f92b7d40b64ed9121bd5d6fa",
+        "a071458954ce4532fa013649a09a5d346f4d7469"
+      ],
+      "files": [
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSync.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncProjection.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccounts.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncDates.swift",
+        "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncTests.swift",
+        "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/Fixtures/system-account-sync-ui.json",
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncLedger.swift",
+        "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncHost.swift",
+        "Magnolie-Organizer-macOS-Beta/Projection/system-account-sync.js",
+        "Magnolie-Organizer-macOS-Beta/Projection/system-accounts.js",
+        "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncLedgerTests.swift",
+        "Magnolie-Organizer-macOS-Beta/tests/system_account_sync.mjs"
+      ],
+      "documentation": "contracts/macos-786-native-system-sync.md",
+      "dependsOnIssues": [
+        454,
+        511,
+        775,
+        776,
+        777,
+        783
+      ],
+      "checks": "Core-/Providerstand: sieben vorhandene Host-/Projektionsgruppen bestanden in 29,175 s; dies prüft bestehende Wege und führt den neuen Swift-Core nicht aus. Neuer Agentstand 8f6c46e39c0c98fc4a29856a98dbd0f7f1c692f7 (bei Root als a0714589 integriert): python3 tests/test_host.py ProjectionTests.test_system_account_sync_transaction bestand 1/1 Gruppe mit 107 EN/DE-Checks und zwei beschädigten Projektionsankern in 5,617 s. Die tatsächliche erzeugte UI wird verwendet; Provider-/Diskantworten und die Dreierfixture sind ausdrücklich synthetisch, kein Swift-Output. Nach Rebase bestanden Hostvertrag/Reproduzierbarkeit 2/2 Gruppen in 3,335 s; die 118 Gerätechecks bestanden separat. 26 Core- und zehn Ledger-XCTest-Methoden sind vorbereitet, hier weder kompiliert noch ausgeführt. Der neue Root-Gesamtstand wird separat unter finalIntegration geprüft.",
+      "remaining": "Codex muss native Swift-/Ledger-/Bridge-Tests auf dem exakten Gesamtcommit ausführen und eine tatsächlich von Swift exportierte Fixture durch denselben UI-Runner schicken. Danach eigens eingerichtete Apple-Testquellen abgleichen: beide Richtungen, unveränderten dritten Lauf, Konflikte, Widerruf, fehlende/verschobene Einträge, Race/Deadline/unsichere Write-Antwort, Speicherung und Neustart ohne doppelte Writes. Die geführte Recovery für unsichere Writes/Teil-ACKs und eine Freigabenverwaltung für bei TCC-Entzug oder Quellenverlust unsichtbare Quellen fehlen noch; Journal nicht löschen und keinen blinden Retry ergänzen. Apple stellt hier keinen atomaren Server-CAS bereit; lokaler Readback ist kein iCloud-/iPhone-Serverrundlauf. Offen bleiben Create/Delete, Export beliebiger neuer lokaler Einträge, Serien/Alarme/weitere Felder sowie automatischer Scheduler. Apple Notes bleibt Textkopie und benötigt für echten Rückabgleich einen eigenen öffentlichen Schreibvertrag samt Konflikt-/Recovery-Prüfungen.",
+      "evidenceScope": "Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.",
+      "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+      "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json",
+      "additionalDocumentation": [
+        "contracts/macos-786-system-sync-transaction.md"
+      ]
+    }
+  ],
+  "nativeEvidence": [
+    {
+      "id": 42547724299,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/42547724299",
+      "updated_at": "2026-11-09T02:07:10Z",
+      "created_at": "2026-11-09T01:51:12Z",
+      "name": "Organizer 2.0.30 port candidates",
+      "portCommit": "798771edbd83859c93283768f2cd6e00f28c58df",
+      "desktopCommit": "067c38934b539943d8e1720abafd8a80b401d797",
+      "sourcePolicy": "published-reference",
+      "currentCandidateEvidence": false
+    },
+    {
+      "id": 42562106430,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/42562106430",
+      "updated_at": "2026-11-09T04:47:12Z",
+      "created_at": "2026-11-09T04:29:26Z",
+      "name": "Organizer 2.0.30 port candidates",
+      "portCommit": "cbdc0876ea31015a334d64c36b6f63ff3497053f",
+      "desktopCommit": "067c38934b539943d8e1720abafd8a80b401d797",
+      "sourcePolicy": "published-reference",
+      "currentCandidateEvidence": false
+    },
+    {
+      "id": 42537598769,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/42537598769",
+      "updated_at": "2026-11-09T00:19:43Z",
+      "created_at": "2026-11-08T23:56:59Z",
+      "name": "Organizer 2.0.30 port candidates",
+      "portCommit": "7278298be9344b3e8f26d77b206c8454026372cb",
+      "desktopCommit": "067c38934b539943d8e1720abafd8a80b401d797",
+      "sourcePolicy": "published-reference",
+      "currentCandidateEvidence": false
+    },
+    {
+      "id": 42533594474,
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/42533594474",
+      "updated_at": "2026-11-08T23:25:23Z",
+      "created_at": "2026-11-08T23:07:10Z",
+      "name": "Organizer 2.0.30 port candidates",
+      "portCommit": "c922053e2d34b5d663e7595a4763fa18cfb2b0fa",
+      "desktopCommit": "067c38934b539943d8e1720abafd8a80b401d797",
+      "sourcePolicy": "published-reference",
+      "currentCandidateEvidence": false
+    }
+  ],
+  "excludedOpenIssues": [
+    {
+      "n": 767,
+      "title": "F-Droid-Bauanleitung: SDK- und Gradle-Voraussetzungen an den aktuellen Quellstand angleichen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 763,
+      "title": "Notes: Bereits aktive Telefonverbindung nach App-Update automatisch wieder aufnehmen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 762,
+      "title": "Persönliche Notizen: Automatik nach WLAN-Rückkehr startet oder erscheint verspätet",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 761,
+      "title": "Linux: Medien-Aufbewahrung meldet ValueError nach dem Speichern eines Buchs mit Dezimalzahlen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 760,
+      "title": "Linux 2.0.30: gemeldeten Organizer-Abbruch und Fehler beim Telefonstatus eingrenzen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 759,
+      "title": "Windows v761: Foto-/Videosync ohne Aktivierung zeigt alte Medienoptionen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 756,
+      "title": "KDE Connect: Mehrfachauswahl kommt nicht an, Einzeldateien schon",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 753,
+      "title": "Linux: synthetischer Test des automatischen WLAN-Fotoempfangs erreicht keinen Abschluss",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 751,
+      "title": "Notes fragt beim Start nach einem Update erneut nach abgelehnten Android-Benachrichtigungen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 748,
+      "title": "Privater Windows-Bau: Webcam-Core-Test wartet vereinzelt auf das erste Testbild",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 747,
+      "title": "Privater Linux-DEB-Bau: GLib-Wiederanlaufprüfung mit KDE-Ausfall zeitweise nicht bereit",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 746,
+      "title": "Linux-Fotosync: sicheres Ziel schon vor Aktivierung auswählbar machen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 731,
+      "title": "Notes-Teststand: lokale Diagnose für Fotosync, Webcam und Bildschirmfreigabe",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 727,
+      "title": "Linux-Zweitmonitor: KDE-Ausgang eindeutig der Sitzung zuordnen und Entfernung beobachten",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 712,
+      "title": "Werbepaket: drei veraltete LICENSE.md-Links auf LICENSE korrigieren",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 711,
+      "title": "Rest #707: GitLab-Speicherschutz an bestehenden Publisher anbinden und live abnehmen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 695,
+      "title": "AppStream-Screenshot: weitere Paketformate und getrennte native/Katalogabnahme – Rest #559",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 691,
+      "title": "Notes: target37-/LAN-Manifestmigration und native Upgrade-/Gerätematrix – Rest #672",
+      "reason": "Mac nur Referenz/Abgrenzung; konkrete Implementierung/Abnahme im Issue betrifft andere Editionen, macOS-Parität unter#121"
+    },
+    {
+      "n": 689,
+      "title": "Windows-Kontaktautomatik: korrigiertes Paket und echte Schlüssel-/Konto-/WLAN-/Monitorabnahme – Rest #681",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 687,
+      "title": "RPM: native Fedora-Installations-/Startabnahme des korrigierten Pakets – Rest #686",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 659,
+      "title": "Windows-Zeitzonen: installierte Organizer-/WebView2-/Scheduler-Abnahme nach #653",
+      "reason": "Mac nur Referenz/Abgrenzung; konkrete Implementierung/Abnahme im Issue betrifft andere Editionen, macOS-Parität unter#121"
+    },
+    {
+      "n": 647,
+      "title": "Windows: reale Magnolie-Signatur-, Deinstaller- und Nested-Payload-Paketabnahme – Rest #560",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 641,
+      "title": "Notes: belegtes Gegenstellenprofil, Bedienaktion und bedingter Neustart – Rest #640",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 615,
+      "title": "OR6: Pencil-in und natives Busy-Feld getrennt von Serien-Overrides abbilden",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 611,
+      "title": "OR6: aktive Bereichs-/Containerbindung getrennt von gewöhnlicher Rubriklöschung verifizieren",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 597,
+      "title": "Windows-Webcam: Manager/Broker, echte Medienausgabe und kombinierte Setup-Abnahme – Rest #588",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 595,
+      "title": "Distribution: veröffentlichten Windows-PAD bei Softwareportalen einreichen und Aufnahme prüfen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 578,
+      "title": "OR6: bereitgestellte Original- und Exportdatei auf weitere unbemerkte Übernahmefehler prüfen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 571,
+      "title": "Windows: berichteten fehlgeschlagenen In-App-Wechsel 2.0.29 auf 2.0.30 eingrenzen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 569,
+      "title": "Lotus-Jahrestage: separaten ICS-Export samt Wiederholung und Zielbereich prüfen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 566,
+      "title": "Windows: gemeldete Kontakt-Importkonflikte mit Linux-Verhalten vergleichen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 558,
+      "title": "Google Play: Magnolie Notes auf Ziel-API 36 vorbereiten und Android-16-Kompatibilität prüfen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 538,
+      "title": "Windows-Audio zuerst isoliert in ressourcenbegrenzter Test-VM prüfen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 536,
+      "title": "Windows-Audio: Audiosrv hängt an audiodg AudioClientRpc und wird beendet",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 517,
+      "title": "Linux-Webcam: native Systemfreigabe und Boot-Autoload der Treibereinrichtung abnehmen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 503,
+      "title": "Fortsetzung #244: produktive Webcamsteuerung, native Anbieter und echte OBS-Abnahme",
+      "reason": "Mac nur Referenz/Abgrenzung; konkrete Implementierung/Abnahme im Issue betrifft andere Editionen, macOS-Parität unter#121"
+    },
+    {
+      "n": 500,
+      "title": "Fortsetzung #497: zugelassene Windows-Zielgenerationen mit rückrollfestem aktuellem Auswahlowner",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 471,
+      "title": "Tablet: Android beendet Organizer nach Ausfall des Google-Schriftanbieters",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 463,
+      "title": "Android-Prüfung: fremder Launcher-ANR blockiert echte Zeicheneingabe ohne klare Fokusdiagnose",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 461,
+      "title": "Tablet: Alte WebView zeigt beim Start irreführenden Speicherfehler statt Updatehinweis",
+      "reason": "Mac nur Referenz/Abgrenzung; konkrete Implementierung/Abnahme im Issue betrifft andere Editionen, macOS-Parität unter#121"
+    },
+    {
+      "n": 449,
+      "title": "Notizenimport: native Linux-/Windows-Abnahme des Anhangserhalts (Rest aus #445)",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 441,
+      "title": "Linux/CalDAV: typisierten Jahrestagsabgleich vollständig anschließen – Rest aus #440",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 434,
+      "title": "Native Tray-/Saisondarstellung: installierte visuelle Abnahme (Rest aus #432)",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 395,
+      "title": "Linux 2.0.30: gemeldete UI-Trägheit auf Intel N100 unter Mint/Cinnamon untersuchen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 392,
+      "title": "PC-Mediensicherungen: inhaltsbasierte Versionierung und geprüfte Leerlauf-Komprimierung",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 389,
+      "title": "Android: dauerhaften Medienpapierkorb mit OS-Zustimmung und Wiederherstellung anschließen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 384,
+      "title": "Handbuch: korrigiertes Pillow-9.0.1-Paket nativ installieren und starten – Rest #381",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 382,
+      "title": "Termin-Einzellöschung: native Providerabnahme und alte Mehrfach-Uhrzeiten nach #379",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 380,
+      "title": "Müllkalender: Feiertagsverschiebung und einzelne Ersatztermine ohne erfundene Abholdaten",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 375,
+      "title": "Native Abnahme der Notes-Telefonoberfläche und bestätigten Sync-Anzeige",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 338,
+      "title": "Medien-Abgleichrichtung wie Notes wählen: Handy zu PC als Vorgabe, beidseitig nur mit sicherem Rückweg",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 337,
+      "title": "Reale Foto- und Videoaufnahmen optional von Memes und Grafiken trennen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 336,
+      "title": "Animationen im Fotobereich belassen und optionalen Unterordner Animationen unterstützen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 335,
+      "title": "Optionale Videosynchronisation mit eigenem nativen Zielordner und standardmäßig ausgeschaltetem Schalter",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 330,
+      "title": "Datei-/Fotosynchronisation: native Integration, sichere Zielbelege und Gesamtabnahme",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 326,
+      "title": "Windows-native Abnahme: GUI-Läufe unter eigenem eingeschränktem Testkonto von persönlicher Laufzeit trennen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 322,
+      "title": "Notes-Monatsdruck: physische WLAN-Drucker- und Handyabnahme nach #320",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 321,
+      "title": "Windows-Personengruppen: spätere Telefonänderung löst unerwarteten Konflikt statt Übernahme aus",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 306,
+      "title": "Notes-Zeitübersicht: native GUI- und physische Sync-Abnahme nach #304",
+      "reason": "Mac nur Referenz/Abgrenzung; konkrete Implementierung/Abnahme im Issue betrifft andere Editionen, macOS-Parität unter#121"
+    },
+    {
+      "n": 302,
+      "title": "Notes/Organizer: geschützter Restore ohne Papierkorb, historische Zielrechte und physische Gesamtabnahme – Rest #300",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 295,
+      "title": "Diagnose: ungeklärte persönliche Datenprüfsummenänderung während isolierter Windows-Probe",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 294,
+      "title": "Windows: Readonly-Kalenderfix paketgebunden übernehmen und echten Feiertagsfeed prüfen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 292,
+      "title": "Microsoft-Internetkonten: tatsächliche Kontakt-/Kalenderdatenpipeline abschließen – Rest #29",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 290,
+      "title": "EDS: Provider-Schreibbeleg und historischen Cache-Auslöser nachverfolgen – Rest #285",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 278,
+      "title": "Windows: nativer Sync-Commit bestätigt gespeicherten erfolgreichen Providerabgleich nicht",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 276,
+      "title": "Telefonkontakte: allgemeine Schreibfreigabe und automatischer bidirektionaler Providerabgleich",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 275,
+      "title": "Internetkonten: notwendige Anmeldung und Providerfehler einheitlich in Magnolie führen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 274,
+      "title": "Offlinebetrieb als normalen Zustand behandeln und gespeicherte Konten still weiterverwenden",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 273,
+      "title": "Thunderbird-Quellen beim Import wahlweise dauerhaft synchronisieren",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 272,
+      "title": "Internetkonten: integrierte Konto-Erweiterungen zusammen mit der Laufzeit automatisch aktualisieren",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 269,
+      "title": "Telefondateisystem als benanntes Netzlaufwerk mit korrekten Speicherwerten darstellen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 258,
+      "title": "Zeitzonenmanagement: IANA/iCalendar-konforme Technik mit einfacher seniorengerechter Oberfläche",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 254,
+      "title": "Importvorschau: Übernehmen bei unvollständigem Ergebnis konsequent sperren",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 245,
+      "title": "Bildschirm: Spiegelung und echten Zweitmonitor auf Telefon oder Tablet ergänzen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 243,
+      "title": "OR6: verbleibende Overrides, Metadaten und Originalkontexte – Rest #222",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 242,
+      "title": "Korrekturkandidat: verbleibende persönliche Live- und Finalpaketnachweise – Rest implementierter Fixes",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 237,
+      "title": "Handbuch-PDF: finalen Druckportal-/Wayland- und Release-Paketnachweis abschließen – Rest #236",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 194,
+      "title": "MCP: verbleibende Produktwerkzeuge und Einstellungen verbinden – Rest #170",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 193,
+      "title": "MCP: verbleibende KDE-Empfangs-, Routing- und Geräteaktionen anbinden – Rest #170",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 192,
+      "title": "MCP: Telefonie und SMS-Aktionen über bestehende Adapter vervollständigen – Rest #170",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 168,
+      "title": "KDE-Kopplung: Zeichenblatt bei erster und erneuter Kopplung automatisch bereitstellen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 161,
+      "title": "Schulferien: keine täglichen Erinnerungen, optional einmal pro Zeitraum",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 159,
+      "title": "Samsung-Eigenprofil: medizinische Informationen optional übernehmen und anzeigen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 158,
+      "title": "Eigener Geburtstag: persönliche Glückwünsche und quellenübergreifende Identität",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 156,
+      "title": "Native Online-Konten: Kontakt- und Kalenderabgleich über alle Systemanbieter prüfen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 153,
+      "title": "KDE Connect: Präsentationsmodus und konfigurierte Befehle integrieren",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 149,
+      "title": "KDE Connect: Maus- und Tastaturfernsteuerung anbinden",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 148,
+      "title": "Notes-Kopfzeile: echte Sync-Verfügbarkeit und Rechnerverbindung vervollständigen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 146,
+      "title": "Eigenprofil: Kontaktkarte, selektives Senden und echte Android-Profilquelle",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 128,
+      "title": "Notes: automatischen Abgleich auf freigegebene aktive Transporte erweitern",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 113,
+      "title": "Nächster Gesamtkandidat: Restpunkte abschließen, Pakete prüfen und direkt veröffentlichen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 75,
+      "title": "Wunsch: Doppelte Erinnerungen anderer Programme optional zugunsten von Magnolie unterdrücken",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 65,
+      "title": "Linux/Google-Kalender: gemeldete fehlende Rücksynchronisation unter 2.0.24 prüfen",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 64,
+      "title": "Google-Tasks- und Microsoft/EAS-Aufgabenadapter anbinden – Folge #39",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 58,
+      "title": "Windows: korrigierten Abgleich am realistischen Altbestand abschließen – Folge #17/#36",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 53,
+      "title": "TuxedoOS: Absturzmeldungen und längere Hänger mit Organizer-DEBs 2.0.19/2.0.23",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    },
+    {
+      "n": 42,
+      "title": "Magnoliebaum: Internetkopplung mit Anfrage und einmaliger Bestätigung",
+      "reason": "Kein eigener konkreter Mac-Fehler/Abnahmepunkt im geprüften Issue-Body"
+    }
+  ],
+  "closedMacIssues": [
+    {
+      "n": 9,
+      "title": "Beta-Quellen: aktuellen macOS- und Android-Tablet-Stand sichern",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/9",
+      "state": "closed",
+      "assessment": "Historischer Quellcheckpoint; die heutige reviewbare Folge ist separat dokumentiert. Kein neuer Fix aus diesem geschlossenen Issue.",
+      "disposition": "Nur Nachverfolgung im Bericht/Inventar; keine Wiederöffnung und kein neuer Kommentar geplant."
+    },
+    {
+      "n": 455,
+      "title": "macOS: Unicodeäquivalenz darf opaque Kalender- und DAV-Identitäten nicht zusammenlegen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/455",
+      "state": "closed",
+      "assessment": "Opaque-Identitätskorrektur vorhanden. Die verbleibende verlustfreie JSON-Schlüsseldarstellung ist ausdrücklich unter #511 offen.",
+      "disposition": "Nur Nachverfolgung im Bericht/Inventar; keine Wiederöffnung und kein neuer Kommentar geplant."
+    },
+    {
+      "n": 460,
+      "title": "Mac: Wiederherstellungsvalidierung gibt ihren Wahrheitswert nicht an WebKit zurück",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/460",
+      "state": "closed",
+      "assessment": "Explizite Rückgabe an WebKit aus 560a0219 vorhanden. Der erfolgreiche native Run 42537598769 bezieht sich auf Port 7278298b mit gemeinsamer Desktopbasis 067c; kein neuer Gesamtstandsbeleg.",
+      "disposition": "Nur Nachverfolgung im Bericht/Inventar; keine Wiederöffnung und kein neuer Kommentar geplant."
+    }
+  ],
+  "mainAtDelivery": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+  "mainUpdateAssessment": "Während des Audits kam ausschließlich die Presseaktualisierung d4da48a5 hinzu. Sie wurde in den Prüfzweig integriert; die gemeinsamen Produkt- und Mac-Quellen waren gegenüber 00776ce7 unverändert.",
+  "schema": 3,
+  "enumerationAtAudit": {
+    "method": "GitHub REST issues?state=open&per_page=100 pages1-3; page3 empty; all123 issue bodies inspected, PR#561 excluded. Additional searches mac/macOS/Swift/EventKit/Apple/WebKit and closed Mac/macOS in:title.",
+    "openIssues": 123,
+    "openPRs": 1,
+    "explicitAndSharedMacScope": 26
+  },
+  "environmentDocumentation": "Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md",
+  "environmentEvidence": "contracts/macos-cloud-environment-2026-11-26.json",
+  "environmentAssessment": "Die erreichbare Umgebung ist Linux x86_64, kein nachgewiesener macOS-Emulator. Swift/Apple-SDK und KVM fehlen. Hier liefen tatsächliche Python-/JS-/Projektionsprüfungen, keine neuen nativen Mac-Tests. Eine passende macOS-CI-/Cloud-VM genügt für die offene Abnahme; ein eigener physischer Mac wird nicht vorausgesetzt. Die vorhandene gh-CLI ist laut geprüftem auth status nicht bei github.com angemeldet (Exit 1); der verfügbare GitHub-Connector bietet keinen Workflow-Start. Der neue Mac-Lauf ist deshalb vorbereitet, nicht dispatcht.",
+  "nativeCurrentCandidateValidated": false,
+  "finalIntegration": {
+    "status": "passed",
+    "commit": "7c9cf20394aef73d261a77f746ebca7340826d30",
+    "nativeValidated": false,
+    "note": "Vollständiger Linux-Hostlauf am exakten integrierten Codecommit bestanden. Danach werden nur Übergabe-/Belegdokumente ergänzt. Die erste fehlgeschlagene Prüfung und ihre konkreten Testtreiberkorrekturen bleiben nachvollziehbar; keine abgeschwächten historischen Adapterprüfungen.",
+    "checks": [
+      "Vollständiger Hostlauf: 35/35 Gruppen, Exit 0, 118,272 s; einschließlich 107 neuer System-Sync-UI-Prüfungen in EN/DE und aller vorhandenen Kopier-/Restore-/Projektionsgruppen.",
+      "Aktuelle UI/Bridge: 27 Assertions, 30 originale Notizsuchprüfungen und 181 nicht implementierte Desktopbefehle korrekt abgegrenzt; Exit 0.",
+      "Echte OR6-Bytes → privater Helper → projizierte UI → Vorschau/Save-ACK/Reopen: 90 Prüfungen bestanden am integrierten Stand 1a24abef; UI-SHA256 e6359a618f458985b270a6372515493ffb6fb1aedb0d7efa5a099aa665818b70, Helpermanifest deff3560615331e149e427add47f4f0b03e822947cc2192b736d2ff004c42b26. Native Picker/Persistenz ungetestet.",
+      "Parser 14/14 Gruppen mit 27 Original-OR6-Fixtures und 439 TZif-Regelsätzen/597 Namen; Runtimebuilder nach Reviewkorrektur 7/7; Quellselektionssuite 7/7. Einzelstände und Rohprotokolle im verlinkten Manifest.",
+      "[Unveränderte Rohprotokolle, Befehle, Quellstände und SHA-256-Inventar](macos-verification-2026-11-26/README.md).",
+      "Erster Gesamtlauf: 35 Gruppen, 2 Fehler in Testtreiberannahmen. Nach 8d4004a9/7c9cf203 vollständiger erfolgreicher Wiederholungslauf; kein Test ausgelassen oder historischer Guard gelockert.",
+      "Kein Swift-/AppKit-/EventKit-/Contacts-/AppleScript-/iCloud-/KDE-Lauf behauptet. macOS-VM, native Laufzeit und Gegenstellen bleiben gemäß Prüfplan abzunehmen."
+    ]
+  },
+  "testEvidence": [
+    {
+      "id": "historical-audit-host",
+      "label": "Früherer gemeinsamer Mac-Hostlauf",
+      "scope": "Vor #783/#784/#785/#786; Einzelumfang, kein finaler Gesamtlauf",
+      "result": "33/33 Testgruppen, 60,454 s, Exit 0",
+      "native": false
+    },
+    {
+      "id": "candidate-sources",
+      "label": "#783 aktuelle Quellbindung",
+      "scope": "test_candidate_sources.py und check_current_sources.py am #776-Integrationsstand",
+      "result": "7/7 Quelltests mit SHA-1; gesondert 7/7 mit SHA-256; 27 UI-Assertions, 30 originale Suchtests, 181 abgewiesene nicht implementierte Desktopbefehle",
+      "native": false
+    },
+    {
+      "id": "device-page",
+      "label": "#784 Mac-Geräteseite",
+      "scope": "device_import_page.mjs; dokumentierter Patchlauf vor #785/#786",
+      "result": "118 EN/DE-Prüfungen und 2 Driftanker; 9/9 gemeinsame Hostgruppen in 40,367 s",
+      "native": false
+    },
+    {
+      "id": "import-helper",
+      "label": "#785 tatsächlicher isolierter Parser",
+      "scope": "test_import_helper.py, CPython 3.12.14/Linux",
+      "result": "14/14 Gruppen in 26,143 s; 27 originale OR6-Dateien; 439 TZif-Roundtrips/597 Zonennamen",
+      "native": false
+    },
+    {
+      "id": "import-ui",
+      "label": "#785 OR6→projizierte UI→Save-ACK",
+      "scope": "check_file_import.py / file_import.mjs; tatsächliche Parserbytes/UI, synthetischer Speichertransport",
+      "result": "90 Checks; echte Kontaktvorschau, Save/NACK/Reopen/Deduplizierung/Buchdrift/Rendererfehler",
+      "native": false
+    },
+    {
+      "id": "import-runtime",
+      "label": "#785 privater Laufzeitbau",
+      "scope": "test_import_python_bundle.py; tatsächlicher offizieller Quellenbezug und begrenzte Extraktion unter Linux",
+      "result": "7/7 Python-Tests; 27.960.396 Quellarchivbytes mit exaktem SHA; native Kompilierung nicht ausgeführt",
+      "native": false
+    },
+    {
+      "id": "system-sync-core-regression",
+      "label": "#786 bestehende Wege am Core-/Providerstand",
+      "scope": "7 vorhandene Hostgruppen; keine Ausführung des neuen Swift-Cores",
+      "result": "7/7 Gruppen in 29,175 s; 26 neue Core-XCTest-Methoden nur vorbereitet",
+      "native": false
+    },
+    {
+      "id": "root-import-runtime-repeat",
+      "label": "#785 Runtimebuilder, Root-Wiederholung",
+      "scope": "test_import_python_bundle.py am Commit c903f436 nach dc803651",
+      "sourceCommit": "c903f436fe7853d5f92b7d40b64ed9121bd5d6fa",
+      "result": "7/7 Python-Tests, Exit 0, 0,055 s; kein nativer CPython-Bau",
+      "native": false
+    },
+    {
+      "id": "root-import-parser-repeat",
+      "label": "#785 Parser, Root-Wiederholung",
+      "scope": "test_import_helper.py am Commit c903f436 nach Header-/Manifestkorrektur dc803651",
+      "sourceCommit": "c903f436fe7853d5f92b7d40b64ed9121bd5d6fa",
+      "result": "14/14 Parsergruppen, Exit 0, 26,694 s; finaler gemeinsamer UI-/Gesamtlauf separat",
+      "native": false
+    },
+    {
+      "id": "system-sync-ui",
+      "label": "#786 neue UI-Transaktion",
+      "scope": "ProjectionTests.test_system_account_sync_transaction am Agentcommit 8f6c46e3; bei Root als a0714589 integriert, finaler Root-Gesamtlauf separat",
+      "integratedCommit": "a071458954ce4532fa013649a09a5d346f4d7469",
+      "result": "1/1 Gruppe, 107 EN/DE-Checks + 2 Driftanker, 5,617 s; tatsächliche UI, synthetische Provider-/Diskantworten; keine Swift-Ausführung",
+      "native": false,
+      "testedAgentCommit": "8f6c46e39c0c98fc4a29856a98dbd0f7f1c692f7"
+    },
+    {
+      "id": "system-sync-ui-regression",
+      "label": "#786 gezielte bestehende UI-Verträge",
+      "scope": "Nach Rebase des Agentstands; keine Ausführung der Apple-Frameworks",
+      "integratedCommit": "a071458954ce4532fa013649a09a5d346f4d7469",
+      "result": "Hostvertrag und reproduzierbare vollständige Projektion 2/2 Gruppen in 3,335 s; Geräteeinstiege 118 Checks separat bestanden. Zehn neue Ledger-XCTest-Methoden nur vorbereitet.",
+      "native": false,
+      "testedAgentCommit": "8f6c46e39c0c98fc4a29856a98dbd0f7f1c692f7"
+    }
+  ]
+}

@@ -6,8 +6,9 @@ import BetaCore
 
 /// Refs #777. Explicit selected Reminder copies, separate from full-source
 /// snapshots. Store access and public-object conversion stay on the existing
-/// SystemAccounts queue. This reader never assigns reminder fields or saves or
-/// deletes a source object; refresh() only updates the fetched observations.
+/// SystemAccounts queue. Copy methods never assign or save reminder fields;
+/// applySync is a separate, explicitly authorized field-write adapter (#786).
+/// Neither path deletes records; refresh() only updates fetched observations.
 enum SystemReminderReader {
     struct Summary: Sendable {
         let identifier: String
@@ -155,6 +156,58 @@ enum SystemReminderReader {
         init(_ completion: @escaping (Result<Value, Error>) -> Void) { self.completion = completion }
         func finish(_ result: Result<Value, Error>) {
             let callback = completion; completion = nil; callback?(result)
+        }
+    }
+
+    /// Refs #786. Existing-list field updates use the exact component reader;
+    /// the older timestamp-flattening reminderSnapshot is never a sync codec.
+    static func applySync(store: EKEventStore, queue: DispatchQueue, operation: SystemAccountSync.Operation,
+                          source binding: SystemAccountSync.Source, context: CalendarTimeContext,
+                          control: SystemSourceReadControl, requireAccess: () throws -> Void) throws -> SystemAccountSync.Record {
+        dispatchPrecondition(condition: .onQueue(queue))
+        var enteredSave = false
+        do {
+            try control.check(); try requireAccess()
+            let expected = try SystemAccountSyncProjection.reminderSource(binding)
+            let (calendar, current) = try currentSource(store, expected: expected, control: control)
+            guard calendar.allowsContentModifications else { throw failure("the reminder list is read-only") }
+            let reminder = try selectedReminder(store, identifier: operation.identifier, source: current, control: control)
+            guard !reminder.isNew, !reminder.hasChanges else { throw failure("the reminder has uncommitted changes") }
+            var budget = Budget()
+            let raw = try record(reminder, identifier: operation.identifier, control: control, budget: &budget)
+            let observed = try SystemAccountSyncProjection.reminders(.init(source: current, records: [raw]), context: context, displayTimeZone: binding.displayTimeZone)
+            guard observed.source.fingerprint == binding.fingerprint, observed.records.count == 1,
+                  observed.excluded.isEmpty, let before = observed.records.first, before.revision == operation.before.revision else {
+                throw failure("the reminder or selected source changed after planning")
+            }
+            let patch = try SystemAccountSyncProjection.nativePatch(record: before, desired: operation.desiredRecord,
+                changedGroups: operation.changedGroups, source: binding, context: context)
+            guard try DAVSyncBaseline.canonicalJSON(patch) == DAVSyncBaseline.canonicalJSON(operation.nativePatch) else { throw failure("the journaled reminder patch is inconsistent") }
+            // Construct every potentially throwing value before mutating an EK
+            // object, so a typed rejection cannot leave pending native changes.
+            let start = try patch["startComponents"].map { try SystemAccountSyncDates.components($0) }
+            let due = try patch["dueComponents"].map { try SystemAccountSyncDates.components($0) }
+            _ = try currentSource(store, expected: current, control: control)
+            try requireMembership(reminder, identifier: operation.identifier, source: current, control: control)
+            try control.check(); try requireAccess()
+            if let title = patch["title"] as? String { reminder.title = title }
+            if let notes = patch["notes"] as? String { reminder.notes = notes }
+            if let completed = patch["completed"] as? Bool { reminder.isCompleted = completed }
+            if let priority = patch["priority"] as? Int { reminder.priority = priority }
+            if let start { reminder.startDateComponents = start }
+            if let due { reminder.dueDateComponents = due }
+            enteredSave = true
+            try store.save(reminder, commit: true)
+            guard same(reminder.calendarItemIdentifier, operation.identifier) else { throw failure("reminder identity changed after saving") }
+            let fresh = try snapshot(store: store, queue: queue, source: current, identifiers: [operation.identifier], control: control, requireAccess: requireAccess)
+            let result = try SystemAccountSyncProjection.reminders(fresh, context: context, displayTimeZone: binding.displayTimeZone)
+            guard result.source.fingerprint == binding.fingerprint, result.records.count == 1, result.excluded.isEmpty,
+                  let readback = result.records.first else { throw failure("reminder readback is unavailable after saving") }
+            try operation.validateReadback(readback)
+            return readback
+        } catch {
+            if enteredSave { store.reset(); throw BetaError("The native reminder write has an uncertain outcome. Keep the journal and review the source. " + error.localizedDescription) }
+            throw SystemAccountSync.RejectedBeforeWrite(error.localizedDescription)
         }
     }
 

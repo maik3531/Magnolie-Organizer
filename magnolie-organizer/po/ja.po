@@ -10297,3 +10297,11 @@ msgstr "このスマートフォンの画面を表示しますか？"
 
 msgid "Your phone must approve screen sharing."
 msgstr "スマートフォンで画面共有を許可してください。"
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Birthday stored with this contact; no calendar entry."
+msgstr "生年月日はこの連絡先に保存されます。カレンダーの予定は作成されません。"
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Please enter a valid birth date."
+msgstr "有効な生年月日を入力してください。"

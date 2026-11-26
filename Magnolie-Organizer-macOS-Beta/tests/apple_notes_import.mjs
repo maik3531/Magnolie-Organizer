@@ -211,7 +211,10 @@ for (const stage of ["checkpoint", "saving"]) {
     throws(() => w.App.macOSBetaPrepareAppleNotesImport(payload([item("must-wait")])), /already/, "In-flight proposal remains owned after reinitialization: " + stage);
     w.App.macOSBetaStartAppleNotesImport();
     equal(messages.filter(message => message.cmd === "macos_apple_notizen_importieren").length, 0, "Start cannot replace an in-flight operation: " + stage);
-    await b.pump(); assert.match((await pending).message, /stale|document changed/i); checks++;
+    await b.pump(); const failure = await pending;
+    assert.match(failure.message, /stale|document changed/i); checks++;
+    equal(/copies were added|remain unsaved|saving was not confirmed/i.test(failure.message), false,
+      "Pre-append rejection or observed save ACK keeps its specific document-change diagnosis: " + stage);
     equal(t.daten().notizen.length, 1, "Obsolete in-flight callback never appends to replacement document: " + stage);
     const current = w.App.macOSBetaPrepareAppleNotesImport(payload([item("after-completion")]));
     equal(w.App.macOSBetaCancelAppleNotesImport(current.token).cancelled, true, "New review works after old operation settles: " + stage);
@@ -406,6 +409,40 @@ for (const stage of ["before-prepare", "before-commit", "during-checkpoint"]) {
     t.sichereNotizSnapshot();
     equal(t.daten().notizen[0].text, "Keep this pending note fragment", "Original note callback remains usable after rejection");
   } finally { b.close(); }
+}
+
+// #778: exercise the public renderer hook after the real canonical append.
+for (const language of ["en", "de"]) {
+  const b = await context(), { w, t, messages } = b;
+  const appearance = w.MagnolieAppearance;
+  try {
+    w.MagnolieI18n.setLocale(language);
+    t.speichereJetzt(); await b.pump();
+    const original = JSON.stringify(t.daten().notizen), originalCount = t.daten().notizen.length;
+    const review = w.App.macOSBetaPrepareAppleNotesImport(payload([item("render-failure")]));
+    try {
+      w.MagnolieAppearance = { ...appearance, update() { throw new Error("Synthetic renderer failure after append"); } };
+      await rejects(commit(b, review), language === "de"
+        ? /Notizkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt\..*Synthetic renderer failure after append/
+        : /Note copies were added, but saving was not confirmed\..*Synthetic renderer failure after append/,
+        "Actual renderer failure explains local mutation and unconfirmed persistence");
+    } finally { w.MagnolieAppearance = appearance; }
+    equal(t.daten().notizen.length, originalCount + 1, "Added copy survives renderer failure for save retry");
+    equal(JSON.stringify(t.daten().notizen.slice(0, originalCount)), original, "Renderer failure preserves all pre-existing records and local edits");
+    equal(t.daten().notizen.at(-1).nativeAppleNotesImport.identifier, "render-failure", "Renderer failure retains exact native provenance");
+    t.speichereJetzt(); await b.pump();
+    const saved = JSON.parse(messages.filter(message => message.cmd === "speichern").at(-1).text);
+    equal(saved.notizen, t.daten().notizen, "Actual retry save contains both existing records and the added copy");
+    const retry = w.App.macOSBetaPrepareAppleNotesImport(payload([item("render-failure")]));
+    equal([retry.newCount, retry.existingCount], [0, 1], "Save retry preserves provenance and prevents duplicate import");
+    w.App.macOSBetaCancelAppleNotesImport(retry.token);
+    w.MacBeta.receive("init", { daten: saved, neu: false, regional: { language, timeZone: "UTC" } });
+    t.zustand().notizen.notizbuchId = "target-book"; t.zustand().notizen.auswahlId = null;
+    await b.pump();
+    const reopened = w.App.macOSBetaPrepareAppleNotesImport(payload([item("render-failure")]));
+    equal([reopened.newCount, reopened.existingCount], [0, 1], "Reopened retry-save bytes still prevent duplicate import");
+    w.App.macOSBetaCancelAppleNotesImport(reopened.token);
+  } finally { w.MagnolieAppearance = appearance; b.close(); }
 }
 
 console.log(`Mac Apple Notes plaintext copy: ${checks} projected UI checks; synthetic native records/transport, not AppleScript or macOS evidence.`);

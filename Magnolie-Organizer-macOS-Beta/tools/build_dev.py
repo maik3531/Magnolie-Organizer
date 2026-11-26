@@ -12,15 +12,18 @@ import sys
 from pathlib import Path
 from project_ui import BETA, GENERATED, verify
 from airplay_bundle import build_airplay_bundle
+from import_python_bundle import bundle_runtime
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--airplay-sdk", type=Path,
                         help="Local, source/license-complete AirPlay SDK; builds the internal receiver into the app")
+    parser.add_argument("--import-runtime", type=Path, required=True,
+                        help="Private CPython SDK built by tools/import_python_bundle.py; no system-Python fallback")
     arguments = parser.parse_args()
     if platform.system() != "Darwin":
-        raise RuntimeError("Apple macOS host required. Linux, jsdom and QEMU are not macOS build or emulation evidence.")
+        raise RuntimeError("Apple macOS host required. Linux and UI-only tests do not provide Apple's SDK; use a suitable macOS VM or runner.")
     for tool in ("xcrun", "swift", "codesign"):
         if not shutil.which(tool):
             raise RuntimeError("Missing Apple developer tool: " + tool)
@@ -64,6 +67,12 @@ def main():
     assert info["CFBundleVersion"] == identity["bundleVersion"]
     assert info["LSMinimumSystemVersion"] == minimum
     shutil.copytree(GENERATED, contents / "Resources/UI")
+    # The helper is not web-readable and runs only via bounded native stdio.
+    helper = contents / "Resources/UI/ImportHelper"
+    if not (helper / "manifest.json").is_file() or not (helper / "helper.py").is_file():
+        raise RuntimeError("Verified current-source import helper is missing.")
+    shutil.move(str(helper), str(contents / "Resources/ImportHelper"))
+    import_runtime = bundle_runtime(app, arguments.import_runtime)
     airplay = None
     if arguments.airplay_sdk is not None:
         airplay = build_airplay_bundle(BETA, app, arguments.airplay_sdk, platform.machine(), minimum)
@@ -73,6 +82,10 @@ def main():
         "minimumSystemVersion": minimum, "machOMinimumVerified": True,
         "montereyRuntimeValidated": False,
         "nativeUIValidated": False, "productionRelease": False,
+        "importRuntimeVersion": import_runtime["pin"]["version"],
+        "importRuntimeSourceSHA256": import_runtime["pin"]["sourceSHA256"],
+        "importRuntimeRelocationVerified": True,
+        "importNativeUIValidated": False,
         "airplayBundled": airplay is not None,
         "airplayDependencyClosureVerified": airplay is not None,
         "airplayNativeDeviceValidated": False,
@@ -83,7 +96,7 @@ def main():
     # Replace it only inside this newly created, versioned development bundle.
     subprocess.run(["codesign", "--force", "--sign", "-", str(app)], check=True)
     subprocess.run(["codesign", "--verify", "--strict", str(app)], check=True)
-    if airplay is not None:
+    if airplay is not None or import_runtime is not None:
         # Helpers/libraries were signed individually before the outer bundle;
         # this verifies the enclosing seals without modifying nested signatures.
         subprocess.run(["codesign", "--verify", "--strict", "--deep", str(app)], check=True)

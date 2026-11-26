@@ -5,6 +5,7 @@ import BetaCore
 /// Selected-file authority only; no directory watch, network or profile restore.
 @MainActor final class NoteFileImportHost {
     private var busy = false
+    var active: Bool { busy }
     func begin(parent: NSWindow, isCurrent: @escaping () -> Bool,
                deliver: @escaping ([String: Any], @escaping () -> Void) -> Void) {
         guard !busy, isCurrent() else { return }

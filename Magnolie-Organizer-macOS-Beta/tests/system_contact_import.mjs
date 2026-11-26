@@ -156,7 +156,7 @@ let reopened;
     await commit(b, review);
     equal(JSON.stringify(t.daten().jahrestage), annuals, "Actual reopen creates no birthday links");
     let form = await editContact(b, copy);
-    const birthday = w.document.querySelector("#macos-contact-birthday");
+    const birthday = w.document.querySelector("#kontakt-geburtstag");
     ok(birthday && birthday.dataset.datumIso === "--02-29", "Real editor exposes contact-only birthday with no invented year");
     equal(form.querySelectorAll(".kontakt-ereignis-datum").length, 1, "No synthetic yearly entry is added to the ordinary anniversary editor");
     for (const invalid of ["31.02.2000", "12."]) {
@@ -178,7 +178,7 @@ let reopened;
     const nativeBefore = JSON.stringify(copy.nativeContactRecord);
     for (const [date, unknown] of [["1988-02-29", false], ["--02-29", true], ["1604-02-29", false], ["", false]]) {
       form = await editContact(b, copy);
-      const field = w.document.querySelector("#macos-contact-birthday");
+      const field = w.document.querySelector("#kontakt-geburtstag");
       changeInput(w, field, date); field.dispatchEvent(new w.Event("change", { bubbles: true }));
       await saveContact(b, form);
       equal([copy.geburtstag, copy.geburtstagJahrUnbekannt], [date, unknown], "Explicit local birthday edit: " + (date || "clear"));
@@ -323,7 +323,10 @@ for (const stage of ["prepared", "checkpoint", "saving"]) {
       throws(() => w.App.macOSBetaPrepareContactImport(payload([item("wait")])), /already/, "In-flight review remains owned across initialization: " + stage);
       w.App.macOSBetaStartContactImport();
       equal(messages.filter(message => message.cmd === "macos_kontakte_importieren").length, 0, "In-flight state cannot open another native picker");
-      await b.pump(); ok(/stale|document changed/i.test((await pending).message), "Old generation's completion is rejected: " + stage);
+      await b.pump(); const failure = await pending;
+      ok(/stale|document changed/i.test(failure.message), "Old generation's completion is rejected: " + stage);
+      equal(/copies were added|remain unsaved|saving was not confirmed/i.test(failure.message), false,
+        "Pre-append rejection or observed save ACK keeps its specific document-change diagnosis: " + stage);
       equal(t.daten().kontakte.length, 1, "Replacement document never receives old-generation candidates");
     }
   } finally { b.close(); }
@@ -485,10 +488,43 @@ for (const stage of ["before-start", "during-save"]) for (const fieldID of ["bri
     await commit(b, review);
     const form = await editContact(b, t.daten().kontakte[1]);
     ok(form.textContent.includes("Geburtstag am Kontakt gespeichert; kein Kalendereintrag."), "Actual contact editor shows the same German explanation");
-    changeInput(w, w.document.querySelector("#macos-contact-birthday"), "31.02.2000");
+    changeInput(w, w.document.querySelector("#kontakt-geburtstag"), "31.02.2000");
     form.querySelector(".kontakt-form-knoepfe button").click();
     equal(w.document.querySelector("#zettel").textContent, "Geben Sie ein gültiges Geburtsdatum ein.", "Actual date validation uses the supplementary German error text");
   } finally { b.close(); }
+}
+
+// #778: exercise the public renderer hook after the real canonical append.
+for (const language of ["en", "de"]) {
+  const b = await context(), { w, t, messages } = b;
+  const appearance = w.MagnolieAppearance;
+  try {
+    w.MagnolieI18n.setLocale(language);
+    t.speichereJetzt(); await b.pump();
+    const original = JSON.stringify(t.daten().kontakte), originalCount = t.daten().kontakte.length;
+    const review = w.App.macOSBetaPrepareContactImport(payload([item("render-failure")]));
+    try {
+      w.MagnolieAppearance = { ...appearance, update() { throw new Error("Synthetic renderer failure after append"); } };
+      await rejects(commit(b, review), language === "de"
+        ? /Kontaktkopien wurden hinzugefügt, ihre Speicherung wurde jedoch nicht bestätigt\..*Synthetic renderer failure after append/
+        : /Contact copies were added, but saving was not confirmed\..*Synthetic renderer failure after append/,
+        "Actual renderer failure explains local mutation and unconfirmed persistence");
+    } finally { w.MagnolieAppearance = appearance; }
+    equal(t.daten().kontakte.length, originalCount + 1, "Added copy survives renderer failure for save retry");
+    equal(JSON.stringify(t.daten().kontakte.slice(0, originalCount)), original, "Renderer failure preserves all pre-existing records and local edits");
+    equal(t.daten().kontakte.at(-1).nativeContactImport.identifier, "render-failure", "Renderer failure retains exact native provenance");
+    t.speichereJetzt(); await b.pump();
+    const saved = JSON.parse(messages.filter(message => message.cmd === "speichern").at(-1).text);
+    equal(saved.kontakte, t.daten().kontakte, "Actual retry save contains both existing records and the added copy");
+    const retry = w.App.macOSBetaPrepareContactImport(payload([item("render-failure")]));
+    equal([retry.newCount, retry.existingCount], [0, 1], "Save retry preserves provenance and prevents duplicate import");
+    w.App.macOSBetaCancelContactImport(retry.token);
+    w.MacBeta.receive("init", { daten: saved, neu: false, regional: { language, timeZone: "UTC" } });
+    await b.pump();
+    const reopened = w.App.macOSBetaPrepareContactImport(payload([item("render-failure")]));
+    equal([reopened.newCount, reopened.existingCount], [0, 1], "Reopened retry-save bytes still prevent duplicate import");
+    w.App.macOSBetaCancelContactImport(reopened.token);
+  } finally { w.MagnolieAppearance = appearance; b.close(); }
 }
 
 console.log(`Mac system Contacts copy: ${checks} projected UI checks; full synthetic native records/transport, not Contacts.framework or macOS evidence.`);

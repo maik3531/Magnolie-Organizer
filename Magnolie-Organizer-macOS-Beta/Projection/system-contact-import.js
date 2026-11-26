@@ -3,19 +3,6 @@
   function macOSBetaContactTr(text) { return window.MacBeta.text(text); }
   let macOSBetaContactProposal = null;
   const macOSBetaContactPayloadLimit = 16 * 1024 * 1024;
-  function macOSBetaContactOnlyBirthday(contact) {
-    const meta = contact?.nativeContactImport;
-    return meta?.version === 1 && meta.copyKind === "public-fields" && meta.birthdayPolicy === "contact-only";
-  }
-  function macOSBetaContactBirthdayEditor(contact) {
-    if (!macOSBetaContactOnlyBirthday(contact)) return null;
-    const field = eingabe("date", contact.geburtstag || "", {
-      jahrOptional: true, jahrUnbekannt: !!contact.geburtstagJahrUnbekannt });
-    field.id = "macos-contact-birthday";
-    const element = formZeile(macOSBetaContactTr("Birthday"), field);
-    element.append(el("p", "einst-hinweis", macOSBetaContactTr("Birthday stored with this contact; no calendar entry.")));
-    return { field, element };
-  }
   function macOSBetaContactBlocked() {
     return (window.MacBeta.contactImportBlocked?.() ?? window.MacBeta.noteImportBlocked()) ||
       gesperrt || !initialisiert || !antwortErhalten;
@@ -108,7 +95,7 @@
   }
   function macOSBetaContactProvenance(contact) {
     const meta = contact?.nativeContactImport, native = contact?.nativeContactRecord;
-    if (!macOSBetaContactSource(meta && { ...meta, title: meta.sourceTitle }) || !macOSBetaContactOnlyBirthday(contact) ||
+    if (!macOSBetaContactSource(meta && { ...meta, title: meta.sourceTitle }) || !kontaktGeburtstagNurAmKontakt(contact) ||
         !macOSBetaContactDigest(meta.identity) || !macOSBetaContactDigest(meta.revision) ||
         !macOSBetaContactText(meta.identifier, 16384, false) || meta.revisionCoverage !== "serialized-fields-only" ||
         !macOSBetaContactNativeRecord(native) || native.identifier !== meta.identifier)
@@ -285,8 +272,18 @@
   function macOSBetaCommitContactImport(token) {
     return new Promise((resolve, reject) => {
       const proposal = macOSBetaContactProposal;
-      let ownsProposal = false;
-      const failed = error => {
+      let ownsProposal = false, appended = false, saveConfirmed = false;
+      const failed = (error, saveRejected = false) => {
+        // #778: the renderer may fail after the local append and before the
+        // save callback is registered. Report the mutation, never a rollback or
+        // an unobserved write failure; a scheduled save may still be pending.
+        if (appended && !saveConfirmed) {
+          const prefix = saveRejected
+            ? window.MacBeta.text("Imported contacts remain unsaved. Save the pending changes before importing again.")
+            : window.MacBeta.text("Contact copies were added, but saving was not confirmed. Check and save the pending changes before importing again.");
+          const detail = String(error?.message || error);
+          if (!detail.startsWith(prefix)) error = new Error(prefix + " " + detail);
+        }
         if (ownsProposal && macOSBetaContactProposal === proposal) macOSBetaContactProposal = null;
         reject(error);
       };
@@ -304,15 +301,17 @@
             macOSBetaContactRequireCurrent(proposal);
             proposal.state = "saving";
             proposal.book.kontakte.push(...proposal.candidates);
+            appended = true;
             planeSpeichern(); zeichneAlles();
             nachDauerhaftemSpeichern(() => {
+              saveConfirmed = true;
               if (DATEN !== proposal.book || macOSBetaContactBlocked() ||
                   proposal.candidates.some(contact => !DATEN.kontakte.includes(contact))) {
                 failed(new Error(macOSBetaContactTr("The document changed before the Contacts copy save completed."))); return;
               }
               if (macOSBetaContactProposal === proposal) macOSBetaContactProposal = null;
               resolve({ ok: true, count: proposal.candidates.length, ids: proposal.candidates.map(contact => contact.id) });
-            }, error => failed(new Error(macOSBetaContactTr("Imported contacts remain unsaved. Save the pending changes before importing again.") + " " + error.message)));
+            }, error => failed(error, true));
           } catch (error) { failed(error); }
         }, failed);
       } catch (error) { failed(error); }

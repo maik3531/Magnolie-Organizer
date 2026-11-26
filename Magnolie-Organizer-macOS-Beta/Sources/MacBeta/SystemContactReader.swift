@@ -5,7 +5,8 @@ import ImageIO
 import UniformTypeIdentifiers
 import BetaCore
 
-/// Refs #775. Queue-confined, selected-contact reads for deliberate local copies.
+/// Refs #775/#786. Queue-confined contact reads and the separately authorized
+/// exact-record field-write adapter. Copy operations continue to be read-only.
 /// Call only through SystemAccountStore, with its existing CNContactStore and
 /// cooperative read control. No CN object leaves these functions. This selected
 /// scope is separate from the older full-source snapshots and vCard reader.
@@ -147,6 +148,86 @@ enum SystemContactReader {
         request.unifyResults = false
         request.mutableObjects = false
         return request
+    }
+
+    /// Refs #786. Update an exact non-unified record; do not construct a contact
+    /// from its displayed name and do not replace unfetched/private properties.
+    static func applySync(store: CNContactStore, operation: SystemAccountSync.Operation,
+                          source binding: SystemAccountSync.Source, context: CalendarTimeContext,
+                          control: SystemSourceReadControl, requireAccess: () throws -> Void) throws -> SystemAccountSync.Record {
+        var enteredSave = false
+        do {
+            try control.check(); try requireAccess()
+            let expected = try SystemAccountSyncProjection.contactSource(binding)
+            let current = try currentSource(store, expected: expected, control: control)
+            let selected = try selectedIdentities([operation.identifier])
+            try requireMembership(store, source: current, selected: selected, control: control)
+            let request = makeRequest(keys: detailKeys, predicate: CNContact.predicateForContacts(withIdentifiers: [operation.identifier]))
+            var objects: [CNContact] = []
+            try store.enumerateContacts(with: request) { contact, stop in
+                objects.append(contact); if objects.count > 1 { stop.pointee = true }
+            }
+            guard objects.count == 1, let contact = objects.first, contact.areKeysAvailable(detailKeys),
+                  same(contact.identifier, operation.identifier) else { throw failure("the selected contact is missing or ambiguous") }
+            var budget = Budget()
+            let raw = try record(contact, identifier: operation.identifier, control: control, budget: &budget)
+            let observed = try SystemAccountSyncProjection.contacts(.init(source: current, records: [raw]), displayTimeZone: binding.displayTimeZone)
+            guard observed.source.fingerprint == binding.fingerprint, observed.records.count == 1,
+                  observed.excluded.isEmpty, let before = observed.records.first, before.revision == operation.before.revision else {
+                throw failure("the selected contact or source changed after planning")
+            }
+            let patch = try SystemAccountSyncProjection.nativePatch(record: before, desired: operation.desiredRecord,
+                changedGroups: operation.changedGroups, source: binding, context: context)
+            guard try DAVSyncBaseline.canonicalJSON(patch) == DAVSyncBaseline.canonicalJSON(operation.nativePatch),
+                  let mutable = contact.mutableCopy() as? CNMutableContact else { throw failure("invalid contact field operation") }
+            if let value = patch["givenName"] as? String { mutable.givenName = value }
+            if let value = patch["familyName"] as? String { mutable.familyName = value }
+            if let value = patch["organizationName"] as? String { mutable.organizationName = value }
+            if let values = patch["phoneNumbers"] as? [[String: Any]] {
+                guard values.count == mutable.phoneNumbers.count else { throw failure("phone value identity changed") }
+                mutable.phoneNumbers = try mutable.phoneNumbers.enumerated().map { index, old in
+                    guard same(old.identifier, values[index]["identifier"] as? String ?? ""), let value = values[index]["value"] as? String else { throw failure("phone value identity changed") }
+                    return old.settingValue(CNPhoneNumber(stringValue: value))
+                }
+            }
+            if let values = patch["emailAddresses"] as? [[String: Any]] {
+                guard values.count == mutable.emailAddresses.count else { throw failure("email value identity changed") }
+                mutable.emailAddresses = try mutable.emailAddresses.enumerated().map { index, old in
+                    guard same(old.identifier, values[index]["identifier"] as? String ?? ""), let value = values[index]["value"] as? String else { throw failure("email value identity changed") }
+                    return old.settingValue(value as NSString)
+                }
+            }
+            if let values = patch["postalAddresses"] as? [[String: Any]] {
+                guard values.count == mutable.postalAddresses.count else { throw failure("postal value identity changed") }
+                mutable.postalAddresses = try mutable.postalAddresses.enumerated().map { index, old in
+                    guard same(old.identifier, values[index]["identifier"] as? String ?? ""), let fields = values[index]["value"] as? [String: Any],
+                          let address = old.value.mutableCopy() as? CNMutablePostalAddress,
+                          let street = fields["street"] as? String, let city = fields["city"] as? String,
+                          let state = fields["state"] as? String, let postal = fields["postalCode"] as? String else { throw failure("postal value identity changed") }
+                    address.street = street; address.city = city; address.state = state; address.postalCode = postal
+                    return old.settingValue(address)
+                }
+            }
+            if let value = patch["birthday"] { mutable.birthday = try SystemAccountSyncDates.components(value) }
+            try requireMembership(store, source: current, selected: selected, control: control)
+            _ = try currentSource(store, expected: current, control: control)
+            try control.check(); try requireAccess()
+            let save = CNSaveRequest(); save.update(mutable)
+            // CNSaveRequest has no compare-and-swap condition. No caller may
+            // clear its journal just because execute returned or threw.
+            enteredSave = true
+            try store.execute(save)
+            guard same(mutable.identifier, operation.identifier) else { throw failure("contact identity changed after saving") }
+            let fresh = try snapshot(store: store, source: current, identifiers: [operation.identifier], control: control, requireAccess: requireAccess)
+            let read = try SystemAccountSyncProjection.contacts(fresh, displayTimeZone: binding.displayTimeZone)
+            guard read.source.fingerprint == binding.fingerprint, read.records.count == 1, read.excluded.isEmpty,
+                  let readback = read.records.first else { throw failure("contact readback is unavailable after saving") }
+            try operation.validateReadback(readback)
+            return readback
+        } catch {
+            if enteredSave { throw BetaError("The native contact write has an uncertain outcome. Keep the journal and review the source. " + error.localizedDescription) }
+            throw SystemAccountSync.RejectedBeforeWrite(error.localizedDescription)
+        }
     }
 
     private static func selectedIdentities(_ identifiers: [String]) throws -> Set<OpaqueUTF8Identity> {

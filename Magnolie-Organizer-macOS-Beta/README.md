@@ -12,7 +12,8 @@ copy of important data with this Beta.
 
 The canonical directory is `Magnolie-Organizer-macOS-Beta` beside the existing
 Linux and Windows source directories. Shared product sources, dependency declarations and the Windows release workflow
-remain unchanged. The dedicated candidate workflow builds this port separately.
+remain the canonical references; #776 intentionally fixes their shared contact
+contract. The dedicated candidate workflow builds this port separately.
 
 ## Identity
 
@@ -24,10 +25,12 @@ remain unchanged. The dedicated candidate workflow builds this port separately.
 - Development output and exported filenames include `macOS Beta`.
 - No stable Windows, Linux or Notes profile is discovered, imported or reused automatically.
 
-The `2.0.30-beta.1` identity targets the published desktop 2.0.30 baseline.
-It remains a partial macOS Beta, not a claim that every desktop native feature
-is available. Projection/build manifests record the actual input hashes; host
-checks against a moving development checkout do not establish release-tag parity.
+The existing `2.0.30-beta.1` display identity is retained for this review branch.
+#783 changes Mac candidate builds to the exact current checked-out source,
+instead of restoring the released 2.0.30 desktop tree. The version label is
+therefore not a source proof. This remains a partial macOS Beta; the projection
+and candidate manifests record the actual commit and input hashes. See
+[the complete issue handoff](../contracts/macos-issue-handoff-2026-11-26.md).
 
 ## Target systems and validation
 
@@ -51,7 +54,7 @@ toolchain is required to run the bundle. A current SDK/toolchain is required to 
 | Area | Current Scope |
 | --- | --- |
 | Desktop interface | Entire canonical Linux web tree, styles, fonts, symbols and catalogs projected by generator, not a separate hand-maintained organizer UI |
-| Handbook | Canonical 2.0.30 handbook bundled unchanged, including languages, search and assets; separate nonpersistent local WKWebView, no Organizer bridge; user-clicked HTTPS links open in the system browser |
+| Handbook | Current canonical handbook bundled byte-for-byte, including languages, search and assets; separate nonpersistent local WKWebView, no Organizer bridge; user-clicked HTTPS links open in the system browser |
 | Shell | AppKit window, WKWebView, application/edit menus, save-before-quit handshake |
 | Bridge | Main-frame/local-document check, randomized handler name, typed native allowlist, explicit negative results |
 | Local data | Whole JSON text, private profile lease, 0700 directory/0600 files, atomic same-directory replacement, file and directory synchronization, external-change detection |
@@ -63,9 +66,11 @@ toolchain is required to run the bundle. A current SDK/toolchain is required to 
 | Recovery/deletion | Shared recycle-bin/contact-delete logic; token-correlated checkpoints; private exact-byte JSON files readable after restart |
 | Language/keyboard | Shared regional page enabled and durably saved; generated native gettext catalogs; Command+digit sections, Command formatting, Undo/Redo menus |
 | Export | Source-preserving appointment/task/anniversary ICS, recurrence/exceptions and historical/future timezone definitions; unsupported or contradictory records fail the whole export |
+| File imports | #785 projects the actual current OR6 and classic-format parsers, packages a private Python runtime and binds the native selection to the shared merge and durable Save-ACK. Original-file and projected-UI tests pass on the source host; native runtime/picker acceptance is pending. See [IMPORT-CODECS.md](IMPORT-CODECS.md) and [IMPORT-RUNTIME.md](IMPORT-RUNTIME.md) |
 | Clipboard/attachments | Text clipboard; attachment Save for PDF/JPEG/PNG/GIF/WebP data URLs, not automatic attachment opening |
 | Reminders | Open-app checker with independent one-off early/due task reminders, connected to permission-gated macOS notifications; no persistent scheduler |
 | macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; #770 adds reviewed single calendar copies, #775 local contact copies and #777 selected reminders as independent local tasks. Each preserves existing records and requires a fresh source read plus durable save. Native validation, complete reminder fidelity and full synchronization remain unfinished; see [SYSTEM-CALENDAR-IMPORT.md](SYSTEM-CALENDAR-IMPORT.md), [SYSTEM-CONTACT-IMPORT.md](SYSTEM-CONTACT-IMPORT.md) and [SYSTEM-REMINDER-IMPORT.md](SYSTEM-REMINDER-IMPORT.md) |
+| System-account field sync | #786 separately prepares explicit source/book binding and manual updates in both directions for supported Calendar/Reminders/Contacts fields, with conflict handling and an encrypted recovery ledger. No automatic adoption of copies, new native entries, deletes, series or background sync. Native compilation/API tests remain open; see [the complete field contract](../contracts/macos-786-native-system-sync.md) |
 | Apple Notes | #772 adds direct NSAppleScript source for selected local plaintext copies with full text review, exact native identities, source reread and durable save; no extra app or source writes. Native Dictionary/TCC/build/device validation remains pending; see [APPLE-NOTES-IMPORT.md](APPLE-NOTES-IMPORT.md) |
 | DAV accounts | Canonical native configuration, Keychain credentials, revision-bound verified save/rollback and explicit collection discovery; 19 native account tests |
 | DAV calendar foundations | Complete typed REPORT snapshot decoding and surgical component edits preserving resource siblings; native tests pass on both architectures; no record-sync coordinator yet |
@@ -105,10 +110,13 @@ source checkpoint, not a completed native parity acceptance.
 - Recovery files have no automatic expiry, pruning, index, or scheduled snapshots.
   Restore them with the same JSON picker. They consume disk space until explicitly
   managed by the user; disk-full/native APFS crash behavior still needs Mac testing.
-- Selected UTF-8 ICS files are decoded off the UI thread and applied through the
-  canonical importer; source headers are retained by file hash in the same saved
-  profile transaction. Independent native import/reexport checks pass on both
-  architectures. vCard/CSV/archive import remains unfinished.
+- #785 replaces the ICS-only selected-file route with the current parsers for
+  ICS/VCS/LCS, OR6/CSV, vCard/CSV, Claws/LDIF, ZIP and waste dates. Parsing runs
+  off the UI thread, with an app-owned interpreter, byte-bound protocol and
+  manifest identity. The canonical importer still owns conflict previews and
+  merging. Full `.magnolie` archive import and discovery of local programs remain
+  separate documented work. The earlier native ICS evidence does not establish
+  native validation of this new pipeline.
 - The new EventKit calendar-copy path (#770) is a bounded local import with a
   source/date picker, preview, re-read and durable save acknowledgement. It does
   not enable automatic updates or writing back to Apple Calendar. Rich or
@@ -161,7 +169,7 @@ source checkpoint, not a completed native parity acceptance.
   PDF-engine test does not establish manual print-panel or physical-paper acceptance.
 - No Graph sync, Magnolia tree, phone data sync/SMS/Bluetooth, weather download,
   tray/background service, autostart, scheduled backup, office export,
-  full ICS/vCard/CSV import, updater, manual downloader, contributor validation or
+  complete archive/local-program import, updater, manual downloader, contributor validation or
   native protected-image rendering is implemented.
 - The separately developed iPhone AirPlay receiver requires the explicit
   [AirPlay bundle build](AIRPLAY-BUILD.md). Its source integration does not imply
@@ -235,6 +243,7 @@ Only the thin adapter and deterministic projection rules are maintained here.
 After the desktop source owner confirms the intended state is frozen:
 
 ```sh
+python3 tools/project_import_helper.py --prepare-dependencies
 python3 tools/project_ui.py freeze --confirm-desktop-frozen
 python3 tools/project_ui.py generate
 python3 tools/project_ui.py check
@@ -248,18 +257,26 @@ generation or after the freeze block further use. Anchor changes require review,
 not fallback to an old shipped payload. Generated output is disposable and ignored.
 
 The freeze is a reproducibility record, not an authenticity signature or release
-approval. Existing desktop sources and repository workflows remain untouched.
+approval. Candidate-source checks additionally bind the actual checkout.
 
 ## macOS Development
 
-Requires a legitimate Mac or an explicitly available Apple-hosted runner, Xcode
+Requires a suitable real macOS VM, Mac, or macOS CI runner, Xcode
 15+ or its Apple Command Line Tools with the macOS SDK, Python 3.10+, and a
 macOS host supported by that Xcode version (Xcode 15 requires macOS 13.5+).
 The generated application targets macOS 12.7+; the build host may be newer. There are no Swift package downloads. Build only after the freeze steps:
 
 ```sh
-python3 tools/build_dev.py
+python3 tools/import_python_bundle.py --download \
+  --source-archive /absolute/private/build/Python-3.15.2.tar.xz \
+  --output /absolute/private/build/import-python
+python3 tools/build_dev.py --import-runtime /absolute/private/build/import-python
 ```
+
+[CLOUD-MAC-TESTING.md](CLOUD-MAC-TESTING.md) records the actual Linux cloud
+environment, investigated VM/xnulinux options and concrete native test steps.
+The user's own physical Mac is not required. A modern iCloud-capable test VM
+and a separate real 12.7 runtime test answer different compatibility questions.
 
 This runs `swift test`, makes a **debug** bundle for the runner's architecture,
 copies the verified UI/resources/licenses, and applies local ad-hoc signing.
@@ -293,15 +310,26 @@ ad-hoc bundle signature using `codesign --force --sign -`, only in the newly
 created output. Strict signature verification remains required. No production
 certificate or notarization is used.
 
-The authorized candidate workflow is
+The development candidate workflow is
 [`ports-2.0.30.yml`](../.github/workflows/ports-2.0.30.yml). It runs manually or on
-the dedicated `codex/ports-2.0.30` branch. It retains the reviewed port sources but
-selects canonical desktop inputs from the exact published `v2.0.30` commit
-`067c38934b539943d8e1720abafd8a80b401d797` in its disposable runner checkout.
-Catalog generation precedes the build-local freeze. Host, Apple crypto and real
+the dedicated `codex/ports-2.0.30` branch. The Mac job now uses the complete
+selected checkout, including its current shared Organizer sources (#783).
+`candidate_sources.py` binds the exact workflow commit and tracked-source hashes
+before preparation and verifies them again before packaging. It rejects mixed
+old/new source trees. Catalog generation precedes the build-local freeze;
+generated inputs/output retain their separate reproducibility checks. The
+Tablet job and tagged reference fixtures retain their previous source policy.
+Host, Apple crypto and real
 WKWebView tests must pass before the development app is packaged and uploaded.
 The zip includes source provenance and SHA-256 checksums; Actions retains it for
 14 days. Its architecture follows the runner and is recorded in the build metadata.
+Historical Mac runs, including `42562106430` at port source `cbdc0876`, still used
+published desktop source `067c3893`; they are not current-shared-source native
+acceptance. See [CURRENT-SOURCE-CANDIDATE.md](CURRENT-SOURCE-CANDIDATE.md) for the
+catch-up scope and exact evidence boundary. A shared-source update does not add
+a Magnolie Notes companion app or enable unimplemented sync commands. Apple
+services and supported existing KDE Connect clients remain separate Mac
+integration paths requiring their own implemented adapters and acceptance.
 
 This workflow has read-only repository permissions and creates development
 artifacts, not a GitHub Release. A successful WKWebView test is not full production

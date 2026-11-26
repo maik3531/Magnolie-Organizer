@@ -223,8 +223,18 @@
   function macOSBetaCommitCalendarImport(token) {
     return new Promise((resolve, reject) => {
       const proposal = macOSBetaCalendarProposal;
-      let ownsProposal = false;
-      const failed = error => {
+      let ownsProposal = false, appended = false, saveConfirmed = false;
+      const failed = (error, saveRejected = false) => {
+        // #778: the renderer may fail after the local append and before the
+        // save callback is registered. Report the mutation, never a rollback or
+        // an unobserved write failure; a scheduled save may still be pending.
+        if (appended && !saveConfirmed) {
+          const prefix = saveRejected
+            ? window.MacBeta.text("Imported appointments remain unsaved. Save the pending changes before importing again.")
+            : window.MacBeta.text("Appointment copies were added, but saving was not confirmed. Check and save the pending changes before importing again.");
+          const detail = String(error?.message || error);
+          if (!detail.startsWith(prefix)) error = new Error(prefix + " " + detail);
+        }
         if (ownsProposal && macOSBetaCalendarProposal === proposal) macOSBetaCalendarProposal = null;
         reject(error);
       };
@@ -243,16 +253,18 @@
             macOSBetaCalendarImportRequireCurrent(proposal);
             proposal.state = "saving";
             proposal.book.termine.push(...proposal.candidates);
+            appended = true;
             planeSpeichern();
             zeichneAlles();
             nachDauerhaftemSpeichern(() => {
+              saveConfirmed = true;
               if (DATEN !== proposal.book || macOSBetaCalendarImportBlocked() ||
                   proposal.candidates.some(record => !DATEN.termine.includes(record))) {
                 failed(new Error("The document changed before the calendar import save completed.")); return;
               }
               if (macOSBetaCalendarProposal === proposal) macOSBetaCalendarProposal = null;
               resolve({ ok: true, count: proposal.candidates.length, ids: proposal.candidates.map(record => record.id) });
-            }, error => failed(new Error("Imported appointments remain unsaved. Save the pending changes before importing again. " + error.message)));
+            }, error => failed(error, true));
           } catch (error) { failed(error); }
         }, failed);
       } catch (error) { failed(error); }

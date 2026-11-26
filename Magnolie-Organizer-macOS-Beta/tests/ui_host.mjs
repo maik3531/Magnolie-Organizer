@@ -53,7 +53,7 @@ try {
   t.baueEinstellungen();
   w.document.getElementById("einst-tab-sync").click();
   const accountPage = w.document.getElementById("einst-seite-sync");
-  assert.match(accountPage.textContent, /Full synchronization is not available/); assertions++;
+  assert.match(accountPage.textContent, /not full Linux synchronization parity/); assertions++;
   assert.equal(accountPage.querySelector("#sync-jetzt").disabled, true); assertions++;
   assert.equal(accountPage.querySelectorAll("[data-system-access]").length, 3); assertions++;
   assert.ok(messages.some(m => m.cmd === "eds_status")); assertions++;

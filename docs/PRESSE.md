@@ -2,7 +2,7 @@
 
 [Zur Zeitungsseite der Magnolie Presseschau](https://maik3531.github.io/Magnolie-Organizer/presse/)
 
-**Prüfstand: 24. November 2026, Abend (MEZ)**
+**Prüfstand: 26. November 2026 (MEZ)**
 
 > **Herzlichen Dank an alle, die über Magnolie berichten, das Projekt vorstellen oder weiterempfehlen. Eure Unterstützung hilft, Magnolie bekannter und noch mehr Menschen zugänglich zu machen.**
 >
@@ -138,7 +138,7 @@ Softwarekatalogeintrag zum Windows-Organizer mit Beschreibung, Downloadverweis u
 
 **Datum:** Eingetragen und aktualisiert am 19. November 2026; beide Angaben stehen ausdrücklich auf der Originalseite.
 
-**Nachweis:** Originalseite am 24. November 2026 direkt abgerufen.
+**Nachweis:** Originalseite am 26. November 2026 direkt gelesen.
 
 #### Unstock
 
@@ -162,9 +162,9 @@ Vergleichsübersicht zu Notiz-Apps für Android mit einer Erwähnung von Magnoli
 
 Importierter Katalogeintrag aus AppImageHub und F-Droid. Die Seite vermischt Angaben zum Desktop-Organizer und zu Magnolie Notes; die Versionszahl im Seitentitel wird hier nicht als Produktstand übernommen.
 
-**Datum:** Quelldaten abgerufen am 6. November 2026; keine belegte Erstveröffentlichung.
+**Datum:** Quelldaten laut Originalseite am 26. November 2026 abgerufen; die Erstveröffentlichung ist nicht belegt.
 
-**Nachweis:** Im aktuellen Suchindex belegt; Direktabruf gesperrt.
+**Nachweis:** Originalseite am 26. November 2026 direkt gelesen.
 
 #### AppImageHub
 
@@ -194,9 +194,9 @@ Softwareverzeichnis mit einer Vorstellung von Magnolie Organizer und Verweisen a
 
 Die Preiskennzeichnung ist in allen sechs angebotenen Sprachfassungen auf „Free“ korrigiert. Die englische Preis-FAQ nennt ebenfalls kostenlose Nutzung; die deutsche und niederländische FAQ sind noch nicht angepasst. Die Abgrenzung zwischen Desktop-Organizer und der separaten Android-App Magnolie Notes sowie die Lizenzpräzisierung von GPL-3.0 auf GPL-3.0-or-later bleiben offen.
 
-**Datum:** Am 24. November 2026 abends erneut direkt geprüft. Der 13. November 2026 ist der vom Verzeichnis genannte Prüfstand; die Erstveröffentlichung ist nicht belegt.
+**Datum:** Am 26. November 2026 erneut direkt geprüft. Der 13. November 2026 ist der vom Verzeichnis genannte Prüfstand; die Erstveröffentlichung ist nicht belegt.
 
-**Nachweis:** Originalseite und fünf Sprachfassungen am 24. November 2026 abends direkt gelesen; Preisänderung zusätzlich durch die Portalantwort bestätigt.
+**Nachweis:** Originalseite und fünf Sprachfassungen am 26. November 2026 direkt gelesen; Preisänderung zusätzlich durch die Portalantwort bestätigt.
 
 #### LibHunt
 
@@ -206,7 +206,7 @@ Projektprofil mit Repository-Daten und automatisch zusammengestellten Alternativ
 
 **Datum:** Hauptprofil am 20. November 2026 erneut direkt geprüft. Erstveröffentlichung nicht belegt.
 
-**Nachweis:** Hauptprofil am 20. November 2026 direkt gelesen · erneuter Abruf am 24. November 2026 mit HTTP 403 nicht möglich; Vergleichsansicht weiterhin im Suchindex belegt.
+**Nachweis:** Hauptprofil am 20. November 2026 direkt gelesen · erneuter Abruf am 26. November 2026 mit HTTP 403 nicht möglich; Vergleichsansicht weiterhin im Suchindex belegt.
 
 #### LicitPro
 
@@ -222,11 +222,11 @@ Dokumentationsbasierter Verzeichniseintrag zu Magnolie Notes mit GitHub und F-Dr
 
 [Magnolie Organizer for Windows](https://www.litefile.com/magnolie-organizer-for-windows.html)
 
-Softwareverzeichnis mit Beschreibung des Windows-Organizers und Downloadinformationen.
+Softwareverzeichnis mit Beschreibung des Windows-Organizers und Downloadinformationen. Die Produktseite kennzeichnet den Organizer als kostenlos und grenzt ihn von der separaten Android-App Magnolie Notes ab. Produktseite und [Katalogübersicht](https://www.litefile.com/) gehören zur selben Fundstelle.
 
 **Datum:** Aktualisiert am 18. November 2026; die Erstveröffentlichung ist nicht belegt.
 
-**Nachweis:** Originalseite am 24. November 2026 direkt abgerufen.
+**Nachweis:** Produktseite und Katalogübersicht am 26. November 2026 direkt gelesen.
 
 #### PatchBot
 
@@ -244,9 +244,11 @@ Die öffentliche Software- und Aktualisierungsliste führt Maik Walter und Magno
 
 Produkteintrag im Bereich Produktivität. Die Seite kennzeichnet die autorisierte, KI-unterstützte Einreichung für Maik Walter.
 
+Die Freischaltung ist zusätzlich durch eine Portalantwort bestätigt, die der Entwickler am 26. November 2026 übermittelt hat. Sie bestätigt den bereits erfassten Eintrag und zählt nicht als weitere Veröffentlichung.
+
 **Datum:** Das Verzeichnis nennt den 18. November 2026 als Prüfdatum; die Erstveröffentlichung ist nicht belegt.
 
-**Nachweis:** Originalseite am 24. November 2026 direkt abgerufen.
+**Nachweis:** Originalseite am 26. November 2026 direkt gelesen; zusätzliche Freischaltungsbestätigung durch das Portal.
 
 #### TechTools Launchpad
 
@@ -262,11 +264,11 @@ Verzeichniseintrag im Launchpad. Der konkrete Projekteintrag ist über die öffe
 
 [Magnolie Organizer 2.0.30](https://magnolie-organizer.updatestar.com/)
 
-Softwarekatalogeintrag zum Windows-Organizer mit Projektbeschreibung und Maik Walter als Entwickler. Zur bereits vorliegenden Herausgeberbestätigung ist nun ein aktueller Inhaltsbeleg im Suchindex hinzugekommen.
+Softwarekatalogeintrag zum Windows-Organizer mit Projektbeschreibung, Versionsangabe 2.0.30 und Maik Walter als Entwickler. Das öffentliche Profil ist direkt lesbar und bestätigt den bereits erfassten Eintrag.
 
-**Datum:** Der Suchindex nennt den 14. November 2026 als Aufnahme in die Datenbank. Die Herausgeberbestätigung liegt vom 16. November 2026 vor.
+**Datum:** Die Originalseite nennt den 14. November 2026 als Aufnahme in die Datenbank. Die Herausgeberbestätigung liegt vom 16. November 2026 vor. Das Aufnahmedatum ist kein Software-Veröffentlichungsdatum.
 
-**Nachweis:** Im aktuellen Suchindex belegt; Direktabruf weiterhin gesperrt (403).
+**Nachweis:** Originalseite am 26. November 2026 direkt gelesen; zusätzlich liegt die Herausgeberbestätigung vor.
 
 #### Windows 10 Download
 
@@ -276,7 +278,7 @@ Windows-Softwarekatalog mit Beschreibung, Bildschirmfoto und Downloadverweisen z
 
 **Datum:** „Released Oct 31 2026“ bezeichnet die Softwareversion. Das Datum der Katalogveröffentlichung ist nicht belegt.
 
-**Nachweis:** Originalseite aktuell abgerufen.
+**Nachweis:** Originalseite am 26. November 2026 direkt gelesen.
 
 #### ZIRULAB
 
@@ -286,7 +288,7 @@ Ausführlicher Softwareeintrag auf Grundlage der Projektdokumentation. Die Seite
 
 **Datum:** Erstveröffentlichung nicht belegt.
 
-**Nachweis:** Originalseite am 24. November 2026 direkt abgerufen.
+**Nachweis:** Originalseite am 26. November 2026 direkt gelesen.
 
 ### Russisch
 
@@ -318,7 +320,7 @@ Android-Katalogseite für Magnolie Notes mit chinesischer Oberfläche und englis
 
 **Datum:** Aktualisiert am 16. November 2026; die Erstveröffentlichung ist nicht belegt.
 
-**Nachweis:** Originalseite am 24. November 2026 direkt abgerufen.
+**Nachweis:** Originalseite am 26. November 2026 direkt gelesen.
 
 ## 5. Historische Nachweise
 
@@ -328,7 +330,7 @@ Android-Katalogseite für Magnolie Notes mit chinesischer Oberfläche und englis
 
 [Magnolie-Organizer · SilentStars](https://silentstars.dev/projects/maik3531--magnolie-organizer/)
 
-Historisches Repository-Profil mit Projektbeschreibung und Metadaten. Der Suchindex enthält weiterhin Text; die Originaladresse lieferte bei der erneuten Prüfung am 24. November 2026 „nicht gefunden“ (404).
+Historisches Repository-Profil mit Projektbeschreibung und Metadaten. Der Suchindex enthält weiterhin Text; die Originaladresse lieferte bei der erneuten Prüfung am 26. November 2026 „nicht gefunden“ (404).
 
 **Datum:** Historisch beobachtet am 12. und 17. November 2026. Erstveröffentlichung nicht belegt.
 
@@ -450,7 +452,7 @@ Laut der an Maik Walter übermittelten Redaktionszusage wurde die eingereichte P
 
 Die **Zuordnung zu LinuxParty wird aus dem identischen Titel der dokumentierten Einreichung abgeleitet**: „Magnolie Organizer: agenda libre para Linux y Windows con 20 idiomas“.
 
-Bei der Nachprüfung am 24. November 2026 abends ist weiterhin keine öffentliche Artikeladresse bestätigt. **Diese Ankündigung zählt nicht als veröffentlichter Originalartikel.**
+Bei der Nachprüfung am 26. November 2026 enthalten weder die Startseite noch der aktuelle Atom-Feed einen Magnolie-Beitrag; eine öffentliche Artikeladresse ist weiterhin nicht bestätigt. **Diese Ankündigung zählt nicht als veröffentlichter Originalartikel.**
 
 [Zum Medium LinuxParty](https://www.linuxparty.es/)
 

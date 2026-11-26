@@ -1,5 +1,47 @@
 # iPhone-Anbindung: vorhandene Apps und Übertragungswege
 
+
+## Verbindliche Ergänzung vom 26. November 2026
+
+Die Mac-Ausgabe setzt **keine eigene Magnolie-Notes-Begleitapp** voraus.
+Vorhandenes **KDE Connect ist ausdrücklich ein vorgesehener Übertragungsweg**,
+neben Apple-Apps und den passenden nativen Schnittstellen. Das aktuelle
+[Mac-Angebot im App Store](https://apps.apple.com/de/app/kde-connect/id1580245991?platform=mac)
+nennt Dateiübertragung, Zwischenablage sowie Geräte-/Verbindungsstatus und
+macOS ab 13. Die [offizielle KDE-Downloadseite](https://kdeconnect.kde.org/download.html)
+führt zusätzlich den Mac-Desktopclient und die iOS-App auf. Die App-Store-App
+und der Qt-Desktopclient müssen bei einer direkten Magnolie-Anbindung getrennt
+auf ihre tatsächlichen Schnittstellen geprüft werden; eine Linux-CLI- oder
+D-Bus-Annahme gilt nicht automatisch für beide.
+
+Der überprüfte Magnolie-Quellstand enthält bislang keinen nativen
+`kde_*`-, `telefon_*`- oder `personal_sync_*`-Handler. Das beschreibt die
+noch fehlende **direkte Magnolie-Anbindung**, nicht die Nutzbarkeit der
+externen KDE-Connect-App. Bewusst damit empfangene unterstützte Dateien
+können über den vorhandenen Mac-Dateiimport übernommen werden. Ein realer
+KDE-Connect-/iPhone-Gerätelauf wurde in diesem Audit nicht ausgeführt.
+
+Der Workflow-Fix [#783](https://github.com/maik3531/Magnolie-Organizer/issues/783)
+aktualisiert gemeinsame UI-/Datenquellen, ohne native Syncbefehle freizuschalten.
+Der gezielte UI-Fix [#784](https://github.com/maik3531/Magnolie-Organizer/issues/784)
+beseitigt die unpassende Notes-Voraussetzung und endlose Statusanzeigen auf
+der Mac-Geräteseite. #785 ergänzt die aktuellen OR6-/Dateiparser einschließlich
+Vorschau und Speicherbindung. Die vorhandenen Apple-Kopieranschlüsse bleiben
+bewusste lokale Übernahmen. #786 ergänzt davon getrennt einen ausdrücklich
+gebundenen manuellen Feldabgleich für Kalender, Kontakte und Erinnerungen
+mit eigenen Konflikt-, Identitäts-, Readback- und Journalverträgen. Seine native
+Abnahme sowie Neuanlagen, Löschungen, Serien und Hintergrundautomatik bleiben
+offen. Apple-Notes-Rückabgleich ist damit noch nicht implementiert.
+
+Eine echte macOS-VM kann diese Wege prüfen; ein eigener physischer Mac des
+Nutzers ist nicht erforderlich. Voraussetzungen für eine geeignete iCloud-VM,
+App-Store-Grenzen, den direkten offiziellen KDE-Download und konkrete
+Netz-/Import-/Kontenproben stehen in [CLOUD-MAC-TESTING.md](CLOUD-MAC-TESTING.md).
+
+Die folgenden früheren Untersuchungen bleiben mit ihrem jeweiligen Datum
+und Quellstand als historische Nachweise erhalten.
+
+
 Auftragsumfang präzisiert am 2026-11-10, Arbeit zu #121: Nutzbare
 iPhone-Anbindungen über vorhandene Apps, insbesondere KDE Connect, bleiben
 Teil des Auftrags. Eine eigene Notes-App für das iPhone wird nicht umgesetzt.

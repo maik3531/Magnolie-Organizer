@@ -1,0 +1,651 @@
+# Mac-Patches und Übergabe an Codex — 26. November 2026
+
+## Ergebnis und verbindlicher Umfang
+
+Dieser Zweig enthält überprüfbare Quellpatches, vollständige Issue-Zuordnungen und reproduzierbare Prüfungen für die spätere Codex-Übernahme. Der Mac-Kandidat verwendet aktuelle gemeinsame Quellen, bekommt passende Apple-/Dateieinstiege, die aktuellen klassischen Datei-/OR6-Parser und einen begrenzten echten Systemkonten-Feldabgleich. Eine eigene **Magnolie-Notes-Begleitapp** ist keine Voraussetzung. Apple-Programme und **vorhandenes KDE Connect** bleiben passende Mac-Wege.
+
+Zu Beginn wurden **123 offene Issues** über die paginierte GitHub-API erfasst: **26 Mac-Zuordnungen** und **97 begründete Ausschlüsse**. Hinzu kamen [#781](https://github.com/maik3531/Magnolie-Organizer/issues/781) · [#783](https://github.com/maik3531/Magnolie-Organizer/issues/783) · [#784](https://github.com/maik3531/Magnolie-Organizer/issues/784) · [#785](https://github.com/maik3531/Magnolie-Organizer/issues/785) · [#786](https://github.com/maik3531/Magnolie-Organizer/issues/786). Die abschließende vollständige API-Bestandsliste umfasst damit **128 offene Issues**, davon **31 in dieser Mac-Übergabe**; **1 offener Pull Request** wird separat ausgeschlossen. Die Identitätsmengen wurden vollständig abgeglichen. Die ursprünglichen Ausschlüsse stehen weiterhin einzeln in der [maschinenlesbaren Bestandsliste](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-issue-inventory-2026-11-26.json), einschließlich des Schlüssels `excludedOpenIssues`.
+
+Die geschlossenen **#9, #455 und #460** werden separat nachverfolgt. Sie erhalten aus dieser Übergabe keine Wiederöffnung und keinen neuen Kommentar. Die Fixes liegen auf dem reviewbaren Arbeitszweig. Es gab keinen Merge dieses Vorschlags nach `main`, kein installierbares neues Mac-Paket und keine Veröffentlichung. Teilfixe und vorbereitete native Tests werden ausdrücklich als solche ausgewiesen.
+
+## Tatsächliche Umgebung und ausführbarer Mac-Prüfplan
+
+Die erreichbare Umgebung ist Linux x86_64, kein nachgewiesener macOS-Emulator. Swift/Apple-SDK und KVM fehlen. Hier liefen tatsächliche Python-/JS-/Projektionsprüfungen, keine neuen nativen Mac-Tests. Eine passende macOS-CI-/Cloud-VM genügt für die offene Abnahme; ein eigener physischer Mac wird nicht vorausgesetzt. Die vorhandene gh-CLI ist laut geprüftem auth status nicht bei github.com angemeldet (Exit 1); der verfügbare GitHub-Connector bietet keinen Workflow-Start. Der neue Mac-Lauf ist deshalb vorbereitet, nicht dispatcht.
+
+[Konkreter Mac-CI-/Cloud-VM-Prüfplan](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md) · [Tatsächlich gemessene Umgebung (JSON)](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-cloud-environment-2026-11-26.json)
+
+Der Umgebungsbeleg nennt Linux x86_64, fehlendes Swift/Apple-SDK und fehlenden KVM-Zugriff. Es wurde keine VM installiert und keine Berechtigung geändert. Die vorhandenen macOS-CI-Jobs für ARM64 und Intel sowie eine passend bereitgestellte dauerhafte macOS-VM sind die konkreten nächsten Prüfwege. CI-/VM-Architektur, SDK/OS, Quellcommit und tatsächlich gestartetes Bundle müssen jeweils festgehalten werden. Ein moderner ARM-Gast ersetzt weder Intel noch die Mindestversionsprüfung unter macOS 12.7. Persönliche Hardware beim Nutzer wird nicht vorausgesetzt.
+
+## Ausgangsstand und wichtigste Catch-up-Ursache
+
+- Zu Auditbeginn geprüftes `main`: `00776ce70e155c7a607ed55a4502d6fcee5a860c`.
+- Vollständige vorhandene Mac-Folge bis #777: `616069f15fed21d8d8d05c8ef795f4ed21bd059c`.
+- Reviewbarer Arbeitszweig: `work/macos-issue-fixes-20261126`.
+- Vor Übergabe erneut geprüfte und im Zweig enthaltene Main-Basis: `d4da48a5eadd0bda22422b924bef4ee3b4324040`. Während des Audits kam ausschließlich die Presseaktualisierung d4da48a5 hinzu. Sie wurde in den Prüfzweig integriert; die gemeinsamen Produkt- und Mac-Quellen waren gegenüber 00776ce7 unverändert.
+- Historische veröffentlichte Desktopbasis: `067c38934b539943d8e1720abafd8a80b401d797` (`v2.0.30`).
+
+Der Mac-Projektor liest gemeinsame Linux-Webquellen. Der bisherige Mac-CI-Job ersetzte sie nach dem Checkout jedoch mit `git restore --source="$DESKTOP_COMMIT"` durch `v2.0.30`. **#783 beseitigt diese konkrete Catch-up-Ursache und bindet die tatsächlichen Bytes direkt an den ausgewählten Git-Commit.** SourceFreeze und der generierte Manifestvergleich sichern zusätzlich die Build-Eingaben und Ausgaben. Der Tablet-Job und die historischen Vergleichsorakel behalten ihre getrennten Baselines. Die sichtbare Versionsnummer allein ist kein Quellnachweis.
+
+Aktuelle gemeinsame UI-Dateien waren für die Import- und Systemkontenlücken nicht ausreichend: Der Mac-Dateidispatcher akzeptierte vorher nur ICS; die Apple-Anschlüsse lieferten ausgewählte lokale Kopien. #785 und #786 ergänzen die jeweils fehlenden nativen Verbindungen separat. Linux-/Windows-Transportprotokolle werden nicht allein wegen identischer UI aktiviert.
+
+## Was die Patches konkret leisten
+
+| Bereich | Reviewbarer Stand | Aussagegrenze |
+| --- | --- | --- |
+| Gemeinsame UI, Modelle, Übersetzungen und passende Fehlerkorrekturen | #783 verwendet aktuelle, bytegebundene Checkout-Quellen | Identisches HTML beweist keine native Funktionsparität |
+| Mac-Geräte-/Importseite | #784 ersetzt falsche Begleitapp-Voraussetzungen und dauerhafte Ladefelder durch vorhandene Mac-Aktionen | Direkter KDE-Geräteadapter und tatsächlicher Transport bleiben getrennt |
+| Klassische Dateiimporte und OR6 | #785 projiziert die aktuelle geprüfte Parser-Closure, bindet privaten Pythonprozess, nativen Picker, Vorschau und Save-ACK an | Echte native Ausführung steht aus; Gesamtarchiv und lokale Profilerkennung sind noch nicht angebunden |
+| Kontaktgeburtstage und Aufgabenherkunft | #776 behebt den gemeinsamen Kontaktvertrag; #779 belegt bereits vorhandenen Metadatenerhalt | Herkunftsfelder erzeugen keine neue Synchronisationsberechtigung |
+| Ausgewählte Apple-Kopierimporte | #770/#772/#775/#777 bleiben bewusste lokale Kopierwege mit eigenen Fehler-/Speichergrenzen | Kopie und echter Rückabgleich sind verschiedene Funktionen |
+| Apple-Systemkontenabgleich | #786 ergänzt manuell gestarteten Dreiwege-Feldabgleich gebundener EventKit-/Contacts-Einträge, Baseline, Konflikte und Readback-/Journalvertrag | Keine Vollparität: Create/Delete, Serien/Alarme/weitere Felder, Automatik und echte Providerabnahme bleiben offen |
+| Apple Notes | Öffentlicher AppleScript-Anschluss für ausgewählte Textkopien bleibt vorhanden | #786 implementiert keinen Notes-Rückabgleich; eigener Schreib-/Konflikt-/Recovery-Vertrag fehlt |
+| KDE Connect | Vorhandener externer Client und empfangene unterstützte Dateien sind sinnvolle Mac-Wege | App-Store-Ausgabe und Qt-Desktopclient müssen anhand ihrer tatsächlichen Schnittstellen geprüft werden |
+| AirPlay | Vorhandener UxPlay-Anschluss aus #721 bleibt in der Folge | Bildschirm/Ton ist keine Fernsteuerungs- oder Daten-Syncfreigabe |
+| Importierte Provider-/Synceinstellungen | Daten werden unter den bestehenden Grenzen erhalten | Keine neue native Autorität aus importierten Feldern oder Herkunft ableiten |
+
+Die [App-Store-Seite](https://apps.apple.com/de/app/kde-connect/id1580245991?platform=mac) und [offiziellen KDE-Downloads](https://kdeconnect.kde.org/download.html) sind im zugehörigen Prüfplan belegt. Ein bestehender Client ist kein pauschaler Plattformausschluss und zugleich kein schon nachgewiesener Magnolie-Adapter. Linux-D-Bus-/CLI-Annahmen gelten nicht automatisch für jede Mac-Gegenstelle. Einzelheiten stehen in [IPHONE-INTEROPERABILITY.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/IPHONE-INTEROPERABILITY.md).
+
+## Zuordnung aller offenen Mac-Issues
+
+| Issue | Ergebnis im Audit | Reviewbarer Quellpatch |
+| --- | --- | --- |
+| [#121](https://github.com/maik3531/Magnolie-Organizer/issues/121) — Nach Gesamtabnahme: macOS- und Android-Organizer auf Funktions- und Darstellungsparität bringen | Übergreifende Übergabe und Abgleich | [0a14d268](https://github.com/maik3531/Magnolie-Organizer/commit/0a14d268913337bd436e560ab47f670ed43d89c3) · [9f35d4d0](https://github.com/maik3531/Magnolie-Organizer/commit/9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa) · [6341a2f1](https://github.com/maik3531/Magnolie-Organizer/commit/6341a2f1fa188a15ba63fd43bacf4dccfc148dfc) · [62835e02](https://github.com/maik3531/Magnolie-Organizer/commit/62835e02e422bfcd8ae0fccea36dac08813e42cf) · [6372a409](https://github.com/maik3531/Magnolie-Organizer/commit/6372a409b849dffa2856d8e0993cfaef96b44a3d) · [e2a71b5e](https://github.com/maik3531/Magnolie-Organizer/commit/e2a71b5eaf2635b38f0496bb8df9bb6cbf387121) · [d57ef304](https://github.com/maik3531/Magnolie-Organizer/commit/d57ef304417695dea5f488842bc3b49432f7bbf2) · [2d31e0eb](https://github.com/maik3531/Magnolie-Organizer/commit/2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa) · [c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa) · [a0714589](https://github.com/maik3531/Magnolie-Organizer/commit/a071458954ce4532fa013649a09a5d346f4d7469) · [1a24abef](https://github.com/maik3531/Magnolie-Organizer/commit/1a24abefcfdc58689fb5291cb5c4c60c1af189d5) · [8d4004a9](https://github.com/maik3531/Magnolie-Organizer/commit/8d4004a99648add539450e3658f50861a6d90f32) · [13692287](https://github.com/maik3531/Magnolie-Organizer/commit/136922870a3a3ee2caf6d6be431b00a67ff9fcce) · [7c9cf203](https://github.com/maik3531/Magnolie-Organizer/commit/7c9cf20394aef73d261a77f746ebca7340826d30) |
+| [#451](https://github.com/maik3531/Magnolie-Organizer/issues/451) — CSS-Kompatibilität: native Auswahl-/Markerabnahme und Engine-Zielmatrix (Rest aus #446) | Vorhandener Fix; native Abnahme offen | [668fb3f6](https://github.com/maik3531/Magnolie-Organizer/commit/668fb3f69e39e7943ae6e2ff94347ffc74aa418d) |
+| [#452](https://github.com/maik3531/Magnolie-Organizer/issues/452) — Tablet/TZDB: ThreeTenBP liefert falsche Gaza-/Hebron-Zeiten und erfolgreiche falsche ICS-Roundtrips | Tablet-Befund; Mac-Implementierung getrennt | [8003f3dc](https://github.com/maik3531/Magnolie-Organizer/commit/8003f3dc78fade781526b7d5087d26ff8ba6d089) |
+| [#453](https://github.com/maik3531/Magnolie-Organizer/issues/453) — ICS-Ports: eigene VTIMEZONE-TZIDs kollidieren mit privaten UTC-Stringmarkern | Bereits vorhandener Mac-Fix belegt | [8003f3dc](https://github.com/maik3531/Magnolie-Organizer/commit/8003f3dc78fade781526b7d5087d26ff8ba6d089) |
+| [#454](https://github.com/maik3531/Magnolie-Organizer/issues/454) — Mac/Tablet: persistierte Sync-Epoche und Löschquarantäne bei Wiederherstellung ergänzen | Mac-Quellfix vorhanden; Integration nachprüfen | [c3fe0d99](https://github.com/maik3531/Magnolie-Organizer/commit/c3fe0d990031c9e594b1ba0401d698526794902d) · [535d2ee5](https://github.com/maik3531/Magnolie-Organizer/commit/535d2ee567d7510638e767a2db9204dcddddc93d) |
+| [#458](https://github.com/maik3531/Magnolie-Organizer/issues/458) — Zeichenblatt: geringe Rasterabweichung nach Undo/Redo bei identischem Vektormodell untersuchen | Vorhandener Zeichenfix; Pixelabnahme offen | [61ad9ac6](https://github.com/maik3531/Magnolie-Organizer/commit/61ad9ac6cafc717314032c87543687e54ad464f6) |
+| [#464](https://github.com/maik3531/Magnolie-Organizer/issues/464) — Serientermine: verschiedene Ausnahmen am selben Zielzeitpunkt werden zusammengefaltet | Vorhandener Identitätsfix übernommen | [4546356d](https://github.com/maik3531/Magnolie-Organizer/commit/4546356d3d87ab0f9b8b8fd57ca5ec8b24950b7a) · [b4ff5f19](https://github.com/maik3531/Magnolie-Organizer/commit/b4ff5f19084f01d1882eef1f70b03b421d9406d2) |
+| [#465](https://github.com/maik3531/Magnolie-Organizer/issues/465) — ICS-Altbestand: verbleibende Port-Abnahme und exakte Reparatur bereits gespeicherter Ausnahme-Duplikate | Neuer Teilfix: native Aliasbelege anbinden | [52a22ff8](https://github.com/maik3531/Magnolie-Organizer/commit/52a22ff8c14244cd79a4267fe875cef9bfcf8cd4) · [4e4de890](https://github.com/maik3531/Magnolie-Organizer/commit/4e4de89025d3d9f9cba932a217a8de13425b44f9) |
+| [#468](https://github.com/maik3531/Magnolie-Organizer/issues/468) — Zeichenblatt: Pointerup-Korrektur in Portprojektionen übernehmen und native Eingabe abnehmen | Vorhandener Mac-Pointerfix belegt | [cbdc0876](https://github.com/maik3531/Magnolie-Organizer/commit/cbdc0876ea31015a334d64c36b6f63ff3497053f) |
+| [#472](https://github.com/maik3531/Magnolie-Organizer/issues/472) — Tablet-Abnahme: leere UI-Epochenplatzhalter vom nativen Speichervertrag unterscheiden | Kein zusätzlicher Mac-Laufzeitfehler bestätigt | Vorhandene Quellen / konkreter Abnahmeplan |
+| [#511](https://github.com/maik3531/Magnolie-Organizer/issues/511) — Fortsetzung #455: opaque Unicode-JSON-Schlüssel verlustfrei bis zum nativen Mac-Buch erhalten | Neuer Teilfix: bytegenaue Verlustprüfung | [55a31270](https://github.com/maik3531/Magnolie-Organizer/commit/55a312701a259c9c91d11d3dfb95efdd9a73f0eb) |
+| [#680](https://github.com/maik3531/Magnolie-Organizer/issues/680) — Zeitzonen: nativer Linux-Journal-Restore und verbleibende macOS-/Tablet-/Android-Matrix – Rest #661 | Aktuelle native Zeitmatrix noch erforderlich | Vorhandene Quellen / konkreter Abnahmeplan |
+| [#682](https://github.com/maik3531/Magnolie-Organizer/issues/682) — Kalenderanhänge: echte HTTPS-/Clipboard-Handler und native Portmatrix – Rest #651 | Handler vorhanden; echte OS-Abnahme offen | Vorhandene Quellen / konkreter Abnahmeplan |
+| [#683](https://github.com/maik3531/Magnolie-Organizer/issues/683) — CalDAV: echter Testserver, Legacy-Baselines und Konfliktmatrix nach installierter Farbformularabnahme – Rest #652 | Codec vorhanden; DAV-Koordination offen | [0c367735](https://github.com/maik3531/Magnolie-Organizer/commit/0c36773585617747c902fdfb62693ce28148f48e) |
+| [#721](https://github.com/maik3531/Magnolie-Organizer/issues/721) — Mac/iPhone: AirPlay-Bildschirmspiegelung mit UxPlay integrieren und nativ prüfen | Vorhandener AirPlay-Patch in Gesamtfolge | [25c5a849](https://github.com/maik3531/Magnolie-Organizer/commit/25c5a849a89d8846b211ff98922a708dcc7e127d) |
+| [#749](https://github.com/maik3531/Magnolie-Organizer/issues/749) — Medienabgleich: Originalformate über JPEG/PNG und MP4/MOV hinaus, einschließlich iPhone | Mac-Format-/Transportmatrix als eigener Rest | Vorhandene Quellen / konkreter Abnahmeplan |
+| [#770](https://github.com/maik3531/Magnolie-Organizer/issues/770) — Mac/iPhone: ausgewählte Systemkalender-Termine nativ in Magnolie übernehmen | Vorhandener Kalenderanschluss plus Folgefixes | [2b3a7cea](https://github.com/maik3531/Magnolie-Organizer/commit/2b3a7cea5093b80de1dd14bdf5afaf84231d66ad) · [fbb50c2c](https://github.com/maik3531/Magnolie-Organizer/commit/fbb50c2c9146091a778fdb45608b315a67d64899) · [a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20) · [e89d2eec](https://github.com/maik3531/Magnolie-Organizer/commit/e89d2eec099a933ddbad4bdc529eb7f7698af2ed) |
+| [#771](https://github.com/maik3531/Magnolie-Organizer/issues/771) — Mac EventKit: Vierjahresgrenze des allgemeinen Quellenlesers darf keinen vollständigen Zeitraum vortäuschen | Neuer Fix: vollständige EventKit-Zeitfenster | [e89d2eec](https://github.com/maik3531/Magnolie-Organizer/commit/e89d2eec099a933ddbad4bdc529eb7f7698af2ed) |
+| [#772](https://github.com/maik3531/Magnolie-Organizer/issues/772) — Mac: ausgewählte Apple-Notizen direkt als lokale Textkopien übernehmen | Vorhandene Apple-Notes-Kopien plus Folgefix | [6ffe768f](https://github.com/maik3531/Magnolie-Organizer/commit/6ffe768f382fbbca3e8f531c93f9ee197eba59a7) · [f32f4daa](https://github.com/maik3531/Magnolie-Organizer/commit/f32f4daa71acea7f76fb9f58ff0f8d4794f728ab) · [a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20) |
+| [#773](https://github.com/maik3531/Magnolie-Organizer/issues/773) — Mac-Kalenderimport: offener Einstellungsdialog blockiert die native Vorschau | Vorhandener Einstellungsdialogfix beibehalten | [fbb50c2c](https://github.com/maik3531/Magnolie-Organizer/commit/fbb50c2c9146091a778fdb45608b315a67d64899) · [a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20) |
+| [#774](https://github.com/maik3531/Magnolie-Organizer/issues/774) — Mac-Notes-Import: ungespeicherte Kontoeingaben beim automatischen Schließen erhalten | Vorhandenen Kontoeingabeschutz beibehalten | [f32f4daa](https://github.com/maik3531/Magnolie-Organizer/commit/f32f4daa71acea7f76fb9f58ff0f8d4794f728ab) · [a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20) |
+| [#775](https://github.com/maik3531/Magnolie-Organizer/issues/775) — Mac/iPhone: ausgewählte Systemkontakte nativ als lokale Kopien übernehmen | Vorhandene Kontaktkopien plus Austauschfix | [a706c571](https://github.com/maik3531/Magnolie-Organizer/commit/a706c57132d3646139464d7d432abe3f860514d6) · [a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20) · [c9c3ebeb](https://github.com/maik3531/Magnolie-Organizer/commit/c9c3ebebd621e3562c601a2fa6d49909ca42fadd) |
+| [#776](https://github.com/maik3531/Magnolie-Organizer/issues/776) — Kontaktkopien: reine Kontaktgeburtstage aus dem Mac-Patch beim JSON-Austausch plattformübergreifend prüfen | Neuer Fix: Kontaktgeburtstage plattformübergreifend | [c9c3ebeb](https://github.com/maik3531/Magnolie-Organizer/commit/c9c3ebebd621e3562c601a2fa6d49909ca42fadd) |
+| [#777](https://github.com/maik3531/Magnolie-Organizer/issues/777) — Mac/iPhone: ausgewählte Apple-Erinnerungen als lokale Aufgaben übernehmen | Vorhandene lokale Erinnerungskopien abgesichert | [616069f1](https://github.com/maik3531/Magnolie-Organizer/commit/616069f15fed21d8d8d05c8ef795f4ed21bd059c) · [540eae27](https://github.com/maik3531/Magnolie-Organizer/commit/540eae279638ee260cdaf392096fca922adc02f1) |
+| [#778](https://github.com/maik3531/Magnolie-Organizer/issues/778) — Mac: Speicherzustand nach Darstellungsfehler bei Kalender-, Notes- und Kontaktkopien prüfen | Neuer Fix: ehrlicher Speicherzustand nach Rendererfehler | [a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20) |
+| [#779](https://github.com/maik3531/Magnolie-Organizer/issues/779) — Aufgabenkopien: Herkunft beim JSON-Austausch mit Linux und Windows prüfen | Regression belegt: vermuteter Verlust tritt nicht auf | [540eae27](https://github.com/maik3531/Magnolie-Organizer/commit/540eae279638ee260cdaf392096fca922adc02f1) |
+| [#781](https://github.com/maik3531/Magnolie-Organizer/issues/781) — Mac-Dateinotizen: Import nach Darstellungsfehler im Snapshot-Callback beenden und Speicherzustand erhalten | Neuer Fix: Dateinotiz-Promise zuverlässig abschließen | [e925f9f4](https://github.com/maik3531/Magnolie-Organizer/commit/e925f9f44de0fedbdd222908e0a05e7229a3bb70) |
+| [#783](https://github.com/maik3531/Magnolie-Organizer/issues/783) — macOS-Kandidaten bauen trotz aktuellem Checkout weiter die veröffentlichte Desktopbasis v2.0.30 | Neuer Catch-up-Fix: tatsächliche aktuelle Quellen | [0a14d268](https://github.com/maik3531/Magnolie-Organizer/commit/0a14d268913337bd436e560ab47f670ed43d89c3) · [2d31e0eb](https://github.com/maik3531/Magnolie-Organizer/commit/2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa) · [c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa) · [1a24abef](https://github.com/maik3531/Magnolie-Organizer/commit/1a24abefcfdc58689fb5291cb5c4c60c1af189d5) · [7c9cf203](https://github.com/maik3531/Magnolie-Organizer/commit/7c9cf20394aef73d261a77f746ebca7340826d30) |
+| [#784](https://github.com/maik3531/Magnolie-Organizer/issues/784) — Mac-Geräteseite: Notes-Voraussetzung und endlose Statusanzeige durch passende Apple-/KDE-Dateiwege ersetzen | Neuer Fix: passende Mac-Geräte- und Importseite | [9f35d4d0](https://github.com/maik3531/Magnolie-Organizer/commit/9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa) |
+| [#785](https://github.com/maik3531/Magnolie-Organizer/issues/785) — Mac-Importparität: aktuelle OR6-/Dateiparser und vollständige native Importwege anbinden | Neuer Importpatch: aktuelle klassische Formate und OR6; Archiv-/Discovery-Rest offen | [6341a2f1](https://github.com/maik3531/Magnolie-Organizer/commit/6341a2f1fa188a15ba63fd43bacf4dccfc148dfc) · [62835e02](https://github.com/maik3531/Magnolie-Organizer/commit/62835e02e422bfcd8ae0fccea36dac08813e42cf) · [6372a409](https://github.com/maik3531/Magnolie-Organizer/commit/6372a409b849dffa2856d8e0993cfaef96b44a3d) · [e2a71b5e](https://github.com/maik3531/Magnolie-Organizer/commit/e2a71b5eaf2635b38f0496bb8df9bb6cbf387121) · [dc803651](https://github.com/maik3531/Magnolie-Organizer/commit/dc8036514b54dc50e3c3a2bc69e343383ff7da79) · [c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa) · [8d4004a9](https://github.com/maik3531/Magnolie-Organizer/commit/8d4004a99648add539450e3658f50861a6d90f32) · [13692287](https://github.com/maik3531/Magnolie-Organizer/commit/136922870a3a3ee2caf6d6be431b00a67ff9fcce) · [7c9cf203](https://github.com/maik3531/Magnolie-Organizer/commit/7c9cf20394aef73d261a77f746ebca7340826d30) |
+| [#786](https://github.com/maik3531/Magnolie-Organizer/issues/786) — macOS-Systemkonten: echten Apple-Kalender-, Kontakt- und Erinnerungsabgleich anbinden | Neuer Teilabgleich: gebundene Apple-Felder; native Abnahme und Vollparität offen | [d57ef304](https://github.com/maik3531/Magnolie-Organizer/commit/d57ef304417695dea5f488842bc3b49432f7bbf2) · [c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa) · [a0714589](https://github.com/maik3531/Magnolie-Organizer/commit/a071458954ce4532fa013649a09a5d346f4d7469) |
+
+## Tatsächliche Einzelprüfungen und Aussagegrenzen
+
+Die aufgeführten Python-/JS-Prüfungen liefen im gemessenen Linux-Quellhost. Node 24.22.3, JSDOM 26.1.0 und GNU gettext 0.21 wurden für die dokumentierten UI-Läufe verwendet. Der neue Parser lief hier tatsächlich in isolierten CPython-3.12.14-Prozessen; der private Mac-Runtimebau ist auf CPython 3.15.2 gebunden und noch nativ abzunehmen. Die Runner laden tatsächliche Produktdateien, nutzen aber für native Antworten, Save-ACKs und Konten synthetischen Transport. Hier wurde kein Swift kompiliert und keine echte AppKit/WKWebView-/EventKit-/Contacts-/AppleScript-/KDE-Ausführung nachgewiesen.
+
+| Einzelbeleg | Konkreter Umfang und Stand | Ergebnis |
+| --- | --- | --- |
+| Früherer gemeinsamer Mac-Hostlauf | Vor #783/#784/#785/#786; Einzelumfang, kein finaler Gesamtlauf | 33/33 Testgruppen, 60,454 s, Exit 0 |
+| #783 aktuelle Quellbindung | test_candidate_sources.py und check_current_sources.py am #776-Integrationsstand | 7/7 Quelltests mit SHA-1; gesondert 7/7 mit SHA-256; 27 UI-Assertions, 30 originale Suchtests, 181 abgewiesene nicht implementierte Desktopbefehle |
+| #784 Mac-Geräteseite | device_import_page.mjs; dokumentierter Patchlauf vor #785/#786 | 118 EN/DE-Prüfungen und 2 Driftanker; 9/9 gemeinsame Hostgruppen in 40,367 s |
+| #785 tatsächlicher isolierter Parser | test_import_helper.py, CPython 3.12.14/Linux | 14/14 Gruppen in 26,143 s; 27 originale OR6-Dateien; 439 TZif-Roundtrips/597 Zonennamen |
+| #785 OR6→projizierte UI→Save-ACK | check_file_import.py / file_import.mjs; tatsächliche Parserbytes/UI, synthetischer Speichertransport | 90 Checks; echte Kontaktvorschau, Save/NACK/Reopen/Deduplizierung/Buchdrift/Rendererfehler |
+| #785 privater Laufzeitbau | test_import_python_bundle.py; tatsächlicher offizieller Quellenbezug und begrenzte Extraktion unter Linux | 7/7 Python-Tests; 27.960.396 Quellarchivbytes mit exaktem SHA; native Kompilierung nicht ausgeführt |
+| #786 bestehende Wege am Core-/Providerstand | 7 vorhandene Hostgruppen; keine Ausführung des neuen Swift-Cores | 7/7 Gruppen in 29,175 s; 26 neue Core-XCTest-Methoden nur vorbereitet |
+| #785 Runtimebuilder, Root-Wiederholung | test_import_python_bundle.py am Commit c903f436 nach dc803651 · [c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa) | 7/7 Python-Tests, Exit 0, 0,055 s; kein nativer CPython-Bau |
+| #785 Parser, Root-Wiederholung | test_import_helper.py am Commit c903f436 nach Header-/Manifestkorrektur dc803651 · [c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa) | 14/14 Parsergruppen, Exit 0, 26,694 s; finaler gemeinsamer UI-/Gesamtlauf separat |
+| #786 neue UI-Transaktion | ProjectionTests.test_system_account_sync_transaction am Agentcommit 8f6c46e3; bei Root als a0714589 integriert, finaler Root-Gesamtlauf separat · Integration [a0714589](https://github.com/maik3531/Magnolie-Organizer/commit/a071458954ce4532fa013649a09a5d346f4d7469) | 1/1 Gruppe, 107 EN/DE-Checks + 2 Driftanker, 5,617 s; tatsächliche UI, synthetische Provider-/Diskantworten; keine Swift-Ausführung |
+| #786 gezielte bestehende UI-Verträge | Nach Rebase des Agentstands; keine Ausführung der Apple-Frameworks · Integration [a0714589](https://github.com/maik3531/Magnolie-Organizer/commit/a071458954ce4532fa013649a09a5d346f4d7469) | Hostvertrag und reproduzierbare vollständige Projektion 2/2 Gruppen in 3,335 s; Geräteeinstiege 118 Checks separat bestanden. Zehn neue Ledger-XCTest-Methoden nur vorbereitet. |
+
+**Die Umfänge werden nicht addiert.** Sie überlappen und betreffen unterschiedliche Quellstände. Der frühere 33/33-Hostlauf ist ein historischer Auditbeleg vor den späteren Erweiterungen, kein erfolgreicher finaler Gesamtlauf. Alle weiteren Einzelumfänge, etwa Kalender-/Notes-/Kontakt-/Reminderkopien, #465, #511 und der gemeinsame Datenaustausch, bleiben in den jeweiligen Issue-Abschnitten erhalten.
+
+**Historisch festgehaltener unabhängiger Testbefund:** Am geprüften #776-Stand scheiterte der breitere Desktop-Lokalisierungstest an `Restore media` in beiden deutschen PO-Dateien ohne entsprechenden POT-Eintrag. Die neuen Kontakttexte bestanden ihre gezielten Compiler-/Schlüsselprüfungen. Ein zusätzlicher pytest-Runner war dort mangels installiertem pytest nicht ausführbar. Dies ist keine pauschale Aussage über einen späteren Gesamtstand und wird nicht als grünes Gate umgedeutet.
+
+### Abschließende Integrationsprüfung
+
+**Status:** passed. **Tatsächlich geprüfter Quellcommit:** [7c9cf203](https://github.com/maik3531/Magnolie-Organizer/commit/7c9cf20394aef73d261a77f746ebca7340826d30). Vollständiger Linux-Hostlauf am exakten integrierten Codecommit bestanden. Danach werden nur Übergabe-/Belegdokumente ergänzt. Die erste fehlgeschlagene Prüfung und ihre konkreten Testtreiberkorrekturen bleiben nachvollziehbar; keine abgeschwächten historischen Adapterprüfungen.
+
+- Vollständiger Hostlauf: 35/35 Gruppen, Exit 0, 118,272 s; einschließlich 107 neuer System-Sync-UI-Prüfungen in EN/DE und aller vorhandenen Kopier-/Restore-/Projektionsgruppen.
+- Aktuelle UI/Bridge: 27 Assertions, 30 originale Notizsuchprüfungen und 181 nicht implementierte Desktopbefehle korrekt abgegrenzt; Exit 0.
+- Echte OR6-Bytes → privater Helper → projizierte UI → Vorschau/Save-ACK/Reopen: 90 Prüfungen bestanden am integrierten Stand 1a24abef; UI-SHA256 e6359a618f458985b270a6372515493ffb6fb1aedb0d7efa5a099aa665818b70, Helpermanifest deff3560615331e149e427add47f4f0b03e822947cc2192b736d2ff004c42b26. Native Picker/Persistenz ungetestet.
+- Parser 14/14 Gruppen mit 27 Original-OR6-Fixtures und 439 TZif-Regelsätzen/597 Namen; Runtimebuilder nach Reviewkorrektur 7/7; Quellselektionssuite 7/7. Einzelstände und Rohprotokolle im verlinkten Manifest.
+- [Unveränderte Rohprotokolle, Befehle, Quellstände und SHA-256-Inventar](macos-verification-2026-11-26/README.md).
+- Erster Gesamtlauf: 35 Gruppen, 2 Fehler in Testtreiberannahmen. Nach 8d4004a9/7c9cf203 vollständiger erfolgreicher Wiederholungslauf; kein Test ausgelassen oder historischer Guard gelockert.
+- Kein Swift-/AppKit-/EventKit-/Contacts-/AppleScript-/iCloud-/KDE-Lauf behauptet. macOS-VM, native Laufzeit und Gegenstellen bleiben gemäß Prüfplan abzunehmen.
+
+Dieser Abschnitt begründet keine neue native Mac-Abnahme. Die vorbereiteten Swift-/Bundle-/Providerprüfungen bleiben bis zu einem tatsächlichen passenden Lauf offen.
+
+### Historische native Belege
+
+| Run | Ergebnis | Portcommit | Gemeinsame Desktopquelle |
+| --- | --- | --- | --- |
+| [42547724299](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42547724299) | success | [798771ed](https://github.com/maik3531/Magnolie-Organizer/commit/798771edbd83859c93283768f2cd6e00f28c58df) | `067c38934b539943d8e1720abafd8a80b401d797` |
+| [42562106430](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42562106430) | success | [cbdc0876](https://github.com/maik3531/Magnolie-Organizer/commit/cbdc0876ea31015a334d64c36b6f63ff3497053f) | `067c38934b539943d8e1720abafd8a80b401d797` |
+| [42537598769](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42537598769) | success | [7278298b](https://github.com/maik3531/Magnolie-Organizer/commit/7278298be9344b3e8f26d77b206c8454026372cb) | `067c38934b539943d8e1720abafd8a80b401d797` |
+| [42533594474](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42533594474) | failure | [c922053e](https://github.com/maik3531/Magnolie-Organizer/commit/c922053e2d34b5d663e7595a4763fa18cfb2b0fa) | `067c38934b539943d8e1720abafd8a80b401d797` |
+
+Diese Workflows restaurierten die gemeinsamen Quellen auf **067c3893 / v2.0.30**. Sie sind standgebundene historische Belege, einschließlich des dokumentierten fehlgeschlagenen Runs. Sie beweisen weder die aktuelle gemeinsame UI noch #785/#786. Neue native Läufe wurden für diese Übergabe nicht ausgeführt.
+
+## Geschlossene Issues: reine Nachverfolgung
+
+- [#9](https://github.com/maik3531/Magnolie-Organizer/issues/9) — Beta-Quellen: aktuellen macOS- und Android-Tablet-Stand sichern: Historischer Quellcheckpoint; die heutige reviewbare Folge ist separat dokumentiert. Kein neuer Fix aus diesem geschlossenen Issue. Nur Nachverfolgung im Bericht/Inventar; keine Wiederöffnung und kein neuer Kommentar geplant.
+- [#455](https://github.com/maik3531/Magnolie-Organizer/issues/455) — macOS: Unicodeäquivalenz darf opaque Kalender- und DAV-Identitäten nicht zusammenlegen: Opaque-Identitätskorrektur vorhanden. Die verbleibende verlustfreie JSON-Schlüsseldarstellung ist ausdrücklich unter #511 offen. Nur Nachverfolgung im Bericht/Inventar; keine Wiederöffnung und kein neuer Kommentar geplant.
+- [#460](https://github.com/maik3531/Magnolie-Organizer/issues/460) — Mac: Wiederherstellungsvalidierung gibt ihren Wahrheitswert nicht an WebKit zurück: Explizite Rückgabe an WebKit aus 560a0219 vorhanden. Der erfolgreiche native Run 42537598769 bezieht sich auf Port 7278298b mit gemeinsamer Desktopbasis 067c; kein neuer Gesamtstandsbeleg. Nur Nachverfolgung im Bericht/Inventar; keine Wiederöffnung und kein neuer Kommentar geplant.
+
+## Review und Übernahme durch Codex
+
+Die Commitlinks besitzen jeweils einen direkt abrufbaren `.patch`. Vor dem Anwenden die aktuelle Zielbasis lesen und bereits enthaltene Commits erkennen. Der vollständige Arbeitszweig enthält die vorhandene Mac-Folge und die neuen Korrekturen in ihrer Reihenfolge. Es ist keine automatische Merge- oder Releasefreigabe.
+
+```sh
+git fetch origin main work/macos-issue-fixes-20261126
+git log --reverse --no-merges --oneline origin/main..origin/work/macos-issue-fixes-20261126
+git diff --stat origin/main...origin/work/macos-issue-fixes-20261126
+git worktree add -b review/macos-issue-fixes ../Magnolie-macos-review origin/work/macos-issue-fixes-20261126
+```
+
+Die vorhandene Folge lautet #721 → #770 → #772 → #773 → #774 → #775 → #777. Die neuen Patches bauen darauf auf. #781 verwendet die Fehlertexte aus #778. #776 stellt den Kontaktvertrag auf gemeinsame Quellen um und gehört zur aktuellen vollständigen Mac-Projektion mit #783. #465 besitzt einen eigenen Baseline-Testfolgecommit; #785 erhält dessen flüchtigen ICS-Belegvertrag. #784 nutzt vorhandene Aktionen. #785 braucht private Laufzeit, Parserprojektion, nativen Prozess-/Pickeranschluss und UI-Transaktion gemeinsam. #786 benötigt sowohl Core/Provider als auch Host/UI/verschlüsseltes Journal; nur einen dieser Teile anzuwenden ergibt keinen vollständigen Abgleich.
+
+### Quellhostprüfungen reproduzieren
+
+GNU gettext und JSDOM 26.1.0 sowie die in den vorhandenen Workflows genannten Python-Abhängigkeiten vorbereiten. Beide kanonischen Zeitzonenausgaben und die 19 Linux-Kataloge mit den bestehenden Generatoren erzeugen. Der neue Parser benötigt einen **ausdrücklichen Build-Vorbereitungsschritt** für die exakt gepinnte phonenumbers-Abhängigkeit; weder Projektion noch App laden Pakete im Hintergrund.
+
+```sh
+python3 magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py
+python3 magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py --output magnolie-organizer-windows/app/web
+# Linux-Kataloge regulär mit werkzeuge/po_zu_js.py aus po/LINGUAS erzeugen.
+# MACOS_BETA_JSDOM auf die vorhandene jsdom/lib/api.js setzen.
+python3 Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py --prepare-dependencies
+python3 Magnolie-Organizer-macOS-Beta/tests/test_import_python_bundle.py
+python3 Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py
+python3 Magnolie-Organizer-macOS-Beta/tools/check_file_import.py --js-runtime node
+python3 Magnolie-Organizer-macOS-Beta/tests/test_host.py
+node magnolie-organizer-windows/tests/contact-copy-birthday.js
+python3 Magnolie-Organizer-macOS-Beta/tools/check_reminder_desktop_roundtrip.py --js-runtime node
+git diff --check
+```
+
+[IMPORT-CODECS.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md) beschreibt vollständige Formate, Header-/EOF-/Hashgrenzen, Manifest und Parserprüfungen; [IMPORT-RUNTIME.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md) den privaten Interpreter. Einen vorhandenen privaten Interpreter mit `MACOS_BETA_IMPORT_PYTHON` angeben. Ein Linux-Test unter dem dortigen Python ist keine Ausführung des Mac-Interpreters.
+
+### Native Abnahme konkret durchführen
+
+[Konkreter Mac-CI-/Cloud-VM-Prüfplan](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md) · [Tatsächlich gemessene Umgebung (JSON)](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-cloud-environment-2026-11-26.json)
+
+Der Prüfplan enthält den vorhandenen GitHub-Workflow mit `target=macos`, die Source-Proof-Befehle, ARM64/Intel, Mindestversion 12.7, geeignete neuere Konten-VMs und je Issue konkrete Handlungen. Erst im passenden Apple-Gast Swift-Tests, echte WKWebView, Bundle-Start/Save/Quit/Reopen, Datei-Picker und TCC-/Providerfälle ausführen. Das vorbereitete Kommando ist kein Beleg eines bereits gestarteten Laufs. Reale Konten und Gegenstellen ausschließlich bewusst für den Test einrichten. Produktionssignierung, Installer/Upgrade und Veröffentlichung bleiben ein späterer eigener Schritt.
+
+## Präzise Einzelbefunde und nächste Prüfhandlung
+
+### [#121](https://github.com/maik3531/Magnolie-Organizer/issues/121): Nach Gesamtabnahme: macOS- und Android-Organizer auf Funktions- und Darstellungsparität bringen
+
+**Übergreifende Übergabe und Abgleich.** Der vollständige Mac-Arbeitszweig enthält die vorhandenen Apple-Kopieranschlüsse, die neuen Fehlerkorrekturen und den Catch-up-Fix #783. Der Mac-Build restaurierte bisher gemeinsame Quellen von v2.0.30; der neue Patch bindet den aktuellen Checkout direkt an Git-Blobs und Projektionsnachweise. #784 korrigiert die Mac-Geräteseite. #785 verbindet aktuelle klassische Datei-/OR6-Parser samt privater Laufzeit mit dem nativen Picker und der bestehenden Vorschau-/Save-Transaktion. #786 ergänzt einen bewusst gebundenen manuellen Dreiwege-Feldabgleich mit Apple-Kalendern, Kontakten und Erinnerungen. Daraus folgt keine vollständige Linux-/Windows-Parität.
+
+**Belege:** Der vollständige API-Abgleich ergibt 123 Ausgangsissues mit 26 Mac-Zuordnungen und 97 begründeten Ausschlüssen; fünf im Audit angelegte Issues erweitern den aktuellen Umfang auf 128 offene Issues und 31 Mac-Zuordnungen. Ein offener PR bleibt ausgeschlossen. Die geschlossenen #9/#455/#460 werden separat nachverfolgt. Die tatsächlichen Einzelprüfungen stehen bei #783/#784/#785/#786; die abschließende Integrationsprüfung wird separat an ihren Quellcommit gebunden.
+
+**Verbleibend / Codex:** Keine eigene Magnolie-Notes-Begleitapp voraussetzen. Apple-Schnittstellen und vorhandenes KDE Connect bleiben passende Mac-Wege; der externe KDE-Client ist noch kein direkter Magnolie-Geräteadapter. Offen bleiben echte Mac-VM-/Provider-/Geräteabnahmen, der .magnolie-Gesamtarchivanschluss und lokale Profilerkennung aus #785, vollständige Synchronisationsparität einschließlich Automatik/Create/Delete/weiterer Felder sowie Apple-Notes-Rückabgleich aus #786 und die Implementierungsreste #465/#511.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [0a14d268](https://github.com/maik3531/Magnolie-Organizer/commit/0a14d268913337bd436e560ab47f670ed43d89c3) / [Patch 0a14d268](https://github.com/maik3531/Magnolie-Organizer/commit/0a14d268913337bd436e560ab47f670ed43d89c3.patch) · [9f35d4d0](https://github.com/maik3531/Magnolie-Organizer/commit/9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa) / [Patch 9f35d4d0](https://github.com/maik3531/Magnolie-Organizer/commit/9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa.patch) · [6341a2f1](https://github.com/maik3531/Magnolie-Organizer/commit/6341a2f1fa188a15ba63fd43bacf4dccfc148dfc) / [Patch 6341a2f1](https://github.com/maik3531/Magnolie-Organizer/commit/6341a2f1fa188a15ba63fd43bacf4dccfc148dfc.patch) · [62835e02](https://github.com/maik3531/Magnolie-Organizer/commit/62835e02e422bfcd8ae0fccea36dac08813e42cf) / [Patch 62835e02](https://github.com/maik3531/Magnolie-Organizer/commit/62835e02e422bfcd8ae0fccea36dac08813e42cf.patch) · [6372a409](https://github.com/maik3531/Magnolie-Organizer/commit/6372a409b849dffa2856d8e0993cfaef96b44a3d) / [Patch 6372a409](https://github.com/maik3531/Magnolie-Organizer/commit/6372a409b849dffa2856d8e0993cfaef96b44a3d.patch) · [e2a71b5e](https://github.com/maik3531/Magnolie-Organizer/commit/e2a71b5eaf2635b38f0496bb8df9bb6cbf387121) / [Patch e2a71b5e](https://github.com/maik3531/Magnolie-Organizer/commit/e2a71b5eaf2635b38f0496bb8df9bb6cbf387121.patch) · [d57ef304](https://github.com/maik3531/Magnolie-Organizer/commit/d57ef304417695dea5f488842bc3b49432f7bbf2) / [Patch d57ef304](https://github.com/maik3531/Magnolie-Organizer/commit/d57ef304417695dea5f488842bc3b49432f7bbf2.patch) · [2d31e0eb](https://github.com/maik3531/Magnolie-Organizer/commit/2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa) / [Patch 2d31e0eb](https://github.com/maik3531/Magnolie-Organizer/commit/2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa.patch) · [c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa) / [Patch c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa.patch) · [a0714589](https://github.com/maik3531/Magnolie-Organizer/commit/a071458954ce4532fa013649a09a5d346f4d7469) / [Patch a0714589](https://github.com/maik3531/Magnolie-Organizer/commit/a071458954ce4532fa013649a09a5d346f4d7469.patch) · [1a24abef](https://github.com/maik3531/Magnolie-Organizer/commit/1a24abefcfdc58689fb5291cb5c4c60c1af189d5) / [Patch 1a24abef](https://github.com/maik3531/Magnolie-Organizer/commit/1a24abefcfdc58689fb5291cb5c4c60c1af189d5.patch) · [8d4004a9](https://github.com/maik3531/Magnolie-Organizer/commit/8d4004a99648add539450e3658f50861a6d90f32) / [Patch 8d4004a9](https://github.com/maik3531/Magnolie-Organizer/commit/8d4004a99648add539450e3658f50861a6d90f32.patch) · [13692287](https://github.com/maik3531/Magnolie-Organizer/commit/136922870a3a3ee2caf6d6be431b00a67ff9fcce) / [Patch 13692287](https://github.com/maik3531/Magnolie-Organizer/commit/136922870a3a3ee2caf6d6be431b00a67ff9fcce.patch) · [7c9cf203](https://github.com/maik3531/Magnolie-Organizer/commit/7c9cf20394aef73d261a77f746ebca7340826d30) / [Patch 7c9cf203](https://github.com/maik3531/Magnolie-Organizer/commit/7c9cf20394aef73d261a77f746ebca7340826d30.patch)
+
+**Abhängigkeiten:** [#465](https://github.com/maik3531/Magnolie-Organizer/issues/465) · [#511](https://github.com/maik3531/Magnolie-Organizer/issues/511) · [#721](https://github.com/maik3531/Magnolie-Organizer/issues/721) · [#770](https://github.com/maik3531/Magnolie-Organizer/issues/770) · [#772](https://github.com/maik3531/Magnolie-Organizer/issues/772) · [#775](https://github.com/maik3531/Magnolie-Organizer/issues/775) · [#776](https://github.com/maik3531/Magnolie-Organizer/issues/776) · [#777](https://github.com/maik3531/Magnolie-Organizer/issues/777) · [#778](https://github.com/maik3531/Magnolie-Organizer/issues/778) · [#779](https://github.com/maik3531/Magnolie-Organizer/issues/779) · [#781](https://github.com/maik3531/Magnolie-Organizer/issues/781) · [#783](https://github.com/maik3531/Magnolie-Organizer/issues/783) · [#784](https://github.com/maik3531/Magnolie-Organizer/issues/784) · [#785](https://github.com/maik3531/Magnolie-Organizer/issues/785) · [#786](https://github.com/maik3531/Magnolie-Organizer/issues/786). Vollständige Commitfolge und Zielbasis vor Übernahme prüfen.
+
+**Einzelnachweise:** [FEATURE-MATRIX.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md).
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md), [Magnolie-Organizer-macOS-Beta/BRIDGE-COVERAGE.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/BRIDGE-COVERAGE.md), [Magnolie-Organizer-macOS-Beta/IPHONE-INTEROPERABILITY.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/IPHONE-INTEROPERABILITY.md), [Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md), [contracts/macos-cloud-environment-2026-11-26.json](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-cloud-environment-2026-11-26.json), [Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md), [contracts/macos-786-native-system-sync.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-786-native-system-sync.md).
+
+### [#451](https://github.com/maik3531/Magnolie-Organizer/issues/451): CSS-Kompatibilität: native Auswahl-/Markerabnahme und Engine-Zielmatrix (Rest aus #446)
+
+**Vorhandener Fix; native Abnahme offen.** Der gemeinsame CSS-Kompatibilitätsfix ist vorhanden. Die aktuelle Mac-Projektion übernimmt die gemeinsamen Styles; für eine erneute Produktänderung ist im geprüften Issue kein zusätzlicher Mac-Defekt belegt.
+
+**Belege:** Quellvergleich des bestehenden Fixes 668fb3f6 und der tatsächlichen Mac-Projektion. Der aktuelle Hosttest für gemeinsame CSS-Fallbacks ist in der Gesamtprüfung enthalten.
+
+**Verbleibend / Codex:** In einer echten WKWebView Auswahlmarkierung, Marker, Tastatur-/Mausbedienung und Ziel-Engineversion dokumentieren. DOM-/Stringtests ersetzen diese Gestenabnahme nicht.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [668fb3f6](https://github.com/maik3531/Magnolie-Organizer/commit/668fb3f69e39e7943ae6e2ff94347ffc74aa418d) / [Patch 668fb3f6](https://github.com/maik3531/Magnolie-Organizer/commit/668fb3f69e39e7943ae6e2ff94347ffc74aa418d.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Projection/macos-beta.css](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/macos-beta.css), [Magnolie-Organizer-macOS-Beta/tools/project_ui.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tools/project_ui.py).
+
+### [#452](https://github.com/maik3531/Magnolie-Organizer/issues/452): Tablet/TZDB: ThreeTenBP liefert falsche Gaza-/Hebron-Zeiten und erfolgreiche falsche ICS-Roundtrips
+
+**Tablet-Befund; Mac-Implementierung getrennt.** Der konkrete Gaza-/Hebron-Fehler betrifft ThreeTenBP im Tablet-Port. Der Mac verwendet CalendarTimeContext mit normativen Definitionen und bereits typisierten Zeitquellen. Ein Kotlin-/ThreeTenBP-Fix kann nicht als Mac-Patch übernommen werden.
+
+**Belege:** Vorhandener Mac-Fix 8003f3dc und zugehörige Swift-Testquellen geprüft. Historische native Mac-Läufe sind an die alte gemeinsame Desktopbasis gebunden.
+
+**Verbleibend / Codex:** Die aktuelle Mac-Zeitzonenmatrix unter #680 ausführen; den Tablet-Befund nicht durch einen Mac-Quelltest schließen.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [8003f3dc](https://github.com/maik3531/Magnolie-Organizer/commit/8003f3dc78fade781526b7d5087d26ff8ba6d089) / [Patch 8003f3dc](https://github.com/maik3531/Magnolie-Organizer/commit/8003f3dc78fade781526b7d5087d26ff8ba6d089.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CalendarTimeContext.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CalendarTimeContext.swift), [Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/CalendarTimeContextTests.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/CalendarTimeContextTests.swift).
+
+### [#453](https://github.com/maik3531/Magnolie-Organizer/issues/453): ICS-Ports: eigene VTIMEZONE-TZIDs kollidieren mit privaten UTC-Stringmarkern
+
+**Bereits vorhandener Mac-Fix belegt.** Die kollidierenden privaten UTC-Stringmarker wurden bereits durch CalendarTimeSource ersetzt. Eigene Quell-Definitionen behalten Vorrang. CalendarTimeContext.swift und der relevante Test sind gegenüber dem vorhandenen Fix unverändert.
+
+**Belege:** Der konkrete Test testSourceDefinitionsTakePriorityOverNamedProviderAndFormerMarkers bestand auf ARM64 und Intel in Run 42562106430, Portcommit cbdc0876. Das ist ein historischer Swift-Core-Beleg; der Workflow verwendete dabei Desktop 067c.
+
+**Verbleibend / Codex:** Vorhandenen Fix nicht erneut implementieren. Nach #783 die aktuelle Gesamtprojektion nativ prüfen; andere Ports bleiben separat offen.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [8003f3dc](https://github.com/maik3531/Magnolie-Organizer/commit/8003f3dc78fade781526b7d5087d26ff8ba6d089) / [Patch 8003f3dc](https://github.com/maik3531/Magnolie-Organizer/commit/8003f3dc78fade781526b7d5087d26ff8ba6d089.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CalendarTimeContext.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CalendarTimeContext.swift), [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarImport.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarImport.swift), [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarExport.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarExport.swift), [Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/CalendarTimeContextTests.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/CalendarTimeContextTests.swift).
+
+### [#454](https://github.com/maik3531/Magnolie-Organizer/issues/454): Mac/Tablet: persistierte Sync-Epoche und Löschquarantäne bei Wiederherstellung ergänzen
+
+**Mac-Quellfix vorhanden; Integration nachprüfen.** NativeBookRestore/DAVBookRestore setzen Sync-Epoche und Löschquarantäne im vorhandenen Mac-Pfad. Die beiden Quellen und drei Regressionstestdateien sind gegenüber dem erfolgreichen Stand 798771ed unverändert.
+
+**Belege:** Historischer nativer Run 42547724299 erfolgreich, späterer Core-Lauf 42562106430 ebenfalls erfolgreich. Quellgleichheit wurde gezielt überprüft.
+
+**Verbleibend / Codex:** Auf dem aktuellen Kandidaten echten Dateidialog, Wiederherstellung, Neustart und Abbruch-/Crashgrenzen mit synthetischem Buch prüfen. Tablet-Rest sowie vollständige Sync-Koordination bleiben getrennt. Keine leeren UI-Felder als neue native Autorität interpretieren.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [c3fe0d99](https://github.com/maik3531/Magnolie-Organizer/commit/c3fe0d990031c9e594b1ba0401d698526794902d) / [Patch c3fe0d99](https://github.com/maik3531/Magnolie-Organizer/commit/c3fe0d990031c9e594b1ba0401d698526794902d.patch) · [535d2ee5](https://github.com/maik3531/Magnolie-Organizer/commit/535d2ee567d7510638e767a2db9204dcddddc93d) / [Patch 535d2ee5](https://github.com/maik3531/Magnolie-Organizer/commit/535d2ee567d7510638e767a2db9204dcddddc93d.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/NativeBookRestore.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/NativeBookRestore.swift), [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/DAVBookRestore.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/DAVBookRestore.swift), [Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift), [Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/NativeBookRestoreTests.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/NativeBookRestoreTests.swift).
+
+### [#458](https://github.com/maik3531/Magnolie-Organizer/issues/458): Zeichenblatt: geringe Rasterabweichung nach Undo/Redo bei identischem Vektormodell untersuchen
+
+**Vorhandener Zeichenfix; Pixelabnahme offen.** Der gemeinsame Zeichenabschluss ist bereits über drawing-finish-patch.json kanonisiert. Der Live- und Replaypfad verwendet den vorhandenen Fix 61ad9ac6; eine weitere Lockerung des Pixelvergleichs wäre kein Produktfix.
+
+**Belege:** Manifest-/Projektionsvergleich und vorhandene Zeichenregressionen geprüft. Frühere grüne Mac-Gates gelten für ihre jeweilige Kombination aus Port- und alter Desktopquelle.
+
+**Verbleibend / Codex:** Native Pixel-/Eingabeprobe auf aktueller WKWebView samt Screenshot/Hash wiederholen. Der gesonderte Tablet-RGBA-Befund wird nicht als behoben behauptet.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [61ad9ac6](https://github.com/maik3531/Magnolie-Organizer/commit/61ad9ac6cafc717314032c87543687e54ad464f6) / [Patch 61ad9ac6](https://github.com/maik3531/Magnolie-Organizer/commit/61ad9ac6cafc717314032c87543687e54ad464f6.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/tools/project_ui.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tools/project_ui.py), [Magnolie-Organizer-macOS-Beta/tests/test_host.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tests/test_host.py).
+
+### [#464](https://github.com/maik3531/Magnolie-Organizer/issues/464): Serientermine: verschiedene Ausnahmen am selben Zielzeitpunkt werden zusammengefaltet
+
+**Vorhandener Identitätsfix übernommen.** Der vorhandene Occurrence-Vertrag unterscheidet Quelle, Wire-UID, Master-/RID-Zuordnung und rohe Parameter. Die gemeinsame Normalisierung und der Portadapter sind bereits im Zweig; gleiche Zielzeit allein ist keine Duplikatidentität.
+
+**Belege:** Vorhandene Commits 4546356d und b4ff5f19 geprüft. Die aktualisierte aktuelle UI besteht 29 Occurrence-Prüfungen; historische Adapterinversen bleiben eigene Orakel.
+
+**Verbleibend / Codex:** Aktuelle native Import-/Save-/Reopenmatrix offen. Bei Altbestandskennungen den ergänzenden Patch #465 beachten; gespeicherte doppelte Paare nicht heuristisch zusammenfalten.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [4546356d](https://github.com/maik3531/Magnolie-Organizer/commit/4546356d3d87ab0f9b8b8fd57ca5ec8b24950b7a) / [Patch 4546356d](https://github.com/maik3531/Magnolie-Organizer/commit/4546356d3d87ab0f9b8b8fd57ca5ec8b24950b7a.patch) · [b4ff5f19](https://github.com/maik3531/Magnolie-Organizer/commit/b4ff5f19084f01d1882eef1f70b03b421d9406d2) / [Patch b4ff5f19](https://github.com/maik3531/Magnolie-Organizer/commit/b4ff5f19084f01d1882eef1f70b03b421d9406d2.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/tools/project_ui.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tools/project_ui.py).
+
+### [#465](https://github.com/maik3531/Magnolie-Organizer/issues/465): ICS-Altbestand: verbleibende Port-Abnahme und exakte Reparatur bereits gespeicherter Ausnahme-Duplikate
+
+**Neuer Teilfix: native Aliasbelege anbinden.** Der Swift-Reader erzeugte legacyAndroidAliases, main.swift übertrug jedoch nur document und verwarf diese Belege. Der Patch sendet eine getrennte response und registriert den Sidecar flüchtig, an Quellhash, Zeilenidentität, vollständige RID und konkreten Buchstand gebunden. Die vorhandene gemeinsame Auswahl-/Merge-Logik bleibt zuständig; nur erneutes Hashen wird durch den nachgewiesenen nativen Beleg ersetzt. Der neue klassische ICS-Dateiweg #785 erhält denselben ausschließlich transienten Belegvertrag: kanonische RID-/UID-Prüfung und alter Android-Alias sind an die tatsächlich ausgewählten vollständigen Bytes gebunden, auch bei ZIP.
+
+**Belege:** 101 neue UI-Prüfungen: zweimaliger Wiederimport, Save-Nutzlast/Reopen, sechs Identitätsgrenzen, fünf Mehrdeutigkeiten, 14 manipulierte Bindungen, 1001 Termine sowie konkurrierende Buchänderung. Der alte Adapter ignoriert den Sidecar im gezielten Probeaufbau ohne eingespritztes WebCrypto. Ein neuer Swift-DTO-Test ist vorbereitet, nicht ausgeführt. Zusätzlich prüft test_import_helper.py den neuen ICS-Sidecar gegen den bekannten festen Altalias und gegen den unveränderten aktuellen Desktopparser; diese Pythonprüfung ist kein Swift-/Pickerbeleg.
+
+**Verbleibend / Codex:** Keine automatische Reparatur bereits doppelt gespeicherter Bücher. Exakte bestätigte Paar-/Referenzreparatur, Tablet-Rest und echte AppKit/WKWebView-/Datenträgerabnahme bleiben offen. Keine Behauptung über fehlendes WebCrypto eines installierten WebKit.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [52a22ff8](https://github.com/maik3531/Magnolie-Organizer/commit/52a22ff8c14244cd79a4267fe875cef9bfcf8cd4) / [Patch 52a22ff8](https://github.com/maik3531/Magnolie-Organizer/commit/52a22ff8c14244cd79a4267fe875cef9bfcf8cd4.patch) · [4e4de890](https://github.com/maik3531/Magnolie-Organizer/commit/4e4de89025d3d9f9cba932a217a8de13425b44f9) / [Patch 4e4de890](https://github.com/maik3531/Magnolie-Organizer/commit/4e4de89025d3d9f9cba932a217a8de13425b44f9.patch)
+
+**Einzelnachweise:** [macos-465-native-calendar-alias-adoption.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-465-native-calendar-alias-adoption.md).
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarImport.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarImport.swift), [Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift), [Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/LegacyAndroidAliasEvidenceTests.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/LegacyAndroidAliasEvidenceTests.swift), [Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py), [Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py).
+
+### [#468](https://github.com/maik3531/Magnolie-Organizer/issues/468): Zeichenblatt: Pointerup-Korrektur in Portprojektionen übernehmen und native Eingabe abnehmen
+
+**Vorhandener Mac-Pointerfix belegt.** Der Pointerrelease-Fix aus cbdc0876 ist im gemeinsamen drawing-finish-Manifest unverändert vorhanden und wird von der Mac-Projektion angewendet.
+
+**Belege:** Run 42562106430 bestand nativ auf Intel und ARM64. Der genaue Portcommit und die damalige Desktop 067c-Basis sind dokumentiert; keine aktuelle UI-/Paketabnahme daraus abgeleitet.
+
+**Verbleibend / Codex:** Nach der Umstellung #783 auf aktuellen Quellen erneut reale Eingabe/Pointerup prüfen. Der offene Tablet-Teil ist durch diesen Mac-Beleg nicht erledigt.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [cbdc0876](https://github.com/maik3531/Magnolie-Organizer/commit/cbdc0876ea31015a334d64c36b6f63ff3497053f) / [Patch cbdc0876](https://github.com/maik3531/Magnolie-Organizer/commit/cbdc0876ea31015a334d64c36b6f63ff3497053f.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/tools/project_ui.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tools/project_ui.py).
+
+### [#472](https://github.com/maik3531/Magnolie-Organizer/issues/472): Tablet-Abnahme: leere UI-Epochenplatzhalter vom nativen Speichervertrag unterscheiden
+
+**Kein zusätzlicher Mac-Laufzeitfehler bestätigt.** Das Issue behandelt leere UI-Epochenplatzhalter im Tablet-Testvergleich. Der Mac hält seine native Epoche über den bestehenden Speicher-/Restorevertrag fest. Ein globales Entfernen solcher Felder würde den Vertrag abschwächen.
+
+**Belege:** Mac-Epochenpinning, OrdinarySaveEpochPolicy und Restorepfade mit dem Issue abgeglichen. Kein neuer Mac-Produktpatch aus diesem Tablet-Comparatorbefund abgeleitet.
+
+**Verbleibend / Codex:** Strengen nativen Vergleich behalten. Bei aktueller Mac-Abnahme erst dauerhaft gespeicherte Epoche und danach UI-Abbildung vergleichen; den Tablet-Testfehler separat bearbeiten.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/OrdinarySaveEpochPolicy.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/OrdinarySaveEpochPolicy.swift).
+
+### [#511](https://github.com/maik3531/Magnolie-Organizer/issues/511): Fortsetzung #455: opaque Unicode-JSON-Schlüssel verlustfrei bis zum nativen Mac-Buch erhalten
+
+**Neuer Teilfix: bytegenaue Verlustprüfung.** Document.assertNoLoss verwendete Swift-Stringgleichheit für Schlüssel und Datensatz-IDs; dadurch konnte eine NFC/NFD-Umbenennung einzeln gültiger Dokumente den Verlustschutz umgehen. Der Patch verwendet OpaqueUTF8Identity. Der Scanner unterscheidet echte doppelte Schlüssel von Unicode-Schlüsselpaaren, die Foundation nicht verlustfrei repräsentieren kann, und meldet letztere präzise.
+
+**Belege:** 20 Prüfungen im tatsächlichen projizierten UI sowie zwei Hostgruppen bestanden. Zehn Swift-Regressionsmethoden einschließlich AtomicStore/Recovery sind vorbereitet, hier weder kompiliert noch ausgeführt.
+
+**Verbleibend / Codex:** Vollständige verlustfreie Unterstützung gleichzeitig vorhandener kanonisch äquivalenter JSON-Schlüssel bleibt offen. Der Schutz bleibt vor Foundation aktiv. Scanner allein nicht lockern; Parser, Speicher-, Restore-, DAV- und Swift/WK-Grenzen gemeinsam auf eine verlustfreie Darstellung umstellen.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [55a31270](https://github.com/maik3531/Magnolie-Organizer/commit/55a312701a259c9c91d11d3dfb95efdd9a73f0eb) / [Patch 55a31270](https://github.com/maik3531/Magnolie-Organizer/commit/55a312701a259c9c91d11d3dfb95efdd9a73f0eb.patch)
+
+**Einzelnachweise:** [JSON-IDENTITY-511.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/JSON-IDENTITY-511.md).
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift), [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/NativeBookRestore.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/NativeBookRestore.swift).
+
+### [#680](https://github.com/maik3531/Magnolie-Organizer/issues/680): Zeitzonen: nativer Linux-Journal-Restore und verbleibende macOS-/Tablet-/Android-Matrix – Rest #661
+
+**Aktuelle native Zeitmatrix noch erforderlich.** Die normativen Zeitquellen und gemeinsame UI/Worker-Logik sind vorhanden. Aus früheren Linux- oder Mac-Core-Prüfungen folgt kein aktueller vollständiger Mac-Journal-/Neustartnachweis.
+
+**Belege:** Quellen und bestehender Abnahmeumfang des Issues abgeglichen. Der Catch-up-Patch #783 macht erstmals die aktuelle gemeinsame Quelle im Mac-Kandidaten eindeutig nachvollziehbar. #785 serialisiert dieselbe normative TZDB-Quelle in gebündelte TZif-Dateien: 439 Regeln bestanden den vollständigen Roundtrip, alle 597 Namen/Aliasse wurden vom echten Python-ZoneInfo gelesen. Dieser Parsernachweis ersetzt weder Swift/WKWebView noch nativen Restore.
+
+**Verbleibend / Codex:** 37 unveränderte Referenzuhren in Main und echtem Worker, UTC→NY→UTC, DATE/floating, eigene VTIMEZONE, historische Sekunden, Gap/Fold sowie nativen Restore und getrennten Neustart mit Quell-/Paket-/Payloadhash prüfen. Kein OS-Timer-/Hintergrunddienstnachweis aus Zeitberechnung ableiten.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CalendarTimeContext.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CalendarTimeContext.swift), [Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/NormativeTimeZoneTests.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/NormativeTimeZoneTests.swift), [Magnolie-Organizer-macOS-Beta/tools/check_calendar.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tools/check_calendar.py).
+
+### [#682](https://github.com/maik3531/Magnolie-Organizer/issues/682): Kalenderanhänge: echte HTTPS-/Clipboard-Handler und native Portmatrix – Rest #651
+
+**Handler vorhanden; echte OS-Abnahme offen.** CommunicationLaunchPolicy und Host-Generationguard begrenzen Kalenderanhangs-URLs bereits. Die gemeinsame Formular-/Metadatenkorrektur kann übernommen werden; AppKit-Zwischenablage und tatsächlicher HTTPS-Handler bleiben eigene native Anschlüsse.
+
+**Belege:** Vorhandene Mac-Policy-/Hostquellen und Issue-Nachweise geprüft; keine zusätzliche Mac-Quellregression reproduziert.
+
+**Verbleibend / Codex:** Mit synthetischem Buch die sieben URLfälle und tatsächliches Speichern/Neuöffnen auf Mac prüfen. Echten HTTPS-Aufruf und Clipboard nur im ausdrücklich freigegebenen Testweg abnehmen; bestehende Geräte-/Browser-/Kontenpausen nicht aus allgemeinem Catch-up aufheben.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CommunicationLaunchPolicy.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CommunicationLaunchPolicy.swift), [Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift).
+
+### [#683](https://github.com/maik3531/Magnolie-Organizer/issues/683): CalDAV: echter Testserver, Legacy-Baselines und Konfliktmatrix nach installierter Farbformularabnahme – Rest #652
+
+**Codec vorhanden; DAV-Koordination offen.** Der historische Mac-Farb-/ICS-Ansatz 0c367735 und native DAV-Bausteine sind vorhanden. Sie ersetzen keine vollständige Synchronisationskoordination mit Konflikten, Löschungen und dauerhaft bestätigtem lokalen Commit.
+
+**Belege:** Quellbezug und bereits belegte Desktop-Formular-/Codecprüfungen abgeglichen. Erfolgreicher Codec oder HTTP-Status gilt nicht als bestätigter Mac-Providerabschluss.
+
+**Verbleibend / Codex:** Geeigneten freigegebenen Testserver verwenden: Farbe setzen/ändern/leeren, If-Match/412, parallele Remoteänderung, alte cleanHash-Baseline, unveränderte fremde Parameter, Reimport/erneuter Sync/Neustart. Mac-Apple-/DAV-Wege separat anbinden, kein Notes-Protokoll als Ersatz. #786 ergänzt separat einen begrenzten Apple-Systemkontenfeldabgleich; dessen lokaler EventKit-/Contacts-Readback ist kein belegter CalDAV-Serverabschluss.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [0c367735](https://github.com/maik3531/Magnolie-Organizer/commit/0c36773585617747c902fdfb62693ce28148f48e) / [Patch 0c367735](https://github.com/maik3531/Magnolie-Organizer/commit/0c36773585617747c902fdfb62693ce28148f48e.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarExport.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/ICalendarExport.swift), [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/DAVSyncPlanner.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/DAVSyncPlanner.swift).
+
+### [#721](https://github.com/maik3531/Magnolie-Organizer/issues/721): Mac/iPhone: AirPlay-Bildschirmspiegelung mit UxPlay integrieren und nativ prüfen
+
+**Vorhandener AirPlay-Patch in Gesamtfolge.** Der vorhandene Quellpatch integriert UxPlay samt Bibliotheken und nativem Start/Stop/PIN. Er bleibt Teil der vollständigen Übergabefolge. AirPlay ist der Bildschirm-/Tonweg; KDE Connect und die Apple-Datenanschlüsse bleiben eigenständige mögliche Verbindungen.
+
+**Belege:** Verfügbarer Commit 25c5a849, AIRPLAY.md und AIRPLAY-BUILD.md sowie Abhängigkeit zur gemeinsamen Mac-Folge geprüft. Kein neuer nativer Geräteerfolg behauptet.
+
+**Verbleibend / Codex:** Auf Intel/ARM64 tatsächlich bauen, Bibliotheken/Signierung prüfen und echtes iPhone für Kopplung, Bild/Ton, Rotation, Abbruch/Neuverbindung abnehmen. Spiegelung erteilt weder Fernsteuerungs- noch Daten-Syncrechte.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [25c5a849](https://github.com/maik3531/Magnolie-Organizer/commit/25c5a849a89d8846b211ff98922a708dcc7e127d) / [Patch 25c5a849](https://github.com/maik3531/Magnolie-Organizer/commit/25c5a849a89d8846b211ff98922a708dcc7e127d.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/AIRPLAY.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/AIRPLAY.md), [Magnolie-Organizer-macOS-Beta/Sources/MacBeta/AirPlayHost.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/AirPlayHost.swift).
+
+### [#749](https://github.com/maik3531/Magnolie-Organizer/issues/749): Medienabgleich: Originalformate über JPEG/PNG und MP4/MOV hinaus, einschließlich iPhone
+
+**Mac-Format-/Transportmatrix als eigener Rest.** Das Issue betrifft echte Medienbytes und Originalformate. Die gemeinsame UI kann aktuelle Korrekturen erhalten; ein Linux-/Windows- oder Notes-Medienadapter wird dadurch nicht zum Mac-/iPhone-Adapter. Vorhandenes KDE Connect bleibt ausdrücklich als Dateiweg vorgesehen.
+
+**Belege:** Mac-Quellstand und vorhandene Datei-/Notizimportgrenzen geprüft. Es gibt im Mac-Command-Enum derzeit keine implementierte KDE-Medien-Syncaktion. Dies ist eine Anschlusslücke, kein Ausschluss der vorhandenen KDE-App.
+
+**Verbleibend / Codex:** Pro tatsächlich angebotenem Client/Format byteidentisches Original samt Metadaten, Übertragung und Wiederherstellung prüfen. Nicht pauschal über Dateiendung freigeben; keine automatische Transkodierung. Native KDE-Fähigkeit/CLI beziehungsweise App-Übergabe getrennt nachweisen; keine eigene Notes-App voraussetzen.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/IPHONE-INTEROPERABILITY.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/IPHONE-INTEROPERABILITY.md), [Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md).
+
+### [#770](https://github.com/maik3531/Magnolie-Organizer/issues/770): Mac/iPhone: ausgewählte Systemkalender-Termine nativ in Magnolie übernehmen
+
+**Vorhandener Kalenderanschluss plus Folgefixes.** Die bewussten lokalen Kalenderkopien aus 2b3a7cea und der Einstellungsdialogfix #773 sind bereits enthalten. Der neue Patch #778 ergänzt korrekte Fehlerphasen nach dem Anhängen; #771 begrenzt den gesonderten allgemeinen EventKit-Reader.
+
+**Belege:** Aktuelle Kalender-UI: 327 Prüfungen einschließlich Darstellungsfehler, vorhandener Kopien, exakter Save-Nutzlast, Wiederholen des Speicherns und Wiedererkennung. Native Antworten/ACKs sind synthetisch.
+
+**Verbleibend / Codex:** EventKit-Berechtigung, Auswahl, erneuten Quellenabruf und dauerhafte Speicherung auf Intel/ARM64 abnehmen. Die übernommenen Termine bleiben lokale Kopien; automatische Updates/Löschungen/Rückschreiben oder Notes-Sync werden nicht freigeschaltet. Der ausdrücklich gebundene manuelle Feldabgleich wird getrennt in #786 behandelt; Kopierherkunft allein erteilt dafür weiterhin keine Berechtigung.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [2b3a7cea](https://github.com/maik3531/Magnolie-Organizer/commit/2b3a7cea5093b80de1dd14bdf5afaf84231d66ad) / [Patch 2b3a7cea](https://github.com/maik3531/Magnolie-Organizer/commit/2b3a7cea5093b80de1dd14bdf5afaf84231d66ad.patch) · [fbb50c2c](https://github.com/maik3531/Magnolie-Organizer/commit/fbb50c2c9146091a778fdb45608b315a67d64899) / [Patch fbb50c2c](https://github.com/maik3531/Magnolie-Organizer/commit/fbb50c2c9146091a778fdb45608b315a67d64899.patch) · [a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20) / [Patch a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20.patch) · [e89d2eec](https://github.com/maik3531/Magnolie-Organizer/commit/e89d2eec099a933ddbad4bdc529eb7f7698af2ed) / [Patch e89d2eec](https://github.com/maik3531/Magnolie-Organizer/commit/e89d2eec099a933ddbad4bdc529eb7f7698af2ed.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Projection/system-calendar-import.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/system-calendar-import.js), [Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemCalendarImportHost.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemCalendarImportHost.swift), [Magnolie-Organizer-macOS-Beta/tests/system_calendar_import.mjs](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tests/system_calendar_import.mjs).
+
+### [#771](https://github.com/maik3531/Magnolie-Organizer/issues/771): Mac EventKit: Vierjahresgrenze des allgemeinen Quellenlesers darf keinen vollständigen Zeitraum vortäuschen
+
+**Neuer Fix: vollständige EventKit-Zeitfenster.** Der allgemeine requireWindow-Guard erlaubte 1464 Tage und konnte damit die Vierkalenderjahresgrenze einer EventKit-Abfrage überschreiten. Er begrenzt den Zeitraum jetzt konservativ auf 366 verstrichene Tage, bevor die native Abfrage beginnt. Der neue #770-Kopierweg verwendete diese Grenze bereits.
+
+**Belege:** Sieben Datums-/Dauerfixtures unabhängig nachgerechnet; bestehende Kalenderprüfung bestanden. Vier neue und zwei angepasste Swift-Testmethoden sind vorbereitet, hier nicht ausgeführt. Kein unvollständiges Ergebnis wird als vollständiger großer Zeitraum ausgegeben.
+
+**Verbleibend / Codex:** Produktentscheidung bewusst enger: Aufrufer müssen größere Bereiche getrennt auswählen. Keine unbewiesene Segmentierungs-/Deduplizierlogik. EventKit-Kompilierung und reale native Grenzabnahme offen.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [e89d2eec](https://github.com/maik3531/Magnolie-Organizer/commit/e89d2eec099a933ddbad4bdc529eb7f7698af2ed) / [Patch e89d2eec](https://github.com/maik3531/Magnolie-Organizer/commit/e89d2eec099a933ddbad4bdc529eb7f7698af2ed.patch)
+
+**Einzelnachweise:** [macos-771-eventkit-window.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-771-eventkit-window.md).
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemSourcePolicy.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemSourcePolicy.swift), [Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccounts.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccounts.swift), [Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemSourcePolicyTests.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemSourcePolicyTests.swift).
+
+### [#772](https://github.com/maik3531/Magnolie-Organizer/issues/772): Mac: ausgewählte Apple-Notizen direkt als lokale Textkopien übernehmen
+
+**Vorhandene Apple-Notes-Kopien plus Folgefix.** Der direkte NSAppleScript-Anschluss 6ffe768f, der Entwurfsschutz #774 und die neue Speicherdiagnose #778 sind in der Folge enthalten. Die vorhandene Apple-Notes-App liefert bewusst ausgewählte Textkopien; dies ist keine neue Magnolie-Notes-Begleitapp.
+
+**Belege:** Aktuelle Apple-Notes-UI: 195 Prüfungen einschließlich Entwurfs-/Kontoschutz, Fehler vor/nach Anhängen, Save-NACK/ACK sowie lokalem Speichern und Wiedererkennung. Native Quellen sind synthetisch.
+
+**Verbleibend / Codex:** Apple-Notes-Dictionary, Automation-Freigabe, reale Auswahl/Konten und Swift/AppKit auf beiden Architekturen prüfen. Anhänge/geschützte Inhalte und kontinuierlicher Rückabgleich bleiben begrenzt/offen. #786 schafft keinen Apple-Notes-Rückabgleich; dafür fehlen weiterhin ein belegter öffentlicher Schreibvertrag sowie eigene Konflikt-/Recovery-Prüfungen.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [6ffe768f](https://github.com/maik3531/Magnolie-Organizer/commit/6ffe768f382fbbca3e8f531c93f9ee197eba59a7) / [Patch 6ffe768f](https://github.com/maik3531/Magnolie-Organizer/commit/6ffe768f382fbbca3e8f531c93f9ee197eba59a7.patch) · [f32f4daa](https://github.com/maik3531/Magnolie-Organizer/commit/f32f4daa71acea7f76fb9f58ff0f8d4794f728ab) / [Patch f32f4daa](https://github.com/maik3531/Magnolie-Organizer/commit/f32f4daa71acea7f76fb9f58ff0f8d4794f728ab.patch) · [a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20) / [Patch a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Projection/apple-notes-import.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/apple-notes-import.js), [Magnolie-Organizer-macOS-Beta/APPLE-NOTES-IMPORT.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/APPLE-NOTES-IMPORT.md), [Magnolie-Organizer-macOS-Beta/tests/apple_notes_import.mjs](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tests/apple_notes_import.mjs).
+
+### [#773](https://github.com/maik3531/Magnolie-Organizer/issues/773): Mac-Kalenderimport: offener Einstellungsdialog blockiert die native Vorschau
+
+**Vorhandener Einstellungsdialogfix beibehalten.** Der vorhandene Kalender-Settings-Guard fbb50c2c schließt die bestätigte unveränderte Einstellungsansicht vor der nativen Vorschau und bewahrt echte Entwürfe. Eine zweite Implementierung ist nicht nötig.
+
+**Belege:** Im aktuellen Kalendervertrag mit 327 UI-Prüfungen enthalten; ursprünglicher Fix und Folgepatch #778 verlinkt.
+
+**Verbleibend / Codex:** Nativen AppKit-Dialogfluss und Fokus auf dem aktuellen Kandidaten prüfen. Gemeinsame Quellenänderungen dürfen den Entwurfsschutz nicht umgehen.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [fbb50c2c](https://github.com/maik3531/Magnolie-Organizer/commit/fbb50c2c9146091a778fdb45608b315a67d64899) / [Patch fbb50c2c](https://github.com/maik3531/Magnolie-Organizer/commit/fbb50c2c9146091a778fdb45608b315a67d64899.patch) · [a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20) / [Patch a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Projection/system-calendar-import.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/system-calendar-import.js), [Magnolie-Organizer-macOS-Beta/tests/system_calendar_import.mjs](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tests/system_calendar_import.mjs).
+
+### [#774](https://github.com/maik3531/Magnolie-Organizer/issues/774): Mac-Notes-Import: ungespeicherte Kontoeingaben beim automatischen Schließen erhalten
+
+**Vorhandenen Kontoeingabeschutz beibehalten.** Der vorhandene Notes-Draftguard f32f4daa erhält noch nicht gespeicherte Kontoeingaben beim Übergang zur nativen Auswahl. Die neue Speicherdiagnose #778 ergänzt einen anderen Fehlerzeitpunkt.
+
+**Belege:** Im aktuellen Apple-Notes-Vertrag mit 195 UI-Prüfungen enthalten; keine pauschale Erfolgsmeldung bei unbestätigtem Speichern.
+
+**Verbleibend / Codex:** Echten Notes-/AppKit-Übergang, Abbruch und Fokus auf beiden Mac-Architekturen abnehmen. Keine neue Begleitapp und kein automatischer Konten-/Notes-Sync.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [f32f4daa](https://github.com/maik3531/Magnolie-Organizer/commit/f32f4daa71acea7f76fb9f58ff0f8d4794f728ab) / [Patch f32f4daa](https://github.com/maik3531/Magnolie-Organizer/commit/f32f4daa71acea7f76fb9f58ff0f8d4794f728ab.patch) · [a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20) / [Patch a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Projection/apple-notes-import.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/apple-notes-import.js), [Magnolie-Organizer-macOS-Beta/tests/apple_notes_import.mjs](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tests/apple_notes_import.mjs).
+
+### [#775](https://github.com/maik3531/Magnolie-Organizer/issues/775): Mac/iPhone: ausgewählte Systemkontakte nativ als lokale Kopien übernehmen
+
+**Vorhandene Kontaktkopien plus Austauschfix.** Der Contacts-Anschluss a706c571 ist enthalten. #778 präzisiert die Fehlerphase nach dem Anhängen; #776 überträgt den Kontaktgeburtstagsvertrag in die tatsächlichen gemeinsamen Linux-/Windows-Quellen und entfernt die doppelte Mac-Sonderimplementierung.
+
+**Belege:** 246 Mac-UI-Prüfungen plus 16 absichtlich beschädigte Anker; zusätzlich 321 Prüfungen an beiden Desktop-UIs für Editor, MCP, JSON/Restore, ODS und Namensvettern. Herkunft bleibt passiv.
+
+**Verbleibend / Codex:** Contacts.framework, reale Konto-/Kontaktidentitäten, Fotos und dauerhafte Speicherung nativ prüfen. Kontaktkopien erteilen keine Quellschreib-/Sync-Rechte; bestehende beschädigte Jahrestage nicht anhand von Namen reparieren. Der ausdrücklich gebundene manuelle Feldabgleich wird getrennt in #786 behandelt; Kopierherkunft allein erteilt dafür weiterhin keine Berechtigung.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [a706c571](https://github.com/maik3531/Magnolie-Organizer/commit/a706c57132d3646139464d7d432abe3f860514d6) / [Patch a706c571](https://github.com/maik3531/Magnolie-Organizer/commit/a706c57132d3646139464d7d432abe3f860514d6.patch) · [a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20) / [Patch a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20.patch) · [c9c3ebeb](https://github.com/maik3531/Magnolie-Organizer/commit/c9c3ebebd621e3562c601a2fa6d49909ca42fadd) / [Patch c9c3ebeb](https://github.com/maik3531/Magnolie-Organizer/commit/c9c3ebebd621e3562c601a2fa6d49909ca42fadd.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Projection/system-contact-import.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/system-contact-import.js), [Magnolie-Organizer-macOS-Beta/SYSTEM-CONTACT-IMPORT.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/SYSTEM-CONTACT-IMPORT.md), [Magnolie-Organizer-macOS-Beta/tests/system_contact_import.mjs](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tests/system_contact_import.mjs).
+
+### [#776](https://github.com/maik3531/Magnolie-Organizer/issues/776): Kontaktkopien: reine Kontaktgeburtstage aus dem Mac-Patch beim JSON-Austausch plattformübergreifend prüfen
+
+**Neuer Fix: Kontaktgeburtstage plattformübergreifend.** Vor dem Fix wurde 1604-02-29 in beiden Desktop-UIs zu --02-29 und ein fremder namensgleicher Jahrestag verknüpft/überschrieben. Der enge public-fields/contact-only-Vertrag gilt nun in beiden kanonischen Quellen für Normalisierung, Editor, Mutator/MCP, JSON-Import, Kontaktkarte und ODS. Die Mac-Projektion prüft 16 genaue gemeinsame Anker.
+
+**Belege:** 321 Desktop-Assertions, 246 Mac-UI-Prüfungen, 16 Driftanker und 29 Occurrence-Prüfungen bestanden; bestehende birthday-display-Regressionen auf beiden UIs grün. 38 PO-Kataloge kompiliert. Ein unabhängiger Reviewer wiederholte die zentralen Läufe erfolgreich.
+
+**Verbleibend / Codex:** Native Datenträger-/Installationsabnahme offen. Ältere installierte Versionen ohne Patch bleiben inkompatibel. Der unabhängige bestehende Lokalisierungstest scheitert an Restore media in de.po ohne POT-Eintrag; kein Erfolg dieses breiteren Gates behauptet. Keine Notes-/Syncadapter geändert.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [c9c3ebeb](https://github.com/maik3531/Magnolie-Organizer/commit/c9c3ebebd621e3562c601a2fa6d49909ca42fadd) / [Patch c9c3ebeb](https://github.com/maik3531/Magnolie-Organizer/commit/c9c3ebebd621e3562c601a2fa6d49909ca42fadd.patch)
+
+**Einzelnachweise:** [macos-776-contact-only-birthday-exchange.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-776-contact-only-birthday-exchange.md).
+
+**Quellstellen:** [magnolie-organizer/web/anwendung.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/magnolie-organizer/web/anwendung.js), [magnolie-organizer-windows/app/web/anwendung.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/magnolie-organizer-windows/app/web/anwendung.js), [magnolie-organizer-windows/tests/contact-copy-birthday.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/magnolie-organizer-windows/tests/contact-copy-birthday.js).
+
+### [#777](https://github.com/maik3531/Magnolie-Organizer/issues/777): Mac/iPhone: ausgewählte Apple-Erinnerungen als lokale Aufgaben übernehmen
+
+**Vorhandene lokale Erinnerungskopien abgesichert.** Der vollständige Ausgangsstand 616069f1 enthält bewusst ausgewählte Apple-Erinnerungen als eigenständige lokale Aufgaben. Der neue #779-Test prüft den tatsächlichen Austausch mit Linux/Windows und Rückkehr zum Mac.
+
+**Belege:** 369 vorhandene Reminder-UI-Prüfungen sowie 80 neue Assertions für beide Desktop-UIs und Mac-Wiederimport. Unbekannte Herkunftsfelder bleiben erhalten; keine automatische Alarm-/Sync-/Delegationsfreigabe.
+
+**Verbleibend / Codex:** 31 vorhandene Swift-Testmethoden und echte EventKit-/Konten-/Save-/Reopenabnahme sind weiterhin nativ auszuführen. Hierarchie, Serien, Alarme und nicht angebotene Quellfelder nicht erfinden. Kein Rückabgleich durch bloße Herkunftsmetadaten. Der ausdrücklich gebundene manuelle Feldabgleich wird getrennt in #786 behandelt; Kopierherkunft allein erteilt dafür weiterhin keine Berechtigung.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [616069f1](https://github.com/maik3531/Magnolie-Organizer/commit/616069f15fed21d8d8d05c8ef795f4ed21bd059c) / [Patch 616069f1](https://github.com/maik3531/Magnolie-Organizer/commit/616069f15fed21d8d8d05c8ef795f4ed21bd059c.patch) · [540eae27](https://github.com/maik3531/Magnolie-Organizer/commit/540eae279638ee260cdaf392096fca922adc02f1) / [Patch 540eae27](https://github.com/maik3531/Magnolie-Organizer/commit/540eae279638ee260cdaf392096fca922adc02f1.patch)
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Projection/system-reminder-import.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/system-reminder-import.js), [Magnolie-Organizer-macOS-Beta/SYSTEM-REMINDER-IMPORT.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/SYSTEM-REMINDER-IMPORT.md), [Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs).
+
+### [#778](https://github.com/maik3531/Magnolie-Organizer/issues/778): Mac: Speicherzustand nach Darstellungsfehler bei Kalender-, Notes- und Kontaktkopien prüfen
+
+**Neuer Fix: ehrlicher Speicherzustand nach Rendererfehler.** Kalender-, Apple-Notes- und Kontaktimport hängten Kopien an, konnten danach aber nur einen allgemeinen Rendererfehler melden. Drei reproduzierte Regressionen belegen den Pfad. appended/saveConfirmed trennen jetzt Fehler vor Mutation, unbestätigtes Speichern, tatsächliches Save-NACK und bereits beobachtetes ACK; Kopien bleiben für einen Speicherretry erhalten.
+
+**Belege:** Getrennte UI-Läufe: Kalender 327 Prüfungen, Apple Notes 195, Kontakte 246; keine addierte Gesamt-Testzahl. 52 neue Assertions prüfen Englisch/Deutsch, Bestands- und Herkunftserhalt, genaue Retry-Savebytes, Wiederöffnen sowie korrekte Fehlerphase. Native Quellen/Save-ACKs synthetisch.
+
+**Verbleibend / Codex:** Swift/AppKit/WKWebView und echte dauerhafte Speicherung auf Intel/ARM64 nachprüfen. Kein Rollback und keine erfolgreiche Speicherung erfinden. Der zusätzlich gefundene Dateinotiz-Callbackfehler ist getrennt unter #781 behoben.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20) / [Patch a26bb130](https://github.com/maik3531/Magnolie-Organizer/commit/a26bb1302f3f5b772b83c9530f3098df34262f20.patch)
+
+**Einzelnachweise:** [macos-778-import-save-diagnostics.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-778-import-save-diagnostics.md).
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Projection/system-calendar-import.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/system-calendar-import.js), [Magnolie-Organizer-macOS-Beta/Projection/apple-notes-import.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/apple-notes-import.js), [Magnolie-Organizer-macOS-Beta/Projection/system-contact-import.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/system-contact-import.js).
+
+### [#779](https://github.com/maik3531/Magnolie-Organizer/issues/779): Aufgabenkopien: Herkunft beim JSON-Austausch mit Linux und Windows prüfen
+
+**Regression belegt: vermuteter Verlust tritt nicht auf.** Der ursprüngliche Befund betrachtete nur den expliziten Aufgabenaufbau. Der vollständige Normalisierer ruft anschließend bewahreUnbekannteFelder auf und erhält nativeReminderImport/nativeReminderRecord bereits. Deshalb ist kein zusätzlicher Produkt-Spread nötig. Der Patch ergänzt echte Austauschregressionen und präzisiert den Issue-Befund.
+
+**Belege:** 80 Assertions auf tatsächlichen Linux-/Windows-Frontends und projiziertem Mac: JSON laden, Aufgabenformular bearbeiten, Save-Nutzlast, Journal/Backup/Archivcallbacks, Wiederöffnen und Mac-Wiederimport ohne Duplikat/Überschreiben. Unbekannte/Unicode-Metadaten und Papierkorbschutz erhalten.
+
+**Verbleibend / Codex:** Die Prüfung gilt für die untersuchten Quellen. Native Datenträger-/Dialog-/Paketabnahme und beliebige alte installierte Versionen sind dadurch nicht belegt. Herkunft aktiviert keine Synchronisation oder Alarme.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [540eae27](https://github.com/maik3531/Magnolie-Organizer/commit/540eae279638ee260cdaf392096fca922adc02f1) / [Patch 540eae27](https://github.com/maik3531/Magnolie-Organizer/commit/540eae279638ee260cdaf392096fca922adc02f1.patch)
+
+**Einzelnachweise:** [macos-779-reminder-provenance.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-779-reminder-provenance.md).
+
+**Quellstellen:** [magnolie-organizer/web/anwendung.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/magnolie-organizer/web/anwendung.js), [magnolie-organizer-windows/app/web/anwendung.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/magnolie-organizer-windows/app/web/anwendung.js), [magnolie-organizer-windows/tests/native-reminder-provenance.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/magnolie-organizer-windows/tests/native-reminder-provenance.js), [Magnolie-Organizer-macOS-Beta/tools/check_reminder_desktop_roundtrip.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tools/check_reminder_desktop_roundtrip.py).
+
+### [#781](https://github.com/maik3531/Magnolie-Organizer/issues/781): Mac-Dateinotizen: Import nach Darstellungsfehler im Snapshot-Callback beenden und Speicherzustand erhalten
+
+**Neuer Fix: Dateinotiz-Promise zuverlässig abschließen.** Ein Rendererfehler im asynchronen Snapshot-Callback lag außerhalb des äußeren try/catch: Notizen waren angehängt, die Import-Promise blieb offen. Der Patch fängt den Callbackfehler ab, beendet die Operation, plant das Speichern vor dem Rendern und prüft nach ACK Buchzustand und Identität. Die Fehlernachricht über die Swift/WK-Brücke ist begrenzt.
+
+**Belege:** 41 tatsächliche Host-/DOM-Prüfungen: Literaltext/Anhänge, Snapshot-/Save-NACK, Rendererfehler EN/DE, Promise-Abschluss, Originalsicherung, exakte Retrybytes, Reopen, falsches ACK und entfernte importierte Notiz. Baseline zeigte timeout=true bei bereits angehängter Kopie.
+
+**Verbleibend / Codex:** Swift-Kompilierung, echter Dateidialog und dauerhafter Mac-Speicher-/Neustartnachweis offen. Dateiimport ist bewusst additiv; Wiederholen heißt hier Speichern der vorhandenen Kopien, nicht automatisch erneut dieselbe Datei importieren.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [e925f9f4](https://github.com/maik3531/Magnolie-Organizer/commit/e925f9f44de0fedbdd222908e0a05e7229a3bb70) / [Patch e925f9f4](https://github.com/maik3531/Magnolie-Organizer/commit/e925f9f44de0fedbdd222908e0a05e7229a3bb70.patch)
+
+**Einzelnachweise:** [macos-781-note-file-completion.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-781-note-file-completion.md).
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Projection/note-file-import.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/note-file-import.js).
+
+### [#783](https://github.com/maik3531/Magnolie-Organizer/issues/783): macOS-Kandidaten bauen trotz aktuellem Checkout weiter die veröffentlichte Desktopbasis v2.0.30
+
+**Neuer Catch-up-Fix: tatsächliche aktuelle Quellen.** Der aktive Mac-Job stellte nach dem Checkout alle gemeinsamen Produktquellen auf 067c3893/v2.0.30 zurück. Der Fix verwendet für Mac den unveränderten konkreten Checkout und bindet Quell-/Buildbelege daran. Der Tablet-Job und historische Referenzorakel behalten ihre getrennten Baselines.
+
+**Belege:** 7/7 funktionale Quelltests mit SHA-1 und gesondert 7/7 mit SHA-256 bestanden; direkte Git-Blob-/Modusbindung erkennt auch versteckte assume-unchanged-/skip-worktree-Abweichungen. Am geprüften #776-Integrationsstand vor #785/#786 bestand die tatsächliche generierte UI 27 Assertions, 30 originale Notizsuchtests und die Abweisung 181 nicht implementierter Desktopbefehle ohne native Zustellung; gemeinsamer Frontend-SHA256 8166790025d0ba8bf4495b73346ba42cbb6eac8dd98c918eea40ec696ef69b63. Zwei unabhängige Reviews bestanden. Zwei Swift-Capability-Tests waren vorbereitet, hier nicht ausgeführt. #121/#783 ergänzt den tatsächlichen Cloud-Umgebungsbeleg und konkrete native VM-Prüfschritte. Der abschließende dateibasierte Adaptertest benötigt keinen Importbundle-Bootstrap mehr: 7c9cf203 lädt den neuen Helper erst bei vollständiger Inventur/Projektion. Historische Ablehnungsregeln und unabhängige Python-/JS-Adaptervergleiche bleiben erhalten.
+
+**Verbleibend / Codex:** Aktuelle gemeinsame Quellen aktivieren nur konkret angebundene native Fähigkeiten. Keine eigene Notes-Begleitapp; vorhandenes KDE Connect und Apple-Programme bleiben passende Wege. Die Datei-/Parserlücke wird durch #785 und der begrenzte Systemabgleich durch #786 gesondert implementiert und geprüft. Neue ARM64-/Intel-, macOS-12.7-, WKWebView- und Bundleabnahmen bleiben offen. Historische grüne Läufe verwendeten Desktop 067c und belegen die neue Gesamtfolge nicht.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [0a14d268](https://github.com/maik3531/Magnolie-Organizer/commit/0a14d268913337bd436e560ab47f670ed43d89c3) / [Patch 0a14d268](https://github.com/maik3531/Magnolie-Organizer/commit/0a14d268913337bd436e560ab47f670ed43d89c3.patch) · [2d31e0eb](https://github.com/maik3531/Magnolie-Organizer/commit/2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa) / [Patch 2d31e0eb](https://github.com/maik3531/Magnolie-Organizer/commit/2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa.patch) · [c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa) / [Patch c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa.patch) · [1a24abef](https://github.com/maik3531/Magnolie-Organizer/commit/1a24abefcfdc58689fb5291cb5c4c60c1af189d5) / [Patch 1a24abef](https://github.com/maik3531/Magnolie-Organizer/commit/1a24abefcfdc58689fb5291cb5c4c60c1af189d5.patch) · [7c9cf203](https://github.com/maik3531/Magnolie-Organizer/commit/7c9cf20394aef73d261a77f746ebca7340826d30) / [Patch 7c9cf203](https://github.com/maik3531/Magnolie-Organizer/commit/7c9cf20394aef73d261a77f746ebca7340826d30.patch)
+
+**Abhängigkeiten:** [#776](https://github.com/maik3531/Magnolie-Organizer/issues/776). Vollständige Commitfolge und Zielbasis vor Übernahme prüfen.
+
+**Einzelnachweise:** [CURRENT-SOURCE-CANDIDATE.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/CURRENT-SOURCE-CANDIDATE.md).
+
+**Quellstellen:** [.github/workflows/ports-2.0.30.yml](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/.github/workflows/ports-2.0.30.yml), [Magnolie-Organizer-macOS-Beta/tools/candidate_sources.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tools/candidate_sources.py), [Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py), [Magnolie-Organizer-macOS-Beta/tools/check_current_sources.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tools/check_current_sources.py), [Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md), [contracts/macos-cloud-environment-2026-11-26.json](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-cloud-environment-2026-11-26.json).
+
+### [#784](https://github.com/maik3531/Magnolie-Organizer/issues/784): Mac-Geräteseite: Notes-Voraussetzung und endlose Statusanzeige durch passende Apple-/KDE-Dateiwege ersetzen
+
+**Neuer Fix: passende Mac-Geräte- und Importseite.** Die tatsächlich projizierte Geräteseite zeigte eine Magnolie-Notes-Begleitapp-Voraussetzung, dauerhafte Ladefelder und nicht angebundene Medienaktionen. Der Mac-spezifische Hook ersetzt dies durch sechs vorhandene bewusst gestartete Apple-/Dateiimporte, passende EN/DE-Texte und einen ehrlichen KDE-Connect-/AirDrop-Dateiweg. Er aktiviert weder Notes-Kopplung noch ein nicht implementiertes KDE-Protokoll. Wiederholte oder konkurrierende Klicks, Save-NACK und während des Speicherns geöffnete Entwürfe sind gebunden.
+
+**Belege:** 118 Prüfungen an der tatsächlichen projizierten UI in EN/DE sowie zwei absichtlich beschädigte Projektionsanker bestanden. Der dokumentierte gemeinsame Lauf der neun bestehenden/neuen Hostgruppen bestand in 40,367 s; die Einzelumfänge stehen im Vertrag und werden nicht addiert. Ein unabhängiger Review wiederholte die 118 Checks und prüfte Discard-Retry für alle sechs Aktionen. Native Antworten/Save-ACKs waren synthetisch.
+
+**Verbleibend / Codex:** Echte WKWebView, Dateiauswahl, KDE-/AirDrop-Transport und Systemberechtigungen in einer passenden macOS-VM abnehmen. Ein vorhandener externer KDE-Client ist kein schon implementierter direkter Magnolie-Steuerungsadapter. Die klassische Formatparität folgt separat aus #785; die manuelle Systemabgleichsfunktion aus #786. Zwei geprüfte Sprachen sind keine Abnahme aller Kataloge.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [9f35d4d0](https://github.com/maik3531/Magnolie-Organizer/commit/9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa) / [Patch 9f35d4d0](https://github.com/maik3531/Magnolie-Organizer/commit/9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa.patch)
+
+**Abhängigkeiten:** [#770](https://github.com/maik3531/Magnolie-Organizer/issues/770) · [#772](https://github.com/maik3531/Magnolie-Organizer/issues/772) · [#775](https://github.com/maik3531/Magnolie-Organizer/issues/775) · [#777](https://github.com/maik3531/Magnolie-Organizer/issues/777) · [#781](https://github.com/maik3531/Magnolie-Organizer/issues/781) · [#783](https://github.com/maik3531/Magnolie-Organizer/issues/783). Vollständige Commitfolge und Zielbasis vor Übernahme prüfen.
+
+**Einzelnachweise:** [macos-784-device-import-page.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-784-device-import-page.md).
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Projection/device-import-page.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/device-import-page.js), [Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json), [Magnolie-Organizer-macOS-Beta/tools/project_ui.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tools/project_ui.py), [Magnolie-Organizer-macOS-Beta/tests/device_import_page.mjs](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tests/device_import_page.mjs).
+
+### [#785](https://github.com/maik3531/Magnolie-Organizer/issues/785): Mac-Importparität: aktuelle OR6-/Dateiparser und vollständige native Importwege anbinden
+
+**Neuer Importpatch: aktuelle klassische Formate und OR6; Archiv-/Discovery-Rest offen.** Der frühere Mac-Dispatcher nahm nur art=ics an, obwohl die aktuelle gemeinsame UI weitere Formate anbot. Der Patch verbindet ICS/VCS/LCS, Lotus OR6/CSV, vCard/CSV, Claws/LDIF und deren klassische ZIP-Routen sowie die Müllterminvorschau mit dem nativen Dateipicker, einem begrenzten privaten Parserprozess und den tatsächlichen gemeinsamen Vorschau-/Merge-/Save-ACK-Pfaden. Der Build projiziert eine ausdrücklich überprüfte Closure aus aktuellem Linuxcode; magnolie_or6.py bleibt bytegleich. Keine Desktop-GUI-, Telefon-, Notes- oder Syncmodule werden im Helper gestartet. Der #465-Sidecar bleibt erhalten. macOS 12.7 bleibt Ziel, ohne System-Python-Fallback.
+
+**Belege:** tests/test_import_helper.py: 14/14 Gruppen in 26,143 s mit tatsächlichen isolierten CPython-3.12.14-Prozessen; alle 27 originalen hashgebundenen OR6-Dateien vollständig gegen aktuellen Originalparser und unabhängige bekannte Werte verglichen. Aktuelle Desktop-Goldens, ZIP-/XML-/Quell-/EOF-/Outputgrenzen, Sprach-/Länderkontext, 439 normative TZif-Roundtrips/597 Namen sowie Code-/Abhängigkeitsmanipulation geprüft. tools/check_file_import.py + tests/file_import.mjs: 90 Checks mit echten OR6-Bytes durch Helper, tatsächliche projizierte Mac-UI, reale Kontaktvorschau, synthetische Save-ACKs, Reopen, Deduplizierung, Buchdrift, falsches ACK, NACK und Rendererfehler; UI-SHA256 687613277c399ce05ca9b3f5ee6500b57b16d8d23a303e06fbf67d3ed6b022e8. Sieben Runtimebuilder-Python-Tests und der tatsächliche offizielle CPython-3.15.2-Download samt begrenzter Extraktion bestanden separat. Zehn Swift-Protokolltests sind vorbereitet, hier nicht kompiliert oder ausgeführt. Die endgültige gemeinsame Integration wird separat dokumentiert. Root wiederholte am exakten Stand c903f436 die sieben Runtimebuilder-Tests (Exit 0, 0,055 s) und die 14 Parsergruppen (Exit 0, 26,694 s); diese Wiederholungen schließen die Header-/Manifestkorrektur dc803651 ein, ersetzen aber nicht den noch getrennten finalen UI-/Gesamtlauf. Die unabhängige Runtimeprüfung belegte den zstd-Configure-Fallback mit der tatsächlichen gepinnten Quelle unter Linux; der Patch 13692287 deaktiviert die beiden optionalen Module. Der finale Root-Hostlauf und die tatsächliche aktuelle Projektion sind im Schlussnachweis verlinkt; die ursprünglichen Testtreiberfehler und ihre Korrekturen bleiben dort sichtbar.
+
+**Verbleibend / Codex:** Codex muss private CPython 3.15.2 samt Helper auf ARM64 und Intel bauen, Mach-O/Signatur/Relokation und echten Start unter macOS 12.7 sowie neuerem Gast prüfen; danach echte Picker-, Vorschau-, Save-/Reopen- und Mülltokenpfade. Das .magnolie-Gesamtarchiv ist keine klassische ZIP-Route: gesamtarchiv_waehlen mit Kennwort-/Integritätsprüfung, Recovery, vollständiger Vorschau und nativer Restore-Transaktion verbinden. import_lokal benötigt eine tatsächlich verfügbare Mac-Quellwahl statt Linux-Profilpfaden. OR6 kann nicht mehr garantieren als die aktuelle gemeinsame Quelle; offene Detailbefunde #243/#578/#611/#615 bleiben bestehen. Keine vollständige Import-/Paketabnahme aus Python-/JSDOM-Erfolg ableiten.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [6341a2f1](https://github.com/maik3531/Magnolie-Organizer/commit/6341a2f1fa188a15ba63fd43bacf4dccfc148dfc) / [Patch 6341a2f1](https://github.com/maik3531/Magnolie-Organizer/commit/6341a2f1fa188a15ba63fd43bacf4dccfc148dfc.patch) · [62835e02](https://github.com/maik3531/Magnolie-Organizer/commit/62835e02e422bfcd8ae0fccea36dac08813e42cf) / [Patch 62835e02](https://github.com/maik3531/Magnolie-Organizer/commit/62835e02e422bfcd8ae0fccea36dac08813e42cf.patch) · [6372a409](https://github.com/maik3531/Magnolie-Organizer/commit/6372a409b849dffa2856d8e0993cfaef96b44a3d) / [Patch 6372a409](https://github.com/maik3531/Magnolie-Organizer/commit/6372a409b849dffa2856d8e0993cfaef96b44a3d.patch) · [e2a71b5e](https://github.com/maik3531/Magnolie-Organizer/commit/e2a71b5eaf2635b38f0496bb8df9bb6cbf387121) / [Patch e2a71b5e](https://github.com/maik3531/Magnolie-Organizer/commit/e2a71b5eaf2635b38f0496bb8df9bb6cbf387121.patch) · [dc803651](https://github.com/maik3531/Magnolie-Organizer/commit/dc8036514b54dc50e3c3a2bc69e343383ff7da79) / [Patch dc803651](https://github.com/maik3531/Magnolie-Organizer/commit/dc8036514b54dc50e3c3a2bc69e343383ff7da79.patch) · [c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa) / [Patch c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa.patch) · [8d4004a9](https://github.com/maik3531/Magnolie-Organizer/commit/8d4004a99648add539450e3658f50861a6d90f32) / [Patch 8d4004a9](https://github.com/maik3531/Magnolie-Organizer/commit/8d4004a99648add539450e3658f50861a6d90f32.patch) · [13692287](https://github.com/maik3531/Magnolie-Organizer/commit/136922870a3a3ee2caf6d6be431b00a67ff9fcce) / [Patch 13692287](https://github.com/maik3531/Magnolie-Organizer/commit/136922870a3a3ee2caf6d6be431b00a67ff9fcce.patch) · [7c9cf203](https://github.com/maik3531/Magnolie-Organizer/commit/7c9cf20394aef73d261a77f746ebca7340826d30) / [Patch 7c9cf203](https://github.com/maik3531/Magnolie-Organizer/commit/7c9cf20394aef73d261a77f746ebca7340826d30.patch)
+
+**Abhängigkeiten:** [#465](https://github.com/maik3531/Magnolie-Organizer/issues/465) · [#776](https://github.com/maik3531/Magnolie-Organizer/issues/776) · [#778](https://github.com/maik3531/Magnolie-Organizer/issues/778) · [#783](https://github.com/maik3531/Magnolie-Organizer/issues/783). Vollständige Commitfolge und Zielbasis vor Übernahme prüfen.
+
+**Einzelnachweise:** [IMPORT-CODECS.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md) · [IMPORT-RUNTIME.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md).
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py), [Magnolie-Organizer-macOS-Beta/ImportHelper/closure-policy.json](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/ImportHelper/closure-policy.json), [Magnolie-Organizer-macOS-Beta/ImportHelper/helper.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/ImportHelper/helper.py), [Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py), [Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py), [Magnolie-Organizer-macOS-Beta/Resources/ImportPython.json](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Resources/ImportPython.json), [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/FileImportProtocol.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/FileImportProtocol.swift), [Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportHost.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportHost.swift), [Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportProcess.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportProcess.swift), [Magnolie-Organizer-macOS-Beta/Projection/file-import.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/file-import.js), [Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py), [Magnolie-Organizer-macOS-Beta/tests/file_import.mjs](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tests/file_import.mjs), [Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/FileImportProtocolTests.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/FileImportProtocolTests.swift).
+
+### [#786](https://github.com/maik3531/Magnolie-Organizer/issues/786): macOS-Systemkonten: echten Apple-Kalender-, Kontakt- und Erinnerungsabgleich anbinden
+
+**Neuer Teilabgleich: gebundene Apple-Felder; native Abnahme und Vollparität offen.** Core/Provider d57ef304 und Host/UI/Ledger a0714589 ergänzen zusammen einen bewusst freigegebenen manuellen Dreiwege-Feldabgleich bestehender gebundener EventKit-Kalender-, Erinnerungs- und Contacts-Datensätze. Zuerst werden unterstützte native Zeilen mit neuen lokalen IDs angebunden; spätere einseitige Feldänderungen können in beide Richtungen übernommen werden, parallele Änderungen bleiben Konflikte. Die Freigabe bindet native Quelle, gespeichertes Buch/Epoche, Kalenderfenster und Anzeigezone. Native Identität, Baseline, frisches Lesen vor dem Schreiben, anschließender Readback, ein separat verschlüsseltes Intent-/Wiederaufnahmejournal und unabhängig zurückgelesene tatsächliche Buchbytes begrenzen den Abschluss. Bloßes UI-Save-ACK oder passive Kopierherkunft genügt nicht. Dateiimport und Systemabgleich sperren parallele Starts wechselseitig.
+
+**Belege:** Core-/Providerstand: sieben vorhandene Host-/Projektionsgruppen bestanden in 29,175 s; dies prüft bestehende Wege und führt den neuen Swift-Core nicht aus. Neuer Agentstand 8f6c46e39c0c98fc4a29856a98dbd0f7f1c692f7 (bei Root als a0714589 integriert): python3 tests/test_host.py ProjectionTests.test_system_account_sync_transaction bestand 1/1 Gruppe mit 107 EN/DE-Checks und zwei beschädigten Projektionsankern in 5,617 s. Die tatsächliche erzeugte UI wird verwendet; Provider-/Diskantworten und die Dreierfixture sind ausdrücklich synthetisch, kein Swift-Output. Nach Rebase bestanden Hostvertrag/Reproduzierbarkeit 2/2 Gruppen in 3,335 s; die 118 Gerätechecks bestanden separat. 26 Core- und zehn Ledger-XCTest-Methoden sind vorbereitet, hier weder kompiliert noch ausgeführt. Der neue Root-Gesamtstand wird separat unter finalIntegration geprüft.
+
+**Verbleibend / Codex:** Codex muss native Swift-/Ledger-/Bridge-Tests auf dem exakten Gesamtcommit ausführen und eine tatsächlich von Swift exportierte Fixture durch denselben UI-Runner schicken. Danach eigens eingerichtete Apple-Testquellen abgleichen: beide Richtungen, unveränderten dritten Lauf, Konflikte, Widerruf, fehlende/verschobene Einträge, Race/Deadline/unsichere Write-Antwort, Speicherung und Neustart ohne doppelte Writes. Die geführte Recovery für unsichere Writes/Teil-ACKs und eine Freigabenverwaltung für bei TCC-Entzug oder Quellenverlust unsichtbare Quellen fehlen noch; Journal nicht löschen und keinen blinden Retry ergänzen. Apple stellt hier keinen atomaren Server-CAS bereit; lokaler Readback ist kein iCloud-/iPhone-Serverrundlauf. Offen bleiben Create/Delete, Export beliebiger neuer lokaler Einträge, Serien/Alarme/weitere Felder sowie automatischer Scheduler. Apple Notes bleibt Textkopie und benötigt für echten Rückabgleich einen eigenen öffentlichen Schreibvertrag samt Konflikt-/Recovery-Prüfungen.
+
+**Prüfstand:** Einzelpatch-/Auditbelege; keine automatische Abnahme des finalen Gesamtzweigs. Neue native Mac-Ausführung ist hier nicht nachgewiesen.
+
+**Commits/Patches:** [d57ef304](https://github.com/maik3531/Magnolie-Organizer/commit/d57ef304417695dea5f488842bc3b49432f7bbf2) / [Patch d57ef304](https://github.com/maik3531/Magnolie-Organizer/commit/d57ef304417695dea5f488842bc3b49432f7bbf2.patch) · [c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa) / [Patch c903f436](https://github.com/maik3531/Magnolie-Organizer/commit/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa.patch) · [a0714589](https://github.com/maik3531/Magnolie-Organizer/commit/a071458954ce4532fa013649a09a5d346f4d7469) / [Patch a0714589](https://github.com/maik3531/Magnolie-Organizer/commit/a071458954ce4532fa013649a09a5d346f4d7469.patch)
+
+**Abhängigkeiten:** [#454](https://github.com/maik3531/Magnolie-Organizer/issues/454) · [#511](https://github.com/maik3531/Magnolie-Organizer/issues/511) · [#775](https://github.com/maik3531/Magnolie-Organizer/issues/775) · [#776](https://github.com/maik3531/Magnolie-Organizer/issues/776) · [#777](https://github.com/maik3531/Magnolie-Organizer/issues/777) · [#783](https://github.com/maik3531/Magnolie-Organizer/issues/783). Vollständige Commitfolge und Zielbasis vor Übernahme prüfen.
+
+**Einzelnachweise:** [macos-786-native-system-sync.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-786-native-system-sync.md) · [macos-786-system-sync-transaction.md](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-786-system-sync-transaction.md).
+
+**Quellstellen:** [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSync.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSync.swift), [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncProjection.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncProjection.swift), [Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccounts.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccounts.swift), [Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncDates.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncDates.swift), [Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncTests.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncTests.swift), [Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/Fixtures/system-account-sync-ui.json](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/Fixtures/system-account-sync-ui.json), [Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncLedger.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncLedger.swift), [Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncHost.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncHost.swift), [Magnolie-Organizer-macOS-Beta/Projection/system-account-sync.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/system-account-sync.js), [Magnolie-Organizer-macOS-Beta/Projection/system-accounts.js](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Projection/system-accounts.js), [Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncLedgerTests.swift](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncLedgerTests.swift), [Magnolie-Organizer-macOS-Beta/tests/system_account_sync.mjs](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/tests/system_account_sync.mjs).
+
+## Bewusst verbleibende Implementierungsreste
+
+**#465 — bereits gespeicherte doppelte Ausnahmen:** Die native Belegadoption und deren Fortführung im neuen ICS-Helper sind implementiert. Es fehlt weiterhin die ausdrücklich bestätigte exakte Paar-/Referenzreparatur. Kandidaten anhand Quelle, Wire-UID und vollständiger RID belegen, Konflikte/Unknowns/Listen und sämtliche Verweise behandeln, vor Mutation einen dauerhaften Wiederherstellungspunkt erzeugen und Save/Reopen prüfen. Namens-, Titel- oder Zielzeitheuristiken reichen nicht.
+
+**#511 — verlustfreie opaque JSON-Schlüssel:** Die bytegenaue NoLoss-Prüfung schließt eine konkrete Lücke. Die vollständige Darstellung muss Parser/Objektschlüssel, Swift-DTOs, OrdinarySaveEpochPolicy, NativeBookRestore, DAVBookRestore, AtomicStore/Recovery und Swift↔WK gemeinsam abdecken. Foundation-Dictionaries können kanonisch äquivalente Schlüssel nicht als zwei getrennte Werte bewahren. Den Scanner bis zu einer durchgängigen verlustfreien Repräsentation weiter strikt lassen.
+
+**#785 — Gesamtarchiv und lokale Discovery:** `.magnolie` ist eine eigene schema-/hashgebundene, gegebenenfalls verschlüsselte Gesamtarchivtransaktion. `gesamtarchiv_waehlen`, die kanonischen `gesamtarchiv_lesen*`-/`gesamtarchiv_lokales_bewahren`-Verträge und den vorhandenen Mac-Restorepfad mit Passwort, vollständiger Vorschau, Recovery, Buch-/Generationbindung und dauerhaftem Abschluss verbinden. Fotos/Anhänge, Unknowns, Manipulation, falsches Passwort, NACK und Reopen prüfen. Für `import_lokal` tatsächlich verfügbare Mac-Quellen und explizite Leserechte entwickeln; Linux-Profilpfade nicht übernehmen. OR6-Detailgrenzen der gemeinsamen Quelle, darunter #243/#578/#611/#615, bleiben offen.
+
+**#786 — vollständiger Systemabgleich und Apple Notes:** Der manuelle gebundene Feldabgleich ist ein konkreter Teilpatch. Die geführte Wiederaufnahme unsicherer Writes/Teil-ACKs und eine Freigabenverwaltung auch für unsichtbare oder nicht mehr zugängliche Quellen fehlen noch. Das erhaltene Journal nicht löschen und keinen blinden Retry ergänzen. Native Neuanlagen/Löschungen, weitere Serien-/Alarm-/Kontakt-/Reminderfelder und automatischer Scheduler benötigen eigene Intents, Identitäts-/Konflikt-/Recoveryverträge. Ein EventKit-/Contacts-Readback beweist keinen abgeschlossenen Cloud-/iPhone-Rundlauf und keine atomare Server-CAS-Semantik. Apple Notes bleibt Textkopie, bis ein gesonderter öffentlicher Schreibvertrag mit Rich-Text-/Anhangs-/Ordner-/Konfliktgrenzen belegt und geprüft ist.
+
+**KDE Connect und Gegenstellen:** Den tatsächlich eingesetzten Client, seine angebotenen Fähigkeiten, Richtung, Benutzerentscheidung, Dateiidentität und gespeicherten Import prüfen. Die vorhandene App wird weder ausgeschlossen noch als schon vollständig in Magnolie integriert dargestellt. Es wird keine eigene Notes-Begleitapp als Ersatz vorausgesetzt.
+
+Alle nativen Folgeprüfungen sind mit der wirklich erreichbaren Umgebung zu protokollieren: [Konkreter Mac-CI-/Cloud-VM-Prüfplan](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md) · [Tatsächlich gemessene Umgebung (JSON)](https://github.com/maik3531/Magnolie-Organizer/blob/work/macos-issue-fixes-20261126/contracts/macos-cloud-environment-2026-11-26.json). **Vorbereitet**, **hier bestanden** und **in der macOS-VM bestanden** bleiben getrennte Angaben.

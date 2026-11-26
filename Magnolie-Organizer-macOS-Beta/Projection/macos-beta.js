@@ -8,12 +8,12 @@
   const methods = new Set(["adressWeg", "handbuchGeoeffnet", "init", "gespeichert", "kennwortStand", "ablage", "sicherungFertig",
     "printErgebnis", "exportErgebnis", "importErgebnis", "notizAnhangDateiErgebnis", "erinnerungStand", "vorBeenden", "mutationsSnapshot",
     "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis", "feiertageErgebnis", "edsStatus", "baumBriefkastenStatus",
-    "baumBriefkastenGespeichert", "baumBriefkastenPruefung", "baumDavPruefung"]);
+    "baumBriefkastenGespeichert", "baumBriefkastenPruefung", "baumDavPruefung", "macOSBetaSystemSyncFinished"]);
   const unsupported = "Not implemented in Magnolie Organizer macOS Beta. Nothing was changed.";
   const notice = "macOS Beta: local editing/deletion with pre-change recovery files; encrypted JSON backup and full JSON restore; calendar, task and anniversary ICS; " +
-    "attachment Save; clipboard; reminders only while open. No sync, background " +
+    "attachment Save; clipboard; reminders only while open; explicitly enabled macOS system-account field synchronization. No general DAV/phone sync, background " +
     "wake, auto-update, password change/removal or office export. Printing uses the system print dialog, including Save as PDF. Native feature acceptance remains incomplete.";
-  let ready = false, restorePending = false, nativeRestoreLocked = false;
+  let ready = false, restorePending = false, nativeRestoreLocked = false, systemSyncActive = false;
   let nativeRestoreOperation = null, nativeRestoreApplied = null, nativeRestoreRestartRequired = false;
   function lockNativeRestore() {
     nativeRestoreLocked = true;
@@ -24,7 +24,9 @@
     if (nativeRestoreRestartRequired) return;
     nativeRestoreLocked = false; restorePending = false;
     nativeRestoreOperation = null; nativeRestoreApplied = null;
-    document.body.inert = false; document.body.removeAttribute("aria-busy");
+    document.body.inert = systemSyncActive;
+    if (systemSyncActive) document.body.setAttribute("aria-busy", "true");
+    else document.body.removeAttribute("aria-busy");
   }
   // Mac-specific controls share the native supplementary translations without
   // replacing the canonical frontend catalogs or their plural rules.
@@ -59,6 +61,7 @@
       notiz_anhang_datei: "notizAnhangDateiErgebnis", sicherung_waehlen: "sicherungAusgewaehlt",
       sicherung_wiederherstellen: "sicherungWiederhergestellt",
       regional_einstellungen: "regionalErgebnis", eds_status: "edsStatus", macos_systemzugriff: "edsStatus",
+      macos_system_sync: "macOSBetaSystemSyncFinished",
       gesamtarchiv_exportieren: "gesamtarchivExportiert", gesamtarchiv_importieren: "gesamtarchivImportiert"
     };
     if (command === "sync") app.syncFehler(payload.fehler);
@@ -107,11 +110,20 @@
       button.addEventListener("click", () => { button.disabled = true; refresh(); });
       form.append(button);
     },
-    noteImportBlocked() { return !ready || restorePending; },
-    calendarImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
-    appleNotesImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
-    contactImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
-    reminderImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
+    systemSyncBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired; },
+    systemSyncLock(value) {
+      systemSyncActive = value === true;
+      if (systemSyncActive) show(tr("Synchronizing …"));
+      if (systemSyncActive || nativeRestoreLocked || nativeRestoreRestartRequired) {
+        document.body.inert = true; document.body.setAttribute("aria-busy", "true");
+      } else { document.body.inert = false; document.body.removeAttribute("aria-busy"); }
+    },
+    systemSyncNotice(text) { show(String(text)); },
+    noteImportBlocked() { return !ready || restorePending || systemSyncActive; },
+    calendarImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired || systemSyncActive; },
+    appleNotesImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired || systemSyncActive; },
+    contactImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired || systemSyncActive; },
+    reminderImportBlocked() { return !ready || restorePending || nativeRestoreLocked || nativeRestoreRestartRequired || systemSyncActive; },
     calendarMetadata(data, payload, commit) {
       const metadata = payload.icsImportMetadata;
       if (!metadata) return false;
@@ -251,6 +263,7 @@
         ready = payload.gesperrt !== true;
       } else {
         if (method === "sicherungAusgewaehlt" && payload.abgebrochen) return;
+        if (method === "importErgebnis") return window.App.macOSBetaNativeCalendarResult(payload);
         window.App[method](payload);
       }
     }

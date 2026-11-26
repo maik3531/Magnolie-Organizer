@@ -239,15 +239,15 @@ final class SystemCalendarImportTests: XCTestCase {
         XCTAssertThrowsError(try prepare(SystemSourceSnapshot(source: reminders, scope: .fullSource, records: [])))
     }
 
-    func testCalendarCopyWindowHasItsOwnConservative366DayLimit() throws {
+    func testCalendarCopyAndNativeSnapshotShareConservative366DayLimit() throws {
         let source = try source()
         let allowed = try snapshot(source, [], end: "2027-01-02T00:00:00Z")
         XCTAssertNoThrow(try prepare(allowed))
-        let tooWide = try snapshot(source, [], end: "2027-01-03T00:00:00Z")
-        XCTAssertThrowsError(try prepare(tooWide)) { error in
+        // Refs #771: oversized scope now fails while constructing the native
+        // snapshot, before a proposal or revision can be created from it.
+        XCTAssertThrowsError(try snapshot(source, [], end: "2027-01-03T00:00:00Z")) { error in
             XCTAssertEqual(error.localizedDescription, "Select a calendar date range of at most 366 days.")
         }
-        XCTAssertThrowsError(try SystemCalendarImport.snapshotRevision(tooWide))
     }
 
     func testUTF8FoldingPreservesTheExactLogicalLine() throws {

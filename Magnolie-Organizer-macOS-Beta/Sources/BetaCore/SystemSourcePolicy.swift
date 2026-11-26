@@ -30,9 +30,15 @@ public enum SystemSourcePolicy {
         }
     }
     public static func requireWindow(start: Date, end: Date) throws {
+        // Refs #771. EventKit silently shortens predicates longer than four
+        // calendar years. 4 * 366 days is not that limit (for example,
+        // 2026-01-01...2030-01-04). Use the existing calendar-copy bound for
+        // every single native read; reject wider requests instead of returning
+        // a snapshot whose declared scope exceeds the range EventKit read.
+        // These are elapsed seconds, independent of the default calendar/zone.
         guard start.timeIntervalSince1970.isFinite, end.timeIntervalSince1970.isFinite,
-              end > start, end.timeIntervalSince(start) <= 366 * 86400 * 4 else {
-            throw BetaError("System calendar reads require a window of at most four years.")
+              end > start, end.timeIntervalSince(start) <= 366 * 86400 else {
+            throw BetaError("Select a calendar date range of at most 366 days.")
         }
     }
 }

@@ -221,8 +221,18 @@
   function macOSBetaCommitAppleNotesImport(token) {
     return new Promise((resolve, reject) => {
       const proposal = macOSBetaAppleNotesProposal;
-      let ownsProposal = false;
-      const failed = error => {
+      let ownsProposal = false, appended = false, saveConfirmed = false;
+      const failed = (error, saveRejected = false) => {
+        // #778: the renderer may fail after the local append and before the
+        // save callback is registered. Report the mutation, never a rollback or
+        // an unobserved write failure; a scheduled save may still be pending.
+        if (appended && !saveConfirmed) {
+          const prefix = saveRejected
+            ? window.MacBeta.text("Imported notes remain unsaved. Save the pending changes before importing again.")
+            : window.MacBeta.text("Note copies were added, but saving was not confirmed. Check and save the pending changes before importing again.");
+          const detail = String(error?.message || error);
+          if (!detail.startsWith(prefix)) error = new Error(prefix + " " + detail);
+        }
         if (ownsProposal && macOSBetaAppleNotesProposal === proposal) macOSBetaAppleNotesProposal = null;
         reject(error);
       };
@@ -240,15 +250,17 @@
             macOSBetaAppleNotesRequireCurrent(proposal);
             proposal.state = "saving";
             proposal.book.notizen.push(...proposal.candidates);
+            appended = true;
             planeSpeichern(); zeichneAlles();
             nachDauerhaftemSpeichern(() => {
+              saveConfirmed = true;
               if (DATEN !== proposal.book || macOSBetaAppleNotesBlocked() ||
                   proposal.candidates.some(note => !DATEN.notizen.includes(note))) {
                 failed(new Error("The document changed before the Apple Notes copy save completed.")); return;
               }
               if (macOSBetaAppleNotesProposal === proposal) macOSBetaAppleNotesProposal = null;
               resolve({ ok: true, count: proposal.candidates.length, ids: proposal.candidates.map(note => note.id) });
-            }, error => failed(new Error("Imported notes remain unsaved. Save the pending changes before importing again. " + error.message)));
+            }, error => failed(error, true));
           } catch (error) { failed(error); }
         }, failed);
       } catch (error) { failed(error); }

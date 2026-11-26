@@ -1,5 +1,85 @@
 # Aktueller Arbeitsstand
 
+## Mac-Issue-Audit, aktuelle Importe und Apple-Abgleich – 26. November 2026
+
+**Vollständiger Prüfzweig: `work/macos-issue-fixes-20261126`.** Der abschließend
+geprüfte Codecommit ist `7c9cf20394aef73d261a77f746ebca7340826d30`; die
+nachfolgenden Übergabedateien dokumentieren genau diesen Implementierungsstand.
+Die Main-Basis `d4da48a5eadd0bda22422b924bef4ee3b4324040` ist enthalten und
+wurde vor Auslieferung erneut unverändert bestätigt. Die bisherige komplette
+Mac-Folge bis `616069f1` bleibt erhalten. Nutzerauftrag: reviewbare Patches und
+Belege in den jeweiligen Issues für die spätere Codex-Prüfung und Übernahme.
+
+Alle 128 aktuell offenen Issues wurden abschließend abgeglichen: 31 gehören
+zur Mac-Übergabe (26 ursprüngliche plus #781/#783/#784/#785/#786), 97 haben einen
+individuell dokumentierten Ausschlussgrund. #9/#455/#460 sind zusätzlich als
+bereits geschlossene historische Fälle nachverfolgt. Maßgeblich sind:
+
+- [Gesamtbericht mit Einzelbefunden und Patchreihenfolge](contracts/macos-issue-handoff-2026-11-26.md).
+- [Maschinenlesbares vollständiges Inventar](contracts/macos-issue-inventory-2026-11-26.json).
+- [Tatsächliche Prüflogs und Quellbindungen](contracts/macos-verification-2026-11-26/README.md).
+- [Recherchierter Cloud-/macOS-VM-Prüfplan](Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md).
+
+### Inhalt der neuen Folge
+
+#783 entfernt die Rücksetzung aktueller gemeinsamer Mac-Bauquellen auf die
+veröffentlichte Desktopbasis v2.0.30. Source-Proof, Freeze und reproduzierbare
+Projektion binden die konkreten Bytes. #784 korrigiert die Geräteseite auf
+vorhandene Mac-Einstiege. Es wird **keine eigene Magnolie-Notes-Begleitapp**
+vorausgesetzt; bestehendes KDE Connect und Apple-Programme bleiben im Umfang.
+
+#785 stellt aktuelle ICS/VCS/LCS-, OR6/CSV-, vCard/CSV-, Claws/LDIF-, klassische
+ZIP- und Müllvorschauparser bereit. Das originale `magnolie_or6.py` bleibt
+bytegleich. Ein gebündelter privater CPython-Interpreter, konkreter Regional-
+und Zeitzonenkontext, Byte-/Manifestbindung, native Auswahl sowie gemeinsame
+Vorschau und Save-ACK bilden die neue Route. Gesamtarchiv und lokale
+Programmerkennung sind präzise dokumentierte Folgearbeiten. Der unabhängig
+belegte optionale zstd-Konfigurationspfad ist explizit deaktiviert.
+
+#786 verbindet einen bewusst gebundenen manuellen Kalender-/Kontakt-/
+Erinnerungs-Feldabgleich mit echten Provideradaptern, Dreiwegevergleich,
+Readback, verschlüsseltem Journal und unabhängig gelesenem lokalen
+Speicherabschluss. Bestehende Kopien erteilen keine Quellberechtigung.
+Neuanlagenexport, Löschungen, Serien/weitere Felder, Automatik, geführte
+Ungewissheits-Recovery und vollständiger Apple-Notes-Rückabgleich bleiben offen.
+Die öffentlichen Apple-APIs bieten keinen von uns nachgewiesenen atomaren
+Vergleich-und-Schreibabschluss gegenüber gleichzeitig ändernden Apps.
+
+Weitere gezielte Korrekturen betreffen #771 (Zeitfenster), #778/#781
+(Importfehler und Speicherbestätigung), #776 (gemeinsame Kontaktgeburtstage)
+sowie Teilfixe #465/#511. #779 erhielt einen echten Regressionstest, weil der
+zunächst vermutete Metadatenverlust nicht auftrat. Die Einzelbelege benennen
+die jeweilige Reichweite; die verbleibenden Teile werden nicht geschlossen.
+
+### Tatsächlich geprüft und weiter ausstehend
+
+Der integrierte Schlusslauf bestand **35/35 Hostgruppen in 118,272 Sekunden**.
+Dazu gehören die 107 neuen Sync-UI-Prüfungen in EN/DE. Separat bestanden
+14 Parsergruppen mit allen 27 originalen OR6-Fixtures, 90 echte OR6→Helper→UI-
+Prüfungen, sieben Runtimebuildertests und die Quellselektionssuite. Die aktuelle
+UI-Abgrenzung bestand 27 Assertions, 30 originale Notizsuchfälle und 181
+nicht angebundene Desktopbefehle. Die Umfänge überlappen und werden nicht addiert.
+Zwei Testtreiberfehler im ersten Gesamtversuch sind mit ihrer Korrektur und dem
+vollständigen erfolgreichen Wiederholungslauf im Rohprotokoll erhalten.
+
+Diese Umgebung „Magnolie-Organizer einrichten“ ist tatsächlich Linux x86_64;
+Swift/Apple-SDK, Modulrechte und `/dev/kvm` fehlen. Hier wurden kein neuer
+nativer Mac-Bau und kein Apple-/KDE-Konten-/Gerätelauf ausgeführt. Die neuen
+Swift-Tests, CPython-Apple-Bau-/Signatur-/Relokationsgates und echten Bundle-
+Prüfungen sind vorbereitet. Geeignete echte macOS-VMs sind der vorgesehene
+Prüfweg; eigener physischer Macbesitz ist nicht nötig. iCloud benötigt beim
+untersuchten Apple-Silicon-Weg einen geeigneten Host und frisch erzeugten Gast
+ab macOS 15. Mindestversionsabnahme 12.7, Intel und ARM bleiben getrennte Ziele.
+Der recherchierte xnulinux-Weg scheitert hier bereits an Architektur und
+Modulrechten. Der Workflow-Start ist konkret dokumentiert; die lokale GitHub-
+CLI hatte keine Anmeldung, daher wird kein Dispatch behauptet.
+
+Der Vorschlag ist nicht nach `main` übernommen; kein neues Paket, keine
+Issue-Schließung und keine Veröffentlichung. Codex soll den vollständigen
+Prüfzweig samt Abhängigkeiten lesen, die ausgewiesenen nativen Gates ausführen
+und erst danach die passenden Quellpatches übernehmen.
+
+
 ## Mac #777: Apple-Erinnerungen als eigenständige lokale Aufgaben – 25. November 2026
 
 **Aktueller vollständiger Arbeitszweig: `work/777-macos-reminder-copy`, Basis
@@ -685,3 +765,39 @@ Inhaltsänderung wird über den bestehenden GitHub-Pages-Ablauf veröffentlicht.
 Nächster inhaltlicher Schritt: Belegte neue Artikeladressen ergänzen und die
 noch offenen FindOpenSources-Metadaten bei einer späteren Rückmeldung prüfen.
 Es wurden keine erneuten Einreichungen oder Nachrichten versendet.
+
+## Presseschau #780: Kampagnenrückmeldungen und Quellenprüfung – 26. November 2026
+
+Die Presseschau und `docs/PRESSE.md` berücksichtigen die neu übermittelte
+Freischaltungsbestätigung von PostLaunchKit. Sie bezieht sich auf den bereits
+erfassten Eintrag; Übermittlungsdatum, Prüfdatum des Portals und unbekanntes
+Erstveröffentlichungsdatum bleiben getrennt. UpdateStar ist jetzt durch das
+direkt gelesene öffentliche Profil belegt. Bei LiteFile bestätigen Produktseite
+und Katalogübersicht dieselbe Fundstelle; die Beschreibung unterscheidet den
+Windows-Organizer von der separaten Android-App.
+
+Die heutigen Originalabrufe von AIDIR3, Freeware-base, Windows 10 Download,
+ZIRULAB und OpenAPK sind datiert. FindOpenSources zeigt weiterhin sechs
+„Free“-Kennzeichnungen; die deutschen und niederländischen Preis-FAQ sowie
+Produktabgrenzung und Lizenzpräzisierung bleiben offen. LibHunt ist beim
+Direktabruf weiterhin gesperrt, SilentStars liefert 404. Die LinuxParty-Startseite
+und der aktuelle Atom-Feed enthalten am 26. November noch keinen Magnolie-Beitrag;
+die Zusage für den 27. November bleibt eine Ankündigung.
+
+Der Abgleich der 319 erfassten Einreichungsvorgänge aus dem aktuellen
+Kampagnenstand mit zwei Suchsystemen und zusätzlichen öffentlichen Fundstellen
+ergab gegenüber dem 24. November abends keine neue bestätigte Veröffentlichung.
+Die 17 Verzeichnis- und Listenfundstellen sowie die übrigen Rubrikenzahlen
+bleiben unverändert. Fehlende Suchtreffer belegen kein Nichterscheinen;
+unbestätigte Alias- oder Spiegeladressen werden nicht zusätzlich gezählt.
+
+Geprüft auf Standardbasis `00776ce70e155c7a607ed55a4502d6fcee5a860c` mit diesen
+Inhaltsänderungen: 20 Rechtsübersetzungen und 64 statische Ausgaben konsistent,
+562 Sprachrouting-Prüfungen bestanden, Website-Build mit 62 HTML-Seiten und
+Prüfung der lokalen Links erfolgreich; `git diff --check` ohne Befund. Die
+Veröffentlichung erfolgt über den bestehenden GitHub-Pages-Ablauf aus `main`.
+
+Nächster inhaltlicher Schritt: Eine belegte Artikeladresse zur angekündigten
+Veröffentlichung prüfen und danach neu einordnen. Die privaten Kampagnenbelege
+bleiben außerhalb des Repositorys. Es wurden keine Nachrichten oder neuen
+Einreichungen versendet; #595 bleibt für ausstehende Portalangaben offen.

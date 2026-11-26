@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "implementation": "CPython",
+  "version": "3.15.2",
+  "series": "3.15",
+  "sourceURL": "https://www.python.org/ftp/python/3.15.2/Python-3.15.2.tar.xz",
+  "sourceSHA256": "8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de",
+  "releaseURL": "https://www.python.org/downloads/release/python-3152/",
+  "maximumArchiveBytes": 41943040,
+  "minimumSystemVersion": "12.7",
+  "executable": "bin/python3.15",
+  "bundleDirectory": "Helpers/ImportPython",
+  "helperDirectory": "ImportHelper",
+  "requiredModules": ["array", "base64", "bz2", "csv", "datetime", "email", "gettext", "hashlib", "io", "json", "lzma", "math", "re", "struct", "unicodedata", "urllib.parse", "xml.etree.ElementTree", "zipfile", "zlib", "zoneinfo"]
+}

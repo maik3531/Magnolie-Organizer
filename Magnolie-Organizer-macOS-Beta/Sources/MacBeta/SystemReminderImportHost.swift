@@ -8,6 +8,7 @@ import BetaCore
 @MainActor
 final class SystemReminderImportHost {
     private var busy = false
+    var active: Bool { busy }
     private var cancelled = false
     private var progress: NSPanel?
     private var cancelActiveRead: (() -> Void)?

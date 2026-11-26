@@ -10377,3 +10377,11 @@ msgstr "Bu telefonun ekranını görüntülemek ister misiniz?"
 
 msgid "Your phone must approve screen sharing."
 msgstr "Ekran paylaşımını telefonda onaylayın."
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Birthday stored with this contact; no calendar entry."
+msgstr "Doğum tarihi bu kişide saklanır; takvim kaydı oluşturulmaz."
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Please enter a valid birth date."
+msgstr "Geçerli bir doğum tarihi girin."

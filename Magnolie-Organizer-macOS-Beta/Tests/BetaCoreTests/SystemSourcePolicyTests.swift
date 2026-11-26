@@ -56,8 +56,54 @@ final class SystemSourcePolicyTests: XCTestCase {
     func testCalendarFetchCannotBeUnboundedOrReversed() throws {
         let start = Date(timeIntervalSince1970: 0)
         try SystemSourcePolicy.requireWindow(start: start, end: start.addingTimeInterval(86400))
-        for end in [start, start.addingTimeInterval(-1), start.addingTimeInterval(366 * 86400 * 5)] {
+        for end in [start, start.addingTimeInterval(-1), start.addingTimeInterval(366 * 86400 * 5),
+                    Date(timeIntervalSince1970: .infinity), Date(timeIntervalSince1970: .nan)] {
             XCTAssertThrowsError(try SystemSourcePolicy.requireWindow(start: start, end: end))
+        }
+        XCTAssertThrowsError(try SystemSourcePolicy.requireWindow(start: Date(timeIntervalSince1970: -.infinity), end: start))
+        XCTAssertThrowsError(try SystemSourcePolicy.requireWindow(start: Date(timeIntervalSince1970: .nan), end: start))
+    }
+    func testCalendarFetchRejectsPreviouslyAcceptedTruncatedFourYearWindow() throws {
+        let formatter = ISO8601DateFormatter()
+        let start = try XCTUnwrap(formatter.date(from: "2026-01-01T00:00:00Z"))
+        let end = try XCTUnwrap(formatter.date(from: "2030-01-04T00:00:00Z"))
+        XCTAssertEqual(end.timeIntervalSince(start), 1464 * 86400)
+        XCTAssertThrowsError(try SystemSourcePolicy.requireWindow(start: start, end: end)) { error in
+            XCTAssertEqual(error.localizedDescription, "Select a calendar date range of at most 366 days.")
+        }
+    }
+    func testCalendarFetchAcceptsNormalAndLeapYearButRejectsOneSecondPastBound() throws {
+        let formatter = ISO8601DateFormatter()
+        for (first, last, days) in [
+            ("2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z", 365),
+            ("2028-01-01T00:00:00Z", "2029-01-01T00:00:00Z", 366),
+            ("2027-03-01T00:00:00Z", "2028-03-01T00:00:00Z", 366)
+        ] {
+            let start = try XCTUnwrap(formatter.date(from: first))
+            let end = try XCTUnwrap(formatter.date(from: last))
+            XCTAssertEqual(end.timeIntervalSince(start), Double(days) * 86400)
+            try SystemSourcePolicy.requireWindow(start: start, end: end)
+        }
+        let start = try XCTUnwrap(formatter.date(from: "2026-01-01T00:00:00Z"))
+        let boundary = try XCTUnwrap(formatter.date(from: "2027-01-02T00:00:00Z"))
+        try SystemSourcePolicy.requireWindow(start: start, end: boundary)
+        XCTAssertThrowsError(try SystemSourcePolicy.requireWindow(start: start, end: boundary.addingTimeInterval(1)))
+    }
+    func testCalendarFetchUsesElapsedTimeAcrossTimezoneOffsetChanges() throws {
+        let formatter = ISO8601DateFormatter()
+        for (first, last, seconds) in [
+            ("2026-03-28T12:00:00+01:00", "2026-03-29T12:00:00+02:00", 23 * 3600),
+            ("2026-10-24T12:00:00+02:00", "2026-10-25T12:00:00+01:00", 25 * 3600),
+            ("2027-10-30T12:00:00+02:00", "2028-10-30T12:00:00+01:00", 366 * 86400 + 3600)
+        ] {
+            let start = try XCTUnwrap(formatter.date(from: first))
+            let end = try XCTUnwrap(formatter.date(from: last))
+            XCTAssertEqual(end.timeIntervalSince(start), Double(seconds))
+            if seconds <= 31_622_400 {
+                try SystemSourcePolicy.requireWindow(start: start, end: end)
+            } else {
+                XCTAssertThrowsError(try SystemSourcePolicy.requireWindow(start: start, end: end))
+            }
         }
     }
 }

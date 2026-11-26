@@ -21,6 +21,9 @@ def digest(data):
 
 
 def inputs():
+    # Standalone adapter oracles load this file without the tools search path.
+    # Only a full source capture/build needs the separate import-codec recipe.
+    import project_import_helper
     roots = [LINUX / "web", LINUX / "symbole", REPO / "contracts", REPO / "port-adapters", BETA / "Projection", BETA / "Sources", BETA / "Resources", BETA / "Receiver", REPO / "magnolie-handbuch/web"]
     files = []
     for root in roots:
@@ -39,8 +42,14 @@ def inputs():
               REPO / "magnolie-organizer-windows/BridgeDispatcherContract.cs",
               REPO / "magnolie-organizer-windows/EncryptionService.cs",
               REPO / "magnolie-handbuch/web/mobile-downloads.json",
-              BETA / "Package.swift", BETA / "tools/build_dev.py", BETA / "tools/airplay_bundle.py", Path(__file__).resolve()]
-    return {str(file.relative_to(REPO)): file.read_bytes() for file in sorted(set(files))}
+              BETA / "Package.swift", BETA / "tools/build_dev.py", BETA / "tools/airplay_bundle.py",
+              BETA / "tools/import_python_bundle.py", Path(__file__).resolve()]
+    snapshot = {str(file.relative_to(REPO)): file.read_bytes() for file in sorted(set(files))}
+    imports = project_import_helper.input_snapshot(REPO)
+    if any(snapshot[name] != data for name, data in imports.items() if name in snapshot):
+        raise ValueError("Canonical sources changed while capturing the import helper")
+    snapshot.update(imports)
+    return snapshot
 
 
 def inventory(snapshot):
@@ -142,83 +151,85 @@ def replace_once(text, old, new):
 
 
 def project_contact_copy_birthdays(text):
-    """#775: only marked native copies retain birthdays without implicit annuals.
+    """#776: shared canonical contact-only semantics; no Mac-only rewriting.
 
-    These are explicit single-match anchors in the canonical implementation,
-    not a second contact editor. Ordinary contacts and explicitly requested
-    anniversary mutations retain their established behavior.
+    Keep strict source guards for the reviewed normalizer, editor, mutator,
+    print/export and MCP paths so a future drift cannot silently weaken the
+    native-copy contract. Both desktop sources implement the same behavior.
     """
-    text = replace_once(text, '''      const geburtstag = kanonischesGeburtsdatum(S(k.geburtstag),
-        k.geburtstagJahrUnbekannt);''', '''      const geburtstag = macOSBetaContactOnlyBirthday(k)
+    anchors = [
+        '''  // #776: only the explicit public-field copy contract separates a contact
+  // birthday from annual calendar entries. Provenance grants no sync rights.
+  function kontaktGeburtstagNurAmKontakt(kontakt) {
+    const meta = kontakt?.nativeContactImport;
+    return meta?.version === 1 && meta.copyKind === "public-fields" && meta.birthdayPolicy === "contact-only";
+  }
+  function kontaktGeburtstagsEditor(kontakt) {
+    if (!kontaktGeburtstagNurAmKontakt(kontakt)) return null;
+    const field = eingabe("date", kontakt.geburtstag || "", {
+      jahrOptional: true, jahrUnbekannt: !!kontakt.geburtstagJahrUnbekannt });
+    field.id = "kontakt-geburtstag";
+    const element = formZeile(_("Birthday"), field);
+    element.append(el("p", "einst-hinweis", _("Birthday stored with this contact; no calendar entry.")));
+    return { field, element };
+  }
+
+''',
+        '''      const geburtstag = kontaktGeburtstagNurAmKontakt(k)
         ? kanonischesJahresdatum(S(k.geburtstag), k.geburtstagJahrUnbekannt)
-        : kanonischesGeburtsdatum(S(k.geburtstag), k.geburtstagJahrUnbekannt);''')
-    text = replace_once(text, '''    const kontakteNachName = new Map();
+        : kanonischesGeburtsdatum(S(k.geburtstag), k.geburtstagJahrUnbekannt);''',
+        '''    const kontakteNachName = new Map();
     for (const k of d.kontakte) {
-      const namen = new Set([''', '''    const kontakteNachName = new Map();
-    for (const k of d.kontakte) {
-      if (macOSBetaContactOnlyBirthday(k)) continue;
-      const namen = new Set([''')
-    text = replace_once(text, '''    for (const k of d.kontakte) {
-      const verknuepft = d.jahrestage.find((j) => j.kontaktId === k.id &&''', '''    for (const k of d.kontakte) {
-      if (macOSBetaContactOnlyBirthday(k)) continue;
-      const verknuepft = d.jahrestage.find((j) => j.kontaktId === k.id &&''')
-    text = replace_once(text, '''    const fNotiz = eingabe("textarea", k ? k.notiz : "");
-    fNach.id = "kontakt-nachname";''', '''    const fNotiz = eingabe("textarea", k ? k.notiz : "");
-    const nativeBirthday = !eigenesProfil && macOSBetaContactBirthdayEditor(k);
-    fNach.id = "kontakt-nachname";''')
-    text = replace_once(text, '''    form.append(formZeile(_("Note"), fNotiz));''',
-                        '''    form.append(formZeile(_("Note"), fNotiz));
-    if (nativeBirthday) form.append(nativeBirthday.element);''')
-    text = replace_once(text, '''      notiz: fNotiz.value, foto: fotoWert, fotoManuell: fotoManuell,
+      if (kontaktGeburtstagNurAmKontakt(k)) continue;
+      const namen = new Set([''',
+        '''    for (const k of d.kontakte) {
+      if (kontaktGeburtstagNurAmKontakt(k)) continue;
+      const verknuepft = d.jahrestage.find((j) => j.kontaktId === k.id &&''',
+        '''    const fNotiz = eingabe("textarea", k ? k.notiz : "");
+    const contactBirthday = !eigenesProfil && kontaktGeburtstagsEditor(k);
+    fNach.id = "kontakt-nachname";''',
+        '''    form.append(formZeile(_("Note"), fNotiz));
+    if (contactBirthday) form.append(contactBirthday.element);''',
+        '''      notiz: fNotiz.value, foto: fotoWert, fotoManuell: fotoManuell,
+      ...(contactBirthday ? { geburtstag: datumswert(contactBirthday.field), geburtstagText: contactBirthday.field.value } : {}),
       telefone: kopie(telefone), anschriften: kopie(anschriften),''',
-                        '''      notiz: fNotiz.value, foto: fotoWert, fotoManuell: fotoManuell,
-      ...(nativeBirthday ? { geburtstag: datumswert(nativeBirthday.field), geburtstagText: nativeBirthday.field.value } : {}),
-      telefone: kopie(telefone), anschriften: kopie(anschriften),''')
-    text = replace_once(text, '''    const speichernFn = () => {
-      if ([...kontaktpersonFotos].some(p => kontaktpersonen.includes(p)))''',
-                        '''    const speichernFn = () => {
-      if (nativeBirthday && nativeBirthday.field.value.trim() && !gueltigesJahresdatum(datumswert(nativeBirthday.field))) {
-        nativeBirthday.field.focus(); zettel(macOSBetaContactTr("Please enter a valid birth date.")); return false;
+        '''    const speichernFn = () => {
+      if (contactBirthday && contactBirthday.field.value.trim() && !gueltigesJahresdatum(datumswert(contactBirthday.field))) {
+        contactBirthday.field.focus(); zettel(_("Please enter a valid birth date.")); return false;
       }
-      if ([...kontaktpersonFotos].some(p => kontaktpersonen.includes(p)))''')
-    text = replace_once(text, '''        firma: fFirma.value.trim(),
+      if ([...kontaktpersonFotos].some(p => kontaktpersonen.includes(p)))''',
+        '''        firma: fFirma.value.trim(),
+        ...(contactBirthday ? { geburtstag: datumswert(contactBirthday.field),
+          geburtstagJahrUnbekannt: gueltigesTeildatum(datumswert(contactBirthday.field)) } : {}),
         email: emails[0] || "", emails: emails, emailEintraege: saubereEmails,''',
-                        '''        firma: fFirma.value.trim(),
-        ...(nativeBirthday ? { geburtstag: datumswert(nativeBirthday.field),
-          geburtstagJahrUnbekannt: gueltigesTeildatum(datumswert(nativeBirthday.field)) } : {}),
-        email: emails[0] || "", emails: emails, emailEintraege: saubereEmails,''')
-    text = replace_once(text, '''      const birthday = DATEN.jahrestage.find(item => item.kontaktId === ziel.id && istGeburtstagTyp(item.typ));
-      ziel.geburtstag = birthday?.datum || "";
-      ziel.geburtstagJahrUnbekannt = !!birthday && gueltigesTeildatum(birthday.datum);''',
-                        '''      if (!macOSBetaContactOnlyBirthday(ziel)) {
+        '''      if (!kontaktGeburtstagNurAmKontakt(ziel)) {
         const birthday = DATEN.jahrestage.find(item => item.kontaktId === ziel.id && istGeburtstagTyp(item.typ));
         ziel.geburtstag = birthday?.datum || "";
         ziel.geburtstagJahrUnbekannt = !!birthday && gueltigesTeildatum(birthday.datum);
-      }''')
-    text = replace_once(text, '''  function verknuepfeKontaktGeburtstag(kontakt) {
+      }''',
+        '''  function verknuepfeKontaktGeburtstag(kontakt) {
+    if (kontaktGeburtstagNurAmKontakt(kontakt)) return;
     if (!kontakt || !gueltigesJahresdatum(kontakt.geburtstag)) return;''',
-                        '''  function verknuepfeKontaktGeburtstag(kontakt) {
-    if (macOSBetaContactOnlyBirthday(kontakt)) return;
-    if (!kontakt || !gueltigesJahresdatum(kontakt.geburtstag)) return;''')
-    text = replace_once(text, '''    telefonListe(k).forEach((telefon) => fuege(telefonBezeichnung(telefon), telefon.wert));''',
-                        '''    if (macOSBetaContactOnlyBirthday(k)) fuege(_("Birthday"), datumAnzeige(k.geburtstag));
-    telefonListe(k).forEach((telefon) => fuege(telefonBezeichnung(telefon), telefon.wert));''')
-    text = replace_once(text, '''      const jahrestag = k.geburtstag ? { datum: k.geburtstag,
-        jahrUnbekannt: !!k.geburtstagJahrUnbekannt } :''',
-                        '''      const jahrestag = k.geburtstag ? { datum: k.geburtstag,
-        jahrUnbekannt: !!k.geburtstagJahrUnbekannt } : macOSBetaContactOnlyBirthday(k) ? null :''')
-    text = replace_once(text, '''    if (args.anniversaries !== undefined || args.birth_date !== undefined) {
-      details.ereignisse =''', '''    if (macOSBetaContactOnlyBirthday(base) && args.birth_date !== undefined) {
+        '''    if (kontaktGeburtstagNurAmKontakt(k)) fuege(_("Birthday"), datumAnzeige(k.geburtstag));
+    telefonListe(k).forEach((telefon) => fuege(telefonBezeichnung(telefon), telefon.wert));''',
+        '''      const jahrestag = k.geburtstag ? { datum: k.geburtstag,
+        jahrUnbekannt: !!k.geburtstagJahrUnbekannt } : kontaktGeburtstagNurAmKontakt(k) ? null :''',
+        '''    if (kontaktGeburtstagNurAmKontakt(base) && args.birth_date !== undefined) {
       if (args.birth_date && !gueltigesJahresdatum(args.birth_date)) throw new MagnolieMcp.ToolError("invalid_date", "Contact birth date is invalid");
       values.geburtstag = args.birth_date;
       values.geburtstagJahrUnbekannt = gueltigesTeildatum(args.birth_date);
     }
-    if (args.anniversaries !== undefined || args.birth_date !== undefined && !macOSBetaContactOnlyBirthday(base)) {
-      details.ereignisse =''')
-    text = replace_once(text, '''      if (args.birth_date !== undefined) {
+    if (args.anniversaries !== undefined || args.birth_date !== undefined && !kontaktGeburtstagNurAmKontakt(base)) {
+      details.ereignisse =''',
+        '''      if (args.birth_date !== undefined && !kontaktGeburtstagNurAmKontakt(base)) {
         if (args.birth_date && !gueltigesJahresdatum(args.birth_date))''',
-                        '''      if (args.birth_date !== undefined && !macOSBetaContactOnlyBirthday(base)) {
-        if (args.birth_date && !gueltigesJahresdatum(args.birth_date))''')
+        '''      const importGeburtstag = kontaktGeburtstagNurAmKontakt(k)
+        ? kanonischesJahresdatum(String(k.geburtstag || ""), k.geburtstagJahrUnbekannt)
+        : kanonischesGeburtsdatum(String(k.geburtstag || ""), k.geburtstagJahrUnbekannt);''',
+    ]
+    for anchor in anchors:
+        if text.count(anchor) != 1:
+            raise ValueError("Canonical contact-only birthday anchor changed: " + anchor[:100])
     return text
 
 
@@ -245,9 +256,11 @@ def shared_catalogs(snapshot):
 
 def project(snapshot, target):
     """Also used by host tests in a temporary directory, without creating a source freeze."""
+    import project_import_helper
     if target.exists():
         raise ValueError("Projection destination must not exist.")
     target.mkdir(parents=True)
+    project_import_helper.project_snapshot(snapshot, target / "ImportHelper")
     prefix = str(LINUX.relative_to(REPO)) + "/"
     for name, data in snapshot.items():
         if name.startswith(prefix + "web/") or name.startswith(prefix + "symbole/"):
@@ -339,7 +352,16 @@ def project(snapshot, target):
       send: message => Bruecke.sende(message) });
     baueNextcloudKonto(wurzel); return;''')
     text = replace_once(text, "  function starteSync(stumm) {", '''  function starteSync(stumm) {
-    if (!stumm) zettel("macOS system source synchronization is not implemented. No system data was changed."); return;''')
+    macOSBetaStartSelectedSystemSync(stumm); return;''')
+    # #784: the Mac device page offers only existing local import paths. Keep
+    # desktop phone/Notes/KDE services out of this page until a real Mac adapter
+    # exists; the external KDE Connect application remains a file-transfer route.
+    device_page = snapshot[str((BETA / "Projection/device-import-page.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  function baueSeiteBaum(wurzel) {",
+                        device_page + "\n  function baueSeiteBaum(wurzel) {\n"
+                        "    macOSBetaDeviceImportPage(wurzel); return;")
+    text = replace_once(text, '        (einstSeite === s.id ? " aktiv" : ""), _(s.name));',
+                        '        (einstSeite === s.id ? " aktiv" : ""), s.id === "baum" ? window.MacBeta.text("Devices and imports") : _(s.name));')
     for function in ["baueSicherungsdateien"]:
         anchor = "  function " + function + "(wurzel) {"
         text = replace_once(text, anchor, anchor + '''
@@ -404,8 +426,47 @@ def project(snapshot, target):
     text = replace_once(text, '    { id: "ort", name: msgid("Country & holidays") },',
                         '    { id: "regional", name: msgid("Language and regional display") },\n'
                         '    { id: "ort", name: msgid("Country & holidays") },')
+    system_sync = snapshot[str((BETA / "Projection/system-account-sync.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", system_sync + "\n  const App = {\n"
+                        "    macOSBetaStartSystemSync, macOSBetaSystemSyncBusy, macOSBetaAdmitSystemSync,\n"
+                        "    macOSBetaPrepareSystemSync, macOSBetaCommitSystemSync, macOSBetaSystemSyncFinished,")
     note_import = snapshot[str((BETA / "Projection/note-file-import.js").relative_to(REPO))].decode()
     text = replace_once(text, "  const App = {", note_import + "\n  const App = {\n    macOSBetaStartNoteImport, macOSBetaImportNoteFiles,")
+    legacy_alias = snapshot[str((BETA / "Projection/calendar-legacy-alias.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", legacy_alias + "\n  const App = {\n    macOSBetaNativeCalendarResult,")
+    text = replace_once(text, "  async function bereiteAlteAndroidTerminAliase(nutzlast) {",
+                        "  async function bereiteAlteAndroidTerminAliase(nutzlast) {\n"
+                        "    const nativeAliases = macOSBetaNativeCalendarAliases(nutzlast);")
+    legacy_digest = '''      const text = personalSyncKanonisch([id.params, id.wert]).replace(/\\//g, "\\\\/");
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+      if (DATEN !== bestand || gesperrt || JSON.stringify(DATEN.termine) !== vorher) throw alterAndroidTerminKonflikt();
+      const alt = id.serie + "-magnolie-instanz-" + Array.from(new Uint8Array(digest), x => x.toString(16).padStart(2, "0")).join("").slice(0, 16);'''
+    text = replace_once(text, legacy_digest, '''      let alt;
+      if (nativeAliases) {
+        alt = nativeAliases.get(JSON.stringify([id.key, t.uid]));
+        if (!alt) throw alterAndroidTerminKonflikt();
+      } else {
+''' + "\n".join("  " + line for line in legacy_digest.replace("const alt =", "alt =").splitlines()) + '''
+      }''')
+    text = replace_once(text,
+                        "  function wendeDateiImportDatenAn(nutzlast, termineNormalisiert = false, kontaktPruefung = null, leise = false, notizbuchId = null) {",
+                        "  function wendeDateiImportDatenAn(nutzlast, termineNormalisiert = false, kontaktPruefung = null, leise = false, notizbuchId = null) {\n"
+                        "    macOSBetaNativeCalendarAliases(nutzlast); // Validate before mutating any collection.")
+    text = replace_once(text, "          App.importErgebnis({ ...nutzlast, termine: termine }, true);",
+                        "          return App.importErgebnis({ ...nutzlast, termine: termine }, true);")
+    file_import = snapshot[str((BETA / "Projection/file-import.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", file_import + "\n  const App = {\n"
+                        "    macOSBetaPrepareFileImport, macOSBetaCommitFileImport, macOSBetaCancelFileImport,")
+    text = replace_once(text, "    importErgebnis(nutzlast, termineNormalisiert = false, kontaktPruefung = null) {",
+                        "    importErgebnis(nutzlast, termineNormalisiert = false, kontaktPruefung = null) {\n"
+                        "      macOSBetaFileImportFailure(nutzlast);")
+    text = replace_once(text, '          return new Promise(resolve => mitMutationsSnapshot("pre-contact-import", () => {',
+                        '          return new Promise((resolve, reject) => mitMutationsSnapshot("pre-contact-import", () => {')
+    text = replace_once(text, "            App.importErgebnis(eingang, termineNormalisiert, pruefung); resolve();",
+                        "            try { Promise.resolve(App.importErgebnis(eingang, termineNormalisiert, pruefung)).then(resolve, reject); }\n"
+                        "            catch (error) { reject(error); }")
+    text = replace_once(text, "      zettel(text);\n      setupImportBeenden();\n    },\n    printErgebnis(nutzlast) {",
+                        "      macOSBetaFileImportNotice(text);\n      setupImportBeenden();\n    },\n    printErgebnis(nutzlast) {")
     calendar_import = snapshot[str((BETA / "Projection/system-calendar-import.js").relative_to(REPO))].decode()
     text = replace_once(text, "  const App = {", calendar_import + "\n  const App = {\n"
                         "    macOSBetaStartCalendarImport, macOSBetaPrepareCalendarImport,\n"

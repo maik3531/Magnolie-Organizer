@@ -8385,6 +8385,22 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     aktualisiereKontaktpersonen(daten);
   }
 
+  // #776: only the explicit public-field copy contract separates a contact
+  // birthday from annual calendar entries. Provenance grants no sync rights.
+  function kontaktGeburtstagNurAmKontakt(kontakt) {
+    const meta = kontakt?.nativeContactImport;
+    return meta?.version === 1 && meta.copyKind === "public-fields" && meta.birthdayPolicy === "contact-only";
+  }
+  function kontaktGeburtstagsEditor(kontakt) {
+    if (!kontaktGeburtstagNurAmKontakt(kontakt)) return null;
+    const field = eingabe("date", kontakt.geburtstag || "", {
+      jahrOptional: true, jahrUnbekannt: !!kontakt.geburtstagJahrUnbekannt });
+    field.id = "kontakt-geburtstag";
+    const element = formZeile(_("Birthday"), field);
+    element.append(el("p", "einst-hinweis", _("Birthday stored with this contact; no calendar entry.")));
+    return { field, element };
+  }
+
   function normalisiere(roh) {
     const d = leereDaten();
     if (roh?.eigenesProfil && typeof roh.eigenesProfil === "object") d.eigenesProfil = kopie(roh.eigenesProfil);
@@ -8441,8 +8457,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const emailEintraege = emailEintragListe(k);
       const emails = emailEintraege.map((eintrag) => eintrag.wert);
       const kontaktpersonen = kontaktpersonenListe(k);
-      const geburtstag = kanonischesGeburtsdatum(S(k.geburtstag),
-        k.geburtstagJahrUnbekannt);
+      const geburtstag = kontaktGeburtstagNurAmKontakt(k)
+        ? kanonischesJahresdatum(S(k.geburtstag), k.geburtstagJahrUnbekannt)
+        : kanonischesGeburtsdatum(S(k.geburtstag), k.geburtstagJahrUnbekannt);
       const jubilaeum = kanonischesJahresdatum(S(k.jubilaeum),
         S(k.jubilaeum).startsWith("--"));
       const kontakt = { ...Q(k), id: S(k.id) || uid(), uid: S(k.uid),
@@ -8608,6 +8625,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const kontaktIds = new Set(d.kontakte.map((k) => k.id));
     const kontakteNachName = new Map();
     for (const k of d.kontakte) {
+      if (kontaktGeburtstagNurAmKontakt(k)) continue;
       const namen = new Set([
         [k.vorname, k.nachname].filter(Boolean).join(" "),
         [k.nachname, k.vorname].filter(Boolean).join(" "), k.firma
@@ -8629,6 +8647,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       }
     }
     for (const k of d.kontakte) {
+      if (kontaktGeburtstagNurAmKontakt(k)) continue;
       const verknuepft = d.jahrestage.find((j) => j.kontaktId === k.id &&
         istGeburtstagTyp(j.typ));
       const namensgleich = k.geburtstag ? d.jahrestage.find((j) =>
@@ -12663,7 +12682,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         [k.nachname, k.vorname].filter(Boolean).join(" "), k.firma
       ].map(kanonischerText).filter(Boolean));
       const jahrestag = k.geburtstag ? { datum: k.geburtstag,
-        jahrUnbekannt: !!k.geburtstagJahrUnbekannt } :
+        jahrUnbekannt: !!k.geburtstagJahrUnbekannt } : kontaktGeburtstagNurAmKontakt(k) ? null :
         ((DATEN.jahrestage || []).find((j) =>
         istGeburtstagTyp(j.typ) && (j.kontaktId === k.id ||
           (!j.kontaktId && namen.has(kanonischerText(j.name))))) || null);
@@ -20568,6 +20587,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         zeilen.append(el("div", "k-wert", wert));
       }
     };
+    if (kontaktGeburtstagNurAmKontakt(k)) fuege(_("Birthday"), datumAnzeige(k.geburtstag));
     telefonListe(k).forEach((telefon) => fuege(telefonBezeichnung(telefon), telefon.wert));
     emailEintragListe(k).forEach((eintrag, index) => {
       fuege(emailBezeichnung(eintrag, index), eintrag.wert, true);
@@ -20764,9 +20784,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         behalten.add(jt.id);
       }
       DATEN.jahrestage = DATEN.jahrestage.filter(item => item.kontaktId !== ziel.id || behalten.has(item.id));
-      const birthday = DATEN.jahrestage.find(item => item.kontaktId === ziel.id && istGeburtstagTyp(item.typ));
-      ziel.geburtstag = birthday?.datum || "";
-      ziel.geburtstagJahrUnbekannt = !!birthday && gueltigesTeildatum(birthday.datum);
+      if (!kontaktGeburtstagNurAmKontakt(ziel)) {
+        const birthday = DATEN.jahrestage.find(item => item.kontaktId === ziel.id && istGeburtstagTyp(item.typ));
+        ziel.geburtstag = birthday?.datum || "";
+        ziel.geburtstagJahrUnbekannt = !!birthday && gueltigesTeildatum(birthday.datum);
+      }
     } else for (const item of DATEN.jahrestage) if (item.kontaktId === ziel.id) item.name = name;
     merkeTelefonWerteAenderung(ziel, telefonWerteVorher);
     return { kontakt: ziel, inhaltVorher: vorher };
@@ -20899,6 +20921,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const sozialeMedien = k && sozialeMedienListe(k).length ? sozialeMedienListe(k)
       : [{ dienst: "", wert: "" }];
     const fNotiz = eingabe("textarea", k ? k.notiz : "");
+    const contactBirthday = !eigenesProfil && kontaktGeburtstagsEditor(k);
     fNach.id = "kontakt-nachname";
     fVor.id = "kontakt-vorname";
     fFirma.id = "kontakt-firma";
@@ -21165,6 +21188,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     form.append(emailKopf, emailKasten);
     form.append(formZeile(_("Company"), fFirma));
     form.append(formZeile(_("Note"), fNotiz));
+    if (contactBirthday) form.append(contactBirthday.element);
 
     const kontaktTermine = [{ titel: "", datum: "", zeit: "09:00" }];
     const kontaktAufgaben = [{ titel: "", datum: "" }];
@@ -21608,6 +21632,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const leseEntwurf = () => ({
       nachname: fNach.value.trim(), vorname: fVor.value.trim(), firma: fFirma.value.trim(),
       notiz: fNotiz.value, foto: fotoWert, fotoManuell: fotoManuell,
+      ...(contactBirthday ? { geburtstag: datumswert(contactBirthday.field), geburtstagText: contactBirthday.field.value } : {}),
       telefone: kopie(telefone), anschriften: kopie(anschriften),
       emailEintraege: kopie(emailEintraege), kontaktpersonen: kopie(kontaktpersonen),
       sozialeMedien: kopie(sozialeMedien), ereignisse: kopie(ereignisse),
@@ -21618,6 +21643,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     let gespeichertesZiel = k || null;
 
     const speichernFn = () => {
+      if (contactBirthday && contactBirthday.field.value.trim() && !gueltigesJahresdatum(datumswert(contactBirthday.field))) {
+        contactBirthday.field.focus(); zettel(_("Please enter a valid birth date.")); return false;
+      }
       if ([...kontaktpersonFotos].some(p => kontaktpersonen.includes(p))) { zettel(_("Loading…")); return false; }
       /* E-Mail-Felder dürfen auch freie Kennungen aufnehmen; die Fachbereinigung
          übernimmt nur syntaktische Adressen in den Kontakt. */
@@ -21662,6 +21690,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const werte = {
         nachname: fNach.value.trim(), vorname: fVor.value.trim(),
         firma: fFirma.value.trim(),
+        ...(contactBirthday ? { geburtstag: datumswert(contactBirthday.field),
+          geburtstagJahrUnbekannt: gueltigesTeildatum(datumswert(contactBirthday.field)) } : {}),
         email: emails[0] || "", emails: emails, emailEintraege: saubereEmails,
         notiz: fNotiz.value,
         kontaktpersonName: "", kontaktpersonTelefon: "", kontaktpersonStatus: "",
@@ -33742,8 +33772,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (zielId === null) for (const kontakt of DATEN.kontakte) indexiereKontakt(indexe, kontakt);
     for (const k of liste || []) {
       if (!k) continue;
-      const importGeburtstag = kanonischesGeburtsdatum(String(k.geburtstag || ""),
-        k.geburtstagJahrUnbekannt);
+      const importGeburtstag = kontaktGeburtstagNurAmKontakt(k)
+        ? kanonischesJahresdatum(String(k.geburtstag || ""), k.geburtstagJahrUnbekannt)
+        : kanonischesGeburtsdatum(String(k.geburtstag || ""), k.geburtstagJahrUnbekannt);
       const vorhanden = zielId === "" ? null : zielId === null ? findeImportKontakt(k, indexe) :
         DATEN.kontakte.find(kontakt => kontakt.id === zielId);
       if (vorhanden) {
@@ -33865,6 +33896,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function verknuepfeKontaktGeburtstag(kontakt) {
+    if (kontaktGeburtstagNurAmKontakt(kontakt)) return;
     if (!kontakt || !gueltigesJahresdatum(kontakt.geburtstag)) return;
     const name = kontakt.anzeigename || [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ") || kontakt.firma;
     let eintrag = DATEN.jahrestage.find((j) => j.kontaktId === kontakt.id &&
@@ -36894,11 +36926,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         throw new MagnolieMcp.ToolError("invalid_website", "Contact website must be an HTTP or HTTPS address without credentials");
       details.webseiten = args.websites;
     }
-    if (args.anniversaries !== undefined || args.birth_date !== undefined) {
+    if (kontaktGeburtstagNurAmKontakt(base) && args.birth_date !== undefined) {
+      if (args.birth_date && !gueltigesJahresdatum(args.birth_date)) throw new MagnolieMcp.ToolError("invalid_date", "Contact birth date is invalid");
+      values.geburtstag = args.birth_date;
+      values.geburtstagJahrUnbekannt = gueltigesTeildatum(args.birth_date);
+    }
+    if (args.anniversaries !== undefined || args.birth_date !== undefined && !kontaktGeburtstagNurAmKontakt(base)) {
       details.ereignisse = args.anniversaries === undefined ? DATEN.jahrestage.filter(item => item.kontaktId === base.id).map(kopie) :
         args.anniversaries.map(item => ({ id: item.id || "", typ: item.type, datum: item.date }));
       if (details.ereignisse.some(item => !gueltigesJahresdatum(item.datum))) throw new MagnolieMcp.ToolError("invalid_date", "Contact anniversary date is invalid");
-      if (args.birth_date !== undefined) {
+      if (args.birth_date !== undefined && !kontaktGeburtstagNurAmKontakt(base)) {
         if (args.birth_date && !gueltigesJahresdatum(args.birth_date)) throw new MagnolieMcp.ToolError("invalid_date", "Contact birth date is invalid");
         const previous = DATEN.jahrestage.find(item => item.kontaktId === base.id && istGeburtstagTyp(item.typ));
         details.ereignisse = details.ereignisse.filter(item => !istGeburtstagTyp(item.typ));

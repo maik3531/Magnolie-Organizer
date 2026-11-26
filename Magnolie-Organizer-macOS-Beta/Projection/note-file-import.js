@@ -1,10 +1,22 @@
   // Port glue around canonical note constructors, normalizer and save authority.
   function macOSBetaStartNoteImport() {
-    if (gesperrt) return;
-    navigiereMitGuard(() => nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "notiz_dateien_importieren" })));
+    if (gesperrt || window.MacBeta.noteImportBlocked()) return;
+    navigiereMitGuard(() => nachDauerhaftemSpeichern(() => {
+      if (!gesperrt && !window.MacBeta.noteImportBlocked()) Bruecke.sende({ cmd: "notiz_dateien_importieren" });
+    }));
   }
   function macOSBetaImportNoteFiles(payload) {
     return new Promise((resolve, reject) => {
+      let appended = false, saveConfirmed = false;
+      const failed = (error, saveRejected = false) => {
+        if (appended && !saveConfirmed) {
+          const prefix = window.MacBeta.text(saveRejected
+            ? "Imported notes remain unsaved. Save the pending changes before importing again."
+            : "Note copies were added, but saving was not confirmed. Check and save the pending changes before importing again.");
+          error = new Error(prefix + " " + String(error?.message || error));
+        }
+        reject(error);
+      };
       try {
         if (window.MacBeta.noteImportBlocked() || gesperrt || !initialisiert || !antwortErhalten || !Array.isArray(payload?.items) ||
             !payload.items.length || payload.items.length > 32) throw new Error("Note import is not available.");
@@ -36,17 +48,28 @@
             note.id !== candidates[i].id || note.text !== candidates[i].text || note.titel !== candidates[i].titel ||
             kanonischerEntwurf(note.anhaenge) !== kanonischerEntwurf(candidates[i].anhaenge))) throw new Error("Note import would lose content.");
         mitMutationsSnapshot("pre-note-file-import", () => {
-          if (DATEN !== book || gesperrt || window.MacBeta.noteImportBlocked()) { reject(new Error("The document changed.")); return; }
-          const ids = new Set(book.notizen.map(note => note.id));
-          for (const note of normalized) {
-            if (ids.has(note.id)) { reject(new Error("Note identity conflict.")); return; }
-            ids.add(note.id);
-          }
-          book.notizen.push(...normalized);
-          zeichneAlles();
-          nachDauerhaftemSpeichern(() => resolve({ ok: true, count: normalized.length, ids: normalized.map(note => note.id) }),
-            error => reject(new Error("Imported notes remain unsaved. Save the pending changes before importing again. " + error.message)));
-        }, reject);
-      } catch (error) { reject(error); }
+          // #781: this callback runs after the outer try/catch has returned.
+          // A renderer exception must settle the original import Promise too.
+          try {
+            if (DATEN !== book || gesperrt || window.MacBeta.noteImportBlocked()) throw new Error("The document changed.");
+            const ids = new Set(book.notizen.map(note => note.id));
+            for (const note of normalized) {
+              if (ids.has(note.id)) throw new Error("Note identity conflict.");
+              ids.add(note.id);
+            }
+            book.notizen.push(...normalized);
+            appended = true;
+            planeSpeichern(); zeichneAlles();
+            nachDauerhaftemSpeichern(() => {
+              saveConfirmed = true;
+              if (DATEN !== book || gesperrt || window.MacBeta.noteImportBlocked() ||
+                  normalized.some(note => !book.notizen.includes(note))) {
+                failed(new Error("The document changed before the note-file import save completed.")); return;
+              }
+              resolve({ ok: true, count: normalized.length, ids: normalized.map(note => note.id) });
+            }, error => failed(error, true));
+          } catch (error) { failed(error); }
+        }, failed);
+      } catch (error) { failed(error); }
     });
   }

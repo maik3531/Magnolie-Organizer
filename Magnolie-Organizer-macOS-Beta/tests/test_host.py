@@ -257,7 +257,7 @@ class ProjectionTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     projection.project(changed, Path(temp) / "UI")
 
-    def test_occurrence_identity_current_and_published_inputs_preserve_distinct_instances(self):
+    def test_occurrence_identity_current_ui_and_published_adapter_preserve_distinct_instances(self):
         runtime = self.javascript()
         args = [runtime]
         if Path(runtime).name == "deno":
@@ -272,18 +272,24 @@ class ProjectionTests(unittest.TestCase):
                 self.assertEqual(codec.ics_lesen(case["source"]), case["document"], case["name"])
         app_key = "magnolie-organizer/web/anwendung.js"
         published = subprocess.check_output(["git", "show", "067c38934b539943d8e1720abafd8a80b401d797:" + app_key], cwd=projection.REPO)
-        for label, source in [("current", self.snapshot[app_key]), ("published067c", published)]:
-            snapshot = dict(self.snapshot); snapshot[app_key] = source
-            for name in ["occurrence-identity.js", "occurrence-identity-patch.json", "occurrence-identity-projection.cjs"]:
-                key = "port-adapters/" + name
-                self.assertEqual(projection.inventory(snapshot)[key], projection.digest(snapshot[key]))
-            with self.subTest(input=label), tempfile.TemporaryDirectory(prefix="macOS-Beta-occurrence-") as temp:
-                target = Path(temp) / "UI"
-                projection.project(snapshot, target)
-                result = subprocess.run(args + [str(projection.REPO / "port-adapters/tests/occurrence-identity.cjs"), "macos", str(target / "web")],
-                                        cwd=BETA, capture_output=True, text=True, timeout=120)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                print(label + ": " + result.stdout.strip())
+        for name in ["occurrence-identity.js", "occurrence-identity-patch.json", "occurrence-identity-projection.cjs"]:
+            key = "port-adapters/" + name
+            self.assertEqual(projection.inventory(self.snapshot)[key], projection.digest(self.snapshot[key]))
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-occurrence-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            # The runner's inverseChecks still exercise both current and 067c
+            # timezone/identity adapters and compare Python/JS patch bytes.
+            result = subprocess.run(args + [str(projection.REPO / "port-adapters/tests/occurrence-identity.cjs"), "macos", str(target / "web")],
+                                    cwd=BETA, capture_output=True, text=True, timeout=120)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            print("current: " + result.stdout.strip())
+        # #776 lives in the common product sources. An old full UI lacking
+        # that contract must not be silently turned into a current Mac build.
+        historical = dict(self.snapshot); historical[app_key] = published
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-old-contact-contract-") as temp:
+            with self.assertRaisesRegex(ValueError, "Canonical contact-only birthday anchor changed"):
+                projection.project(historical, Path(temp) / "UI")
         changed = dict(self.snapshot)
         changed[app_key] = changed[app_key].replace(b"function termineStarkIdentisch(links, rechts)", b"function changedTerminIdentity(links, rechts)")
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-occurrence-drift-") as temp:
@@ -347,7 +353,10 @@ class ProjectionTests(unittest.TestCase):
 
     @unittest.skipIf(platform.system() == "Darwin", "Negative Linux-only build gate")
     def test_no_linux_native_build_claim(self):
-        result = subprocess.run([sys.executable, "tools/build_dev.py"], cwd=BETA, capture_output=True, text=True)
+        # Exercise the actual platform gate after valid CLI parsing. A missing
+        # required runtime argument would only test argparse, not Mac admission.
+        result = subprocess.run([sys.executable, "tools/build_dev.py", "--import-runtime", "/not-a-native-import-sdk"],
+                                cwd=BETA, capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Apple macOS host required", result.stderr)
 
@@ -389,6 +398,47 @@ class ProjectionTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             print(result.stdout.strip())
 
+    def test_device_page_existing_import_capabilities(self):
+        runtime = self.javascript()
+        for anchor in ['  function baueSeiteBaum(wurzel) {',
+                       '        (einstSeite === s.id ? " aktiv" : ""), _(s.name));']:
+            changed = dict(self.snapshot)
+            key = "magnolie-organizer/web/anwendung.js"
+            changed[key] = changed[key].replace(anchor.encode(), b"/* device-page source drift */", 1)
+            with self.subTest(anchor=anchor), tempfile.TemporaryDirectory(prefix="macOS-device-drift-") as temp:
+                with self.assertRaisesRegex(ValueError, "Canonical UI anchor changed"):
+                    projection.project(changed, Path(temp) / "UI")
+        with tempfile.TemporaryDirectory(prefix="macOS-device-page-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            args = [runtime]
+            if Path(runtime).name == "deno":
+                args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
+            result = subprocess.run(args + ["tests/device_import_page.mjs", str(target)], cwd=BETA,
+                                    capture_output=True, text=True, timeout=120)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            print(result.stdout.strip())
+
+    def test_system_account_sync_transaction(self):
+        runtime = self.javascript()
+        for anchor in ['  function baueSeiteSync(wurzel) {', '  function starteSync(stumm) {']:
+            changed = dict(self.snapshot)
+            key = "magnolie-organizer/web/anwendung.js"
+            changed[key] = changed[key].replace(anchor.encode(), b"/* system-sync source drift */", 1)
+            with self.subTest(anchor=anchor), tempfile.TemporaryDirectory(prefix="macOS-system-sync-drift-") as temp:
+                with self.assertRaisesRegex(ValueError, "Canonical UI anchor changed"):
+                    projection.project(changed, Path(temp) / "UI")
+        with tempfile.TemporaryDirectory(prefix="macOS-system-sync-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            args = [runtime]
+            if Path(runtime).name == "deno":
+                args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
+            result = subprocess.run(args + ["tests/system_account_sync.mjs", str(target)], cwd=BETA,
+                                    capture_output=True, text=True, timeout=120)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            print(result.stdout.strip())
+
     def test_additive_system_calendar_import_contract(self):
         runtime = self.javascript()
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-system-calendar-") as temp:
@@ -401,6 +451,12 @@ class ProjectionTests(unittest.TestCase):
                                     capture_output=True, text=True, timeout=120)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             print(result.stdout.strip())
+
+    def test_native_legacy_calendar_alias_evidence_contract(self):
+        result = subprocess.run([sys.executable, "tools/check_legacy_calendar_aliases.py", "--js-runtime", self.javascript()],
+                                cwd=BETA, capture_output=True, text=True, timeout=150)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        print(result.stdout.strip())
 
     def test_additive_apple_notes_copy_contract(self):
         runtime = self.javascript()
@@ -427,7 +483,9 @@ class ProjectionTests(unittest.TestCase):
         self.assertIn("| `macos_kontakte_importieren` |", bridge_coverage.report(self.snapshot))
         canonical = self.snapshot[str((projection.LINUX / "web/anwendung.js").relative_to(projection.REPO))].decode()
         # Each independently important birthday path is an exact audited anchor.
-        for anchor in ["const geburtstag = kanonischesGeburtsdatum(S(k.geburtstag),", "const kontakteNachName = new Map();", "const verknuepft = d.jahrestage.find((j) => j.kontaktId === k.id &&",
+        for anchor in ["function kontaktGeburtstagNurAmKontakt(kontakt) {",
+                       "const importGeburtstag = kontaktGeburtstagNurAmKontakt(k)",
+                       "const geburtstag = kontaktGeburtstagNurAmKontakt(k)", "const kontakteNachName = new Map();", "const verknuepft = d.jahrestage.find((j) => j.kontaktId === k.id &&",
                        'const fNotiz = eingabe("textarea", k ? k.notiz : "");',
                        'form.append(formZeile(_("Note"), fNotiz));',
                        "notiz: fNotiz.value, foto: fotoWert, fotoManuell: fotoManuell,",
@@ -437,9 +495,9 @@ class ProjectionTests(unittest.TestCase):
                        "function verknuepfeKontaktGeburtstag(kontakt) {",
                        "telefonListe(k).forEach((telefon) => fuege(telefonBezeichnung(telefon), telefon.wert));",
                        "const jahrestag = k.geburtstag ? { datum: k.geburtstag,",
-                       "if (args.anniversaries !== undefined || args.birth_date !== undefined) {",
-                       "if (args.birth_date !== undefined) {\n        if (args.birth_date && !gueltigesJahresdatum(args.birth_date))"]:
-            with self.subTest(anchor=anchor), self.assertRaisesRegex(ValueError, "Canonical UI anchor changed"):
+                       "if (kontaktGeburtstagNurAmKontakt(base) && args.birth_date !== undefined) {",
+                       "if (args.birth_date !== undefined && !kontaktGeburtstagNurAmKontakt(base)) {\n        if (args.birth_date && !gueltigesJahresdatum(args.birth_date))"]:
+            with self.subTest(anchor=anchor), self.assertRaisesRegex(ValueError, "Canonical contact-only birthday anchor changed"):
                 projection.project_contact_copy_birthdays(canonical.replace(anchor, "/* synthetic drift */", 1))
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-system-contact-") as temp:
             target = Path(temp) / "UI"
@@ -469,6 +527,13 @@ class ProjectionTests(unittest.TestCase):
                                     capture_output=True, text=True, timeout=120)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             print(result.stdout.strip())
+
+    def test_opaque_json_keys_reach_the_native_boundary_unchanged(self):
+        runtime = self.javascript()
+        result = subprocess.run([sys.executable, "tools/check_opaque_json.py", "--js-runtime", runtime],
+                                cwd=BETA, capture_output=True, text=True, timeout=120)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        print(result.stdout.strip())
 
     def test_communication_published_ui_payloads(self):
         runtime = self.javascript()

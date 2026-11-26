@@ -16,6 +16,11 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private var appleNotesImport: AppleNotesImportHost?
     private var contactImport: SystemContactImportHost?
     private var reminderImport: SystemReminderImportHost?
+    private var fileImport: FileImportHost?
+    private var systemSync: SystemAccountSyncHost?
+    private var systemSyncBusy = false
+    private var systemSyncCandidate: String?
+    private var systemSyncRequestID: String?
     private var airPlay: AirPlayHost?
     private var window: NSWindow!
     private var web: WKWebView!
@@ -109,7 +114,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     @objc private func about() {
         alert((Bundle.main.object(forInfoDictionaryKey: "MagnolieBetaVersion") as? String ?? "") + "\n" +
               "Development Beta. Native validation is still required. JSON backup/restore and recovery-backed local editing; " +
-              "local calendar copies from macOS accounts; no sync, background wake or auto-update.")
+              "local copies and explicitly enabled macOS system-account field synchronization; no general DAV/phone sync, background wake or auto-update.")
     }
     private func tr(_ text: String) -> String { catalog[text] ?? text }
     @objc private func showAirPlay() {
@@ -280,8 +285,57 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         guard plain != nil, !restoring, !closePending else { alert("Unlock first."); return }
         web.evaluateJavaScript("window.App?.macOSBetaStartReminderImport()")
     }
+    private func importFile(_ request: Request) throws {
+        guard plain != nil, !restoring, !closePending, !systemSyncBusy, let database = calendarDatabase else {
+            throw BetaError("File import is not available while the document is locked or closing.")
+        }
+        let generation = documentGeneration, format = request.text("art")
+        Task { @MainActor in
+            let current = { [weak self] in
+                guard let self else { return false }
+                return self.plain != nil && !self.restoring && !self.closePending && !self.systemSyncBusy && self.documentGeneration == generation
+            }
+            guard current() else { return }
+            if self.fileImport == nil { self.fileImport = FileImportHost() }
+            await self.fileImport!.begin(format: format, wasteToken: request.fields["muellToken"] as? String,
+                bundle: Bundle.main.bundleURL, isCurrent: current, settings: {
+                    guard current() else { throw BetaError("The document changed. Start the file import again.") }
+                    let preferences = self.regional(self.plain)
+                    var language = preferences["language"] as? String ?? "system"
+                    if language == "system" { language = Locale.preferredLanguages.first ?? "en" }
+                    language = language.replacingOccurrences(of: "_", with: "-").lowercased()
+                    if language.hasPrefix("zh") { language = "zh-cn" }
+                    let requestedZone = preferences["timeZone"] as? String ?? "system"
+                    let zone = requestedZone == "system" || requestedZone.isEmpty ? TimeZone.current.identifier : requestedZone
+                    _ = try database.named(zone)
+                    let country = preferences["homeCountry"] as? String ?? "DE"
+                    guard Locale.isoRegionCodes.contains(country) else { throw BetaError("Invalid home country for import.") }
+                    return ["language": language, "timeZone": zone, "homeCountry": country]
+                }, prepare: {
+                    guard current() else { throw BetaError("The document changed. Start the file import again.") }
+                    return try await self.fileImportUI("return await window.App.macOSBetaPrepareFileImport(format);", arguments: ["format": format])
+                }, commit: { payload, token in
+                    guard current() else { throw BetaError("The document changed. Start the file import again.") }
+                    return try await self.fileImportUI("return await window.App.macOSBetaCommitFileImport(payload, token);", arguments: ["payload": payload, "token": token])
+                }, cancel: { token in
+                    guard self.documentGeneration == generation else { return }
+                    _ = try? await self.fileImportUI("return window.App.macOSBetaCancelFileImport(token);", arguments: ["token": token])
+                }, translate: { self.tr($0) })
+        }
+    }
+    @MainActor private func fileImportUI(_ script: String, arguments: [String: Any]) async throws -> [String: Any] {
+        let guarded = "try { " + script + " } catch (error) { return { fileImportError: String(error?.message || error).slice(0, 4096) }; }"
+        let value: Any = try await withCheckedThrowingContinuation { continuation in
+            web.callAsyncJavaScript(guarded, arguments: arguments, in: nil, in: .page) { (result: Result<Any, Error>) in
+                continuation.resume(with: result)
+            }
+        }
+        guard let result = value as? [String: Any] else { throw BetaError("Invalid file import response.") }
+        if let message = result["fileImportError"] as? String { throw BetaError(message) }
+        return result
+    }
     private func importReminders() throws {
-        guard plain != nil, !restoring, !closePending, let database = calendarDatabase else {
+        guard plain != nil, !restoring, !closePending, !systemSyncBusy, let database = calendarDatabase else {
             throw BetaError("Reminder copying is not available while the document is locked or closing.")
         }
         let generation = documentGeneration
@@ -292,7 +346,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         Task { @MainActor in
             let current = { [weak self] in
                 guard let self else { return false }
-                return self.plain != nil && !self.restoring && !self.closePending && self.documentGeneration == generation &&
+                return self.plain != nil && !self.restoring && !self.closePending && !self.systemSyncBusy && self.documentGeneration == generation &&
                     (self.regional(self.plain)["timeZone"] as? String ?? "system") == requestedZone && TimeZone.current.identifier == systemZone
             }
             guard current() else { return }
@@ -331,14 +385,14 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         return result
     }
     private func importContacts() throws {
-        guard plain != nil, !restoring, !closePending else {
+        guard plain != nil, !restoring, !closePending, !systemSyncBusy else {
             throw BetaError("Contact copying is not available while the document is locked or closing.")
         }
         let generation = documentGeneration
         Task { @MainActor in
             let current = { [weak self] in
                 guard let self else { return false }
-                return self.plain != nil && !self.restoring && !self.closePending && self.documentGeneration == generation
+                return self.plain != nil && !self.restoring && !self.closePending && !self.systemSyncBusy && self.documentGeneration == generation
             }
             guard current() else { return }
             if self.contactImport == nil { self.contactImport = SystemContactImportHost() }
@@ -364,6 +418,9 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         }
         guard let result = value as? [String: Any] else { throw BetaError("The contact preview is invalid.") }
         if let message = result["contactImportError"] as? String {
+            if message.hasPrefix("Contact copies were added, but saving was not confirmed.") {
+                throw BetaError("Contact copies were added, but saving was not confirmed. Check and save the pending changes before importing again.")
+            }
             if message.hasPrefix("Imported contacts remain unsaved.") {
                 throw BetaError("Imported contacts remain unsaved. Save the pending changes before importing again.")
             }
@@ -372,14 +429,14 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         return result
     }
     private func importAppleNotes() throws {
-        guard plain != nil, !restoring, !closePending else {
+        guard plain != nil, !restoring, !closePending, !systemSyncBusy else {
             throw BetaError("Apple Notes import is not available while the document is locked or closing.")
         }
         let generation = documentGeneration
         Task { @MainActor in
             let current = { [weak self] in
                 guard let self else { return false }
-                return self.plain != nil && !self.restoring && !self.closePending && self.documentGeneration == generation
+                return self.plain != nil && !self.restoring && !self.closePending && !self.systemSyncBusy && self.documentGeneration == generation
             }
             guard current() else { return }
             if self.appleNotesImport == nil { self.appleNotesImport = AppleNotesImportHost() }
@@ -405,6 +462,9 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         }
         guard let result = value as? [String: Any] else { throw BetaError("The Apple Notes preview is invalid.") }
         if let message = result["appleNotesImportError"] as? String {
+            if message.hasPrefix("Note copies were added, but saving was not confirmed.") {
+                throw BetaError("Note copies were added, but saving was not confirmed. Check and save the pending changes before importing again.")
+            }
             if message.hasPrefix("Imported notes remain unsaved.") {
                 throw BetaError("Imported notes remain unsaved. Save the pending changes before importing again.")
             }
@@ -413,7 +473,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         return result
     }
     private func importSystemCalendar() throws {
-        guard plain != nil, !restoring, !closePending, let database = calendarDatabase else {
+        guard plain != nil, !restoring, !closePending, !systemSyncBusy, let database = calendarDatabase else {
             throw BetaError("Calendar import is not available while the document is locked or closing.")
         }
         let generation = documentGeneration
@@ -424,7 +484,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         Task { @MainActor in
             let current = { [weak self] in
                 guard let self else { return false }
-                return self.plain != nil && !self.restoring && !self.closePending && self.documentGeneration == generation &&
+                return self.plain != nil && !self.restoring && !self.closePending && !self.systemSyncBusy && self.documentGeneration == generation &&
                     (self.regional(self.plain)["timeZone"] as? String ?? "system") == requestedZone && TimeZone.current.identifier == systemZone
             }
             guard current() else { return }
@@ -455,6 +515,9 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         }
         guard let result = value as? [String: Any] else { throw BetaError("The calendar preview is invalid.") }
         if let message = result["calendarImportError"] as? String {
+            if message.hasPrefix("Appointment copies were added, but saving was not confirmed.") {
+                throw BetaError("Appointment copies were added, but saving was not confirmed. Check and save the pending changes before importing again.")
+            }
             if message.hasPrefix("Imported appointments remain unsaved.") {
                 throw BetaError("Imported appointments remain unsaved. Save the pending changes before importing again.")
             }
@@ -465,14 +528,20 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private func importNoteFiles() {
         let generation = documentGeneration
         Task { @MainActor in
-            guard self.plain != nil, !self.restoring else { return }
+            guard self.plain != nil, !self.restoring, !self.systemSyncBusy else { return }
             if self.noteFileImport == nil { self.noteFileImport = NoteFileImportHost() }
-            self.noteFileImport!.begin(parent: self.window, isCurrent: { self.plain != nil && !self.restoring && self.documentGeneration == generation }) { payload, finished in
-                self.web.callAsyncJavaScript("return await window.App.macOSBetaImportNoteFiles(payload)", arguments: ["payload": payload], in: nil, in: .page) { (result: Result<Any, Error>) in
+            self.noteFileImport!.begin(parent: self.window, isCurrent: { self.plain != nil && !self.restoring && !self.systemSyncBusy && self.documentGeneration == generation }) { payload, finished in
+                self.web.callAsyncJavaScript("""
+                    try { return await window.App.macOSBetaImportNoteFiles(payload); }
+                    catch (error) { return { noteFileImportError: String(error?.message || error).slice(0, 2048) }; }
+                    """, arguments: ["payload": payload], in: nil, in: .page) { (result: Result<Any, Error>) in
                     defer { finished() }
                     guard self.documentGeneration == generation, !self.restoring else { return }
                     switch result {
                     case .success(let value):
+                        if let result = value as? [String: Any], let message = result["noteFileImportError"] as? String {
+                            self.alert(String(message.prefix(2048))); return
+                        }
                         guard let result = value as? [String: Any], result["ok"] as? Bool == true else { self.alert("Note import did not receive a durable save acknowledgement."); return }
                         self.alert("New notes imported and saved: \(result["count"] as? Int ?? 0)")
                     case .failure(let error): self.alert(error.localizedDescription)
@@ -521,9 +590,83 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         guard result as? Bool == true else { throw BetaError("Restore validation did not complete.") }
     }
 
+    private func startSystemSync(_ request: Request) throws {
+        guard !systemSyncBusy, fileImport?.active != true, noteFileImport?.active != true, systemCalendarImport?.active != true,
+              appleNotesImport?.active != true, contactImport?.active != true, reminderImport?.active != true,
+              let plain, !restoring, !closePending, let database = calendarDatabase else {
+            throw BetaError("System synchronization is not available while the book is locked, closing or busy.")
+        }
+        let requestedZone = regional(plain)["timeZone"] as? String ?? "system"
+        let systemZone = TimeZone.current.identifier
+        let displayZone = requestedZone.isEmpty || requestedZone == "system" ? systemZone : requestedZone
+        guard request.text("timeZone") == displayZone else { throw BetaError("The synchronization timezone changed.") }
+        let context = try CalendarTimeContext(database: database, systemIdentifier: systemZone)
+        let generation = documentGeneration
+        // Close native mutation admission synchronously, before queuing any work.
+        systemSyncBusy = true; systemSyncRequestID = request.text("requestId")
+        Task { @MainActor in
+            let current = { [weak self] in
+                guard let self else { return false }
+                return self.systemSyncBusy && self.plain != nil && !self.restoring && !self.closePending &&
+                    self.documentGeneration == generation && TimeZone.current.identifier == systemZone &&
+                    (self.regional(self.plain)["timeZone"] as? String ?? "system") == requestedZone
+            }
+            var result: [String: Any]
+            do {
+                guard current() else { throw BetaError("The current book changed; synchronization was not started.") }
+                if self.systemSync == nil { self.systemSync = try SystemAccountSyncHost(profileDirectory: self.store.file.deletingLastPathComponent()) }
+                result = await self.systemSync!.begin(request: request, accounts: self.systemAccounts, context: context,
+                    isCurrent: current,
+                    disk: {
+                        guard current() else { throw BetaError("The current book changed; the synchronization journal was retained.") }
+                        return try DAVBookDiskSnapshot.read(store: self.store, encryption: self.encryption)
+                    }, candidateWrite: { self.systemSyncCandidate = $0 },
+                    ui: { script, arguments in
+                        guard current() else { throw BetaError("The current book changed; the synchronization journal was retained.") }
+                        return try await self.systemSyncUI(script, arguments: arguments)
+                    }, translate: { self.tr($0) })
+            } catch { result = ["ok": false, "requestId": request.text("requestId"), "fehler": self.tr(error.localizedDescription)] }
+            self.systemSyncBusy = false; self.systemSyncCandidate = nil; self.systemSyncRequestID = nil
+            guard self.documentGeneration == generation, self.plain != nil, !self.restoring else { return }
+            self.send("macOSBetaSystemSyncFinished", result)
+        }
+    }
+    @MainActor private func systemSyncUI(_ script: String, arguments: [String: Any]) async throws -> [String: Any] {
+        let guarded = "try { " + script + " } catch (error) { return { ok: false, uiError: String(error?.message || error).slice(0, 2000) }; }"
+        return try await withCheckedThrowingContinuation { continuation in
+            var settled = false
+            let timeout = DispatchWorkItem {
+                guard !settled else { return }; settled = true
+                continuation.resume(throwing: BetaError("System synchronization UI acknowledgement timed out; its journal was retained."))
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 45, execute: timeout)
+            web.callAsyncJavaScript(guarded, arguments: arguments, in: nil, in: .page) { (result: Result<Any, Error>) in
+                guard !settled else { return }; settled = true; timeout.cancel()
+                switch result {
+                case .success(let value):
+                    guard let response = value as? [String: Any] else {
+                        continuation.resume(throwing: BetaError("Invalid system synchronization UI response.")); return
+                    }
+                    if let error = response["uiError"] as? String { continuation.resume(throwing: BetaError(error)); return }
+                    continuation.resume(returning: response)
+                case .failure(let error): continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
     private func dispatch(_ request: Request) throws {
         guard !restoring else { throw BetaError("Please wait.") }
+        if systemSyncBusy {
+            // An exact transport duplicate must not settle the active UI request
+            // with a failure while its native transaction is still running.
+            if request.command == .macos_system_sync, request.text("requestId") == systemSyncRequestID { return }
+            guard request.command == .speichern, let candidate = systemSyncCandidate,
+                  try SystemAccountSyncLedger.equal(Data(request.text("text").utf8), Data(candidate.utf8)) else {
+                throw BetaError("Please wait for the current system synchronization.")
+            }
+        }
         switch request.command {
+        case .macos_system_sync: try startSystemSync(request)
         case .notiz_dateien_importieren:
             guard plain != nil, !restoring else { throw BetaError("Unlock first.") }
             importNoteFiles()
@@ -796,39 +939,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             self.plain = next; authenticatedOrigin = nil; envelope = encryption == nil ? nil : output
             send("regionalErgebnis", ["ok": true, "regional": settings])
         case .import:
-            guard plain != nil else { throw BetaError("Unlock first.") }
-            guard request.text("art") == "ics" else {
-                throw BetaError("This import format is not implemented in macOS Beta.")
-            }
-            let generation = documentGeneration
-            let panel = NSOpenPanel(); panel.title = tr("Import")
-            panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
-            panel.allowedFileTypes = ["ics"]
-            guard panel.runModal() == .OK, let url = panel.url else {
-                send("importErgebnis", ["abgebrochen": true]); return
-            }
-            guard plain != nil, !restoring, documentGeneration == generation else {
-                throw BetaError("The current document changed. Start the import again.")
-            }
-            let zone = regional(plain)["timeZone"] as? String ?? "system"
-            let sourceName = url.lastPathComponent
-            guard let database = calendarDatabase else { throw BetaError("Verified calendar timezone data is unavailable.") }
-            let timeContext = try CalendarTimeContext(database: database, systemIdentifier: TimeZone.current.identifier)
-            // Only the explicitly selected file is read, with a hard byte bound.
-            // Parsing and time-zone projection must not block AppKit or WebKit.
-            DispatchQueue.global(qos: .userInitiated).async {
-                let response: [String: Any]
-                do {
-                    let handle = try FileHandle(forReadingFrom: url)
-                    defer { try? handle.close() }
-                    let bytes = try handle.read(upToCount: ICalendarImport.maximumBytes + 1) ?? Data()
-                    response = try ICalendarImport.decode(bytes, context: timeContext, displayTimeZone: zone, sourceName: sourceName).document
-                } catch { response = ["fehler": error.localizedDescription] }
-                DispatchQueue.main.async {
-                    guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
-                    self.send("importErgebnis", response)
-                }
-            }
+            try importFile(request)
         case .mail, .karte, .sozial:
             guard plain != nil, !restoring else { throw BetaError("Unlock first.") }
             let target = try CommunicationLaunchPolicy.target(command: request.command.rawValue, fields: request.fields)
@@ -893,6 +1004,8 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     }
     func windowShouldClose(_ sender: NSWindow) -> Bool { NSApp.terminate(nil); return false }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if fileImport?.active == true { return .terminateCancel }
+        if systemSyncBusy { return .terminateCancel }
         if restoreState == .activeIO { return .terminateCancel }
         if restoreState == .blockedRestartRequired { return .terminateNow }
         if closeApproved || web == nil { return .terminateNow }
