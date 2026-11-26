@@ -1,5 +1,33 @@
 # Aktueller Arbeitsstand
 
+## Fortsetzung: native Mac-Prüfung tatsächlich gestartet – 26. November 2026
+
+Die Übergabe aus dem unterbrochenen Chat wurde auf dem unveränderten Remote-Head
+`97baf780fa3474eba54d03e41d0258c97ae8b1ca` wieder aufgenommen. Alle 24 Patches,
+29 SHA256SUMS-Einträge, 30 publizierten Manifestdateien und 31 vollständigen
+Issue-Kommentartexte wurden erneut auf Identität geprüft; keine Abweichung und
+keine doppelte Veröffentlichung. Die entfernte Main-Basis ist weiterhin
+`d4da48a5eadd0bda22422b924bef4ee3b4324040`.
+
+Über die bereits angemeldete GitHub-Weboberfläche wurde der vorhandene Workflow
+gezielt mit `target=macos` auf dem Arbeitszweig gestartet:
+[Lauf 45786948279](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45786948279).
+Dies ist ein tatsächlicher neuer nativer Lauf, kein historischer CI-Beleg.
+Beide Architekturen bestätigten dieselben zwei Swift-Kompilierfehler; [#788](https://github.com/maik3531/Magnolie-Organizer/issues/788)
+behebt die verdeckte `text`-Instanzmethode und die throwing Kurzschlussauswertung
+mit unveränderter Import-/Konfliktsemantik. Die native Wiederholung dieses
+Korrekturstands steht noch aus. Vorhandene native XCTest-Fälle bleiben erhalten.
+
+Ein zusätzlicher bestätigter Desktop-Archivblocker wird getrennt in
+[#787](https://github.com/maik3531/Magnolie-Organizer/issues/787) bearbeitet:
+Windows und die gemeinsame Linux-Quellauswahl behandeln die publizierten
+Mac-Prüfartefakte fälschlich als Produktverträge. Der Stand und die Grenzen
+der nativen Fortsetzung stehen in
+[NATIVE-VERIFICATION-2026-11-26.md](Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md).
+
+Der Nutzerauftrag bleibt die reviewbare Patch-/Issue-Übergabe für Codex.
+Kein Merge nach `main`, keine Issue-Schließung und keine Releaseveröffentlichung.
+
 ## Veröffentlicht: 31 Mac-Issue-Übergaben – 26. November 2026
 
 Der Arbeitszweig `work/macos-issue-fixes-20261126` ist auf GitHub verfügbar.

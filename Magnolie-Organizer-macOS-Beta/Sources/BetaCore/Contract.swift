@@ -136,8 +136,8 @@ public struct Request {
             guard SystemSourcePolicy.Kind(rawValue: fields["art"] as? String ?? "") != nil else { throw BetaError("Invalid macOS source kind.") }
         }
         if command == .import {
-            guard FileImportProtocol.formats.contains(text("art")),
-                  (text("art") == "muell" ? (!text("muellToken").isEmpty && text("muellToken").utf8.count <= 1024) : fields["muellToken"] == nil) else {
+            guard FileImportProtocol.formats.contains(self.text("art")),
+                  (self.text("art") == "muell" ? (!self.text("muellToken").isEmpty && self.text("muellToken").utf8.count <= 1024) : fields["muellToken"] == nil) else {
                 throw BetaError("Invalid file import format or operation token.")
             }
         }

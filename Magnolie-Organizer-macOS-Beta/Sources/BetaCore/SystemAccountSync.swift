@@ -323,7 +323,9 @@ public enum SystemAccountSync {
                 let remote = SystemAccountSyncProjection.select(record.canonicalRecord, group.keys)
                 let oldRemote = SystemAccountSyncProjection.select(previous.nativeRecord.canonicalRecord, group.keys)
                 let localChanged = try !equal(local, oldLocal), remoteChanged = try !equal(remote, oldRemote)
-                if localChanged && remoteChanged && !(try equal(local, remote)) { disputed.append(group.name); continue }
+                if localChanged && remoteChanged {
+                    if try !equal(local, remote) { disputed.append(group.name); continue }
+                }
                 if localChanged && !remoteChanged {
                     if group.writable { outgoing.append(group.name) } else { disputed.append(group.name) }
                 } else if remoteChanged {
