@@ -175,6 +175,26 @@ class LifecycleTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'same SDK'):
             session.sdk_root({'ANDROID_HOME':'/workspace/one','ANDROID_SDK_ROOT':'/workspace/two'})
 
+    def test_java_home_reaches_sdk_tools_and_input_ab_gradle(self):
+        spec = importlib.util.spec_from_file_location('input_ab', session.ROOT / 'tools/input-ab.py')
+        input_ab = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(input_ab)
+        class BuildReached(Exception):
+            pass
+        for configured, expected in (({}, '/usr/lib/jvm/java-21-openjdk-amd64'),
+                                     ({'JAVA_HOME': '/workspace/jdk21'}, '/workspace/jdk21')):
+            with self.subTest(configured=configured), patch.dict(os.environ, configured, clear=True):
+                self.assertEqual(session.environment(Path('/workspace/run'))['JAVA_HOME'], expected)
+                with patch.object(input_ab, 'frozen_app'), patch.object(input_ab, 'test_inputs', return_value={}), \
+                     patch.object(input_ab.tempfile, 'TemporaryDirectory') as temporary, \
+                     patch.object(session.Owner, 'command', side_effect=['', '', '', BuildReached()]) as command, \
+                     contextlib.redirect_stdout(io.StringIO()):
+                    temporary.return_value.__enter__.return_value = '/workspace/temporary'
+                    with self.assertRaises(BuildReached):
+                        input_ab.build(session.Owner())
+                    self.assertIn(':app:assembleDebugAndroidTest', command.call_args.args[0])
+                    self.assertEqual(command.call_args.kwargs['env']['JAVA_HOME'], expected)
+
     def test_online_mode_preserves_bounded_serial_gradle_options(self):
         spec = importlib.util.spec_from_file_location('offline_checks', session.ROOT / 'tools/offline-checks.py')
         gate = importlib.util.module_from_spec(spec)

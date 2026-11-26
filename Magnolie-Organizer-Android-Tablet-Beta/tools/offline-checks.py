@@ -41,7 +41,7 @@ def main():
                           state_path=ROOT / ('artifacts/debug-build.json' if opts.build else 'artifacts/offline-checks.json'))
     config = session.parser().parse_args(['prepare'])
     runtime = os.environ.get('MAGNOLIE_JS_RUNTIME', 'bun')
-    env = dict(os.environ, JAVA_HOME=os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-17-openjdk-amd64'),
+    env = dict(os.environ, JAVA_HOME=os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-21-openjdk-amd64'),
                ANDROID_HOME=str(session.SDK), ANDROID_SDK_ROOT=str(session.SDK),
                MAGNOLIE_JS_RUNTIME=runtime, PYTHONDONTWRITEBYTECODE='1')
     code = 1
@@ -59,6 +59,7 @@ def main():
                                      ([runtime, 'tests/touch-channel.test.cjs'], 30),
                                      ([runtime, 'tools/project-web.cjs'], 60),
                                       ([runtime, 'tests/web.test.cjs'], 120),
+                                      ([runtime, 'tests/system-import.test.cjs'], 120),
                                       ([runtime, str(ROOT.parent / 'magnolie-organizer-windows/tests/setup-holidays.js')], 120),
                                       ([runtime, 'tests/reminders.test.cjs'], 120)]:
                 owner.record('check', command=command)

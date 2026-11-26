@@ -343,7 +343,7 @@ def environment(run):
         ANDROID_USER_HOME=str(run / 'android-user'), ANDROID_AVD_HOME=str(run / 'avds'),
         ANDROID_EMULATOR_HOME=str(run / 'android-user'), ANDROID_ADB_SERVER_PORT='5039',
         ADB_SERVER_SOCKET='tcp:127.0.0.1:5039', ADB_MDNS_AUTO_CONNECT='', ADB_LIBUSB='0',
-        JAVA_HOME='/usr/lib/jvm/java-17-openjdk-amd64', LIBGL_ALWAYS_SOFTWARE='1')
+        JAVA_HOME=os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-21-openjdk-amd64'), LIBGL_ALWAYS_SOFTWARE='1')
     return env
 
 

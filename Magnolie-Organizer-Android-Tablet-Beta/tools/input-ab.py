@@ -69,7 +69,7 @@ def build(owner):
     print(owner.command([str(Path.home() / '.bun/bin/bun'), 'tests/touch-proof.test.cjs'], timeout=30), flush=True)
     print(owner.command([str(Path.home() / '.bun/bin/bun'), 'tests/touch-channel.test.cjs'], timeout=30), flush=True)
     with tempfile.TemporaryDirectory(prefix='tablet-input-ab-', dir='/tmp/opencode') as temporary:
-        env = dict(os.environ, JAVA_HOME='/usr/lib/jvm/java-17-openjdk-amd64',
+        env = dict(os.environ, JAVA_HOME=os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-21-openjdk-amd64'),
                    ANDROID_HOME=str(session.SDK), ANDROID_SDK_ROOT=str(session.SDK),
                    JAVA_TOOL_OPTIONS='-Djava.io.tmpdir='+temporary, TMPDIR=temporary)
         command = ['bash', str(ROOT.parent / 'magnolie-notes/gradlew'), '-p', str(ROOT),

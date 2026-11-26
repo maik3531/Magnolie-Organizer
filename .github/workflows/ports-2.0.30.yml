@@ -177,23 +177,29 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
-      - name: Select the published desktop sources without replacing the port
+      - name: Bind the tablet to the unchanged current checkout
         shell: bash
         run: |
           set -euo pipefail
+          # The published tag remains an independent codec oracle, not the build source.
           test "$(git rev-parse v2.0.30^{commit})" = "$DESKTOP_COMMIT"
-          git restore --source="$DESKTOP_COMMIT" -- magnolie-organizer magnolie-organizer-windows magnolie-handbuch magnolie-notes contracts LICENSE.md PROTECTED-ASSETS-LICENSE.txt
+          python3 -B Magnolie-Organizer-Android-Tablet-Beta/tests/test_source_proof.py
+          python3 -B Magnolie-Organizer-Android-Tablet-Beta/tools/source-proof.py capture \
+            --expected-commit "$GITHUB_SHA" \
+            --output Magnolie-Organizer-Android-Tablet-Beta/artifacts/source-checkout.json
       - name: Prepare the existing resource-limited build gate
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y gettext openjdk-17-jdk-headless libvirt-daemon-system libvirt-clients acl
+          sudo apt-get install -y gettext openjdk-21-jdk-headless libvirt-daemon-system libvirt-clients acl
           sudo systemctl start libvirtd
           sudo setfacl -m "u:$(id -un):rw" /run/libvirt/libvirt-sock
-          echo 'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64' >> "$GITHUB_ENV"
-          test -d "$ANDROID_HOME/platforms/android-35"
-          test -d "$ANDROID_HOME/build-tools/35.0.0"
+          export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          timeout 600 "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.2' 'build-tools;36.0.0'
+          test -f "$ANDROID_HOME/platforms/android-37.2/android.jar"
+          test -d "$ANDROID_HOME/build-tools/36.0.0"
           npm install --prefix .ci-js --ignore-scripts --no-audit --no-fund --save-exact jsdom@26.1.0
           cd magnolie-organizer
           mkdir -p web/i18n
@@ -215,11 +221,15 @@ jobs:
           set -euo pipefail
           bash tools/build-beta.sh --readiness
           bash tools/build-beta.sh --online
+          python3 -B tools/source-proof.py bind \
+            --proof artifacts/source-checkout.json \
+            --projection app/build/generated/projection/assets/projection.json \
+            --candidate artifacts/candidate.json --output artifacts/sources.json
           python3 - <<'PY'
           import json, os, pathlib
-          proof = dict(portCommit=os.environ['GITHUB_SHA'], desktopTag='v2.0.30',
-                       desktopCommit=os.environ['DESKTOP_COMMIT'],
-                       nativeAcceptance=False, productionRelease=False,
+          proof = json.loads(pathlib.Path('artifacts/sources.json').read_text())
+          proof.update(referenceDesktopTag='v2.0.30',
+                       referenceDesktopCommit=os.environ['DESKTOP_COMMIT'],
                        systemImage=os.environ['TABLET_SYSTEM_IMAGE'],
                        diagnosticComparison=os.environ['TABLET_SYSTEM_IMAGE'] == 'default',
                        runtimeApi=int(os.environ['TABLET_RUNTIME_API']),
