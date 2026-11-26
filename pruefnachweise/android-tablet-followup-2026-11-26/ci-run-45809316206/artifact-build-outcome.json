@@ -1,0 +1,272 @@
+{
+  "startedUtc": "2026-11-26T11:35:02+00:00",
+  "runtimeSeconds": 870,
+  "phase": "finished",
+  "updatedUtc": "2026-11-26T11:37:34+00:00",
+  "elapsedSeconds": 152.28,
+  "jvm": true,
+  "build": true,
+  "memoryMax": "6442450944",
+  "cpuQuota": "200000",
+  "cpuPeriod": "100000",
+  "cpuAffinity": [
+    0,
+    2
+  ],
+  "runnerTests": 59,
+  "setupHolidayCases": 88,
+  "setupLocales": 20,
+  "reason": "Command '['bash', '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-notes/gradlew', '-p', '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-Android-Tablet-Beta', '--console=plain', '--no-daemon', '--max-workers=1', '--rerun-tasks', ':app:testDebugUnitTest']' returned non-zero exit status 1.",
+  "exitCode": 1,
+  "source": "Selected fields/events from the original CI artifact; complete original failure output is kept verbatim in the adjacent text file.",
+  "originalDebugBuildSha256": "5d01c51b4f92bedc938e550b95b61762a19f9c9ed39a37bbe0cb225734ea7861",
+  "events": [
+    {
+      "utc": "2026-11-26T11:35:02+00:00",
+      "elapsed": 0.018,
+      "phase": "child-exited",
+      "pid": 11418,
+      "actualExit": 0
+    },
+    {
+      "utc": "2026-11-26T11:35:02+00:00",
+      "elapsed": 0.085,
+      "phase": "child-exited",
+      "pid": 11420,
+      "actualExit": 0
+    },
+    {
+      "utc": "2026-11-26T11:35:02+00:00",
+      "elapsed": 0.106,
+      "phase": "child-exited",
+      "pid": 11447,
+      "actualExit": 0
+    },
+    {
+      "utc": "2026-11-26T11:35:02+00:00",
+      "elapsed": 0.109,
+      "phase": "offline-checks",
+      "jvm": true,
+      "build": true,
+      "memoryMax": "6442450944",
+      "cpuQuota": "200000",
+      "cpuPeriod": "100000",
+      "cpuAffinity": [
+        0,
+        2
+      ],
+      "temporaryResources": "/tmp/opencode/tablet-beta-vy850ntz",
+      "dependencyDownloads": true
+    },
+    {
+      "utc": "2026-11-26T11:35:02+00:00",
+      "elapsed": 0.11,
+      "phase": "check",
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "tests/test_emulator_session.py"
+      ]
+    },
+    {
+      "utc": "2026-11-26T11:35:03+00:00",
+      "elapsed": 0.528,
+      "phase": "child-exited",
+      "pid": 11448,
+      "actualExit": 0
+    },
+    {
+      "utc": "2026-11-26T11:35:03+00:00",
+      "elapsed": 0.53,
+      "phase": "runner-tests-passed",
+      "runnerTests": 59
+    },
+    {
+      "utc": "2026-11-26T11:35:03+00:00",
+      "elapsed": 0.53,
+      "phase": "check",
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "tests/test_host_capacity.py"
+      ]
+    },
+    {
+      "utc": "2026-11-26T11:35:03+00:00",
+      "elapsed": 0.647,
+      "phase": "child-exited",
+      "pid": 11455,
+      "actualExit": 0
+    },
+    {
+      "utc": "2026-11-26T11:35:03+00:00",
+      "elapsed": 0.648,
+      "phase": "check",
+      "command": [
+        "node",
+        "tests/apk-permissions.test.cjs"
+      ]
+    },
+    {
+      "utc": "2026-11-26T11:35:03+00:00",
+      "elapsed": 0.816,
+      "phase": "child-exited",
+      "pid": 11456,
+      "actualExit": 0
+    },
+    {
+      "utc": "2026-11-26T11:35:03+00:00",
+      "elapsed": 0.818,
+      "phase": "check",
+      "command": [
+        "node",
+        "tests/touch-proof.test.cjs"
+      ]
+    },
+    {
+      "utc": "2026-11-26T11:35:03+00:00",
+      "elapsed": 0.851,
+      "phase": "child-exited",
+      "pid": 11463,
+      "actualExit": 0
+    },
+    {
+      "utc": "2026-11-26T11:35:03+00:00",
+      "elapsed": 0.853,
+      "phase": "check",
+      "command": [
+        "node",
+        "tests/touch-channel.test.cjs"
+      ]
+    },
+    {
+      "utc": "2026-11-26T11:35:04+00:00",
+      "elapsed": 1.421,
+      "phase": "child-exited",
+      "pid": 11470,
+      "actualExit": 0
+    },
+    {
+      "utc": "2026-11-26T11:35:04+00:00",
+      "elapsed": 1.423,
+      "phase": "check",
+      "command": [
+        "node",
+        "tools/project-web.cjs"
+      ]
+    },
+    {
+      "utc": "2026-11-26T11:35:04+00:00",
+      "elapsed": 1.928,
+      "phase": "child-exited",
+      "pid": 11478,
+      "actualExit": 0
+    },
+    {
+      "utc": "2026-11-26T11:35:04+00:00",
+      "elapsed": 1.93,
+      "phase": "check",
+      "command": [
+        "node",
+        "tests/web.test.cjs"
+      ]
+    },
+    {
+      "utc": "2026-11-26T11:35:20+00:00",
+      "elapsed": 18.077,
+      "phase": "child-exited",
+      "pid": 11485,
+      "actualExit": 0
+    },
+    {
+      "utc": "2026-11-26T11:35:20+00:00",
+      "elapsed": 18.08,
+      "phase": "check",
+      "command": [
+        "node",
+        "tests/system-import.test.cjs"
+      ]
+    },
+    {
+      "utc": "2026-11-26T11:35:24+00:00",
+      "elapsed": 21.698,
+      "phase": "child-exited",
+      "pid": 11522,
+      "actualExit": 0
+    },
+    {
+      "utc": "2026-11-26T11:35:24+00:00",
+      "elapsed": 21.701,
+      "phase": "check",
+      "command": [
+        "node",
+        "/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js"
+      ]
+    },
+    {
+      "utc": "2026-11-26T11:35:37+00:00",
+      "elapsed": 34.433,
+      "phase": "child-exited",
+      "pid": 11530,
+      "actualExit": 0
+    },
+    {
+      "utc": "2026-11-26T11:35:37+00:00",
+      "elapsed": 34.436,
+      "phase": "setup-tests-passed",
+      "setupHolidayCases": 88,
+      "setupLocales": 20
+    },
+    {
+      "utc": "2026-11-26T11:35:37+00:00",
+      "elapsed": 34.437,
+      "phase": "check",
+      "command": [
+        "node",
+        "tests/reminders.test.cjs"
+      ]
+    },
+    {
+      "utc": "2026-11-26T11:35:38+00:00",
+      "elapsed": 35.456,
+      "phase": "child-exited",
+      "pid": 11540,
+      "actualExit": 0
+    },
+    {
+      "utc": "2026-11-26T11:35:38+00:00",
+      "elapsed": 35.459,
+      "phase": "offline-jvm",
+      "command": [
+        "bash",
+        "/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-notes/gradlew",
+        "-p",
+        "/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-Android-Tablet-Beta",
+        "--console=plain",
+        "--no-daemon",
+        "--max-workers=1",
+        "--rerun-tasks",
+        ":app:testDebugUnitTest"
+      ]
+    },
+    {
+      "utc": "2026-11-26T11:37:34+00:00",
+      "elapsed": 152.255,
+      "phase": "child-exited",
+      "pid": 11549,
+      "actualExit": 1
+    },
+    {
+      "utc": "2026-11-26T11:37:34+00:00",
+      "elapsed": 152.258,
+      "phase": "failed",
+      "reason": "Command '['bash', '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-notes/gradlew', '-p', '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-Android-Tablet-Beta', '--console=plain', '--no-daemon', '--max-workers=1', '--rerun-tasks', ':app:testDebugUnitTest']' returned non-zero exit status 1."
+    },
+    {
+      "utc": "2026-11-26T11:37:34+00:00",
+      "elapsed": 152.28,
+      "phase": "finished",
+      "exitCode": 1
+    }
+  ]
+}

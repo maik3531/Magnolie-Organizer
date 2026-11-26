@@ -88,7 +88,7 @@ class DocumentRequestsTest {
                 fail("Late provider bytes must not authorize an import on the replacement page")
             } catch (_: IllegalStateException) { }
             assertTrue(vault.isWritable(next))
-            assertTrue(data.similar(vault.read()!!.getJSONObject("data")))
+            assertTrue(jsonValuesEqual(data,vault.read()!!.getJSONObject("data")))
         } finally {dir.deleteRecursively()}
     }
 }

@@ -305,8 +305,9 @@ oder Release erfolgt aus diesem Quellnachweis. Der vollständige Audit mit
 Die Fortsetzung baut auf PR-Head `29acde7e3df2b8bcaaab0cc19b3377b8dbf4bd14`
 auf und ergänzt denselben Draft-PR #795. Der Folgeaudit in
 `contracts/android-tablet-followup-2026-11-26.md` erfasst vier weitere
-reproduzierte Fehler (#798–#801); zusammen sind damit 30 maßgebliche Issues
-zugeordnet. Der Folgestand ist ein Prüfpatch, kein neuer Paketnachweis.
+reproduzierte Fehler (#798–#801). Zwei tatsächliche CI-Prüfcodebefunde
+(#804/#805) ergänzen die Zuordnung auf 32 Issues. Der Folgestand ist ein
+Prüfpatch, kein neuer Paketnachweis.
 
 - #790: Der Tablet-CI-Bau verwendet den aktuellen gemeinsamen Checkout. Das alte
   `v2.0.30` bleibt nur unabhängige Codec-Referenz. Git-/Datei-/Projektions- und
@@ -382,8 +383,25 @@ Veraltete Caches werden nicht gelesen, beschädigte normative Daten bleiben ein
 harter Fehler. Neue Projektion:
 `3dcf2073c46012e193900fce971a5bab91cefd5194f433bac7169e7f98917907`.
 Alle 83 Laufzeitdateien sind exakt identisch zum zuvor geprüften Stand; nur der
-gemeinsame Test ist als Projektionsquelle verändert. Der nächste vollständige
-APK-Lauf muss den korrigierten Quellstand prüfen.
+gemeinsame Test ist als Projektionsquelle verändert. Dieser gemeinsame
+Cross-Desktop-Befund ist zusätzlich in #804 mit engem Quellpatch dokumentiert.
+
+Der folgende echte Actions-Lauf 45809316206 auf `2dd93930` bestätigt den
+Setupfix im frischen Checkout: 88/20 Fälle, 194/46 Web-/Importchecks und
+22 Provenienztests bestanden. Gradle kompiliert Produkt-Kotlin, Manifest und
+Ressourcen; `compileDebugUnitTestKotlin` scheitert anschließend an fünf auf dem
+Android-Kompilierpfad fehlenden `JSONObject.similar`-Aufrufen. Der eigene
+Test-Kompilierbefund #805 wird mit einem vollständigen strukturellen Vergleich
+über öffentliche JSON-APIs korrigiert. Genaue Zahlenwerte, Arrayreihenfolge,
+Null-/Fehlfeld- und Typunterschiede bleiben Prüfanforderungen. Die originalen
+CI-Fehlerbelege stehen in `pruefnachweise/android-tablet-followup-2026-11-26/ci-run-45809316206/`.
+Dieser Lauf erzeugte kein APK und führte keine nativen Schritte aus.
+Die enge Korrektur zu #805 kompiliert gegen die echten Android-37.2-APIs;
+42/42 gezielte JVM-Tests sind bestanden, darunter alle betroffenen Dokument-/
+Kalender-/Vaulttests sowie zwölf neue exakte Vergleichsfälle. Die vorherige
+Kompilierstörung und die unveränderten 38 Produktquellen sind hashgebunden belegt.
+Kein Produktcode, Manifest, Gradle-Gate oder vorhandener Test wurde dafür entfernt
+oder umgangen. Rohbelege unter `pruefnachweise/android-tablet-followup-2026-11-26/issue-805/`.
 
 Ein vollständiger neuer Gradle-/D8-/APK-Bau, Android-Provider-/Berechtigungsdialoge,
 TalkBack, IME, Stift, native Pixel-/SAF-/Restore-/Neustartmatrix und tatsächliche
