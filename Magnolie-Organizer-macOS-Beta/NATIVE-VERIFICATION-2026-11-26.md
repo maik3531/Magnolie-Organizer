@@ -2,8 +2,33 @@
 
 Stand: 26. November 2026. Zugeordnet zu #121, #783, #785, #786 und dem
 konkreten nativen Compilerbefund #788, Runtimebefund #789, Prüftreiberbefund #793
-und den tatsächlichen Host-/Swift-Folgebefunden #796/#797. Der
+und den tatsächlichen Host-/Swift-Folgebefunden #796/#797 sowie dem
+App-Signaturbefund #802. Der
 plattformübergreifende Quellarchivbefund #787 wird separat korrigiert.
+
+## Veröffentlichte Korrekturfolge und aktueller Prüfstand
+
+Der aktuelle native [Lauf #95 / 45799895334](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45799895334)
+prüft genau `3c0b4bb410a5ab514e3deae7fb665a692eb436c2` auf ARM64
+(`139840088084`) und Intel (`139840088529`). Beide haben alle Host-/Swift-
+Prüfungen bestanden und zeigen erst beim äußeren App-Signieren den konkreten
+Layoutrest #802. Die endgültige Einordnung steht im eigenen #95-Abschnitt.
+Ein späterer reiner Dokumentationscommit ist kein zusätzlich geprüfter
+Codecommit.
+
+| Folge | Reviewbarer Commit | Zweck |
+| --- | --- | --- |
+| #788 | [`bdd1345d`](https://github.com/maik3531/Magnolie-Organizer/commit/bdd1345d3bec68144dbcf627a3ca7bd03073c64b) | Native Swift-Kompilierblocker |
+| #787 | [`68926657`](https://github.com/maik3531/Magnolie-Organizer/commit/689266570cda17f463132a182c02d78ea732dfbd) | Enge Belegausschlüsse in Desktop-Quellarchiven |
+| #789 | [`cc9dc29a`](https://github.com/maik3531/Magnolie-Organizer/commit/cc9dc29a606658b7937eb7261409564c96f93775) | Geprüfte CPython-Buildlinks und private statische liblzma |
+| #793 | [`8c01f75b`](https://github.com/maik3531/Magnolie-Organizer/commit/8c01f75b2ae6a9e753b9c23b0e3c65a7d7826c66) | Kanonisierung unmittelbar eigener Prüftempwurzeln |
+| #796 | [`d790d7fc`](https://github.com/maik3531/Magnolie-Organizer/commit/d790d7fc40ddc9f9a0c6869a3378ef53b69f7daa) | Echter Zeitzonenbootstrap im Kommunikationsharness |
+| #797 | [`3c0b4bb4`](https://github.com/maik3531/Magnolie-Organizer/commit/3c0b4bb410a5ab514e3deae7fb665a692eb436c2) | Originale Remindertextwerte und genaue Notes-/Faltungstests |
+
+Die Commits bilden eine aufeinander aufbauende Folge auf dem veröffentlichten
+Arbeitszweig. Für die Gesamtprüfung gelten die vollständigen Eltern, nicht
+ein isolierter letzter Patch. #794 ist ein gesonderter offener Windows-
+Cleanupauftrag und enthält in dieser Fortsetzung keinen Produktfix.
 
 ## Übernommener und erneut bestätigter Stand
 
@@ -176,7 +201,7 @@ bestanden.** Die gesicherten Runtime-Manifeste bestätigen jeweils:
 | Interpreter | CPython 3.15.2, jeweilige native Architektur |
 | Isolierter Start / erforderlicher Modulabschluss | Bestanden, einschließlich `lzma` nach Entfernen der Bauquelle |
 | Inventar | Je 704 Dateien und 52 geprüfte Mach-O-Dateien |
-| Minimum OS der Mach-O-Dateien | 12.7 |
+| Deklariertes Mach-O-Deploymentziel | 12.7; keine Laufzeitabnahme auf macOS 12.7 |
 | Dynamische Abhängigkeiten | Nur zulässige Apple-Systembibliotheken |
 | `_lzma` | Nur `/usr/lib/libSystem.B.dylib`; private liblzma 5.8.4 statisch eingebunden |
 | XZ-Lizenzdateien | Beide vorhanden, mit den originalen Quellhashes inventarisiert |
@@ -281,8 +306,8 @@ tatsächlichen Lauf widerlegt; es wurde keine Golden-Datei angepasst.
 
 Lokal: Node 24.22.3, jsdom 26.1.0 isoliert aus vorhandenem npm-Cache, keine
 vollständige zweite Hostumgebung. Der neunteilige projizierte Telefonpfad
-und die neue integrierte Negativprüfung bleiben Bestandteil des folgenden
-nativen Laufs. Der konkrete Folgeauftrag ist
+und die neue integrierte Negativprüfung sind im nachstehend dokumentierten
+Lauf #95 auf beiden Architekturen bestanden. Der konkrete Folgeauftrag ist
 [#796](https://github.com/maik3531/Magnolie-Organizer/issues/796).
 
 ### #797: drei konkrete Text-/Testfälle der nativen Swift-Suite
@@ -309,8 +334,98 @@ und [swift-foundation #300](https://github.com/swiftlang/swift-foundation/issues
 Der [Folgeauftrag #797](https://github.com/maik3531/Magnolie-Organizer/issues/797)
 unterscheidet die zwei Testkorrekturen vom Reminder-Produktfix. Ein
 unabhängiger Review fand nach enger Budgetkorrektur keinen verbleibenden
-Quellbefund. Lokal fehlt Swift; die Änderungen sind noch nativ zu prüfen.
+Quellbefund. Lokal fehlt Swift; Lauf #95 hat die Änderungen anschließend
+auf beiden Architekturen nativ bestätigt.
 Dies ist keine pauschale Erledigung der übrigen offenen #511-JSON-Fälle.
+
+## Lauf #95: Host-/Swift-Fixes bestätigt, äußerer App-Signaturrest
+
+[Lauf #95 / 45799895334](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45799895334)
+prüft genau `3c0b4bb410a5ab514e3deae7fb665a692eb436c2`.
+Die abgeschlossenen Jobs `139840088084` (ARM64) und `139840088529` (Intel)
+bestätigen die neuen #796/#797-Korrekturen tatsächlich:
+
+- Die 17 ImportHelper-/Pfadtests bestehen auf beiden Architekturen
+  (ARM64: 69,452 Sekunden).
+- Die aktuelle Projektion, 90 OR6→UI-Prüfungen und Kryptoreferenzen bestehen.
+- Der Kommunikations-Hosttest besteht einschließlich 15 Standardpayloads,
+  neun projizierten Telefonfällen und der integrierten fehlenden Bootstrapdatei.
+- Der gesamte Hostlauf endet mit **35 Tests, 0 Fehlern und 1 Skip** in
+  594,947 Sekunden auf ARM64 beziehungsweise 800,281 Sekunden auf Intel.
+- Die vier Swift-Gesamtläufe (Kalender, Editor UTC, Editor Berlin, Bundlebau)
+  führen jeweils **501 Tests ohne Fehler** aus. Sie weisen der Reihe nach
+  **4 / 5 / 5 / 6 Skips** aus. Die doppelten Suite-/All-tests-Endzeilen und
+  die wiederholten Läufe werden nicht addiert.
+- Geschützte Notes-Bodies, exakte lange Faltungszeile, neue direkte
+  Faltungsgrenzen, führender FEFF-Titel samt Revisionbindung und mutable
+  Text-/Arrayisolation sind ausdrücklich als bestanden protokolliert.
+
+Der App-Code kompiliert anschließend. Nach dem Einbau der ebenfalls geprüften
+privaten Laufzeit scheitert erst die äußere Signatur:
+
+```text
+code object is not signed at all
+In subcomponent: ...app/Contents/Helpers/ImportPython/runtime.json
+```
+
+Intel meldet an derselben Grenze stattdessen
+`Contents/Helpers/ImportPython/LICENSE-XZ-Utils.txt`. Damit ist der gemischte
+Code-/Datenbaum als gemeinsame Ursache belegt, kein JSON-Einzelfall.
+
+`codesign --force --sign - <app>` endet mit Exit 1. Der separate App-Smoke und
+die Entwicklungspaketierung werden dadurch noch nicht erreicht. Ein fertiges
+App-Paket oder erfolgreicher Start wird aus diesem Lauf nicht abgeleitet.
+
+### #802: Code und Ressourcen der privaten Laufzeit trennen
+
+Der gemischte Unix-Präfix unter `Contents/Helpers/ImportPython` enthält neben
+Mach-O-Code auch Pythondateien, JSON und Lizenzen. Apple reserviert diesen
+Bereich für eingebetteten Code; die gemeldete JSON-Datei ist nur das erste
+unzulässige Datenobjekt. Die bisherige Reihenfolge, innere Programme vor der
+äußeren App zu signieren, ist bereits richtig.
+
+Der [Folgeauftrag #802](https://github.com/maik3531/Magnolie-Organizer/issues/802)
+verwendet ein echtes internes `ImportPython.app`: Interpreter unter
+`Contents/MacOS`, direkt ladbare Mach-O-Erweiterungen unter `Contents/PlugIns`,
+Standardbibliothek und Lizenzen unter `Contents/Resources` und Bundlemetadaten
+in `Contents/Info.plist`. Der statische Python-Kern bleibt erhalten; ein
+begrenzter PyConfig-Startpfad setzt ausschließlich bundleinterne Suchpfade.
+Eine pauschale Verlagerung aller Programme in Resources oder eine rekursive
+Neusignierung ersetzt diese strukturelle Korrektur nicht.
+
+Das SDK-Inventar `runtime.json` bleibt außerhalb des fertig signierten
+Helper-Bundles. Es wird erst danach einschließlich `_CodeSignature`-Dateien
+erstellt und beim Einbau unter den Ressourcen der äußeren App abgelegt.
+Damit entsteht keine zyklische Abhängigkeit zwischen eigener Signatur und
+Dateihashes. Vollständige Inventur, Symlinkverbote, isolierter Start,
+Modulabschluss, Architekturen, Deploymentziel, Systembibliotheksgrenzen und
+strikte abschließende Signaturverifikation bleiben Abnahmekriterien.
+
+Die erweiterte Runtime-Hostsuite besteht mit **21/21 Tests**. Reale temporäre
+Dateibäume prüfen falsche Layouts, Mach-O-Typen, versteckten Code in Ressourcen,
+Signaturinventur, fehlende oder veränderte Dateien und Bitänderungen beim
+Kopieren. Die Orchestrierungsprüfung simuliert Apple-Werkzeuge ausdrücklich;
+sie bestätigt die Reihenfolge und finale Byteinventur, keine echte Signatur.
+
+Eine begrenzte lokale C/API-Probe mit CPython 3.12 und einem Linux-Ersatz für
+die Apple-Executable-Abfrage prüfte sieben Argument-/Exit-/Pfad-/Isolations-
+Szenarien. Eine zusätzlich konkret geprüfte Doppelpunkt-Pfadgrenze zeigte,
+dass ein gesetztes CPython-`home` den Pfad am Doppelpunkt aufteilt. Der finale
+Launcher setzt deshalb ausschließlich alle expliziten öffentlichen Pfad-
+Ausgabefelder; die gezielte Vorher-/Nachher-Probe bestätigt die vollständigen
+Prefixe und internen Suchpfade. Die finale Launcherquelle hat SHA-256
+`4c9591d11ac184208ad6b5cb5cc087a9e076c4784745ac82f38256145bf02d3e`.
+Diese lokalen API-Belege betreffen weder Darwin noch den statischen
+CPython-3.15-Bau. Die neue C-Datei, der unveränderte ursprüngliche
+CPython-Bauinterpreter und das zusätzliche originale Make-Linkrezept wurden
+unabhängig geprüft; kein verbleibender Quellreviewblocker.
+
+Primärquellen: [Apple: Bundle-Inhalte](https://developer.apple.com/documentation/bundleresources/placing-content-in-a-bundle),
+[Apple: fremde Codestrukturen einbetten](https://developer.apple.com/documentation/xcode/embedding-nonstandard-code-structures-in-a-bundle)
+und [Apple: verschachtelten Code signieren](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/Procedures/Procedures.html)
+sowie [CPython 3.15: öffentliche Initialisierungskonfiguration](https://docs.python.org/3.15/c-api/init_config.html).
+Der neue Layoutstand benötigt einen eigenen tatsächlichen ARM64-/Intel-Lauf;
+Quellreview und simulierte Apple-Werkzeuge sind dafür kein Ersatz.
 
 ## #787: bestätigte Auswirkung auf Desktop-Quellarchive
 
@@ -376,13 +491,15 @@ sind ebenfalls kein vollständiger Debian-/RPM-Bau oder Installationsnachweis.
 
 ## Neue Issue-Belege der Fortsetzung
 
-Die vier gezielten Folgekommentare wurden veröffentlicht beziehungsweise
+Die sechs gezielten Folgekommentare wurden veröffentlicht beziehungsweise
 fortgeschrieben und jeweils mit identischem vollständigem Text zurückgelesen:
 
 - [#787: Desktop-Archivkorrektur und nativer Windows-Regressionserfolg](https://github.com/maik3531/Magnolie-Organizer/issues/787#issuecomment-7187382569)
 - [#788: native Bestätigung der beiden Swift-Compilerfixes](https://github.com/maik3531/Magnolie-Organizer/issues/788#issuecomment-7187382083)
 - [#789: privater Runtimefix, Tests und genaue native Folgeprüfung](https://github.com/maik3531/Magnolie-Organizer/issues/789#issuecomment-7188020232)
 - [#793: eigener Tempstamm der Prüftreiber, Regressionen und Mac-Folgeprüfung](https://github.com/maik3531/Magnolie-Organizer/issues/793#issuecomment-7188363385)
+- [#796: Kommunikationsbootstrap, unveränderte Fixtures und nativer Folgelauf](https://github.com/maik3531/Magnolie-Organizer/issues/796#issuecomment-7189199517)
+- [#797: Reminder-Wertkopie, genaue Swift-Tests und nativer Folgelauf](https://github.com/maik3531/Magnolie-Organizer/issues/797#issuecomment-7189199900)
 
 Die ursprünglichen 31 Übergabekommentare und deren eingefrorene
 Publikationsbelege wurden dabei nicht verändert.
@@ -400,3 +517,23 @@ und die vorhandenen #785-/#786-Verträge. Mac-12.7-Abnahme, TCC-Dialoge,
 ausdrücklich eingerichtete Apple-Testquellen, Gerätegegenstellen und die
 dokumentierten Implementierungsreste sind weiterhin offen. Die Fortsetzung
 ist keine Freigabe für Main-Merge, Issue-Schließung oder Releasepublikation.
+
+Die offenen Implementierungsaufträge sind weiterhin getrennt zu behandeln:
+
+- [#785](https://github.com/maik3531/Magnolie-Organizer/issues/785): Gesamtarchiv,
+  macOS-taugliche lokale Quellen und vollständige Bedienung des produktiven
+  Datei-/OR6-Imports.
+- [#786](https://github.com/maik3531/Magnolie-Organizer/issues/786): weitere
+  Abgleichsfelder/Serien, Neuanlagen, Löschungen, automatische Läufe, geführte
+  Wiederaufnahme und vollständiger Apple-Notes-Rückabgleich.
+- [#511](https://github.com/maik3531/Magnolie-Organizer/issues/511): originale
+  Unicode-JSON-Schlüssel und unbekannte Erweiterungen über den gesamten
+  nativen Buch-/Speicher-/Exportpfad; die enge Reminderwertkopie erledigt
+  diesen Auftrag nicht pauschal.
+- [#465](https://github.com/maik3531/Magnolie-Organizer/issues/465): ausdrücklich
+  gewählte exakte Reparatur bereits gespeicherter Ausnahme-Duplikate mit
+  erhaltenen Referenzen und tatsächlichem Save/Reopen-Nachweis.
+
+Die Issues waren bei der erneuten direkten Abfrage in dieser Fortsetzung
+weiterhin offen. Ihre bestehenden ursprünglichen Beschreibungen, späteren
+Patchkommentare und Abnahmegrenzen sind gemeinsam zu lesen.

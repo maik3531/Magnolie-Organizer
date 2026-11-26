@@ -91,10 +91,10 @@ behalten die Priorität des gemeinsamen Parsers.
 ## Stdio-Protokoll 1
 
 Der native Host startet genau einen Prozess mit `-I -S -B`:
-`Contents/Helpers/ImportPython/bin/python3.15`, danach der feste Skriptpfad
+`Contents/Helpers/ImportPython.app/Contents/MacOS/python3.15`, danach der feste Skriptpfad
 `Contents/Resources/ImportHelper/helper.py`. Es gibt keinen Shellaufruf,
 keinen wählbaren Interpreter und keinen System-Python-Fallback. Der private
-Runtimebau und seine noch erforderliche Mac-Abnahme sind in
+Runtimebau, das signierte Helper-App-Layout aus #802 und seine noch erforderliche Mac-Abnahme sind in
 [IMPORT-RUNTIME.md](IMPORT-RUNTIME.md) beschrieben.
 
 Stdin enthält eine UTF-8-JSON-Kopfzeile, LF und anschließend unveränderte

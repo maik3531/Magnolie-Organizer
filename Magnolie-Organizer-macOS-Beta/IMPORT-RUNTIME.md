@@ -39,11 +39,42 @@ must have the selected architecture, a minimum OS no newer than 12.7 and only
 Apple system-library dependencies. A Homebrew-linked extension blocks the
 build. The source license travels with the runtime.
 
-Final paths:
+## Signed helper layout — #802
 
-- Interpreter: `Contents/Helpers/ImportPython/bin/python3.15`.
-- Standard library: `Contents/Helpers/ImportPython/lib/python3.15`.
-- Parser projection and normative zone data: `Contents/Resources/ImportHelper`.
+The interpreter is a complete nested `ImportPython.app`. Its main executable,
+Mach-O plug-ins and ordinary resources follow Apple's
+[bundle content locations](https://developer.apple.com/documentation/bundleresources/placing-content-in-a-bundle)
+and [guidance for language runtimes](https://developer.apple.com/documentation/xcode/embedding-nonstandard-code-structures-in-a-bundle).
+The former mixed `Helpers/ImportPython/bin` and `lib` tree failed outer signing
+in [native run #95](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45799895334):
+ARM64 first reported `runtime.json`, Intel the XZ license as unsigned code.
+Those files belong in resource directories.
+
+Paths relative to the outer application's `Contents` directory:
+
+| Content | Path |
+| --- | --- |
+| Interpreter | `Helpers/ImportPython.app/Contents/MacOS/python3.15` |
+| Native extension modules | `Helpers/ImportPython.app/Contents/PlugIns/*.so` |
+| Standard library | `Helpers/ImportPython.app/Contents/Resources/lib/python3.15` |
+| Python and XZ license notices | `Helpers/ImportPython.app/Contents/Resources/` |
+| Runtime inventory | `Resources/ImportPython/runtime.json` |
+| Parser projection and normative zone data | `Resources/ImportHelper` |
+
+The extensions are Darwin `MH_BUNDLE` images, built by the pinned CPython
+configure's `-bundle` rule; they are placed directly in `PlugIns`. The layout
+validator checks the main image's `MH_EXECUTE` type and each plug-in's
+`MH_BUNDLE` type. It rejects data or subdirectories in these code locations,
+Mach-O files in resources, misplaced files, links and special files.
+
+`tools/import_python_main.c` uses CPython's public isolated `PyConfig` API.
+The actual executable location determines all four Python prefixes, pointing
+to the helper's `Contents`, and exactly two module paths: the private standard
+library and the helper's `PlugIns`. No symlink mirror or Python framework is
+needed. The builder first completes CPython's ordinary build, then compiles
+this entry point with that build's own core and linker variables. The normal
+build interpreter is not replaced. The runtime manifest binds the launcher's
+source SHA-256 as well as the pinned CPython and XZ sources.
 
 The helper is outside the WKWebView-readable UI directory. Native launch uses
 `-I -S -B`, a fixed bundle script and bounded standard streams. There is no shell command,
@@ -73,12 +104,27 @@ CPython's generated `build/lib.*` extension links are accepted only when they
 point exactly to the same named regular file in its own `Modules` directory.
 The builder copies those bytes; the final runtime remains free of symlinks.
 
-The build directory is removed before the relocation probe. The probe also
-uses a foreign working directory and deliberately wrong `PYTHONHOME` and
-`PYTHONPATH`; every admitted standard-library search path must remain inside
-the private runtime. The packaging step rechecks the complete file inventory,
-Mach-O dependencies, signatures and relocated imports after copying the SDK.
-Nested binaries are signed before the outer development application.
+The build directory is removed before the relocation probe. The probe uses a
+foreign working directory and deliberately wrong `PYTHONHOME`, `PYTHONPATH`,
+`PYTHONEXECUTABLE` and `__PYVENV_LAUNCHER__`. It requires the exact executable,
+base executable, four prefixes and two module paths described above, in
+addition to the existing isolated flags and required-module imports.
+
+The SDK output contains exactly `ImportPython.app` and a separate
+`runtime.json`. Extensions are signed first, then the complete helper once.
+Its schema-2 inventory is collected after signing and includes the exact
+`Contents/_CodeSignature/CodeResources` seal. The manifest cannot live inside
+that signed helper: writing it afterward would invalidate the seal and make
+its own inventory circular.
+
+Packaging requires the current pin and launcher source hash, the complete
+helper inventory and the expected Mach-O metadata. It copies every helper
+byte, including the seal, checks the copied inventory again, verifies strict
+nested signatures and repeats relocated imports. It never re-signs the copied
+helper. The external manifest goes to the outer application's resources;
+the existing outer-app signing and strict/deep verification remain the final
+packaging gates. No JSON, license or script is signed as a code object, and
+there is no recursive `--deep` signing operation.
 
 The existing Mac candidate workflow performs these steps for arm64 and x86_64
 and preserves `runtime.json` and the actual build log. It does not silently
@@ -106,5 +152,8 @@ that those native gates have already passed. The parser/UI pipeline has its
 separate #785 tests and contract.
 
 The subsequent real ARM64 and Intel CI runs, their exact commits, the #789
-buildlink/liblzma correction and the expanded tests are tracked separately in
+buildlink/liblzma correction, #802 helper-layout correction and expanded tests are tracked separately in
 [NATIVE-VERIFICATION-2026-11-26.md](NATIVE-VERIFICATION-2026-11-26.md).
+The new helper layout still requires its own real Darwin build, relocation,
+outer signature and application lifecycle result; the earlier native runtime
+passes used the former layout.

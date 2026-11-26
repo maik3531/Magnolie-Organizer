@@ -11,20 +11,23 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import platform
+import plistlib
 import re
 import shlex
 import shutil
+import struct
 import subprocess
 import tarfile
 import tempfile
 import urllib.parse
 import urllib.request
 
-from airplay_bundle import is_macho, system_library
+from airplay_bundle import MACH_MAGICS, system_library
 
 BETA = Path(__file__).resolve().parents[1]
 PIN = json.loads((BETA / "Resources/ImportPython.json").read_text())
 LIBLZMA_PIN = PIN["liblzma"]
+LAUNCHER_SOURCE = BETA / "tools/import_python_main.c"
 MAXIMUM_EXPANDED = 256 * 1024 * 1024
 EXCLUDED = {"__pycache__", "test", "tests", "idlelib", "tkinter", "ensurepip", "site-packages"}
 
@@ -169,6 +172,82 @@ def checked_files(root):
     return files
 
 
+def helper_info():
+    """#802: the interpreter is a real nested application, with data in Resources."""
+    return {"CFBundleIdentifier": PIN["bundleIdentifier"], "CFBundleName": "ImportPython",
+            "CFBundleExecutable": Path(PIN["executable"]).name, "CFBundlePackageType": "APPL",
+            "CFBundleInfoDictionaryVersion": "6.0", "CFBundleShortVersionString": PIN["version"],
+            "CFBundleVersion": PIN["version"], "LSMinimumSystemVersion": PIN["minimumSystemVersion"],
+            "LSBackgroundOnly": True}
+
+
+def macho_file_type(path):
+    """Inspect the thin native image header independently of filename extensions."""
+    with Path(path).open("rb") as stream:
+        header = stream.read(32)
+    endian = {b"\xcf\xfa\xed\xfe": "<", b"\xfe\xed\xfa\xcf": ">"}.get(header[:4])
+    if endian is None or len(header) != 32:
+        raise ValueError("Runtime code must be a thin 64-bit Mach-O image")
+    return struct.unpack(endian + "8I", header)[3]
+
+
+def checked_runtime_layout(bundle, signed=False):
+    """Reject mixed code/data trees before signing, inventorying or copying them."""
+    bundle = Path(bundle)
+    files = checked_files(bundle)
+    contents = bundle / "Contents"
+    if (bundle.name != PIN["sdkBundleDirectory"] or
+            {path.name for path in bundle.iterdir()} != {"Contents"} or not contents.is_dir()):
+        raise ValueError("Invalid import runtime application layout")
+    expected = {"Info.plist", "MacOS", "PlugIns", "Resources"}
+    if signed:
+        expected.add("_CodeSignature")
+    if {path.name for path in contents.iterdir()} != expected:
+        raise ValueError("Invalid import runtime Contents layout")
+    try:
+        info = plistlib.loads((contents / "Info.plist").read_bytes())
+    except (OSError, plistlib.InvalidFileException, ValueError) as error:
+        raise ValueError("Invalid import runtime Info.plist") from error
+    if info != helper_info():
+        raise ValueError("Import runtime Info.plist identity mismatch")
+    executable = bundle / PIN["executable"]
+    macos, plugins, resources = contents / "MacOS", bundle / PIN["extensionDirectory"], contents / "Resources"
+    if (not macos.is_dir() or {path.name for path in macos.iterdir()} != {executable.name} or
+            not executable.is_file() or macho_file_type(executable) != 2):  # MH_EXECUTE
+        raise ValueError("Invalid import runtime executable layout")
+    if not plugins.is_dir() or not list(plugins.iterdir()):
+        raise ValueError("Missing import runtime plug-ins")
+    for path in plugins.iterdir():
+        if not path.is_file() or path.suffix != ".so" or macho_file_type(path) != 8:  # MH_BUNDLE
+            raise ValueError("Invalid import runtime plug-in layout")
+    licenses = {"LICENSE-Python.txt", *LIBLZMA_PIN["licenseFiles"].values()}
+    if (not resources.is_dir() or {path.name for path in resources.iterdir()} != {"lib", *licenses} or
+            any(not (resources / name).is_file() for name in licenses)):
+        raise ValueError("Invalid import runtime resource layout")
+    library = bundle / PIN["standardLibraryDirectory"]
+    if (not (resources / "lib").is_dir() or
+            {path.name for path in (resources / "lib").iterdir()} != {library.name} or
+            not library.is_dir() or not any(library.iterdir())):
+        raise ValueError("Missing private import standard library")
+    for path in files:
+        if path.is_relative_to(resources):
+            with path.open("rb") as stream:
+                if stream.read(4) in MACH_MAGICS:
+                    raise ValueError("Mach-O code is forbidden in runtime Resources")
+    if signed:
+        seal = contents / "_CodeSignature"
+        if (not seal.is_dir() or {path.name for path in seal.iterdir()} != {"CodeResources"} or
+                not (seal / "CodeResources").is_file() or not (seal / "CodeResources").stat().st_size):
+            raise ValueError("Invalid import runtime signature seal")
+    return files
+
+
+def launcher_proof():
+    if LAUNCHER_SOURCE.is_symlink() or not LAUNCHER_SOURCE.is_file():
+        raise ValueError("Invalid private import launcher source")
+    return {"source": "tools/import_python_main.c", "sourceSHA256": sha256(LAUNCHER_SOURCE)}
+
+
 def version_tuple(value):
     if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){0,2}", value):
         raise ValueError("Invalid Mach-O minimum OS")
@@ -192,23 +271,32 @@ def check_macho(path, architecture, minimum):
 
 
 def verify_relocation(runtime):
-    """Executed on the final relocated tree, with hostile Python env ignored."""
+    """Execute the final helper with exact bundle paths and hostile Python env."""
+    checked_runtime_layout(runtime, signed=True)
     runtime = Path(runtime).resolve()
     script = (
         "import importlib,json,os,sys; root=os.path.realpath(sys.argv[1]); "
         "[importlib.import_module(x) for x in json.loads(sys.argv[2])]; "
         "assert sys.version.split()[0]==sys.argv[3]; "
         "assert sys.flags.isolated and sys.flags.no_site and sys.flags.dont_write_bytecode; "
-        "assert os.path.realpath(sys.prefix)==root; "
-        "assert all(os.path.commonpath([root,os.path.realpath(x)])==root for x in sys.path); "
-        "print(json.dumps({'version':sys.version.split()[0],'isolated':True,'moduleClosure':True}))"
+        "prefix=os.path.join(root,'Contents'); "
+        "assert all(x==prefix for x in (sys.prefix,sys.exec_prefix,sys.base_prefix,sys.base_exec_prefix)); "
+        "assert sys.path==[os.path.join(root,x) for x in json.loads(sys.argv[4])]; "
+        "executable=os.path.join(root,sys.argv[5]); "
+        "assert sys.executable==executable and sys._base_executable==executable; "
+        "print(json.dumps({'version':sys.version.split()[0],'isolated':True,'moduleClosure':True,"
+        "'bundleLayout':True,'executableBound':True}))"
     )
     with tempfile.TemporaryDirectory(prefix="magnolie-python-hostile-") as hostile:
         Path(hostile, "sitecustomize.py").write_text("raise RuntimeError('external Python path admitted')\n")
-        environment = {"PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "PYTHONPATH": hostile, "PYTHONHOME": hostile}
+        environment = {"PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "PYTHONPATH": hostile, "PYTHONHOME": hostile,
+                       "PYTHONEXECUTABLE": str(Path(hostile) / "foreign-python"),
+                       "__PYVENV_LAUNCHER__": str(Path(hostile) / "foreign-launcher")}
         response = subprocess.check_output(
             [str(runtime / PIN["executable"]), "-I", "-S", "-B", "-c", script, str(runtime),
-             json.dumps(PIN["requiredModules"]), PIN["version"]], cwd=hostile, env=environment,
+             json.dumps(PIN["requiredModules"]), PIN["version"],
+             json.dumps([PIN["standardLibraryDirectory"], PIN["extensionDirectory"]]), PIN["executable"]],
+            cwd=hostile, env=environment,
             timeout=30, text=True)
     return json.loads(response)
 
@@ -249,16 +337,29 @@ def build_runtime(archive, destination, architecture, minimum, liblzma_archive=N
                         "--without-readline", "--with-pkg-config=no", "--enable-experimental-jit=no"],
                        cwd=source, env=python_environment, check=True, timeout=180)
         subprocess.run(["make", "-j2"], cwd=source, env=python_environment, check=True, timeout=900)
-        (destination / "bin").mkdir(parents=True)
-        # CPython calls this python.exe on case-insensitive Mac volumes because
-        # its source already contains a directory named Python.
-        binaries = [path for path in [source / "python", source / "python.exe"] if path.is_file() and not path.is_symlink()]
-        if len(binaries) != 1:
-            raise ValueError("Ambiguous CPython executable output")
-        shutil.copy2(binaries[0], destination / PIN["executable"])
-        library = destination / "lib" / ("python" + PIN["series"])
+        launcher = launcher_proof()
+        (source / "Programs").mkdir(exist_ok=True)
+        shutil.copyfile(LAUNCHER_SOURCE, source / "Programs/magnolie_import_python.c")
+        # #802: reuse the pinned CPython build's exact core/link variables;
+        # its normal build interpreter remains untouched throughout make.
+        (source / "MagnolieImport.mk").write_text(
+            "Programs/magnolie_import_python.o: $(srcdir)/Programs/magnolie_import_python.c $(PYTHON_HEADERS)\n"
+            "\t$(CC) -c $(PY_CORE_CFLAGS) -o $@ $(srcdir)/Programs/magnolie_import_python.c\n"
+            "magnolie-import-python: Programs/magnolie_import_python.o $(LINK_PYTHON_DEPS)\n"
+            "\t$(LINKCC) $(PY_CORE_EXE_LDFLAGS) $(LINKFORSHARED) -o $@ Programs/magnolie_import_python.o "
+            "$(LINK_PYTHON_OBJS) $(LIBS) $(MODLIBS) $(SYSLIBS)\n")
+        subprocess.run(["make", "-f", "Makefile", "-f", "MagnolieImport.mk", "magnolie-import-python"],
+                       cwd=source, env=python_environment, check=True, timeout=180)
+        binary = source / "magnolie-import-python"
+        if binary.is_symlink() or not binary.is_file():
+            raise ValueError("Missing private CPython launcher output")
+        bundle = destination / PIN["sdkBundleDirectory"]
+        (bundle / PIN["executable"]).parent.mkdir(parents=True)
+        shutil.copy2(binary, bundle / PIN["executable"])
+        (bundle / "Contents/Info.plist").write_bytes(plistlib.dumps(helper_info(), sort_keys=True))
+        library = bundle / PIN["standardLibraryDirectory"]
         shutil.copytree(source / "Lib", library, ignore=lambda _, names: [name for name in names if name in EXCLUDED])
-        dynamic = library / "lib-dynload"
+        dynamic = bundle / PIN["extensionDirectory"]
         dynamic.mkdir()
         builds = list((source / "build").glob("lib.*"))
         if len(builds) != 1 or builds[0].is_symlink() or not builds[0].is_dir():
@@ -270,46 +371,73 @@ def build_runtime(archive, destination, architecture, minimum, liblzma_archive=N
                 raise ValueError("Linked CPython metadata output refused")
             elif path.name.startswith("_sysconfigdata_") and path.suffix == ".py":
                 shutil.copy2(path, library / path.name)
-        shutil.copy2(source / "LICENSE", destination / "LICENSE-Python.txt")
+        resources = bundle / "Contents/Resources"
+        shutil.copy2(source / "LICENSE", resources / "LICENSE-Python.txt")
         for original, installed in LIBLZMA_PIN["licenseFiles"].items():
-            shutil.copy2(liblzma["source"] / original, destination / installed)
+            shutil.copy2(liblzma["source"] / original, resources / installed)
     # No original build path remains available at this point.
-    proof = verify_relocation(destination)
+    checked_runtime_layout(bundle)
     images = {}
-    for path in checked_files(destination):
-        if is_macho(path):
-            images[str(path.relative_to(destination))] = check_macho(path, architecture, minimum)
-            subprocess.run(["codesign", "--force", "--sign", "-", str(path)], check=True)
-            subprocess.run(["codesign", "--verify", "--strict", str(path)], check=True)
-    if PIN["executable"] not in images:
-        raise ValueError("Runtime executable is not Mach-O")
-    manifest = {"schema": 1, "pin": PIN, "architecture": architecture, "minimumSystemVersion": minimum,
+    image_paths = [bundle / PIN["executable"], *sorted((bundle / PIN["extensionDirectory"]).iterdir())]
+    for path in image_paths:
+        images[str(path.relative_to(bundle))] = check_macho(path, architecture, minimum)
+    for path in image_paths[1:]:
+        subprocess.run(["codesign", "--force", "--sign", "-", str(path)], check=True)
+    # Signing the main executable directly can sign its enclosing bundle. Sign
+    # only the complete helper once, after its nested plug-ins are final.
+    subprocess.run(["codesign", "--force", "--sign", "-", str(bundle)], check=True)
+    for path in image_paths:
+        subprocess.run(["codesign", "--verify", "--strict", str(path)], check=True)
+    subprocess.run(["codesign", "--verify", "--deep", "--strict", str(bundle)], check=True)
+    proof = verify_relocation(bundle)
+    manifest = {"schema": 2, "pin": PIN, "architecture": architecture, "minimumSystemVersion": minimum,
                 "relocation": proof, "machO": images,
+                "launcher": launcher,
                 "staticDependencies": {"liblzma": liblzma["proof"]},
-                "files": {str(path.relative_to(destination)): sha256(path) for path in checked_files(destination)},
+                "files": {str(path.relative_to(bundle)): sha256(path)
+                          for path in checked_runtime_layout(bundle, signed=True)},
                 "signing": "ad-hoc development only", "nativeUIValidated": False}
     (destination / "runtime.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     return manifest
 
 
 def bundle_runtime(app, runtime):
-    """Accept only the exact, complete locally built SDK; sign nested images first."""
+    """Copy the complete sealed helper and external inventory; never re-sign it."""
     runtime = Path(runtime)
-    manifest = json.loads((runtime / "runtime.json").read_text())
-    if (manifest.get("schema") != 1 or manifest.get("pin") != PIN or
+    checked_files(runtime)
+    if ({path.name for path in runtime.iterdir()} != {PIN["sdkBundleDirectory"], "runtime.json"} or
+            not (runtime / "runtime.json").is_file()):
+        raise ValueError("Invalid import runtime SDK layout")
+    manifest_bytes = (runtime / "runtime.json").read_bytes()
+    manifest = json.loads(manifest_bytes)
+    if (manifest.get("schema") != 2 or manifest.get("pin") != PIN or
             manifest.get("architecture") != platform.machine() or
-            manifest.get("minimumSystemVersion") != PIN["minimumSystemVersion"]):
+            manifest.get("minimumSystemVersion") != PIN["minimumSystemVersion"] or
+            manifest.get("launcher") != launcher_proof()):
         raise ValueError("Import runtime identity mismatch")
-    actual = {str(path.relative_to(runtime)): sha256(path) for path in checked_files(runtime) if path.name != "runtime.json"}
+    bundle = runtime / PIN["sdkBundleDirectory"]
+    actual = {str(path.relative_to(bundle)): sha256(path) for path in checked_runtime_layout(bundle, signed=True)}
     if manifest.get("files") != actual:
         raise ValueError("Import runtime inventory mismatch")
     target = Path(app) / "Contents" / PIN["bundleDirectory"]
-    shutil.copytree(runtime, target)
-    for path in checked_files(target):
-        if is_macho(path):
-            check_macho(path, platform.machine(), PIN["minimumSystemVersion"])
-            subprocess.run(["codesign", "--verify", "--strict", str(path)], check=True)
+    shutil.copytree(bundle, target)
+    copied = {str(path.relative_to(target)): sha256(path) for path in checked_runtime_layout(target, signed=True)}
+    if copied != actual:
+        raise ValueError("Copied import runtime inventory mismatch")
+    images = {}
+    for path in [target / PIN["executable"], *sorted((target / PIN["extensionDirectory"]).iterdir())]:
+        images[str(path.relative_to(target))] = check_macho(path, platform.machine(), PIN["minimumSystemVersion"])
+        subprocess.run(["codesign", "--verify", "--strict", str(path)], check=True)
+    if images != manifest.get("machO"):
+        raise ValueError("Import runtime Mach-O inventory mismatch")
+    subprocess.run(["codesign", "--verify", "--deep", "--strict", str(target)], check=True)
     verify_relocation(target)
+    # The manifest cannot be part of its own hash inventory or signed helper.
+    # It is an ordinary resource, sealed later by the outer application.
+    target_manifest = Path(app) / "Contents" / PIN["bundleManifest"]
+    target_manifest.parent.mkdir(parents=True)
+    with target_manifest.open("xb") as output:
+        output.write(manifest_bytes)
     return manifest
 
 

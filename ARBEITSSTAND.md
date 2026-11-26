@@ -35,7 +35,7 @@ mit **13/13 Tests**. [Mac-Lauf #93 / 45791918626](https://github.com/maik3531/Ma
 hat auf genau dem veröffentlichten Fixcommit
 `cc9dc29a606658b7937eb7261409564c96f93775` den Runtimebau auf **ARM64 und Intel
 bestanden**: isolierter Modulabschluss einschließlich LZMA, je 704
-inventarisierte Dateien und 52 Mach-O-Dateien, Mindestversion 12.7, nur
+inventarisierte Dateien und 52 Mach-O-Dateien, deklariertes Deploymentziel 12.7, nur
 Systembibliotheksabhängigkeiten sowie beide originalen XZ-Lizenztexte.
 
 Beide Jobs zeigten danach denselben nächsten Prüftreiberrest
@@ -69,8 +69,30 @@ korrigiert zwei unzutreffende Swift-Testprüfungen (Notes-Reason vs. Bodyfeld,
 Character- vs. Byteentfaltung) und ersetzt den verlustbehafteten JSON-Reparse
 vor der Reminder-Editorprüfung durch eine begrenzte native Wertkopie.
 Originaltext, mutable-input-Isolation, Budgets und Revisionbindung bleiben
-Gegenstand der gezielten nativen Regressionen. Diese neuen Swiftänderungen
-sind lokal reviewed, mangels Swift aber noch nicht ausgeführt.
+Gegenstand der gezielten nativen Regressionen. Die lokale Umgebung hat kein
+Swift; der nachfolgende echte Mac-Lauf bestätigt die Änderungen.
+
+[Mac-Lauf #95 / 45799895334](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45799895334)
+prüfte exakt `3c0b4bb410a5ab514e3deae7fb665a692eb436c2`. Auf ARM64 und
+Intel bestehen nun beide gesamten Hostläufe: **35 Tests, 0 Fehler, 1 Skip**
+(594,947 beziehungsweise 800,281 Sekunden). Alle vier Swift-Gesamtläufe
+führen je **501 Tests ohne Fehler** aus; die Kontexte haben je **4/5/5/6
+Skips**. Die Wiederholungen werden nicht addiert. #796/#797 sind damit auf
+beiden Architekturen nativ bestätigt, einschließlich der neuen FEFF-,
+Revision-, Textkopier- und Faltungsregressionen.
+
+Der App-Code kompiliert. Erst die äußere Appsignatur scheitert auf beiden
+Rechnern am gemischten Python-Verzeichnis unter `Contents/Helpers`: ARM64
+meldet `runtime.json`, Intel `LICENSE-XZ-Utils.txt` als unsignierten Code.
+Der neue Folgeauftrag [#802](https://github.com/maik3531/Magnolie-Organizer/issues/802)
+trennt deshalb Programm, native Plug-ins und Ressourcen in einem echten
+internen Helper-Bundle. Ein begrenzter isolierter PyConfig-Launcher erhält
+den statischen Python-Kern und feste interne Suchpfade. Das SDK-Inventar
+entsteht außerhalb des Helpers nach dessen Signatur; die äußere App wird
+zuletzt signiert. Die erweiterte Runtime-Hostsuite besteht mit 21/21 Tests;
+lokale C/API-Proben und unabhängiger Quellreview sind abgeschlossen.
+App-Smoke und Entwicklungspaketierung sind in #95 noch nicht erreicht.
+Die tatsächliche native Folgeabnahme des Layoutfixes steht aus.
 
 Der zusätzliche Desktop-Archivblocker
 [#787](https://github.com/maik3531/Magnolie-Organizer/issues/787) ist im Quellstand

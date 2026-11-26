@@ -66,7 +66,7 @@ enum FileImportProcess {
 
     static func run(_ input: FileImportProtocol.Input, bundle: URL) throws -> [String: Any] {
         let contents = bundle.resolvingSymlinksInPath().appendingPathComponent("Contents")
-        let executable = try fixedFile(contents, "Helpers/ImportPython/bin/python3.15")
+        let executable = try fixedFile(contents, "Helpers/ImportPython.app/Contents/MacOS/python3.15")
         let helper = try fixedFile(contents, "Resources/ImportHelper/helper.py")
         let manifest = try fixedFile(contents, "Resources/ImportHelper/manifest.json")
         let manifestBytes = try Data(contentsOf: manifest, options: [.mappedIfSafe])

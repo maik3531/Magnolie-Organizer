@@ -24,7 +24,7 @@ Dokumentations-Head nicht als neuen vollständig getesteten Codecommit ausgeben.
 
 **Verifizierter Abschluss am 26. November 2026:** Der Arbeitszweig ist veröffentlicht. Alle **31 Issue-Kommentare** wurden angelegt und mit identischem vollständigem Text zurückgelesen. Ihre Dokument- und Patchlinks sind an `cf7b3f2bf4e8afee662a4926f32fc989d7ff7df8` gebunden. [Die vollständigen Kommentar-URLs und Rücklesebelege](macos-issue-publication-receipts-2026-11-26.md) dokumentieren den Abschluss. Die native Mac-Abnahme und die ausdrücklich genannten Restarbeiten bleiben offen. Ein neuer Chat prüft den heutigen Stand und veröffentlicht diese Übergabe nicht erneut.
 
-**Native Fortsetzung:** Die späteren echten GitHub-Mac-Läufe #91 bis #94
+**Native Fortsetzung:** Die späteren echten GitHub-Mac-Läufe #91 bis #95
 sind im Fortsetzungsbericht unten dokumentiert. #92 hat die Swift-Korrekturen
 und Zeitzonenreferenzphasen auf ARM64 und Intel bestätigt und anschließend den
 Runtime-Baurest #789 konkret gezeigt. #93 hat den korrigierten Runtimebau
@@ -32,7 +32,14 @@ einschließlich isoliertem Modulabschluss auf beiden Architekturen bestanden
 und danach den Tempwurzelrest der Prüftreiber #793 sichtbar gemacht.
 #94 bestätigt den Tempwurzelfix mit 17 ImportHelper-/Pfadtests und 90 OR6→UI-
 Prüfungen auf beiden Architekturen. Die folgenden Host-/Swift-Fälle sind in
-#796/#797 getrennt mit ihren tatsächlichen Ursachen dokumentiert. Der
+#796/#797 getrennt mit ihren tatsächlichen Ursachen dokumentiert.
+#95 auf `3c0b4bb410a5ab514e3deae7fb665a692eb436c2` bestätigt beide
+gesamten Hostläufe mit 35 Tests, 0 Fehlern und 1 Skip sowie je vier
+Swift-Durchläufe mit jeweils 501 Tests ohne Fehler (4/5/5/6 Skips).
+Erst die äußere Appsignatur zeigt den neuen Bundlelayoutrest #802;
+App-Smoke und Entwicklungspaketierung wurden in diesem Lauf nicht erreicht.
+Der Layoutfix und seine tatsächliche nächste Abnahme sind getrennt zu lesen.
+Der
 Windows-Archivfix #787 besteht nativ; der separate Windows-Cleanuprest #794
 ist ein Folgeauftrag und kein erledigter Produktfix.
 Der ursprüngliche Hostnachweis bleibt
@@ -41,7 +48,7 @@ native Abnahme gelesen werden. Den aktuellen Head und neuere Läufe nachlesen.
 
 ## Maßgebliche Dokumente
 
-- [Fortsetzung: tatsächliche native Mac-Läufe und Folgefixes #787/#788/#789/#793/#796/#797](../Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md)
+- [Fortsetzung: tatsächliche native Mac-Läufe und Folgefixes #787/#788/#789/#793/#796/#797/#802](../Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md)
 - [Einzelbefunde, Patchreihenfolge und offene Teile](macos-issue-handoff-2026-11-26.md)
 - [Vollständiges Issue-Inventar](macos-issue-inventory-2026-11-26.json)
 - [Prüflogs und Quellbindungen](macos-verification-2026-11-26/README.md)
@@ -52,11 +59,14 @@ native Abnahme gelesen werden. Den aktuellen Head und neuere Läufe nachlesen.
 
 ## Prüfstatus und wesentliche Grenzen
 
-Der vollständige Hostlauf bestand **35/35 Gruppen**. Zusätzlich ausgewiesen
-sind **90 OR6→Helper→UI-Prüfungen** und **107 Sync-UI-Prüfungen**. Die Umfänge
-überlappen; sie werden nicht zu einer Gesamtzahl addiert. Rohbelege und genaue
-Quellstände stehen im Prüfverzeichnis. Die ursprünglichen Testtreiberfehler und
-ihre Korrekturen dürfen nicht aus dem Nachweis entfernt werden.
+Der ursprüngliche Linux-Hostlauf auf
+`7c9cf20394aef73d261a77f746ebca7340826d30` bestand **35/35 Gruppen**.
+Zusätzlich ausgewiesen sind **90 OR6→Helper→UI-Prüfungen** und **107
+Sync-UI-Prüfungen**. Dies ist der historische Übergabenachweis, kein aktueller
+nativer Mac-Vollpass. Die Umfänge überlappen und werden nicht addiert.
+Rohbelege und genaue Quellstände stehen im Prüfverzeichnis. Die ursprünglichen
+Testtreiberfehler und ihre Korrekturen dürfen nicht aus dem Nachweis entfernt
+werden.
 
 Die Arbeitsumgebung „Magnolie-Organizer einrichten“ war Linux x86_64. Hier
 liefen keine neue native Swift-Kompilierung, Apple-SDK-Abnahme oder macOS-VM.
@@ -132,9 +142,15 @@ alle Kommentar-IDs, URLs und Text-Hashes. Diese Schritte nicht neu ausführen.
 Native Abnahme und die dokumentierten technischen Reste bleiben offen.
 
 QUELLANKER
+- Nativer Folgelauf #95 auf tatsächlichem Quellcommit:
+  3c0b4bb410a5ab514e3deae7fb665a692eb436c2
+  https://github.com/maik3531/Magnolie-Organizer/actions/runs/45799895334
+  Host-/Swift-Tests auf ARM64 und Intel erfolgreich; danach äußerer
+  App-Signaturrest #802. Neuere Layoutfixes und deren genaue Abnahme im
+  Fortsetzungsbericht und im tatsächlichen Repository-Head lesen.
 - Vollständiger ursprünglicher Übergabecommit:
   0dfeb1b30a208480eb6901e3d3148a5efeaae5ff
-- Zuletzt vollständig geprüfter Codecommit:
+- Geprüfter Codecommit der ursprünglichen Linux-Übergabe:
   7c9cf20394aef73d261a77f746ebca7340826d30
 - API-Quellcommit A:
   8efc6834abd16f18300f3d59a1897c81758b0c34

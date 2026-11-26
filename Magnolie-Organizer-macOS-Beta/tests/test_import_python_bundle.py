@@ -1,10 +1,12 @@
-"""Host checks for the #785 build boundary; never a native-Mac pass claim."""
+"""Host checks for #785/#802 build boundaries; never a native-Mac pass claim."""
 import io
 import hashlib
 import json
 from pathlib import Path
+import plistlib
 import shlex
 import shutil
+import struct
 import subprocess
 import sys
 import tarfile
@@ -17,6 +19,53 @@ import import_python_bundle as runtime
 
 
 class ImportPythonBundleTests(unittest.TestCase):
+    @staticmethod
+    def macho(filetype):
+        # Minimal little-endian arm64 mach_header_64, not executable test code.
+        return struct.pack("<IiiIIIII", 0xFEEDFACF, 0x0100000C, 0, filetype, 0, 0, 0, 0)
+
+    def helper_bundle(self, root, *, signed=True):
+        bundle = root / "ImportPython.app"
+        contents = bundle / "Contents"
+        for name in ("MacOS", "PlugIns", "Resources/lib/python3.15/encodings"):
+            (contents / name).mkdir(parents=True)
+        info = {"CFBundleIdentifier": "io.gitlab.maik3531.MagnolieOrganizer.ImportPython",
+                "CFBundleName": "ImportPython", "CFBundleExecutable": "python3.15",
+                "CFBundlePackageType": "APPL", "CFBundleInfoDictionaryVersion": "6.0",
+                "CFBundleShortVersionString": "3.15.2", "CFBundleVersion": "3.15.2",
+                "LSMinimumSystemVersion": "12.7", "LSBackgroundOnly": True}
+        (contents / "Info.plist").write_bytes(plistlib.dumps(info))
+        (contents / "MacOS/python3.15").write_bytes(self.macho(2) + b"interpreter fixture")
+        (contents / "MacOS/python3.15").chmod(0o755)
+        (contents / "PlugIns/_lzma.cpython-315-darwin.so").write_bytes(self.macho(8) + b"extension fixture")
+        (contents / "Resources/lib/python3.15/os.py").write_bytes(b"# stdlib fixture\n")
+        (contents / "Resources/lib/python3.15/encodings/__init__.py").write_bytes(b"# encoding fixture\n")
+        for name in ("LICENSE-Python.txt", "LICENSE-XZ-Utils.txt", "LICENSE-liblzma-0BSD.txt"):
+            (contents / "Resources" / name).write_bytes(b"license fixture\n")
+        if signed:
+            seal = contents / "_CodeSignature/CodeResources"
+            seal.parent.mkdir()
+            seal.write_bytes(plistlib.dumps({"fixture": "not a real code signature"}))
+        return bundle
+
+    @staticmethod
+    def inventory(bundle):
+        return {str(path.relative_to(bundle)): hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(bundle.rglob("*")) if path.is_file()}
+
+    def sdk(self, root):
+        bundle = self.helper_bundle(root)
+        manifest = {"schema": 2, "pin": runtime.PIN, "architecture": "arm64", "minimumSystemVersion": "12.7",
+                    "launcher": {"source": "tools/import_python_main.c",
+                                 "sourceSHA256": runtime.sha256(runtime.BETA / "tools/import_python_main.c")},
+                    "files": self.inventory(bundle),
+                    "machO": {path: {"minimumOS": ["12.7"], "dependencies": ["/usr/lib/libSystem.B.dylib"]}
+                              for path in ("Contents/MacOS/python3.15", "Contents/PlugIns/_lzma.cpython-315-darwin.so")},
+                    "relocation": {"isolated": True, "moduleClosure": True},
+                    "signing": "ad-hoc development only", "nativeUIValidated": False}
+        (root / "runtime.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+        return bundle, manifest
+
     def archive(self, root, entries):
         path = root / "source.tar.xz"
         with tarfile.open(path, "w:xz") as archive:
@@ -80,6 +129,196 @@ class ImportPythonBundleTests(unittest.TestCase):
             (root / "alias").symlink_to("actual")
             with self.assertRaisesRegex(ValueError, "Linked"):
                 runtime.checked_files(root)
+
+    def test_helper_layout_separates_code_resources_and_final_signature(self):
+        with tempfile.TemporaryDirectory() as name:
+            bundle = self.helper_bundle(Path(name), signed=False)
+            files = runtime.checked_runtime_layout(bundle)
+            self.assertEqual(len(files), 8)
+            self.assertIn(bundle / "Contents/MacOS/python3.15", files)
+            self.assertIn(bundle / "Contents/PlugIns/_lzma.cpython-315-darwin.so", files)
+            self.assertIn(bundle / "Contents/Resources/LICENSE-XZ-Utils.txt", files)
+            with self.assertRaises(ValueError):
+                runtime.checked_runtime_layout(bundle, signed=True)
+            seal = bundle / "Contents/_CodeSignature/CodeResources"
+            seal.parent.mkdir(); seal.write_bytes(b"final signature resource fixture")
+            self.assertEqual(set(runtime.checked_runtime_layout(bundle, signed=True)), set(files) | {seal})
+
+    def test_helper_layout_rejects_old_prefix_misplaced_data_and_wrong_code_types(self):
+        cases = ("old-prefix", "json-in-MacOS", "license-in-PlugIns", "code-in-Resources",
+                 "code-disguised-as-archive", "wrong-executable-type", "wrong-extension-type",
+                 "nested-extensions", "root-data", "contents-data", "wrong-bundle-identity",
+                 "resource-link", "extra-signature-file")
+        for case in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as name:
+                bundle = self.helper_bundle(Path(name))
+                contents = bundle / "Contents"
+                if case == "old-prefix":
+                    shutil.rmtree(contents)
+                    (bundle / "bin").mkdir(); (bundle / "lib/python3.15").mkdir(parents=True)
+                    (bundle / "bin/python3.15").write_bytes(self.macho(2))
+                    (bundle / "runtime.json").write_bytes(b"{}")
+                    (bundle / "LICENSE-XZ-Utils.txt").write_bytes(b"license")
+                    (bundle / "lib/python3.15/os.py").write_bytes(b"stdlib")
+                elif case == "json-in-MacOS": (contents / "MacOS/runtime.json").write_bytes(b"{}")
+                elif case == "license-in-PlugIns": (contents / "PlugIns/LICENSE-XZ-Utils.txt").write_bytes(b"license")
+                elif case in ("code-in-Resources", "code-disguised-as-archive"):
+                    suffix = ".so" if case == "code-in-Resources" else ".a"
+                    (contents / ("Resources/lib/python3.15/unreviewed" + suffix)).write_bytes(self.macho(8))
+                elif case == "wrong-executable-type": (contents / "MacOS/python3.15").write_bytes(self.macho(8))
+                elif case == "wrong-extension-type": (contents / "PlugIns/_lzma.cpython-315-darwin.so").write_bytes(self.macho(6))
+                elif case == "nested-extensions":
+                    nested = contents / "PlugIns/group"; nested.mkdir()
+                    (contents / "PlugIns/_lzma.cpython-315-darwin.so").rename(nested / "_lzma.cpython-315-darwin.so")
+                elif case == "root-data": (bundle / "runtime.json").write_bytes(b"{}")
+                elif case == "contents-data": (contents / "runtime.json").write_bytes(b"{}")
+                elif case == "wrong-bundle-identity":
+                    info = plistlib.loads((contents / "Info.plist").read_bytes())
+                    info["CFBundleExecutable"] = "../Resources/python3.15"
+                    (contents / "Info.plist").write_bytes(plistlib.dumps(info))
+                elif case == "resource-link":
+                    (contents / "Resources/alias.py").symlink_to("lib/python3.15/os.py")
+                else: (contents / "_CodeSignature/unexpected").write_bytes(b"unreviewed signature data")
+                message = "Mach-O code is forbidden" if case in ("code-in-Resources", "code-disguised-as-archive") else ".*"
+                with self.assertRaisesRegex(ValueError, message):
+                    runtime.checked_runtime_layout(bundle, signed=True)
+
+    def test_bundle_copy_preserves_all_signed_bytes_and_keeps_manifest_outside_helper(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name); sdk = root / "sdk"
+            helper, manifest = self.sdk(sdk)
+            before = self.inventory(helper)
+            app = root / "Magnolie.app"; (app / "Contents/Resources").mkdir(parents=True)
+            with patch.object(runtime.platform, "machine", return_value="arm64"), \
+                 patch.object(runtime, "check_macho", return_value={"minimumOS": ["12.7"], "dependencies": ["/usr/lib/libSystem.B.dylib"]}), \
+                 patch.object(runtime.subprocess, "run", return_value=subprocess.CompletedProcess([], 0)) as codesign, \
+                 patch.object(runtime, "verify_relocation", return_value={"isolated": True, "moduleClosure": True}) as relocation:
+                result = runtime.bundle_runtime(app, sdk)
+            copied = app / "Contents/Helpers/ImportPython.app"
+            self.assertEqual(result, manifest)
+            self.assertEqual(self.inventory(copied), before)
+            self.assertEqual(self.inventory(helper), before)
+            self.assertEqual((copied / "Contents/MacOS/python3.15").stat().st_mode & 0o777, 0o755)
+            self.assertEqual((app / "Contents/Resources/ImportPython/runtime.json").read_bytes(), (sdk / "runtime.json").read_bytes())
+            self.assertFalse((copied / "runtime.json").exists())
+            self.assertFalse((copied / "Contents/Resources/runtime.json").exists())
+            relocation.assert_called_with(copied)
+            self.assertTrue(codesign.called)
+            for call in codesign.call_args_list:
+                self.assertEqual(call.args[0][0], "codesign")
+                self.assertIn("--verify", call.args[0])
+                self.assertNotIn("--sign", call.args[0])
+
+    def test_bundle_copy_rejects_modified_missing_and_extra_signed_files(self):
+        cases = ("interpreter", "extension", "seal", "missing-seal", "added-resource", "missing-resource", "manifest-extra")
+        for case in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as name:
+                root = Path(name); sdk = root / "sdk"
+                helper, manifest = self.sdk(sdk)
+                if case == "manifest-extra":
+                    manifest["files"]["../outside"] = "0" * 64
+                    (sdk / "runtime.json").write_text(json.dumps(manifest))
+                else:
+                    paths = {"interpreter": "Contents/MacOS/python3.15",
+                             "extension": "Contents/PlugIns/_lzma.cpython-315-darwin.so",
+                             "seal": "Contents/_CodeSignature/CodeResources", "missing-seal": "Contents/_CodeSignature/CodeResources",
+                             "added-resource": "Contents/Resources/lib/python3.15/extra.py", "missing-resource": "Contents/Resources/lib/python3.15/os.py"}
+                    path = helper / paths[case]
+                    if case.startswith("missing-"): path.unlink()
+                    else: path.write_bytes((path.read_bytes() if path.exists() else b"") + b"changed")
+                app = root / "Magnolie.app"; (app / "Contents/Resources").mkdir(parents=True)
+                with patch.object(runtime.platform, "machine", return_value="arm64"), \
+                     patch.object(runtime.subprocess, "run") as codesign, \
+                     patch.object(runtime, "verify_relocation") as relocation, self.assertRaises(ValueError):
+                    runtime.bundle_runtime(app, sdk)
+                self.assertFalse((app / "Contents/Helpers/ImportPython.app").exists())
+                codesign.assert_not_called(); relocation.assert_not_called()
+
+    def test_bundle_copy_detects_resource_change_during_copy(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name); sdk = root / "sdk"
+            self.sdk(sdk)
+            app = root / "Magnolie.app"; (app / "Contents/Resources").mkdir(parents=True)
+            copytree = shutil.copytree
+            def changed_copy(source, destination, *args, **kwargs):
+                result = copytree(source, destination, *args, **kwargs)
+                if Path(destination).name == "ImportPython.app":
+                    (Path(destination) / "Contents/Resources/lib/python3.15/os.py").write_bytes(b"changed during copy")
+                return result
+            with patch.object(runtime.platform, "machine", return_value="arm64"), \
+                 patch.object(runtime.shutil, "copytree", side_effect=changed_copy), \
+                 patch.object(runtime.subprocess, "run", return_value=subprocess.CompletedProcess([], 0)), \
+                 patch.object(runtime, "check_macho", return_value={"minimumOS": ["12.7"], "dependencies": ["/usr/lib/libSystem.B.dylib"]}), \
+                 patch.object(runtime, "verify_relocation") as relocation, self.assertRaises(ValueError):
+                runtime.bundle_runtime(app, sdk)
+            relocation.assert_not_called()
+
+    def test_bundle_copy_binds_the_manifest_to_the_current_launcher_and_native_identity(self):
+        for case in ("schema", "pin", "architecture", "minimum", "launcher"):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as name:
+                root = Path(name); sdk = root / "sdk"
+                _, manifest = self.sdk(sdk)
+                if case == "schema": manifest["schema"] = 1
+                elif case == "pin": manifest["pin"] = dict(manifest["pin"], version="unreviewed")
+                elif case == "architecture": manifest["architecture"] = "x86_64"
+                elif case == "minimum": manifest["minimumSystemVersion"] = "13.0"
+                else: manifest["launcher"]["sourceSHA256"] = "0" * 64
+                (sdk / "runtime.json").write_text(json.dumps(manifest))
+                app = root / "Magnolie.app"; (app / "Contents/Resources").mkdir(parents=True)
+                with patch.object(runtime.platform, "machine", return_value="arm64"), \
+                     patch.object(runtime.subprocess, "run") as codesign, self.assertRaises(ValueError):
+                    runtime.bundle_runtime(app, sdk)
+                self.assertFalse((app / "Contents/Helpers/ImportPython.app").exists())
+                codesign.assert_not_called()
+
+    def test_bundle_copy_requires_macho_evidence_to_match_the_copied_images(self):
+        for case in ("missing-image", "wrong-minimum", "wrong-dependency"):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as name:
+                root = Path(name); sdk = root / "sdk"
+                _, manifest = self.sdk(sdk)
+                image = "Contents/PlugIns/_lzma.cpython-315-darwin.so"
+                if case == "missing-image": del manifest["machO"][image]
+                elif case == "wrong-minimum": manifest["machO"][image]["minimumOS"] = ["14.0"]
+                else: manifest["machO"][image]["dependencies"] = ["/opt/homebrew/lib/liblzma.dylib"]
+                (sdk / "runtime.json").write_text(json.dumps(manifest))
+                app = root / "Magnolie.app"; (app / "Contents/Resources").mkdir(parents=True)
+                with patch.object(runtime.platform, "machine", return_value="arm64"), \
+                     patch.object(runtime.subprocess, "run", return_value=subprocess.CompletedProcess([], 0)), \
+                     patch.object(runtime, "check_macho", return_value={"minimumOS": ["12.7"], "dependencies": ["/usr/lib/libSystem.B.dylib"]}), \
+                     patch.object(runtime, "verify_relocation") as relocation, self.assertRaises(ValueError):
+                    runtime.bundle_runtime(app, sdk)
+                relocation.assert_not_called()
+                self.assertFalse((app / "Contents/Resources/ImportPython/runtime.json").exists())
+
+    def test_relocation_runs_only_the_signed_helper_with_hostile_environment_and_propagates_failure(self):
+        for successful in (True, False):
+            with self.subTest(successful=successful), tempfile.TemporaryDirectory() as name:
+                bundle = self.helper_bundle(Path(name).resolve())
+                proof = {"version": "3.15.2", "isolated": True, "moduleClosure": True,
+                         "bundleLayout": True, "executableBound": True}
+                def probe(command, **kwargs):
+                    self.assertEqual(command[0], str(bundle / "Contents/MacOS/python3.15"))
+                    self.assertEqual(command[1:5], ["-I", "-S", "-B", "-c"])
+                    self.assertEqual(command[6], str(bundle))
+                    self.assertEqual(json.loads(command[7]), runtime.PIN["requiredModules"])
+                    self.assertEqual(command[8], "3.15.2")
+                    self.assertEqual(json.loads(command[9]), ["Contents/Resources/lib/python3.15", "Contents/PlugIns"])
+                    self.assertEqual(command[10], "Contents/MacOS/python3.15")
+                    hostile = Path(kwargs["cwd"])
+                    self.assertTrue((hostile / "sitecustomize.py").is_file())
+                    environment = kwargs["env"]
+                    self.assertEqual(environment["PATH"], "/usr/bin:/bin:/usr/sbin:/sbin")
+                    self.assertEqual(environment["PYTHONHOME"], str(hostile))
+                    self.assertEqual(environment["PYTHONPATH"], str(hostile))
+                    for key in ("PYTHONEXECUTABLE", "__PYVENV_LAUNCHER__"):
+                        self.assertTrue(Path(environment[key]).is_relative_to(hostile))
+                    if not successful: raise subprocess.CalledProcessError(1, command)
+                    return json.dumps(proof)
+                with patch.object(runtime.subprocess, "check_output", side_effect=probe) as child:
+                    if successful: self.assertEqual(runtime.verify_relocation(bundle), proof)
+                    else:
+                        with self.assertRaises(subprocess.CalledProcessError): runtime.verify_relocation(bundle)
+                child.assert_called_once()
 
     def test_cpython_build_extension_links_become_regular_runtime_files(self):
         with tempfile.TemporaryDirectory() as name:
@@ -186,8 +425,9 @@ class ImportPythonBundleTests(unittest.TestCase):
                 (runtime.LIBLZMA_PIN["sourceRoot"] + "/configure", tarfile.REGTYPE, b"configure"),
                 (runtime.LIBLZMA_PIN["sourceRoot"] + "/COPYING", tarfile.REGTYPE, b"xz licensing summary"),
                 (runtime.LIBLZMA_PIN["sourceRoot"] + "/COPYING.0BSD", tarfile.REGTYPE, b"liblzma license")])
-            observed = {}
-            static_bytes, extension_bytes = b"!<arch>\nstatic codec fixture", b"\xcf\xfa\xed\xfeextension fixture"
+            observed, signing_order = {}, []
+            static_bytes, extension_bytes = b"!<arch>\nstatic codec fixture", self.macho(8) + b"extension fixture"
+            stock_bytes, launcher_bytes = self.macho(2) + b"stock interpreter", self.macho(2) + b"isolated launcher"
 
             def execute(command, **kwargs):
                 if command[0].endswith("/configure"):
@@ -205,9 +445,18 @@ class ImportPythonBundleTests(unittest.TestCase):
                         (prefix / "lib").mkdir(parents=True); (prefix / "include").mkdir()
                         (prefix / "lib/liblzma.a").write_bytes(static_bytes)
                         (prefix / "include/lzma.h").write_bytes(b"codec headers")
+                elif command[0] == "make" and "-f" in command:
+                    source = observed["python"]["source"]
+                    self.assertEqual(command, ["make", "-f", "Makefile", "-f", "MagnolieImport.mk", "magnolie-import-python"])
+                    self.assertEqual((source / "python.exe").read_bytes(), stock_bytes)
+                    self.assertEqual((source / "Programs/magnolie_import_python.c").read_bytes(),
+                                     (runtime.BETA / "tools/import_python_main.c").read_bytes())
+                    (source / "magnolie-import-python").write_bytes(launcher_bytes)
+                    (source / "magnolie-import-python").chmod(0o755)
+                    observed["launcher"] = True
                 elif command[0] == "make":
                     source = observed["python"]["source"]
-                    (source / "python.exe").write_bytes(b"\xcf\xfa\xed\xfeexecutable fixture")
+                    (source / "python.exe").write_bytes(stock_bytes)
                     extension = source / "Modules/_lzma.cpython-315.so"
                     extension.write_bytes(extension_bytes)
                     build = source / "build/lib.macosx-12.7-arm64-3.15"; build.mkdir(parents=True)
@@ -215,13 +464,34 @@ class ImportPythonBundleTests(unittest.TestCase):
                     (build / "_sysconfigdata__darwin_.py").write_bytes(b"build settings")
                 else:
                     self.assertEqual(command[0], "codesign")
+                    target = Path(command[-1])
+                    if "--sign" in command:
+                        self.assertNotIn("--deep", command)
+                        signing_order.append(target.name)
+                        if target.is_file():
+                            self.assertEqual(target.suffix, ".so")
+                            target.write_bytes(target.read_bytes() + b"individual code signature")
+                        else:
+                            self.assertEqual(target.name, "ImportPython.app")
+                            self.assertIn("_lzma.cpython-315.so", signing_order)
+                            executable = target / "Contents/MacOS/python3.15"
+                            executable.write_bytes(executable.read_bytes() + b"final helper signature")
+                            seal = target / "Contents/_CodeSignature/CodeResources"
+                            seal.parent.mkdir()
+                            seal.write_bytes(plistlib.dumps({"fixture": "final helper resource seal"}))
+                    else:
+                        self.assertIn("--verify", command)
+                        if target.is_dir(): self.assertTrue((target / "Contents/_CodeSignature/CodeResources").is_file())
                 return subprocess.CompletedProcess(command, 0)
 
-            def relocation(destination):
+            def relocation(bundle):
                 self.assertFalse(observed["python"]["source"].exists())
                 self.assertFalse(observed["xz"]["prefix"].exists())
-                self.assertEqual((destination / "lib/python3.15/lib-dynload/_lzma.cpython-315.so").read_bytes(), extension_bytes)
-                runtime.checked_files(destination)
+                self.assertEqual((bundle / "Contents/PlugIns/_lzma.cpython-315.so").read_bytes(),
+                                 extension_bytes + b"individual code signature")
+                self.assertEqual((bundle / "Contents/MacOS/python3.15").read_bytes(), launcher_bytes + b"final helper signature")
+                runtime.checked_runtime_layout(bundle, signed=True)
+                self.assertEqual(signing_order[-1], "ImportPython.app")
                 return {"isolated": True, "moduleClosure": True}
 
             with patch.dict(runtime.PIN, sourceSHA256=runtime.sha256(cp_archive)), \
@@ -242,9 +512,15 @@ class ImportPythonBundleTests(unittest.TestCase):
                 self.assertIn("-mmacosx-version-min=12.7", flags)
                 self.assertEqual(shlex.split(python_env["LIBLZMA_LIBS"]), [str(observed["xz"]["prefix"] / "lib/liblzma.a")])
                 self.assertEqual(shlex.split(python_env["LIBLZMA_CFLAGS"]), ["-I" + str(observed["xz"]["prefix"] / "include")])
-                self.assertEqual((destination / "LICENSE-XZ-Utils.txt").read_bytes(), b"xz licensing summary")
-                self.assertEqual((destination / "LICENSE-liblzma-0BSD.txt").read_bytes(), b"liblzma license")
-                self.assertIn("LICENSE-liblzma-0BSD.txt", manifest["files"])
+                bundle = destination / "ImportPython.app"
+                self.assertTrue(observed["launcher"])
+                self.assertEqual((bundle / "Contents/Resources/LICENSE-XZ-Utils.txt").read_bytes(), b"xz licensing summary")
+                self.assertEqual((bundle / "Contents/Resources/LICENSE-liblzma-0BSD.txt").read_bytes(), b"liblzma license")
+                self.assertIn("Contents/Resources/LICENSE-liblzma-0BSD.txt", manifest["files"])
+                self.assertIn("Contents/_CodeSignature/CodeResources", manifest["files"])
+                self.assertEqual(manifest["files"], self.inventory(bundle))
+                self.assertEqual(json.loads((destination / "runtime.json").read_text()), manifest)
+                self.assertFalse((bundle / "runtime.json").exists())
                 self.assertEqual(manifest["staticDependencies"]["liblzma"]["librarySHA256"], hashlib.sha256(static_bytes).hexdigest())
                 self.assertEqual(macho.call_count, 2)
                 self.assertTrue(all(call.args[1:] == ("arm64", "12.7") for call in macho.call_args_list))
