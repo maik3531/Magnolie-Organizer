@@ -1,0 +1,33 @@
+{
+  "kind": "selection; not the original complete record",
+  "originalBytes": 124992,
+  "originalSha256": "cc8cef9127d3c57493758967eb170618c633bfa9eeae4b9a2b65a0a92a8a257d",
+  "originalMember": "artifacts/sources.json",
+  "omittedInputRecords": 462,
+  "selected": {
+    "schema": 1,
+    "sourceMode": "current-checkout",
+    "portCommit": "7a7d90b04796cf338b98f0fdbb87e8da1c967043",
+    "desktopCommit": "7a7d90b04796cf338b98f0fdbb87e8da1c967043",
+    "gitTree": "06c1a8cf6f115908dc21252682c2a358246f2cb7",
+    "inputSetSha256": "86748803313288fe7b25428e13fe3e972bb6848323ee595d57588a3afe299f55",
+    "nativeAcceptance": false,
+    "productionRelease": false,
+    "projectionSourceHash": "dbe502cf4ad4661be79dca584c120d8623676cf8be5c3ff0d61eba840b676c09",
+    "projectionManifestSha256": "80879e5ffa5943a1dcaa4051a342e835bde461d3f6619c64135bb45e0d3b551a",
+    "generatedCatalogsVerified": true,
+    "candidateManifestSha256": "ad029a7193dd854756bde11010719cdf28b9b145a08ecb63147626ba9d0862ac",
+    "apkSha256": "b1af0f5ac36afacd452e090b18cafd753eaa2f401709a1806777a27dcd0a3564",
+    "testApkSha256": "71a97afe06085813f34c0f9d69353d623b54706c344ebc5dc79fa07610bf696f",
+    "referenceDesktopTag": "v2.0.30",
+    "referenceDesktopCommit": "067c38934b539943d8e1720abafd8a80b401d797",
+    "buildOnly": false,
+    "systemImage": "google_apis",
+    "diagnosticComparison": false,
+    "runtimeApi": 34,
+    "componentOnly": true,
+    "componentSuite": "system-records",
+    "systemProviderOnly": true,
+    "googleAcceptance": false
+  }
+}

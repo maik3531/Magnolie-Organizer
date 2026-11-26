@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "derived_issue_search_evaluation",
+  "description": "Auswertung bereits gelesener GitHub-Connector-Antworten; keine Original-API-JSON-Antwort und keine erneute Recherche.",
+  "repository": "maik3531/Magnolie-Organizer",
+  "time": {
+    "searchDate": "2026-11-26",
+    "timezone": "UTC",
+    "recordedClockAfterFinalSearch": "2026-11-26 12:54:53 UTC",
+    "individualSearchResponseTimestampsRecorded": false
+  },
+  "provenance": {
+    "connectorTool": "mcp__codex_apps__github_search_issues",
+    "source": "Bereits erfolgreich gelesene und im laufenden Agentenspeicher gesicherte Antworten der fünf unten aufgeführten Suchabfragen.",
+    "countsMeaning": "Länge der jeweils zurückgegebenen Issue-Liste; der Connector lieferte hierfür keine total_count-/incomplete_results-Metadaten.",
+    "reviewMethod": "Titelabgleich aller heute aktualisierten Issues; zusätzliche inhaltliche Prüfung möglicher Tablet- und gemeinsamer Quellenbezüge. Keine Behauptung einer erneuten vollständigen historischen Untersuchung oder eines erneuten Lesens aller Kommentarstränge."
+  },
+  "searches": [
+    {
+      "query": "repo:maik3531/Magnolie-Organizer is:issue created:>=2026-11-26",
+      "topn": 100,
+      "sort": "updated",
+      "order": "desc",
+      "stateFilter": null,
+      "returnedIssueCount": 26
+    },
+    {
+      "query": "repo:maik3531/Magnolie-Organizer is:issue updated:>=2026-11-26 tablet in:title,body,comments",
+      "topn": 100,
+      "sort": "updated",
+      "order": "desc",
+      "stateFilter": null,
+      "returnedIssueCount": 35
+    },
+    {
+      "query": "repo:maik3531/Magnolie-Organizer is:issue updated:>=2026-11-26 Android in:title,body,comments",
+      "topn": 100,
+      "sort": "updated",
+      "order": "desc",
+      "stateFilter": null,
+      "returnedIssueCount": 36
+    },
+    {
+      "query": "repo:maik3531/Magnolie-Organizer is:issue updated:>=2026-11-26 WebView in:title,body,comments",
+      "topn": 100,
+      "sort": "updated",
+      "order": "desc",
+      "stateFilter": null,
+      "returnedIssueCount": 15
+    },
+    {
+      "query": "repo:maik3531/Magnolie-Organizer is:issue updated:>=2026-11-26",
+      "topn": 100,
+      "sort": "updated",
+      "order": "desc",
+      "stateFilter": null,
+      "returnedIssueCount": 63
+    }
+  ],
+  "union": {
+    "uniqueIssueCount": 63,
+    "issueIds": [
+      9,
+      113,
+      121,
+      451,
+      452,
+      453,
+      454,
+      456,
+      458,
+      461,
+      462,
+      463,
+      464,
+      465,
+      466,
+      468,
+      471,
+      472,
+      473,
+      479,
+      511,
+      595,
+      680,
+      682,
+      683,
+      721,
+      749,
+      770,
+      771,
+      772,
+      773,
+      774,
+      775,
+      776,
+      777,
+      778,
+      779,
+      780,
+      781,
+      783,
+      784,
+      785,
+      786,
+      787,
+      788,
+      789,
+      790,
+      791,
+      792,
+      793,
+      794,
+      796,
+      797,
+      798,
+      799,
+      800,
+      801,
+      802,
+      803,
+      804,
+      805,
+      806,
+      807
+    ]
+  },
+  "primaryTabletIssues": {
+    "issueCount": 33,
+    "originalAuditIssueCount": 26,
+    "additionalFollowupIssueIds": [
+      798,
+      799,
+      800,
+      801,
+      804,
+      805,
+      807
+    ],
+    "issueIds": [
+      9,
+      113,
+      121,
+      451,
+      452,
+      453,
+      454,
+      456,
+      458,
+      461,
+      462,
+      463,
+      464,
+      465,
+      466,
+      468,
+      471,
+      472,
+      473,
+      479,
+      680,
+      682,
+      683,
+      790,
+      791,
+      792,
+      798,
+      799,
+      800,
+      801,
+      804,
+      805,
+      807
+    ],
+    "missingFromSearchUnion": [],
+    "newlyIdentifiedPrimaryIssueIds": []
+  },
+  "exclusionsAndCrossReferences": [
+    {
+      "issue": 796,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/796",
+      "classification": "Kein zusätzlicher Tablet-Gate-Befund",
+      "rationale": "Der betroffene Prüfer port-adapters/tests/communication-payloads.cjs wird nach dem bereits zuvor lesend geprüften Aufrufpfad nicht vom aktuellen Tablet-Offline-/APK-Gate aufgerufen. Der tatsächlich betroffene Tablet-Bootstrap ist separat unter #804 erfasst."
+    },
+    {
+      "issue": 783,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/783",
+      "classification": "macOS-spezifische Baugrundlage",
+      "rationale": "Das Issue behandelt den macOS-Job und grenzt den getrennten Tablet-Bau ausdrücklich aus. Der entsprechende Tablet-Befund ist bereits #790."
+    },
+    {
+      "issue": 803,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/803",
+      "classification": "Separater, noch nicht integrierter Desktop-Funktionspatch",
+      "rationale": "Die gelesene Beschreibung behandelt Regelkalender-Erweiterungen in den Desktop-Frontends und einen eigenen, noch nicht in main übernommenen Patch. Daraus folgt weder eine neue Tablet-Fehlerreproduktion noch eine Änderung der hier geprüften Tablet-Basis. Eine spätere Übernahme gemeinsamer Quellen ist gesondert zu bewerten."
+    },
+    {
+      "issue": 776,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/776",
+      "classification": "Bereits im ursprünglichen Audit erfasster Austausch-Querverweis",
+      "rationale": "Betrifft die plattformübergreifende Prüfung des neuen Mac-Vertrags für reine Kontaktgeburtstage. Der heutige Inhalt begründet keinen zusätzlichen eigenständigen Tablet-Auftrag; die bekannte Austauschgrenze bleibt als Querverweis bestehen."
+    },
+    {
+      "issue": 779,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/779",
+      "classification": "Bereits im ursprünglichen Audit erfasster Austausch-Querverweis",
+      "rationale": "Betrifft den Erhalt der Herkunft neuer Mac-Aufgabenkopien beim JSON-Austausch. Der heutige Inhalt begründet keinen zusätzlichen eigenständigen Tablet-Auftrag; die bekannte Austauschgrenze bleibt als Querverweis bestehen."
+    }
+  ],
+  "conclusion": "Im heutigen Delta-Abgleich wurde kein zusätzliches maßgebliches Android-Tablet-Issue außerhalb der erfassten 33 gefunden.",
+  "limits": [
+    "Zeitgebundene Auswertung der bereits gelesenen Antworten; spätere GitHub-Änderungen sind nicht umfasst.",
+    "Keine erneute vollständige Untersuchung des historischen Issue-Bestands.",
+    "Keine neuen Tests, Produktänderungen oder Remote-Mutationen durch diese Delta-Erfassung.",
+    "Dieser Beleg ist eine abgeleitete Auswertung, kein unveränderter Original-API-Export."
+  ]
+}

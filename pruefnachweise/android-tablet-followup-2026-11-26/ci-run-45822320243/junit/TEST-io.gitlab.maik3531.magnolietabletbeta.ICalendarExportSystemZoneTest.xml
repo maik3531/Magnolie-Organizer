@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportSystemZoneTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:47:04.500Z" hostname="ip-10-0-142-104" time="0.059">
+  <properties/>
+  <testcase name="explicitProfileAndRecordZonesRemainAuthoritative" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportSystemZoneTest" time="0.038"/>
+  <testcase name="newSavedUIRecordsUseResolvedSystemZoneAndPreserveWinterSummerInstants" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportSystemZoneTest" time="0.017"/>
+  <testcase name="originalFloatingDTSTARTAndRuleStayFloatingAfterResolvingDisplayDefault" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportSystemZoneTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

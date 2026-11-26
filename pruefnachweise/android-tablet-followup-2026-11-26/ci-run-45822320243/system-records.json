@@ -1,0 +1,349 @@
+{
+  "stage": "system-records",
+  "checks": [
+    {
+      "name": "real provider reads require runtime READ permissions",
+      "detail": true
+    },
+    {
+      "name": "real discovery finds the local contact source and both fixture calendars",
+      "detail": true
+    },
+    {
+      "name": "real contact Data rows project name, phone type and birthday",
+      "detail": true
+    },
+    {
+      "name": "same SOURCE_ID survives a genuinely different raw row; rowBinding changes",
+      "detail": true
+    },
+    {
+      "name": "changed SOURCE_ID on the same row yields a different record with the same rowBinding",
+      "detail": true
+    },
+    {
+      "name": "selected calendar only; timed half-open bounds and all-day UTC date bounds",
+      "detail": true
+    },
+    {
+      "name": "all-day selection also keeps the final selected date in a western instant window",
+      "detail": true
+    },
+    {
+      "name": "moving one actual Events row preserves single-event identity",
+      "detail": true
+    },
+    {
+      "name": "real RRULE expansion and moved exception preserve the original instance identity",
+      "detail": true
+    },
+    {
+      "name": "Android CancellationSignal rejects both reads before querying",
+      "detail": true
+    },
+    {
+      "name": "owned fixture IDs removed; fixture WRITE permissions absent after cleanup",
+      "detail": true
+    },
+    {
+      "name": "native Android system-provider smoke",
+      "detail": {
+        "stage": "system-records",
+        "sdk": 34,
+        "syntheticFixtures": true,
+        "productProviderWrites": false,
+        "contactsSourceIsolationTested": false,
+        "calendarSourceIsolationTested": true,
+        "recurrenceFixtureUsesSyncMetadata": true,
+        "unsyncedLocalRecurrenceExceptionsTested": false,
+        "permissionDialogsTested": false,
+        "livePermissionRevocationTested": false,
+        "saveAckTested": false,
+        "inFlightCancellationTested": false,
+        "checks": [
+          "real provider reads require runtime READ permissions",
+          "real discovery finds the local contact source and both fixture calendars",
+          "real contact Data rows project name, phone type and birthday",
+          "same SOURCE_ID survives a genuinely different raw row; rowBinding changes",
+          "changed SOURCE_ID on the same row yields a different record with the same rowBinding",
+          "selected calendar only; timed half-open bounds and all-day UTC date bounds",
+          "all-day selection also keeps the final selected date in a western instant window",
+          "moving one actual Events row preserves single-event identity",
+          "real RRULE expansion and moved exception preserve the original instance identity",
+          "Android CancellationSignal rejects both reads before querying",
+          "owned fixture IDs removed; fixture WRITE permissions absent after cleanup"
+        ],
+        "productPermissionChecks": [
+          {
+            "operation": "initial-permissions",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": false,
+            "readCalendar": false
+          },
+          {
+            "operation": "denied-discovery",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": false,
+            "readCalendar": false
+          },
+          {
+            "operation": "denied-contacts",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": false,
+            "readCalendar": false
+          },
+          {
+            "operation": "denied-events",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": false,
+            "readCalendar": false
+          },
+          {
+            "operation": "fixture-contact-readback",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "authorized-discovery",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "contact-before",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "fixture-contact-readback",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "contact-recreated",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "fixture-contact-readback",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "contact-source-replaced",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "calendar-east-window",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "calendar-west-window",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "single-moved",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "series-before",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "fixture-series-readback",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "series-exception",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "cancelled-contacts",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          },
+          {
+            "operation": "cancelled-events",
+            "dropShellPermissionIdentityCompleted": true,
+            "fixtureScopeActive": false,
+            "writeContacts": false,
+            "writeCalendar": false,
+            "readContacts": true,
+            "readCalendar": true
+          }
+        ],
+        "recurringException": {
+          "linkage": "synthetic-sync-adapter",
+          "beforeCount": 2,
+          "before": [
+            {
+              "recordId": "android-event:520a338190b549ea125a32b8ba1da1458dc607cddfd29d03608522f0a7c68bb9",
+              "identityKind": "recurring-instance",
+              "date": "2030-04-01",
+              "time": "09:00",
+              "endDate": "",
+              "endTime": "10:00"
+            },
+            {
+              "recordId": "android-event:d8f8d17151b729f91d85a21adc7e98af20446df23223833ffae123400f77ae4f",
+              "identityKind": "recurring-instance",
+              "date": "2030-04-02",
+              "time": "09:00",
+              "endDate": "",
+              "endTime": "10:00"
+            }
+          ],
+          "providerEvents": [
+            {
+              "_id": "10",
+              "calendar_id": "1",
+              "_sync_id": "fixture-series-2ce0098d-9d67-44c0-99b8-ecf2913df0f9",
+              "original_id": null,
+              "original_sync_id": null,
+              "originalInstanceTime": null,
+              "originalAllDay": null,
+              "dtstart": "1901264400000",
+              "dtend": null,
+              "duration": "PT1H",
+              "rrule": "FREQ=DAILY;COUNT=2",
+              "rdate": null,
+              "allDay": "0",
+              "eventTimezone": "UTC",
+              "eventStatus": "1"
+            },
+            {
+              "_id": "11",
+              "calendar_id": "1",
+              "_sync_id": "fixture-exception-2ce0098d-9d67-44c0-99b8-ecf2913df0f9",
+              "original_id": "10",
+              "original_sync_id": "fixture-series-2ce0098d-9d67-44c0-99b8-ecf2913df0f9",
+              "originalInstanceTime": "1901264400000",
+              "originalAllDay": "0",
+              "dtstart": "1901275200000",
+              "dtend": "1901278800000",
+              "duration": null,
+              "rrule": null,
+              "rdate": null,
+              "allDay": "0",
+              "eventTimezone": "UTC",
+              "eventStatus": "1"
+            }
+          ],
+          "afterCount": 2,
+          "after": [
+            {
+              "recordId": "android-event:520a338190b549ea125a32b8ba1da1458dc607cddfd29d03608522f0a7c68bb9",
+              "identityKind": "recurring-instance",
+              "date": "2030-04-01",
+              "time": "12:00",
+              "endDate": "",
+              "endTime": "13:00"
+            },
+            {
+              "recordId": "android-event:d8f8d17151b729f91d85a21adc7e98af20446df23223833ffae123400f77ae4f",
+              "identityKind": "recurring-instance",
+              "date": "2030-04-02",
+              "time": "09:00",
+              "endDate": "",
+              "endTime": "10:00"
+            }
+          ]
+        },
+        "cleanup": {
+          "requestedRawRows": 2,
+          "requestedCalendars": 2,
+          "remainingOwnedRawRows": 0,
+          "remainingOwnedCalendars": 0,
+          "shellIdentityDropped": true,
+          "writePermissionsDenied": true
+        },
+        "passed": true
+      }
+    }
+  ],
+  "passed": true,
+  "injector": "async",
+  "sdk": 34,
+  "model": "sdk_gphone64_x86_64",
+  "brand": "google",
+  "applicationId": "io.gitlab.maik3531.magnolieorganizer.tablet.beta",
+  "applicationLabel": "Magnolie Organizer Android Tablet Beta 2.0.30Beta",
+  "sourceHash": "dbe502cf4ad4661be79dca584c120d8623676cf8be5c3ff0d61eba840b676c09",
+  "webview": "113.0.5672.136",
+  "startup": null,
+  "error": null
+}

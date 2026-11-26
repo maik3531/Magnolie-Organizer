@@ -16,7 +16,7 @@ Die Änderungen werden weiterhin als überprüfbare Patchserie bereitgestellt.
 | [#799](https://github.com/maik3531/Magnolie-Organizer/issues/799) | Neue lokale Kontaktzeilennummer trotz gleicher Providerherkunft erzeugte eine zweite Importidentität. | SOURCE_ID, ersatzweise BACKUP_ID verwenden; erst danach geräte-/nutzergebundene lokale Kennung. Vor-/Nach-Snapshots prüfen auch Herkunftskennungen. |
 | [#800](https://github.com/maik3531/Magnolie-Organizer/issues/800) | Verschieben eines Einzeltermins änderte durch BEGIN dessen Importidentität. | Einzeltermine nach Event-ID; Serieninstanzen nach ursprünglichem Slot; Ausnahmen nach ORIGINAL_ID und ORIGINAL_INSTANCE_TIME. Geräte-/Nutzerscope einbeziehen. |
 | [#801](https://github.com/maik3531/Magnolie-Organizer/issues/801) | Die korrekte Konfliktmeldung lag außerhalb des offenen Einstellungsdialogs und wurde verdeckt. | Systemimportmeldungen im zugehörigen Dialogabschnitt anzeigen; die echte Browserprüfung muss ihre Sichtbarkeit und Erreichbarkeit belegen. |
-| [#790](https://github.com/maik3531/Magnolie-Organizer/issues/790) | Der vollständige APK-Bau war nicht unabhängig von der nativen Emulatorabnahme ausführbar. | Explizites Workflowziel `tablet-build-only`: gleicher vollständiger Build-/Quellbindungsweg, keine Emulatorvorbereitung oder native Abnahme. Kein Erfolg dieses bislang ausstehenden Builds wird allein aus Quellkompilierung abgeleitet. |
+| [#790](https://github.com/maik3531/Magnolie-Organizer/issues/790) | Der vollständige APK-Bau war nicht unabhängig von der nativen Emulatorabnahme ausführbar. | Explizites Workflowziel `tablet-build-only`: gleicher vollständiger Build-/Quellbindungsweg, keine Emulatorvorbereitung oder native Abnahme. Der vollständige APK-Gate ist durch Lauf #99, Versuch 2, auf Head `92e2c645cf0a8075325874f335087412e7f79c79` belegt. Spätere Quellstände benötigen ihre eigene Quellbindung und Prüfung; der Buildnachweis ersetzt keine native Abnahme. |
 | [#463](https://github.com/maik3531/Magnolie-Organizer/issues/463) | Fehlende Accessibility-Fensterbindung wurde pauschal als fremder Eingabeblocker klassifiziert. | Unbelegte Bindung, Lesefehler, belegtes fremdes Fenster und eigener nicht bereiter Appzustand unterscheiden. Besitzprädikat unverändert; keine Lösung für Fensterkennung -1 behauptet. |
 
 ## Tatsächliche CI-Fortsetzung und gemeinsame Prüfcodefehler
@@ -104,7 +104,7 @@ Schreibberechtigungen gelten nur während Anlage/Änderung/Bereinigung der Fixtu
 Vor jedem Produktzugriff wird diese Identität abgelegt und das Fehlen effektiver
 Schreibrechte geprüft. Die App erhält keine neue Produktberechtigung.
 
-Geprüft werden sollen verweigerte Lesezugriffe, Quellenentdeckung, Kontaktfelder,
+Zum Prüfumfang gehören verweigerte Lesezugriffe, Quellenentdeckung, Kontaktfelder,
 stabile Kontaktidentität nach neuer RawContact-ID, Herkunftswechsel auf derselben
 Zeile, Kalenderauswahl und Datumsfenster, verschobene Einzeltermine,
 Serieninstanzen/Ausnahmen, vorab abgebrochene Abfragen und vollständige Bereinigung.
@@ -119,7 +119,8 @@ Produkt- und Instrumentierungsquellen kompilieren gegen die echte Android-37.2-A
 Die beiden abschließend ergänzten Scope-Literale wurden gesondert nachkompiliert;
 Rohbelege, ausgeführte Skripte und Quellhashes stehen unter
 `pruefnachweise/android-tablet-followup-2026-11-26/system-records/`.
-Eine tatsächliche Provider-/Emulatorausführung wird damit noch nicht behauptet.
+Diese Vorbereitungsbelege enthalten noch keine Provider-/Emulatorausführung;
+die nachfolgenden tatsächlichen Läufe sind separat unten ausgewertet.
 `systemProviderOnly:true` und `API34-provider-only` halten diesen Prüfumfang
 von einer vollständigen nativen Abnahme getrennt.
 
@@ -156,9 +157,42 @@ Der Produktleser, Produktberechtigungen und alle Ressourcengates bleiben unverä
 Der Umfang wird ausdrücklich als `recurrenceFixtureUsesSyncMetadata:true` und
 `unsyncedLocalRecurrenceExceptionsTested:false` aufgezeichnet. Nicht synchronisierte
 lokale Serienausnahmen sind durch diese Fixturekorrektur nicht allgemein abgenommen.
-Der tatsächliche native Wiederholungslauf auf der Korrektur steht bei Erstellung
-dieses Folgepatches aus. Originalbelege beider Versuche liegen unter
+Bei Erstellung von Folgepatch 11 stand dessen native Wiederholung noch aus.
+Originalbelege beider Versuche des vorherigen Laufs liegen unter
 `pruefnachweise/android-tablet-followup-2026-11-26/ci-run-45817099578/`.
+
+## Erfolgreicher vollständiger Wiederholungslauf #101
+
+[Actions #101, Versuch 1](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45822320243)
+prüft exakt Head `7a7d90b04796cf338b98f0fdbb87e8da1c967043`, Tree
+`06c1a8cf6f115908dc21252682c2a358246f2cb7`, Projektionsbind
+`dbe502cf4ad4661be79dca584c120d8623676cf8be5c3ff0d61eba840b676c09`.
+Der vollständige APK-Gate und die nachfolgende echte API34/google_apis-
+Providerstufe sind erfolgreich. Alle 42 Original-JUnit-Reports ergeben erneut
+**303 Tests, 0 failures/errors/skips**. Die tatsächlichen App-/Instrumentierungs-
+APKs und die Projektionsbytes innerhalb der App sind geprüft.
+
+Die Originalreceipt bestätigt **zehn Fachgruppen plus Cleanup**. Vor und nach
+der Serienausnahme stehen jeweils genau zwei Instanzen. Der 1. April 2030 wechselt
+von 09:00 auf 12:00 bei unveränderter ursprünglicher Record-ID; der 2. April bleibt
+bei 09:00 mit unveränderter ID. Die tatsächlichen Providerzeilen bestätigen
+Master-/Ausnahmeverknüpfung. Beide vorab gesetzten CancellationSignals werden
+als `OperationCanceledException` abgewiesen. Alle 19 protokollierten Produkt-/
+Readbackaufrufe haben keine effektiven WRITE-Rechte oder aktive Fixtureidentität.
+Cleanup entfernt die zwei eigenen RawContacts und zwei Kalender vollständig.
+
+Damit ist der konkrete Fixture-Prüfpfad #807 korrigiert und nativ bestätigt.
+`unsyncedLocalRecurrenceExceptionsTested:false` und
+`contactsSourceIsolationTested:false` bleiben bestehen. Der erfolgreiche
+Providerlauf ist keine Activity-/Berechtigungsdialog-/Live-Widerruf-/Save-ACK-/
+IME-/TalkBack-Abnahme und testet keinen Abbruch während einer laufenden Abfrage.
+Die unbekannte Instanzanzahl des alten Fehllaufs wird nicht rückwirkend abgeleitet.
+
+Originalbelege, Prüfsummen und ausgeführter Artefaktprüfer:
+`pruefnachweise/android-tablet-followup-2026-11-26/ci-run-45822320243/`.
+Der abschließende Nachtrag ändert ausschließlich Dokumentation und Nachweise.
+Der tatsächlich geprüfte APK-/Laufzeitstand bleibt der oben gebundene Head;
+ein neuer Dokumentationscommit wird nicht als erneut gebautes APK bezeichnet.
 
 ## Prüfumfang und Restabnahme
 
@@ -177,7 +211,9 @@ Fenstertexte, Titel, Knoteninhalte und Exception-Nachrichten werden nicht erfass
 Die bestehende Besitzbedingung, Gestendauer und die Abbruchentscheidung vor
 unbelegter Eingabe bleiben erhalten; keine Flags, Retries oder Prewarms kommen hinzu.
 
-Offen bleiben insbesondere Provider- und Berechtigungsabläufe auf Android,
+Über die oben nachgewiesenen Providerfälle hinaus bleiben insbesondere
+unsynchronisierte lokale Serienausnahmen, eine zweite Kontaktquelle,
+Berechtigungsdialoge und Live-Widerrufe, UI-/Save-ACK, laufende Query-Cancellation,
 Rotation/Prozessneustart, native Eingabe und TalkBack sowie die bestehende
 native Speicher-/SAF-/Restore- und Pixelmatrix. Ein reiner Buildnachweis kann
 diese Abnahmen nicht ersetzen. Die Issues bleiben bis zur passenden Abnahme

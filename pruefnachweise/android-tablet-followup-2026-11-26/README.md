@@ -3,6 +3,28 @@
 Stand: 26. November 2026. Refs #795, #790, #791, #792, #798, #799, #800, #801 und #463.
 Die Fortsetzung baut auf `29acde7e3df2b8bcaaab0cc19b3377b8dbf4bd14` auf.
 
+## Abschließender tatsächlicher Prüfstand
+
+[Actions #101](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45822320243)
+auf Head `7a7d90b04796cf338b98f0fdbb87e8da1c967043` besteht den vollständigen
+APK-Gate und die echte API34-Providerstufe: **303 JUnit-Tests ohne Fehler/Skips**,
+**zehn fachliche Providergruppen plus Cleanup**. Serienausnahme vorher/nachher
+jeweils zwei Instanzen, 19 Produkt-/Readbackprüfungen ohne WRITE, beide vorab
+abgebrochenen Abfragen und vollständige Bereinigung sind konkret bestätigt.
+Originalbelege, 42 vollständige XML-Reports, APK-/Quellprüfsummen und der
+tatsächlich ausgeführte Artefaktprüfer stehen in [ci-run-45822320243](ci-run-45822320243/README.md).
+Die früheren Fehlläufe bleiben separat erhalten; [CI99](ci-run-45817099578/README.md)
+enthält sowohl den externen HTTP429 als auch den ersten nativen Fixturebefund #807.
+
+Der abschließende reine Dokumentations-/Nachweisnachtrag erhält alle 83
+Laufzeitdateien bytegenau. [completion](completion/README.md) dokumentiert den
+ausgeführten Vergleich und den abschließenden Delta-Abgleich aller 33
+maßgeblichen Issues. Der gebaute und nativ geprüfte Head bleibt ausdrücklich
+der oben genannte; vollständige UI-/Berechtigungsdialog-/Geräteabnahme folgt
+daraus nicht. Die folgenden Abschnitte halten die früheren Hostnachweise fest.
+
+## Historischer Vorbereitungsstand der ersten Folgepatches
+
 **Geprüfte gemeinsame Webprojektion:**
 `7a0c31a550761badd32e07f4bdaee6b016fd158a769a64017c7525332bb70416`.
 

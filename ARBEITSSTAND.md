@@ -404,7 +404,7 @@ Kompilierstörung und die unveränderten 38 Produktquellen sind hashgebunden bel
 Kein Produktcode, Manifest, Gradle-Gate oder vorhandener Test wurde dafür entfernt
 oder umgangen. Rohbelege unter `pruefnachweise/android-tablet-followup-2026-11-26/issue-805/`.
 
-Für #791 ist zusätzlich `tablet-system-records` vorbereitet: vollständiger
+Für #791 wurde zusätzlich `tablet-system-records` vorbereitet: vollständiger
 APK-Bau, anschließend eine eigene API-34-/google_apis-Providerstufe mit elf
 Prüfgruppen. Sie verwendet echte Kontakt-/Kalenderprovider, ausschließlich eigene
 synthetische Fixtures und die tatsächlichen Produktleser. Schreibrechte gelten
@@ -413,9 +413,11 @@ Shellidentität und fehlende Schreibrechte. Zwei Kalender erlauben einen echten
 Auswahlvergleich; Kontakt-Quellenisolierung wird mit der einzigen lokalen
 Kontaktquelle ausdrücklich nicht behauptet. 24 Quellen-/Workflowprüfungen,
 vier Owner-Verträge und die reale API-Kompilierung sind belegt; die beiden letzten
-Scope-Literale wurden gesondert nachkompiliert. Eine Emulator-/Provider-Ausführung
-steht weiterhin aus. Kein UI-/Berechtigungsdialog-, Save-ACK- oder vollständiger
-nativer Abnahmenachweis. Rohbelege stehen im Unterordner `system-records/`.
+Scope-Literale wurden gesondert nachkompiliert. Diese Vorbereitungsbelege enthielten
+noch keine Emulator-/Provider-Ausführung. Der anschließend tatsächlich ausgeführte
+Lauf #99 wird im folgenden Absatz getrennt ausgewertet. Ein UI-/Berechtigungsdialog-,
+Save-ACK- oder vollständiger nativer Abnahmenachweis folgt daraus nicht.
+Die Rohbelege der Vorbereitung stehen im Unterordner `system-records/`.
 
 Der tatsächliche Actions-Lauf #99 auf Head `92e2c645cf0a8075325874f335087412e7f79c79`
 ist getrennt ausgewertet. Versuch 1 scheitert extern an Maven-Central-HTTP429.
@@ -432,12 +434,27 @@ Der enge Folgefix #807 ergänzt die bereits synthetische Syncadapter-Fixture um
 vollständige Master-/Ausnahmeverknüpfung, direktes Event-Rücklesen und begrenzte
 Vorher-/Nachher-Slots. Alle bisherigen Anzahl-/Identitäts-/Zeitprüfungen bleiben
 hart; Produktcode und Gates bleiben unverändert. Die unsyncte lokale
-Serienausnahme ist ausdrücklich nicht durch diese Fixture abgenommen. Der neue
-native Lauf auf diesem Fix steht bei Erstellung des Folgepatches noch aus.
+Serienausnahme ist ausdrücklich nicht durch diese Fixture abgenommen. Bei
+Erstellung von Folgepatch 11 stand dessen native Wiederholung noch aus.
 
-Ein vollständiger neuer Gradle-/D8-/APK-Bau, Android-Provider-/Berechtigungsdialoge,
+Die anschließende Wiederholung [Actions #101](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45822320243)
+auf Head `7a7d90b04796cf338b98f0fdbb87e8da1c967043` / Tree
+`06c1a8cf6f115908dc21252682c2a358246f2cb7` besteht den vollständigen APK-Gate
+und die echte API34-Providerstufe. 42 Original-JUnit-Reports bestätigen erneut
+303 Tests ohne Fehler/Ausfälle/Skips. Alle elf Providergruppen einschließlich
+Cleanup bestehen. Die Serien-Fixture liefert vor/nach der Ausnahme genau zwei
+Instanzen: 09:00 wird bei gleicher ursprünglicher ID zu 12:00; der Folgetag
+bleibt unverändert. Beide vorab abgebrochenen Abfragen wurden erreicht;
+19 protokollierte Produkt-/Readbackaufrufe liefen ohne WRITE. Die zwei eigenen
+RawContacts und zwei Kalender wurden vollständig entfernt. Originalbelege und
+ausgeführter Artefaktprüfer stehen unter `ci-run-45822320243/`.
+Der abschließende Nachtrag ändert nur Dokumentation und Nachweise; der tatsächlich
+gebaute und nativ geprüfte Head bleibt ausdrücklich der oben genannte.
+
+Offen bleiben unsynchronisierte lokale Serienausnahmen, eine zweite Kontaktquelle,
+Android-Berechtigungsdialoge und Live-Widerrufe, UI-/Save-ACK, laufende Query-Cancellation,
 TalkBack, IME, Stift, native Pixel-/SAF-/Restore-/Neustartmatrix und tatsächliche
-HTTPS-/Clipboard-Bedienung sind damit nicht abgenommen. Historische native
+HTTPS-/Clipboard-Bedienung. Historische native
 Teilnachweise und heutige Reste werden im Audit getrennt geführt. Für die
 unterschiedlichen Befunde in #458, #463 und #471 bleiben die jeweiligen Ursachen-
 und Restprüfungen offen. Geschlossene Quell-/Native-Teilfixes werden nicht ohne

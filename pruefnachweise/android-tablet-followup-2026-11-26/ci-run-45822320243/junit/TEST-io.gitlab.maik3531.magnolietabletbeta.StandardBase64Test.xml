@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.StandardBase64Test" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:47:06.958Z" hostname="ip-10-0-142-104" time="0.352">
+  <properties/>
+  <testcase name="RFC4648AndArbitraryBinaryUseExactlyTheExistingJDKEncoding" classname="io.gitlab.maik3531.magnolietabletbeta.StandardBase64Test" time="0.066"/>
+  <testcase name="unchangedPortableCryptoCrossDecryptsWithIndependentJDKBase64BothDirections" classname="io.gitlab.maik3531.magnolietabletbeta.StandardBase64Test" time="0.247"/>
+  <testcase name="deterministicPropertiesRejectEveryIgnoredWhitespaceUnicodeAndURLCharacter" classname="io.gitlab.maik3531.magnolietabletbeta.StandardBase64Test" time="0.038"/>
+  <testcase name="paddedUnpaddedAndTerminalBitsPreserveBasicDecoderSemantics" classname="io.gitlab.maik3531.magnolietabletbeta.StandardBase64Test" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

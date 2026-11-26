@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:47:05.756Z" hostname="ip-10-0-142-104" time="0.005">
+  <properties/>
+  <testcase name="integralWrappersAndDecimalScaleKeepTheSameExactValue" classname="io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest" time="0.001"/>
+  <testcase name="objectKeyOrderDoesNotChangeNestedValues" classname="io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest" time="0.003"/>
+  <testcase name="explicitNullDoesNotMatchAnAbsentMember" classname="io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest" time="0.0"/>
+  <testcase name="unsupportedValuesDoNotBecomeEqualByIdentityOrStringification" classname="io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest" time="0.0"/>
+  <testcase name="adjacentIntegersBeyondDoublePrecisionRemainDistinct" classname="io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest" time="0.0"/>
+  <testcase name="nonFiniteNumbersAreNotValidMatchingJsonValues" classname="io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest" time="0.0"/>
+  <testcase name="binaryFloatingValuesAreComparedExactlyWithoutDecimalStringRounding" classname="io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest" time="0.001"/>
+  <testcase name="distinctJsonKindsAndPrimitiveValuesNeverCoerce" classname="io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest" time="0.0"/>
+  <testcase name="arbitraryPrecisionDecimalsNeverRoundThroughDouble" classname="io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest" time="0.0"/>
+  <testcase name="missingExtraAndRenamedKeysNeverMatch" classname="io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest" time="0.0"/>
+  <testcase name="arrayLengthOrderAndNestedValuesAreSignificant" classname="io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest" time="0.0"/>
+  <testcase name="opaqueTwoTo63NeverMatchesSaturatedLongMaximum" classname="io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

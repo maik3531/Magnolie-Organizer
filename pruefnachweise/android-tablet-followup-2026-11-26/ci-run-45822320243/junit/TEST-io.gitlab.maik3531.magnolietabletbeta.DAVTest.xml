@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.DAVTest" tests="19" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:47:02.532Z" hostname="ip-10-0-142-104" time="1.238">
+  <properties/>
+  <testcase name="realTlsCancellationAbortsBlockedRead" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.337"/>
+  <testcase name="xmlEntitiesDoctypesMalformedEncodingsAndExcessiveDepthFailClosed" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.033"/>
+  <testcase name="genericCardDavAndNextcloudFallback" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.01"/>
+  <testcase name="discoveryUsesPrincipalHomeCollectionsAndCanonicalSourceIdentity" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.005"/>
+  <testcase name="nonWildcardEtagsKeepOriginalBytesForPutAndDelete" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.0"/>
+  <testcase name="realTlsTransportRejectsUntrustedAndWrongHostnameCertificates" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.191"/>
+  <testcase name="cancellationBeforeRequestNeverReachesTransport" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.001"/>
+  <testcase name="putCreateDeleteUseConditionalHeadersAndPreserveBody" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.001"/>
+  <testcase name="rejectedDiscoveryReferenceFallsBackOnlyToConfiguredOrigin" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.004"/>
+  <testcase name="realTlsTransportEnforcesStreamingLimitAndWallTimeout" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.363"/>
+  <testcase name="sameOriginRedirectRetainsMethodBodyAndBudget" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.002"/>
+  <testcase name="partialMissingAndOutOfCollectionReportsFailClosed" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.114"/>
+  <testcase name="wildcardEtagWhitespaceCannotWeakenPutOrDeletePreconditions" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.002"/>
+  <testcase name="invalidConfigurationAndOriginNeverReachTransport" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.001"/>
+  <testcase name="authenticationPermissionAndConflictsNeverReturnSuccess" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.001"/>
+  <testcase name="crossOriginRedirectNeverSendsAuthorizationToTarget" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.001"/>
+  <testcase name="reportsPreserveRawRecurrenceExceptionsTasksAndVcards" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.004"/>
+  <testcase name="realTlsTransportSendsDavMethodsAndReturnsRedirectWithoutFollowing" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.153"/>
+  <testcase name="missingEtagsWildcardAndLocalAttachmentsFailBeforeNetwork" classname="io.gitlab.maik3531.magnolietabletbeta.DAVTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

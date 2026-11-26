@@ -485,8 +485,8 @@ owner-contract checks. The final instrumentation sources compile against the
 real Android API using all 38 unchanged product Kotlin sources. The final two
 receipt-scope literals were recompiled separately after the host checks; the
 original and final hashes and actual commands are in `system-records/`.
-This preparation does not claim a provider/emulator execution. The next full
-Actions run must bind the updated checkout and report its own APK/runtime result.
+These preparation records contain no provider/emulator execution. The subsequent
+actual Actions runs below bind their own checkout and APK/runtime results.
 
 The following actual run, [Actions 45817099578 / attempt 2](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45817099578/attempts/2),
 passed the complete APK gate on head `92e2c645cf0a8075325874f335087412e7f79c79`:
@@ -505,14 +505,32 @@ and retains every two-instance, original-identity, moved-time and second-slot
 assertion. Product readers and permissions are unchanged. Its receipt explicitly
 records `recurrenceFixtureUsesSyncMetadata:true` and
 `unsyncedLocalRecurrenceExceptionsTested:false`; unsynced local recurrence
-exceptions are outside this corrected fixture's proof. A fresh real provider run
-is still required for this correction.
+exceptions are outside this corrected fixture's proof. At the time patch 11 was
+prepared, a fresh real provider run for this correction was still pending.
+
+The subsequent [Actions 45822320243 / attempt 1](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45822320243)
+passed both the full APK gate and the actual API34/google_apis provider stage on
+head `7a7d90b04796cf338b98f0fdbb87e8da1c967043`, tree
+`06c1a8cf6f115908dc21252682c2a358246f2cb7`, projection
+`dbe502cf4ad4661be79dca584c120d8623676cf8be5c3ff0d61eba840b676c09`.
+All 42 original JUnit reports again contain 303 tests with zero failures/errors/skips.
+The native receipt has ten functional groups plus cleanup. The recurrence fixture
+has exactly two instances before and after the exception; its first slot moves
+09:00 to 12:00 with unchanged original identity, while the second day and identity
+remain unchanged. Both pre-cancelled reads are reached. All 19 recorded product/
+readback checks run without fixture identity or WRITE permissions; both owned
+RawContacts and both calendars are removed, with zero remaining owned IDs.
+Original receipts, APK hashes, JUnit reports and the executed artifact verifier
+are in `ci-run-45822320243/` in the evidence folder. The final documentation/evidence
+update does not change executable sources; the tested APK head stays explicit above.
 
 ## Later Acceptance
 
 Coordinate one emulator/VM at a time using the existing resource gates. The
-26 November head identified above has passed the complete APK gate. Its native
-provider suite failed at #807; the full tablet UI/device matrix remains open.
+corrected head identified above has passed the complete APK gate and its bounded
+native provider suite. Unsynced local recurrence exceptions, a second contact
+source and the full tablet UI/device matrix remain open. The provider result does
+not establish permission-dialog/live-revocation, in-flight cancellation or UI/save-ACK acceptance.
 
 1. Install the standalone tablet app and verify its identity and independent data; also check coexistence if Notes happens to be installed.
 2. Test 1280x800 landscape, portrait, large text, RTL, TalkBack, stylus, external keyboard and IME insets.
