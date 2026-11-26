@@ -27,6 +27,7 @@
   }
   const davNotice = 'Account setup and read-only discovery. Calendar/contact synchronization is not implemented.';
   let systemPermissions = {}, systemPending = null, systemSnapshot = {}, pendingSystemImport = null;
+  let systemFocusReturn = '';
   const systemSelection = {contacts:'',events:''};
   const systemDates = {from:new Date().toISOString().slice(0,10),to:new Date(Date.now()+89*86400000).toISOString().slice(0,10)};
   function systemText(key) {
@@ -39,13 +40,21 @@
     if (payload) systemSnapshot=payload;
     if (payload?.requestId===systemPending) systemPending=null;
     const root=document.getElementById('tablet-system-access');
-    if (!root) return;
+    if (!root) {systemFocusReturn='';return;}
+    // Refs #798: replacing a focused control drops browser focus onto BODY.
+    // Keep the current operation reachable, but never reclaim focus from an
+    // editor, another settings control or a modal opened during an async read.
+    const focused=root.contains(document.activeElement);
+    if (!focused) systemFocusReturn='';
+    else if (document.activeElement!==root && document.activeElement.id!=='tablet-system-import-cancel')
+      systemFocusReturn=document.activeElement.id;
+    root.tabIndex=-1;root.setAttribute('role','group');root.setAttribute('aria-labelledby','tablet-system-access-title');
     root.textContent='';
-    const heading=document.createElement('h3');heading.textContent=systemText('title');root.append(heading);
+    const heading=document.createElement('h3');heading.id='tablet-system-access-title';heading.textContent=systemText('title');root.append(heading);
     const explanation=document.createElement('p');explanation.textContent=systemText('copyNote');root.append(explanation);
     for (const [art,label] of [['events','Calendars'],['contacts','Contacts']]) {
       const row=document.createElement('p'),button=document.createElement('button');
-      button.type='button';button.dataset.systemAccess=art;
+      button.type='button';button.dataset.systemAccess=art;button.id='tablet-system-access-'+art;
       button.textContent=tr('Allow access')+': '+tr(label);
       button.disabled=!!systemPending || !!pendingSystemImport || systemPermissions[art]==='authorized';
       button.addEventListener('click',()=>{
@@ -96,10 +105,20 @@
       const requestId=crypto.randomUUID();systemPending=requestId;send({cmd:'eds_status',requestId});systemSourcesRendered(null);
     });root.append(refresh);
     if (pendingSystemImport) {
-      const cancel=document.createElement('button');cancel.type='button';cancel.textContent=tr('Cancel');
+      const cancel=document.createElement('button');cancel.type='button';cancel.id='tablet-system-import-cancel';cancel.textContent=tr('Cancel');
       cancel.disabled=pendingSystemImport.phase==='saving';
       cancel.addEventListener('click',()=>{if (pendingSystemImport?.phase==='saving') return;
         pendingSystemImport=null;status(tr('Cancel'));systemSourcesRendered(null);});root.append(cancel);
+    }
+    if (focused) {
+      let target=systemFocusReturn ? document.getElementById(systemFocusReturn) : null;
+      if (target?.dataset.systemAccess && target.disabled && systemPermissions[target.dataset.systemAccess]==='authorized')
+        target=document.getElementById('tablet-system-source-'+target.dataset.systemAccess);
+      if (!target || !root.contains(target) || target.disabled)
+        target=root.querySelector('#tablet-system-import-cancel:not(:disabled)') || root;
+      if (target!==root && target.id!=='tablet-system-import-cancel') systemFocusReturn='';
+      if (target===root) target.focus({preventScroll:true});
+      else target.focus();
     }
   }
   function readSystem(art) {
