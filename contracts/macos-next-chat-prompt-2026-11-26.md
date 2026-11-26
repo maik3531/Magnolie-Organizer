@@ -11,8 +11,10 @@ Bestandsprüfung und setzt bereits erledigte Schritte nicht erneut in Gang.
 | --- | --- |
 | Repository | [maik3531/Magnolie-Organizer](https://github.com/maik3531/Magnolie-Organizer) |
 | Veröffentlichter Arbeits-/Übergabezweig | `work/macos-issue-fixes-20261126`; tatsächlichen Remote-Stand vor Fortsetzung lesen |
+| Erfolgreich geprüfter Quellstand der erweiterten Nachprüfung | `3f3ec069895dec254c53660d14e6851cb23077cd`; [Lauf #104](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062), Gesamtworkflow und beide Mac-Jobs `completed/success` |
+| Zuletzt lesend bestätigte gemeinsame Basis | `main` auf `d4da48a5eadd0bda22422b924bef4ee3b4324040`, 26. November 2026 um 14:52:15 Uhr Europe/Berlin (13:52:15 UTC); vor späterer Integration erneut lesen |
 | Vollständiger ursprünglicher Übergabecommit einschließlich Bericht | `0dfeb1b30a208480eb6901e3d3148a5efeaae5ff` |
-| Zuletzt vollständig geprüfter Codecommit dieser Übergabe | `7c9cf20394aef73d261a77f746ebca7340826d30` |
+| Geprüfter Codecommit der ursprünglichen Linux-Übergabe | `7c9cf20394aef73d261a77f746ebca7340826d30` |
 | Über die API angelegter Quellcommit A | `8efc6834abd16f18300f3d59a1897c81758b0c34` |
 | Identischer Quellbaum von Originalübergabe und Commit A | `d731a6bd56acd68e79aab83fbadb19ab94ad6547` |
 | Weitere Folgeinhalte | Publikationsbelege, wiederherstellbare Git-Artefakte und ergänzende Windows-Forschung; den finalen Head aus dem Repository feststellen |
@@ -56,8 +58,31 @@ Der ursprüngliche Hostnachweis bleibt
 historisch; er darf weder diese neuen Befunde ersetzen noch als vollständige
 native Abnahme gelesen werden. Den aktuellen Head und neuere Läufe nachlesen.
 
+**Erweiterter nativer Abschluss:** [#104 / 45827353062](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062)
+bestand auf `3f3ec069895dec254c53660d14e6851cb23077cd` mit Tree
+`176fa7f362227c92ec4d7c4bf08d09b855951ae7` am 26. November 2026 von
+**14:15:18 bis 14:49:42 Uhr Europe/Berlin**. Gesamtworkflow und beide
+Mac-Jobs sind `completed/success`. Je Architektur bestanden 26 Runtime-,
+27 AirPlay- und 17 ImportHelperfälle sowie 34 Hostfälle mit einem ausdrücklich
+Linux vorbehaltenen Skip. Vier Debug- und ein Release-Swift-Kontext prüfen
+dieselben 501 Namen; Debug hat 4/5/5/6 Skips, Release 495 bestandene Fälle,
+sechs Skips und keine Fehler. Diese Kontexte werden nicht als unabhängige
+eindeutige Tests addiert.
+
+Der echte Swift→private-Python-Prozess mit originaler OR6-Fixture besteht
+9/9 Kriterien; der tatsächliche App-Lebenszyklus besteht 7/7. Die nachgelagerte
+unabhängige Byteprüfung besteht je Paket 65/65 Kriterien und ist keine erneute
+native Ausführung oder Signaturvertrauensprüfung. Beide Quellmanifeste binden
+dieselben 3921 Dateien an `3f3ec069`. Der
+[dauerhafte #104-Beleg](../Magnolie-Organizer-macOS-Beta/verification/native-run-104.json)
+erhält Details, Skips und Hashes. Das Paket bleibt Debug/ad-hoc; tatsächlicher
+Picker/Editor, dauerhaft gespeicherte Importdaten, Monterey, TCC, Konten,
+Geräte und Produktionsauslieferung bleiben gesonderte offene Gates.
+
 ## Maßgebliche Dokumente
 
+- [Aktuelle Stabilitätsprüfung mit gemeinsamen Regressionen und neuen nativen Laufbelegen](../Magnolie-Organizer-macOS-Beta/STABILITY-VERIFICATION-2026-11-26.md)
+- [Dauerhafter nativer Abschlussbeleg #104](../Magnolie-Organizer-macOS-Beta/verification/native-run-104.json)
 - [Stabile Übernahme: Quellanker, Folgepatches, künftige Änderungen und Freigabematrix](macos-stable-integration-2026-11-26.md)
 - [Fortsetzung: tatsächliche native Mac-Läufe und Folgefixes #787/#788/#789/#793/#796/#797/#802](../Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md)
 - [Einzelbefunde, Patchreihenfolge und offene Teile](macos-issue-handoff-2026-11-26.md)
@@ -125,11 +150,23 @@ beauftragt. Native CI-Prüfungen auf dem bestehenden Arbeitszweig und deren
 zeitlich begrenzte CI-Entwicklungsartefakte gehören zur autorisierten
 Fortsetzung. Diese Artefakte sind keine Produktionsfreigabe.
 
+FOLGEAUFTRAG ZUR STABILEN ÜBERNAHME
+Der Nutzer verlangt zusätzlich eine dauerhafte Dokumentation, damit kommende
+Änderungen später übernommen werden können, und eine gründliche erneute
+Prüfung vor der nächsten stabilen Veröffentlichung. Wiederherstellung,
+gemeinsame Regressionen und Integration sind dokumentiert; den aktuellen
+Abschluss der erweiterten nativen Prüfungen zuerst aus dem Stabilitätsbericht
+lesen. Eine CI-Freigabe ersetzt keine fehlende Produktfunktion oder reale
+UI-/Monterey-/Provider-/Geräte-/Distributionsabnahme.
+
 ZUERST BESTAND PRÜFEN
 1. Repository https://github.com/maik3531/Magnolie-Organizer und den Zweig
    work/macos-issue-fixes-20261126 lesen. In vorhandenen Checkouts zuerst
    git status, AGENTS.md und ARBEITSSTAND.md prüfen; Benutzeränderungen erhalten.
 2. Diese Dateien lesen:
+   - Magnolie-Organizer-macOS-Beta/STABILITY-VERIFICATION-2026-11-26.md
+   - Magnolie-Organizer-macOS-Beta/verification/native-run-104.json
+   - contracts/macos-stable-integration-2026-11-26.md
    - Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md
    - contracts/macos-issue-handoff-2026-11-26.md
    - contracts/macos-issue-inventory-2026-11-26.json
@@ -156,10 +193,26 @@ Die Kommentarlinks verwenden den festen Dokumentations-/Artefaktcommit
 cf7b3f2bf4e8afee662a4926f32fc989d7ff7df8. Die Publikationsbelege enthalten
 alle Kommentar-IDs, URLs und Text-Hashes. Diese Schritte nicht neu ausführen.
 Vollständige native UI-/Monterey-/Konto-/Geräteabnahme und die dokumentierten
-technischen Reste bleiben offen; den erfolgreichen CI-Umfang von #97 beachten.
+technischen Reste bleiben offen; die genauen späteren nativen CI-Umfänge beachten.
 
 QUELLANKER
-- Neuer nativer Folgelauf #97 auf tatsächlichem Helper-Bundle-Fixcommit:
+- Erfolgreich geprüfter erweiterter nativer Quellstand nach #806/#793/#808:
+  3f3ec069895dec254c53660d14e6851cb23077cd
+  Tree 176fa7f362227c92ec4d7c4bf08d09b855951ae7
+  https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062
+  Lauf #104, Attempt 1, 26.11.2026 14:15:18–14:49:42 Europe/Berlin
+  (13:15:18–13:49:42 UTC). Gesamtworkflow und beide Mac-Jobs completed/success.
+  Den vollständigen Abschlussbeleg verification/native-run-104.json im
+  Mac-Verzeichnis lesen. Die Zwischenfehler #100/#102/#103 bleiben erhalten.
+  Ein späterer Dokumentationshead ist nicht der native Prüfcommit.
+- Gemeinsame Basis zum letzten gelesenen Refstand:
+  main auf d4da48a5eadd0bda22422b924bef4ee3b4324040,
+  erneut lesend bestätigt am 26.11.2026 um 14:52:15 Uhr Europe/Berlin (13:52:15 UTC).
+  Die konfliktfreie 0/23-Integrationsprobe vom selben Tag 13:16:51–58 UTC
+  bezieht sich exakt auf 3f3ec069, nicht auf spätere Dokumentationscommits.
+  Vor tatsächlicher Übernahme beide Refs neu lesen; ein neuer Integrationscommit
+  benötigt seine eigenen passenden Quell-, Test- und Paketnachweise.
+- Historischer vollständiger Vorgängerlauf #97 auf Helper-Bundle-Fixcommit:
   215d89029df02df2dce78f35412785ec9f9b36d8
   https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788
   Gesamtworkflow und beide Mac-Jobs erfolgreich. Host-/Swift-Tests,
@@ -220,15 +273,49 @@ VERBINDLICHE NUTZERVORGABEN
   Planungsergebnisse. Nutzer-PC, NFC-Leser und Telefon wurden nicht geprüft.
 
 BELEGTER PRÜFSTAND
+Lauf #104 auf 3f3ec069 besteht auf ARM64 und Intel die vollständige definierte
+erweiterte CI-Kette. Je Architektur: 26 Runtime-, 27 AirPlay-, 17 Helperfälle;
+34 Hostfälle bestanden und ein negativer Linux-only Baufall übersprungen.
+Vier Debugkontexte und ein Releasekontext wiederholen dieselben 501 Testnamen:
+Debug mit 4/5/5/6 Skips, Release 495 bestanden, sechs Skips, keine Fehler.
+Der echte Swift→private-Python-Prozess besteht 9/9 Kriterien; der tatsächliche
+App-Lebenszyklus 7/7. Unabhängige Byteaudits bestehen je Paket 65/65 Kriterien;
+deren Linux-Auswertung ist keine erneute native Ausführung oder codesign-Prüfung.
+Der Prozessnachweis ist keine Picker-/Editor-/Import-Save-/Kontenabnahme;
+das paketierte Artefakt bleibt Debug/ad-hoc und wurde auf macOS 15 geprüft.
+
+Die gemeinsame erneute Hostregression ist auf c8a7690d / Produktcode 215d890
+gebunden: 444 Pythonfälle und 14 Untertests, die vollständige Linux-Parserprobe,
+Linux-/Windows-Webprüfungen und Zeitzonenfälle. Genaue Einzelzahlen/Grenzen
+stehen im Stabilitätsbericht; keine überlappenden Umfänge zusammenzählen.
+Der reine Git-Nachvergleich bestätigt identische gemeinsame Produktquellen
+bis 3f3ec069; das ist keine nochmalige Testausführung. Die 24 Originalpatches
+wurden tatsächlich wiederhergestellt, jeder Zwischenbaum wurde exakt geprüft.
+#806 belegt nun die eindeutige echte macOS-Zielplattform; #808 erhält
+Archivzeitstempel und ist mit echtem Make sowie gepinntem XZ nachgeprüft.
+Die vollständigen Vorher-/Nachherbelege sowie native-run-100/102/103.json
+erhalten die tatsächlichen Fehler. Der erfolgreiche #104-Abschluss ergänzt
+diese Historie mit eigenem Endbeleg. Spätere Quelländerungen nach der
+Änderungsmatrix erneut prüfen; weder den Hosttestanker noch #104 nachträglich
+auf einen späteren Dokumentations- oder Integrationscommit umbenennen.
+Der zusätzliche Windows-Lauf Nr. 552 / 45820275770 auf 8c860a14 ist mit
+551/552 Core-Testgruppen fehlgeschlagen und bestätigt den getrennten
+Cleanuprest #794 erneut. Die betroffenen C#-Quellen wurden hier nicht
+geändert; keinen Windows-Pass oder Windows-Fix aus Mac-Ergebnissen ableiten.
+
 Im ursprünglichen Linux-Nachweis bestanden 35/35 Hostgruppen; gesondert ausgewiesen sind 90 OR6→Helper→UI-
 Prüfungen und 107 Sync-UI-Prüfungen. Diese Umfänge überlappen und werden nicht
-addiert. Logs und Quellbindungen verwenden. Spätere echte native GitHub-Läufe
-stehen in Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md;
-dort zuerst den erreichten Schritt, genauen Quellcommit und Ausgang prüfen.
+addiert. Logs und Quellbindungen verwenden. Die ursprünglichen nativen
+GitHub-Läufe bis einschließlich #97 stehen in
+Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md.
+Die erweiterte Nachprüfung ab #100 steht in
+Magnolie-Organizer-macOS-Beta/STABILITY-VERIFICATION-2026-11-26.md.
+Beim jeweiligen Lauf zuerst den erreichten Schritt, genauen Quellcommit
+und Ausgang prüfen.
 Swift-/Zeitzonenerfolg, Runtimebau, XCTest, Bundle-/App-Start sowie echte
 TCC-/Provider-/Gerätetests bleiben getrennte Nachweise. Vorbereitete Tests und
 historische CI-Erfolge auf älteren Quellen nicht als aktuelle native Erfolge
-ausgeben. Die Folgeissues #787/#788/#789/#793/#796/#797/#802 und den separaten
+ausgeben. Die Folgeissues #787/#788/#789/#793/#796/#797/#802/#806/#808 und den separaten
 Windowsrest #794 gezielt mitlesen. Ein nativer Runtime-/Testteilerfolg ist
 kein vollständiger App-Smoke- oder echter Konten-/Gerätenachweis.
 

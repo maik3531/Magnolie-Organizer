@@ -2,17 +2,44 @@
 
 ## Nachprüfung und spätere stabile Übernahme – 26. November 2026
 
-Auf ausdrücklichen Folgeauftrag wird der erfolgreiche Mac-Stand nochmals auf
-Übernehmbarkeit und Stabilität geprüft. Der
-[gesicherte Übernahmeplan](contracts/macos-stable-integration-2026-11-26.md)
-ordnet Quellanker, Patchreihenfolge, künftige gemeinsame Änderungen und die
-noch offenen stabilen Freigabegates. Die README, Funktionsmatrix, Runtime- und
-CI-Dokumentation wurden mit dem tatsächlichen #97-Ergebnis abgeglichen;
-historische Rohbelege bleiben erhalten. Ein frischer nativer Matrixlauf sowie
-gezielte Host-/Integrationsprüfungen werden mit ihren Ergebnissen nachgetragen.
-Die heutigen Integrationsanker sind `main` auf `d4da48a5` und der gesicherte
-Berichtsstand `c8a7690d`; die isolierte Mergeberechnung ist konfliktfrei.
-Keine stabile Mac-Freigabe aus einem erfolgreichen Entwicklungsbuild ableiten.
+**Aktueller Quellkandidat:** `3f3ec069895dec254c53660d14e6851cb23077cd`,
+Tree `176fa7f362227c92ec4d7c4bf08d09b855951ae7`, gesichert auf
+`work/macos-issue-fixes-20261126`. Der erweiterte native
+[Lauf #104](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062)
+ist auf **ARM64 und Intel vollständig erfolgreich abgeschlossen**. Er lief am
+26. November von **14:15:18 bis 14:49:42 Uhr Europe/Berlin**. Spätere reine
+Berichtscommits sind nicht mit diesem tatsächlich geprüften Quellcommit
+gleichzusetzen.
+
+Beide Architekturen bestehen je **26 Runtime-, 27 AirPlay- und 17 Helperfälle**,
+die Host-Suite mit **34 bestandenen Fällen und einem Linux-only Skip**, vier
+Debug-Swift-Kontexte sowie den zusätzlichen optimierten Release-Testkontext.
+Die fünf Kontexte enthalten dieselben **501 Testnamen**; keine Fehler, je nach
+Kontext 4/5/5/6/6 dokumentierte Skips. Die neue echte Swift→gebündelte
+Python-Prozessprobe bestätigt **9/9 Kriterien**, der App-Lebenszyklus **7/7**.
+Die unabhängige Prüfung beider tatsächlichen Pakete besteht je **65/65 Checks**.
+Der [dauerhafte #104-Gesamtbeleg](Magnolie-Organizer-macOS-Beta/verification/native-run-104.json)
+sichert die zugehörigen Quell-, Log-, Paket- und Prüfsummenbindungen.
+
+Der getrennte Windows-Lauf **#552** auf `8c860a14` ist dagegen mit **551 von
+552 bestandenen Core-Testgruppen** fehlgeschlagen. Die weiterhin geöffnete
+`phone.db` beim Fixture-Cleanup reproduziert #794; dafür wurde hier kein
+Windows-Produktfix vorgenommen. Die Mac-Ergebnisse ersetzen diese offene
+Windows-Abnahme nicht.
+
+Die zusätzlichen gemeinsamen Hostregressionen und die vollständige
+Wiederherstellung aller 24 Originalpatches sind abgeschlossen. Der
+[Stabilitätsbericht](Magnolie-Organizer-macOS-Beta/STABILITY-VERIFICATION-2026-11-26.md)
+sichert Ergebnisse, Quellenhashes, Fehlversuche und Prüfgrenzen. Der
+[Übernahmeplan](contracts/macos-stable-integration-2026-11-26.md)
+ordnet Folgecommits, spätere gemeinsame Änderungen und stabile Freigabegates.
+Die gezielte Remote-Nachprüfung um **14:16:51–14:16:58 Uhr Europe/Berlin**
+bestätigt `main` auf `d4da48a5`, 0/23 Commits und einen konfliktfreien
+Merge-Tree exakt gleich dem Kandidaten. Der abschließende API-Read um
+**14:52:15 Uhr Europe/Berlin** bestätigt dieselbe Main-Referenz. Es wurde kein
+Merge ausgeführt.
+
+### Erhaltener Verlauf der erweiterten Nachprüfung
 
 Die Nachprüfung hat den engen Bauprüferrest #806 bestätigt und als eigenen
 Quellcommit `6599dcb2a7d337f4b248b8b172e5e18c537a2dfa` gesichert: eindeutige

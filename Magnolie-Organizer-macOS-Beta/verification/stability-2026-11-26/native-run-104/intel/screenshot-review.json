@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "kind": "separate-human-visible-start-screen-review",
+  "reportedBy": "root assistant",
+  "recordedAtUTC": "2026-11-26T14:01:17.623252+00:00",
+  "runId": 45827353062,
+  "headSHA": "3f3ec069895dec254c53660d14e6851cb23077cd",
+  "architecture": "x86_64",
+  "image": {
+    "path": "/workspace/scratch/61dd4cfa9094/stability-checks/native-run-104/intel/files/bundle-window.png",
+    "bytes": 1751215,
+    "sha256": "9489d144a9259be76d641955c5fa9afc233c34837a52be7fff6b343acd3737c2"
+  },
+  "visuallyReviewed": true,
+  "observations": [
+    "Native window titled Magnolie Organizer macOS Beta",
+    "Brown book start page fully rendered",
+    "Date 26 November 2026 visible",
+    "Selection, settings and backup buttons visible",
+    "Open Beta information panel visible",
+    "No empty WebView or visible crash in the captured image"
+  ],
+  "limits": "Only the captured start screen was reviewed; no calendar/editor/interaction/full-UI acceptance. Not counted as an additional automated test.",
+  "additionalAutomatedTestCount": 0
+}

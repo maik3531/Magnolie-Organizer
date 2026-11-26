@@ -1,0 +1,248 @@
+{
+  "architectures": {
+    "arm64": {
+      "contexts": [
+        {
+          "actualLiveHolidayCase": {
+            "line": 1738,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' skipped (0.001 seconds)."
+          },
+          "basis": "check_calendar.py explicitly sets TZ=UTC and supplies the calendar fixture/output paths before swift test.",
+          "caller": "ProjectionTests.test_canonical_calendar_export_contract \u2192 check_calendar.py --swift",
+          "configuration": "debug",
+          "contextNumber": 1,
+          "id": "calendar-codec-utc",
+          "name": "Canonical calendar codec (UTC)",
+          "startLine": 1073,
+          "summaryLine": 2246
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 15776,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' skipped (0.000 seconds)."
+          },
+          "basis": "First host zone is UTC; actual generated editor records are passed through MACOS_BETA_EDITOR_FIXTURES.",
+          "caller": "ProjectionTests.test_current_editor_reminders_and_export \u2192 check_editor.py --swift",
+          "configuration": "debug",
+          "contextNumber": 2,
+          "id": "editor-utc",
+          "name": "Current editor (UTC)",
+          "startLine": 15112,
+          "summaryLine": 16285
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 29771,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' skipped (0.000 seconds)."
+          },
+          "basis": "Host zones run in UTC, Pacific/Honolulu, Europe/Berlin order; Honolulu explicitly omits --swift, so the second editor XCTest context is Europe/Berlin.",
+          "caller": "ProjectionTests.test_current_editor_reminders_and_export \u2192 check_editor.py --swift",
+          "configuration": "debug",
+          "contextNumber": 3,
+          "id": "editor-europe-berlin",
+          "name": "Current editor (Europe/Berlin)",
+          "startLine": 29107,
+          "summaryLine": 30280
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 43803,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' passed (0.615 seconds)."
+          },
+          "basis": "build_dev invokes the fourth Debug context with the current generated UI and the explicit live-holiday environment.",
+          "caller": "Workflow step9 \u2192 MACOS_BETA_LIVE_HOLIDAYS=1 build_dev.py \u2192 swift test --jobs2",
+          "configuration": "debug",
+          "contextNumber": 4,
+          "id": "build-dev-live-holidays",
+          "name": "Development build with live holidays",
+          "startLine": 43139,
+          "summaryLine": 44313
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 46389,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' passed (0.478 seconds)."
+          },
+          "basis": "Separate optimized context; the packaged development application remains Debug/ad-hoc.",
+          "caller": "Workflow step11 \u2192 MACOS_BETA_LIVE_HOLIDAYS=1 swift test -c release --jobs2",
+          "configuration": "release",
+          "contextNumber": 5,
+          "id": "release-live-holidays",
+          "name": "Optimized Release with live holidays",
+          "startLine": 45725,
+          "summaryLine": 46899
+        }
+      ],
+      "driverLogMarkers": {
+        "Actual current editor:": [
+          {
+            "line": 2297,
+            "text": "Actual current editor: {\"appointments\": 9, \"tasks\": 3, \"checks\": 96}"
+          },
+          {
+            "line": 16291,
+            "text": "Actual current editor: {\"appointments\": 9, \"tasks\": 3, \"checks\": 96}"
+          },
+          {
+            "line": 16292,
+            "text": "Actual current editor: {\"appointments\": 9, \"tasks\": 3, \"checks\": 96}"
+          }
+        ],
+        "Canonical calendar vectors prepared:": [
+          {
+            "line": 1072,
+            "text": "Canonical calendar vectors prepared: 19"
+          }
+        ]
+      },
+      "same501NamesVerifiedAcrossAllContexts": true
+    },
+    "x86_64": {
+      "contexts": [
+        {
+          "actualLiveHolidayCase": {
+            "line": 1783,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' skipped (0.001 seconds)."
+          },
+          "basis": "check_calendar.py explicitly sets TZ=UTC and supplies the calendar fixture/output paths before swift test.",
+          "caller": "ProjectionTests.test_canonical_calendar_export_contract \u2192 check_calendar.py --swift",
+          "configuration": "debug",
+          "contextNumber": 1,
+          "id": "calendar-codec-utc",
+          "name": "Canonical calendar codec (UTC)",
+          "startLine": 1118,
+          "summaryLine": 2291
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 15821,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' skipped (0.001 seconds)."
+          },
+          "basis": "First host zone is UTC; actual generated editor records are passed through MACOS_BETA_EDITOR_FIXTURES.",
+          "caller": "ProjectionTests.test_current_editor_reminders_and_export \u2192 check_editor.py --swift",
+          "configuration": "debug",
+          "contextNumber": 2,
+          "id": "editor-utc",
+          "name": "Current editor (UTC)",
+          "startLine": 15157,
+          "summaryLine": 16333
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 29820,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' skipped (0.001 seconds)."
+          },
+          "basis": "Host zones run in UTC, Pacific/Honolulu, Europe/Berlin order; Honolulu explicitly omits --swift, so the second editor XCTest context is Europe/Berlin.",
+          "caller": "ProjectionTests.test_current_editor_reminders_and_export \u2192 check_editor.py --swift",
+          "configuration": "debug",
+          "contextNumber": 3,
+          "id": "editor-europe-berlin",
+          "name": "Current editor (Europe/Berlin)",
+          "startLine": 29156,
+          "summaryLine": 30332
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 43855,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' passed (0.429 seconds)."
+          },
+          "basis": "build_dev invokes the fourth Debug context with the current generated UI and the explicit live-holiday environment.",
+          "caller": "Workflow step9 \u2192 MACOS_BETA_LIVE_HOLIDAYS=1 build_dev.py \u2192 swift test --jobs2",
+          "configuration": "debug",
+          "contextNumber": 4,
+          "id": "build-dev-live-holidays",
+          "name": "Development build with live holidays",
+          "startLine": 43191,
+          "summaryLine": 44368
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 46444,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' passed (0.379 seconds)."
+          },
+          "basis": "Separate optimized context; the packaged development application remains Debug/ad-hoc.",
+          "caller": "Workflow step11 \u2192 MACOS_BETA_LIVE_HOLIDAYS=1 swift test -c release --jobs2",
+          "configuration": "release",
+          "contextNumber": 5,
+          "id": "release-live-holidays",
+          "name": "Optimized Release with live holidays",
+          "startLine": 45780,
+          "summaryLine": 46958
+        }
+      ],
+      "driverLogMarkers": {
+        "Actual current editor:": [
+          {
+            "line": 2342,
+            "text": "Actual current editor: {\"appointments\": 9, \"tasks\": 3, \"checks\": 96}"
+          },
+          {
+            "line": 16339,
+            "text": "Actual current editor: {\"appointments\": 9, \"tasks\": 3, \"checks\": 96}"
+          },
+          {
+            "line": 16340,
+            "text": "Actual current editor: {\"appointments\": 9, \"tasks\": 3, \"checks\": 96}"
+          }
+        ],
+        "Canonical calendar vectors prepared:": [
+          {
+            "line": 1117,
+            "text": "Canonical calendar vectors prepared: 19"
+          }
+        ]
+      },
+      "same501NamesVerifiedAcrossAllContexts": true
+    }
+  },
+  "headSHA": "3f3ec069895dec254c53660d14e6851cb23077cd",
+  "notAdditionalCases": "The five contexts repeat the same 501 actual named XCTest cases. Pacific/Honolulu is a JS-only editor context, not a sixth Swift suite.",
+  "runId": 45827353062,
+  "schema": 1,
+  "sourceBindings": {
+    ".github/workflows/ports-2.0.30.yml": {
+      "gitBlob": "67d8915eef9fa357dc0ce5debcf40cd82c03b608",
+      "sha256": "7b7f3ff201553fa94e33417808ee3a6bde531835c3a3c50bd6584147ae0a6419"
+    },
+    "Magnolie-Organizer-macOS-Beta/tests/test_host.py": {
+      "gitBlob": "1c908ca2f48969a99a5067428c285869ad2618d3",
+      "sha256": "e398c3a7662446c741b147bb39e4922e4d9aa8e213f704186e372644193ff716"
+    },
+    "Magnolie-Organizer-macOS-Beta/tools/build_dev.py": {
+      "gitBlob": "524908a6e21300b6a2250d2a54c63823ec9a2972",
+      "sha256": "2b562656e7db563ee7aacfc2ff3c11d966056043ef0fb9c531ca2049ad84566a"
+    },
+    "Magnolie-Organizer-macOS-Beta/tools/check_calendar.py": {
+      "gitBlob": "7d5d3ac4cb8b6e862d7bb48b09aa8ae1592b239c",
+      "sha256": "336220e63f9d23e71f6ad527a031f2da77b0ab27d0bd89c3df3d0a165a024cb0"
+    },
+    "Magnolie-Organizer-macOS-Beta/tools/check_editor.py": {
+      "gitBlob": "95cd1814c513a277a2024f2057c2de1e6406ffa5",
+      "sha256": "ec4348946b64b6c8bbbd0f4682d4984d0e0078c6034cf8488dafe073138cf55c"
+    }
+  },
+  "sourceEvidence": {
+    "buildDriverLines": [
+      43,
+      48
+    ],
+    "calendarDriverLines": [
+      221,
+      229
+    ],
+    "editorDriverLines": [
+      84,
+      87
+    ],
+    "hostCalendarLines": [
+      641,
+      648
+    ],
+    "hostEditorLines": [
+      626,
+      637
+    ],
+    "workflowDebugLine": 133,
+    "workflowReleaseLine": 155
+  }
+}

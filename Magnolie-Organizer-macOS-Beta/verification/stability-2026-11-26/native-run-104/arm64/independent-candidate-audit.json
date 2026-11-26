@@ -1,0 +1,287 @@
+{
+  "architecture": "arm64",
+  "artifact": {
+    "bytes": 24655554,
+    "extractedMembersVerified": 15,
+    "name": "development-candidate.zip",
+    "sha256": "526a51d0bd58824faa33f2453fc94ee2ad62b39deea05eae049805b6ba6e3726"
+  },
+  "artifactId": 15122996395,
+  "candidate": {
+    "archiveEntries": 2151,
+    "bytes": 23986905,
+    "name": "Magnolie-Organizer-macOS-2.0.30-beta.1-arm64.zip",
+    "sha256": "a7eeb56c95387e1f40370b8b808bfd13e16fc9dc51e7787cdfb900c38135e908"
+  },
+  "checks": {
+    "all_listed_resource_seal_hashes": true,
+    "all_nine_native_process_flags": true,
+    "all_plugins_sealed_as_nested_code": true,
+    "all_projected_outputs_exact": true,
+    "all_seven_smoke_flags": true,
+    "artifact_api_source": true,
+    "artifact_members_match_extracted_bytes": true,
+    "artifact_safe_unique_members": true,
+    "artifact_zip_digest": true,
+    "build_identity": true,
+    "build_scope_flags": true,
+    "build_success_claims": true,
+    "bundle_identities_and_minimum": true,
+    "candidate_zip_digest": true,
+    "environment_architecture": true,
+    "executable_modes": true,
+    "expected_evidence_members": true,
+    "frozen_input_consistency": true,
+    "full_signed_runtime_inventory": true,
+    "git_batch_completed": true,
+    "helper_seal_in_inventory": true,
+    "import_helper_generated_inventory": true,
+    "launcher_source_bound": true,
+    "main_embedded_signature": true,
+    "main_macos_platform_and_minos": true,
+    "main_native_cpu_and_type": true,
+    "manifest_outside_helper": true,
+    "matching_profile_hashes": true,
+    "native_process_before_after_claims": true,
+    "native_process_identity": true,
+    "native_process_link_receipt_shape": true,
+    "native_process_original_fixture": true,
+    "native_process_packaged_bytes": true,
+    "native_process_scope_flags": true,
+    "native_process_source_bindings": true,
+    "native_process_timestamp": true,
+    "nested_runtime_layout": true,
+    "no_archive_symlinks": true,
+    "no_macho_code_in_runtime_resources": true,
+    "optimized_swift_original_log": true,
+    "outer_nested_helper_reference": true,
+    "packaged_source_documents": true,
+    "packaged_sources_identical": true,
+    "prepared_catalogs_match_packaged_outputs": true,
+    "prepared_dependency_wheel_matches_commit_pin": true,
+    "runtime_cpu_and_types": true,
+    "runtime_embedded_signatures": true,
+    "runtime_external_manifest_identical": true,
+    "runtime_identity": true,
+    "runtime_load_commands_match_manifest": true,
+    "runtime_macho_inventory": true,
+    "runtime_minimum_and_system_libraries": true,
+    "runtime_relocation_claims": true,
+    "safe_archive_paths": true,
+    "screenshot_png": true,
+    "screenshot_size": true,
+    "single_expected_package_root": true,
+    "smoke_scope_flags": true,
+    "source_blob_modes": true,
+    "source_blob_modes_and_sha256": true,
+    "source_file_set_matches_commit": true,
+    "source_head": true,
+    "source_scope_flags": true,
+    "tracked_projection_inputs_match_commit": true,
+    "unique_archive_members": true
+  },
+  "codeResources": {
+    "helperCDHashReference": "5811650f8743cec01c0796c2e786d8ff3b3dfdc5",
+    "helperNestedCodeEntries": 51,
+    "nestedCodeDirectoryReferencesMatchActualBytes": true,
+    "outerNestedCodeEntries": 1,
+    "resourceHashesVerified": 1967
+  },
+  "environment": {
+    "nativeMagnolieTestsExecutedAtPrerequisiteSnapshot": false,
+    "observedAtUTC": "2026-11-26T13:20:49.930532+00:00",
+    "productBuild": "24H232",
+    "productVersion": "15.8.2",
+    "sdkVersion": "15.5",
+    "snapshotIsFinalTestResult": false
+  },
+  "failures": [],
+  "head": "3f3ec069895dec254c53660d14e6851cb23077cd",
+  "helperMachO": {
+    "codeDirectories": [
+      {
+        "cdhash": "5811650f8743cec01c0796c2e786d8ff3b3dfdc5",
+        "hashType": 2,
+        "slot": 0
+      }
+    ],
+    "cpuSubtype": 0,
+    "cpuType": 16777228,
+    "dependencies": [
+      "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "embeddedCodeSignature": true,
+    "fileType": 2,
+    "minimumOS": [
+      "12.7.0"
+    ],
+    "platform": 1,
+    "sdk": "15.5.0"
+  },
+  "kind": "independent-read-only-candidate-byte-audit",
+  "limitations": [
+    "No native codesign command, native build, test, app or helper execution was repeated by this Linux audit.",
+    "Embedded CodeDirectory/nested references and resource seal hashes are byte observations, not macOS trust or signature verification. Native codesign success belongs to the original CI gates.",
+    "The 51 linked BetaCore objects, output map, module and compiled probe are represented by native receipts; their unshipped bytes cannot be independently rehashed here.",
+    "Process receipt covers original public OR6 data and bounded errors, not picker/editor/profile save/TCC/account/device acceptance.",
+    "Smoke covers the real fresh profile initialize/save/quit/reopen lifecycle, not all UI features or permissions.",
+    "A macOS12.7 deployment target is not execution on macOS12.7; runner OS is recorded separately.",
+    "Ad-hoc Debug development package, no notarization or production-release claim; optimized Swift tests are a separate context."
+  ],
+  "mainMachO": {
+    "codeDirectories": [
+      {
+        "cdhash": "15d53329189931fe95c4e7b8aa91bc94a4eca280",
+        "hashType": 2,
+        "slot": 0
+      }
+    ],
+    "cpuSubtype": 0,
+    "cpuType": 16777228,
+    "dependencies": [
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+      "/System/Library/Frameworks/CFNetwork.framework/Versions/A/CFNetwork",
+      "/System/Library/Frameworks/Contacts.framework/Versions/A/Contacts",
+      "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics",
+      "/System/Library/Frameworks/CryptoKit.framework/Versions/A/CryptoKit",
+      "/System/Library/Frameworks/EventKit.framework/Versions/A/EventKit",
+      "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+      "/System/Library/Frameworks/ImageIO.framework/Versions/A/ImageIO",
+      "/System/Library/Frameworks/Security.framework/Versions/A/Security",
+      "/System/Library/Frameworks/UserNotifications.framework/Versions/A/UserNotifications",
+      "/System/Library/Frameworks/WebKit.framework/Versions/A/WebKit",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreLocation.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDataDetection.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftIOKit.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftFoundation.dylib",
+      "/usr/lib/swift/libswiftWebKit.dylib",
+      "/usr/lib/swift/libswiftCoreGraphics.dylib"
+    ],
+    "embeddedCodeSignature": true,
+    "fileType": 2,
+    "minimumOS": [
+      "12.7.0"
+    ],
+    "platform": 1,
+    "sdk": "15.5.0"
+  },
+  "nativeProcess": {
+    "appSignaturesVerifiedBeforeAndAfterClaim": true,
+    "checks": {
+      "emptySelectedFileRejected": true,
+      "hostileParentPythonEnvironment": true,
+      "knownOR6FieldsPreserved": true,
+      "originalSwiftProcessWithBundledRuntime": true,
+      "oversizedSelectedFileRejected": true,
+      "selectedFixtureUnchanged": true,
+      "selectedRegularFileRead": true,
+      "selectedSymlinkRejected": true,
+      "structuredHelperErrorRejected": true
+    },
+    "compiledProbeBytesIndependentlyVerified": false,
+    "knownCollectionsVerified": 4,
+    "knownFieldsVerified": 22,
+    "linkAndExecutionAuthority": "Original native driver receipt and CI log; object/probe files are not included in the artifact.",
+    "linkedObjectReceiptCount": 51,
+    "linkedReceiptFileCount": 53,
+    "objectBytesIndependentlyVerified": false,
+    "objectFilesIncludedInArtifact": false,
+    "observedAtUTC": "2026-11-26T13:36:54.162443+00:00",
+    "originalFixture": {
+      "bytes": 155648,
+      "contract": "contracts/or6-native-fixtures.json",
+      "contractSHA256": "87f218681f8d3fef65c819d985656457c4b7ed67adefb2654077b0cf0fc92890",
+      "expectedFields": 22,
+      "name": "known-values.or6",
+      "sha256": "1c12517b17c213b1c9a2c73e6168eadb00c2feebafb1ab2bd35d5a5a6b968a0e"
+    },
+    "packagedFilesIndependentlyHashed": 8,
+    "proofSHA256": "d10854840bc30fc9557e913109bf313774a0a26d33f1c43c4da60c38fe47d753",
+    "scopeFlags": {
+      "editorExercised": false,
+      "nativeAcceptance": false,
+      "pickerExercised": false,
+      "productionRelease": false,
+      "profileSaveExercised": false,
+      "systemPermissionsExercised": false
+    },
+    "sourceBindingsVerified": 59
+  },
+  "observedAtUTC": "2026-11-26T13:48:50.439863+00:00",
+  "optimizedSwift": {
+    "context": "Original native optimized test log; packaged app remains Debug.",
+    "executed": 501,
+    "failures": 0,
+    "log": "swift-release-arm64.log",
+    "sha256": "3f2cb7f62635846aa04690af500ed882a0ac88c1ea5298926544e77519357797",
+    "skipped": 6
+  },
+  "passed": true,
+  "profileHashes": {
+    "first": "ff5a46c8d3f22aced21fdf96aa460a14226400daa5250c6bbad331f090035813",
+    "reopened": "ff5a46c8d3f22aced21fdf96aa460a14226400daa5250c6bbad331f090035813"
+  },
+  "projection": {
+    "generatedCatalogs": 19,
+    "helperGeneratedOutputsVerified": 1203,
+    "importHelperRelocationAccountedFor": true,
+    "inputs": 555,
+    "outputsVerified": 1312,
+    "pinnedDependencyWheels": 1,
+    "preparedInputsNotInGit": 20,
+    "trackedInputsVerified": 535
+  },
+  "runId": 45827353062,
+  "runtime": {
+    "filesVerified": 706,
+    "launcherSourceSHA256": "4c9591d11ac184208ad6b5cb5cc087a9e076c4784745ac82f38256145bf02d3e",
+    "machOImagesVerified": 52,
+    "minimumSystemVersion": "12.7",
+    "pluginsSealedAsNestedCode": 51,
+    "schema": 2
+  },
+  "schema": 2,
+  "screenshot": {
+    "captured": true,
+    "height": 793,
+    "name": "bundle-window.png",
+    "sha256": "32a41e6b51d56cb28ff45e39c98ded63b7e2998d10e51e08c9251a95f0995c98",
+    "visuallyReviewedByThisAudit": false,
+    "width": 1136
+  },
+  "smoke": {
+    "bundleLaunch": true,
+    "freshNormalizedProfileSaved": true,
+    "normalQuit": true,
+    "pidBoundVisibleWindow": true,
+    "profileDataPreserved": true,
+    "reopen": true,
+    "reopenedProfileAtomicallySaved": true
+  },
+  "source": {
+    "filesVerified": 3921,
+    "gitBlobBytesReadThisAudit": 126567259,
+    "proofSHA256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c",
+    "reusedIdenticalSourceProof": null,
+    "uniqueGitBlobsReadThisAudit": 3817,
+    "worktreeBytesUsed": false
+  }
+}

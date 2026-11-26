@@ -1,0 +1,423 @@
+{
+  "compression": "gzip with mtime=0; uncompressed SHA256 and size must match before reading. No newline or encoding normalization is performed.",
+  "files": [
+    {
+      "captureRelativePath": "run104-evidence.json",
+      "encoding": "gzip",
+      "file": "run104-evidence.original.json.gz",
+      "kind": "immutable original final capture",
+      "originalBytes": 89444,
+      "originalSHA256": "1c8839c7fe2056f1a425c16eb6b35c6ed48cf8240dde20b35bd21dae35ef4598",
+      "storedBytes": 19178,
+      "storedSHA256": "fe308ecdcd3c3497381714e1554968b72222b51b30a7cd86012caf169a6ad6e3"
+    },
+    {
+      "captureRelativePath": "artifacts-final.json",
+      "encoding": "unchanged bytes",
+      "file": "artifacts-final.json",
+      "kind": "original evidence",
+      "originalBytes": 1889,
+      "originalSHA256": "f1770ab9f86024036264a36a6c9dbb0cf447eda6ea8d479629b6488f15f6011e",
+      "storedBytes": 1889,
+      "storedSHA256": "f1770ab9f86024036264a36a6c9dbb0cf447eda6ea8d479629b6488f15f6011e"
+    },
+    {
+      "captureRelativePath": "jobs-final.json",
+      "encoding": "unchanged bytes",
+      "file": "jobs-final.json",
+      "kind": "original evidence",
+      "originalBytes": 14825,
+      "originalSHA256": "ee4c23b2b5c4ee9d23b81cfaed484c8c709fc281dabde0199d27ccf27f6d4e41",
+      "storedBytes": 14825,
+      "storedSHA256": "ee4c23b2b5c4ee9d23b81cfaed484c8c709fc281dabde0199d27ccf27f6d4e41"
+    },
+    {
+      "captureRelativePath": "run-final.json",
+      "encoding": "unchanged bytes",
+      "file": "run-final.json",
+      "kind": "original evidence",
+      "originalBytes": 14673,
+      "originalSHA256": "9812e01f7fe8395f822b81c0f4f8b644db43f9636422aba645222a7b51dd23db",
+      "storedBytes": 14673,
+      "storedSHA256": "9812e01f7fe8395f822b81c0f4f8b644db43f9636422aba645222a7b51dd23db"
+    },
+    {
+      "captureRelativePath": "swift-context-callers.json",
+      "encoding": "unchanged bytes",
+      "file": "swift-context-callers.json",
+      "kind": "original evidence",
+      "originalBytes": 10293,
+      "originalSHA256": "8101ab49b68f7e1c80149f2f0dd0428eeff2ec5ca670d35a3a54754bf4744b67",
+      "storedBytes": 10293,
+      "storedSHA256": "8101ab49b68f7e1c80149f2f0dd0428eeff2ec5ca670d35a3a54754bf4744b67"
+    },
+    {
+      "captureRelativePath": "arm64/files/sources.json",
+      "encoding": "unchanged bytes",
+      "file": "sources.json",
+      "kind": "one byte-identical source manifest for both architectures",
+      "originalBytes": 982713,
+      "originalSHA256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c",
+      "storedBytes": 982713,
+      "storedSHA256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c"
+    },
+    {
+      "captureRelativePath": "arm64/independent-candidate-audit.json",
+      "encoding": "unchanged bytes",
+      "file": "arm64/independent-candidate-audit.json",
+      "kind": "original evidence",
+      "originalBytes": 11171,
+      "originalSHA256": "5b7b5c8667768c0955dbdee64a5b40b5603d99359714bfd3564ae96306b53707",
+      "storedBytes": 11171,
+      "storedSHA256": "5b7b5c8667768c0955dbdee64a5b40b5603d99359714bfd3564ae96306b53707"
+    },
+    {
+      "captureRelativePath": "arm64/test-results.json",
+      "encoding": "unchanged bytes",
+      "file": "arm64/test-results.json",
+      "kind": "original evidence",
+      "originalBytes": 10751,
+      "originalSHA256": "dd50349c77c3e7e50374be5a839704330ddb50040f74df4685b5d049888430ac",
+      "storedBytes": 10751,
+      "storedSHA256": "dd50349c77c3e7e50374be5a839704330ddb50040f74df4685b5d049888430ac"
+    },
+    {
+      "captureRelativePath": "arm64/screenshot-review.json",
+      "encoding": "unchanged bytes",
+      "file": "arm64/screenshot-review.json",
+      "kind": "original evidence",
+      "originalBytes": 923,
+      "originalSHA256": "e6bd66d1df55ffd94415f3556270a47f31cc4d92d0a385de440c6995ab4df0a1",
+      "storedBytes": 923,
+      "storedSHA256": "e6bd66d1df55ffd94415f3556270a47f31cc4d92d0a385de440c6995ab4df0a1"
+    },
+    {
+      "captureRelativePath": "arm64/artifact-metadata.json",
+      "encoding": "unchanged bytes",
+      "file": "arm64/artifact-metadata.json",
+      "kind": "original evidence",
+      "originalBytes": 841,
+      "originalSHA256": "1f94c994533d55e4390c3785a9f68d29d3a52c3ff306d29b74d3f37d835ae98f",
+      "storedBytes": 841,
+      "storedSHA256": "1f94c994533d55e4390c3785a9f68d29d3a52c3ff306d29b74d3f37d835ae98f"
+    },
+    {
+      "captureRelativePath": "arm64/download-proof.json",
+      "encoding": "unchanged bytes",
+      "file": "arm64/download-proof.json",
+      "kind": "original evidence",
+      "originalBytes": 2557,
+      "originalSHA256": "2935fc176e919afdde6b7378332e1fa9605a7e041d174415149f7acb26cbaa05",
+      "storedBytes": 2557,
+      "storedSHA256": "2935fc176e919afdde6b7378332e1fa9605a7e041d174415149f7acb26cbaa05"
+    },
+    {
+      "captureRelativePath": "arm64/files/bundle-smoke-first-window.json",
+      "encoding": "unchanged bytes",
+      "file": "arm64/bundle-smoke-first-window.json",
+      "kind": "original evidence",
+      "originalBytes": 1972,
+      "originalSHA256": "6db9f0fcf280c410a1e683bf133cf775ec63a36d46ce2923beb5fd2256ac05b8",
+      "storedBytes": 1972,
+      "storedSHA256": "6db9f0fcf280c410a1e683bf133cf775ec63a36d46ce2923beb5fd2256ac05b8"
+    },
+    {
+      "captureRelativePath": "arm64/files/bundle-smoke-observations.json",
+      "encoding": "unchanged bytes",
+      "file": "arm64/bundle-smoke-observations.json",
+      "kind": "original evidence",
+      "originalBytes": 227,
+      "originalSHA256": "20316cb38dbd2d45400becf92f4cb9c28564c8b448f5f045fe6243e04e047830",
+      "storedBytes": 227,
+      "storedSHA256": "20316cb38dbd2d45400becf92f4cb9c28564c8b448f5f045fe6243e04e047830"
+    },
+    {
+      "captureRelativePath": "arm64/files/bundle-smoke.json",
+      "encoding": "unchanged bytes",
+      "file": "arm64/bundle-smoke.json",
+      "kind": "original evidence",
+      "originalBytes": 700,
+      "originalSHA256": "170545c0d9477c59951df0b8e1689071fb6fdc05cc2bc0677e0d9e78ab00cff9",
+      "storedBytes": 700,
+      "storedSHA256": "170545c0d9477c59951df0b8e1689071fb6fdc05cc2bc0677e0d9e78ab00cff9"
+    },
+    {
+      "captureRelativePath": "arm64/files/environment-arm64.json",
+      "encoding": "unchanged bytes",
+      "file": "arm64/environment-arm64.json",
+      "kind": "original evidence",
+      "originalBytes": 2376,
+      "originalSHA256": "4567d50d23a2368d4e9d57cf42f487a6188b904d47026ac936a4d0aa94eaa801",
+      "storedBytes": 2376,
+      "storedSHA256": "4567d50d23a2368d4e9d57cf42f487a6188b904d47026ac936a4d0aa94eaa801"
+    },
+    {
+      "captureRelativePath": "arm64/files/import-python-arm64.json",
+      "encoding": "unchanged bytes",
+      "file": "arm64/import-python-arm64.json",
+      "kind": "original evidence",
+      "originalBytes": 103029,
+      "originalSHA256": "f0e344658955de893c1e808aa7fc8a4d06dcc005ddaa3280e9563c8a70784e9b",
+      "storedBytes": 103029,
+      "storedSHA256": "f0e344658955de893c1e808aa7fc8a4d06dcc005ddaa3280e9563c8a70784e9b"
+    },
+    {
+      "captureRelativePath": "arm64/files/native-file-import-process-arm64.json",
+      "encoding": "unchanged bytes",
+      "file": "arm64/native-file-import-process-arm64.json",
+      "kind": "original evidence",
+      "originalBytes": 17871,
+      "originalSHA256": "d10854840bc30fc9557e913109bf313774a0a26d33f1c43c4da60c38fe47d753",
+      "storedBytes": 17871,
+      "storedSHA256": "d10854840bc30fc9557e913109bf313774a0a26d33f1c43c4da60c38fe47d753"
+    },
+    {
+      "captureRelativePath": "arm64/files/SHA256SUMS",
+      "encoding": "unchanged bytes",
+      "file": "arm64/SHA256SUMS",
+      "kind": "original evidence",
+      "originalBytes": 115,
+      "originalSHA256": "65e797d3bbdf0ee9f4bef1fb082f2338079d30fe0b0eabcf24041c531f5d4be0",
+      "storedBytes": 115,
+      "storedSHA256": "65e797d3bbdf0ee9f4bef1fb082f2338079d30fe0b0eabcf24041c531f5d4be0"
+    },
+    {
+      "captureRelativePath": "arm64/files/import-python-arm64.log",
+      "encoding": "gzip",
+      "file": "arm64/import-python-arm64.log.gz",
+      "kind": "complete original native log",
+      "originalBytes": 866607,
+      "originalSHA256": "a9b4139efc37fa2ff46a98317a7f8d66074b1c89110120f492a83e53548e0798",
+      "storedBytes": 28513,
+      "storedSHA256": "d3598c7951d8def9823fe1c78283a65376d824bc901a6364b42e007f68451b4c"
+    },
+    {
+      "captureRelativePath": "arm64/files/swift-release-arm64.log",
+      "encoding": "gzip",
+      "file": "arm64/swift-release-arm64.log.gz",
+      "kind": "complete original native log",
+      "originalBytes": 321125,
+      "originalSHA256": "3f2cb7f62635846aa04690af500ed882a0ac88c1ea5298926544e77519357797",
+      "storedBytes": 37549,
+      "storedSHA256": "10ecb52378e016195bfe44664e753b7eb962b28b469d75093f5e2720fdbef3c7"
+    },
+    {
+      "captureRelativePath": "arm64/files/bundle-console.log",
+      "encoding": "gzip",
+      "file": "arm64/bundle-console.log.gz",
+      "kind": "complete original native log",
+      "originalBytes": 1450656,
+      "originalSHA256": "fa8810ab2f0d4c4233d305b8d7b7dc8a3041ca0269ac8e8ed808bc916164b659",
+      "storedBytes": 111331,
+      "storedSHA256": "d33b412ce9c30e6b76574b936a63f6ecf815e2f62a055ef281771ffcae9e95af"
+    },
+    {
+      "captureRelativePath": "arm64/files/bundle-smoke-progress.log",
+      "encoding": "gzip",
+      "file": "arm64/bundle-smoke-progress.log.gz",
+      "kind": "complete original native log",
+      "originalBytes": 1511,
+      "originalSHA256": "a4b73cff71148a65eb15357333208e0399c6c5532948ef605e961e2321f5d516",
+      "storedBytes": 417,
+      "storedSHA256": "1a8c05a1ac192898f24b4a80b179cdec6e0fb5639cd4c7105f3de6315d44259d"
+    },
+    {
+      "captureRelativePath": "job-139934825830-arm64.log",
+      "encoding": "gzip",
+      "file": "arm64/job-139934825830.log.gz",
+      "kind": "complete original GitHub native job log",
+      "originalBytes": 6282335,
+      "originalSHA256": "e2ab8aeb38d5e284c83a8f064f9121e626b93f517f9347c6135845e853215aa8",
+      "storedBytes": 768439,
+      "storedSHA256": "7404948d8fff36d994d4a1d562dca48f7a3434258900360b54cf4e62ff75c85b"
+    },
+    {
+      "captureRelativePath": "intel/independent-candidate-audit.json",
+      "encoding": "unchanged bytes",
+      "file": "intel/independent-candidate-audit.json",
+      "kind": "original evidence",
+      "originalBytes": 11488,
+      "originalSHA256": "7127e85260292eac6ac6f587f53540d4810990547f0ea5aef74a340efcbc633c",
+      "storedBytes": 11488,
+      "storedSHA256": "7127e85260292eac6ac6f587f53540d4810990547f0ea5aef74a340efcbc633c"
+    },
+    {
+      "captureRelativePath": "intel/test-results.json",
+      "encoding": "unchanged bytes",
+      "file": "intel/test-results.json",
+      "kind": "original evidence",
+      "originalBytes": 10755,
+      "originalSHA256": "6cd34dbca1c53e3e440fafc35abdcf54aec7aeca45d84e7295a9c0491a8926be",
+      "storedBytes": 10755,
+      "storedSHA256": "6cd34dbca1c53e3e440fafc35abdcf54aec7aeca45d84e7295a9c0491a8926be"
+    },
+    {
+      "captureRelativePath": "intel/screenshot-review.json",
+      "encoding": "unchanged bytes",
+      "file": "intel/screenshot-review.json",
+      "kind": "original evidence",
+      "originalBytes": 1046,
+      "originalSHA256": "91b8716fa1fb24a1d1cad34ceba827bd3be17bb0757711c30f6f316b420f7a8f",
+      "storedBytes": 1046,
+      "storedSHA256": "91b8716fa1fb24a1d1cad34ceba827bd3be17bb0757711c30f6f316b420f7a8f"
+    },
+    {
+      "captureRelativePath": "intel/artifact-metadata.json",
+      "encoding": "unchanged bytes",
+      "file": "intel/artifact-metadata.json",
+      "kind": "original evidence",
+      "originalBytes": 842,
+      "originalSHA256": "7ffe3d2ef45cb577a9d5fda578ddb5fb8c0c6d9378332620a4a20a206b037b34",
+      "storedBytes": 842,
+      "storedSHA256": "7ffe3d2ef45cb577a9d5fda578ddb5fb8c0c6d9378332620a4a20a206b037b34"
+    },
+    {
+      "captureRelativePath": "intel/download-proof.json",
+      "encoding": "unchanged bytes",
+      "file": "intel/download-proof.json",
+      "kind": "original evidence",
+      "originalBytes": 2564,
+      "originalSHA256": "a3d672f4b4f27788b6afb53b1ca812ecba84acad469f83b40736f185f3482c1b",
+      "storedBytes": 2564,
+      "storedSHA256": "a3d672f4b4f27788b6afb53b1ca812ecba84acad469f83b40736f185f3482c1b"
+    },
+    {
+      "captureRelativePath": "intel/files/bundle-smoke-first-window.json",
+      "encoding": "unchanged bytes",
+      "file": "intel/bundle-smoke-first-window.json",
+      "kind": "original evidence",
+      "originalBytes": 1975,
+      "originalSHA256": "cd75cc86ff09ec0cb1b4ea01485426d5c4be6330ef5f7f4ab0a716420d5324c5",
+      "storedBytes": 1975,
+      "storedSHA256": "cd75cc86ff09ec0cb1b4ea01485426d5c4be6330ef5f7f4ab0a716420d5324c5"
+    },
+    {
+      "captureRelativePath": "intel/files/bundle-smoke-observations.json",
+      "encoding": "unchanged bytes",
+      "file": "intel/bundle-smoke-observations.json",
+      "kind": "original evidence",
+      "originalBytes": 227,
+      "originalSHA256": "e72f570bd51b33d347bff96b9cb5664963a68e074d82ad9af4dce6da8a9e5a63",
+      "storedBytes": 227,
+      "storedSHA256": "e72f570bd51b33d347bff96b9cb5664963a68e074d82ad9af4dce6da8a9e5a63"
+    },
+    {
+      "captureRelativePath": "intel/files/bundle-smoke.json",
+      "encoding": "unchanged bytes",
+      "file": "intel/bundle-smoke.json",
+      "kind": "original evidence",
+      "originalBytes": 700,
+      "originalSHA256": "f8b21cfd4fd2a6c0a78b4d124be5b4505eee4a11190122b3af2c8b5d7748b0e8",
+      "storedBytes": 700,
+      "storedSHA256": "f8b21cfd4fd2a6c0a78b4d124be5b4505eee4a11190122b3af2c8b5d7748b0e8"
+    },
+    {
+      "captureRelativePath": "intel/files/environment-x86_64.json",
+      "encoding": "unchanged bytes",
+      "file": "intel/environment-x86_64.json",
+      "kind": "original evidence",
+      "originalBytes": 2337,
+      "originalSHA256": "d52cee967c77c77c05d8715f117d83bb38f13f741146547f33d32730ddd167f1",
+      "storedBytes": 2337,
+      "storedSHA256": "d52cee967c77c77c05d8715f117d83bb38f13f741146547f33d32730ddd167f1"
+    },
+    {
+      "captureRelativePath": "intel/files/import-python-x86_64.json",
+      "encoding": "unchanged bytes",
+      "file": "intel/import-python-x86_64.json",
+      "kind": "original evidence",
+      "originalBytes": 103030,
+      "originalSHA256": "c74f277d81db0b7dc000e01050c0a156b686f45a6e1423917b0735ca9f7ce9a1",
+      "storedBytes": 103030,
+      "storedSHA256": "c74f277d81db0b7dc000e01050c0a156b686f45a6e1423917b0735ca9f7ce9a1"
+    },
+    {
+      "captureRelativePath": "intel/files/native-file-import-process-x86_64.json",
+      "encoding": "unchanged bytes",
+      "file": "intel/native-file-import-process-x86_64.json",
+      "kind": "original evidence",
+      "originalBytes": 17872,
+      "originalSHA256": "88578568a31c5f7b8f1a664fdeb16248026f59efb6087401987a8f5e4f977805",
+      "storedBytes": 17872,
+      "storedSHA256": "88578568a31c5f7b8f1a664fdeb16248026f59efb6087401987a8f5e4f977805"
+    },
+    {
+      "captureRelativePath": "intel/files/SHA256SUMS",
+      "encoding": "unchanged bytes",
+      "file": "intel/SHA256SUMS",
+      "kind": "original evidence",
+      "originalBytes": 116,
+      "originalSHA256": "91724264c1ed9dedbd51e311e000a09fabe060654231713977c2fef98e3d43e6",
+      "storedBytes": 116,
+      "storedSHA256": "91724264c1ed9dedbd51e311e000a09fabe060654231713977c2fef98e3d43e6"
+    },
+    {
+      "captureRelativePath": "intel/files/import-python-x86_64.log",
+      "encoding": "gzip",
+      "file": "intel/import-python-x86_64.log.gz",
+      "kind": "complete original native log",
+      "originalBytes": 866234,
+      "originalSHA256": "f6d5643f3c8a2229a88724f77ec661457d0f29b9f1551d4be2e69615c233bfb2",
+      "storedBytes": 28343,
+      "storedSHA256": "57fe9a90a63606cfc50746eb4ee58289be13869924a2958bb8831eda60400a32"
+    },
+    {
+      "captureRelativePath": "intel/files/swift-release-x86_64.log",
+      "encoding": "gzip",
+      "file": "intel/swift-release-x86_64.log.gz",
+      "kind": "complete original native log",
+      "originalBytes": 322844,
+      "originalSHA256": "abf6d74063fa69d379150373b358e836f43061ea66153dd4b3547ae546f7a25e",
+      "storedBytes": 38157,
+      "storedSHA256": "0c1cacb3e9ac6816e46edf52289cfb290c44aa5dccd472149e491d59b2f46133"
+    },
+    {
+      "captureRelativePath": "intel/files/bundle-console.log",
+      "encoding": "gzip",
+      "file": "intel/bundle-console.log.gz",
+      "kind": "complete original native log",
+      "originalBytes": 1651458,
+      "originalSHA256": "9e757ddfd34533c5a994fbe94c351c1f0661359022251be2289739793c31506e",
+      "storedBytes": 131638,
+      "storedSHA256": "2bb933855266c77b8238df4ae948a3ba5f0914539c648c73abcfc6d1608d4b4b"
+    },
+    {
+      "captureRelativePath": "intel/files/bundle-smoke-progress.log",
+      "encoding": "gzip",
+      "file": "intel/bundle-smoke-progress.log.gz",
+      "kind": "complete original native log",
+      "originalBytes": 1511,
+      "originalSHA256": "eaff3c0e26d4ebf26e3611bf1d95856a9a8680585e4a3f03b5d99f5c69a16259",
+      "storedBytes": 417,
+      "storedSHA256": "3779ed128c1755c41794784e82dd162f8c72fddf24380e31e3a0bbc88c262f61"
+    },
+    {
+      "captureRelativePath": "job-139934826621-intel.log",
+      "encoding": "gzip",
+      "file": "intel/job-139934826621.log.gz",
+      "kind": "complete original GitHub native job log",
+      "originalBytes": 6295408,
+      "originalSHA256": "56730b398850a23f8d00fc98a2688a8cb5c2f2d2e0aa72ad0bba554e167cee5b",
+      "storedBytes": 784216,
+      "storedSHA256": "6742eb7372bdd664de11974cdb191b4deceac2402eed5f1fe18ca21194817616"
+    }
+  ],
+  "originalCapturePathsAreHistoricalLabels": true,
+  "run": {
+    "attempt": 1,
+    "branch": "work/macos-issue-fixes-20261126",
+    "completedAt": "2026-11-26T13:49:42Z",
+    "conclusion": "success",
+    "createdAt": "2026-11-26T13:15:18Z",
+    "elapsedSeconds": 2064,
+    "headSHA": "3f3ec069895dec254c53660d14e6851cb23077cd",
+    "id": 45827353062,
+    "number": 104,
+    "status": "completed",
+    "treeSHA": "176fa7f362227c92ec4d7c4bf08d09b855951ae7",
+    "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062"
+  },
+  "schema": 1,
+  "sourceManifestCopyPolicy": "sources.json is saved once; both original architecture copies have the same 982713 bytes and SHA256 cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c.",
+  "sourceManifestIdenticalBetweenArchitectures": true
+}

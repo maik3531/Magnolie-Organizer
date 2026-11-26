@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "kind": "separate-human-visible-start-screen-review",
+  "reportedBy": "root assistant",
+  "reportedAtUTC": "2026-11-26T13:44:42.588492+00:00",
+  "runId": 45827353062,
+  "headSHA": "3f3ec069895dec254c53660d14e6851cb23077cd",
+  "architecture": "arm64",
+  "image": {
+    "path": "/workspace/scratch/61dd4cfa9094/stability-checks/native-run-104/arm64/files/bundle-window.png",
+    "bytes": 1125503,
+    "sha256": "32a41e6b51d56cb28ff45e39c98ded63b7e2998d10e51e08c9251a95f0995c98"
+  },
+  "visuallyReviewed": true,
+  "observations": [
+    "Native window with correct Beta title",
+    "Rendered book start page, date and lower action buttons",
+    "Open Beta information panel visible",
+    "No empty WebView or visible crash in the captured image"
+  ],
+  "limits": "Only the captured start screen was reviewed; no calendar/editor/interaction/full-UI acceptance. Not counted as an additional automated test."
+}

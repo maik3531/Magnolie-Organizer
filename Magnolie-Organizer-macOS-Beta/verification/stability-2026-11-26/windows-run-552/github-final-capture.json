@@ -1,0 +1,370 @@
+{
+  "schemaVersion": 1,
+  "capturedStatusStartedUTC": "2026-11-26T13:35:26.923Z",
+  "capturedStatusCompletedUTC": "2026-11-26T13:35:27.458Z",
+  "capturedLogsStartedUTC": "2026-11-26T13:35:39.318Z",
+  "capturedLogsCompletedUTC": "2026-11-26T13:35:40.649Z",
+  "sources": {
+    "runMetadata": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/runs/45820275770",
+    "jobsMetadata": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/runs/45820275770/jobs",
+    "jobLogs": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/jobs/139910440584/logs",
+    "artifactsMetadata": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/runs/45820275770/artifacts"
+  },
+  "run": {
+    "id": 45820275770,
+    "name": "Windows x64",
+    "node_id": "WFR_kwLOT28T-M8AAAAKqxnsOg",
+    "head_branch": "work/macos-issue-fixes-20261126",
+    "head_sha": "8c860a14f7e10904c1b3a159ae84619c2c24ba82",
+    "path": ".github/workflows/windows.yml",
+    "display_title": "test(macos): verify the native import process and optimized Swift build",
+    "run_number": 552,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "failure",
+    "workflow_id": 340125528,
+    "check_suite_id": 123968221612,
+    "check_suite_node_id": "CS_kwDOT28T-M8AAAAc3RTxrA",
+    "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/runs/45820275770",
+    "html_url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45820275770",
+    "pull_requests": [],
+    "created_at": "2026-11-26T12:30:27Z",
+    "updated_at": "2026-11-26T13:19:03Z",
+    "actor": {
+      "login": "maik3531",
+      "id": 154642264,
+      "node_id": "U_kgDOCTenWA",
+      "avatar_url": "https://avatars.githubusercontent.com/u/154642264?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/maik3531",
+      "html_url": "https://github.com/maik3531",
+      "followers_url": "https://api.github.com/users/maik3531/followers",
+      "following_url": "https://api.github.com/users/maik3531/following{/other_user}",
+      "gists_url": "https://api.github.com/users/maik3531/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/maik3531/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/maik3531/subscriptions",
+      "organizations_url": "https://api.github.com/users/maik3531/orgs",
+      "repos_url": "https://api.github.com/users/maik3531/repos",
+      "events_url": "https://api.github.com/users/maik3531/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/maik3531/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "run_attempt": 1,
+    "referenced_workflows": [],
+    "run_started_at": "2026-11-26T12:30:27Z",
+    "triggering_actor": {
+      "login": "maik3531",
+      "id": 154642264,
+      "node_id": "U_kgDOCTenWA",
+      "avatar_url": "https://avatars.githubusercontent.com/u/154642264?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/maik3531",
+      "html_url": "https://github.com/maik3531",
+      "followers_url": "https://api.github.com/users/maik3531/followers",
+      "following_url": "https://api.github.com/users/maik3531/following{/other_user}",
+      "gists_url": "https://api.github.com/users/maik3531/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/maik3531/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/maik3531/subscriptions",
+      "organizations_url": "https://api.github.com/users/maik3531/orgs",
+      "repos_url": "https://api.github.com/users/maik3531/repos",
+      "events_url": "https://api.github.com/users/maik3531/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/maik3531/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "jobs_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/runs/45820275770/jobs",
+    "logs_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/runs/45820275770/logs",
+    "check_suite_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/check-suites/123968221612",
+    "artifacts_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/runs/45820275770/artifacts",
+    "cancel_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/runs/45820275770/cancel",
+    "rerun_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/runs/45820275770/rerun",
+    "previous_attempt_url": null,
+    "workflow_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/workflows/340125528",
+    "head_commit": {
+      "id": "8c860a14f7e10904c1b3a159ae84619c2c24ba82",
+      "tree_id": "a47beb73ccbdaeb277359b04aacaf31d9fceea9c",
+      "message": "test(macos): verify the native import process and optimized Swift build\n\nExercise the unchanged Swift FileImportProcess against the actual signed app and original OR6 fixture; bind sources, objects, helper and results. Add an independent optimized Swift test context while retaining explicit Debug development packaging.\n\nRecord functional patch replay and merge preparation, reconcile current native documentation, and preserve stable integration requirements for future shared-source changes. Refs #121, #783, #785, #806.",
+      "timestamp": "2026-11-26T12:30:23Z",
+      "author": {
+        "name": "maik3531",
+        "email": "154642264+maik3531@users.noreply.github.com"
+      },
+      "committer": {
+        "name": "maik3531",
+        "email": "154642264+maik3531@users.noreply.github.com"
+      }
+    },
+    "repository": {
+      "id": 1332679672,
+      "node_id": "R_kgDOT28T-A",
+      "name": "Magnolie-Organizer",
+      "full_name": "maik3531/Magnolie-Organizer",
+      "private": false,
+      "owner": {
+        "login": "maik3531",
+        "id": 154642264,
+        "node_id": "U_kgDOCTenWA",
+        "avatar_url": "https://avatars.githubusercontent.com/u/154642264?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/maik3531",
+        "html_url": "https://github.com/maik3531",
+        "followers_url": "https://api.github.com/users/maik3531/followers",
+        "following_url": "https://api.github.com/users/maik3531/following{/other_user}",
+        "gists_url": "https://api.github.com/users/maik3531/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/maik3531/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/maik3531/subscriptions",
+        "organizations_url": "https://api.github.com/users/maik3531/orgs",
+        "repos_url": "https://api.github.com/users/maik3531/repos",
+        "events_url": "https://api.github.com/users/maik3531/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/maik3531/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer",
+      "description": "Private, local-first organizer for Linux, Windows & Android · Privater persönlicher Organizer für Linux, Windows & Android",
+      "fork": false,
+      "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer",
+      "forks_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/forks",
+      "keys_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/teams",
+      "hooks_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/hooks",
+      "issue_events_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/events",
+      "assignees_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/tags",
+      "blobs_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/languages",
+      "stargazers_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/stargazers",
+      "contributors_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/contributors",
+      "subscribers_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/subscribers",
+      "subscription_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/subscription",
+      "commits_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/merges",
+      "archive_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/downloads",
+      "issues_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/labels{/name}",
+      "releases_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/deployments"
+    },
+    "head_repository": {
+      "id": 1332679672,
+      "node_id": "R_kgDOT28T-A",
+      "name": "Magnolie-Organizer",
+      "full_name": "maik3531/Magnolie-Organizer",
+      "private": false,
+      "owner": {
+        "login": "maik3531",
+        "id": 154642264,
+        "node_id": "U_kgDOCTenWA",
+        "avatar_url": "https://avatars.githubusercontent.com/u/154642264?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/maik3531",
+        "html_url": "https://github.com/maik3531",
+        "followers_url": "https://api.github.com/users/maik3531/followers",
+        "following_url": "https://api.github.com/users/maik3531/following{/other_user}",
+        "gists_url": "https://api.github.com/users/maik3531/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/maik3531/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/maik3531/subscriptions",
+        "organizations_url": "https://api.github.com/users/maik3531/orgs",
+        "repos_url": "https://api.github.com/users/maik3531/repos",
+        "events_url": "https://api.github.com/users/maik3531/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/maik3531/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer",
+      "description": "Private, local-first organizer for Linux, Windows & Android · Privater persönlicher Organizer für Linux, Windows & Android",
+      "fork": false,
+      "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer",
+      "forks_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/forks",
+      "keys_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/teams",
+      "hooks_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/hooks",
+      "issue_events_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/events",
+      "assignees_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/tags",
+      "blobs_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/languages",
+      "stargazers_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/stargazers",
+      "contributors_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/contributors",
+      "subscribers_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/subscribers",
+      "subscription_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/subscription",
+      "commits_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/merges",
+      "archive_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/downloads",
+      "issues_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/labels{/name}",
+      "releases_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/deployments"
+    }
+  },
+  "jobs": [
+    {
+      "id": 139910440584,
+      "name": "build",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_id": 45820275770,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Run oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Dokumentierte gettext-Bauwerkzeuge einrichten",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Python-Pakettests isoliert einrichten",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Bytegebundene Zeitzonen-Eingaben im Git-Checkout prüfen",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7
+        },
+        {
+          "name": "Gemeinsame Handbuchkataloge vor der Quellarchivprüfung erzeugen",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8
+        },
+        {
+          "name": "Standalone-Quellarchiv bauen und aus dem Archiv testen",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 9
+        },
+        {
+          "name": "Unsigniertes ZIP bauen und testen",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10
+        },
+        {
+          "name": "NSIS einrichten",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11
+        },
+        {
+          "name": "Signierzertifikat einrichten",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12
+        },
+        {
+          "name": "Offizielles ZIP und Installer bauen, signieren und testen",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 13
+        },
+        {
+          "name": "Artefakte dieses Laufs isolieren",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 14
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15
+        },
+        {
+          "name": "Post Run oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 28
+        },
+        {
+          "name": "Post Run actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 29
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31
+        }
+      ]
+    }
+  ],
+  "artifacts": [],
+  "acquisitionNotes": [
+    {
+      "endpoint": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/jobs/139910440584",
+      "result": "Connector rejected this standalone job-detail endpoint as unsupported; no detail payload returned. Job status/steps are preserved from the supported run-jobs endpoint; completion timing is reported from the actual log and run updated_at without inventing job completed_at."
+    }
+  ]
+}

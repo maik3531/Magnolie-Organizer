@@ -1,15 +1,42 @@
 # Magnolie Organizer macOS Beta
 
 Parallel development port, not a production release and not feature-equivalent to
-the Linux/Windows native applications. The complete current-source native CI
-pipeline passed for Apple Silicon and Intel in
+the Linux/Windows native applications. The current follow-up is documented in
+the [stability verification report](STABILITY-VERIFICATION-2026-11-26.md), with
+the tested source anchor, retained failures and the plan for later integration.
+The extended [run #104](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062)
+completed with **`success` on both ARM64 and Intel** at
+`3f3ec069895dec254c53660d14e6851cb23077cd`. It ran on 26 November 2026,
+**14:15:18–14:49:42 Europe/Berlin** (13:15:18–13:49:42 UTC). The
+[durable #104 evidence](verification/native-run-104.json) binds this result to
+that source commit, independently of later documentation commits.
+
+| #104 evidence, per architecture | Result |
+| --- | --- |
+| Runtime / AirPlay / ImportHelper tests | 26 / 27 / 17 passed, no skips or failures |
+| Host suite | 34 passed, one Linux-only skip, no failures |
+| Swift Debug contexts | Four contexts of 501 cases, with 4/5/5/6 skips and no failures |
+| Optimized Swift Release context | 501 cases: 495 passed, six skipped, no failures |
+| Original Swift → packaged private Python process | All nine checks passed; 22 original OR6 fields in four collections |
+| Real app initialize/save/normal-quit/reopen smoke | All seven criteria passed |
+| Independent candidate byte audit | All 65 checks passed; 3921 bound source files, 555 projection inputs and 1312 outputs |
+
+The same 501 XCTest names recur across the five contexts; these are not five
+independent sets of cases. Both packaged apps remain **ad-hoc Debug development
+candidates**. The process probe exercises the actual production process and
+packaged interpreter/helper without a picker, editor or saved book. The separate
+fresh-profile smoke does not establish imported-data persistence, full UI/TCC
+acceptance, Monterey execution or production-release approval.
+
+The preceding complete current-source native CI pipeline passed for Apple
+Silicon and Intel in
 [Actions run #97](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)
 at `215d89029df02df2dce78f35412785ec9f9b36d8`: private CPython build and
 relocation, Swift/core/WKWebView tests, strict ad-hoc bundle signing, the real
 app's start/save/normal-quit/reopen/data-preservation smoke and development
 packaging. Both jobs used that exact commit for the shared and Mac sources.
 
-The [native verification report](NATIVE-VERIFICATION-2026-11-26.md) and
+The [historical native verification report](NATIVE-VERIFICATION-2026-11-26.md) and
 [durable machine-readable evidence](verification/native-run-97.json) record
 the exact environments, results, skips, package hashes and evidence boundaries.
 The CI artifacts expire on 10 December 2026; their durable records remain in
@@ -54,6 +81,8 @@ The SDK compiler retains availability checks. EventKit uses the legacy permissio
 API below macOS 14 and full-access APIs only behind its macOS 14 guard. CryptoKit,
 CommonCrypto and the existing TLS policy stay unchanged. The builder pins 12.7
 and verifies the executable's Mach-O minimum OS as well as the bundle metadata.
+#806 additionally requires exactly one unambiguous macOS deployment command;
+matching CPU/minimum values alone do not establish the Apple target platform.
 Swift concurrency is supported on this deployment target; no user-installed Swift
 toolchain is required to run the bundle. A current SDK/toolchain is required to build.
 
@@ -74,15 +103,15 @@ toolchain is required to run the bundle. A current SDK/toolchain is required to 
 | Recovery/deletion | Shared recycle-bin/contact-delete logic; token-correlated checkpoints; private exact-byte JSON files readable after restart |
 | Language/keyboard | Shared regional page enabled and durably saved; generated native gettext catalogs; Command+digit sections, Command formatting, Undo/Redo menus |
 | Export | Source-preserving appointment/task/anniversary ICS, recurrence/exceptions and historical/future timezone definitions; unsupported or contradictory records fail the whole export |
-| File imports | #785 projects the actual current OR6 and classic-format parsers, packages a private Python runtime and binds the native selection to the shared merge and durable Save-ACK. Runtime build, relocation and 17 ImportHelper/path tests passed on both native architectures in #97. The 90 OR6-to-UI checks use synthetic native transport; actual picker/import/save/reopen acceptance remains open. See [IMPORT-CODECS.md](IMPORT-CODECS.md) and [IMPORT-RUNTIME.md](IMPORT-RUNTIME.md) |
+| File imports | #785 projects the actual current OR6 and classic-format parsers, packages a private Python runtime and binds the native selection to the shared merge and durable Save-ACK. Runtime build, relocation and 17 ImportHelper/path tests passed on both native architectures in #104. Its nine-check probe also exercises the unchanged production Swift process with the actual packaged private interpreter/helper and original OR6 data. The separate 90 OR6-to-UI checks use synthetic native transport; actual picker/import/save/reopen acceptance remains open. See [IMPORT-CODECS.md](IMPORT-CODECS.md) and [IMPORT-RUNTIME.md](IMPORT-RUNTIME.md) |
 | Clipboard/attachments | Text clipboard; attachment Save for PDF/JPEG/PNG/GIF/WebP data URLs, not automatic attachment opening |
 | Reminders | Open-app checker with independent one-off early/due task reminders, connected to permission-gated macOS notifications; no persistent scheduler |
 | macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; #770 adds reviewed single calendar copies, #775 local contact copies and #777 selected reminders as independent local tasks. Each preserves existing records and requires a fresh source read plus durable save. Native validation, complete reminder fidelity and full synchronization remain unfinished; see [SYSTEM-CALENDAR-IMPORT.md](SYSTEM-CALENDAR-IMPORT.md), [SYSTEM-CONTACT-IMPORT.md](SYSTEM-CONTACT-IMPORT.md) and [SYSTEM-REMINDER-IMPORT.md](SYSTEM-REMINDER-IMPORT.md) |
-| System-account field sync | #786 separately prepares explicit source/book binding and manual updates in both directions for supported Calendar/Reminders/Contacts fields, with conflict handling and an encrypted recovery ledger. No automatic adoption of copies, new native entries, deletes, series or background sync. Current Swift compilation and applicable CI tests passed in #97; actual provider/account/TCC/UI acceptance remains open. See [the complete field contract](../contracts/macos-786-native-system-sync.md) |
-| Apple Notes | #772 adds direct NSAppleScript source for selected local plaintext copies with full text review, exact native identities, source reread and durable save; no extra app or source writes. Current Swift compilation and applicable CI tests passed in #97; actual Notes Dictionary/TCC/account/device acceptance remains open. See [APPLE-NOTES-IMPORT.md](APPLE-NOTES-IMPORT.md) |
+| System-account field sync | #786 separately prepares explicit source/book binding and manual updates in both directions for supported Calendar/Reminders/Contacts fields, with conflict handling and an encrypted recovery ledger. No automatic adoption of copies, new native entries, deletes, series or background sync. Current Swift compilation and applicable CI tests passed in #104; actual provider/account/TCC/UI acceptance remains open. See [the complete field contract](../contracts/macos-786-native-system-sync.md) |
+| Apple Notes | #772 adds direct NSAppleScript source for selected local plaintext copies with full text review, exact native identities, source reread and durable save; no extra app or source writes. Current Swift compilation and applicable CI tests passed in #104; actual Notes Dictionary/TCC/account/device acceptance remains open. See [APPLE-NOTES-IMPORT.md](APPLE-NOTES-IMPORT.md) |
 | DAV accounts | Canonical native configuration, Keychain credentials, revision-bound verified save/rollback and explicit collection discovery; 19 native account tests |
 | DAV calendar foundations | Complete typed REPORT snapshot decoding and surgical component edits preserving resource siblings; native tests pass on both architectures; no record-sync coordinator yet |
-| iPhone AirPlay receiver | Source-integrated UxPlay receiver, native Start/Stop/PIN panel and self-contained bundle build; no separately installed receiver required; new native Swift/build/device checks remain pending (see [AIRPLAY.md](AIRPLAY.md)) |
+| iPhone AirPlay receiver | Source-integrated UxPlay receiver, native Start/Stop/PIN panel and self-contained bundle build; no separately installed receiver required. The 27 boundary tests passed on both native architectures in #104; building the optional receiver and testing an actual iPhone counterpart remain separate open checks (see [AIRPLAY.md](AIRPLAY.md)) |
 
 "Implemented source" is not a statement of native build or runtime validation.
 Current-source integration and the remaining macOS/Android Organizer parity work
@@ -125,7 +154,10 @@ source checkpoint, not a completed native parity acceptance.
   merging. Full `.magnolie` archive import and discovery of local programs remain
   separate documented work. The earlier native ICS evidence does not establish
   actual picker/import/save/reopen validation of this new pipeline. The private
-  runtime's native build, isolation and helper tests passed separately in #97.
+  runtime's native build, isolation and helper tests passed in #104, together
+  with the nine-check production Swift-to-packaged-Python process probe. That
+  probe checks public fixture data and rejection cases without a picker, editor
+  or durable import save.
 - The new EventKit calendar-copy path (#770) is a bounded local import with a
   source/date picker, preview, re-read and durable save acknowledgement. It does
   not enable automatic updates or writing back to Apple Calendar. Rich or
@@ -145,8 +177,8 @@ source checkpoint, not a completed native parity acceptance.
   system identifier anew; OS numeric rules are not a fallback. Source VTIMEZONE
   definitions take priority, opaque UID/TZID bytes stay distinct, and Gregorian
   arithmetic has no 1582 cutover. Native compilation, the calendar codec and
-  UTC/Berlin live-editor Swift contexts passed in #97 on both architectures.
-  Their actual contexts and skips are recorded in the native report; they do
+  UTC/Berlin live-editor Swift contexts passed in #104 on both architectures.
+  Their actual contexts and skips are recorded in the stability report; they do
   not replace picker/UI or Monterey acceptance.
 - A one-off task's "Custom notification" (1 through 7 days before) is independent
   of "remind me on the due date". Both may be enabled. Early times use calendar
@@ -230,7 +262,7 @@ that directory. Python/JavaScript host tests are **not** macOS emulation.
 
 The portable Foundation/POSIX/ICS code has also been tested with Swift on
 Linux. CryptoKit/CommonCrypto and AppKit require Apple's SDK; their applicable
-native CI tests passed in #97 on both architectures. A Linux host check alone
+native CI tests passed in #104 on both architectures. A Linux host check alone
 does not execute or certify those Apple implementations.
 
 For live editor-to-Swift regression tests, set `MACOS_BETA_SWIFT` to a local Swift
@@ -295,6 +327,14 @@ This runs `swift test`, makes a **debug** bundle for the runner's architecture,
 copies the verified UI/resources/licenses, and applies local ad-hoc signing.
 It refuses to overwrite an existing output app. It does not launch the app,
 build a DMG/PKG/production release, notarize, upload or publish anything.
+
+The candidate workflow additionally checks the actual production Swift import
+process with the signed bundled Python helper and an original OR6 fixture,
+then runs a separate optimized `swift test -c release --jobs 2` context.
+Those gates do not turn the packaged Debug application into a production
+release and do not cover the file picker or imported data after save/reopen.
+Both gates passed on ARM64 and Intel in #104; their exact source, native
+receipts and skips are recorded in the current stability report.
 
 The resulting development path is
 `Output/Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app`.

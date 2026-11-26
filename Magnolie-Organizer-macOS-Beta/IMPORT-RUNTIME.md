@@ -5,6 +5,29 @@ parsers. Its interpreter belongs inside the application; the user does not
 install Python. `/usr/bin/python3`, Homebrew, a user virtual environment and
 `/Library/Frameworks/Python.framework` are not runtime fallbacks.
 
+## Verification checkpoints — 26 November 2026
+
+The [stability verification report](STABILITY-VERIFICATION-2026-11-26.md) is
+the current entry point for #121/#785 and the later #806/#808 corrections.
+The published candidate is `3f3ec069895dec254c53660d14e6851cb23077cd`, tree
+`176fa7f362227c92ec4d7c4bf08d09b855951ae7`.
+[Run #104 / 45827353062](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062)
+completed with **`success` on ARM64 and Intel**, running on 26 November 2026
+from **14:15:18 to 14:49:42 Europe/Berlin** (13:15:18–13:49:42 UTC). The
+[durable #104 record](verification/native-run-104.json) includes the actual
+pinned XZ/CPython builds after #808, relocated runtime checks and strict nested
+and outer signatures. Each architecture passed 26 runtimebuilder, 27 AirPlay
+boundary and 17 ImportHelper/path tests without skips or failures.
+
+The unchanged production Swift process and actual signed packaged helper passed
+all nine checks with 22 original OR6 fields in four collections. The separate
+app lifecycle passed all seven smoke criteria; each package passed 65 independent
+byte checks, including the full 706-file runtime inventory and 52 Mach-O images.
+The optimized Swift context has 501 cases: 495 passed, six skipped, no failures.
+The package remains Debug/ad-hoc. Picker/editor/imported-data persistence, TCC,
+Monterey execution and production-release acceptance remain separate. The
+historical #97 result below remains bound to its own commit.
+
 ## Source and deployment contract
 
 `Resources/ImportPython.json` pins CPython **3.15.2**, source SHA-256
@@ -38,6 +61,17 @@ by the actual relocated interpreter as a build gate. Compiled runtime images
 must have the selected architecture, a minimum OS no newer than 12.7 and only
 Apple system-library dependencies. A Homebrew-linked extension blocks the
 build. The source license travels with the runtime.
+
+#806 binds the deployment version to exactly one macOS load command. The
+runtime and outer app require `LC_BUILD_VERSION` with platform `MACOS`/`1`
+and use its `minos` field. Compiler/linker `version` fields in that command
+are not deployment versions. Foreign platforms, conflicting commands and
+multiple deployment declarations are rejected. Only the optional AirPlay
+reader permits the legacy `LC_VERSION_MIN_MACOSX` command and its own
+`version` field. Architecture, system-library, RPath, inventory and signature
+checks remain separate gates. The maximum permitted deployment minimum for
+runtime code and the exact outer-app deployment target remain macOS 12.7.
+These metadata checks do not establish execution on Monterey.
 
 ## Signed helper layout — #802
 
@@ -97,6 +131,18 @@ duplicate members and excessive expansion. An existing wrong archive or
 runtime directory is retained and reported, never silently replaced. No source
 download or compiler is used by the installed application.
 
+#808 preserves each validated regular source member's archive modification
+time after copying its bytes. This retains the upstream dependency order
+between inputs such as `configure.ac` and distributed outputs such as
+`aclocal.m4`; extraction order must not make unchanged inputs appear newer
+and trigger an unnecessary `aclocal-1.18` regeneration. Make can still detect
+a subsequently modified source input. The pinned archives, normalized file modes,
+path/link/size checks and configure/build commands remain unchanged. The
+original failure, local reproduction and correction are recorded in the
+[stability report](STABILITY-VERIFICATION-2026-11-26.md). The subsequent #104
+run completed the actual pinned static XZ/CPython builds and the full defined
+native candidate pipeline on both architectures at the checkpoint above.
+
 The XZ archive defaults to `xz-5.8.4.tar.xz` beside the CPython archive.
 Use `--liblzma-source-archive /absolute/path/xz-5.8.4.tar.xz` to select another
 local location. Without `--download`, both pinned archives must already exist.
@@ -130,6 +176,21 @@ The existing Mac candidate workflow performs these steps for arm64 and x86_64
 and preserves `runtime.json` and the actual build log. It does not silently
 produce an ICS-only candidate if the required import runtime is absent.
 
+The expanded workflow also includes the runtime and AirPlay boundary suites,
+with the actual Darwin Mach-O platform probe. After building the signed app,
+`tools/check_native_file_import_process.py` links the unchanged production
+`FileImportProcess.swift` with the actual BetaCore objects and exercises the
+packaged private interpreter with the original OR6 fixture. It checks the
+process/protocol/result boundaries; it uses no picker, editor or saved book.
+A separate `swift test -c release --jobs 2` gate checks optimized Swift code.
+The packaged artifact remains the ad-hoc signed Debug development app.
+Both added gates passed in #104 on ARM64 and Intel; the exact result belongs
+to `3f3ec069` and the original native logs in the stability report. The process
+receipt binds the linked BetaCore objects and compiled probe by hash, but those
+binaries are not included in the artifact. The independent Linux audit checks
+the supplied receipt and actual packaged bytes; it does not independently
+rehash the unshipped objects or repeat native codesign verification.
+
 ## Original source-review evidence on 26 November 2026
 
 Executed on the Linux source-review host:
@@ -154,7 +215,7 @@ separate #785 tests and contract.
 The subsequent real ARM64 and Intel CI runs, their exact commits, the #789
 buildlink/liblzma correction, #802 helper-layout correction and expanded tests are tracked separately in
 [NATIVE-VERIFICATION-2026-11-26.md](NATIVE-VERIFICATION-2026-11-26.md).
-The new helper layout passed its real Darwin build, relocation, strict nested
+The #802 helper layout first passed its real Darwin build, relocation, strict nested
 and outer signatures, application lifecycle and development packaging on both
 ARM64 and Intel in
 [run #97](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)
@@ -164,3 +225,6 @@ runtimebuilder tests and 17 ImportHelper/path tests. The
 byte inventories of both signed packaged helpers. Earlier native runtime
 passes used the former layout. Real selected-file import/persistence through
 the production UI and actual Monterey runtime acceptance remain open.
+This historical checkpoint does not cover the later #806/#808 source changes
+or the added process/optimized-test gates. Their current status is recorded
+separately above and in the stability report.

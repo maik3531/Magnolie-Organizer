@@ -1,12 +1,18 @@
 # Fortsetzung der nativen Mac-Verifikation
 
+**Historischer Bericht bis einschließlich Lauf #97.** Die anschließende
+erweiterte Nachprüfung, neue Baugrenzen und der aktuelle Übergabestand stehen
+im [Stabilitätsbericht vom 26. November](STABILITY-VERIFICATION-2026-11-26.md).
+Die nachfolgenden ursprünglichen Ergebnisse, Counts und Paketnachweise bleiben
+an ihre jeweils genannten Quellen und Läufe gebunden.
+
 Stand: 26. November 2026. Zugeordnet zu #121, #783, #785, #786 und dem
 konkreten nativen Compilerbefund #788, Runtimebefund #789, Prüftreiberbefund #793
 und den tatsächlichen Host-/Swift-Folgebefunden #796/#797 sowie dem
 App-Signaturbefund #802. Der
 plattformübergreifende Quellarchivbefund #787 wird separat korrigiert.
 
-## Veröffentlichte Korrekturfolge und aktueller Prüfstand
+## Veröffentlichte Korrekturfolge und Prüfstand bis #97
 
 Der abgeschlossene native [Lauf #97 / 45807249788](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)
 bestätigt genau `215d89029df02df2dce78f35412785ec9f9b36d8` mit dem

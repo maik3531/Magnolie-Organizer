@@ -1,0 +1,2592 @@
+{
+  "allDefinedNativeMacJobsPassed": true,
+  "durableEvidence": {
+    "files": [
+      {
+        "captureRelativePath": "run104-evidence.json",
+        "encoding": "gzip",
+        "file": "run104-evidence.original.json.gz",
+        "kind": "immutable original final capture",
+        "originalBytes": 89444,
+        "originalSHA256": "1c8839c7fe2056f1a425c16eb6b35c6ed48cf8240dde20b35bd21dae35ef4598",
+        "storedBytes": 19178,
+        "storedSHA256": "fe308ecdcd3c3497381714e1554968b72222b51b30a7cd86012caf169a6ad6e3"
+      },
+      {
+        "captureRelativePath": "artifacts-final.json",
+        "encoding": "unchanged bytes",
+        "file": "artifacts-final.json",
+        "kind": "original evidence",
+        "originalBytes": 1889,
+        "originalSHA256": "f1770ab9f86024036264a36a6c9dbb0cf447eda6ea8d479629b6488f15f6011e",
+        "storedBytes": 1889,
+        "storedSHA256": "f1770ab9f86024036264a36a6c9dbb0cf447eda6ea8d479629b6488f15f6011e"
+      },
+      {
+        "captureRelativePath": "jobs-final.json",
+        "encoding": "unchanged bytes",
+        "file": "jobs-final.json",
+        "kind": "original evidence",
+        "originalBytes": 14825,
+        "originalSHA256": "ee4c23b2b5c4ee9d23b81cfaed484c8c709fc281dabde0199d27ccf27f6d4e41",
+        "storedBytes": 14825,
+        "storedSHA256": "ee4c23b2b5c4ee9d23b81cfaed484c8c709fc281dabde0199d27ccf27f6d4e41"
+      },
+      {
+        "captureRelativePath": "run-final.json",
+        "encoding": "unchanged bytes",
+        "file": "run-final.json",
+        "kind": "original evidence",
+        "originalBytes": 14673,
+        "originalSHA256": "9812e01f7fe8395f822b81c0f4f8b644db43f9636422aba645222a7b51dd23db",
+        "storedBytes": 14673,
+        "storedSHA256": "9812e01f7fe8395f822b81c0f4f8b644db43f9636422aba645222a7b51dd23db"
+      },
+      {
+        "captureRelativePath": "swift-context-callers.json",
+        "encoding": "unchanged bytes",
+        "file": "swift-context-callers.json",
+        "kind": "original evidence",
+        "originalBytes": 10293,
+        "originalSHA256": "8101ab49b68f7e1c80149f2f0dd0428eeff2ec5ca670d35a3a54754bf4744b67",
+        "storedBytes": 10293,
+        "storedSHA256": "8101ab49b68f7e1c80149f2f0dd0428eeff2ec5ca670d35a3a54754bf4744b67"
+      },
+      {
+        "captureRelativePath": "arm64/files/sources.json",
+        "encoding": "unchanged bytes",
+        "file": "sources.json",
+        "kind": "one byte-identical source manifest for both architectures",
+        "originalBytes": 982713,
+        "originalSHA256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c",
+        "storedBytes": 982713,
+        "storedSHA256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c"
+      },
+      {
+        "captureRelativePath": "arm64/independent-candidate-audit.json",
+        "encoding": "unchanged bytes",
+        "file": "arm64/independent-candidate-audit.json",
+        "kind": "original evidence",
+        "originalBytes": 11171,
+        "originalSHA256": "5b7b5c8667768c0955dbdee64a5b40b5603d99359714bfd3564ae96306b53707",
+        "storedBytes": 11171,
+        "storedSHA256": "5b7b5c8667768c0955dbdee64a5b40b5603d99359714bfd3564ae96306b53707"
+      },
+      {
+        "captureRelativePath": "arm64/test-results.json",
+        "encoding": "unchanged bytes",
+        "file": "arm64/test-results.json",
+        "kind": "original evidence",
+        "originalBytes": 10751,
+        "originalSHA256": "dd50349c77c3e7e50374be5a839704330ddb50040f74df4685b5d049888430ac",
+        "storedBytes": 10751,
+        "storedSHA256": "dd50349c77c3e7e50374be5a839704330ddb50040f74df4685b5d049888430ac"
+      },
+      {
+        "captureRelativePath": "arm64/screenshot-review.json",
+        "encoding": "unchanged bytes",
+        "file": "arm64/screenshot-review.json",
+        "kind": "original evidence",
+        "originalBytes": 923,
+        "originalSHA256": "e6bd66d1df55ffd94415f3556270a47f31cc4d92d0a385de440c6995ab4df0a1",
+        "storedBytes": 923,
+        "storedSHA256": "e6bd66d1df55ffd94415f3556270a47f31cc4d92d0a385de440c6995ab4df0a1"
+      },
+      {
+        "captureRelativePath": "arm64/artifact-metadata.json",
+        "encoding": "unchanged bytes",
+        "file": "arm64/artifact-metadata.json",
+        "kind": "original evidence",
+        "originalBytes": 841,
+        "originalSHA256": "1f94c994533d55e4390c3785a9f68d29d3a52c3ff306d29b74d3f37d835ae98f",
+        "storedBytes": 841,
+        "storedSHA256": "1f94c994533d55e4390c3785a9f68d29d3a52c3ff306d29b74d3f37d835ae98f"
+      },
+      {
+        "captureRelativePath": "arm64/download-proof.json",
+        "encoding": "unchanged bytes",
+        "file": "arm64/download-proof.json",
+        "kind": "original evidence",
+        "originalBytes": 2557,
+        "originalSHA256": "2935fc176e919afdde6b7378332e1fa9605a7e041d174415149f7acb26cbaa05",
+        "storedBytes": 2557,
+        "storedSHA256": "2935fc176e919afdde6b7378332e1fa9605a7e041d174415149f7acb26cbaa05"
+      },
+      {
+        "captureRelativePath": "arm64/files/bundle-smoke-first-window.json",
+        "encoding": "unchanged bytes",
+        "file": "arm64/bundle-smoke-first-window.json",
+        "kind": "original evidence",
+        "originalBytes": 1972,
+        "originalSHA256": "6db9f0fcf280c410a1e683bf133cf775ec63a36d46ce2923beb5fd2256ac05b8",
+        "storedBytes": 1972,
+        "storedSHA256": "6db9f0fcf280c410a1e683bf133cf775ec63a36d46ce2923beb5fd2256ac05b8"
+      },
+      {
+        "captureRelativePath": "arm64/files/bundle-smoke-observations.json",
+        "encoding": "unchanged bytes",
+        "file": "arm64/bundle-smoke-observations.json",
+        "kind": "original evidence",
+        "originalBytes": 227,
+        "originalSHA256": "20316cb38dbd2d45400becf92f4cb9c28564c8b448f5f045fe6243e04e047830",
+        "storedBytes": 227,
+        "storedSHA256": "20316cb38dbd2d45400becf92f4cb9c28564c8b448f5f045fe6243e04e047830"
+      },
+      {
+        "captureRelativePath": "arm64/files/bundle-smoke.json",
+        "encoding": "unchanged bytes",
+        "file": "arm64/bundle-smoke.json",
+        "kind": "original evidence",
+        "originalBytes": 700,
+        "originalSHA256": "170545c0d9477c59951df0b8e1689071fb6fdc05cc2bc0677e0d9e78ab00cff9",
+        "storedBytes": 700,
+        "storedSHA256": "170545c0d9477c59951df0b8e1689071fb6fdc05cc2bc0677e0d9e78ab00cff9"
+      },
+      {
+        "captureRelativePath": "arm64/files/environment-arm64.json",
+        "encoding": "unchanged bytes",
+        "file": "arm64/environment-arm64.json",
+        "kind": "original evidence",
+        "originalBytes": 2376,
+        "originalSHA256": "4567d50d23a2368d4e9d57cf42f487a6188b904d47026ac936a4d0aa94eaa801",
+        "storedBytes": 2376,
+        "storedSHA256": "4567d50d23a2368d4e9d57cf42f487a6188b904d47026ac936a4d0aa94eaa801"
+      },
+      {
+        "captureRelativePath": "arm64/files/import-python-arm64.json",
+        "encoding": "unchanged bytes",
+        "file": "arm64/import-python-arm64.json",
+        "kind": "original evidence",
+        "originalBytes": 103029,
+        "originalSHA256": "f0e344658955de893c1e808aa7fc8a4d06dcc005ddaa3280e9563c8a70784e9b",
+        "storedBytes": 103029,
+        "storedSHA256": "f0e344658955de893c1e808aa7fc8a4d06dcc005ddaa3280e9563c8a70784e9b"
+      },
+      {
+        "captureRelativePath": "arm64/files/native-file-import-process-arm64.json",
+        "encoding": "unchanged bytes",
+        "file": "arm64/native-file-import-process-arm64.json",
+        "kind": "original evidence",
+        "originalBytes": 17871,
+        "originalSHA256": "d10854840bc30fc9557e913109bf313774a0a26d33f1c43c4da60c38fe47d753",
+        "storedBytes": 17871,
+        "storedSHA256": "d10854840bc30fc9557e913109bf313774a0a26d33f1c43c4da60c38fe47d753"
+      },
+      {
+        "captureRelativePath": "arm64/files/SHA256SUMS",
+        "encoding": "unchanged bytes",
+        "file": "arm64/SHA256SUMS",
+        "kind": "original evidence",
+        "originalBytes": 115,
+        "originalSHA256": "65e797d3bbdf0ee9f4bef1fb082f2338079d30fe0b0eabcf24041c531f5d4be0",
+        "storedBytes": 115,
+        "storedSHA256": "65e797d3bbdf0ee9f4bef1fb082f2338079d30fe0b0eabcf24041c531f5d4be0"
+      },
+      {
+        "captureRelativePath": "arm64/files/import-python-arm64.log",
+        "encoding": "gzip",
+        "file": "arm64/import-python-arm64.log.gz",
+        "kind": "complete original native log",
+        "originalBytes": 866607,
+        "originalSHA256": "a9b4139efc37fa2ff46a98317a7f8d66074b1c89110120f492a83e53548e0798",
+        "storedBytes": 28513,
+        "storedSHA256": "d3598c7951d8def9823fe1c78283a65376d824bc901a6364b42e007f68451b4c"
+      },
+      {
+        "captureRelativePath": "arm64/files/swift-release-arm64.log",
+        "encoding": "gzip",
+        "file": "arm64/swift-release-arm64.log.gz",
+        "kind": "complete original native log",
+        "originalBytes": 321125,
+        "originalSHA256": "3f2cb7f62635846aa04690af500ed882a0ac88c1ea5298926544e77519357797",
+        "storedBytes": 37549,
+        "storedSHA256": "10ecb52378e016195bfe44664e753b7eb962b28b469d75093f5e2720fdbef3c7"
+      },
+      {
+        "captureRelativePath": "arm64/files/bundle-console.log",
+        "encoding": "gzip",
+        "file": "arm64/bundle-console.log.gz",
+        "kind": "complete original native log",
+        "originalBytes": 1450656,
+        "originalSHA256": "fa8810ab2f0d4c4233d305b8d7b7dc8a3041ca0269ac8e8ed808bc916164b659",
+        "storedBytes": 111331,
+        "storedSHA256": "d33b412ce9c30e6b76574b936a63f6ecf815e2f62a055ef281771ffcae9e95af"
+      },
+      {
+        "captureRelativePath": "arm64/files/bundle-smoke-progress.log",
+        "encoding": "gzip",
+        "file": "arm64/bundle-smoke-progress.log.gz",
+        "kind": "complete original native log",
+        "originalBytes": 1511,
+        "originalSHA256": "a4b73cff71148a65eb15357333208e0399c6c5532948ef605e961e2321f5d516",
+        "storedBytes": 417,
+        "storedSHA256": "1a8c05a1ac192898f24b4a80b179cdec6e0fb5639cd4c7105f3de6315d44259d"
+      },
+      {
+        "captureRelativePath": "job-139934825830-arm64.log",
+        "encoding": "gzip",
+        "file": "arm64/job-139934825830.log.gz",
+        "kind": "complete original GitHub native job log",
+        "originalBytes": 6282335,
+        "originalSHA256": "e2ab8aeb38d5e284c83a8f064f9121e626b93f517f9347c6135845e853215aa8",
+        "storedBytes": 768439,
+        "storedSHA256": "7404948d8fff36d994d4a1d562dca48f7a3434258900360b54cf4e62ff75c85b"
+      },
+      {
+        "captureRelativePath": "intel/independent-candidate-audit.json",
+        "encoding": "unchanged bytes",
+        "file": "intel/independent-candidate-audit.json",
+        "kind": "original evidence",
+        "originalBytes": 11488,
+        "originalSHA256": "7127e85260292eac6ac6f587f53540d4810990547f0ea5aef74a340efcbc633c",
+        "storedBytes": 11488,
+        "storedSHA256": "7127e85260292eac6ac6f587f53540d4810990547f0ea5aef74a340efcbc633c"
+      },
+      {
+        "captureRelativePath": "intel/test-results.json",
+        "encoding": "unchanged bytes",
+        "file": "intel/test-results.json",
+        "kind": "original evidence",
+        "originalBytes": 10755,
+        "originalSHA256": "6cd34dbca1c53e3e440fafc35abdcf54aec7aeca45d84e7295a9c0491a8926be",
+        "storedBytes": 10755,
+        "storedSHA256": "6cd34dbca1c53e3e440fafc35abdcf54aec7aeca45d84e7295a9c0491a8926be"
+      },
+      {
+        "captureRelativePath": "intel/screenshot-review.json",
+        "encoding": "unchanged bytes",
+        "file": "intel/screenshot-review.json",
+        "kind": "original evidence",
+        "originalBytes": 1046,
+        "originalSHA256": "91b8716fa1fb24a1d1cad34ceba827bd3be17bb0757711c30f6f316b420f7a8f",
+        "storedBytes": 1046,
+        "storedSHA256": "91b8716fa1fb24a1d1cad34ceba827bd3be17bb0757711c30f6f316b420f7a8f"
+      },
+      {
+        "captureRelativePath": "intel/artifact-metadata.json",
+        "encoding": "unchanged bytes",
+        "file": "intel/artifact-metadata.json",
+        "kind": "original evidence",
+        "originalBytes": 842,
+        "originalSHA256": "7ffe3d2ef45cb577a9d5fda578ddb5fb8c0c6d9378332620a4a20a206b037b34",
+        "storedBytes": 842,
+        "storedSHA256": "7ffe3d2ef45cb577a9d5fda578ddb5fb8c0c6d9378332620a4a20a206b037b34"
+      },
+      {
+        "captureRelativePath": "intel/download-proof.json",
+        "encoding": "unchanged bytes",
+        "file": "intel/download-proof.json",
+        "kind": "original evidence",
+        "originalBytes": 2564,
+        "originalSHA256": "a3d672f4b4f27788b6afb53b1ca812ecba84acad469f83b40736f185f3482c1b",
+        "storedBytes": 2564,
+        "storedSHA256": "a3d672f4b4f27788b6afb53b1ca812ecba84acad469f83b40736f185f3482c1b"
+      },
+      {
+        "captureRelativePath": "intel/files/bundle-smoke-first-window.json",
+        "encoding": "unchanged bytes",
+        "file": "intel/bundle-smoke-first-window.json",
+        "kind": "original evidence",
+        "originalBytes": 1975,
+        "originalSHA256": "cd75cc86ff09ec0cb1b4ea01485426d5c4be6330ef5f7f4ab0a716420d5324c5",
+        "storedBytes": 1975,
+        "storedSHA256": "cd75cc86ff09ec0cb1b4ea01485426d5c4be6330ef5f7f4ab0a716420d5324c5"
+      },
+      {
+        "captureRelativePath": "intel/files/bundle-smoke-observations.json",
+        "encoding": "unchanged bytes",
+        "file": "intel/bundle-smoke-observations.json",
+        "kind": "original evidence",
+        "originalBytes": 227,
+        "originalSHA256": "e72f570bd51b33d347bff96b9cb5664963a68e074d82ad9af4dce6da8a9e5a63",
+        "storedBytes": 227,
+        "storedSHA256": "e72f570bd51b33d347bff96b9cb5664963a68e074d82ad9af4dce6da8a9e5a63"
+      },
+      {
+        "captureRelativePath": "intel/files/bundle-smoke.json",
+        "encoding": "unchanged bytes",
+        "file": "intel/bundle-smoke.json",
+        "kind": "original evidence",
+        "originalBytes": 700,
+        "originalSHA256": "f8b21cfd4fd2a6c0a78b4d124be5b4505eee4a11190122b3af2c8b5d7748b0e8",
+        "storedBytes": 700,
+        "storedSHA256": "f8b21cfd4fd2a6c0a78b4d124be5b4505eee4a11190122b3af2c8b5d7748b0e8"
+      },
+      {
+        "captureRelativePath": "intel/files/environment-x86_64.json",
+        "encoding": "unchanged bytes",
+        "file": "intel/environment-x86_64.json",
+        "kind": "original evidence",
+        "originalBytes": 2337,
+        "originalSHA256": "d52cee967c77c77c05d8715f117d83bb38f13f741146547f33d32730ddd167f1",
+        "storedBytes": 2337,
+        "storedSHA256": "d52cee967c77c77c05d8715f117d83bb38f13f741146547f33d32730ddd167f1"
+      },
+      {
+        "captureRelativePath": "intel/files/import-python-x86_64.json",
+        "encoding": "unchanged bytes",
+        "file": "intel/import-python-x86_64.json",
+        "kind": "original evidence",
+        "originalBytes": 103030,
+        "originalSHA256": "c74f277d81db0b7dc000e01050c0a156b686f45a6e1423917b0735ca9f7ce9a1",
+        "storedBytes": 103030,
+        "storedSHA256": "c74f277d81db0b7dc000e01050c0a156b686f45a6e1423917b0735ca9f7ce9a1"
+      },
+      {
+        "captureRelativePath": "intel/files/native-file-import-process-x86_64.json",
+        "encoding": "unchanged bytes",
+        "file": "intel/native-file-import-process-x86_64.json",
+        "kind": "original evidence",
+        "originalBytes": 17872,
+        "originalSHA256": "88578568a31c5f7b8f1a664fdeb16248026f59efb6087401987a8f5e4f977805",
+        "storedBytes": 17872,
+        "storedSHA256": "88578568a31c5f7b8f1a664fdeb16248026f59efb6087401987a8f5e4f977805"
+      },
+      {
+        "captureRelativePath": "intel/files/SHA256SUMS",
+        "encoding": "unchanged bytes",
+        "file": "intel/SHA256SUMS",
+        "kind": "original evidence",
+        "originalBytes": 116,
+        "originalSHA256": "91724264c1ed9dedbd51e311e000a09fabe060654231713977c2fef98e3d43e6",
+        "storedBytes": 116,
+        "storedSHA256": "91724264c1ed9dedbd51e311e000a09fabe060654231713977c2fef98e3d43e6"
+      },
+      {
+        "captureRelativePath": "intel/files/import-python-x86_64.log",
+        "encoding": "gzip",
+        "file": "intel/import-python-x86_64.log.gz",
+        "kind": "complete original native log",
+        "originalBytes": 866234,
+        "originalSHA256": "f6d5643f3c8a2229a88724f77ec661457d0f29b9f1551d4be2e69615c233bfb2",
+        "storedBytes": 28343,
+        "storedSHA256": "57fe9a90a63606cfc50746eb4ee58289be13869924a2958bb8831eda60400a32"
+      },
+      {
+        "captureRelativePath": "intel/files/swift-release-x86_64.log",
+        "encoding": "gzip",
+        "file": "intel/swift-release-x86_64.log.gz",
+        "kind": "complete original native log",
+        "originalBytes": 322844,
+        "originalSHA256": "abf6d74063fa69d379150373b358e836f43061ea66153dd4b3547ae546f7a25e",
+        "storedBytes": 38157,
+        "storedSHA256": "0c1cacb3e9ac6816e46edf52289cfb290c44aa5dccd472149e491d59b2f46133"
+      },
+      {
+        "captureRelativePath": "intel/files/bundle-console.log",
+        "encoding": "gzip",
+        "file": "intel/bundle-console.log.gz",
+        "kind": "complete original native log",
+        "originalBytes": 1651458,
+        "originalSHA256": "9e757ddfd34533c5a994fbe94c351c1f0661359022251be2289739793c31506e",
+        "storedBytes": 131638,
+        "storedSHA256": "2bb933855266c77b8238df4ae948a3ba5f0914539c648c73abcfc6d1608d4b4b"
+      },
+      {
+        "captureRelativePath": "intel/files/bundle-smoke-progress.log",
+        "encoding": "gzip",
+        "file": "intel/bundle-smoke-progress.log.gz",
+        "kind": "complete original native log",
+        "originalBytes": 1511,
+        "originalSHA256": "eaff3c0e26d4ebf26e3611bf1d95856a9a8680585e4a3f03b5d99f5c69a16259",
+        "storedBytes": 417,
+        "storedSHA256": "3779ed128c1755c41794784e82dd162f8c72fddf24380e31e3a0bbc88c262f61"
+      },
+      {
+        "captureRelativePath": "job-139934826621-intel.log",
+        "encoding": "gzip",
+        "file": "intel/job-139934826621.log.gz",
+        "kind": "complete original GitHub native job log",
+        "originalBytes": 6295408,
+        "originalSHA256": "56730b398850a23f8d00fc98a2688a8cb5c2f2d2e0aa72ad0bba554e167cee5b",
+        "storedBytes": 784216,
+        "storedSHA256": "6742eb7372bdd664de11974cdb191b4deceac2402eed5f1fe18ca21194817616"
+      }
+    ],
+    "immutableOriginalCapture": {
+      "file": "stability-2026-11-26/native-run-104/run104-evidence.original.json.gz",
+      "uncompressedBytes": 89444,
+      "uncompressedSHA256": "1c8839c7fe2056f1a425c16eb6b35c6ed48cf8240dde20b35bd21dae35ef4598"
+    },
+    "laterIntelReviewNote": "The frozen original capture predates Root’s final Intel screenshot inspection. The separately preserved Intel review records the later actual visual observation; the frozen capture has not been rewritten.",
+    "laterVisualReviews": [
+      {
+        "architecture": "arm64",
+        "data": {
+          "architecture": "arm64",
+          "headSHA": "3f3ec069895dec254c53660d14e6851cb23077cd",
+          "image": {
+            "bytes": 1125503,
+            "path": "<capture-root>/arm64/files/bundle-window.png",
+            "sha256": "32a41e6b51d56cb28ff45e39c98ded63b7e2998d10e51e08c9251a95f0995c98"
+          },
+          "kind": "separate-human-visible-start-screen-review",
+          "limits": "Only the captured start screen was reviewed; no calendar/editor/interaction/full-UI acceptance. Not counted as an additional automated test.",
+          "observations": [
+            "Native window with correct Beta title",
+            "Rendered book start page, date and lower action buttons",
+            "Open Beta information panel visible",
+            "No empty WebView or visible crash in the captured image"
+          ],
+          "reportedAtUTC": "2026-11-26T13:44:42.588492+00:00",
+          "reportedBy": "root assistant",
+          "runId": 45827353062,
+          "schema": 1,
+          "visuallyReviewed": true
+        },
+        "file": "stability-2026-11-26/native-run-104/arm64/screenshot-review.json"
+      },
+      {
+        "architecture": "intel",
+        "data": {
+          "additionalAutomatedTestCount": 0,
+          "architecture": "x86_64",
+          "headSHA": "3f3ec069895dec254c53660d14e6851cb23077cd",
+          "image": {
+            "bytes": 1751215,
+            "path": "<capture-root>/intel/files/bundle-window.png",
+            "sha256": "9489d144a9259be76d641955c5fa9afc233c34837a52be7fff6b343acd3737c2"
+          },
+          "kind": "separate-human-visible-start-screen-review",
+          "limits": "Only the captured start screen was reviewed; no calendar/editor/interaction/full-UI acceptance. Not counted as an additional automated test.",
+          "observations": [
+            "Native window titled Magnolie Organizer macOS Beta",
+            "Brown book start page fully rendered",
+            "Date 26 November 2026 visible",
+            "Selection, settings and backup buttons visible",
+            "Open Beta information panel visible",
+            "No empty WebView or visible crash in the captured image"
+          ],
+          "recordedAtUTC": "2026-11-26T14:01:17.623252+00:00",
+          "reportedBy": "root assistant",
+          "runId": 45827353062,
+          "schema": 1,
+          "visuallyReviewed": true
+        },
+        "file": "stability-2026-11-26/native-run-104/intel/screenshot-review.json"
+      }
+    ],
+    "manifest": "stability-2026-11-26/native-run-104/durable-evidence-manifest.json",
+    "normalization": "Original capture keys and all result values are retained. Capture-local file paths are mapped to unchanged durable repository files when saved; remaining capture-only absolute roots become <capture-root> or <scratch>. Compressed logs retain a historical capture path and receive an additive durableStorage binding: parent bytes/sha256 describe the uncompressed original, storedBytes/storedSHA256 the gzip file. The original capture is retained byte-exact inside deterministic gzip. Original subsidiary JSON, source inventory and logs are saved unchanged (logs use lossless gzip); any capture-local paths inside those originals are historical labels, not portable current locations.",
+    "payloadPolicy": "Full original job, runtime-build, optimized Swift, console and smoke-progress logs plus original JSON evidence are retained. Development app ZIPs and screenshot image bytes remain GitHub Actions artifacts with 14-day retention; hashes, archive inventories and screenshot reviews are durable. No production-release package is represented."
+  },
+  "fixesAndNewGates": {
+    "121": "A separate optimized Swift configuration passes; packaged applications remain explicitly identified ad-hoc Debug candidates.",
+    "785": "Original Swift FileImportProcess and real signed packaged interpreter/helper are exercised through the new nine-check process probe.",
+    "793": "AirPlay caller-root alias regression now passes natively.",
+    "806": "26-case runtime suite and 27-case AirPlay suite pass without native skips; actual Darwin metadata positive/foreign-platform regression is included.",
+    "808": "Actual pinned static XZ/CPython runtime builds succeed on ARM64 and Intel after preserving archive mtimes."
+  },
+  "history": {
+    "note": "Historical failure and pending-followup capture remain unchanged; this final run104 evidence establishes the successful native followup.",
+    "run103FailureUnmodified": {
+      "bytes": 28529,
+      "path": "<scratch>/stability-checks/native-run-103/run103-evidence.json",
+      "sha256": "169bf0b041e15ba35dc938a8300e5053358c412f07fb512a904732f44dc209c4"
+    },
+    "separateFixBinding": {
+      "bytes": 1103,
+      "path": "<scratch>/stability-checks/native-run-103/run103-followup-fix.json",
+      "sha256": "0ffe5321a0bf297f0600247e948ce63a7e2a1865f796eb661266b4a20b8fd85f"
+    }
+  },
+  "jobs": [
+    {
+      "actualMachOBytes": {
+        "helperMachO": {
+          "codeDirectories": [
+            {
+              "cdhash": "5811650f8743cec01c0796c2e786d8ff3b3dfdc5",
+              "hashType": 2,
+              "slot": 0
+            }
+          ],
+          "cpuSubtype": 0,
+          "cpuType": 16777228,
+          "embeddedCodeSignature": true,
+          "fileType": 2,
+          "minimumOS": [
+            "12.7.0"
+          ],
+          "platform": 1,
+          "sdk": "15.5.0"
+        },
+        "mainMachO": {
+          "codeDirectories": [
+            {
+              "cdhash": "15d53329189931fe95c4e7b8aa91bc94a4eca280",
+              "hashType": 2,
+              "slot": 0
+            }
+          ],
+          "cpuSubtype": 0,
+          "cpuType": 16777228,
+          "embeddedCodeSignature": true,
+          "fileType": 2,
+          "minimumOS": [
+            "12.7.0"
+          ],
+          "platform": 1,
+          "sdk": "15.5.0"
+        }
+      },
+      "architecture": "arm64",
+      "artifact": {
+        "apiDigestMatched": true,
+        "createdAt": "2026-11-26T13:40:01Z",
+        "expiresAt": "2026-12-10T13:39:59Z",
+        "file": {
+          "bytes": 24655554,
+          "path": "<capture-root>/arm64/development-candidate.zip",
+          "sha256": "526a51d0bd58824faa33f2453fc94ee2ad62b39deea05eae049805b6ba6e3726"
+        },
+        "id": 15122996395,
+        "members": [
+          {
+            "bytes": 23986905,
+            "path": "Magnolie-Organizer-macOS-2.0.30-beta.1-arm64.zip",
+            "sha256": "a7eeb56c95387e1f40370b8b808bfd13e16fc9dc51e7787cdfb900c38135e908"
+          },
+          {
+            "bytes": 115,
+            "path": "SHA256SUMS",
+            "sha256": "65e797d3bbdf0ee9f4bef1fb082f2338079d30fe0b0eabcf24041c531f5d4be0"
+          },
+          {
+            "bytes": 1450656,
+            "path": "bundle-console.log",
+            "sha256": "fa8810ab2f0d4c4233d305b8d7b7dc8a3041ca0269ac8e8ed808bc916164b659"
+          },
+          {
+            "bytes": 1972,
+            "path": "bundle-smoke-first-window.json",
+            "sha256": "6db9f0fcf280c410a1e683bf133cf775ec63a36d46ce2923beb5fd2256ac05b8"
+          },
+          {
+            "bytes": 227,
+            "path": "bundle-smoke-observations.json",
+            "sha256": "20316cb38dbd2d45400becf92f4cb9c28564c8b448f5f045fe6243e04e047830"
+          },
+          {
+            "bytes": 700,
+            "path": "bundle-smoke.json",
+            "sha256": "170545c0d9477c59951df0b8e1689071fb6fdc05cc2bc0677e0d9e78ab00cff9"
+          },
+          {
+            "bytes": 1511,
+            "path": "bundle-smoke-progress.log",
+            "sha256": "a4b73cff71148a65eb15357333208e0399c6c5532948ef605e961e2321f5d516"
+          },
+          {
+            "bytes": 1125503,
+            "path": "bundle-window.png",
+            "sha256": "32a41e6b51d56cb28ff45e39c98ded63b7e2998d10e51e08c9251a95f0995c98"
+          },
+          {
+            "bytes": 2376,
+            "path": "environment-arm64.json",
+            "sha256": "4567d50d23a2368d4e9d57cf42f487a6188b904d47026ac936a4d0aa94eaa801"
+          },
+          {
+            "bytes": 103029,
+            "path": "import-python-arm64.json",
+            "sha256": "f0e344658955de893c1e808aa7fc8a4d06dcc005ddaa3280e9563c8a70784e9b"
+          },
+          {
+            "bytes": 866607,
+            "path": "import-python-arm64.log",
+            "sha256": "a9b4139efc37fa2ff46a98317a7f8d66074b1c89110120f492a83e53548e0798"
+          },
+          {
+            "bytes": 17871,
+            "path": "native-file-import-process-arm64.json",
+            "sha256": "d10854840bc30fc9557e913109bf313774a0a26d33f1c43c4da60c38fe47d753"
+          },
+          {
+            "bytes": 982713,
+            "path": "sources.json",
+            "sha256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c"
+          },
+          {
+            "bytes": 321125,
+            "path": "swift-release-arm64.log",
+            "sha256": "3f2cb7f62635846aa04690af500ed882a0ac88c1ea5298926544e77519357797"
+          },
+          {
+            "bytes": 77729,
+            "path": "timezone-provider-arm64.log",
+            "sha256": "7af2bd22cf8cf8ae2cd37cbed33dd07c583cfa618ff744b0a8bb3008b1da64dd"
+          }
+        ],
+        "name": "macOS-2.0.30-beta.1-arm64-development-candidate",
+        "retentionDays": 14,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062/artifacts/15122996395"
+      },
+      "buildManifest": {
+        "bytes": 71987,
+        "data": {
+          "airplayBundled": false,
+          "airplayDependencyClosureVerified": false,
+          "airplayNativeDeviceValidated": false,
+          "architecture": "arm64",
+          "configuration": "debug",
+          "importNativeUIValidated": false,
+          "importRuntimeRelocationVerified": true,
+          "importRuntimeSourceSHA256": "8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de",
+          "importRuntimeVersion": "3.15.2",
+          "machOMinimumVerified": true,
+          "minimumSystemVersion": "12.7",
+          "montereyRuntimeValidated": false,
+          "name": "Magnolie Organizer macOS Beta",
+          "nativeUIValidated": false,
+          "productionRelease": false,
+          "signing": "ad-hoc development only, not notarized",
+          "swiftTestsPassed": true,
+          "version": "2.0.30-beta.1"
+        },
+        "member": "Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app/Contents/Resources/Magnolie Organizer macOS Beta-build.json",
+        "sha256": "daf120dbe74dfe475fce540226d4f30b2551b6e7cb88db040fab11d0a8d61ef3",
+        "sourceInputCount": 555
+      },
+      "candidatePackage": {
+        "SHA256SUMS": {
+          "bytes": 115,
+          "path": "stability-2026-11-26/native-run-104/arm64/SHA256SUMS",
+          "sha256": "65e797d3bbdf0ee9f4bef1fb082f2338079d30fe0b0eabcf24041c531f5d4be0"
+        },
+        "archiveEntries": 2151,
+        "bytes": 23986905,
+        "path": "<capture-root>/arm64/files/Magnolie-Organizer-macOS-2.0.30-beta.1-arm64.zip",
+        "sha256": "a7eeb56c95387e1f40370b8b808bfd13e16fc9dc51e7787cdfb900c38135e908"
+      },
+      "canonicalCryptoFixtureCheck": {
+        "line": 1053,
+        "passed": true
+      },
+      "codeResources": {
+        "helperCDHashReference": "5811650f8743cec01c0796c2e786d8ff3b3dfdc5",
+        "helperNestedCodeEntries": 51,
+        "nestedCodeDirectoryReferencesMatchActualBytes": true,
+        "outerNestedCodeEntries": 1,
+        "resourceHashesVerified": 1967
+      },
+      "completedAt": "2026-11-26T13:40:07Z",
+      "conclusion": "success",
+      "currentSharedSourceProbe": {
+        "data": {
+          "assertions": 27,
+          "currentSharedUI": true,
+          "issue": 783,
+          "nativeExecution": false,
+          "sharedDateSearchAssertions": 30,
+          "syntheticNativeTransport": true,
+          "unavailableDesktopCommands": 181
+        },
+        "line": 1049
+      },
+      "elapsedSeconds": 1185,
+      "environment": {
+        "architecture": "arm64",
+        "file": {
+          "bytes": 2376,
+          "path": "stability-2026-11-26/native-run-104/arm64/environment-arm64.json",
+          "sha256": "4567d50d23a2368d4e9d57cf42f487a6188b904d47026ac936a4d0aa94eaa801"
+        },
+        "nativeMagnolieTestsExecutedAtPrerequisiteSnapshot": false,
+        "observedAtUTC": "2026-11-26T13:20:49.930532+00:00",
+        "productBuild": "24H232",
+        "productVersion": "15.8.2",
+        "sdkVersion": "15.5",
+        "snapshotIsFinalTestResult": false,
+        "swiftVersion": "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)\nTarget: arm64-apple-macosx15.0",
+        "system": "Darwin"
+      },
+      "fullLog": {
+        "bytes": 6282335,
+        "durableStorage": {
+          "encoding": "gzip",
+          "file": "stability-2026-11-26/native-run-104/arm64/job-139934825830.log.gz",
+          "sizeAndSHA256InParentDescribe": "uncompressed original bytes",
+          "storedBytes": 768439,
+          "storedSHA256": "7404948d8fff36d994d4a1d562dca48f7a3434258900360b54cf4e62ff75c85b"
+        },
+        "path": "<capture-root>/job-139934825830-arm64.log",
+        "sha256": "e2ab8aeb38d5e284c83a8f064f9121e626b93f517f9347c6135845e853215aa8"
+      },
+      "hostSkipDetails": [
+        {
+          "line": 30293,
+          "text": "test_no_linux_native_build_claim (__main__.ProjectionTests.test_no_linux_native_build_claim) ... skipped 'Negative Linux-only build gate'"
+        }
+      ],
+      "independentByteAudit": {
+        "checksPassed": 65,
+        "checksTotal": 65,
+        "failures": [],
+        "file": {
+          "bytes": 11171,
+          "path": "stability-2026-11-26/native-run-104/arm64/independent-candidate-audit.json",
+          "sha256": "5b7b5c8667768c0955dbdee64a5b40b5603d99359714bfd3564ae96306b53707"
+        },
+        "limitations": [
+          "No native codesign command, native build, test, app or helper execution was repeated by this Linux audit.",
+          "Embedded CodeDirectory/nested references and resource seal hashes are byte observations, not macOS trust or signature verification. Native codesign success belongs to the original CI gates.",
+          "The 51 linked BetaCore objects, output map, module and compiled probe are represented by native receipts; their unshipped bytes cannot be independently rehashed here.",
+          "Process receipt covers original public OR6 data and bounded errors, not picker/editor/profile save/TCC/account/device acceptance.",
+          "Smoke covers the real fresh profile initialize/save/quit/reopen lifecycle, not all UI features or permissions.",
+          "A macOS12.7 deployment target is not execution on macOS12.7; runner OS is recorded separately.",
+          "Ad-hoc Debug development package, no notarization or production-release claim; optimized Swift tests are a separate context."
+        ],
+        "passed": true
+      },
+      "jobId": 139934825830,
+      "nativeProcess": {
+        "appBytesBoundBeforeAndAfter": true,
+        "appSignaturesVerifiedBeforeAndAfter": true,
+        "checks": {
+          "emptySelectedFileRejected": true,
+          "hostileParentPythonEnvironment": true,
+          "knownOR6FieldsPreserved": true,
+          "originalSwiftProcessWithBundledRuntime": true,
+          "oversizedSelectedFileRejected": true,
+          "selectedFixtureUnchanged": true,
+          "selectedRegularFileRead": true,
+          "selectedSymlinkRejected": true,
+          "structuredHelperErrorRejected": true
+        },
+        "compiledProbeSHA256": "1d61ff686e479f21245bdfb260af72ddecc6220d6a0a63f840290b33adc000ae",
+        "configuration": "debug",
+        "file": {
+          "bytes": 17871,
+          "path": "stability-2026-11-26/native-run-104/arm64/native-file-import-process-arm64.json",
+          "sha256": "d10854840bc30fc9557e913109bf313774a0a26d33f1c43c4da60c38fe47d753"
+        },
+        "independentAuditScope": {
+          "appSignaturesVerifiedBeforeAndAfterClaim": true,
+          "checks": {
+            "emptySelectedFileRejected": true,
+            "hostileParentPythonEnvironment": true,
+            "knownOR6FieldsPreserved": true,
+            "originalSwiftProcessWithBundledRuntime": true,
+            "oversizedSelectedFileRejected": true,
+            "selectedFixtureUnchanged": true,
+            "selectedRegularFileRead": true,
+            "selectedSymlinkRejected": true,
+            "structuredHelperErrorRejected": true
+          },
+          "compiledProbeBytesIndependentlyVerified": false,
+          "knownCollectionsVerified": 4,
+          "knownFieldsVerified": 22,
+          "linkAndExecutionAuthority": "Original native driver receipt and CI log; object/probe files are not included in the artifact.",
+          "linkedObjectReceiptCount": 51,
+          "linkedReceiptFileCount": 53,
+          "objectBytesIndependentlyVerified": false,
+          "objectFilesIncludedInArtifact": false,
+          "observedAtUTC": "2026-11-26T13:36:54.162443+00:00",
+          "originalFixture": {
+            "bytes": 155648,
+            "contract": "contracts/or6-native-fixtures.json",
+            "contractSHA256": "87f218681f8d3fef65c819d985656457c4b7ed67adefb2654077b0cf0fc92890",
+            "expectedFields": 22,
+            "name": "known-values.or6",
+            "sha256": "1c12517b17c213b1c9a2c73e6168eadb00c2feebafb1ab2bd35d5a5a6b968a0e"
+          },
+          "packagedFilesIndependentlyHashed": 8,
+          "proofSHA256": "d10854840bc30fc9557e913109bf313774a0a26d33f1c43c4da60c38fe47d753",
+          "scopeFlags": {
+            "editorExercised": false,
+            "nativeAcceptance": false,
+            "pickerExercised": false,
+            "productionRelease": false,
+            "profileSaveExercised": false,
+            "systemPermissionsExercised": false
+          },
+          "sourceBindingsVerified": 59
+        },
+        "knownCollectionsVerified": 4,
+        "knownFieldsVerified": 22,
+        "linkedBetaCoreObjectCount": 51,
+        "logReceipt": {
+          "line": 44343,
+          "text": "Native Swift-to-bundled-import process: 9 checks passed; 4 original OR6 collections; no UI/profile acceptance."
+        },
+        "namedPlaintextStreamRetained": false,
+        "observedAtUTC": "2026-11-26T13:36:54.162443+00:00",
+        "originalFixture": {
+          "bytes": 155648,
+          "contract": "contracts/or6-native-fixtures.json",
+          "contractSHA256": "87f218681f8d3fef65c819d985656457c4b7ed67adefb2654077b0cf0fc92890",
+          "expectedFields": 22,
+          "name": "known-values.or6",
+          "sha256": "1c12517b17c213b1c9a2c73e6168eadb00c2feebafb1ab2bd35d5a5a6b968a0e"
+        },
+        "passed": true,
+        "processDeadlineSeconds": 150,
+        "scopeFlags": {
+          "editorExercised": false,
+          "montereyRuntimeValidated": false,
+          "nativeAcceptance": false,
+          "pickerExercised": false,
+          "productionRelease": false,
+          "profileSaveExercised": false,
+          "systemPermissionsExercised": false
+        },
+        "selectedBytes": 155648,
+        "sourceUnchangedBeforeAndAfter": true
+      },
+      "optimizedSwiftLog": {
+        "bytes": 321125,
+        "durableStorage": {
+          "encoding": "gzip",
+          "file": "stability-2026-11-26/native-run-104/arm64/swift-release-arm64.log.gz",
+          "sizeAndSHA256InParentDescribe": "uncompressed original bytes",
+          "storedBytes": 37549,
+          "storedSHA256": "10ecb52378e016195bfe44664e753b7eb962b28b469d75093f5e2720fdbef3c7"
+        },
+        "path": "<capture-root>/arm64/files/swift-release-arm64.log",
+        "sha256": "3f2cb7f62635846aa04690af500ed882a0ac88c1ea5298926544e77519357797"
+      },
+      "projectedFileImportProbe": {
+        "checks": 90,
+        "details": {
+          "nativePersistenceValidated": false,
+          "nativePickerValidated": false,
+          "or6SourceSHA256": "1c12517b17c213b1c9a2c73e6168eadb00c2feebafb1ab2bd35d5a5a6b968a0e",
+          "parserManifestSHA256": "b05dc036d1c98694837ab74fbf226624ce86f055d9261f07ce7fcc0732e9bd07",
+          "uiApplicationSHA256": "e6359a618f458985b270a6372515493ffb6fb1aedb0d7efa5a099aa665818b70"
+        },
+        "line": 1051,
+        "scope": "Real helper/public fixture and projected UI with synthetic transport; distinct from the new original Swift process probe."
+      },
+      "projection": {
+        "generatedCatalogs": 19,
+        "helperGeneratedOutputsVerified": 1203,
+        "importHelperRelocationAccountedFor": true,
+        "inputs": 555,
+        "outputsVerified": 1312,
+        "pinnedDependencyWheels": 1,
+        "preparedInputsNotInGit": 20,
+        "trackedInputsVerified": 535
+      },
+      "pythonTests": {
+        "airplayBuilder": {
+          "durationSeconds": 0.261,
+          "errors": 0,
+          "failures": 0,
+          "passed": 27,
+          "result": "OK",
+          "resultLine": 997,
+          "skipped": 0,
+          "summaryLine": 995,
+          "tests": 27
+        },
+        "host": {
+          "durationSeconds": 503.931,
+          "errors": 0,
+          "failures": 0,
+          "passed": 34,
+          "result": "OK (skipped=1)",
+          "resultLine": 30323,
+          "skipped": 1,
+          "summaryLine": 30321,
+          "tests": 35
+        },
+        "importHelperAndProjectionPaths": {
+          "durationSeconds": 72.188,
+          "errors": 0,
+          "failures": 0,
+          "passed": 17,
+          "result": "OK",
+          "resultLine": 1046,
+          "skipped": 0,
+          "summaryLine": 1044,
+          "tests": 17
+        },
+        "runtimeBuilder": {
+          "durationSeconds": 3.521,
+          "errors": 0,
+          "failures": 0,
+          "passed": 26,
+          "result": "OK",
+          "resultLine": 992,
+          "skipped": 0,
+          "summaryLine": 990,
+          "tests": 26
+        },
+        "sourceContract": {
+          "durationSeconds": 1.335,
+          "errors": 0,
+          "failures": 0,
+          "passed": 7,
+          "result": "OK",
+          "resultLine": 248,
+          "skipped": 0,
+          "summaryLine": 246,
+          "tests": 7
+        }
+      },
+      "runtime": {
+        "architecture": "arm64",
+        "buildLog": {
+          "bytes": 866607,
+          "durableStorage": {
+            "encoding": "gzip",
+            "file": "stability-2026-11-26/native-run-104/arm64/import-python-arm64.log.gz",
+            "sizeAndSHA256InParentDescribe": "uncompressed original bytes",
+            "storedBytes": 28513,
+            "storedSHA256": "d3598c7951d8def9823fe1c78283a65376d824bc901a6364b42e007f68451b4c"
+          },
+          "path": "<capture-root>/arm64/files/import-python-arm64.log",
+          "sha256": "a9b4139efc37fa2ff46a98317a7f8d66074b1c89110120f492a83e53548e0798"
+        },
+        "bundledManifest": "Contents/Resources/ImportPython/runtime.json",
+        "helperRoot": "Contents/Helpers/ImportPython.app",
+        "helperSignatureInventoryEntry": {
+          "path": "Contents/_CodeSignature/CodeResources",
+          "sha256": "7895805848c7f067e354779064292bcf29ed912073a9637a27af3529c5184a03"
+        },
+        "interpreter": "Contents/Helpers/ImportPython.app/Contents/MacOS/python3.15",
+        "inventoryFiles": 706,
+        "launcher": {
+          "source": "tools/import_python_main.c",
+          "sourceSHA256": "4c9591d11ac184208ad6b5cb5cc087a9e076c4784745ac82f38256145bf02d3e"
+        },
+        "licenses": {
+          "Contents/Resources/LICENSE-Python.txt": "b0e25a78cffb43f4d92de8b61ccfa1f1f98ecbc22330b54b5251e7b6ba010231",
+          "Contents/Resources/LICENSE-XZ-Utils.txt": "616a3ad264ce29b8f1cb97e53037b139d406899ca8d1f799651e17bfa09830b8",
+          "Contents/Resources/LICENSE-liblzma-0BSD.txt": "0b01625d853911cd0e2e088dcfb743261034a091bb379246cb25a14cc4c74bf1"
+        },
+        "machOImages": 52,
+        "manifest": {
+          "bytes": 103029,
+          "path": "stability-2026-11-26/native-run-104/arm64/import-python-arm64.json",
+          "sha256": "f0e344658955de893c1e808aa7fc8a4d06dcc005ddaa3280e9563c8a70784e9b"
+        },
+        "minimumSystemVersion": "12.7",
+        "relocation": {
+          "bundleLayout": true,
+          "executableBound": true,
+          "isolated": true,
+          "moduleClosure": true,
+          "version": "3.15.2"
+        },
+        "schema": 2,
+        "signing": "ad-hoc development only",
+        "staticDependencies": {
+          "liblzma": {
+            "librarySHA256": "854a2f588240abdf9f8189ccc8128d159ee8d0fdabcc07841d8288332ce64000",
+            "linkage": "static",
+            "sourceSHA256": "4ce24038fd4221e0d13bc1a2de7a4db56e90b92b3bf75321f6c14be73f65de4b",
+            "version": "5.8.4"
+          }
+        }
+      },
+      "same501NamedCasesInAllContexts": true,
+      "screenshot": {
+        "additionalAutomatedTestCount": 0,
+        "image": {
+          "bytes": 1125503,
+          "path": "<capture-root>/arm64/files/bundle-window.png",
+          "sha256": "32a41e6b51d56cb28ff45e39c98ded63b7e2998d10e51e08c9251a95f0995c98"
+        },
+        "independentAuditDimensions": {
+          "height": 793,
+          "width": 1136
+        },
+        "rootVisualReview": {
+          "architecture": "arm64",
+          "headSHA": "3f3ec069895dec254c53660d14e6851cb23077cd",
+          "image": {
+            "bytes": 1125503,
+            "path": "<capture-root>/arm64/files/bundle-window.png",
+            "sha256": "32a41e6b51d56cb28ff45e39c98ded63b7e2998d10e51e08c9251a95f0995c98"
+          },
+          "kind": "separate-human-visible-start-screen-review",
+          "limits": "Only the captured start screen was reviewed; no calendar/editor/interaction/full-UI acceptance. Not counted as an additional automated test.",
+          "observations": [
+            "Native window with correct Beta title",
+            "Rendered book start page, date and lower action buttons",
+            "Open Beta information panel visible",
+            "No empty WebView or visible crash in the captured image"
+          ],
+          "reportedAtUTC": "2026-11-26T13:44:42.588492+00:00",
+          "reportedBy": "root assistant",
+          "runId": 45827353062,
+          "schema": 1,
+          "visuallyReviewed": true
+        }
+      },
+      "smoke": {
+        "checks": {
+          "bundleLaunch": true,
+          "freshNormalizedProfileSaved": true,
+          "normalQuit": true,
+          "pidBoundVisibleWindow": true,
+          "profileDataPreserved": true,
+          "reopen": true,
+          "reopenedProfileAtomicallySaved": true
+        },
+        "file": {
+          "bytes": 700,
+          "path": "stability-2026-11-26/native-run-104/arm64/bundle-smoke.json",
+          "sha256": "170545c0d9477c59951df0b8e1689071fb6fdc05cc2bc0677e0d9e78ab00cff9"
+        },
+        "firstProfileSHA256": "ff5a46c8d3f22aced21fdf96aa460a14226400daa5250c6bbad331f090035813",
+        "nativeAcceptance": false,
+        "productionRelease": false,
+        "reopenedProfileSHA256": "ff5a46c8d3f22aced21fdf96aa460a14226400daa5250c6bbad331f090035813",
+        "scope": "Real bundled Host/resources, fresh local init, normal save-before-quit, reopen; no editor, permissions, accessibility or full feature acceptance."
+      },
+      "source": {
+        "file": {
+          "bytes": 982713,
+          "path": "stability-2026-11-26/native-run-104/sources.json",
+          "sha256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c"
+        },
+        "files": 3921,
+        "headSHA": "3f3ec069895dec254c53660d14e6851cb23077cd",
+        "independentByteAudit": {
+          "filesVerified": 3921,
+          "gitBlobBytesReadThisAudit": 126567259,
+          "proofSHA256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c",
+          "reusedIdenticalSourceProof": null,
+          "uniqueGitBlobsReadThisAudit": 3817,
+          "worktreeBytesUsed": false
+        }
+      },
+      "startedAt": "2026-11-26T13:20:22Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completed_at": "2026-11-26T13:20:25Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "started_at": "2026-11-26T13:20:23Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:20:42Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "number": 2,
+          "started_at": "2026-11-26T13:20:25Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:20:42Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "number": 3,
+          "started_at": "2026-11-26T13:20:42Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:20:43Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 4,
+          "started_at": "2026-11-26T13:20:42Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:20:49Z",
+          "conclusion": "success",
+          "name": "Bind the Mac candidate to the current selected checkout",
+          "number": 5,
+          "started_at": "2026-11-26T13:20:43Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:21:01Z",
+          "conclusion": "success",
+          "name": "Prepare private dependencies and canonical catalogs",
+          "number": 6,
+          "started_at": "2026-11-26T13:20:49Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:22:38Z",
+          "conclusion": "success",
+          "name": "Verify the standalone Swift time-zone engine against independent references",
+          "number": 7,
+          "started_at": "2026-11-26T13:21:01Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:24:43Z",
+          "conclusion": "success",
+          "name": "Build the private source-pinned import runtime",
+          "number": 8,
+          "started_at": "2026-11-26T13:22:38Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:36:39Z",
+          "conclusion": "success",
+          "name": "Freeze this isolated build's current source and run host and Apple tests",
+          "number": 9,
+          "started_at": "2026-11-26T13:24:43Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:36:54Z",
+          "conclusion": "success",
+          "name": "Exercise the actual Swift import process and packaged private runtime",
+          "number": 10,
+          "started_at": "2026-11-26T13:36:39Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:39:36Z",
+          "conclusion": "success",
+          "name": "Verify optimized Swift code for the later stable integration",
+          "number": 11,
+          "started_at": "2026-11-26T13:36:54Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:39:52Z",
+          "conclusion": "success",
+          "name": "Start, save, quit and reopen the real app bundle",
+          "number": 12,
+          "started_at": "2026-11-26T13:39:36Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:39:58Z",
+          "conclusion": "success",
+          "name": "Package the ad-hoc development app with its evidence",
+          "number": 13,
+          "started_at": "2026-11-26T13:39:52Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:40:01Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "number": 14,
+          "started_at": "2026-11-26T13:39:58Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:40:01Z",
+          "conclusion": "skipped",
+          "name": "Preserve native failure diagnostics",
+          "number": 15,
+          "started_at": "2026-11-26T13:40:01Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:40:01Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 28,
+          "started_at": "2026-11-26T13:40:01Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:40:01Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "number": 29,
+          "started_at": "2026-11-26T13:40:01Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:40:02Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "number": 30,
+          "started_at": "2026-11-26T13:40:01Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:40:04Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "started_at": "2026-11-26T13:40:02Z",
+          "status": "completed"
+        }
+      ],
+      "swiftContexts": [
+        {
+          "actualLiveHolidayCase": {
+            "line": 1738,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' skipped (0.001 seconds)."
+          },
+          "allTestsDurationSeconds": 59.684,
+          "basis": "check_calendar.py explicitly sets TZ=UTC and supplies the calendar fixture/output paths before swift test.",
+          "caller": "ProjectionTests.test_canonical_calendar_export_contract → check_calendar.py --swift",
+          "configuration": "debug",
+          "contextNumber": 1,
+          "failures": 0,
+          "id": "calendar-codec-utc",
+          "name": "Canonical calendar codec (UTC)",
+          "passed": 497,
+          "skipDetails": [
+            {
+              "line": 1273,
+              "reason": "Run tools/check_editor.py --swift with a JS runtime to test live canonical editor records.",
+              "test": "BetaCoreTests.CoreTests testCurrentEditorAppointments"
+            },
+            {
+              "line": 1684,
+              "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+              "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+            },
+            {
+              "line": 1737,
+              "reason": "Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.",
+              "test": "BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested"
+            },
+            {
+              "line": 1852,
+              "reason": "Actual shared print fixture is supplied by tools/check_editor.py on the Mac runner.",
+              "test": "BetaCoreTests.NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            }
+          ],
+          "skipped": 4,
+          "startLine": 1073,
+          "summaryLine": 2246,
+          "testDurationSeconds": 59.645,
+          "tests": 501,
+          "unexpectedFailures": 0
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 15776,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' skipped (0.000 seconds)."
+          },
+          "allTestsDurationSeconds": 54.098,
+          "basis": "First host zone is UTC; actual generated editor records are passed through MACOS_BETA_EDITOR_FIXTURES.",
+          "caller": "ProjectionTests.test_current_editor_reminders_and_export → check_editor.py --swift",
+          "configuration": "debug",
+          "contextNumber": 2,
+          "failures": 0,
+          "id": "editor-utc",
+          "name": "Current editor (UTC)",
+          "passed": 496,
+          "skipDetails": [
+            {
+              "line": 15228,
+              "reason": "Run tools/check_calendar.py --swift for current desktop codec roundtrips.",
+              "test": "BetaCoreTests.CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs"
+            },
+            {
+              "line": 15722,
+              "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+              "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+            },
+            {
+              "line": 15775,
+              "reason": "Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.",
+              "test": "BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested"
+            },
+            {
+              "line": 15795,
+              "reason": "Run tools/check_calendar.py --swift to execute the actual canonical parser oracle.",
+              "test": "BetaCoreTests.ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles"
+            },
+            {
+              "line": 15821,
+              "reason": "Published parser oracle runs through tools/check_calendar.py --swift",
+              "test": "BetaCoreTests.ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            }
+          ],
+          "skipped": 5,
+          "startLine": 15112,
+          "summaryLine": 16285,
+          "testDurationSeconds": 54.066,
+          "tests": 501,
+          "unexpectedFailures": 0
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 29771,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' skipped (0.000 seconds)."
+          },
+          "allTestsDurationSeconds": 52.01,
+          "basis": "Host zones run in UTC, Pacific/Honolulu, Europe/Berlin order; Honolulu explicitly omits --swift, so the second editor XCTest context is Europe/Berlin.",
+          "caller": "ProjectionTests.test_current_editor_reminders_and_export → check_editor.py --swift",
+          "configuration": "debug",
+          "contextNumber": 3,
+          "failures": 0,
+          "id": "editor-europe-berlin",
+          "name": "Current editor (Europe/Berlin)",
+          "passed": 496,
+          "skipDetails": [
+            {
+              "line": 29223,
+              "reason": "Run tools/check_calendar.py --swift for current desktop codec roundtrips.",
+              "test": "BetaCoreTests.CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs"
+            },
+            {
+              "line": 29717,
+              "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+              "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+            },
+            {
+              "line": 29770,
+              "reason": "Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.",
+              "test": "BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested"
+            },
+            {
+              "line": 29790,
+              "reason": "Run tools/check_calendar.py --swift to execute the actual canonical parser oracle.",
+              "test": "BetaCoreTests.ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles"
+            },
+            {
+              "line": 29816,
+              "reason": "Published parser oracle runs through tools/check_calendar.py --swift",
+              "test": "BetaCoreTests.ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            }
+          ],
+          "skipped": 5,
+          "startLine": 29107,
+          "summaryLine": 30280,
+          "testDurationSeconds": 51.971,
+          "tests": 501,
+          "unexpectedFailures": 0
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 43803,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' passed (0.615 seconds)."
+          },
+          "allTestsDurationSeconds": 53.893,
+          "basis": "build_dev invokes the fourth Debug context with the current generated UI and the explicit live-holiday environment.",
+          "caller": "Workflow step9 → MACOS_BETA_LIVE_HOLIDAYS=1 build_dev.py → swift test --jobs2",
+          "configuration": "debug",
+          "contextNumber": 4,
+          "failures": 0,
+          "id": "build-dev-live-holidays",
+          "name": "Development build with live holidays",
+          "passed": 495,
+          "skipDetails": [
+            {
+              "line": 43255,
+              "reason": "Run tools/check_calendar.py --swift for current desktop codec roundtrips.",
+              "test": "BetaCoreTests.CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs"
+            },
+            {
+              "line": 43339,
+              "reason": "Run tools/check_editor.py --swift with a JS runtime to test live canonical editor records.",
+              "test": "BetaCoreTests.CoreTests testCurrentEditorAppointments"
+            },
+            {
+              "line": 43750,
+              "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+              "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+            },
+            {
+              "line": 43822,
+              "reason": "Run tools/check_calendar.py --swift to execute the actual canonical parser oracle.",
+              "test": "BetaCoreTests.ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles"
+            },
+            {
+              "line": 43848,
+              "reason": "Published parser oracle runs through tools/check_calendar.py --swift",
+              "test": "BetaCoreTests.ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            },
+            {
+              "line": 43919,
+              "reason": "Actual shared print fixture is supplied by tools/check_editor.py on the Mac runner.",
+              "test": "BetaCoreTests.NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            }
+          ],
+          "skipped": 6,
+          "startLine": 43139,
+          "summaryLine": 44313,
+          "testDurationSeconds": 53.852,
+          "tests": 501,
+          "unexpectedFailures": 0
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 46389,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' passed (0.478 seconds)."
+          },
+          "allTestsDurationSeconds": 36.802,
+          "basis": "Separate optimized context; the packaged development application remains Debug/ad-hoc.",
+          "caller": "Workflow step11 → MACOS_BETA_LIVE_HOLIDAYS=1 swift test -c release --jobs2",
+          "configuration": "release",
+          "contextNumber": 5,
+          "failures": 0,
+          "id": "release-live-holidays",
+          "name": "Optimized Release with live holidays",
+          "passed": 495,
+          "skipDetails": [
+            {
+              "line": 45841,
+              "reason": "Run tools/check_calendar.py --swift for current desktop codec roundtrips.",
+              "test": "BetaCoreTests.CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs"
+            },
+            {
+              "line": 45925,
+              "reason": "Run tools/check_editor.py --swift with a JS runtime to test live canonical editor records.",
+              "test": "BetaCoreTests.CoreTests testCurrentEditorAppointments"
+            },
+            {
+              "line": 46336,
+              "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+              "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+            },
+            {
+              "line": 46408,
+              "reason": "Run tools/check_calendar.py --swift to execute the actual canonical parser oracle.",
+              "test": "BetaCoreTests.ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles"
+            },
+            {
+              "line": 46434,
+              "reason": "Published parser oracle runs through tools/check_calendar.py --swift",
+              "test": "BetaCoreTests.ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            },
+            {
+              "line": 46505,
+              "reason": "Actual shared print fixture is supplied by tools/check_editor.py on the Mac runner.",
+              "test": "BetaCoreTests.NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            }
+          ],
+          "skipped": 6,
+          "startLine": 45725,
+          "summaryLine": 46899,
+          "testDurationSeconds": 36.767,
+          "tests": 501,
+          "unexpectedFailures": 0
+        }
+      ],
+      "testResultFile": {
+        "bytes": 10751,
+        "path": "stability-2026-11-26/native-run-104/arm64/test-results.json",
+        "sha256": "dd50349c77c3e7e50374be5a839704330ddb50040f74df4685b5d049888430ac"
+      },
+      "timezone": {
+        "comparisons": [
+          {
+            "checks": 146337,
+            "line": 642,
+            "provider": "actual Swift integer civil engine",
+            "reference": "Python datetime/calendar proleptic Gregorian"
+          },
+          {
+            "archiveSHA256": "0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d",
+            "checks": 269817,
+            "comparedEngine": "actual Swift normative schema2 provider",
+            "futureTransitions": 24060,
+            "historicalTransitions": 40521,
+            "independentPOSIXModels": 93,
+            "line": 643,
+            "mismatches": 0,
+            "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+            "pythonVersion": "3.12.10",
+            "zicVersion": "zic (tzcode) 2022g",
+            "zones": 597
+          },
+          {
+            "archiveSHA256": "0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d",
+            "checks": 269817,
+            "comparedEngine": "actual Swift unlimited VTIMEZONE via published v2.0.30 Python CalendarZone",
+            "futureTransitions": 24060,
+            "historicalTransitions": 40521,
+            "independentPOSIXModels": 93,
+            "line": 644,
+            "mismatches": 0,
+            "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+            "pythonVersion": "3.12.10",
+            "zicVersion": "zic (tzcode) 2022g",
+            "zones": 597
+          }
+        ],
+        "log": {
+          "bytes": 77729,
+          "path": "<capture-root>/arm64/files/timezone-provider-arm64.log",
+          "sha256": "7af2bd22cf8cf8ae2cd37cbed33dd07c583cfa618ff744b0a8bb3008b1da64dd"
+        }
+      },
+      "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062/job/139934825830"
+    },
+    {
+      "actualMachOBytes": {
+        "helperMachO": {
+          "codeDirectories": [
+            {
+              "cdhash": "cd199f1b0b0cfb68c2fe60bd7368980fdfdf0aa8",
+              "hashType": 2,
+              "slot": 0
+            }
+          ],
+          "cpuSubtype": 3,
+          "cpuType": 16777223,
+          "embeddedCodeSignature": true,
+          "fileType": 2,
+          "minimumOS": [
+            "12.7.0"
+          ],
+          "platform": 1,
+          "sdk": "15.5.0"
+        },
+        "mainMachO": {
+          "codeDirectories": [
+            {
+              "cdhash": "0ff8add872a3acb9c169ec935a9725247b977809",
+              "hashType": 2,
+              "slot": 0
+            }
+          ],
+          "cpuSubtype": 3,
+          "cpuType": 16777223,
+          "embeddedCodeSignature": true,
+          "fileType": 2,
+          "minimumOS": [
+            "12.7.0"
+          ],
+          "platform": 1,
+          "sdk": "15.5.0"
+        }
+      },
+      "architecture": "x86_64",
+      "artifact": {
+        "apiDigestMatched": true,
+        "createdAt": "2026-11-26T13:49:39Z",
+        "expiresAt": "2026-12-10T13:49:35Z",
+        "file": {
+          "bytes": 25526868,
+          "path": "<capture-root>/intel/development-candidate.zip",
+          "sha256": "319ee90a09cff175bd6e7ca53a8e4e85357a9a3f8476617fbfbacceb78ef024e"
+        },
+        "id": 15122883740,
+        "members": [
+          {
+            "bytes": 24200163,
+            "path": "Magnolie-Organizer-macOS-2.0.30-beta.1-x86_64.zip",
+            "sha256": "353f0763aa8c5de4bcd284c3def66de56023c8de211abe723909e456d2624dda"
+          },
+          {
+            "bytes": 116,
+            "path": "SHA256SUMS",
+            "sha256": "91724264c1ed9dedbd51e311e000a09fabe060654231713977c2fef98e3d43e6"
+          },
+          {
+            "bytes": 1651458,
+            "path": "bundle-console.log",
+            "sha256": "9e757ddfd34533c5a994fbe94c351c1f0661359022251be2289739793c31506e"
+          },
+          {
+            "bytes": 1975,
+            "path": "bundle-smoke-first-window.json",
+            "sha256": "cd75cc86ff09ec0cb1b4ea01485426d5c4be6330ef5f7f4ab0a716420d5324c5"
+          },
+          {
+            "bytes": 227,
+            "path": "bundle-smoke-observations.json",
+            "sha256": "e72f570bd51b33d347bff96b9cb5664963a68e074d82ad9af4dce6da8a9e5a63"
+          },
+          {
+            "bytes": 1511,
+            "path": "bundle-smoke-progress.log",
+            "sha256": "eaff3c0e26d4ebf26e3611bf1d95856a9a8680585e4a3f03b5d99f5c69a16259"
+          },
+          {
+            "bytes": 700,
+            "path": "bundle-smoke.json",
+            "sha256": "f8b21cfd4fd2a6c0a78b4d124be5b4505eee4a11190122b3af2c8b5d7748b0e8"
+          },
+          {
+            "bytes": 1751215,
+            "path": "bundle-window.png",
+            "sha256": "9489d144a9259be76d641955c5fa9afc233c34837a52be7fff6b343acd3737c2"
+          },
+          {
+            "bytes": 2337,
+            "path": "environment-x86_64.json",
+            "sha256": "d52cee967c77c77c05d8715f117d83bb38f13f741146547f33d32730ddd167f1"
+          },
+          {
+            "bytes": 103030,
+            "path": "import-python-x86_64.json",
+            "sha256": "c74f277d81db0b7dc000e01050c0a156b686f45a6e1423917b0735ca9f7ce9a1"
+          },
+          {
+            "bytes": 866234,
+            "path": "import-python-x86_64.log",
+            "sha256": "f6d5643f3c8a2229a88724f77ec661457d0f29b9f1551d4be2e69615c233bfb2"
+          },
+          {
+            "bytes": 17872,
+            "path": "native-file-import-process-x86_64.json",
+            "sha256": "88578568a31c5f7b8f1a664fdeb16248026f59efb6087401987a8f5e4f977805"
+          },
+          {
+            "bytes": 982713,
+            "path": "sources.json",
+            "sha256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c"
+          },
+          {
+            "bytes": 322844,
+            "path": "swift-release-x86_64.log",
+            "sha256": "abf6d74063fa69d379150373b358e836f43061ea66153dd4b3547ae546f7a25e"
+          },
+          {
+            "bytes": 77731,
+            "path": "timezone-provider-x86_64.log",
+            "sha256": "d9080ba8f814fe09d12d1f2b67a9592447e993950c939832d55603dabb09566b"
+          }
+        ],
+        "name": "macOS-2.0.30-beta.1-x86_64-development-candidate",
+        "retentionDays": 14,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062/artifacts/15122883740"
+      },
+      "buildManifest": {
+        "bytes": 71988,
+        "data": {
+          "airplayBundled": false,
+          "airplayDependencyClosureVerified": false,
+          "airplayNativeDeviceValidated": false,
+          "architecture": "x86_64",
+          "configuration": "debug",
+          "importNativeUIValidated": false,
+          "importRuntimeRelocationVerified": true,
+          "importRuntimeSourceSHA256": "8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de",
+          "importRuntimeVersion": "3.15.2",
+          "machOMinimumVerified": true,
+          "minimumSystemVersion": "12.7",
+          "montereyRuntimeValidated": false,
+          "name": "Magnolie Organizer macOS Beta",
+          "nativeUIValidated": false,
+          "productionRelease": false,
+          "signing": "ad-hoc development only, not notarized",
+          "swiftTestsPassed": true,
+          "version": "2.0.30-beta.1"
+        },
+        "member": "Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app/Contents/Resources/Magnolie Organizer macOS Beta-build.json",
+        "sha256": "a4ab22acfa38d089dced3dcc7380d1a84f5d809ac1c7f97ff9474438cddc06b2",
+        "sourceInputCount": 555
+      },
+      "candidatePackage": {
+        "SHA256SUMS": {
+          "bytes": 116,
+          "path": "stability-2026-11-26/native-run-104/intel/SHA256SUMS",
+          "sha256": "91724264c1ed9dedbd51e311e000a09fabe060654231713977c2fef98e3d43e6"
+        },
+        "archiveEntries": 2151,
+        "bytes": 24200163,
+        "path": "<capture-root>/intel/files/Magnolie-Organizer-macOS-2.0.30-beta.1-x86_64.zip",
+        "sha256": "353f0763aa8c5de4bcd284c3def66de56023c8de211abe723909e456d2624dda"
+      },
+      "canonicalCryptoFixtureCheck": {
+        "line": 1098,
+        "passed": true
+      },
+      "codeResources": {
+        "helperCDHashReference": "cd199f1b0b0cfb68c2fe60bd7368980fdfdf0aa8",
+        "helperNestedCodeEntries": 51,
+        "nestedCodeDirectoryReferencesMatchActualBytes": true,
+        "outerNestedCodeEntries": 1,
+        "resourceHashesVerified": 1967
+      },
+      "completedAt": "2026-11-26T13:49:42Z",
+      "conclusion": "success",
+      "currentSharedSourceProbe": {
+        "data": {
+          "assertions": 27,
+          "currentSharedUI": true,
+          "issue": 783,
+          "nativeExecution": false,
+          "sharedDateSearchAssertions": 30,
+          "syntheticNativeTransport": true,
+          "unavailableDesktopCommands": 181
+        },
+        "line": 1094
+      },
+      "elapsedSeconds": 2060,
+      "environment": {
+        "architecture": "x86_64",
+        "file": {
+          "bytes": 2337,
+          "path": "stability-2026-11-26/native-run-104/intel/environment-x86_64.json",
+          "sha256": "d52cee967c77c77c05d8715f117d83bb38f13f741146547f33d32730ddd167f1"
+        },
+        "nativeMagnolieTestsExecutedAtPrerequisiteSnapshot": false,
+        "observedAtUTC": "2026-11-26T13:15:58.970010+00:00",
+        "productBuild": "24G830",
+        "productVersion": "15.7.9",
+        "sdkVersion": "15.5",
+        "snapshotIsFinalTestResult": false,
+        "swiftVersion": "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)\nTarget: x86_64-apple-macosx15.0",
+        "system": "Darwin"
+      },
+      "fullLog": {
+        "bytes": 6295408,
+        "durableStorage": {
+          "encoding": "gzip",
+          "file": "stability-2026-11-26/native-run-104/intel/job-139934826621.log.gz",
+          "sizeAndSHA256InParentDescribe": "uncompressed original bytes",
+          "storedBytes": 784216,
+          "storedSHA256": "6742eb7372bdd664de11974cdb191b4deceac2402eed5f1fe18ca21194817616"
+        },
+        "path": "<capture-root>/job-139934826621-intel.log",
+        "sha256": "56730b398850a23f8d00fc98a2688a8cb5c2f2d2e0aa72ad0bba554e167cee5b"
+      },
+      "hostSkipDetails": [
+        {
+          "line": 30345,
+          "text": "test_no_linux_native_build_claim (__main__.ProjectionTests.test_no_linux_native_build_claim) ... skipped 'Negative Linux-only build gate'"
+        }
+      ],
+      "independentByteAudit": {
+        "checksPassed": 65,
+        "checksTotal": 65,
+        "failures": [],
+        "file": {
+          "bytes": 11488,
+          "path": "stability-2026-11-26/native-run-104/intel/independent-candidate-audit.json",
+          "sha256": "7127e85260292eac6ac6f587f53540d4810990547f0ea5aef74a340efcbc633c"
+        },
+        "limitations": [
+          "No native codesign command, native build, test, app or helper execution was repeated by this Linux audit.",
+          "Embedded CodeDirectory/nested references and resource seal hashes are byte observations, not macOS trust or signature verification. Native codesign success belongs to the original CI gates.",
+          "The 51 linked BetaCore objects, output map, module and compiled probe are represented by native receipts; their unshipped bytes cannot be independently rehashed here.",
+          "Process receipt covers original public OR6 data and bounded errors, not picker/editor/profile save/TCC/account/device acceptance.",
+          "Smoke covers the real fresh profile initialize/save/quit/reopen lifecycle, not all UI features or permissions.",
+          "A macOS12.7 deployment target is not execution on macOS12.7; runner OS is recorded separately.",
+          "Ad-hoc Debug development package, no notarization or production-release claim; optimized Swift tests are a separate context."
+        ],
+        "passed": true
+      },
+      "jobId": 139934826621,
+      "nativeProcess": {
+        "appBytesBoundBeforeAndAfter": true,
+        "appSignaturesVerifiedBeforeAndAfter": true,
+        "checks": {
+          "emptySelectedFileRejected": true,
+          "hostileParentPythonEnvironment": true,
+          "knownOR6FieldsPreserved": true,
+          "originalSwiftProcessWithBundledRuntime": true,
+          "oversizedSelectedFileRejected": true,
+          "selectedFixtureUnchanged": true,
+          "selectedRegularFileRead": true,
+          "selectedSymlinkRejected": true,
+          "structuredHelperErrorRejected": true
+        },
+        "compiledProbeSHA256": "64dfd618ccf214f6f5c9cb8d31cf6003da165099222bc9023587917539ba1348",
+        "configuration": "debug",
+        "file": {
+          "bytes": 17872,
+          "path": "stability-2026-11-26/native-run-104/intel/native-file-import-process-x86_64.json",
+          "sha256": "88578568a31c5f7b8f1a664fdeb16248026f59efb6087401987a8f5e4f977805"
+        },
+        "independentAuditScope": {
+          "appSignaturesVerifiedBeforeAndAfterClaim": true,
+          "checks": {
+            "emptySelectedFileRejected": true,
+            "hostileParentPythonEnvironment": true,
+            "knownOR6FieldsPreserved": true,
+            "originalSwiftProcessWithBundledRuntime": true,
+            "oversizedSelectedFileRejected": true,
+            "selectedFixtureUnchanged": true,
+            "selectedRegularFileRead": true,
+            "selectedSymlinkRejected": true,
+            "structuredHelperErrorRejected": true
+          },
+          "compiledProbeBytesIndependentlyVerified": false,
+          "knownCollectionsVerified": 4,
+          "knownFieldsVerified": 22,
+          "linkAndExecutionAuthority": "Original native driver receipt and CI log; object/probe files are not included in the artifact.",
+          "linkedObjectReceiptCount": 51,
+          "linkedReceiptFileCount": 53,
+          "objectBytesIndependentlyVerified": false,
+          "objectFilesIncludedInArtifact": false,
+          "observedAtUTC": "2026-11-26T13:44:52.157701+00:00",
+          "originalFixture": {
+            "bytes": 155648,
+            "contract": "contracts/or6-native-fixtures.json",
+            "contractSHA256": "87f218681f8d3fef65c819d985656457c4b7ed67adefb2654077b0cf0fc92890",
+            "expectedFields": 22,
+            "name": "known-values.or6",
+            "sha256": "1c12517b17c213b1c9a2c73e6168eadb00c2feebafb1ab2bd35d5a5a6b968a0e"
+          },
+          "packagedFilesIndependentlyHashed": 8,
+          "proofSHA256": "88578568a31c5f7b8f1a664fdeb16248026f59efb6087401987a8f5e4f977805",
+          "scopeFlags": {
+            "editorExercised": false,
+            "nativeAcceptance": false,
+            "pickerExercised": false,
+            "productionRelease": false,
+            "profileSaveExercised": false,
+            "systemPermissionsExercised": false
+          },
+          "sourceBindingsVerified": 59
+        },
+        "knownCollectionsVerified": 4,
+        "knownFieldsVerified": 22,
+        "linkedBetaCoreObjectCount": 51,
+        "logReceipt": {
+          "line": 44398,
+          "text": "Native Swift-to-bundled-import process: 9 checks passed; 4 original OR6 collections; no UI/profile acceptance."
+        },
+        "namedPlaintextStreamRetained": false,
+        "observedAtUTC": "2026-11-26T13:44:52.157701+00:00",
+        "originalFixture": {
+          "bytes": 155648,
+          "contract": "contracts/or6-native-fixtures.json",
+          "contractSHA256": "87f218681f8d3fef65c819d985656457c4b7ed67adefb2654077b0cf0fc92890",
+          "expectedFields": 22,
+          "name": "known-values.or6",
+          "sha256": "1c12517b17c213b1c9a2c73e6168eadb00c2feebafb1ab2bd35d5a5a6b968a0e"
+        },
+        "passed": true,
+        "processDeadlineSeconds": 150,
+        "scopeFlags": {
+          "editorExercised": false,
+          "montereyRuntimeValidated": false,
+          "nativeAcceptance": false,
+          "pickerExercised": false,
+          "productionRelease": false,
+          "profileSaveExercised": false,
+          "systemPermissionsExercised": false
+        },
+        "selectedBytes": 155648,
+        "sourceUnchangedBeforeAndAfter": true
+      },
+      "optimizedSwiftLog": {
+        "bytes": 322844,
+        "durableStorage": {
+          "encoding": "gzip",
+          "file": "stability-2026-11-26/native-run-104/intel/swift-release-x86_64.log.gz",
+          "sizeAndSHA256InParentDescribe": "uncompressed original bytes",
+          "storedBytes": 38157,
+          "storedSHA256": "0c1cacb3e9ac6816e46edf52289cfb290c44aa5dccd472149e491d59b2f46133"
+        },
+        "path": "<capture-root>/intel/files/swift-release-x86_64.log",
+        "sha256": "abf6d74063fa69d379150373b358e836f43061ea66153dd4b3547ae546f7a25e"
+      },
+      "projectedFileImportProbe": {
+        "checks": 90,
+        "details": {
+          "nativePersistenceValidated": false,
+          "nativePickerValidated": false,
+          "or6SourceSHA256": "1c12517b17c213b1c9a2c73e6168eadb00c2feebafb1ab2bd35d5a5a6b968a0e",
+          "parserManifestSHA256": "b05dc036d1c98694837ab74fbf226624ce86f055d9261f07ce7fcc0732e9bd07",
+          "uiApplicationSHA256": "e6359a618f458985b270a6372515493ffb6fb1aedb0d7efa5a099aa665818b70"
+        },
+        "line": 1096,
+        "scope": "Real helper/public fixture and projected UI with synthetic transport; distinct from the new original Swift process probe."
+      },
+      "projection": {
+        "generatedCatalogs": 19,
+        "helperGeneratedOutputsVerified": 1203,
+        "importHelperRelocationAccountedFor": true,
+        "inputs": 555,
+        "outputsVerified": 1312,
+        "pinnedDependencyWheels": 1,
+        "preparedInputsNotInGit": 20,
+        "trackedInputsVerified": 535
+      },
+      "pythonTests": {
+        "airplayBuilder": {
+          "durationSeconds": 0.654,
+          "errors": 0,
+          "failures": 0,
+          "passed": 27,
+          "result": "OK",
+          "resultLine": 1042,
+          "skipped": 0,
+          "summaryLine": 1040,
+          "tests": 27
+        },
+        "host": {
+          "durationSeconds": 878.9,
+          "errors": 0,
+          "failures": 0,
+          "passed": 34,
+          "result": "OK (skipped=1)",
+          "resultLine": 30375,
+          "skipped": 1,
+          "summaryLine": 30373,
+          "tests": 35
+        },
+        "importHelperAndProjectionPaths": {
+          "durationSeconds": 123.235,
+          "errors": 0,
+          "failures": 0,
+          "passed": 17,
+          "result": "OK",
+          "resultLine": 1091,
+          "skipped": 0,
+          "summaryLine": 1089,
+          "tests": 17
+        },
+        "runtimeBuilder": {
+          "durationSeconds": 5.215,
+          "errors": 0,
+          "failures": 0,
+          "passed": 26,
+          "result": "OK",
+          "resultLine": 1037,
+          "skipped": 0,
+          "summaryLine": 1035,
+          "tests": 26
+        },
+        "sourceContract": {
+          "durationSeconds": 2.548,
+          "errors": 0,
+          "failures": 0,
+          "passed": 7,
+          "result": "OK",
+          "resultLine": 289,
+          "skipped": 0,
+          "summaryLine": 287,
+          "tests": 7
+        }
+      },
+      "runtime": {
+        "architecture": "x86_64",
+        "buildLog": {
+          "bytes": 866234,
+          "durableStorage": {
+            "encoding": "gzip",
+            "file": "stability-2026-11-26/native-run-104/intel/import-python-x86_64.log.gz",
+            "sizeAndSHA256InParentDescribe": "uncompressed original bytes",
+            "storedBytes": 28343,
+            "storedSHA256": "57fe9a90a63606cfc50746eb4ee58289be13869924a2958bb8831eda60400a32"
+          },
+          "path": "<capture-root>/intel/files/import-python-x86_64.log",
+          "sha256": "f6d5643f3c8a2229a88724f77ec661457d0f29b9f1551d4be2e69615c233bfb2"
+        },
+        "bundledManifest": "Contents/Resources/ImportPython/runtime.json",
+        "helperRoot": "Contents/Helpers/ImportPython.app",
+        "helperSignatureInventoryEntry": {
+          "path": "Contents/_CodeSignature/CodeResources",
+          "sha256": "c41993ae5bc77925bb13dfc4be16f7dd4cd15988b2d67e3a97c82fb31c27e3f0"
+        },
+        "interpreter": "Contents/Helpers/ImportPython.app/Contents/MacOS/python3.15",
+        "inventoryFiles": 706,
+        "launcher": {
+          "source": "tools/import_python_main.c",
+          "sourceSHA256": "4c9591d11ac184208ad6b5cb5cc087a9e076c4784745ac82f38256145bf02d3e"
+        },
+        "licenses": {
+          "Contents/Resources/LICENSE-Python.txt": "b0e25a78cffb43f4d92de8b61ccfa1f1f98ecbc22330b54b5251e7b6ba010231",
+          "Contents/Resources/LICENSE-XZ-Utils.txt": "616a3ad264ce29b8f1cb97e53037b139d406899ca8d1f799651e17bfa09830b8",
+          "Contents/Resources/LICENSE-liblzma-0BSD.txt": "0b01625d853911cd0e2e088dcfb743261034a091bb379246cb25a14cc4c74bf1"
+        },
+        "machOImages": 52,
+        "manifest": {
+          "bytes": 103030,
+          "path": "stability-2026-11-26/native-run-104/intel/import-python-x86_64.json",
+          "sha256": "c74f277d81db0b7dc000e01050c0a156b686f45a6e1423917b0735ca9f7ce9a1"
+        },
+        "minimumSystemVersion": "12.7",
+        "relocation": {
+          "bundleLayout": true,
+          "executableBound": true,
+          "isolated": true,
+          "moduleClosure": true,
+          "version": "3.15.2"
+        },
+        "schema": 2,
+        "signing": "ad-hoc development only",
+        "staticDependencies": {
+          "liblzma": {
+            "librarySHA256": "0ddf67b332996a91ce259dfc18190faa2ca8a5c2f25262059c77a32545de2647",
+            "linkage": "static",
+            "sourceSHA256": "4ce24038fd4221e0d13bc1a2de7a4db56e90b92b3bf75321f6c14be73f65de4b",
+            "version": "5.8.4"
+          }
+        }
+      },
+      "same501NamedCasesInAllContexts": true,
+      "screenshot": {
+        "additionalAutomatedTestCount": 0,
+        "image": {
+          "bytes": 1751215,
+          "path": "<capture-root>/intel/files/bundle-window.png",
+          "sha256": "9489d144a9259be76d641955c5fa9afc233c34837a52be7fff6b343acd3737c2"
+        },
+        "independentAuditDimensions": {
+          "height": 990,
+          "width": 1312
+        },
+        "rootVisualReview": null
+      },
+      "smoke": {
+        "checks": {
+          "bundleLaunch": true,
+          "freshNormalizedProfileSaved": true,
+          "normalQuit": true,
+          "pidBoundVisibleWindow": true,
+          "profileDataPreserved": true,
+          "reopen": true,
+          "reopenedProfileAtomicallySaved": true
+        },
+        "file": {
+          "bytes": 700,
+          "path": "stability-2026-11-26/native-run-104/intel/bundle-smoke.json",
+          "sha256": "f8b21cfd4fd2a6c0a78b4d124be5b4505eee4a11190122b3af2c8b5d7748b0e8"
+        },
+        "firstProfileSHA256": "80a2ec884d2ab04dda7790031fd45be96db5ee5659d86c92927a3d245f94e6e3",
+        "nativeAcceptance": false,
+        "productionRelease": false,
+        "reopenedProfileSHA256": "80a2ec884d2ab04dda7790031fd45be96db5ee5659d86c92927a3d245f94e6e3",
+        "scope": "Real bundled Host/resources, fresh local init, normal save-before-quit, reopen; no editor, permissions, accessibility or full feature acceptance."
+      },
+      "source": {
+        "file": {
+          "bytes": 982713,
+          "path": "stability-2026-11-26/native-run-104/sources.json",
+          "sha256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c"
+        },
+        "files": 3921,
+        "headSHA": "3f3ec069895dec254c53660d14e6851cb23077cd",
+        "independentByteAudit": {
+          "filesVerified": 3921,
+          "gitBlobBytesReadThisAudit": 171744,
+          "proofSHA256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c",
+          "reusedIdenticalSourceProof": {
+            "auditFile": "stability-2026-11-26/native-run-104/arm64/independent-candidate-audit.json",
+            "auditSHA256": "5b7b5c8667768c0955dbdee64a5b40b5603d99359714bfd3564ae96306b53707",
+            "identicalSourceProofSHA256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c"
+          },
+          "uniqueGitBlobsReadThisAudit": 6,
+          "worktreeBytesUsed": false
+        }
+      },
+      "startedAt": "2026-11-26T13:15:22Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completed_at": "2026-11-26T13:15:24Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "started_at": "2026-11-26T13:15:22Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:15:40Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "number": 2,
+          "started_at": "2026-11-26T13:15:24Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:15:40Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "number": 3,
+          "started_at": "2026-11-26T13:15:40Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:15:42Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 4,
+          "started_at": "2026-11-26T13:15:40Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:15:59Z",
+          "conclusion": "success",
+          "name": "Bind the Mac candidate to the current selected checkout",
+          "number": 5,
+          "started_at": "2026-11-26T13:15:42Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:16:21Z",
+          "conclusion": "success",
+          "name": "Prepare private dependencies and canonical catalogs",
+          "number": 6,
+          "started_at": "2026-11-26T13:15:59Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:19:54Z",
+          "conclusion": "success",
+          "name": "Verify the standalone Swift time-zone engine against independent references",
+          "number": 7,
+          "started_at": "2026-11-26T13:16:21Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:23:52Z",
+          "conclusion": "success",
+          "name": "Build the private source-pinned import runtime",
+          "number": 8,
+          "started_at": "2026-11-26T13:19:54Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:44:32Z",
+          "conclusion": "success",
+          "name": "Freeze this isolated build's current source and run host and Apple tests",
+          "number": 9,
+          "started_at": "2026-11-26T13:23:52Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:44:52Z",
+          "conclusion": "success",
+          "name": "Exercise the actual Swift import process and packaged private runtime",
+          "number": 10,
+          "started_at": "2026-11-26T13:44:32Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:49:06Z",
+          "conclusion": "success",
+          "name": "Verify optimized Swift code for the later stable integration",
+          "number": 11,
+          "started_at": "2026-11-26T13:44:52Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:49:29Z",
+          "conclusion": "success",
+          "name": "Start, save, quit and reopen the real app bundle",
+          "number": 12,
+          "started_at": "2026-11-26T13:49:06Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:49:35Z",
+          "conclusion": "success",
+          "name": "Package the ad-hoc development app with its evidence",
+          "number": 13,
+          "started_at": "2026-11-26T13:49:29Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:49:39Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "number": 14,
+          "started_at": "2026-11-26T13:49:35Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:49:39Z",
+          "conclusion": "skipped",
+          "name": "Preserve native failure diagnostics",
+          "number": 15,
+          "started_at": "2026-11-26T13:49:39Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:49:39Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 28,
+          "started_at": "2026-11-26T13:49:39Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:49:39Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "number": 29,
+          "started_at": "2026-11-26T13:49:39Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:49:40Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "number": 30,
+          "started_at": "2026-11-26T13:49:39Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-11-26T13:49:40Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "started_at": "2026-11-26T13:49:40Z",
+          "status": "completed"
+        }
+      ],
+      "swiftContexts": [
+        {
+          "actualLiveHolidayCase": {
+            "line": 1783,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' skipped (0.001 seconds)."
+          },
+          "allTestsDurationSeconds": 95.829,
+          "basis": "check_calendar.py explicitly sets TZ=UTC and supplies the calendar fixture/output paths before swift test.",
+          "caller": "ProjectionTests.test_canonical_calendar_export_contract → check_calendar.py --swift",
+          "configuration": "debug",
+          "contextNumber": 1,
+          "failures": 0,
+          "id": "calendar-codec-utc",
+          "name": "Canonical calendar codec (UTC)",
+          "passed": 497,
+          "skipDetails": [
+            {
+              "line": 1318,
+              "reason": "Run tools/check_editor.py --swift with a JS runtime to test live canonical editor records.",
+              "test": "BetaCoreTests.CoreTests testCurrentEditorAppointments"
+            },
+            {
+              "line": 1729,
+              "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+              "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+            },
+            {
+              "line": 1782,
+              "reason": "Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.",
+              "test": "BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested"
+            },
+            {
+              "line": 1897,
+              "reason": "Actual shared print fixture is supplied by tools/check_editor.py on the Mac runner.",
+              "test": "BetaCoreTests.NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            }
+          ],
+          "skipped": 4,
+          "startLine": 1118,
+          "summaryLine": 2291,
+          "testDurationSeconds": 95.763,
+          "tests": 501,
+          "unexpectedFailures": 0
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 15821,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' skipped (0.001 seconds)."
+          },
+          "allTestsDurationSeconds": 78.409,
+          "basis": "First host zone is UTC; actual generated editor records are passed through MACOS_BETA_EDITOR_FIXTURES.",
+          "caller": "ProjectionTests.test_current_editor_reminders_and_export → check_editor.py --swift",
+          "configuration": "debug",
+          "contextNumber": 2,
+          "failures": 0,
+          "id": "editor-utc",
+          "name": "Current editor (UTC)",
+          "passed": 496,
+          "skipDetails": [
+            {
+              "line": 15273,
+              "reason": "Run tools/check_calendar.py --swift for current desktop codec roundtrips.",
+              "test": "BetaCoreTests.CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs"
+            },
+            {
+              "line": 15767,
+              "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+              "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+            },
+            {
+              "line": 15820,
+              "reason": "Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.",
+              "test": "BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested"
+            },
+            {
+              "line": 15840,
+              "reason": "Run tools/check_calendar.py --swift to execute the actual canonical parser oracle.",
+              "test": "BetaCoreTests.ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles"
+            },
+            {
+              "line": 15866,
+              "reason": "Published parser oracle runs through tools/check_calendar.py --swift",
+              "test": "BetaCoreTests.ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            }
+          ],
+          "skipped": 5,
+          "startLine": 15157,
+          "summaryLine": 16333,
+          "testDurationSeconds": 78.351,
+          "tests": 501,
+          "unexpectedFailures": 0
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 29820,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' skipped (0.001 seconds)."
+          },
+          "allTestsDurationSeconds": 80.212,
+          "basis": "Host zones run in UTC, Pacific/Honolulu, Europe/Berlin order; Honolulu explicitly omits --swift, so the second editor XCTest context is Europe/Berlin.",
+          "caller": "ProjectionTests.test_current_editor_reminders_and_export → check_editor.py --swift",
+          "configuration": "debug",
+          "contextNumber": 3,
+          "failures": 0,
+          "id": "editor-europe-berlin",
+          "name": "Current editor (Europe/Berlin)",
+          "passed": 496,
+          "skipDetails": [
+            {
+              "line": 29272,
+              "reason": "Run tools/check_calendar.py --swift for current desktop codec roundtrips.",
+              "test": "BetaCoreTests.CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs"
+            },
+            {
+              "line": 29766,
+              "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+              "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+            },
+            {
+              "line": 29819,
+              "reason": "Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.",
+              "test": "BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested"
+            },
+            {
+              "line": 29839,
+              "reason": "Run tools/check_calendar.py --swift to execute the actual canonical parser oracle.",
+              "test": "BetaCoreTests.ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles"
+            },
+            {
+              "line": 29865,
+              "reason": "Published parser oracle runs through tools/check_calendar.py --swift",
+              "test": "BetaCoreTests.ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            }
+          ],
+          "skipped": 5,
+          "startLine": 29156,
+          "summaryLine": 30332,
+          "testDurationSeconds": 80.16,
+          "tests": 501,
+          "unexpectedFailures": 0
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 43855,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' passed (0.429 seconds)."
+          },
+          "allTestsDurationSeconds": 79.422,
+          "basis": "build_dev invokes the fourth Debug context with the current generated UI and the explicit live-holiday environment.",
+          "caller": "Workflow step9 → MACOS_BETA_LIVE_HOLIDAYS=1 build_dev.py → swift test --jobs2",
+          "configuration": "debug",
+          "contextNumber": 4,
+          "failures": 0,
+          "id": "build-dev-live-holidays",
+          "name": "Development build with live holidays",
+          "passed": 495,
+          "skipDetails": [
+            {
+              "line": 43307,
+              "reason": "Run tools/check_calendar.py --swift for current desktop codec roundtrips.",
+              "test": "BetaCoreTests.CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs"
+            },
+            {
+              "line": 43391,
+              "reason": "Run tools/check_editor.py --swift with a JS runtime to test live canonical editor records.",
+              "test": "BetaCoreTests.CoreTests testCurrentEditorAppointments"
+            },
+            {
+              "line": 43802,
+              "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+              "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+            },
+            {
+              "line": 43874,
+              "reason": "Run tools/check_calendar.py --swift to execute the actual canonical parser oracle.",
+              "test": "BetaCoreTests.ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles"
+            },
+            {
+              "line": 43900,
+              "reason": "Published parser oracle runs through tools/check_calendar.py --swift",
+              "test": "BetaCoreTests.ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            },
+            {
+              "line": 43974,
+              "reason": "Actual shared print fixture is supplied by tools/check_editor.py on the Mac runner.",
+              "test": "BetaCoreTests.NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            }
+          ],
+          "skipped": 6,
+          "startLine": 43191,
+          "summaryLine": 44368,
+          "testDurationSeconds": 79.364,
+          "tests": 501,
+          "unexpectedFailures": 0
+        },
+        {
+          "actualLiveHolidayCase": {
+            "line": 46444,
+            "text": "Test Case '-[BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested]' passed (0.379 seconds)."
+          },
+          "allTestsDurationSeconds": 45.191,
+          "basis": "Separate optimized context; the packaged development application remains Debug/ad-hoc.",
+          "caller": "Workflow step11 → MACOS_BETA_LIVE_HOLIDAYS=1 swift test -c release --jobs2",
+          "configuration": "release",
+          "contextNumber": 5,
+          "failures": 0,
+          "id": "release-live-holidays",
+          "name": "Optimized Release with live holidays",
+          "passed": 495,
+          "skipDetails": [
+            {
+              "line": 45896,
+              "reason": "Run tools/check_calendar.py --swift for current desktop codec roundtrips.",
+              "test": "BetaCoreTests.CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs"
+            },
+            {
+              "line": 45980,
+              "reason": "Run tools/check_editor.py --swift with a JS runtime to test live canonical editor records.",
+              "test": "BetaCoreTests.CoreTests testCurrentEditorAppointments"
+            },
+            {
+              "line": 46391,
+              "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+              "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+            },
+            {
+              "line": 46463,
+              "reason": "Run tools/check_calendar.py --swift to execute the actual canonical parser oracle.",
+              "test": "BetaCoreTests.ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles"
+            },
+            {
+              "line": 46489,
+              "reason": "Published parser oracle runs through tools/check_calendar.py --swift",
+              "test": "BetaCoreTests.ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            },
+            {
+              "line": 46564,
+              "reason": "Actual shared print fixture is supplied by tools/check_editor.py on the Mac runner.",
+              "test": "BetaCoreTests.NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            }
+          ],
+          "skipped": 6,
+          "startLine": 45780,
+          "summaryLine": 46958,
+          "testDurationSeconds": 45.107,
+          "tests": 501,
+          "unexpectedFailures": 0
+        }
+      ],
+      "testResultFile": {
+        "bytes": 10755,
+        "path": "stability-2026-11-26/native-run-104/intel/test-results.json",
+        "sha256": "6cd34dbca1c53e3e440fafc35abdcf54aec7aeca45d84e7295a9c0491a8926be"
+      },
+      "timezone": {
+        "comparisons": [
+          {
+            "checks": 146337,
+            "line": 642,
+            "provider": "actual Swift integer civil engine",
+            "reference": "Python datetime/calendar proleptic Gregorian"
+          },
+          {
+            "archiveSHA256": "0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d",
+            "checks": 269817,
+            "comparedEngine": "actual Swift normative schema2 provider",
+            "futureTransitions": 24060,
+            "historicalTransitions": 40521,
+            "independentPOSIXModels": 93,
+            "line": 643,
+            "mismatches": 0,
+            "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+            "pythonVersion": "3.12.10",
+            "zicVersion": "zic (tzcode) 2022g",
+            "zones": 597
+          },
+          {
+            "archiveSHA256": "0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d",
+            "checks": 269817,
+            "comparedEngine": "actual Swift unlimited VTIMEZONE via published v2.0.30 Python CalendarZone",
+            "futureTransitions": 24060,
+            "historicalTransitions": 40521,
+            "independentPOSIXModels": 93,
+            "line": 644,
+            "mismatches": 0,
+            "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+            "pythonVersion": "3.12.10",
+            "zicVersion": "zic (tzcode) 2022g",
+            "zones": 597
+          }
+        ],
+        "log": {
+          "bytes": 77731,
+          "path": "<capture-root>/intel/files/timezone-provider-x86_64.log",
+          "sha256": "d9080ba8f814fe09d12d1f2b67a9592447e993950c939832d55603dabb09566b"
+        }
+      },
+      "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062/job/139934826621"
+    }
+  ],
+  "kind": "native-mac-stability-run-final-evidence",
+  "limits": [
+    "No production release, notarization or stable distribution approval is claimed.",
+    "Both runners use macOS15; macOS12.7 deployment metadata is verified but Monterey execution remains unperformed.",
+    "The packaged app is Debug/ad-hoc; optimized Release testing is a separate XCTest configuration.",
+    "Nine-check process proof covers public original OR6 data and bounded rejection cases, not picker/editor/profile-save/TCC/account/device acceptance.",
+    "Seven smoke flags cover fresh-profile initialize/save/normal quit/reopen. They do not cover every UI feature or permission.",
+    "Independent Linux byte audits do not rerun native builds, tests, apps, helper processes, codesign or macOS trust evaluation.",
+    "Compiled process probe and linked BetaCore objects are not distributed in the artifact. Their hashes and before/after bindings are native receipts, not independently rehashed local binary evidence.",
+    "501 XCTest names repeat in five contexts per architecture; counts are not summed as independent unique cases.",
+    "Early environment nativeMagnolieTestsExecuted=false fields are retained as prerequisite snapshots; later original logs establish execution."
+  ],
+  "metadataCaptures": {
+    "artifacts-final.json": {
+      "bytes": 1889,
+      "path": "stability-2026-11-26/native-run-104/artifacts-final.json",
+      "sha256": "f1770ab9f86024036264a36a6c9dbb0cf447eda6ea8d479629b6488f15f6011e"
+    },
+    "jobs-final.json": {
+      "bytes": 14825,
+      "path": "stability-2026-11-26/native-run-104/jobs-final.json",
+      "sha256": "ee4c23b2b5c4ee9d23b81cfaed484c8c709fc281dabde0199d27ccf27f6d4e41"
+    },
+    "run-final.json": {
+      "bytes": 14673,
+      "path": "stability-2026-11-26/native-run-104/run-final.json",
+      "sha256": "9812e01f7fe8395f822b81c0f4f8b644db43f9636422aba645222a7b51dd23db"
+    }
+  },
+  "observedAtUTC": "2026-11-26T13:58:16.555448+00:00",
+  "run": {
+    "attempt": 1,
+    "branch": "work/macos-issue-fixes-20261126",
+    "completedAt": "2026-11-26T13:49:42Z",
+    "conclusion": "success",
+    "createdAt": "2026-11-26T13:15:18Z",
+    "elapsedSeconds": 2064,
+    "headSHA": "3f3ec069895dec254c53660d14e6851cb23077cd",
+    "id": 45827353062,
+    "number": 104,
+    "status": "completed",
+    "treeSHA": "176fa7f362227c92ec4d7c4bf08d09b855951ae7",
+    "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062"
+  },
+  "schema": 2,
+  "sourceBinding": "The run and all artifacts bind 3f3ec069. Later documentation checkpoint a341cb0a is not the tested run source.",
+  "sourceManifestsByteIdenticalBetweenArchitectures": true,
+  "swiftContextCallers": {
+    "file": {
+      "bytes": 10293,
+      "path": "stability-2026-11-26/native-run-104/swift-context-callers.json",
+      "sha256": "8101ab49b68f7e1c80149f2f0dd0428eeff2ec5ca670d35a3a54754bf4744b67"
+    },
+    "meaning": "Four Debug contexts: canonical calendar codec UTC; editor UTC; editor Europe/Berlin; build_dev with live holidays. Fifth context: optimized Release with live holidays. Honolulu is a JS-only editor context.",
+    "sourceBindings": {
+      ".github/workflows/ports-2.0.30.yml": {
+        "gitBlob": "67d8915eef9fa357dc0ce5debcf40cd82c03b608",
+        "sha256": "7b7f3ff201553fa94e33417808ee3a6bde531835c3a3c50bd6584147ae0a6419"
+      },
+      "Magnolie-Organizer-macOS-Beta/tests/test_host.py": {
+        "gitBlob": "1c908ca2f48969a99a5067428c285869ad2618d3",
+        "sha256": "e398c3a7662446c741b147bb39e4922e4d9aa8e213f704186e372644193ff716"
+      },
+      "Magnolie-Organizer-macOS-Beta/tools/build_dev.py": {
+        "gitBlob": "524908a6e21300b6a2250d2a54c63823ec9a2972",
+        "sha256": "2b562656e7db563ee7aacfc2ff3c11d966056043ef0fb9c531ca2049ad84566a"
+      },
+      "Magnolie-Organizer-macOS-Beta/tools/check_calendar.py": {
+        "gitBlob": "7d5d3ac4cb8b6e862d7bb48b09aa8ae1592b239c",
+        "sha256": "336220e63f9d23e71f6ad527a031f2da77b0ab27d0bd89c3df3d0a165a024cb0"
+      },
+      "Magnolie-Organizer-macOS-Beta/tools/check_editor.py": {
+        "gitBlob": "95cd1814c513a277a2024f2057c2de1e6406ffa5",
+        "sha256": "ec4348946b64b6c8bbbd0f4682d4984d0e0078c6034cf8488dafe073138cf55c"
+      }
+    }
+  },
+  "tabletJob": {
+    "conclusion": "skipped",
+    "expected": true,
+    "id": 139934828233
+  }
+}

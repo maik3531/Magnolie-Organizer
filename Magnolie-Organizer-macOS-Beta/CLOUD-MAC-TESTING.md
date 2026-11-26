@@ -1,11 +1,41 @@
 # Mac-Prüfung aus „Magnolie-Organizer einrichten“
 
-Stand: **26. November 2026**. Zugeordnet zu **#121, #783, #785 und #786**;
+Stand: **26. November 2026**. Zugeordnet zu **#121, #783, #785, #786, #806 und #808**;
 auch als Abnahmehilfe für die übrigen Mac-Issues dieser Übergabe.
 
-**Fortgeschriebener Nachweis:** Die unten beschriebene lokale Bestandsaufnahme
-bleibt historisch gültig. Die anschließenden echten GitHub-Mac-Läufe sind im
-[nativen Fortsetzungsbericht](NATIVE-VERIFICATION-2026-11-26.md) dokumentiert.
+**Aktueller Einstieg:** Der
+[Stabilitätsbericht](STABILITY-VERIFICATION-2026-11-26.md) ordnet die spätere
+Nachprüfung, die #806/#808-Korrekturen und den erweiterten nativen Workflow ein.
+Der veröffentlichte Prüfkandidat ist
+`3f3ec069895dec254c53660d14e6851cb23077cd`, Tree
+`176fa7f362227c92ec4d7c4bf08d09b855951ae7`.
+[Lauf #104 / 45827353062](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062)
+lief am 26. November 2026 von **14:15:18 bis 14:49:42 Uhr Europe/Berlin**
+(13:15:18–13:49:42 UTC) und endete insgesamt sowie für beide Mac-Architekturen
+mit **`completed` / `success`**. Der
+[dauerhafte Gesamtbeleg](verification/native-run-104.json) bindet diesen Erfolg
+an `3f3ec069`; spätere Dokumentationsstände sind keine neuen nativen Prüfläufe.
+
+| Nachweis je Architektur | Tatsächliches Ergebnis in #104 |
+| --- | --- |
+| Runtime / AirPlay / ImportHelper | 26 / 27 / 17 bestanden, keine Skips oder Fehler |
+| Hostprüfungen | 34 bestanden, ein Linux-spezifischer Skip, keine Fehler |
+| Swift Debug | Vier Kontexte mit jeweils denselben 501 Testnamen; 4/5/5/6 Skips, keine Fehler |
+| Swift Release, eigener optimierter Kontext | 501 Fälle: 495 bestanden, sechs Skips, keine Fehler |
+| Unveränderter Swift-Prozess → tatsächlich gebündelter Python-Helper | Neun Kriterien bestanden; 22 originale OR6-Felder in vier Kollektionen |
+| Wirkliche App: frisches Profil, Speichern, normales Beenden, Wiederöffnen | Sieben Kriterien bestanden |
+| Unabhängiger Paket-Byteaudit | 65 Prüfungen bestanden; 3921 gebundene Quelldateien, 555 Projektionsinputs und 1312 Ausgaben |
+
+Die wiederholten Swift-Kontexte werden nicht als fünf unabhängige Testmengen
+addiert. Das ausgelieferte Entwicklungspaket bleibt **Debug/ad hoc**. Die
+Prozessprobe bedient keinen Picker oder Editor und speichert keine Importdaten;
+der getrennte App-Smoke prüft das frische Startprofil. Vollständige UI-, TCC-,
+Provider-, Monterey- und Produktionsfreigaben bleiben gesondert.
+
+**Historischer nativer Abschluss:** Die unten beschriebene ursprüngliche
+lokale Bestandsaufnahme und der
+[native Fortsetzungsbericht bis #97](NATIVE-VERIFICATION-2026-11-26.md)
+behalten ihren eigenen Quell- und Zeitbezug.
 [Lauf #97](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)
 bestand auf `215d89029df02df2dce78f35412785ec9f9b36d8` die vollständige
 definierte CI-Kette auf ARM64 und Intel einschließlich tatsächlichem
@@ -13,6 +43,13 @@ App-Start/Speichern/Beenden/Wiederöffnen. Die
 [dauerhaften Belege](verification/native-run-97.json) ersetzen keine
 vollständige UI-, Monterey-, TCC-, Konto- oder Geräteabnahme. Der übrige Plan
 führt diese offenen Prüfungen konkret auf.
+
+Die zusätzliche [gemeinsame Hostregression](verification/stability-2026-11-26/SHARED-REGRESSION-2026-11-26.md)
+bleibt an `c8a7690d5eb4e002ebadb1d0aab03c8780af9e0b` gebunden; ihr späterer
+lesender Quellenvergleich gilt für `8c860a14f7e10904c1b3a159ae84619c2c24ba82`.
+Diese Belege werden nicht nachträglich in Tests des neuen Prüfkandidaten
+umbenannt. Die eigenen nativen Ergebnisse der geänderten Bauprüfer und
+Extraktion liegen jetzt im getrennten #104-Gesamtbeleg vor.
 
 ## Entscheidung und nachgewiesene Ausgangslage
 
@@ -164,8 +201,9 @@ gh workflow run ports-2.0.30.yml \
 Die ursprüngliche Vorbereitung konnte noch keinen Lauf starten: Der
 GitHub-Connector bot keinen Workflow-Start und die lokale CLI keine Anmeldung.
 Die Fortsetzung nutzte anschließend die bereits angemeldete GitHub-Oberfläche;
-die Läufe #91 bis #97 und ihre tatsächlichen Ergebnisse stehen im nativen
-Bericht. #97 ist erfolgreich. Bei jedem weiteren Start die tatsächliche Run-ID
+die historischen Läufe #91 bis #97 und ihre tatsächlichen Ergebnisse stehen
+im nativen Bericht. Die ebenfalls erfolgreiche erweiterte Prüfung #104 steht
+im Stabilitätsbericht. Bei jedem weiteren Start die tatsächliche Run-ID
 und `head_sha` auslesen; parallele Tablet-Läufe machen eine vermutete nächste
 Laufnummer unzuverlässig.
 Nur ein grüner Lauf auf genau dem geprüften Commit zählt für dessen native
@@ -177,8 +215,34 @@ Der Workflow bereitet die kanonischen Kataloge und Importabhängigkeiten vor,
 bindet den aktuellen Quellstand, prüft die Projektions-/Hostverträge, baut die
 private CPython-Laufzeit und führt Swift-Tests sowie den Bundlebau aus.
 `IMPORT-RUNTIME.md` beschreibt die feste Quellenprüfsumme, Mach-O-Abhängigkeiten,
-Mindestversion und Relokationsprüfung. Ein fehlender Importhelfer darf nicht
-zu einem scheinbar vollständigen ICS-only-Paket führen.
+die durch #806 eindeutig an macOS gebundene Deploymentdeklaration,
+Mindestversion und Relokationsprüfung. #808 erhält nach der validierten
+Extraktion die Archivzeitstempel regulärer Dateien, damit Make die
+mitgelieferten generierten Bauquellen korrekt einordnet. Ein fehlender
+Importhelfer darf nicht zu einem scheinbar vollständigen ICS-only-Paket führen.
+
+Der erweiterte Ablauf enthält außerdem drei gesondert auszuweisende Prüfungen:
+
+1. Die tatsächliche Darwin-Mach-O-Plattformprobe und die vollständige
+   AirPlay-Boundarysuite auf beiden Architekturen. Ein solcher Grenztest ist
+   keine Abnahme des optionalen Receivers mit einer Gerätegegenstelle.
+2. `tools/check_native_file_import_process.py` verbindet die unveränderte
+   Produktionsdatei `FileImportProcess.swift` mit den tatsächlich gebauten
+   BetaCore-Objekten und startet den privaten Interpreter des signierten
+   App-Bundles mit der originalen OR6-Fixture. Dieser Prozessnachweis bedient
+   keinen Dateiauswahldialog oder Editor und speichert kein Buch.
+3. `swift test -c release --jobs 2` prüft optimierten Swift-Code in einem
+   eigenen Kontext. Das tatsächlich paketierte Entwicklungsbundle bleibt
+   Debug und ad-hoc signiert; Produktionssignatur und Notarisierung gehören
+   nicht zu diesem Test.
+
+Diese Gates sind in #104 auf beiden Architekturen erfolgreich abgeschlossen;
+Phasen, Ergebnisse und Skips stehen im Gesamtbeleg. Die Objekt-/Modul-/Probe-
+Hashes der Prozessprüfung sind originale native Nachweise: Diese Binärdateien
+liegen nicht im Artefakt und wurden vom Linux-Byteaudit nicht erneut gehasht.
+Dessen Prüfung der tatsächlich paketierten Dateien und Signaturbestandteile
+ersetzt keine native Codesign- oder Vertrauensprüfung. Die Bedien-/Import-Save-/
+Provider-Matrix unten bleibt getrennt.
 
 `tools/smoke_app.swift` startet **das wirkliche App-Bundle**, beobachtet sein
 Fenster und prüft Speichern, Beenden und erneutes Öffnen. Es verweigert ein

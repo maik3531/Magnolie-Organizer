@@ -1,0 +1,100 @@
+{
+  "applications" : [
+    {
+      "active" : true,
+      "bundle" : "\/Users\/runner\/work\/Magnolie-Organizer\/Magnolie-Organizer\/Magnolie-Organizer-macOS-Beta\/Output\/Magnolie Organizer macOS Beta-2.0.30-beta.1\/Magnolie Organizer macOS Beta.app",
+      "finishedLaunching" : true,
+      "pid" : 40386,
+      "terminated" : false
+    }
+  ],
+  "elapsedSeconds" : 5.824387999999999,
+  "phase" : "window-capture",
+  "profile" : {
+    "bytes" : null,
+    "exists" : false,
+    "mode" : -1
+  },
+  "screenCaptureAccess" : true,
+  "screenshotCaptured" : true,
+  "windows" : [
+    {
+      "bounds" : {
+        "Height" : 500,
+        "Width" : 500,
+        "X" : 0,
+        "Y" : 268
+      },
+      "layer" : 0,
+      "number" : 75,
+      "onscreen" : false,
+      "pid" : 40386,
+      "title" : ""
+    },
+    {
+      "bounds" : {
+        "Height" : 24,
+        "Width" : 1024,
+        "X" : 0,
+        "Y" : 0
+      },
+      "layer" : 0,
+      "number" : 73,
+      "onscreen" : false,
+      "pid" : 40386,
+      "title" : ""
+    },
+    {
+      "bounds" : {
+        "Height" : 24,
+        "Width" : 1024,
+        "X" : 0,
+        "Y" : 0
+      },
+      "layer" : 0,
+      "number" : 72,
+      "onscreen" : false,
+      "pid" : 40386,
+      "title" : ""
+    },
+    {
+      "bounds" : {
+        "Height" : 681,
+        "Width" : 1024,
+        "X" : 0,
+        "Y" : 25
+      },
+      "layer" : 0,
+      "number" : 74,
+      "onscreen" : true,
+      "pid" : 40386,
+      "title" : "Magnolie Organizer macOS Beta"
+    },
+    {
+      "bounds" : {
+        "Height" : 24,
+        "Width" : 1024,
+        "X" : 0,
+        "Y" : 0
+      },
+      "layer" : 0,
+      "number" : 71,
+      "onscreen" : false,
+      "pid" : 40386,
+      "title" : ""
+    },
+    {
+      "bounds" : {
+        "Height" : 24,
+        "Width" : 1024,
+        "X" : 0,
+        "Y" : 0
+      },
+      "layer" : 0,
+      "number" : 70,
+      "onscreen" : false,
+      "pid" : 40386,
+      "title" : ""
+    }
+  ]
+}

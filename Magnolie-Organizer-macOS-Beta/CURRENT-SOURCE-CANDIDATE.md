@@ -34,8 +34,9 @@ historical fixtures are not silently upgraded into a current candidate.
 
 ## What catches up automatically
 
-The audit compared current main `00776ce70e155c7a607ed55a4502d6fcee5a860c`
-with the published reference. The Mac projection already accepts the current
+The original audit compared the then-current main
+`00776ce70e155c7a607ed55a4502d6fcee5a860c` with the published reference.
+The Mac projection already accepts the current
 shared tree. Representative current local UI/model changes are:
 
 | Common change | Source commit | Mac handling |
@@ -90,15 +91,52 @@ rerun on those combined inputs.
 
 ## Evidence and limits
 
-The complete current-source native pipeline passed on both ARM64 and Intel in
+The [stability verification report](STABILITY-VERIFICATION-2026-11-26.md) is
+the current entry point for the later #121/#785/#806/#808 work. The published
+candidate is `3f3ec069895dec254c53660d14e6851cb23077cd`, tree
+`176fa7f362227c92ec4d7c4bf08d09b855951ae7`.
+[Run #104 / 45827353062](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062)
+completed with **`success` on both ARM64 and Intel**, on 26 November 2026 from
+**14:15:18 to 14:49:42 Europe/Berlin** (13:15:18–13:49:42 UTC). The
+[durable #104 record](verification/native-run-104.json) contains the final run
+and job states, native logs and independently checked artifact identities.
+
+Both byte-identical source manifests bind **3921 files** to `3f3ec069` in
+`portCommit` and `desktopCommit`. The independent audit reads that Git object's
+bytes rather than the later documentation worktree. Each projection has
+**555 inputs** (535 tracked sources, 19 prepared catalogs and one pinned wheel)
+and **1312 checked outputs**. A later documentation commit is not the source
+of this native run.
+
+Each architecture passed 26 runtimebuilder, 27 AirPlay and 17 ImportHelper/path
+tests; the host suite has 34 passes, one Linux-only skip and no failures.
+Four Debug contexts each contain the same 501 XCTest names with 4/5/5/6 skips
+and no failures. The additional optimized Release context has 495 passes,
+six skips and no failures. These repeated contexts are not unique-test totals.
+The actual production Swift-to-packaged-Python process passed all nine checks,
+the real fresh-profile app lifecycle passed all seven criteria, and each
+candidate passed all 65 independent byte-audit checks.
+
+The [broader shared host regression](verification/stability-2026-11-26/SHARED-REGRESSION-2026-11-26.md)
+and its [structured capture](verification/stability-2026-11-26/shared-regression.json)
+remain bound to `c8a7690d5eb4e002ebadb1d0aab03c8780af9e0b`, whose product code
+is `215d89029df02df2dce78f35412785ec9f9b36d8`. The captured later read-only
+comparison is against `8c860a14f7e10904c1b3a159ae84619c2c24ba82`; it identifies
+unchanged shared inputs and separately changed guards/probes. Neither record
+is relabeled as a test of the newer candidate. The #806 deployment guards and
+#808 archive-timestamp correction now have their own native #104 results.
+
+The historical complete selected-checkout native pipeline passed on both
+ARM64 and Intel in
 [run #97](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)
 at `215d89029df02df2dce78f35412785ec9f9b36d8`. Both source manifests bind
 `portCommit` and `desktopCommit` to that same commit. The
 [native report](NATIVE-VERIFICATION-2026-11-26.md) and
 [durable record](verification/native-run-97.json) include native compilation,
 test contexts/skips, signatures, real app lifecycle and package hashes.
-This is the current combined CI checkpoint; it does not certify later edits,
-full picker/provider/UI acceptance, Monterey or a production release.
+This is the historical combined CI checkpoint for that exact source; it does
+not certify later edits, full picker/provider/UI acceptance, Monterey or a
+production release.
 
 The historical green run
 [42562106430](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42562106430)
@@ -123,10 +161,21 @@ recipe against a newer commit with the **same visible version**. The second
 uses the existing JSDOM installation (`MACOS_BETA_JSDOM` can select it) and
 current source inputs. It is wired into the existing Mac workflow before native
 tests. The original host checks alone claimed no Swift/macOS execution or
-release approval. The subsequent #97 checkpoint above supplies the native
+release approval. The historical #97 checkpoint above supplies the native
 build/test/signature/lifecycle result for its exact combined source. Any later
 candidate must pass applicable checks with its own recorded source policy;
 notarization and production release approval remain separate.
+
+The added process probe passed production process/protocol checks with the
+original OR6 fixture: 22 fields in four collections, without the picker, editor
+or imported-data persistence. Its 59 source bindings and eight actual packaged
+files were independently checked. Linked BetaCore objects/module/map and the
+compiled probe are not shipped; their hashes remain native receipts, without
+an independent local rehash of those binaries. Native codesign validity comes
+from the original Mac gates, separately from Linux resource/CDHash byte checks.
+The successful Release Swift context does not change the packaged ad-hoc Debug
+artifact. Full user interaction, provider/TCC/account/device, Monterey and
+production-distribution acceptance remain separate gates.
 
 ## Repeat the exact source record/verify steps
 

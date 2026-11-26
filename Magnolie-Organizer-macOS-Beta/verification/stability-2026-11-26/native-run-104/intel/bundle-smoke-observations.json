@@ -1,0 +1,16 @@
+{
+  "applications" : [
+
+  ],
+  "elapsedSeconds" : 12.426707490999888,
+  "phase" : "complete",
+  "profile" : {
+    "bytes" : 8253,
+    "exists" : true,
+    "mode" : 384
+  },
+  "screenCaptureAccess" : true,
+  "windows" : [
+
+  ]
+}
