@@ -1,7 +1,9 @@
 package io.gitlab.maik3531.magnolietabletbeta
 
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.Activity
 import android.app.Instrumentation
+import android.app.UiAutomation
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.webkit.WebView
@@ -15,16 +17,38 @@ internal object NativeDomainAcceptance {
         val origin=IntArray(2); var density=0f
         val state=JSONObject().put("elapsedRealtimeMs",SystemClock.elapsedRealtime())
         var activePackage="";var activeWindow=-1
+        var automation:UiAutomation?=null
+        var activeRootPresent=false;var activeReadFailed=false;var targetReadFailed=false
         try {
-            val root=test.uiAutomation.rootInActiveWindow
-            if(root!=null)try {activePackage=root.packageName?.toString().orEmpty().take(160);activeWindow=root.windowId}
+            automation=test.uiAutomation
+            val root=automation?.rootInActiveWindow
+            if(root!=null)try {
+                activeRootPresent=true
+                activePackage=root.packageName?.toString().orEmpty().take(160);activeWindow=root.windowId
+            }
                 finally {root.recycle()}
-        } catch(failure:Exception) {state.put("activeWindowReadError",failure.javaClass.simpleName)}
+        } catch(failure:Exception) {
+            activeReadFailed=true;state.put("activeWindowReadError",failure.javaClass.simpleName.take(80))
+        }
+        // Bounded, read-only service metadata. Do not change flags or request more windows.
+        state.put("serviceInfoPresent",false)
+        try {
+            val info=automation?.serviceInfo
+            if(info!=null) state.put("serviceInfoPresent",true).put("serviceFlags",info.flags)
+                .put("serviceCapabilities",info.capabilities)
+                .put("canRetrieveWindowContent",info.capabilities and AccessibilityServiceInfo.CAPABILITY_CAN_RETRIEVE_WINDOW_CONTENT != 0)
+                .put("retrievesInteractiveWindows",info.flags and AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS != 0)
+        } catch(failure:Exception) {state.put("serviceInfoReadError",failure.javaClass.simpleName.take(80))}
         var nativeReady=false;var targetWindow=-1
         test.runOnMainSync {
             web.getLocationOnScreen(origin);density=web.resources.displayMetrics.density
-            val node=web.createAccessibilityNodeInfo()
-            try {targetWindow=node.windowId} finally {node.recycle()}
+            state.put("targetNodePresent",false)
+            try {
+                val node=web.createAccessibilityNodeInfo()
+                if(node!=null)try {state.put("targetNodePresent",true);targetWindow=node.windowId} finally {node.recycle()}
+            } catch(failure:Exception) {
+                targetReadFailed=true;state.put("targetWindowReadError",failure.javaClass.simpleName.take(80))
+            }
             nativeReady=!activity.isFinishing && !activity.isDestroyed && activity.hasWindowFocus() &&
                 web.isAttachedToWindow && web.isShown && web.hasWindowFocus()
             state.put("activityFinishing",activity.isFinishing).put("activityDestroyed",activity.isDestroyed)
@@ -33,16 +57,21 @@ internal object NativeDomainAcceptance {
                 .put("targetWindowId",targetWindow).put("origin",JSONArray(origin.toList()))
                 .put("viewSize",JSONArray(listOf(web.width,web.height))).put("density",density)
         }
-        val owned=nativeReady && targetWindow>=0 && activeWindow==targetWindow && activePackage==activity.packageName
-        return state.put("activePackage",activePackage).put("activeWindowId",activeWindow).put("owned",owned)
+        val result=NativeWindowOwnershipPolicy.assess(NativeWindowOwnershipPolicy.Evidence(
+            nativeReady,targetWindow,activeWindow,activePackage,activity.packageName,activeRootPresent,activeReadFailed,targetReadFailed))
+        if(!result.owned) state.put("classification",result.classification).put("failureCode",result.failureCode)
+            .put("diagnosis",result.name)
+        return state.put("activePackage",activePackage).put("activeWindowId",activeWindow).put("owned",result.owned)
+            .put("nativeReady",nativeReady).put("activeRootPresent",activeRootPresent)
+            .put("activeReadFailed",activeReadFailed).put("targetReadFailed",targetReadFailed)
     }
     fun requireOwnership(test: Instrumentation, activity: Activity, web: WebView, phase: String,
                          report: (JSONObject) -> Unit): JSONObject {
         val receipt=JSONObject().put("schema",1).put("source","native-window-ownership").put("phase",phase)
         val state=ownershipState(test,activity,web); receipt.put("state",state)
-        if(!state.getBoolean("owned")) receipt.put("classification","environment-input-blocked")
+        if(!state.getBoolean("owned")) receipt.put("classification",state.getString("classification"))
         report(receipt)
-        check(state.getBoolean("owned")) {"ENVIRONMENT_INPUT_BLOCKED: app-owned drawing window lacks native input ownership ($phase)"}
+        check(state.getBoolean("owned")) {"${state.getString("failureCode")}: app-owned drawing window lacks native input ownership ($phase)"}
         return receipt
     }
     // Only this app-owned drawing gesture requires the app's native window.
@@ -63,9 +92,9 @@ internal object NativeDomainAcceptance {
                 .put("y",origin[1]+target.getDouble("y")*density))
             val owned=state.getBoolean("owned")
             receipt.put(phase,state)
-            if(!owned) receipt.put("classification","environment-input-blocked")
+            if(!owned) receipt.put("classification",state.getString("classification"))
             report(receipt)
-            check(owned) {"ENVIRONMENT_INPUT_BLOCKED: app-owned drawing window lacks native input ownership ($phase)"}
+            check(owned) {"${state.getString("failureCode")}: app-owned drawing window lacks native input ownership ($phase)"}
         }
         ownership("beforeInjection")
         val x1=origin[0]+target.getDouble("x1")*density
