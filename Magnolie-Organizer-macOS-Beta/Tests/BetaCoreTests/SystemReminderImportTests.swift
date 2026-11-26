@@ -52,8 +52,8 @@ final class SystemReminderImportTests: XCTestCase {
     private func assertExcluded(_ record: SystemReminderImport.Record, _ reason: String, zone: String = "Europe/Berlin",
                                 file: StaticString = #filePath, line: UInt = #line) throws {
         let plan = try prepare(snapshot([record]), zone: zone)
-        XCTAssertTrue(try tasks(plan).isEmpty, file: file, line: line)
-        let rejected = try XCTUnwrap(excluded(plan).first, file: file, line: line)
+        XCTAssertTrue(try tasks(plan).isEmpty, "\(record.identifier): \(reason)", file: file, line: line)
+        let rejected = try XCTUnwrap(excluded(plan).first, "\(record.identifier): \(reason)", file: file, line: line)
         XCTAssertEqual(Set(rejected.keys), Set(["identifier", "title", "reasons"]), file: file, line: line)
         XCTAssertEqual(rejected["identifier"] as? String, record.identifier, file: file, line: line)
         XCTAssertEqual(rejected["reasons"] as? [String], [reason], file: file, line: line)
@@ -302,15 +302,29 @@ final class SystemReminderImportTests: XCTestCase {
     }
 
     func testTextMustSurviveRealEditorWhitespaceAndLineEndingRules() throws {
-        for title in [" Leading", "Trailing ", "\u{FEFF}Leading", "Trailing\u{A0}"] {
-            try assertExcluded(record(changes: ["title": title]), "native-reminder-title-would-change")
+        for (id, title) in [("leading-space", " Leading"), ("trailing-space", "Trailing "),
+                            ("trailing-no-break-space", "Trailing\u{A0}"), ("trailing-bom", "Trailing\u{FEFF}")] {
+            try assertExcluded(record(id: id, changes: ["title": title]), "native-reminder-title-would-change")
         }
-        for note in ["Line1\r\nLine2", "Line1\rLine2", "Unsafe\u{0}", "Unsafe\u{7F}"] {
-            try assertExcluded(record(changes: ["notes": note]), "native-reminder-text-not-representable")
+        for (id, note) in [("crlf", "Line1\r\nLine2"), ("cr", "Line1\rLine2"),
+                           ("nul", "Unsafe\u{0}"), ("del", "Unsafe\u{7F}")] {
+            try assertExcluded(record(id: id, changes: ["notes": note]), "native-reminder-text-not-representable")
         }
         let literal = "\t First line\nSecond e\u{301} 🌼 <script>literal</script> "
         XCTAssertEqual(Data(try XCTUnwrap(task(record(changes: ["notes": literal]))["notiz"] as? String).utf8), Data(literal.utf8))
         try assertExcluded(record(changes: ["title": "Bad\nTitle"]), "native-reminder-text-not-representable")
+    }
+
+    func testLeadingBOMTitleRemainsExcludedAndRevisionBound() throws {
+        let title = "\u{FEFF}Leading"
+        let input = record(id: "leading-bom", changes: ["title": title])
+        XCTAssertEqual(title.unicodeScalars.first?.value, 0xFEFF)
+        try assertExcluded(input, "native-reminder-title-would-change")
+        let plan = try prepare(snapshot([input])), rejected = try XCTUnwrap(excluded(plan).first)
+        XCTAssertEqual(Data(try XCTUnwrap(rejected["title"] as? String).utf8), Data(title.utf8))
+        let stripped = snapshot([record(id: "leading-bom", changes: ["title": "Leading"])])
+        XCTAssertThrowsError(try plan.revalidate(stripped))
+        XCTAssertNotEqual(plan.snapshotRevision, try prepare(stripped).snapshotRevision)
     }
 
     func testTextLimitsCountUTF8AndNeverTruncateSourceNotes() throws {
@@ -404,6 +418,19 @@ final class SystemReminderImportTests: XCTestCase {
         let plan = try prepare(snapshot([input])), original = try bytes(plan.payload)
         due["day"] = 28
         XCTAssertEqual(try bytes(plan.payload), original)
+        XCTAssertThrowsError(try plan.revalidate(snapshot([input])))
+    }
+
+    func testCallerOwnedMutableTextAndArraysCannotRewriteAnExistingPlan() throws {
+        let title = NSMutableString(string: "Original title"), notes = NSMutableString(string: "Original note e\u{301} 🌼")
+        let coverage = NSMutableArray(array: try XCTUnwrap(fields()["metadataIncomplete"] as? [String]))
+        let input = record(changes: ["title": title, "notes": notes, "metadataIncomplete": coverage])
+        let plan = try prepare(snapshot([input])), original = try bytes(plan.payload)
+        title.append(" changed"); notes.setString("Changed note"); coverage.removeAllObjects()
+        XCTAssertEqual(try bytes(plan.payload), original)
+        let draft = try XCTUnwrap(first(plan)["task"] as? [String: Any])
+        XCTAssertEqual(draft["titel"] as? String, "Original title")
+        XCTAssertEqual(Data(try XCTUnwrap(draft["notiz"] as? String).utf8), Data("Original note e\u{301} 🌼".utf8))
         XCTAssertThrowsError(try plan.revalidate(snapshot([input])))
     }
 

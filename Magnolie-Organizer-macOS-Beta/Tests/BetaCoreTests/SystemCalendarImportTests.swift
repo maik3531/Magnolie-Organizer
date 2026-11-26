@@ -255,9 +255,27 @@ final class SystemCalendarImportTests: XCTestCase {
         let physical = try SystemCalendarImport.folded(original).components(separatedBy: "\r\n")
         XCTAssertGreaterThan(physical.count, 1)
         XCTAssertTrue(physical.allSatisfy { $0.utf8.count <= 75 })
-        let unfolded = physical.enumerated().map { $0.offset == 0 ? $0.element : String($0.element.dropFirst()) }.joined()
-        XCTAssertEqual(Data(unfolded.utf8), Data(original.utf8))
-        XCTAssertTrue(physical.dropFirst().allSatisfy { $0.hasPrefix(" ") })
+        // Refs #797. RFC unfolding removes exactly the ASCII continuation-space byte. A
+        // following combining scalar can share its Swift Character with that
+        // space, so String.dropFirst()/hasPrefix() are not byte-level checks.
+        let unfolded = physical.enumerated().flatMap {
+            $0.offset == 0 ? Array($0.element.utf8) : Array($0.element.utf8.dropFirst())
+        }
+        XCTAssertEqual(Data(unfolded), Data(original.utf8))
+        XCTAssertTrue(physical.dropFirst().allSatisfy { $0.utf8.first == 0x20 })
+    }
+
+    func testFoldingBoundariesCountOctetsAndPreserveCombiningScalars() throws {
+        let seventyFive = String(repeating: "a", count: 75)
+        let beforeAccent = String(repeating: "a", count: 74) + "e"
+        let beforeEmoji = String(repeating: "a", count: 72)
+        let cases = [(seventyFive, seventyFive),
+                     (seventyFive + "b", seventyFive + "\r\n b"),
+                     (beforeAccent + "\u{301}", beforeAccent + "\r\n \u{301}"),
+                     (beforeEmoji + "🌼", beforeEmoji + "\r\n 🌼")]
+        for (original, expected) in cases {
+            XCTAssertEqual(Data(try SystemCalendarImport.folded(original).utf8), Data(expected.utf8))
+        }
     }
 
     func testProjectedPayloadLimitRejectsTheWholeProposalInsteadOfReturningAPrefix() throws {

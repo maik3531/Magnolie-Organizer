@@ -51,6 +51,27 @@ Elternalias im Tempstamm. Die vollständig betroffenen Check-/Testaufrufer
 verwenden denselben engen Korrekturpfad; `safe_path` bleibt textgleich.
 Der vollständige aktuelle Host-/Apple-Erfolg ist noch nativ zu prüfen.
 
+[Mac-Lauf #94 / 45794303684](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45794303684)
+hat auf `8c01f75b2ae6a9e753b9c23b0e3c65a7d7826c66` den Pfadfix auf ARM64
+und Intel bestätigt: je **17 ImportHelper-/Pfadtests**, frische UI-Projektion
+und **90 OR6→UI-Prüfungen** bestanden. Die folgende Hostsuite endete je mit
+35 Tests, vier Fehlerergebnissen und einem Skip. Die vollständige Swift-Suite
+kompilierte und führte je Lauf 498 Tests aus; wiederholt erscheinen dieselben
+fünf Assertions in drei Fällen. Ein separater Kommunikations-Harnessfehler
+komplettiert den Befund; noch kein App-Bundle-/Smoke-Erfolg.
+
+[#796](https://github.com/maik3531/Magnolie-Organizer/issues/796) korrigiert die
+fehlende echte Zeitzonen-Bootstrap-Ladung des Kommunikationsprüfers aus dem
+Rohcheckout. Danach stimmen lokal alle 15 Payloads mit der bytegleichen
+historischen Fixture überein; ausdrücklich gelieferte Projektionen müssen
+ihre eigene Datei besitzen. [#797](https://github.com/maik3531/Magnolie-Organizer/issues/797)
+korrigiert zwei unzutreffende Swift-Testprüfungen (Notes-Reason vs. Bodyfeld,
+Character- vs. Byteentfaltung) und ersetzt den verlustbehafteten JSON-Reparse
+vor der Reminder-Editorprüfung durch eine begrenzte native Wertkopie.
+Originaltext, mutable-input-Isolation, Budgets und Revisionbindung bleiben
+Gegenstand der gezielten nativen Regressionen. Diese neuen Swiftänderungen
+sind lokal reviewed, mangels Swift aber noch nicht ausgeführt.
+
 Der zusätzliche Desktop-Archivblocker
 [#787](https://github.com/maik3531/Magnolie-Organizer/issues/787) ist im Quellstand
 eng korrigiert: Windows und die gemeinsame Linux-Quellauswahl schließen nur die
@@ -60,9 +81,12 @@ reproduzierte vor dem Fix beide Python-Varianten; danach bestanden 7/7 Tests
 und die byte-/modusgleiche Projektion aller 138 ausgewählten echten Verträge.
 Der native [Windows-Folgelauf 45788221321](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45788221321)
 auf dem Archivfix hat die erweiterten nativen Archivregressionen mit explizitem
-Erfolgsmarker bestanden und führt im Standalone-Quellarchivschritt die
-CoreTests aus. Ein erfolgreicher Gesamt-
-Windowslauf wird erst nach dessen Abschluss behauptet. Der Stand und die
+Erfolgsmarker bestanden. Die folgenden CoreTests endeten mit **551/552**:
+Ein separater `phone.db`-Cleanupfehler des Medienprüffalls ist im Folgeauftrag
+[#794](https://github.com/maik3531/Magnolie-Organizer/issues/794) dokumentiert.
+Dadurch scheiterte der Gesamtworkflow; ZIP-/Installerbau und Artefaktupload
+wurden übersprungen. Der erfolgreiche Archivnachweis wird davon getrennt
+ausgewiesen. Der Stand und die
 Grenzen der nativen Fortsetzung stehen in
 [NATIVE-VERIFICATION-2026-11-26.md](Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md).
 

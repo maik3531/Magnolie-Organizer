@@ -97,10 +97,21 @@ final class AppleNotesImportTests: XCTestCase {
                 XCTAssertFalse(error.localizedDescription.contains("private locked body"))
             }
         }
-        let plan = try AppleNotesImport.prepare(snapshot([record(protected: true, text: nil, html: nil)]))
+        let input = record(protected: true, text: nil, html: nil)
+        let plan = try AppleNotesImport.prepare(snapshot([input]))
         XCTAssertTrue(try notes(plan).isEmpty)
-        XCTAssertFalse(try Document.encode(plan.payload).contains("plaintext"))
-        XCTAssertFalse(try Document.encode(plan.payload).contains("bodyHTML"))
+        let payload = try Document.object(Document.encode(plan.payload))
+        XCTAssertEqual(Set(payload.keys), Set(["version", "source", "notes", "excluded", "snapshotRevision"]))
+        let exclusions = try XCTUnwrap(payload["excluded"] as? [[String: Any]])
+        XCTAssertEqual(exclusions.count, 1)
+        let rejected = try XCTUnwrap(exclusions.first)
+        // A reason may contain "plaintext"; it must never be mistaken for a body field.
+        XCTAssertEqual(Set(rejected.keys), Set(["identifier", "title", "reasons"]))
+        XCTAssertEqual(rejected["identifier"] as? String, input.identifier)
+        XCTAssertEqual(rejected["title"] as? String, input.title)
+        XCTAssertEqual(rejected["reasons"] as? [String],
+                       ["apple-note-html-unavailable", "apple-note-password-protected", "apple-note-plaintext-unavailable"])
+        XCTAssertTrue(try XCTUnwrap(payload["notes"] as? [[String: Any]]).isEmpty)
     }
 
     func testReadFailureBodiesAndErrorDetailsStayOutOfWebPayload() throws {

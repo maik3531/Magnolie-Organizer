@@ -1,7 +1,8 @@
 # Fortsetzung der nativen Mac-Verifikation
 
 Stand: 26. November 2026. Zugeordnet zu #121, #783, #785, #786 und dem
-konkreten nativen Compilerbefund #788, Runtimebefund #789 und Prüftreiberbefund #793. Der
+konkreten nativen Compilerbefund #788, Runtimebefund #789, Prüftreiberbefund #793
+und den tatsächlichen Host-/Swift-Folgebefunden #796/#797. Der
 plattformübergreifende Quellarchivbefund #787 wird separat korrigiert.
 
 ## Übernommener und erneut bestätigter Stand
@@ -226,6 +227,91 @@ Arbeitsplatz wegen fehlender gettext-/Parserabhängigkeiten nicht erneut
 ausgeführt. Der anschließende native Folgelauf enthält diese unveränderten
 Prüfungen und bleibt für ihren aktuellen Erfolg maßgeblich.
 
+## Lauf #94: Pfadfix bestätigt, vollständige Swift-Folgebefunde
+
+[Lauf #94 / 45794303684](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45794303684)
+prüfte genau `8c01f75b2ae6a9e753b9c23b0e3c65a7d7826c66`, ARM64-Job
+`139820902702`, Intel-Job `139820902276`. Beide Architekturen haben erneut
+Zeitzonenreferenzen, 13 Runtimebuildertests und den privaten Runtimebau
+bestanden. Danach bestanden die zuvor blockierten **17 ImportHelper- und
+Pfadtests** tatsächlich: 71,581 Sekunden auf ARM64, 103,606 Sekunden auf Intel.
+Dies bestätigt #793 nativ. Die 14 Parsergruppen enthalten die originalen
+27 OR6-Fixtures; die drei Pfadtests sind darin getrennte zusätzliche Gruppen.
+
+Freeze, frische UI-Projektion, aktueller Quellabgleich und **90 OR6→UI-
+Prüfungen** bestanden ebenfalls. Der UI-Transport bleibt dabei synthetisch;
+die tatsächliche Python-Helferlaufzeit wurde dagegen nativ ausgeführt.
+Der Quellabgleich meldet 27 Assertions, 30 gemeinsame Suchfälle und 181
+nicht angebundene Desktopbefehle. Diese Umfänge überlappen und werden nicht
+addiert. Die Kryptoreferenzen entsprechen dem aktuellen gemeinsamen Codec.
+
+Der nachfolgende Hostlauf führte je 35 Tests aus: 571,514 Sekunden auf ARM64
+und 736,119 Sekunden auf Intel, jeweils vier Fehlerergebnisse und ein Skip.
+Ein fehlerhaftes Verfahren in der Kommunikationsprüfung sowie drei
+wiederholte Swift-Gesamtläufe erklären diese vier Ergebnisse. Die
+Swift-Suiten kompilierten vollständig und führten jeweils **498 Tests** aus;
+je nach Kontext blieben vier beziehungsweise fünf bewusst bedingte Skips.
+Dieselben fünf Fehlassertionen liegen in genau drei Testfällen. Wiederholte
+Ausführung wird nicht als zusätzliche unabhängige Fehlerzahl gezählt.
+App-Bundlebau, der separate App-Smoke-Schritt und Paketierung wurden wegen
+des Hostfehlschlags noch nicht erreicht.
+
+### #796: Kommunikationsprüfer aus einem frischen Checkout
+
+Der erste tatsächliche Kommunikationsfehler ist
+`ReferenceError: MagnolieTime is not defined`. Der Rohcheckout deklariert
+`normative-timezones.js`, enthält diese erzeugte Datei aber noch nicht.
+Der Prüfer übersprang sie und rief anschließend abhängige UI-Funktionen auf.
+
+Der Folgefix verwendet ausschließlich für den Standardaufruf ohne
+Webpfadargument den vorhandenen gemeinsamen Zeitzonengenerator samt
+Payload-/Provenienz-/Lizenzprüfung. Ein ausdrücklich übergebener Webpfad
+muss seinen eigenen Bootstrap enthalten, auch wenn er zufällig derselbe
+kanonische Quellpfad ist. Scriptreihenfolge und Pflichtskripte werden geprüft.
+
+Der ursprüngliche Fehler ist lokal reproduziert. Danach bestehen **15/15
+Kommunikationspayloads** gegen die bytegleiche historische Fixture. Ein
+separat übergebener Originalwebpfad mit echtem Bootstrap besteht ebenfalls;
+fehlender Bootstrap und falsche Reihenfolge werden gezielt abgewiesen.
+Die zusätzliche Hostregression entfernt den Bootstrap nur aus der eigenen
+temporären Projektion und verlangt einen Fehler. Beide historischen
+Kommunikations-/Telefonfixtures bleiben unverändert. Der zunächst als
+möglich betrachtete Unterschied leerer Adressfelder wurde durch den
+tatsächlichen Lauf widerlegt; es wurde keine Golden-Datei angepasst.
+
+Lokal: Node 24.22.3, jsdom 26.1.0 isoliert aus vorhandenem npm-Cache, keine
+vollständige zweite Hostumgebung. Der neunteilige projizierte Telefonpfad
+und die neue integrierte Negativprüfung bleiben Bestandteil des folgenden
+nativen Laufs. Der konkrete Folgeauftrag ist
+[#796](https://github.com/maik3531/Magnolie-Organizer/issues/796).
+
+### #797: drei konkrete Text-/Testfälle der nativen Swift-Suite
+
+| Fall | Tatsächliche Ursache und enger Fix |
+| --- | --- |
+| Geschützte Apple-Notes-Bodies | Der Test verwechselte die erlaubte Reason-ID `apple-note-plaintext-unavailable` mit einem Bodyfeld. Er prüft nun die serialisierte Objektstruktur, genau einen Ausschluss, erlaubte Schlüssel/Reasons und leere Vorschlagsnotizen. Produktpolicy und tatsächliche Bodyablehnung bleiben unverändert. |
+| UTF-8-Kalenderfaltung | Die Fortsetzungszeile beginnt mit `20 CC 81`. `String.dropFirst()` entfernte das Leerzeichen und die kombinierende Marke als einen Character, wodurch der Test aus 572 Bytes fälschlich 570 machte. Der Test entfernt nun exakt das ASCII-Faltungsbyte. Produktfaltung und 75-Oktett-Grenze bleiben unverändert; vier direkte Grenzfixtures ergänzen den Roundtrip. |
+| Erinnerungstitel mit führendem U+FEFF | Die Editorprüfung kennt FEFF bereits. Ihre bisherige Snapshotkopie las jedoch JSON erneut über Darwin-Foundation ein; dort ist der Verlust dieses Zeichens innerhalb von Stringwerten dokumentiert. Die vorhandene begrenzte Validierung erzeugt nun zugleich eine native Wertkopie vor der Editorprüfung. |
+
+Die Reminderkopie baut Dictionaries und Arrays neu auf und materialisiert
+Text aus dessen UTF-8-Bytes. String- und Schlüsselbudgets werden vor zusätzlicher
+Kopie beziehungsweise Kindrekursion geprüft. Zahlen-/Booltypen, Finitheit,
+Feld-/Array-/Knoten-/Tiefenlimits und die 16-MiB-Grenze bleiben erhalten;
+Evidence- und Revisionformat ändern sich nicht. Die neuen Regressionen
+prüfen FEFF-Ausschluss, Originaltitelbytes, unterschiedliche Revisionen und
+Isolation gegenüber nachträglichen Änderungen von `NSMutableString` und
+`NSMutableArray`, zusätzlich zum bestehenden Dictionaryfall. CRLF-/CR-/
+NUL-/DEL- und Editorregeln bleiben unverändert streng.
+
+Quellen für die gezielte Einordnung:
+[RFC 5545, Abschnitt 3.1](https://www.rfc-editor.org/rfc/rfc5545.html#section-3.1)
+und [swift-foundation #300](https://github.com/swiftlang/swift-foundation/issues/300).
+Der [Folgeauftrag #797](https://github.com/maik3531/Magnolie-Organizer/issues/797)
+unterscheidet die zwei Testkorrekturen vom Reminder-Produktfix. Ein
+unabhängiger Review fand nach enger Budgetkorrektur keinen verbleibenden
+Quellbefund. Lokal fehlt Swift; die Änderungen sind noch nativ zu prüfen.
+Dies ist keine pauschale Erledigung der übrigen offenen #511-JSON-Fälle.
+
 ## #787: bestätigte Auswirkung auf Desktop-Quellarchive
 
 Der [Windows-Lauf 45782763765](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45782763765)
@@ -273,19 +359,30 @@ meldet ausdrücklich:
 Windows source, private-path, new-fixture, provenance and flat-checksum fixtures passed.
 ```
 
-Anschließend laufen die CoreTests aus dem Standalone-Quellarchiv. Der gesamte
-Windows-Paketlauf ist dadurch noch nicht als erfolgreich belegt. Die
-Python-Prüfungen sind ebenfalls kein vollständiger Debian-/RPM-Bau oder
-Installationsnachweis.
+Der anschließende CoreTestlauf aus dem Standalone-Quellarchiv endete mit
+**551/552 bestandenen Gruppen**. Die Gruppe
+`Media support draft / original Windows WLAN reader and withdrawal` scheitert
+beim Löschen ihrer eigenen `phone.db` in
+`PhoneCameraParentTests.Fixture.Dispose()`; der Dateipfad ist noch geöffnet.
+Der gesonderte Folgeauftrag [#794](https://github.com/maik3531/Magnolie-Organizer/issues/794)
+ordnet den Befund zu #505/#506 ein. Ein zusätzlicher eigener SQLite-Pool für
+`Mode=ReadWrite` ist aufgrund der Quellen eine konkrete, noch nicht gezielt
+nativ bestätigte Ursache; ein laufender Reader wird nicht behauptet.
+
+Der Gesamtworkflow endete deshalb mit `failure`; ZIP-/Installerbau und
+Artefaktupload wurden übersprungen. Der ursprüngliche #787-Archivblocker
+und seine Regression sind dagegen nachweislich behoben. Die Python-Prüfungen
+sind ebenfalls kein vollständiger Debian-/RPM-Bau oder Installationsnachweis.
 
 ## Neue Issue-Belege der Fortsetzung
 
-Die drei gezielten Folgekommentare wurden veröffentlicht beziehungsweise
+Die vier gezielten Folgekommentare wurden veröffentlicht beziehungsweise
 fortgeschrieben und jeweils mit identischem vollständigem Text zurückgelesen:
 
 - [#787: Desktop-Archivkorrektur und nativer Windows-Regressionserfolg](https://github.com/maik3531/Magnolie-Organizer/issues/787#issuecomment-7187382569)
 - [#788: native Bestätigung der beiden Swift-Compilerfixes](https://github.com/maik3531/Magnolie-Organizer/issues/788#issuecomment-7187382083)
 - [#789: privater Runtimefix, Tests und genaue native Folgeprüfung](https://github.com/maik3531/Magnolie-Organizer/issues/789#issuecomment-7188020232)
+- [#793: eigener Tempstamm der Prüftreiber, Regressionen und Mac-Folgeprüfung](https://github.com/maik3531/Magnolie-Organizer/issues/793#issuecomment-7188363385)
 
 Die ursprünglichen 31 Übergabekommentare und deren eingefrorene
 Publikationsbelege wurden dabei nicht verändert.

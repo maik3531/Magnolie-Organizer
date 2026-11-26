@@ -169,23 +169,40 @@ public enum SystemReminderImport {
                 throw failure("unexpected native field or oversized title")
             }
             var nodes = 0, bytes = 0
-            func validate(_ value: Any, depth: Int) throws {
+            func freeze(_ value: Any, depth: Int) throws -> Any {
                 nodes += 1
                 guard depth <= 16, nodes <= 100_000 else { throw failure("native record structure limit") }
-                if let text = value as? String { bytes += text.utf8.count }
-                else if let object = value as? [String: Any] {
+                let frozen: Any
+                if let text = value as? String {
+                    bytes += text.utf8.count
+                    guard bytes <= maximumBytes - total else { throw failure("snapshot evidence exceeds 16 MiB") }
+                    frozen = String(decoding: text.utf8, as: UTF8.self)
+                } else if let object = value as? [String: Any] {
                     guard object.count <= 1000 else { throw failure("native field limit") }
-                    for (key, child) in object { bytes += key.utf8.count; try validate(child, depth: depth + 1) }
+                    var copy: [String: Any] = [:]
+                    for (key, child) in object {
+                        bytes += key.utf8.count
+                        guard bytes <= maximumBytes - total else { throw failure("snapshot evidence exceeds 16 MiB") }
+                        copy[key] = try freeze(child, depth: depth + 1)
+                    }
+                    frozen = copy
                 } else if let array = value as? [Any] {
                     guard array.count <= 1000 else { throw failure("native value count limit") }
-                    for child in array { try validate(child, depth: depth + 1) }
+                    frozen = try array.map { try freeze($0, depth: depth + 1) }
                 } else if let value = value as? NSNumber {
-                    guard value.doubleValue.isFinite else { throw failure("invalid native numeric value") }; bytes += 32
-                } else if !(value is NSNull) { throw failure("non-JSON native field") }
+                    guard value.doubleValue.isFinite else { throw failure("invalid native numeric value") }
+                    bytes += 32; frozen = value
+                } else if value is NSNull { frozen = NSNull() }
+                else { throw failure("non-JSON native field") }
                 guard bytes <= maximumBytes - total else { throw failure("snapshot evidence exceeds 16 MiB") }
+                return frozen
             }
-            try validate(input.fields, depth: 0)
-            let fields = try Document.object(Document.encode(input.fields))
+            // Refs #797: JSONSerialization may consume a leading U+FEFF inside a string on
+            // Darwin. Copy native values without that parse round-trip so editor
+            // exclusions inspect the original text, including mutable NSStrings.
+            guard let fields = try freeze(input.fields, depth: 0) as? [String: Any] else {
+                throw failure("invalid native fields")
+            }
             let record = Record(identifier: input.identifier, fields: fields, failure: input.failure)
             let raw: [String: Any] = ["identifier": record.identifier, "fields": fields, "failure": nullable(record.failure)]
             let evidence = Data(try Document.encode(raw).utf8)
