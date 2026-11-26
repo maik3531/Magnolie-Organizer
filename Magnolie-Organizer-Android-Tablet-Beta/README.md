@@ -280,10 +280,21 @@ independent codec oracle; it is never restored over tablet build inputs. After
 the existing APK verification, `tools/source-proof.py bind` checks the unchanged
 Git inputs, reproduced catalogs, projection inputs/outputs and candidate bytes
 and records their relationship. The Mac job retains its separate existing policy.
-The following owned emulator UI suite tests
-the exact hash-checked app/test pair. Synthetic runtime evidence, candidate
-metadata and checksums are retained as Actions artifacts for 14 days, including
-diagnostics when a stage fails. This workflow is manual or runs on the dedicated
+For a complete build without native execution, dispatch this workflow on the
+intended review branch with **`target: tablet-build-only`**. Its single `build`
+matrix entry runs the same complete debug APK gate and provenance binding. It
+does not prepare a runtime image, access KVM, start an emulator, run native suites
+or collect native evidence. The job/artifact name includes
+`build-only-no-native-acceptance`; `sources.json` records `buildOnly:true`, null
+runtime image/API/component fields and `componentOnly:false`. Native and release
+acceptance remain false. This is an explicit build target, not a shortened or
+alternative Gradle path. All existing targets, including `all`, retain their
+original native suites and coordination limits.
+
+For the existing native targets, the owned emulator suites test the exact
+hash-checked app/test pair. Candidate metadata, checksums and applicable runtime
+evidence are retained as Actions artifacts for 14 days, including diagnostics
+when a stage fails. This workflow is manual or runs on the dedicated
 `codex/ports-2.0.30` branch; it does not publish a production release. Check the
 job outcome and native evidence before treating an APK as tested. A debug key
 generated on a fresh runner is not a stable update-signing identity.
@@ -399,6 +410,7 @@ node tests/web.test.cjs
 node tests/system-import.test.cjs
 # Requires Playwright and an explicitly available Chromium executable:
 MAGNOLIE_CHROMIUM=/path/to/chromium node tests/tablet-layout-browser.cjs
+MAGNOLIE_CHROMIUM=/path/to/chromium node tests/system-import-browser.cjs
 node tools/project-web.cjs --check
 ```
 
@@ -408,6 +420,27 @@ failed-save retry, cancellation, stale replies, selected sources, date windows,
 contact birthdays and reopen stability. The separate browser test uses a real
 Chromium renderer and touchscreen taps; its bridge is also synthetic. Neither
 test exercises Android permissions, the device providers or an Android WebView.
+
+The follow-up checks are separate, specifically bounded proofs:
+
+| Check | Recorded result | Limit |
+| --- | --- | --- |
+| Source provenance and workflow selection | 22 tests passed | Includes the explicit build-only target, unchanged existing matrix/native guards and truthful artifact metadata; not a Gradle/APK execution |
+| Native window-ownership diagnosis | 9 JVM tests passed, including 432 ownership-state combinations | The accepted ownership predicate is unchanged; no Android accessibility runtime was exercised |
+| Native import/source/attachment policies | 46 JVM tests passed | Native Kotlin rules executed on the host JVM; not real provider, permission-dialog or Intent execution |
+| Import-form focus, interaction, localization and visible status | 167 real-Chromium checks passed | Synthetic native bridge; includes the real identity-conflict path and unobstructed status after scrolling in three window sizes; no Android WebView, IME or TalkBack acceptance |
+| Generated shared web surface | 194 checks passed | Host execution of the actual generated application |
+| Copy/attachment integration | 46 checks passed | Actual generated application and canonical normalizer with synthetic provider/storage |
+| Tablet layout | 150/150 checks passed in ten cases | Chromium geometry, touch target and hit checks |
+
+The final web/browser checks use projection
+`7a0c31a550761badd32e07f4bdaee6b016fd158a769a64017c7525332bb70416`.
+Twenty-language key coverage is checked; this does not claim a complete
+linguistic review. These counts do not form a combined native acceptance result.
+The original failures, intermediate stages and final raw evidence are preserved
+under `pruefnachweise/android-tablet-followup-2026-11-26/` at the repository root.
+The import status now stays inside the settings dialog in a persistent live
+region ([#801](https://github.com/maik3531/Magnolie-Organizer/issues/801)).
 
 ## Later Acceptance
 
@@ -446,6 +479,16 @@ Medication online lookup, drawing file import/PDF, physical stylus behavior,
 TalkBack and IME are outside this component proof. Native success must be recorded
 for the exact APK; host checks alone do not establish that acceptance.
 
+The ownership guard now distinguishes missing or failed accessibility evidence
+from a positively observed foreign package/window and from the app's own unready
+state ([#463](https://github.com/maik3531/Magnolie-Organizer/issues/463)). The known
+focused-app case with both window IDs at `-1` and an empty active package is
+`input-ownership-unverified`, not proof of an external blocker. Bounded service
+flags/capabilities and root-presence metadata are read for diagnosis only. The
+original ownership predicate, service flags and 420 ms gesture remain unchanged;
+no retry or prewarming is introduced. This corrects classification; it neither
+explains nor fixes the missing binding and does not permit an unverified gesture.
+
 ## Direct Android contacts and appointments
 
 Android system-source discovery uses public CalendarContract calendar metadata and
@@ -475,6 +518,24 @@ reading; calendar instances are compared across two bounded reads. A changed,
 revoked, missing, oversized or timed-out source rejects the candidate without
 claiming a complete result. These checks do not claim an atomic provider snapshot.
 
+The copy response and stored provenance now use **identity schema 2**
+([#799](https://github.com/maik3531/Magnolie-Organizer/issues/799),
+[#800](https://github.com/maik3531/Magnolie-Organizer/issues/800)). Contact identity
+prefers the provider's source ID, then backup ID; the fallback binds a raw row to
+the Android device/user/signing scope. A separate hashed row binding detects
+conflicting contact identity changes. The raw device identifier is not sent to
+the renderer. One-off event identity excludes its editable start/end times;
+recurring instances use the series and original slot, including moved exceptions.
+Provider IDs are still scoped to the selected source. This does not establish
+universal identity across provider resets or every device migration.
+
+An incompatible response schema or conflicting row binding causes rejection.
+Existing older experimental provenance from that source blocks a copy containing
+records. The code does not infer cross-device equivalence from an unscoped row
+number, name or phone number, silently convert old provenance, or deduplicate the
+whole book. Existing local edits remain protected;
+provider edits and deletions are not synchronized back into those copies.
+
 Contacts copy names, phone/email/address entries, company, notes and supported
 birthday/anniversary dates; this is not a complete vCard/photo/group importer.
 Calendar selection covers 1–366 inclusive dates in the organizer's selected
@@ -493,6 +554,15 @@ replaced. The existing editor/save guard runs before the query and application;
 success appears only after the encrypted native book save is acknowledged.
 A failed save retains the complete unsaved copy for an explicit retry. Cancelled,
 late or stale responses are ignored, never applied to a different book.
+
+The source panel preserves focus across its asynchronous redraws only when focus
+was already inside it ([#798](https://github.com/maik3531/Magnolie-Organizer/issues/798)).
+A disabled initiating control moves focus to the available cancel action or the
+group; completion returns to the relevant control, and successful permission
+confirmation leads to its source selector. A callback does not reclaim focus from
+another control or an editor/modal. Import labels and statuses use the same
+20-locale set as the tablet UI. Real Android permission-dialog focus, IME and
+TalkBack behavior remain separate native acceptance items.
 
 ## Saved HTTPS calendar attachments
 

@@ -302,25 +302,52 @@ Prüfzweig `work/android-tablet-20261126` mit vollständigen Issue-Patches zur
 späteren Prüfung/Übernahme bereitgestellt. Keine Freigabe eines neuen APK-Pakets
 oder Release erfolgt aus diesem Quellnachweis. Der vollständige Audit mit
 26 maßgeblichen Issues steht in `contracts/android-tablet-audit-2026-11-26.md`.
+Die Fortsetzung baut auf PR-Head `29acde7e3df2b8bcaaab0cc19b3377b8dbf4bd14`
+auf und ergänzt denselben Draft-PR #795. Der Folgeaudit in
+`contracts/android-tablet-followup-2026-11-26.md` erfasst vier weitere
+reproduzierte Fehler (#798–#801); zusammen sind damit 30 maßgebliche Issues
+zugeordnet. Der Folgestand ist ein Prüfpatch, kein neuer Paketnachweis.
 
 - #790: Der Tablet-CI-Bau verwendet den aktuellen gemeinsamen Checkout. Das alte
   `v2.0.30` bleibt nur unabhängige Codec-Referenz. Git-/Datei-/Projektions- und
   geprüfte APK-Hashes werden gebunden; JDK21/Gradle9.6/AGP9.5.1 mit integriertem
   Kotlin2.4.21 und compileSdk37.2 sind angeglichen. TargetSDK35 und minSDK26 bleiben.
+  Das neue manuelle Workflowziel `tablet-build-only` nutzt denselben vollständigen
+  APK-Gate mit allen Ressourcen-/Koordinationsgrenzen. Es überspringt ausschließlich
+  Runtimeimage, KVM, Emulator und native Prüfschritte. Job, Artefaktname und
+  Metadaten kennzeichnen den reinen Bau; es entsteht keine native Abnahme.
 - #791: explizite native Kontakt- und Kalenderkopien mit Quellenwahl,
   Berechtigungsprüfung, Abbruch/Fristen und Session-/Revisionsbindung. Nur neue
   Identitäten ergänzen; vorhandene Datensätze bleiben erhalten. Die gemeinsame
   Normalisierung schützt Kontaktgeburtstage und wiederholtes Öffnen. Termine
   werden für 1–366 Kalendertage als Instanzen übernommen; keine laufende
   Synchronisierung oder Provider-Schreibrechte. Erfolg erst nach Save-ACK.
+  #799/#800 ergänzen Schema 2 für Kopierantwort und Herkunft: Kontakte verwenden
+  Provider-Source-/Backup-ID beziehungsweise einen gerätegebundenen Raw-ID-Fallback
+  mit zusätzlicher Zeilenbindung. Einzelterminidentität hängt nicht von bearbeiteten
+  Zeiten ab; Serieninstanzen behalten ihren ursprünglichen Slot einschließlich
+  verschobener Ausnahmen. Alte experimentelle Herkunft oder Identitätskonflikte
+  werden abgelehnt, nicht geraten oder pauschal bereinigt. Keine allgemeine
+  Identitätsgarantie über Provider-Resets und Gerätewechsel hinweg.
 - #792: Buchaufteilung nach Fensterbreite, mindestens 48 CSS-Pixel große
   Aktionsziele, kompakte Register und erreichbare, begrenzte Dialoge. Bestehende
   Darstellung sowie Scroll-, RTL- und reduzierte Bewegungsoptionen bleiben.
+  #798 erhält den Fokus bei asynchronem Neuaufbau des Quellenbereichs nur, wenn er
+  zuvor darin lag. Abbruch, Abschluss und Freigabe besitzen erreichbare Folgeziele;
+  andere Controls/Editoren werden nicht zurückfokussiert. Importtexte sind für
+  dieselben 20 Sprachkataloge vorhanden; sprachliche Gesamtabnahme nicht behauptet.
 - #682: gespeicherte HTTPS-Kalenderanhänge werden nach dem bestehenden
   Speicherschutz direkt an Android übergeben; kein Notes-/KDE-Umweg. Die native
   Richtlinie prüft den tatsächlichen gespeicherten Anhang und dessen Freigabe.
+- #463: fehlender/fehlgeschlagener Accessibility-Nachweis wird von positiv
+  erkanntem fremdem Paket/Fenster und eigenem nicht bereitem Appzustand getrennt.
+  Fokus vorhanden, beide Fensterkennungen `-1` und leeres aktives Paket bedeutet
+  jetzt `input-ownership-unverified`. Besitzbedingung, Flags und 420-ms-Geste sind
+  unverändert. Keine Ursachenlösung für `-1`, kein Retry/Prewarm und keine
+  Zulassung einer unbelegten Geste.
 
-Geprüft: 194 bestehende Tablet-Webchecks; 31 zusätzliche tatsächliche
+Erste Patchserie, jeweils an ihrem dokumentierten Stand geprüft: 194 bestehende
+Tablet-Webchecks; 31 zusätzliche tatsächliche
 Frontend-Integrationsfälle mit synthetischer Native-Bridge; 31 JVM-Tests der
 Import-/Quellen-/Anhangsrichtlinien; alle 38 Kotlin-Produktdateien gegen echte
 Android-37.2-/AndroidX-Abhängigkeiten einschließlich aapt2-Ressourcenübersetzung;
@@ -329,9 +356,27 @@ Chromium-Layoutchecks in zehn Fenster-/Schrift-/RTL-Fällen. Derselbe Layoutrunn
 fand mit dem alten CSS 40 Fehler. Der korrigierte Legacy-CSS-Test prüft die
 tatsächlich geltenden vh-/dvh-Fallbacks; Mac-Prüfungen bleiben erhalten.
 
+Gezielte Folgeprüfungen: **22 Provenienz-/Workflowvertragstests** einschließlich
+Build-only-Auswahl und unveränderten bisherigen Zielen; **9 JVM-Tests mit 432
+Zustandskombinationen** für die unveränderte Besitzentscheidung und neue
+Ownership-Diagnose. Der zugehörige Android-Adapter ist gegen echte API 37.2
+kompiliert, ohne native Laufzeitprüfung. Zusätzlich sind **46 JVM-Tests** der
+Import-/Quellen-/Anhangsregeln und **167 echte Chromium-Prüfungen** des
+Importformulars mit synthetischer Native-Bridge, Fokus-/Touchabläufen und
+Katalogvollständigkeit belegt. #801 ergänzt die persistente Statusregion im
+Dialog; der echte Identitätskonflikt erhält Live-/Speicherbuch und seine Meldung
+ist nach Scrollen vollständig sichtbar und per Hitprobe unverdeckt.
+**194 Webchecks, 46 Import-/Anhangsintegrationschecks und 150/150 Layoutchecks**
+sind auf der gemeinsamen finalen Projektion erneut bestanden:
+`7a0c31a550761badd32e07f4bdaee6b016fd158a769a64017c7525332bb70416`.
+Rohbelege, Quellhashes und Reproduktion stehen in
+`pruefnachweise/android-tablet-followup-2026-11-26/`. Diese Zahlen sind
+spezifische Hostnachweise, kein gemeinsamer Androidlauf.
+
 Ein vollständiger neuer Gradle-/D8-/APK-Bau, Android-Provider-/Berechtigungsdialoge,
 TalkBack, IME, Stift, native Pixel-/SAF-/Restore-/Neustartmatrix und tatsächliche
 HTTPS-/Clipboard-Bedienung sind damit nicht abgenommen. Historische native
-Teilnachweise und heutige Reste werden im Audit getrennt geführt. #458, #463 und
-#471 bleiben mit ihren belegten unterschiedlichen Ursachen offen; geschlossene
-Quell-/Native-Teilfixes werden nicht ohne neue Regression wieder geöffnet.
+Teilnachweise und heutige Reste werden im Audit getrennt geführt. Für die
+unterschiedlichen Befunde in #458, #463 und #471 bleiben die jeweiligen Ursachen-
+und Restprüfungen offen. Geschlossene Quell-/Native-Teilfixes werden nicht ohne
+neue Regression wieder geöffnet.
