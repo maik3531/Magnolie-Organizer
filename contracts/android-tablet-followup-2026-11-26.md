@@ -4,7 +4,8 @@ Ausgangspunkt ist der veröffentlichte Stand von [PR #795](https://github.com/ma
 Commit `29acde7e3df2b8bcaaab0cc19b3377b8dbf4bd14`. Der erste
 [Issue-Audit](android-tablet-audit-2026-11-26.md) bleibt als Verlauf erhalten.
 Zu dessen 26 maßgeblichen Issues kommen vier reproduzierte UI-/Herkunftsfehler
-und zwei im echten CI-Bau bestätigte Prüfcodefehler (#804/#805) hinzu.
+und zwei im echten CI-Bau bestätigte Prüfcodefehler (#804/#805) sowie der
+native Serienfixture-Befund #807 hinzu: insgesamt 33 zugeordnete Issues.
 Die Änderungen werden weiterhin als überprüfbare Patchserie bereitgestellt.
 
 ## Änderungen und Zuordnung
@@ -121,6 +122,43 @@ Rohbelege, ausgeführte Skripte und Quellhashes stehen unter
 Eine tatsächliche Provider-/Emulatorausführung wird damit noch nicht behauptet.
 `systemProviderOnly:true` und `API34-provider-only` halten diesen Prüfumfang
 von einer vollständigen nativen Abnahme getrennt.
+
+## Vollständiger APK-Nachweis und native Fortsetzung zu #807
+
+[Lauf #99, Versuch 1](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45817099578/attempts/1)
+erreicht mit Head `92e2c645cf0a8075325874f335087412e7f79c79` Gradle, scheitert
+aber beim externen Maven-Central-Download an HTTP429. Der unveränderte
+[zweite Versuch](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45817099578/attempts/2)
+besteht den vollständigen ursprünglichen APK-Gate: **303 Tests in 42 JUnit-Reports,
+0 failures, 0 errors, 0 skipped**. Tatsächliche App-/Instrumentation-Bytes,
+Kandidatenmanifest und die Projektionsdatei aus der App-APK stimmen mit der
+Quellbindung überein. Dieser Erfolg bestätigt auch #805 im regulären Gradlepfad.
+
+Die echte API34-Providerstufe bestätigt acht Fachgruppen: verweigerte Reads,
+Discovery, Kontaktfelder, beide Kontaktidentitätswechsel, Kalenderauswahl und
+Zeitfenster sowie Verschieben eines Einzeltermins. Danach scheitert die erwartete
+Zweiermenge nach Anlage der Serienausnahme. Die Ist-Anzahl wurde im ursprünglichen
+Receipt nicht protokolliert; die alte Fehlermeldung beweist kein Duplikat.
+Alle 16 aufgezeichneten Produktaufrufe sind ohne WRITE-Rechte. Zwei eigene
+Kontaktzeilen und zwei eigene Kalender sind anschließend vollständig entfernt.
+Die nachfolgende Cancellation-Gruppe wurde nicht erreicht. Der Gesamtjob ist
+fehlgeschlagen, obwohl der APK-Gate bestanden ist.
+
+Der AOSP-14-Quellabgleich in #807 zeigt einen besonderen Expansionspfad ohne
+Serien-Sync-ID; er liefert eine begründete Fixture-Hypothese, keine nachträgliche
+Messung der fehlenden Instanzanzahl. Die korrigierte synthetische Syncadapter-
+Fixture bindet Master und Ausnahme vollständig über `_SYNC_ID`/`ORIGINAL_SYNC_ID`;
+`ORIGINAL_ID`, ursprünglicher Slot und Ganztagskennung bleiben zusätzlich geprüft.
+Direktes Rücklesen der eigenen Eventzeilen sowie begrenzte Vorher-/Nachher-
+Slotbelege ergänzen die unveränderten Zweier-/Identitäts-/12:00-/Folgetagprüfungen.
+Der Produktleser, Produktberechtigungen und alle Ressourcengates bleiben unverändert.
+
+Der Umfang wird ausdrücklich als `recurrenceFixtureUsesSyncMetadata:true` und
+`unsyncedLocalRecurrenceExceptionsTested:false` aufgezeichnet. Nicht synchronisierte
+lokale Serienausnahmen sind durch diese Fixturekorrektur nicht allgemein abgenommen.
+Der tatsächliche native Wiederholungslauf auf der Korrektur steht bei Erstellung
+dieses Folgepatches aus. Originalbelege beider Versuche liegen unter
+`pruefnachweise/android-tablet-followup-2026-11-26/ci-run-45817099578/`.
 
 ## Prüfumfang und Restabnahme
 

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.OrdinarySaveEpochPolicyTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:18:43.534Z" hostname="ip-10-0-135-230" time="0.35">
+  <properties/>
+  <testcase name="policyOutputAndPinnedSlotObjectsDoNotNarrowLargeNumbersOrCollapseKinds" classname="io.gitlab.maik3531.magnolietabletbeta.OrdinarySaveEpochPolicyTest" time="0.002"/>
+  <testcase name="malformedOptionalContainersCanRepairWithoutGrantingAuthority" classname="io.gitlab.maik3531.magnolietabletbeta.OrdinarySaveEpochPolicyTest" time="0.003"/>
+  <testcase name="explicitNullIsNotMissingAndMalformedCandidateCannotDiscardPinnedSlot" classname="io.gitlab.maik3531.magnolietabletbeta.OrdinarySaveEpochPolicyTest" time="0.0"/>
+  <testcase name="establishedCannotDropChangeOrMoveEpochAndCaseIsPinned" classname="io.gitlab.maik3531.magnolietabletbeta.OrdinarySaveEpochPolicyTest" time="0.001"/>
+  <testcase name="absentCannotMintEpochAndOversizeCandidateFailsBeforeSerialization" classname="io.gitlab.maik3531.magnolietabletbeta.OrdinarySaveEpochPolicyTest" time="0.332"/>
+  <testcase name="sharedSwiftSlotMatrixPreservesAbsentNullMalformedUnknownValuesAndNeverPromotes" classname="io.gitlab.maik3531.magnolietabletbeta.OrdinarySaveEpochPolicyTest" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

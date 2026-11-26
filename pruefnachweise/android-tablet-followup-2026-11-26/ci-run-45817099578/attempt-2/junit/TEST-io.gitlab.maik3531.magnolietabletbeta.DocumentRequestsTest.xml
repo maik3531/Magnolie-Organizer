@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.DocumentRequestsTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:18:41.603Z" hostname="ip-10-0-135-230" time="0.011">
+  <properties/>
+  <testcase name="backgroundCalendarSelectionCannotOutliveNewPickerOrBeFinishedTwice" classname="io.gitlab.maik3531.magnolietabletbeta.DocumentRequestsTest" time="0.0"/>
+  <testcase name="recreatedActivityNeverReusesPendingRequestCode" classname="io.gitlab.maik3531.magnolietabletbeta.DocumentRequestsTest" time="0.0"/>
+  <testcase name="resultRejectsChangedPageRevisionAndDestroyedHost" classname="io.gitlab.maik3531.magnolietabletbeta.DocumentRequestsTest" time="0.0"/>
+  <testcase name="lateCancelledPickerDoesNotConsumeNewPagesPicker" classname="io.gitlab.maik3531.magnolietabletbeta.DocumentRequestsTest" time="0.0"/>
+  <testcase name="restoreOrReloadCancellationInvalidatesAlreadySelectedCalendarBytes" classname="io.gitlab.maik3531.magnolietabletbeta.DocumentRequestsTest" time="0.001"/>
+  <testcase name="selectedImportCannotBeReauthorizedAgainstNewVaultPage" classname="io.gitlab.maik3531.magnolietabletbeta.DocumentRequestsTest" time="0.009"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

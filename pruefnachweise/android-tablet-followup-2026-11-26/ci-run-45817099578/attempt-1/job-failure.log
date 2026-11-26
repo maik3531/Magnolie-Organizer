@@ -1,0 +1,29 @@
+2026-11-26T12:12:15.6995363Z A3 actual-editor matrix passed: 25 cases, plus module/item opt-out
+2026-11-26T12:12:15.6995617Z 
+2026-11-26T12:12:15.6996883Z [2026-11-26T12:12:15+00:00] elapsed=32.3s offline-jvm {"command": ["bash", "/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-notes/gradlew", "-p", "/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-Android-Tablet-Beta", "--console=plain", "--no-daemon", "--max-workers=1", "--rerun-tasks", ":app:testDebugUnitTest"]}
+2026-11-26T12:12:15.7006262Z [2026-11-26T12:12:15+00:00] elapsed=32.3s command-started {"pid": 11311}
+2026-11-26T12:12:41.5907343Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-exited {"pid": 11311, "actualExit": 1}
+2026-11-26T12:12:41.5915488Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11311, "actualExit": 1}
+2026-11-26T12:12:41.5934623Z [2026-11-26T12:12:41+00:00] elapsed=58.2s failed {"reason": "Command '['bash', '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-notes/gradlew', '-p', '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-Android-Tablet-Beta', '--console=plain', '--no-daemon', '--max-workers=1', '--rerun-tasks', ':app:testDebugUnitTest']' returned non-zero exit status 1.", "output": "Picked up JAVA_TOOL_OPTIONS: -Djava.io.tmpdir=/tmp/opencode/tablet-beta-fbv44td3\nDownloading https://services.gradle.org/distributions/gradle-9.6.0-bin.zip\n.............10%.............20%..............30%.............40%..............50%.............60%.............70%..............80%.............90%..............100%\n\nWelcome to Gradle 9.6.0!\n\nHere are the highlights of this release:\n - Improved Configuration Cache hit rates\n - Additional CLI rendering options\n - Important project hierarchy lookup deprecations\n\nFor more details see https://docs.gradle.org/9.6.0/release-notes.html\n\nTo honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.6.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.\nDaemon will be stopped at the end of the build \n\nFAILURE: Build failed with an exception.\n\n* What went wrong:\nA problem occurred configuring root project 'Magnolie Organizer Android Tablet Beta'.\n> Could not resolve all artifacts for configuration 'classpath'.\n   > Could not resolve org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21.\n     Required by:\n         buildscript of root project 'Magnolie Organizer Android Tablet Beta'\n      > Could not resolve org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21.\n         > Could not get resource 'https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-gradle-plugin/2.4.21/kotlin-gradle-plugin-2.4.21.pom'.\n            > Could not GET 'https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-gradle-plugin/2.4.21/kotlin-gradle-plugin-2.4.21.pom'. Received status code 429 from server: Too Many Requests\n> There are 61 more failures with identical causes.\n\n* Try:\n> Run with --stacktrace option to get the stack trace.\n> Run with --info or --debug option to get more log output.\n> Run with --scan to get full insights from a Build Scan (powered by Develocity).\n> Get more help at https://help.gradle.org.\n\nBUILD FAILED in 25s\n"}
+2026-11-26T12:12:41.5944190Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11311, "actualExit": 1}
+2026-11-26T12:12:41.5944893Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11303, "actualExit": 0}
+2026-11-26T12:12:41.5952972Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11294, "actualExit": 0}
+2026-11-26T12:12:41.5960242Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11286, "actualExit": 0}
+2026-11-26T12:12:41.5968801Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11245, "actualExit": 0}
+2026-11-26T12:12:41.5976494Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11238, "actualExit": 0}
+2026-11-26T12:12:41.5985191Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11230, "actualExit": 0}
+2026-11-26T12:12:41.5992725Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11223, "actualExit": 0}
+2026-11-26T12:12:41.6001349Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11216, "actualExit": 0}
+2026-11-26T12:12:41.6009121Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11215, "actualExit": 0}
+2026-11-26T12:12:41.6017933Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11213, "actualExit": 0}
+2026-11-26T12:12:41.6026754Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11211, "actualExit": 0}
+2026-11-26T12:12:41.6035659Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11184, "actualExit": 0}
+2026-11-26T12:12:41.6043617Z [2026-11-26T12:12:41+00:00] elapsed=58.2s child-reaped {"pid": 11182, "actualExit": 0}
+2026-11-26T12:12:41.6052405Z [2026-11-26T12:12:41+00:00] elapsed=58.2s finished {"exitCode": 1}
+2026-11-26T12:12:41.6170217Z Finished with result: exit-code
+2026-11-26T12:12:41.6170873Z Main processes terminated with: code=exited/status=1
+2026-11-26T12:12:41.6171271Z Service runtime: 58.218s
+2026-11-26T12:12:41.6171578Z CPU time consumed: 1min 3.725s
+2026-11-26T12:12:41.6171879Z Memory peak: 1.3G
+2026-11-26T12:12:41.6172139Z Memory swap peak: 0B
+2026-11-26T12:12:41.6187128Z ##[error]Process completed with exit code 1.

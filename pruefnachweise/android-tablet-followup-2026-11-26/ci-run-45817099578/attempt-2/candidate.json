@@ -1,0 +1,44 @@
+{
+  "name": "Magnolie-Organizer-Android-Tablet-Beta-2.0.30Beta-debug.apk",
+  "sha256": "c45915e1fb06eff2dbda216c42d6bc0289218e25e49be52b1a0eaa4bb9135d6f",
+  "sourceHash": "6c0e5542020d04ffaf556ee1334bbe32c91fcfd0da81ff90749b64ca33a6fe8a",
+  "testApk": "Magnolie-Organizer-Android-Tablet-Beta-2.0.30Beta-instrumentation.apk",
+  "testApkSha256": "47dcc1f9b388734fda858f78d66bbf564ebb0c5948b8ecc09ce75d9933b9ebd6",
+  "instrumentationTestOnly": true,
+  "applicationId": "io.gitlab.maik3531.magnolieorganizer.tablet.beta",
+  "signing": "debug only",
+  "displayName": "Magnolie Organizer Android Tablet Beta 2.0.30Beta",
+  "versionName": "2.0.30Beta",
+  "versionCode": 20030,
+  "status": "unaccepted beta candidate; not a production release",
+  "stale": false,
+  "emulatorTested": false,
+  "webChecks": 194,
+  "editorReminderCases": 25,
+  "unitTests": 303,
+  "unitReport": "app/build/reports/tests/testDebugUnitTest/index.html",
+  "runnerTests": 59,
+  "setupHolidayCases": 88,
+  "setupLocales": 20,
+  "apkAssetsVerified": true,
+  "apkPermissions": [
+    "android.permission.INTERNET",
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.READ_CALENDAR",
+    "android.permission.READ_CONTACTS",
+    "android.permission.RECEIVE_BOOT_COMPLETED",
+    "io.gitlab.maik3531.magnolieorganizer.tablet.beta.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+  ],
+  "systemSourceIntegration": {
+    "scope": "read-only discovery and explicit local copy",
+    "readPermissions": [
+      "android.permission.READ_CALENDAR",
+      "android.permission.READ_CONTACTS"
+    ],
+    "permissionRequestRequiresUserAction": true,
+    "providerWrites": false,
+    "accountManagerEnumeration": false,
+    "fullSynchronization": false,
+    "nativeRuntimeAccepted": false
+  }
+}

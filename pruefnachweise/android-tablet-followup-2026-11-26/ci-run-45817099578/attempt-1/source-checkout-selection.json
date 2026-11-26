@@ -1,0 +1,18 @@
+{
+  "kind": "selection; not the original complete record",
+  "originalBytes": 124159,
+  "originalSha256": "9bdb518200ea497192edbbf0bcc5c820e9c430c2a904c3d622416a1369d1704f",
+  "originalName": "source-checkout.json",
+  "omittedInputRecords": 462,
+  "omitted": "inputs: full source-file/blob inventory retained in the hash-verified original ZIP",
+  "selected": {
+    "schema": 1,
+    "sourceMode": "current-checkout",
+    "portCommit": "92e2c645cf0a8075325874f335087412e7f79c79",
+    "desktopCommit": "92e2c645cf0a8075325874f335087412e7f79c79",
+    "gitTree": "d7b912c6aba697da48ccf1919591a162a4a4a452",
+    "inputSetSha256": "90ac565f4dc17d780d5d7c2a755e23e9f7b1706cf08478abf50f2bee9d65c2c8",
+    "nativeAcceptance": false,
+    "productionRelease": false
+  }
+}

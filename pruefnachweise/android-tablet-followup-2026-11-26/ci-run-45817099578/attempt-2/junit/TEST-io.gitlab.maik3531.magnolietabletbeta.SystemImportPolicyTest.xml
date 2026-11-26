@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" tests="32" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:18:45.039Z" hostname="ip-10-0-135-230" time="0.133">
+  <properties/>
+  <testcase name="contactReadBindsIdentityAndVersionInBothProviderSnapshots" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.003"/>
+  <testcase name="movedAllDayExceptionKeepsOriginalUtcDateIdentityAndActualExclusiveEnd" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.004"/>
+  <testcase name="contactResultCarriesOnlyHashedIdentityMetadataAndCannotOmitItsSelectedRows" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="aNewSourceIdentityKeepsTheRowBindingForExplicitConflictHandling" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.0"/>
+  <testcase name="failureCannotBeMisreadAsAnEmptySuccessfulProviderSnapshot" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.0"/>
+  <testcase name="fallbackIdentityAndRowBindingsCannotCollideAcrossDevicesOrProfiles" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.0"/>
+  <testcase name="contactValuesKeepNativeLabelsMultipleNumbersAndStructuredAddresses" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.0"/>
+  <testcase name="oversizedOrUnknownContactRowsFailWithoutTruncatingTheirContent" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.0"/>
+  <testcase name="explicitTypedSourceReadHasNoImplicitWindowOrWriteFlags" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.003"/>
+  <testcase name="nativeIdentitiesAreSourceBoundAndDoNotDiscloseRawAccountNames" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="multiDayDateSpansUseExclusiveEndsAndTimedZeroDurationKeepsItsOwnBoundary" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="providerBackupIdentityIsUsedOnlyWithoutSourceIdentityAndHasItsOwnNamespace" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="successfulEmptyImportIsExplicitlyScopedAndDoesNotClaimAllCalendarData" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.0"/>
+  <testcase name="birthdaysKeepUnknownYearsAndUnsupportedDatesWithoutInventingValues" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.002"/>
+  <testcase name="allDayExclusiveEndBecomesInclusiveCanonicalLastDay" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="contactReadPropagatesPermissionRevocationBeforeTheSecondSnapshot" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="berlinDayDoesNotImportThePreviousUtcAllDayButKeepsLocalTimedEvents" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.0"/>
+  <testcase name="westernZoneQueriesTheFullUtcDayWithoutImportingTheFollowingAllDay" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="accountSourceIdentitySurvivesRawRowRecreationAndDeviceChanges" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="eventResultDeclaresIdentitySchemaAndKindWithoutAContactRowBinding" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="unresolvedOrContradictoryRecurrenceExceptionsCannotInventAnIdentity" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.002"/>
+  <testcase name="recordAndByteLimitsDoNotReturnAClaimedCompleteTruncatedSnapshot" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.096"/>
+  <testcase name="timedInstancesRetainUtcSecondsWithoutImportingRecurrenceOrReminderConsent" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="recurrenceDatesUseTheSameInstanceIdentityAsRecurrenceRules" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.0"/>
+  <testcase name="duplicateIdentityAndMismatchedDataRejectTheWholeCandidate" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="duplicateProviderSourceIdentitiesRejectTheWholeRead" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.002"/>
+  <testcase name="movingOneTimeEventKeepsItsDeviceScopedIdentityWithoutUsingItsBeginTime" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="invalidDurationAndSubsecondLossFailAndZeroDurationIsPreserved" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.0"/>
+  <testcase name="contactReadStopsAfterCancellationInsteadOfReturningACompletedCandidate" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="timeWindowRejectsOverflowCoercionAndUnboundedReads" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.0"/>
+  <testcase name="recurringInstancesRemainDistinctAndTheirMovedExceptionKeepsTheOriginalSlot" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <testcase name="selectedDatesAreStrictBoundedAndCannotInflateTheNativeUnionQuery" classname="io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

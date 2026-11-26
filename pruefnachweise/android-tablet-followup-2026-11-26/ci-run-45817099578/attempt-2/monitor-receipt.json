@@ -1,0 +1,471 @@
+{
+  "schemaVersion": 1,
+  "repository": "maik3531/Magnolie-Organizer",
+  "runId": 45817099578,
+  "attempt": 2,
+  "jobId": 139902186688,
+  "jobName": "tablet-system-records-API34-provider-only",
+  "headSha": "92e2c645cf0a8075325874f335087412e7f79c79",
+  "gitTree": "d7b912c6aba697da48ccf1919591a162a4a4a452",
+  "conclusion": "failure",
+  "buildGate": "success",
+  "failedStep": 13,
+  "failure": {
+    "kind": "native smoke assertion",
+    "source": "NativeSystemProviderSmoke.kt",
+    "line": 185,
+    "message": "Provider must replace the original recurring slot, not duplicate it",
+    "actualSeriesCountRecorded": false,
+    "fixtureVersusProductCauseResolved": false,
+    "bootOrLifecycleFailure": false
+  },
+  "junit": {
+    "reportCount": 42,
+    "tests": 303,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "reports": [
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.AsyncTouchPairTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.AsyncTouchPairTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.CalendarExportRequestTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.CalendarExportRequestTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.CalendarIdentityTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.CalendarIdentityTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.DAVTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.DAVTest",
+        "tests": 19,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.DavAccountBridgeRequestTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.DavAccountBridgeRequestTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest",
+        "tests": 21,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.DavCredentialStoreTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.DavCredentialStoreTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.DisposableEmulatorPolicyTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.DisposableEmulatorPolicyTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.DocumentRequestsTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.DocumentRequestsTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.FixtureCleanupTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.FixtureCleanupTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.HardlinkEvidenceTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.HardlinkEvidenceTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest",
+        "tests": 16,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.ICalendarExportSystemZoneTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.ICalendarExportSystemZoneTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest",
+        "tests": 17,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeCalendarFileFixtureTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.NativeCalendarFileFixtureTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeDocumentProviderStateTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.NativeDocumentProviderStateTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeGestureBindingTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.NativeGestureBindingTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeOsOffsetComparisonTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.NativeOsOffsetComparisonTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.OrdinarySaveEpochPolicyTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.OrdinarySaveEpochPolicyTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.Pbkdf2Sha256Test.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.Pbkdf2Sha256Test",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.PortableCompatibilityTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.PortableCompatibilityTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.ProviderCodecMigrationTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.ProviderCodecMigrationTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.ProviderZoneTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.ProviderZoneTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.ReadinessObservationTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.ReadinessObservationTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.SavedBookEpochExpectationTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.SavedBookEpochExpectationTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.StandardBase64Test.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.StandardBase64Test",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.StorageFileOpsTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.StorageFileOpsTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest",
+        "tests": 32,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.SystemPermissionGateTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.SystemPermissionGateTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.SystemSourcePolicyTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.SystemSourcePolicyTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.TimeZoneExportTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.TimeZoneExportTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.TimezoneInteropOracleTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.TimezoneInteropOracleTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.TzdbBackportTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.TzdbBackportTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.VaultJsonTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.VaultJsonTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.VaultRestoreEpochTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.VaultRestoreEpochTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.VaultTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.VaultTest",
+        "tests": 17,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.WebViewStartupTest.xml",
+        "class": "io.gitlab.maik3531.magnolietabletbeta.WebViewStartupTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ]
+  },
+  "verified": {
+    "apkBytesMatchCandidateAndSourceBinding": true,
+    "candidateManifestDigestMatchesSourceBinding": true,
+    "packagedProjectionManifestDigestMatchesSourceBinding": true,
+    "allProjectionSourceHashesAgree": true,
+    "generatedCatalogsVerified": true
+  },
+  "apks": [
+    {
+      "file": "artifacts/Magnolie-Organizer-Android-Tablet-Beta-2.0.30Beta-debug.apk",
+      "bytes": 12106519,
+      "sha256": "c45915e1fb06eff2dbda216c42d6bc0289218e25e49be52b1a0eaa4bb9135d6f"
+    },
+    {
+      "file": "artifacts/Magnolie-Organizer-Android-Tablet-Beta-2.0.30Beta-instrumentation.apk",
+      "bytes": 266014,
+      "sha256": "47dcc1f9b388734fda858f78d66bbf564ebb0c5948b8ecc09ce75d9933b9ebd6"
+    }
+  ],
+  "sourceInputSetSha256": "90ac565f4dc17d780d5d7c2a755e23e9f7b1706cf08478abf50f2bee9d65c2c8",
+  "projectionSourceHash": "6c0e5542020d04ffaf556ee1334bbe32c91fcfd0da81ff90749b64ca33a6fe8a",
+  "provider": {
+    "sdk": 34,
+    "completedDomainCheckGroups": 8,
+    "cleanupCheckPassed": true,
+    "productPermissionCheckCount": 16,
+    "allRecordedProductCallsWithoutWritePermissions": true,
+    "cleanup": {
+      "requestedRawRows": 2,
+      "requestedCalendars": 2,
+      "remainingOwnedRawRows": 0,
+      "remainingOwnedCalendars": 0,
+      "shellIdentityDropped": true,
+      "writePermissionsDenied": true
+    },
+    "cancellationReadTestsExecuted": false,
+    "receiptPassed": false,
+    "contactsSourceIsolationTested": false,
+    "calendarSourceIsolationTested": true,
+    "permissionDialogsTested": false,
+    "livePermissionRevocationTested": false,
+    "saveAckTested": false,
+    "inFlightCancellationTested": false,
+    "fullProviderSuiteAccepted": false,
+    "checks": [
+      "real provider reads require runtime READ permissions",
+      "real discovery finds the local contact source and both fixture calendars",
+      "real contact Data rows project name, phone type and birthday",
+      "same SOURCE_ID survives a genuinely different raw row; rowBinding changes",
+      "changed SOURCE_ID on the same row yields a different record with the same rowBinding",
+      "selected calendar only; timed half-open bounds and all-day UTC date bounds",
+      "all-day selection also keeps the final selected date in a western instant window",
+      "moving one actual Events row preserves single-event identity",
+      "owned fixture IDs removed; fixture WRITE permissions absent after cleanup"
+    ],
+    "receiptPath": "artifacts/native-evidence/20261126T122015/native-evidence/legacy/system-records-receipt.json",
+    "stagePath": "artifacts/native-evidence/20261126T122015/native-evidence/legacy/system-records.json"
+  },
+  "scope": {
+    "nativeAcceptance": false,
+    "productionRelease": false,
+    "googleAcceptance": false,
+    "systemProviderOnly": true
+  },
+  "artifact": {
+    "id": 15115844508,
+    "bytes": 12387207,
+    "sha256": "e1274e177b578bafd4ff4a10a37bf5a6f7e1cd8e1a78569c0f9c83e074cf0759",
+    "zip": "run-45817099578-attempt-2.zip"
+  },
+  "evidenceFiles": {
+    "run-45817099578-attempt-2-original-records.json": {
+      "bytes": 22658,
+      "sha256": "ed4734485e8d75b7dc0c0fd38f49b176e0719d0fe6a43ec7b27cb0f1248b6be9"
+    },
+    "run-45817099578-attempt-2-job-139902186688.log": {
+      "bytes": 307233,
+      "sha256": "08d9b30d4dffdeb2712336ee18c5d2341758784d6e744abb8dcac4efb2790139"
+    },
+    "run-45817099578-attempt-2-native-failure.log": {
+      "bytes": 3766,
+      "sha256": "58043bcad6dda7f453820dbf365e5af5e7ba2ca8fd33c5a859e8c81cbd422fa3"
+    },
+    "run-45817099578-attempt-2-native-error.txt": {
+      "bytes": 516,
+      "sha256": "e0b54e94de9e3c537f0532c12fdef3338c8901e2688fe0ed07feacaa93bf1861"
+    },
+    "run-45817099578-attempt-2-artifact/artifacts/native-evidence/20261126T122015/native-evidence/legacy/system-records-receipt.json": {
+      "bytes": 5467,
+      "sha256": "06885d6699fe48d5e99caf35bd53adc46b8bda1ab275167120cfb585b8e54e26"
+    },
+    "run-45817099578-attempt-2-artifact/artifacts/native-evidence/20261126T122015/native-evidence/legacy/system-records.json": {
+      "bytes": 2075,
+      "sha256": "14477a95a042320b1996367a29ea988dc5f20efcd355842a706b89f8aba4020e"
+    },
+    "run-45817099578-attempt-2-artifact/artifacts/sources.json": {
+      "bytes": 124992,
+      "sha256": "1e84c92b8d116a543dd8152c0b7dd4908819e18cb293d71983ac5d7c7b4609eb"
+    },
+    "run-45817099578-attempt-2-artifact/artifacts/candidate.json": {
+      "bytes": 1753,
+      "sha256": "2844b27792c54caf72712117b428357dbc0fab020a58796b59d51468ff867d7d"
+    }
+  }
+}

@@ -488,10 +488,31 @@ original and final hashes and actual commands are in `system-records/`.
 This preparation does not claim a provider/emulator execution. The next full
 Actions run must bind the updated checkout and report its own APK/runtime result.
 
+The following actual run, [Actions 45817099578 / attempt 2](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45817099578/attempts/2),
+passed the complete APK gate on head `92e2c645cf0a8075325874f335087412e7f79c79`:
+303 JUnit tests in 42 reports, zero failures/errors/skips, verified app and
+instrumentation bytes and source/projection bindings. Attempt 1 separately failed
+on an external Maven Central HTTP429 dependency download. The API34 provider run
+passed eight functional groups and cleanup, then failed its expected two-instance
+count after creating a recurrence exception; the original actual count was not
+recorded. Cancellation was not reached. Both attempts remain distinct in
+`ci-run-45817099578/`; successful APK construction is not native suite acceptance.
+
+The follow-up fixture correction ([#807](https://github.com/maik3531/Magnolie-Organizer/issues/807))
+uses complete synthetic sync-adapter linkage for the series and exception, adds
+direct readback of its own Events rows and bounded before/after slot evidence,
+and retains every two-instance, original-identity, moved-time and second-slot
+assertion. Product readers and permissions are unchanged. Its receipt explicitly
+records `recurrenceFixtureUsesSyncMetadata:true` and
+`unsyncedLocalRecurrenceExceptionsTested:false`; unsynced local recurrence
+exceptions are outside this corrected fixture's proof. A fresh real provider run
+is still required for this correction.
+
 ## Later Acceptance
 
 Coordinate one emulator/VM at a time using the existing resource gates. The
-26 November review patches have not passed a complete new APK/device run.
+26 November head identified above has passed the complete APK gate. Its native
+provider suite failed at #807; the full tablet UI/device matrix remains open.
 
 1. Install the standalone tablet app and verify its identity and independent data; also check coexistence if Notes happens to be installed.
 2. Test 1280x800 landscape, portrait, large text, RTL, TalkBack, stylus, external keyboard and IME insets.

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" tests="21" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:18:41.371Z" hostname="ip-10-0-135-230" time="0.178">
+  <properties/>
+  <testcase name="externalConfigurationCredentialAndLockedStorageChangesInvalidateCache" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.026"/>
+  <testcase name="failedOldCredentialDeletionRestoresOldConfigurationAndBothCredentialStates" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.005"/>
+  <testcase name="realConfigurationStoreIsPrivateCanonicalAndLeavesOrganizerBytesUntouched" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.026"/>
+  <testcase name="canonicalAndLegacyShapesRejectSecretsWrongTypesAndMailboxMismatch" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.004"/>
+  <testcase name="sixtySecondDeadlineCoversAllDiscoveryRequestsTogether" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.002"/>
+  <testcase name="olderSuccessCannotHideNewerFailureOrPartialStatus" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.03"/>
+  <testcase name="realDiscoveryHasStableSourceBindingsAndPassiveStatusUsesExactRevisionCache" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.004"/>
+  <testcase name="clearPasswordRequiresDisabledServicesAndKeepsConfiguration" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.002"/>
+  <testcase name="realEncryptedCredentialAndConfigStoresRollBackAfterRenameDirectorySyncFailure" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.019"/>
+  <testcase name="metadataAndSaveReceiptContainNoSecretAndDoNotClaimConnectivity" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.001"/>
+  <testcase name="failedInitialSetupRestoresAbsentConfigurationAndNoCredential" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.001"/>
+  <testcase name="olderFailureOrPartialResultCannotOverwriteNewerSuccess" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.021"/>
+  <testcase name="lockedCredentialsAndUnsupportedMailboxCannotPretendToBeSuccessful" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.001"/>
+  <testcase name="olderSuccessCannotOverwriteNewerSameRevisionCapabilities" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.012"/>
+  <testcase name="keyedRevisionsFenceExternalCredentialChangesAndDifferAcrossSessions" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.002"/>
+  <testcase name="failedPartialDiscoveryRemainsHonestInPassiveStatusAndNeverChangesConfiguration" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.004"/>
+  <testcase name="unverifiableRollbackPoisonsFurtherMutationsAndDoesNotPublishRevision" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.001"/>
+  <testcase name="accountChangeDuringNetworkDiscoveryRejectsLateResults" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.004"/>
+  <testcase name="cancelledDiscoveryDoesNotSendRequestsOrPublishConnectivity" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.001"/>
+  <testcase name="activeEndpointChangeRequiresExplicitPasswordAndPreservesPreviousContext" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.001"/>
+  <testcase name="failedCredentialAndConfigurationWritesRollBackCompletePreviousContext" classname="io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

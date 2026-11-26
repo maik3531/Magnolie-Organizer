@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:18:43.525Z" hostname="ip-10-0-135-230" time="0.008">
+  <properties/>
+  <testcase name="readFailureTakesPrecedenceOverPartialContradictoryMetadata" classname="io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest" time="0.0"/>
+  <testcase name="aDifferentKnownWindowIsNotAMissingObservation" classname="io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest" time="0.0"/>
+  <testcase name="missingRootOrIncompleteBindingDoesNotNameAForeignCause" classname="io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest" time="0.0"/>
+  <testcase name="foreignPackageWithoutAValidRootWindowRemainsUnverified" classname="io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest" time="0.001"/>
+  <testcase name="positivelyObservedForeignPackageIsDistinguishedEvenWithoutTargetBinding" classname="io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest" time="0.0"/>
+  <testcase name="theExistingOwnershipTruthTableIsUnchangedByEveryDiagnosticField" classname="io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest" time="0.006"/>
+  <testcase name="observedOwnWindowWithoutNativeReadinessIsAnAppStateFailure" classname="io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest" time="0.0"/>
+  <testcase name="focusedAppWithUnboundWindowsIsUnverifiedNotEnvironmentBlocked" classname="io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest" time="0.0"/>
+  <testcase name="rootAndTargetReadFailuresRemainFailuresWithoutInventingAnEnvironmentBlocker" classname="io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

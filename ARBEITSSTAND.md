@@ -306,7 +306,8 @@ Die Fortsetzung baut auf PR-Head `29acde7e3df2b8bcaaab0cc19b3377b8dbf4bd14`
 auf und ergänzt denselben Draft-PR #795. Der Folgeaudit in
 `contracts/android-tablet-followup-2026-11-26.md` erfasst vier weitere
 reproduzierte Fehler (#798–#801). Zwei tatsächliche CI-Prüfcodebefunde
-(#804/#805) ergänzen die Zuordnung auf 32 Issues. Der Folgestand ist ein
+(#804/#805) und der spätere native Serienfixture-Befund #807 ergänzen die
+Zuordnung auf 33 Issues. Der Folgestand ist ein
 Prüfpatch, kein neuer Paketnachweis.
 
 - #790: Der Tablet-CI-Bau verwendet den aktuellen gemeinsamen Checkout. Das alte
@@ -415,6 +416,24 @@ vier Owner-Verträge und die reale API-Kompilierung sind belegt; die beiden letz
 Scope-Literale wurden gesondert nachkompiliert. Eine Emulator-/Provider-Ausführung
 steht weiterhin aus. Kein UI-/Berechtigungsdialog-, Save-ACK- oder vollständiger
 nativer Abnahmenachweis. Rohbelege stehen im Unterordner `system-records/`.
+
+Der tatsächliche Actions-Lauf #99 auf Head `92e2c645cf0a8075325874f335087412e7f79c79`
+ist getrennt ausgewertet. Versuch 1 scheitert extern an Maven-Central-HTTP429.
+Versuch 2 besteht den vollständigen APK-Gate und **303 JUnit-Tests aus 42 XML-Reports,
+0 Fehler/Ausfälle/Skips**. Tatsächliche App-/Instrumentierungsbytes,
+Kandidatenmanifest und die Projektion innerhalb der APK sind gegen die
+Quellbindung geprüft. Die native Providerstufe besteht acht Fachgruppen und
+Cleanup, scheitert aber an der erwarteten Zweiermenge nach einer Serienausnahme.
+Ihre Ist-Anzahl fehlt im Originalreceipt; kein Duplikat wird daraus abgeleitet.
+Alle 16 Produktaufrufe liefen ohne WRITE. Eigene Kontakte/Kalender vollständig
+entfernt; Cancellation nach dem Fehler nicht erreicht. Belege: `ci-run-45817099578/`.
+
+Der enge Folgefix #807 ergänzt die bereits synthetische Syncadapter-Fixture um
+vollständige Master-/Ausnahmeverknüpfung, direktes Event-Rücklesen und begrenzte
+Vorher-/Nachher-Slots. Alle bisherigen Anzahl-/Identitäts-/Zeitprüfungen bleiben
+hart; Produktcode und Gates bleiben unverändert. Die unsyncte lokale
+Serienausnahme ist ausdrücklich nicht durch diese Fixture abgenommen. Der neue
+native Lauf auf diesem Fix steht bei Erstellung des Folgepatches noch aus.
 
 Ein vollständiger neuer Gradle-/D8-/APK-Bau, Android-Provider-/Berechtigungsdialoge,
 TalkBack, IME, Stift, native Pixel-/SAF-/Restore-/Neustartmatrix und tatsächliche

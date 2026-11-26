@@ -1,0 +1,632 @@
+{
+  "schema": 1,
+  "runId": 45817099578,
+  "description": "Byte-preserved originals and explicitly labelled selections; binary archives and APKs are intentionally external.",
+  "copies": [
+    {
+      "path": "attempt-1/monitor-receipt.json",
+      "bytes": 2584,
+      "sha256": "0f5ff99fec9e2cea1f2dae9c9a8110965e5eb85c761e1a6f0f271f987cddba4d",
+      "origin": {
+        "kind": "saved-monitor-receipt",
+        "originalName": "run-45817099578-attempt-1-receipt.json"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-1/web-test-proof.json",
+      "bytes": 203,
+      "sha256": "22c1887d1969653f63dbbe6d6e76af97b497079feb207437d9622e13a2208e86",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-1",
+        "member": "artifacts/web-test-proof.json"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/monitor-receipt.json",
+      "bytes": 18485,
+      "sha256": "14943a00cf9f0753570c1809e5fd42ac0c42452ce8737f9c480986b3f1e0603c",
+      "origin": {
+        "kind": "saved-monitor-receipt",
+        "originalName": "run-45817099578-attempt-2-receipt.json"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/web-test-proof.json",
+      "bytes": 203,
+      "sha256": "22c1887d1969653f63dbbe6d6e76af97b497079feb207437d9622e13a2208e86",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "artifacts/web-test-proof.json"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-1/job-failure.log",
+      "bytes": 5483,
+      "sha256": "5076497572b696fa8c569ec094763f02501d06bf328d234ffc8d474df4e4c668",
+      "origin": {
+        "kind": "verbatim-github-job-log-excerpt",
+        "jobId": 139899561178,
+        "firstLine": 1587,
+        "lastLine": 1615
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-1/gradle-failure.txt",
+      "bytes": 2012,
+      "sha256": "700a308ad873982e4136c639342fbd1f33fab9c56ec74f58c5ec5e90b48f374d",
+      "origin": {
+        "kind": "decoded-artifact-field",
+        "attempt": "attempt-1",
+        "member": "artifacts/debug-build.json",
+        "field": "output"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/native-failure.log",
+      "bytes": 3766,
+      "sha256": "58043bcad6dda7f453820dbf365e5af5e7ba2ca8fd33c5a859e8c81cbd422fa3",
+      "origin": {
+        "kind": "verbatim-github-job-log-excerpt",
+        "jobId": 139902186688
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/candidate.json",
+      "bytes": 1753,
+      "sha256": "2844b27792c54caf72712117b428357dbc0fab020a58796b59d51468ff867d7d",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "artifacts/candidate.json"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/system-records-receipt.json",
+      "bytes": 5467,
+      "sha256": "06885d6699fe48d5e99caf35bd53adc46b8bda1ab275167120cfb585b8e54e26",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "artifacts/native-evidence/20261126T122015/native-evidence/legacy/system-records-receipt.json"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/system-records.json",
+      "bytes": 2075,
+      "sha256": "14477a95a042320b1996367a29ea988dc5f20efcd355842a706b89f8aba4020e",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "artifacts/native-evidence/20261126T122015/native-evidence/legacy/system-records.json"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/native-error.txt",
+      "bytes": 516,
+      "sha256": "e0b54e94de9e3c537f0532c12fdef3338c8901e2688fe0ed07feacaa93bf1861",
+      "origin": {
+        "kind": "decoded-artifact-field",
+        "attempt": "attempt-2",
+        "member": "artifacts/native-evidence/20261126T122015/native-evidence/legacy/system-records.json",
+        "field": "error"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.AsyncTouchPairTest.xml",
+      "bytes": 796,
+      "sha256": "153abb6433febc02f3d1374b4366007651ecbe899cb46404e8d289c4725e3139",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.AsyncTouchPairTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest.xml",
+      "bytes": 1717,
+      "sha256": "78c6d1cc317379c96a7814b48bdf96849406b552631424fb8e590f40b8c62e2f",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest.xml",
+      "bytes": 2293,
+      "sha256": "27ac297c6de56a7ac47f5aa0600d9ba67967827de176f3210c1ed4201fca3931",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.CalendarExportRequestTest.xml",
+      "bytes": 1203,
+      "sha256": "f3198aa03bc468db4333979be3284cf4db9026355edf319277b3361bba2fc38b",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.CalendarExportRequestTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.CalendarIdentityTest.xml",
+      "bytes": 1352,
+      "sha256": "7205b037e4a43d58dbf376702b90a11791793dd09a155f8aa674ef22c530e668",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.CalendarIdentityTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.DAVTest.xml",
+      "bytes": 3086,
+      "sha256": "3a342ac956719b00bb7cb3934e3d71a817752d561b1cac904ad6b7679a4a31dd",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.DAVTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.DavAccountBridgeRequestTest.xml",
+      "bytes": 1368,
+      "sha256": "265eec60d577a685c486a933a507bbb341ad8b125b898929cb2e28da81558cc2",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.DavAccountBridgeRequestTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest.xml",
+      "bytes": 3949,
+      "sha256": "68a4af15b4bd94b4fac23162f6b3dbe6cca432d15a0d630ddf114cfcbb3db493",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.DavAccountServiceTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.DavCredentialStoreTest.xml",
+      "bytes": 1486,
+      "sha256": "327c5ed16afdfc0f62417024bdbd363929d4869538f8a22109bbe2e889c571e1",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.DavCredentialStoreTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.DisposableEmulatorPolicyTest.xml",
+      "bytes": 707,
+      "sha256": "24bbda6ce531a59e47ddeaac8986046fa8d782497dd1813e968e9963ea8aa2b4",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.DisposableEmulatorPolicyTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.DocumentRequestsTest.xml",
+      "bytes": 1303,
+      "sha256": "a1ccb161389f89a16efb52f9f555597741333c341534363085490c8661313c08",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.DocumentRequestsTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.FixtureCleanupTest.xml",
+      "bytes": 808,
+      "sha256": "ad54c9425855155b39c961879c7a5f9728aa69653b0718d68e271133f9bdc27e",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.FixtureCleanupTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.HardlinkEvidenceTest.xml",
+      "bytes": 851,
+      "sha256": "6156aa52bb2a71eac97ec0039edc34dc8708174990fb7232c3048a1831777951",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.HardlinkEvidenceTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest.xml",
+      "bytes": 2808,
+      "sha256": "7344a15fb013438b75d7522bd47665fe14441c9729e3afa114813586b4aab7e2",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.ICalendarExportSystemZoneTest.xml",
+      "bytes": 890,
+      "sha256": "6b036649cb3a17cddebc50bb043a16401562a25d92f9ea0280f9b061350fcf0d",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.ICalendarExportSystemZoneTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest.xml",
+      "bytes": 3280,
+      "sha256": "0ff7674ee0184871dd8a21f51caba5815c966f21cdabaa87c43b67d9d0bed1c1",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest.xml",
+      "bytes": 2394,
+      "sha256": "5a224629d90056a83b84f482709ab4cff7a4d78c7d73413549c89b7f62cb97ff",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest.xml",
+      "bytes": 2213,
+      "sha256": "f75e59494ab79f961efa657311fdf70a1a25b7ad457705f6040a4b886a7ff111",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeCalendarFileFixtureTest.xml",
+      "bytes": 534,
+      "sha256": "0c82ae9808ac60010d1ab06835497fff9a1ad7e8caa498ea23637d232a7b899f",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeCalendarFileFixtureTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeDocumentProviderStateTest.xml",
+      "bytes": 893,
+      "sha256": "4a48d7bbfa6222a0933e7ee64ab086f255248db9d63289ec6a1eb52a32421741",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeDocumentProviderStateTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeGestureBindingTest.xml",
+      "bytes": 1111,
+      "sha256": "a85b6d60d80307832daeca8d44cd921476f43a8dfc67e9338ba1b98cbb46939e",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeGestureBindingTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeOsOffsetComparisonTest.xml",
+      "bytes": 684,
+      "sha256": "deea7832e21d8e52b4ef23cb2a8c3cfa38894379649a266fa081083c4e667ccd",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeOsOffsetComparisonTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest.xml",
+      "bytes": 1940,
+      "sha256": "cb01bdf557ec88b4f92e5b378039115a7306d714516e3a61cf9208787cc41b52",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.NativeWindowOwnershipPolicyTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.OrdinarySaveEpochPolicyTest.xml",
+      "bytes": 1425,
+      "sha256": "67877d620dfe6da5dc58b69cd99345d46d6f14bea03eac4a5b73758640f1c8a3",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.OrdinarySaveEpochPolicyTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.Pbkdf2Sha256Test.xml",
+      "bytes": 808,
+      "sha256": "0327baa582a0dfbfb14e732cdf6ad666c8771a176e067630aaf79aaa5eec0e9e",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.Pbkdf2Sha256Test.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.PortableCompatibilityTest.xml",
+      "bytes": 700,
+      "sha256": "139b24df41eb5009e0300fd13ac8e5777165fec7795667670829ae98c0ac7d0b",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.PortableCompatibilityTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.ProviderCodecMigrationTest.xml",
+      "bytes": 1576,
+      "sha256": "7a37d958338a3f15420d2d452c9b4e0ccd3b9a923e7f966f969a4896f71e6643",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.ProviderCodecMigrationTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.ProviderZoneTest.xml",
+      "bytes": 1108,
+      "sha256": "78879f7f9efebd8a64e9f5eb22f5105466f18488a30ada127973911b94e1ffc9",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.ProviderZoneTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.ReadinessObservationTest.xml",
+      "bytes": 1103,
+      "sha256": "d218962633047d50617f4aa75ae0fb5afcd29462b938d9d551924cf5f5d3697b",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.ReadinessObservationTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.SavedBookEpochExpectationTest.xml",
+      "bytes": 1058,
+      "sha256": "b9c803ff9aad9aea84f14b5d32ef3e426ced68823334349c5c315543d06ef6aa",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.SavedBookEpochExpectationTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.StandardBase64Test.xml",
+      "bytes": 1025,
+      "sha256": "9561916aa90a7691594dc4f7913f9fe85d2b8944fe9322b9445c2a3f4e04c26b",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.StandardBase64Test.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.StorageFileOpsTest.xml",
+      "bytes": 1486,
+      "sha256": "9e2101ef4bfe74eb5a88125827c68e96b30fe973b959ad6f2d842d7d850bddab",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.StorageFileOpsTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest.xml",
+      "bytes": 5827,
+      "sha256": "8d2ec7537be414137522e11ce074d2a8681a6ffcea06e3850198e303f468f07e",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.SystemPermissionGateTest.xml",
+      "bytes": 1042,
+      "sha256": "c7e8bbc1544a02060e4163dcfb2612ec9824ecb5ef1d22279724fdc9f8117b28",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.SystemPermissionGateTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.SystemSourcePolicyTest.xml",
+      "bytes": 1341,
+      "sha256": "4a7373f9e610f2f20a5804f4a3562ebf68d5a39ce741723d0d8fbf2710c5f79d",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.SystemSourcePolicyTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.TimeZoneExportTest.xml",
+      "bytes": 839,
+      "sha256": "deb818f6d7cf9db620b45101810c9da3957d279337ca41897b7c989da41f301d",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.TimeZoneExportTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.TimezoneInteropOracleTest.xml",
+      "bytes": 617,
+      "sha256": "cbc340ae83a9ed38eb5eba0fb729670ad7de42ac787e8f1ac65466b8e285c0f0",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.TimezoneInteropOracleTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.TzdbBackportTest.xml",
+      "bytes": 1179,
+      "sha256": "6271a033d7cbfa83b9936b47576d8c374e4a60c1cfca0bf74dd2541820c4418e",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.TzdbBackportTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.VaultJsonTest.xml",
+      "bytes": 1259,
+      "sha256": "956f4d276c385366e5fc00206f314688c1594551a80a14d1d2a18c228bd8d8c7",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.VaultJsonTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.VaultRestoreEpochTest.xml",
+      "bytes": 846,
+      "sha256": "9dadc45d275bc761fcd0287d839a94031d1818bec22992387287bef46509df8d",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.VaultRestoreEpochTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.VaultTest.xml",
+      "bytes": 2873,
+      "sha256": "26400c42993db317f3f35f9e1b16d91a4ff67d048ee4e96e1e4d566f9b2ca78c",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.VaultTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    },
+    {
+      "path": "attempt-2/junit/TEST-io.gitlab.maik3531.magnolietabletbeta.WebViewStartupTest.xml",
+      "bytes": 670,
+      "sha256": "4fa8760c6b6a61c5cdba721cedd38144b30a92a7cc1916df4705399323024f5c",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "app/build/test-results/testDebugUnitTest/TEST-io.gitlab.maik3531.magnolietabletbeta.WebViewStartupTest.xml"
+      },
+      "copyVerifiedAtCreation": true
+    }
+  ],
+  "selections": [
+    {
+      "path": "attempt-1/run-record-selection.json",
+      "origin": {
+        "kind": "saved-github-api-records",
+        "attemptNumber": 1
+      }
+    },
+    {
+      "path": "attempt-1/source-checkout-selection.json",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-1",
+        "member": "artifacts/source-checkout.json"
+      }
+    },
+    {
+      "path": "attempt-2/run-record-selection.json",
+      "origin": {
+        "kind": "saved-github-api-records",
+        "attemptNumber": 2
+      }
+    },
+    {
+      "path": "attempt-2/source-binding-selection.json",
+      "origin": {
+        "kind": "artifact-member",
+        "attempt": "attempt-2",
+        "member": "artifacts/sources.json"
+      }
+    }
+  ],
+  "omittedAttempt2JobLog": {
+    "jobId": 139902186688,
+    "bytes": 307233,
+    "sha256": "08d9b30d4dffdeb2712336ee18c5d2341758784d6e744abb8dcac4efb2790139",
+    "originalName": "run-45817099578-attempt-2-job-139902186688.log",
+    "includedExcerpt": "attempt-2/native-failure.log",
+    "excerptFirstLine": 2927,
+    "excerptLastLine": 2969,
+    "reason": "Complete 307KB job log omitted; the native cause and original full-log hash are preserved."
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "stage": "system-records",
+  "sdk": 34,
+  "syntheticFixtures": true,
+  "productProviderWrites": false,
+  "contactsSourceIsolationTested": false,
+  "calendarSourceIsolationTested": true,
+  "permissionDialogsTested": false,
+  "livePermissionRevocationTested": false,
+  "saveAckTested": false,
+  "inFlightCancellationTested": false,
+  "checks": [
+    "real provider reads require runtime READ permissions",
+    "real discovery finds the local contact source and both fixture calendars",
+    "real contact Data rows project name, phone type and birthday",
+    "same SOURCE_ID survives a genuinely different raw row; rowBinding changes",
+    "changed SOURCE_ID on the same row yields a different record with the same rowBinding",
+    "selected calendar only; timed half-open bounds and all-day UTC date bounds",
+    "all-day selection also keeps the final selected date in a western instant window",
+    "moving one actual Events row preserves single-event identity",
+    "owned fixture IDs removed; fixture WRITE permissions absent after cleanup"
+  ],
+  "productPermissionChecks": [
+    {
+      "operation": "initial-permissions",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": false,
+      "readCalendar": false
+    },
+    {
+      "operation": "denied-discovery",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": false,
+      "readCalendar": false
+    },
+    {
+      "operation": "denied-contacts",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": false,
+      "readCalendar": false
+    },
+    {
+      "operation": "denied-events",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": false,
+      "readCalendar": false
+    },
+    {
+      "operation": "fixture-contact-readback",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": true,
+      "readCalendar": true
+    },
+    {
+      "operation": "authorized-discovery",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": true,
+      "readCalendar": true
+    },
+    {
+      "operation": "contact-before",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": true,
+      "readCalendar": true
+    },
+    {
+      "operation": "fixture-contact-readback",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": true,
+      "readCalendar": true
+    },
+    {
+      "operation": "contact-recreated",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": true,
+      "readCalendar": true
+    },
+    {
+      "operation": "fixture-contact-readback",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": true,
+      "readCalendar": true
+    },
+    {
+      "operation": "contact-source-replaced",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": true,
+      "readCalendar": true
+    },
+    {
+      "operation": "calendar-east-window",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": true,
+      "readCalendar": true
+    },
+    {
+      "operation": "calendar-west-window",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": true,
+      "readCalendar": true
+    },
+    {
+      "operation": "single-moved",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": true,
+      "readCalendar": true
+    },
+    {
+      "operation": "series-before",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": true,
+      "readCalendar": true
+    },
+    {
+      "operation": "series-exception",
+      "dropShellPermissionIdentityCompleted": true,
+      "fixtureScopeActive": false,
+      "writeContacts": false,
+      "writeCalendar": false,
+      "readContacts": true,
+      "readCalendar": true
+    }
+  ],
+  "failureClass": "IllegalStateException",
+  "cleanup": {
+    "requestedRawRows": 2,
+    "requestedCalendars": 2,
+    "remainingOwnedRawRows": 0,
+    "remainingOwnedCalendars": 0,
+    "shellIdentityDropped": true,
+    "writePermissionsDenied": true
+  },
+  "passed": false
+}

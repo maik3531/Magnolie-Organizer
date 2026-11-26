@@ -22,7 +22,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Real API34 providers, synthetic rows, production discovery/read path. Refs #791/#799/#800.
+ * Real API34 providers, synthetic rows, production discovery/read path. Refs #791/#799/#800/#807.
  * No Activity, permission dialog, live revocation, UI Save-ACK or synchronization acceptance.
  * Only fixture writes adopt shell permissions; every product call runs after an explicit drop
  * and an effective-permission check. No hidden UiAutomation APIs or provider mocks are used.
@@ -40,6 +40,8 @@ internal object NativeSystemProviderSmoke {
         private val events = SystemSourcePolicy.Kind.EVENTS
         private val token = UUID.randomUUID().toString()
         private val account = "magnolie-provider-fixture-$token"
+        private val seriesSyncId = "fixture-series-$token"
+        private val exceptionSyncId = "fixture-exception-$token"
         private val rawIds = linkedSetOf<Long>()
         private val calendarIds = linkedSetOf<Long>()
         private var fixtureIdentityActive = false
@@ -50,6 +52,7 @@ internal object NativeSystemProviderSmoke {
         private val receipt = JSONObject().put("stage", "system-records").put("sdk", Build.VERSION.SDK_INT)
             .put("syntheticFixtures", true).put("productProviderWrites", false)
             .put("contactsSourceIsolationTested", false).put("calendarSourceIsolationTested", true)
+            .put("recurrenceFixtureUsesSyncMetadata", true).put("unsyncedLocalRecurrenceExceptionsTested", false)
             .put("permissionDialogsTested", false).put("livePermissionRevocationTested", false)
             .put("saveAckTested", false).put("inFlightCancellationTested", false)
             .put("checks", checks).put("productPermissionChecks", permissionChecks)
@@ -176,13 +179,19 @@ internal object NativeSystemProviderSmoke {
 
                 val seriesRequest = request(events, calendarSource, twoDays = true)
                 val seriesBefore = records(read(seriesRequest, "series-before")).filter { title(it) == "series" }
+                val seriesProof = JSONObject().put("linkage", "synthetic-sync-adapter")
+                    .put("beforeCount", seriesBefore.size)
+                receipt.put("recurringException", seriesProof)
+                seriesProof.put("before", seriesSlots(seriesBefore))
                 check(seriesBefore.size == 2 && seriesBefore.all { it.getString("identityKind") == "recurring-instance" })
                 val original = seriesBefore.single { it.getJSONObject("data").getString("datum") == "2030-04-01" }
                 val unchanged = seriesBefore.single { it.getJSONObject("data").getString("datum") == "2030-04-02" }
                 val exceptionId = fixtureWrites { insertException(seed.calendar, seed.recurring) }
                 check(exceptionId != seed.recurring)
+                verifySeriesRows(seed.calendar, seed.recurring, exceptionId, seriesProof)
                 val seriesAfter = records(read(seriesRequest, "series-exception")).filter { title(it) == "series" }
-                check(seriesAfter.size == 2) { "Provider must replace the original recurring slot, not duplicate it" }
+                seriesProof.put("afterCount", seriesAfter.size).put("after", seriesSlots(seriesAfter))
+                check(seriesAfter.size == 2) { "Provider must replace the original recurring slot and retain the second slot; actual=${seriesAfter.size}" }
                 val moved = seriesAfter.single { it.getJSONObject("data").getString("datum") == "2030-04-01" }
                 check(moved.getString("identityKind") == "recurring-instance" && moved.getString("recordId") == original.getString("recordId"))
                 check(moved.getJSONObject("data").getString("zeit") == "12:00")
@@ -299,6 +308,15 @@ internal object NativeSystemProviderSmoke {
         private fun title(record: JSONObject) = record.getJSONObject("data").getString("titel")
         private fun titled(records: List<JSONObject>, title: String) = records.single { title(it) == title }
         private fun strings(array: JSONArray) = (0 until array.length()).map(array::getString)
+        private fun seriesSlots(records: List<JSONObject>): JSONArray {
+            check(records.size <= 8) { "Unexpected number of synthetic series slots" }
+            return JSONArray(records.map { record ->
+                val data = record.getJSONObject("data")
+                JSONObject().put("recordId", record.getString("recordId")).put("identityKind", record.getString("identityKind"))
+                    .put("date", data.getString("datum")).put("time", data.getString("zeit"))
+                    .put("endDate", data.getString("endDatum")).put("endTime", data.getString("endZeit"))
+            })
+        }
         private fun instant(text: String) = Instant.parse(text).toEpochMilli()
         private fun calendarSource(id: Long) = SystemSourcePolicy.uid(events, "calendar", CalendarContract.ACCOUNT_TYPE_LOCAL, account, id.toString())
 
@@ -366,16 +384,59 @@ internal object NativeSystemProviderSmoke {
 
         private fun insertRecurring(calendar: Long): Long = insertEventValues(ContentValues().apply {
             put(Events.CALENDAR_ID, calendar); put(Events.TITLE, "series"); put(Events.DTSTART, day + 9 * hour)
+            // The fixture already writes as a sync adapter. Supply its complete synthetic
+            // linkage: AOSP14 re-expands exceptions through _SYNC_ID/ORIGINAL_SYNC_ID (#807).
+            // This does not test the provider's separate unsynced-local-exception path.
+            put(Events._SYNC_ID, seriesSyncId)
             put(Events.DURATION, "PT1H"); put(Events.RRULE, "FREQ=DAILY;COUNT=2")
             put(Events.ALL_DAY, 0); put(Events.EVENT_TIMEZONE, "UTC"); put(Events.STATUS, Events.STATUS_CONFIRMED)
         })
 
         private fun insertException(calendar: Long, parent: Long): Long = insertEventValues(ContentValues().apply {
             put(Events.CALENDAR_ID, calendar); put(Events.TITLE, "series")
+            put(Events._SYNC_ID, exceptionSyncId); put(Events.ORIGINAL_SYNC_ID, seriesSyncId)
             put(Events.DTSTART, day + 12 * hour); put(Events.DTEND, day + 13 * hour)
             put(Events.ORIGINAL_ID, parent); put(Events.ORIGINAL_INSTANCE_TIME, day + 9 * hour); put(Events.ORIGINAL_ALL_DAY, 0)
             put(Events.ALL_DAY, 0); put(Events.EVENT_TIMEZONE, "UTC"); put(Events.STATUS, Events.STATUS_CONFIRMED)
         })
+
+        private fun verifySeriesRows(calendar: Long, parent: Long, exception: Long, proof: JSONObject) = product("fixture-series-readback") {
+            check(calendar in calendarIds)
+            val columns = arrayOf(Events._ID, Events.CALENDAR_ID, Events._SYNC_ID, Events.ORIGINAL_ID, Events.ORIGINAL_SYNC_ID,
+                Events.ORIGINAL_INSTANCE_TIME, Events.ORIGINAL_ALL_DAY, Events.DTSTART, Events.DTEND, Events.DURATION,
+                Events.RRULE, Events.RDATE, Events.ALL_DAY, Events.EVENT_TIMEZONE, Events.STATUS)
+            val rows = JSONArray()
+            proof.put("providerEvents", rows)
+            AndroidSystemSources.Control().use { control ->
+                checkNotNull(resolver.query(Events.CONTENT_URI, columns,
+                    Events.CALENDAR_ID + "=? AND " + Events._ID + " IN (?,?)",
+                    arrayOf(calendar.toString(), parent.toString(), exception.toString()), Events._ID + " ASC", control.signal)).use { cursor ->
+                    while (cursor.moveToNext()) {
+                        control.check(); check(rows.length() < 2)
+                        val row = JSONObject()
+                        for (index in columns.indices) {
+                            val value = if (cursor.isNull(index)) null else cursor.getString(index)
+                            check(value == null || value.length <= 1024)
+                            row.put(columns[index], value ?: JSONObject.NULL)
+                        }
+                        rows.put(row)
+                    }
+                }
+            }
+            check(rows.length() == 2) { "Both fixture-owned series Events rows must exist" }
+            fun row(id: Long) = (0 until rows.length()).map(rows::getJSONObject).single { it.getString(Events._ID) == id.toString() }
+            val master = row(parent); val moved = row(exception)
+            check(master.getString(Events._SYNC_ID) == seriesSyncId && master.getString(Events.RRULE) == "FREQ=DAILY;COUNT=2")
+            check(master.getString(Events.DURATION) == "PT1H" && master.isNull(Events.DTEND))
+            check(moved.getString(Events._SYNC_ID) == exceptionSyncId && moved.getString(Events.ORIGINAL_SYNC_ID) == seriesSyncId)
+            check(moved.getString(Events.ORIGINAL_ID) == parent.toString() && moved.getLong(Events.ORIGINAL_INSTANCE_TIME) == day + 9 * hour)
+            check(moved.getInt(Events.ORIGINAL_ALL_DAY) == 0 && moved.isNull(Events.RRULE) && moved.isNull(Events.RDATE) && moved.isNull(Events.DURATION))
+            check(moved.getLong(Events.DTSTART) == day + 12 * hour && moved.getLong(Events.DTEND) == day + 13 * hour)
+            for (item in listOf(master, moved)) {
+                check(item.getString(Events.CALENDAR_ID) == calendar.toString() && item.getInt(Events.ALL_DAY) == 0)
+                check(item.getString(Events.EVENT_TIMEZONE) == "UTC" && item.getInt(Events.STATUS) == Events.STATUS_CONFIRMED)
+            }
+        }
 
         private fun insertEventValues(values: ContentValues): Long {
             check(values.getAsLong(Events.CALENDAR_ID) in calendarIds) { "Only fixture-owned calendars may be written" }

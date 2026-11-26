@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.FixtureCleanupTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:18:41.615Z" hostname="ip-10-0-135-230" time="0.003">
+  <properties/>
+  <testcase name="successfulCleanupRunsExactlyOnceAndSelfSuppressionIsAvoided" classname="io.gitlab.maik3531.magnolietabletbeta.FixtureCleanupTest" time="0.001"/>
+  <testcase name="cleanupFailureWithoutPrimaryStillFailsAcceptance" classname="io.gitlab.maik3531.magnolietabletbeta.FixtureCleanupTest" time="0.0"/>
+  <testcase name="primaryAssertionSurvivesStrictCleanupFailure" classname="io.gitlab.maik3531.magnolietabletbeta.FixtureCleanupTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
