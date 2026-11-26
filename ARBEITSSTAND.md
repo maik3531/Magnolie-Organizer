@@ -1,5 +1,27 @@
 # Aktueller Arbeitsstand
 
+## Nachprüfung und spätere stabile Übernahme – 26. November 2026
+
+Auf ausdrücklichen Folgeauftrag wird der erfolgreiche Mac-Stand nochmals auf
+Übernehmbarkeit und Stabilität geprüft. Der
+[gesicherte Übernahmeplan](contracts/macos-stable-integration-2026-11-26.md)
+ordnet Quellanker, Patchreihenfolge, künftige gemeinsame Änderungen und die
+noch offenen stabilen Freigabegates. Die README, Funktionsmatrix, Runtime- und
+CI-Dokumentation wurden mit dem tatsächlichen #97-Ergebnis abgeglichen;
+historische Rohbelege bleiben erhalten. Ein frischer nativer Matrixlauf sowie
+gezielte Host-/Integrationsprüfungen werden mit ihren Ergebnissen nachgetragen.
+Die heutigen Integrationsanker sind `main` auf `d4da48a5` und der gesicherte
+Berichtsstand `c8a7690d`; die isolierte Mergeberechnung ist konfliktfrei.
+Keine stabile Mac-Freigabe aus einem erfolgreichen Entwicklungsbuild ableiten.
+
+Die Nachprüfung hat den engen Bauprüferrest #806 bestätigt und als eigenen
+Quellcommit `6599dcb2a7d337f4b248b8b172e5e18c537a2dfa` gesichert: eindeutige
+macOS-Plattform-/Mindestversionsangabe für Runtime, App und optionales AirPlay.
+Lokal bestehen 23 Runtimefälle mit einem zusätzlichen Darwin-only Skip und
+26 AirPlayfälle. Der folgende native Lauf ergänzt genau diesen Darwin-Fall,
+den tatsächlichen Swift→ImportHelper-Prozessweg und optimierte Swift-Tests.
+Bis zur echten Ausführung bleiben diese neuen nativen Gates offen.
+
 ## Fortsetzung: native Mac-Läufe und konkrete Folgefixes – 26. November 2026
 
 **Nativer Abschluss auf ARM64 und Intel:** [#97 / 45807249788](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)

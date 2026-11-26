@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "kind": "macos-future-integration-readiness",
+  "observedAtUTC": "2026-11-26T12:14:21.538658+00:00",
+  "repository": "maik3531/Magnolie-Organizer",
+  "sourceBranch": "work/macos-issue-fixes-20261126",
+  "sourceHead": "c8a7690d5eb4e002ebadb1d0aab03c8780af9e0b",
+  "testedProductCommit": "215d89029df02df2dce78f35412785ec9f9b36d8",
+  "targetCandidate": "main",
+  "targetHead": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+  "targetDefinition": "Current main was verified; a separately named stable branch, exact release and final integration method have not been specified.",
+  "merge": {
+    "mainIsAncestor": true,
+    "aheadCommits": 18,
+    "behindCommits": 0,
+    "dryRunConflicts": 0,
+    "dryRunTree": "05d0cda6c720c53d61ea699b79f168613f11c9ef",
+    "exactSourceTree": true,
+    "fastForwardPossibleAtObservedRefs": true,
+    "performed": false
+  },
+  "originalHandoff": {
+    "publicationFiles": 30,
+    "checksumEntries": 29,
+    "patchesAppliedInOrder": 24,
+    "allPatchResultTreesExact": true,
+    "restoredCommitsBeyondMain": 32,
+    "bundleObjectsBeyondMainVerified": 688,
+    "missingBundleObjects": [],
+    "patchSeriesBase": "616069f15fed21d8d8d05c8ef795f4ed21bd059c",
+    "mergeInsertedBeforePatch": 10,
+    "mergeCommit": "ff5798765f9943411200df4302edfc7779fa74b7",
+    "originalMergeAutomaticallyReconstructsExactTree": true,
+    "restoredOriginalCommit": "0dfeb1b30a208480eb6901e3d3148a5efeaae5ff",
+    "restoredOriginalTree": "d731a6bd56acd68e79aab83fbadb19ab94ad6547"
+  },
+  "partialCloneFinding": {
+    "initialClone": "shallow + blob:none",
+    "bundleVerifyAloneSufficientForRestore": false,
+    "initialFailure": "149 unresolved deltas: required older main-prerequisite blobs were absent locally.",
+    "isolatedPrerequisiteObjectsMaterialized": 198,
+    "missingPrerequisiteObjectsAfterMaterialization": 0,
+    "finalReplayPassed": true,
+    "guidance": "Use a normal complete clone as CODEX-RESTORE documents, or explicitly materialize prerequisite objects before fetching the thin bundle. The 24-patch replay and all original objects were then verified in an isolated repository."
+  },
+  "integrationOrder": [
+    "Prefer the published complete working branch for a future whole-branch integration; it already contains the API source tree equivalent of the original series.",
+    "The frozen bundle restores only original 0dfeb1b3, not subsequent native fixes. Do not apply its patches a second time to the API source branch.",
+    "For a historical original replay: start from 616069f1, apply manifest patches 1-9, restore/merge ff579876, apply manifest patches 10-24.",
+    "Retain the published successor commits in parent order: bdd1345d (#788), 68926657 (#787), cc9dc29a (#789), 8c01f75b (#793), d790d7fc (#796), 3c0b4bb4 (#797), 215d8902 (#802), c8a7690d (native verification documentation).",
+    "Before an eventual stable integration, fetch the then-current target and source refs and repeat the merge-context check if either changes."
+  ],
+  "boundaries": [
+    "No main merge, issue closure, release or remote write was performed.",
+    "No new native application acceptance is claimed by Git replay or merge-tree.",
+    "Exact original commit metadata come from the bundle; patch application verifies trees and does not reproduce commit IDs.",
+    "c8a7690d adds only five documentation/evidence files after native-tested product commit 215d8902.",
+    "The concurrent Tablet branch and future target changes are outside this two-ref merge result."
+  ],
+  "evidence": [
+    {
+      "file": "main-merge-dry-run.json",
+      "sha256": "a48ab323a73db69b3d4a817c2e29206a9cab8d2005d0532ff2ea5a2ad6c4b8d3",
+      "bytes": 5405,
+      "rawCaptureSHA256": "d519b1055609345452bc28d799bff9724e6fd5bc0ea106eb9b2d44b991c8410e"
+    },
+    {
+      "file": "original-handoff-replay.json",
+      "sha256": "53812b3382907301841967a77bab4a6b4b5b98772c389706966fbbcd310d5e3b",
+      "bytes": 28175,
+      "rawCaptureSHA256": "482c0953737d01a1039a3e30d9442907a9ac1e27ffebd83e498b9f4f1c46044f"
+    },
+    {
+      "file": "thin-bundle-prerequisites.json",
+      "sha256": "473d898620435d7f697bb74aef74ab722d538225fec7403de0e890a800f8b2d9",
+      "bytes": 5368,
+      "rawCaptureSHA256": "d766e23ac6ebd12e4507325016fbfe5136dbfd9bf6871bd54886a06c3242d371"
+    }
+  ],
+  "captureProvenance": {
+    "rawCaptureFilename": "integration-summary.json",
+    "rawBytes": 4020,
+    "rawSHA256": "6cb8d0a01766d5b7fe78df5d2688d6ef68c4d4b0893fca894cd6e561c1ed2894",
+    "normalization": "Evidence file byte counts/hashes refer to the durable normalized copies; raw capture hashes are retained separately."
+  }
+}

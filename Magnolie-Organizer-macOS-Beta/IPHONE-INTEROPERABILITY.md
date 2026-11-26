@@ -189,8 +189,12 @@ den eingerichteten Kontodienst. Bei iCloud nutzt er iCloud; die lokalen
 EventKit-/Contacts-Zugriffe in Magnolie machen diesen Transport nicht zu einem
 rein lokalen Direktabgleich.
 
-Die aktuelle Mac-Quelle meldet weiter
-`systemAccountSyncImplemented: false`. In `main.swift` sind Quellenauswahl,
+Die aktuelle Mac-Quelle meldet im erfolgreichen Status von `SystemAccounts`
+`systemAccountSyncImplemented: true` für den durch #786 angebundenen begrenzten
+manuellen Feldabgleich bereits bewusst gebundener Einträge. Bei einem
+fehlgeschlagenen Statusaufruf liefert `main.swift` weiterhin `false` und die
+konkrete Fehlermeldung. Dieses Fähigkeitsfeld bedeutet keine vollständige oder
+automatische Synchronisation. In `main.swift` sind daneben Quellenauswahl,
 Systemfreigabe, mit #770 die bestätigte lokale Kalenderübernahme, mit #775
 die bestätigte lokale Kontaktübernahme und mit #777 eigenständige lokale
 Aufgabenkopien aus Erinnerungen angebunden.
@@ -198,6 +202,10 @@ Der neue Import benötigt keine weiteren Programme auf dem Mac oder iPhone.
 Das Vorhandensein der Methoden in `SystemAccounts`
 und `NativeSystemRecordReader` ist kein Beleg, dass bereits alle Organizer-
 Datensätze vollständig und automatisch in beide Richtungen abgeglichen werden.
+Neuanlagen, Löschungen, weitere Felder/Serien, Hintergrundautomatik,
+Apple-Notes-Rückabgleich und tatsächliche Provider-/TCC-/Konto-/Geräteabnahme
+bleiben offen; siehe [den Feldabgleichsvertrag](../contracts/macos-786-native-system-sync.md)
+und [den aktuellen Übernahmeplan](../contracts/macos-stable-integration-2026-11-26.md).
 
 Für Apple Notes hat Apples Developer Technical Support im Januar 2026
 [ausdrücklich die fehlende allgemeine Notes-API bestätigt](https://developer.apple.com/forums/thread/813810),

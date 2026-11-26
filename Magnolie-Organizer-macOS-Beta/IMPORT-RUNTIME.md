@@ -154,6 +154,13 @@ separate #785 tests and contract.
 The subsequent real ARM64 and Intel CI runs, their exact commits, the #789
 buildlink/liblzma correction, #802 helper-layout correction and expanded tests are tracked separately in
 [NATIVE-VERIFICATION-2026-11-26.md](NATIVE-VERIFICATION-2026-11-26.md).
-The new helper layout still requires its own real Darwin build, relocation,
-outer signature and application lifecycle result; the earlier native runtime
-passes used the former layout.
+The new helper layout passed its real Darwin build, relocation, strict nested
+and outer signatures, application lifecycle and development packaging on both
+ARM64 and Intel in
+[run #97](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)
+at `215d89029df02df2dce78f35412785ec9f9b36d8`. Each job passed all 21
+runtimebuilder tests and 17 ImportHelper/path tests. The
+[durable evidence](verification/native-run-97.json) also records independent
+byte inventories of both signed packaged helpers. Earlier native runtime
+passes used the former layout. Real selected-file import/persistence through
+the production UI and actual Monterey runtime acceptance remain open.

@@ -90,6 +90,16 @@ rerun on those combined inputs.
 
 ## Evidence and limits
 
+The complete current-source native pipeline passed on both ARM64 and Intel in
+[run #97](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)
+at `215d89029df02df2dce78f35412785ec9f9b36d8`. Both source manifests bind
+`portCommit` and `desktopCommit` to that same commit. The
+[native report](NATIVE-VERIFICATION-2026-11-26.md) and
+[durable record](verification/native-run-97.json) include native compilation,
+test contexts/skips, signatures, real app lifecycle and package hashes.
+This is the current combined CI checkpoint; it does not certify later edits,
+full picker/provider/UI acceptance, Monterey or a production release.
+
 The historical green run
 [42562106430](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42562106430)
 used Mac/adapter source `cbdc0876` **with published desktop source `067c3893`**.
@@ -112,10 +122,11 @@ The first uses actual temporary Git repositories, including the old restore
 recipe against a newer commit with the **same visible version**. The second
 uses the existing JSDOM installation (`MACOS_BETA_JSDOM` can select it) and
 current source inputs. It is wired into the existing Mac workflow before native
-tests. The two new Swift test methods are prepared for that workflow; no Swift/macOS
-execution, updated native candidate, signing/notarization or release approval
-is claimed by these host checks. Both existing macOS architecture jobs and the
-real bundle lifecycle must pass again with the new recorded source policy.
+tests. The original host checks alone claimed no Swift/macOS execution or
+release approval. The subsequent #97 checkpoint above supplies the native
+build/test/signature/lifecycle result for its exact combined source. Any later
+candidate must pass applicable checks with its own recorded source policy;
+notarization and production release approval remain separate.
 
 ## Repeat the exact source record/verify steps
 

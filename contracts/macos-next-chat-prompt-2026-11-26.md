@@ -58,6 +58,7 @@ native Abnahme gelesen werden. Den aktuellen Head und neuere Läufe nachlesen.
 
 ## Maßgebliche Dokumente
 
+- [Stabile Übernahme: Quellanker, Folgepatches, künftige Änderungen und Freigabematrix](macos-stable-integration-2026-11-26.md)
 - [Fortsetzung: tatsächliche native Mac-Läufe und Folgefixes #787/#788/#789/#793/#796/#797/#802](../Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md)
 - [Einzelbefunde, Patchreihenfolge und offene Teile](macos-issue-handoff-2026-11-26.md)
 - [Vollständiges Issue-Inventar](macos-issue-inventory-2026-11-26.json)

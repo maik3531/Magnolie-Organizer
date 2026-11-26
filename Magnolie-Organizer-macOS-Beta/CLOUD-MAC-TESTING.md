@@ -3,6 +3,17 @@
 Stand: **26. November 2026**. Zugeordnet zu **#121, #783, #785 und #786**;
 auch als Abnahmehilfe für die übrigen Mac-Issues dieser Übergabe.
 
+**Fortgeschriebener Nachweis:** Die unten beschriebene lokale Bestandsaufnahme
+bleibt historisch gültig. Die anschließenden echten GitHub-Mac-Läufe sind im
+[nativen Fortsetzungsbericht](NATIVE-VERIFICATION-2026-11-26.md) dokumentiert.
+[Lauf #97](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)
+bestand auf `215d89029df02df2dce78f35412785ec9f9b36d8` die vollständige
+definierte CI-Kette auf ARM64 und Intel einschließlich tatsächlichem
+App-Start/Speichern/Beenden/Wiederöffnen. Die
+[dauerhaften Belege](verification/native-run-97.json) ersetzen keine
+vollständige UI-, Monterey-, TCC-, Konto- oder Geräteabnahme. Der übrige Plan
+führt diese offenen Prüfungen konkret auf.
+
 ## Entscheidung und nachgewiesene Ausgangslage
 
 Die Patches sollen hier so weit wie möglich geprüft werden. Für die Ausführung
@@ -11,7 +22,7 @@ physischer Mac beim Nutzer ist keine Voraussetzung. Die konkrete erreichbare
 Laufzeit entscheidet über den Beleg, nicht die Bezeichnung „Cloud“ oder
 „Emulator“.
 
-Die aktuelle Arbeitsumgebung „Magnolie-Organizer einrichten“ wurde lesend
+Die ursprüngliche Arbeitsumgebung „Magnolie-Organizer einrichten“ wurde lesend
 inventarisiert. Ergebnis: Linux x86_64, Kernel 6.18.57, 4096-Byte-Seiten, keine
 effektiven Linux-Capabilities, kein `/dev/kvm`, kein Swift/Xcode/xcrun und keine
 gefundenen QEMU-, Docker- oder Tart-Programme. Der vollständige technische
@@ -150,13 +161,13 @@ gh workflow run ports-2.0.30.yml \
   --ref work/macos-issue-fixes-20261126 --field target=macos
 ```
 
-Das ist eine vorbereitete Anweisung; im aktuellen Auftrag wurde dieser neue
-Mac-Lauf nicht ausgeführt. Die verfügbare GitHub-Anbindung erlaubte die
-Issue-/Quellarbeit, bot aber keinen Workflow-Start an; die hier installierte
-GitHub-CLI meldete beim lesenden `gh auth status --hostname github.com`
-ausdrücklich keine angemeldete Sitzung. Deshalb wurde keine erfolgreiche
-Dispatch- oder Runnerausführung behauptet. Run-ID und `head_sha` nach einem
-tatsächlichen späteren Start auslesen.
+Die ursprüngliche Vorbereitung konnte noch keinen Lauf starten: Der
+GitHub-Connector bot keinen Workflow-Start und die lokale CLI keine Anmeldung.
+Die Fortsetzung nutzte anschließend die bereits angemeldete GitHub-Oberfläche;
+die Läufe #91 bis #97 und ihre tatsächlichen Ergebnisse stehen im nativen
+Bericht. #97 ist erfolgreich. Bei jedem weiteren Start die tatsächliche Run-ID
+und `head_sha` auslesen; parallele Tablet-Läufe machen eine vermutete nächste
+Laufnummer unzuverlässig.
 Nur ein grüner Lauf auf genau dem geprüften Commit zählt für dessen native
 Abnahme. Die Prüfung ist keine Freigabe zur Veröffentlichung eines Pakets.
 
