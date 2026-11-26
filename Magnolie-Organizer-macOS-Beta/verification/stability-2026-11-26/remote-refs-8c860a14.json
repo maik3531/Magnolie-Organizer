@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "kind": "fresh-integration-remote-refs",
+  "readStartedAtUTC": "2026-11-26T12:37:40.844979+00:00",
+  "readFinishedAtUTC": "2026-11-26T12:37:47.598496+00:00",
+  "requestedRefs": [
+    "refs/heads/main",
+    "refs/heads/work/macos-issue-fixes-20261126",
+    "refs/heads/work/android-tablet-20261126"
+  ],
+  "exit": 0,
+  "stderr": "",
+  "refs": {
+    "refs/heads/main": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+    "refs/heads/work/android-tablet-20261126": "92e2c645cf0a8075325874f335087412e7f79c79",
+    "refs/heads/work/macos-issue-fixes-20261126": "8c860a14f7e10904c1b3a159ae84619c2c24ba82"
+  },
+  "localHead": "8c860a14f7e10904c1b3a159ae84619c2c24ba82",
+  "localStatus": ""
+}

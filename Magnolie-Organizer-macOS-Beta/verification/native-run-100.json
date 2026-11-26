@@ -1,0 +1,677 @@
+{
+  "diagnosis": {
+    "actualRun100VtoolTextRecorded": false,
+    "afterReproduction": {
+      "bytes": 172,
+      "captureFilename": "tool-version-after.json",
+      "sha256": "b1573cececf114f8cab2eacbed9b7cca2e1f0cca00e2471b06d1d3194d9551ba"
+    },
+    "applePrimarySource": "https://raw.githubusercontent.com/apple-oss-distributions/cctools/main/misc/vtool.c",
+    "beforeReproduction": {
+      "bytes": 533,
+      "captureFilename": "tool-version-reproduction.json",
+      "sha256": "5b6fbe7c74a2ea4243c7ba3de20c001a40d7d58a17ac5aca2109149e7cfaf9b2"
+    },
+    "cause": "The new common validator counted LC_BUILD_VERSION build-tool version lines as additional deployment versions. Apple emits minos plus tool/version pairs within the same command.",
+    "error": "Invalid Mach-O deployment version",
+    "followupDiagnostics": "Native positive regression now includes actual vtool output on validation failure.",
+    "issue": 806,
+    "scope": "New build validator regression on the positive native fixture; not an app, import, release-test or signature failure.",
+    "sourceSnapshot": {
+      "bytes": 88640,
+      "captureFilename": "apple-vtool.c",
+      "sha256": "b50b1bee8229a92392b5821fb92fcd86eadb0eaaff354a14ab67aed02859a946"
+    }
+  },
+  "distinctRootCauses": 1,
+  "fix": {
+    "baseCommit": "8c860a14f7e10904c1b3a159ae84619c2c24ba82",
+    "changedFiles": {
+      "tests/test_airplay_bundle.py": {
+        "bytes": 20293,
+        "sha256": "b8d6f957fac5751253abee2fda721604c235b437a667d976a25d111878381cdd"
+      },
+      "tests/test_import_python_bundle.py": {
+        "bytes": 45942,
+        "sha256": "f634c2240e2ce8607d7c044372ac9160621c4eebe8f18da1294bf0eecb6493c2"
+      },
+      "tools/airplay_bundle.py": {
+        "bytes": 29833,
+        "sha256": "b40cc0e8d8b20d470d7f13e1ff5514a4c853829e44b66e820372c84722ad960f"
+      }
+    },
+    "hostTests": [
+      {
+        "errors": 0,
+        "kind": "runtime",
+        "log": {
+          "bytes": 4646,
+          "captureFilename": "runtime-fix-after.log",
+          "sha256": "0b3dad7d27b3df853e8176dddddba37cd422fd99daa2908288c9cca2415ca610"
+        },
+        "nativeMacExecution": false,
+        "passed": 24,
+        "skipped": 1,
+        "tests": 25
+      },
+      {
+        "errors": 0,
+        "kind": "airplay",
+        "log": {
+          "bytes": 3898,
+          "captureFilename": "airplay-fix-after.log",
+          "sha256": "54ea2afdedb4b6105c73a67151884f6cb91a217b6571b4fed6bfaa7432ef82ef"
+        },
+        "nativeMacExecution": false,
+        "passed": 27,
+        "skipped": 0,
+        "tests": 27
+      }
+    ],
+    "nativeFollowupRequired": true,
+    "negativeGuardsRetained": [
+      "foreign and missing platform",
+      "multiple or conflicting deployment commands",
+      "missing or duplicate minos",
+      "too-high runtime minimum",
+      "non-exact outer application minimum",
+      "legacy rejects modern tool/minos fields"
+    ],
+    "status": "Local correction complete and reviewed by root; publication handled separately by root."
+  },
+  "jobs": [
+    {
+      "architecture": "arm64",
+      "completedAt": "2026-11-26T12:39:02Z",
+      "conclusion": "failure",
+      "diagnosticArtifact": {
+        "bytes": 293565,
+        "createdAt": "2026-11-26T12:38:58Z",
+        "downloadedDigestVerified": true,
+        "expiresAt": "2026-12-10T12:38:57Z",
+        "files": [
+          {
+            "bytes": 2376,
+            "name": "environment-arm64.json",
+            "sha256": "a5853356b3b8ba9ace047e4dea3598ea22e3656141ec212549161a326fbdcef2"
+          },
+          {
+            "bytes": 982713,
+            "name": "sources.json",
+            "sha256": "28defc5e4bd7ee9670b4cda468599e1ce07871b805adccac56952e91f8f882eb"
+          },
+          {
+            "bytes": 77729,
+            "name": "timezone-provider-arm64.log",
+            "sha256": "02c141724c562f25db9a0734704207d08022fd052d44a10934ae5cc8d46c53ce"
+          }
+        ],
+        "id": 15117957597,
+        "name": "macOS-2.0.30-beta.1-arm64-failure-diagnostics",
+        "retentionDays": 14,
+        "sha256": "6e734f25ba48e4eaa8eec15bad6e7753fe2892af7ce4a040957be811c0d6f505",
+        "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45821167801/artifacts/15117957597"
+      },
+      "environment": {
+        "architecture": "arm64",
+        "file": {
+          "bytes": 2376,
+          "captureFilename": "arm64/files/environment-arm64.json",
+          "sha256": "a5853356b3b8ba9ace047e4dea3598ea22e3656141ec212549161a326fbdcef2"
+        },
+        "meaning": "Early prerequisite snapshot, not the subsequent test outcome.",
+        "nativeMagnolieTestsExecutedInitialSnapshot": false,
+        "observedAtUTC": "2026-11-26T12:37:00.308180+00:00",
+        "productBuild": "24H232",
+        "productVersion": "15.8.2",
+        "sdkVersion": "15.5",
+        "swiftVersion": "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)\nTarget: arm64-apple-macosx15.0",
+        "system": "Darwin"
+      },
+      "fullLog": {
+        "bytes": 133465,
+        "captureFilename": "job-139913500018-arm64.log",
+        "sha256": "a002c81c9da92b95f450cde498742876f19aa0829b07b8a77885eabea43b920a"
+      },
+      "jobId": 139913500018,
+      "notRun": [
+        "26-case AirPlay suite",
+        "private CPython runtime build",
+        "17-case ImportHelper suite",
+        "35 host tests",
+        "four application Swift test contexts",
+        "native 9-check Swift import process probe",
+        "optimized Swift test context",
+        "application build and signature",
+        "real application smoke",
+        "development package and candidate upload"
+      ],
+      "runtimeTests": {
+        "durationSeconds": 2.739,
+        "errors": 1,
+        "failedCase": "test_native_tools_reject_foreign_platform_in_real_macho_bytes",
+        "failures": 0,
+        "passed": 23,
+        "scope": "Positive original native Mach-O check failed before foreign-platform mutation cases. Compiler completed, then metadata validator rejected its output.",
+        "skipped": 0,
+        "tests": 24,
+        "traceback": [
+          "2026-11-26T12:38:56.6995690Z ERROR: test_native_tools_reject_foreign_platform_in_real_macho_bytes (__main__.ImportPythonBundleTests.test_native_tools_reject_foreign_platform_in_real_macho_bytes)",
+          "2026-11-26T12:38:56.6998170Z ----------------------------------------------------------------------",
+          "2026-11-26T12:38:56.6999710Z Traceback (most recent call last):",
+          "2026-11-26T12:38:56.7003900Z   File \"/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tests/test_import_python_bundle.py\", line 619, in test_native_tools_reject_foreign_platform_in_real_macho_bytes",
+          "2026-11-26T12:38:56.7006270Z     targets = runtime.check_macho(image, architecture, \"12.7\")[\"minimumOS\"]",
+          "2026-11-26T12:38:56.7008300Z               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+          "2026-11-26T12:38:56.7010640Z   File \"/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py\", line 263, in check_macho",
+          "2026-11-26T12:38:56.7012460Z     targets = [macos_deployment_target(build)]",
+          "2026-11-26T12:38:56.7013490Z                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+          "2026-11-26T12:38:56.7015680Z   File \"/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tools/airplay_bundle.py\", line 128, in macos_deployment_target",
+          "2026-11-26T12:38:56.7017620Z     raise ValueError(\"Invalid Mach-O deployment version\")",
+          "2026-11-26T12:38:56.7018840Z ValueError: Invalid Mach-O deployment version",
+          "2026-11-26T12:38:56.7019450Z "
+        ],
+        "tracebackFirstLine": 990
+      },
+      "sourceProof": {
+        "bytes": 982713,
+        "desktopCommit": "8c860a14f7e10904c1b3a159ae84619c2c24ba82",
+        "independentFullGitBlobAuditRepeated": false,
+        "captureFilename": "arm64/files/sources.json",
+        "portCommit": "8c860a14f7e10904c1b3a159ae84619c2c24ba82",
+        "sha256": "28defc5e4bd7ee9670b4cda468599e1ce07871b805adccac56952e91f8f882eb",
+        "sourceFiles": 3921
+      },
+      "startedAt": "2026-11-26T12:36:31Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Bind the Mac candidate to the current selected checkout",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Prepare private dependencies and canonical catalogs",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Verify the standalone Swift time-zone engine against independent references",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "failure",
+          "name": "Build the private source-pinned import runtime",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Freeze this isolated build's current source and run host and Apple tests",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Exercise the actual Swift import process and packaged private runtime",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Verify optimized Swift code for the later stable integration",
+          "number": 11,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Start, save, quit and reopen the real app bundle",
+          "number": 12,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Package the ad-hoc development app with its evidence",
+          "number": 13,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "number": 14,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Preserve native failure diagnostics",
+          "number": 15,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 28,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "number": 29,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "number": 30,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "status": "completed"
+        }
+      ],
+      "timezoneProofs": [
+        {
+          "checks": 146337,
+          "provider": "actual Swift integer civil engine",
+          "reference": "Python datetime/calendar proleptic Gregorian"
+        },
+        {
+          "archiveSHA256": "0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d",
+          "checks": 269817,
+          "comparedEngine": "actual Swift normative schema2 provider",
+          "mismatches": 0,
+          "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+          "zones": 597
+        },
+        {
+          "archiveSHA256": "0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d",
+          "checks": 269817,
+          "comparedEngine": "actual Swift unlimited VTIMEZONE via published v2.0.30 Python CalendarZone",
+          "mismatches": 0,
+          "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+          "zones": 597
+        }
+      ],
+      "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45821167801/job/139913500018"
+    },
+    {
+      "architecture": "x86_64",
+      "completedAt": "2026-11-26T12:40:49Z",
+      "conclusion": "failure",
+      "diagnosticArtifact": {
+        "bytes": 293541,
+        "createdAt": "2026-11-26T12:40:46Z",
+        "downloadedDigestVerified": true,
+        "expiresAt": "2026-12-10T12:40:44Z",
+        "files": [
+          {
+            "bytes": 2337,
+            "name": "environment-x86_64.json",
+            "sha256": "16887ce93a0eaa5d60e37b5e129e82331694bc46a8bf5839731b21315e46c598"
+          },
+          {
+            "bytes": 982713,
+            "name": "sources.json",
+            "sha256": "28defc5e4bd7ee9670b4cda468599e1ce07871b805adccac56952e91f8f882eb"
+          },
+          {
+            "bytes": 77731,
+            "name": "timezone-provider-x86_64.log",
+            "sha256": "cb809b29675f02d1f64378d13a23184713c2fc3c873f284f543f7ffe747cb277"
+          }
+        ],
+        "id": 15118397300,
+        "name": "macOS-2.0.30-beta.1-x86_64-failure-diagnostics",
+        "retentionDays": 14,
+        "sha256": "c700fe72a01941387f988fe30c6d46a8ea677559867b0daed070ae76d2539b68",
+        "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45821167801/artifacts/15118397300"
+      },
+      "environment": {
+        "architecture": "x86_64",
+        "file": {
+          "bytes": 2337,
+          "captureFilename": "intel/files/environment-x86_64.json",
+          "sha256": "16887ce93a0eaa5d60e37b5e129e82331694bc46a8bf5839731b21315e46c598"
+        },
+        "meaning": "Early prerequisite snapshot, not the subsequent test outcome.",
+        "nativeMagnolieTestsExecutedInitialSnapshot": false,
+        "observedAtUTC": "2026-11-26T12:36:45.666994+00:00",
+        "productBuild": "24G830",
+        "productVersion": "15.7.9",
+        "sdkVersion": "15.5",
+        "swiftVersion": "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)\nTarget: x86_64-apple-macosx15.0",
+        "system": "Darwin"
+      },
+      "fullLog": {
+        "bytes": 136314,
+        "captureFilename": "job-139913499633-intel.log",
+        "sha256": "be92fe548f325caa2119dab3bdd02b2bbe11f5a47ad1ddd23ba6892f0fe07224"
+      },
+      "jobId": 139913499633,
+      "notRun": [
+        "26-case AirPlay suite",
+        "private CPython runtime build",
+        "17-case ImportHelper suite",
+        "35 host tests",
+        "four application Swift test contexts",
+        "native 9-check Swift import process probe",
+        "optimized Swift test context",
+        "application build and signature",
+        "real application smoke",
+        "development package and candidate upload"
+      ],
+      "runtimeTests": {
+        "durationSeconds": 2.827,
+        "errors": 1,
+        "failedCase": "test_native_tools_reject_foreign_platform_in_real_macho_bytes",
+        "failures": 0,
+        "passed": 23,
+        "scope": "Positive original native Mach-O check failed before foreign-platform mutation cases. Compiler completed, then metadata validator rejected its output.",
+        "skipped": 0,
+        "tests": 24,
+        "traceback": [
+          "2026-11-26T12:40:44.2200480Z ERROR: test_native_tools_reject_foreign_platform_in_real_macho_bytes (__main__.ImportPythonBundleTests.test_native_tools_reject_foreign_platform_in_real_macho_bytes)",
+          "2026-11-26T12:40:44.2202540Z ----------------------------------------------------------------------",
+          "2026-11-26T12:40:44.2203680Z Traceback (most recent call last):",
+          "2026-11-26T12:40:44.2206100Z   File \"/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tests/test_import_python_bundle.py\", line 619, in test_native_tools_reject_foreign_platform_in_real_macho_bytes",
+          "2026-11-26T12:40:44.2208870Z     targets = runtime.check_macho(image, architecture, \"12.7\")[\"minimumOS\"]",
+          "2026-11-26T12:40:44.2209830Z               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+          "2026-11-26T12:40:44.2211580Z   File \"/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py\", line 263, in check_macho",
+          "2026-11-26T12:40:44.2213170Z     targets = [macos_deployment_target(build)]",
+          "2026-11-26T12:40:44.2213860Z                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+          "2026-11-26T12:40:44.2215640Z   File \"/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tools/airplay_bundle.py\", line 128, in macos_deployment_target",
+          "2026-11-26T12:40:44.2217420Z     raise ValueError(\"Invalid Mach-O deployment version\")",
+          "2026-11-26T12:40:44.2218280Z ValueError: Invalid Mach-O deployment version",
+          "2026-11-26T12:40:44.2218730Z "
+        ],
+        "tracebackFirstLine": 1035
+      },
+      "sourceProof": {
+        "bytes": 982713,
+        "desktopCommit": "8c860a14f7e10904c1b3a159ae84619c2c24ba82",
+        "independentFullGitBlobAuditRepeated": false,
+        "captureFilename": "intel/files/sources.json",
+        "portCommit": "8c860a14f7e10904c1b3a159ae84619c2c24ba82",
+        "sha256": "28defc5e4bd7ee9670b4cda468599e1ce07871b805adccac56952e91f8f882eb",
+        "sourceFiles": 3921
+      },
+      "startedAt": "2026-11-26T12:36:11Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Bind the Mac candidate to the current selected checkout",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Prepare private dependencies and canonical catalogs",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Verify the standalone Swift time-zone engine against independent references",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "failure",
+          "name": "Build the private source-pinned import runtime",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Freeze this isolated build's current source and run host and Apple tests",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Exercise the actual Swift import process and packaged private runtime",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Verify optimized Swift code for the later stable integration",
+          "number": 11,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Start, save, quit and reopen the real app bundle",
+          "number": 12,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Package the ad-hoc development app with its evidence",
+          "number": 13,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "number": 14,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Preserve native failure diagnostics",
+          "number": 15,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 28,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "number": 29,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "number": 30,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "status": "completed"
+        }
+      ],
+      "timezoneProofs": [
+        {
+          "checks": 146337,
+          "provider": "actual Swift integer civil engine",
+          "reference": "Python datetime/calendar proleptic Gregorian"
+        },
+        {
+          "archiveSHA256": "0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d",
+          "checks": 269817,
+          "comparedEngine": "actual Swift normative schema2 provider",
+          "mismatches": 0,
+          "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+          "zones": 597
+        },
+        {
+          "archiveSHA256": "0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d",
+          "checks": 269817,
+          "comparedEngine": "actual Swift unlimited VTIMEZONE via published v2.0.30 Python CalendarZone",
+          "mismatches": 0,
+          "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+          "zones": 597
+        }
+      ],
+      "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45821167801/job/139913499633"
+    }
+  ],
+  "kind": "native-macos-verification",
+  "limits": [
+    "No #97 counts copied into this run. #97 remains a separate successful product checkpoint.",
+    "No new runtime, import-process, release-optimized Swift, application lifecycle or package success from this failed run.",
+    "No Monterey/TCC/account/device/fullUI/production release acceptance.",
+    "No main merge, issue closure, release or API mutation by this monitoring agent."
+  ],
+  "observedAtUTC": "2026-11-26T12:47:46.984778+00:00",
+  "run": {
+    "attempt": 1,
+    "branch": "work/macos-issue-fixes-20261126",
+    "conclusion": "failure",
+    "createdAt": "2026-11-26T12:36:04Z",
+    "headSHA": "8c860a14f7e10904c1b3a159ae84619c2c24ba82",
+    "id": 45821167801,
+    "number": 100,
+    "status": "completed",
+    "updatedAt": "2026-11-26T12:40:50Z",
+    "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45821167801"
+  },
+  "schema": 1,
+  "tabletSkipped": true,
+  "provenance": {
+    "sourceCapture": {
+      "captureFilename": "run100-evidence.json",
+      "bytes": 24424,
+      "sha256": "2cb207815ec630018bef5a18e5a4e972c5a9f79d94b0b0dfc19b4ba360e4126a"
+    },
+    "transformation": "All original result, source, run, error and scope fields are preserved. Capture-local absolute path values become capture-relative identifiers under captureFilename. Other transient scratch prefixes are replaced by <scratch>. Identifiers describe captured files; they are not links or a claim that the files are stored beside this JSON. No result is changed.",
+    "scope": "No new test or native execution by evidence normalization. Full CI job logs, original diagnostics and the Apple source snapshot are hash-referenced; the complete local regression logs and reproduction records are embedded below."
+  },
+  "publishedCorrection": {
+    "sourceCapture": {
+      "captureFilename": "run100-followup-fix.json",
+      "bytes": 1077,
+      "sha256": "bf614445c5a45c799eea4c4a8dfdc72185aee6d0d9dea0960fd197738edfb961"
+    },
+    "record": {
+      "exactMatchToLocallyReviewedFix": true,
+      "files": {
+        "tests/test_airplay_bundle.py": {
+          "bytes": 20293,
+          "sha256": "b8d6f957fac5751253abee2fda721604c235b437a667d976a25d111878381cdd"
+        },
+        "tests/test_import_python_bundle.py": {
+          "bytes": 45942,
+          "sha256": "f634c2240e2ce8607d7c044372ac9160621c4eebe8f18da1294bf0eecb6493c2"
+        },
+        "tools/airplay_bundle.py": {
+          "bytes": 29833,
+          "sha256": "b40cc0e8d8b20d470d7f13e1ff5514a4c853829e44b66e820372c84722ad960f"
+        }
+      },
+      "issue": 806,
+      "kind": "run100-followup-fix-binding",
+      "nextNativeRun": {
+        "head": "625233067cd49e204786deb5706e6bc08ef85c4e",
+        "id": 45823313660,
+        "number": 102,
+        "result": "pending"
+      },
+      "publishedFixCommit": "625233067cd49e204786deb5706e6bc08ef85c4e",
+      "publishedTree": "8e02071077d08f926aa17637a4d538f0957c74ee",
+      "run100Capture": {
+        "bytes": 24424,
+        "sha256": "2cb207815ec630018bef5a18e5a4e972c5a9f79d94b0b0dfc19b4ba360e4126a"
+      },
+      "schema": 1,
+      "scope": "Addendum only; original run100 capture bytes and hash remain unchanged."
+    }
+  },
+  "embeddedLocalEvidence": [
+    {
+      "captureFilename": "tool-version-reproduction.json",
+      "originalBytes": 533,
+      "originalSHA256": "5b6fbe7c74a2ea4243c7ba3de20c001a40d7d58a17ac5aca2109149e7cfaf9b2",
+      "normalizedBytes": 533,
+      "normalizedSHA256": "5b6fbe7c74a2ea4243c7ba3de20c001a40d7d58a17ac5aca2109149e7cfaf9b2",
+      "normalizedText": "{\n  \"accepted\": false,\n  \"error\": \"Invalid Mach-O deployment version\",\n  \"metadata\": \"native-macos:\\nLoad command 9\\n      cmd LC_BUILD_VERSION\\n  cmdsize 32\\n platform MACOS\\n    minos 12.7\\n      sdk 15.5\\n   ntools 1\\n     tool LD\\n  version 1167.5\\n\",\n  \"source\": \"https://raw.githubusercontent.com/apple-oss-distributions/cctools/main/misc/vtool.c\",\n  \"scope\": \"Apple documented formatter structure, reproduced locally; actual run100 original binary was rejected at identical validator line. No local native vtool execution.\"\n}\n"
+    },
+    {
+      "captureFilename": "tool-version-after.json",
+      "originalBytes": 172,
+      "originalSHA256": "b1573cececf114f8cab2eacbed9b7cca2e1f0cca00e2471b06d1d3194d9551ba",
+      "normalizedBytes": 172,
+      "normalizedSHA256": "b1573cececf114f8cab2eacbed9b7cca2e1f0cca00e2471b06d1d3194d9551ba",
+      "normalizedText": "{\n  \"sameMetadataAsBefore\": true,\n  \"accepted\": true,\n  \"deploymentMinimum\": \"12.7\",\n  \"moduleSHA256\": \"b40cc0e8d8b20d470d7f13e1ff5514a4c853829e44b66e820372c84722ad960f\"\n}\n"
+    },
+    {
+      "captureFilename": "runtime-fix-after.log",
+      "originalBytes": 4646,
+      "originalSHA256": "0b3dad7d27b3df853e8176dddddba37cd422fd99daa2908288c9cca2415ca610",
+      "normalizedBytes": 4646,
+      "normalizedSHA256": "0b3dad7d27b3df853e8176dddddba37cd422fd99daa2908288c9cca2415ca610",
+      "normalizedText": "test_build_tool_versions_are_not_runtime_or_app_deployment_versions (__main__.ImportPythonBundleTests.test_build_tool_versions_are_not_runtime_or_app_deployment_versions) ... ok\ntest_bundle_copy_binds_the_manifest_to_the_current_launcher_and_native_identity (__main__.ImportPythonBundleTests.test_bundle_copy_binds_the_manifest_to_the_current_launcher_and_native_identity) ... ok\ntest_bundle_copy_detects_resource_change_during_copy (__main__.ImportPythonBundleTests.test_bundle_copy_detects_resource_change_during_copy) ... ok\ntest_bundle_copy_preserves_all_signed_bytes_and_keeps_manifest_outside_helper (__main__.ImportPythonBundleTests.test_bundle_copy_preserves_all_signed_bytes_and_keeps_manifest_outside_helper) ... ok\ntest_bundle_copy_rejects_modified_missing_and_extra_signed_files (__main__.ImportPythonBundleTests.test_bundle_copy_rejects_modified_missing_and_extra_signed_files) ... ok\ntest_bundle_copy_requires_macho_evidence_to_match_the_copied_images (__main__.ImportPythonBundleTests.test_bundle_copy_requires_macho_evidence_to_match_the_copied_images) ... ok\ntest_cpython_build_extension_links_become_regular_runtime_files (__main__.ImportPythonBundleTests.test_cpython_build_extension_links_become_regular_runtime_files) ... ok\ntest_existing_wrong_source_is_never_replaced_or_downloaded (__main__.ImportPythonBundleTests.test_existing_wrong_source_is_never_replaced_or_downloaded) ... ok\ntest_expansion_bound_is_checked_before_extracting (__main__.ImportPythonBundleTests.test_expansion_bound_is_checked_before_extracting) ... ok\ntest_extension_links_cannot_escape_rename_chain_or_replace_directories (__main__.ImportPythonBundleTests.test_extension_links_cannot_escape_rename_chain_or_replace_directories) ... ok\ntest_extracts_regular_source_without_using_tar_extractall (__main__.ImportPythonBundleTests.test_extracts_regular_source_without_using_tar_extractall) ... ok\ntest_helper_layout_rejects_old_prefix_misplaced_data_and_wrong_code_types (__main__.ImportPythonBundleTests.test_helper_layout_rejects_old_prefix_misplaced_data_and_wrong_code_types) ... ok\ntest_helper_layout_separates_code_resources_and_final_signature (__main__.ImportPythonBundleTests.test_helper_layout_separates_code_resources_and_final_signature) ... ok\ntest_macho_rejects_newer_minimum_foreign_arch_and_external_dependencies (__main__.ImportPythonBundleTests.test_macho_rejects_newer_minimum_foreign_arch_and_external_dependencies) ... ok\ntest_native_build_does_not_run_on_linux (__main__.ImportPythonBundleTests.test_native_build_does_not_run_on_linux) ... ok\ntest_native_build_orchestration_statically_links_codec_and_copies_licenses (__main__.ImportPythonBundleTests.test_native_build_orchestration_statically_links_codec_and_copies_licenses)\nControlled compiler outputs verify composition; no native build is claimed. ... ok\ntest_native_tools_reject_foreign_platform_in_real_macho_bytes (__main__.ImportPythonBundleTests.test_native_tools_reject_foreign_platform_in_real_macho_bytes) ... skipped \"Real Mach-O platform regression requires Apple's compiler and tools\"\ntest_private_codec_sdk_rejects_shared_or_linked_or_nonarchive_outputs (__main__.ImportPythonBundleTests.test_private_codec_sdk_rejects_shared_or_linked_or_nonarchive_outputs) ... ok\ntest_rejects_traversal_links_devices_duplicate_names_and_wrong_root_before_writing (__main__.ImportPythonBundleTests.test_rejects_traversal_links_devices_duplicate_names_and_wrong_root_before_writing) ... ok\ntest_relocation_runs_only_the_signed_helper_with_hostile_environment_and_propagates_failure (__main__.ImportPythonBundleTests.test_relocation_runs_only_the_signed_helper_with_hostile_environment_and_propagates_failure) ... ok\ntest_runtime_and_outer_app_keep_their_distinct_minimum_version_contracts (__main__.ImportPythonBundleTests.test_runtime_and_outer_app_keep_their_distinct_minimum_version_contracts) ... ok\ntest_runtime_and_outer_app_reject_foreign_missing_and_ambiguous_platforms (__main__.ImportPythonBundleTests.test_runtime_and_outer_app_reject_foreign_missing_and_ambiguous_platforms) ... ok\ntest_runtime_rejects_symlinks_even_when_target_is_inside (__main__.ImportPythonBundleTests.test_runtime_rejects_symlinks_even_when_target_is_inside) ... ok\ntest_xz_download_keeps_https_cdn_digest_and_size_boundaries (__main__.ImportPythonBundleTests.test_xz_download_keeps_https_cdn_digest_and_size_boundaries) ... ok\ntest_xz_source_has_the_same_extraction_and_hash_boundary (__main__.ImportPythonBundleTests.test_xz_source_has_the_same_extraction_and_hash_boundary) ... ok\n\n----------------------------------------------------------------------\nRan 25 tests in 0.202s\n\nOK (skipped=1)\n"
+    },
+    {
+      "captureFilename": "airplay-fix-after.log",
+      "originalBytes": 3898,
+      "originalSHA256": "54ea2afdedb4b6105c73a67151884f6cb91a217b6571b4fed6bfaa7432ef82ef",
+      "normalizedBytes": 3898,
+      "normalizedSHA256": "54ea2afdedb4b6105c73a67151884f6cb91a217b6571b4fed6bfaa7432ef82ef",
+      "normalizedText": "test_absolute_homebrew_reference_requires_explicit_sdk_mapping (__main__.BundleCase.test_absolute_homebrew_reference_requires_explicit_sdk_mapping) ... ok\ntest_absolute_internal_framework_link_becomes_relative_in_bundle (__main__.BundleCase.test_absolute_internal_framework_link_becomes_relative_in_bundle) ... ok\ntest_ambiguous_rpath_does_not_choose_first_library (__main__.BundleCase.test_ambiguous_rpath_does_not_choose_first_library) ... ok\ntest_build_environment_cannot_inherit_foreign_dependency_paths (__main__.BundleCase.test_build_environment_cannot_inherit_foreign_dependency_paths) ... ok\ntest_changed_framework_symlink_invalidates_input_identity (__main__.BundleCase.test_changed_framework_symlink_invalidates_input_identity) ... ok\ntest_changed_sdk_after_build_invalidates_manifest (__main__.BundleCase.test_changed_sdk_after_build_invalidates_manifest) ... ok\ntest_dependency_cycles_close_once (__main__.BundleCase.test_dependency_cycles_close_once) ... ok\ntest_exact_integrated_source_archive_is_reproducible (__main__.BundleCase.test_exact_integrated_source_archive_is_reproducible) ... ok\ntest_existing_helper_is_preserved (__main__.BundleCase.test_existing_helper_is_preserved) ... ok\ntest_framework_absolute_install_prefix_is_relocated (__main__.BundleCase.test_framework_absolute_install_prefix_is_relocated) ... ok\ntest_framework_rpath_resolves_inside_supplied_sdk (__main__.BundleCase.test_framework_rpath_resolves_inside_supplied_sdk) ... ok\ntest_host_library_even_when_present_is_not_copied (__main__.BundleCase.test_host_library_even_when_present_is_not_copied) ... ok\ntest_link_to_host_or_missing_target_is_rejected_before_copy (__main__.BundleCase.test_link_to_host_or_missing_target_is_rejected_before_copy) ... ok\ntest_loader_relative_dependency_is_closed (__main__.BundleCase.test_loader_relative_dependency_is_closed) ... ok\ntest_malformed_manifest_paths_and_overlap_rejected (__main__.BundleCase.test_malformed_manifest_paths_and_overlap_rejected) ... ok\ntest_missing_or_changed_license_and_source_cannot_package (__main__.BundleCase.test_missing_or_changed_license_and_source_cannot_package) ... ok\ntest_newer_minimum_os_blocks_signing (__main__.BundleCase.test_newer_minimum_os_blocks_signing) ... ok\ntest_pkgconfig_path_audit_rejects_foreign_headers (__main__.BundleCase.test_pkgconfig_path_audit_rejects_foreign_headers) ... ok\ntest_pkgconfig_stage_relocates_only_private_copies (__main__.BundleCase.test_pkgconfig_stage_relocates_only_private_copies) ... ok\ntest_runtime_audit_rejects_missing_target_and_external_runpath (__main__.BundleCase.test_runtime_audit_rejects_missing_target_and_external_runpath) ... ok\ntest_transitive_plugin_dependencies_are_relocated_and_all_are_signed (__main__.BundleCase.test_transitive_plugin_dependencies_are_relocated_and_all_are_signed) ... ok\ntest_all_dynamic_load_kinds_and_old_target_are_checked (__main__.NativeToolContractTests.test_all_dynamic_load_kinds_and_old_target_are_checked) ... ok\ntest_arm64_ios_library_is_not_a_macos_dependency (__main__.NativeToolContractTests.test_arm64_ios_library_is_not_a_macos_dependency) ... ok\ntest_deployment_commands_cannot_mask_foreign_platform_or_newer_minimum (__main__.NativeToolContractTests.test_deployment_commands_cannot_mask_foreign_platform_or_newer_minimum) ... ok\ntest_modern_tool_versions_do_not_replace_the_airplay_deployment_version (__main__.NativeToolContractTests.test_modern_tool_versions_do_not_replace_the_airplay_deployment_version) ... ok\ntest_only_apple_system_paths_are_exempt_from_closure (__main__.NativeToolContractTests.test_only_apple_system_paths_are_exempt_from_closure) ... ok\ntest_wrong_architecture_and_missing_or_high_minimum_are_rejected (__main__.NativeToolContractTests.test_wrong_architecture_and_missing_or_high_minimum_are_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 27 tests in 0.150s\n\nOK\n"
+    }
+  ]
+}

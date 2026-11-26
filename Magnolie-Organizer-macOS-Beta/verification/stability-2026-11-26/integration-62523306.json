@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "kind": "fresh-refs-isolated-integration-followup",
+  "refReadStartedAtUTC": "2026-11-26T12:46:13.366463+00:00",
+  "refReadFinishedAtUTC": "2026-11-26T12:46:19.602751+00:00",
+  "analysisCompletedAtUTC": "2026-11-26T12:54:49.674651+00:00",
+  "mainSHA": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+  "macSHA": "625233067cd49e204786deb5706e6bc08ef85c4e",
+  "androidSHA": "7a7d90b04796cf338b98f0fdbb87e8da1c967043",
+  "mainMergeBase": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+  "mainIsMacAncestor": true,
+  "macAheadBehind": "0\t21",
+  "mainMerge": {
+    "exit": 0,
+    "tree": "8e02071077d08f926aa17637a4d538f0957c74ee",
+    "conflictPaths": [],
+    "messages": ""
+  },
+  "macTree": "8e02071077d08f926aa17637a4d538f0957c74ee",
+  "mainMergeEqualsMacTree": true,
+  "mainIsAndroidAncestor": true,
+  "androidAheadBehind": "0\t16",
+  "parallelMergeBase": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+  "pathComparison": {
+    "macChangedPaths": 348,
+    "androidChangedPaths": 247,
+    "sharedPaths": 2,
+    "macPathListSHA256": "76b4ab4f749c15b7e25364980ff01b13b7894c8a1059882befb2cf87a1681243",
+    "androidPathListSHA256": "ab65d421e8226cbbd4dac00495f7cb625b982aedbdb3843ad80618530233cf14"
+  },
+  "overlaps": [
+    {
+      "path": ".github/workflows/ports-2.0.30.yml",
+      "baseBlob": "64f9a767d327152bee97af0154db257f0127eb1d",
+      "macBlob": "67d8915eef9fa357dc0ce5debcf40cd82c03b608",
+      "androidBlob": "fcbaf7c962ea0101dc0ae26e4f73fd9563048482"
+    },
+    {
+      "path": "ARBEITSSTAND.md",
+      "baseBlob": "84c0f89cb7a84b65f58e6c9046bcf37b5cf3cc60",
+      "macBlob": "a6e2fe1ff0d5bff877e94dd1c56ba7f01e1f57e9",
+      "androidBlob": "217e032980bbd8d86633feb52f3fa13986066b2c"
+    }
+  ],
+  "parallelMerge": {
+    "exit": 0,
+    "tree": "611d737c8d4e142cc0272995f1579dadaa45a00b",
+    "conflictPaths": [],
+    "messages": "Auto-merging .github/workflows/ports-2.0.30.yml\nAuto-merging ARBEITSSTAND.md"
+  },
+  "sharedWorkflowReview": {
+    "macChangedJobs": [
+      "macos"
+    ],
+    "androidChangedJobs": [
+      "tablet"
+    ],
+    "macJobPreservedExactly": true,
+    "androidJobPreservedExactly": true,
+    "globalWorkflowSettingsPreserveAndroidChanges": true,
+    "targetOptions": [
+      "all",
+      "macos",
+      "tablet",
+      "tablet-aosp",
+      "tablet-components",
+      "tablet-api26-components",
+      "tablet-timezone-interop",
+      "tablet-build-only",
+      "tablet-system-records"
+    ],
+    "combinedWorkflowBlob": "21a983b9e9b8de3337c82705f315df6c70daf007",
+    "workflowActuallyExecuted": false
+  },
+  "missingOverlapBlobRecovered": "217e032980bbd8d86633feb52f3fa13986066b2c",
+  "missingBlobRecoveryProof": "android-worklog-7a7d90b0-blob.json",
+  "macCommitsSince8c860a14": [
+    "625233067cd49e204786deb5706e6bc08ef85c4e 8c860a14f7e10904c1b3a159ae84619c2c24ba82 fix(macos): separate deployment and tool versions in Apple metadata"
+  ],
+  "macPathsSince8c860a14": [
+    "ARBEITSSTAND.md",
+    "Magnolie-Organizer-macOS-Beta/tests/test_airplay_bundle.py",
+    "Magnolie-Organizer-macOS-Beta/tests/test_import_python_bundle.py",
+    "Magnolie-Organizer-macOS-Beta/tools/airplay_bundle.py"
+  ],
+  "androidCommitsSince92e2c645": [
+    "7a7d90b04796cf338b98f0fdbb87e8da1c967043 92e2c645cf0a8075325874f335087412e7f79c79 Bind native recurrence fixture correctly and preserve full APK proof (Refs #807 #791 #790 #805)"
+  ],
+  "documentationReview": {
+    "plan": "contracts/macos-stable-integration-2026-11-26.md",
+    "existingC8MergeProofRemainsHistorical": true,
+    "sharedWorkflowPreservationInstructionSupported": true,
+    "separateStableBranchAndTargetReleaseNotSpecified": true,
+    "futureRefChangesRequireNewIntegrationCheck": true
+  },
+  "limitations": [
+    "This is a Git object/tree calculation only; no branch, worktree, issue or release was integrated or changed.",
+    "No native CI result is inferred from merge-tree or YAML structure comparison. The #806 follow-up needs its actual native result.",
+    "The combined Mac/Android tree has not been built or executed.",
+    "Original c8a7690d restore/merge evidence and 8c860a14 snapshot remain unchanged."
+  ],
+  "remoteMutation": false,
+  "rootWorktreeOrRefsChanged": false
+}

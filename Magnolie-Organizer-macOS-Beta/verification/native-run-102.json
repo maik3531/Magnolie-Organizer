@@ -1,0 +1,748 @@
+{
+  "diagnosis": {
+    "beforeLog": {
+      "bytes": 2216,
+      "captureFilename": "alias-review/before.log",
+      "sha256": "1c1ec1c5aeec0e10c84f310982bf028f946498961da810850916db0f7b2e15c1"
+    },
+    "cause": "AirPlay BundleCase kept the lexical TemporaryDirectory /var parent while the product correctly canonicalized /private/var. Two expected-path assertions compared different names of the same fixture.",
+    "issue": 793,
+    "observedPathAlias": "/var -> /private/var",
+    "productBugDemonstrated": false,
+    "realFilesystemReproduction": {
+      "bytes": 681,
+      "captureFilename": "alias-review/before.json",
+      "sha256": "3b96c511c71bf4ab881a9b15fb5a42bc31e4593974a00146a641f2a47aca3b25"
+    },
+    "testCases": [
+      "test_build_environment_cannot_inherit_foreign_dependency_paths",
+      "test_transitive_plugin_dependencies_are_relocated_and_all_are_signed"
+    ]
+  },
+  "distinctRootCauses": 1,
+  "fix": {
+    "bytes": 20414,
+    "description": "Resolve(strict=True) only the test-owned newly created TemporaryDirectory root before creating SDK or controlled links.",
+    "diffCheckExitCode": 0,
+    "file": "Magnolie-Organizer-macOS-Beta/tests/test_airplay_bundle.py",
+    "issue": 793,
+    "localAfterEvidence": {
+      "bytes": 1604,
+      "captureFilename": "alias-review/after.json",
+      "sha256": "353d997f092813081e9790347b1e3a6549731aab3ac1ce7237443367b3929071"
+    },
+    "localFullSuite": {
+      "failures": 0,
+      "log": {
+        "bytes": 3898,
+        "captureFilename": "alias-review/full-suite-after.log",
+        "sha256": "bae86fd88d704c0e5a6ac8f4d442a25c0d1b166c597266ce1eef3c36bcb0479e"
+      },
+      "passed": 27,
+      "seconds": 0.147,
+      "tests": 27
+    },
+    "nativeFollowupRequired": true,
+    "productCodeChanged": false,
+    "realAliasTargetedRegression": {
+      "failures": 0,
+      "log": {
+        "bytes": 420,
+        "captureFilename": "alias-review/alias-two-cases-after.log",
+        "sha256": "6603b63c47b2a138d3f33f2eaffb2896ae9a79bd153f47939fd525783506e862"
+      },
+      "passed": 2,
+      "seconds": 0.022,
+      "tests": 2
+    },
+    "sha256": "34c516ba9eac3c27aa1a2bc43c86164dfb52e281d3929b08e7fb5f595455beca",
+    "status": "One test caller changed and reviewed; source publication handled separately by root."
+  },
+  "jobs": [
+    {
+      "airplayTests": {
+        "durationSeconds": 0.244,
+        "errors": 0,
+        "failures": 2,
+        "passed": 25,
+        "result": "FAILED (failures=2)",
+        "skipped": 0,
+        "summaryLine": 1050,
+        "tests": 27
+      },
+      "architecture": "arm64",
+      "artifact": {
+        "bytes": 293560,
+        "createdAt": "2026-11-26T12:52:03Z",
+        "downloadedDigestVerified": true,
+        "expiresAt": "2026-12-10T12:52:01Z",
+        "files": [
+          {
+            "bytes": 2376,
+            "name": "environment-arm64.json",
+            "sha256": "20f3e1c9a0c9a4017103fa384c0c465bfe15514e06a462ba8b46e5e7ba2bc7c9"
+          },
+          {
+            "bytes": 982713,
+            "name": "sources.json",
+            "sha256": "2adbe703dc0961a2c9c6c7b519e13aedc7ae2aa251d3d8d1f5a50e7b5156fb58"
+          },
+          {
+            "bytes": 77729,
+            "name": "timezone-provider-arm64.log",
+            "sha256": "4f0d03192369fb0111b9a7cd4f1e2b4bf718ce1bd170dd4287f3c367e96977c3"
+          }
+        ],
+        "id": 15119615340,
+        "name": "macOS-2.0.30-beta.1-arm64-failure-diagnostics",
+        "retentionDays": 14,
+        "sha256": "da44d34f51e5aa76abf0e8be5e4025f3a338c1c715d56a5e4dbb883063effcee",
+        "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45823313660/artifacts/15119615340"
+      },
+      "completedAt": "2026-11-26T12:52:05Z",
+      "conclusion": "failure",
+      "environment": {
+        "architecture": "arm64",
+        "file": {
+          "bytes": 2376,
+          "captureFilename": "arm64/files/environment-arm64.json",
+          "sha256": "20f3e1c9a0c9a4017103fa384c0c465bfe15514e06a462ba8b46e5e7ba2bc7c9"
+        },
+        "initialNativeMagnolieTestsExecuted": false,
+        "meaning": "Initial prerequisites only; later logs are the test result.",
+        "observedAtUTC": "2026-11-26T12:50:22.142268+00:00",
+        "productBuild": "24H232",
+        "productVersion": "15.8.2",
+        "sdkVersion": "15.5",
+        "swiftVersion": "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)\nTarget: arm64-apple-macosx15.0"
+      },
+      "failures": [
+        {
+          "excerpt": [
+            "2026-11-26T12:52:01.5369870Z FAIL: test_build_environment_cannot_inherit_foreign_dependency_paths (__main__.BundleCase.test_build_environment_cannot_inherit_foreign_dependency_paths)",
+            "2026-11-26T12:52:01.5371120Z ----------------------------------------------------------------------",
+            "2026-11-26T12:52:01.5371590Z Traceback (most recent call last):",
+            "2026-11-26T12:52:01.5372740Z   File \"/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tests/test_airplay_bundle.py\", line 252, in test_build_environment_cannot_inherit_foreign_dependency_paths",
+            "2026-11-26T12:52:01.5373940Z     self.assertTrue(all(path.startswith(str(self.sdk)) for path in environment[\"PKG_CONFIG_LIBDIR\"].split(bundle.os.pathsep)))",
+            "2026-11-26T12:52:01.5374480Z AssertionError: False is not true",
+            "2026-11-26T12:52:01.5374710Z ",
+            "2026-11-26T12:52:01.5374990Z ======================================================================",
+            "2026-11-26T12:52:01.5375930Z FAIL: test_transitive_plugin_dependencies_are_relocated_and_all_are_signed (__main__.BundleCase.test_transitive_plugin_dependencies_are_relocated_and_all_are_signed)",
+            "2026-11-26T12:52:01.5376820Z ----------------------------------------------------------------------",
+            "2026-11-26T12:52:01.5377260Z Traceback (most recent call last):",
+            "2026-11-26T12:52:01.5378190Z   File \"/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tests/test_airplay_bundle.py\", line 109, in test_transitive_plugin_dependencies_are_relocated_and_all_are_signed",
+            "2026-11-26T12:52:01.5379350Z     self.assertEqual(set(self.apple.signed), set(binaries + [self.contents / bundle.FRAMEWORK]))",
+            "2026-11-26T12:52:01.5380060Z AssertionError: Items in the first set but not the second:",
+            "2026-11-26T12:52:01.5380840Z PosixPath('/private/var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/tmplr3e4yhl/Magnolie.app/Contents/Frameworks/GStreamer.framework')",
+            "2026-11-26T12:52:01.5382010Z Items in the second set but not the first:",
+            "2026-11-26T12:52:01.5383440Z PosixPath('/var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/tmplr3e4yhl/Magnolie.app/Contents/Frameworks/GStreamer.framework')",
+            "2026-11-26T12:52:01.5383960Z "
+          ],
+          "line": 1031,
+          "test": "test_build_environment_cannot_inherit_foreign_dependency_paths"
+        },
+        {
+          "excerpt": [
+            "2026-11-26T12:52:01.5375930Z FAIL: test_transitive_plugin_dependencies_are_relocated_and_all_are_signed (__main__.BundleCase.test_transitive_plugin_dependencies_are_relocated_and_all_are_signed)",
+            "2026-11-26T12:52:01.5376820Z ----------------------------------------------------------------------",
+            "2026-11-26T12:52:01.5377260Z Traceback (most recent call last):",
+            "2026-11-26T12:52:01.5378190Z   File \"/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tests/test_airplay_bundle.py\", line 109, in test_transitive_plugin_dependencies_are_relocated_and_all_are_signed",
+            "2026-11-26T12:52:01.5379350Z     self.assertEqual(set(self.apple.signed), set(binaries + [self.contents / bundle.FRAMEWORK]))",
+            "2026-11-26T12:52:01.5380060Z AssertionError: Items in the first set but not the second:",
+            "2026-11-26T12:52:01.5380840Z PosixPath('/private/var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/tmplr3e4yhl/Magnolie.app/Contents/Frameworks/GStreamer.framework')",
+            "2026-11-26T12:52:01.5382010Z Items in the second set but not the first:",
+            "2026-11-26T12:52:01.5383440Z PosixPath('/var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/tmplr3e4yhl/Magnolie.app/Contents/Frameworks/GStreamer.framework')",
+            "2026-11-26T12:52:01.5383960Z ",
+            "2026-11-26T12:52:01.5384240Z ----------------------------------------------------------------------",
+            "2026-11-26T12:52:01.5384660Z Ran 27 tests in 0.244s",
+            "2026-11-26T12:52:01.5384830Z ",
+            "2026-11-26T12:52:01.5384980Z FAILED (failures=2)",
+            "2026-11-26T12:52:01.5466230Z ##[error]Process completed with exit code 1.",
+            "2026-11-26T12:52:01.5576590Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "2026-11-26T12:52:01.5576910Z with:",
+            "2026-11-26T12:52:01.5577090Z   name: macOS-2.0.30-beta.1-arm64-failure-diagnostics"
+          ],
+          "line": 1039,
+          "test": "test_transitive_plugin_dependencies_are_relocated_and_all_are_signed"
+        }
+      ],
+      "jobId": 139920920765,
+      "log": {
+        "bytes": 136633,
+        "captureFilename": "job-139920920765-arm64.log",
+        "sha256": "dc0f8c2a68d6679df92454f223e390b1a778028950ecfb80f65be1604e9ee10c"
+      },
+      "notRun": [
+        "private CPython source build",
+        "17-case ImportHelper suite",
+        "35 host tests",
+        "four Debug Swift application test contexts",
+        "nine-check native Swift import process probe",
+        "optimized Swift test context",
+        "application build/signature/lifecycle",
+        "development candidate package/upload"
+      ],
+      "runtimeTests": {
+        "actualDarwinForeignPlatformCasePassed": true,
+        "durationSeconds": 2.639,
+        "errors": 0,
+        "failures": 0,
+        "passed": 25,
+        "result": "OK",
+        "skipped": 0,
+        "summaryLine": 1026,
+        "tests": 25
+      },
+      "sourceContractTests": {
+        "durationSeconds": 1.832,
+        "result": "OK",
+        "summaryLine": 282,
+        "tests": 7
+      },
+      "sourceProof": {
+        "bytes": 982713,
+        "desktopCommit": "625233067cd49e204786deb5706e6bc08ef85c4e",
+        "independentFullGitBlobAuditRepeated": false,
+        "captureFilename": "arm64/files/sources.json",
+        "portCommit": "625233067cd49e204786deb5706e6bc08ef85c4e",
+        "sha256": "2adbe703dc0961a2c9c6c7b519e13aedc7ae2aa251d3d8d1f5a50e7b5156fb58",
+        "sourceFiles": 3921
+      },
+      "startedAt": "2026-11-26T12:49:52Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Bind the Mac candidate to the current selected checkout",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Prepare private dependencies and canonical catalogs",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Verify the standalone Swift time-zone engine against independent references",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "failure",
+          "name": "Build the private source-pinned import runtime",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Freeze this isolated build's current source and run host and Apple tests",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Exercise the actual Swift import process and packaged private runtime",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Verify optimized Swift code for the later stable integration",
+          "number": 11,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Start, save, quit and reopen the real app bundle",
+          "number": 12,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Package the ad-hoc development app with its evidence",
+          "number": 13,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "number": 14,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Preserve native failure diagnostics",
+          "number": 15,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 28,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "number": 29,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "number": 30,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "status": "completed"
+        }
+      ],
+      "timezoneProofs": [
+        {
+          "checks": 146337,
+          "provider": "actual Swift integer civil engine",
+          "reference": "Python datetime/calendar proleptic Gregorian"
+        },
+        {
+          "checks": 269817,
+          "comparedEngine": "actual Swift normative schema2 provider",
+          "mismatches": 0,
+          "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+          "zones": 597
+        },
+        {
+          "checks": 269817,
+          "comparedEngine": "actual Swift unlimited VTIMEZONE via published v2.0.30 Python CalendarZone",
+          "mismatches": 0,
+          "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+          "zones": 597
+        }
+      ],
+      "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45823313660/job/139920920765"
+    },
+    {
+      "airplayTests": {
+        "durationSeconds": 0.569,
+        "errors": 0,
+        "failures": 2,
+        "passed": 25,
+        "result": "FAILED (failures=2)",
+        "skipped": 0,
+        "summaryLine": 1053,
+        "tests": 27
+      },
+      "architecture": "x86_64",
+      "artifact": {
+        "bytes": 293535,
+        "createdAt": "2026-11-26T12:53:49Z",
+        "downloadedDigestVerified": true,
+        "expiresAt": "2026-12-10T12:53:48Z",
+        "files": [
+          {
+            "bytes": 2337,
+            "name": "environment-x86_64.json",
+            "sha256": "b124f08e05a47d3fb424c78e6219b45d8451bf6c11128557fd3a5295324ed6ca"
+          },
+          {
+            "bytes": 982713,
+            "name": "sources.json",
+            "sha256": "2adbe703dc0961a2c9c6c7b519e13aedc7ae2aa251d3d8d1f5a50e7b5156fb58"
+          },
+          {
+            "bytes": 77731,
+            "name": "timezone-provider-x86_64.log",
+            "sha256": "30f7789cd1b2bba801665bba99c647c0dd07fdc2bf9ddeb938e152930c4b63fd"
+          }
+        ],
+        "id": 15119675658,
+        "name": "macOS-2.0.30-beta.1-x86_64-failure-diagnostics",
+        "retentionDays": 14,
+        "sha256": "b1670a3619950879b1ad125879423bf19b6c9a34d27a8a3793cf5beb51b9228e",
+        "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45823313660/artifacts/15119675658"
+      },
+      "completedAt": "2026-11-26T12:53:53Z",
+      "conclusion": "failure",
+      "environment": {
+        "architecture": "x86_64",
+        "file": {
+          "bytes": 2337,
+          "captureFilename": "intel/files/environment-x86_64.json",
+          "sha256": "b124f08e05a47d3fb424c78e6219b45d8451bf6c11128557fd3a5295324ed6ca"
+        },
+        "initialNativeMagnolieTestsExecuted": false,
+        "meaning": "Initial prerequisites only; later logs are the test result.",
+        "observedAtUTC": "2026-11-26T12:50:20.491778+00:00",
+        "productBuild": "24G830",
+        "productVersion": "15.7.9",
+        "sdkVersion": "15.5",
+        "swiftVersion": "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)\nTarget: x86_64-apple-macosx15.0"
+      },
+      "failures": [
+        {
+          "excerpt": [
+            "2026-11-26T12:53:47.8134660Z FAIL: test_build_environment_cannot_inherit_foreign_dependency_paths (__main__.BundleCase.test_build_environment_cannot_inherit_foreign_dependency_paths)",
+            "2026-11-26T12:53:47.8136460Z ----------------------------------------------------------------------",
+            "2026-11-26T12:53:47.8137330Z Traceback (most recent call last):",
+            "2026-11-26T12:53:47.8139550Z   File \"/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tests/test_airplay_bundle.py\", line 252, in test_build_environment_cannot_inherit_foreign_dependency_paths",
+            "2026-11-26T12:53:47.8142200Z     self.assertTrue(all(path.startswith(str(self.sdk)) for path in environment[\"PKG_CONFIG_LIBDIR\"].split(bundle.os.pathsep)))",
+            "2026-11-26T12:53:47.8143570Z AssertionError: False is not true",
+            "2026-11-26T12:53:47.8143920Z ",
+            "2026-11-26T12:53:47.8144350Z ======================================================================",
+            "2026-11-26T12:53:47.8146820Z FAIL: test_transitive_plugin_dependencies_are_relocated_and_all_are_signed (__main__.BundleCase.test_transitive_plugin_dependencies_are_relocated_and_all_are_signed)",
+            "2026-11-26T12:53:47.8148880Z ----------------------------------------------------------------------",
+            "2026-11-26T12:53:47.8149720Z Traceback (most recent call last):",
+            "2026-11-26T12:53:47.8152150Z   File \"/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tests/test_airplay_bundle.py\", line 109, in test_transitive_plugin_dependencies_are_relocated_and_all_are_signed",
+            "2026-11-26T12:53:47.8154580Z     self.assertEqual(set(self.apple.signed), set(binaries + [self.contents / bundle.FRAMEWORK]))",
+            "2026-11-26T12:53:47.8156410Z AssertionError: Items in the first set but not the second:",
+            "2026-11-26T12:53:47.8158300Z PosixPath('/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/tmp4za4paf2/Magnolie.app/Contents/Frameworks/GStreamer.framework')",
+            "2026-11-26T12:53:47.8159850Z Items in the second set but not the first:",
+            "2026-11-26T12:53:47.8162600Z PosixPath('/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/tmp4za4paf2/Magnolie.app/Contents/Frameworks/GStreamer.framework')",
+            "2026-11-26T12:53:47.8163800Z "
+          ],
+          "line": 1034,
+          "test": "test_build_environment_cannot_inherit_foreign_dependency_paths"
+        },
+        {
+          "excerpt": [
+            "2026-11-26T12:53:47.8146820Z FAIL: test_transitive_plugin_dependencies_are_relocated_and_all_are_signed (__main__.BundleCase.test_transitive_plugin_dependencies_are_relocated_and_all_are_signed)",
+            "2026-11-26T12:53:47.8148880Z ----------------------------------------------------------------------",
+            "2026-11-26T12:53:47.8149720Z Traceback (most recent call last):",
+            "2026-11-26T12:53:47.8152150Z   File \"/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tests/test_airplay_bundle.py\", line 109, in test_transitive_plugin_dependencies_are_relocated_and_all_are_signed",
+            "2026-11-26T12:53:47.8154580Z     self.assertEqual(set(self.apple.signed), set(binaries + [self.contents / bundle.FRAMEWORK]))",
+            "2026-11-26T12:53:47.8156410Z AssertionError: Items in the first set but not the second:",
+            "2026-11-26T12:53:47.8158300Z PosixPath('/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/tmp4za4paf2/Magnolie.app/Contents/Frameworks/GStreamer.framework')",
+            "2026-11-26T12:53:47.8159850Z Items in the second set but not the first:",
+            "2026-11-26T12:53:47.8162600Z PosixPath('/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/tmp4za4paf2/Magnolie.app/Contents/Frameworks/GStreamer.framework')",
+            "2026-11-26T12:53:47.8163800Z ",
+            "2026-11-26T12:53:47.8164310Z ----------------------------------------------------------------------",
+            "2026-11-26T12:53:47.8165030Z Ran 27 tests in 0.569s",
+            "2026-11-26T12:53:47.8165310Z ",
+            "2026-11-26T12:53:47.8165550Z FAILED (failures=2)",
+            "2026-11-26T12:53:47.8309780Z ##[error]Process completed with exit code 1.",
+            "2026-11-26T12:53:47.8501080Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "2026-11-26T12:53:47.8501920Z with:",
+            "2026-11-26T12:53:47.8502360Z   name: macOS-2.0.30-beta.1-x86_64-failure-diagnostics"
+          ],
+          "line": 1042,
+          "test": "test_transitive_plugin_dependencies_are_relocated_and_all_are_signed"
+        }
+      ],
+      "jobId": 139920920607,
+      "log": {
+        "bytes": 136872,
+        "captureFilename": "job-139920920607-intel.log",
+        "sha256": "4620179faebbcf483e89da2dad8b0e52e328072bcd93c6802854646199d7a6a6"
+      },
+      "notRun": [
+        "private CPython source build",
+        "17-case ImportHelper suite",
+        "35 host tests",
+        "four Debug Swift application test contexts",
+        "nine-check native Swift import process probe",
+        "optimized Swift test context",
+        "application build/signature/lifecycle",
+        "development candidate package/upload"
+      ],
+      "runtimeTests": {
+        "actualDarwinForeignPlatformCasePassed": true,
+        "durationSeconds": 3.817,
+        "errors": 0,
+        "failures": 0,
+        "passed": 25,
+        "result": "OK",
+        "skipped": 0,
+        "summaryLine": 1029,
+        "tests": 25
+      },
+      "sourceContractTests": {
+        "durationSeconds": 2.161,
+        "result": "OK",
+        "summaryLine": 281,
+        "tests": 7
+      },
+      "sourceProof": {
+        "bytes": 982713,
+        "desktopCommit": "625233067cd49e204786deb5706e6bc08ef85c4e",
+        "independentFullGitBlobAuditRepeated": false,
+        "captureFilename": "intel/files/sources.json",
+        "portCommit": "625233067cd49e204786deb5706e6bc08ef85c4e",
+        "sha256": "2adbe703dc0961a2c9c6c7b519e13aedc7ae2aa251d3d8d1f5a50e7b5156fb58",
+        "sourceFiles": 3921
+      },
+      "startedAt": "2026-11-26T12:49:53Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Bind the Mac candidate to the current selected checkout",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Prepare private dependencies and canonical catalogs",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Verify the standalone Swift time-zone engine against independent references",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "failure",
+          "name": "Build the private source-pinned import runtime",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Freeze this isolated build's current source and run host and Apple tests",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Exercise the actual Swift import process and packaged private runtime",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Verify optimized Swift code for the later stable integration",
+          "number": 11,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Start, save, quit and reopen the real app bundle",
+          "number": 12,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Package the ad-hoc development app with its evidence",
+          "number": 13,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "number": 14,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Preserve native failure diagnostics",
+          "number": 15,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 28,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "number": 29,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "number": 30,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "status": "completed"
+        }
+      ],
+      "timezoneProofs": [
+        {
+          "checks": 146337,
+          "provider": "actual Swift integer civil engine",
+          "reference": "Python datetime/calendar proleptic Gregorian"
+        },
+        {
+          "checks": 269817,
+          "comparedEngine": "actual Swift normative schema2 provider",
+          "mismatches": 0,
+          "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+          "zones": 597
+        },
+        {
+          "checks": 269817,
+          "comparedEngine": "actual Swift unlimited VTIMEZONE via published v2.0.30 Python CalendarZone",
+          "mismatches": 0,
+          "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+          "zones": 597
+        }
+      ],
+      "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45823313660/job/139920920607"
+    }
+  ],
+  "kind": "native-macos-verification",
+  "limits": [
+    "No old #97 success counts substituted for unreached #102 phases.",
+    "No actual AirPlay receiver build or device acceptance; these are bundle-contract tests.",
+    "No native import process/release configuration/app lifecycle/package success from this failed run.",
+    "No Monterey/TCC/account/device/fullUI/production release acceptance.",
+    "No main merge, issue closure, release or remote mutation by this agent."
+  ],
+  "newConfirmedSuccess": {
+    "issue": 806,
+    "scope": "Both real Darwin runtime test suites, including positive native Mach-O plus iOS/Catalyst/simulator rejection, passed 25/25 without skips. The actual private CPython build was not reached."
+  },
+  "observedAtUTC": "2026-11-26T12:57:09.009730+00:00",
+  "run": {
+    "attempt": 1,
+    "branch": "work/macos-issue-fixes-20261126",
+    "conclusion": "failure",
+    "createdAt": "2026-11-26T12:49:49Z",
+    "headSHA": "625233067cd49e204786deb5706e6bc08ef85c4e",
+    "id": 45823313660,
+    "number": 102,
+    "status": "completed",
+    "updatedAt": "2026-11-26T12:53:53Z",
+    "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45823313660"
+  },
+  "schema": 1,
+  "tabletSkipped": true,
+  "provenance": {
+    "sourceCapture": {
+      "captureFilename": "run102-evidence.json",
+      "bytes": 30018,
+      "sha256": "9720431f2cd51682e20fc48f91333a5db4d8d658acdddc0346c2fd1e8cb50b24"
+    },
+    "transformation": "All original source, result, time, error and scope fields are preserved. Capture-local path values become capture-relative identifiers under captureFilename. Other transient scratch prefixes become <scratch>. These identifiers are not links or claims that raw files are stored beside the report. Full CI logs and downloaded diagnostics are hash-referenced; complete local alias regression records/logs are embedded below.",
+    "scope": "Evidence preservation only; no new product test, native execution, merge or release."
+  },
+  "publishedCorrection": {
+    "sourceCapture": {
+      "captureFilename": "run102-followup-fix.json",
+      "bytes": 765,
+      "sha256": "cc9e39c10b4934eefd02b2af6a521e7f0d9e2dd33bd5a955a1c74ce3482fa6a9"
+    },
+    "record": {
+      "bytes": 20414,
+      "exactMatchToReviewedTestFix": true,
+      "file": "Magnolie-Organizer-macOS-Beta/tests/test_airplay_bundle.py",
+      "issue": 793,
+      "kind": "run102-followup-fix-binding",
+      "nextNativeRun": {
+        "head": "f7957801ba99c0e65e7eaeb70f69824efcd55fd0",
+        "id": 45824626525,
+        "number": 103,
+        "result": "pending"
+      },
+      "productCodeChanged": false,
+      "publishedFixCommit": "f7957801ba99c0e65e7eaeb70f69824efcd55fd0",
+      "publishedTree": "4053813b2a234c6f24961801f6604dc6f7a8b593",
+      "run102CaptureSHA256": "9720431f2cd51682e20fc48f91333a5db4d8d658acdddc0346c2fd1e8cb50b24",
+      "schema": 1,
+      "scope": "Addendum only; original run102 evidence bytes remain unchanged.",
+      "sha256": "34c516ba9eac3c27aa1a2bc43c86164dfb52e281d3929b08e7fb5f595455beca"
+    }
+  },
+  "embeddedLocalEvidence": [
+    {
+      "captureFilename": "alias-review/before.json",
+      "originalBytes": 681,
+      "originalSHA256": "3b96c511c71bf4ab881a9b15fb5a42bc31e4593974a00146a641f2a47aca3b25",
+      "normalizedBytes": 553,
+      "normalizedSHA256": "d1c9db18ad328146bdc60fd19785d540b54b18d2c6604c79f928ef4e4aa4f097",
+      "normalizedText": "{\n  \"sourceCommit\": \"625233067cd49e204786deb5706e6bc08ef85c4e\",\n  \"command\": [\n    \"python3\",\n    \"-B\",\n    \"tests/test_airplay_bundle.py\",\n    \"BundleCase.test_build_environment_cannot_inherit_foreign_dependency_paths\",\n    \"BundleCase.test_transitive_plugin_dependencies_are_relocated_and_all_are_signed\",\n    \"-v\"\n  ],\n  \"exitCode\": 1,\n  \"realParent\": \"alias-review/real-parent\",\n  \"aliasParent\": \"alias-review/alias-parent\",\n  \"scope\": \"Actual Linux directory symlink models the system macOS temporary parent alias; no production source changed.\"\n}\n"
+    },
+    {
+      "captureFilename": "alias-review/before.log",
+      "originalBytes": 2216,
+      "originalSHA256": "1c1ec1c5aeec0e10c84f310982bf028f946498961da810850916db0f7b2e15c1",
+      "normalizedBytes": 1960,
+      "normalizedSHA256": "1f382fca942b9d9d5de5cfc9b66b1a612855675feb08d729e95635f3e44683f1",
+      "normalizedText": "test_build_environment_cannot_inherit_foreign_dependency_paths (__main__.BundleCase.test_build_environment_cannot_inherit_foreign_dependency_paths) ... FAIL\ntest_transitive_plugin_dependencies_are_relocated_and_all_are_signed (__main__.BundleCase.test_transitive_plugin_dependencies_are_relocated_and_all_are_signed) ... FAIL\n\n======================================================================\nFAIL: test_build_environment_cannot_inherit_foreign_dependency_paths (__main__.BundleCase.test_build_environment_cannot_inherit_foreign_dependency_paths)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"alias-review/before/tests/test_airplay_bundle.py\", line 252, in test_build_environment_cannot_inherit_foreign_dependency_paths\n    self.assertTrue(all(path.startswith(str(self.sdk)) for path in environment[\"PKG_CONFIG_LIBDIR\"].split(bundle.os.pathsep)))\nAssertionError: False is not true\n\n======================================================================\nFAIL: test_transitive_plugin_dependencies_are_relocated_and_all_are_signed (__main__.BundleCase.test_transitive_plugin_dependencies_are_relocated_and_all_are_signed)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"alias-review/before/tests/test_airplay_bundle.py\", line 109, in test_transitive_plugin_dependencies_are_relocated_and_all_are_signed\n    self.assertEqual(set(self.apple.signed), set(binaries + [self.contents / bundle.FRAMEWORK]))\nAssertionError: Items in the first set but not the second:\nPosixPath('alias-review/real-parent/tmp2xh5uiai/Magnolie.app/Contents/Frameworks/GStreamer.framework')\nItems in the second set but not the first:\nPosixPath('alias-review/alias-parent/tmp2xh5uiai/Magnolie.app/Contents/Frameworks/GStreamer.framework')\n\n----------------------------------------------------------------------\nRan 2 tests in 0.020s\n\nFAILED (failures=2)\n"
+    },
+    {
+      "captureFilename": "alias-review/after.json",
+      "originalBytes": 1604,
+      "originalSHA256": "353d997f092813081e9790347b1e3a6549731aab3ac1ce7237443367b3929071",
+      "normalizedBytes": 1348,
+      "normalizedSHA256": "269ab5c01976583b2f7f6742554174e22165020a0809151c2e4d3c1b4ec85794",
+      "normalizedText": "{\n  \"baseCommit\": \"625233067cd49e204786deb5706e6bc08ef85c4e\",\n  \"bytes\": 20414,\n  \"changedFile\": \"Magnolie-Organizer-macOS-Beta/tests/test_airplay_bundle.py\",\n  \"issue\": 793,\n  \"productCodeChanged\": false,\n  \"results\": [\n    {\n      \"command\": [\n        \"python3\",\n        \"-B\",\n        \"tests/test_airplay_bundle.py\",\n        \"-v\"\n      ],\n      \"exitCode\": 0,\n      \"kind\": \"full-suite\",\n      \"log\": \"alias-review/full-suite-after.log\",\n      \"logSHA256\": \"bae86fd88d704c0e5a6ac8f4d442a25c0d1b166c597266ce1eef3c36bcb0479e\",\n      \"temporaryParent\": \"alias-review/real-parent\"\n    },\n    {\n      \"command\": [\n        \"python3\",\n        \"-B\",\n        \"tests/test_airplay_bundle.py\",\n        \"BundleCase.test_build_environment_cannot_inherit_foreign_dependency_paths\",\n        \"BundleCase.test_transitive_plugin_dependencies_are_relocated_and_all_are_signed\",\n        \"-v\"\n      ],\n      \"exitCode\": 0,\n      \"kind\": \"alias-two-cases\",\n      \"log\": \"alias-review/alias-two-cases-after.log\",\n      \"logSHA256\": \"6603b63c47b2a138d3f33f2eaffb2896ae9a79bd153f47939fd525783506e862\",\n      \"temporaryParent\": \"alias-review/alias-parent\"\n    }\n  ],\n  \"scope\": \"Only newly created test root resolves its system parent alias; all product path and link checks are unchanged.\",\n  \"sha256\": \"34c516ba9eac3c27aa1a2bc43c86164dfb52e281d3929b08e7fb5f595455beca\"\n}\n"
+    },
+    {
+      "captureFilename": "alias-review/full-suite-after.log",
+      "originalBytes": 3898,
+      "originalSHA256": "bae86fd88d704c0e5a6ac8f4d442a25c0d1b166c597266ce1eef3c36bcb0479e",
+      "normalizedBytes": 3898,
+      "normalizedSHA256": "bae86fd88d704c0e5a6ac8f4d442a25c0d1b166c597266ce1eef3c36bcb0479e",
+      "normalizedText": "test_absolute_homebrew_reference_requires_explicit_sdk_mapping (__main__.BundleCase.test_absolute_homebrew_reference_requires_explicit_sdk_mapping) ... ok\ntest_absolute_internal_framework_link_becomes_relative_in_bundle (__main__.BundleCase.test_absolute_internal_framework_link_becomes_relative_in_bundle) ... ok\ntest_ambiguous_rpath_does_not_choose_first_library (__main__.BundleCase.test_ambiguous_rpath_does_not_choose_first_library) ... ok\ntest_build_environment_cannot_inherit_foreign_dependency_paths (__main__.BundleCase.test_build_environment_cannot_inherit_foreign_dependency_paths) ... ok\ntest_changed_framework_symlink_invalidates_input_identity (__main__.BundleCase.test_changed_framework_symlink_invalidates_input_identity) ... ok\ntest_changed_sdk_after_build_invalidates_manifest (__main__.BundleCase.test_changed_sdk_after_build_invalidates_manifest) ... ok\ntest_dependency_cycles_close_once (__main__.BundleCase.test_dependency_cycles_close_once) ... ok\ntest_exact_integrated_source_archive_is_reproducible (__main__.BundleCase.test_exact_integrated_source_archive_is_reproducible) ... ok\ntest_existing_helper_is_preserved (__main__.BundleCase.test_existing_helper_is_preserved) ... ok\ntest_framework_absolute_install_prefix_is_relocated (__main__.BundleCase.test_framework_absolute_install_prefix_is_relocated) ... ok\ntest_framework_rpath_resolves_inside_supplied_sdk (__main__.BundleCase.test_framework_rpath_resolves_inside_supplied_sdk) ... ok\ntest_host_library_even_when_present_is_not_copied (__main__.BundleCase.test_host_library_even_when_present_is_not_copied) ... ok\ntest_link_to_host_or_missing_target_is_rejected_before_copy (__main__.BundleCase.test_link_to_host_or_missing_target_is_rejected_before_copy) ... ok\ntest_loader_relative_dependency_is_closed (__main__.BundleCase.test_loader_relative_dependency_is_closed) ... ok\ntest_malformed_manifest_paths_and_overlap_rejected (__main__.BundleCase.test_malformed_manifest_paths_and_overlap_rejected) ... ok\ntest_missing_or_changed_license_and_source_cannot_package (__main__.BundleCase.test_missing_or_changed_license_and_source_cannot_package) ... ok\ntest_newer_minimum_os_blocks_signing (__main__.BundleCase.test_newer_minimum_os_blocks_signing) ... ok\ntest_pkgconfig_path_audit_rejects_foreign_headers (__main__.BundleCase.test_pkgconfig_path_audit_rejects_foreign_headers) ... ok\ntest_pkgconfig_stage_relocates_only_private_copies (__main__.BundleCase.test_pkgconfig_stage_relocates_only_private_copies) ... ok\ntest_runtime_audit_rejects_missing_target_and_external_runpath (__main__.BundleCase.test_runtime_audit_rejects_missing_target_and_external_runpath) ... ok\ntest_transitive_plugin_dependencies_are_relocated_and_all_are_signed (__main__.BundleCase.test_transitive_plugin_dependencies_are_relocated_and_all_are_signed) ... ok\ntest_all_dynamic_load_kinds_and_old_target_are_checked (__main__.NativeToolContractTests.test_all_dynamic_load_kinds_and_old_target_are_checked) ... ok\ntest_arm64_ios_library_is_not_a_macos_dependency (__main__.NativeToolContractTests.test_arm64_ios_library_is_not_a_macos_dependency) ... ok\ntest_deployment_commands_cannot_mask_foreign_platform_or_newer_minimum (__main__.NativeToolContractTests.test_deployment_commands_cannot_mask_foreign_platform_or_newer_minimum) ... ok\ntest_modern_tool_versions_do_not_replace_the_airplay_deployment_version (__main__.NativeToolContractTests.test_modern_tool_versions_do_not_replace_the_airplay_deployment_version) ... ok\ntest_only_apple_system_paths_are_exempt_from_closure (__main__.NativeToolContractTests.test_only_apple_system_paths_are_exempt_from_closure) ... ok\ntest_wrong_architecture_and_missing_or_high_minimum_are_rejected (__main__.NativeToolContractTests.test_wrong_architecture_and_missing_or_high_minimum_are_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 27 tests in 0.147s\n\nOK\n"
+    },
+    {
+      "captureFilename": "alias-review/alias-two-cases-after.log",
+      "originalBytes": 420,
+      "originalSHA256": "6603b63c47b2a138d3f33f2eaffb2896ae9a79bd153f47939fd525783506e862",
+      "normalizedBytes": 420,
+      "normalizedSHA256": "6603b63c47b2a138d3f33f2eaffb2896ae9a79bd153f47939fd525783506e862",
+      "normalizedText": "test_build_environment_cannot_inherit_foreign_dependency_paths (__main__.BundleCase.test_build_environment_cannot_inherit_foreign_dependency_paths) ... ok\ntest_transitive_plugin_dependencies_are_relocated_and_all_are_signed (__main__.BundleCase.test_transitive_plugin_dependencies_are_relocated_and_all_are_signed) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.022s\n\nOK\n"
+    }
+  ]
+}

@@ -1,0 +1,248 @@
+{
+  "schema": 1,
+  "kind": "fresh-main-isolated-merge-review",
+  "issueScope": [
+    121,
+    793,
+    806,
+    808
+  ],
+  "refRead": {
+    "source": "git ls-remote --heads origin main work/macos-issue-fixes-20261126",
+    "startedUTC": "2026-11-26T13:16:51.757434+00:00",
+    "completedUTC": "2026-11-26T13:16:58.877993+00:00",
+    "startedEuropeBerlin": "2026-11-26T14:16:51.757434+01:00",
+    "completedEuropeBerlin": "2026-11-26T14:16:58.877993+01:00",
+    "exitCode": 0,
+    "refs": {
+      "refs/heads/main": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+      "refs/heads/work/macos-issue-fixes-20261126": "3f3ec069895dec254c53660d14e6851cb23077cd"
+    }
+  },
+  "analysisCompletedUTC": "2026-11-26T13:18:40.318381+00:00",
+  "analysisCompletedEuropeBerlin": "2026-11-26T14:18:40.318381+01:00",
+  "mainSHA": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+  "candidateSHA": "3f3ec069895dec254c53660d14e6851cb23077cd",
+  "candidateTree": "176fa7f362227c92ec4d7c4bf08d09b855951ae7",
+  "isolatedObjectStore": "parallel-8c860a14.git",
+  "mainMerge": {
+    "mergeBase": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+    "mainIsCandidateAncestor": true,
+    "leftRightCount": {
+      "mainOnly": 0,
+      "candidateOnly": 23
+    },
+    "command": [
+      "git",
+      "merge-tree",
+      "--write-tree",
+      "--messages",
+      "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+      "3f3ec069895dec254c53660d14e6851cb23077cd"
+    ],
+    "exitCode": 0,
+    "tree": "176fa7f362227c92ec4d7c4bf08d09b855951ae7",
+    "equalsCandidateTree": true,
+    "conflictPaths": [],
+    "messages": "",
+    "fastForwardPossibleAtObservedRefs": true,
+    "actualMergePerformed": false
+  },
+  "changesSince8c860a14": {
+    "previousSHA": "8c860a14f7e10904c1b3a159ae84619c2c24ba82",
+    "commits": [
+      {
+        "sha": "625233067cd49e204786deb5706e6bc08ef85c4e",
+        "parent": "8c860a14f7e10904c1b3a159ae84619c2c24ba82",
+        "scope": "#806 distinguish deployment metadata from vtool tool-version fields"
+      },
+      {
+        "sha": "f7957801ba99c0e65e7eaeb70f69824efcd55fd0",
+        "parent": "625233067cd49e204786deb5706e6bc08ef85c4e",
+        "scope": "#793 canonicalize the AirPlay test fixture temporary root"
+      },
+      {
+        "sha": "3f3ec069895dec254c53660d14e6851cb23077cd",
+        "parent": "f7957801ba99c0e65e7eaeb70f69824efcd55fd0",
+        "scope": "#808 preserve source archive mtimes and real Make regression"
+      }
+    ],
+    "changedPaths": [
+      {
+        "status": "M",
+        "path": "ARBEITSSTAND.md"
+      },
+      {
+        "status": "M",
+        "path": "Magnolie-Organizer-macOS-Beta/tests/test_airplay_bundle.py"
+      },
+      {
+        "status": "M",
+        "path": "Magnolie-Organizer-macOS-Beta/tests/test_import_python_bundle.py"
+      },
+      {
+        "status": "M",
+        "path": "Magnolie-Organizer-macOS-Beta/tools/airplay_bundle.py"
+      },
+      {
+        "status": "M",
+        "path": "Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py"
+      }
+    ],
+    "allChangesInsideMacSubtreeOrARBEITSSTAND": true,
+    "sharedWorkflow": {
+      "path": ".github/workflows/ports-2.0.30.yml",
+      "previousBlob": "67d8915eef9fa357dc0ce5debcf40cd82c03b608",
+      "candidateBlob": "67d8915eef9fa357dc0ce5debcf40cd82c03b608",
+      "byteIdentical": true
+    },
+    "nonMacTopLevelTrees": [
+      {
+        "path": ".github",
+        "previousTree": "61b938ba7fd90b29611b8f6f46c4b43866c9a4ac",
+        "candidateTree": "61b938ba7fd90b29611b8f6f46c4b43866c9a4ac",
+        "identical": true
+      },
+      {
+        "path": "Magnolie-Organizer-Android-Tablet-Beta",
+        "previousTree": "47005f7b2fa98af2401f758e7b760de22f11bf12",
+        "candidateTree": "47005f7b2fa98af2401f758e7b760de22f11bf12",
+        "identical": true
+      },
+      {
+        "path": "assets",
+        "previousTree": "519d3944fea070c5e844e964e222788bacff73c6",
+        "candidateTree": "519d3944fea070c5e844e964e222788bacff73c6",
+        "identical": true
+      },
+      {
+        "path": "contracts",
+        "previousTree": "8cad2cce236e71600e64577fe56e387a14f527c0",
+        "candidateTree": "8cad2cce236e71600e64577fe56e387a14f527c0",
+        "identical": true
+      },
+      {
+        "path": "datenschutz",
+        "previousTree": "d728c6b5b4b3cc0b4aa8503d36b7def11fbdb74d",
+        "candidateTree": "d728c6b5b4b3cc0b4aa8503d36b7def11fbdb74d",
+        "identical": true
+      },
+      {
+        "path": "de",
+        "previousTree": "e34700d3db6bb3c9207148397478eb61c5f1f5b3",
+        "candidateTree": "e34700d3db6bb3c9207148397478eb61c5f1f5b3",
+        "identical": true
+      },
+      {
+        "path": "docs",
+        "previousTree": "71b37b0788bef9ee1c87f94b544cc9f164eff9be",
+        "candidateTree": "71b37b0788bef9ee1c87f94b544cc9f164eff9be",
+        "identical": true
+      },
+      {
+        "path": "en",
+        "previousTree": "cd3166546fc8f4aa76156f00b34770e6090d7d8f",
+        "candidateTree": "cd3166546fc8f4aa76156f00b34770e6090d7d8f",
+        "identical": true
+      },
+      {
+        "path": "fastlane",
+        "previousTree": "2fa5064b5a003e623062c472fea0e2a91d153e24",
+        "candidateTree": "2fa5064b5a003e623062c472fea0e2a91d153e24",
+        "identical": true
+      },
+      {
+        "path": "impressum",
+        "previousTree": "1cb514679cf8e27b1e6b1c0dcc8913ec410399ea",
+        "candidateTree": "1cb514679cf8e27b1e6b1c0dcc8913ec410399ea",
+        "identical": true
+      },
+      {
+        "path": "intl",
+        "previousTree": "997ca8340f3baf8cebfc907a19cd263ec4e3c107",
+        "candidateTree": "997ca8340f3baf8cebfc907a19cd263ec4e3c107",
+        "identical": true
+      },
+      {
+        "path": "magnolie-handbuch",
+        "previousTree": "d09828bd5dac340e8703ad9e8ee728dd9b0c75f5",
+        "candidateTree": "d09828bd5dac340e8703ad9e8ee728dd9b0c75f5",
+        "identical": true
+      },
+      {
+        "path": "magnolie-notes",
+        "previousTree": "466363670aa6d3e1e90083671873f0a4f84a966b",
+        "candidateTree": "466363670aa6d3e1e90083671873f0a4f84a966b",
+        "identical": true
+      },
+      {
+        "path": "magnolie-organizer",
+        "previousTree": "d24c0ed4e64a587ff0cd097aecdc0bc7d9eea7e4",
+        "candidateTree": "d24c0ed4e64a587ff0cd097aecdc0bc7d9eea7e4",
+        "identical": true
+      },
+      {
+        "path": "magnolie-organizer-windows",
+        "previousTree": "3be307b243230b27755a56d2d273a38ef0b8f2ab",
+        "candidateTree": "3be307b243230b27755a56d2d273a38ef0b8f2ab",
+        "identical": true
+      },
+      {
+        "path": "media",
+        "previousTree": "7e36e79f937db94215be5c5a2d1ec3a184ef8d56",
+        "candidateTree": "7e36e79f937db94215be5c5a2d1ec3a184ef8d56",
+        "identical": true
+      },
+      {
+        "path": "pad",
+        "previousTree": "8a8cc573f25075d4330e468e3b6171f853314d3f",
+        "candidateTree": "8a8cc573f25075d4330e468e3b6171f853314d3f",
+        "identical": true
+      },
+      {
+        "path": "port-adapters",
+        "previousTree": "30f43841910e1c722a8ab9cd21d3d0d1c11b29c7",
+        "candidateTree": "30f43841910e1c722a8ab9cd21d3d0d1c11b29c7",
+        "identical": true
+      },
+      {
+        "path": "presse",
+        "previousTree": "c4bf1fc760c8e7b8d118a3de641be8a81858d0e0",
+        "candidateTree": "c4bf1fc760c8e7b8d118a3de641be8a81858d0e0",
+        "identical": true
+      },
+      {
+        "path": "tools",
+        "previousTree": "b8b1accca43ca1354ce5ec4bc0cf661a72c7c162",
+        "candidateTree": "b8b1accca43ca1354ce5ec4bc0cf661a72c7c162",
+        "identical": true
+      }
+    ],
+    "allNonMacTopLevelTreesIdentical": true,
+    "identityMeaning": "Identical Git tree IDs bind recursively identical tracked paths, modes and file bytes; no source tests were repeated."
+  },
+  "previousParallelEvidence": {
+    "file": "integration-62523306.json",
+    "status": "Historical exact-commit snapshot only; unchanged by this review.",
+    "androidRefReadOrComparisonRepeated": false
+  },
+  "nativeAcceptance": {
+    "associatedRunNumber": 104,
+    "associatedRunId": 45827353062,
+    "associatedSourceSHA": "3f3ec069895dec254c53660d14e6851cb23077cd",
+    "nativeResultEvaluatedByThisReview": false,
+    "nativePassInferredFromGitMerge": false,
+    "futureDocumentationCommitCoveredByNativeRun": false
+  },
+  "limitations": [
+    "This review computes Git ancestry and a merge tree only; it performs no merge, commit, branch update, release or issue mutation.",
+    "The exact observed main and candidate refs are time-bound. Future main or candidate changes require a new targeted integration review.",
+    "A final documentation commit is separate from this frozen source candidate and must not be presented as the native-tested commit.",
+    "The older Android overlap/merge evidence remains bound to its original SHAs; no current Android compatibility conclusion is added.",
+    "Native app/package/process/runtime and release acceptance require their own actual native results; this Git calculation is not such a result."
+  ],
+  "rootWorktreeOrRefsChangedByReview": false,
+  "remoteMutation": false,
+  "testsRepeated": false,
+  "original24PatchReplayRepeated": false
+}
