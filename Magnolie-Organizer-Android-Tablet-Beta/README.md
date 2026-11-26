@@ -1,22 +1,30 @@
 # Magnolie Organizer Android Tablet Beta 2.0.30Beta
 
-Development snapshot of the debug beta, **not a production release**.
-The 2.0.30Beta candidate uses the shared 2.0.30 interface with the native limits
-below. Current port work is tracked in [issue #121](https://github.com/maik3531/Magnolie-Organizer/issues/121);
+Development sources for the standalone Android organizer, **not a production release**.
+The beta identity remains 2.0.30Beta; its interface and contracts come from the
+same current checkout as the tablet adapter. The old desktop release tag is only
+an independent regression reference. Current port work is tracked in [issue #121](https://github.com/maik3531/Magnolie-Organizer/issues/121);
 [issue #9](https://github.com/maik3531/Magnolie-Organizer/issues/9) retains the historical checkpoint.
 
-Current native verification: the APK and JVM gate passed in Actions run
-42494608208, including the native DAV/account modules. Earlier emulator basics
-passed for calendar, tasks, contacts, notes, Custom, keyboard input, geometry and
-Keystore-encrypted readback; another run passed restart and the 17-series worker
-fixture. The complete 40-touch interaction gate has not passed. Run 42494608208
-failed its initial 25-second native readiness check, before those interactions.
-Bounded startup telemetry and a separate native DAV/Keystore component suite are
-being validated; they do not replace the UI gate. Complete Android runtime
-verification remains unfinished. There has
-been no physical-device acceptance or production release. The offline build
-produces debug-only candidates; source changes mark `artifacts/candidate.json`
-stale. A successful source projection does not establish release readiness.
+The [26 November 2026 audit](../contracts/android-tablet-audit-2026-11-26.md)
+records the current source work and each remaining issue. The new direct Android
+copies, adaptive layout, HTTPS attachment handoff and build provenance are review
+patches. Their host/browser/JVM checks and Android source compilation do not
+constitute an assembled or accepted APK. Historical native evidence includes
+API34 services/SAF in [#456](https://github.com/maik3531/Magnolie-Organizer/issues/456),
+Keystore/epoch checks in [#454](https://github.com/maik3531/Magnolie-Organizer/issues/454)
+and a 19.838-second cold start in [#479](https://github.com/maik3531/Magnolie-Organizer/issues/479).
+The later drawing attempt stopped at an accessibility-window binding failure
+([#463](https://github.com/maik3531/Magnolie-Organizer/issues/463)); the complete
+touch gate, current APK matrix and physical-device acceptance remain open.
+The offline build produces debug-only candidates; later source changes mark
+`artifacts/candidate.json` stale.
+
+Neither the Magnolie Notes app nor KDE Connect is required. Local organizer notes
+remain available. Android contacts and calendar access uses the public on-device
+providers with separate explicit permissions and source selection. Sharing two
+existing storage helper source files and the Gradle wrapper does not install,
+pair with or build the Notes application.
 
 ## Canonical Ownership
 
@@ -29,12 +37,16 @@ Notes, desktop, Windows, or the shared contracts is edited by the tablet build.
 - Candidate: `artifacts/Magnolie-Organizer-Android-Tablet-Beta-2.0.30Beta-debug.apk`.
 - Android private data, notifications, Keystore alias, debug signing key, and
   application sandbox are separate from the phone Notes profile.
-- Minimum Android 8/API 26; compile/target API 35; JDK 17.
+- Minimum Android 8/API 26; compile API 37.2, behavior target API 35.
+- Build toolchain: JDK 21, verified Gradle 9.6.0 wrapper, AGP 9.5.1 with built-in
+  Kotlin 2.4.21, Android build-tools 36.0.0; Java/Kotlin bytecode target 17.
 
 `tools/project-web.cjs` reads the **current** `../magnolie-organizer/web`
 tree on every build. It generates assets under `app/build/generated/projection`,
-never a manually maintained desktop fork. Its only core transformation exposes
-the existing editor guard and durable-action queue as `MagnolieTabletActions`.
+never a manually maintained desktop fork. Its marked core transformations expose
+the existing editor guard and durable-action queue as `MagnolieTabletActions`
+and add the narrow Android-copy operations using the canonical normalizer and
+timezone conversion. Reversibility checks remove only those documented blocks.
 Entry-point scripts, beta identity, localization aggregation and tablet CSS are
 explicit build transformations recorded in `projection.json`.
 
@@ -50,8 +62,8 @@ changed during compilation. **A snapshot APK cannot track later UI edits:**
 rerun the entire gate after desktop corrections, do not freeze or manually patch
 generated assets. A changing source tree can legitimately require another build.
 
-Notes' `DatenDateiKrypto.kt` and `DateiDauerhaft.kt` are compiled by source reference
-using Kotlin's explicit include filter. No Notes UI, profile, transport or crypto
+Notes' `DatenDateiKrypto.kt` and `DateiDauerhaft.kt` are copied by an exact two-file
+Gradle `Sync` task into generated Kotlin sources. No Notes UI, profile, transport or crypto
 fork is bundled. The web core owns organizer serialization/normalization and
 custom-module behavior; the native store preserves the JSON instead of creating
 a second organizer model. Shared custom identity/consent vectors are executed
@@ -61,19 +73,21 @@ against the projected core and through the existing shared desktop test runner.
 
 | Area | Implementation | Acceptance Boundary |
 | --- | --- | --- |
-| Binder UI | Real desktop leather/paper/rings/tabs and full web modules | jsdom plus native screenshots/basic geometry observed; complete touch navigation gate blocked |
-| Calendar, tasks, contacts, notes | Local canonical web editing and native JSON persistence | No Android system calendar/contact provider |
+| Binder UI | Real desktop leather/paper/rings/tabs and full web modules | Current real-Chromium geometry and touch-tap checks; complete Android touch navigation gate pending |
+| Calendar, tasks, contacts, notes | Local canonical web editing and native JSON persistence | Explicit Android contact/calendar copies added; no standard Android task provider |
 | Planner, health, custom tabs | Canonical web sections retained, including custom items and consent | Not a claim that their external integrations work |
-| Landscape | Two simultaneous binder pages | Native screenshots/basic geometry passed; complete interaction acceptance pending |
-| Portrait | Pages stacked vertically, scrollable binder | Small-screen, large-text and IME acceptance pending |
-| Input/accessibility | Native WebView input, keyboard guard/shortcuts, focus outlines, touch targets, reduced motion, pinch zoom | TalkBack, RTL, stylus and keyboard hardware not exercised |
+| Wide windows | Two simultaneous binder pages above 1100 CSS pixels, including wide portrait windows | Current browser checks; Android window resizing pending |
+| Compact windows | Stacked pages, horizontal tabs and bounded scrollable dialogs regardless of orientation | Ten browser scenarios cover narrow/short windows, RTL and enlarged text; native IME acceptance pending |
+| Input/accessibility | Native WebView input, keyboard guard/shortcuts, focus outlines, minimum 48 CSS-pixel action targets, reduced motion, pinch zoom | Browser touch taps and geometry tested; Android dp scaling, TalkBack, stylus and hardware keyboard pending |
 | Private persistence | AES-256-GCM, Android Keystore, synchronized file write, atomic rename, directory fsync before save ACK | Native basic save/readback, non-exportable key and process restart passed; crash/failure durability acceptance remains open |
-| Import | SAF ICS merges calendar appointments, tasks and anniversaries through the shared importer; SAF JSON accepts raw version-6 state or this beta's encrypted envelope | ICS source metadata and records share one durable book save; no VCF/CSV or desktop complete-archive importer; native SAF ICS acceptance still pending |
+| Import | SAF ICS merges calendar appointments, tasks and anniversaries through the shared importer; SAF JSON accepts raw version-6 state or this beta's encrypted envelope | ICS source metadata and records share one durable book save; no VCF/CSV or desktop complete-archive importer; historic SAF proof in #456, current candidate acceptance pending |
+| Android source copies | Explicit selected-source contacts or calendar instances for 1–366 inclusive calendar days, through native workers and the canonical book save | Append new identities only; existing entries remain unchanged; provider writes and ongoing synchronization are unavailable |
+| Calendar attachments | Exact saved HTTPS attachment opened with Android ACTION_VIEW; existing explicit native clipboard command retained | JVM policy and host save-guard checks; actual Android handler/clipboard/form/reopen acceptance in #682 remains open |
 | JSON replacement | Shared normalizer, explicit replacement confirmation, encrypted pre-import snapshot | Replaces the whole profile, not a merge; backup is internal, recovery UI not yet implemented |
-| Export | SAF standard ICS for appointments, tasks and anniversaries; password-encrypted JSON for the complete book | ICS is unencrypted and collection-specific; native SAF ICS acceptance pending. JSON uses the beta envelope, not Notes backup or desktop complete-archive format |
+| Export | SAF standard ICS for appointments, tasks and anniversaries; password-encrypted JSON for the complete book | ICS is unencrypted and collection-specific; historic SAF proof in #456, current candidate acceptance pending. JSON uses the beta envelope, not Notes backup or desktop complete-archive format |
 | PDF/printing | Canonical print HTML into a separate script/bridge-free native print WebView | Android Print dialog includes Save as PDF; no automatic completion ACK; runtime/spooler validation pending |
 | Reminders | Persisted one-off calendar/task/custom alarms, global and separate custom consent, inexact AlarmManager wakeup, boot/package restart receiver, delivery receipts | No recurrence/anniversary/health/SMS scheduling, exact alarm SLA, foreground service or force-stop bypass |
-| Localization | Existing 20-language catalogs; two small manual beta strings in all 20 locales | Native locale follows Android, web locale follows organizer settings; linguistic review not claimed |
+| Localization | Existing 20-language catalogs plus beta and Android-copy messages in all 20 locales | Native locale follows Android, web locale follows organizer settings; linguistic review not claimed |
 | Setup/holidays | Current canonical setup logic/catalogs and local country/region/cached-holiday display filter | Native bounded HTTPS public/school holiday retrieval; no Android desktop setup wizard; native integration validation pending |
 | DAV account setup | Canonical account form, revision-bound configuration, Android Keystore credentials and explicit collection discovery | Setup/discovery only; actual record synchronization remains disabled; real-server acceptance pending |
 | Text editing | Current canonical context menu, Undo/Redo and accessible Tab-key help | Key/help catalogs checked in all 20 locales; actual WebView editing history/IME acceptance pending |
@@ -84,15 +98,18 @@ panels. Other unsupported calls show a localized unavailable message with the
 command identifier. Main statuses are visible and accessible, not console-only.
 
 Contact SMS/call buttons, their context-planning actions, mail/map/letter/social
-launchers and corresponding external-integration settings are disabled. Local
+launchers and corresponding external-integration settings are disabled. The
+specific saved HTTPS calendar-attachment action has its own native handoff. Local
 contact phone/email/address editing remains available. The bridge rejects attempted
 outgoing SMS/call commands without handing them to Android.
 
-There is **no** EDS/Akonadi, Android system-account integration, complete Nextcloud synchronization/cloud backup,
+There is **no** EDS/Akonadi, automatic Android-account synchronization, complete Nextcloud synchronization/cloud backup,
 Magnolienbaum/phone pairing, SMS/calls, Bluetooth/WLAN sync, medication/weather
 lookup, desktop spelling service, LibreOffice/ODS/letter export, update service,
 or desktop password-lock emulation. INTERNET permits the native HTTPS service; the WebView still rejects external resources. There is no system
-contacts/calendar permission, shared UID, or account manager permission.
+shared UID or account-manager permission. READ_CONTACTS and READ_CALENDAR are
+requested separately only after an explicit action; neither is required for
+ordinary local editing.
 New file attachments via the WebView file picker are not implemented. Existing
 embedded note data is retained by the shared core subject to its validation.
 
@@ -231,9 +248,10 @@ that check; the historical APK stays stale until a separately coordinated rebuil
 
 ### Complete bounded offline debug artifact gate
 
-The inspected environment has JDK 17, Android SDK under
-`~/.local/share/android-sdk`, Gradle 8.13 cached under `~/.gradle`, and Bun (no
-system Node executable). Install the small private web test dependency once:
+The gate requires a complete JDK 21 (including `javac`), Android platform 37.2 and
+build-tools 36.0.0. The default SDK is `~/.local/share/android-sdk`; Gradle 9.6.0 is
+selected by the existing checksum-verified wrapper. Use Bun or set
+`MAGNOLIE_JS_RUNTIME=node`. Install the small private web test dependency once:
 
 ```sh
 bun install --frozen-lockfile
@@ -254,10 +272,15 @@ same required resource-limited user service. A cloud host without that service a
 cgroup support cannot run the complete APK gate.
 
 The dedicated [`ports-2.0.30.yml`](../.github/workflows/ports-2.0.30.yml) workflow
-prepares that service on a fresh Ubuntu runner. It selects the published desktop
-tag `v2.0.30` at commit `067c38934b539943d8e1720abafd8a80b401d797`, retains the
-reviewed tablet adapter, generates canonical catalogs, and invokes `--online`
-inside the same bounded build gate. The following owned emulator UI suite tests
+prepares that service on a fresh Ubuntu runner. The tablet job retains the exact
+current checkout, captures its Git/file provenance before generating catalogs,
+and invokes `--online` inside the same bounded build gate. The published desktop
+tag `v2.0.30` at commit `067c38934b539943d8e1720abafd8a80b401d797` remains only an
+independent codec oracle; it is never restored over tablet build inputs. After
+the existing APK verification, `tools/source-proof.py bind` checks the unchanged
+Git inputs, reproduced catalogs, projection inputs/outputs and candidate bytes
+and records their relationship. The Mac job retains its separate existing policy.
+The following owned emulator UI suite tests
 the exact hash-checked app/test pair. Synthetic runtime evidence, candidate
 metadata and checksums are retained as Actions artifacts for 14 days, including
 diagnostics when a stage fails. This workflow is manual or runs on the dedicated
@@ -292,7 +315,7 @@ Do not wrap this beta's own build script with that command: it already acquires
 the lock. Do not run competing Android compilers. The readiness operation checks
 tooling and the lock but does not compile, install or start an emulator.
 
-### Owned emulator lifecycle (later, only with main permission)
+### Owned emulator lifecycle
 
 `tools/emulator-session.py` owns its cooperative leases for the entire run
 and cleanup; callers must not wrap it in another acquisition of those locks.
@@ -307,8 +330,9 @@ Defaults reuse these existing paths:
 
 `--vm-root` and `--session-root` select existing coordinated roots. `run` requires
 `--main-slot-granted` **after** main has explicitly granted the sole slot. A flag
-does not constitute permission by itself. User test authorization already exists;
-main's resource grant is deferred until the Windows native phase is finished.
+does not constitute a resource grant by itself. Use the actual current assignment
+of the shared test slot. Historical pause comments, including the closed #423,
+do not establish a continuing general ban on Android tests.
 
 Runtime defaults/caps are 1200 seconds total and 180 seconds to boot; every native
 stage/ADB command defaults to 120 seconds. Progress defaults to 30 seconds and
@@ -338,7 +362,8 @@ layout (including all 40 touch-tab switches), time. The navigation stress assert
 are preserved in their own existing 120-second stage budget.
 Suite `storage`: basics, SAF, fault, print. Suite `notifications`: notifications.
 There is a full stop/resource recheck between suites. Reboot/Doze, portrait/large
-text/RTL/TalkBack and Notes coexistence remain additional native acceptance work.
+text/RTL/TalkBack remain additional native acceptance work. Optional coexistence
+testing with an installed Notes app does not make Notes a runtime prerequisite.
 
 ## Test Proof
 
@@ -346,6 +371,10 @@ After a successful complete gate:
 
 - `artifacts/candidate.json`: exact APK identity/hash, source hash and unaccepted status.
 - `artifacts/projection.json`: source inputs and generated-output hashes.
+- `artifacts/source-checkout.json`: current Git commit, tracked input blobs and
+  file hashes, captured only from a clean relevant checkout.
+- `artifacts/sources.json`: checkout-to-projection-to-verified-APK binding
+  produced by the tablet CI job, not a substitute for native acceptance.
 - `artifacts/web-test-proof.json`: jsdom/shared-contract gate count and source hash.
 - `artifacts/a3-editor-vectors.json`: current editor-generated records and alarm matrix, also consumed by native JVM tests.
 - `app/build/test-results/testDebugUnitTest/`: JUnit XML, no emulator required.
@@ -361,12 +390,31 @@ These are **not** Android instrumentation, real renderer, accessibility, SAF,
 Keystore, reboot, Doze or printer proofs. Do not rename this candidate to a final
 or accepted APK based on compilation/unit tests alone.
 
+Additional checks introduced with the 26 November review patches:
+
+```sh
+python3 -B tests/test_source_proof.py
+node tools/project-web.cjs
+node tests/web.test.cjs
+node tests/system-import.test.cjs
+# Requires Playwright and an explicitly available Chromium executable:
+MAGNOLIE_CHROMIUM=/path/to/chromium node tests/tablet-layout-browser.cjs
+node tools/project-web.cjs --check
+```
+
+The Android-copy integration check is part of the bounded offline gate. It uses
+the actual generated organizer with a synthetic native bridge, tests save ACKs,
+failed-save retry, cancellation, stale replies, selected sources, date windows,
+contact birthdays and reopen stability. The separate browser test uses a real
+Chromium renderer and touchscreen taps; its bridge is also synthetic. Neither
+test exercises Android permissions, the device providers or an Android WebView.
+
 ## Later Acceptance
 
-The main session coordinates one emulator/VM at a time after the Windows native
-phase. The prepared suite command above has not been executed in this invocation.
+Coordinate one emulator/VM at a time using the existing resource gates. The
+26 November review patches have not passed a complete new APK/device run.
 
-1. Install alongside Notes and verify both labels, application IDs and independent data.
+1. Install the standalone tablet app and verify its identity and independent data; also check coexistence if Notes happens to be installed.
 2. Test 1280x800 landscape, portrait, large text, RTL, TalkBack, stylus, external keyboard and IME insets.
 3. Create/edit calendar entries, tasks, contacts, notes and custom modules; background, kill and reopen.
 4. Exercise real Keystore encryption, missing-key/corrupt-file fail-closed startup, fsync/rename fault boundaries and data recovery.
@@ -376,6 +424,8 @@ phase. The prepared suite command above has not been executed in this invocation
 8. Exercise notification denial/revocation, custom consent/revocation, edits/deletions, background/Doze/reboot, batching and stable receipts. Verify unsupported recurrence is clearly understood.
 9. Test origin/frame navigation attacks, print HTML injection, new-window/file requests and process recreation during pending operations.
 10. Refresh the live projection, rerun all gates and record the exact candidate hash before making any acceptance decision.
+11. Grant, deny and revoke contacts/calendar permissions separately; select actual sources; copy records, cancel/rotate/recreate during a query, repeat a copy and reopen the saved book. Check all-day dates, recurrence windows, DST and unchanged existing entries.
+12. Open a saved HTTPS attachment and explicitly copy its link; test missing handlers, local-only records, return to the organizer and save/reopen on the same current APK.
 
 Desktop artwork/fonts and code retain their existing licenses; see the parent
 `LICENSE.md`, `PROTECTED-ASSETS-LICENSE.txt` and canonical font license. This beta
@@ -396,21 +446,64 @@ Medication online lookup, drawing file import/PDF, physical stylus behavior,
 TalkBack and IME are outside this component proof. Native success must be recorded
 for the exact APK; host checks alone do not establish that acceptance.
 
+## Direct Android contacts and appointments
+
 Android system-source discovery uses public CalendarContract calendar metadata and
 ContactsContract Settings/RawContacts account metadata. Separate explicit buttons
-request READ_CALENDAR or READ_CONTACTS; startup and refresh never prompt. No
-GET_ACCOUNTS, credentials, private provider databases, contact bodies or calendar
-items are read. Android's general AccountManager visibility rules cannot expose
+request READ_CALENDAR or READ_CONTACTS; startup and refresh never prompt. The
+user then selects a source and deliberately copies its contacts or calendar
+instances. No GET_ACCOUNTS, credentials or private provider databases are used.
+Android's general AccountManager visibility rules cannot expose
 every device account, so the source list represents accounts actually exposed by
 the calendar/contacts providers. Tasks/VTODO have no standard CalendarContract
 provider and remain unsupported. Source selection does not enable synchronization
-or writes; cached DAV collections keep their separate IDs.
+or writes; cached DAV collections keep their separate IDs. No Notes/KDE pairing
+is involved. A provider can withhold work-profile or protected OEM data even
+when ordinary contacts permission has been granted.
 Queries run on a separate worker with native cancellation, a 15-second deadline,
 a 1,000-source limit and 20,000 contacts-metadata row limit. Denial, provider error
 or exceeded bounds do not clear saved selections or report truncated lists as
 complete. Pure request/discovery/merge fixtures and host permission UI tests are
 not proof of real Android account access: OS dialogs and actual provider accounts
-still need native acceptance, including API23 before any minimum-SDK reduction.
+still need native acceptance. The minimum SDK remains API26.
+
+The record-copy worker has separate limits: 5,000 records, 50,000 provider rows,
+4 MiB response, 64 KiB per field and a 15-second deadline. Queries are cancellable
+and bound to the original page session, book revision, request and selected
+source. Contacts validate raw-contact identities/versions before and after
+reading; calendar instances are compared across two bounded reads. A changed,
+revoked, missing, oversized or timed-out source rejects the candidate without
+claiming a complete result. These checks do not claim an atomic provider snapshot.
+
+Contacts copy names, phone/email/address entries, company, notes and supported
+birthday/anniversary dates; this is not a complete vCard/photo/group importer.
+Calendar selection covers 1–366 inclusive dates in the organizer's selected
+display zone. Timed entries preserve their exact UTC ICS instants; all-day
+entries use explicit UTC date boundaries and Android's exclusive end date.
+Recurring appointments are copied as instances in that window; recurrence rules,
+later provider edits and deletions are not synchronized. Imported appointments
+follow the existing local organizer reminder preferences.
+
+Only new stable provider identities are appended. Repeating a copy skips already
+copied identities, including locally edited entries. Passive origin metadata
+grants no provider or DAV write rights. The shared normalizer derives linked
+contact birthdays; if a copy would modify existing anniversaries or collapse
+identities on reopen, it is rejected as a conflict. Existing records are not
+replaced. The existing editor/save guard runs before the query and application;
+success appears only after the encrypted native book save is acknowledged.
+A failed save retains the complete unsaved copy for an explicit retry. Cancelled,
+late or stale responses are ignored, never applied to a different book.
+
+## Saved HTTPS calendar attachments
+
+The native handler accepts only the exact HTTPS URI of an attachment already
+present in the authoritative saved appointment/task book, with `localOnly:false`
+and a supported web/cloud provider. It rejects credentials, unsupported schemes,
+invalid ports, control characters, unknown/local-only providers and mismatched
+page authority. URI percent escapes are preserved. Android receives an explicit
+ACTION_VIEW/CATEGORY_BROWSABLE handoff; success means only that Android accepted
+the handoff, not that a browser loaded the page. Other contact/social launchers
+remain outside this route. The existing deliberate clipboard command is separate.
 
 Permission-dialog recreation retains only a non-authorizing code/kind quarantine
 and a process marker, never an old page request or reply authority. A same-process

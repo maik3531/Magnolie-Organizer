@@ -288,3 +288,50 @@ Nächster inhaltlicher Schritt: Eine belegte Artikeladresse zur angekündigten
 Veröffentlichung prüfen und danach neu einordnen. Die privaten Kampagnenbelege
 bleiben außerhalb des Repositorys. Es wurden keine Nachrichten oder neuen
 Einreichungen versendet; #595 bleibt für ausstehende Portalangaben offen.
+
+## Eigenständiger Android-Tablet-Organizer – 26. November 2026
+
+Nutzerauftrag: alle Tablet-Issues gegen den tatsächlichen Quell-/Prüfstand
+abgleichen, die aktuelle gemeinsame Oberfläche tabletgerecht verwenden und
+Kontakte/Kalender direkt über Android anbinden. Magnolie Notes und KDE Connect
+sind keine Voraussetzung; lokale Organizer-Notizen bleiben Bestandteil der App.
+Die präzisierte Plattformabgrenzung steht auch in `AGENTS.md` und der Tablet-README.
+
+Arbeitsbasis ist `d4da48a5eadd0bda22422b924bef4ee3b4324040`; Änderungen werden im
+Prüfzweig `work/android-tablet-20261126` mit vollständigen Issue-Patches zur
+späteren Prüfung/Übernahme bereitgestellt. Keine Freigabe eines neuen APK-Pakets
+oder Release erfolgt aus diesem Quellnachweis. Der vollständige Audit mit
+26 maßgeblichen Issues steht in `contracts/android-tablet-audit-2026-11-26.md`.
+
+- #790: Der Tablet-CI-Bau verwendet den aktuellen gemeinsamen Checkout. Das alte
+  `v2.0.30` bleibt nur unabhängige Codec-Referenz. Git-/Datei-/Projektions- und
+  geprüfte APK-Hashes werden gebunden; JDK21/Gradle9.6/AGP9.5.1 mit integriertem
+  Kotlin2.4.21 und compileSdk37.2 sind angeglichen. TargetSDK35 und minSDK26 bleiben.
+- #791: explizite native Kontakt- und Kalenderkopien mit Quellenwahl,
+  Berechtigungsprüfung, Abbruch/Fristen und Session-/Revisionsbindung. Nur neue
+  Identitäten ergänzen; vorhandene Datensätze bleiben erhalten. Die gemeinsame
+  Normalisierung schützt Kontaktgeburtstage und wiederholtes Öffnen. Termine
+  werden für 1–366 Kalendertage als Instanzen übernommen; keine laufende
+  Synchronisierung oder Provider-Schreibrechte. Erfolg erst nach Save-ACK.
+- #792: Buchaufteilung nach Fensterbreite, mindestens 48 CSS-Pixel große
+  Aktionsziele, kompakte Register und erreichbare, begrenzte Dialoge. Bestehende
+  Darstellung sowie Scroll-, RTL- und reduzierte Bewegungsoptionen bleiben.
+- #682: gespeicherte HTTPS-Kalenderanhänge werden nach dem bestehenden
+  Speicherschutz direkt an Android übergeben; kein Notes-/KDE-Umweg. Die native
+  Richtlinie prüft den tatsächlichen gespeicherten Anhang und dessen Freigabe.
+
+Geprüft: 194 bestehende Tablet-Webchecks; 31 zusätzliche tatsächliche
+Frontend-Integrationsfälle mit synthetischer Native-Bridge; 31 JVM-Tests der
+Import-/Quellen-/Anhangsrichtlinien; alle 38 Kotlin-Produktdateien gegen echte
+Android-37.2-/AndroidX-Abhängigkeiten einschließlich aapt2-Ressourcenübersetzung;
+19 Provenienztests plus ein gezielter JAVA_HOME-Weitergabetest; 150/150 echte
+Chromium-Layoutchecks in zehn Fenster-/Schrift-/RTL-Fällen. Derselbe Layoutrunner
+fand mit dem alten CSS 40 Fehler. Der korrigierte Legacy-CSS-Test prüft die
+tatsächlich geltenden vh-/dvh-Fallbacks; Mac-Prüfungen bleiben erhalten.
+
+Ein vollständiger neuer Gradle-/D8-/APK-Bau, Android-Provider-/Berechtigungsdialoge,
+TalkBack, IME, Stift, native Pixel-/SAF-/Restore-/Neustartmatrix und tatsächliche
+HTTPS-/Clipboard-Bedienung sind damit nicht abgenommen. Historische native
+Teilnachweise und heutige Reste werden im Audit getrennt geführt. #458, #463 und
+#471 bleiben mit ihren belegten unterschiedlichen Ursachen offen; geschlossene
+Quell-/Native-Teilfixes werden nicht ohne neue Regression wieder geöffnet.
