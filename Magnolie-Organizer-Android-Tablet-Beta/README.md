@@ -6,10 +6,18 @@ same current checkout as the tablet adapter. The old desktop release tag is only
 an independent regression reference. Current port work is tracked in [issue #121](https://github.com/maik3531/Magnolie-Organizer/issues/121);
 [issue #9](https://github.com/maik3531/Magnolie-Organizer/issues/9) retains the historical checkpoint.
 
-The [26 November 2026 audit](../contracts/android-tablet-audit-2026-11-26.md)
-records the current source work and each remaining issue. The new direct Android
-copies, adaptive layout, HTTPS attachment handoff and build provenance are review
-patches. Their host/browser/JVM checks and Android source compilation do not
+The [handover and future integration guide](../pruefnachweise/android-tablet-followup-2026-11-26/handover/README.md)
+pins the source baseline, complete patch order, future-main conflict handling,
+workflow targets and remaining release checks. The [follow-up audit](../contracts/android-tablet-followup-2026-11-26.md)
+updates the [initial 26 November audit](../contracts/android-tablet-audit-2026-11-26.md).
+[CI #101 evidence](../pruefnachweise/android-tablet-followup-2026-11-26/ci-run-45822320243/README.md)
+now proves the complete APK gate and the API34 provider stage on commit
+`7a7d90b04796cf338b98f0fdbb87e8da1c967043`: 303 JUnit tests and ten functional
+provider groups plus cleanup passed. Later documentation changes retain identical
+runtime bytes; they are not a newly tested APK. The direct Android copies,
+adaptive layout, HTTPS attachment handoff and build provenance remain review
+patches pending integration and the outstanding native acceptance.
+Earlier host/browser/JVM checks and Android source compilation alone did not
 constitute an assembled or accepted APK. Historical native evidence includes
 API34 services/SAF in [#456](https://github.com/maik3531/Magnolie-Organizer/issues/456),
 Keystore/epoch checks in [#454](https://github.com/maik3531/Magnolie-Organizer/issues/454)
@@ -382,7 +390,9 @@ The owner records UTC progress, elapsed time, reason, actual child exit codes an
 its own exit status in `artifacts/emulator-session.json`; legacy PID-only state
 cannot authorize any signal or ADB operation.
 
-For the exact later command, see the continuation report. `tools/native-checks.py`
+For the exact existing commands and suite selection, see the
+[workflow and handover guide](../pruefnachweise/android-tablet-followup-2026-11-26/handover/README.md#ausführbare-prüfeinstiege-und-ihre-grenzen).
+`tools/native-checks.py`
 uses this same owner, locks, pidfds and exact ADB port/serial checks. Each invocation
 validates the current candidate, creates a private disposable AVD, installs only
 the hash-checked app/test APK pair, runs one suite, collects evidence and cleans up.

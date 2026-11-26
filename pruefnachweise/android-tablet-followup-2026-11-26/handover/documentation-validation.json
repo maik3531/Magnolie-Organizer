@@ -1,0 +1,55 @@
+{
+  "kind": "derived-handover-documentation-validation",
+  "verifiedAtUtc": "2026-11-26T13:46:45.047686+00:00",
+  "baseLocalCommit": "680d348f3f9cff6ecf3adc5536a6490649d25ef6",
+  "baseRemoteCommit": "8d5dc47fecf77b7ebc2db0e5cbb7cb4754005b29",
+  "baseTree": "4f3cc2051a5b598171f690e3ff72d1c136068c9c",
+  "testedRemoteCommit": "7a7d90b04796cf338b98f0fdbb87e8da1c967043",
+  "testedProjection": "dbe502cf4ad4661be79dca584c120d8623676cf8be5c3ff0d61eba840b676c09",
+  "handoverProjection": "257fa1cd947bbc89cb4db9c2a240dfd784edff2b562029869d904805cde73613",
+  "runtimeOutputsComparedWithOriginalCIManifest": 83,
+  "allActualRuntimeBytesMatched": true,
+  "projectWebCheck": {
+    "command": "node tools/project-web.cjs --check",
+    "exitCode": 0,
+    "reportedSourceHash": "257fa1cd947bbc89cb4db9c2a240dfd784edff2b562029869d904805cde73613"
+  },
+  "gitDiffCheckExitCode": 0,
+  "changedTrackedPathsBeforeCommit": [
+    "ARBEITSSTAND.md",
+    "Magnolie-Organizer-Android-Tablet-Beta/README.md",
+    "pruefnachweise/android-tablet-followup-2026-11-26/README.md",
+    "pruefnachweise/android-tablet-followup-2026-11-26/checksums.json"
+  ],
+  "newHandoverPathsBeforeThisReceipt": [
+    "pruefnachweise/android-tablet-followup-2026-11-26/handover/README.md",
+    "pruefnachweise/android-tablet-followup-2026-11-26/handover/baseline-patch-series.json",
+    "pruefnachweise/android-tablet-followup-2026-11-26/handover/fresh-evidence-integrity.json",
+    "pruefnachweise/android-tablet-followup-2026-11-26/handover/remote-baseline.json"
+  ],
+  "onlyDocumentationAndEvidenceChanged": true,
+  "localLinkChecks": [
+    {
+      "path": "pruefnachweise/android-tablet-followup-2026-11-26/handover/README.md",
+      "localLinkTargetsChecked": 8
+    },
+    {
+      "path": "ARBEITSSTAND.md",
+      "localLinkTargetsChecked": 1
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/README.md",
+      "localLinkTargetsChecked": 7
+    },
+    {
+      "path": "pruefnachweise/android-tablet-followup-2026-11-26/README.md",
+      "localLinkTargetsChecked": 4
+    }
+  ],
+  "reviewCorrections": [
+    "Separate later source integration from final package acceptance",
+    "Scope the remaining provider checks beyond the successful CI101 provider stage"
+  ],
+  "scope": "Documentation-only follow-up patch 13. No new APK, emulator or functional test. Fresh integrity and baseline replay are separately recorded; final patch SHA, result tree and remote commit are published in issue #121 after commit creation.",
+  "result": "passed"
+}

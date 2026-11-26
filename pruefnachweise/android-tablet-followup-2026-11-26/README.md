@@ -3,6 +3,10 @@
 Stand: 26. November 2026. Refs #795, #790, #791, #792, #798, #799, #800, #801 und #463.
 Die Fortsetzung baut auf `29acde7e3df2b8bcaaab0cc19b3377b8dbf4bd14` auf.
 
+Für die spätere Übernahme und kommende Änderungen: [zentrale Übergabe](handover/README.md)
+mit festgehaltenen Heads, vollständiger Patchfolge, Umgang mit verändertem `main`,
+ausführbaren Workflowzielen, offenen Abnahmen und frisch geprüfter Belegintegrität.
+
 ## Abschließender tatsächlicher Prüfstand
 
 [Actions #101](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45822320243)
@@ -130,17 +134,20 @@ GitHub-Commits ändern sich die gebundenen Commitkennungen, nicht Quell- und
 Projektionshashes.
 Ein CLI-Bind mit APK-Kandidat wurde nicht ausgeführt oder simuliert.
 
-## Vollständiger APK-Bau und offene Abnahme
+## Historischer Vorbereitungsstand: APK-Bau und offene Abnahme
 
 Das manuelle Workflowziel `tablet-build-only` verwendet den bestehenden
 vollständigen APK-Bau und dessen Quellbindung. Build-only wird in Job,
 Artefaktnamen und Metadaten ausdrücklich ausgewiesen. Das Ziel überspringt die
 Emulator-/Runtimeabnahme; alle vorhandenen nativen Ziele behalten ihre Gates.
 Ein erfolgreicher Actions-Lauf muss separat mit Run-ID, exaktem Head und
-APK-Hashes nachgewiesen werden. Dieser Ordner behauptet diesen Erfolg nicht.
+APK-Hashes nachgewiesen werden. Dieser historische Vorbereitungsabschnitt
+enthielt noch keinen solchen Erfolg; der spätere tatsächliche CI101-Nachweis
+steht oben und in `ci-run-45822320243/` mit seinem exakten Testhead.
 
-Android-Provider, Berechtigungswechsel, Rotation/Prozessneustart, TalkBack/IME,
-native Pixel-, SAF-, Restore- und Speichermatrix bleiben offen. #463 verbessert
+Über die oben belegte Providerstufe hinaus bleiben Berechtigungsdialoge und
+Livewiderruf, Abbruch während laufender Abfrage, UI-Save-ACK, Rotation/Prozessneustart,
+TalkBack/IME sowie die native Pixel-, SAF-, Restore- und Speichermatrix offen. #463 verbessert
 die Diagnose; es löst die fehlende Accessibility-Fensterbindung nicht. Bekannte
 Grenzen der lokalen Provideridentitäten stehen im Folgeaudit. Die Prüfungen
 erteilen keine Releasefreigabe und ändern keine vorhandenen Nutzerdaten.

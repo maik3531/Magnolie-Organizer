@@ -297,6 +297,18 @@ Kontakte/Kalender direkt über Android anbinden. Magnolie Notes und KDE Connect
 sind keine Voraussetzung; lokale Organizer-Notizen bleiben Bestandteil der App.
 Die präzisierte Plattformabgrenzung steht auch in `AGENTS.md` und der Tablet-README.
 
+**Einstieg für die spätere Übernahme:**
+[Übergabe, Aktualisierung und vollständige Prüfreihenfolge](pruefnachweise/android-tablet-followup-2026-11-26/handover/README.md).
+Festgehaltene Dokumentations-/Nachweisbasis ist `8d5dc47fecf77b7ebc2db0e5cbb7cb4754005b29`;
+der tatsächlich in CI #101 gebaute und mit Android-Providern geprüfte Head bleibt
+`7a7d90b04796cf338b98f0fdbb87e8da1c967043`. Die Übergabe ergänzt diese Basis als
+Folgepatch 13. Der [vollständige Patchindex](https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7188858114)
+bindet die ersten fünf Patches, alle Folgepatches und den jeweils aktuellen
+Remote-Head. Die Anleitung enthält das Vorgehen bei späteren Änderungen in
+`main`, die vorhandenen Workflowtargets und die offenen nativen Freigabepunkte.
+Die frische Integritätsprüfung bestätigt die bisherigen 232 Belegdateien,
+462 CI-Inputs und 83 bytegleichen Laufzeitoutputs; sie ist kein neuer Funktionstest.
+
 Arbeitsbasis ist `d4da48a5eadd0bda22422b924bef4ee3b4324040`; Änderungen werden im
 Prüfzweig `work/android-tablet-20261126` mit vollständigen Issue-Patches zur
 späteren Prüfung/Übernahme bereitgestellt. Keine Freigabe eines neuen APK-Pakets
@@ -307,8 +319,9 @@ auf und ergänzt denselben Draft-PR #795. Der Folgeaudit in
 `contracts/android-tablet-followup-2026-11-26.md` erfasst vier weitere
 reproduzierte Fehler (#798–#801). Zwei tatsächliche CI-Prüfcodebefunde
 (#804/#805) und der spätere native Serienfixture-Befund #807 ergänzen die
-Zuordnung auf 33 Issues. Der Folgestand ist ein
-Prüfpatch, kein neuer Paketnachweis.
+Zuordnung auf 33 Issues. CI #101 belegt inzwischen den vollständigen APK-Gate
+und die begrenzte API34-Providerstufe auf dem oben genannten Testhead. Die
+vollständige native Bedien-/Geräteabnahme und Produktionsfreigabe bleiben offen.
 
 - #790: Der Tablet-CI-Bau verwendet den aktuellen gemeinsamen Checkout. Das alte
   `v2.0.30` bleibt nur unabhängige Codec-Referenz. Git-/Datei-/Projektions- und

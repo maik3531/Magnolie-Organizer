@@ -1,5 +1,5 @@
 {
-  "README.md": "2c626fd5a1549a363b896159a1c9c90f51a7cdfc8defc0fc301ac8af02a3dd93",
+  "README.md": "a98cb5347c17625280ecc89c6d53734993559d39c663a12d1da1c9bcbee92e6a",
   "browser/focus-after-108.json": "f05884127a66f12d8326abe8ce1447b996672a94846813c7722518d433ccf18d",
   "browser/focus-after-108.log": "0be8e9c50a449c23b8cb67291bcae20dd10c34a916649760ca278e89cbbf2939",
   "browser/focus-before.json": "201c2b2e6845698bdd28058f0ac130556c2d0e3c91de992ed5bf8403a0e8b244",
@@ -155,6 +155,11 @@
   "completion/documentation-comparison.json": "fdd9067240dbd851ed6e555b289af2f012cb3ec78722f2d17152d089fd4d3f83",
   "completion/issue-delta.json": "9ba54a2307d541b43975fc7a3e8f66273e1b7433337801180a52cfc60dae20e0",
   "completion/verify-documentation.py": "ea56a8c51514a4ca017cb60e5e1b86193320523ebba5dd862472f90704635611",
+  "handover/README.md": "7542fa75ec5b6f250374ff7ab5a153fadf53e20d98b2082d640d885d979ba634",
+  "handover/baseline-patch-series.json": "04cad70b8007c67596ad982a79633de08da40888470150592cd55eff78e60f69",
+  "handover/documentation-validation.json": "24d05823320d84cb8d6a56ac4b1704b77726233806f7bb0952b2563feed2d156",
+  "handover/fresh-evidence-integrity.json": "eaf78079b58e0f13a147d4f162e97f9582329447c5df7fff624f3808809e9a52",
+  "handover/remote-baseline.json": "8ae1b0d59857765d9a7b989ad9fab586d99f331a14c797bb2c3e010ad7190493",
   "issue-805/README.md": "273592467e8dd071399bcf61fd7d6e3915cbb14a0aa104e51e05ae6868c990d2",
   "issue-805/after/android-json-api.log": "85940d7306ae8cf731419cc735db54c01155ebad4932997441faba66da98e92a",
   "issue-805/after/java-version.log": "49c3b24dff33c6cc781e80d3bae462fd4d18492c2c3701e2f5c7768bc3e70004",

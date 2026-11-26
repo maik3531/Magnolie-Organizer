@@ -1,0 +1,1073 @@
+{
+  "schemaVersion": 1,
+  "kind": "derived-complete-baseline-patch-series-and-isolated-replay",
+  "verifiedAtUtc": "2026-11-26T13:44:09.711845+00:00",
+  "repository": "maik3531/Magnolie-Organizer",
+  "pullRequest": 795,
+  "branch": "work/android-tablet-20261126",
+  "patchIndexUrl": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7188858114",
+  "scope": {
+    "baseCommit": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+    "baseTree": "ad31c52fb4c366a83f9e5c649e5de401b4108270",
+    "baselineLocalCommit": "680d348f3f9cff6ecf3adc5536a6490649d25ef6",
+    "baselineRemoteCommit": "8d5dc47fecf77b7ebc2db0e5cbb7cb4754005b29",
+    "baselineTree": "4f3cc2051a5b598171f690e3ff72d1c136068c9c",
+    "originalPatchCount": 5,
+    "followupPatchCount": 12,
+    "totalApplicationSteps": 17,
+    "includesSubsequentHandoverPatch13": false,
+    "description": "Five original patches plus twelve follow-up patches reconstruct exactly the baseline ending at remote 8d5dc47fecf77b7ebc2db0e5cbb7cb4754005b29. This record and its later handover patch are outside this baseline replay. No new APK, emulator or functional test is claimed."
+  },
+  "verification": {
+    "patchBytesAndSha256Verified": true,
+    "allLocalCommitAndParentTreesVerified": true,
+    "completeStoredPrimaryCommentPartsReconstructed": true,
+    "primaryCommentPartCount": 56,
+    "duplicateMirrorPartCount": 6,
+    "all17PatchesReplayedInOrder": true,
+    "all17IntermediateTreesMatched": true,
+    "finalTreeMatched": true,
+    "gitVersion": "git version 2.56.1",
+    "method": "Temporary bare Git directory with its own index and object writes; repository objects were read through GIT_ALTERNATE_OBJECT_DIRECTORIES. read-tree at base; apply --cached --whitespace=nowarn and write-tree after every patch. Temporary directory removed after verification.",
+    "originalLogWhitespacePreserved": true,
+    "workingRepositoryIndexOrObjectsWrittenByReplay": false,
+    "freshRemoteLookupPerformed": false,
+    "remoteMappingScope": "Original five remote commit objects and their parent chain were verified from the local Git object database. Follow-up remote mappings and issue comment URLs come from saved publication records; their current remote state was not queried by this check.",
+    "networkOperationPerformed": false,
+    "buildPerformed": false,
+    "emulatorRunPerformed": false,
+    "newFunctionalTestsPerformed": false,
+    "mergePerformed": false,
+    "releasePerformed": false
+  },
+  "steps": [
+    {
+      "sequence": 1,
+      "phase": "original",
+      "phasePatchNumber": 1,
+      "filename": "0001-Android-Tablet-direkte-Systemdatenkopien-und-gespeic.patch",
+      "bytes": 141734,
+      "sha256": "888234d3e2d3716267fb132e4e7678d9e0c1070bb659b9d1b2174023eb52897c",
+      "localFormatPatchCommit": "d29d296de33d4b7ae3d4a711b9621863cb2090cc",
+      "remoteCommit": "250b9c966e6292ee0d17542e05f2ba5d17e8954f",
+      "parentTree": "ad31c52fb4c366a83f9e5c649e5de401b4108270",
+      "resultTree": "010ea60c60ac86741086508029fb5239e8a30880",
+      "localParentCommit": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+      "remoteParentCommit": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": true,
+      "primaryPatchComments": {
+        "issue": 791,
+        "partCount": 4,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 4,
+            "issue": 791,
+            "commentId": 7188887643,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/791#issuecomment-7188887643",
+            "storedCommentBodySha256": "5e5d29cf717b3af7eb8f841580f6591b953684621cf6d120d347eab515831c1c"
+          },
+          {
+            "part": 2,
+            "parts": 4,
+            "issue": 791,
+            "commentId": 7188888224,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/791#issuecomment-7188888224",
+            "storedCommentBodySha256": "4479489757d4b9beaef9bf3ba470c32e9601d665445a5ed8cb42b3e049521e2e"
+          },
+          {
+            "part": 3,
+            "parts": 4,
+            "issue": 791,
+            "commentId": 7188888975,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/791#issuecomment-7188888975",
+            "storedCommentBodySha256": "58bcc7214c4b30d32c66193f9765c192bc5ac8d50b4151f1070147f4f1ab7d9c"
+          },
+          {
+            "part": 4,
+            "parts": 4,
+            "issue": 791,
+            "commentId": 7188889566,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/791#issuecomment-7188889566",
+            "storedCommentBodySha256": "6992885b783c067d615152190683e867b17faff9a8565d62aa00d97aeee81b11"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "888234d3e2d3716267fb132e4e7678d9e0c1070bb659b9d1b2174023eb52897c"
+      },
+      "isolatedReplayResultTree": "010ea60c60ac86741086508029fb5239e8a30880",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 2,
+      "phase": "original",
+      "phasePatchNumber": 2,
+      "filename": "0002-Android-Tablet-Buchansicht-und-Touchziele-an-Fenster.patch",
+      "bytes": 23972,
+      "sha256": "5898a7273376837b598858e3fc356b657dac6e4bb5e4eeed50c374bea6402e60",
+      "localFormatPatchCommit": "ea71f38ab3b6e41e7389c9286e25d85ff1030084",
+      "remoteCommit": "3a6d7c6a72a5065f8d31259449b7de8c10d1f8c7",
+      "parentTree": "010ea60c60ac86741086508029fb5239e8a30880",
+      "resultTree": "76c2634125e03297b182d5bfb75acca2b9922619",
+      "localParentCommit": "d29d296de33d4b7ae3d4a711b9621863cb2090cc",
+      "remoteParentCommit": "250b9c966e6292ee0d17542e05f2ba5d17e8954f",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": true,
+      "primaryPatchComments": {
+        "issue": 792,
+        "partCount": 1,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 1,
+            "issue": 792,
+            "commentId": 7188892445,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/792#issuecomment-7188892445",
+            "storedCommentBodySha256": "44b64619c19bea6ae745bac251b4563357a6735a4dc50fed44afb08c34cb8deb"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "5898a7273376837b598858e3fc356b657dac6e4bb5e4eeed50c374bea6402e60"
+      },
+      "isolatedReplayResultTree": "76c2634125e03297b182d5bfb75acca2b9922619",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 3,
+      "phase": "original",
+      "phasePatchNumber": 3,
+      "filename": "0003-Android-Tablet-aktuellen-Checkout-binden-und-Buildwe.patch",
+      "bytes": 46399,
+      "sha256": "a1cc2c863ca88a95af13e2f2e5c54258aff0961b6d3c68ee3618cedaab590e90",
+      "localFormatPatchCommit": "ae9b172d0e9685d6bb71b887a8b8ffcff31e5b59",
+      "remoteCommit": "1f106bf8d862e06fcd41d1c015356b14e118f6a8",
+      "parentTree": "76c2634125e03297b182d5bfb75acca2b9922619",
+      "resultTree": "f6c4e9e7a495c90579dd5e16500d871fbc6b9fc7",
+      "localParentCommit": "ea71f38ab3b6e41e7389c9286e25d85ff1030084",
+      "remoteParentCommit": "3a6d7c6a72a5065f8d31259449b7de8c10d1f8c7",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": true,
+      "primaryPatchComments": {
+        "issue": 790,
+        "partCount": 2,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 2,
+            "issue": 790,
+            "commentId": 7188893123,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/790#issuecomment-7188893123",
+            "storedCommentBodySha256": "3ea62bae40be84ed13760ef2da5a92e02a25af4c94d0ffa0e51f893f13c53dae"
+          },
+          {
+            "part": 2,
+            "parts": 2,
+            "issue": 790,
+            "commentId": 7188893608,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/790#issuecomment-7188893608",
+            "storedCommentBodySha256": "c656aae5c306381c1c6abb0df27f547ad11d9f74027026d46d73f3e85dd0b1fc"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "a1cc2c863ca88a95af13e2f2e5c54258aff0961b6d3c68ee3618cedaab590e90"
+      },
+      "isolatedReplayResultTree": "f6c4e9e7a495c90579dd5e16500d871fbc6b9fc7",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 4,
+      "phase": "original",
+      "phasePatchNumber": 4,
+      "filename": "0004-Android-Tablet-Umfang-Issue-Audit-und-offene-Abnahme.patch",
+      "bytes": 60032,
+      "sha256": "1a5d61958f0be085fd7f8d528f49a7b25956548141c6489e9a9e0b5987d7c369",
+      "localFormatPatchCommit": "f64efcb2cf056107468a77d6597762d0706c68c9",
+      "remoteCommit": "aac1fbc1f6c7b33a19fda0a6ba514752eec069bf",
+      "parentTree": "f6c4e9e7a495c90579dd5e16500d871fbc6b9fc7",
+      "resultTree": "0cd7dd930922933cf40444251f65d1ec1c7a0009",
+      "localParentCommit": "ae9b172d0e9685d6bb71b887a8b8ffcff31e5b59",
+      "remoteParentCommit": "1f106bf8d862e06fcd41d1c015356b14e118f6a8",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": true,
+      "primaryPatchComments": {
+        "issue": 121,
+        "partCount": 2,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 2,
+            "issue": 121,
+            "commentId": 7188894063,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7188894063",
+            "storedCommentBodySha256": "18a6cbe2bbd61a16ec441ea6e876f62ec820c7b0eec71a3bb5bc73f91b11e6e8"
+          },
+          {
+            "part": 2,
+            "parts": 2,
+            "issue": 121,
+            "commentId": 7188894608,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7188894608",
+            "storedCommentBodySha256": "70e30c46e052773ba1149f9a002583c69056ee3a467659cc3b809902c097008c"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "1a5d61958f0be085fd7f8d528f49a7b25956548141c6489e9a9e0b5987d7c369"
+      },
+      "isolatedReplayResultTree": "0cd7dd930922933cf40444251f65d1ec1c7a0009",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 5,
+      "phase": "original",
+      "phasePatchNumber": 5,
+      "filename": "0005-Android-Tablet-Pruefbelege.patch",
+      "bytes": 150694,
+      "sha256": "5050b3c0672aa49dd35471768d0ecc80adf5c27e335973e808c1799f88581b0d",
+      "localFormatPatchCommit": "44309389c78b620b3513c39de64c8d8d9bb938c6",
+      "remoteCommit": "29acde7e3df2b8bcaaab0cc19b3377b8dbf4bd14",
+      "parentTree": "0cd7dd930922933cf40444251f65d1ec1c7a0009",
+      "resultTree": "e4b4e7b6a8ab43f11f415acd6dc65cea9988a469",
+      "localParentCommit": "f64efcb2cf056107468a77d6597762d0706c68c9",
+      "remoteParentCommit": "aac1fbc1f6c7b33a19fda0a6ba514752eec069bf",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": true,
+      "primaryPatchComments": {
+        "issue": 121,
+        "partCount": 4,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 4,
+            "issue": 121,
+            "commentId": 7188895195,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7188895195",
+            "storedCommentBodySha256": "59b49ce06302253dfec46052397c8b0cb951cfe3163165cb365654344516f368"
+          },
+          {
+            "part": 2,
+            "parts": 4,
+            "issue": 121,
+            "commentId": 7188895877,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7188895877",
+            "storedCommentBodySha256": "057d1dc6707bea6210e48eee3a243d6d59b901ef1866ff83a17e55af1e403e97"
+          },
+          {
+            "part": 3,
+            "parts": 4,
+            "issue": 121,
+            "commentId": 7188896565,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7188896565",
+            "storedCommentBodySha256": "49c1c61075622ed06f2064bc4e58e9c9167f42ea24b0be54964911eb476f5ae3"
+          },
+          {
+            "part": 4,
+            "parts": 4,
+            "issue": 121,
+            "commentId": 7188897139,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7188897139",
+            "storedCommentBodySha256": "64a98f611afa6605765b41ccbc571bb8d75cdb1eebebced8fa9e088f77dea975"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "5050b3c0672aa49dd35471768d0ecc80adf5c27e335973e808c1799f88581b0d"
+      },
+      "isolatedReplayResultTree": "e4b4e7b6a8ab43f11f415acd6dc65cea9988a469",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 6,
+      "phase": "followup",
+      "phasePatchNumber": 1,
+      "filename": "0001-import-focus.patch",
+      "bytes": 21009,
+      "sha256": "c741a28135d8cc2bfce4fab7ca1338b7fba47ca8cfc9e45162bed77208e627cf",
+      "localFormatPatchCommit": "3706308662ed03bd3a10a817340910d60e9d65f4",
+      "remoteCommit": "8f74ca0aff76add67f36affde56e85841d90f256",
+      "parentTree": "e4b4e7b6a8ab43f11f415acd6dc65cea9988a469",
+      "resultTree": "0a13c7658ae340f21164b17b517fe3b0b7d0563e",
+      "localParentCommit": "29acde7e3df2b8bcaaab0cc19b3377b8dbf4bd14",
+      "remoteParentCommit": "29acde7e3df2b8bcaaab0cc19b3377b8dbf4bd14",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": false,
+      "primaryPatchComments": {
+        "issue": 798,
+        "partCount": 1,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 1,
+            "issue": 798,
+            "commentId": 7190035622,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/798#issuecomment-7190035622",
+            "storedCommentBodySha256": "8302cf4f3e009387a89921a90bcbdfe46877cb3f50dfc42acc29008f64083619"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "c741a28135d8cc2bfce4fab7ca1338b7fba47ca8cfc9e45162bed77208e627cf"
+      },
+      "isolatedReplayResultTree": "0a13c7658ae340f21164b17b517fe3b0b7d0563e",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 7,
+      "phase": "followup",
+      "phasePatchNumber": 2,
+      "filename": "0002-tablet-build-only.patch",
+      "bytes": 17592,
+      "sha256": "17ae09fdd5364ce58b98e0c2144c88ff43ae48b1cede7010b45e435d8b4d7dfe",
+      "localFormatPatchCommit": "3fc22d007acf4ab63e6c73917403bde0d506e7ff",
+      "remoteCommit": "c3ac2215b5d38539623c137c3fd52a2666937575",
+      "parentTree": "0a13c7658ae340f21164b17b517fe3b0b7d0563e",
+      "resultTree": "0f51a8cbdc84ea406de8a852985f800af590244b",
+      "localParentCommit": "3706308662ed03bd3a10a817340910d60e9d65f4",
+      "remoteParentCommit": "8f74ca0aff76add67f36affde56e85841d90f256",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": false,
+      "primaryPatchComments": {
+        "issue": 790,
+        "partCount": 1,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 1,
+            "issue": 790,
+            "commentId": 7190036159,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/790#issuecomment-7190036159",
+            "storedCommentBodySha256": "17f7a66a7bc779d4d9fe2084fcdaaefa9d32d7949fdafc9739e325271129909d"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "17ae09fdd5364ce58b98e0c2144c88ff43ae48b1cede7010b45e435d8b4d7dfe"
+      },
+      "isolatedReplayResultTree": "0f51a8cbdc84ea406de8a852985f800af590244b",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 8,
+      "phase": "followup",
+      "phasePatchNumber": 3,
+      "filename": "0003-window-ownership-diagnostics.patch",
+      "bytes": 14758,
+      "sha256": "ef92e1d737c479d78ce2ab9d8ca144e6ac291e235948f25c4359b615ea20f91c",
+      "localFormatPatchCommit": "114b7da3400da62a8fcd9bb0d3c39ffe6937a756",
+      "remoteCommit": "013189c94909c0b8ab3ce777ee3444b558020673",
+      "parentTree": "0f51a8cbdc84ea406de8a852985f800af590244b",
+      "resultTree": "bb57cf7c35b03be6559519c14f005baeda2d6650",
+      "localParentCommit": "3fc22d007acf4ab63e6c73917403bde0d506e7ff",
+      "remoteParentCommit": "c3ac2215b5d38539623c137c3fd52a2666937575",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": false,
+      "primaryPatchComments": {
+        "issue": 463,
+        "partCount": 1,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 1,
+            "issue": 463,
+            "commentId": 7190036755,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/463#issuecomment-7190036755",
+            "storedCommentBodySha256": "fb9c03b0c7eac1f3b3015fb8e7a7bae4d0872d10e3d890b5258d779b2c360ac4"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "ef92e1d737c479d78ce2ab9d8ca144e6ac291e235948f25c4359b615ea20f91c"
+      },
+      "isolatedReplayResultTree": "bb57cf7c35b03be6559519c14f005baeda2d6650",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 9,
+      "phase": "followup",
+      "phasePatchNumber": 4,
+      "filename": "0004-provider-identities.patch",
+      "bytes": 86503,
+      "sha256": "2a31f0d246ca9cd8310e10f6081dc039932bd3244dcf9c2e691a85d6685ff9a6",
+      "localFormatPatchCommit": "305d671538c12c9e398302b8b34130ed0eae98e2",
+      "remoteCommit": "0f5063f298cf9863ce7b491927661c53eaea6b03",
+      "parentTree": "bb57cf7c35b03be6559519c14f005baeda2d6650",
+      "resultTree": "a7ee0afd7201d138a53900749a89734ca2ae9713",
+      "localParentCommit": "114b7da3400da62a8fcd9bb0d3c39ffe6937a756",
+      "remoteParentCommit": "013189c94909c0b8ab3ce777ee3444b558020673",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": false,
+      "primaryPatchComments": {
+        "issue": 799,
+        "partCount": 2,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 2,
+            "issue": 799,
+            "commentId": 7190037368,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/799#issuecomment-7190037368",
+            "storedCommentBodySha256": "e57d84dd1ae9d8447874d021e31c722ee804740b6b9f28e2e7005f65cef16ebe"
+          },
+          {
+            "part": 2,
+            "parts": 2,
+            "issue": 799,
+            "commentId": 7190037941,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/799#issuecomment-7190037941",
+            "storedCommentBodySha256": "115e813122fcc34557028fcf666350436e240eb14e572fa5821c57c17e9162f7"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "2a31f0d246ca9cd8310e10f6081dc039932bd3244dcf9c2e691a85d6685ff9a6"
+      },
+      "isolatedReplayResultTree": "a7ee0afd7201d138a53900749a89734ca2ae9713",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 10,
+      "phase": "followup",
+      "phasePatchNumber": 5,
+      "filename": "0005-visible-import-status.patch",
+      "bytes": 21961,
+      "sha256": "22f96582549728ae6e489fea14a5337b83f1f71982d37f665f1ea168dd7d69a4",
+      "localFormatPatchCommit": "6073673a5d9011d3fea6e98a785f6a97f48168aa",
+      "remoteCommit": "59f3d41245405a4b38c13a878298644cc2ee1fe5",
+      "parentTree": "a7ee0afd7201d138a53900749a89734ca2ae9713",
+      "resultTree": "fa10b9cd211068847f7dc7e8dbaec59a471d8ef6",
+      "localParentCommit": "305d671538c12c9e398302b8b34130ed0eae98e2",
+      "remoteParentCommit": "0f5063f298cf9863ce7b491927661c53eaea6b03",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": false,
+      "primaryPatchComments": {
+        "issue": 801,
+        "partCount": 1,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 1,
+            "issue": 801,
+            "commentId": 7190039957,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/801#issuecomment-7190039957",
+            "storedCommentBodySha256": "9db9cb328674eb5ab259ab786a21dc91cf589114bddb61c23c16eb3ca9dd9ac2"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "22f96582549728ae6e489fea14a5337b83f1f71982d37f665f1ea168dd7d69a4"
+      },
+      "isolatedReplayResultTree": "fa10b9cd211068847f7dc7e8dbaec59a471d8ef6",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 11,
+      "phase": "followup",
+      "phasePatchNumber": 6,
+      "filename": "0006-followup-documentation.patch",
+      "bytes": 23554,
+      "sha256": "74caf389bdb57a813711f0848f3102d0f77e0522e736b2e8604b1d025560ec1f",
+      "localFormatPatchCommit": "dbe791faab785741ff9c6519ea443d69405ee00b",
+      "remoteCommit": "430f8ee41ac9ff938cf00362138651e1f7c5b743",
+      "parentTree": "fa10b9cd211068847f7dc7e8dbaec59a471d8ef6",
+      "resultTree": "4f5b27a2357b1eeb5cd01f6552d6ebd3aed4d12c",
+      "localParentCommit": "6073673a5d9011d3fea6e98a785f6a97f48168aa",
+      "remoteParentCommit": "59f3d41245405a4b38c13a878298644cc2ee1fe5",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": false,
+      "primaryPatchComments": {
+        "issue": 121,
+        "partCount": 1,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 1,
+            "issue": 121,
+            "commentId": 7190040670,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7190040670",
+            "storedCommentBodySha256": "cf551e67b2c1a97cdcc95cf2e27743969119c326037fefd1eeaed0af406cc512"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "74caf389bdb57a813711f0848f3102d0f77e0522e736b2e8604b1d025560ec1f"
+      },
+      "isolatedReplayResultTree": "4f5b27a2357b1eeb5cd01f6552d6ebd3aed4d12c",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 12,
+      "phase": "followup",
+      "phasePatchNumber": 7,
+      "filename": "0007-followup-evidence.patch",
+      "bytes": 237238,
+      "sha256": "e0789d0fb6f971d6c77ebee5a5bc925662f383b46c572a08ce8e9ff403316db9",
+      "localFormatPatchCommit": "78af080850280674423a4fde975023a389e618a6",
+      "remoteCommit": "e7d396ed39641338ce9a7b57929623bc1dbd2fe1",
+      "parentTree": "4f5b27a2357b1eeb5cd01f6552d6ebd3aed4d12c",
+      "resultTree": "6f5ade1b048687883d4b32e554716dfe864ca366",
+      "localParentCommit": "dbe791faab785741ff9c6519ea443d69405ee00b",
+      "remoteParentCommit": "430f8ee41ac9ff938cf00362138651e1f7c5b743",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": false,
+      "primaryPatchComments": {
+        "issue": 121,
+        "partCount": 6,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 6,
+            "issue": 121,
+            "commentId": 7190041281,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7190041281",
+            "storedCommentBodySha256": "c47594ae053f59864136d74763543e03b9c1a9403f47dd37343271c26369d716"
+          },
+          {
+            "part": 2,
+            "parts": 6,
+            "issue": 121,
+            "commentId": 7190041936,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7190041936",
+            "storedCommentBodySha256": "181c5e5d534c7769164269d58dfa59113ec2ebd4c077213093505b861ffb2dc0"
+          },
+          {
+            "part": 3,
+            "parts": 6,
+            "issue": 121,
+            "commentId": 7190042647,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7190042647",
+            "storedCommentBodySha256": "45771859dfc5ab5f22d7838957a72a8876fd1befeef4d0fdbbc3de6c3278c428"
+          },
+          {
+            "part": 4,
+            "parts": 6,
+            "issue": 121,
+            "commentId": 7190043311,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7190043311",
+            "storedCommentBodySha256": "e959e602478d36de3877aa8d58afe54db789d3cb16b8bf503535cfb164edcdda"
+          },
+          {
+            "part": 5,
+            "parts": 6,
+            "issue": 121,
+            "commentId": 7190043977,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7190043977",
+            "storedCommentBodySha256": "5bad8df4330e8fc6d988ae7579e13cfe9cdd07e1792fbc87ba268c61e3e9bd8c"
+          },
+          {
+            "part": 6,
+            "parts": 6,
+            "issue": 121,
+            "commentId": 7190044684,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7190044684",
+            "storedCommentBodySha256": "f4f5e68d70eefce4cdcedb35a216c9b73926bddc9665ce560b57a42b6b525c7f"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "e0789d0fb6f971d6c77ebee5a5bc925662f383b46c572a08ce8e9ff403316db9"
+      },
+      "isolatedReplayResultTree": "6f5ade1b048687883d4b32e554716dfe864ca366",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 13,
+      "phase": "followup",
+      "phasePatchNumber": 8,
+      "filename": "0008-cold-checkout-setup.patch",
+      "bytes": 48662,
+      "sha256": "7dd738e4b91b89dcb18d5186ae29e7b3b453ec6bbbe978c5d2306dd7dda4bda4",
+      "localFormatPatchCommit": "c9c309247b28e3540a23f2aedd6c1c17b1c2b7b4",
+      "remoteCommit": "2dd93930ecff3752fdea22121813a1b6ee4b79a7",
+      "parentTree": "6f5ade1b048687883d4b32e554716dfe864ca366",
+      "resultTree": "e70d81ac94fbd80711ee1bab7ddeb7eeeb7c0d35",
+      "localParentCommit": "78af080850280674423a4fde975023a389e618a6",
+      "remoteParentCommit": "e7d396ed39641338ce9a7b57929623bc1dbd2fe1",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": false,
+      "primaryPatchComments": {
+        "issue": 790,
+        "partCount": 2,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 2,
+            "issue": 790,
+            "commentId": 7190575731,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/790#issuecomment-7190575731",
+            "storedCommentBodySha256": "88aff47a3a61ce8644d98643d3b5152d740ddc6002dfe8eddaf09fdb2b746cf7"
+          },
+          {
+            "part": 2,
+            "parts": 2,
+            "issue": 790,
+            "commentId": 7190576129,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/790#issuecomment-7190576129",
+            "storedCommentBodySha256": "3e8b0b2a9b2300362ad86cbd92a7d5e42654763f872b8ac05aa38c812737cc3f"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "7dd738e4b91b89dcb18d5186ae29e7b3b453ec6bbbe978c5d2306dd7dda4bda4"
+      },
+      "isolatedReplayResultTree": "e70d81ac94fbd80711ee1bab7ddeb7eeeb7c0d35",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 14,
+      "phase": "followup",
+      "phasePatchNumber": 9,
+      "filename": "0009-android-json-comparison.patch",
+      "bytes": 279472,
+      "sha256": "ea7360715c02640e228623410d6162c73dd02934f9736667938138a60b5bc4af",
+      "localFormatPatchCommit": "abe1907fb12d20bfa92d60ebbc6b85c5829c1786",
+      "remoteCommit": "c3e1c96bc82ebc3856d79aa4d0d0e277e102a2c1",
+      "parentTree": "e70d81ac94fbd80711ee1bab7ddeb7eeeb7c0d35",
+      "resultTree": "99320dacf950d9ec6f570bbca2ab9ddef1ea6efa",
+      "localParentCommit": "c9c309247b28e3540a23f2aedd6c1c17b1c2b7b4",
+      "remoteParentCommit": "2dd93930ecff3752fdea22121813a1b6ee4b79a7",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": false,
+      "primaryPatchComments": {
+        "issue": 805,
+        "partCount": 7,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 7,
+            "issue": 805,
+            "commentId": 7191602017,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/805#issuecomment-7191602017",
+            "storedCommentBodySha256": "44890a7f48aabd4455089f62698566d4c7698a0970a40ea4d8976ef1d690f1d9"
+          },
+          {
+            "part": 2,
+            "parts": 7,
+            "issue": 805,
+            "commentId": 7191602645,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/805#issuecomment-7191602645",
+            "storedCommentBodySha256": "954c3f96027d21d06cdadee937ee608bc6e53c06f0e62e62f0b37ed2fc8d6a02"
+          },
+          {
+            "part": 3,
+            "parts": 7,
+            "issue": 805,
+            "commentId": 7191603165,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/805#issuecomment-7191603165",
+            "storedCommentBodySha256": "ac03c9daccf1c043edd3ed19e4dfed48eae29133c45e21d769bc2431c52470a8"
+          },
+          {
+            "part": 4,
+            "parts": 7,
+            "issue": 805,
+            "commentId": 7191606402,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/805#issuecomment-7191606402",
+            "storedCommentBodySha256": "8d9b85e9fb493bf4f05c997574fe08c57bfbfb95e1beeda255fb63033befd101"
+          },
+          {
+            "part": 5,
+            "parts": 7,
+            "issue": 805,
+            "commentId": 7191607004,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/805#issuecomment-7191607004",
+            "storedCommentBodySha256": "094b7e18b9d7de8eae6837f6c82c6363d7f3548ad5bda803310f5e16282d868b"
+          },
+          {
+            "part": 6,
+            "parts": 7,
+            "issue": 805,
+            "commentId": 7191607636,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/805#issuecomment-7191607636",
+            "storedCommentBodySha256": "a389b89d9303939bd6706946744dc523cd2ca108a61cb7fa680e3a15469c6a34"
+          },
+          {
+            "part": 7,
+            "parts": 7,
+            "issue": 805,
+            "commentId": 7191608303,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/805#issuecomment-7191608303",
+            "storedCommentBodySha256": "53ca2d9890799544bc0eae2bb8a4b8d2845269707ed66079afc1c246da0b620f"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "ea7360715c02640e228623410d6162c73dd02934f9736667938138a60b5bc4af"
+      },
+      "isolatedReplayResultTree": "99320dacf950d9ec6f570bbca2ab9ddef1ea6efa",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 15,
+      "phase": "followup",
+      "phasePatchNumber": 10,
+      "filename": "0010-native-system-provider-stage.patch",
+      "bytes": 181503,
+      "sha256": "c5ed9463885e9ef49964353879b5cf8549cba38e2343706d8a1598e6730d122b",
+      "localFormatPatchCommit": "3583239a9b7013f09dfdc7fff7423f5e810f51b0",
+      "remoteCommit": "92e2c645cf0a8075325874f335087412e7f79c79",
+      "parentTree": "99320dacf950d9ec6f570bbca2ab9ddef1ea6efa",
+      "resultTree": "d7b912c6aba697da48ccf1919591a162a4a4a452",
+      "localParentCommit": "abe1907fb12d20bfa92d60ebbc6b85c5829c1786",
+      "remoteParentCommit": "c3e1c96bc82ebc3856d79aa4d0d0e277e102a2c1",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": false,
+      "primaryPatchComments": {
+        "issue": 791,
+        "partCount": 5,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 5,
+            "issue": 791,
+            "commentId": 7191677800,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/791#issuecomment-7191677800",
+            "storedCommentBodySha256": "b89cb4e7ad94bb0872dece7abc18fa0beeb354622f8b2dc0d948f75278a2fa6e"
+          },
+          {
+            "part": 2,
+            "parts": 5,
+            "issue": 791,
+            "commentId": 7191678410,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/791#issuecomment-7191678410",
+            "storedCommentBodySha256": "00da5b239118cb99f583e56d7949b8cf516c40663540c70181697e34c0c7fc9c"
+          },
+          {
+            "part": 3,
+            "parts": 5,
+            "issue": 791,
+            "commentId": 7191679077,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/791#issuecomment-7191679077",
+            "storedCommentBodySha256": "3738196cf22bd126d3aa6a3923be0199dfbf2bf84cf2b991ceaa39811fd0c71e"
+          },
+          {
+            "part": 4,
+            "parts": 5,
+            "issue": 791,
+            "commentId": 7191679685,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/791#issuecomment-7191679685",
+            "storedCommentBodySha256": "ef336055ac3be06bad6b146586f666389208e10eaf14fdbb148b88dc7897ecb8"
+          },
+          {
+            "part": 5,
+            "parts": 5,
+            "issue": 791,
+            "commentId": 7191680241,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/791#issuecomment-7191680241",
+            "storedCommentBodySha256": "8aa0e4ff7feed1a4ef849d85b137f11603a171a1aa763c99627e8afbc3dc4b5c"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "c5ed9463885e9ef49964353879b5cf8549cba38e2343706d8a1598e6730d122b"
+      },
+      "isolatedReplayResultTree": "d7b912c6aba697da48ccf1919591a162a4a4a452",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 16,
+      "phase": "followup",
+      "phasePatchNumber": 11,
+      "filename": "0011-provider-recurrence-fixture.patch",
+      "bytes": 346023,
+      "sha256": "4aed367bcd144d8f455724ece9d7ec7466c919c4952c69b6c47e08a75f4277da",
+      "localFormatPatchCommit": "41ce9f771ac42c6203f5e7fe2065d086dd2ab306",
+      "remoteCommit": "7a7d90b04796cf338b98f0fdbb87e8da1c967043",
+      "parentTree": "d7b912c6aba697da48ccf1919591a162a4a4a452",
+      "resultTree": "06c1a8cf6f115908dc21252682c2a358246f2cb7",
+      "localParentCommit": "3583239a9b7013f09dfdc7fff7423f5e810f51b0",
+      "remoteParentCommit": "92e2c645cf0a8075325874f335087412e7f79c79",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": false,
+      "primaryPatchComments": {
+        "issue": 807,
+        "partCount": 9,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 9,
+            "issue": 807,
+            "commentId": 7192412031,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/807#issuecomment-7192412031",
+            "storedCommentBodySha256": "6f76d1905c564eeb48681e5c6185962108c75315f2a2b4da5525dd1ca88a7a5f"
+          },
+          {
+            "part": 2,
+            "parts": 9,
+            "issue": 807,
+            "commentId": 7192415512,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/807#issuecomment-7192415512",
+            "storedCommentBodySha256": "490ba7487820218ddfe21676300c385b7cebc57fa1b75f4458f72928e5c4cab9"
+          },
+          {
+            "part": 3,
+            "parts": 9,
+            "issue": 807,
+            "commentId": 7192416232,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/807#issuecomment-7192416232",
+            "storedCommentBodySha256": "927d9496975bc4d65a4bf43af9cf47511b81645ec61ca4efd7ed9cdd555d72db"
+          },
+          {
+            "part": 4,
+            "parts": 9,
+            "issue": 807,
+            "commentId": 7192416911,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/807#issuecomment-7192416911",
+            "storedCommentBodySha256": "b4face5770894e3f5c26cf8a9e368d0c5a0958dd0cbff75901182da75f3fa8a4"
+          },
+          {
+            "part": 5,
+            "parts": 9,
+            "issue": 807,
+            "commentId": 7192417522,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/807#issuecomment-7192417522",
+            "storedCommentBodySha256": "d0f77e2171ea4d10d72780d1d06cb5214e4c446a778c1990fdcfe92021cfd230"
+          },
+          {
+            "part": 6,
+            "parts": 9,
+            "issue": 807,
+            "commentId": 7192419633,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/807#issuecomment-7192419633",
+            "storedCommentBodySha256": "ec55679c95020721a329dd096267a708ae92a6c0dd2f131de7ed4ae40730931d"
+          },
+          {
+            "part": 7,
+            "parts": 9,
+            "issue": 807,
+            "commentId": 7192420360,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/807#issuecomment-7192420360",
+            "storedCommentBodySha256": "85229d8d6b6acc14a6500cbaf5157aa79d5a3848b25dfaf7bee6e933711a1c03"
+          },
+          {
+            "part": 8,
+            "parts": 9,
+            "issue": 807,
+            "commentId": 7192420975,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/807#issuecomment-7192420975",
+            "storedCommentBodySha256": "373969a23d2b4e7474034264217557ff4f314b7ad3c13b8da3438c30f4bf1a40"
+          },
+          {
+            "part": 9,
+            "parts": 9,
+            "issue": 807,
+            "commentId": 7192421565,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/807#issuecomment-7192421565",
+            "storedCommentBodySha256": "1915b1ed5a0ebc59e976d162c4ad62d80a50d1bb2dded1665e55bd883ed77376"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "4aed367bcd144d8f455724ece9d7ec7466c919c4952c69b6c47e08a75f4277da"
+      },
+      "isolatedReplayResultTree": "06c1a8cf6f115908dc21252682c2a358246f2cb7",
+      "isolatedReplayTreeMatches": true
+    },
+    {
+      "sequence": 17,
+      "phase": "followup",
+      "phasePatchNumber": 12,
+      "filename": "0012-successful-provider-evidence.patch",
+      "bytes": 275693,
+      "sha256": "ebc31e2698010d5516e2fea308fee949dd7e0155a8d3a3430001bdea5001cfa1",
+      "localFormatPatchCommit": "680d348f3f9cff6ecf3adc5536a6490649d25ef6",
+      "remoteCommit": "8d5dc47fecf77b7ebc2db0e5cbb7cb4754005b29",
+      "parentTree": "06c1a8cf6f115908dc21252682c2a358246f2cb7",
+      "resultTree": "4f3cc2051a5b598171f690e3ff72d1c136068c9c",
+      "localParentCommit": "41ce9f771ac42c6203f5e7fe2065d086dd2ab306",
+      "remoteParentCommit": "7a7d90b04796cf338b98f0fdbb87e8da1c967043",
+      "localCommitAndParentTreesVerified": true,
+      "remoteCommitObjectLocallyVerified": false,
+      "primaryPatchComments": {
+        "issue": 121,
+        "partCount": 7,
+        "parts": [
+          {
+            "part": 1,
+            "parts": 7,
+            "issue": 121,
+            "commentId": 7192788034,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7192788034",
+            "storedCommentBodySha256": "9a7ea5abb9e1e90897b96d0a9d44bfc5be4b592cdd8fa9f65570ebe7ca6b8e60"
+          },
+          {
+            "part": 2,
+            "parts": 7,
+            "issue": 121,
+            "commentId": 7192788612,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7192788612",
+            "storedCommentBodySha256": "0c7d9d6dedd5c9c7b1f85f9e1f142cc8b9e7d0baf23638b335babd0c9f6b3820"
+          },
+          {
+            "part": 3,
+            "parts": 7,
+            "issue": 121,
+            "commentId": 7192789252,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7192789252",
+            "storedCommentBodySha256": "4c2093eaa8202e59d3b2e39a97a18ebcd6f71a0920bbb4b9c5cbbbc0333241c9"
+          },
+          {
+            "part": 4,
+            "parts": 7,
+            "issue": 121,
+            "commentId": 7192789900,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7192789900",
+            "storedCommentBodySha256": "8e463a3e8a9e3683708252e82e787129d1fa197e6a17a39f47a5c889f409a917"
+          },
+          {
+            "part": 5,
+            "parts": 7,
+            "issue": 121,
+            "commentId": 7192790482,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7192790482",
+            "storedCommentBodySha256": "b0d79d0959f6c3ca8b63345d6ba6afebba62b84919ec31387eac7c4e842cf8a0"
+          },
+          {
+            "part": 6,
+            "parts": 7,
+            "issue": 121,
+            "commentId": 7192791090,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7192791090",
+            "storedCommentBodySha256": "7d622e708f63ed6d5066adcf3a2c886dda0263065c265d1c2c11a95a4e50cf32"
+          },
+          {
+            "part": 7,
+            "parts": 7,
+            "issue": 121,
+            "commentId": 7192791714,
+            "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7192791714",
+            "storedCommentBodySha256": "37333759403eadb52ea514ee043fbe86d786d144dd936c5e54565d43d734f782"
+          }
+        ],
+        "storedCommentPartsReconstructExactPatch": true,
+        "reconstructedPatchSha256": "ebc31e2698010d5516e2fea308fee949dd7e0155a8d3a3430001bdea5001cfa1"
+      },
+      "isolatedReplayResultTree": "4f3cc2051a5b598171f690e3ff72d1c136068c9c",
+      "isolatedReplayTreeMatches": true
+    }
+  ],
+  "duplicateMirrors": [
+    {
+      "duplicateOfSequence": 1,
+      "duplicateOfPhase": "original",
+      "duplicateOfPhasePatchNumber": 1,
+      "applyAsAdditionalStep": false,
+      "reason": "Byte-identical mirror of original patch 1, whose primary issue is #791.",
+      "issue": 682,
+      "partCount": 4,
+      "parts": [
+        {
+          "part": 1,
+          "parts": 4,
+          "issue": 682,
+          "commentId": 7188890106,
+          "url": "https://github.com/maik3531/Magnolie-Organizer/issues/682#issuecomment-7188890106",
+          "storedCommentBodySha256": "5e5d29cf717b3af7eb8f841580f6591b953684621cf6d120d347eab515831c1c"
+        },
+        {
+          "part": 2,
+          "parts": 4,
+          "issue": 682,
+          "commentId": 7188890744,
+          "url": "https://github.com/maik3531/Magnolie-Organizer/issues/682#issuecomment-7188890744",
+          "storedCommentBodySha256": "4479489757d4b9beaef9bf3ba470c32e9601d665445a5ed8cb42b3e049521e2e"
+        },
+        {
+          "part": 3,
+          "parts": 4,
+          "issue": 682,
+          "commentId": 7188891352,
+          "url": "https://github.com/maik3531/Magnolie-Organizer/issues/682#issuecomment-7188891352",
+          "storedCommentBodySha256": "58bcc7214c4b30d32c66193f9765c192bc5ac8d50b4151f1070147f4f1ab7d9c"
+        },
+        {
+          "part": 4,
+          "parts": 4,
+          "issue": 682,
+          "commentId": 7188891897,
+          "url": "https://github.com/maik3531/Magnolie-Organizer/issues/682#issuecomment-7188891897",
+          "storedCommentBodySha256": "6992885b783c067d615152190683e867b17faff9a8565d62aa00d97aeee81b11"
+        }
+      ],
+      "storedCommentPartsReconstructExactPatch": true,
+      "reconstructedPatchSha256": "888234d3e2d3716267fb132e4e7678d9e0c1070bb659b9d1b2174023eb52897c"
+    },
+    {
+      "duplicateOfSequence": 9,
+      "duplicateOfPhase": "followup",
+      "duplicateOfPhasePatchNumber": 4,
+      "applyAsAdditionalStep": false,
+      "reason": "Byte-identical mirror of follow-up patch 4, whose primary issue is #799.",
+      "issue": 800,
+      "partCount": 2,
+      "parts": [
+        {
+          "part": 1,
+          "parts": 2,
+          "issue": 800,
+          "commentId": 7190038562,
+          "url": "https://github.com/maik3531/Magnolie-Organizer/issues/800#issuecomment-7190038562",
+          "storedCommentBodySha256": "e57d84dd1ae9d8447874d021e31c722ee804740b6b9f28e2e7005f65cef16ebe"
+        },
+        {
+          "part": 2,
+          "parts": 2,
+          "issue": 800,
+          "commentId": 7190039147,
+          "url": "https://github.com/maik3531/Magnolie-Organizer/issues/800#issuecomment-7190039147",
+          "storedCommentBodySha256": "115e813122fcc34557028fcf666350436e240eb14e572fa5821c57c17e9162f7"
+        }
+      ],
+      "storedCommentPartsReconstructExactPatch": true,
+      "reconstructedPatchSha256": "2a31f0d246ca9cd8310e10f6081dc039932bd3244dcf9c2e691a85d6685ff9a6"
+    }
+  ],
+  "freshEvidenceIntegrity": {
+    "path": "fresh-evidence-integrity.json",
+    "sha256": "eaf78079b58e0f13a147d4f162e97f9582329447c5df7fff624f3808809e9a52",
+    "bytes": 3249,
+    "copiedWithoutModification": true,
+    "verifiedAtUtc": "2026-11-26T13:36:08.907330+00:00",
+    "scope": "Historical fresh integrity check of the exact baseline before these handover files were added; includes 232 proof hashes, 462 source inputs, 83 runtime outputs and the saved CI101 artifact verification. Its clean-working-tree statement applies to that timestamp only."
+  },
+  "provenanceRecords": [
+    {
+      "name": "tablet-five-patch-proof.json",
+      "bytes": 1219,
+      "sha256": "eca97bead13f5e3d992db693ca6ff2fdae436ee5b18f5ef4482d9bffc7ba2d8e"
+    },
+    {
+      "name": "tablet-github-upload/manifest.json",
+      "bytes": 1010,
+      "sha256": "843c12163af748ce604ab7a86f289c34cf4aff5d0cf16274a79b679c707540ca"
+    },
+    {
+      "name": "tablet-github-upload/05.json",
+      "bytes": 171725,
+      "sha256": "9bdb953ad7658cc1bbfc30f55dac619f0a3ef2251810033d391405f0e4e87ceb"
+    },
+    {
+      "name": "tablet-publication-receipt.json",
+      "bytes": 8232,
+      "sha256": "54d0028be6a0fe4004e14341958f5f47d32f126e69d7430679ce3706a7420f66"
+    },
+    {
+      "name": "tablet-issue-patch-posts/manifest.json",
+      "bytes": 4759,
+      "sha256": "ac47fa1bca85e0a5db3f0cad1838850341b36e6a693202a7ea83eb8df0a622d4"
+    },
+    {
+      "name": "tablet-followup-patches/manifest.json",
+      "bytes": 6330,
+      "sha256": "bce36351cabae8a92ffa2472f0fc7d8ca897a91ea78dd5acb5654dee5d102e2b"
+    },
+    {
+      "name": "tablet-followup-publication-commits.json",
+      "bytes": 2298,
+      "sha256": "87197dca7188781a371e0e5524a6890cb367879d2f82b1ebf72c2b92fec9e5e9"
+    },
+    {
+      "name": "tablet-followup-issue-posts/receipts.json",
+      "bytes": 15343,
+      "sha256": "f4e1ac53505df6c100cdf049f6851d80b42741351d5f04b15eb0d9dfe7d7eef9"
+    },
+    {
+      "name": "tablet-followup-publication-receipt-12.json",
+      "bytes": 32121,
+      "sha256": "e6b613446e8bc21146b32b2303ed5f58e0315e83b04de20098f93363c6028cec"
+    }
+  ],
+  "limits": [
+    "The 17-step replay verifies reconstruction from the stated base, not conflict-free integration with a later main branch.",
+    "Issue-comment reconstruction used saved comment bodies and recorded publication URLs; this operation did not perform fresh remote retrieval.",
+    "The CI101 evidence remains scoped to the tested provider stage; nativeAcceptance, googleAcceptance and productionRelease remain false.",
+    "Follow-up patch 13, containing this handover, is not part of the baseline or its 17-step replay."
+  ],
+  "result": "passed"
+}
