@@ -122,8 +122,8 @@ function check(value,label){assert.ok(value,label);checks++;console.log('PASS '+
     request=await start();reply('androidSystemImport',result(request,[contact('c','Changed remotely')]));await wait();await wait();
     check(disk.kontakte.length===1 && disk.kontakte[0].vorname==='Ada' && disk.kontakte[0].notiz==='Locally edited','repeated import skips existing identities and preserves local edits');
     request=await start();before=JSON.stringify(disk);reply('androidSystemImport',result(request,[newPerson]));await wait();await wait();
-    check(JSON.stringify(disk)===before && w.document.getElementById('tablet-status').textContent===w.TabletSystemStrings.en.identityConflict,
-      'identity conflict is visible and leaves the complete saved book unchanged');
+    check(JSON.stringify(disk)===before && w.document.querySelector('#tablet-system-access #tablet-system-status')?.textContent===w.TabletSystemStrings.en.identityConflict,
+      'identity conflict renders inside the import section and leaves the complete saved book unchanged');
     for(const [label,change] of [
       ['partial result',{complete:false}],['wrong source',{sourceUid:eventsSource}],['duplicate record',{records:[contact('d'),contact('d')]}],
       ['provider failure',{ok:false,errorCode:'permission_required'}],['invalid sync grant',{records:[{...contact('d'),data:{...contact('d').data,sync:true}}]}]

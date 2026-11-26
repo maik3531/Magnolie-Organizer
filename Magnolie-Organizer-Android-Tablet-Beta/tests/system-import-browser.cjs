@@ -1,6 +1,6 @@
 "use strict";
 
-// Refs #798 (Android-data form from #791, window layout from #792). Exercise the
+// Refs #798/#801 (Android-data form from #791, window layout from #792). Exercise the
 // actual projected Android-data form with Chromium
 // touch input and a synthetic provider/SaveACK. This is not Android permission,
 // native date-picker, IME or TalkBack acceptance. Generate the projection first.
@@ -75,6 +75,7 @@ function check(value, label) { checks++; if (!value) failures.push(label); }
         window.systemBrowserFixture = {
           messages, saves, holdStatus: false, holdSave: false,
           savedEventIds: () => (disk?.termine || []).map(event => event.id),
+          savedBook: () => JSON.stringify(disk),
           grant(art) {
             const request = messages.filter(message => message.cmd === "android_systemzugriff" && message.art === art).at(-1);
             snapshot.permissions[art] = "authorized";
@@ -93,9 +94,19 @@ function check(value, label) { checks++; if (!value) failures.push(label); }
               icsRoundtrip: ["DTSTART:" + day + "T090000Z", "DTEND:" + day + "T100000Z"],
               wiederholung: { art: "none", bis: "" }, sync: false, standardErinnerung: false,
               icsEndeFehlt: false, icsNullDauer: false,
-            } }] : [];
+            } }] : [{ recordId: "android-contact:" + "c".repeat(64), identityKind: "source-id",
+              rowBinding: "android-contact-row:" + "d".repeat(64), data: {
+                uid: "android-contact:" + "c".repeat(64), anzeigename: "Existing browser contact", notiz: "Keep this local copy", sync: false,
+              } }];
             reply("androidSystemImport", { ...request, kind: request.art, ok: true, complete: true, identitySchema: 2,
               scope: request.art === "contacts" ? "source-contacts" : "calendar-instances-window", records });
+          },
+          conflict(request) {
+            const recordId = "android-contact:" + "f".repeat(64);
+            reply("androidSystemImport", { ...request, kind: "contacts", ok: true, complete: true, identitySchema: 2,
+              scope: "source-contacts", records: [{ recordId, identityKind: "source-id",
+                rowBinding: "android-contact-row:" + "d".repeat(64),
+                data: { uid: recordId, anzeigename: "Another provider identity", sync: false } }] });
           },
           releaseSave() { acknowledge(saves.shift()); },
         };
@@ -132,6 +143,10 @@ function check(value, label) { checks++; if (!value) failures.push(label); }
       check(await page.evaluate(() => window.Tablet.systemText("identityConflict")) ===
         "Übernahme gestoppt: Eine vorhandene Android-Kopie lässt sich nicht eindeutig zuordnen. Vorhandene Einträge bleiben unverändert.",
       prefix + "identity conflict message is available in German");
+      const liveStatus = await page.locator("#tablet-system-status").elementHandle();
+      check(await liveStatus.evaluate(element => element.closest("#einstellungen-blatt") &&
+        element.getAttribute("role") === "status" && element.getAttribute("aria-live") === "polite"),
+      prefix + "import status has a live region within the settings dialog");
 
       const active = () => page.evaluate(() => ({ id: document.activeElement?.id || document.activeElement?.tagName,
         inside: document.getElementById("einstellungen-blatt").contains(document.activeElement) }));
@@ -185,6 +200,8 @@ function check(value, label) { checks++; if (!value) failures.push(label); }
       check(await page.locator("#tablet-system-from").inputValue() === "2026-11-26" &&
         await page.locator("#tablet-system-to").inputValue() === "2026-12-10",
       prefix + "source updates retain both selected dates");
+      check(await liveStatus.evaluate(element => element.isConnected && element === document.getElementById("tablet-system-status")),
+        prefix + "source and focus updates retain the live status node");
       if (output) await page.screenshot({ path: path.join(output, spec.name + "-form.png") });
 
       async function start(art) {
@@ -201,8 +218,12 @@ function check(value, label) { checks++; if (!value) failures.push(label); }
         return { request, cancel };
       }
       let pending = await start("contacts");
+      check(await page.locator("#tablet-system-status").textContent() === systemStrings.de.busy,
+        prefix + "reading status appears in the Android dialog section");
       await pending.cancel.tap();
       check((await active()).id === "tablet-system-import-contacts", prefix + "cancel restores the contact import trigger");
+      check(await page.locator("#tablet-system-status").textContent() === "Abbrechen",
+        prefix + "cancelled import is reported in the Android dialog section");
       const afterCancel = (await active()).id;
       await page.evaluate(request => systemBrowserFixture.finish(request), pending.request);
       check((await active()).id === afterCancel, prefix + "late cancelled result does not move focus");
@@ -220,16 +241,53 @@ function check(value, label) { checks++; if (!value) failures.push(label); }
       check(await page.evaluate(request => systemBrowserFixture.savedEventIds().includes(
         "android-event:" + request.requestId.replace(/-/g, "").repeat(2)), pending.request),
       prefix + "completed import includes the synthetic event in the acknowledged save");
+      check(await page.evaluate(() => {
+        const text = document.getElementById("tablet-system-status").textContent;
+        return text && text === document.getElementById("tablet-status").textContent && text !== Tablet.systemText("busy");
+      }), prefix + "acknowledged import result appears in the Android dialog section");
 
       pending = await start("events");
       await page.locator("#einstellungen-zu").focus();
       await page.evaluate(request => systemBrowserFixture.finish(request), pending.request);
       await page.waitForFunction(() => !document.getElementById("tablet-system-refresh").disabled);
       check((await active()).id === "einstellungen-zu", prefix + "background completion does not steal focus from another control");
+
+      // Import an actual synthetic contact, then change its provider identity
+      // while reusing that provider row. The real prepare() must reject it.
+      pending = await start("contacts");
+      await page.evaluate(request => systemBrowserFixture.finish(request), pending.request);
+      await page.waitForFunction(() => !document.getElementById("tablet-system-refresh").disabled);
+      const beforeConflict = await page.evaluate(() => ({ saved: systemBrowserFixture.savedBook(),
+        live: JSON.stringify(OrganizerTest.daten()), contacts: OrganizerTest.daten().kontakte.length }));
+      check(beforeConflict.contacts === 1, prefix + "conflict fixture begins with one copied contact");
+      pending = await start("contacts");
+      await page.evaluate(request => systemBrowserFixture.conflict(request), pending.request);
+      await page.waitForFunction(() => !document.getElementById("tablet-system-refresh").disabled);
+      check((await active()).id === "tablet-system-import-contacts", prefix + "identity conflict retains the import trigger focus");
+      const afterConflict = await page.evaluate(() => ({ saved: systemBrowserFixture.savedBook(), live: JSON.stringify(OrganizerTest.daten()) }));
+      check(afterConflict.saved === beforeConflict.saved && afterConflict.live === beforeConflict.live,
+        prefix + "identity conflict changes neither the live book nor the saved book");
+      const notice = page.locator("#tablet-system-status");
+      check(await notice.textContent() === systemStrings.de.identityConflict,
+        prefix + "actual identity conflict is explained in the dialog in German");
+      // The short window can scroll to the complete message without closing the
+      // modal. A textContent/isVisible check alone misses occlusion by the modal.
+      await notice.scrollIntoViewIfNeeded();
+      const conflict = await notice.evaluate(element => {
+        const r = element.getBoundingClientRect(), content = element.closest(".einst-seite").getBoundingClientRect();
+        return { x: r.x, y: r.y, width: r.width, height: r.height,
+          insideDialog: !!element.closest("#einstellungen-blatt"),
+          visible: r.x >= content.x && r.right <= content.right && r.y >= content.y && r.bottom <= content.bottom &&
+            r.x >= 0 && r.right <= innerWidth && r.y >= 0 && r.bottom <= innerHeight,
+          hit: element.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)) };
+      });
+      check(conflict.insideDialog && conflict.visible && conflict.hit,
+        prefix + "complete conflict message is reachable and unobstructed inside the modal");
+      if (output) await page.screenshot({ path: path.join(output, spec.name + "-identity-conflict.png") });
       await page.locator("#einstellungen-zu").tap();
       check((await active()).id === "knopf-einstellungen", prefix + "closing settings restores its opener");
       check(errors.length === 0, prefix + "no JavaScript page errors: " + errors.join("; "));
-      results.push({ ...spec, formBounds, measurements, errors });
+      results.push({ ...spec, formBounds, measurements, conflict, errors });
       await context.close();
     }
     const result = { browser: browser.version(), scope: "Chromium host with synthetic Android provider and SaveACK; no native acceptance",
