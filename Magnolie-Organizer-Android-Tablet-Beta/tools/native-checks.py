@@ -19,6 +19,7 @@ SUITES = {
     'files': ['calendar-files'],
     'domains': ['domains'],
     'timezone': ['timezone-interop'],
+    'system-records': ['system-records'],
     'storage': ['basics', 'saf', 'fault', 'print'],
     'notifications': ['notifications'],
 }
@@ -29,7 +30,7 @@ def technical_failure_log(output):
     # runtime/crash diagnostics, never the captured DOM, records or full logcat.
     lines = [line for line in output.splitlines()
              if re.search(r'\s[EF]\s+(?:AndroidRuntime|chromium|libc|DEBUG)\s*:', line) or
-                re.search(r'\sI\s+TabletNativeTest\s*:\s+(?:START (?:basics|restart|layout|time|navigation|services|calendar-files|domains|timezone-interop)\b|PASS |CALENDAR_RECEIPT |PHASE (?:navigation-fixture-(?:start|ready)|native-touch-probe-connected|trusted-tab-switch-\d+)\b)', line)]
+                re.search(r'\sI\s+TabletNativeTest\s*:\s+(?:START (?:basics|restart|layout|time|navigation|services|calendar-files|domains|timezone-interop|system-records)\b|PASS |CALENDAR_RECEIPT |PHASE (?:navigation-fixture-(?:start|ready)|native-touch-probe-connected|trusted-tab-switch-\d+)\b)', line)]
     return '\n'.join(lines[-160:])[-16000:]
 
 
@@ -142,6 +143,8 @@ def main(argv=None):
     opts = parser.parse_args(argv)
     if not opts.main_slot_granted:
         raise SystemExit('Main must finish Windows native work and grant the sole slot first')
+    if opts.suite == 'system-records' and (opts.api != 34 or opts.image != 'google_apis'):
+        raise SystemExit('system-records requires its explicit API34 google_apis target')
     os.chdir(ROOT)
     os.umask(0o077)
     cpus = session.pin_two_cpus()

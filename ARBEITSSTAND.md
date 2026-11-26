@@ -403,6 +403,19 @@ Kompilierstörung und die unveränderten 38 Produktquellen sind hashgebunden bel
 Kein Produktcode, Manifest, Gradle-Gate oder vorhandener Test wurde dafür entfernt
 oder umgangen. Rohbelege unter `pruefnachweise/android-tablet-followup-2026-11-26/issue-805/`.
 
+Für #791 ist zusätzlich `tablet-system-records` vorbereitet: vollständiger
+APK-Bau, anschließend eine eigene API-34-/google_apis-Providerstufe mit elf
+Prüfgruppen. Sie verwendet echte Kontakt-/Kalenderprovider, ausschließlich eigene
+synthetische Fixtures und die tatsächlichen Produktleser. Schreibrechte gelten
+nur bei Fixture-Arbeiten; jeder Produktzugriff prüft zuvor die abgelegte
+Shellidentität und fehlende Schreibrechte. Zwei Kalender erlauben einen echten
+Auswahlvergleich; Kontakt-Quellenisolierung wird mit der einzigen lokalen
+Kontaktquelle ausdrücklich nicht behauptet. 24 Quellen-/Workflowprüfungen,
+vier Owner-Verträge und die reale API-Kompilierung sind belegt; die beiden letzten
+Scope-Literale wurden gesondert nachkompiliert. Eine Emulator-/Provider-Ausführung
+steht weiterhin aus. Kein UI-/Berechtigungsdialog-, Save-ACK- oder vollständiger
+nativer Abnahmenachweis. Rohbelege stehen im Unterordner `system-records/`.
+
 Ein vollständiger neuer Gradle-/D8-/APK-Bau, Android-Provider-/Berechtigungsdialoge,
 TalkBack, IME, Stift, native Pixel-/SAF-/Restore-/Neustartmatrix und tatsächliche
 HTTPS-/Clipboard-Bedienung sind damit nicht abgenommen. Historische native

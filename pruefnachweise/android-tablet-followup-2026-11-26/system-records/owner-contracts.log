@@ -1,0 +1,9 @@
+$ python3 -B -m unittest test_emulator_session.LifecycleTest.test_native_suites_execute_through_owner_stage_contract test_emulator_session.LifecycleTest.test_cold_start_applies_only_to_ui_stages_not_alarm_or_reboot_stages test_emulator_session.LifecycleTest.test_next_suite_requires_main_before_process_or_lock test_emulator_session.LifecycleTest.test_next_suite_rejects_stale_source_and_tampered_apks
+cwd=/workspace/scratch/acde70e8594b/Magnolie-Organizer/Magnolie-Organizer-Android-Tablet-Beta/tests
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.027s
+
+OK
+
+exit=0

@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: Candidate to build (tablet-build-only skips native runtime; tablet-aosp is diagnostic only)
+        description: Candidate to build (tablet-system-records is API34 provider-only; tablet-build-only skips native runtime; tablet-aosp is diagnostic only)
         type: choice
         default: all
-        options: [all, macos, tablet, tablet-aosp, tablet-components, tablet-api26-components, tablet-timezone-interop, tablet-build-only]
+        options: [all, macos, tablet, tablet-aosp, tablet-components, tablet-api26-components, tablet-timezone-interop, tablet-build-only, tablet-system-records]
       component:
         description: Only filters tablet-components and tablet-api26-components; never full UI acceptance
         type: choice
@@ -153,13 +153,13 @@ jobs:
           retention-days: 14
 
   tablet:
-    name: ${{ inputs.target == 'tablet-build-only' && 'tablet-build-only-no-native-acceptance' || inputs.target == 'tablet-timezone-interop' && 'tablet-timezone-interop-comparison-only' || inputs.target == 'tablet-api26-components' && format('tablet-API26-component-only-{0}', matrix.suite) || inputs.target == 'tablet-aosp' && 'tablet-AOSP-API34-diagnostic-only' || inputs.target == 'tablet-components' && format('tablet-component-only-{0}', matrix.suite) || 'tablet' }}
+    name: ${{ inputs.target == 'tablet-build-only' && 'tablet-build-only-no-native-acceptance' || inputs.target == 'tablet-system-records' && 'tablet-system-records-API34-provider-only' || inputs.target == 'tablet-timezone-interop' && 'tablet-timezone-interop-comparison-only' || inputs.target == 'tablet-api26-components' && format('tablet-API26-component-only-{0}', matrix.suite) || inputs.target == 'tablet-aosp' && 'tablet-AOSP-API34-diagnostic-only' || inputs.target == 'tablet-components' && format('tablet-component-only-{0}', matrix.suite) || 'tablet' }}
     strategy:
       fail-fast: false
       max-parallel: 1
       matrix:
-        # Refs #461/#790: explicit build-only target; existing native targets retain their suites.
-        suite: ${{ fromJSON(inputs.target == 'tablet-build-only' && '["build"]' || (inputs.target == 'tablet-components' || inputs.target == 'tablet-api26-components') && (inputs.component == 'services' && '["services"]' || inputs.component == 'files' && '["files"]' || inputs.component == 'domains' && '["domains"]' || '["services","files","domains"]') || inputs.target == 'tablet-timezone-interop' && '["timezone"]' || '["ui"]') }}
+        # Refs #461/#790/#791: explicit build/provider targets; existing native targets retain their suites.
+        suite: ${{ fromJSON(inputs.target == 'tablet-build-only' && '["build"]' || inputs.target == 'tablet-system-records' && '["system-records"]' || (inputs.target == 'tablet-components' || inputs.target == 'tablet-api26-components') && (inputs.component == 'services' && '["services"]' || inputs.component == 'files' && '["files"]' || inputs.component == 'domains' && '["domains"]' || '["services","files","domains"]') || inputs.target == 'tablet-timezone-interop' && '["timezone"]' || '["ui"]') }}
     if: github.event_name != 'workflow_dispatch' || inputs.target != 'macos'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -237,6 +237,7 @@ jobs:
                        runtimeApi=None if build_only else int(os.environ['TABLET_RUNTIME_API']),
                        componentOnly=not build_only and os.environ['TABLET_COMPONENT_SUITE'] != 'ui',
                        componentSuite=None if build_only else os.environ['TABLET_COMPONENT_SUITE'],
+                       systemProviderOnly=os.environ['TABLET_COMPONENT_SUITE'] == 'system-records',
                        googleAcceptance=False)
           pathlib.Path('artifacts/sources.json').write_text(json.dumps(proof, indent=2)+'\n')
           if build_only:
@@ -345,6 +346,25 @@ jobs:
             -p MemoryMax=6G -p MemorySwapMax=0 -p CPUQuota=200% -p RuntimeMaxSec=620 \
             -p TimeoutStopSec=10 -p KillMode=control-group -p UMask=0077 \
             --working-directory="$PWD" python3 -B tools/native-checks.py --main-slot-granted --suite timezone --image "$TABLET_SYSTEM_IMAGE" --api "$TABLET_RUNTIME_API" </dev/null
+      - name: Verify local Android contacts and calendar providers in an isolated API34 session
+        if: ${{ !cancelled() && steps.tablet_build.outcome == 'success' && matrix.suite == 'system-records' }}
+        working-directory: Magnolie-Organizer-Android-Tablet-Beta
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$TABLET_RUNTIME_API:$TABLET_SYSTEM_IMAGE" = '34:google_apis'
+          test -c /dev/kvm
+          sudo setfacl -m "u:$(id -un):rw" /dev/kvm
+          test -d "$ANDROID_HOME/system-images/android-$TABLET_RUNTIME_API/$TABLET_SYSTEM_IMAGE/x86_64"
+          # Explicit provider-only evidence. No permission-dialog, live revocation,
+          # UI Save-ACK or full Google tablet acceptance is claimed by this suite.
+          systemd-run --user --wait --pipe --collect \
+            --setenv="ANDROID_HOME=$ANDROID_HOME" --setenv="ANDROID_SDK_ROOT=$ANDROID_HOME" \
+            --setenv="JAVA_HOME=$JAVA_HOME" --setenv="MAGNOLIE_JS_RUNTIME=node" \
+            --setenv="NODE_PATH=$NODE_PATH" \
+            -p MemoryMax=6G -p MemorySwapMax=0 -p CPUQuota=200% -p RuntimeMaxSec=620 \
+            -p TimeoutStopSec=10 -p KillMode=control-group -p UMask=0077 \
+            --working-directory="$PWD" python3 -B tools/native-checks.py --main-slot-granted --suite system-records --image "$TABLET_SYSTEM_IMAGE" --api "$TABLET_RUNTIME_API" </dev/null
       - name: Collect synthetic native evidence
         if: ${{ always() && matrix.suite != 'build' }}
         shell: bash
@@ -363,7 +383,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Android-Tablet-2.0.30Beta-${{ inputs.target == 'tablet-build-only' && 'build-only-no-native-acceptance' || inputs.target == 'tablet-timezone-interop' && 'timezone-interop-comparison-only' || inputs.target == 'tablet-aosp' && 'AOSP-diagnostic-only' || inputs.target == 'tablet-api26-components' && format('API26-component-only-{0}', matrix.suite) || inputs.target == 'tablet-components' && format('component-only-{0}', matrix.suite) || 'Google-candidate' }}-and-proof
+          name: Android-Tablet-2.0.30Beta-${{ inputs.target == 'tablet-build-only' && 'build-only-no-native-acceptance' || inputs.target == 'tablet-system-records' && 'system-records-API34-provider-only' || inputs.target == 'tablet-timezone-interop' && 'timezone-interop-comparison-only' || inputs.target == 'tablet-aosp' && 'AOSP-diagnostic-only' || inputs.target == 'tablet-api26-components' && format('API26-component-only-{0}', matrix.suite) || inputs.target == 'tablet-components' && format('component-only-{0}', matrix.suite) || 'Google-candidate' }}-and-proof
           path: |
             Magnolie-Organizer-Android-Tablet-Beta/artifacts/
             Magnolie-Organizer-Android-Tablet-Beta/app/build/test-results/testDebugUnitTest/

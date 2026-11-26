@@ -274,7 +274,8 @@ class BuildWiringTests(unittest.TestCase):
     def test_dispatch_matrix_preserves_all_existing_targets(self):
         options = re.search(r"^        options: \[([^\]]+)\]$", self.workflow, re.M)[1].split(", ")
         self.assertEqual(options, ["all", "macos", "tablet", "tablet-aosp", "tablet-components",
-                                   "tablet-api26-components", "tablet-timezone-interop", "tablet-build-only"])
+                                   "tablet-api26-components", "tablet-timezone-interop", "tablet-build-only",
+                                   "tablet-system-records"])
         self.assertIn("        default: all\n", self.workflow)
         matrix = re.search(r"^        suite: (.+)$", self.tablet, re.M)[1]
         macos_if = re.search(r"^    if: (.+)$", self.macos, re.M)[1]
@@ -285,6 +286,8 @@ class BuildWiringTests(unittest.TestCase):
                     context = {"inputs.target": target, "inputs.component": component,
                                "github.event_name": "workflow_dispatch" if target else "push"}
                     expected = ["build"] if target == "tablet-build-only" else ["timezone"] if target == "tablet-timezone-interop" else ["ui"]
+                    if target == "tablet-system-records":
+                        expected = ["system-records"]
                     if target in ("tablet-components", "tablet-api26-components"):
                         expected = ["services", "files", "domains"] if component == "all" else [component]
                     self.assertEqual(self.expression(matrix, context), expected)
@@ -298,7 +301,7 @@ class BuildWiringTests(unittest.TestCase):
             self.assertIn(command, self.steps[build])
         runtime_steps = {name for name, body in self.steps.items()
                          if any(token in body for token in ("/dev/kvm", "system-images;", "tools/native-checks.py", "artifacts/native-evidence"))}
-        self.assertEqual(len(runtime_steps), 7)
+        self.assertEqual(len(runtime_steps), 8)
         for outcome in ("success", "failure"):
             for cancelled in (False, True):
                 context = {"matrix.suite": "build", "steps.tablet_build.outcome": outcome, "cancelled": cancelled}
@@ -311,7 +314,7 @@ class BuildWiringTests(unittest.TestCase):
         prepare = "Prepare the official Android runtime image"
         collect = "Collect synthetic native evidence"
         native = {suite: next(name for name, body in self.steps.items() if "--suite " + suite + " " in body)
-                  for suite in ("ui", "services", "files", "domains", "timezone")}
+                  for suite in ("ui", "services", "files", "domains", "timezone", "system-records")}
         for suite in native:
             context = {"matrix.suite": suite, "steps.tablet_build.outcome": "success"}
             expected = {prepare, collect, native[suite]}
@@ -324,7 +327,8 @@ class BuildWiringTests(unittest.TestCase):
         build = self.steps["Build and verify debug APKs within the original locks and resource limits"]
         script = textwrap.dedent(re.search(r"          python3 - <<'PY'\n(.*?)\n          PY(?:\n|$)", build, re.S)[1])
         for suite, image in (("build", "google_apis"), ("build", "default"), ("ui", "google_apis"),
-                             ("ui", "default"), ("services", "google_apis"), ("timezone", "google_apis")):
+                             ("ui", "default"), ("services", "google_apis"), ("timezone", "google_apis"),
+                             ("system-records", "google_apis")):
             with self.subTest(suite=suite, image=image), patch.dict(os.environ, {
                 "TABLET_COMPONENT_SUITE": suite, "TABLET_SYSTEM_IMAGE": image,
                 "TABLET_RUNTIME_API": "34", "DESKTOP_COMMIT": "historical-reference"}, clear=True), \
@@ -340,11 +344,56 @@ class BuildWiringTests(unittest.TestCase):
                 self.assertEqual(result["systemImage"], None if suite == "build" else image)
                 self.assertEqual(result["componentSuite"], None if suite == "build" else suite)
                 self.assertEqual(result["componentOnly"], suite not in ("ui", "build"))
+                self.assertEqual(result["systemProviderOnly"], suite == "system-records")
                 self.assertEqual(result["diagnosticComparison"], suite != "build" and image == "default")
         artifact = self.steps["Preserve build diagnostics even when a gate fails"]
         expression = re.search(r"\$\{\{(.*?)\}\}", artifact)[1]
         self.assertEqual(self.expression(expression, {"inputs.target": "tablet-build-only", "matrix.suite": "build"}),
                          "build-only-no-native-acceptance")
+
+    def test_system_records_is_explicit_api34_provider_only_with_original_limits(self):
+        target = {"inputs.target": "tablet-system-records", "matrix.suite": "system-records"}
+        api = re.search(r"^      TABLET_RUNTIME_API: (.+)$", self.tablet, re.M)[1]
+        image = re.search(r"^      TABLET_SYSTEM_IMAGE: (.+)$", self.tablet, re.M)[1]
+        self.assertEqual(self.expression(api, target), "34")
+        self.assertEqual(self.expression(image, target), "google_apis")
+        name = "Verify local Android contacts and calendar providers in an isolated API34 session"
+        step = self.steps[name]
+        for suite in ("build", "ui", "services", "files", "domains", "timezone", "system-records"):
+            for outcome in ("success", "failure"):
+                for cancelled in (False, True):
+                    context = {"matrix.suite": suite, "steps.tablet_build.outcome": outcome, "cancelled": cancelled}
+                    self.assertEqual(self.step_enabled(name, context), suite == "system-records" and outcome == "success" and not cancelled)
+        for required in ("systemd-run --user --wait --pipe --collect", "MemoryMax=6G", "MemorySwapMax=0",
+                         "CPUQuota=200%", "RuntimeMaxSec=620", "TimeoutStopSec=10", "KillMode=control-group",
+                         "UMask=0077", "--main-slot-granted --suite system-records", "34:google_apis"):
+            self.assertIn(required, step)
+        artifact = re.search(r"\$\{\{(.*?)\}\}", self.steps["Preserve build diagnostics even when a gate fails"])[1]
+        self.assertEqual(self.expression(artifact, target), "system-records-API34-provider-only")
+
+    def test_system_records_suite_preserves_other_suites_and_requires_owner_before_side_effects(self):
+        spec = importlib.util.spec_from_file_location("system_records_native_checks", ROOT / "tools/native-checks.py")
+        native = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(native)
+        self.assertEqual(native.SUITES, {
+            "ui": ["basics", "restart", "layout", "time"], "services": ["services"],
+            "files": ["calendar-files"], "domains": ["domains"], "timezone": ["timezone-interop"],
+            "system-records": ["system-records"], "storage": ["basics", "saf", "fault", "print"],
+            "notifications": ["notifications"],
+        })
+        self.assertIn("system-records", native.session.STAGES)
+        # Like the existing services stage this probe starts no Activity and issues no input.
+        self.assertNotIn("system-records", native.session.COLD_START_STAGES)
+        with patch.object(native.session, "pin_two_cpus") as pin, \
+             patch.object(native.session, "locks") as locks, patch.object(native.session.subprocess, "Popen") as process:
+            with self.assertRaisesRegex(SystemExit, "grant the sole slot"):
+                native.main(["--suite", "system-records"])
+            for api, image in ((26, "google_apis"), (35, "google_apis"), (34, "default")):
+                with self.subTest(api=api, image=image), self.assertRaisesRegex(SystemExit, "explicit API34"):
+                    native.main(["--main-slot-granted", "--suite", "system-records", "--api", str(api), "--image", image])
+            pin.assert_not_called()
+            locks.assert_not_called()
+            process.assert_not_called()
 
     def test_tablet_uses_current_checkout_but_keeps_historical_oracle(self):
         workflow = (ROOT.parent / ".github/workflows/ports-2.0.30.yml").read_text()

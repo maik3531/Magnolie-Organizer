@@ -1,0 +1,9 @@
+$ python3 -B /workspace/scratch/acde70e8594b/Magnolie-Organizer/Magnolie-Organizer-Android-Tablet-Beta/tests/test_source_proof.py
+cwd=/workspace/scratch/acde70e8594b/Magnolie-Organizer
+........................
+----------------------------------------------------------------------
+Ran 24 tests in 0.645s
+
+OK
+
+exit=0

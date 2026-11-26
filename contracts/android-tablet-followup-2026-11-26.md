@@ -92,6 +92,36 @@ Die Projektion verlangt neun nicht leere Systemimporttexte je Sprache. Die
 deutschen Beschriftungen wurden in der tatsächlich gerenderten Oberfläche
 geprüft. Eine Muttersprachlerprüfung aller Übersetzungen ist nicht dokumentiert.
 
+## Native Providerprüfung zu #791
+
+Das zusätzliche manuelle Workflowziel `tablet-system-records` baut zuerst das
+vollständige APK-Paar mit unveränderten Gates. Anschließend führt es ausschließlich
+die neue Stufe `system-records` auf API 34 / `google_apis` aus. Elf Prüfgruppen
+verwenden echte Android-Provider und die tatsächlichen Produktleser; alle
+Kontakte und Kalender sind synthetische eigene Fixtures auf dem eigenen Emulator.
+Schreibberechtigungen gelten nur während Anlage/Änderung/Bereinigung der Fixtures.
+Vor jedem Produktzugriff wird diese Identität abgelegt und das Fehlen effektiver
+Schreibrechte geprüft. Die App erhält keine neue Produktberechtigung.
+
+Geprüft werden sollen verweigerte Lesezugriffe, Quellenentdeckung, Kontaktfelder,
+stabile Kontaktidentität nach neuer RawContact-ID, Herkunftswechsel auf derselben
+Zeile, Kalenderauswahl und Datumsfenster, verschobene Einzeltermine,
+Serieninstanzen/Ausnahmen, vorab abgebrochene Abfragen und vollständige Bereinigung.
+Die zwei echten Kalender belegen im Erfolgsfall deren Quellenisolierung. Für
+Kontakte existiert nur eine lokale Testquelle: `contactsSourceIsolationTested:false`
+bleibt ausdrücklich im Receipt; `calendarSourceIsolationTested:true` benennt den
+getrennten Kalenderumfang. Ein UI-Dialog, Live-Widerruf, Import-/Save-ACK,
+Abbruch während einer laufenden Abfrage oder TalkBack werden dabei nicht ausgeführt.
+
+24 Quellen-/Workflowtests und vier gezielte Owner-Verträge bestehen. Die
+Produkt- und Instrumentierungsquellen kompilieren gegen die echte Android-37.2-API.
+Die beiden abschließend ergänzten Scope-Literale wurden gesondert nachkompiliert;
+Rohbelege, ausgeführte Skripte und Quellhashes stehen unter
+`pruefnachweise/android-tablet-followup-2026-11-26/system-records/`.
+Eine tatsächliche Provider-/Emulatorausführung wird damit noch nicht behauptet.
+`systemProviderOnly:true` und `API34-provider-only` halten diesen Prüfumfang
+von einer vollständigen nativen Abnahme getrennt.
+
 ## Prüfumfang und Restabnahme
 
 Die konkreten Quellhashes, ausgeführten Befehle, Rohprotokolle und Ergebnisse

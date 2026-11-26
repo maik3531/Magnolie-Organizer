@@ -34,7 +34,7 @@ BOOT = 3 * 60
 TEST = 120
 PROGRESS = 30
 GRACE = 5
-STAGES = ('basics', 'restart', 'layout', 'time', 'navigation', 'saf', 'fault', 'print', 'services', 'calendar-files', 'domains', 'timezone-interop',
+STAGES = ('basics', 'restart', 'layout', 'time', 'navigation', 'saf', 'fault', 'print', 'services', 'calendar-files', 'domains', 'timezone-interop', 'system-records',
           'notifications', 'seed-reboot', 'verify-reboot')
 
 

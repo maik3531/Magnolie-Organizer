@@ -291,6 +291,24 @@ acceptance remain false. This is an explicit build target, not a shortened or
 alternative Gradle path. All existing targets, including `all`, retain their
 original native suites and coordination limits.
 
+To exercise the device contact/calendar readers with actual Android providers,
+dispatch **`target: tablet-system-records`**. This separate API 34/google_apis job
+runs the complete APK gate first, then the single `system-records` stage on its
+owned disposable emulator. It creates and removes only its own synthetic raw
+contacts and calendars. Fixture writes temporarily adopt the two write
+permissions; every product read runs after that identity is dropped and with
+ordinary runtime read permissions. The application manifest is unchanged.
+The eleven check groups cover denied reads, discovery, contact fields and stable
+source identity, calendar selection/window/recurrence identity, pre-cancellation
+and cleanup. Two real calendars test calendar-source isolation. The single local
+contact source does **not** prove contact-source isolation; the receipt records
+`contactsSourceIsolationTested:false` and `calendarSourceIsolationTested:true`.
+This stage does not open an Activity or exercise permission dialogs, live
+revocation, WebView import/save ACKs, in-flight cancellation or tablet UI input.
+Its job/artifact name says `API34-provider-only`, and the source metadata records
+`systemProviderOnly:true`; full native/Google-runtime acceptance remains false.
+Existing targets and resource/owner gates retain their prior behavior.
+
 For the existing native targets, the owned emulator suites test the exact
 hash-checked app/test pair. Candidate metadata, checksums and applicable runtime
 evidence are retained as Actions artifacts for 14 days, including diagnostics
@@ -451,9 +469,24 @@ All 88 cross-desktop setup cases in 20 languages pass; stale desktop caches are
 not read, and corrupt normative data still fails. The resulting projection is
 `3dcf2073c46012e193900fce971a5bab91cefd5194f433bac7169e7f98917907`;
 all 83 generated runtime files are byte-identical to the tested projection above.
-The next complete APK attempt must bind this updated source hash. The original
-CI failure and targeted correction are recorded in the evidence folder's
-`ci-run-45806941029/` subdirectory.
+The next build-only attempt (Actions run 45809316206) confirmed the setup fix:
+22 provenance tests, 194 web checks, 46 integration checks and all 88 setup cases
+passed. Gradle compiled product Kotlin, manifest and resources, then stopped at
+five unsupported `JSONObject.similar` calls in JVM tests ([#805](https://github.com/maik3531/Magnolie-Organizer/issues/805)).
+The comparison now uses the available Android JSON API, preserving all fields,
+types, array order and exact number distinctions. All 42 targeted JVM tests pass
+against the real Android 37.2 API; no product source was changed by that fix.
+Neither failed CI attempt produced an APK. The two original CI failures and
+targeted corrections are recorded in `ci-run-45806941029/`,
+`ci-run-45809316206/` and `issue-805/` in the evidence folder.
+
+The new provider stage has passed 24 source/workflow checks and four targeted
+owner-contract checks. The final instrumentation sources compile against the
+real Android API using all 38 unchanged product Kotlin sources. The final two
+receipt-scope literals were recompiled separately after the host checks; the
+original and final hashes and actual commands are in `system-records/`.
+This preparation does not claim a provider/emulator execution. The next full
+Actions run must bind the updated checkout and report its own APK/runtime result.
 
 ## Later Acceptance
 
