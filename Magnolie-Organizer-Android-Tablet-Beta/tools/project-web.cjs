@@ -141,7 +141,7 @@ function amendDav(before, after) {
 }
 const davSyncAnchor = '  function baueSeiteSync(wurzel) {';
 amendDav(davSyncAnchor,davSyncAnchor+davPatch('PAGE',`{
-    const section = abschnitt(_("DAV account"), "Account setup and read-only discovery. Calendar/contact synchronization is not implemented.");
+    const section = abschnitt(window.Tablet.systemText("title"), window.Tablet.systemText("scope"));
     section.id = "tablet-dav-discovery";
     const status = el("p", "sync-status", _("Checking online accounts …")); status.id = "sync-status";
     const choices = el("div", "sync-wahl"); choices.id = "sync-wahl";
@@ -197,8 +197,32 @@ const startupBefore = '  if (document.readyState === "loading") {';
 const startupAfter = '  if (document.readyState === "loading" || document.currentScript?.defer && document.readyState === "interactive") {';
 if (regionalSource.split(startupBefore).length !== 2) throw Error('Canonical document startup anchor changed');
 regionalSource = regionalSource.replace(startupBefore,startupAfter);
+const systemActions = `/*TABLET_SYSTEM_ACTIONS_BEGIN*/
+  Object.assign(window.MagnolieTabletActions, {
+    systemRange(from, to) {
+      if (!gueltigesISO(from) || !gueltigesISO(to) || to < from) throw new Error("invalid_window");
+      const next = new Date(to + "T00:00:00Z"); next.setUTCDate(next.getUTCDate() + 1);
+      if (next.getTime() - Date.parse(from + "T00:00:00Z") > 366 * 86400000) throw new Error("invalid_window");
+      const zone = eigeneIanaZeitzone();
+      const start = eindeutigerOrtszeitpunkt(from, "00:00", zone, "earlier");
+      const end = eindeutigerOrtszeitpunkt(next.toISOString().slice(0,10), "00:00", zone, "earlier");
+      if (end <= start || end - start > 368 * 86400000) throw new Error("invalid_window");
+      return {from:start,to:end,dateFrom:from,dateTo:to};
+    },
+    systemEvent(entry) { return zeitzonenEintragPlan(entry, false, {mode:"display",time_zone:eigeneIanaZeitzone()}).next; },
+    importSystem(plan) {
+      if (gesperrt || editorIstGeaendert() || DATEN !== plan.book || !["kontakte","termine"].includes(plan.collection) ||
+          JSON.stringify(DATEN[plan.collection]) !== plan.before || JSON.stringify(DATEN.jahrestage) !== plan.anniversariesBefore)
+        throw new Error("stale_request");
+      DATEN[plan.collection].push(...plan.rows);
+      DATEN.jahrestage.push(...plan.anniversaries);
+      terminIndexVeraltet = true; jahrestagIndexVeraltet = true;
+      planeSpeichern(); zeichneAlles();
+    }
+  });
+/*TABLET_SYSTEM_ACTIONS_END*/`;
 generated.set('assets/web/anwendung.js', Buffer.from(regionalSource.replace(anchor,
-  '  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed), exportCalendar: art => starteExport(art) };\n'+anchor)));
+  '  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed), exportCalendar: art => starteExport(art) };\n'+systemActions+anchor)));
 let html = timezonePatcher.module.exports.stripCanonicalBootstrap(buffers.get(path.join(desktop,'index.html')).toString());
 if (!html.includes('<script src="anwendung.js"></script>')) throw Error('Desktop entry point changed');
 html = html.replace('<title>Magnolie Organizer</title>', '<title>Magnolie Organizer Android Tablet Beta 2.0.30Beta</title>')
@@ -208,9 +232,15 @@ html=html.replace('<script src="tablet.js"></script>','<script src="normative-ti
 for(const [name,bytes] of Object.entries(timezoneAssets)) generated.set('assets/web/'+name,bytes);
 generated.set('assets/web/index.html',Buffer.from(html));
 for (const f of ['tablet.js','tablet.css']) generated.set('assets/web/'+f,buffers.get(path.join(root,'web',f)));
+generated.set('assets/web/tablet.js',Buffer.concat([buffers.get(path.join(root,'web/system-import.js')),Buffer.from('\n'),generated.get('assets/web/tablet.js')]));
 generated.set('assets/web/tablet.css',Buffer.concat([generated.get('assets/web/tablet.css'),
   Buffer.from('\n'),buffers.get(path.join(parent,'port-adapters/legacy-display.css'))]));
-generated.set('assets/web/beta-i18n.js',Buffer.from('window.TabletStrings = '+buffers.get(path.join(root,'web/beta-i18n.json'))+';'));
+const systemStrings=JSON.parse(buffers.get(path.join(root,'web/system-import-i18n.json')));
+const systemKeys=['title','copyNote','windowNote','busy','scope'];
+if (Object.keys(systemStrings).sort().join() !== Object.keys(JSON.parse(buffers.get(path.join(root,'web/beta-i18n.json')))).sort().join() ||
+    Object.values(systemStrings).some(value=>Object.keys(value).sort().join()!==[...systemKeys].sort().join() || systemKeys.some(key=>typeof value[key]!=='string' || !value[key].trim())))
+  throw Error('Complete Android import translations in all 20 locales are required');
+generated.set('assets/web/beta-i18n.js',Buffer.from('window.TabletStrings = '+buffers.get(path.join(root,'web/beta-i18n.json'))+';\nwindow.TabletSystemStrings = '+JSON.stringify(systemStrings)+';'));
 const catalogs = {};
 let active = '/* Generated from the live canonical catalogs. */\n';
 for (const [p,b] of buffers) if (p.startsWith(desktop+'/i18n/')) {
@@ -259,7 +289,7 @@ const manifest = {format:1, kind:'debug-beta-generated-build-projection', source
     'timezones: verified common normative data/resolver/runtime/license loaded synchronously before the adapter and app with hash-checked shared app/worker time-path adapters',
     'alarms: shared port-adapters helper preserves opaque DISPLAY properties/parameters and blocks ambiguous edits',
     'fonts: live Windows font-face rules, bundled font bytes and licenses (no Android system-font substitution)',
-    'anwendung: expose existing editor guard + durable action queue; reuse canonical DAV account/selection renderers for native setup and read-only discovery with revision fences; keep synchronization unsupported; expose regional form and suppress unsupported native automatic time-zone polling',
+    'anwendung: expose existing editor guard + durable action queue; reuse canonical DAV account/selection renderers for native setup and read-only discovery with revision fences; add explicit Android copies with canonical normalization/time-zone display and append-only local commit; keep synchronization unsupported; expose regional form and suppress unsupported native automatic time-zone polling',
     'i18n-active: concatenate canonical catalogs', 'native resources: reuse catalogs + 20 manual beta translations'],
   outputs:Object.fromEntries([...generated].map(([p,b])=>[p,sha(b)]))};
 fs.writeFileSync(path.join(out,'assets/projection.json'),JSON.stringify(manifest,null,2)+'\n');

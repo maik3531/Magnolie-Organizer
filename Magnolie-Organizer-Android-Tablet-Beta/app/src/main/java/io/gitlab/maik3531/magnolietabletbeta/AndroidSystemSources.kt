@@ -30,9 +30,9 @@ internal class AndroidSystemSources(private val context: Context) {
             SystemSourcePolicy.Kind.CONTACTS -> Manifest.permission.READ_CONTACTS
         }
     }
-    fun status(control: Control): Map<SystemSourcePolicy.Kind,SystemSourcePolicy.Snapshot> {
+    fun status(control: Control, kinds: Collection<SystemSourcePolicy.Kind> = SystemSourcePolicy.Kind.entries): Map<SystemSourcePolicy.Kind,SystemSourcePolicy.Snapshot> {
         check(Looper.myLooper()!=Looper.getMainLooper()) { "System provider reads require a worker" }
-        return SystemSourcePolicy.Kind.entries.associateWith { kind ->
+        return kinds.associateWith { kind ->
             control.check()
             SystemSourcePolicy.discover(context.checkSelfPermission(permission(kind))==PackageManager.PERMISSION_GRANTED,
                 control::check) {

@@ -13,6 +13,7 @@
   for (const command of davCommands) supported.add(command);
   const rejected = new Set();
   let loaded = false, pendingAction = null, replacement = null, pendingCalendar = null, pendingCalendarExport = null;
+  let pendingAttachment = null;
   let session = null, revision = null, blocked = false;
   const tr = text => window.MagnolieI18n?.gettext(text) || text;
   function beta(index) {
@@ -25,19 +26,28 @@
     if (el) el.textContent = text;
   }
   const davNotice = 'Account setup and read-only discovery. Calendar/contact synchronization is not implemented.';
-  let systemPermissions = {}, systemPending = null;
+  let systemPermissions = {}, systemPending = null, systemSnapshot = {}, pendingSystemImport = null;
+  const systemSelection = {contacts:'',events:''};
+  const systemDates = {from:new Date().toISOString().slice(0,10),to:new Date(Date.now()+89*86400000).toISOString().slice(0,10)};
+  function systemText(key) {
+    const lang = window.MagnolieI18n?.locale() || navigator.language;
+    const code = /^zh/i.test(lang) ? 'zh_CN' : lang.split('-')[0];
+    return (window.TabletSystemStrings[code] || window.TabletSystemStrings.en)[key];
+  }
   function systemSourcesRendered(payload) {
     if (payload?.permissions && typeof payload.permissions==='object') systemPermissions={...payload.permissions};
+    if (payload) systemSnapshot=payload;
     if (payload?.requestId===systemPending) systemPending=null;
     const root=document.getElementById('tablet-system-access');
     if (!root) return;
     root.textContent='';
-    const heading=document.createElement('h3');heading.textContent=tr('System internet accounts');root.append(heading);
+    const heading=document.createElement('h3');heading.textContent=systemText('title');root.append(heading);
+    const explanation=document.createElement('p');explanation.textContent=systemText('copyNote');root.append(explanation);
     for (const [art,label] of [['events','Calendars'],['contacts','Contacts']]) {
       const row=document.createElement('p'),button=document.createElement('button');
       button.type='button';button.dataset.systemAccess=art;
       button.textContent=tr('Allow access')+': '+tr(label);
-      button.disabled=!!systemPending || systemPermissions[art]==='authorized';
+      button.disabled=!!systemPending || !!pendingSystemImport || systemPermissions[art]==='authorized';
       button.addEventListener('click',()=>{
         if(systemPending || !loaded || blocked || replacement) return;
         const requestId=crypto.randomUUID();systemPending=requestId;
@@ -48,13 +58,88 @@
         const state=document.createElement('span');state.textContent=' '+tr('Unavailable');row.append(state);
       }
       root.append(row);
+      const sourceLabel=document.createElement('label');sourceLabel.textContent=tr(label)+' ';
+      const select=document.createElement('select');select.id='tablet-system-source-'+art;
+      const empty=document.createElement('option');empty.value='';empty.textContent='—';select.append(empty);
+      const sources=art==='contacts' ? (systemSnapshot.alleAdressbuecher || systemSnapshot.adressbuecher || []) :
+        (systemSnapshot.alleKalender || systemSnapshot.kalender || []);
+      for (const source of Array.isArray(sources) ? sources : []) {
+        if (!source || !new RegExp('^android-'+art+':[0-9a-f]{64}$').test(source.uid) || source.unavailable) continue;
+        const option=document.createElement('option');option.value=source.uid;option.textContent=source.name || source.uid;select.append(option);
+      }
+      select.value=systemSelection[art];
+      if (select.value!==systemSelection[art]) systemSelection[art]='';
+      select.disabled=!!pendingSystemImport || systemPermissions[art]!=='authorized';
+      sourceLabel.append(select);root.append(sourceLabel);
+      if (art==='events') {
+        const range=document.createElement('div');
+        for (const [key,title] of [['from','Start date'],['to','End date']]) {
+          const label=document.createElement('label');label.textContent=tr(title)+' ';
+          const input=document.createElement('input');input.type='date';input.id='tablet-system-'+key;input.value=systemDates[key];
+          input.disabled=!!pendingSystemImport;input.addEventListener('change',()=>{systemDates[key]=input.value;});
+          label.append(input);range.append(label);
+        }
+        const note=document.createElement('p');note.textContent=systemText('windowNote');range.append(note);root.append(range);
+      }
+      const importButton=document.createElement('button');importButton.type='button';importButton.id='tablet-system-import-'+art;
+      importButton.textContent=tr('Import')+' '+tr(label);
+      const available=()=>!pendingSystemImport && !systemPending && systemPermissions[art]==='authorized' &&
+        !!select.value && !!systemSnapshot.systemImportImplemented?.[art] && !systemSnapshot.fehler;
+      importButton.disabled=!available();
+      select.addEventListener('change',()=>{systemSelection[art]=select.value;importButton.disabled=!available();});
+      importButton.addEventListener('click',()=>readSystem(art));root.append(importButton);
     }
     const refresh=document.createElement('button');refresh.type='button';refresh.id='tablet-system-refresh';
-    refresh.textContent=tr('Refresh');refresh.disabled=!!systemPending;
+    refresh.textContent=tr('Refresh');refresh.disabled=!!systemPending || !!pendingSystemImport;
     refresh.addEventListener('click',()=>{
       if(systemPending || !loaded || blocked || replacement) return;
       const requestId=crypto.randomUUID();systemPending=requestId;send({cmd:'eds_status',requestId});systemSourcesRendered(null);
     });root.append(refresh);
+    if (pendingSystemImport) {
+      const cancel=document.createElement('button');cancel.type='button';cancel.textContent=tr('Cancel');
+      cancel.disabled=pendingSystemImport.phase==='saving';
+      cancel.addEventListener('click',()=>{if (pendingSystemImport?.phase==='saving') return;
+        pendingSystemImport=null;status(tr('Cancel'));systemSourcesRendered(null);});root.append(cancel);
+    }
+  }
+  function readSystem(art) {
+    if (!loaded || blocked || replacement || systemPending || pendingSystemImport || pendingAction || pendingCalendar || pendingCalendarExport ||
+        systemPermissions[art]!=='authorized' || !systemSelection[art] || !systemSnapshot.systemImportImplemented?.[art] || systemSnapshot.fehler) return;
+    const candidate={phase:'preparing',request:null};pendingSystemImport=candidate;systemSourcesRendered(null);
+    const failed=()=>{if(pendingSystemImport!==candidate)return;pendingSystemImport=null;status(tr('Import failed.'));systemSourcesRendered(null);};
+    window.MagnolieTabletActions.afterSave(()=>{
+      if(pendingSystemImport!==candidate || !loaded || blocked || replacement) {failed();return;}
+      try {
+        const range=art==='events' ? window.MagnolieTabletActions.systemRange(systemDates.from,systemDates.to) : {};
+        const request={cmd:'android_systemimport',art,sourceUid:systemSelection[art],requestId:crypto.randomUUID(),session,revision,...range};
+        candidate.request=request;candidate.phase='reading';status(systemText('busy'));native(request);systemSourcesRendered(null);
+      } catch (_) {failed();}
+    },failed).then(ok=>{if(!ok)failed();}).catch(failed);
+  }
+  function systemImport(payload) {
+    const candidate=pendingSystemImport, request=candidate?.request;
+    if (!candidate || !request || candidate.phase!=='reading' || payload?.requestId!==request.requestId || payload.session!==request.session) return;
+    const finish=text=>{if(pendingSystemImport!==candidate)return;pendingSystemImport=null;status(text);systemSourcesRendered(null);};
+    if (!loaded || blocked || replacement || payload.ok!==true || payload.revision!==revision) {finish(tr('Import failed.'));return;}
+    candidate.phase='preparing';systemSourcesRendered(null);
+    // An editor opened during the provider query must settle before applying the result.
+    window.MagnolieTabletActions.afterSave(()=>{
+      if(pendingSystemImport!==candidate)return;
+      if(!loaded || blocked || replacement || request.revision!==revision) {finish(tr('Import failed.'));return;}
+      try {
+        const T=window.OrganizerTest;
+        const plan=window.TabletSystemImport.prepare(payload,request,T.daten(),{
+          empty:T.leereDaten,normalize:T.normalisiere,projectEvent:window.MagnolieTabletActions.systemEvent});
+        candidate.phase='saving';systemSourcesRendered(null);
+        if(plan.added) window.MagnolieTabletActions.importSystem(plan);
+        window.MagnolieTabletActions.persist(()=>finish(tr('Imported: %(items)s.').replace('%(items)s',
+          plan.added+' '+tr(request.art==='contacts'?'Contacts':'Appointments'))+' '+
+          window.MagnolieI18n.ngettext('%(count)s existing entry skipped.','%(count)s existing entries skipped.',plan.skipped)
+            .replace('%(count)s',String(plan.skipped))),
+          ()=>finish(tr('Warning: The data could not be saved.')));
+      } catch (_) {finish(tr('Import failed.'));}
+    },()=>finish(tr('Warning: The data could not be saved.'))).then(ok=>{if(!ok)finish(tr('Cancel'));})
+      .catch(()=>finish(tr('Import failed.')));
   }
   window.TabletDav = Object.freeze({
     sourceView(payload, settings) {
@@ -185,6 +270,20 @@
     return [...new Map(result.map(x=>[x.id,x])).values()].sort((a,b)=>a.at-b.at);
   }
   function send(message) {
+    if (message.cmd === 'sozial' && message.dienst==='custom' && message.aktionArt==='url' &&
+        typeof message.wert==='string' && message.wert===message.aktionZiel &&
+        Object.keys(message).every(key=>['cmd','dienst','wert','aktionArt','aktionZiel','land'].includes(key))) {
+      if (!loaded || blocked || replacement || pendingSystemImport || pendingAttachment) throw Error(beta(0));
+      const requestId=crypto.randomUUID();pendingAttachment={requestId};
+      const failed=()=>{if(pendingAttachment?.requestId!==requestId)return;pendingAttachment=null;status(tr('Unavailable'));};
+      // Native checks the saved attachment and the URI again before Android receives the explicit handoff.
+      window.MagnolieTabletActions.afterSave(()=>{
+        if(pendingAttachment?.requestId!==requestId || !loaded || blocked || replacement) {failed();return;}
+        pendingAttachment.session=session;pendingAttachment.revision=revision;
+        native({...message,requestId});
+      },failed).then(ok=>{if(!ok)failed();}).catch(failed);
+      return;
+    }
     if (message.cmd === 'export') {
       if (!['ics-termine','ics-aufgaben','ics-jahrestage'].includes(message.art) || !Array.isArray(message.daten) ||
           Object.keys(message).some(key=>!['cmd','art','daten'].includes(key))) throw Error(beta(0));
@@ -209,7 +308,7 @@
   }
   window.webkit = {messageHandlers:{bridge:{postMessage: text => send(JSON.parse(text))}}};
   function action(cmd, format = 'json') {
-    if (!loaded || blocked || replacement || pendingAction || pendingCalendar || pendingCalendarExport) return;
+    if (!loaded || blocked || replacement || pendingAction || pendingCalendar || pendingCalendarExport || pendingSystemImport) return;
     if (cmd === 'tablet_import' && !['json','ics'].includes(format)) throw Error(beta(0));
     if (cmd === 'tablet_export_ics' && !['ics-termine','ics-aufgaben','ics-jahrestage'].includes(format)) throw Error(beta(0));
     // Reuse the desktop editor guard and its durable-save queue before opening SAF.
@@ -345,7 +444,7 @@
     return normalized;
   }
   function blockStorage(payload) {
-    systemPermissions={}; systemPending=null;
+    systemPermissions={}; systemPending=null;systemSnapshot={};pendingSystemImport=null;pendingAttachment=null;
     blocked=true; loaded=false; pendingAction=null; pendingCalendar=null; pendingCalendarExport=null;
     document.getElementById('schreibtisch').inert=true;
     document.querySelectorAll('[role=dialog]').forEach(el=>{el.inert=true;});
@@ -356,7 +455,7 @@
     }
   }
   window.Tablet = {
-    alarms, validateImport, action, rejected, calendarMetadata, exportCalendar,
+    alarms, validateImport, action, rejected, calendarMetadata, exportCalendar,systemText,
     flush() { if (loaded && !replacement) window.OrganizerTest.speichereJetzt(); },
     receive(message) {
       if (typeof message === 'string') message = JSON.parse(message);
@@ -380,6 +479,11 @@
           pendingCalendarExport=null;
           status(p.ok===true ? tr('Saved.') : p.abgebrochen ? tr('Cancel') : tr('Export failed.')); break;
         case 'calendarImport': void calendarImport(p); break;
+        case 'androidSystemImport': systemImport(p); break;
+        case 'externalAttachmentResult':
+          if(!loaded || blocked || replacement || p.requestId!==pendingAttachment?.requestId ||
+              p.session!==pendingAttachment.session || p.revision!==pendingAttachment.revision) break;
+          pendingAttachment=null;status(p.ok===true ? '' : tr('Unavailable'));break;
         case 'importCandidate':
           if (!loaded || blocked || replacement) break;
           try {
@@ -425,6 +529,7 @@
     const syncStart=document.getElementById('sync-jetzt'); if (syncStart) syncStart.disabled=true;
     for (const id of ['baum','sicherheit','ueber']) {
       const b = document.getElementById('einst-tab-'+id);
+      if (id==='baum' && b) b.hidden=true;
       if (b && !b.disabled) { b.disabled = true; b.title = beta(0); b.setAttribute('aria-disabled','true'); }
       const page = document.getElementById('einst-seite-'+id);
       if (page && !page.dataset.tablet) {
