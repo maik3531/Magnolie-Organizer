@@ -335,6 +335,21 @@ class NativeToolContractTests(unittest.TestCase):
                 parsed = apple.inspect(Path("synthetic"))
                 self.assertEqual((parsed.platform, parsed.minimum), ("macos", "12.7"))
 
+    def test_modern_tool_versions_do_not_replace_the_airplay_deployment_version(self):
+        apple = bundle.AppleTools("arm64", "12.7")
+        metadata = ("Load command 0\n cmd LC_BUILD_VERSION\n platform MACOS\n minos 12.7\n"
+                    " sdk 15.5\n ntools 2\n tool CLANG\n version 17.0.0\n tool LD\n version 1167.5\n")
+        with patch.object(apple, "run", side_effect=["arm64", metadata]):
+            self.assertEqual(apple.inspect(Path("synthetic")).minimum, "12.7")
+        legacy = "Load command 0\n cmd LC_VERSION_MIN_MACOSX\n version 12.7\n"
+        for invalid in (metadata.replace(" minos 12.7\n", ""),
+                        metadata.replace(" minos 12.7\n", " minos 15.0\n"),
+                        legacy + " ntools 1\n tool LD\n version 1167.5\n",
+                        legacy + " minos 12.7\n"):
+            with self.subTest(metadata=invalid), patch.object(apple, "run", side_effect=["arm64", invalid]), \
+                 self.assertRaises(ValueError):
+                apple.inspect(Path("synthetic"))
+
     def test_only_apple_system_paths_are_exempt_from_closure(self):
         self.assertTrue(bundle.system_library(SYSTEM))
         self.assertTrue(bundle.system_library("/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"))

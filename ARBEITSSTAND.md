@@ -22,6 +22,20 @@ Lokal bestehen 23 Runtimefälle mit einem zusätzlichen Darwin-only Skip und
 den tatsächlichen Swift→ImportHelper-Prozessweg und optimierte Swift-Tests.
 Bis zur echten Ausführung bleiben diese neuen nativen Gates offen.
 
+Der tatsächliche [Lauf #100](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45821167801)
+auf `8c860a14f7e10904c1b3a159ae84619c2c24ba82` hat auf beiden Architekturen
+einen direkten Nachbesserungsrest in #806 aufgedeckt: Der positive native
+Mach-O-Test verwertete neben `minos` auch die im selben `LC_BUILD_VERSION`-
+Block ausgegebene Linker-`version` als Deploymentwert. Je 24 Runtimefälle
+endeten deshalb mit genau einem Fehler; der eigentliche Runtimebau und die
+nachfolgenden Gates wurden nicht ausgeführt. Die Korrektur liest beim modernen
+Command ausschließlich `minos`, beim ausdrücklich erlaubten Legacy-Command
+ausschließlich dessen `version`. Plattform-, Mehrdeutigkeits- und
+Mindestversionsgrenzen bleiben bestehen; zwei neue Regressionen bilden die
+echte Apple-Ausgabestruktur ab. Lokal bestehen danach 24 Runtimefälle mit
+einem zusätzlichen Darwin-only Skip und 27 AirPlayfälle. Ein neuer nativer Lauf ist für diesen
+Nachbesserungsstand erforderlich. Der fehlgeschlagene #100-Beleg bleibt erhalten.
+
 ## Fortsetzung: native Mac-Läufe und konkrete Folgefixes – 26. November 2026
 
 **Nativer Abschluss auf ARM64 und Intel:** [#97 / 45807249788](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)

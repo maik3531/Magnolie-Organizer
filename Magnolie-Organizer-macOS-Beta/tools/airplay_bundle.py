@@ -114,19 +114,22 @@ def macos_deployment_target(text, *, allow_legacy=False):
         raise ValueError("Expected one unambiguous Mach-O deployment command")
     command, block = deployments[0]
     platforms = re.findall(r"(?m)^\s*platform\s+(\S+)\s*$", block)
-    versions = re.findall(r"(?m)^\s*(minos|version)\s+(\S+)\s*$", block)
     if command == "LC_BUILD_VERSION":
         if len(platforms) != 1 or platforms[0].lower() not in {"1", "macos"}:
             raise ValueError("Mach-O is not built for macOS")
         field = "minos"
     elif allow_legacy and command == "LC_VERSION_MIN_MACOSX" and not platforms:
         field = "version"
+        if re.search(r"(?m)^\s*(?:minos|ntools|tool)\s+", block):
+            raise ValueError("Invalid legacy Mach-O deployment command")
     else:
         raise ValueError("Mach-O is not built for macOS")
-    if (len(versions) != 1 or versions[0][0] != field or
-            not re.fullmatch(r"[0-9]+(?:\.[0-9]+){0,2}", versions[0][1])):
+    # LC_BUILD_VERSION also prints each compiler/linker tool's `version`.
+    # Those are not deployment versions; only the command's own field counts.
+    versions = re.findall(r"(?m)^\s*" + field + r"\s+(\S+)\s*$", block)
+    if len(versions) != 1 or not re.fullmatch(r"[0-9]+(?:\.[0-9]+){0,2}", versions[0]):
         raise ValueError("Invalid Mach-O deployment version")
-    return versions[0][1]
+    return versions[0]
 
 
 def parse_load_commands(text):

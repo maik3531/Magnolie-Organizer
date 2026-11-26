@@ -604,6 +604,26 @@ class ImportPythonBundleTests(unittest.TestCase):
                             with self.assertRaisesRegex(RuntimeError, "minimum OS does not match"):
                                 build_dev.verify_macos_deployment(Path("test-app"), "12.7")
 
+    def test_build_tool_versions_are_not_runtime_or_app_deployment_versions(self):
+        # Apple's vtool prints tool/version pairs inside LC_BUILD_VERSION.
+        metadata = ("Load command 9\n cmd LC_BUILD_VERSION\n cmdsize 48\n platform MACOS\n"
+                    " minos 12.7\n sdk 15.5\n ntools 3\n tool CLANG\n version 17.0.0\n"
+                    " tool SWIFT\n version 6.1.2\n tool LD\n version 1167.5\n")
+        dependency = "test-runtime:\n /usr/lib/libSystem.B.dylib (compatibility version 1.0.0)\n"
+        with patch.object(runtime.subprocess, "check_output", side_effect=["arm64\n", metadata, dependency]):
+            self.assertEqual(runtime.check_macho(Path("test-runtime"), "arm64", "12.7")["minimumOS"], ["12.7"])
+        with patch.object(build_dev.subprocess, "check_output", return_value=metadata):
+            self.assertEqual(build_dev.verify_macos_deployment(Path("test-app"), "12.7"), "12.7")
+        for invalid in (metadata.replace(" minos 12.7\n", ""), metadata + " minos 12.7\n",
+                        metadata.replace("platform MACOS", "platform IOS")):
+            with self.subTest(metadata=invalid):
+                with patch.object(runtime.subprocess, "check_output", side_effect=["arm64\n", invalid]), \
+                     self.assertRaises(ValueError):
+                    runtime.check_macho(Path("test-runtime"), "arm64", "12.7")
+                with patch.object(build_dev.subprocess, "check_output", return_value=invalid), \
+                     self.assertRaises(ValueError):
+                    build_dev.verify_macos_deployment(Path("test-app"), "12.7")
+
     @unittest.skipUnless(sys.platform == "darwin", "Real Mach-O platform regression requires Apple's compiler and tools")
     def test_native_tools_reject_foreign_platform_in_real_macho_bytes(self):
         # Compile once; mutate only the deployment platform. This checks real
@@ -616,9 +636,13 @@ class ImportPythonBundleTests(unittest.TestCase):
             sdk = subprocess.check_output(["xcrun", "--sdk", "macosx", "--show-sdk-path"], text=True).strip()
             subprocess.run(["xcrun", "clang", "-arch", architecture, "-isysroot", sdk,
                             "-mmacosx-version-min=12.7", str(source), "-o", str(image)], check=True, timeout=60)
-            targets = runtime.check_macho(image, architecture, "12.7")["minimumOS"]
-            self.assertEqual([runtime.version_tuple(value) for value in targets], [(12, 7, 0)])
-            self.assertIn(build_dev.verify_macos_deployment(image, "12.7"), ("12.7", "12.7.0"))
+            metadata = subprocess.check_output(["xcrun", "vtool", "-show-build", str(image)], text=True)
+            try:
+                targets = runtime.check_macho(image, architecture, "12.7")["minimumOS"]
+                self.assertEqual([runtime.version_tuple(value) for value in targets], [(12, 7, 0)])
+                self.assertIn(build_dev.verify_macos_deployment(image, "12.7"), ("12.7", "12.7.0"))
+            except (ValueError, RuntimeError, subprocess.CalledProcessError) as error:
+                self.fail("Original native macOS image was rejected: " + str(error) + "\n" + metadata)
             original = image.read_bytes()
             self.assertEqual(original[:4], b"\xcf\xfa\xed\xfe")
             offset, builds = 32, []
