@@ -1,8 +1,8 @@
 # Fortsetzung der nativen Mac-Verifikation
 
 Stand: 26. November 2026. Zugeordnet zu #121, #783, #785, #786 und dem
-konkreten nativen Compilerbefund #788. Der plattformübergreifende
-Quellarchivbefund #787 wird separat korrigiert.
+konkreten nativen Compilerbefund #788 sowie Runtimebefund #789. Der
+plattformübergreifende Quellarchivbefund #787 wird separat korrigiert.
 
 ## Übernommener und erneut bestätigter Stand
 
@@ -68,8 +68,102 @@ Bestehende native Tests decken die fachliche Bedeutung ab:
 - `SystemAccountSyncTests.testEqualChangesConvergeWithoutWriting`
 
 Die lokale Diffprüfung bestand. In diesem Linux-Arbeitsplatz ist kein Swift
-vorhanden; eine lokale Swift-Ausführung wird nicht behauptet. Die tatsächliche
-native Wiederholung des korrigierten Quellstands ist der nächste Schritt.
+vorhanden; eine lokale Swift-Ausführung wird nicht behauptet. Der nachstehende
+zweite GitHub-Lauf hat die BetaCore-Kompilierung inzwischen auf beiden
+Architekturen bestätigt; nachgelagerte XCTest-/App-Abnahme bleibt gesondert.
+
+### Zweiter Lauf: Compilerfix bestätigt, Importruntime-Baurest sichtbar
+
+[Lauf #92 / 45788423617](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45788423617)
+prüft den exakten Folgehead `689266570cda17f463132a182c02d78ea732dfbd`.
+Er enthält den #788-Compilercommit
+`bdd1345d3bec68144dbcf627a3ca7bd03073c64b` und den getrennten
+#787-Archivcommit. Die Jobs sind `139801027926` (ARM64) und `139801028506`
+(Intel). Beide haben Quellbindung, Abhängigkeiten, Kataloge und den vorher
+roten Swift-/Zeitzonen-Referenzschritt bestanden. Damit sind die zwei
+#788-Kompilierblocker tatsächlich auf beiden Architekturen überwunden.
+
+Die nachfolgenden ARM64- und Intel-Bauten haben die gepinnte CPython-Quelle
+heruntergeladen, ihren Hash geprüft sowie `configure` und `make` erfolgreich
+ausgeführt. Danach scheiterte der Runtimebuilder jeweils an
+`ValueError: Linked CPython extension output refused`. Der tatsächliche
+native Buildlog beider Architekturen meldet außerdem `checking for lzma.h... no`
+und das fehlende Modul `_lzma`. Die erforderliche Modulmenge enthält bereits
+`lzma`. Beide Jobs endeten in diesem Schritt mit `failure`; die späteren
+XCTest-, Bundle- und App-Smoke-Schritte wurden nicht erreicht. Die sieben
+vorangestellten Runtimebuilder-Hosttests bestanden jeweils, deckten diese
+beiden tatsächlichen Integrationsfälle aber noch nicht ab.
+
+Dieser konkrete Baurest wird in
+[#789](https://github.com/maik3531/Magnolie-Organizer/issues/789) verfolgt:
+CPythons reguläre Links aus `build/lib...` auf gleichnamige reguläre Dateien
+in seinem eigenen `Modules`-Verzeichnis prüfen und ausschließlich deren Bytes
+kopieren; das ausgelieferte Runtimeverzeichnis bleibt symlinkfrei. Den
+erforderlichen LZMA-Baustein privat und statisch mit derselben Architektur
+und macOS-Untergrenze bauen. Keine Reduzierung der erforderlichen Module
+oder Lockerung von Relokation, Signatur, Mach-O- und Dateiinventarprüfung.
+
+Die offiziellen XZ-Quellen wurden vor der Umsetzung konkret verifiziert:
+
+| Eigenschaft | Verifizierter Wert |
+| --- | --- |
+| Version | XZ Utils / liblzma 5.8.4 |
+| Veröffentlichung | 9. September 2026 |
+| Quellenarchiv | `xz-5.8.4.tar.xz`, 1.567.192 Bytes |
+| SHA-256 | `4ce24038fd4221e0d13bc1a2de7a4db56e90b92b3bf75321f6c14be73f65de4b` |
+| Archivinhalt | 655 reguläre Dateien, 49 Verzeichnisse; keine Links, Sondertypen, Pfadausbrüche oder doppelten Namen |
+| Bibliothekslizenz | 0BSD, laut `COPYING` und `COPYING.0BSD` der konkreten Quelle |
+
+Primärquellen: [offizielle XZ-Seite](https://tukaani.org/xz/),
+[Release v5.8.4 mit Asset-Digest](https://github.com/tukaani-project/xz/releases/tag/v5.8.4),
+[CPythons dokumentierte LIBLZMA-Konfiguration](https://docs.python.org/3.15/using/configure.html)
+und [CPython 3.15.2 sharedmods-Regel](https://github.com/python/cpython/blob/v3.15.2/Makefile.pre.in).
+Ein geprüfter Quelldownload ist noch kein bestandener nativer Runtimebau.
+
+Eine begrenzte echte Bauprobe dieser XZ-Quelle auf Linux hat Configure,
+`make -C <build>/src/liblzma -j2` und dessen privates Installationsziel
+bestanden. Installiert wurden die statische `liblzma.a`, Header und
+Entwicklungsmetadaten; keine CLI-Programme oder Shared Libraries. Die
+Option `--disable-tests` existiert in dieser Quelle nicht und wird nicht
+verwendet. `--disable-doc` installiert die Lizenztexte nicht; der Mac-Builder
+übernimmt deshalb `COPYING` und `COPYING.0BSD` ausdrücklich in sein Inventar.
+Dieser Linux-Lauf bestätigt die Baufolge, nicht die Mac-Architektur,
+Mindestversion oder Relokation.
+
+### #789: umgesetzte Korrektur und gezielte Regressionen
+
+`ImportPython.json` bindet die zweite Quelle einschließlich Hash, Wurzelname,
+Größengrenzen und Lizenzdateien. Beide Archive durchlaufen dieselbe strikte
+Quellprüfung. Für XZ ist nur der tatsächlich benötigte HTTPS-Downloadhost
+`release-assets.githubusercontent.com` zusätzlich zugelassen; nach jeder
+Antwort bleiben Hash- und Größenbindung verpflichtend. CPythons bisherige
+URL-Bindung bleibt erhalten.
+
+Der Builder erzeugt nur die statische liblzma-Bibliothek und Header in seinem
+temporären Präfix und übergibt CPython deren genaue Pfade. Der vollständige
+temporäre Quell-/SDK-Baum wird vor dem Relokationsnachweis entfernt. Für
+Extension-Links wird ausschließlich die konkrete CPython-Regel
+`../../Modules/<gleicher Dateiname>` zugelassen. Reguläre kopierte Bytes,
+beide Lizenztexte und der statische Bibliothekshash werden inventarisiert.
+
+```sh
+python3 -B Magnolie-Organizer-macOS-Beta/tests/test_import_python_bundle.py -v
+```
+
+Die erweiterte Suite besteht lokal mit **13/13 Tests**. Die sechs zusätzlichen
+Tests prüfen tatsächliche Dateisystem-Linkfälle, zweite Quellen-/Download-
+Grenzen und die Zusammensetzung des Builders mit kontrollierten Compiler-
+Ausgaben. Fremde/absolute/umbenannte/defekte/verkettete Links, ausgetauschte
+Verzeichnisse, Shared-Library-Ausgaben, verlinkte Header und Nichtarchive
+werden abgewiesen. Die Orchestrierungsprüfung bestätigt gemeinsame Apple-
+Flags, die exakten statischen Linkpfade, kopierte Lizenzen und Entfernung der
+Quellverzeichnisse vor der Relokation. Sie simuliert Compiler-/Apple-Werkzeuge
+ausdrücklich und ist selbst kein nativer Mac-Baunachweis.
+
+Ein unabhängiger Review hat die Korrektur mit CPythons tatsächlichen
+`configure.ac`-/`Makefile.pre.in`-Regeln und der echten XZ-Bauprobe abgeglichen;
+kein blockierender Befund. Die bestehende native Workflow-Schnittstelle bleibt
+kompatibel. Der tatsächliche Mac-Folgelauf dieses Korrekturstands steht aus.
 
 ## #787: bestätigte Auswirkung auf Desktop-Quellarchive
 

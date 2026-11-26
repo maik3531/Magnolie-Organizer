@@ -24,9 +24,16 @@ Dokumentations-Head nicht als neuen vollständig getesteten Codecommit ausgeben.
 
 **Verifizierter Abschluss am 26. November 2026:** Der Arbeitszweig ist veröffentlicht. Alle **31 Issue-Kommentare** wurden angelegt und mit identischem vollständigem Text zurückgelesen. Ihre Dokument- und Patchlinks sind an `cf7b3f2bf4e8afee662a4926f32fc989d7ff7df8` gebunden. [Die vollständigen Kommentar-URLs und Rücklesebelege](macos-issue-publication-receipts-2026-11-26.md) dokumentieren den Abschluss. Die native Mac-Abnahme und die ausdrücklich genannten Restarbeiten bleiben offen. Ein neuer Chat prüft den heutigen Stand und veröffentlicht diese Übergabe nicht erneut.
 
+**Native Fortsetzung:** Die späteren echten GitHub-Mac-Läufe #91 und #92
+sind im Fortsetzungsbericht unten dokumentiert. #92 hat die Swift-Korrekturen
+und Zeitzonenreferenzphasen auf ARM64 und Intel bestätigt und anschließend den
+Runtime-Baurest #789 konkret gezeigt. Der ursprüngliche Hostnachweis bleibt
+historisch; er darf weder diese neuen Befunde ersetzen noch als vollständige
+native Abnahme gelesen werden. Den aktuellen Head und neuere Läufe nachlesen.
+
 ## Maßgebliche Dokumente
 
-- [Fortsetzung: tatsächliche native Mac-Läufe und Folgefixes #787/#788](../Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md)
+- [Fortsetzung: tatsächliche native Mac-Läufe und Folgefixes #787/#788/#789](../Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md)
 - [Einzelbefunde, Patchreihenfolge und offene Teile](macos-issue-handoff-2026-11-26.md)
 - [Vollständiges Issue-Inventar](macos-issue-inventory-2026-11-26.json)
 - [Prüflogs und Quellbindungen](macos-verification-2026-11-26/README.md)
@@ -165,12 +172,15 @@ VERBINDLICHE NUTZERVORGABEN
   Planungsergebnisse. Nutzer-PC, NFC-Leser und Telefon wurden nicht geprüft.
 
 BELEGTER PRÜFSTAND
-35/35 Hostgruppen bestanden; gesondert ausgewiesen sind 90 OR6→Helper→UI-
+Im ursprünglichen Linux-Nachweis bestanden 35/35 Hostgruppen; gesondert ausgewiesen sind 90 OR6→Helper→UI-
 Prüfungen und 107 Sync-UI-Prüfungen. Diese Umfänge überlappen und werden nicht
-addiert. Logs und Quellbindungen verwenden. Hier wurden keine neue native
-Swift-Kompilierung, Apple-SDK-/TCC-/Providerabnahme oder macOS-VM-Ausführung
-durchgeführt. Vorbereitete Tests und historische CI-Erfolge auf älteren Quellen
-nicht als aktuelle native Erfolge ausgeben.
+addiert. Logs und Quellbindungen verwenden. Spätere echte native GitHub-Läufe
+stehen in Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md;
+dort zuerst den erreichten Schritt, genauen Quellcommit und Ausgang prüfen.
+Swift-/Zeitzonenerfolg, Runtimebau, XCTest, Bundle-/App-Start sowie echte
+TCC-/Provider-/Gerätetests bleiben getrennte Nachweise. Vorbereitete Tests und
+historische CI-Erfolge auf älteren Quellen nicht als aktuelle native Erfolge
+ausgeben. Die Folgeissues #787/#788/#789 gezielt mitlesen.
 
 ARBEITSWEISE UND ABSCHLUSS
 Für neue Konten-/Geräteprüfungen synthetische Daten und ausdrücklich

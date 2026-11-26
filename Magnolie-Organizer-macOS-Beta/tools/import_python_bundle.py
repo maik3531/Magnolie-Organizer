@@ -17,12 +17,14 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
+import urllib.parse
 import urllib.request
 
 from airplay_bundle import is_macho, system_library
 
 BETA = Path(__file__).resolve().parents[1]
 PIN = json.loads((BETA / "Resources/ImportPython.json").read_text())
+LIBLZMA_PIN = PIN["liblzma"]
 MAXIMUM_EXPANDED = 256 * 1024 * 1024
 EXCLUDED = {"__pycache__", "test", "tests", "idlelib", "tkinter", "ensurepip", "site-packages"}
 
@@ -35,60 +37,69 @@ def sha256(path):
     return digest.hexdigest()
 
 
-def verify_archive(path):
+def verify_archive(path, pin=PIN):
     path = Path(path)
-    if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= PIN["maximumArchiveBytes"]:
-        raise ValueError("Invalid CPython source archive")
-    if sha256(path) != PIN["sourceSHA256"]:
-        raise ValueError("CPython source archive checksum mismatch")
+    if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= pin["maximumArchiveBytes"]:
+        raise ValueError("Invalid " + pin["implementation"] + " source archive")
+    if sha256(path) != pin["sourceSHA256"]:
+        raise ValueError(pin["implementation"] + " source archive checksum mismatch")
 
 
-def fetch_archive(path):
+def source_url_allowed(url, pin):
+    if url == pin["sourceURL"]:
+        return True
+    parsed = urllib.parse.urlsplit(url)
+    return (parsed.scheme == "https" and parsed.hostname in pin.get("allowedRedirectHosts", []) and
+            parsed.port in (None, 443) and parsed.username is None and parsed.password is None)
+
+
+def fetch_archive(path, pin=PIN):
     """Explicit build-tool operation; the installed app has no download path."""
     path = Path(path)
     if path.exists() or path.is_symlink():
-        verify_archive(path)
+        verify_archive(path, pin)
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=path.parent, prefix="python-source-", delete=False) as output:
         temporary = Path(output.name)
         try:
-            with urllib.request.urlopen(PIN["sourceURL"], timeout=60) as source:
-                if source.geturl() != PIN["sourceURL"]:
-                    raise ValueError("Unexpected CPython download redirect")
+            with urllib.request.urlopen(pin["sourceURL"], timeout=60) as source:
+                if not source_url_allowed(source.geturl(), pin):
+                    raise ValueError("Unexpected " + pin["implementation"] + " download redirect")
                 size = 0
                 while block := source.read(1024 * 1024):
                     size += len(block)
-                    if size > PIN["maximumArchiveBytes"]:
-                        raise ValueError("CPython download exceeds its size bound")
+                    if size > pin["maximumArchiveBytes"]:
+                        raise ValueError(pin["implementation"] + " download exceeds its size bound")
                     output.write(block)
             output.flush()
             os.fsync(output.fileno())
-            verify_archive(temporary)
+            verify_archive(temporary, pin)
             # Keep a concurrently supplied file; do not replace someone else's input.
             os.link(temporary, path)
         finally:
             temporary.unlink(missing_ok=True)
 
 
-def extract_source(archive, destination):
+def extract_source(archive, destination, pin=PIN):
     """No links, special files, traversal or unbounded tar expansion."""
-    root_name = "Python-" + PIN["version"]
+    root_name = pin.get("sourceRoot", "Python-" + pin["version"])
+    label = pin["implementation"]
     seen, expanded = set(), 0
     with tarfile.open(archive, "r:xz") as source:
         members = source.getmembers()
         if len(members) > 20000:
-            raise ValueError("Too many CPython source members")
+            raise ValueError("Too many " + label + " source members")
         for member in members:
             path = PurePosixPath(member.name)
             if (path.is_absolute() or not path.parts or path.parts[0] != root_name or
                     any(part in ("", ".", "..") for part in member.name.rstrip("/").split("/")) or
                     "\\" in member.name or member.name in seen or not (member.isdir() or member.isfile())):
-                raise ValueError("Unsafe CPython source member")
+                raise ValueError("Unsafe " + label + " source member")
             seen.add(member.name)
             expanded += member.size
-            if member.size < 0 or expanded > MAXIMUM_EXPANDED:
-                raise ValueError("CPython source expansion exceeds its bound")
+            if member.size < 0 or expanded > pin.get("maximumExpandedBytes", MAXIMUM_EXPANDED):
+                raise ValueError(label + " source expansion exceeds its bound")
         for member in members:
             target = Path(destination) / member.name
             if member.isdir():
@@ -99,6 +110,50 @@ def extract_source(archive, destination):
                     shutil.copyfileobj(src, dst)
                 target.chmod(0o755 if member.mode & 0o111 else 0o644)
     return Path(destination) / root_name
+
+
+def extension_output(path, source):
+    """Resolve only CPython's generated build/lib.* -> ../../Modules/name link."""
+    path, source = Path(path), Path(source)
+    if (source.is_symlink() or (source / "build").is_symlink() or path.parent.is_symlink() or
+            path.parent.parent != source / "build" or not path.parent.name.startswith("lib.") or
+            path.suffix != ".so"):
+        raise ValueError("Invalid CPython extension output path")
+    if not path.is_symlink():
+        if not path.is_file():
+            raise ValueError("Invalid CPython extension output file")
+        return path
+    target = source / "Modules" / path.name
+    if (os.readlink(path) != "../../Modules/" + path.name or (source / "Modules").is_symlink() or
+            target.is_symlink() or not target.is_file()):
+        raise ValueError("Unapproved CPython extension output link")
+    return target
+
+
+def build_liblzma(archive, temporary, environment):
+    """Build only the pinned static codec and headers into an owned temporary prefix."""
+    verify_archive(archive, LIBLZMA_PIN)
+    temporary = Path(temporary)
+    source = extract_source(archive, temporary, LIBLZMA_PIN)
+    build, prefix = temporary / "liblzma-build", temporary / "liblzma-sdk"
+    build.mkdir()
+    subprocess.run([str(source / "configure"), "--prefix=" + str(prefix),
+                    "--disable-shared", "--enable-static", "--enable-pic", "--disable-xz",
+                    "--disable-xzdec", "--disable-lzmadec", "--disable-lzmainfo", "--disable-lzma-links",
+                    "--disable-scripts", "--disable-doc", "--disable-nls", "--disable-dependency-tracking",
+                    "--disable-rpath"], cwd=build, env=environment, check=True, timeout=180)
+    library_build = build / "src" / "liblzma"
+    subprocess.run(["make", "-C", str(library_build), "-j2"], env=environment, check=True, timeout=300)
+    subprocess.run(["make", "-C", str(library_build), "install"], env=environment, check=True, timeout=120)
+    files = checked_files(prefix)
+    library, include = prefix / "lib" / "liblzma.a", prefix / "include"
+    if (not library.is_file() or not (include / "lzma.h").is_file() or
+            library.read_bytes()[:8] != b"!<arch>\n" or
+            any(path.suffix in (".so", ".dylib") for path in files)):
+        raise ValueError("Pinned liblzma did not produce a private static SDK")
+    return {"source": source, "library": library, "include": include,
+            "proof": {"version": LIBLZMA_PIN["version"], "sourceSHA256": LIBLZMA_PIN["sourceSHA256"],
+                      "linkage": "static", "librarySHA256": sha256(library)}}
 
 
 def checked_files(root):
@@ -158,12 +213,14 @@ def verify_relocation(runtime):
     return json.loads(response)
 
 
-def build_runtime(archive, destination, architecture, minimum):
+def build_runtime(archive, destination, architecture, minimum, liblzma_archive=None):
     if platform.system() != "Darwin" or architecture != platform.machine() or architecture not in ("arm64", "x86_64"):
         raise ValueError("A matching native Apple build host is required")
     if minimum != PIN["minimumSystemVersion"]:
         raise ValueError("Unreviewed import runtime deployment target")
     verify_archive(archive)
+    liblzma_archive = Path(liblzma_archive) if liblzma_archive is not None else Path(archive).with_name(LIBLZMA_PIN["archiveName"])
+    verify_archive(liblzma_archive, LIBLZMA_PIN)
     destination = Path(destination)
     if destination.exists() or destination.is_symlink():
         raise ValueError("Existing runtime output retained")
@@ -171,8 +228,8 @@ def build_runtime(archive, destination, architecture, minimum):
     compiler = subprocess.check_output(["xcrun", "--find", "clang"], text=True).strip()
     with tempfile.TemporaryDirectory(prefix="magnolie-cpython-build-") as temporary:
         source = extract_source(archive, temporary)
-        # Exclude optional third-party services; required codec dependencies
-        # (zlib/bz2/lzma/expat and builtin hashes) are checked after relocation.
+        # Exclude optional third-party services. liblzma is statically linked
+        # from the pinned source; all required codecs are checked after relocation.
         (source / "Modules/Setup.local").write_text(
             "*disabled*\n" + "\n".join(["_ssl", "_hashlib", "_tkinter", "_ctypes", "_sqlite3",
                                         "_gdbm", "_dbm", "readline", "_curses", "_curses_panel",
@@ -183,11 +240,15 @@ def build_runtime(archive, destination, architecture, minimum):
             "CFLAGS": f"-O2 -arch {architecture} -isysroot {shlex.quote(sdk)} -mmacosx-version-min={minimum}",
             "LDFLAGS": f"-arch {architecture} -isysroot {shlex.quote(sdk)} -mmacosx-version-min={minimum}",
         }
+        liblzma = build_liblzma(liblzma_archive, temporary, environment)
+        python_environment = dict(environment,
+                                  LIBLZMA_CFLAGS="-I" + shlex.quote(str(liblzma["include"])),
+                                  LIBLZMA_LIBS=shlex.quote(str(liblzma["library"])))
         subprocess.run([str(source / "configure"), "--prefix=" + str(Path(temporary) / "not-installed"),
                         "--disable-shared", "--without-ensurepip", "--disable-test-modules",
                         "--without-readline", "--with-pkg-config=no", "--enable-experimental-jit=no"],
-                       cwd=source, env=environment, check=True, timeout=180)
-        subprocess.run(["make", "-j2"], cwd=source, env=environment, check=True, timeout=900)
+                       cwd=source, env=python_environment, check=True, timeout=180)
+        subprocess.run(["make", "-j2"], cwd=source, env=python_environment, check=True, timeout=900)
         (destination / "bin").mkdir(parents=True)
         # CPython calls this python.exe on case-insensitive Mac volumes because
         # its source already contains a directory named Python.
@@ -200,16 +261,18 @@ def build_runtime(archive, destination, architecture, minimum):
         dynamic = library / "lib-dynload"
         dynamic.mkdir()
         builds = list((source / "build").glob("lib.*"))
-        if len(builds) != 1:
+        if len(builds) != 1 or builds[0].is_symlink() or not builds[0].is_dir():
             raise ValueError("Ambiguous CPython extension output")
         for path in sorted(builds[0].iterdir()):
-            if path.is_symlink():
-                raise ValueError("Linked CPython extension output refused")
             if path.suffix == ".so":
-                shutil.copy2(path, dynamic / path.name)
+                shutil.copy2(extension_output(path, source), dynamic / path.name)
+            elif path.is_symlink():
+                raise ValueError("Linked CPython metadata output refused")
             elif path.name.startswith("_sysconfigdata_") and path.suffix == ".py":
                 shutil.copy2(path, library / path.name)
         shutil.copy2(source / "LICENSE", destination / "LICENSE-Python.txt")
+        for original, installed in LIBLZMA_PIN["licenseFiles"].items():
+            shutil.copy2(liblzma["source"] / original, destination / installed)
     # No original build path remains available at this point.
     proof = verify_relocation(destination)
     images = {}
@@ -222,6 +285,7 @@ def build_runtime(archive, destination, architecture, minimum):
         raise ValueError("Runtime executable is not Mach-O")
     manifest = {"schema": 1, "pin": PIN, "architecture": architecture, "minimumSystemVersion": minimum,
                 "relocation": proof, "machO": images,
+                "staticDependencies": {"liblzma": liblzma["proof"]},
                 "files": {str(path.relative_to(destination)): sha256(path) for path in checked_files(destination)},
                 "signing": "ad-hoc development only", "nativeUIValidated": False}
     (destination / "runtime.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
@@ -252,12 +316,16 @@ def bundle_runtime(app, runtime):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-archive", type=Path, required=True)
+    parser.add_argument("--liblzma-source-archive", type=Path,
+                        help="Pinned XZ archive; defaults to its pinned filename beside the CPython archive")
     parser.add_argument("--download", action="store_true", help="Explicitly fetch the checksum-pinned build source")
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
+    liblzma_archive = arguments.liblzma_source_archive or arguments.source_archive.with_name(LIBLZMA_PIN["archiveName"])
     if arguments.download:
         fetch_archive(arguments.source_archive)
-    result = build_runtime(arguments.source_archive, arguments.output, platform.machine(), PIN["minimumSystemVersion"])
+        fetch_archive(liblzma_archive, LIBLZMA_PIN)
+    result = build_runtime(arguments.source_archive, arguments.output, platform.machine(), PIN["minimumSystemVersion"], liblzma_archive)
     print(json.dumps({"version": PIN["version"], "architecture": result["architecture"], "relocated": True}))
 
 

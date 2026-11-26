@@ -1,6 +1,6 @@
 # Aktueller Arbeitsstand
 
-## Fortsetzung: native Mac-Prüfung tatsächlich gestartet – 26. November 2026
+## Fortsetzung: native Mac-Läufe und konkrete Folgefixes – 26. November 2026
 
 Die Übergabe aus dem unterbrochenen Chat wurde auf dem unveränderten Remote-Head
 `97baf780fa3474eba54d03e41d0258c97ae8b1ca` wieder aufgenommen. Alle 24 Patches,
@@ -15,8 +15,23 @@ gezielt mit `target=macos` auf dem Arbeitszweig gestartet:
 Dies ist ein tatsächlicher neuer nativer Lauf, kein historischer CI-Beleg.
 Beide Architekturen bestätigten dieselben zwei Swift-Kompilierfehler; [#788](https://github.com/maik3531/Magnolie-Organizer/issues/788)
 behebt die verdeckte `text`-Instanzmethode und die throwing Kurzschlussauswertung
-mit unveränderter Import-/Konfliktsemantik. Die native Wiederholung dieses
-Korrekturstands steht noch aus. Vorhandene native XCTest-Fälle bleiben erhalten.
+mit unveränderter Import-/Konfliktsemantik. Der tatsächliche
+[Folgelauf #92 / 45788423617](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45788423617)
+auf `689266570cda17f463132a182c02d78ea732dfbd` hat die BetaCore-Kompilierung
+und beide Zeitzonenreferenzphasen auf **ARM64 und Intel** bestanden. Vorhandene
+native XCTest-Fälle bleiben erhalten; ihre spätere Ausführung wurde noch nicht
+erreicht.
+
+Beide Architekturen scheiterten anschließend im privaten Runtimebuilder an
+den regulären CPython-Buildlinks; beide Logs bestätigen außerdem fehlendes
+`_lzma`. [#789](https://github.com/maik3531/Magnolie-Organizer/issues/789) begrenzt
+die Korrektur auf streng validierte gleichnamige Quellziele und privat statisch
+gebautes liblzma aus verifiziertem XZ 5.8.4. Der ausgelieferte Runtimebaum bleibt
+symlinkfrei; Modulmenge, Architektur-/Mindestversions-/Systemlink-, Signatur-
+und Relokationsgates bleiben erhalten. Die XZ-Quelle und ihre begrenzte
+statische Linux-Baufolge wurden tatsächlich geprüft; dies ersetzt keinen
+nativen Mac-Runtime-Erfolg. Die erweiterte Runtimebuilder-Suite besteht lokal
+mit **13/13 Tests**. Der native Folgelauf dieses Fixes steht noch aus.
 
 Der zusätzliche Desktop-Archivblocker
 [#787](https://github.com/maik3531/Magnolie-Organizer/issues/787) ist im Quellstand
@@ -25,8 +40,10 @@ zwei konkreten publizierten Mac-Belegverzeichnisse aus. Neue reguläre Verträge
 Pflichtdateien und die Inhalts-/Pfadprüfung bleiben erhalten. Die Regression
 reproduzierte vor dem Fix beide Python-Varianten; danach bestanden 7/7 Tests
 und die byte-/modusgleiche Projektion aller 138 ausgewählten echten Verträge.
-Die erweiterte Windows-PowerShell-Archivprüfung ist vorbereitet und steht
-mangels lokalem PowerShell noch als native CI-Prüfung aus. Der Stand und die
+Der native [Windows-Folgelauf 45788221321](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45788221321)
+auf dem Archivfix hat die frühere Abbruchstelle passiert und führt im
+Standalone-Quellarchivschritt die CoreTests aus. Ein erfolgreicher Gesamt-
+Windowslauf wird erst nach dessen Abschluss behauptet. Der Stand und die
 Grenzen der nativen Fortsetzung stehen in
 [NATIVE-VERIFICATION-2026-11-26.md](Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md).
 

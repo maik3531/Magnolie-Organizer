@@ -14,6 +14,17 @@ publishes this checksum and macOS 10.15-or-newer support for its installer.
 Our separately built application keeps its existing **macOS 12.7** minimum;
 the upstream installer statement does not prove our build works on Monterey.
 
+The same contract pins **XZ Utils / liblzma 5.8.4**, source SHA-256
+`4ce24038fd4221e0d13bc1a2de7a4db56e90b92b3bf75321f6c14be73f65de4b`, from
+the [official release](https://github.com/tukaani-project/xz/releases/tag/v5.8.4).
+The builder compiles only its static library and headers into a temporary
+private prefix with the same Apple SDK, architecture and deployment target.
+CPython receives the exact include directory and static archive through
+`LIBLZMA_CFLAGS` and `LIBLZMA_LIBS`. The installed application does not depend
+on a separately installed XZ library. Both original XZ license notices are
+included in the hashed runtime inventory; `runtime.json` records the source
+and static-library hashes.
+
 `tools/import_python_bundle.py` builds the source on each matching Apple
 architecture with the 12.7 deployment target, a static interpreter core and
 JIT disabled. Optional SSL, GUI, database and FFI extensions are excluded.
@@ -49,11 +60,18 @@ python3 tools/import_python_bundle.py --download \
 python3 tools/build_dev.py --import-runtime /absolute/private/build/import-python
 ```
 
-The first command explicitly downloads the fixed build source, verifies the
+The first command explicitly downloads both fixed build sources, verifies each
 hash before extraction and rejects archive traversal, links, special files,
 duplicate members and excessive expansion. An existing wrong archive or
 runtime directory is retained and reported, never silently replaced. No source
 download or compiler is used by the installed application.
+
+The XZ archive defaults to `xz-5.8.4.tar.xz` beside the CPython archive.
+Use `--liblzma-source-archive /absolute/path/xz-5.8.4.tar.xz` to select another
+local location. Without `--download`, both pinned archives must already exist.
+CPython's generated `build/lib.*` extension links are accepted only when they
+point exactly to the same named regular file in its own `Modules` directory.
+The builder copies those bytes; the final runtime remains free of symlinks.
 
 The build directory is removed before the relocation probe. The probe also
 uses a foreign working directory and deliberately wrong `PYTHONHOME` and
@@ -66,7 +84,7 @@ The existing Mac candidate workflow performs these steps for arm64 and x86_64
 and preserves `runtime.json` and the actual build log. It does not silently
 produce an ICS-only candidate if the required import runtime is absent.
 
-## Evidence on 26 November 2026
+## Original source-review evidence on 26 November 2026
 
 Executed on the Linux source-review host:
 
@@ -86,3 +104,7 @@ codesigning, Swift/AppKit/WKWebView, Monterey runtime checks or real imports.
 The workflow and build gates are prepared evidence producers, not evidence
 that those native gates have already passed. The parser/UI pipeline has its
 separate #785 tests and contract.
+
+The subsequent real ARM64 and Intel CI runs, their exact commits, the #789
+buildlink/liblzma correction and the expanded tests are tracked separately in
+[NATIVE-VERIFICATION-2026-11-26.md](NATIVE-VERIFICATION-2026-11-26.md).
