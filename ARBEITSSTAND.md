@@ -252,3 +252,39 @@ Inhaltsänderung wird über den bestehenden GitHub-Pages-Ablauf veröffentlicht.
 Nächster inhaltlicher Schritt: Belegte neue Artikeladressen ergänzen und die
 noch offenen FindOpenSources-Metadaten bei einer späteren Rückmeldung prüfen.
 Es wurden keine erneuten Einreichungen oder Nachrichten versendet.
+
+## Presseschau #780: Kampagnenrückmeldungen und Quellenprüfung – 26. November 2026
+
+Die Presseschau und `docs/PRESSE.md` berücksichtigen die neu übermittelte
+Freischaltungsbestätigung von PostLaunchKit. Sie bezieht sich auf den bereits
+erfassten Eintrag; Übermittlungsdatum, Prüfdatum des Portals und unbekanntes
+Erstveröffentlichungsdatum bleiben getrennt. UpdateStar ist jetzt durch das
+direkt gelesene öffentliche Profil belegt. Bei LiteFile bestätigen Produktseite
+und Katalogübersicht dieselbe Fundstelle; die Beschreibung unterscheidet den
+Windows-Organizer von der separaten Android-App.
+
+Die heutigen Originalabrufe von AIDIR3, Freeware-base, Windows 10 Download,
+ZIRULAB und OpenAPK sind datiert. FindOpenSources zeigt weiterhin sechs
+„Free“-Kennzeichnungen; die deutschen und niederländischen Preis-FAQ sowie
+Produktabgrenzung und Lizenzpräzisierung bleiben offen. LibHunt ist beim
+Direktabruf weiterhin gesperrt, SilentStars liefert 404. Die LinuxParty-Startseite
+und der aktuelle Atom-Feed enthalten am 26. November noch keinen Magnolie-Beitrag;
+die Zusage für den 27. November bleibt eine Ankündigung.
+
+Der Abgleich der 319 erfassten Einreichungsvorgänge aus dem aktuellen
+Kampagnenstand mit zwei Suchsystemen und zusätzlichen öffentlichen Fundstellen
+ergab gegenüber dem 24. November abends keine neue bestätigte Veröffentlichung.
+Die 17 Verzeichnis- und Listenfundstellen sowie die übrigen Rubrikenzahlen
+bleiben unverändert. Fehlende Suchtreffer belegen kein Nichterscheinen;
+unbestätigte Alias- oder Spiegeladressen werden nicht zusätzlich gezählt.
+
+Geprüft auf Standardbasis `00776ce70e155c7a607ed55a4502d6fcee5a860c` mit diesen
+Inhaltsänderungen: 20 Rechtsübersetzungen und 64 statische Ausgaben konsistent,
+562 Sprachrouting-Prüfungen bestanden, Website-Build mit 62 HTML-Seiten und
+Prüfung der lokalen Links erfolgreich; `git diff --check` ohne Befund. Die
+Veröffentlichung erfolgt über den bestehenden GitHub-Pages-Ablauf aus `main`.
+
+Nächster inhaltlicher Schritt: Eine belegte Artikeladresse zur angekündigten
+Veröffentlichung prüfen und danach neu einordnen. Die privaten Kampagnenbelege
+bleiben außerhalb des Repositorys. Es wurden keine Nachrichten oder neuen
+Einreichungen versendet; #595 bleibt für ausstehende Portalangaben offen.
