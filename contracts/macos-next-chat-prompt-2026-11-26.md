@@ -26,6 +26,7 @@ Dokumentations-Head nicht als neuen vollständig getesteten Codecommit ausgeben.
 
 ## Maßgebliche Dokumente
 
+- [Fortsetzung: tatsächliche native Mac-Läufe und Folgefixes #787/#788](../Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md)
 - [Einzelbefunde, Patchreihenfolge und offene Teile](macos-issue-handoff-2026-11-26.md)
 - [Vollständiges Issue-Inventar](macos-issue-inventory-2026-11-26.json)
 - [Prüflogs und Quellbindungen](macos-verification-2026-11-26/README.md)
@@ -88,6 +89,7 @@ ZUERST BESTAND PRÜFEN
    work/macos-issue-fixes-20261126 lesen. In vorhandenen Checkouts zuerst
    git status, AGENTS.md und ARBEITSSTAND.md prüfen; Benutzeränderungen erhalten.
 2. Diese Dateien lesen:
+   - Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md
    - contracts/macos-issue-handoff-2026-11-26.md
    - contracts/macos-issue-inventory-2026-11-26.json
    - contracts/macos-issue-publication-receipts-2026-11-26.md

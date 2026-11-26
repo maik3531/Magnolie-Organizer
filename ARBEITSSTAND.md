@@ -18,11 +18,16 @@ behebt die verdeckte `text`-Instanzmethode und die throwing Kurzschlussauswertun
 mit unveränderter Import-/Konfliktsemantik. Die native Wiederholung dieses
 Korrekturstands steht noch aus. Vorhandene native XCTest-Fälle bleiben erhalten.
 
-Ein zusätzlicher bestätigter Desktop-Archivblocker wird getrennt in
-[#787](https://github.com/maik3531/Magnolie-Organizer/issues/787) bearbeitet:
-Windows und die gemeinsame Linux-Quellauswahl behandeln die publizierten
-Mac-Prüfartefakte fälschlich als Produktverträge. Der Stand und die Grenzen
-der nativen Fortsetzung stehen in
+Der zusätzliche Desktop-Archivblocker
+[#787](https://github.com/maik3531/Magnolie-Organizer/issues/787) ist im Quellstand
+eng korrigiert: Windows und die gemeinsame Linux-Quellauswahl schließen nur die
+zwei konkreten publizierten Mac-Belegverzeichnisse aus. Neue reguläre Verträge,
+Pflichtdateien und die Inhalts-/Pfadprüfung bleiben erhalten. Die Regression
+reproduzierte vor dem Fix beide Python-Varianten; danach bestanden 7/7 Tests
+und die byte-/modusgleiche Projektion aller 138 ausgewählten echten Verträge.
+Die erweiterte Windows-PowerShell-Archivprüfung ist vorbereitet und steht
+mangels lokalem PowerShell noch als native CI-Prüfung aus. Der Stand und die
+Grenzen der nativen Fortsetzung stehen in
 [NATIVE-VERIFICATION-2026-11-26.md](Magnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md).
 
 Der Nutzerauftrag bleibt die reviewbare Patch-/Issue-Übergabe für Codex.

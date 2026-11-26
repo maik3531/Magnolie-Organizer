@@ -187,8 +187,19 @@ function Get-ReleaseArchiveSources([string] $Root) {
     foreach ($required in 'kontakt-sync-contract.json', 'kontakt-import-contract.json', 'phone-region-vectors.json', 'thunderbird-addressbook-fixture.json', 'recurrence-integration.json', 'recurrence-timezones.json', 'baum-1-receipt-v1-vectors.json', 'baum-1-receipt-v1.md', 'phone-bluetooth-first-pair.md', 'phone-setup-daemon-lifecycle.md', 'phone-wlan-invitation.md') {
         if (-not (Test-Path -LiteralPath (Join-Path $contracts $required) -PathType Leaf)) { throw "Shared contract missing: $required" }
     }
+    # Refs #787: these exact public handoff/proof trees are not release inputs.
+    # Keep new reviewed JSON/Markdown contracts and all existing safety checks.
+    $evidenceDirectories = @('macos-issue-publication-2026-11-26', 'macos-verification-2026-11-26')
+    foreach ($entry in Get-ChildItem -LiteralPath $contracts -Force) {
+        if ($entry.Name -cin $evidenceDirectories -and
+            (-not $entry.PSIsContainer -or ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0)) {
+            throw 'Contract evidence boundary must be an ordinary directory, not a file or link.'
+        }
+    }
     foreach ($file in Get-ChildItem -LiteralPath $contracts -Recurse -File -Force | Sort-Object FullName) {
         $relative = [IO.Path]::GetRelativePath($contracts, $file.FullName).Replace('\', '/')
+        $parts = @($relative -split '/')
+        if ($parts.Count -gt 1 -and $parts[0] -cin $evidenceDirectories) { continue }
         if (Test-PrivateReleasePath $relative) { continue }
         if ($file.Extension -cnotin @('.json', '.md')) { throw 'Only reviewed JSON/Markdown contracts may enter source archives.' }
         Assert-SourceFileSafe $file

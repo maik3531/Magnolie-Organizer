@@ -73,8 +73,43 @@ try {
         'shared/magnolie-organizer/web/.private-testing/personal.json') {
         Write-Fixture (Join-Path $root $relative)
     }
+    # Refs #787: public handoff/recovery evidence is not a release dependency.
+    # A linked exclusion boundary must still be rejected before it is skipped.
+    $evidenceDirectory = Join-Path $root 'contracts/macos-issue-publication-2026-11-26'
+    $outsideEvidence = Join-Path $temp 'outside-evidence'
+    [void][IO.Directory]::CreateDirectory($outsideEvidence)
+    $linkType = if ([Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([Runtime.InteropServices.OSPlatform]::Windows)) { 'Junction' } else { 'SymbolicLink' }
+    New-Item -ItemType $linkType -Path $evidenceDirectory -Target $outsideEvidence | Out-Null
+    try { Assert-Rejected { Get-ReleaseArchiveSources $root | Out-Null } }
+    finally { [IO.Directory]::Delete($evidenceDirectory) }
+    foreach ($directory in 'macos-issue-publication-2026-11-26', 'macos-verification-2026-11-26') {
+        foreach ($name in 'archive.bundle', 'patches/change.patch.gz', 'host-final.log', 'SHA256SUMS', 'README.md', 'manifest.json') {
+            Write-Fixture (Join-Path $root "contracts/$directory/$name") 'Synthetic handoff evidence, not a product contract'
+        }
+    }
     $files = @(Get-ReleaseArchiveSources $root)
     $names = @($files | ForEach-Object Relative)
+    if (@($names | Where-Object { $_ -cmatch '^contracts/(macos-issue-publication-2026-11-26|macos-verification-2026-11-26)/' }).Count) {
+        throw 'Public handoff evidence entered release source enumeration.'
+    }
+    foreach ($relative in 'unexpected.sh', 'macos-verification-2026-11-26-copy/unexpected.log',
+        'macos-verification-2026-11-27/unexpected.log', 'nested/macos-verification-2026-11-26/unexpected.log') {
+        $unexpected = Join-Path $root "contracts/$relative"
+        Write-Fixture $unexpected 'Not an approved contract or evidence path'
+        try { Assert-Rejected { Get-ReleaseArchiveSources $root | Out-Null } }
+        finally { Remove-Item -LiteralPath $unexpected }
+    }
+    foreach ($required in 'kontakt-sync-contract.json', 'baum-1-receipt-v1.md') {
+        $contract = Join-Path $root "contracts/$required"
+        $originalContract = [IO.File]::ReadAllText($contract)
+        try {
+            Remove-Item -LiteralPath $contract
+            Assert-Rejected { Get-ReleaseArchiveSources $root | Out-Null }
+            $invalidContract = if ($required.EndsWith('.json', [StringComparison]::Ordinal)) { 'not JSON' } else { '' }
+            Write-Fixture $contract $invalidContract
+            Assert-Rejected { Get-ReleaseArchiveSources $root | Out-Null }
+        } finally { Write-Fixture $contract $originalContract }
+    }
     foreach ($name in 'ProfileLease.cs', 'SmsSubmissionJournal.cs', 'BaumReceipt.cs', 'CloudBackupWorker.cs',
         'FirstRunSetupPhoneServices.cs', 'FirstRunPhoneStartup.cs', 'TelefonInvitation.cs',
         'WindowsCallNotifications.cs', 'TelefonCallActions.cs',
@@ -116,8 +151,10 @@ try {
     $archive = Join-Path $output ($prefix + 'Source.zip')
     New-DeterministicZip $tree $archive $top
     Assert-SourceArchive $archive $root $version
+    # Public evidence must also be rejected when injected into a finished ZIP.
     # Only the exact public review/preview paths are allowed, never similar or nested names.
-    foreach ($relative in 'contracts/internal-review.md', 'contracts/nested/media-recovery-preview.md', 'contracts/media-recovery-preview-copy.md') {
+    foreach ($relative in 'contracts/internal-review.md', 'contracts/nested/media-recovery-preview.md', 'contracts/media-recovery-preview-copy.md',
+        'contracts/macos-issue-publication-2026-11-26/injected.md', 'contracts/macos-verification-2026-11-26/injected.md') {
         $internalReview = Join-Path $root $relative
         Write-Fixture $internalReview '# Synthetic internal review, not a public protocol'
         $zip = [IO.Compression.ZipFile]::Open($archive, [IO.Compression.ZipArchiveMode]::Update)

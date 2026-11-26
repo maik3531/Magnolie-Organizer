@@ -71,6 +71,48 @@ Die lokale Diffprüfung bestand. In diesem Linux-Arbeitsplatz ist kein Swift
 vorhanden; eine lokale Swift-Ausführung wird nicht behauptet. Die tatsächliche
 native Wiederholung des korrigierten Quellstands ist der nächste Schritt.
 
+## #787: bestätigte Auswirkung auf Desktop-Quellarchive
+
+Der [Windows-Lauf 45782763765](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45782763765)
+auf dem übernommenen Head scheiterte in `Release.Common.ps1` bereits an der
+Vertragsauswahl. Der ursprüngliche Python-Aufruf `sync_contracts()` wurde
+zusätzlich auf den tatsächlichen aktuellen Verträgen geprüft und scheiterte
+ebenfalls. Die rekursive Auswahl erfasste Mac-Patches, Git-Bundle und Logs,
+obwohl für Produktverträge nur JSON/Markdown vorgesehen sind.
+
+Der Folgepatch schließt in der Windows-Auswahl und den beiden bytegleichen
+Python-Selektoren ausschließlich diese direkten Belegverzeichnisse aus:
+
+- `contracts/macos-issue-publication-2026-11-26/`
+- `contracts/macos-verification-2026-11-26/`
+
+Die vorhandene dynamische Aufnahme neuer regulärer Verträge bleibt erhalten.
+Ähnliche/nachgeordnete Namen, andere Datumssuffixe und sonstige unerwartete
+Dateitypen erhalten keine Ausnahme. Ein Symlink beziehungsweise Junction an
+der Ausschlussgrenze wird vor dem Überspringen abgewiesen. Fehlende oder
+beschädigte Pflichtverträge und nachträglich ins ZIP eingeschleuste Belege
+bleiben Fehler.
+
+Tatsächlicher lokaler Nachweis:
+
+```sh
+python3 -B magnolie-organizer/pruefungen/test_contract_evidence.py -v
+```
+
+Vor der Korrektur reproduzierten die gemeinsame und eigenständige Variante
+den Fehler. Danach bestanden **7/7 Tests**. Eine zusätzliche isolierte
+Projektion der tatsächlichen Vertragsmenge bestätigte **138/138 Dateien**
+mit identischen Bytes und Modi sowie den kanonischen und eigenständigen
+Projektionsabgleich. Die Selektorkopien sind bytegleich. Ein unabhängiger
+Diffreview fand keinen blockierenden Befund.
+
+`magnolie-organizer-windows/tests/release-packaging.ps1` enthält die nativen
+Windows-Regressionen einschließlich Junction und ZIP-Injektion. Mangels
+PowerShell auf diesem Linux-Arbeitsplatz wurde dieser Teil hier nicht
+ausgeführt. Ein neuer Windows-CI-Lauf muss die tatsächliche Korrektur des
+Windows-Archivblockers bestätigen. Die Python-Prüfungen sind kein vollständiger
+Debian-/RPM-Bau oder Installationsnachweis.
+
 ## Unveränderte Abnahmegrenzen
 
 Ein Compilerfehler ist kein Nachweis einer falschen Zeitzonenreferenz. Ein
