@@ -16,6 +16,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 import import_python_bundle as runtime
+import build_dev
 
 
 class ImportPythonBundleTests(unittest.TestCase):
@@ -551,15 +552,94 @@ class ImportPythonBundleTests(unittest.TestCase):
         def run(outputs):
             with patch.object(runtime.subprocess, "check_output", side_effect=outputs):
                 return runtime.check_macho(Path("test-runtime"), "arm64", "12.7")
-        self.assertEqual(run(["arm64\n", " minos 12.7\n", "test-runtime:\n /usr/lib/libSystem.B.dylib (compatibility version 1.0.0)\n"])["minimumOS"], ["12.7"])
+        target = "Load command 0\n cmd LC_BUILD_VERSION\n platform MACOS\n minos 12.7\n"
+        self.assertEqual(run(["arm64\n", target, "test-runtime:\n /usr/lib/libSystem.B.dylib (compatibility version 1.0.0)\n"])["minimumOS"], ["12.7"])
         for outputs in [
             ["x86_64\n"],
-            ["arm64\n", " minos 14.0\n"],
-            ["arm64\n", " minos 12.7\n", "test-runtime:\n /opt/homebrew/lib/liblzma.dylib (compatibility version 1.0.0)\n"],
-            ["arm64\n", " minos 12.7\n", "test-runtime:\n @rpath/Python (compatibility version 1.0.0)\n"],
+            ["arm64\n", target.replace("12.7", "14.0")],
+            ["arm64\n", target, "test-runtime:\n /opt/homebrew/lib/liblzma.dylib (compatibility version 1.0.0)\n"],
+            ["arm64\n", target, "test-runtime:\n @rpath/Python (compatibility version 1.0.0)\n"],
         ]:
             with self.subTest(outputs=outputs), self.assertRaises(ValueError):
                 run(outputs)
+
+    def test_runtime_and_outer_app_reject_foreign_missing_and_ambiguous_platforms(self):
+        # Refs #806: the same CPU/minimum is not sufficient for macOS code.
+        target = "Load command 0\n cmd LC_BUILD_VERSION\n platform MACOS\n minos 12.7\n"
+        cases = [target.replace("MACOS", platform) for platform in
+                 ("IOS", "MACCATALYST", "IOSSIMULATOR", "2", "6", "7", "999")]
+        cases += [target.replace(" platform MACOS\n", ""), target.replace(" minos 12.7\n", ""),
+                  target + " platform IOS\n", target + " minos 14.0\n",
+                  target.replace("12.7", "12.7.invalid"),
+                  " platform MACOS\n minos 12.7\n",
+                  target + target.replace("command 0", "command 1"),
+                  target.replace("MACOS", "IOS") + target.replace("command 0", "command 1"),
+                  target + "Load command 1\n cmd LC_VERSION_MIN_MACOSX\n version 12.7\n",
+                  "Load command 0\n cmd LC_VERSION_MIN_MACOSX\n version 12.7\n"]
+        for metadata in cases:
+            with self.subTest(metadata=metadata):
+                with patch.object(runtime.subprocess, "check_output", side_effect=["arm64\n", metadata]), \
+                     self.assertRaises(ValueError):
+                    runtime.check_macho(Path("test-runtime"), "arm64", "12.7")
+                with patch.object(build_dev.subprocess, "check_output", return_value=metadata), \
+                     self.assertRaises(ValueError):
+                    build_dev.verify_macos_deployment(Path("test-app"), "12.7")
+
+    def test_runtime_and_outer_app_keep_their_distinct_minimum_version_contracts(self):
+        dependency = "test-runtime:\n /usr/lib/libSystem.B.dylib (compatibility version 1.0.0)\n"
+        for platform in ("1", "macos", "MACOS"):
+            for minimum in ("10.15", "12.7", "12.7.0", "13.0"):
+                metadata = f"Load command 0\n cmd LC_BUILD_VERSION\n platform {platform}\n minos {minimum}\n"
+                with self.subTest(platform=platform, minimum=minimum):
+                    with patch.object(runtime.subprocess, "check_output", side_effect=["arm64\n", metadata, dependency]):
+                        if minimum == "13.0":
+                            with self.assertRaisesRegex(ValueError, "minimum macOS"):
+                                runtime.check_macho(Path("test-runtime"), "arm64", "12.7")
+                        else:
+                            self.assertEqual(runtime.check_macho(Path("test-runtime"), "arm64", "12.7")["minimumOS"], [minimum])
+                    with patch.object(build_dev.subprocess, "check_output", return_value=metadata):
+                        if minimum in ("12.7", "12.7.0"):
+                            self.assertEqual(build_dev.verify_macos_deployment(Path("test-app"), "12.7"), minimum)
+                        else:
+                            with self.assertRaisesRegex(RuntimeError, "minimum OS does not match"):
+                                build_dev.verify_macos_deployment(Path("test-app"), "12.7")
+
+    @unittest.skipUnless(sys.platform == "darwin", "Real Mach-O platform regression requires Apple's compiler and tools")
+    def test_native_tools_reject_foreign_platform_in_real_macho_bytes(self):
+        # Compile once; mutate only the deployment platform. This checks real
+        # lipo/vtool output, without executing or signing the modified images.
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name).resolve()
+            source, image = root / "main.c", root / "native-macos"
+            source.write_text("int main(void) { return 0; }\n")
+            architecture = runtime.platform.machine()
+            sdk = subprocess.check_output(["xcrun", "--sdk", "macosx", "--show-sdk-path"], text=True).strip()
+            subprocess.run(["xcrun", "clang", "-arch", architecture, "-isysroot", sdk,
+                            "-mmacosx-version-min=12.7", str(source), "-o", str(image)], check=True, timeout=60)
+            targets = runtime.check_macho(image, architecture, "12.7")["minimumOS"]
+            self.assertEqual([runtime.version_tuple(value) for value in targets], [(12, 7, 0)])
+            self.assertIn(build_dev.verify_macos_deployment(image, "12.7"), ("12.7", "12.7.0"))
+            original = image.read_bytes()
+            self.assertEqual(original[:4], b"\xcf\xfa\xed\xfe")
+            offset, builds = 32, []
+            for _ in range(struct.unpack_from("<I", original, 16)[0]):
+                command, size = struct.unpack_from("<II", original, offset)
+                if command == 0x32:  # Apple's LC_BUILD_VERSION.
+                    builds.append(offset)
+                self.assertGreaterEqual(size, 8)
+                offset += size
+            self.assertEqual(len(builds), 1)
+            self.assertEqual(struct.unpack_from("<I", original, builds[0] + 8)[0], 1)
+            for platform in (2, 6, 7):  # iOS, Mac Catalyst, iOS Simulator.
+                with self.subTest(platform=platform):
+                    changed = bytearray(original)
+                    struct.pack_into("<I", changed, builds[0] + 8, platform)
+                    foreign = root / ("foreign-platform-" + str(platform))
+                    foreign.write_bytes(changed)
+                    with self.assertRaisesRegex(ValueError, "not built for macOS"):
+                        runtime.check_macho(foreign, architecture, "12.7")
+                    with self.assertRaisesRegex(ValueError, "not built for macOS"):
+                        build_dev.verify_macos_deployment(foreign, "12.7")
 
     def test_native_build_does_not_run_on_linux(self):
         with patch.object(runtime.platform, "system", return_value="Linux"), patch.object(runtime.subprocess, "run") as execute:

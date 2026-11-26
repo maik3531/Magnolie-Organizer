@@ -22,7 +22,7 @@ import tempfile
 import urllib.parse
 import urllib.request
 
-from airplay_bundle import MACH_MAGICS, system_library
+from airplay_bundle import MACH_MAGICS, macos_deployment_target, system_library
 
 BETA = Path(__file__).resolve().parents[1]
 PIN = json.loads((BETA / "Resources/ImportPython.json").read_text())
@@ -260,8 +260,8 @@ def check_macho(path, architecture, minimum):
     if arch != [architecture]:
         raise ValueError("Import runtime architecture mismatch")
     build = subprocess.check_output(["xcrun", "vtool", "-show-build", str(path)], text=True)
-    targets = re.findall(r"^\s*minos\s+(\S+)\s*$", build, re.MULTILINE)
-    if not targets or any(version_tuple(value) > version_tuple(minimum) for value in targets):
+    targets = [macos_deployment_target(build)]
+    if any(version_tuple(value) > version_tuple(minimum) for value in targets):
         raise ValueError("Import runtime exceeds the application's minimum macOS")
     links = subprocess.check_output(["otool", "-L", str(path)], text=True).splitlines()[1:]
     libraries = [line.strip().split(" (compatibility version", 1)[0] for line in links if line.strip()]

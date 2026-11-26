@@ -4,15 +4,23 @@ import argparse
 import json
 import os
 import platform
-import re
 import plistlib
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 from project_ui import BETA, GENERATED, verify
-from airplay_bundle import build_airplay_bundle
+from airplay_bundle import build_airplay_bundle, macos_deployment_target
 from import_python_bundle import bundle_runtime
+
+
+def verify_macos_deployment(executable, minimum):
+    """Refs #806: the outer app requires the exact declared macOS minimum."""
+    deployment = subprocess.check_output(["xcrun", "vtool", "-show-build", str(executable)], text=True)
+    target = macos_deployment_target(deployment)
+    if target not in (minimum, minimum + ".0"):
+        raise RuntimeError("Built Mach-O minimum OS does not match " + minimum + ": " + repr(target))
+    return target
 
 
 def main():
@@ -40,10 +48,7 @@ def main():
     subprocess.run(["swift", "build", "-c", "debug", "--jobs", "2"], cwd=BETA, check=True, timeout=300, env=build_environment)
     binaries = Path(subprocess.check_output(["swift", "build", "-c", "debug", "--show-bin-path"], cwd=BETA, text=True, env=build_environment).strip())
     executable = binaries / "Magnolie Organizer macOS Beta"
-    deployment = subprocess.check_output(["xcrun", "vtool", "-show-build", str(executable)], text=True)
-    targets = re.findall(r"^\s*minos\s+(\S+)\s*$", deployment, flags=re.MULTILINE)
-    if not targets or any(target not in (minimum, minimum + ".0") for target in targets):
-        raise RuntimeError("Built Mach-O minimum OS does not match " + minimum + ": " + repr(targets))
+    verify_macos_deployment(executable, minimum)
     output = BETA / "Output"
     if output.is_symlink():
         raise RuntimeError("Symlinked development output directory refused.")

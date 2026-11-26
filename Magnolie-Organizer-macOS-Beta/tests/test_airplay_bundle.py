@@ -319,6 +319,22 @@ class NativeToolContractTests(unittest.TestCase):
         with patch.object(apple, "run", side_effect=["arm64", metadata]), self.assertRaisesRegex(ValueError, "not built for macOS"):
             apple.inspect(Path("synthetic"))
 
+    def test_deployment_commands_cannot_mask_foreign_platform_or_newer_minimum(self):
+        # Refs #806: never let a later load command overwrite incompatible code.
+        apple = bundle.AppleTools("arm64", "12.7")
+        modern = "Load command 0\n cmd LC_BUILD_VERSION\n platform 1\n minos 12.7\n"
+        legacy = "Load command 1\n cmd LC_VERSION_MIN_MACOSX\n version 12.7\n"
+        for metadata in (modern.replace("platform 1", "platform 2") + modern.replace("command 0", "command 1"),
+                         modern.replace("12.7", "15.0") + legacy, legacy + modern,
+                         modern + modern.replace("command 0", "command 1")):
+            with self.subTest(metadata=metadata), patch.object(apple, "run", side_effect=["arm64", metadata]), \
+                 self.assertRaisesRegex(ValueError, "one unambiguous"):
+                apple.inspect(Path("synthetic"))
+        for metadata in (modern, legacy):
+            with self.subTest(accepted=metadata), patch.object(apple, "run", side_effect=["arm64", metadata]):
+                parsed = apple.inspect(Path("synthetic"))
+                self.assertEqual((parsed.platform, parsed.minimum), ("macos", "12.7"))
+
     def test_only_apple_system_paths_are_exempt_from_closure(self):
         self.assertTrue(bundle.system_library(SYSTEM))
         self.assertTrue(bundle.system_library("/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"))

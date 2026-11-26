@@ -100,8 +100,38 @@ class MachO:
     platform: str | None = None
 
 
+def macos_deployment_target(text, *, allow_legacy=False):
+    """Refs #806: bind one deployment version to its actual macOS platform."""
+    deployments = []
+    for block in re.split(r"(?m)^Load command \d+\s*$", text)[1:]:
+        commands = re.findall(r"(?m)^\s*cmd\s+(\S+)\s*$", block)
+        if len(commands) != 1:
+            raise ValueError("Malformed Mach-O load command")
+        command = commands[0]
+        if command == "LC_BUILD_VERSION" or command.startswith("LC_VERSION_MIN_"):
+            deployments.append((command, block))
+    if len(deployments) != 1:
+        raise ValueError("Expected one unambiguous Mach-O deployment command")
+    command, block = deployments[0]
+    platforms = re.findall(r"(?m)^\s*platform\s+(\S+)\s*$", block)
+    versions = re.findall(r"(?m)^\s*(minos|version)\s+(\S+)\s*$", block)
+    if command == "LC_BUILD_VERSION":
+        if len(platforms) != 1 or platforms[0].lower() not in {"1", "macos"}:
+            raise ValueError("Mach-O is not built for macOS")
+        field = "minos"
+    elif allow_legacy and command == "LC_VERSION_MIN_MACOSX" and not platforms:
+        field = "version"
+    else:
+        raise ValueError("Mach-O is not built for macOS")
+    if (len(versions) != 1 or versions[0][0] != field or
+            not re.fullmatch(r"[0-9]+(?:\.[0-9]+){0,2}", versions[0][1])):
+        raise ValueError("Invalid Mach-O deployment version")
+    return versions[0][1]
+
+
 def parse_load_commands(text):
-    dependencies, rpaths, install_id, minimum, target_platform = [], [], None, None, None
+    minimum = macos_deployment_target(text, allow_legacy=True)
+    dependencies, rpaths, install_id = [], [], None
     for block in re.split(r"(?m)^Load command \d+\s*$", text)[1:]:
         command = re.search(r"(?m)^\s*cmd\s+(LC_\S+)\s*$", block)
         if not command:
@@ -121,16 +151,7 @@ def parse_load_commands(text):
             if not name:
                 raise ValueError("Malformed Mach-O runpath")
             rpaths.append(name.group(1))
-        elif kind in {"LC_BUILD_VERSION", "LC_VERSION_MIN_MACOSX"}:
-            target = re.search(r"(?m)^\s*platform\s+(\S+)\s*$", block)
-            if kind == "LC_VERSION_MIN_MACOSX":
-                target_platform = "macos"
-            elif target:
-                target_platform = target.group(1).lower()
-            found = re.search(r"(?m)^\s*(?:minos|version)\s+(\d+(?:\.\d+){1,2})\s*$", block)
-            if found:
-                minimum = found.group(1)
-    return MachO(tuple(dependencies), tuple(rpaths), install_id, minimum, target_platform)
+    return MachO(tuple(dependencies), tuple(rpaths), install_id, minimum, "macos")
 
 
 def version_tuple(value):
