@@ -112,6 +112,8 @@ def extract_source(archive, destination, pin=PIN):
                 with source.extractfile(member) as src, target.open("xb") as dst:
                     shutil.copyfileobj(src, dst)
                 target.chmod(0o755 if member.mode & 0o111 else 0o644)
+                # Refs #808: keep distributed build outputs newer than their source inputs.
+                os.utime(target, (member.mtime, member.mtime), follow_symlinks=False)
     return Path(destination) / root_name
 
 

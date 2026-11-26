@@ -49,6 +49,29 @@ zuvor gescheiterten Fälle unter dem echten Elternalias. Der eigentliche
 Runtimebau und die weiteren nativen Gates benötigen einen neuen Folgelauf.
 #102 endete auf beiden Architekturen mit genau diesem Testwurzelbefund.
 
+[Lauf #103](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45824626525)
+auf `f7957801ba99c0e65e7eaeb70f69824efcd55fd0` bestätigt auf ARM64 und Intel
+je **25 Runtime- und 27 AirPlayfälle ohne Fehler oder Skip**. Der danach
+gestartete tatsächliche XZ-Bau scheitert jedoch nach erfolgreichem `configure`:
+Der sichere Quellenextraktor verwirft Archivzeitstempel, sodass später
+entpackte, tatsächlich ältere Eingaben unnötig `am--refresh` und das fehlende
+`aclocal-1.18` auslösen. Der ursprüngliche Abbruch bleibt als eigener Beleg
+erhalten; CPython, Host-, Importprozess-, weitere Swift-, App- und Paketgates
+wurden in #103 nicht erreicht.
+
+Der vor Änderung angelegte neue Befund
+[#808](https://github.com/maik3531/Magnolie-Organizer/issues/808) ist mit dem
+echten hashgeprüften Archiv auch auf Linux reproduziert. Der enge Fix erhält
+beim bisherigen exklusiven Kopieren regulärer Quelldateien deren Archiv-mtime;
+Pins, Pfad-/Link-/Größengrenzen und Baubefehle bleiben unverändert. Eine echte
+Make-Regression scheitert vor dem Fix und besteht danach: ältere, später im
+Archiv stehende Eingaben lösen keinen Neubau aus, eine tatsächliche spätere
+Änderung löst ihn weiterhin aus. Die Runtime-Suite führt lokal **26 Fälle**
+aus: **25 bestanden, ein Darwin-only Skip**. Der tatsächliche produktive
+XZ-Bauhelfer besteht anschließend `configure`, statischen lib-only-Bau und
+private Installation; alle **655 Quelldateien** behalten Archivbytes und
+Zeitstempel. Ein neuer vollständiger nativer Folgelauf ist erforderlich.
+
 ## Fortsetzung: native Mac-Läufe und konkrete Folgefixes – 26. November 2026
 
 **Nativer Abschluss auf ARM64 und Intel:** [#97 / 45807249788](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)

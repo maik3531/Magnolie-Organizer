@@ -88,6 +88,41 @@ class ImportPythonBundleTests(unittest.TestCase):
             result = runtime.extract_source(archive, root / "expanded")
             self.assertEqual((result / "LICENSE").read_bytes(), b"license")
 
+    @unittest.skipUnless(shutil.which("make"), "Source build requires make")
+    def test_archive_mtimes_keep_shipped_make_outputs_current_until_source_changes(self):
+        # Refs #808: archive order must not make older Autotools inputs look newer.
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name).resolve(strict=True)
+            archive = root / "source.tar.xz"
+            source_root = runtime.LIBLZMA_PIN["sourceRoot"]
+            entries = [
+                ("Makefile", 1700000020, b"aclocal.m4: configure.ac\n\tprintf 'regenerated\\n' > $@\n"),
+                ("aclocal.m4", 1700000020, b"shipped generated file\n"),
+                ("configure.ac", 1700000000, b"older source, later archive member\n"),
+            ]
+            with tarfile.open(archive, "w:xz") as output:
+                for relative, modified, body in entries:
+                    member = tarfile.TarInfo(source_root + "/" + relative)
+                    member.size, member.mtime = len(body), modified
+                    output.addfile(member, io.BytesIO(body))
+            source = runtime.extract_source(archive, root / "expanded", runtime.LIBLZMA_PIN)
+
+            def make(*arguments):
+                return subprocess.run(["make", *arguments], cwd=source, text=True,
+                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=10)
+
+            unchanged = make("-q")
+            self.assertEqual(unchanged.returncode, 0, unchanged.stdout)
+            for relative, modified, body in entries:
+                self.assertEqual((source / relative).stat().st_mtime, modified)
+                self.assertEqual((source / relative).read_bytes(), body)
+            (source / "configure.ac").touch()
+            changed = make("-q")
+            self.assertEqual(changed.returncode, 1, changed.stdout)
+            rebuilt = make("-s")
+            self.assertEqual(rebuilt.returncode, 0, rebuilt.stdout)
+            self.assertEqual((source / "aclocal.m4").read_bytes(), b"regenerated\n")
+
     def test_rejects_traversal_links_devices_duplicate_names_and_wrong_root_before_writing(self):
         cases = [
             ("Python-3.15.2/../../outside", tarfile.REGTYPE, b"x"),
