@@ -1,0 +1,4 @@
+Initial settings status false
+{"case":"Settings status after Save","actuallyPaused":true,"visiblePaused":true}
+Reopened settings paused status true
+{"case":"Settings status after End","actuallyPaused":false,"visiblePaused":false}

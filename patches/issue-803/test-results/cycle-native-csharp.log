@@ -1,0 +1,3 @@
+Cycle forecast: 1114 assertions, including 250 generated histories, passed.
+
+Full Python/C# statistics parity: 60/60 independent golden cases passed, including all 6 pause fields.

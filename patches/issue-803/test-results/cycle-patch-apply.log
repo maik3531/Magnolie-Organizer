@@ -1,0 +1,7 @@
+PASS: git apply --check on a clean checkout of d4da48a5eadd0bda22422b924bef4ee3b4324040
+PASS: git apply --index; resulting complete source tree equals tested source commit
+Source tree: f7c4217370768b3d515e41531adbd1db608d688e
+PASS: git apply --reverse --check
+PASS: staged whitespace check
+PASS: existing release Git storage guard for source commit
+{"base": "d4da48a5eadd0bda22422b924bef4ee3b4324040", "commits_checked": 1, "entries_checked": 106, "head": "0bd930674794707c49e707ab405810ad5b78f379", "safe": true, "violations": []}

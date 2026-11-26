@@ -1,0 +1,150 @@
+[
+  {
+    "edition": "linux",
+    "scenario": "forecast-confirm-cancel-expiry",
+    "passed": true,
+    "hintTooltip": "Der geschätzte Zeitraum endete vor 1 Tagen. Ein neuer Beginn ist nicht eingetragen; prüfe, ob Einträge fehlen.\nGrund ergänzen oder Vorhersagen pausieren"
+  },
+  {
+    "edition": "linux",
+    "scenario": "self-reported-pause-and-explicit-new-period",
+    "passed": true
+  },
+  {
+    "edition": "linux",
+    "scenario": "indefinite-menopause-medication-pause",
+    "passed": true
+  },
+  {
+    "edition": "linux",
+    "scenario": "day-layout",
+    "viewport": [
+      1280,
+      800
+    ],
+    "passed": true,
+    "metrics": {
+      "#inhalt-links .stunden-raster": {
+        "height": 212,
+        "top": 401.265625,
+        "bottom": 614.734375,
+        "scrollHeight": 578
+      },
+      "#inhalt-rechts .stunden-raster": {
+        "height": 212,
+        "top": 401.265625,
+        "bottom": 614.734375,
+        "scrollHeight": 578
+      },
+      ".zyklus-prognose-kasten": {
+        "height": 190,
+        "top": 201.265625,
+        "bottom": 393.265625,
+        "scrollHeight": 658
+      }
+    }
+  },
+  {
+    "edition": "linux",
+    "scenario": "day-layout",
+    "viewport": [
+      1024,
+      768
+    ],
+    "passed": true,
+    "metrics": {
+      "#inhalt-links .stunden-raster": {
+        "height": 85,
+        "top": 428.46875,
+        "bottom": 514.515625,
+        "scrollHeight": 578
+      },
+      "#inhalt-rechts .stunden-raster": {
+        "height": 85,
+        "top": 428.78125,
+        "bottom": 514.515625,
+        "scrollHeight": 578
+      },
+      ".zyklus-prognose-kasten": {
+        "height": 182,
+        "top": 236.46875,
+        "bottom": 420.78125,
+        "scrollHeight": 984
+      }
+    }
+  },
+  {
+    "edition": "windows",
+    "scenario": "forecast-confirm-cancel-expiry",
+    "passed": true,
+    "hintTooltip": "Der geschätzte Zeitraum endete vor 1 Tagen. Ein neuer Beginn ist nicht eingetragen; prüfe, ob Einträge fehlen.\nGrund ergänzen oder Vorhersagen pausieren"
+  },
+  {
+    "edition": "windows",
+    "scenario": "self-reported-pause-and-explicit-new-period",
+    "passed": true
+  },
+  {
+    "edition": "windows",
+    "scenario": "indefinite-menopause-medication-pause",
+    "passed": true
+  },
+  {
+    "edition": "windows",
+    "scenario": "day-layout",
+    "viewport": [
+      1280,
+      800
+    ],
+    "passed": true,
+    "metrics": {
+      "#inhalt-links .stunden-raster": {
+        "height": 212,
+        "top": 401.265625,
+        "bottom": 614.734375,
+        "scrollHeight": 578
+      },
+      "#inhalt-rechts .stunden-raster": {
+        "height": 212,
+        "top": 401.265625,
+        "bottom": 614.734375,
+        "scrollHeight": 578
+      },
+      ".zyklus-prognose-kasten": {
+        "height": 190,
+        "top": 201.265625,
+        "bottom": 393.265625,
+        "scrollHeight": 695
+      }
+    }
+  },
+  {
+    "edition": "windows",
+    "scenario": "day-layout",
+    "viewport": [
+      1024,
+      768
+    ],
+    "passed": true,
+    "metrics": {
+      "#inhalt-links .stunden-raster": {
+        "height": 85,
+        "top": 428.46875,
+        "bottom": 514.515625,
+        "scrollHeight": 578
+      },
+      "#inhalt-rechts .stunden-raster": {
+        "height": 85,
+        "top": 428.78125,
+        "bottom": 514.515625,
+        "scrollHeight": 578
+      },
+      ".zyklus-prognose-kasten": {
+        "height": 182,
+        "top": 236.46875,
+        "bottom": 420.78125,
+        "scrollHeight": 984
+      }
+    }
+  }
+]

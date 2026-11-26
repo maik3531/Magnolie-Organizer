@@ -1,0 +1,5 @@
+magnolie-organizer-windows/app/web: 60 golden + 1000 seeded histories and invariants passed
+magnolie-organizer/web: 60 golden + 1000 seeded histories and invariants passed
+magnolie-organizer-windows/app/web: opt-in, confirmation, expiry, persistence, pause reasons, fresh history, cancellation and book-switch UI passed
+magnolie-organizer/web: opt-in, confirmation, expiry, persistence, pause reasons, fresh history, cancellation and book-switch UI passed
+CYCLE FORECAST PASSED: 9260 assertions; no clinical accuracy claim

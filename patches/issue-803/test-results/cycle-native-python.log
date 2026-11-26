@@ -1,0 +1,23 @@
+test_actual_linux_projection_contains_only_authorized_ephemeral_notices (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_actual_linux_projection_contains_only_authorized_ephemeral_notices) ... ok
+test_all_bound_timezone_ids_reuse_the_cpython_tzif_reader (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_all_bound_timezone_ids_reuse_the_cpython_tzif_reader) ... ok
+test_bound_rules_reject_damage_and_missing_files_without_host_fallback (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_bound_rules_reject_damage_and_missing_files_without_host_fallback) ... ok
+test_bounded_pause_suppresses_estimates_and_has_inclusive_end (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_bounded_pause_suppresses_estimates_and_has_inclusive_end) ... ok
+test_current_calendar_day_uses_normative_rules_and_book_zone (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_current_calendar_day_uses_normative_rules_and_book_zone) ... ok
+test_day_arithmetic_does_not_change_with_regional_zone (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_day_arithmetic_does_not_change_with_regional_zone) ... ok
+test_expired_pause_never_uses_prepause_baseline (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_expired_pause_never_uses_prepause_baseline) ... ok
+test_future_or_invalid_resume_does_not_end_pause (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_future_or_invalid_resume_does_not_end_pause) ... ok
+test_generated_history_invariants (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_generated_history_invariants) ... ok
+test_indefinite_pauses_accept_known_reasons_and_ignore_all_unresumed_days (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_indefinite_pauses_accept_known_reasons_and_ignore_all_unresumed_days) ... ok
+test_invalid_or_not_started_pause_has_no_effect (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_invalid_or_not_started_pause_has_no_effect) ... ok
+test_packaged_resource_layout_uses_the_same_bound_rules (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_packaged_resource_layout_uses_the_same_bound_rules) ... ok
+test_pause_at_upper_calendar_boundary_has_no_overflow (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_pause_at_upper_calendar_boundary_has_no_overflow) ... ok
+test_resuming_starts_a_new_history_including_the_manual_resume_day (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_resuming_starts_a_new_history_including_the_manual_resume_day) ... ok
+test_shared_independent_golden_vectors (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_shared_independent_golden_vectors) ... ok
+test_strict_dates_containers_and_switches (test_cycle_forecast_stdlib.CycleForecastAcceptanceTests.test_strict_dates_containers_and_switches) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.268s
+
+OK
+
+Full Python/C# statistics parity: 60/60 independent golden cases passed, including all 6 pause fields.

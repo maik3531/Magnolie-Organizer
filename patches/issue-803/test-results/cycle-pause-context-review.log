@@ -1,0 +1,5 @@
+PASS: replacement pause dialog rejects old draft references without closing new dialog.
+PASS: removing actual bleeding before confirm keeps pause.
+PASS: future and pre-pause entries cannot open resume confirmation.
+PASS: changed pause rejects old resume confirmation.
+PASS: book switch and lock remove resume dialog and reject old buttons.

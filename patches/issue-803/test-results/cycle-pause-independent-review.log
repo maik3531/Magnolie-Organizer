@@ -1,0 +1,11 @@
+PASS: nine calendar month arithmetic, February leap/nonleap clamp, invalid date and upper bound.
+PASS: pregnancy default, saved normalized pause reload, suspended ghosts/reminders, original records retained.
+PASS: all four other pause reasons default to no fixed end.
+PASS: natural end inclusive, old intervals not reused.
+PASS: date earlier than pause start rejected visibly.
+{"case":"Detached save after Cancel","pauseSaved":false}
+{"case":"Detached End pause after Cancel","resumedOn":null}
+{"case":"Detached Confirm new period after Keep pause","resumedOn":null}
+PASS: explicit new-period confirmation resumes from actual single date, old history excluded.
+PASS: book switch rejects old pause save and removes dialog.
+PASS: lock removes pause dialog and rejects old save.

@@ -1,0 +1,22 @@
+{
+  "issue": "https://github.com/maik3531/Magnolie-Organizer/issues/803",
+  "date": "2026-11-26",
+  "base": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+  "sourceCommitInPatch": "0bd930674794707c49e707ab405810ad5b78f379",
+  "sourceTree": "f7c4217370768b3d515e41531adbd1db608d688e",
+  "patch": "period-forecast-improvements.patch",
+  "patchSHA256": "6197e16178ce19314a72ac2dd4ec819e02d5807a0665c41b7f998c4fa0c56ff3",
+  "metrics": {
+    "goldenCases": 60,
+    "jsAssertions": 9260,
+    "seededHistoriesPerJsFrontend": 1000,
+    "fullJsPythonComparisons": 1060,
+    "pythonTestGroups": 16,
+    "csharpAssertions": 1114,
+    "fullPythonCsharpComparisons": 60,
+    "existingDesktopRegressions": 113,
+    "chromiumScenarios": 10,
+    "supportedLanguages": 20
+  },
+  "scope": "Source patch; no merge, package release, native notification delivery or clinical validation"
+}
