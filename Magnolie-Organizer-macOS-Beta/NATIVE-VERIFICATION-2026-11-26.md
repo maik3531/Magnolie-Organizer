@@ -8,8 +8,19 @@ plattformübergreifende Quellarchivbefund #787 wird separat korrigiert.
 
 ## Veröffentlichte Korrekturfolge und aktueller Prüfstand
 
-Der aktuelle native [Lauf #95 / 45799895334](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45799895334)
-prüft genau `3c0b4bb410a5ab514e3deae7fb665a692eb436c2` auf ARM64
+Der abgeschlossene native [Lauf #97 / 45807249788](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)
+bestätigt genau `215d89029df02df2dce78f35412785ec9f9b36d8` mit dem
+#802-Helper-Bundle auf ARM64 (`139865644275`) und Intel (`139865643788`).
+**Beide Mac-Jobs und der Gesamtworkflow sind erfolgreich.** Bestanden sind
+Runtimebau, Host-/Swift-Tests, Helper- und äußere App-Signaturen, der echte
+Start-/Speicher-/Beenden-/Wiederöffnungsablauf sowie Entwicklungspaketierung
+und Upload. `target=macos` ließ den Tabletjob aus. Der Lauf dauerte
+29 Minuten 57 Sekunden und endete am 26. November 2026 um 12:34:46 Uhr
+Europe/Berlin. Die vollständige UI-, Monterey-, Konto- und Geräteabnahme
+bleibt davon getrennt.
+
+Der davor abgeschlossene [Lauf #95 / 45799895334](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45799895334)
+prüfte genau `3c0b4bb410a5ab514e3deae7fb665a692eb436c2` auf ARM64
 (`139840088084`) und Intel (`139840088529`). Beide haben alle Host-/Swift-
 Prüfungen bestanden und zeigen erst beim äußeren App-Signieren den konkreten
 Layoutrest #802. Die endgültige Einordnung steht im eigenen #95-Abschnitt.
@@ -24,6 +35,7 @@ Codecommit.
 | #793 | [`8c01f75b`](https://github.com/maik3531/Magnolie-Organizer/commit/8c01f75b2ae6a9e753b9c23b0e3c65a7d7826c66) | Kanonisierung unmittelbar eigener Prüftempwurzeln |
 | #796 | [`d790d7fc`](https://github.com/maik3531/Magnolie-Organizer/commit/d790d7fc40ddc9f9a0c6869a3378ef53b69f7daa) | Echter Zeitzonenbootstrap im Kommunikationsharness |
 | #797 | [`3c0b4bb4`](https://github.com/maik3531/Magnolie-Organizer/commit/3c0b4bb410a5ab514e3deae7fb665a692eb436c2) | Originale Remindertextwerte und genaue Notes-/Faltungstests |
+| #802 | [`215d8902`](https://github.com/maik3531/Magnolie-Organizer/commit/215d89029df02df2dce78f35412785ec9f9b36d8) | Eigenes signiertes CPython-Helper-Bundle und isolierter statischer Launcher |
 
 Die Commits bilden eine aufeinander aufbauende Folge auf dem veröffentlichten
 Arbeitszweig. Für die Gesamtprüfung gelten die vollständigen Eltern, nicht
@@ -360,6 +372,12 @@ bestätigen die neuen #796/#797-Korrekturen tatsächlich:
   Faltungsgrenzen, führender FEFF-Titel samt Revisionbindung und mutable
   Text-/Arrayisolation sind ausdrücklich als bestanden protokolliert.
 
+Der [dauerhafte maschinenlesbare #95-Beleg](verification/native-run-95.json)
+enthält die Quellbindungen, getrennten Testkontexte und Skips, Log- und
+Artefakthashes, beobachteten Umgebungen sowie die genaue Signaturgrenze.
+Die CI-Artefakte sind für 14 Tage konfiguriert; diese Zusammenfassung bewahrt
+ihre erfassten Ergebnisse und Prüfsummen, ersetzt aber keine App-Abnahme.
+
 Der App-Code kompiliert anschließend. Nach dem Einbau der ebenfalls geprüften
 privaten Laufzeit scheitert erst die äußere Signatur:
 
@@ -424,8 +442,134 @@ Primärquellen: [Apple: Bundle-Inhalte](https://developer.apple.com/documentatio
 [Apple: fremde Codestrukturen einbetten](https://developer.apple.com/documentation/xcode/embedding-nonstandard-code-structures-in-a-bundle)
 und [Apple: verschachtelten Code signieren](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/Procedures/Procedures.html)
 sowie [CPython 3.15: öffentliche Initialisierungskonfiguration](https://docs.python.org/3.15/c-api/init_config.html).
-Der neue Layoutstand benötigt einen eigenen tatsächlichen ARM64-/Intel-Lauf;
-Quellreview und simulierte Apple-Werkzeuge sind dafür kein Ersatz.
+Der neue Layoutstand wurde im eigenen tatsächlichen ARM64-/Intel-Lauf #97
+geprüft. Dessen nachstehende native Ergebnisse ersetzen die vorherige
+Beschränkung auf Quellreview und simulierte Apple-Werkzeuge.
+
+## Lauf #97: tatsächliche Helper- und App-Abnahme
+
+[Lauf #97 / 45807249788](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)
+verwendet genau `215d89029df02df2dce78f35412785ec9f9b36d8`.
+Der ARM64-Job `139865644275` und der Intel-Job `139865643788` sind
+erfolgreich abgeschlossen. Der Gesamtstatus `completed/success` wurde
+zusätzlich unmittelbar über die GitHub-API und die Laufübersicht bestätigt.
+
+| Prüfstufe | ARM64 | Intel |
+| --- | --- | --- |
+| Nativer Zeitzonenvergleich und aktueller Quellstand | Bestanden | Bestanden |
+| Neue private Laufzeit: Bau, Helper-Signatur, Relokation | Bestanden | Bestanden |
+| Runtimebuilder-Regressionen | 21 Tests, 0 Fehler | 21 Tests, 0 Fehler |
+| ImportHelper-/Pfadprüfungen | 17 Tests, 0 Fehler | 17 Tests, 0 Fehler |
+| Hostsuite | 35 Tests, 0 Fehler, 1 Linux-spezifischer Skip | 35 Tests, 0 Fehler, 1 Linux-spezifischer Skip |
+| Vier Swift-Kontexte | Je 501 Fälle, 0 Fehler; 4/5/5/6 Skips | Je 501 Fälle, 0 Fehler; 4/5/5/6 Skips |
+| Debug-Appbau und äußere App-Signatur | Bestanden | Bestanden |
+| Tatsächlicher Start, Speichern, Beenden, Wiederöffnen | Bestanden | Bestanden |
+| Entwicklungspaket und CI-Upload | Bestanden | Bestanden |
+
+Auch hier sind die wiederholten Swift-Kontexte keine zusätzlichen einzigartigen
+Tests. Die kleineren Prüfgruppen überschneiden sich mit der Hostsuite und
+werden nicht zu einer künstlichen Gesamtsumme addiert.
+
+### Tatsächlicher Bundle-Lebenszyklus
+
+Die heruntergeladenen `bundle-smoke.json` beider Architekturen bestätigen alle sieben
+verpflichtenden Booleans als `true`: `bundleLaunch`,
+`pidBoundVisibleWindow`, `normalQuit`, `freshNormalizedProfileSaved`,
+`reopen`, `reopenedProfileAtomicallySaved` und `profileDataPreserved`.
+Das ist ein echter Start der gebauten `.app` über LaunchServices mit einem
+prozessgebundenen sichtbaren Fenster. Der Prüfer verlangt das reguläre
+Save-before-quit, ein normalisiertes frisches Profil, das zweite Öffnen und
+einen erneuten atomaren Speicherabschluss mit anderer Dateiinode und
+semantisch erhaltenen Profildaten. Die Dateirechte werden ebenfalls geprüft.
+
+Der erste und wiedergeöffnete Profilinhalt sind jeweils bytegleich:
+
+- ARM64: `0e18503bbc173cb3a661ccd6fc0c1cd7838cee9c623132902b6699268f9adb24`
+- Intel: `5a3fff7e4c5e34e26593e9db4005b656ecec71f8a935e22984e1b93acfe5281c`
+
+Beide tatsächlichen Bildschirmaufnahmen wurden angesehen: sichtbarer
+gerenderter Organizer-Einband, Datumszeile, Schaltflächen und Beta-
+Statusbereich. Die bestehenden Hinweise zu noch nicht implementierten
+Desktopbefehlen sind ebenfalls sichtbar (`telefon_stand` auf ARM64,
+`update_pruefen` auf Intel; dort zusätzlich der Hinweis zu Erinnerungen
+nur bei geöffneter/entsperrter App). Die Bilder belegen den Startbildschirm,
+keine Bedienung von Editor, Dateiauswahl, Import, Systemkonten oder Geräten.
+
+### Tatsächlicher Quell- und Runtimebeleg
+
+Beide `sources.json` sind bytegleich und binden Port- sowie Desktopquellen an
+den tatsächlichen Testcommit. Ihr SHA-256 ist
+`6cbb85bcdc2ab56739c605ca9c470404a890e77af9046a7ecbecf46a59f717fc`.
+Die vollständige Inventur von 3.910 Dateien wurde unabhängig gegen die
+Git-Objekte dieses Commits geprüft; spätere lokale Berichtsänderungen wurden
+dabei nicht verwendet.
+
+Beide nativen Runtime-Manifeste haben Schema 2, die jeweilige Architektur,
+706 inventarisierte Helperdateien einschließlich `Info.plist` und
+`CodeResources` sowie 52 Mach-O-Dateien. Der endgültige Launcher-Quellhash
+stimmt. `bundleLayout`, `executableBound`, `isolated` und `moduleClosure`
+sind jeweils `true`; CPython 3.15.2 läuft nach Entfernen der Bauquelle mit
+internen Pfaden. Alle erfassten Mach-O-Mindestversionen sind 12.7 und die
+dynamischen Abhängigkeiten bleiben auf Apple-Systembibliotheken beschränkt.
+
+Die frühen Umgebungsdateien sind Voraussetzungenaufnahmen vor den Tests.
+Ihr ursprüngliches `nativeMagnolieTestsExecuted=false` wird nicht umgedeutet:
+Die nachfolgenden Testlogs und Smoke-Belege weisen die spätere Ausführung
+gesondert nach. Beobachtete Systeme: ARM64 macOS 15.8.2 / Build 24H232 und
+Intel macOS 15.7.9 / Build 24G830; beide SDK 15.5 und Apple Swift 6.1.2.
+
+### Heruntergeladene Entwicklungskandidaten und unabhängiger Byteabgleich
+
+Beide äußeren CI-Artefakte wurden heruntergeladen und gegen Größe und
+GitHub-Digest geprüft. Die enthaltenen eigentlichen App-ZIPs stimmen jeweils
+mit ihrer `SHA256SUMS` überein:
+
+| Architektur | CI-Artefakt | Äußere ZIP-Bytes | Inneres App-ZIP: Bytes / SHA-256 |
+| --- | --- | ---: | --- |
+| ARM64 | [15112160240](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788/artifacts/15112160240) | 24.622.479 | 23.985.094 / `4c79ed1c2272f02d403ad07887f5e24948ab41ceaa2a7ebfea60024fcff181a0` |
+| Intel | [15114016468](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788/artifacts/15114016468) | 25.444.840 | 24.198.307 / `0ee0ab9fca6ec2aa58b5427a47f44c4007f0f4ee9147b1d7870f229ddddc6ade` |
+
+Die äußeren SHA-256-Digests sind auf ARM64
+`05ae0dda0d82ce7f36da050bc93d4ae2f15b444c693b24548584e3ac2ba78af9`
+und auf Intel
+`d6a46d5cce35369dc1a53d2561e8ff67b0b5577bedd7b13ad3b77fecc64624bb`.
+Die 14-tägige CI-Aufbewahrung endet laut GitHub am 10. Dezember 2026 um
+12:24:04 Uhr beziehungsweise 12:34:37 Uhr Europe/Berlin. Dies sind temporäre
+Entwicklungsartefakte und keine veröffentlichten Releases.
+
+Ein zusätzlicher unabhängiger Byteaudit bestand für jedes Paket mit
+43 Prüfungen ohne Abweichung. Er prüfte die tatsächlichen Archivmitglieder,
+eindeutige sichere Pfade, Source-/Freeze-/Build-Konsistenz, 534 versionierte
+Projektionsinputs gegen Git, 19 erzeugte Sprachkataloge, den gebundenen
+phonenumbers-Wheelhash und alle 1.312 gepackten Projektionsoutputs. Die
+bewusste Verschiebung des ImportHelper-Verzeichnisses aus UI in die
+nativen Ressourcen wurde dabei berücksichtigt.
+
+Die 706 fertig signierten Runtime-Dateien stimmen jeweils bytegenau mit
+dem Inventar überein. Hauptprogramm, Python-Executable und die 51
+Mach-O-Bundle-Plugins haben tatsächlich die jeweilige CPU-Architektur.
+Der äußere `CodeResources` enthält genau den verschachtelten Helperverweis;
+der Helper referenziert alle 51 Plugins. Je 1.967 aufgeführte Ressourcen-
+Hashes passen zu den tatsächlichen Bytes. Der Linux-Byteaudit führt
+`codesign` oder die App nicht erneut aus: Die native Signaturgültigkeit
+und Ausführung stammen aus dem erfolgreichen Mac-Lauf.
+
+Der [dauerhafte maschinenlesbare #97-Beleg](verification/native-run-97.json)
+bewahrt diese Ergebnisse, genaue Testkontexte, Profil- und Artefakthashes,
+Run-/Job-/Artefaktlinks sowie die getrennten Byteaudit- und Sichtprüfungen.
+Die ausführlichen ursprünglichen CI-Logs und Paketbytes bleiben eigenständige
+Quellen; ein nachfolgender reiner Berichtscommit ändert den getesteten
+Produktstand `215d89029df02df2dce78f35412785ec9f9b36d8` nicht.
+
+### Grenzen des neuen Erfolgs
+
+Der Kandidat ist ein ad-hoc signierter Debug-/Entwicklungsbau. Die vorhandenen
+Angaben `nativeAcceptance=false`, `nativeUIValidated=false`,
+`montereyRuntimeValidated=false` und `productionRelease=false` behalten ihre
+jeweilige Bedeutung. Die echten Mac-Runner verwenden macOS 15; die in Mach-O
+deklarierten 12.7 sind kein Lauf auf Monterey. Apple-Konten, TCC-Freigaben,
+Gerätegegenstellen und vollständige produktive UI-Abläufe wurden damit
+weiterhin nicht abgenommen.
 
 ## #787: bestätigte Auswirkung auf Desktop-Quellarchive
 
@@ -491,7 +635,7 @@ sind ebenfalls kein vollständiger Debian-/RPM-Bau oder Installationsnachweis.
 
 ## Neue Issue-Belege der Fortsetzung
 
-Die sechs gezielten Folgekommentare wurden veröffentlicht beziehungsweise
+Die sieben gezielten Folgekommentare wurden veröffentlicht beziehungsweise
 fortgeschrieben und jeweils mit identischem vollständigem Text zurückgelesen:
 
 - [#787: Desktop-Archivkorrektur und nativer Windows-Regressionserfolg](https://github.com/maik3531/Magnolie-Organizer/issues/787#issuecomment-7187382569)
@@ -500,6 +644,7 @@ fortgeschrieben und jeweils mit identischem vollständigem Text zurückgelesen:
 - [#793: eigener Tempstamm der Prüftreiber, Regressionen und Mac-Folgeprüfung](https://github.com/maik3531/Magnolie-Organizer/issues/793#issuecomment-7188363385)
 - [#796: Kommunikationsbootstrap, unveränderte Fixtures und nativer Folgelauf](https://github.com/maik3531/Magnolie-Organizer/issues/796#issuecomment-7189199517)
 - [#797: Reminder-Wertkopie, genaue Swift-Tests und nativer Folgelauf](https://github.com/maik3531/Magnolie-Organizer/issues/797#issuecomment-7189199900)
+- [#802: korrektes Helper-Bundle, isolierter Launcher und nativer Folgelauf](https://github.com/maik3531/Magnolie-Organizer/issues/802#issuecomment-7190273542)
 
 Die ursprünglichen 31 Übergabekommentare und deren eingefrorene
 Publikationsbelege wurden dabei nicht verändert.

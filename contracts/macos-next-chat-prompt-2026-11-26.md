@@ -22,7 +22,7 @@ Ankern, nicht eine identische Commit-Historie. Für originale Einzelcommits und
 Patchreihenfolge die Wiederherstellungsanleitung verwenden. Einen späteren
 Dokumentations-Head nicht als neuen vollständig getesteten Codecommit ausgeben.
 
-**Verifizierter Abschluss am 26. November 2026:** Der Arbeitszweig ist veröffentlicht. Alle **31 Issue-Kommentare** wurden angelegt und mit identischem vollständigem Text zurückgelesen. Ihre Dokument- und Patchlinks sind an `cf7b3f2bf4e8afee662a4926f32fc989d7ff7df8` gebunden. [Die vollständigen Kommentar-URLs und Rücklesebelege](macos-issue-publication-receipts-2026-11-26.md) dokumentieren den Abschluss. Die native Mac-Abnahme und die ausdrücklich genannten Restarbeiten bleiben offen. Ein neuer Chat prüft den heutigen Stand und veröffentlicht diese Übergabe nicht erneut.
+**Verifizierter Abschluss der ursprünglichen Übergabe am 26. November 2026:** Der Arbeitszweig ist veröffentlicht. Alle **31 Issue-Kommentare** wurden angelegt und mit identischem vollständigem Text zurückgelesen. Ihre Dokument- und Patchlinks sind an `cf7b3f2bf4e8afee662a4926f32fc989d7ff7df8` gebunden. [Die vollständigen Kommentar-URLs und Rücklesebelege](macos-issue-publication-receipts-2026-11-26.md) dokumentieren den Abschluss. Vollständige native UI-/Monterey-/Konto-/Geräteabnahme und die ausdrücklich genannten Restarbeiten bleiben offen; den späteren erfolgreichen CI-Umfang von #97 gesondert beachten. Ein neuer Chat prüft den heutigen Stand und veröffentlicht diese Übergabe nicht erneut.
 
 **Native Fortsetzung:** Die späteren echten GitHub-Mac-Läufe #91 bis #95
 sind im Fortsetzungsbericht unten dokumentiert. #92 hat die Swift-Korrekturen
@@ -38,7 +38,17 @@ gesamten Hostläufe mit 35 Tests, 0 Fehlern und 1 Skip sowie je vier
 Swift-Durchläufe mit jeweils 501 Tests ohne Fehler (4/5/5/6 Skips).
 Erst die äußere Appsignatur zeigt den neuen Bundlelayoutrest #802;
 App-Smoke und Entwicklungspaketierung wurden in diesem Lauf nicht erreicht.
-Der Layoutfix und seine tatsächliche nächste Abnahme sind getrennt zu lesen.
+Der veröffentlichte Layoutfix liegt auf
+`215d89029df02df2dce78f35412785ec9f9b36d8`.
+[Lauf #97 / 45807249788](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)
+hat genau diesen Stand auf ARM64 und Intel vollständig im definierten
+CI-Umfang bestanden: Runtimebau, 21 Runtimebuilder-/17 ImportHelpertests,
+35 Hosttests ohne Fehler mit einem Skip, vier Swift-Kontexte mit jeweils
+501 Fällen ohne Fehler (4/5/5/6 Skips), äußere Appsignatur, echter
+Start-/Speicher-/Beenden-/Wiederöffnungsablauf und Entwicklungspaketierung.
+Der Gesamtworkflow ist `completed/success`. Beide CI-Entwicklungsartefakte
+haben 14 Tage Aufbewahrung; die vollständige UI-/Monterey-/Konto-/Geräteabnahme
+ist davon getrennt und bleibt offen.
 Der
 Windows-Archivfix #787 besteht nativ; der separate Windows-Cleanuprest #794
 ist ein Folgeauftrag und kein erledigter Produktfix.
@@ -68,11 +78,12 @@ Rohbelege und genaue Quellstände stehen im Prüfverzeichnis. Die ursprüngliche
 Testtreiberfehler und ihre Korrekturen dürfen nicht aus dem Nachweis entfernt
 werden.
 
-Die Arbeitsumgebung „Magnolie-Organizer einrichten“ war Linux x86_64. Hier
-liefen keine neue native Swift-Kompilierung, Apple-SDK-Abnahme oder macOS-VM.
-Vorbereitete Swift-/Provider-/TCC-/Bundle-Prüfungen sind keine bestandenen
-nativen Tests. Historische grüne CI-Läufe auf älteren Quellen beweisen die
-aktuellen Patches ebenfalls nicht.
+Die ursprüngliche lokale Arbeitsumgebung „Magnolie-Organizer einrichten“
+war Linux x86_64. Dort liefen keine native Swift-Kompilierung, Apple-SDK-
+Abnahme oder macOS-VM. Die späteren tatsächlichen GitHub-Mac-Läufe sind
+gesonderte Ausführungen auf entfernten Mac-Hosts. Vorbereitete Provider-/
+TCC-Prüfungen und historische grüne Läufe auf älteren Quellen beweisen
+keine darüber hinausgehende aktuelle Abnahme.
 
 Die 31 berücksichtigten Issues sind:
 `121, 451, 452, 453, 454, 458, 464, 465, 468, 472, 511, 680, 682, 683, 721,
@@ -81,7 +92,8 @@ Das Inventar dokumentiert daneben Ausschlüsse und historische Fälle. Nicht
 jedes berücksichtigte Issue benötigt einen neuen Produktpatch: bestätigte
 Bestandsfixes, Regressionen und offene native Abnahmen bleiben unterscheidbar.
 
-Die wichtigen offenen Teile umfassen die echte native Abnahme, ausgewiesene
+Die wichtigen offenen Teile umfassen die vollständige native UI-/Systemkonto-/
+Monterey-/Geräteabnahme, ausgewiesene
 Restfälle der Kalenderalias-/verlustfreien Übernahme, weitere Importgrenzen
 sowie den noch begrenzten Systemabgleich. #786 bietet einen manuellen
 Dreiwege-Feldabgleich bewusst gebundener bestehender Kalender-/Kontakt-/
@@ -106,8 +118,11 @@ Alle macOS-bezogenen Issues prüfen, konkrete reviewbare Fixpatches samt Belegen
 Beschreibung, Abhängigkeiten und Codex-Anweisungen vorbereiten und den jeweiligen
 Issues zuordnen. Codex soll die Änderungen später prüfen und anwenden können.
 Teilfixe, bereits behobene Fälle, Tests und offene Arbeit transparent ausweisen.
-Die Übernahme nach main, Issue-Schließungen und Paket-/Releaseveröffentlichungen
-sind durch diesen Fortsetzungs-Prompt nicht beauftragt.
+Die Übernahme nach main, Issue-Schließungen und öffentliche Release- oder
+Vertriebspaketveröffentlichungen sind durch diesen Fortsetzungs-Prompt nicht
+beauftragt. Native CI-Prüfungen auf dem bestehenden Arbeitszweig und deren
+zeitlich begrenzte CI-Entwicklungsartefakte gehören zur autorisierten
+Fortsetzung. Diese Artefakte sind keine Produktionsfreigabe.
 
 ZUERST BESTAND PRÜFEN
 1. Repository https://github.com/maik3531/Magnolie-Organizer und den Zweig
@@ -139,9 +154,17 @@ Der Zweig und alle 31 Kommentare sind veröffentlicht und zurückgelesen.
 Die Kommentarlinks verwenden den festen Dokumentations-/Artefaktcommit
 cf7b3f2bf4e8afee662a4926f32fc989d7ff7df8. Die Publikationsbelege enthalten
 alle Kommentar-IDs, URLs und Text-Hashes. Diese Schritte nicht neu ausführen.
-Native Abnahme und die dokumentierten technischen Reste bleiben offen.
+Vollständige native UI-/Monterey-/Konto-/Geräteabnahme und die dokumentierten
+technischen Reste bleiben offen; den erfolgreichen CI-Umfang von #97 beachten.
 
 QUELLANKER
+- Neuer nativer Folgelauf #97 auf tatsächlichem Helper-Bundle-Fixcommit:
+  215d89029df02df2dce78f35412785ec9f9b36d8
+  https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788
+  Gesamtworkflow und beide Mac-Jobs erfolgreich. Host-/Swift-Tests,
+  vollständige Appsignatur, sieben tatsächliche Lifecycle-Kriterien und
+  Entwicklungspaketierung bestanden. Die genauen Belege und Grenzen im
+  Fortsetzungsbericht lesen; keine Voll-UI-/Monterey-/Kontenabnahme daraus ableiten.
 - Nativer Folgelauf #95 auf tatsächlichem Quellcommit:
   3c0b4bb410a5ab514e3deae7fb665a692eb436c2
   https://github.com/maik3531/Magnolie-Organizer/actions/runs/45799895334
@@ -204,7 +227,7 @@ dort zuerst den erreichten Schritt, genauen Quellcommit und Ausgang prüfen.
 Swift-/Zeitzonenerfolg, Runtimebau, XCTest, Bundle-/App-Start sowie echte
 TCC-/Provider-/Gerätetests bleiben getrennte Nachweise. Vorbereitete Tests und
 historische CI-Erfolge auf älteren Quellen nicht als aktuelle native Erfolge
-ausgeben. Die Folgeissues #787/#788/#789/#793/#796/#797 und den separaten
+ausgeben. Die Folgeissues #787/#788/#789/#793/#796/#797/#802 und den separaten
 Windowsrest #794 gezielt mitlesen. Ein nativer Runtime-/Testteilerfolg ist
 kein vollständiger App-Smoke- oder echter Konten-/Gerätenachweis.
 

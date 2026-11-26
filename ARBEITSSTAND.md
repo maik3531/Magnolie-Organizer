@@ -2,6 +2,16 @@
 
 ## Fortsetzung: native Mac-Läufe und konkrete Folgefixes – 26. November 2026
 
+**Nativer Abschluss auf ARM64 und Intel:** [#97 / 45807249788](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)
+ist auf genau `215d89029df02df2dce78f35412785ec9f9b36d8` erfolgreich.
+Beide Architekturen bestanden Runtimebau, 21 Runtimebuildertests,
+17 ImportHelper-/Pfadtests, 35 Hosttests ohne Fehler mit einem Skip und
+vier Swift-Kontexte mit jeweils 501 Fällen ohne Fehler (4/5/5/6 Skips).
+Auch äußere App-Signatur, tatsächlicher Start, Speichern, normales Beenden,
+Wiederöffnen und Entwicklungspaketierung sind bestanden. Der vorherige
+Signaturrest #802 ist damit nativ bestätigt behoben. Vollständige produktive
+UI-, Monterey-, TCC-, Konto- und Geräteabnahme bleiben gesonderte offene Teile.
+
 Die Übergabe aus dem unterbrochenen Chat wurde auf dem unveränderten Remote-Head
 `97baf780fa3474eba54d03e41d0258c97ae8b1ca` wieder aufgenommen. Alle 24 Patches,
 29 SHA256SUMS-Einträge, 30 publizierten Manifestdateien und 31 vollständigen
@@ -92,7 +102,11 @@ entsteht außerhalb des Helpers nach dessen Signatur; die äußere App wird
 zuletzt signiert. Die erweiterte Runtime-Hostsuite besteht mit 21/21 Tests;
 lokale C/API-Proben und unabhängiger Quellreview sind abgeschlossen.
 App-Smoke und Entwicklungspaketierung sind in #95 noch nicht erreicht.
-Die tatsächliche native Folgeabnahme des Layoutfixes steht aus.
+Der tatsächliche Folgelauf #97 bestätigt den veröffentlichten Layoutfix auf
+beiden Architekturen einschließlich der äußeren Appsignatur und aller sieben
+App-Smoke-Kriterien. Zwei Entwicklungskandidaten mit Quellen-, Runtime-,
+Build-, Signatur- und Lebenszyklusbelegen wurden erzeugt und heruntergeladen.
+Die Aufbewahrung der CI-Artefakte beträgt 14 Tage; es ist keine Releasefreigabe.
 
 Der zusätzliche Desktop-Archivblocker
 [#787](https://github.com/maik3531/Magnolie-Organizer/issues/787) ist im Quellstand
@@ -135,8 +149,10 @@ Nachfolgende Publikationsbelege ändern keine Produktquellen.
 Die zusätzlichen [Dell-/NFC-Befunde](contracts/windows-dell-nfc-research-2026-11-26.md)
 und [sechs Windows-Featurevorschläge](contracts/windows-feature-opportunities-2026-11-26.md)
 sind recherchierte Entwicklungsaufträge, keine implementierte neue Authentisierung.
-Die native Mac-Abnahme und die nachstehenden technischen Restpunkte bleiben
-offen. `main`, Issue-Zustände und veröffentlichte Pakete wurden nicht verändert.
+Die vollständige native UI-, Monterey-, TCC-, Konto- und Geräteabnahme sowie
+die nachstehenden technischen Restpunkte bleiben offen; der definierte
+CI-Umfang von #97 ist inzwischen bestanden. Die ursprüngliche Übergabe
+änderte weder `main` noch Issue-Zustände oder veröffentlichte Pakete.
 
 ## Mac-Issue-Audit, aktuelle Importe und Apple-Abgleich – 26. November 2026
 

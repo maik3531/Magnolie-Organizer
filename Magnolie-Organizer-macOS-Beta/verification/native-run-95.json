@@ -1,0 +1,745 @@
+{
+  "schema": 1,
+  "provenance": {
+    "sourceCapture": {
+      "captureFilename": "run95-evidence.json",
+      "bytes": 27992,
+      "sha256": "5bf470f2470839af59cc1469472e7ab532b352f0b7cc3e94ff5db4bc3f91e7b8"
+    },
+    "transformation": "Result fields are preserved from the source capture. Local capture paths are replaced by captureFilename identifiers formed by joining the original capture-relative path components with two hyphens. The referenced raw files are not embedded in this report. Original CI log excerpts and line numbers remain verbatim.",
+    "runtimeSourcePins": "Source archive identities were copied from the two captured runtime manifests after their byte sizes and SHA-256 digests were checked against the source capture; the two pins are identical.",
+    "runtimeManifestsChecked": [
+      {
+        "captureFilename": "run95-arm64--import-python-arm64.json",
+        "bytes": 90910,
+        "sha256": "c80060ae874e386e6046ad2365e1d3b8e705d0c2abe326f06eaf54b8e8e75ca3"
+      },
+      {
+        "captureFilename": "run95-intel--import-python-x86_64.json",
+        "bytes": 90911,
+        "sha256": "b0afc040cd22f7c6609da3a654935522dac72e25d19381ce6e0e5247eccd0eb6"
+      }
+    ],
+    "validationScope": "Checks cover JSON structure, value preservation, stable URL shape, capture identifiers and the two referenced runtime-manifest byte sizes and SHA-256 digests. No product tests, build, signing, download or new native execution performed for this report."
+  },
+  "repository": "maik3531/Magnolie-Organizer",
+  "branch": "work/macos-issue-fixes-20261126",
+  "run": {
+    "id": 45799895334,
+    "number": 95,
+    "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45799895334",
+    "headSHA": "3c0b4bb410a5ab514e3deae7fb665a692eb436c2",
+    "allJobsCompleted": true,
+    "macConclusion": "failure"
+  },
+  "meaning": "Both real Mac jobs passed the listed test phases, then failed outer app signing. No app lifecycle or development ZIP result was produced. Repeated XCTest executions are separate contexts, not additive unique test counts.",
+  "blockerIssue": 802,
+  "jobs": [
+    {
+      "id": 139840088084,
+      "name": "macos (macos-15, arm64)",
+      "architecture": "arm64",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45799895334/job/139840088084",
+      "status": "completed",
+      "conclusion": "failure",
+      "log": {
+        "captureFilename": "mac-native-run-45799895334-arm64.log",
+        "bytes": 5873348,
+        "sha256": "7e6ff8c9dd34ffb399c0443a8103d95b18630382aa0145a71739deafbf35b230"
+      },
+      "environment": {
+        "productVersion": "15.8.2",
+        "productBuild": "24H232",
+        "sdkVersion": "15.5",
+        "swiftVersion": "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)\nTarget: arm64-apple-macosx15.0"
+      },
+      "sourceBinding": {
+        "portCommit": "3c0b4bb410a5ab514e3deae7fb665a692eb436c2",
+        "desktopCommit": "3c0b4bb410a5ab514e3deae7fb665a692eb436c2",
+        "sourcePolicy": "current-checkout",
+        "sourceFileCount": 3909,
+        "manifest": {
+          "captureFilename": "run95-arm64--sources.json",
+          "bytes": 979554,
+          "sha256": "73e2ea69cbc7f4423b2876574b48eb0e62b0114ee62490c9e2acc92224bb09a0"
+        }
+      },
+      "phases": {
+        "standaloneTimezone": "passed",
+        "privateRuntime": "passed",
+        "projectionAndCurrentSourceChecks": "passed",
+        "OR6ToUI": {
+          "checks": 90,
+          "status": "passed",
+          "nativePersistenceClaim": false
+        },
+        "pythonTests": {
+          "runtimeBuilder": {
+            "tests": 13,
+            "seconds": 0.096,
+            "failures": 0,
+            "skipped": 0
+          },
+          "importHelperAndProjectionPaths": {
+            "tests": 17,
+            "seconds": 69.452,
+            "failures": 0,
+            "skipped": 0
+          },
+          "host": {
+            "tests": 35,
+            "seconds": 594.947,
+            "failures": 0,
+            "skipped": 1,
+            "skipReason": "test_no_linux_native_build_claim: Negative Linux-only build gate"
+          }
+        },
+        "communicationWrapper": "passed",
+        "xctestExecutions": [
+          {
+            "context": "calendar wrapper",
+            "tests": 501,
+            "skipped": 4,
+            "failures": 0,
+            "testSeconds": 72.543,
+            "suiteSeconds": 72.597,
+            "logLine": 2252,
+            "skippedCases": [
+              "CoreTests testCurrentEditorAppointments",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "HolidayServiceTests testLivePublicHolidayServiceWhenRequested",
+              "NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            ]
+          },
+          {
+            "context": "editor UTC",
+            "tests": 501,
+            "skipped": 5,
+            "failures": 0,
+            "testSeconds": 60.275,
+            "suiteSeconds": 60.316,
+            "logLine": 16291,
+            "skippedCases": [
+              "CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "HolidayServiceTests testLivePublicHolidayServiceWhenRequested",
+              "ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles",
+              "ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            ]
+          },
+          {
+            "context": "editor Europe/Berlin",
+            "tests": 501,
+            "skipped": 5,
+            "failures": 0,
+            "testSeconds": 64.379,
+            "suiteSeconds": 64.426,
+            "logLine": 30287,
+            "skippedCases": [
+              "CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "HolidayServiceTests testLivePublicHolidayServiceWhenRequested",
+              "ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles",
+              "ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            ]
+          },
+          {
+            "context": "build_dev",
+            "tests": 501,
+            "skipped": 6,
+            "failures": 0,
+            "testSeconds": 60.124,
+            "suiteSeconds": 60.163,
+            "logLine": 44320,
+            "skippedCases": [
+              "CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs",
+              "CoreTests testCurrentEditorAppointments",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles",
+              "ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts",
+              "NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            ]
+          }
+        ],
+        "namedRegressionPassedExecutions": {
+          "testProtectedBodiesAreAContractErrorAndNeverBecomeAProposal": 4,
+          "testUTF8FoldingPreservesTheExactLogicalLine": 4,
+          "testFoldingBoundariesCountOctetsAndPreserveCombiningScalars": 4,
+          "testTextMustSurviveRealEditorWhitespaceAndLineEndingRules": 4,
+          "testLeadingBOMTitleRemainsExcludedAndRevisionBound": 4,
+          "testCallerOwnedMutableTextAndArraysCannotRewriteAnExistingPlan": 4
+        },
+        "swiftDebugBuild": {
+          "status": "passed",
+          "evidence": {
+            "line": 44329,
+            "text": "2026-11-26T10:35:12.7772170Z Build complete! (0.43s)"
+          }
+        },
+        "outerAppSigning": {
+          "status": "failed",
+          "evidence": [
+            {
+              "line": 44331,
+              "text": "2026-11-26T10:35:23.1006750Z /Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/Output/Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app: code object is not signed at all"
+            },
+            {
+              "line": 44332,
+              "text": "2026-11-26T10:35:23.1010910Z In subcomponent: /Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/Output/Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app/Contents/Helpers/ImportPython/runtime.json"
+            },
+            {
+              "line": 44333,
+              "text": "2026-11-26T10:35:23.1022340Z macOS Beta build blocked: Command '['codesign', '--force', '--sign', '-', '/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/Output/Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app']' returned non-zero exit status 1."
+            }
+          ]
+        },
+        "appLifecycle": "skipped",
+        "developmentZIP": "skipped",
+        "candidateUpload": "skipped"
+      },
+      "runtime": {
+        "schema": 1,
+        "version": "3.15.2",
+        "minimumSystemVersion": "12.7",
+        "relocation": {
+          "isolated": true,
+          "moduleClosure": true,
+          "version": "3.15.2"
+        },
+        "machOCount": 52,
+        "allRecordedMachOMinimums": "12.7",
+        "onlyRecordedSystemDynamicDependencies": true,
+        "fileCount": 704,
+        "staticDependencies": {
+          "liblzma": {
+            "librarySHA256": "3086d05226ef817411dbf05d7c06a21da2cc57e427d6b7f569c062878b8aecfd",
+            "linkage": "static",
+            "sourceSHA256": "4ce24038fd4221e0d13bc1a2de7a4db56e90b92b3bf75321f6c14be73f65de4b",
+            "version": "5.8.4"
+          }
+        },
+        "signing": "ad-hoc development only",
+        "nativeUIValidated": false,
+        "manifest": {
+          "captureFilename": "run95-arm64--import-python-arm64.json",
+          "bytes": 90910,
+          "sha256": "c80060ae874e386e6046ad2365e1d3b8e705d0c2abe326f06eaf54b8e8e75ca3"
+        }
+      },
+      "diagnosticArtifact": {
+        "id": 15107143783,
+        "name": "macOS-2.0.30-beta.1-arm64-failure-diagnostics",
+        "size_in_bytes": 355506,
+        "digest": "sha256:0f0dcfb0da1d4d629ffe98b8add26068f35589737f463aca2fadac7a1b69f839",
+        "created_at": "2026-11-26T10:35:25Z",
+        "expires_at": "2026-12-10T10:35:24Z",
+        "download": {
+          "captureFilename": "run95-arm64--failure-diagnostics.zip",
+          "bytes": 355506,
+          "sha256": "0f0dcfb0da1d4d629ffe98b8add26068f35589737f463aca2fadac7a1b69f839"
+        },
+        "downloadDigestVerified": true,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45799895334/artifacts/15107143783",
+        "retentionDaysConfigured": 14
+      },
+      "artifactMembers": [
+        {
+          "captureFilename": "run95-arm64--environment-arm64.json",
+          "bytes": 2376,
+          "sha256": "eea1c5d954ebfce2f1980626b2d92e35607e75a82e2c2ef8ca9f71613e70181d"
+        },
+        {
+          "captureFilename": "run95-arm64--import-python-arm64.json",
+          "bytes": 90910,
+          "sha256": "c80060ae874e386e6046ad2365e1d3b8e705d0c2abe326f06eaf54b8e8e75ca3"
+        },
+        {
+          "captureFilename": "run95-arm64--import-python-arm64.log",
+          "bytes": 860165,
+          "sha256": "fd030333015f208f9649f8f1f20473801fe7bc6ec8c28c5ca9e34a151c9c7b13"
+        },
+        {
+          "captureFilename": "run95-arm64--sources.json",
+          "bytes": 979554,
+          "sha256": "73e2ea69cbc7f4423b2876574b48eb0e62b0114ee62490c9e2acc92224bb09a0"
+        },
+        {
+          "captureFilename": "run95-arm64--timezone-provider-arm64.log",
+          "bytes": 77729,
+          "sha256": "cb51ec2973c0259b7e41dd9512495d2be7a0b713f9f8a2d2b3c2fd46ca13edfc"
+        }
+      ],
+      "unavailableEvidence": [
+        "build.json in a development-candidate artifact",
+        "bundle-smoke.json lifecycle booleans",
+        "development ZIP and SHA256SUMS",
+        "packaged main Mach-O header",
+        "bundle-window.png"
+      ],
+      "workflowSteps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Bind the Mac candidate to the current selected checkout",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Prepare private dependencies and canonical catalogs",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Verify the standalone Swift time-zone engine against independent references",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Build the private source-pinned import runtime",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Freeze this isolated build's current source and run host and Apple tests",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "number": 10,
+          "name": "Start, save, quit and reopen the real app bundle",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 11,
+          "name": "Package the ad-hoc development app with its evidence",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 12,
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 13,
+          "name": "Preserve native failure diagnostics",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 24,
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 25,
+          "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 26,
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 27,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 139840088529,
+      "name": "macos (macos-15-intel, x86_64)",
+      "architecture": "x86_64",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45799895334/job/139840088529",
+      "status": "completed",
+      "conclusion": "failure",
+      "log": {
+        "captureFilename": "mac-native-run-45799895334-intel.log",
+        "bytes": 5885795,
+        "sha256": "0e3999bf358e37a3d173d554031f811cab6bef44a96a504dbb34bd4e4c5b56a3"
+      },
+      "environment": {
+        "productVersion": "15.7.9",
+        "productBuild": "24G830",
+        "sdkVersion": "15.5",
+        "swiftVersion": "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)\nTarget: x86_64-apple-macosx15.0"
+      },
+      "sourceBinding": {
+        "portCommit": "3c0b4bb410a5ab514e3deae7fb665a692eb436c2",
+        "desktopCommit": "3c0b4bb410a5ab514e3deae7fb665a692eb436c2",
+        "sourcePolicy": "current-checkout",
+        "sourceFileCount": 3909,
+        "manifest": {
+          "captureFilename": "run95-intel--sources.json",
+          "bytes": 979554,
+          "sha256": "73e2ea69cbc7f4423b2876574b48eb0e62b0114ee62490c9e2acc92224bb09a0"
+        }
+      },
+      "phases": {
+        "standaloneTimezone": "passed",
+        "privateRuntime": "passed",
+        "projectionAndCurrentSourceChecks": "passed",
+        "OR6ToUI": {
+          "checks": 90,
+          "status": "passed",
+          "nativePersistenceClaim": false
+        },
+        "pythonTests": {
+          "runtimeBuilder": {
+            "tests": 13,
+            "seconds": 0.204,
+            "failures": 0,
+            "skipped": 0
+          },
+          "importHelperAndProjectionPaths": {
+            "tests": 17,
+            "seconds": 98.437,
+            "failures": 0,
+            "skipped": 0
+          },
+          "host": {
+            "tests": 35,
+            "seconds": 800.281,
+            "failures": 0,
+            "skipped": 1,
+            "skipReason": "test_no_linux_native_build_claim: Negative Linux-only build gate"
+          }
+        },
+        "communicationWrapper": "passed",
+        "xctestExecutions": [
+          {
+            "context": "calendar wrapper",
+            "tests": 501,
+            "skipped": 4,
+            "failures": 0,
+            "testSeconds": 82.792,
+            "suiteSeconds": 82.846,
+            "logLine": 2303,
+            "skippedCases": [
+              "CoreTests testCurrentEditorAppointments",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "HolidayServiceTests testLivePublicHolidayServiceWhenRequested",
+              "NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            ]
+          },
+          {
+            "context": "editor UTC",
+            "tests": 501,
+            "skipped": 5,
+            "failures": 0,
+            "testSeconds": 78.937,
+            "suiteSeconds": 78.992,
+            "logLine": 16345,
+            "skippedCases": [
+              "CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "HolidayServiceTests testLivePublicHolidayServiceWhenRequested",
+              "ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles",
+              "ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            ]
+          },
+          {
+            "context": "editor Europe/Berlin",
+            "tests": 501,
+            "skipped": 5,
+            "failures": 0,
+            "testSeconds": 81.0,
+            "suiteSeconds": 81.052,
+            "logLine": 30344,
+            "skippedCases": [
+              "CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "HolidayServiceTests testLivePublicHolidayServiceWhenRequested",
+              "ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles",
+              "ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            ]
+          },
+          {
+            "context": "build_dev",
+            "tests": 501,
+            "skipped": 6,
+            "failures": 0,
+            "testSeconds": 82.943,
+            "suiteSeconds": 82.998,
+            "logLine": 44380,
+            "skippedCases": [
+              "CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs",
+              "CoreTests testCurrentEditorAppointments",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles",
+              "ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts",
+              "NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            ]
+          }
+        ],
+        "namedRegressionPassedExecutions": {
+          "testProtectedBodiesAreAContractErrorAndNeverBecomeAProposal": 4,
+          "testUTF8FoldingPreservesTheExactLogicalLine": 4,
+          "testFoldingBoundariesCountOctetsAndPreserveCombiningScalars": 4,
+          "testTextMustSurviveRealEditorWhitespaceAndLineEndingRules": 4,
+          "testLeadingBOMTitleRemainsExcludedAndRevisionBound": 4,
+          "testCallerOwnedMutableTextAndArraysCannotRewriteAnExistingPlan": 4
+        },
+        "swiftDebugBuild": {
+          "status": "passed",
+          "evidence": {
+            "line": 44389,
+            "text": "2026-11-26T10:42:44.9994580Z Build complete! (0.50s)"
+          }
+        },
+        "outerAppSigning": {
+          "status": "failed",
+          "evidence": [
+            {
+              "line": 44391,
+              "text": "2026-11-26T10:43:05.0217820Z /Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/Output/Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app: code object is not signed at all"
+            },
+            {
+              "line": 44392,
+              "text": "2026-11-26T10:43:05.0224040Z In subcomponent: /Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/Output/Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app/Contents/Helpers/ImportPython/LICENSE-XZ-Utils.txt"
+            },
+            {
+              "line": 44393,
+              "text": "2026-11-26T10:43:05.0232000Z macOS Beta build blocked: Command '['codesign', '--force', '--sign', '-', '/Users/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/Output/Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app']' returned non-zero exit status 1."
+            }
+          ]
+        },
+        "appLifecycle": "skipped",
+        "developmentZIP": "skipped",
+        "candidateUpload": "skipped"
+      },
+      "runtime": {
+        "schema": 1,
+        "version": "3.15.2",
+        "minimumSystemVersion": "12.7",
+        "relocation": {
+          "isolated": true,
+          "moduleClosure": true,
+          "version": "3.15.2"
+        },
+        "machOCount": 52,
+        "allRecordedMachOMinimums": "12.7",
+        "onlyRecordedSystemDynamicDependencies": true,
+        "fileCount": 704,
+        "staticDependencies": {
+          "liblzma": {
+            "librarySHA256": "a644dfdfc27a4b3eefba7b81312659b58be84af2402ec41615586d7ca0364a77",
+            "linkage": "static",
+            "sourceSHA256": "4ce24038fd4221e0d13bc1a2de7a4db56e90b92b3bf75321f6c14be73f65de4b",
+            "version": "5.8.4"
+          }
+        },
+        "signing": "ad-hoc development only",
+        "nativeUIValidated": false,
+        "manifest": {
+          "captureFilename": "run95-intel--import-python-x86_64.json",
+          "bytes": 90911,
+          "sha256": "b0afc040cd22f7c6609da3a654935522dac72e25d19381ce6e0e5247eccd0eb6"
+        }
+      },
+      "diagnosticArtifact": {
+        "id": 15108657386,
+        "name": "macOS-2.0.30-beta.1-x86_64-failure-diagnostics",
+        "size_in_bytes": 355321,
+        "digest": "sha256:ae70d6cb13a8981753433b3ea6f4633defd005c0b6ac3bd0a6e404f86bbd3c0b",
+        "created_at": "2026-11-26T10:43:08Z",
+        "expires_at": "2026-12-10T10:43:06Z",
+        "download": {
+          "captureFilename": "run95-intel--failure-diagnostics.zip",
+          "bytes": 355321,
+          "sha256": "ae70d6cb13a8981753433b3ea6f4633defd005c0b6ac3bd0a6e404f86bbd3c0b"
+        },
+        "downloadDigestVerified": true,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45799895334/artifacts/15108657386",
+        "retentionDaysConfigured": 14
+      },
+      "artifactMembers": [
+        {
+          "captureFilename": "run95-intel--environment-x86_64.json",
+          "bytes": 2337,
+          "sha256": "93b496a5452307e059b33d1e7d0a07503d42c71c22d4aa9695d9f89a2265b1e2"
+        },
+        {
+          "captureFilename": "run95-intel--import-python-x86_64.json",
+          "bytes": 90911,
+          "sha256": "b0afc040cd22f7c6609da3a654935522dac72e25d19381ce6e0e5247eccd0eb6"
+        },
+        {
+          "captureFilename": "run95-intel--import-python-x86_64.log",
+          "bytes": 860147,
+          "sha256": "232985057894bf67ff90d181a29d12d00fdcc5ee4b5ef5062a92d9f8259674cb"
+        },
+        {
+          "captureFilename": "run95-intel--sources.json",
+          "bytes": 979554,
+          "sha256": "73e2ea69cbc7f4423b2876574b48eb0e62b0114ee62490c9e2acc92224bb09a0"
+        },
+        {
+          "captureFilename": "run95-intel--timezone-provider-x86_64.log",
+          "bytes": 77731,
+          "sha256": "46e23eb1131bed7f58aa5ff741568cd1bb7bad29dcf817b1ed71869da1611c6e"
+        }
+      ],
+      "unavailableEvidence": [
+        "build.json in a development-candidate artifact",
+        "bundle-smoke.json lifecycle booleans",
+        "development ZIP and SHA256SUMS",
+        "packaged main Mach-O header",
+        "bundle-window.png"
+      ],
+      "workflowSteps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Bind the Mac candidate to the current selected checkout",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Prepare private dependencies and canonical catalogs",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Verify the standalone Swift time-zone engine against independent references",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Build the private source-pinned import runtime",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Freeze this isolated build's current source and run host and Apple tests",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "number": 10,
+          "name": "Start, save, quit and reopen the real app bundle",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 11,
+          "name": "Package the ad-hoc development app with its evidence",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 12,
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 13,
+          "name": "Preserve native failure diagnostics",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 24,
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 25,
+          "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 26,
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 27,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "runtimeSourceArchives": {
+    "CPython": {
+      "implementation": "CPython",
+      "version": "3.15.2",
+      "sourceURL": "https://www.python.org/ftp/python/3.15.2/Python-3.15.2.tar.xz",
+      "sourceSHA256": "8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de"
+    },
+    "liblzma": {
+      "implementation": "XZ Utils",
+      "version": "5.8.4",
+      "sourceURL": "https://github.com/tukaani-project/xz/releases/download/v5.8.4/xz-5.8.4.tar.xz",
+      "sourceSHA256": "4ce24038fd4221e0d13bc1a2de7a4db56e90b92b3bf75321f6c14be73f65de4b"
+    }
+  }
+}
