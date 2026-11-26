@@ -67,7 +67,7 @@ fs.writeFileSync(path.join(out,'candidate.json'),JSON.stringify({name,sha256:has
   webChecks:web.passed,editorReminderCases:reminders.cases.length,unitTests,unitReport:'app/build/reports/tests/testDebugUnitTest/index.html',
   runnerTests:build.runnerTests,setupHolidayCases:build.setupHolidayCases,setupLocales:build.setupLocales,
   apkAssetsVerified:true,apkPermissions,
-  systemSourceIntegration:{scope:'explicit read-only discovery',
+  systemSourceIntegration:{scope:'read-only discovery and explicit local copy',
     readPermissions:['android.permission.READ_CALENDAR','android.permission.READ_CONTACTS'],
     permissionRequestRequiresUserAction:true,providerWrites:false,accountManagerEnumeration:false,
     fullSynchronization:false,nativeRuntimeAccepted:false}},null,2)+'\n');

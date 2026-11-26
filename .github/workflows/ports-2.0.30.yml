@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: Candidate to build (tablet-aosp is a diagnostic comparison only)
+        description: Candidate to build (tablet-build-only skips native runtime; tablet-aosp is diagnostic only)
         type: choice
         default: all
-        options: [all, macos, tablet, tablet-aosp, tablet-components, tablet-api26-components, tablet-timezone-interop]
+        options: [all, macos, tablet, tablet-aosp, tablet-components, tablet-api26-components, tablet-timezone-interop, tablet-build-only]
       component:
         description: Only filters tablet-components and tablet-api26-components; never full UI acceptance
         type: choice
@@ -153,13 +153,13 @@ jobs:
           retention-days: 14
 
   tablet:
-    name: ${{ inputs.target == 'tablet-timezone-interop' && 'tablet-timezone-interop-comparison-only' || inputs.target == 'tablet-api26-components' && format('tablet-API26-component-only-{0}', matrix.suite) || inputs.target == 'tablet-aosp' && 'tablet-AOSP-API34-diagnostic-only' || inputs.target == 'tablet-components' && format('tablet-component-only-{0}', matrix.suite) || 'tablet' }}
+    name: ${{ inputs.target == 'tablet-build-only' && 'tablet-build-only-no-native-acceptance' || inputs.target == 'tablet-timezone-interop' && 'tablet-timezone-interop-comparison-only' || inputs.target == 'tablet-api26-components' && format('tablet-API26-component-only-{0}', matrix.suite) || inputs.target == 'tablet-aosp' && 'tablet-AOSP-API34-diagnostic-only' || inputs.target == 'tablet-components' && format('tablet-component-only-{0}', matrix.suite) || 'tablet' }}
     strategy:
       fail-fast: false
       max-parallel: 1
       matrix:
-        # Refs #461: optional manual component selection; every other target keeps its original suite.
-        suite: ${{ fromJSON((inputs.target == 'tablet-components' || inputs.target == 'tablet-api26-components') && (inputs.component == 'services' && '["services"]' || inputs.component == 'files' && '["files"]' || inputs.component == 'domains' && '["domains"]' || '["services","files","domains"]') || inputs.target == 'tablet-timezone-interop' && '["timezone"]' || '["ui"]') }}
+        # Refs #461/#790: explicit build-only target; existing native targets retain their suites.
+        suite: ${{ fromJSON(inputs.target == 'tablet-build-only' && '["build"]' || (inputs.target == 'tablet-components' || inputs.target == 'tablet-api26-components') && (inputs.component == 'services' && '["services"]' || inputs.component == 'files' && '["files"]' || inputs.component == 'domains' && '["domains"]' || '["services","files","domains"]') || inputs.target == 'tablet-timezone-interop' && '["timezone"]' || '["ui"]') }}
     if: github.event_name != 'workflow_dispatch' || inputs.target != 'macos'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -228,17 +228,22 @@ jobs:
           python3 - <<'PY'
           import json, os, pathlib
           proof = json.loads(pathlib.Path('artifacts/sources.json').read_text())
+          build_only = os.environ['TABLET_COMPONENT_SUITE'] == 'build'
           proof.update(referenceDesktopTag='v2.0.30',
                        referenceDesktopCommit=os.environ['DESKTOP_COMMIT'],
-                       systemImage=os.environ['TABLET_SYSTEM_IMAGE'],
-                       diagnosticComparison=os.environ['TABLET_SYSTEM_IMAGE'] == 'default',
-                       runtimeApi=int(os.environ['TABLET_RUNTIME_API']),
-                       componentOnly=os.environ['TABLET_COMPONENT_SUITE'] != 'ui',
-                       componentSuite=os.environ['TABLET_COMPONENT_SUITE'],
+                       buildOnly=build_only,
+                       systemImage=None if build_only else os.environ['TABLET_SYSTEM_IMAGE'],
+                       diagnosticComparison=not build_only and os.environ['TABLET_SYSTEM_IMAGE'] == 'default',
+                       runtimeApi=None if build_only else int(os.environ['TABLET_RUNTIME_API']),
+                       componentOnly=not build_only and os.environ['TABLET_COMPONENT_SUITE'] != 'ui',
+                       componentSuite=None if build_only else os.environ['TABLET_COMPONENT_SUITE'],
                        googleAcceptance=False)
           pathlib.Path('artifacts/sources.json').write_text(json.dumps(proof, indent=2)+'\n')
+          if build_only:
+              print('BUILD-ONLY EVIDENCE: debug APKs verified; no Android runtime or native acceptance.')
           PY
       - name: Prepare the official Android runtime image
+        if: matrix.suite != 'build'
         working-directory: Magnolie-Organizer-Android-Tablet-Beta
         shell: bash
         run: |
@@ -341,7 +346,7 @@ jobs:
             -p TimeoutStopSec=10 -p KillMode=control-group -p UMask=0077 \
             --working-directory="$PWD" python3 -B tools/native-checks.py --main-slot-granted --suite timezone --image "$TABLET_SYSTEM_IMAGE" --api "$TABLET_RUNTIME_API" </dev/null
       - name: Collect synthetic native evidence
-        if: always()
+        if: ${{ always() && matrix.suite != 'build' }}
         shell: bash
         run: |
           python3 - <<'PY'
@@ -358,7 +363,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Android-Tablet-2.0.30Beta-${{ inputs.target == 'tablet-timezone-interop' && 'timezone-interop-comparison-only' || inputs.target == 'tablet-aosp' && 'AOSP-diagnostic-only' || inputs.target == 'tablet-api26-components' && format('API26-component-only-{0}', matrix.suite) || inputs.target == 'tablet-components' && format('component-only-{0}', matrix.suite) || 'Google-candidate' }}-and-proof
+          name: Android-Tablet-2.0.30Beta-${{ inputs.target == 'tablet-build-only' && 'build-only-no-native-acceptance' || inputs.target == 'tablet-timezone-interop' && 'timezone-interop-comparison-only' || inputs.target == 'tablet-aosp' && 'AOSP-diagnostic-only' || inputs.target == 'tablet-api26-components' && format('API26-component-only-{0}', matrix.suite) || inputs.target == 'tablet-components' && format('component-only-{0}', matrix.suite) || 'Google-candidate' }}-and-proof
           path: |
             Magnolie-Organizer-Android-Tablet-Beta/artifacts/
             Magnolie-Organizer-Android-Tablet-Beta/app/build/test-results/testDebugUnitTest/

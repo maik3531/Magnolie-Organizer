@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Real-Git regression tests for the tablet checkout/projection boundary (#790)."""
+import ast
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
 import tempfile
+import textwrap
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("tablet_source_proof", ROOT / "tools/source-proof.py")
@@ -237,6 +241,111 @@ class SourceProofTests(unittest.TestCase):
 
 
 class BuildWiringTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.workflow = (ROOT.parent / ".github/workflows/ports-2.0.30.yml").read_text()
+        cls.macos, cls.tablet = cls.workflow.split("\n  tablet:", 1)
+        cls.steps = dict(re.findall(r"^      - name: ([^\n]+)\n(.*?)(?=^      - |\Z)",
+                                    cls.tablet, re.M | re.S))
+
+    @staticmethod
+    def expression(value, context):
+        # Exercise the actual workflow's boolean/string selection expressions.
+        # This deliberately supports only their small AST subset, not Actions execution.
+        value = value.strip().removeprefix("${{").removesuffix("}}").strip()
+        value = re.sub(r"\b(?:inputs\.(?:target|component)|matrix\.suite|github\.event_name|steps\.tablet_build\.outcome)\b",
+                       lambda match: repr(context[match[0]]), value)
+        value = value.replace("&&", " and ").replace("||", " or ")
+        value = re.sub(r"!(?!=)", " not ", value).strip()
+        tree = ast.parse(value, mode="eval")
+        functions = {"fromJSON": json.loads, "format": str.format, "always": lambda: True,
+                     "cancelled": lambda: context.get("cancelled", False)}
+        allowed = (ast.Expression, ast.Constant, ast.Call, ast.Name, ast.Load,
+                   ast.BoolOp, ast.And, ast.Or, ast.Compare, ast.Eq, ast.NotEq, ast.UnaryOp, ast.Not)
+        for node in ast.walk(tree):
+            if not isinstance(node, allowed) or isinstance(node, ast.Name) and node.id not in functions:
+                raise AssertionError("Unsupported workflow selection expression")
+        return eval(compile(tree, "workflow-selection", "eval"), {"__builtins__": {}, **functions})
+
+    def step_enabled(self, name, context):
+        condition = re.search(r"^        if: (.+)$", self.steps[name], re.M)
+        return self.expression(condition[1], context) if condition else True
+
+    def test_dispatch_matrix_preserves_all_existing_targets(self):
+        options = re.search(r"^        options: \[([^\]]+)\]$", self.workflow, re.M)[1].split(", ")
+        self.assertEqual(options, ["all", "macos", "tablet", "tablet-aosp", "tablet-components",
+                                   "tablet-api26-components", "tablet-timezone-interop", "tablet-build-only"])
+        self.assertIn("        default: all\n", self.workflow)
+        matrix = re.search(r"^        suite: (.+)$", self.tablet, re.M)[1]
+        macos_if = re.search(r"^    if: (.+)$", self.macos, re.M)[1]
+        tablet_if = re.search(r"^    if: (.+)$", self.tablet, re.M)[1]
+        for target in ["", *options]:
+            for component in ("all", "services", "files", "domains"):
+                with self.subTest(target=target, component=component):
+                    context = {"inputs.target": target, "inputs.component": component,
+                               "github.event_name": "workflow_dispatch" if target else "push"}
+                    expected = ["build"] if target == "tablet-build-only" else ["timezone"] if target == "tablet-timezone-interop" else ["ui"]
+                    if target in ("tablet-components", "tablet-api26-components"):
+                        expected = ["services", "files", "domains"] if component == "all" else [component]
+                    self.assertEqual(self.expression(matrix, context), expected)
+                    self.assertEqual(self.expression(macos_if, context), target in ("", "all", "macos"))
+                    self.assertEqual(self.expression(tablet_if, context), target != "macos")
+
+    def test_build_only_retains_full_gate_and_skips_every_native_step(self):
+        build = "Build and verify debug APKs within the original locks and resource limits"
+        for command in ("bash tools/build-beta.sh --readiness", "bash tools/build-beta.sh --online",
+                        "python3 -B tools/source-proof.py bind", "--candidate artifacts/candidate.json"):
+            self.assertIn(command, self.steps[build])
+        runtime_steps = {name for name, body in self.steps.items()
+                         if any(token in body for token in ("/dev/kvm", "system-images;", "tools/native-checks.py", "artifacts/native-evidence"))}
+        self.assertEqual(len(runtime_steps), 7)
+        for outcome in ("success", "failure"):
+            for cancelled in (False, True):
+                context = {"matrix.suite": "build", "steps.tablet_build.outcome": outcome, "cancelled": cancelled}
+                for name in runtime_steps:
+                    with self.subTest(step=name, outcome=outcome, cancelled=cancelled):
+                        self.assertFalse(self.step_enabled(name, context))
+        context = {"matrix.suite": "build", "steps.tablet_build.outcome": "success"}
+        self.assertTrue(self.step_enabled(build, context))
+        self.assertTrue(self.step_enabled("Preserve build diagnostics even when a gate fails", context))
+        prepare = "Prepare the official Android runtime image"
+        collect = "Collect synthetic native evidence"
+        native = {suite: next(name for name, body in self.steps.items() if "--suite " + suite + " " in body)
+                  for suite in ("ui", "services", "files", "domains", "timezone")}
+        for suite in native:
+            context = {"matrix.suite": suite, "steps.tablet_build.outcome": "success"}
+            expected = {prepare, collect, native[suite]}
+            if suite == "ui":
+                expected.update((native["services"], native["files"]))
+            with self.subTest(existing_suite=suite):
+                self.assertEqual({name for name in runtime_steps if self.step_enabled(name, context)}, expected)
+
+    def test_build_only_receipt_and_artifact_do_not_claim_native_acceptance(self):
+        build = self.steps["Build and verify debug APKs within the original locks and resource limits"]
+        script = textwrap.dedent(re.search(r"          python3 - <<'PY'\n(.*?)\n          PY(?:\n|$)", build, re.S)[1])
+        for suite, image in (("build", "google_apis"), ("build", "default"), ("ui", "google_apis"),
+                             ("ui", "default"), ("services", "google_apis"), ("timezone", "google_apis")):
+            with self.subTest(suite=suite, image=image), patch.dict(os.environ, {
+                "TABLET_COMPONENT_SUITE": suite, "TABLET_SYSTEM_IMAGE": image,
+                "TABLET_RUNTIME_API": "34", "DESKTOP_COMMIT": "historical-reference"}, clear=True), \
+                 patch("pathlib.Path") as path, patch("builtins.print"):
+                path.return_value.read_text.return_value = json.dumps({"nativeAcceptance": False, "productionRelease": False})
+                exec(compile(script, "workflow-proof-metadata", "exec"), {})
+                result = json.loads(path.return_value.write_text.call_args.args[0])
+                self.assertEqual(result["buildOnly"], suite == "build")
+                self.assertFalse(result["nativeAcceptance"])
+                self.assertFalse(result["productionRelease"])
+                self.assertFalse(result["googleAcceptance"])
+                self.assertEqual(result["runtimeApi"], None if suite == "build" else 34)
+                self.assertEqual(result["systemImage"], None if suite == "build" else image)
+                self.assertEqual(result["componentSuite"], None if suite == "build" else suite)
+                self.assertEqual(result["componentOnly"], suite not in ("ui", "build"))
+                self.assertEqual(result["diagnosticComparison"], suite != "build" and image == "default")
+        artifact = self.steps["Preserve build diagnostics even when a gate fails"]
+        expression = re.search(r"\$\{\{(.*?)\}\}", artifact)[1]
+        self.assertEqual(self.expression(expression, {"inputs.target": "tablet-build-only", "matrix.suite": "build"}),
+                         "build-only-no-native-acceptance")
+
     def test_tablet_uses_current_checkout_but_keeps_historical_oracle(self):
         workflow = (ROOT.parent / ".github/workflows/ports-2.0.30.yml").read_text()
         _, tablet = workflow.split("\n  tablet:", 1)
