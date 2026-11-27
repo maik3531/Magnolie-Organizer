@@ -22,6 +22,7 @@ import magnolie_telefon as phone
 from magnolie_media_retention import NativeMediaRetention
 from magnolie_native_book_json import book_hash, canonical_book
 from magnolie_personal_actor_store import NativeBookOwnerScope
+from magnolie_photo_destination import NativePhotoDestinationController
 
 
 def saved_book_inputs_for_root(root):
@@ -245,6 +246,10 @@ def test_native_photo_picker_before_successful_enable(native,tmp_path,monkeypatc
         assert channel not in service._native_file_connections
         before=None
         if case.endswith('failed_enable'):
+            choose_default=NativePhotoDestinationController.choose_default
+            def choose_fixture_default(controller,action):
+                return choose_default(controller,action,pictures_provider=lambda:pictures)
+            monkeypatch.setattr(NativePhotoDestinationController,'choose_default',choose_fixture_default)
             service.photo_sync_action(peer_id,fingerprint,dict(action='enable'))
             connection=service._native_file_connections[channel];assert connection.desktop_session().join(20)
             stand=service.photo_sync_state(peer_id)

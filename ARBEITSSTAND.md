@@ -60,6 +60,9 @@ aufgeführt.
   Beim Start bleibt das gewählte Ziel erhalten; ein am selben Pfad
   ausgetauschter Ordner hält den Lauf an. Die Original-MP4-Übertragung
   in das gewählte Ziel und 14 DOM-Fälle sind geprüft.
+  Alle 23 nativen Ordnerdialogfälle bestehen mit einem ausdrücklich
+  gebundenen Test-Standardordner, einschließlich beider Altpfade nach
+  einer abgelehnten Aktivierung.
   Eine private Windows-Quellprüfung mit synthetischer Gegenstelle
   bestätigt den WLAN-Wiederanlauf nach bewusster Einrichtung. Die
   neue Verbindung wartet auf ihre eigene Bestätigung und prüft den
