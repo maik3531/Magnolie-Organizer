@@ -20,6 +20,8 @@ plugins {
  */
 val fdroidBau = providers.gradleProperty("magnolieFdroid")
     .map { it.toBooleanStrict() }.getOrElse(false)
+val privatePcVideoReceive = providers.gradleProperty("magnoliePrivatePcVideoReceive")
+    .map { it.toBooleanStrict() }.getOrElse(false)
 // #691: an explicit, unsigned, offline migration candidate; not release approval.
 // Reuse the locked release configuration instead of adding new dependency variants.
 val target37Validierung = providers.gradleProperty("magnolieTarget37Validation")
@@ -70,6 +72,7 @@ android {
         versionCode = 21
         versionName = "1.0.21"
         buildConfigField("boolean", "FDROID_DISTRIBUTION", fdroidBau.toString())
+        buildConfigField("boolean", "PRIVATE_PC_VIDEO_RECEIVE", privatePcVideoReceive.toString())
         testInstrumentationRunner = "io.gitlab.maik3531.magnolienotes.MagnolieTestRunner"
         resourceConfigurations += listOf(
             "ar", "be", "cs", "da", "de", "en", "es", "fr", "hi", "hsb",

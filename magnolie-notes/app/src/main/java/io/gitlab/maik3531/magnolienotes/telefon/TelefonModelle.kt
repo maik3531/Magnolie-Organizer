@@ -148,6 +148,8 @@ data class TelefonUiZustand(
     val sharedPreferencesValues: JsonObject? = null,
     val sharedPreferencesInitial: JsonObject? = null,
     val mediaPreferencesSupported: Boolean = false,
+    val mediaPreferencesSettingsOnly: Boolean = false,
+    val privatePcVideoReceiveReady: Boolean = false,
     val mediaPreferencesReady: Boolean = false,
     val mediaPreferencesValues: JsonObject? = null,
     val mediaPreferencesVersions: Map<String, String> = emptyMap(),

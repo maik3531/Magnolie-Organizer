@@ -513,16 +513,26 @@ class NativeGalleryIncomingRuntimeTest {
     }
 
     private class Harness(joined: Boolean = true, localConsent: Boolean = joined,
-        collectionMode: String = "entire_collection") : AutoCloseable {
+        collectionMode: String = "entire_collection", videoBytes: ByteArray? = null) : AutoCloseable {
         val helper = NativeGalleryIncomingTransferTest()
         val link = NativeGalleryIncomingTransferTest.Link()
         val f = GalleryReceiveConsentTest.Fixture(link.channel)
-        val raw = helper.png()
+        val kind = if (videoBytes == null) GalleryMediaType.IMAGES else GalleryMediaType.VIDEO
+        private val extension = if (kind == GalleryMediaType.IMAGES) "png" else "mp4"
+        private val mime = if (kind == GalleryMediaType.IMAGES) "image/png" else "video/mp4"
+        val raw = videoBytes ?: helper.png()
         var servingRaw = raw
-        val manifest = helper.manifest(f.pc.deviceId, raw)
-        val token = helper.intent(collectionMode)
-        val file = File(f.root, "runtime-native.png")
-        val provider = GalleryIncomingRowsTest.Provider(f.app, payload = file).apply { allowPublish = true }
+        val manifest = helper.manifest(f.pc.deviceId, raw, "original.$extension")
+        val token = helper.intent(collectionMode).let { initial ->
+            if (videoBytes == null) initial else {
+                val a = "11111111-1111-4111-8111-111111111111"
+                val b = "22222222-2222-4222-8222-222222222222"
+                val video = MediaSyncSettings.change(initial.body, a, b, "videos_enabled", JsonPrimitive(true))
+                MediaSyncTransport.IntentToken(MediaSyncSettings.change(video, a, b, "photos_enabled", JsonPrimitive(false)))
+            }
+        }
+        val file = File(f.root, "runtime-native.$extension")
+        val provider = GalleryIncomingRowsTest.Provider(f.app, kind, file).apply { allowPublish = true }
         val identity = NativeFileControlIdentity("phone_fixture_0001", "a".repeat(64))
         private val pcPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, "f".repeat(64))
         private var pcLocal = NativeLocalFileGrant(DeviceFileGrantState(3, "d".repeat(64), true, true), Any(), true)
@@ -540,6 +550,7 @@ class NativeGalleryIncomingRuntimeTest {
         private var connection: NativeGalleryFileConnection? = null
         init {
             if (joined && localConsent) helper.grant(f)
+            if (videoBytes != null) f.peer = f.peer.copy(videoSupported = true)
             ShadowContentResolver.registerProviderInternal("media", provider)
             runtime = if (joined) NativeGalleryFileRuntime.withIncomingMedia(f.app, f.indexRoot, identity, f.protection, link.channel,
                 { f.peer }, { true }, { true }, { token }, { incomingHook(); incomingToken }, { true })
@@ -631,8 +642,8 @@ class NativeGalleryIncomingRuntimeTest {
         fun pcOffer(selected: DeviceFileManifest = manifest, origin: String = "a".repeat(64), previous: String? = null): JsonObject {
             val offer = DeviceFileOfferEnvelope.create(selected)
             return JsonObject(offer + mapOf("kind" to JsonPrimitive(MediaOfferEnvelope.KIND), "body" to buildJsonObject {
-                put("format", 2); put("offer", offer.getValue("body")); put("settings", token.body); put("media_type", "images")
-                put("mime_types", buildJsonObject { put("1".repeat(32), "image/png") }); put("originals", buildJsonObject {})
+                put("format", 2); put("offer", offer.getValue("body")); put("settings", token.body); put("media_type", kind.uriSegment)
+                put("mime_types", buildJsonObject { put("1".repeat(32), mime) }); put("originals", buildJsonObject {})
                 put("pc_origins", buildJsonObject { put("1".repeat(32), buildJsonObject {
                     put("format", 1); put("origin_sha256", origin); put("previous_publication_sha256", previous?.let(::JsonPrimitive) ?: JsonNull)
                 }) })
@@ -662,7 +673,8 @@ class NativeGalleryIncomingRuntimeTest {
             if (!incomingAgreement) DeviceFileControl.fail("gallery_incoming_current_intent_required")
         }, requestPcReplacement = { connection, message ->
             (pcOfferUi ?: error("No PC replacement UI attached"))(connection, message)
-        }) { }.also {
+        }, privatePcVideoIntent = if (kind == GalleryMediaType.VIDEO) ({ incomingToken as? MediaSyncTransport.IntentToken })
+            else null) { }.also {
             it.bind(runtime); connection = it
         }
         fun startDispatched(offer: JsonObject = mediaOffer()) = checkNotNull(nativeConnection().receiveIncomingMedia(link.channel, link.receive(offer), f::book)).also { run = it }
@@ -686,6 +698,94 @@ class NativeGalleryIncomingRuntimeTest {
             inspection?.let { check(it.awaitIoEnded(10000)) }
             connection?.close(); runtime.close(); pc.close(); f.close(); link.close()
             Shadows.shadowOf(Looper.getMainLooper()).idle()
+        }
+    }
+
+    internal fun originalMp4(): ByteArray = java.util.Base64.getMimeDecoder().decode("""
+        AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMVbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAA+gAAQAAAQAAAAAA
+        AAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAj90cmFr
+        AAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA
+        AABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAPoAAAAAAABAAAAAAG3bWRpYQAAACBtZGhkAAAAAAAAAAAAAAAA
+        AABAAAAAQABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABYm1pbmYAAAAUdm1oZAAAAAEA
+        AAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAASJzdGJsAAAAvnN0c2QAAAAAAAAAAQAAAK5hdmMxAAAA
+        AAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2MC4zMS4xMDIgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAA
+        NGF2Y0MBZAAK/+EAF2dkAAqs2V7ARAAAAwAEAAADAAg8SJZYAQAGaOvjyyLA/fj4AAAAABBwYXNwAAAAAQAAAAEAAAAUYnRydAAAAAAA
+        AADQAAAA0AAAABhzdHRzAAAAAAAAAAEAAAABAABAAAAAABxzdHNjAAAAAAAAAAEAAAABAAAAAQAAAAEAAAAUc3RzegAAAAAAAAAaAAAA
+        AQAAABRzdGNvAAAAAAAAAAEAAANFAAAAYnVkdGEAAABabWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAbWRpcmFwcGwAAAAAAAAAAAAAAAAt
+        aWxzdAAAACWpdG9vAAAAHWRhdGEAAAABAAAAAExhdmY2MC4xNi4xMDAAAAAIZnJlZQAAACJtZGF0AAAAFmWIhAAV//7sz34FNyA8i/WU
+        CHS1b4E=
+    """.trimIndent())
+
+    internal fun prepareVideoMetadata(provider: GalleryIncomingRowsTest.Provider, file: File) {
+        provider.afterReadOpen = {
+            val source = org.robolectric.shadows.util.DataSource.toDataSource(provider.lastReadDescriptor!!, 0, file.length())
+            val metadata = android.media.MediaMetadataRetriever::class.java
+            mapOf("MIMETYPE" to "video/mp4", "HAS_VIDEO" to "yes", "VIDEO_WIDTH" to "16",
+                "VIDEO_HEIGHT" to "16", "DURATION" to "1000").forEach { (key, value) ->
+                org.robolectric.shadows.ShadowMediaMetadataRetriever.addMetadata(source, metadata.getField("METADATA_KEY_$key").getInt(null), value)
+            }
+            org.robolectric.shadows.ShadowMediaExtractor.addTrack(source,
+                android.media.MediaFormat.createVideoFormat("video/avc", 16, 16), byteArrayOf())
+        }
+    }
+
+    @Test fun privateVideoDispatcherUsesSeparateReceiveThenOffersExactSavedAndReadback() {
+        Harness(localConsent = false, videoBytes = originalMp4()).use { h ->
+            h.pcSendOnly()
+            h.nativeConnection()
+            fun start(packet: JsonObject) = h.f.io { h.startDispatched(packet) }
+            val before = h.link.frames.size
+            val noReceive = start(h.pcOffer())
+            assertTrue(noReceive.awaitIoEnded(10000))
+            assertNotNull(noReceive.nativeFailure())
+            assertNull(noReceive.actualSavedOutput())
+            assertEquals(before, h.link.frames.size)
+            assertEquals(0, h.provider.inserts)
+
+            val consent = h.positive(GalleryMediaType.VIDEO)
+            h.f.io { h.runtime.grantReceiving(h.runtime.savedPolicy(), consent) }
+            h.handshake()
+            h.assertReceiveOnly()
+            prepareVideoMetadata(h.provider, h.file)
+            val packet = h.pcOffer()
+            val run = start(packet)
+            assertTrue(run.awaitIoEnded(10000)); run.nativeFailure()?.let { throw it }
+            val saved = DeviceFileSavedEnvelope.parse(run.actualSavedOutput()!!, h.manifest)
+            assertTrue(run.awaitAutomaticReadbackStart(5000))
+            val readback = run.automaticReadbackRun()!!.also { h.inspection = it }
+            assertTrue(readback.awaitIoEnded(10000)); readback.nativeFailure()?.let { throw it }
+            val response = readback.actualReadbackOutput()!!
+            val body = response.getValue("body").jsonObject
+            val offer = MediaOfferEnvelope.validatePrivatePcVideoOriginal(packet, h.f.pc.deviceId, h.identity.deviceId).offer
+            DevicePublishedReadbackEnvelope.parse(response, offer,
+                h.readbackBinding(body.string("destination_token")), GalleryMediaType.VIDEO)
+            assertEquals(packet["message_id"], body["offer_id"])
+            assertEquals(saved.members.single().receiptSha256, body.string("publication_sha256"))
+            assertTrue(response.long("expires_ms") <= saved.expires && saved.expires <= packet.long("expires_ms"))
+            assertArrayEquals(h.raw, h.file.readBytes())
+            assertEquals(1, h.provider.inserts)
+            assertEquals(1, h.provider.publishes)
+            assertEquals(0, h.provider.rwOpens)
+        }
+    }
+
+    @Test fun privateVideoDispatcherWakesPendingChunkWhenTheOriginalIntentChanges() {
+        Harness(localConsent = false, videoBytes = originalMp4()).use { h ->
+            h.pcSendOnly()
+            val connection = h.nativeConnection()
+            val consent = h.positive(GalleryMediaType.VIDEO)
+            h.f.io { h.runtime.grantReceiving(h.runtime.savedPolicy(), consent) }
+            h.handshake()
+            h.respond = false
+            val run = h.f.io { h.startDispatched(h.pcOffer()) }
+            assertTrue(h.requested.await(5000, TimeUnit.MILLISECONDS))
+            h.incomingToken = MediaSyncTransport.IntentToken(h.token.body)
+            h.f.io { connection.retireChangedPrivatePcVideo() }
+            assertTrue(run.awaitIoEnded(5000))
+            assertTrue(run.cancelRequested)
+            assertNull(run.actualSavedOutput())
+            assertEquals(0, h.provider.publishes)
+            assertEquals(0, h.provider.rwOpens)
         }
     }
 

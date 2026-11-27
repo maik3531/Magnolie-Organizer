@@ -1,6 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 
@@ -23,6 +24,15 @@ internal class NativeMediaSettingsLane(
     @Volatile private var intent: MediaSyncTransport.IntentToken? = null
 
     private fun requireCurrent() = check(!failed && ready()) { "media_shared_original_reader_retired" }
+
+    @Synchronized fun change(field: String, value: JsonElement, expectedVersion: String) {
+        requireCurrent()
+        require(field != "skip_deletions")
+        intent = null
+        storage.change(binding, field, value, expectedVersion)
+        sendSettings()
+        publish()
+    }
 
     private fun sendSettings() {
         requireCurrent()

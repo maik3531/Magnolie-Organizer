@@ -58,6 +58,42 @@ class MediaOfferEnvelopeTest {
         assertTrue(MediaOfferEnvelope.validate(selected, a, b, vector.long("now")).originals.isEmpty())
     }
 
+    @Test fun privateTypedVideoAcceptsOnlyOneNewPcOriginalWithoutUsingImageBatch() {
+        val fixture = vector()
+        val base = fixture.getValue("message").jsonObject
+        val now = fixture.long("now")
+        val pc = Json.parseToJsonElement(File("../contracts/media-pc-origin-v1-vectors.json").readText())
+            .jsonObject.getValue("pc_origins")
+        var settings = base.getValue("body").jsonObject.getValue("settings").jsonObject
+        for ((field, value) in listOf("collection_mode" to JsonPrimitive("entire_collection"),
+            "direction" to JsonPrimitive("pc_to_phone"), "videos_enabled" to JsonPrimitive(true),
+            "photos_enabled" to JsonPrimitive(false))) {
+            settings = MediaSyncSettings.change(settings, a, b, field, value)
+        }
+        var selected = base
+        for ((key, value) in listOf("format" to JsonPrimitive(2), "settings" to settings,
+            "originals" to buildJsonObject {}, "pc_origins" to pc, "media_type" to JsonPrimitive("video"),
+            "mime_types" to buildJsonObject { put(fileId, "video/mp4") })) {
+            selected = body(selected, key, value)
+        }
+        fun validate(message: JsonObject) = MediaOfferEnvelope.validatePrivatePcVideoOriginal(message, a, b, now)
+        val admitted = validate(selected)
+        assertEquals(GalleryMediaType.VIDEO, admitted.kind)
+        assertFalse(admitted.pcBatch)
+        assertEquals("video/mp4", admitted.mimeTypes.getValue(fileId))
+        assertNull(admitted.pcOrigins.getValue(fileId).previousPublication)
+        for ((field, value) in listOf("enabled" to JsonPrimitive(false), "videos_enabled" to JsonPrimitive(false),
+            "photos_enabled" to JsonPrimitive(true), "direction" to JsonPrimitive("two_way"),
+            "collection_mode" to JsonPrimitive("import_only"))) {
+            reject { validate(body(selected, "settings", MediaSyncSettings.change(settings, a, b, field, value))) }
+        }
+        for (format in listOf(1, 3)) reject { validate(body(selected, "format", JsonPrimitive(format))) }
+        val origin = pc.jsonObject.getValue(fileId).jsonObject
+        val replacement = JsonObject(origin + ("previous_publication_sha256" to JsonPrimitive("d".repeat(64))))
+        reject { validate(body(selected, "pc_origins", buildJsonObject { put(fileId, replacement) })) }
+        reject { validate(body(selected, "mime_types", buildJsonObject { put(fileId, "video/webm") })) }
+    }
+
     @Test fun offerStillValidatesEveryRegisterEvenWhenThatMediaTypeIsNotSelected() {
         val fixture = vector(); val message = fixture.getValue("message").jsonObject; val now = fixture.long("now")
         val settings = message.getValue("body").jsonObject.getValue("settings").jsonObject

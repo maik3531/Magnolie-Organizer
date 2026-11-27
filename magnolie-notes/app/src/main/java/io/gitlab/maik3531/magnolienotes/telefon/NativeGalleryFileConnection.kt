@@ -3,6 +3,7 @@ package io.gitlab.maik3531.magnolienotes.telefon
 import android.os.Handler
 import android.os.Looper
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -14,9 +15,10 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
     private val requireIncomingAgreement: () -> Unit = {},
      private val requestPcReplacement: (NativeGalleryFileConnection, JsonObject) -> Unit = { _, _ ->
          DeviceFileControl.fail("gallery_pc_write_foreground_required")
-     },
-     internal val mediaAgreement: NativeGalleryMediaAgreement? = null,
-     private val released: (NativeGalleryFileConnection) -> Unit) : AutoCloseable {
+      },
+      internal val mediaAgreement: NativeGalleryMediaAgreement? = null,
+      private val privatePcVideoIntent: (() -> MediaSyncTransport.IntentToken?)? = null,
+      private val released: (NativeGalleryFileConnection) -> Unit) : AutoCloseable {
     private val ended = AtomicBoolean(false)
     private val permissionQueued = AtomicBoolean(false)
     private val cleanupReported = AtomicBoolean(false)
@@ -44,6 +46,14 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
         return when (message.string("kind")) {
             MediaOfferEnvelope.KIND -> {
                 val selected = runtime
+                if ((privatePcVideoIntent != null || mediaAgreement is NativeMediaSettingsLane) &&
+                    (message["body"] as? JsonObject)?.get("media_type") == JsonPrimitive(GalleryMediaType.VIDEO.uriSegment)) {
+                    val original = privatePcVideoReceiveIntent()
+                        ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
+                    return selected.beginPrivatePcVideoOriginal(message, book(), original) {
+                        bound === selected && privatePcVideoReceiveIntent() === original
+                    }
+                }
                 if (selected.isPcReplacementOffer(message)) {
                     if (!pcUiQueued.compareAndSet(false, true)) DeviceFileControl.fail("gallery_pc_worker_busy")
                     if (!Handler(Looper.getMainLooper()).post {
@@ -62,6 +72,13 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
             }
             else -> DeviceFileControl.fail("gallery_incoming_unexpected_message")
         }
+    }
+
+    internal fun privatePcVideoReceiveIntent(): MediaSyncTransport.IntentToken? =
+        if (ended.get()) null else privatePcVideoIntent?.invoke()?.takeIf { it.privatePcVideoOnly() }
+
+    internal fun retireChangedPrivatePcVideo() {
+        if (privatePcVideoIntent != null && !ended.get()) bound?.retireChangedIncomingOwners()
     }
 
     internal fun installPcUiJob(job: kotlinx.coroutines.Job) {

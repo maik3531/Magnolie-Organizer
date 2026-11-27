@@ -28,6 +28,19 @@ internal class GalleryPcMediaOrigin private constructor(internal val body: JsonO
 internal object MediaOfferEnvelope {
     const val KIND = "file_transfer.media_offer"
 
+    internal fun validatePrivatePcVideoOriginal(message: JsonObject, senderId: String, receiverId: String,
+        now: Long = System.currentTimeMillis()): NativeMediaOffer {
+        val body = message["body"] as? JsonObject ?: fail()
+        if (body["format"] != JsonPrimitive(2)) fail()
+        val media = validate(message, senderId, receiverId, now)
+        val file = media.manifest.files.singleOrNull() ?: fail()
+        if (media.kind != GalleryMediaType.VIDEO || file.size <= 0 || media.originals.isNotEmpty() ||
+            media.pcOrigins.size != 1 || media.pcOrigins[file.id]?.body?.get("previous_publication_sha256") != JsonNull ||
+            media.mimeTypes[file.id] != "video/mp4" ||
+            !MediaSyncTransport.IntentToken(media.settings).privatePcVideoOnly()) fail()
+        return media
+    }
+
     fun validate(message: JsonObject, senderId: String, receiverId: String,
         now: Long = System.currentTimeMillis(), allowPcBatch: Boolean = false): NativeMediaOffer {
         if (TelefonKanonisch.bytes(message).size > TelefonParameter.ANWENDUNG_MAX ||

@@ -63,10 +63,10 @@ class NativeGalleryIncomingTransferTest {
         return try { ByteArrayOutputStream().use { output -> check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)); output.toByteArray() } }
             finally { bitmap.recycle() }
     }
-    internal fun manifest(peer: String, bytes: ByteArray) = DeviceFileManifest.parse(buildJsonObject {
+    internal fun manifest(peer: String, bytes: ByteArray, name: String = "original.png") = DeviceFileManifest.parse(buildJsonObject {
         put("format", 1); put("chunk_bytes", 65536); put("total_bytes", bytes.size); put("transfer_id", "2".repeat(32)); put("source_id", "3".repeat(32))
         put("sender_id", peer); put("receiver_id", "phone_fixture_0001")
-        put("files", JsonArray(listOf(buildJsonObject { put("id", fileId); put("path", "original.png"); put("size", bytes.size)
+        put("files", JsonArray(listOf(buildJsonObject { put("id", fileId); put("path", name); put("size", bytes.size)
             put("sha256", MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }) })))
     })
     internal fun intent(collectionMode: String = "entire_collection"): MediaSyncTransport.IntentToken {

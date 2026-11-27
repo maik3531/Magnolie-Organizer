@@ -102,8 +102,9 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
          val receiving = enabled && telefon.mediaPreferencesReady && !telefon.mediaManualBusy && android.os.Build.VERSION.SDK_INT >= 30 &&
             values["collection_mode"] != JsonPrimitive("import_only") &&
              values["direction"] == JsonPrimitive("pc_to_phone")
-        for ((kind, key, label) in listOf(Triple(GalleryMediaType.IMAGES, "photos_enabled", R.string.medien_sync_fotos),
-            Triple(GalleryMediaType.VIDEO, "videos_enabled", R.string.medien_sync_videos))) {
+         for ((kind, key, label) in listOf(Triple(GalleryMediaType.IMAGES, "photos_enabled", R.string.medien_sync_fotos),
+             Triple(GalleryMediaType.VIDEO, "videos_enabled", R.string.medien_sync_videos))) {
+             if (telefon.mediaPreferencesSettingsOnly && (kind != GalleryMediaType.VIDEO || !telefon.privatePcVideoReceiveReady)) continue
             Papierknopf(stringResource(label) + " · " + stringResource(R.string.medien_empfang_erlauben), Modifier.fillMaxWidth(),
                 aktiv = receiving && flag(key)) { beiEmpfang(kind) }
             Papierknopf(stringResource(label) + " · " + stringResource(R.string.medien_pc_archiv_kopie), Modifier.fillMaxWidth(),
@@ -115,7 +116,8 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
         if (telefon.mediaManualBusy) Text(stringResource(R.string.baum_wartet), color = Magnolie.braunHell)
         if (telefon.mediaManualState in setOf("held", "review")) Text(stringResource(R.string.media_recovery_uncertain), color = Magnolie.braunHell)
         Papierknopf(stringResource(R.string.personal_sync_jetzt), Modifier.fillMaxWidth(),
-             aktiv = enabled && !twoWayHeld && (flag("photos_enabled") || flag("videos_enabled")) && telefon.mediaPreferencesReady && !telefon.mediaManualBusy,
+             aktiv = enabled && !telefon.mediaPreferencesSettingsOnly && !twoWayHeld &&
+                 (flag("photos_enabled") || flag("videos_enabled")) && telefon.mediaPreferencesReady && !telefon.mediaManualBusy,
             beiKlick = beiSynchronisieren)
     }
 }

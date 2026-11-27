@@ -213,6 +213,11 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
      * can still be OFF; the ticket itself never enables it or accepts an offer. */
     fun receiveConfigurationTicket(): NativeFileConfigurationTicket = synchronized(authorityMonitor) { newConfigurationTicket(true) }
 
+    fun receiveSetupReady(): Boolean = synchronized(authorityMonitor) {
+        val (current, _, received) = agreed() ?: return@synchronized false
+        current.pairingEpoch != null && receiveHandlersReady() && received.grants.sendFiles && configurations.isEmpty()
+    }
+
     private fun newConfigurationTicket(receiving: Boolean): NativeFileConfigurationTicket {
         val (current, _, received) = agreed() ?: DeviceFileControl.fail("file_control_configuration_not_ready")
         if ((if (receiving) current.pairingEpoch == null || !receiveHandlersReady() || !received.grants.sendFiles else !received.grants.receiveFiles) ||

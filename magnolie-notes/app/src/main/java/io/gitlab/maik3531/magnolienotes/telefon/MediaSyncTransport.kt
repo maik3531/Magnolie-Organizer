@@ -28,6 +28,8 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
             values.string("direction") == "phone_to_pc"
         internal fun requestedIncoming(mediaType: GalleryMediaType): Boolean = requested(mediaType) &&
             values.string("direction") == "pc_to_phone"
+        internal fun privatePcVideoOnly(): Boolean = collectionMode == "entire_collection" &&
+            requestedIncoming(GalleryMediaType.VIDEO) && !requested(GalleryMediaType.IMAGES)
     }
     @Volatile private var currentIntent: IntentToken? = null
     private data class ManualRequest(val id: String, val intent: IntentToken, val started: Long)

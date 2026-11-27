@@ -121,6 +121,14 @@ aufgeführt.
   des Hello und die ursprüngliche Zehn-Sekunden-Frist gelten weiter.
   32 Linux- und 33 Notes-Release-JVM-Prüfungen sowie drei gekoppelte
   Linux/Notes-Reader-Fälle einschließlich WLAN-Wiederverbindung bestanden.
+  Der separat aktivierbare Notes-Empfang einer einzelnen Original-MP4
+  braucht Marker 22, die bestätigte WLAN-Einstellung und eine eigene
+  Video-Empfangsfreigabe. Zwei verschlüsselte Dispatcher-Fälle bestätigten
+  bytegleiches Speichern, Rücklesen und Abbruch bei Einstellungswechsel.
+  Mit dem verifizierten Linux-Quellsender bestand der gekoppelte Lauf
+  einschließlich Android-Testdialog, Saved, Rücklesen, Quellenabschluss
+  und unveränderter Wiederholung. Mischversand und die installierte
+  Windows/Notes-Gegenprobe bleiben offen.
   Die Prüfung mit installierten Paketen bleibt offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte

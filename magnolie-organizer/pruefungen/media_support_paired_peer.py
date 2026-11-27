@@ -8,6 +8,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from test_telefon import FakeBluetooth, _complete_peer
+from magnolie_file_control import KIND as FILE_CONTROL_KIND, VIDEO_DISCOVERY_VERSION, FileControlPacket, FileGrantState
 from magnolie_file_desktop_connection import NativeDesktopFileConnection
 import magnolie_telefon as phone
 from magnolie_telefon import (PAIR_FRAME_MAX, PhoneService, native_file_pairing_epoch,
@@ -20,8 +21,19 @@ class Desktop(PhoneService):
     test_settings = False
     settings_owner = None
     resumed = False
+    video_sender = False
+    video_control_sent = False
+    closed_video_owner = False
 
     def _payload(self, peer, channel, payload, scoped_reference=None):
+        if self.video_control_sent and payload.get('kind') == FILE_CONTROL_KIND:
+            grants = FileControlPacket.parse(payload['body']).grants
+            assert not grants.send_files and not grants.receive_files
+            if not self.closed_video_owner:
+                self.closed_video_owner = True
+                self.ping = str(uuid4())
+                channel.send(dict(type='ping', ping_id=self.ping, sent_ms=now_ms()))
+            return
         super()._payload(peer, channel, payload, scoped_reference)
         attempt = self._native_media_support.get(channel)
         if self.ping is None and attempt is not None and attempt.supports(channel):
@@ -41,6 +53,12 @@ class Desktop(PhoneService):
                         assert before['values']['enabled'] is True
                     else:
                         self.settings_owner._media_transport.change('enabled', True)
+                        if self.video_sender:
+                            for field, value in (
+                                ('collection_mode', 'entire_collection'), ('direction', 'pc_to_phone'),
+                                ('photos_enabled', False), ('videos_enabled', True),
+                            ):
+                                self.settings_owner._media_transport.change(field, value)
                     self.settings_owner._media_transport.send_settings()
                 owner = self.settings_owner
                 state = owner.desktop_snapshot()['shared_media']
@@ -49,6 +67,15 @@ class Desktop(PhoneService):
                 assert state['values']['enabled'] is True
                 assert owner._media_source is None and owner._desktop_session is None
                 assert owner._preferences.read().policy is None
+                if self.video_sender:
+                    assert state['values']['videos_enabled'] and not state['values']['photos_enabled']
+                    if not self.video_control_sent:
+                        self.video_control_sent = True
+                        at = now_ms()
+                        control = FileControlPacket(FileGrantState(1, 'a'*64, send_files=True), 'b'*64, 1, None)
+                        channel.send(dict(type='message', v=1, kind=FILE_CONTROL_KIND, message_id=str(uuid4()),
+                                          created_ms=at, expires_ms=at+10_000, body=control.wire()))
+                    return
             else:
                 assert not self._native_file_connections
             self.ping = str(uuid4())
@@ -59,11 +86,12 @@ class Desktop(PhoneService):
             channel.send(dict(type='close', reason='normal'))
 
 
-def main(test_settings=False, reconnect=False):
+def main(test_settings=False, reconnect=False, video_sender=False):
     with TemporaryDirectory(prefix='magnolie-media-paired-') as root, socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         listener.bind(('127.0.0.1', 0)); listener.listen(1); listener.settimeout(10)
         service = Desktop(str(Path(root) / 'telefon'), 'Isolated desktop', bluetooth_backend=FakeBluetooth())
         service.test_settings = test_settings
+        service.video_sender = video_sender
         service.enabled = service._native_media_support_checked = service._native_photo_built = True
         service.native_screen_included = False
         NativeDesktopFileConnection._data_handlers_ready = True
@@ -76,6 +104,14 @@ def main(test_settings=False, reconnect=False):
         peer['personal_sync'].update(own_device=True, remote_own_device=True)
         service.store.peers = [peer]
         service.store.save_peers()
+        desktop_capabilities = phone.desktop_capabilities
+
+        def fixture_capabilities(*args, **kwargs):
+            capabilities = desktop_capabilities(*args, **kwargs)
+            if video_sender:
+                capabilities['items']['device_status']['versions'].append(VIDEO_DISCOVERY_VERSION)
+            return capabilities
+
         for resumed in range(2 if reconnect else 1):
             service.resumed = bool(resumed)
             service.ping = service.settings_owner = None
@@ -86,15 +122,18 @@ def main(test_settings=False, reconnect=False):
                 try:
                     # Model a photo-capable desktop composition in this disposable
                     # process, without editing or reading a user's build configuration.
-                    with patch.object(phone.optional_phone, 'available', lambda name: name == 'photo_sync'):
+                    with (patch.object(phone.optional_phone, 'available', lambda name: name == 'photo_sync'),
+                          patch.object(phone, 'desktop_capabilities', fixture_capabilities)):
                         service._session(client, start)
                 except EOFError:
                     if not service.heartbeat:
                         raise
             assert service.heartbeat and not service._native_media_support and not service._native_file_connections
+            assert not video_sender or service.closed_video_owner
             print('same-parent-pong', flush=True)
 
 
 if __name__ == '__main__':
-    assert sys.argv[1:] in ([], ['--settings'], ['--reconnect'])
-    main(test_settings=bool(sys.argv[1:]), reconnect=sys.argv[1:] == ['--reconnect'])
+    assert sys.argv[1:] in ([], ['--settings'], ['--reconnect'], ['--video-sender'])
+    main(test_settings=bool(sys.argv[1:]), reconnect=sys.argv[1:] == ['--reconnect'],
+         video_sender=sys.argv[1:] == ['--video-sender'])
