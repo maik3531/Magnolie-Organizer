@@ -51,7 +51,10 @@ aufgeführt.
   Linux-Prüffälle bestanden. Der anschließende Quelltest mit dem
   vorgesehenen Notes-Stand bestätigte Wiederverbindung und
   verspätete Duplikate beider Leser ohne Transfer.
-  Die Abnahme der installierten Pakete bleibt offen.
+  Das [Upgrade des privaten Linux-Pakets](https://github.com/maik3531/Magnolie-Organizer/issues/330#issuecomment-7216108304)
+  auf Debian 13 bestand mit 15 bestätigten installierten Prüfsummen
+  und regulärem Fensterschluss. Die Abnahme mit installiertem Notes
+  und der echte Originaltransfer stehen aus.
   Fünf Notes-Tests für den getrennten lesenden Galerieentwurf
   bestanden. Alte Telefonreferenzen bleiben vom Neuimport getrennt.
   Rückschreiben in dieselbe Galeriezeile ist weiterhin offen.
