@@ -17,6 +17,12 @@
   privaten DEB. Auf `work/330-linux-settings-on-user-deb`
   (`f1ad42a6138671a4c2a5cda70c09eac3d562a34a`) sind 30 verschlüsselte
   Linux-Prüffälle bestanden. Abnahme des daraus gebauten Paars offen.
+- [#753](https://github.com/maik3531/Magnolie-Organizer/issues/753):
+  Die optionale Messung ist ausschließlich im Test aktiv. Elf
+  Recorderprüfungen und die automatische Bildprobe bestanden.
+  Die Bildprobe benötigte 11,862 Sekunden Ereigniswartezeit bei
+  unverändertem 12-Sekunden-Limit. Das ist keine Beschleunigung
+  und kein Nachweis am installierten Paket.
 
 ## Linux-Telefonstatus und lokale Buchspeicherung – 27. November 2026
 

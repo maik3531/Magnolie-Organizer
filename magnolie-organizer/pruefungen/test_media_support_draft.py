@@ -368,7 +368,7 @@ def test_legacy_rejection_does_not_stop_the_authenticated_parent(tmp_path, monke
 @pytest.mark.parametrize('transport,direction,kind,automatic', [
     ('wifi','two_way','images',False),('wifi','phone_to_pc','images',False),('wifi','phone_to_pc','video',False),
     ('wifi','phone_to_pc','images',True),('bluetooth','two_way','images',False)])
-def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox(native, monkeypatch, tmp_path, transport, direction, kind, automatic):
+def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox(native, monkeypatch, tmp_path, transport, direction, kind, automatic, photo_receive_timing):
     service, peer, _ = native
     peer['capabilities'] = legacy_state()
     service.store.save_peers()
@@ -436,7 +436,7 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
                     assert session.snapshot()['state']=='held' and session.snapshot()['error']==expected
                 assert connection._preferences.read().policy is None
                 if direction=='phone_to_pc':
-                    exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_path,deliver,kind,monkeypatch,automatic=automatic)
+                    exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_path,deliver,kind,monkeypatch,automatic=automatic,timing=photo_receive_timing)
                 send_seq=channel.send_seq
                 withdrawn=dict(offer(phone.now_ms()),kind='personal_sync.settings',body=dict(format=1,own_device=False))
                 service._observe_native_file_control(peer,channel,withdrawn['kind'],withdrawn,acknowledged=False)
@@ -489,7 +489,7 @@ def exercise_private_reconnect(service,peer):
         finally:service._end_native_file_connection(channel)
 
 
-def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_path,deliver,kind,monkeypatch,*,automatic):
+def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_path,deliver,kind,monkeypatch,*,automatic,timing=None):
     from dataclasses import replace
     from hashlib import sha256
     from io import BytesIO
@@ -534,9 +534,11 @@ def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_p
             def observe(owner,active):
                 assert owner is session
                 activity.append(active)
+                if timing is not None:timing.event('activity_started' if active else 'activity_ended')
                 if not active:ended.set()
             connection._activity_changed=observe
             assert session._timer is None and session._schedule.mode=='manual'
+        if timing is not None:timing.start()
         assert connection.send_controls()
         remote.observe_remote(FileControlPacket.parse(wire.receive()['body']),pc)
         packet=remote.packet();at=phone.now_ms()
@@ -550,6 +552,7 @@ def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_p
         commands=[]
         def metadata(message):
             operation=message['body']['operation'];commands.append(operation)
+            if timing is not None and operation in ('status','discover'):timing.event(operation)
             if operation=='status':
                 video_fields={'videos':dict(enabled=True,revision=1)} if kind=='video' else {}
                 deliver(response(message,sources.RESULT,version='b'*64,revision=2,enabled=True,associated=True,
@@ -574,9 +577,15 @@ def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_p
             def phone_with_batches(batches,**options):return phone_batches(fixture,batches,**options)
         first=replace(seed.files[0],path=path,size=len(original),sha256=sha256(original).hexdigest())
         batch=replace(seed,files=(first,),total_bytes=len(original))
-        with phone_with_batches([batch],metadata_handler=metadata,content=original,wire=wire) as (chunks,saved,_,_,errors):
+        measurement={'observe':timing.event} if timing is not None else {}
+        with phone_with_batches([batch],metadata_handler=metadata,content=original,wire=wire,**measurement) as (chunks,saved,_,_,errors):
             if automatic:
-                assert session._schedule.mode=='automatic' and ended.wait(12), (session.snapshot()['error'],activity,commands,session._automatic_paused)
+                if timing is not None:timing.mark('deadline_wait_started')
+                automatic_mode=session._schedule.mode=='automatic'
+                completed=ended.wait(12) if automatic_mode else False
+                if timing is not None:
+                    timing.checkpoint(deadline_met=completed,automatic_mode=automatic_mode)
+                assert automatic_mode and completed, (session.snapshot()['error'],activity,commands,session._automatic_paused)
                 assert activity==[True,False]
             else:session.start('sync_shared')
             assert session.join(35) and session.snapshot()['state']=='complete',session.snapshot()
