@@ -754,6 +754,8 @@ internal static partial class ExchangeCodec
             var contacts = new JsonArray(); var tasks = new JsonArray(); var anniversaries = new JsonArray(); var notes = new JsonArray(); var omitted = 0;
             var lastIndex = Find("NACHNAME", "LASTNAME", "FAMILIENNAME", "FAMILYNAME"); var firstIndex = Find("VORNAME", "FIRSTNAME", "GIVENNAME"); var companyIndex = Find("FIRMA", "COMPANY", "ORGANISATION");
             var dueIndex = Find("FAELLIG", "DUE"); var anniversaryIndex = Find("JAHRESTAG", "GEBURTSTAG"); var noteTextIndex = Find("TEXT", "INHALT", "BODY", "NOTIZ");
+            var taskPriorityIndex = Find("PRIORITAET", "PRIORITY", "WICHTIGKEIT", "RANG");
+            var taskStatusIndex = Find("ERLEDIGT", "FERTIG", "ABGESCHLOSSEN", "COMPLETED", "STATUS");
             foreach (var row in rows.Skip(1))
             {
                 string Cell(int index) => index >= 0 && index < row.Count ? row[index].Trim() : "";
@@ -771,8 +773,16 @@ internal static partial class ExchangeCodec
                 else if (dueIndex >= 0)
                 {
                     var title = Cell(descriptionIndex >= 0 ? descriptionIndex : Find("AUFGABE", "TITEL")); if (title.Length == 0) { omitted++; continue; }
-                    tasks.Add(new JsonObject { ["titel"] = title, ["faellig"] = ParseLotusDate(Cell(dueIndex)).Date, ["prio"] = Cell(Find("PRIORITAET", "PRIORITY")).StartsWith('1') ? 1 : 2,
-                        ["erledigt"] = IsYes(Cell(Find("ERLEDIGT", "COMPLETED", "STATUS"))), ["notiz"] = Cell(noteTextIndex), ["uid"] = "", ["geaendert"] = 0 });
+                    var priority = Cell(taskPriorityIndex).ToUpperInvariant() switch
+                    {
+                        "1" or "HOCH" or "HIGH" => 1,
+                        "3" or "NIEDRIG" or "LOW" => 3,
+                        _ => 2
+                    };
+                    var status = Cell(taskStatusIndex);
+                    var done = IsYes(status) || status.ToUpperInvariant() is "COMPLETED" or "COMPLETE" or "ABGESCHLOSSEN" or "FERTIG";
+                    tasks.Add(new JsonObject { ["titel"] = title, ["faellig"] = ParseLotusDate(Cell(dueIndex)).Date, ["prio"] = priority,
+                        ["erledigt"] = done, ["notiz"] = Cell(noteTextIndex), ["uid"] = "", ["geaendert"] = 0 });
                 }
                 else if (anniversaryIndex >= 0)
                 {

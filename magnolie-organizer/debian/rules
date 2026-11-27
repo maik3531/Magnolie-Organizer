@@ -34,6 +34,7 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	chmod 700 debian/test-runtime
 	DISPLAY= WAYLAND_DISPLAY= HOME=$(CURDIR)/debian/test-home XDG_DATA_HOME=$(CURDIR)/debian/test-data XDG_CONFIG_HOME=$(CURDIR)/debian/test-config XDG_CACHE_HOME=$(CURDIR)/debian/test-cache XDG_STATE_HOME=$(CURDIR)/debian/test-state XDG_RUNTIME_DIR=$(CURDIR)/debian/test-runtime TZ=Europe/Berlin dbus-run-session -- python3 pruefungen/test_parser.py
 	TZ=Europe/Berlin python3 pruefungen/test_import_export_vertrag.py
+	TZ=Europe/Berlin python3 -B -m pytest -q -p no:cacheprovider pruefungen/test_lotus_task_csv.py
 	TZ=Europe/Berlin python3 pruefungen/test_gesamtarchiv.py
 	TZ=Europe/Berlin python3 pruefungen/test_telefon.py
 	TZ=Europe/Berlin python3 -m pytest -q pruefungen/test_asset_container.py pruefungen/test_kdeconnect.py pruefungen/test_personal_sync.py pruefungen/test_nextcloud.py pruefungen/test_hintergrunddienst.py pruefungen/test_naechster_weckzeitpunkt.py pruefungen/test_eds_adressbuch_sync.py pruefungen/test_chromium_fallback.py pruefungen/test_eds_calendar_dedup.py pruefungen/test_akonadi.py pruefungen/test_akonadi_sync.py pruefungen/test_journal_periodisch.py pruefungen/test_elf_glibc.py pruefungen/test_release_signatur.py pruefungen/test_restkorrekturen.py pruefungen/test_thunderbird_schema23.py pruefungen/test_update_security.py pruefungen/test_ersteinrichtung.py pruefungen/test_optionale_kontaktquellen.py pruefungen/test_phone_region.py

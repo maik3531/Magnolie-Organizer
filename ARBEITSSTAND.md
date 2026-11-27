@@ -92,6 +92,12 @@ aufgeführt.
   Notiz zeigen wieder die vorgesehenen Fehlermeldungen. 16 Fehlerfälle
   in Deutsch und Englisch und beide Zeichenblatt-Integrationstests auf
   den Linux-/Windows-Webquellen bestanden.
+- [#837](https://github.com/maik3531/Magnolie-Organizer/issues/837):
+  Der Aufgaben-CSV-Import erhält Erledigtstatus und die drei
+  Prioritätsstufen. Leere und unbekannte Prioritäten bleiben normal.
+  Zwölf gemeinsame Aufgaben bestanden den CSV-/VTODO-Rundlauf auf
+  Linux und nativ aus dem Windows-Quellarchiv; der Linux-Import-/Export-Vertrag
+  und die portable Windows-Regression bestanden ebenfalls.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal

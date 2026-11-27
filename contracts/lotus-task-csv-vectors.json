@@ -1,0 +1,29 @@
+[
+  {
+    "header": "BESCHREIBUNG;FAELLIGKEITSDATUM;PRIORITAET;ERLEDIGT",
+    "rows": [
+      { "csv": "English completed;31.05.2026;Hoch;Completed", "done": true, "priority": 1 },
+      { "csv": "Deutsch abgeschlossen;31.05.2026;3;Abgeschlossen", "done": true, "priority": 3 },
+      { "csv": "Deutsch niedrig;31.05.2026;Niedrig;Ja", "done": true, "priority": 3 },
+      { "csv": "Deutsch normal;31.05.2026;Normal;Nein", "done": false, "priority": 2 },
+      { "csv": "Unknown words;31.05.2026;Not set;Not completed", "done": false, "priority": 2 },
+      { "csv": "Unknown number;31.05.2026;10;Offen", "done": false, "priority": 2 },
+      { "csv": "Empty values;31.05.2026;;", "done": false, "priority": 2 },
+      { "csv": "Yes marker;31.05.2026;1;X", "done": true, "priority": 1 },
+      { "csv": "Exact words only;31.05.2026;Not Hoch;Fast fertig", "done": false, "priority": 2 }
+    ]
+  },
+  {
+    "header": "Aufgabe;Fälligkeit;Rang;Fertig",
+    "rows": [
+      { "csv": "Alternate German columns;31.05.2026;  low  ;  fertig  ", "done": true, "priority": 3 }
+    ]
+  },
+  {
+    "header": "Subject;Fälligkeit;Priority;Status",
+    "rows": [
+      { "csv": "Alternate English fields;31.05.2026;high;complete", "done": true, "priority": 1 },
+      { "csv": "Open;31.05.2026;2;NEEDS-ACTION", "done": false, "priority": 2 }
+    ]
+  }
+]
