@@ -95,8 +95,8 @@ aufgeführt.
   Ältere ICS-Serienausnahmen lassen sich wieder über die MCP-Importvorschau
   übernehmen. Eine fehlende Kalenderfarbe bleibt fehlend; der Import
   behält die vorhandene Farbzuordnung. Beide Desktop-Oberflächen
-  bestanden unter Node und Bun. Das vollständige Windows-Archiv-Gate
-  läuft separat.
+  bestanden unter Node und Bun. Die native Standalone-Quellarchivprüfung
+  unter Windows ist auf dem korrigierten Stand `f8ad956e` bestanden.
 - [#841](https://github.com/maik3531/Magnolie-Organizer/issues/841):
   Organizer übernimmt die Schreibrichtung auch bei regionalen arabischen
   Sprachcodes aus dem primären Sprachuntertag. 16 Startfälle mit den
