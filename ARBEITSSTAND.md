@@ -67,6 +67,11 @@ aufgeführt.
   bestehende Laufzeitübersetzungen wurden pro Sprachkatalog übernommen
   und drei alte Schlüssel entfernt. Neun Katalogtests und 360
   Sprach-/Plattformfälle der betroffenen Abschnitte bestanden.
+  [#834](https://github.com/maik3531/Magnolie-Organizer/issues/834):
+  Auch der vollständige Hosttest bestand mit 40 Notes-Navigationsfällen
+  und je 170 englischen und deutschen Seiten. Der Lauf dauerte lokal
+  8 Minuten 38 Sekunden; die frühere manuelle Frist von 315 Sekunden
+  lag mitten in den regulären Prüfungen.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
