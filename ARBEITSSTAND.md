@@ -38,6 +38,11 @@ aufgeführt.
   Der Downloadgenerator erhält benachbarte URL-Konstanten und damit
   den F-Droid-QR-Eintrag im Linux-Erstassistenten. Neun Prüfungen und
   das Generator-Gate bestanden mit unveränderten Downloadzielen.
+- [#829](https://github.com/maik3531/Magnolie-Organizer/issues/829):
+  Der Linux-/Windows-Quellvergleich prüft 153 Befehle, 97 Rückrufe
+  und sieben unterschiedlich benannte Medienwege. Der Linux-Sender
+  erzeugt dieselben Foto-/Video-Freigabefelder; sieben Vergleichsfälle
+  und die reproduzierbare Erzeugung des Vertrags bestanden.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal

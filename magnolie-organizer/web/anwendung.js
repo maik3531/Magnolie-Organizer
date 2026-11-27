@@ -29900,7 +29900,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (telefonSendeZustimmungen.get(peer.device_id) !== pending || DATEN !== book || current?.fingerprint !== peer.fingerprint ||
           (current.photo_sync?.sending_consent || current.photo_sync?.sending_setup)?.version !== consent.version) { failed(); return; }
       if (!Bruecke.sende({ cmd: "telefon_medien_senden", kennung: peer.device_id, fingerprint: peer.fingerprint,
-        version: consent.version, requestId, ...choices })) failed();
+        version: consent.version, requestId, photos: choices.photos, videos: choices.videos })) failed();
     }, failed);
     zeichneTelefonFotos();
   }

@@ -123,6 +123,9 @@ require("node:assert/strict").equal(spreadProbe.has("unknown_property"), false);
 require("node:assert/strict").equal(sendObjects('Bruecke.sende({ cmd: "example", ...(mcp ? { mcp: true } : {}) });')[0].has("mcp"), false);
 require("node:assert/strict").throws(() => sendObjects('Bruecke.sende({ cmd: "example", cmd: "other" });'), /Doppelte/);
 require("node:assert/strict").throws(() => sendObjects('Bruecke.sende({ ...makeArguments() });'), /nicht gelesen/);
+// Refs #829: callers must spell out the actual consent fields. A new arbitrary
+// spread must never be accepted just to refresh a stale contract fixture.
+require("node:assert/strict").throws(() => sendObjects('function telefonSendeZustimmung() { Bruecke.sende({ cmd: "telefon_medien_senden", requestId, ...choices }); }'), /ungebundene Objektverteilung choices/);
 const originalWitness = '...(originalKontaktSpeicher?.text === auftrag.text ? { kontaktOriginalLauf: originalKontaktSpeicher.token } : {})';
 const witnessProbe = sendObjects('Bruecke.sende({ cmd: "speichern", ' + originalWitness + ' });')[0];
 require('node:assert/strict').equal(witnessProbe.has('kontaktOriginalLauf'), false);
@@ -151,6 +154,28 @@ function canonicalContract(fixture) {
   });
 }
 
+function inactiveMediaCommands(ui) {
+  // A definition-only view cannot send requests. Its sender must also have
+  // no other caller/reference: mounting the view OR calling the sender
+  // directly must make the old command visible to the live gate again.
+  const view = /function baueTelefonBackupOrdner\(peer, stand\) \{/.exec(ui);
+  const sender = /function telefonBackupAnfordern\(peer, action, mediaType\) \{/.exec(ui);
+  if (!view || !sender || [...ui.matchAll(/\bbaueTelefonBackupOrdner\b/g)].length !== 1) return new Set();
+  const start = view.index + view[0].length;
+  const end = start + scanJavaScript(ui, start, true).join(",").length;
+  const references = [...ui.matchAll(/\btelefonBackupAnfordern\b/g)];
+  const senderName = sender.index + "function ".length;
+  return references.length > 1 && references.every(match => match.index === senderName || match.index >= start && match.index < end)
+    ? new Set(["telefon_backupziel"]) : new Set();
+}
+const inactiveBackupProbe = 'function telefonBackupAnfordern(peer, action, mediaType) { Bruecke.sende({cmd: "telefon_backupziel"}); }\n' +
+  'function baueTelefonBackupOrdner(peer, stand) { button(() => telefonBackupAnfordern(peer, "read", "images")); }';
+require("node:assert/strict").deepEqual([...inactiveMediaCommands(inactiveBackupProbe)], ["telefon_backupziel"]);
+for (const activation of ['\nroot.append(baueTelefonBackupOrdner(peer, stand));', '\nbutton(() => telefonBackupAnfordern(peer, "choose", "images"));',
+  '\nconst mountBackup = baueTelefonBackupOrdner;', '\nconst backupAction = telefonBackupAnfordern;']) {
+  require("node:assert/strict").equal(inactiveMediaCommands(inactiveBackupProbe + activation).size, 0);
+}
+
 function generate(linuxRoot) {
   const ui = fs.readFileSync(path.join(linuxRoot, "web", "anwendung.js"), "utf8");
   const dispatcher = fs.readFileSync(path.join(linuxRoot, "bin", "magnolie-organizer"), "utf8");
@@ -163,13 +188,17 @@ function generate(linuxRoot) {
     for (const command of values(match[1], /"([a-z0-9_]+)"/g)) dispatchedCommands.add(command);
   }
   const callbackHandlers = new Set(values(ui, /\n\s+(?:async\s+)?([A-Za-z0-9_]+)\([^)]*\)\s*\{/g));
+  // Refs #829, #429, #759: the old separate backup-location chooser is no
+  // longer mounted. Count all references, not only calls: if it is reattached
+  // or aliased, its command re-enters the contract and must be reviewed.
+  const inactiveCommands = inactiveMediaCommands(ui);
   const fixture = {
     schema: "magnolie-linux-parity-v1",
     sources: {
       "web/anwendung.js": sha256(ui),
       "bin/magnolie-organizer": sha256(dispatcher)
     },
-    commands: commands(ui).filter(command => dispatchedCommands.has(command) && !PLATFORM_ONLY_COMMANDS.has(command)),
+    commands: commands(ui).filter(command => dispatchedCommands.has(command) && !PLATFORM_ONLY_COMMANDS.has(command) && !inactiveCommands.has(command)),
     callbacks: values(dispatcher, /self\.antwort\("App\.([A-Za-z0-9_]+)"/g)
       .filter(callback => callbackHandlers.has(callback) && !PLATFORM_ONLY_CALLBACKS.has(callback)),
     payloadSchemas: {

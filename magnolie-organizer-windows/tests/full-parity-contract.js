@@ -8,6 +8,9 @@ const { canonicalContract, commands, personalSyncPayloads, sendObjects, sha256 }
 const root = path.resolve(__dirname, "..");
 const read = file => fs.readFileSync(path.join(root, file), "utf8");
 const windowsUi = read("app/web/anwendung.js");
+const windowsMediaUi = read("app/web/phone-media.js");
+const windowsMediaDispatcher = read("DeviceFileBridge.cs");
+const windowsMediaRequest = read("DeviceFileUiRequest.cs");
 const windowsDispatcher = fs.readdirSync(root).filter(file => /^BridgeDispatcher(?:\.[A-Za-z]+)?\.cs$/.test(file))
   .map(read).join("\n") + read("MainForm.cs");
 const windowsCallbacks = windowsDispatcher + fs.readdirSync(root)
@@ -34,8 +37,53 @@ assert.ok(fixture.callbacks.length > 25, "Callbackfixture ist unplausibel klein"
 assert.ok(fixture.commands.includes("mutations_snapshot"),
 "Linux fixture must retain mandatory mutation snapshots alongside the explicit journal policies from #142");
 
-const windowsCommands = new Set(commands(windowsUi));
+const windowsCommands = new Set(commands(windowsUi + "\n" + windowsMediaUi));
 const commandAliases = { sync_bestaetigen: "sync_commit", handbuch_herunterladen: "update_herunterladen" };
+// Refs #829: media adapters deliberately have different wire names. Check
+// each real Windows sender/action/handler instead of inventing dummy aliases.
+// This is a source-contract check, not native media/device acceptance.
+const mediaActions = {
+  medien_backup: ["backup_list", "backup_restore"],
+  medien_papierkorb: ["trash_list", "trash_restore", "trash_purge", "trash_empty", "trash_thumbnail", "trash_preview"],
+  telefon_foto_aktion: ["shared_setting", "receive_consent", "discover", "page", "sync_shared", "cancel", "request_read"],
+  telefon_fotoziel_waehlen: ["pick_destination", "default_destination"],
+  telefon_videoziel_waehlen: ["pick_destination", "default_destination"],
+  telefon_medien_senden: ["send_consent"],
+  telefon_sammlungsordner: ["pick_collection_source"]
+};
+function validateMediaRoutes(ui, dispatcher, request) {
+  for (const action of new Set(Object.values(mediaActions).flat())) {
+    assert.match(ui, new RegExp(`\\brequest\\("${action}"`), `Windows media UI misses action ${action}`);
+    assert.match(dispatcher, new RegExp(`case "${action}"`), `Windows media dispatcher misses action ${action}`);
+    assert.ok(request.includes(`"${action}"`), `Windows exact media request parser misses ${action}`);
+  }
+}
+validateMediaRoutes(windowsMediaUi, windowsMediaDispatcher, windowsMediaRequest);
+assert.throws(() => validateMediaRoutes(windowsMediaUi.replaceAll('request("backup_restore"', 'request("unknown"'),
+  windowsMediaDispatcher, windowsMediaRequest), /UI misses action backup_restore/);
+assert.throws(() => validateMediaRoutes(windowsMediaUi, windowsMediaDispatcher.replace('case "send_consent"', 'case "unknown"'),
+  windowsMediaRequest), /dispatcher misses action send_consent/);
+assert.match(windowsUi, /window\.MagnolieMedia\.createRecoveryPanel\(/);
+assert.match(windowsUi, /window\.MagnolieMedia\.createPanel\(/);
+assert.match(read("app/web/index.html"), /src="phone-media\.js"/);
+assert.match(windowsMediaDispatcher, /partial void HandleNativeMediaUi\([\s\S]*?HandleNativeMediaUiAsync\(message\)/);
+assert.match(windowsDispatcher, /HandleNativeMediaUi\(message, ref mediaHandling\)/);
+assert.match(windowsMediaDispatcher, /NativeMediaUiRequest\.Parse\(/);
+assert.match(windowsMediaRequest, /TelefonProtocolContract\.ExactObject\(value, fields\.ToArray\(\)\)/);
+assert.match(windowsMediaUi, /\["images", "Photos", "pictures"\], \["video", "Videos", "video_destination"\]/);
+// The deprecated Linux backup-folder helper is unmounted (#429/#759).
+// If it becomes reachable again, generate() includes it and this gate fails
+// until that deliberate product/UI change receives a new mapping.
+assert.ok(!fixture.commands.includes("telefon_backupziel"), "Separate backup-location chooser became part of the Linux contract again");
+
+const webcamCommands = ["telefon_webcam_stand", "telefon_webcam_start", "telefon_webcam_stop"];
+for (const command of webcamCommands) {
+  assert.match(windowsUi, new RegExp(`\\brequest\\("${command}"`), `Windows webcam UI misses ${command}`);
+  assert.match(windowsDispatcher, new RegExp(`case "${command}"`), `Windows webcam dispatcher misses ${command}`);
+  assert.match(windowsSchemas, new RegExp(`\\["${command}"\\]`), `Windows webcam schema misses ${command}`);
+}
+assert.match(windowsDispatcher, /DesktopWebcamActionAsync\(message\)/);
+assert.match(windowsDispatcher, /form\.ConfirmDesktopWebcam\(selected, RequireProfile\)/);
 // Windows ships the manual in the Organizer installer; Linux has a separate DEB.
 assert.ok(!windowsCommands.has("handbuch_herunterladen"));
 assert.ok(windowsCommands.has("update_herunterladen") && windowsCommands.has("update_installieren"));
@@ -51,6 +99,13 @@ assert.match(read("WindowsBluetoothRadio.cs"), /\["approved_capability"\] = fals
 assert.doesNotMatch(read("WindowsBluetoothRadio.cs"), /RequestAccessAsync|RegisterApp|RegisterForTransport/);
 for (const command of fixture.commands) {
   if ([linuxAudioCommand, "telefon_bluetooth_einstellungen", "telefon_anruf_audio_pruefen"].includes(command)) continue;
+  if (command === "telefon_webcam_aktion") continue; // explicit native Windows webcam routes checked above
+  if (Object.hasOwn(mediaActions, command)) {
+    assert.ok(windowsCommands.has("telefon_medien"), `Windows media envelope missing for ${command}`);
+    assert.match(windowsDispatcher, /case "telefon_medien"/);
+    assert.match(windowsSchemas, /\["telefon_medien"\]/);
+    continue;
+  }
   const nativeCommand = commandAliases[command] || command;
   assert.ok(windowsCommands.has(nativeCommand), `Windows UI misses Linux contract command ${command}`);
   assert.match(windowsDispatcher, new RegExp(`case "${nativeCommand}"`), `Windows dispatcher misses ${command}`);
@@ -64,6 +119,17 @@ assert.match(windowsDispatcher, /new TelefonCoordinator\(paths, HandleTelefonEve
 assert.match(windowsDispatcher, /await form\.SendAsync\(function, message \?\? payload\)/);
 for (const name of fixture.callbacks) {
   if (name === linuxAudioCallback || name === "telefonAnrufAudioGespeichert") continue;
+  if (name === "telefonFotoErgebnis") {
+    assert.match(windowsMediaDispatcher, /form\.SendAsync\("MagnolieMedia\.receive"/);
+    assert.match(windowsMediaUi, /window\.MagnolieMedia\s*=\s*\{[\s\S]*\breceive\(reply\)/);
+    assert.match(windowsMediaUi, /reply\.device_id !== item\.peerId/);
+    continue;
+  }
+  if (name === "telefonWebcam") {
+    assert.match(read("BridgeDispatcher.DesktopWebcam.cs"), /form\.SendAsync\("App\.kdeMedien"/);
+    assert.match(windowsUi, /\n\s+kdeMedien\(value\)\s*\{/);
+    continue;
+  }
   assert.match(windowsCallbacks, new RegExp(`(?:SendAsync|emit)\\("App\\.${name}"`),
     `Windows dispatcher misses App.${name}`);
   assert.ok(new RegExp(`\\n\\s+(?:async\\s+)?${name}\\([^)]*\\)\\s*\\{`).test(windowsUi), `Windows UI misses App.${name}`);
@@ -104,4 +170,4 @@ for (const [alias, canonical] of [["telefonWaehlstatus", "telefonWaehlStatus"],
   assert.match(windowsUi, new RegExp(`${canonical}\\(nutzlast\\)`));
 }
 
-console.log(`FULL PARITY CONTRACT PASSED (${fixture.commands.length - 1} shared commands, ${fixture.callbacks.length - 1} shared callbacks; Linux-only HFP routing and Windows unsupported capability checked)`);
+console.log(`FULL PARITY CONTRACT PASSED (${fixture.commands.length} command contracts, ${fixture.callbacks.length} callback contracts; ${Object.keys(mediaActions).length} media adapters and native webcam routes checked; inactive backup chooser and Linux-only HFP routing classified)`);

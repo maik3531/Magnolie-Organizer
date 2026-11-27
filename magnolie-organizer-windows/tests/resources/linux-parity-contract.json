@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "dbba8281689362c3591687d74228f2f16e26113b55d80fd904de2e548a8418df",
-    "bin/magnolie-organizer": "8a32d046a326b2bfdf236f8de7070917e8b729f0f71f518968a169b246893f76"
+    "web/anwendung.js": "dfd10df8a039766185b938f85c7092d11f60ca4f5bd4a323c431bac8d3a573c2",
+    "bin/magnolie-organizer": "ff2333d93856f41470f2350b70d9df91bceec83140e845ed2bf888b3460234dc"
   },
   "commands": [
     "ablage_holen",
@@ -80,6 +80,8 @@
     "lo_benutzer",
     "mail",
     "mcp_antwort",
+    "medien_backup",
+    "medien_papierkorb",
     "medikament_suchen",
     "mutations_snapshot",
     "notiz_anhang_datei",
@@ -120,6 +122,8 @@
     "telefon_ein",
     "telefon_entfernen",
     "telefon_entwickler_diagnose",
+    "telefon_foto_aktion",
+    "telefon_fotoziel_waehlen",
     "telefon_freigabe",
     "telefon_kontakte",
     "telefon_kontaktfotos",
@@ -127,15 +131,19 @@
     "telefon_kontaktgruppentitel",
     "telefon_kontaktwerte",
     "telefon_mcp",
+    "telefon_medien_senden",
     "telefon_meldung_anzeigen",
     "telefon_pairing_abbrechen",
     "telefon_pairing_bestaetigen",
     "telefon_pairing_oeffnen",
     "telefon_personal_sync_commit",
+    "telefon_sammlungsordner",
     "telefon_sms_benachrichtigen",
     "telefon_stand",
     "telefon_status_anfordern",
+    "telefon_videoziel_waehlen",
     "telefon_waehlen",
+    "telefon_webcam_aktion",
     "tray_einstellungen",
     "tray_status",
     "tray_zaehler",
@@ -192,6 +200,7 @@
     "journalVorschau",
     "journalWiederhergestellt",
     "kdeMcpErgebnis",
+    "kdeMedien",
     "kdePairingCode",
     "kdePairingStatus",
     "kdeSmsStatus",
@@ -228,6 +237,7 @@
     "telefonAnrufAudio",
     "telefonAnrufAudioGespeichert",
     "telefonAuflegeStatus",
+    "telefonFotoErgebnis",
     "telefonGekoppelt",
     "telefonKontakte",
     "telefonMcpErgebnis",
@@ -236,6 +246,7 @@
     "telefonPairingOffen",
     "telefonStand",
     "telefonWaehlStatus",
+    "telefonWebcam",
     "trayStand",
     "updateErgebnis",
     "vorschlaege",
@@ -628,5 +639,5 @@
       ]
     ]
   ],
-  "contractSha256": "f329c44c70434a1332a70d31e07912ae5fab06b5b75d7eb34c3ce869ef3bd4a2"
+  "contractSha256": "1cf1d12b994ee388c4cde54e0086d44b6066085be62ccf31ad9e6689bb71e40f"
 }
