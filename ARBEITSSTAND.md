@@ -1,5 +1,16 @@
 # Aktueller Arbeitsstand
 
+## Linux-Telefonstatus und lokale Buchspeicherung – 27. November 2026
+
+Die geprüften Issue-Patches #760 und #761 sind übernommen. Bei einem
+fehlgeschlagenen Hintergrunddienst-Lesezugriff zeigt der Organizer
+eine nicht verfügbare Telefonverbindung und aktualisiert sich wieder
+nach erfolgreicher Antwort. Der lokale Buchcodec bildet den Nachweis
+für die Medien-Aufbewahrung auch bei gültigen Dezimalzahlen.
+39 fokussierte Tests und vier zusätzliche Zielordner-IPC-Fälle
+bestanden. Der Auslöser des früher gemeldeten GUI-Abbruchs und die
+installierte In-place-Probe für die Aufbewahrung bleiben offen.
+
 ## Windows-Testbereinigung – 27. November 2026
 
 [#794](https://github.com/maik3531/Magnolie-Organizer/issues/794):

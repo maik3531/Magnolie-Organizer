@@ -11,6 +11,7 @@ from magnolie_media_retention import NativeMediaBackupCopyPermit
 from magnolie_media_trash import NativeMediaRetentionPermit
 from magnolie_media_trash_ui import NativeMediaTrashUi
 from magnolie_file_transfer import TransferError
+from magnolie_native_book_json import book_hash,canonical_book
 from test_file_authenticated_desktop import native,bind
 from test_file_desktop_receive import receiving
 from test_photo_mappings import mappings
@@ -19,6 +20,12 @@ from test_save_restore_boundary import native as gui_native,Probe,fixture_data
 
 
 def book(days):return dict(einstellungen=dict(papierkorb=dict(an=True,tage=days)))
+
+
+def decimal_book(days):
+    value=book(days)
+    value['zeichnung']={'punkte':[{'x':12.5,'y':-0.125}],'zoom':1e-6}
+    return value
 
 
 @pytest.fixture
@@ -175,7 +182,7 @@ def test_stale_save_token_and_invalid_days_cannot_reenable_cleanup(trash):
     with NativeMediaRetention(str(root(trash))) as policy:
         old=policy.pause();new=policy.pause()
         with pytest.raises(TransferError,match='superseded'):policy.publish_saved(old,book(7))
-        for days in (True,'7',1,-1,None):
+        for days in (True,False,7.0,0.0,7.5,'7',1,-1,None):
             with pytest.raises(TransferError,match='saved_setting_required'):policy.publish_saved(new,book(days))
         with policy.permit() as permit:assert permit is None
         policy.publish_saved(new,book(0))
@@ -260,23 +267,47 @@ def test_missing_key_beside_existing_database_cannot_skip_pre_save_pause(trash):
 
 def test_actual_save_worker_publishes_only_after_commit_and_reports_derived_failure(gui_native,monkeypatch):
     import json
+    from types import MethodType
     import magnolie_optional_phone
+    from magnolie_personal_actor_store import NativeBookOwnerScope
     from magnolie_telefon import PhoneStore
     m=gui_native;directory=Path(m.daten_verzeichnis())/'telefon'
     PhoneStore(str(directory),'Synthetic policy writer') # Explicit fixture only.
     monkeypatch.setattr(magnolie_optional_phone,'available',lambda feature:feature=='photo_sync')
     monkeypatch.setattr(m,'erinnerungsdaten_schreiben',lambda **_kwargs:True)
     data=fixture_data('preserved note');data['einstellungen']['papierkorb']={'an':True,'tage':7}
+    data['zeichnung']=decimal_book(7)['zeichnung']
     m.speichere_text(json.dumps(data));probe=Probe(m,data)
-    assert probe.save(1,data)['committed']
-    with NativeMediaRetention(str(directory)) as policy:
-        with policy.permit() as permit:assert permit.require_current()==7
+    probe._gesperrt=probe._wirklich_beenden=False
+    probe._ladefehler='';probe._daten_dek_kennung=None
+    probe._notes_actor_book_owner=NativeBookOwnerScope()
+    probe._notes_actor_book_owner.set_ready(True)
+    for name in ('_telefon_actor_buchbindung','_telefon_actor_buchnachweis'):
+        setattr(probe,name,MethodType(getattr(m.Fenster,name),probe))
+    for serial,x in enumerate((12.5,12.75),1):
+        data['zeichnung']['punkte'][0]['x']=x
+        result=probe.save(serial,data)
+        assert result['ok'] and result['committed'] and not result['repairPending']
+        assert result['fehler']==''
+        saved=json.loads(Path(m.daten_datei()).read_text())
+        assert canonical_book(saved)==canonical_book(data)
+        actor=probe._telefon_actor_buchnachweis()
+        assert actor is not None and actor['sha256']==result['standSha256']
+        assert (actor['book_source'],actor['sequence'])==probe._notes_actor_saved_data[:2]
+        with NativeMediaRetention(str(directory)) as policy:
+            assert policy._read()['book_sha256']==probe._notes_actor_saved_data[2]==book_hash(saved)
+            with policy.permit() as permit:assert permit.require_current()==7
+        probe._aktuelle_daten['zeichnung']['punkte'][0]['x']=x+0.125
+        assert probe._telefon_actor_buchnachweis() is None
+        probe._aktuelle_daten['zeichnung']['punkte'][0]['x']=x
+        assert probe._telefon_actor_buchnachweis()==actor
     data['einstellungen']['papierkorb']['tage']=0
     def fail(*_args):raise OSError('derived publication failed')
     monkeypatch.setattr(NativeMediaRetention,'publish_saved',fail)
-    result=probe.save(2,data)
+    result=probe.save(3,data)
     assert result['ok'] and result['committed'] and result['repairPending']
-    assert json.loads(Path(m.daten_datei()).read_text())['einstellungen']['papierkorb']['tage']==0
+    assert 'OSError' in result['fehler']
+    assert canonical_book(json.loads(Path(m.daten_datei()).read_text()))==canonical_book(data)
     with NativeMediaRetention(str(directory)) as policy:
         with policy.permit() as permit:assert permit is None
 
@@ -341,13 +372,15 @@ def test_maintenance_preserves_existing_operation_and_byte_bounds(tmp_path,monke
 @pytest.mark.parametrize('days',[0,7])
 def test_initial_automatic_maintenance_adopts_actual_saved_days_without_another_save(first_adoption_trash,days):
     trash=first_adoption_trash
-    from magnolie_telefon import canonical
     owner=trash[4];owner._wall_clock_ms=lambda:1_600_000_000_000
     snapshot,entry=prepare(trash);original,payload=paths(trash,entry)
     owner.trash(owner.issue_action(),snapshot,entry.operation,lambda:True)
-    directory=root(trash);(directory.parent/'daten.json').write_bytes(canonical(book(days)))
+    saved=decimal_book(days)
+    directory=root(trash);(directory.parent/'daten.json').write_bytes(canonical_book(saved))
     assert maintain_native_media_trash(str(directory))==(1 if days else 0)
     assert payload.exists()==(days==0) and not original.exists()
+    with NativeMediaRetention(str(directory)) as policy:
+        assert policy._read()['book_sha256']==book_hash(saved)
 
 
 def test_adoption_never_revives_a_failed_save_pause_and_rejects_raced_book(first_adoption_trash):
@@ -376,7 +409,8 @@ def test_actual_native_load_unlock_helper_adopts_saved_book_not_mutable_ui_data(
     PhoneStore(str(directory),'Synthetic first adoption')
     monkeypatch.setattr(magnolie_optional_phone,'available',lambda feature:feature=='photo_sync')
     password='Synthetic fixture password' if encrypted else ''
-    m.speichere_text(m.daten_text_erzeugen(book(0),password or None))
+    saved=decimal_book(0)
+    m.speichere_text(m.daten_text_erzeugen(saved,password or None))
     scheduled=[]
     probe=SimpleNamespace(_gesperrt=False,_ladefehler='',_kennwort=password,_aktuelle_daten=book(7),
         _medien_backup_wartung_planen=lambda:scheduled.append(True))
@@ -386,4 +420,45 @@ def test_actual_native_load_unlock_helper_adopts_saved_book_not_mutable_ui_data(
     m.Fenster._medien_papierkorb_aufbewahrung_laden(probe)
     assert scheduled==[True]
     with NativeMediaRetention(str(directory)) as policy:
+        assert policy._read()['book_sha256']==book_hash(saved)
         with policy.permit() as permit:assert permit.require_current()==0
+
+
+@pytest.mark.parametrize('number',[float('nan'),float('inf'),float('-inf')])
+def test_nonfinite_book_cannot_publish_or_adopt_a_retention_policy(first_adoption_trash,number):
+    import json
+    directory=root(first_adoption_trash);saved=decimal_book(7)
+    saved['zeichnung']['punkte'][0]['x']=number
+    (directory.parent/'daten.json').write_text(json.dumps(saved))
+    with NativeMediaRetention(str(directory)) as policy:
+        for decoder in (None,json.loads):
+            with pytest.raises(ValueError):policy.adopt_existing_saved(decoder)
+            assert policy._read() is None
+        token=policy.pause()
+        with pytest.raises(ValueError):policy.publish_saved(token,saved)
+        assert policy._read()['days'] is None
+        with policy.permit() as permit:assert permit is None
+
+
+@pytest.mark.parametrize('raw',[
+    b'{"einstellungen":{"papierkorb":{"tage":7,"tage":0}}}',
+    b'{"einstellungen":{"papierkorb":{"tage":7}},"zeichnung":{"x":1e400}}',
+    b'{"einstellungen":{"papierkorb":{"tage":7}},"zeichnung":',
+])
+def test_invalid_saved_book_is_not_adopted(first_adoption_trash,raw):
+    directory=root(first_adoption_trash)
+    (directory.parent/'daten.json').write_bytes(raw)
+    with NativeMediaRetention(str(directory)) as policy:
+        with pytest.raises(ValueError):policy.adopt_existing_saved()
+        assert policy._read() is None
+        with policy.permit() as permit:assert permit is None
+
+
+@pytest.mark.parametrize('days',[True,False,7.0,0.0,7.5])
+def test_adoption_keeps_retention_days_integer_only(first_adoption_trash,days):
+    directory=root(first_adoption_trash)
+    (directory.parent/'daten.json').write_bytes(canonical_book(decimal_book(days)))
+    with NativeMediaRetention(str(directory)) as policy:
+        assert not policy.adopt_existing_saved()
+        assert policy._read() is None
+        with policy.permit() as permit:assert permit is None

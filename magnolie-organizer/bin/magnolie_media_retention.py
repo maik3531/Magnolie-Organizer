@@ -16,6 +16,7 @@ import time
 from magnolie_file_protection import ExistingFileTransferProtection
 from magnolie_file_transfer import TransferError
 from magnolie_media_trash import NativeMediaRetentionPermit
+from magnolie_native_book_json import book_hash,parse_book
 from magnolie_photo_preferences import ProtectedPhotoPreferences
 from magnolie_telefon import canonical,strict_json
 
@@ -179,7 +180,7 @@ class NativeMediaRetention(NativeMediaActivity):
             current=self._read()
             if current is None or current['token']!=token or current['days'] is not None:
                 raise TransferError('media_retention_save_superseded')
-            self._write(dict(format=1,token=token,days=days,book_sha256=sha256(canonical(saved_book)).hexdigest(),
+            self._write(dict(format=1,token=token,days=days,book_sha256=book_hash(saved_book),
                 book_file=self._book_file()))
 
     def adopt_existing_saved(self,decode_book=None,current=lambda:True):
@@ -204,7 +205,7 @@ class NativeMediaRetention(NativeMediaActivity):
                 raw=source.read(64*1024*1024+1)
                 if len(raw)!=signature[2] or self._book_file()!=signature:
                     raise TransferError('media_retention_book_changed')
-            saved=decode_book(raw.decode('utf-8')) if decode_book is not None else strict_json(raw)
+            saved=decode_book(raw.decode('utf-8')) if decode_book is not None else parse_book(raw)
             if type(saved) is not dict:raise TransferError('media_retention_saved_setting_required')
             settings=saved.get('einstellungen',{})
             trash=settings.get('papierkorb',{}) if type(settings) is dict else {}
@@ -213,7 +214,7 @@ class NativeMediaRetention(NativeMediaActivity):
             if current() is not True or self._book_file()!=signature:
                 raise TransferError('media_retention_lease_changed')
             self._write(dict(format=1,token=secrets.token_hex(32),days=days,
-                book_sha256=sha256(canonical(saved)).hexdigest(),book_file=signature))
+                book_sha256=book_hash(saved),book_file=signature))
             return True
 
     @contextmanager

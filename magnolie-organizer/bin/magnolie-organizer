@@ -24461,8 +24461,9 @@ class Fenster(_FENSTER_BASIS):
                             book_owner = getattr(self, "_notes_actor_book_owner", None)
                             observed = book_owner.record_saved(*self._telefon_actor_buchbindung(), lease.ack) if book_owner is not None else None
                             if observed is not None:
+                                from magnolie_native_book_json import book_hash
                                 self._notes_actor_saved_data = (observed["book_source"], observed["sequence"],
-                                    hashlib.sha256(json.dumps(daten, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest())
+                                    book_hash(daten))
                         if retention.get("repair_error"):
                             warnung = warnung or _("Saving the data") + ": " + retention["repair_error"]
                     if historical is not None:
@@ -26549,11 +26550,12 @@ class Fenster(_FENSTER_BASIS):
         return self._notes_actor_book_owner.current(*self._telefon_actor_buchbindung())
 
     def _telefon_actor_buchnachweis(self):
+        from magnolie_native_book_json import book_hash
         state = self._notes_actor_book_owner.save_state(*self._telefon_actor_buchbindung())
         observed = getattr(self, "_notes_actor_saved_data", None)
         if state is None or observed is None or (state["book_source"], state["sequence"]) != observed[:2]:
             return None
-        current = hashlib.sha256(json.dumps(self._aktuelle_daten, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        current = book_hash(self._aktuelle_daten)
         return state if current == observed[2] else None
 
     def _telefon_actor_historisch_speichern(self, source, registry, handle, revision, choices, klartext, kennung):
@@ -27113,6 +27115,7 @@ class Fenster(_FENSTER_BASIS):
         except Exception:answer(ok=False)
 
     def _telefon_videoziel_waehlen(self, nachricht):
+        from magnolie_native_book_json import book_hash
         source=self._telefon;kennung=nachricht.get("kennung");selection=[None];root=[None];book=[None];owned=[False]
         answered=threading.Event()
         def retire_root():
@@ -27148,7 +27151,7 @@ class Fenster(_FENSTER_BASIS):
                             or self._speicher_laeuft or self._speicher_auftraege.unfinished_tasks
                             or not isinstance(data,dict)):
                         raise ValueError("media_destination_original_saved_book_required")
-                    return hashlib.sha256(json.dumps(data,ensure_ascii=False,sort_keys=True,separators=(",",":")).encode("utf-8")).hexdigest()
+                    return book_hash(data)
                 book_version=loaded_version()
                 def same_book():return loaded_version()==book_version
             else:
@@ -27231,6 +27234,7 @@ class Fenster(_FENSTER_BASIS):
 
     def _medien_papierkorb_aufbewahrung_laden(self):
         """Adopt only the actual existing saved book after native load/unlock."""
+        from magnolie_native_book_json import parse_book
         from magnolie_optional_phone import available
         if not available("photo_sync") or self._gesperrt or getattr(self,"_ladefehler",""):return
         import importlib
@@ -27238,9 +27242,9 @@ class Fenster(_FENSTER_BASIS):
             module=importlib.import_module("magnolie_media_retention")
             def current():return not self._gesperrt and not getattr(self,"_ladefehler","")
             def decode(raw):
-                value=json.loads(raw)
+                value=parse_book(raw)
                 if isinstance(value,dict) and value.get("magnolie")==KENNWORT_KENNUNG:
-                    return json.loads(daten_entschluesseln(raw,self._kennwort))
+                    return parse_book(daten_entschluesseln(raw,self._kennwort))
                 return value
             with module.NativeMediaRetention(os.path.join(daten_verzeichnis(),"telefon")) as policy:
                 policy.adopt_existing_saved(decode,current)

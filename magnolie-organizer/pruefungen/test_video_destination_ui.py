@@ -20,6 +20,7 @@ from magnolie_file_desktop_connection import NativeDesktopFileConnection
 import magnolie_hintergrund as background
 import magnolie_telefon as phone
 from magnolie_media_retention import NativeMediaRetention
+from magnolie_native_book_json import book_hash, canonical_book
 from magnolie_personal_actor_store import NativeBookOwnerScope
 
 
@@ -44,7 +45,7 @@ def prepare_choice(fixture,monkeypatch):
 
 
 @contextmanager
-def native_picker(fixture,tmp_path,selection,*,photos=False,clock=None,cold=False):
+def native_picker(fixture,tmp_path,selection,*,photos=False,clock=None,cold=False,saved_ack=False):
     service,peer=fixture[:2]
     server=background.IPCServer(None,str(tmp_path/'video-picker.sock'),phone_backend=service,
         settings_getter=lambda:background.normalize_settings({})).start()
@@ -71,7 +72,7 @@ def native_picker(fixture,tmp_path,selection,*,photos=False,clock=None,cold=Fals
             _organizer_vertraut=lambda:True,
             _notes_actor_saved_data=(proof['book_source'],proof['sequence'],inputs['book_version']),
             _telefon_actor_buchnachweis=lambda:dict(proof))
-        if cold:
+        if cold or saved_ack:
             del window._notes_actor_saved_data
             window._notes_actor_book_owner=NativeBookOwnerScope()
             window._notes_actor_book_owner.set_ready(True)
@@ -83,6 +84,14 @@ def native_picker(fixture,tmp_path,selection,*,photos=False,clock=None,cold=Fals
             window._ladefehler=''
             window._speicher_laeuft=False
             window._speicher_auftraege=Queue()
+            if saved_ack:
+                # Record the actual committed bytes, then exercise the native
+                # current-book comparison instead of the ordinary fixture stub.
+                raw=(tmp_path/'daten.json').read_bytes()
+                observed=window._notes_actor_book_owner.record_saved(
+                    *window._telefon_actor_buchbindung(),hashlib.sha256(raw).hexdigest())
+                window._notes_actor_saved_data=(observed['book_source'],observed['sequence'],
+                    book_hash(window._aktuelle_daten))
         payload=dict(cmd='telefon_fotoziel_waehlen' if photos else 'telefon_videoziel_waehlen',kennung=peer['device_id'],fingerprint=phone.fingerprint(phone.unb64(peer['static_public'],32)))
         def invoke(extra=None):
             worker=namespace['_telefon_videoziel_waehlen'](window,{**payload,**(extra or {})})
@@ -122,18 +131,35 @@ def test_native_picker_private_ipc_saves_initial_custom_video_root_off_without_p
     assert receiving[2].send.call_count==sent and not list(target.iterdir())
 
 
-def test_video_picker_uses_existing_book_after_reopen_without_save_ack(receiving,tmp_path,monkeypatch):
+@pytest.mark.parametrize('cold',[False,True],ids=['save-ack','reopened'])
+@pytest.mark.parametrize('fractional',[False,True],ids=['integer-book','fractional-book'])
+def test_video_picker_matches_existing_saved_book_after_reopen_or_save_ack(receiving,tmp_path,monkeypatch,cold,fractional):
     prepare_choice(receiving,monkeypatch)
     connection=receiving[3];before=connection._preferences.read();sent=receiving[2].send.call_count
-    book=tmp_path/'daten.json';book_before=book.read_bytes()
+    service=receiving[0];book=tmp_path/'daten.json';data=json.loads(book.read_bytes())
+    if fractional:
+        data['customOrganizer']={'drawing':{'points':[{'x':12.5,'y':-3.75}], 'zoom':1.0}}
+    with NativeMediaRetention(service.store.root) as retention:
+        token=retention.pause()
+        book.write_bytes(canonical_book(data))
+        retention.publish_saved(token,data)
+        retained=retention._read()
+        assert retained['book_sha256']==book_hash(data)
+    book_before=book.read_bytes();peers_before=Path(service.store.peers_path).read_bytes()
+    grant=connection._preferences.local_grant(True).grants
+    original=Path(before.policy.destination.path)/'preserved-photo.jpg';original.write_bytes(b'Keep existing photo')
     target=tmp_path/'After-Reopen-Video';target.mkdir(mode=0o700)
-    with native_picker(receiving,tmp_path,str(target),cold=True) as (window,invoke,calls,answers):
-        assert window._telefon_actor_buchnachweis() is None
+    with native_picker(receiving,tmp_path,str(target),cold=cold,saved_ack=not cold) as (window,invoke,calls,answers):
+        proof=window._telefon_actor_buchnachweis()
+        assert (proof is None)==cold
         assert invoke() is not None and len(calls)==1 and answers[-1][1]['ok']
-        assert window._telefon_actor_buchnachweis() is None
+        assert window._telefon_actor_buchnachweis()==proof
     after=connection._preferences.read()
     assert after.policy.videos.destination.path==str(target) and not after.include_videos
     assert after.policy.destination==before.policy.destination and after.policy.permission_epoch==before.policy.permission_epoch
+    assert connection._preferences.local_grant(True).grants==grant
+    assert Path(service.store.peers_path).read_bytes()==peers_before and original.read_bytes()==b'Keep existing photo'
+    with NativeMediaRetention(service.store.root) as retention:assert retention._read()==retained
     assert book.read_bytes()==book_before and receiving[2].send.call_count==sent and not list(target.iterdir())
 
 
