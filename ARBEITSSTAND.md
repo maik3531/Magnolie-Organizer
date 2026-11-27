@@ -7,6 +7,13 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
+  Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
+  tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere
+  Ziele spätere dauerhaft verdrängen. Die bestehende Zeitgrenze und das
+  Limit von 32 Versuchen pro Runde bleiben erhalten. Zwölf Host-Ablauffälle
+  und 19 Tests im regulären Notes-Release-JVM-Lauf bestanden.
+  Die native Fernabnahme bleibt offen.
 - [#790](https://github.com/maik3531/Magnolie-Organizer/issues/790):
   Die Workflow-Tests für Mac und Tablet prüfen den aktuellen Checkout,
   während die historische Codec-Referenz separat bleibt. Die Tablet-

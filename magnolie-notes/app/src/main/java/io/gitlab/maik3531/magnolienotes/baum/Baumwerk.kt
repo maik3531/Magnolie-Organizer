@@ -65,6 +65,7 @@ class Baumwerk private constructor(
     private var bluetooth: BluetoothHorcher? = null
     @Volatile private var dienstLaeuft = false
     private val versandSperre = java.util.concurrent.locks.ReentrantLock()
+    private val fernAbgleichReihenfolge = FernAbgleichReihenfolge()
     private val kontaktImport by lazy {
         KontaktImportAblauf { art, inhalt ->
             val ziel = offenesKontaktImportZiel
@@ -739,8 +740,12 @@ class Baumwerk private constructor(
         val identitaet = eigen() ?: return emptyList()
         val result = mutableListOf<FernAbgleichVerbindung>()
         val ende = System.nanoTime() + 8_000_000_000L
-        for (peer in vorher.partner.filter { it.bestaetigt && it.vertraut && it.fernAdresse.isNotBlank() }.take(32)) {
+        val partner = vorher.partner.filter { it.bestaetigt && it.vertraut && it.fernAdresse.isNotBlank() }
+            .associateBy { it.kennung }
+        for (kennung in fernAbgleichReihenfolge.naechste(partner.keys.toList())) {
             if (Thread.currentThread().isInterrupted || System.nanoTime() >= ende || !fernInternet()) break
+            val peer = partner.getValue(kennung)
+            fernAbgleichReihenfolge.versucht(kennung)
             FernAbgleich.pruefen(identitaet, peer, vorher.syncEpoch)?.let { proof ->
                 if (proof.passt(ablage.baum.value)) result += proof
             }
