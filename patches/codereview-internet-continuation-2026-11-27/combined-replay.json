@@ -1,0 +1,14 @@
+{
+  "base_commit": "f8ad956ec4c9a71cd4d857c3218177c481407c85",
+  "base_tree": "7c2601341c0436e99ac7d0bb3426138fab3476f4",
+  "nine_part_tree": "90f8ed38ad1de3134a6056fe109bdef86e77b8da",
+  "notes_patch_source_commit": "a1b21e94080d2464df748aab2cd0d106a40714b9",
+  "combined_result_tree": "3b5b94fd3256b01a3a775f39bfdae4d661f9d6b8",
+  "combined_patch_bytes": 165983,
+  "combined_patch_sha256": "52985a9c4d2e5a1e6b328cb1116503db7c3984f8671ce00f07d24a04483a5e68",
+  "sequential_and_combined_equal": true,
+  "both_reverse_to_exact_base": true,
+  "notes_product_and_test_files_byte_equal_to_tested_candidate": true,
+  "only_overlap_between_nine_part_series_and_notes_patch": "ARBEITSSTAND.md (documentation)",
+  "execution_boundary": "Composition and byte binding only; targeted runtime results remain in current-main and notes-148. No full new runtime suite or native device claim."
+}

@@ -1,0 +1,1305 @@
+{
+  "date_utc": "2026-11-27T20:29:33.084239+00:00",
+  "previous_base": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "previous_tested_head": "f3ea06e275ce6cd7547106096cfd96d27cf57e15",
+  "current_base": "f8ad956ec4c9a71cd4d857c3218177c481407c85",
+  "base_tree": "7c2601341c0436e99ac7d0bb3426138fab3476f4",
+  "result_tree": "90f8ed38ad1de3134a6056fe109bdef86e77b8da",
+  "original_combined_patch": {
+    "name": "all-after-7a490dd8.patch",
+    "sha256": "92d178080932e764ab230dee7cac801544ed25d75e5cbd8066bb4409147eaf12",
+    "bytes": 158531
+  },
+  "fresh_combined_patch": {
+    "name": "all-after-f8ad956e.patch",
+    "sha256": "f80a4ab19adcb7202b97ec8222f42838277f1d73aa1070ac14bad7ffd8382703",
+    "bytes": 158531
+  },
+  "tracked_paths_compared": 4700,
+  "unchanged_tracked_paths": 4696,
+  "differences_from_previous_tested_tree": [
+    {
+      "path": "ARBEITSSTAND.md",
+      "old_blob": [
+        "100644",
+        "blob",
+        "576830e0fe29aa590c8a61735513e5c2135dcd34"
+      ],
+      "new_blob": [
+        "100644",
+        "blob",
+        "73f85d8f87b24faa7e1df438574a5e909dcfac21"
+      ],
+      "exact_upstream_delta_preserved": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "old_blob": [
+        "100644",
+        "blob",
+        "9883803b5cfe045cb6d1bb2e6589ddbc061e831d"
+      ],
+      "new_blob": [
+        "100644",
+        "blob",
+        "dec91125390a83a1678a1d843562fb2dafb4bf91"
+      ],
+      "exact_upstream_delta_preserved": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/mcp-import-review.js",
+      "old_blob": [
+        "100644",
+        "blob",
+        "c42b3fb16597b3775b020b791137d37cbf613b51"
+      ],
+      "new_blob": [
+        "100644",
+        "blob",
+        "a5a643a7919b6a2121b553061a2a7e809dc3c9f5"
+      ],
+      "exact_upstream_delta_preserved": true
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "old_blob": [
+        "100644",
+        "blob",
+        "b0de2371ecd7e4a6148cb9a72e60fb2cbe4614b6"
+      ],
+      "new_blob": [
+        "100644",
+        "blob",
+        "02d00d1d0dd92cab640e853242b5b1cf2845f0ef"
+      ],
+      "exact_upstream_delta_preserved": true
+    }
+  ],
+  "preserved_upstream_diff": {
+    "path": "only-preserved-upstream.diff",
+    "sha256": "b99c7d5a0572aeba2f2a0f9f0bd7c865220ff2a170de77cffe5010e90bb4ba23"
+  },
+  "replay": [
+    {
+      "mode": "combined",
+      "patches": 1,
+      "result_tree": "90f8ed38ad1de3134a6056fe109bdef86e77b8da",
+      "restored_tree": "7c2601341c0436e99ac7d0bb3426138fab3476f4",
+      "passed": true
+    },
+    {
+      "mode": "series",
+      "patches": 9,
+      "result_tree": "90f8ed38ad1de3134a6056fe109bdef86e77b8da",
+      "restored_tree": "7c2601341c0436e99ac7d0bb3426138fab3476f4",
+      "passed": true
+    }
+  ],
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/Magnolie-Organizer",
+        "rev-parse",
+        "HEAD"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "rev-parse",
+        "HEAD"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/Magnolie-Organizer",
+        "status",
+        "--porcelain"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current",
+        "status",
+        "--porcelain"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current",
+        "rev-parse",
+        "HEAD"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "diff",
+        "--name-only"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "rev-parse",
+        "HEAD^{tree}"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "write-tree"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "read-tree",
+        "HEAD"
+      ],
+      "index": "/tmp/review-index-5f4793t1/combined",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/all-after-7a490dd8.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/combined",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/all-after-7a490dd8.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/combined",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "write-tree"
+      ],
+      "index": "/tmp/review-index-5f4793t1/combined",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/all-after-7a490dd8.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/combined",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/all-after-7a490dd8.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/combined",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "write-tree"
+      ],
+      "index": "/tmp/review-index-5f4793t1/combined",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "read-tree",
+        "HEAD"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/01-566-preserve-csv-contact-fields.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/01-566-preserve-csv-contact-fields.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/02-192-correct-mcp-coverage.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/02-192-correct-mcp-coverage.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/03-790-correct-current-source-test.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/03-790-correct-current-source-test.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/04-330-shared-media-wait.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/04-330-shared-media-wait.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/05-330-initial-recovery-and-refresh.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/05-330-initial-recovery-and-refresh.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/06-395-organizer-suggestions.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/06-395-organizer-suggestions.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/07-844-calendar-color-followup.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/07-844-calendar-color-followup.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/08-845-nextcloud-birthday-followup.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/08-845-nextcloud-birthday-followup.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/09-845-exported-birthday-exception-guard.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/09-845-exported-birthday-exception-guard.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "write-tree"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/09-845-exported-birthday-exception-guard.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/09-845-exported-birthday-exception-guard.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/08-845-nextcloud-birthday-followup.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/08-845-nextcloud-birthday-followup.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/07-844-calendar-color-followup.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/07-844-calendar-color-followup.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/06-395-organizer-suggestions.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/06-395-organizer-suggestions.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/05-330-initial-recovery-and-refresh.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/05-330-initial-recovery-and-refresh.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/04-330-shared-media-wait.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/04-330-shared-media-wait.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/03-790-correct-current-source-test.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/03-790-correct-current-source-test.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/02-192-correct-mcp-coverage.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/02-192-correct-mcp-coverage.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "--check",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/01-566-preserve-csv-contact-fields.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "/workspace/scratch/7203da5bd564/open-audit/final-patches/01-566-preserve-csv-contact-fields.patch"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "write-tree"
+      ],
+      "index": "/tmp/review-index-5f4793t1/series",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current",
+        "ls-tree",
+        "-r",
+        "-z",
+        "f3ea06e275ce6cd7547106096cfd96d27cf57e15"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "ls-tree",
+        "-r",
+        "-z",
+        "90f8ed38ad1de3134a6056fe109bdef86e77b8da"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current",
+        "ls-tree",
+        "-r",
+        "-z",
+        "7a490dd87e94eec08d7f09cb95a04b34bf4621c2"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/Magnolie-Organizer",
+        "ls-tree",
+        "-r",
+        "-z",
+        "f8ad956ec4c9a71cd4d857c3218177c481407c85"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current",
+        "show",
+        "f3ea06e275ce6cd7547106096cfd96d27cf57e15:ARBEITSSTAND.md"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current",
+        "show",
+        "7a490dd87e94eec08d7f09cb95a04b34bf4621c2:ARBEITSSTAND.md"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current",
+        "show",
+        "f3ea06e275ce6cd7547106096cfd96d27cf57e15:magnolie-organizer-windows/app/web/anwendung.js"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current",
+        "show",
+        "7a490dd87e94eec08d7f09cb95a04b34bf4621c2:magnolie-organizer-windows/app/web/anwendung.js"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current",
+        "show",
+        "f3ea06e275ce6cd7547106096cfd96d27cf57e15:magnolie-organizer-windows/tests/mcp-import-review.js"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current",
+        "show",
+        "7a490dd87e94eec08d7f09cb95a04b34bf4621c2:magnolie-organizer-windows/tests/mcp-import-review.js"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current",
+        "show",
+        "f3ea06e275ce6cd7547106096cfd96d27cf57e15:magnolie-organizer/web/anwendung.js"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current",
+        "show",
+        "7a490dd87e94eec08d7f09cb95a04b34bf4621c2:magnolie-organizer/web/anwendung.js"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "diff",
+        "--cached",
+        "--binary",
+        "--full-index"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "read-tree",
+        "HEAD"
+      ],
+      "index": "/tmp/review-refreshed-index-fhfhnc02/index",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat-evidence/all-after-f8ad956e.patch"
+      ],
+      "index": "/tmp/review-refreshed-index-fhfhnc02/index",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "write-tree"
+      ],
+      "index": "/tmp/review-refreshed-index-fhfhnc02/index",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "apply",
+        "--cached",
+        "--reverse",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat-evidence/all-after-f8ad956e.patch"
+      ],
+      "index": "/tmp/review-refreshed-index-fhfhnc02/index",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "write-tree"
+      ],
+      "index": "/tmp/review-refreshed-index-fhfhnc02/index",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "write-tree"
+      ],
+      "index": null,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat",
+        "diff",
+        "--name-only"
+      ],
+      "index": null,
+      "exit_code": 0
+    }
+  ],
+  "node_version": "v24.22.3",
+  "jsdom_version": "26.1.0",
+  "runs": [
+    {
+      "edition": "windows",
+      "program": "magnolie-organizer-windows/tests/mcp-import-review.js",
+      "program_sha256": "187e12f3eb8e5af1fd342721bdbfd7ffd4c0b1671af13d8e9d2bbadd7bfab9e7",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat/magnolie-organizer-windows/tests/mcp-import-review.js"
+      ],
+      "exit_code": 0,
+      "seconds": 2.903,
+      "log": "windows-mcp-import-review.js.log",
+      "log_sha256": "bbb9945a1cd15516cc831740d710796c0cb25c563b94f399db2e6a56c44924e7",
+      "inputs": [
+        {
+          "path": "magnolie-organizer-windows/app/web/index.html",
+          "sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n.js",
+          "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/zeichenblatt.js",
+          "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/appearance.js",
+          "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/normative-timezones.js",
+          "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+          "from_previous_generated_asset": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/anwendung.js",
+          "sha256": "29730db4853839ecf73b452de7377469c084e00fe9d3a821f0b5f5d6fa5e7ac7",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/mcp-protocol.js",
+          "sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "from_previous_generated_asset": false
+        }
+      ]
+    },
+    {
+      "edition": "windows",
+      "program": "magnolie-organizer-windows/tests/calendar-colour-remainders.js",
+      "program_sha256": "63708d326ca7922b152fa2e440c3e7d6e7cfac2b553a7d9a66487e9e06416cef",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat/magnolie-organizer-windows/tests/calendar-colour-remainders.js"
+      ],
+      "exit_code": 0,
+      "seconds": 4.109,
+      "log": "windows-calendar-colour-remainders.js.log",
+      "log_sha256": "45975a9d132b8fa805e51be0d5248ce2758dd1a3c364bf7895eaa123cf6a2902",
+      "inputs": [
+        {
+          "path": "magnolie-organizer-windows/app/web/index.html",
+          "sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n.js",
+          "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/zeichenblatt.js",
+          "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/appearance.js",
+          "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/normative-timezones.js",
+          "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+          "from_previous_generated_asset": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/anwendung.js",
+          "sha256": "29730db4853839ecf73b452de7377469c084e00fe9d3a821f0b5f5d6fa5e7ac7",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/mcp-protocol.js",
+          "sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "from_previous_generated_asset": false
+        }
+      ]
+    },
+    {
+      "edition": "windows",
+      "program": "magnolie-organizer-windows/tests/legacy-android-instance-ui.js",
+      "program_sha256": "256869a6a715bacd7782215bb604b076fef479b7fe9cb5e9b1d20598f85e6f27",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat/magnolie-organizer-windows/tests/legacy-android-instance-ui.js"
+      ],
+      "exit_code": 1,
+      "seconds": 1.066,
+      "log": "windows-legacy-android-instance-ui.js.log",
+      "log_sha256": "a3de039e46824bbb72177f055cd88799640d317a87b72a9588744c27887b187d",
+      "inputs": [
+        {
+          "path": "magnolie-organizer-windows/app/web/index.html",
+          "sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n.js",
+          "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/zeichenblatt.js",
+          "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/appearance.js",
+          "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/normative-timezones.js",
+          "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+          "from_previous_generated_asset": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/anwendung.js",
+          "sha256": "29730db4853839ecf73b452de7377469c084e00fe9d3a821f0b5f5d6fa5e7ac7",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/mcp-protocol.js",
+          "sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "from_previous_generated_asset": false
+        }
+      ]
+    },
+    {
+      "edition": "linux",
+      "program": "magnolie-organizer-windows/tests/mcp-import-review.js",
+      "program_sha256": "187e12f3eb8e5af1fd342721bdbfd7ffd4c0b1671af13d8e9d2bbadd7bfab9e7",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat/magnolie-organizer-windows/tests/mcp-import-review.js"
+      ],
+      "exit_code": 0,
+      "seconds": 2.178,
+      "log": "linux-mcp-import-review.js.log",
+      "log_sha256": "1656a2343067c9499cd0eeb7ea28cb8cfa07b321a3becc634cdce9772561ff04",
+      "inputs": [
+        {
+          "path": "magnolie-organizer/web/index.html",
+          "sha256": "24e3806b8a057693e289ac94ebb879f851c317a27064b0bc307db10da0829ea0",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/i18n.js",
+          "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/zeichenblatt.js",
+          "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/appearance.js",
+          "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/normative-timezones.js",
+          "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+          "from_previous_generated_asset": true
+        },
+        {
+          "path": "magnolie-organizer/web/anwendung.js",
+          "sha256": "9db5538ec62811cf8ddfd519729eab2e3075dab31193bf213802545c3d116f7a",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/mcp-protocol.js",
+          "sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "from_previous_generated_asset": false
+        }
+      ]
+    },
+    {
+      "edition": "linux",
+      "program": "magnolie-organizer-windows/tests/calendar-colour-remainders.js",
+      "program_sha256": "63708d326ca7922b152fa2e440c3e7d6e7cfac2b553a7d9a66487e9e06416cef",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat/magnolie-organizer-windows/tests/calendar-colour-remainders.js"
+      ],
+      "exit_code": 0,
+      "seconds": 3.843,
+      "log": "linux-calendar-colour-remainders.js.log",
+      "log_sha256": "caee096dfa31ce4e671f6a5592d2b36a621b525c55d05affe2c938052c484775",
+      "inputs": [
+        {
+          "path": "magnolie-organizer/web/index.html",
+          "sha256": "24e3806b8a057693e289ac94ebb879f851c317a27064b0bc307db10da0829ea0",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/i18n.js",
+          "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/zeichenblatt.js",
+          "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/appearance.js",
+          "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/normative-timezones.js",
+          "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+          "from_previous_generated_asset": true
+        },
+        {
+          "path": "magnolie-organizer/web/anwendung.js",
+          "sha256": "9db5538ec62811cf8ddfd519729eab2e3075dab31193bf213802545c3d116f7a",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/mcp-protocol.js",
+          "sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "from_previous_generated_asset": false
+        }
+      ]
+    },
+    {
+      "edition": "linux",
+      "program": "magnolie-organizer-windows/tests/legacy-android-instance-ui.js",
+      "program_sha256": "256869a6a715bacd7782215bb604b076fef479b7fe9cb5e9b1d20598f85e6f27",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/69a9d769e56f/audit-current-compat/magnolie-organizer-windows/tests/legacy-android-instance-ui.js"
+      ],
+      "exit_code": 1,
+      "seconds": 0.987,
+      "log": "linux-legacy-android-instance-ui.js.log",
+      "log_sha256": "a3de039e46824bbb72177f055cd88799640d317a87b72a9588744c27887b187d",
+      "inputs": [
+        {
+          "path": "magnolie-organizer/web/index.html",
+          "sha256": "24e3806b8a057693e289ac94ebb879f851c317a27064b0bc307db10da0829ea0",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/i18n.js",
+          "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/zeichenblatt.js",
+          "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/appearance.js",
+          "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/normative-timezones.js",
+          "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+          "from_previous_generated_asset": true
+        },
+        {
+          "path": "magnolie-organizer/web/anwendung.js",
+          "sha256": "9db5538ec62811cf8ddfd519729eab2e3075dab31193bf213802545c3d116f7a",
+          "from_previous_generated_asset": false
+        },
+        {
+          "path": "magnolie-organizer/web/mcp-protocol.js",
+          "sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "from_previous_generated_asset": false
+        }
+      ]
+    }
+  ],
+  "passed": false,
+  "boundary": "Targeted Node/JSDOM regression only. No new C#/Python/native/package/device/internet acceptance. All other source tree blobs equal the previously tested integration. Existing f8 #846 normalizers and stronger test remain intact; earlier alias guard is defensive redundancy, not a replacement."
+}

@@ -1,0 +1,88 @@
+--- f3ea/ARBEITSSTAND.md
++++ f8-plus-series/ARBEITSSTAND.md
+@@ -112,6 +112,12 @@
+   andere Markertypen und Serienausnahmen bleiben Kalendertermine.
+   102 Linux-Prüfungen, sechs native Windows-Gruppen, beide
+   Oberflächenpfade und 44 Projektionsprüfungen bestanden.
++- [#846](https://github.com/maik3531/Magnolie-Organizer/issues/846):
++  Ältere ICS-Serienausnahmen lassen sich wieder über die MCP-Importvorschau
++  übernehmen. Eine fehlende Kalenderfarbe bleibt fehlend; der Import
++  behält die vorhandene Farbzuordnung. Beide Desktop-Oberflächen
++  bestanden unter Node und Bun. Das vollständige Windows-Archiv-Gate
++  läuft separat.
+ - [#841](https://github.com/maik3531/Magnolie-Organizer/issues/841):
+   Organizer übernimmt die Schreibrichtung auch bei regionalen arabischen
+   Sprachcodes aus dem primären Sprachuntertag. 16 Startfälle mit den
+--- f3ea/magnolie-organizer-windows/app/web/anwendung.js
++++ f8-plus-series/magnolie-organizer-windows/app/web/anwendung.js
+@@ -8352,7 +8352,6 @@
+       icsRangeOverrides: kopie(t.icsRangeOverrides || []),
+       icsAusnahmeTermine: kopie(t.icsAusnahmeTermine || []),
+       icsTimezones: kopie(t.icsTimezones || []),
+-      icsCalendarColor: typeof t.icsCalendarColor === "string" ? t.icsCalendarColor : undefined,
+       icsAnzeigeZeitzone: S(t.icsAnzeigeZeitzone),
+       icsSequence: Math.floor(N(t.icsSequence)),
+       icsAenderungszeitFehlt: !!t.icsAenderungszeitFehlt,
+@@ -8364,6 +8363,7 @@
+       aufgaben: Array.isArray(t.aufgaben) ? t.aufgaben.map(S).filter(Boolean) : [],
+         kontaktId: S(t.kontaktId), syncKalenderUid: S(t.syncKalenderUid),
+         geaendert: N(t.geaendert), sync: !!t.sync, syncQuellen: Q(t.syncQuellen) };
++      if (typeof normalisierterTermin.icsCalendarColor !== "string") delete normalisierterTermin.icsCalendarColor;
+       normalisierterTermin.providerMetadaten = providerMetadaten;
+       if (!zusammenfassen) { d.termine.push(normalisierterTermin); continue; }
+       const identitaet = terminIdentitaet(normalisierterTermin);
+@@ -8458,7 +8458,7 @@
+         icsSerienUid: S(a.icsSerienUid), icsRangeOverrides: kopie(a.icsRangeOverrides || []), icsAnzeigeZeitzone: S(a.icsAnzeigeZeitzone),
+         icsAusnahmeTermine: kopie(a.icsAusnahmeTermine || []), icsAusnahmen: kopie(a.icsAusnahmen || []),
+         icsZusatzTermine: kopie(a.icsZusatzTermine || []), icsTimezones: kopie(a.icsTimezones || []),
+-        icsCalendarColor: typeof a.icsCalendarColor === "string" ? a.icsCalendarColor : undefined,
++        ...(typeof a.icsCalendarColor === "string" ? { icsCalendarColor: a.icsCalendarColor } : {}),
+         geaendert: N(a.geaendert), personalGeaendert: N(a.personalGeaendert) ||
+           N(a.geaendert) || taskAngelegt });
+     }
+--- f3ea/magnolie-organizer-windows/tests/mcp-import-review.js
++++ f8-plus-series/magnolie-organizer-windows/tests/mcp-import-review.js
+@@ -207,7 +207,7 @@
+       // same exact old Android alias without replacing local identity/lists.
+       const legacy = { id: "legacy-mcp-local", uid: "caldav-series-1-magnolie-instanz-7f5e24178d89f683", datum: "2026-11-02", zeit: "12:30",
+         titel: "Legacy MCP", geaendert: 1, icsQuelleId: "ics:legacy-462", icsSerienUid: "caldav-series-1",
+-        icsRoundtrip: ["RECURRENCE-ID;TZID=Europe/Berlin:20261102T100000"], futureMetadata: { keep: true },
++        icsRoundtrip: ["RECURRENCE-ID;TZID=Europe/Berlin:20261102T100000"], futureMetadata: { keep: true }, icsCalendarColor: "COLOR:DarkGrey",
+         alarme: [{ id: "local-alarm", offsetMinuten: 5, aktion: "display", aktiviert: true, related: "START", bearbeitbar: true }] };
+       b.t.daten().termine.push(legacy);
+       b.t.daten().aufgaben.push({ id: "legacy-mcp-task", uid: "legacy-mcp-task", titel: "Keep reference", terminId: legacy.id });
+@@ -222,6 +222,7 @@
+       assert(legacyApplied.persisted); assert.equal(b.t.daten().termine.length, legacyCount);
+       const kept = b.t.daten().termine.find(event => event.id === legacy.id);
+       assert.equal(kept.uid, legacy.uid); assert.equal(kept.titel, "Incoming via MCP"); assert.equal(kept.futureMetadata.keep, true);
++      assert.equal(kept.icsCalendarColor, "COLOR:DarkGrey", "An omitted colour property must not clear existing source metadata.");
+       assert.equal(kept.alarme[0].id, "local-alarm");
+       assert.equal(b.t.daten().aufgaben.find(task => task.id === "legacy-mcp-task").terminId, legacy.id);
+       b.t.daten().termine.push({ ...JSON.parse(JSON.stringify(kept)), id: "second-legacy-mcp" });
+--- f3ea/magnolie-organizer/web/anwendung.js
++++ f8-plus-series/magnolie-organizer/web/anwendung.js
+@@ -8592,7 +8592,6 @@
+       icsRangeOverrides: kopie(t.icsRangeOverrides || []),
+       icsAusnahmeTermine: kopie(t.icsAusnahmeTermine || []),
+       icsTimezones: kopie(t.icsTimezones || []),
+-      icsCalendarColor: typeof t.icsCalendarColor === "string" ? t.icsCalendarColor : undefined,
+       icsAnzeigeZeitzone: S(t.icsAnzeigeZeitzone),
+       icsSequence: Math.floor(N(t.icsSequence)),
+       icsAenderungszeitFehlt: !!t.icsAenderungszeitFehlt,
+@@ -8604,6 +8603,7 @@
+       aufgaben: Array.isArray(t.aufgaben) ? t.aufgaben.map(S).filter(Boolean) : [],
+         kontaktId: S(t.kontaktId), syncKalenderUid: S(t.syncKalenderUid),
+         geaendert: N(t.geaendert), sync: !!t.sync, syncQuellen: Q(t.syncQuellen) };
++      if (typeof normalisierterTermin.icsCalendarColor !== "string") delete normalisierterTermin.icsCalendarColor;
+       normalisierterTermin.providerMetadaten = providerMetadaten;
+       if (!zusammenfassen) { d.termine.push(normalisierterTermin); continue; }
+       const identitaet = terminIdentitaet(normalisierterTermin);
+@@ -8685,7 +8685,7 @@
+         icsSerienUid: S(a.icsSerienUid), icsRangeOverrides: kopie(a.icsRangeOverrides || []), icsAnzeigeZeitzone: S(a.icsAnzeigeZeitzone),
+         icsAusnahmeTermine: kopie(a.icsAusnahmeTermine || []), icsAusnahmen: kopie(a.icsAusnahmen || []),
+         icsZusatzTermine: kopie(a.icsZusatzTermine || []), icsTimezones: kopie(a.icsTimezones || []),
+-        icsCalendarColor: typeof a.icsCalendarColor === "string" ? a.icsCalendarColor : undefined,
++        ...(typeof a.icsCalendarColor === "string" ? { icsCalendarColor: a.icsCalendarColor } : {}),
+         icsQuelleName: S(a.icsQuelleName), icsQuelleId: S(a.icsQuelleId),
+         sync: !!a.sync, syncQuellen: Q(a.syncQuellen), syncKalenderUid: S(a.syncKalenderUid),
+         personen: Array.isArray(a.personen) ? a.personen.map(S).filter(Boolean) : [],

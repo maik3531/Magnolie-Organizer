@@ -1,0 +1,16 @@
+FAIL reachable peer after six timeouts becomes available on a later refresh: reachable peer never probed after repeated refreshes
+FAIL all seventy peers are considered without exceeding thirty-two per refresh: only 32/70 peers were considered
+PASS offline does not probe
+PASS disabled service does not probe
+PASS missing own identity does not probe
+PASS unconfirmed untrusted and unconfigured peers are not probed
+PASS trust revocation during handshake invalidates proof
+PASS endpoint replacement during handshake invalidates proof
+PASS restore epoch replacement during handshake invalidates proof
+PASS own key replacement during handshake invalidates proof
+PASS expired proof is never reported available
+PASS interruption stops before any network attempt
+RESULT passed=10 failures=2
+Exception in thread "main" java.lang.IllegalStateException: 2 regression assertions failed
+	at io.gitlab.maik3531.magnolienotes.baum.ProbeFairnessHarnessKt.main(ProbeFairnessHarness.kt:148)
+	at io.gitlab.maik3531.magnolienotes.baum.ProbeFairnessHarnessKt.main(ProbeFairnessHarness.kt)

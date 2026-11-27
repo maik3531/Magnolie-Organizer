@@ -1,0 +1,188 @@
+{
+  "date": "2026-11-27",
+  "base_commit": "f8ad956ec4c9a71cd4d857c3218177c481407c85",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 8844,
+      "sha256": "b62fab292de35b11bb654b1fa0ec94f7aeb17cc85c0587cc2d0e400276996cbe"
+    },
+    {
+      "path": "audit-remote-readback-proof.json",
+      "bytes": 309,
+      "sha256": "23c126e8512fcb99c6a3f207114f9c2079d31a83c157c57f524945b25c2290e2"
+    },
+    {
+      "path": "combined-replay.json",
+      "bytes": 880,
+      "sha256": "e1aa76f844fe16c9fed27e09c3fd14511453f1b68967cb17635204451bcf5156"
+    },
+    {
+      "path": "complete-review-after-f8ad956e.patch",
+      "bytes": 165983,
+      "sha256": "52985a9c4d2e5a1e6b328cb1116503db7c3984f8671ce00f07d24a04483a5e68"
+    },
+    {
+      "path": "current-main/README.md",
+      "bytes": 3985,
+      "sha256": "d43ebbea164b8853f7f2742a784bd1ce1d2b5cff7beb72d184947c2b5607d8cb"
+    },
+    {
+      "path": "current-main/SHA256SUMS",
+      "bytes": 1500,
+      "sha256": "259e82e77b1dc8de3922a6c2923e48c1298f859c037db41e9b29682a73baec08"
+    },
+    {
+      "path": "current-main/all-after-f8ad956e.patch",
+      "bytes": 158531,
+      "sha256": "f80a4ab19adcb7202b97ec8222f42838277f1d73aa1070ac14bad7ffd8382703"
+    },
+    {
+      "path": "current-main/both-legacy-android-instance-ui.js.log",
+      "bytes": 334,
+      "sha256": "20e1beae7ccdbc8f83d6f8729a9e7898876cdfbb9fbab2e4d91ca47e74e045bc"
+    },
+    {
+      "path": "current-main/initial-setup/linux-legacy-android-instance-ui.js.log",
+      "bytes": 1178,
+      "sha256": "a3de039e46824bbb72177f055cd88799640d317a87b72a9588744c27887b187d"
+    },
+    {
+      "path": "current-main/initial-setup/replay-and-tests.json",
+      "bytes": 39610,
+      "sha256": "46aa7e96e6c90c59e0e8006e5bd224acbfb8cf5ebe19b33afed54031c7c1cfdc"
+    },
+    {
+      "path": "current-main/initial-setup/windows-legacy-android-instance-ui.js.log",
+      "bytes": 1178,
+      "sha256": "a3de039e46824bbb72177f055cd88799640d317a87b72a9588744c27887b187d"
+    },
+    {
+      "path": "current-main/linux-calendar-colour-remainders.js.log",
+      "bytes": 82,
+      "sha256": "caee096dfa31ce4e671f6a5592d2b36a621b525c55d05affe2c938052c484775"
+    },
+    {
+      "path": "current-main/linux-legacy-android-instance-ui.js.log",
+      "bytes": 1178,
+      "sha256": "a3de039e46824bbb72177f055cd88799640d317a87b72a9588744c27887b187d"
+    },
+    {
+      "path": "current-main/linux-mcp-import-review.js.log",
+      "bytes": 124,
+      "sha256": "1656a2343067c9499cd0eeb7ea28cb8cfa07b321a3becc634cdce9772561ff04"
+    },
+    {
+      "path": "current-main/only-preserved-upstream.diff",
+      "bytes": 6495,
+      "sha256": "b99c7d5a0572aeba2f2a0f9f0bd7c865220ff2a170de77cffe5010e90bb4ba23"
+    },
+    {
+      "path": "current-main/recheck.py",
+      "bytes": 13816,
+      "sha256": "0657cc90a6e51774a22115c2bfcf2ba43bbab82a2fde41b03bde915641a06fa5"
+    },
+    {
+      "path": "current-main/replay-and-tests.json",
+      "bytes": 36603,
+      "sha256": "ae781fc122f798adb064f9b5f39ca872c02c6c6cea4abe16b36a138f71af78f3"
+    },
+    {
+      "path": "current-main/windows-calendar-colour-remainders.js.log",
+      "bytes": 84,
+      "sha256": "45975a9d132b8fa805e51be0d5248ce2758dd1a3c364bf7895eaa123cf6a2902"
+    },
+    {
+      "path": "current-main/windows-legacy-android-instance-ui.js.log",
+      "bytes": 1178,
+      "sha256": "a3de039e46824bbb72177f055cd88799640d317a87b72a9588744c27887b187d"
+    },
+    {
+      "path": "current-main/windows-mcp-import-review.js.log",
+      "bytes": 126,
+      "sha256": "bbb9945a1cd15516cc831740d710796c0cb25c563b94f399db2e6a56c44924e7"
+    },
+    {
+      "path": "internet-review-recheck.json",
+      "bytes": 6333,
+      "sha256": "554536f26e27ffeac72f92b91ae0274c2a91077366ff3ea5950d935fdd884236"
+    },
+    {
+      "path": "notes-148/README.md",
+      "bytes": 5216,
+      "sha256": "ce07cb774aa8a08f77a24bb73e833cd9719b2ab3e4639ff832c81e75de5dea66"
+    },
+    {
+      "path": "notes-148/after/ProbeFairnessHarness.kt",
+      "bytes": 8116,
+      "sha256": "0262190a42d621d785265542e9d3920cd032a472f34984742ce2bf93588dde9b"
+    },
+    {
+      "path": "notes-148/after/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "notes-148/after/manifest.json",
+      "bytes": 1422,
+      "sha256": "598b2175bb01f7f1f231b114d9f4e468475c421598548d96dd47ea0f29fa3034"
+    },
+    {
+      "path": "notes-148/after/results.log",
+      "bytes": 696,
+      "sha256": "05e5afa9afefd0c8a25c7b5f37f0bdf760302ae317aa880176aa119561b09c3d"
+    },
+    {
+      "path": "notes-148/before/ProbeFairnessHarness.kt",
+      "bytes": 7833,
+      "sha256": "2e6217abd487c853cb46df1b47ebcda40bab385b27609e2a71a21ece09727196"
+    },
+    {
+      "path": "notes-148/before/compile.log",
+      "bytes": 124,
+      "sha256": "6522b5fabc69dd031417391068341349ec2b6e85c4084a5e72a067f47e42f618"
+    },
+    {
+      "path": "notes-148/before/manifest.json",
+      "bytes": 1249,
+      "sha256": "f55e15f39086422be1acfedb030a9db4deac5612140033803da857c26148745b"
+    },
+    {
+      "path": "notes-148/before/results.log",
+      "bytes": 1069,
+      "sha256": "8fb9ac2e502de5c6514cc1c4b4e09a9456a55094a42dcbb066339d860bd84252"
+    },
+    {
+      "path": "notes-148/commit-binding.json",
+      "bytes": 541,
+      "sha256": "70741e5ecdae2d2d38316ca0cf7486698a92240060d426be2476faffcdd152f6"
+    },
+    {
+      "path": "notes-148/junit-compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "notes-148/junit-manifest.json",
+      "bytes": 808,
+      "sha256": "2e37f2edccbdc8fa4feb4bce74de0d27e7fa57fd631a855548d495bc6293df8a"
+    },
+    {
+      "path": "notes-148/junit.log",
+      "bytes": 56,
+      "sha256": "58316b3ff61612efb233df702a7b9abc4833b6df9892db9bf44ba9152be8846a"
+    },
+    {
+      "path": "notes-148/notes-148-fair-remote-probes.patch",
+      "bytes": 8148,
+      "sha256": "71818b1092956567ec827c8080ec0426269651432467472d2ee64bbc7cf3eea3"
+    },
+    {
+      "path": "notes-148/run_probe_fairness.py",
+      "bytes": 9826,
+      "sha256": "77f7e7399c8b037450ecef8efa8681384c6e7ca9904009ae1d58bea354071f31"
+    }
+  ],
+  "previous_delivery_artifact_commit": "6d5e189ee2d70ad3f085b13d96e596fd7ec83241",
+  "purpose": "Continue interrupted audit delivery and publish tested Notes #148 follow-up; source patches only"
+}

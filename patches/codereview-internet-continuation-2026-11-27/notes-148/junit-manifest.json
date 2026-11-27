@@ -1,0 +1,12 @@
+{
+  "source_files": {
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolge.kt": "235ba6d51bd4d4ba955c0fc4324d3011e56094e9c52dd77b66ab968d853df68b",
+    "magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolgeTest.kt": "aaf5e63dc83fe1a98ee5cb59257892a991ba3220e1ff0c43091a1e80f0bfc969"
+  },
+  "compiler": "Kotlin 2.4.21; JVM target 17; host OpenJDK21",
+  "test_runner": "JUnit4.13.2 direct JVM invocation",
+  "tests_passed": 8,
+  "test_class": "io.gitlab.maik3531.magnolienotes.baum.FernAbgleichReihenfolgeTest",
+  "log_sha256": "58316b3ff61612efb233df702a7b9abc4833b6df9892db9bf44ba9152be8846a",
+  "boundary": "Actual production scheduler and JUnit tests, without Android/Gradle/Robolectric or physical device runtime."
+}

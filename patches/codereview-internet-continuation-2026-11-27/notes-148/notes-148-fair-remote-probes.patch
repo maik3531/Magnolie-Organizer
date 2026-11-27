@@ -1,0 +1,163 @@
+From a1b21e94080d2464df748aab2cd0d106a40714b9 Mon Sep 17 00:00:00 2001
+From: Codex <codex@users.noreply.github.com>
+Date: Fri, 27 Nov 2026 21:31:37 +0100
+Subject: [PATCH] Refs #148: Continue remote Notes probes fairly across
+ refreshes
+
+---
+ ARBEITSSTAND.md                               | 11 +++
+ .../maik3531/magnolienotes/baum/Baumwerk.kt   |  7 +-
+ .../baum/FernAbgleichReihenfolge.kt           | 19 +++++
+ .../baum/FernAbgleichReihenfolgeTest.kt       | 69 +++++++++++++++++++
+ 4 files changed, 105 insertions(+), 1 deletion(-)
+ create mode 100644 magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolge.kt
+ create mode 100644 magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolgeTest.kt
+
+diff --git a/ARBEITSSTAND.md b/ARBEITSSTAND.md
+index 3a4b737..45346ea 100644
+--- a/ARBEITSSTAND.md
++++ b/ARBEITSSTAND.md
+@@ -7,6 +7,17 @@ aufgeführt.
+ 
+ ## Weitere Abnahme für den Gesamtrelease
+ 
++- [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
++  Die Fernzielprüfung von Notes setzt nach dem zuletzt tatsächlich geprüften
++  Partner fort. Frühe Zeitüberschreitungen und mehr als 32 Partner verhindern
++  dadurch nicht dauerhaft die Prüfung späterer erreichbarer Gegenstellen.
++  Das Zeitbudget, die Höchstzahl pro Runde und die Bindung der kurzlebigen
++  Verbindungsnachweise an Identität, Schlüssel, Ziel und Freigabe bleiben erhalten.
++  Acht JUnit-Fälle des Prüfreihenfolge-Kerns und zwölf JVM-Fälle mit der unverändert
++  übernommenen Produktmethode bestanden; vorher scheiterten zwei dieser zwölf
++  Fälle. Diese kontrollierten Hostprüfungen ersetzen weder die Android-Oberfläche
++  noch eine echte Internet-/Geräteabnahme. Die übrigen Kriterien aus #148 und
++  der automatische Transportumfang aus #128 bleiben offen.
+ - [#330](https://github.com/maik3531/Magnolie-Organizer/issues/330) /
+   [#338](https://github.com/maik3531/Magnolie-Organizer/issues/338):
+   Die gemeinsame Medienmaske macht den noch nicht freigegebenen
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt
+index ae3128a..e05a70c 100644
+--- a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt
+@@ -65,6 +65,7 @@ class Baumwerk private constructor(
+     private var bluetooth: BluetoothHorcher? = null
+     @Volatile private var dienstLaeuft = false
+     private val versandSperre = java.util.concurrent.locks.ReentrantLock()
++    private val fernAbgleichReihenfolge = FernAbgleichReihenfolge()
+     private val kontaktImport by lazy {
+         KontaktImportAblauf { art, inhalt ->
+             val ziel = offenesKontaktImportZiel
+@@ -739,8 +740,12 @@ class Baumwerk private constructor(
+         val identitaet = eigen() ?: return emptyList()
+         val result = mutableListOf<FernAbgleichVerbindung>()
+         val ende = System.nanoTime() + 8_000_000_000L
+-        for (peer in vorher.partner.filter { it.bestaetigt && it.vertraut && it.fernAdresse.isNotBlank() }.take(32)) {
++        val partner = vorher.partner.filter { it.bestaetigt && it.vertraut && it.fernAdresse.isNotBlank() }
++            .associateBy { it.kennung }
++        for (kennung in fernAbgleichReihenfolge.naechste(partner.keys.toList())) {
+             if (Thread.currentThread().isInterrupted || System.nanoTime() >= ende || !fernInternet()) break
++            val peer = partner.getValue(kennung)
++            fernAbgleichReihenfolge.versucht(kennung)
+             FernAbgleich.pruefen(identitaet, peer, vorher.syncEpoch)?.let { proof ->
+                 if (proof.passt(ablage.baum.value)) result += proof
+             }
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolge.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolge.kt
+new file mode 100644
+index 0000000..c31baa3
+--- /dev/null
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolge.kt
+@@ -0,0 +1,19 @@
++package io.gitlab.maik3531.magnolienotes.baum
++
++/** Continue after the last attempted peer, even when a slow route exhausts the probe budget. */
++internal class FernAbgleichReihenfolge {
++    private var zuletzt: String? = null
++
++    @Synchronized
++    fun naechste(kennungen: List<String>): List<String> {
++        if (kennungen.isEmpty()) return emptyList()
++        val start = (kennungen.indexOfFirst { it == zuletzt } + 1) % kennungen.size
++        return List(minOf(32, kennungen.size)) { kennungen[(start + it) % kennungen.size] }
++    }
++
++    /** Advance only when the caller actually starts a probe, never when merely planning a round. */
++    @Synchronized
++    fun versucht(kennung: String) {
++        zuletzt = kennung
++    }
++}
+diff --git a/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolgeTest.kt b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolgeTest.kt
+new file mode 100644
+index 0000000..f9371c6
+--- /dev/null
++++ b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolgeTest.kt
+@@ -0,0 +1,69 @@
++package io.gitlab.maik3531.magnolienotes.baum
++
++import org.junit.Assert.*
++import org.junit.Test
++
++class FernAbgleichReihenfolgeTest {
++    @Test fun reachablePeerAfterTimedOutPeersIsProbedOnTheNextRefresh() {
++        val order = FernAbgleichReihenfolge()
++        val peers = (1..6).map { "offline-$it" } + "reachable"
++        order.naechste(peers).take(6).forEach(order::versucht)
++        assertEquals("reachable", order.naechste(peers).first())
++    }
++
++    @Test fun moreThanThirtyTwoPeersDoNotPermanentlyHideTheTail() {
++        val order = FernAbgleichReihenfolge()
++        val peers = (1..70).map { "peer-$it" }
++        val seen = mutableSetOf<String>()
++        repeat(3) {
++            val round = order.naechste(peers)
++            assertEquals(32, round.size)
++            assertEquals(round.size, round.distinct().size)
++            round.forEach { seen += it; order.versucht(it) }
++        }
++        assertEquals(peers.toSet(), seen)
++    }
++
++    @Test fun aPlannedButCancelledRoundDoesNotSkipAnyPeer() {
++        val order = FernAbgleichReihenfolge()
++        val peers = listOf("a", "b", "c")
++        assertEquals(peers, order.naechste(peers))
++        assertEquals(peers, order.naechste(peers))
++        order.versucht("a")
++        assertEquals(listOf("b", "c", "a"), order.naechste(peers))
++        assertEquals(listOf("b", "c", "a"), order.naechste(peers))
++    }
++
++    @Test fun reorderingPeersKeepsTheCursorBoundToIdentity() {
++        val order = FernAbgleichReihenfolge()
++        order.versucht("b")
++        assertEquals(listOf("a", "d", "c", "b"), order.naechste(listOf("c", "b", "a", "d")))
++    }
++
++    @Test fun removedOrUntrustedLastPeerDoesNotHideCurrentCandidates() {
++        val order = FernAbgleichReihenfolge()
++        order.versucht("removed")
++        assertEquals(listOf("allowed-a", "allowed-b"), order.naechste(listOf("allowed-a", "allowed-b")))
++    }
++
++    @Test fun noCandidatesProducesNoAttemptAndKeepsTheCursor() {
++        val order = FernAbgleichReihenfolge()
++        order.versucht("a")
++        assertTrue(order.naechste(emptyList()).isEmpty())
++        assertEquals(listOf("b", "a"), order.naechste(listOf("a", "b")))
++    }
++
++    @Test fun onePeerIsProbedAtMostOnceInARoundAndCanBeRefreshed() {
++        val order = FernAbgleichReihenfolge()
++        assertEquals(listOf("only"), order.naechste(listOf("only")))
++        order.versucht("only")
++        assertEquals(listOf("only"), order.naechste(listOf("only")))
++    }
++
++    @Test fun aCompleteSmallRoundStartsAgainWithoutDuplicates() {
++        val order = FernAbgleichReihenfolge()
++        val peers = listOf("a", "b", "c")
++        order.naechste(peers).forEach(order::versucht)
++        assertEquals(peers, order.naechste(peers))
++    }
++}

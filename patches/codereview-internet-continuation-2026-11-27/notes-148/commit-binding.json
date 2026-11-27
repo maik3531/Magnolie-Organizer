@@ -1,0 +1,11 @@
+{
+  "base": "f8ad956ec4c9a71cd4d857c3218177c481407c85",
+  "tested_product_commit": "a1b21e94080d2464df748aab2cd0d106a40714b9",
+  "tested_product_tree": "0b62e944580376cc543f979f3a68d45b1b1e0c95",
+  "after_harness_executed_before_commit": true,
+  "every_after_harness_input_exactly_matches_committed_product": true,
+  "patch": "notes-148-fair-remote-probes.patch",
+  "patch_sha256": "71818b1092956567ec827c8080ec0426269651432467472d2ee64bbc7cf3eea3",
+  "forward_apply_check_on_base": true,
+  "reverse_apply_check_on_committed_result": true
+}

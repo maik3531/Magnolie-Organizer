@@ -1,0 +1,15 @@
+{
+  "source_head": "f8ad956ec4c9a71cd4d857c3218177c481407c85",
+  "source_files_sha256": {
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt": "8906275a1e50ac9216c2ce447e0c4c32082fab7eca40a824262aee1fda2368e6",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleich.kt": "aafe60506e07d837b84ac4339c4fd5c6845cd9df6e6f0463298924b17d9f7463",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolge.kt": "235ba6d51bd4d4ba955c0fc4324d3011e56094e9c52dd77b66ab968d853df68b"
+  },
+  "production_method_sha256": "44e57485be5ea5d882e1c419b28afd29b0c41bfec0a5ee6d7564c40aeea86b83",
+  "production_proof_predicate_sha256": "ed42666101e183ecb3b5f5493254ddd2e1c25f6db2ed858044c68e7ddcfdaffd",
+  "generated_harness_sha256": "0262190a42d621d785265542e9d3920cd032a472f34984742ce2bf93588dde9b",
+  "compiler_exit": 0,
+  "runtime_exit": 0,
+  "result_log_sha256": "05e5afa9afefd0c8a25c7b5f37f0bdf760302ae317aa880176aa119561b09c3d",
+  "boundary": "Execute the unmodified Notes probe method with controlled Kotlin dependencies.\n\nThis is a source-extracted JVM control-flow check, not Android/Robolectric, a\nCompose UI test, cryptographic authentication or a real Internet test. The\nproduction method and proof-validity predicate are copied byte-for-byte; only\nstorage, network handshake and monotonic clock are synthetic.\n"
+}

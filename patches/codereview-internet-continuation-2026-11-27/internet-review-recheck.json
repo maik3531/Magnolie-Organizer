@@ -1,0 +1,153 @@
+{
+  "base_commit": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "current_commit": "f8ad956ec4c9a71cd4d857c3218177c481407c85",
+  "scope": "Independent source recheck; no new runtime/internet claim",
+  "python_functions": {
+    "baum_host_normieren": {
+      "lines": [
+        14457,
+        14479
+      ],
+      "unchanged": true,
+      "sha256": "717c59b819bf9ef2cbbeb10946b5f016168aaf40a277e2951ad4bb94d58bafe4"
+    },
+    "baum_url": {
+      "lines": [
+        14494,
+        14498
+      ],
+      "unchanged": true,
+      "sha256": "9d67ebbed70e17a79e48570fda10edc12e0622b9f635a0246caccfa3c4005770"
+    },
+    "baum_host_port_anzeigen": {
+      "lines": [
+        14501,
+        14504
+      ],
+      "unchanged": true,
+      "sha256": "138e31b883dd1418291b0d8cec766eae0f0e18cd3d44022f6ad01c862fae8740"
+    },
+    "baum_port_pruefen": {
+      "lines": [
+        14507,
+        14517
+      ],
+      "unchanged": true,
+      "sha256": "85828bd7b4e43c59e8d2c5628930cad77d52f931a3e7a2ebe40a69927ca6bc95"
+    },
+    "baum_partner_endpunkte": {
+      "lines": [
+        15718,
+        15732
+      ],
+      "unchanged": true,
+      "sha256": "dc384acc588fb45baafeb4b61efef197c2545c4669f2500ba7f49964bcd16ab2"
+    },
+    "_baum_http_json_senden": {
+      "lines": [
+        15920,
+        15930
+      ],
+      "unchanged": true,
+      "sha256": "dffe62986a9add7ed82955a1021ad7ecc38dbca16b24ba4ed86c847e3900a5cc"
+    },
+    "baum_senden_fs": {
+      "lines": [
+        15960,
+        15998
+      ],
+      "unchanged": true,
+      "sha256": "fbf1c6a868855ac7f45957db61008c06cde0289c8be41944192317f74b01caee"
+    },
+    "BaumDienst": {
+      "lines": [
+        16476,
+        17048
+      ],
+      "unchanged": true,
+      "sha256": "18bdc3cb1633e1453dd8053b04d73d966b967e8d179f6877321f19243e195eda"
+    }
+  },
+  "source_files": {
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Versand.kt": {
+      "expected": "3708f811eb9ab114278d2dce8142418b3ccc16283d19aa2cb0b709c96345ae13",
+      "actual": "3708f811eb9ab114278d2dce8142418b3ccc16283d19aa2cb0b709c96345ae13",
+      "unchanged": true
+    },
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Transport.kt": {
+      "expected": "d536fb865f841ba6b2c19bc959732147a3d9ef6f27e8f189a3ec1607678bc4a5",
+      "actual": "d536fb865f841ba6b2c19bc959732147a3d9ef6f27e8f189a3ec1607678bc4a5",
+      "unchanged": true
+    },
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt": {
+      "expected": "c3715079c5bef204bf8611ca40bb2991a1cffd24cf7787bbc94d142f1912ee24",
+      "actual": "c3715079c5bef204bf8611ca40bb2991a1cffd24cf7787bbc94d142f1912ee24",
+      "unchanged": true
+    },
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/BaumDienst.kt": {
+      "expected": "e53402d939bd39cac0f040395bc459b8a2a3aa7e0fcbfcbd30ed6ff6980ea8c9",
+      "actual": "e53402d939bd39cac0f040395bc459b8a2a3aa7e0fcbfcbd30ed6ff6980ea8c9",
+      "unchanged": true
+    },
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleich.kt": {
+      "expected": "aafe60506e07d837b84ac4339c4fd5c6845cd9df6e6f0463298924b17d9f7463",
+      "actual": "aafe60506e07d837b84ac4339c4fd5c6845cd9df6e6f0463298924b17d9f7463",
+      "unchanged": true
+    },
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/AutoSync.kt": {
+      "expected": "90a094f38484454200b6678464ded1be34156185fbdecc73fdf5cbd3a9d03434",
+      "actual": "90a094f38484454200b6678464ded1be34156185fbdecc73fdf5cbd3a9d03434",
+      "unchanged": true
+    },
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt": {
+      "expected": "0939d209819f3e46299b34e3daf9da294ebf4f031e2aaa80bdb0ebcbbc3b3c6b",
+      "actual": "0939d209819f3e46299b34e3daf9da294ebf4f031e2aaa80bdb0ebcbbc3b3c6b",
+      "unchanged": true
+    },
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/ui/BaumBlatt.kt": {
+      "expected": "9188a2e33a7dfa9a891c5858b5d8b26d95277948c55e4d005e445c911b159161",
+      "actual": "9188a2e33a7dfa9a891c5858b5d8b26d95277948c55e4d005e445c911b159161",
+      "unchanged": true
+    },
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/ui/WischVerbindungen.kt": {
+      "expected": "ecb25a13aec6221ca91296bf4fde171a11f5708643673287007033d7bba8123c",
+      "actual": "ecb25a13aec6221ca91296bf4fde171a11f5708643673287007033d7bba8123c",
+      "unchanged": true
+    },
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/daten/Modell.kt": {
+      "expected": "800a605797883b91557bbc07d27bacbb257665e4cc4f05162f3633ae3e0a1b4a",
+      "actual": "800a605797883b91557bbc07d27bacbb257665e4cc4f05162f3633ae3e0a1b4a",
+      "unchanged": true
+    },
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/netz/LanFreigabe.kt": {
+      "expected": "d5069cb447ac908fb695efef9c46f6c1de39ad405f13141c3eb9abfba49d8de9",
+      "actual": "d5069cb447ac908fb695efef9c46f6c1de39ad405f13141c3eb9abfba49d8de9",
+      "unchanged": true
+    },
+    "magnolie-notes/app/src/main/res/values-de/strings.xml": {
+      "expected": "6aecf4a57f848304f5bceb8b08737e018c6c41a989cf56f165c3331948aa186c",
+      "actual": "6aecf4a57f848304f5bceb8b08737e018c6c41a989cf56f165c3331948aa186c",
+      "unchanged": true
+    },
+    "magnolie-notes/LIESMICH.md": {
+      "expected": "a8a401e675f8d644e32d831c81da6818ed348c10d6fc66c721295be996fca877",
+      "actual": "a8a401e675f8d644e32d831c81da6818ed348c10d6fc66c721295be996fca877",
+      "unchanged": true
+    },
+    "magnolie-organizer-windows/MagnolienbaumCoordinator.cs": {
+      "expected": "11547f72b414f11c0ef23b097075bb7ba87b59ad087c5e609ae213405b63457c",
+      "actual": "11547f72b414f11c0ef23b097075bb7ba87b59ad087c5e609ae213405b63457c",
+      "unchanged": true
+    },
+    "magnolie-organizer-windows/NextcloudMailbox.cs": {
+      "expected": "04af03481bac19b2513d6b9f17d5e0e88530a6dffc040830b25e128eb17a8e4b",
+      "actual": "04af03481bac19b2513d6b9f17d5e0e88530a6dffc040830b25e128eb17a8e4b",
+      "unchanged": true
+    },
+    "magnolie-organizer/web/anwendung.js": {
+      "expected": "527b00475cd035bcf111b94e382e6b692cca0c6ba29454e2b65a72d7309ca53f",
+      "actual": "2c37fafeb11bafbf17654cf0362a051aa680ebd7f5adc7b0520095e30c0433c4",
+      "unchanged": false
+    }
+  }
+}

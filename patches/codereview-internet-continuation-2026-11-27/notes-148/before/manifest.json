@@ -1,0 +1,14 @@
+{
+  "source_head": "f8ad956ec4c9a71cd4d857c3218177c481407c85",
+  "source_files_sha256": {
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt": "c3715079c5bef204bf8611ca40bb2991a1cffd24cf7787bbc94d142f1912ee24",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleich.kt": "aafe60506e07d837b84ac4339c4fd5c6845cd9df6e6f0463298924b17d9f7463"
+  },
+  "production_method_sha256": "efb4d628b7be2ed598f1ab9576b554b4d25ea6357fcbfda2559d422cc74e94e6",
+  "production_proof_predicate_sha256": "ed42666101e183ecb3b5f5493254ddd2e1c25f6db2ed858044c68e7ddcfdaffd",
+  "generated_harness_sha256": "2e6217abd487c853cb46df1b47ebcda40bab385b27609e2a71a21ece09727196",
+  "compiler_exit": 0,
+  "runtime_exit": 1,
+  "result_log_sha256": "8fb9ac2e502de5c6514cc1c4b4e09a9456a55094a42dcbb066339d860bd84252",
+  "boundary": "Execute the unmodified Notes probe method with controlled Kotlin dependencies.\n\nThis is a source-extracted JVM control-flow check, not Android/Robolectric, a\nCompose UI test, cryptographic authentication or a real Internet test. The\nproduction method and proof-validity predicate are copied byte-for-byte; only\nstorage, network handshake and monotonic clock are synthetic.\n"
+}

@@ -1,0 +1,13 @@
+PASS reachable peer after six timeouts becomes available on a later refresh
+PASS all seventy peers are considered without exceeding thirty-two per refresh
+PASS offline does not probe
+PASS disabled service does not probe
+PASS missing own identity does not probe
+PASS unconfirmed untrusted and unconfigured peers are not probed
+PASS trust revocation during handshake invalidates proof
+PASS endpoint replacement during handshake invalidates proof
+PASS restore epoch replacement during handshake invalidates proof
+PASS own key replacement during handshake invalidates proof
+PASS expired proof is never reported available
+PASS interruption stops before any network attempt
+RESULT passed=12 failures=0

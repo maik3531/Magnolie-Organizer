@@ -1,0 +1,16 @@
+Error: ENOENT: no such file or directory, open '/workspace/scratch/69a9d769e56f/audit-current-compat/magnolie-organizer/web/normative-timezones.js'
+    at Object.readFileSync (node:fs:483:20)
+    at Object.boot (/workspace/scratch/69a9d769e56f/audit-current-compat/magnolie-organizer-windows/tests/save-custom-regressions.js:38:13)
+    at /workspace/scratch/69a9d769e56f/audit-current-compat/magnolie-organizer-windows/tests/legacy-android-instance-ui.js:38:37
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/audit-current-compat/magnolie-organizer-windows/tests/legacy-android-instance-ui.js:140:3)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/workspace/scratch/69a9d769e56f/audit-current-compat/magnolie-organizer/web/normative-timezones.js'
+}
