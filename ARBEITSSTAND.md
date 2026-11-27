@@ -60,7 +60,13 @@ aufgeführt.
   Beim Start bleibt das gewählte Ziel erhalten; ein am selben Pfad
   ausgetauschter Ordner hält den Lauf an. Die Original-MP4-Übertragung
   in das gewählte Ziel und 14 DOM-Fälle sind geprüft.
-  Windows-Erstempfang und installierte Paarprüfung bleiben offen.
+  Eine private Windows-Quellprüfung mit synthetischer Gegenstelle
+  bestätigt den WLAN-Wiederanlauf nach bewusster Einrichtung. Die
+  neue Verbindung wartet auf ihre eigene Bestätigung und prüft den
+  Zugriff auf Fotos und Videos erneut. Danach sind PNG und MP4 mit
+  unveränderten Bytes und Abschlussquittungen angekommen, ohne die
+  Einstellungen wieder zu öffnen. Die Quellintegration und die
+  Paarprüfung mit installierten Windows- und Notes-Paketen bleiben offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
   zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.
