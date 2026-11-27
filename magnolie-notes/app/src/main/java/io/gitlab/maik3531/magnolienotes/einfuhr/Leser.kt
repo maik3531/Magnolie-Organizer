@@ -25,11 +25,16 @@ object Leser {
     fun keepJson(text: String, dateiname: String): List<Rohnotiz> {
         val wurzel = runCatching { json.parseToJsonElement(text) }.getOrNull() ?: return emptyList()
         val objekte = when (wurzel) {
-            is JsonArray -> wurzel.filterIsInstance<JsonObject>()
+            is JsonArray -> {
+                if (wurzel.any { it !is JsonObject }) return emptyList()
+                wurzel.filterIsInstance<JsonObject>()
+            }
             is JsonObject -> listOf(wurzel)
             else -> return emptyList()
         }
-        return objekte.mapNotNull { objekt ->
+        // Unklare oder gemischte Dateien vollständig dem Textleser überlassen.
+        if (objekte.any { !istKeepNotiz(it) }) return emptyList()
+        return objekte.map { objekt ->
             val titel = zeichenkette(objekt, "title")
             val inhalt = zeichenkette(objekt, "textContent")
             val liste = (objekt["listContent"] as? JsonArray)?.mapNotNull { teil ->
@@ -39,7 +44,7 @@ object Leser {
                 if (zeile.isBlank()) null else (if (erledigt) "[x] " else "[ ] ") + zeile
             }?.joinToString("\n").orEmpty()
             val zusammen = listOf(inhalt, liste).filter { it.isNotBlank() }.joinToString("\n")
-            if (titel.isBlank() && zusammen.isBlank()) return@mapNotNull null
+            if (titel.isBlank() && zusammen.isBlank()) return emptyList()
             // Keep zählt in Mikrosekunden.
             val bearbeitet = zahl(objekt, "userEditedTimestampUsec")?.div(1000) ?: 0L
             val erzeugt = zahl(objekt, "createdTimestampUsec")?.div(1000) ?: bearbeitet
@@ -54,6 +59,18 @@ object Leser {
         }.also { if (it.isEmpty() && dateiname.isNotBlank()) Unit }
     }
 
+    private fun istKeepNotiz(objekt: JsonObject): Boolean {
+        val text = objekt["textContent"] as? JsonPrimitive
+        val rohListe = objekt["listContent"]
+        val liste = rohListe as? JsonArray
+        if (rohListe != null && (liste == null || liste.any { zeile ->
+            ((zeile as? JsonObject)?.get("text") as? JsonPrimitive)?.isString != true
+        })) return false
+        return text?.isString == true || !liste.isNullOrEmpty() ||
+            (zahl(objekt, "createdTimestampUsec") ?: 0) > 0 ||
+            (zahl(objekt, "userEditedTimestampUsec") ?: 0) > 0
+    }
+
     private fun erstesEtikett(objekt: JsonObject): String {
         val etiketten = objekt["labels"] as? JsonArray ?: return ""
         val erstes = etiketten.firstOrNull() as? JsonObject ?: return ""
@@ -62,15 +79,18 @@ object Leser {
 
     /** Takeout schreibt zusätzlich HTML je Notiz. */
     fun keepHtml(text: String, dateiname: String): List<Rohnotiz> {
+        // Die CSS-Klassen allein unterscheiden Takeout nicht von anderen HTML-Dateien.
+        val zeitstempel = zwischen(text, "<div class=\"heading\"", "</div>")
+            .let { nurText(it.substringAfter('>')) }.trim()
+        val wann = zeitAusText(zeitstempel)
+        if (wann <= 0 || (!text.contains("<div class=\"title\">", ignoreCase = true) &&
+                !text.contains("<div class=\"content\">", ignoreCase = true))) return emptyList()
         val titel = zwischen(text, "<div class=\"title\">", "</div>")
             .ifBlank { zwischen(text, "<title>", "</title>") }
             .let { Rohnotiz.entwirreEntitaeten(nurText(it)) }
         val koerper = zwischen(text, "<div class=\"content\">", "</div>")
             .ifBlank { zwischen(text, "<body", "</body>").substringAfter('>') }
-        val zeitstempel = zwischen(text, "<div class=\"heading\"", "</div>")
-            .let { nurText(it.substringAfter('>')) }.trim()
         if (koerper.isBlank() && titel.isBlank()) return emptyList()
-        val wann = zeitAusText(zeitstempel)
         return listOf(
             Rohnotiz(
                 titel = titel.ifBlank { dateiname.substringBeforeLast('.') },

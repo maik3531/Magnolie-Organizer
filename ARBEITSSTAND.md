@@ -115,6 +115,10 @@ aufgeführt.
   Notes erkennt verschachtelte ZIP-Inhalte beim Lesen des Eintrags und
   bricht die Importvorbereitung ab. Takeout- und Samsung-Exporte bleiben
   lesbar. Alle 30 Import-, Ordner- und Transaktionsprüfungen bestanden.
+- [#822](https://github.com/maik3531/Magnolie-Organizer/issues/822):
+  Beliebige JSON- und HTML-Dateien behalten beim Notes-Import Inhalt,
+  Herkunft und Dateizeit. Keep-Text, Checklisten und Titelnotizen
+  werden weiter erkannt. Alle 37 Importprüfungen bestanden.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
