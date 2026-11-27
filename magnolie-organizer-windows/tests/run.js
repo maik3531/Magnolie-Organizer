@@ -29,7 +29,7 @@ for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-sav
   "contact-email-case.js", "contact-copy-birthday.js",
   "oversized-note-safety.js", "desktop-state-regressions.js", "../../magnolie-organizer/pruefungen/phone-personal-status-ui.cjs", "../../magnolie-organizer/pruefungen/appointment-occurrence-delete.cjs", "mcp-ui.js", "mcp-import-review.js", "mcp-planner-export.js", "mcp-print.js", "mcp-waste-import.js", "mcp-sync-settings.js", "mcp-sync-run.js", "mcp-provider-conflicts.js", "mcp-dav-account.js", "mcp-microsoft-signin.js", "mcp-internet-accounts.js", "mcp-tree-actions.js", "save-custom-regressions.js", "custom-time-regressions.js", "regional-time-input.js", "planned-sms-save-regressions.js", "asr-sms-regressions.js", "desktop-data-regressions.js", "frontend-integrity.js", "recurrence-worker.js", "recurrence-golden.js",
     "phone-contact-preview-batches.js", "kde-receive-ui.js", "realm-data-assert-test.js", "legacy-android-instance-ui.js", "drawing-pointerup.js",
-    "phone-media-ui.js", "phone-media-source-choice-ui.js",
+    "phone-media-ui.js", "phone-media-source-choice-ui.js", "phone-media-wait-ui.js", "phone-media-recovery-mount-ui.js",
    "../../magnolie-organizer/pruefungen/waste-holiday-authority.cjs",
    "../../magnolie-organizer/pruefungen/appointment-replacement.cjs",
     "../../magnolie-organizer/pruefungen/media-trash-ui.cjs",

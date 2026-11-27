@@ -10,16 +10,21 @@ w.document.body.append(panel);
 const last = () => messages.at(-1), tick = () => new Promise(resolve => setImmediate(resolve));
 const buttons = title => [...panel.querySelectorAll("button")].filter(x => x.textContent === title);
 function reply(value) { api.receive({ requestId: last().requestId, device_id: peer, ok: true, ...value }); }
-const state = { supported: true, version: "a".repeat(64), destination_choices: { images: "7".repeat(64), video: "8".repeat(64) }, photos: false, videos: false, automatic: false, automatic_ready: true, automatic_phase: "idle", skip_deletions: true, pictures: null, video_destination: null, busy: false, metadata_ready: { images: true, video: true } };
+const sharedValues = { enabled: true, photos_enabled: false, videos_enabled: false, collection_mode: "phone_inventory",
+  auto_mode: "manual", skip_deletions: true, direction: "phone_to_pc", photos_only: false };
+const sharedVersions = Object.fromEntries(Object.keys(sharedValues).map((field, index) => [field, String(index + 1).repeat(64)]));
+const state = { supported: true, version: "a".repeat(64), destination_choices: { images: "7".repeat(64), video: "8".repeat(64) }, photos: false, videos: false, automatic: false, automatic_ready: true, automatic_phase: "idle", skip_deletions: true, pictures: null, video_destination: null, busy: false, metadata_ready: { images: true, video: true },
+  shared_settings: { values: sharedValues, versions: sharedVersions }, shared_runtime_ready: true, shared_matched: true,
+  receive_consent: { granted: true, version: "e".repeat(64) } };
 (async () => {
   assert.equal(last().action, "status"); assert.equal(saves, 0); assert(panel.hidden);
   api.receive({ requestId: last().requestId, device_id: "foreign-peer", ok: true, ...state }); assert(panel.hidden);
-  reply({ ...state, skip_deletions: null }); assert(!panel.hidden); assert(!panel.querySelector('[data-media="videos"]').checked);
+  reply(state); assert(!panel.hidden); assert(!panel.querySelector('[data-media="videos"]').checked);
   const firstPhoto = panel.querySelector('[data-media="photos"]'), skipChoice = panel.querySelector('[data-media="skip_deletions"]');
-  const mixedCount = messages.length; firstPhoto.checked = true; firstPhoto.dispatchEvent(new w.Event("change")); await tick();
-  assert.equal(messages.length, mixedCount); assert(skipChoice.indeterminate); assert(!firstPhoto.checked);
-  skipChoice.indeterminate = false; skipChoice.checked = true; skipChoice.dispatchEvent(new w.Event("change")); await tick();
-  assert.equal(last().action, "settings"); reply(state);
+  assert(skipChoice.disabled && skipChoice.checked, "Stored deletion opt-out remains visible and read-only");
+  const initialCount = messages.length; firstPhoto.checked = true; firstPhoto.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(messages.length, initialCount + 1); assert.equal(last().action, "shared_setting");
+  assert.equal(last().field, "photos_enabled"); assert.equal(last().value, true); reply(state);
    panel.querySelector('[data-destination="images"]').click(); await tick(); assert.equal(last().action, "pick_destination");
    assert.equal(last().media_type, "images"); assert.equal(last().version, state.destination_choices.images); assert(!("pfad" in last()));
   const withRoot = { ...state, pictures: { version: "d".repeat(64), display_path: "C:\\Pictures\\<img onerror=evil>" } };
@@ -35,8 +40,10 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
    reply({ ...withRoot, pictures: { ...withRoot.pictures, default: true } });
    assert(folderButtons[1].disabled, "Already-default destination still offered a reset");
   const photos = panel.querySelector('[data-media="photos"]'); photos.checked = true; photos.dispatchEvent(new w.Event("change")); await tick();
-  assert.equal(last().action, "settings"); assert.equal(last().videos, false); assert.equal(last().skip_deletions, true);
-  const enabled = { ...withRoot, photos: true, version: "b".repeat(64) }; reply(enabled);
+  assert.equal(last().action, "shared_setting"); assert.equal(last().field, "photos_enabled");
+  assert(!("videos" in last()) && !("skip_deletions" in last()), "A single field edit changed unrelated choices");
+  const enabled = { ...withRoot, photos: true, version: "b".repeat(64), shared_start_version: "9".repeat(64),
+    shared_settings: { ...state.shared_settings, values: { ...sharedValues, photos_enabled: true } } }; reply(enabled);
   assert(buttons("Read video albums")[0].disabled); assert(!buttons("Read photo albums")[0].disabled);
   const sections = [...panel.querySelectorAll(".telefon-medien-gruppe > h4")].map(title => title.textContent);
   assert.deepEqual(sections, ["Access rights", "Synchronization settings", "Manual synchronization"]);
@@ -56,13 +63,15 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
   const automaticChoice = panel.querySelector('[data-media="automatic"]');
   assert.equal(automaticChoice.value, "manual"); assert(automaticChoice.classList.contains("feld")); assert(!automaticChoice.disabled);
   automaticChoice.value = "wifi"; automaticChoice.dispatchEvent(new w.Event("change")); await tick();
-  assert.equal(last().action, "mode"); assert.equal(last().automatic, true); assert(!("skip_deletions" in last()));
-  reply({ ...enabled, automatic: true, automatic_phase: "content_pass" });
+  assert.equal(last().action, "shared_setting"); assert.equal(last().field, "auto_mode"); assert.equal(last().value, "wifi"); assert(!("skip_deletions" in last()));
+  const automaticState = { ...enabled, automatic: true,
+    shared_settings: { ...enabled.shared_settings, values: { ...enabled.shared_settings.values, auto_mode: "wifi" } } };
+  reply({ ...automaticState, automatic_phase: "content_pass" });
   assert(panel.textContent.includes("one album per media type")); assert(panel.textContent.includes("deletions remain pending"));
-  buttons("Refresh")[0].click(); await tick(); reply({ ...enabled, automatic: true, automatic_busy: true, busy: true });
+  buttons("Refresh")[0].click(); await tick(); reply({ ...automaticState, automatic_busy: true, busy: true });
   assert(!automaticChoice.disabled); assert(!buttons("Stop")[0].disabled);
   automaticChoice.value = "manual"; automaticChoice.dispatchEvent(new w.Event("change")); await tick();
-  assert.equal(last().action, "mode"); assert.equal(last().automatic, false);
+  assert.equal(last().action, "shared_setting"); assert.equal(last().field, "auto_mode"); assert.equal(last().value, "manual");
   reply(enabled);
   saveAllowed = false; const before = messages.length; buttons("Read photo albums")[0].click(); await tick();
   assert.equal(messages.length, before); assert(panel.textContent.includes("could not be saved"));
@@ -74,15 +83,15 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
    assert(albumChoice.classList.contains("feld"));
    albumChoice.value = album; albumChoice.dispatchEvent(new w.Event("change"));
    assert.equal(last().action, "discover", "Selecting an album must not implicitly start synchronization");
-   buttons("Synchronize now")[0].click(); await tick(); assert.equal(last().action, "sync"); assert.equal(last().album_id, album);
+   buttons("Synchronize now")[0].click(); await tick(); assert.equal(last().action, "sync_shared");
+   assert.equal(last().version, enabled.shared_start_version); assert(!("album_id" in last()));
   const syncRequest = last().requestId;
   reply({ state: "running" }); assert(panel.textContent.includes("total is not known")); assert(!buttons("Stop")[0].disabled);
   buttons("Stop")[0].click(); await tick(); assert.equal(last().action, "cancel"); reply({ state: "stopping" });
   api.receive({ requestId: syncRequest, device_id: peer, ok: false, state: "partial", error: "canceled" });
   assert(panel.textContent.includes("Original files and recovery history are retained"));
    buttons("Synchronize now")[0].click(); await tick(); reply({ state: "review", copied: 1, kept_edits: 1, coverage_uncertain: true, review: [{ name: "<script>user-file", reason: "conflict_edit_edit" }] });
-  assert(panel.textContent.includes("Local edits kept: 1")); assert(panel.textContent.includes("Deletions are not synchronized yet")); assert.equal(panel.querySelector("script"), null);
-  assert(panel.textContent.includes("Some source entries may not have been offered"));
+  assert(panel.textContent.includes("Content comparison needs review")); assert(panel.textContent.includes("Deletions are not synchronized yet")); assert.equal(panel.querySelector("script"), null);
   const old = last().requestId; api.receive({ requestId: old, device_id: peer, ok: true, supported: false }); assert(!panel.hidden);
   buttons("Read media recycle bin")[0].click(); await tick(); assert.equal(last().action, "trash_list"); assert.equal(last().after, 0);
   const retained = { operation_id: "a".repeat(32), version: "b".repeat(64), state: "trashed", display_name: "<img>my-file.jpg", media_type: "images" };

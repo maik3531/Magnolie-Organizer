@@ -75,6 +75,11 @@ aufgeführt.
   unveränderten Bytes und Abschlussquittungen angekommen, ohne die
   Einstellungen wieder zu öffnen. Die Quellintegration und die
   Paarprüfung mit installierten Windows- und Notes-Paketen bleiben offen.
+  Windows zeigt bei noch fehlenden gemeinsamen Einstellungen den
+  Wartezustand. Lesen und gegebenenfalls Stop bleiben verfügbar;
+  neue Medienaktionen werden bis zur bestätigten Projektion gehalten.
+  Frisch aufgebaute Zeilen behalten ihre ersten lokalen
+  Wiederherstellungsantworten. Elf gezielte DOM-Fälle bestanden.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
   zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.
