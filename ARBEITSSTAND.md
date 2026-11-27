@@ -9,10 +9,11 @@ aufgeführt.
 
 - [#809](https://github.com/maik3531/Magnolie-Organizer/issues/809):
   Beide ISO-Abbilder sind anhand offizieller Signaturen geprüft.
-  Auf Mint 27 Cinnamon Beta wurden die 2.0.30-Baseline-DEBs
-  installiert und verifiziert. Organizer-Einrichtung und Handbuch
-  öffneten und schlossen regulär unter X11. Der Bedienvergleich
-  mit Mint 22.3 und die Abnahme der finalen Paketbytes stehen aus.
+  Dieselben 2.0.30-Baseline-DEBs wurden auf Mint 22.3 und Mint 27
+  Cinnamon Beta ohne Upgrade vorhandener Pakete installiert und
+  verifiziert. Organizer-Einrichtung und Handbuch öffneten und
+  schlossen regulär unter X11. Ansichtswechsel und die Abnahme
+  der finalen Paketbytes stehen aus.
 - [#815](https://github.com/maik3531/Magnolie-Organizer/issues/815):
   Der Linux-Hintergrunddienst verdeckt bei einem fehlgeschlagenen
   Telefon-Stopp keine unerwartete Ausnahme mehr. Vier gezielte
