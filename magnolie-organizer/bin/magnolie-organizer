@@ -3066,11 +3066,12 @@ def _ics_prop_roh(name, params, wert):
     return "%s%s:%s" % (name, "".join(parameter), wert)
 
 
-def _ics_roundtrip(props, komplex=False):
+def _ics_roundtrip(props, komplex=False, zusaetzlich=()):
     namen = {"RRULE", "RDATE", "EXDATE", "EXRULE", "RECURRENCE-ID", "DURATION",
              "DTSTART", "DTEND", "DUE",
              "LOCATION", "URL", "ORGANIZER", "ATTENDEE", "ATTACH", "X-ALT-DESC",
              "TRANSP", "BEGIN", "END", "ACTION", "TRIGGER", "REPEAT"}
+    namen.update(zusaetzlich)
     erzeugt = {"UID", "DTSTAMP", "LAST-MODIFIED", "SEQUENCE", "DTSTART", "DTEND", "DUE", "SUMMARY",
                "DESCRIPTION", "CATEGORIES", "CLASS", "STATUS", "PRIORITY",
                "PERCENT-COMPLETE", "X-MAGNOLIE-ERINNERUNG-AM-TAG",
@@ -3224,7 +3225,7 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
             "uid": uid_wert, "icsSerienUid": serien_uid if recurrence_id else "", "elternUid": eltern,
             "icsElternUid": eltern,
             "reihenfolge": reihenfolge, "geaendert": geaendert,
-            "icsRoundtrip": [line for line in _ics_roundtrip(roundtrip_props, nicht_abbildbar)
+            "icsRoundtrip": [line for line in _ics_roundtrip(roundtrip_props, nicht_abbildbar, ("CLASS",))
                              if not line.startswith("X-MAGNOLIE-TASK-IDENTITY:")]})
         if task_identity is not None:
             ergebnis["aufgaben"][-1]["_icsTaskSource"] = task_identity["source"]

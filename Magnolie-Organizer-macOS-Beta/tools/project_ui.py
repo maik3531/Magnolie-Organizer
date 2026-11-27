@@ -544,11 +544,11 @@ def project(snapshot, target):
     reminder = replace_once(reminder, "    const jetztWert = new Date();",
                             '''    const jetztWert = new Date();
     const absoluteMeldungen = (eintrag, aufgabe) => {
-      for (const at of festeKalenderAlarmzeiten(eintrag, aufgabe)) {
+      for (const { at, titel } of festeKalenderAlarme(eintrag, aufgabe)) {
         const id = JSON.stringify(["macOS-Beta-absolute", aufgabe, eintrag.id, at]);
         if (gemeldeteTermine.has(id) || +jetztWert < at || +jetztWert > at + 5 * 60000) continue;
         gemeldeteTermine.add(id);
-        meldeErinnerung(aufgabe ? _("Task reminder") : _("Appointment reminder"), eintrag.titel || _("Untitled"));
+        meldeErinnerung(aufgabe ? _("Task reminder") : _("Appointment reminder"), titel);
       }
     };''')
     reminder = replace_once(reminder, "      const zeitpunkt = terminZeitpunkt(t);",

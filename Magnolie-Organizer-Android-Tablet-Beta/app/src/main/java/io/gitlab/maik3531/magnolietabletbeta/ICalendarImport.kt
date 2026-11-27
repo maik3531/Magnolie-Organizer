@@ -410,6 +410,7 @@ object ICalendarImport {
     private fun rawProperties(component: Component): MutableList<String> {
         val retained = mutableSetOf("RRULE", "RDATE", "EXDATE", "EXRULE", "RECURRENCE-ID", "DURATION", "DTSTART", "DTEND", "DUE", "LOCATION", "URL", "ORGANIZER", "ATTENDEE", "ATTACH", "X-ALT-DESC", "TRANSP", "BEGIN", "END", "ACTION", "TRIGGER", "REPEAT")
         val generated = setOf("UID", "DTSTAMP", "LAST-MODIFIED", "SEQUENCE", "DTSTART", "DTEND", "DUE", "SUMMARY", "DESCRIPTION", "CATEGORIES", "CLASS", "STATUS", "PRIORITY", "PERCENT-COMPLETE", "X-MAGNOLIE-ERINNERUNG-AM-TAG", "X-MAGNOLIE-KOSTENSTELLE", "X-MAGNOLIE-KUNDE", "X-MAGNOLIE-ERINNERUNG-TAGE", "X-MAGNOLIE-STANDARDERINNERUNG", "X-MAGNOLIE-DATE", "X-MAGNOLIE-REIHENFOLGE", "X-MAGNOLIE-TASK-IDENTITY")
+        if (component.name == "VTODO") retained.add("CLASS")
         if (component.property("RECURRENCE-ID") != null) retained.addAll(listOf("SUMMARY", "DESCRIPTION", "CATEGORIES", "CLASS", "STATUS", "PRIORITY"))
         var depth = 0; val result = mutableListOf<String>()
         for (line in component.lines.drop(1).dropLast(1)) {

@@ -205,7 +205,7 @@ if (regionalSource.split(startupBefore).length !== 2) throw Error('Canonical doc
 regionalSource = regionalSource.replace(startupBefore,startupAfter);
 const systemActions = `/*TABLET_SYSTEM_ACTIONS_BEGIN*/
   Object.assign(window.MagnolieTabletActions, {
-    absoluteAlarmTimes: festeKalenderAlarmzeiten,
+    absoluteAlarms: festeKalenderAlarme,
     systemRange(from, to) {
       if (!gueltigesISO(from) || !gueltigesISO(to) || to < from) throw new Error("invalid_window");
       const next = new Date(to + "T00:00:00Z"); next.setUTCDate(next.getUTCDate() + 1);

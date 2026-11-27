@@ -65,6 +65,15 @@ class ICalendarImportTest {
         assertTrue("X-PROVIDER-CALENDAR;X-PARAM=opaque:keep" in result.calendarProperties)
         assertEquals(64, result.sourceSHA256.length)
     }
+    @Test fun absoluteTaskAlarmRetainsExplicitClassification() {
+        for (classification in listOf("PUBLIC", "PRIVATE", "CONFIDENTIAL")) {
+            val task = decode("BEGIN:VTODO\r\nUID:absolute-task\r\nSUMMARY:Classified task\r\nCLASS:$classification\r\n" +
+                "BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DATE-TIME:20261127T103017Z\r\nEND:VALARM\r\nEND:VTODO\r\n").tasks.single()
+            val lines = strings(task.getJSONArray("icsRoundtrip"))
+            assertTrue("CLASS:$classification" in lines)
+            assertTrue("TRIGGER;VALUE=DATE-TIME:20261127T103017Z" in lines)
+        }
+    }
     @Test fun CRLFLFAndMixedTerminatorsAndBOMHaveIdenticalRecordsWithoutBareCRAcceptance() {
         val body = event.replace("SUMMARY:Public item\r\n", "SUMMARY:Public item\r\nDESCRIPTION:Folded \r\n\tsecond piece\r\nX-OPAQUE:part-\r\n\ttwo\r\n")
         val crlf = bytes(body).toString(Charsets.UTF_8)

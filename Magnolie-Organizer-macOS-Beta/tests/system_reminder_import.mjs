@@ -530,9 +530,10 @@ for (const kind of ["task", "note"]) {
         icsRoundtrip: ["STATUS:CANCELLED", ...raw] },
     ] }).termine;
     book.aufgaben = [
-      { id: "task-absolute", titel: "Exact task", icsRoundtrip: raw },
+      { id: "task-absolute", titel: "Exact task", icsRoundtrip: ["CLASS:PUBLIC", ...raw] },
       { id: "task-done", titel: "Done task", erledigt: true, icsRoundtrip: raw },
       { id: "task-private", titel: "Confidential task", icsRoundtrip: ["CLASS:CONFIDENTIAL", ...raw] },
+      { id: "task-legacy", titel: "Legacy private title", icsRoundtrip: raw },
     ];
     const notifications = () => messages.filter(message => message.cmd === "erinnerung_zeigen");
     book.einstellungen.erinnerung.an = true;
@@ -542,7 +543,7 @@ for (const kind of ["task", "note"]) {
     equal(notifications().length, 0, "Absolute reminders respect the global opt-out");
     book.einstellungen.erinnerung.an = true;
     t.pruefeErinnerungen(); t.pruefeErinnerungen();
-    equal(notifications().map(message => message.rumpf), ["Exact event", "Exact task"],
+    equal(notifications().map(message => message.rumpf), ["Exact event", "Exact task", "Task reminder"],
       "Actual polling sends one notification per absolute trigger via the existing bridge");
   } finally { b.close(); }
 }

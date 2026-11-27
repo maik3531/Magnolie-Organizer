@@ -177,6 +177,17 @@ class ImportHelperTests(unittest.TestCase):
                     rejected = self.request(bom + text.replace("Prüfung", "Prü\0fung").encode(encoding), art, "selected.csv")
                     self.assertFalse(rejected["ok"])
 
+    def test_absolute_task_alarm_keeps_explicit_classification(self):
+        for classification in ("PUBLIC", "PRIVATE", "CONFIDENTIAL"):
+            with self.subTest(classification=classification):
+                lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VTODO", "UID:absolute-task",
+                         "SUMMARY:Classified task", "CLASS:" + classification,
+                         "BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER;VALUE=DATE-TIME:20261127T103017Z",
+                         "END:VALARM", "END:VTODO", "END:VCALENDAR", ""]
+                result = self.same_as_desktop("\r\n".join(lines).encode(), "ics", "absolute.ics")
+                self.assertIn("CLASS:" + classification, result["aufgaben"][0]["icsRoundtrip"])
+                self.assertIn(lines[8], result["aufgaben"][0]["icsRoundtrip"])
+
     def test_zip_routes_use_the_same_bounded_desktop_dispatcher(self):
         directory = REPO / "magnolie-organizer/pruefungen/fixtures"
         source_or6 = next(data for _source, name, data, _proof in native_files() if name == "known-values.or6")

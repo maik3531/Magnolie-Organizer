@@ -89,7 +89,7 @@ class NativeTabletInstrumentation : Instrumentation() {
                 "verify-reboot" -> verifyReboot()
                 else -> error("Unknown stage")
             }
-            if (stage !in listOf("services", "system-records")) capture(stage)
+            if (stage !in listOf("services", "system-records", "absolute-notifications")) capture(stage)
         } catch(t: Throwable) {
             error=t
             android.util.Log.e("TabletNativeTest","FAIL $stage",t)
@@ -1050,13 +1050,14 @@ class NativeTabletInstrumentation : Instrumentation() {
     }
     private fun absoluteNotifications() {
         enableTestNotifications()
-        val seconds = System.currentTimeMillis() / 1000 + 60
+        val seconds = System.currentTimeMillis() / 1000 + 45
         val at = (if (seconds % 60 == 0L) seconds + 1 else seconds) * 1000
         val instant = org.threeten.bp.Instant.ofEpochMilli(at)
         val utc = org.threeten.bp.format.DateTimeFormatter.ofPattern("uuuuMMdd'T'HHmmss'Z'", java.util.Locale.ROOT)
             .withZone(org.threeten.bp.ZoneOffset.UTC)
         val event = "Synthetic absolute event"
         val task = "Synthetic absolute task"
+        val confidential = "Synthetic confidential task"
         val titles = setOf(event, task)
         val alarm = listOf("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:Reminder",
             "TRIGGER;VALUE=DATE-TIME:${utc.format(instant)}", "END:VALARM")
@@ -1065,15 +1066,20 @@ class NativeTabletInstrumentation : Instrumentation() {
         val lines = listOf("BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Magnolie//Native test//EN",
             "BEGIN:VEVENT", "UID:absolute-event@example.test", "DTSTART:$start", "RRULE:FREQ=DAILY;COUNT=2",
             "SUMMARY:$event") + alarm + listOf("END:VEVENT",
-            "BEGIN:VTODO", "UID:absolute-task@example.test", "SUMMARY:$task") +
+            "BEGIN:VTODO", "UID:absolute-task@example.test", "SUMMARY:$task", "CLASS:PUBLIC") +
+            alarm + listOf("END:VTODO",
+            "BEGIN:VTODO", "UID:confidential-task@example.test", "SUMMARY:$confidential", "CLASS:CONFIDENTIAL") +
             alarm + listOf("END:VTODO", "END:VCALENDAR")
         seedDocument(file, lines.joinToString("\r\n", postfix = "\r\n"))
         openCalendarPicker(); selectProvider(); clickNode(file)
-        waitFor("imported absolute event and task") {
-            value("OrganizerTest.daten().termine.some(x=>x.titel==='$event')&&OrganizerTest.daten().aufgaben.some(x=>x.titel==='$task')") == "true"
+        waitFor("imported absolute event, public task and confidential control") {
+            value("OrganizerTest.daten().termine.some(x=>x.titel==='$event')&&['$task','$confidential'].every(n=>OrganizerTest.daten().aufgaben.some(x=>x.titel===n))") == "true"
         }
         saved()
         val state = vault().read()!!
+        val tasks = state.getJSONObject("data").getJSONArray("aufgaben")
+        check((0 until tasks.length()).map(tasks::getJSONObject).single { it.getString("titel") == confidential }
+            .getJSONArray("icsRoundtrip").toString().contains("CLASS:CONFIDENTIAL"))
         val alarms = state.getJSONArray("alarms")
         val selected = (0 until alarms.length()).map(alarms::getJSONObject)
             .filter { it.getString("id").contains(":absolute:") }
@@ -1092,7 +1098,8 @@ class NativeTabletInstrumentation : Instrumentation() {
             delivered.size == 2 && delivered.all { it.postTime >= at } &&
                 selected.all { receipts.has(it.getString("id")) }
         }
-        pass("native receiver posted both absolute reminders and stored both delivery receipts")
+        check(manager.activeNotifications.none { it.notification.extras.getCharSequence("android.text")?.toString() == confidential })
+        pass("native receiver posted both public reminders and stored both delivery receipts; confidential task stayed silent")
     }
     private fun notifications(reboot:Boolean) {
         enableTestNotifications()

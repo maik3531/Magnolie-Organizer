@@ -7822,18 +7822,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     return result;
   }
-  function festeKalenderAlarmzeiten(eintrag, aufgabe) {
+  function festeKalenderAlarme(eintrag, aufgabe) {
     const zeilen = eintrag.icsRoundtrip;
     if (!Array.isArray(zeilen) || !zeilen.length || eintrag.folge ||
         (aufgabe && eintrag.erledigt)) return [];
-    const gesperrterStatus = wert => wert === "CANCELLED" || (aufgabe && wert === "COMPLETED");
-    const vertraulich = !DATEN.einstellungen.sicherheit.vertraulicheErinnerungen;
-    if (gesperrterStatus(String(eintrag.icsStatus || "").toUpperCase()) ||
-        (vertraulich && eintrag.vertraulich) ||
-        kalenderKernEigenschaften(zeilen).some(({ name, wert }) =>
-          (name === "STATUS" && gesperrterStatus(wert.toUpperCase())) ||
-          (vertraulich && name === "CLASS" && /^(PRIVATE|CONFIDENTIAL)$/i.test(wert)))) return [];
-
     const zeiten = new Set();
     let block = null, anzahl = 0;
     for (const zeile of zeilen) {
@@ -7863,7 +7855,19 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         if (/^TRIGGER[;:]/i.test(zeile)) block.trigger.push(zeile);
       }
     }
-    return [...zeiten];
+    if (!zeiten.size) return [];
+    const gesperrterStatus = wert => wert === "CANCELLED" || (aufgabe && wert === "COMPLETED");
+    const kern = kalenderKernEigenschaften(zeilen);
+    if (gesperrterStatus(String(eintrag.icsStatus || "").trim().toUpperCase()) ||
+        kern.some(({ name, wert }) => name === "STATUS" && gesperrterStatus(wert.trim().toUpperCase()))) return [];
+    const klassen = kern.filter(({ name }) => name === "CLASS").map(({ wert }) => wert.trim().toUpperCase());
+    const privateErlaubt = DATEN.einstellungen.sicherheit.vertraulicheErinnerungen;
+    if (!privateErlaubt && (eintrag.vertraulich ||
+        klassen.some(klasse => klasse === "PRIVATE" || klasse === "CONFIDENTIAL"))) return [];
+    // Older task imports could discard CLASS, so an absent class cannot prove that the title is public.
+    const titel = aufgabe && !privateErlaubt && !(klassen.length === 1 && klassen[0] === "PUBLIC")
+      ? _("Task reminder") : eintrag.titel || _("Untitled");
+    return [...zeiten].map(at => ({ at, titel }));
   }
   function entferneKalenderKernfelder(lines, names) {
     let depth = 0;

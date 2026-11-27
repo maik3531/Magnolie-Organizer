@@ -113,15 +113,17 @@ const tick=()=>new Promise(r=>setTimeout(r,30));
       {id:'disabled-event',titel:'Disabled event',datum:'2030-06-10',zeit:'09:00',
         icsRoundtrip:['RRULE:FREQ=DAILY',...raw],alarme:[]},
     ]}).termine;
-    const taskAlarm={id:'absolute-task',titel:'Absolute task',icsRoundtrip:raw};
+    const taskAlarm={id:'absolute-task',titel:'Absolute task',icsRoundtrip:['CLASS:PUBLIC',...raw]};
     data.aufgaben=[taskAlarm,{...taskAlarm,id:'done-task',erledigt:true},
       {...taskAlarm,id:'cancelled-task',icsRoundtrip:['STATUS:CANCELLED',...raw]},
       {...taskAlarm,id:'private-task',icsRoundtrip:['CLASS:PRIVATE',...raw]},
+      {...taskAlarm,id:'legacy-unclassified',icsRoundtrip:raw},
       {...taskAlarm,id:'occurrence-task',folge:true}];
     const exact=Date.parse('2030-05-10T10:30:17Z');
     const projected=JSON.parse(JSON.stringify(w.Tablet.alarms()));
     assert.deepEqual(projected.map(a=>[a.section,a.title,a.at,a.custom]),[
       ['kalender','Absolute event',exact,false],['aufgaben','Absolute task',exact,false],
+      ['aufgaben','Task reminder',exact,false],
     ],'single UTC trigger per item even outside recurrence and without task due');
     savedAlarms=null;
     await new Promise((resolve,reject)=>w.MagnolieTabletActions.persist(resolve,reject));

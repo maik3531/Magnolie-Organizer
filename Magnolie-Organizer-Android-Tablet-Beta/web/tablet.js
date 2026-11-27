@@ -230,20 +230,20 @@
     const T = window.OrganizerTest, data = T.daten(), result = [];
     const settings = data.einstellungen.erinnerung;
     if (!settings.an) return result;
-    const add = (item, time, section, custom, mode = '') => {
+    const add = (item, time, section, custom, mode = '', title = item.titel) => {
       if (!Number.isFinite(time) || time <= 0) return;
       // Keep existing due receipts valid; early alarms have their own namespace.
       result.push({id: section+':'+item.id+':'+(mode && mode !== 'due' ? mode+':' : '')+time, at:time,
-        title: String(item.titel || tr('Untitled')).slice(0,300), section, custom});
+        title: String(title || tr('Untitled')).slice(0,300), section, custom});
     };
     const recurring = x => !Array.isArray(x.icsRoundtrip || []) ||
       (x.icsRoundtrip || []).some(line => /^\s*(RRULE|RDATE|EXDATE|EXRULE|RECURRENCE-ID)\b/i.test(line)) ||
       ['icsZusatzDaten','icsZusatzTermine','icsAusnahmen','icsAusnahmeTermine','icsOverrides','icsRangeOverrides']
         .some(key => (x[key] || []).length) || x.rrule ||
       (x.wiederholung?.art && !['none','keine'].includes(x.wiederholung.art));
-    const absolute = window.MagnolieTabletActions.absoluteAlarmTimes;
+    const absolute = window.MagnolieTabletActions.absoluteAlarms;
     for (const item of data.termine.concat(T.customTermineFuerErinnerung())) {
-      for (const at of absolute(item, false)) add(item,at,'kalender',item.id.startsWith('custom:'),'absolute');
+      for (const {at,titel} of absolute(item,false)) add(item,at,'kalender',item.id.startsWith('custom:'),'absolute',titel);
       if (recurring(item)) continue;
       const time = +T.terminZeitpunkt(item);
       const offsets = new Set();
@@ -257,7 +257,7 @@
       }
     }
     for (const item of data.aufgaben.concat(T.customAufgabenFuerErinnerung())) {
-      for (const at of absolute(item, true)) add(item,at,'aufgaben',item.id.startsWith('custom:'),'absolute');
+      for (const {at,titel} of absolute(item,true)) add(item,at,'aufgaben',item.id.startsWith('custom:'),'absolute',titel);
       const days = Number(item.individuelleErinnerungTage || 0);
       if (item.erledigt || !item.faellig || !item.erinnern && !days) continue;
       if (recurring(item)) { status(beta(0)); continue; }
