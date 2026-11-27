@@ -20,7 +20,7 @@ native = quellmodul_laden("magnolie_lotus_task_csv", SOURCE / "bin/magnolie-orga
 def test_lotus_task_csv(vector):
     rows = vector["rows"]
     csv = "\r\n".join([vector["header"], *(row["csv"] for row in rows), ""])
-    imported = native.lotus_csv_lesen(csv.encode("utf-8-sig"))
+    imported = native.import_rohdaten_lesen("lotus", csv.encode("utf-8-sig"), "tasks.csv")
     assert imported["uebersprungen"] == 0
     tasks = imported["aufgaben"]
     expected = [(row["csv"].split(";")[0], "2026-05-31", row["done"], row["priority"]) for row in rows]

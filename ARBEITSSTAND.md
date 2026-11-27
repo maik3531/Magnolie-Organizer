@@ -96,10 +96,11 @@ aufgeführt.
   alle vier Plattform-/Sprachfälle bestanden.
 - [#837](https://github.com/maik3531/Magnolie-Organizer/issues/837):
   Der Aufgaben-CSV-Import erhält Erledigtstatus und die drei
-  Prioritätsstufen. Leere und unbekannte Prioritäten bleiben normal.
-  Zwölf gemeinsame Aufgaben bestanden den CSV-/VTODO-Rundlauf auf
-  Linux und nativ aus dem Windows-Quellarchiv; der Linux-Import-/Export-Vertrag
-  und die portable Windows-Regression bestanden ebenfalls.
+  Prioritätsstufen einschließlich `H` und `N`. Leere und unbekannte
+  Prioritäten bleiben normal. Vierzehn gemeinsame Aufgaben bestanden
+  den CSV-/VTODO-Rundlauf auf Linux und nativ aus dem Windows-Quellarchiv.
+  Der Linux-Import-/Export-Vertrag und die portable Windows-Regression
+  zur Hauptkorrektur bestanden ebenfalls.
 - [#836](https://github.com/maik3531/Magnolie-Organizer/issues/836):
   Notes bereitet Anhänge im Hintergrund vor und zeigt bei Cache-,
   Provider- oder Startfehlern die vorhandene Meldung. Fünf gezielte

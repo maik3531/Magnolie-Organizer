@@ -6332,9 +6332,9 @@ def _lotus_aufgaben(zeilen, kopf):
             continue
         roh_prio = hol("prio").upper()
         prio = 2
-        if roh_prio in ("1", "HOCH", "HIGH"):
+        if roh_prio in ("1", "H", "HOCH", "HIGH"):
             prio = 1
-        elif roh_prio in ("3", "NIEDRIG", "LOW"):
+        elif roh_prio in ("3", "N", "NIEDRIG", "LOW"):
             prio = 3
         aufgaben.append({
             "titel": titel,

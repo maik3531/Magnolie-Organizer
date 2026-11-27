@@ -775,8 +775,8 @@ internal static partial class ExchangeCodec
                     var title = Cell(descriptionIndex >= 0 ? descriptionIndex : Find("AUFGABE", "TITEL")); if (title.Length == 0) { omitted++; continue; }
                     var priority = Cell(taskPriorityIndex).ToUpperInvariant() switch
                     {
-                        "1" or "HOCH" or "HIGH" => 1,
-                        "3" or "NIEDRIG" or "LOW" => 3,
+                        "1" or "H" or "HOCH" or "HIGH" => 1,
+                        "3" or "N" or "NIEDRIG" or "LOW" => 3,
                         _ => 2
                     };
                     var status = Cell(taskStatusIndex);

@@ -5,6 +5,8 @@
       { "csv": "English completed;31.05.2026;Hoch;Completed", "done": true, "priority": 1 },
       { "csv": "Deutsch abgeschlossen;31.05.2026;3;Abgeschlossen", "done": true, "priority": 3 },
       { "csv": "Deutsch niedrig;31.05.2026;Niedrig;Ja", "done": true, "priority": 3 },
+      { "csv": "High short value;31.05.2026;H;Nein", "done": false, "priority": 1 },
+      { "csv": "Low short value;31.05.2026;N;Nein", "done": false, "priority": 3 },
       { "csv": "Deutsch normal;31.05.2026;Normal;Nein", "done": false, "priority": 2 },
       { "csv": "Unknown words;31.05.2026;Not set;Not completed", "done": false, "priority": 2 },
       { "csv": "Unknown number;31.05.2026;10;Offen", "done": false, "priority": 2 },

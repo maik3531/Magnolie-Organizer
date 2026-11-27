@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using MagnolieOrganizer.Windows;
@@ -15,7 +16,8 @@ internal static class LotusTaskCsvTests
             var header = vector.GetProperty("header").GetString()!;
             var rows = vector.GetProperty("rows").EnumerateArray().ToArray();
             var csvRows = rows.Select(row => row.GetProperty("csv").GetString()!).ToArray();
-            var imported = ExchangeCodec.ParseLotusCsv(string.Join("\r\n", [header, .. csvRows, ""]));
+            var csv = Encoding.UTF8.GetBytes(string.Join("\r\n", [header, .. csvRows, ""]));
+            var imported = ExchangeCodec.ParseImport(csv, "lotus", "tasks.csv");
             TestAssert.That(imported.Uebersprungen == 0 && imported.Aufgaben.Count == rows.Length,
                 $"{header}: task rows were lost.");
             CheckFields(imported.Aufgaben, "CSV");
