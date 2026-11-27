@@ -8,25 +8,140 @@ const source = fs.readFileSync(file, "utf8").split("async function run(web)")[0]
    'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "drawingRedraw: zeichneAlles, embedDrawing: fuegeZeichenblattInNotiz, drawingController: id => aktiveZeichenblaetter.get(id)?.editor, drawingTrash: sichereCustomPapierkorb, speichereJetzt: speichereJetzt,"));');
 harness._compile(source + "\nmodule.exports={boot,roots};", file);
 const plain = value => JSON.parse(JSON.stringify(value));
+const tick = () => new Promise(resolve => setImmediate(resolve));
+
+async function openDrawing(b) {
+  const { w, t } = b;
+  w.HTMLCanvasElement.prototype.getContext = function () {
+    return { save() {}, restore() {}, clearRect() {}, drawImage() {}, beginPath() {}, closePath() {}, arc() {}, fill() {}, moveTo() {}, lineTo() {}, stroke() {},
+      bezierCurveTo() {}, createLinearGradient() { return { addColorStop() {} }; } };
+  };
+  w.HTMLCanvasElement.prototype.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1200, height: 800 });
+  w.HTMLCanvasElement.prototype.toDataURL = () => "data:image/png;base64,iVBORw0KGgo=";
+  t.daten().einstellungen.allgemein.customTab.enabled = true;
+  t.daten().customOrganizer.modules = [];
+  await t.wechsel("custom");
+  const text = w.MagnolieI18n.gettext;
+  [...w.document.querySelectorAll("#kopf-links button")].find(button => button.textContent === text("Customize")).click();
+  const designer = w.document.querySelector("#custom-designer-schleier");
+  designer.querySelector(".custom-designer-werkzeuge select").value = "drawing";
+  [...designer.querySelectorAll(".custom-designer-werkzeuge button")].find(button => button.textContent === text("Add")).click();
+  designer.querySelector(`[aria-label="${text("Close")}"]`).click();
+  return t.daten().customOrganizer.modules[0];
+}
+
+async function drawingErrors(web, language, expected) {
+  const b = await harness.exports.boot(web, {}, false);
+  const { w, t } = b;
+  const jsErrors = [];
+  const onError = error => jsErrors.push(String(error));
+  process.on("unhandledRejection", onError);
+  w.addEventListener("error", event => { onError(event.error); event.preventDefault(); });
+  try {
+    if (language !== "en") w.eval(fs.readFileSync(path.join(web, "i18n", `${language}.js`), "utf8"));
+    w.App.init({ daten: {}, neu: false, regional: { language, timeZone: "UTC" } });
+    const module = await openDrawing(b);
+    const text = w.MagnolieI18n.gettext;
+    const sheet = w.document.querySelector(".custom-modul-drawing");
+    const status = sheet.querySelector(".einst-hinweis");
+    const button = (root, label) => [...root.querySelectorAll("button")].find(element =>
+      element.getAttribute("aria-label") === text(label) || element.textContent === text(label));
+
+    const FileReader = w.FileReader;
+    let readDone;
+    w.FileReader = class extends FileReader {
+      constructor() {
+        super();
+        readDone = new Promise(resolve => this.addEventListener("loadend", resolve, { once: true }));
+      }
+      set onload(callback) {
+        super.onload = event => {
+          try { callback(event); } catch (error) { onError(error); }
+        };
+      }
+    };
+    const input = sheet.querySelector('input[type="file"]');
+    async function open(contents) {
+      button(sheet, "Open").click();
+      Object.defineProperty(input, "files", { configurable: true, value: [new w.File([contents], "drawing.json")] });
+      input.dispatchEvent(new w.Event("change", { bubbles: true }));
+      assert.ok(readDone, "Open must use the real FileReader");
+      await readDone;
+      readDone = null;
+    }
+
+    const before = plain(module.drawing);
+    const saves = b.saves().length;
+    await open('{"version":');
+    const importMessage = status.textContent;
+    assert.deepEqual(plain(module.drawing), before);
+    assert.equal(b.saves().length, saves);
+    const valid = { ...before, width: 1234, autoSize: false };
+    await open(JSON.stringify(valid));
+    assert.deepEqual(plain(module.drawing), valid, "A valid retry must replace the sheet");
+
+    // A PNG header can pass sheet validation even if the browser cannot decode it.
+    w.Image = class extends w.EventTarget {
+      get complete() { return true; }
+      get naturalWidth() { return 0; }
+    };
+    module.drawing.background = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwC";
+    assert.ok(w.MagnolieZeichnen.valid(module.drawing));
+    const withBackground = plain(module.drawing);
+
+    status.textContent = "";
+    button(sheet, "Save as…").click();
+    await tick();
+    const exportMessage = status.textContent;
+    assert.ok(!b.messages.some(message => message.cmd === "zeichenblatt_exportieren"));
+
+    button(sheet, "Rotate selection").click();
+    const rotation = w.document.querySelector(".eingabe-dialog");
+    button(rotation, "Apply").click();
+    await tick();
+    const rotationMessage = rotation.querySelector(".einst-warnung").textContent;
+    button(rotation, "Cancel").click();
+
+    const note = { id: "drawing-errors-note", titel: "Drawing errors", anhaenge: [] };
+    t.daten().notizen.push(note);
+    t.embedDrawing(note);
+    const embed = w.document.querySelector(".eingabe-dialog");
+    button(embed, "Embed").click();
+    await tick();
+    assert.equal(note.anhaenge.length, 0);
+    assert.deepEqual(plain(module.drawing), withBackground);
+    assert.equal(b.saves().length, saves);
+    assert.deepEqual({
+      messages: [importMessage, exportMessage, rotationMessage, embed.querySelector(":scope > .einst-warnung").textContent],
+      jsErrors,
+    }, { messages: expected, jsErrors: [] });
+  } finally {
+    process.off("unhandledRejection", onError);
+    b.close();
+  }
+}
+
 (async () => {
+  const failures = [];
+  for (const web of harness.exports.roots) {
+    for (const [language, messages] of [
+      ["en", ["This drawing cannot be edited in this version.", "This image format cannot be used.", "The file could not be read."]],
+      ["de", ["Dieses Zeichenblatt kann mit dieser Version nicht bearbeitet werden.", "Dieses Bildformat lässt sich nicht verwenden.", "Die Datei ließ sich nicht lesen."]],
+    ]) {
+      try {
+        await drawingErrors(web, language, [...messages, messages[1]]);
+        console.log("Zeichenblatt-Fehlerpfade bestanden:", web, language);
+      } catch (error) {
+        failures.push(error);
+        console.error("Zeichenblatt-Fehlerpfade fehlgeschlagen:", web, language, error);
+      }
+    }
+  }
+  assert.equal(failures.length, 0, "Drawing error paths must report their messages on both frontends");
   for (const web of harness.exports.roots) {
     const b = await harness.exports.boot(web);
     try {
-      b.w.HTMLCanvasElement.prototype.getContext = function () {
-        return { save() {}, restore() {}, clearRect() {}, drawImage() {}, beginPath() {}, closePath() {}, arc() {}, fill() {}, moveTo() {}, lineTo() {}, stroke() {},
-          bezierCurveTo() {}, createLinearGradient() { return { addColorStop() {} }; } };
-      };
-      b.w.HTMLCanvasElement.prototype.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1200, height: 800 });
-      b.w.HTMLCanvasElement.prototype.toDataURL = () => "data:image/png;base64,iVBORw0KGgo=";
-      b.t.daten().einstellungen.allgemein.customTab.enabled = true;
-      b.t.daten().customOrganizer.modules = [];
-      await b.t.wechsel("custom");
-      [...b.w.document.querySelectorAll("#kopf-links button")].find(button => button.textContent === "Customize").click();
-      const designer = b.w.document.querySelector("#custom-designer-schleier");
-      designer.querySelector(".custom-designer-werkzeuge select").value = "drawing";
-      [...designer.querySelectorAll(".custom-designer-werkzeuge button")].find(button => button.textContent === "Add").click();
-      designer.querySelector('[aria-label="Close"]').click();
-      const module = b.t.daten().customOrganizer.modules[0];
+      const module = await openDrawing(b);
       assert.equal(module.type, "drawing");
       assert.equal(module.reminders, false);
        const editor = b.t.drawingController(module.id);

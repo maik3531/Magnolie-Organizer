@@ -16140,7 +16140,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     zurueck = iconButton("undo", _("Undo"), () => editor.undo()); zurueck.disabled = !editor.canUndo();
     wieder = iconButton("redo", _("Redo"), () => editor.redo()); wieder.disabled = !editor.canRedo();
     const exportieren = iconButton("save", _("Save as…"), async () => {
-      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { status.textContent = _("This image format cannot be used."); return; }
+      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { status.textContent = _("This image format cannot be used."); return; }
       if (!canvas.isConnected || gesperrt || !DATEN.customOrganizer.modules.includes(modul)) return;
       const png = editor.exportPng(), svg = editor.exportSvg(), name = modul.title || "Magnolie";
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "zeichenblatt_exportieren", png, svg, name, json: JSON.stringify(modul.drawing) });
@@ -16195,7 +16195,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (!rotate) dialog.append(formZeile("Y", y));
       const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close), knopf(_("Apply"), "haupt", async () => {
         const wholeSheet = rotate && !editor.hasSelection();
-        if (wholeSheet) { try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { error.textContent = _("The file could not be read."); return; } }
+        if (wholeSheet) { try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { error.textContent = _("The file could not be read."); return; } }
         if (!overlay.isConnected || !canvas.isConnected || gesperrt) return;
         if (wholeSheet ? editor.rotateSheet(Number(x.value)) : editor.transformSelection(rotate ? Number(x.value) : 0, rotate ? 0 : Number(x.value), rotate ? 0 : Number(y.value))) { close(); canvas.focus(); }
         else error.textContent = wholeSheet ? _("The drawing limit has been reached.") : _("Select complete strokes that fit inside the sheet.");
@@ -16252,7 +16252,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const sequence = ++openSequence;
       const file = openFile.files?.[0]; if (!file || file.size > 16 * 1024 * 1024) { status.textContent = _("The file is larger than 8 megabytes."); return; }
       if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) canvas.focus(); }
-        catch (_) { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
+        catch { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
       else if (/\.svg$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => {
         const requestId = anrufClientRef(), apply = () => { if (canvas.isConnected && !gesperrt) loadImage("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(reader.result))), file.name); };
         zeichenSvgAnfragen.set(requestId, apply); setTimeout(() => zeichenSvgAnfragen.delete(requestId), 15000);
@@ -22357,7 +22357,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (gesperrt || DATEN !== bestand || !DATEN.notizen.includes(notiz)) { schliessen(); return; }
       const modul = DATEN.customOrganizer.modules.find(wert => wert.id === auswahl.value);
       if (!modul || !window.MagnolieZeichnen.valid(modul.drawing)) { status.textContent = _("This drawing cannot be edited in this version."); return; }
-      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { status.textContent = _("This image format cannot be used."); return; }
+      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { status.textContent = _("This image format cannot be used."); return; }
       if (!schleier.isConnected || gesperrt || DATEN !== bestand || !DATEN.customOrganizer.modules.includes(modul)) return;
       const canvas = document.createElement("canvas"); window.MagnolieZeichnen.render(canvas, modul.drawing);
       const daten = canvas.toDataURL("image/png");

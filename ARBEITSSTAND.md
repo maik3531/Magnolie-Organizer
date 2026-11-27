@@ -87,6 +87,11 @@ aufgeführt.
   zu. Reine Adressbuchläufe erhalten nicht ausgewählte Kalender samt
   lokalen Änderungen. Alle 56 Dialogfälle auf den Linux-/Windows-Quellen
   sowie MCP-, Kontaktkonflikt- und Paritätsprüfungen bestanden.
+- [#838](https://github.com/maik3531/Magnolie-Organizer/issues/838):
+  Zeichenblattimport, Export, Gesamtblattrotation und Einbetten in eine
+  Notiz zeigen wieder die vorgesehenen Fehlermeldungen. 16 Fehlerfälle
+  in Deutsch und Englisch und beide Zeichenblatt-Integrationstests auf
+  den Linux-/Windows-Webquellen bestanden.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal

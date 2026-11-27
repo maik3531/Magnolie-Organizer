@@ -1,7 +1,7 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "efa4cd29e658d29018d6bc885ba7c115733bc7044e2371156937a0dd0a4bf653",
+    "web/anwendung.js": "472eb5b801f1862cce3c7a5c0bd7436127e2fc750e0c20c581c44a58c339fb49",
     "bin/magnolie-organizer": "6a4a278a962cc4a2041b54d1cebfc60b47b81cd934fdeaa900afbf89a36039b4"
   },
   "commands": [
