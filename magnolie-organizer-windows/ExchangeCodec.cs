@@ -215,10 +215,25 @@ internal static partial class ExchangeCodec
         var properties = new List<IcsProperty>();
         var calendarColours = new List<IcsProperty>();
         var calendarItems = new List<JsonObject>();
-        var timezoneBlocks = Regex.Matches(string.Join("\n", Unfold(text)), @"(?ims)^BEGIN:VTIMEZONE\s*\n.*?^END:VTIMEZONE\s*$")
+        var unfolded = Unfold(text).ToArray();
+        var unfoldedText = string.Join("\n", unfolded);
+        var timezoneBlocks = Regex.Matches(unfoldedText, @"(?ims)^BEGIN:VTIMEZONE\s*\n.*?^END:VTIMEZONE\s*$")
             .Select(match => match.Value.TrimEnd().Split('\n')).ToArray();
         var zones = CalendarRecurrence.CalendarZones(timezoneBlocks);
-        foreach (var line in Unfold(text))
+        // A detached instance needs its VEVENT master, even when the master
+        // carries a provider birthday marker.
+        var detachedUids = new HashSet<string>(StringComparer.Ordinal);
+        if (unfoldedText.Contains(NextcloudBirthdayType, StringComparison.OrdinalIgnoreCase) &&
+            unfoldedText.Contains("RECURRENCE-ID", StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (Match block in EventBlock().Matches(unfoldedText))
+            {
+                var fields = TopLevelProperties(block.Value.Split('\n').Skip(1).Select(ParseIcsProperty).OfType<IcsProperty>());
+                if (First(fields, "RECURRENCE-ID") is not null && First(fields, "UID") is { } uid)
+                    detachedUids.Add(IcsText(uid.Value));
+            }
+        }
+        foreach (var line in unfolded)
         {
             var property = ParseIcsProperty(line);
             if (property?.Name == "BEGIN")
@@ -254,13 +269,11 @@ internal static partial class ExchangeCodec
                     {
                         if (component == "VEVENT")
                         {
-                            var result = ParseEvent(properties, timeZone, zones, birthdayRepairs);
-                            if (result.Anniversary) anniversaries.Add(result.Value);
-                            else
-                            {
-                                appointments.Add(result.Value);
-                                if (parent == "VCALENDAR") calendarItems.Add(result.Value);
-                            }
+                            var hasDetached = detachedUids.Count > 0 &&
+                                detachedUids.Contains(IcsText(First(TopLevelProperties(properties), "UID")?.Value ?? ""));
+                            var result = ParseEvent(properties, timeZone, zones, birthdayRepairs, allowProviderBirthday: !hasDetached);
+                            if (result.Anniversary) anniversaries.Add(result.Value); else appointments.Add(result.Value);
+                            if (parent == "VCALENDAR" && result.Value.ContainsKey("akzentFarbe")) calendarItems.Add(result.Value);
                             if (result.Complex && !CalendarRecurrence.SupportsRules(properties.Select(value => value.Raw))) complex++;
                         }
                         else
@@ -894,7 +907,7 @@ internal static partial class ExchangeCodec
         return new ExchangeExportResult(output.ToString(), count, skipped, report.Trim());
     }
 
-    private static (JsonObject Value, bool Anniversary, bool Complex) ParseEvent(List<IcsProperty> values, CalendarRecurrence.SourceZone? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null, ISet<string>? birthdayRepairs = null)
+    private static (JsonObject Value, bool Anniversary, bool Complex) ParseEvent(List<IcsProperty> values, CalendarRecurrence.SourceZone? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null, ISet<string>? birthdayRepairs = null, bool allowProviderBirthday = true)
     {
         var roundtripValues = values;
         values = TopLevelProperties(values);
@@ -965,7 +978,9 @@ internal static partial class ExchangeCodec
         var anniversaryType = IcsText(First(values, "X-MAGNOLIE-TYPE-ID")?.Value ??
                                        First(values, "X-MAGNOLIE-TYP")?.Value ??
                                        First(values, "X-MAGNOLIE-JAHRESTAG-TYP")?.Value ?? "");
-        var anniversary = start.AllDay && IsUnboundedAnnualRule(recurrence) && anniversaryType.Length > 0 &&
+        var providerDate = allowProviderBirthday && (anniversaryType.Length == 0 || IsBirthdayType(anniversaryType))
+            ? NextcloudBirthdayDate(values) : "";
+        var anniversary = start.AllDay && (providerDate.Length > 0 || IsUnboundedAnnualRule(recurrence) && anniversaryType.Length > 0) &&
             !values.Any(value => value.Name is "EXDATE" or "RDATE" or "EXRULE" or "RECURRENCE-ID") &&
             (end is null || end.Value.DateTime.Date == start.DateTime.Date);
         if (anniversary)
@@ -976,17 +991,21 @@ internal static partial class ExchangeCodec
                 date = magnolieDate;
             // Keep native synchronization baselines consistent with the web
             // birthday normalization, including legacy exported type names.
-            if (date.StartsWith("1604-", StringComparison.Ordinal) &&
-                (anniversaryType.Equals("birthday", StringComparison.OrdinalIgnoreCase) ||
-                 anniversaryType.Equals("Geburtstag", StringComparison.OrdinalIgnoreCase)))
+            if (date.StartsWith("1604-", StringComparison.Ordinal) && IsBirthdayType(anniversaryType))
             {
                 date = "--" + date[5..];
                 birthdayRepairs?.Add(IcsText(First(values, "UID")?.Value ?? ""));
             }
-            return (new JsonObject { ["uid"] = IcsText(First(values, "UID")?.Value ?? ""), ["name"] = title,
-                ["datum"] = date, ["typ"] = anniversaryType,
+            var item = new JsonObject { ["uid"] = IcsText(First(values, "UID")?.Value ?? ""), ["name"] = title,
+                ["datum"] = providerDate.Length > 0 ? providerDate : date, ["typ"] = providerDate.Length > 0 ? "birthday" : anniversaryType,
                 ["notiz"] = IcsText(First(values, "DESCRIPTION")?.Value ?? ""),
-                ["icsRoundtrip"] = IcsRoundtrip(roundtripValues, complex), ["geaendert"] = IcsModified(values) }, true, complex);
+                ["icsRoundtrip"] = IcsRoundtrip(roundtripValues, complex || providerDate.Length > 0), ["geaendert"] = IcsModified(values) };
+            if (providerDate.Length > 0)
+            {
+                item["akzentFarbe"] = ImportedAccent(values);
+                item["icsCalendarColor"] = "";
+            }
+            return (item, true, providerDate.Length == 0 && complex);
         }
         var until = RRuleValue(recurrence, "UNTIL");
         var untilDate = ParseCompactDate(until);
@@ -1093,6 +1112,42 @@ internal static partial class ExchangeCodec
             result["icsElternQuelleId"] = identity["parentSource"]!.DeepClone();
         }
         return result;
+    }
+
+    private const string NextcloudBirthdayType = "X-NEXTCLOUD-BC-FIELD-TYPE";
+    private const string NextcloudBirthdayUnknownYear = "X-NEXTCLOUD-BC-UNKNOWN-YEAR";
+    private const string NextcloudBirthdayYear = "X-NEXTCLOUD-BC-YEAR";
+
+    private static bool IsBirthdayType(string value) => value.Equals("birthday", StringComparison.OrdinalIgnoreCase) ||
+        value.Equals("Geburtstag", StringComparison.OrdinalIgnoreCase);
+
+    private static string NextcloudBirthdayDate(IReadOnlyList<IcsProperty> properties)
+    {
+        if (!properties.Any(property => property.Name == NextcloudBirthdayType &&
+            property.Value.Equals("BDAY", StringComparison.OrdinalIgnoreCase))) return "";
+        var fields = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var property in properties)
+        {
+            var name = property.Name;
+            if (name is "DURATION" or "RDATE" or "EXDATE" or "EXRULE" or "RECURRENCE-ID" ||
+                name == "STATUS" && property.Value.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase)) return "";
+            if (name is not ("DTSTART" or "DTEND" or "RRULE" or NextcloudBirthdayType or NextcloudBirthdayUnknownYear or NextcloudBirthdayYear)) continue;
+            if (property.Parameters.Length > 0 && !(name is "DTSTART" or "DTEND" && property.Parameters.Length == 1 &&
+                property.Parameters[0].Equals("VALUE=DATE", StringComparison.OrdinalIgnoreCase)) ||
+                !fields.TryAdd(name, property.Value)) return "";
+        }
+        if (!string.Equals(fields.GetValueOrDefault(NextcloudBirthdayType), "BDAY", StringComparison.OrdinalIgnoreCase) ||
+            !DateOnly.TryParseExact(fields.GetValueOrDefault("DTSTART"), "yyyyMMdd", out var date)) return "";
+        if (fields.TryGetValue("DTEND", out var end) &&
+            (date == DateOnly.MaxValue || end != date.AddDays(1).ToString("yyyyMMdd"))) return "";
+        var leapDay = date.Month == 2 && date.Day == 29;
+        var expected = leapDay ? new[] { "FREQ=YEARLY", "BYMONTH=2", "BYMONTHDAY=-1" } : new[] { "FREQ=YEARLY" };
+        var rule = fields.GetValueOrDefault("RRULE", "").Split(';');
+        if (rule.Length != expected.Length || !expected.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(rule)) return "";
+        var year = fields.GetValueOrDefault(NextcloudBirthdayYear);
+        var unknown = fields.GetValueOrDefault(NextcloudBirthdayUnknownYear, "0");
+        if (unknown == "1") return year is null ? $"--{date:MM-dd}" : "";
+        return unknown == "0" && date.Year != 1604 && (year is null || year == date.Year.ToString()) ? $"{date:yyyy-MM-dd}" : "";
     }
 
     internal static bool IsUnboundedAnnualRule(string rule) => Regex.IsMatch(rule, @"^FREQ=YEARLY(?:;INTERVAL=1)?$|^INTERVAL=1;FREQ=YEARLY$", RegexOptions.IgnoreCase);
@@ -1230,6 +1285,7 @@ internal static partial class ExchangeCodec
             $"X-MAGNOLIE-JAHRESTAG-TYP:{V(J(item, "typ"))}", "RRULE:FREQ=YEARLY" };
         if (fullDate is null) lines.Add($"X-MAGNOLIE-DATE:{value}");
         if (J(item, "notiz") is { Length: > 0 } note) lines.Add("DESCRIPTION:" + V(note));
+        if (AccentColor(J(item, "akzentFarbe")) is { Length: > 0 } accent) lines.Add("X-MAGNOLIE-ACCENT-COLOR:" + accent);
         ApplyIcsRoundtrip(lines, item, anniversary: true);
         lines.Add("END:VEVENT");
         return lines;
@@ -1559,13 +1615,20 @@ internal static partial class ExchangeCodec
         if (anniversary)
         {
             // Annual core fields are generated; nested VALARM data remains opaque.
+            var providerDate = NextcloudBirthdayDate(TopLevelProperties(raw.Select(ParseIcsProperty).OfType<IcsProperty>()));
+            var keepProviderAnchor = providerDate.Length > 0 && providerDate == J(item, "datum") && IsBirthdayType(J(item, "typ"));
             var depth = 0;
             raw = raw.Where(line =>
             {
                 var name = PropertyName(line);
                 if (name == "BEGIN") depth++;
-                var keep = depth > 0 || name is not ("DTSTART" or "DTEND" or "DUE" or "DURATION" or "RRULE" or
-                    "X-MAGNOLIE-DATE" or "X-MAGNOLIE-TYPE-ID" or "X-MAGNOLIE-TYP" or "X-MAGNOLIE-JAHRESTAG-TYP");
+                var keep = depth > 0 || (name switch
+                {
+                    "DTSTART" or "DTEND" or "RRULE" => keepProviderAnchor,
+                    NextcloudBirthdayType or NextcloudBirthdayUnknownYear or NextcloudBirthdayYear => providerDate.Length == 0 || keepProviderAnchor,
+                    _ => name is not ("DUE" or "DURATION" or
+                        "X-MAGNOLIE-DATE" or "X-MAGNOLIE-TYPE-ID" or "X-MAGNOLIE-TYP" or "X-MAGNOLIE-JAHRESTAG-TYP")
+                });
                 if (name == "END") depth--;
                 return keep;
             }).ToArray();

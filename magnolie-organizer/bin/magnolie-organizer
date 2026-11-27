@@ -3126,6 +3126,50 @@ def _erinnerung_vorlauf(wert):
         return 15
 
 
+_NEXTCLOUD_GEBURTSTAG_FELDER = (
+    "X-NEXTCLOUD-BC-FIELD-TYPE", "X-NEXTCLOUD-BC-UNKNOWN-YEAR", "X-NEXTCLOUD-BC-YEAR")
+_NEXTCLOUD_GEBURTSTAG_SERIE = ("DTSTART", "DTEND", "RRULE")
+
+
+def _nextcloud_geburtstagsdatum(props):
+    markiert, unbekannt, jahr = _NEXTCLOUD_GEBURTSTAG_FELDER
+    if not any(name == markiert and wert.upper() == "BDAY" for name, _, wert in props):
+        return ""
+    relevant = (*_NEXTCLOUD_GEBURTSTAG_FELDER, *_NEXTCLOUD_GEBURTSTAG_SERIE)
+    felder = {}
+    for name, params, wert in props:
+        if name in ("DURATION", "RDATE", "EXDATE", "EXRULE", "RECURRENCE-ID"):
+            return ""
+        if name == "STATUS" and wert.upper() == "CANCELLED":
+            return ""
+        if name not in relevant:
+            continue
+        if name in felder or params and not (name in ("DTSTART", "DTEND") and params == {"VALUE": "DATE"}):
+            return ""
+        felder[name] = wert
+    if felder.get(markiert, "").upper() != "BDAY":
+        return ""
+    start = felder.get("DTSTART", "")
+    if not re.fullmatch(r"[0-9]{8}", start):
+        return ""
+    try:
+        datum = datetime.strptime(start, "%Y%m%d").date()
+        if "DTEND" in felder and felder["DTEND"] != (datum + timedelta(days=1)).isoformat().replace("-", ""):
+            return ""
+    except (ValueError, OverflowError):
+        return ""
+    schalttag = (datum.month, datum.day) == (2, 29)
+    regel = felder.get("RRULE", "").upper().split(";")
+    erwartet = {"FREQ=YEARLY", "BYMONTH=2", "BYMONTHDAY=-1"} if schalttag else {"FREQ=YEARLY"}
+    if len(regel) != len(erwartet) or set(regel) != erwartet:
+        return ""
+    if felder.get(unbekannt) == "1":
+        return "--" + datum.isoformat()[5:] if jahr not in felder else ""
+    if felder.get(unbekannt, "0") != "0" or datum.year == 1604 or felder.get(jahr, str(datum.year)) != str(datum.year):
+        return ""
+    return datum.isoformat()
+
+
 def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
                     jahrestage_als_termine=False, zone_resolver=None, kalenderfarbe=("", "")):
     roundtrip_props = props
@@ -3346,18 +3390,21 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
                        (wiederholung and wiederholung["art"] == "yearly" and
                         not wiederholung["bis"]))
     ganztag_jahrestag = (not zeit or (zeit == "00:00" and end_zeit == "23:59"))
-    if (not jahrestage_als_termine and jahrestag_markiert and jahrestag_regel and
-            ganztag_jahrestag and not end_datum):
+    provider_datum = (_nextcloud_geburtstagsdatum(props) if not komplexe_serie and
+                      (not typ_feld or typ_kategorie == "birthday") else "")
+    if (not jahrestage_als_termine and ganztag_jahrestag and not end_datum and
+            (provider_datum or jahrestag_markiert and jahrestag_regel)):
         jahrlose_erweiterung = _maschinen_datum(wert("X-MAGNOLIE-DATE"))
         if (jahrlose_erweiterung.startswith("--") and
                 _maschinen_monat_tag(jahrlose_erweiterung) ==
                 _maschinen_monat_tag(datum)):
             datum = jahrlose_erweiterung
         ergebnis["jahrestage"].append({
-            "name": titel, "datum": datum, "typ": typ_kategorie,
+            "name": titel, "datum": provider_datum or datum, "typ": "birthday" if provider_datum else typ_kategorie,
             "uid": uid_wert, "icsSerienUid": serien_uid,
             "notiz": wert("DESCRIPTION"),
             "icsRoundtrip": _ics_roundtrip(roundtrip_props),
+            **({"akzentFarbe": akzent, "icsCalendarColor": kalenderfarbe[0]} if provider_datum else {}),
             "geaendert": geaendert})
         return
     if nicht_abbildbar or (rrule and not wiederholung):
@@ -3837,7 +3884,10 @@ def _jahrestag_zeilen(jt):
             "X-MAGNOLIE-JAHRESTAG-TYP:" + _ical_escape(typ_id or legacy)]
     if jt.get("notiz"):
         zeilen.append("DESCRIPTION:" + _ical_escape(jt["notiz"]))
-    _ics_roundtrip_anwenden(zeilen, jt.get("icsRoundtrip"), jahrestag=True)
+    akzent = _kalender_akzentfarbe(jt.get("akzentFarbe"))
+    if akzent:
+        zeilen.append("X-MAGNOLIE-ACCENT-COLOR:" + akzent)
+    _ics_roundtrip_anwenden(zeilen, jt.get("icsRoundtrip"), jahrestag=True, eintrag=jt)
     zeilen.append("END:VEVENT")
     return zeilen
 
@@ -4123,7 +4173,7 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
         if name == "BEGIN":
             tiefe += 1
         if not tiefe and name == "X-MAGNOLIE-ACCENT-COLOR" and params:
-            if eintrag is not None and _kalender_akzentfarbe(eintrag.get("akzentFarbe")) != _kalender_akzentfarbe(wert):
+            if eintrag is not None and (not jahrestag or "akzentFarbe" in eintrag) and _kalender_akzentfarbe(eintrag.get("akzentFarbe")) != _kalender_akzentfarbe(wert):
                 # Do not let the generic invalid-record skip path silently
                 # turn this protected edit into a partial calendar export.
                 raise RuntimeError(_("The content is unreadable."))
@@ -4136,9 +4186,25 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
                      (_prop_zerlegen(line) or ("",))[0] != "X-MAGNOLIE-ACCENT-COLOR"]
     if jahrestag:
         # The annual projection owns its anchor and rule, not nested alarm fields.
-        eigene.update(("DTSTART", "DTEND", "DUE", "DURATION", "RRULE",
+        eigene.update((*_NEXTCLOUD_GEBURTSTAG_SERIE, "DUE", "DURATION",
                        "X-MAGNOLIE-DATE", "X-MAGNOLIE-TYPE-ID", "X-MAGNOLIE-TYP",
                        "X-MAGNOLIE-JAHRESTAG-TYP"))
+        haupt_props, tiefe = [], 0
+        for zeile in rohzeilen:
+            prop = _prop_zerlegen(zeile)
+            if prop[0] == "BEGIN":
+                tiefe += 1
+            elif prop[0] == "END":
+                tiefe -= 1
+            elif not tiefe:
+                haupt_props.append(prop)
+        provider_datum = _nextcloud_geburtstagsdatum(haupt_props)
+        if provider_datum:
+            if (provider_datum == _maschinen_datum(eintrag.get("datum"))
+                    and jahrestag_typ_id(eintrag.get("typ")) == "birthday"):
+                eigene.difference_update(_NEXTCLOUD_GEBURTSTAG_SERIE)
+            else:
+                eigene.update(_NEXTCLOUD_GEBURTSTAG_FELDER)
     akzent = _kalender_akzentfarbe(eintrag.get("akzentFarbe")) if eintrag is not None else ""
     farbentscheidung = bool(akzent or eintrag is not None and "icsCalendarColor" in eintrag)
     tiefe, gefiltert = 0, []

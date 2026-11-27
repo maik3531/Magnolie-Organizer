@@ -78,6 +78,20 @@ function check(web) {
     load([birthday("a", { datum: "--12-25" }), birthday("b", { datum: "--12-25" })]); shown(1);
     load([birthday("a", { datum: "--12-25" }), birthday("b")]); shown(2);
     load([birthday("a", { datum: "--02-29" }), birthday("b", { datum: "--02-29" })]); shown(1, "2027-02-28");
+    load([]);
+    const provider = birthday("nextcloud", { datum: "--02-29", akzentFarbe: "#40e0d0", icsCalendarColor: "COLOR:gold",
+      icsRoundtrip: ["DTSTART;VALUE=DATE:19720229", "DTEND;VALUE=DATE:19720301", "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1",
+        "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "COLOR:turquoise"] });
+    T.mergeJahrestage([provider]);
+    load(JSON.parse(JSON.stringify(T.daten().jahrestage)));
+    const restored = T.daten().jahrestage[0];
+    assert.equal(restored.icsQuelleId, provider.icsQuelleId);
+    assert.equal(restored.icsCalendarColor, provider.icsCalendarColor);
+    assert.equal(restored.akzentFarbe, provider.akzentFarbe);
+    assert.equal(JSON.stringify(restored.icsRoundtrip), JSON.stringify(provider.icsRoundtrip));
+    shown(1, "2027-02-28");
+    shown(1, "2028-02-29");
+    assert.equal(T.jahrestageAm("2028-02-28", true).length, 0);
     load([birthday("a", { uid: "shared" }), birthday("b", { uid: "shared", datum: "1991-12-25" })]);
     assert.equal(T.daten().jahrestage.length, 2, "normalization discarded a conflicting year"); shown(2);
     load([birthday("a", { kontaktId: "person" }), birthday("b", { kontaktId: "person", notiz: "Conflicting note" })]);

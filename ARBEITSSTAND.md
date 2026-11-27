@@ -79,6 +79,13 @@ aufgeführt.
   und gemischte Exporte behalten den jeweiligen Eintragsbezug.
   69 Linux-Prüfungen, vier native Windows-Gruppen und beide
   Oberflächenpfade bestanden.
+- [#845](https://github.com/maik3531/Magnolie-Organizer/issues/845):
+  Linux und Windows erkennen eindeutig markierte Nextcloud-Geburtstage.
+  Fehlende Geburtsjahre bleiben unbekannt; der 29. Februar behält beim
+  Export die Nextcloud-Regel für den letzten Februartag. Widersprüche,
+  andere Markertypen und Serienausnahmen bleiben Kalendertermine.
+  102 Linux-Prüfungen, sechs native Windows-Gruppen, beide
+  Oberflächenpfade und 44 Projektionsprüfungen bestanden.
 - [#841](https://github.com/maik3531/Magnolie-Organizer/issues/841):
   Organizer übernimmt die Schreibrichtung auch bei regionalen arabischen
   Sprachcodes aus dem primären Sprachuntertag. 16 Startfälle mit den
