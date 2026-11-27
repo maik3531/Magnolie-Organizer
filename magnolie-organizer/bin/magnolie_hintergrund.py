@@ -3880,6 +3880,7 @@ def daemon_main(_arguments=None, backend_factory=create_backend,
         receive_configuration_error="",
         background_storage=(diagnostics.storage_snapshot(data_directory())
                             if diagnostics is not None else {}))
+    exit_status = 0
     try:
         # Claim ownership before constructing the transport backend.
         server.start()
@@ -3918,22 +3919,18 @@ def daemon_main(_arguments=None, backend_factory=create_backend,
             sys.stderr.write(_("KDE Connect is unavailable; other background services remain active.") + "\n")
         current_settings = read_settings()
         apply_settings(current_settings)
-        if not current_settings["enabled"]:
-            return 0
-        server.lifecycle = "ready"
-        if hasattr(glib, "unix_signal_add"):
-            for signum in (signal.SIGTERM, signal.SIGINT):
-                glib.unix_signal_add(glib.PRIORITY_DEFAULT, signum,
-                                     lambda: (loop.quit(), False)[1])
-        loop.run()
-        return 0
-    except AlreadyRunning:
-        return 0
-    except KeyboardInterrupt:
-        return 0
+        if current_settings["enabled"]:
+            server.lifecycle = "ready"
+            if hasattr(glib, "unix_signal_add"):
+                for signum in (signal.SIGTERM, signal.SIGINT):
+                    glib.unix_signal_add(glib.PRIORITY_DEFAULT, signum,
+                                         lambda: (loop.quit(), False)[1])
+            loop.run()
+    except (AlreadyRunning, KeyboardInterrupt):
+        pass
     except (OSError, ProtocolError) as error:
         sys.stderr.write(_("Magnolie background service could not start: %s") % error + "\n")
-        return 1
+        exit_status = 1
     finally:
         server.lifecycle = "stopping"
         server.setup_sessions.close()
@@ -3948,4 +3945,4 @@ def daemon_main(_arguments=None, backend_factory=create_backend,
             diagnostics.close()
         if not phone_drained:
             sys.stderr.write(_("The phone service did not finish stopping.") + "\n")
-            return 1
+    return exit_status if phone_drained else 1

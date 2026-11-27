@@ -124,6 +124,41 @@ class Notifications:
     def __init__(self, glib): pass
 
 
+@pytest.mark.parametrize(('loop_error', 'phone_drained', 'expected_status'), [
+    (None, True, 0), (None, False, 1), (OSError, True, 1), (RuntimeError, False, None),
+])
+def test_daemon_shutdown_keeps_failure_status_and_unexpected_errors(
+        private, capsys, loop_error, phone_drained, expected_status):
+    write_state('complete')
+    bg.write_settings({'enabled': True, 'permissions': {'phone_monitor': True}}, update_autostart=False)
+    stopped = []
+
+    def stop_phone():
+        stopped.append(True)
+        return phone_drained
+
+    def loop():
+        if loop_error is not None:
+            raise loop_error('isolated daemon failure')
+
+    fake_phone = SimpleNamespace(
+        enabled=False, lock=threading.Lock(), call_action_tickets={}, stop=stop_phone,
+        store=SimpleNamespace(settings=lambda: {'enabled': False}),
+    )
+    options = dict(glib=SimpleNamespace(MainLoop=lambda: SimpleNamespace(run=loop)),
+                   backend_factory=Backend, notifications_factory=Notifications,
+                   phone_factory=lambda *_args, **_kwargs: fake_phone)
+    if expected_status is None:
+        with pytest.raises(loop_error, match='isolated daemon failure'):
+            bg.daemon_main(**options)
+    else:
+        assert bg.daemon_main(**options) == expected_status
+    assert stopped == [True, True]
+    assert not Path(bg.socket_path()).exists()
+    diagnostics = capsys.readouterr().err
+    assert (bg._("The phone service did not finish stopping.") in diagnostics) == (not phone_drained)
+
+
 def daemon_process(fail):
     from gi.repository import GLib
     class Selected(Backend):

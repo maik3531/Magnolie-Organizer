@@ -9,11 +9,15 @@ aufgeführt.
 
 - [#809](https://github.com/maik3531/Magnolie-Organizer/issues/809):
   Beide ISO-Abbilder sind anhand offizieller Signaturen geprüft.
-  Mint 27 erreichte die Live-Konsole und die Einrichtung beider
-  2.0.30-DEBs. Nach den Pakettriggern blieb der Test bis zum
-  Zeitlimit stehen, vor dem belegten Paketstatus und GUI-Start.
-  Die beobachtete Python-3.14-Warnung wird in #815 verfolgt.
-  Der Bedienvergleich mit Mint 22.3 steht aus.
+  Auf Mint 27 Cinnamon Beta wurden die 2.0.30-Baseline-DEBs
+  installiert und verifiziert. Organizer-Einrichtung und Handbuch
+  öffneten und schlossen regulär unter X11. Der Bedienvergleich
+  mit Mint 22.3 und die Abnahme der finalen Paketbytes stehen aus.
+- [#815](https://github.com/maik3531/Magnolie-Organizer/issues/815):
+  Der Linux-Hintergrunddienst verdeckt bei einem fehlgeschlagenen
+  Telefon-Stopp keine unerwartete Ausnahme mehr. Vier gezielte
+  Dienstfälle, ein echter GLib-Lebenszyklustest und die strikte
+  Kompilierung mit Python 3.14 sind bestanden.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
