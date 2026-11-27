@@ -1,5 +1,23 @@
 # Aktueller Arbeitsstand
 
+## Weitere Abnahme für den Gesamtrelease
+
+- [#809](https://github.com/maik3531/Magnolie-Organizer/issues/809):
+  Das offiziell signierte Mint-27-Cinnamon-Beta-ISO und die
+  Abhängigkeiten beider DEBs sind geprüft. Der Kernel startete;
+  der Temperaturschutz stoppte den Gast vor der Paketinstallation.
+  Der Vergleich installierter Programme mit Mint 22.3 steht aus.
+- [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
+  Mac und Android-Tablet sind als Quellen übernommen. Die
+  Entwicklungsbundles und Debug-APKs sind noch keine normal
+  signierten Releaseartefakte. Ein aktueller Tablet-CI-Lauf endete
+  nach den Hostprüfungen an Maven Central HTTP 429, vor dem APK-Bau.
+- [#330](https://github.com/maik3531/Magnolie-Organizer/issues/330):
+  Die Linux-Korrekturen des Einstellungsabgleichs fehlten in dem
+  privaten DEB. Auf `work/330-linux-settings-on-user-deb`
+  (`f1ad42a6138671a4c2a5cda70c09eac3d562a34a`) sind 30 verschlüsselte
+  Linux-Prüffälle bestanden. Abnahme des daraus gebauten Paars offen.
+
 ## Linux-Telefonstatus und lokale Buchspeicherung – 27. November 2026
 
 Die geprüften Issue-Patches #760 und #761 sind übernommen. Bei einem
@@ -835,7 +853,7 @@ eigenen Git-Arbeitsbaum auf dieser Revision anlegen.
 | #330, Android Notes | `work/330-notes-settings` | `3fb976ecd45fbb6c4ad7a6f059990aa1eaa40d9e` |
 | #330, Windows (nur Quelle) | `work/330-windows-media` | `7c83bdee58f2d56235032735b02952a2fc162caf` |
 | [#245](https://github.com/maik3531/Magnolie-Organizer/issues/245), Linux – Spiegelung | `work/245-logind-owner` | `e1810778903a4fe534120742b93703684c1e86e6` |
-| #245, Linux – privates Testpaket auf installierter Basis | `work/245-user-deb` | `47c84874c069c4700a42d79bc38795005e14320d` |
+| #245, Linux – privates Testpaket auf installierter Basis | `work/245-user-deb` | Paketquelle `47c84874c069c4700a42d79bc38795005e14320d`; Diagnose-Folgequelle `e61697c37cc3f16261a31a93a59adf3915667fc0` |
 | #245/#763, Notes – Quellprüfung bestanden | `work/245-notes-user-draft` | `5993dbb3d289f20e2852a21cd20d28053a6ba72c` |
 
 **Geprüft:** Linux-Oberfläche und beide Seiten des Einstellungsabgleichs in
@@ -871,8 +889,9 @@ und separat auf `work/763-notes-integration`
 Upgrade-Prüfung für AN und AUS ist vorbereitet: Sie kontrolliert den Dienst
 und die authentifizierte WLAN-Verbindung noch vor dem Öffnen von Notes.
 Die Messlogik ist mit zwölf Einzeltests geprüft; der alte Kandidat wird vor
-dem Start abgelehnt. Der passende quellgebundene Nachfolger und der
-installierte Nachweis stehen noch aus.
+dem Start abgelehnt. Das regulär signierte private Paket hat beide
+Upgrade-Fälle im isolierten Android-Gast bestanden: AN verbindet
+vor dem Öffnen, AUS bleibt aus; Paarung und Rechte sind erhalten.
 
 **Danach #330:** den sicheren Rückweg für bereits zugeordnete Handydateien
 getrennt nachweisen. Den allgemeinen Neuimport dafür nicht verwenden; die
