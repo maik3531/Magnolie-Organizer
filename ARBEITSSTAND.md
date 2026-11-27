@@ -139,6 +139,12 @@ aufgeführt.
   Linux übersetzt „Medien wiederherstellen“ und die GIF-Bestätigungen.
   Die Katalogextraktion erfasst die bedingten Regelkalendertexte.
   Alle 19 Kataloge, zehn Katalogprüfungen und 39 Oberflächenfälle bestanden.
+- [#839](https://github.com/maik3531/Magnolie-Organizer/issues/839):
+  Das Android-Tablet übernimmt absolute ICS-Alarme von Terminen und Aufgaben
+  sekundengenau in den nativen Erinnerungsplan. Dateiauswahl, verschlüsselte
+  Speicherung und Zustellung im Hintergrund sind unter API 34 geprüft.
+  Der macOS-Vordergrundpfad ist bis zur Benachrichtigungsbrücke geprüft;
+  die Zustellung durch macOS bleibt Teil von #680.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
