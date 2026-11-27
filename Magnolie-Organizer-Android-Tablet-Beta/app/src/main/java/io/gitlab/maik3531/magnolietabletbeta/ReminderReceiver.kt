@@ -45,7 +45,7 @@ class ReminderReceiver : BroadcastReceiver() {
                     val now = System.currentTimeMillis()
                     val delivered = value.optJSONObject("delivered") ?: JSONObject()
                     for (alarm in eligibleAlarms(value, now).filter { it.getLong("at") <= now }.take(20)) {
-                        val key = alarm.getString("id")
+                        val key = alarmDeliveryKey(alarm)
                         val digest = MessageDigest.getInstance("SHA-256").digest(key.toByteArray())
                         val id = java.nio.ByteBuffer.wrap(digest).int and Int.MAX_VALUE
                         val open = PendingIntent.getActivity(context, id, Intent(context, MainActivity::class.java),

@@ -159,11 +159,16 @@ aufgeführt.
   Die Katalogextraktion erfasst die bedingten Regelkalendertexte.
   Alle 19 Kataloge, zehn Katalogprüfungen und 39 Oberflächenfälle bestanden.
 - [#839](https://github.com/maik3531/Magnolie-Organizer/issues/839):
-  Das Android-Tablet übernimmt absolute ICS-Alarme von Terminen und Aufgaben
-  sekundengenau in den nativen Erinnerungsplan. Dateiauswahl, verschlüsselte
-  Speicherung und Zustellung im Hintergrund sind unter API 34 geprüft.
-  Der macOS-Vordergrundpfad ist bis zur Benachrichtigungsbrücke geprüft;
-  die Zustellung durch macOS bleibt Teil von #680.
+  Fallen absolute und reguläre Alarme desselben Eintrags aus derselben
+  Quelle auf denselben UTC-Zeitpunkt, erscheint nur eine Meldung. Das Tablet erkennt
+  bereits gespeicherte eindeutige Alarmgruppen und bewahrt die
+  Zustellquittung beim Entfernen einer Alarmvariante. 305 JVM-, 194 Web-
+  und 27 Erinnerungsfälle sind bestanden. Der API-34-Emulator bestätigte
+  nach echter ICS-Dateiauswahl zwei unabhängige Hintergrundmeldungen
+  mit verschlüsselten Quittungen und eine stumme vertrauliche Aufgabe.
+  Auf macOS sind 374 Prüfungen
+  bis zur Vordergrund-Benachrichtigungsbrücke bestanden; die Zustellung
+  durch das installierte macOS-Programm bleibt Teil von #680.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal

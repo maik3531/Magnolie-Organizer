@@ -548,4 +548,24 @@ for (const kind of ["task", "note"]) {
   } finally { b.close(); }
 }
 
+{
+  const b = await context(), { t, messages } = b;
+  try {
+    const raw = ["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER;VALUE=DATE-TIME:20300510T103000Z", "END:VALARM"];
+    const book = t.daten();
+    book.einstellungen.regional.timeZone = "UTC";
+    Object.assign(book.einstellungen.erinnerung, { an: true, vorlauf: 0 });
+    book.termine = t.normalisiere({ termine: [
+      { id: "coincident-event", titel: "Coincident event", datum: "2030-05-10", zeit: "10:30", icsRoundtrip: raw },
+      { id: "other-event", titel: "Other event", datum: "2030-05-10", zeit: "10:30" },
+    ] }).termine;
+    book.aufgaben = [];
+    b.at("2030-05-10T10:29:59Z"); t.pruefeErinnerungen();
+    equal(messages.filter(message => message.cmd === "erinnerung_zeigen").length, 0, "No coincident notification before the trigger");
+    b.at("2030-05-10T10:30:00Z"); t.pruefeErinnerungen(); t.pruefeErinnerungen();
+    equal(messages.filter(message => message.cmd === "erinnerung_zeigen").length, 2,
+      "Same item and instant must notify once; a distinct item at that instant remains independent");
+  } finally { b.close(); }
+}
+
 console.log(`Mac reminder projection: ${checks} UI checks; shared synthetic reader/Core fixture and transport, not EventKit or macOS evidence.`);

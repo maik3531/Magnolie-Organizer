@@ -174,17 +174,21 @@ internal class Vault(directory: File, key: () -> SecretKey,
             require(a.getString("section") in setOf("kalender", "aufgaben"))
             require(a.getString("title").length <= 300)
             a.getBoolean("custom")
+            if (a.has("deliveryKey")) {
+                val key = a.getString("deliveryKey")
+                require(key.length in 1..4096)
+                val parts = JSONArray(key)
+                require(parts.length() == 4 && parts.getString(0) == a.getString("section") &&
+                    parts.get(1) is String && parts.getString(2).isNotEmpty() && parts.getLong(3) == a.getLong("at"))
+            }
         }
         val value = current ?: JSONObject().put("format", 1).put("enabled", false)
             .put("customEnabled", false).put("delivered", JSONObject())
+        // Match physical delivery across changes to the triggering alarm,
+        // keeping receipts only for still-live item/source/instant groups.
+        val retained = retainAlarmReceipts(value.optJSONArray("alarms") ?: JSONArray(),
+            value.optJSONObject("data"), alarms, value.optJSONObject("delivered") ?: JSONObject())
         value.put("data", data).put("alarms", alarms).put("revision", UUID.randomUUID().toString())
-        // Keep delivery receipts only for live alarms; edits/deletions invalidate old schedules.
-        val old = value.optJSONObject("delivered") ?: JSONObject()
-        val retained = JSONObject()
-        for (i in 0 until alarms.length()) {
-            val id = alarms.getJSONObject(i).getString("id")
-            if (old.has(id)) retained.put(id, old.get(id))
-        }
         value.put("delivered", retained)
         commit(value)
         newDocument = false

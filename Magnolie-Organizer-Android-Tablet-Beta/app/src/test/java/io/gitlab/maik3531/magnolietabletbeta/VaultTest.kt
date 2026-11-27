@@ -123,6 +123,44 @@ class VaultTest {
         state.put("alarms",JSONArray())
         assertTrue(eligibleAlarms(state,100000L).isEmpty())
     }
+    @Test fun coincidentAlarmReceiptSurvivesReopenAndRemovingEitherTrigger() {
+        val directory = Files.createTempDirectory("tablet-coincident-alarm").toFile()
+        try {
+            val identity = key()
+            val instant = 100000L
+            val base = "aufgaben:one"
+            val key = """["aufgaben","source/a","one",100000]"""
+            val legacyAbsolute = alarm().put("id", "$base:absolute:$instant")
+            val legacyDue = alarm().put("id", "$base:$instant")
+            fun book(source: String) = data().put("aufgaben", JSONArray().put(
+                JSONObject().put("id", "one").put("icsQuelleId", source)))
+            fun seedLegacy(target: java.io.File) {
+                val vault = Vault(target, { identity })
+                val legacy = vault.save(book("source/a").toString(), JSONArray().put(legacyAbsolute).put(legacyDue))
+                legacy.put("enabled", true)
+                assertEquals(listOf(key), eligibleAlarms(legacy, instant).map(::alarmDeliveryKey))
+                legacy.getJSONObject("delivered").put(legacyAbsolute.getString("id"), instant)
+                vault.write(legacy)
+                assertTrue(eligibleAlarms(Vault(target, { identity }).read()!!, instant).isEmpty())
+            }
+            fun grouped(alarm: JSONObject) = JSONObject(alarm.toString()).put("deliveryKey", key)
+            val otherSource = grouped(legacyDue).put("deliveryKey", """["aufgaben","source-b","one",100000]""")
+            val movedDirectory = directory.resolve("changed-source").apply { check(mkdir()) }
+            seedLegacy(movedDirectory)
+            val moved = Vault(movedDirectory, { identity }).save(book("source-b").toString(), JSONArray().put(otherSource))
+            assertEquals(listOf(alarmDeliveryKey(otherSource)), eligibleAlarms(moved, instant).map(::alarmDeliveryKey))
+
+            seedLegacy(directory)
+            val reopened = Vault(directory, { identity })
+            val dueOnly = reopened.save(book("source/a").toString(), JSONArray().put(grouped(legacyDue)))
+            assertTrue(dueOnly.getJSONObject("delivered").has(key))
+            assertTrue(eligibleAlarms(dueOnly, instant).isEmpty())
+            val afterRestart = Vault(directory, { identity })
+            val changed = afterRestart.save(book("source/a").toString(), JSONArray().put(grouped(legacyAbsolute)).put(otherSource))
+            assertEquals(listOf(alarmDeliveryKey(otherSource)), eligibleAlarms(changed, instant).map(::alarmDeliveryKey))
+            assertTrue(Vault(directory, { identity }).read()!!.getJSONObject("delivered").has(key))
+        } finally { directory.deleteRecursively() }
+    }
     @Test fun originAllowlistRejectsRemoteFilesCredentialsAndLookalikes() {
         assertTrue(trustedOrigin("https://appassets.androidplatform.net/assets/web/index.html"))
         assertTrue(trustedOrigin("https://appassets.androidplatform.net:443"))
@@ -278,7 +316,7 @@ class VaultTest {
             if(alarms.getJSONObject(0).getBoolean("custom")) assertTrue(eligibleAlarms(value,time).isEmpty())
             else assertEquals(alarms.length(),eligibleAlarms(value,time).size)
             value.put("customEnabled",true)
-            val first=alarms.getJSONObject(0).getString("id")
+            val first=alarmDeliveryKey(alarms.getJSONObject(0))
             value.getJSONObject("delivered").put(first,time)
             assertEquals(alarms.length()-1,eligibleAlarms(value,time).size)
         }

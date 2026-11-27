@@ -227,14 +227,17 @@
     window.TabletNative.postMessage(JSON.stringify(message));
   }
   function alarms() {
-    const T = window.OrganizerTest, data = T.daten(), result = [];
+    const T = window.OrganizerTest, data = T.daten(), result = new Map();
     const settings = data.einstellungen.erinnerung;
-    if (!settings.an) return result;
+    if (!settings.an) return [];
     const add = (item, time, section, custom, mode = '', title = item.titel) => {
       if (!Number.isFinite(time) || time <= 0) return;
-      // Keep existing due receipts valid; early alarms have their own namespace.
-      result.push({id: section+':'+item.id+':'+(mode && mode !== 'due' ? mode+':' : '')+time, at:time,
-        title: String(title || tr('Untitled')).slice(0,300), section, custom});
+      const source = item.icsQuelleId || item.syncKalenderUid || item.kalenderQuelle?.id || '';
+      const deliveryKey = JSON.stringify([section, source, item.id, time]);
+      // Absolute alarms are added first, retaining their privacy-aware title.
+      if (result.has(deliveryKey)) return;
+      const id = section+':'+item.id+':'+(mode && mode !== 'due' ? mode+':' : '')+time;
+      result.set(deliveryKey,{id, deliveryKey, at:time, title:String(title || tr('Untitled')).slice(0,300), section, custom});
     };
     const recurring = x => !Array.isArray(x.icsRoundtrip || []) ||
       (x.icsRoundtrip || []).some(line => /^\s*(RRULE|RDATE|EXDATE|EXRULE|RECURRENCE-ID)\b/i.test(line)) ||
@@ -253,7 +256,7 @@
       for (const alarm of item.alarme || []) if (alarm.bearbeitbar && alarm.aktiviert) {
         const base = alarm.related === 'END' ? +T.terminZeitpunkt({datum:item.endDatum || item.datum,
           zeit:item.endZeit || item.zeit}) : time;
-        add(item,base-alarm.offsetMinuten*60000,'kalender',false);
+        add(item,base-alarm.offsetMinuten*60000,'kalender',item.id.startsWith('custom:'));
       }
     }
     for (const item of data.aufgaben.concat(T.customAufgabenFuerErinnerung())) {
@@ -307,7 +310,7 @@
         if (days) add(item,early,'aufgaben',custom,'early-'+days);
       } catch (_) { status(beta(0)); }
     }
-    return [...new Map(result.map(x=>[x.id,x])).values()].sort((a,b)=>a.at-b.at);
+    return [...result.values()].sort((a,b)=>a.at-b.at);
   }
   function send(message) {
     if (message.cmd === 'sozial' && message.dienst==='custom' && message.aktionArt==='url' &&

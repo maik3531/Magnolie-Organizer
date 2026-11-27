@@ -543,11 +543,16 @@ def project(snapshot, target):
                             "if (!initialisiert || gesperrt) return;")
     reminder = replace_once(reminder, "    const jetztWert = new Date();",
                             '''    const jetztWert = new Date();
+    const meldeZeitpunkt = (eintrag, aufgabe, at) => {
+      const quelle = eintrag.icsQuelleId || eintrag.syncKalenderUid || eintrag.kalenderQuelle?.id || "";
+      const id = JSON.stringify([aufgabe, quelle, eintrag.id, at]);
+      if (gemeldeteTermine.has(id)) return false;
+      gemeldeteTermine.add(id);
+      return true;
+    };
     const absoluteMeldungen = (eintrag, aufgabe) => {
       for (const { at, titel } of festeKalenderAlarme(eintrag, aufgabe)) {
-        const id = JSON.stringify(["macOS-Beta-absolute", aufgabe, eintrag.id, at]);
-        if (gemeldeteTermine.has(id) || +jetztWert < at || +jetztWert > at + 5 * 60000) continue;
-        gemeldeteTermine.add(id);
+        if (+jetztWert < at || +jetztWert > at + 5 * 60000 || !meldeZeitpunkt(eintrag, aufgabe, at)) continue;
         meldeErinnerung(aufgabe ? _("Task reminder") : _("Appointment reminder"), titel);
       }
     };''')
@@ -555,6 +560,10 @@ def project(snapshot, target):
                             "      absoluteMeldungen(t, false);\n      const zeitpunkt = terminZeitpunkt(t);")
     reminder = replace_once(reminder, "      if (!tage || t.standardErinnerung !== false) {",
                             "      if (t.nativeCalendarImport?.version === 1 ? t.standardErinnerung !== false : !tage || t.standardErinnerung !== false) {")
+    reminder = replace_once(reminder, '''        if (gemeldeteTermine.has(meldung.id) || jetztWert < meldung.ab) continue;
+        if (jetztWert > new Date(meldung.ende.getTime() + 5 * 60000)) continue;
+        gemeldeteTermine.add(meldung.id);''', '''        if (jetztWert < meldung.ab || jetztWert > new Date(meldung.ende.getTime() + 5 * 60000) ||
+            !meldeZeitpunkt(t, false, +meldung.ab)) continue;''')
     task_start = reminder.index("    for (const aufgabe of DATEN.aufgaben.concat(customAufgabenFuerErinnerung())) {")
     task_end = reminder.index("\n    }\n  }", task_start) + len("\n    }")
     reminder = reminder[:task_start] + '''    for (const aufgabe of DATEN.aufgaben.concat(customAufgabenFuerErinnerung())) {
@@ -563,8 +572,8 @@ def project(snapshot, target):
       try { alarms = window.MacBeta.taskAlarms(aufgabe, organizerZeitzone()); }
       catch (_) { window.MacBeta.reminderError(); continue; }
       for (const alarm of alarms) {
-        if (gemeldeteTermine.has(alarm.id) || +jetztWert < alarm.at || +jetztWert > alarm.at + 5 * 60000) continue;
-        gemeldeteTermine.add(alarm.id);
+        if (+jetztWert < alarm.at || +jetztWert > alarm.at + 5 * 60000 ||
+            !meldeZeitpunkt(aufgabe, true, alarm.at)) continue;
         const dueDate = new Date(alarm.dueAt), dueParts = organizerDatumzeitTeile(dueDate);
         const wann = alarm.days ? uebersetztMehrzahl("in %(count)s day", "in %(count)s days", alarm.days)
           : (aufgabe.faelligZeit ? uebersetzt("at %(time)s", {

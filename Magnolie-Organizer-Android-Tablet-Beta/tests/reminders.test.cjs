@@ -132,6 +132,20 @@ const tick=()=>new Promise(r=>setTimeout(r,30));
     data.einstellungen.erinnerung.an=false;
     assert.equal(w.Tablet.alarms().length,0,'disabled global reminders');
     data.einstellungen.erinnerung.an=true;
+    data.einstellungen.erinnerung.vorlauf=0;
+    data.termine=T.normalisiere({termine:[
+      {id:'coincident-event',titel:'Coincident event',datum:'2030-05-10',zeit:'10:30',
+        icsRoundtrip:block('TRIGGER;VALUE=DATE-TIME:20300510T103000Z')},
+      {id:'other-event',titel:'Other event',datum:'2030-05-10',zeit:'10:30'},
+    ]}).termine;
+    data.aufgaben=[];
+    const grouped=JSON.parse(JSON.stringify(w.Tablet.alarms()));
+    assert.equal(grouped.filter(a=>a.at===Date.parse('2030-05-10T10:30:00Z')).length,2,
+      'Same item and instant has one alarm; different items remain independent');
+    savedAlarms=null;
+    await new Promise((resolve,reject)=>w.MagnolieTabletActions.persist(resolve,reject));
+    assert.deepEqual(savedAlarms,grouped,'normal document save keeps coincident alarms grouped');
+    cases.push({name:'coincident absolute and normal alarms through document save',alarms:savedAlarms});
     data.termine=[];
     T.daten().aufgaben=[];
     const module={id:'custom-a3',type:'tasks',title:'Custom',reminders:false,

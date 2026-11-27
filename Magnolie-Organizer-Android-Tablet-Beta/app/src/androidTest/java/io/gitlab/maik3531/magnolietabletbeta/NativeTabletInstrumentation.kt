@@ -1066,7 +1066,8 @@ class NativeTabletInstrumentation : Instrumentation() {
         val lines = listOf("BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Magnolie//Native test//EN",
             "BEGIN:VEVENT", "UID:absolute-event@example.test", "DTSTART:$start", "RRULE:FREQ=DAILY;COUNT=2",
             "SUMMARY:$event") + alarm + listOf("END:VEVENT",
-            "BEGIN:VTODO", "UID:absolute-task@example.test", "SUMMARY:$task", "CLASS:PUBLIC") +
+            "BEGIN:VTODO", "UID:absolute-task@example.test", "SUMMARY:$task", "CLASS:PUBLIC",
+            "DUE:${utc.format(instant)}", "X-MAGNOLIE-ERINNERUNG-AM-TAG:1") +
             alarm + listOf("END:VTODO",
             "BEGIN:VTODO", "UID:confidential-task@example.test", "SUMMARY:$confidential", "CLASS:CONFIDENTIAL") +
             alarm + listOf("END:VTODO", "END:VCALENDAR")
@@ -1075,6 +1076,14 @@ class NativeTabletInstrumentation : Instrumentation() {
         waitFor("imported absolute event, public task and confidential control") {
             value("OrganizerTest.daten().termine.some(x=>x.titel==='$event')&&['$task','$confidential'].every(n=>OrganizerTest.daten().aufgaben.some(x=>x.titel===n))") == "true"
         }
+        check(js("""
+            const task = OrganizerTest.daten().aufgaben.find(item => item.titel === '$task');
+            const original = task.icsRoundtrip;
+            try {
+                task.icsRoundtrip = original.filter(line => !line.startsWith('TRIGGER;VALUE=DATE-TIME:'));
+                return Tablet.alarms().some(alarm => alarm.title === '$task' && alarm.at === $at);
+            } finally { task.icsRoundtrip = original; }
+        """.trimIndent()) == "true") { "The imported task must also have an ordinary alarm at the same instant" }
         saved()
         val state = vault().read()!!
         val tasks = state.getJSONObject("data").getJSONArray("aufgaben")
@@ -1083,11 +1092,12 @@ class NativeTabletInstrumentation : Instrumentation() {
         val alarms = state.getJSONArray("alarms")
         val selected = (0 until alarms.length()).map(alarms::getJSONObject)
             .filter { it.getString("id").contains(":absolute:") }
-        check(state.getBoolean("enabled") && selected.size == 2 &&
+        check(state.getBoolean("enabled") && alarms.length() == 2 && selected.size == 2 &&
             selected.map { it.getString("title") }.toSet() == titles &&
             selected.all { it.getLong("at") == at })
         check(System.currentTimeMillis() < at)
-        pass("ICS picker and durable save retained both second-precise absolute triggers", JSONObject().put("at", at))
+        pass("ICS picker and durable save retained two second-precise groups, including the coincident task",
+            JSONObject().put("at", at))
         sendKeyDownUpSync(KeyEvent.KEYCODE_HOME)
         val manager = targetContext.getSystemService(NotificationManager::class.java)
         waitFor("absolute notifications while backgrounded", 85) {
@@ -1096,7 +1106,7 @@ class NativeTabletInstrumentation : Instrumentation() {
             }
             val receipts = vault().read()!!.getJSONObject("delivered")
             delivered.size == 2 && delivered.all { it.postTime >= at } &&
-                selected.all { receipts.has(it.getString("id")) }
+                 selected.all { receipts.has(alarmDeliveryKey(it)) }
         }
         check(manager.activeNotifications.none { it.notification.extras.getCharSequence("android.text")?.toString() == confidential })
         pass("native receiver posted both public reminders and stored both delivery receipts; confidential task stayed silent")
