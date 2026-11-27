@@ -27,7 +27,7 @@ internal static class RestoreSelection
             foreach (var name in groups[area])
                 result[name] = mode == "additive"
                     ? AddMissing(result[name] as JsonArray, snapshot[name] as JsonArray,
-                        sourceScoped: name is "termine" or "aufgaben")
+                        sourceScoped: name is "termine" or "aufgaben", contacts: name == "kontakte")
                     : snapshot[name]?.DeepClone() ?? new JsonArray();
         PreserveAttachments(result, current);
         return result;
@@ -79,7 +79,7 @@ internal static class RestoreSelection
         WalkRestored(restored);
     }
 
-    private static JsonArray AddMissing(JsonArray? current, JsonArray? snapshot, bool sourceScoped)
+    private static JsonArray AddMissing(JsonArray? current, JsonArray? snapshot, bool sourceScoped, bool contacts)
     {
         var result = current?.DeepClone().AsArray() ?? new JsonArray();
         string LocalId(JsonObject item) => item["id"]?.ToString() ?? "";
@@ -111,6 +111,19 @@ internal static class RestoreSelection
             "standardErinnerung", "wiederholung", "prio", "prioritaet", "faellig", "startDatum",
             "startZeit", "faelligZeit", "erledigt", "erinnern", "reihenfolge"
         };
+        if (contacts)
+        {
+            // Imports can assign a UID to an existing local contact. Its old
+            // source links and provider round-trip metadata are not content.
+            contentFields = new HashSet<string>(StringComparer.Ordinal) {
+                "nachname", "vorname", "anzeigename", "firma", "strasse", "plz", "ort", "land",
+                "telefon", "mobil", "telefone", "email", "emails", "emailEintraege", "anschriften",
+                "geburtstag", "geburtstagJahrUnbekannt", "jubilaeum", "jubilaeumJahrUnbekannt",
+                "notiz", "foto", "kontaktpersonName", "kontaktpersonTelefon", "kontaktpersonStatus",
+                "sozialeMedien", "gruppen"
+            };
+        }
+        var preferLocalId = sourceScoped || contacts;
         var byId = new Dictionary<(string Kind, string Source, string Value), List<JsonObject>>();
         var byLocalId = new Dictionary<string, List<JsonObject>>(StringComparer.Ordinal);
         void Remember(JsonObject item)
@@ -141,8 +154,8 @@ internal static class RestoreSelection
             var matches = identity.HasValue && byId.TryGetValue(identity.Value, out var found) ? found : [];
             var existing = matches.Count == 1 ? matches[0] : null;
             var localId = LocalId(old);
-            var localMatches = sourceScoped && localId.Length > 0 && byLocalId.TryGetValue(localId, out var localFound) ? localFound : [];
-            if (sourceScoped && localId.Length > 0 && (localMatches.Count > 1 || ambiguousOldIds.Contains(localId)))
+            var localMatches = preferLocalId && localId.Length > 0 && byLocalId.TryGetValue(localId, out var localFound) ? localFound : [];
+            if (preferLocalId && localId.Length > 0 && (localMatches.Count > 1 || ambiguousOldIds.Contains(localId)))
             {
                 if (localMatches.Any(item => JsonNode.DeepEquals(item, old))) continue;
                 // Preexisting duplicate local ids need an exact unchanged
@@ -168,7 +181,8 @@ internal static class RestoreSelection
                 Remember(copy);
                 continue;
             }
-            var changedBinding = sourceScoped && Binding(existing) != Binding(old);
+            var changedBinding = sourceScoped && Binding(existing) != Binding(old) ||
+                contacts && (existing["uid"]?.ToString() ?? "") != (old["uid"]?.ToString() ?? "");
             var previousLocalId = LocalId(existing);
             foreach (var pair in old)
             {

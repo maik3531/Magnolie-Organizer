@@ -1923,7 +1923,7 @@ def journal_umschluesseln(kennwort_neu, kennwort_alt="", basis=None):
     return {"geschafft": geschafft, "misslungen": misslungen}
 
 
-def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False):
+def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False, kontakte=False):
     aus = json.loads(json.dumps(aktuell or [], ensure_ascii=False))
     index = {}
     lokale_ids = {}
@@ -1956,7 +1956,16 @@ def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False):
                     "kategorien", "ort", "alarme", "organisator", "teilnehmer", "kalenderAnhaenge",
                     "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "individuelleErinnerungTage",
                     "standardErinnerung", "wiederholung", "prio", "prioritaet", "faellig", "startDatum",
-                    "startZeit", "faelligZeit", "erledigt", "erinnern", "reihenfolge"}
+                     "startZeit", "faelligZeit", "erledigt", "erinnern", "reihenfolge"}
+    if kontakte:
+        # A contact import can assign a UID while keeping the local card.
+        # Do not restore old source links or provider round-trip metadata.
+        inhaltsfelder = {"nachname", "vorname", "anzeigename", "firma", "strasse", "plz", "ort", "land",
+                         "telefon", "mobil", "telefone", "email", "emails", "emailEintraege", "anschriften",
+                         "geburtstag", "geburtstagJahrUnbekannt", "jubilaeum", "jubilaeumJahrUnbekannt",
+                         "notiz", "foto", "kontaktpersonName", "kontaktpersonTelefon", "kontaktpersonStatus",
+                         "sozialeMedien", "gruppen"}
+    lokale_identitaet = quellenbezogen or kontakte
 
     for objekt in aus:
         if isinstance(objekt, dict):
@@ -1981,8 +1990,8 @@ def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False):
         kandidaten = index.get(kennung, [])
         vorhanden = kandidaten[0] if len(kandidaten) == 1 else None
         local = lokale_id(objekt)
-        lokale_kandidaten = lokale_ids.get(local, []) if quellenbezogen and local else []
-        if quellenbezogen and local and (len(lokale_kandidaten) > 1 or local in mehrdeutige_alt_ids):
+        lokale_kandidaten = lokale_ids.get(local, []) if lokale_identitaet and local else []
+        if lokale_identitaet and local and (len(lokale_kandidaten) > 1 or local in mehrdeutige_alt_ids):
             if objekt in lokale_kandidaten:
                 continue
             # Existing duplicate local ids can only be disambiguated by the
@@ -2010,7 +2019,8 @@ def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False):
             if local:
                 lokale_ids.setdefault(local, []).append(kopie)
             continue
-        quellenwechsel = quellenbezogen and bindung(vorhanden) != bindung(objekt)
+        quellenwechsel = ((quellenbezogen and bindung(vorhanden) != bindung(objekt)) or
+                         (kontakte and str(vorhanden.get("uid") or "") != str(objekt.get("uid") or "")))
         bisherige_id = lokale_id(vorhanden)
         for name, wert in objekt.items():
             if quellenwechsel and name not in inhaltsfelder:
@@ -2080,7 +2090,8 @@ def journal_restore_daten(daten, aktuell=None, bereiche=None, modus="replace"):
             for name in gruppen.get(bereich, ()):
                 if modus == "additive":
                     neu[name] = _journal_liste_ergaenzen(neu.get(name), snapshot.get(name),
-                                                       quellenbezogen=name in ("termine", "aufgaben"))
+                                                        quellenbezogen=name in ("termine", "aufgaben"),
+                                                        kontakte=name == "kontakte")
                 else:
                     neu[name] = json.loads(json.dumps(snapshot.get(name) or [], ensure_ascii=False))
     _journal_anhaenge_bewahren(neu, aktuell or {})

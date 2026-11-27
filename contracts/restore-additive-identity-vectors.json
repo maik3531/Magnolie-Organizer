@@ -259,6 +259,27 @@
       "current": [{"id": "same", "uid": "shared", "icsQuelleId": "import-source", "syncKalenderUid": "calendar-b", "notiz": "", "davHref": ""}],
       "snapshot": [{"id": "same", "uid": "shared", "icsQuelleId": "import-source", "syncKalenderUid": "calendar-a", "notiz": "Recovered", "davHref": "/calendar-a/old.ics", "syncQuellen": {"calendar-a": {"id": "old"}}}],
       "expected": [{"id": "same", "uid": "shared", "icsQuelleId": "import-source", "syncKalenderUid": "calendar-b", "notiz": "Recovered", "davHref": ""}]
+    },
+    {
+      "id": "contact-local-id-survives-uid-assignment-by-import",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "contact-local", "uid": "import-uid", "vorname": "Current", "email": "same@example.test", "notiz": "", "kontaktQuelle": "current-source"}],
+      "snapshot": [{"id": "contact-local", "vorname": "Old", "email": "same@example.test", "notiz": "Recovered", "kontaktQuelle": "old-source", "davHref": "/old.vcf"}],
+      "expected": [{"id": "contact-local", "uid": "import-uid", "vorname": "Current", "email": "same@example.test", "notiz": "Recovered", "kontaktQuelle": "current-source"}]
+    },
+    {
+      "id": "contact-local-id-is-not-chosen-among-ambiguous-imported-cards",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "contact-local", "uid": "import-a"}, {"id": "contact-local", "uid": "import-b"}],
+      "snapshot": [{"id": "contact-local", "notiz": "Not safely attributable"}],
+      "error": "ambiguous-local-id"
+    },
+    {
+      "id": "contact-conflicting-snapshot-local-ids-hold-the-additive-restore",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "contact-local", "uid": "import-uid"}],
+      "snapshot": [{"id": "contact-local", "notiz": "First"}, {"id": "contact-local", "notiz": "Second"}],
+      "error": "ambiguous-local-id"
     }
   ]
 }

@@ -7,6 +7,12 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
+  Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
+  zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.
+  Aktuelle UID und Quellbindungen bleiben erhalten; mehrdeutige IDs werden
+  nicht willkürlich zugeordnet. 92 Linux-Prüfungen und der Windows-C#-Test
+  mit denselben 40 Identitätsfällen bestanden.
 - [#842](https://github.com/maik3531/Magnolie-Organizer/issues/842):
   Der Windows-Dateiimport weist beschädigtes UTF‑16 mit der vorhandenen
   Fehlermeldung ab. Direkte Dateien, ZIP-Einträge und der Müllkalender
