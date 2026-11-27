@@ -20,7 +20,7 @@ internal static class DeviceFileMappedSourceTests
         {
             Change(f, "enabled", JsonValue.Create(true)!); await DeviceFileSharedTransportTests.MatchAsync(f.Native);
             await DeviceFileReconcileTests.Establish(f);
-            Change(f, "direction", JsonValue.Create("two_way")!); await DeviceFileSharedTransportTests.MatchAsync(f.Native);
+            Change(f, "direction", JsonValue.Create("pc_to_phone")!); await DeviceFileSharedTransportTests.MatchAsync(f.Native);
             return f;
         }
         catch { f.Dispose(); throw; }

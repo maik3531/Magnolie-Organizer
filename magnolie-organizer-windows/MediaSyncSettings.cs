@@ -153,18 +153,25 @@ internal static class MediaSyncSettings
 
     internal static bool TransferRequestedFor(JsonObject body, string mediaType, bool toPhone)
     {
-        if (!RequestedFor(body, mediaType)) return false;
-        var direction = Effective(body)["direction"]!.GetValue<string>();
-        return direction == "two_way" || direction == (toPhone ? "pc_to_phone" : "phone_to_pc");
+        var values = TransferValues(body, mediaType);
+        return TransferEnabled(values, mediaType) &&
+            values["direction"]!.GetValue<string>() == (toPhone ? "pc_to_phone" : "phone_to_pc");
     }
 
     internal static bool RequestedFor(JsonObject body, string mediaType)
+        => TransferEnabled(TransferValues(body, mediaType), mediaType);
+
+    private static JsonObject TransferValues(JsonObject body, string mediaType)
     {
         if (body["settings"] is not JsonObject fields || fields.Count != Fields.Count || mediaType is not ("images" or "video"))
             throw new InvalidDataException("media_shared_settings_incomplete_local_state");
-        var values = Effective(body);
-        return values["enabled"]!.GetValue<bool>() && values[mediaType == "images" ? "photos_enabled" : "videos_enabled"]!.GetValue<bool>();
+        return Effective(body);
     }
+
+    private static bool TransferEnabled(JsonObject values, string mediaType)
+        // Two-way remains a valid stored choice, held until the return path can replace an original safely.
+        => values["direction"]!.GetValue<string>() != "two_way" && values["enabled"]!.GetValue<bool>() &&
+            values[mediaType == "images" ? "photos_enabled" : "videos_enabled"]!.GetValue<bool>();
 
     internal static JsonObject Change(JsonObject body, string localActor, string peerActor, string field, JsonNode value)
     {

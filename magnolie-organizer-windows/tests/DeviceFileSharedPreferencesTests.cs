@@ -122,9 +122,10 @@ internal static class DeviceFileSharedPreferencesTests
             f.Store.NativeMediaSharedSettingsView(f.Peer.Id, f.Peer.PublicKey)["values"]!["direction"]!.GetValue<string>() == "two_way",
             "An independent direction edit bypassed import-only or did not remain visible.");
         var restored = Change("collection_mode", JsonValue.Create("phone_inventory")!);
-        TestAssert.That(MediaSyncSettings.TransferRequestedFor(restored, "images", true) &&
-            JsonNode.DeepEquals(changed["settings"]!["direction"], restored["settings"]!["direction"]),
-            "Returning to inventory reset the independently edited direction history.");
+        TestAssert.That(!MediaSyncSettings.TransferRequestedFor(restored, "images", true) &&
+             !MediaSyncSettings.TransferRequestedFor(restored, "images", false) &&
+             JsonNode.DeepEquals(changed["settings"]!["direction"], restored["settings"]!["direction"]),
+             "Returning to inventory ran unsupported two-way work or reset the independently edited direction history.");
         return Task.CompletedTask;
     }
 

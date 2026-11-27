@@ -17,6 +17,9 @@ internal static class DeviceFileSharedProjectionTests
     private static JsonObject Change(DeviceFileConnectionMetadataTests.Fixture f, string field, bool value) =>
         f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey, field, JsonValue.Create(value)!,
             f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, field));
+    private static JsonObject Change(DeviceFileConnectionMetadataTests.Fixture f, string field, string value) =>
+        f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey, field, JsonValue.Create(value)!,
+            f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, field));
     private static byte[] Blob(DeviceFileConnectionMetadataTests.Fixture f)
     {
         using var db = f.Store.OpenDatabase(); db.Open(); using var read = db.CreateCommand();
@@ -44,6 +47,18 @@ internal static class DeviceFileSharedProjectionTests
         var off = f.Store.ProjectNativeMediaSharedPreferences(f.Peer.Id, f.Peer.PublicKey, body, () => { });
         TestAssert.That(!off.PhotosEnabled && !off.VideosEnabled && !off.AutomaticWifi && f.Store.ReadNativeMediaReceiveConsent(f.Peer.Id).Granted &&
             MediaSyncSettings.Effective(body)["photos_enabled"]!.GetValue<bool>(), "Master OFF erased local rights or the remembered photo choice.");
+        Change(f, "enabled", true); Change(f, "auto_mode", "wifi");
+        body = Change(f, "direction", "two_way");
+        var held = f.Store.ProjectNativeMediaSharedPreferences(f.Peer.Id, f.Peer.PublicKey, body, () => { });
+        TestAssert.That(!held.PhotosEnabled && !held.VideosEnabled && !held.AutomaticWifi &&
+            JsonNode.DeepEquals(body, f.Store.ReadNativeMediaSharedSettings(f.Peer.Id, f.Peer.PublicKey)) &&
+            f.Store.ReadNativeMediaReceiveConsent(f.Peer.Id).Granted,
+            "A matched two-way choice enabled WLAN work or erased the saved choice or local receive right.");
+        body = Change(f, "collection_mode", "import_only");
+        var importing = f.Store.ProjectNativeMediaSharedPreferences(f.Peer.Id, f.Peer.PublicKey, body, () => { });
+        TestAssert.That(importing.PhotosEnabled && !importing.VideosEnabled && importing.AutomaticWifi &&
+            !MediaSyncSettings.TransferRequestedFor(body, "images", toPhone: true),
+            "Import-only lost its WLAN path or admitted export with an independently stored two-way direction.");
         return Task.CompletedTask;
     }
 

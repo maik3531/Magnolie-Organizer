@@ -167,9 +167,21 @@ internal static class DeviceFileSharedTransportTests
         f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey, "skip_deletions", JsonValue.Create(true)!,
             f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, "skip_deletions"));
         await f.Connection.HandlePlainAsync(stale); TestAssert.That(calls == 1, "Stale manual action started after a register edit.");
+        void Change(string field, string value) => f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey, field,
+            JsonValue.Create(value)!, f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, field));
+        Change("direction", "two_way"); Change("auto_mode", "wifi");
         await MatchAsync(f);
+        var retained = f.Store.ReadNativeMediaSharedSettings(f.Peer.Id, f.Peer.PublicKey)!;
+        await f.Connection.HandlePlainAsync(Request());
+        TestAssert.That(calls == 1 && f.Connection.MediaSharedSettingsReady &&
+            JsonNode.DeepEquals(retained, f.Store.ReadNativeMediaSharedSettings(f.Peer.Id, f.Peer.PublicKey)),
+            "A matched two-way choice started a worker or was not preserved.");
+        Change("collection_mode", "import_only");
+        await MatchAsync(f);
+        await f.Connection.HandlePlainAsync(Request());
+        TestAssert.That(calls == 2, "Explicit import-only failed with an independently stored two-way direction.");
         f.Stream.Fail = true;
         await DeviceFileConnectionSourcesTests.FailsAsync<IOException>(f.Connection.HandlePlainAsync(Request()), "Failed secure request ACK was ignored.");
-        TestAssert.That(calls == 1, "Native manual work started before secure ACK output succeeded.");
+        TestAssert.That(calls == 2, "Native manual work started before secure ACK output succeeded.");
     }
 }

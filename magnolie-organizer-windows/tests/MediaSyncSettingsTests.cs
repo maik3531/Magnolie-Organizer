@@ -55,8 +55,8 @@ internal static class MediaSyncSettingsTests
                 "Configured choices were overwritten by transfer-only policy: " + scope + "/" + direction);
             TestAssert.That(MediaSyncSettings.Effective(choices)["direction"]!.GetValue<string>() == activeDirection &&
                 MediaSyncSettings.Effective(choices)["auto_mode"]!.GetValue<string>() == schedule &&
-                MediaSyncSettings.TransferRequestedFor(choices, "images", false) == (activeDirection is "phone_to_pc" or "two_way") &&
-                MediaSyncSettings.TransferRequestedFor(choices, "images", true) == (activeDirection is "pc_to_phone" or "two_way") &&
+                MediaSyncSettings.TransferRequestedFor(choices, "images", false) == (activeDirection == "phone_to_pc") &&
+                MediaSyncSettings.TransferRequestedFor(choices, "images", true) == (activeDirection == "pc_to_phone") &&
                 !MediaSyncSettings.TransferRequestedFor(choices, "video", false) && !MediaSyncSettings.TransferRequestedFor(choices, "video", true),
                 "Scope/direction/schedule matrix changed: " + scope + "/" + direction + "/" + schedule);
             TestAssert.That(choices.ToJsonString() == before && choices["settings"]!["direction"]![Pc]!["value"]!.GetValue<string>() == direction,
