@@ -27,7 +27,7 @@ async function boot() {
     collection_sources: { version: "c".repeat(64), roots: [{ id: "root", media_type: "images", display_path: "/private/source" }] } };
   function show(changes = {}, peerChanges = {}) {
     w.App.telefonStand({ enabled: true, peers: [{ device_id: "phone", fingerprint: "original", own_device: true,
-      remote_own_device: true, transport: "wifi", ...peerChanges, photo_sync: { ...state, ...changes } }] });
+      remote_own_device: true, state: "online_wifi", transport: "wifi", ...peerChanges, photo_sync: { ...state, ...changes } }] });
   }
   show();
   return { dom, w, messages, state, show, add: () => w.document.querySelector('[data-collection-source-add="images"]'),

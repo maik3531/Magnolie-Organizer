@@ -43,6 +43,10 @@ aufgeführt.
   und sieben unterschiedlich benannte Medienwege. Der Linux-Sender
   erzeugt dieselben Foto-/Video-Freigabefelder; sieben Vergleichsfälle
   und die reproduzierbare Erzeugung des Vertrags bestanden.
+  [#833](https://github.com/maik3531/Magnolie-Organizer/issues/833):
+  Die Linux-Quellordnerprüfung meldet für ihre Testgegenstelle den
+  erforderlichen WLAN-Status. Zehn Quellordner- und 20 benachbarte
+  Medien-Wiederherstellungsprüfungen bestanden.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
