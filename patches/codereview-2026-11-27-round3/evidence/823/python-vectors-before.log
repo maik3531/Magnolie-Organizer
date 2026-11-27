@@ -1,0 +1,197 @@
+.....................................FFFFF.FFF..F....................... [ 73%]
+..........................                                               [100%]
+=================================== FAILURES ===================================
+_ test_additive_restore_identity[contact-import-assigned-uid-keeps-stable-local-id] _
+
+case = {'area': 'contacts', 'collection': 'kontakte', 'current': [{'email': 'same@example.test', 'firma': 'Current company', ...'email': 'same@example.test', 'firma': 'Current company', 'id': 'contact-local', 'notiz': 'Restore detail', ...}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f08a3f13fb0>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+_ test_additive_restore_identity[contact-missing-uid-in-old-snapshot-keeps-assigned-uid] _
+
+case = {'area': 'contacts', 'collection': 'kontakte', 'current': [{'id': 'contact-local', 'notiz': '', 'uid': 'import-uid'}], 'expected': [{'id': 'contact-local', 'notiz': 'Legacy detail', 'uid': 'import-uid'}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f08a3f13b60>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+_ test_additive_restore_identity[contact-changed-uid-keeps-current-provider-binding] _
+
+case = {'area': 'contacts', 'collection': 'kontakte', 'current': [{'davHref': '', 'id': 'contact-local', 'kontaktAliase': {'u...nschriften': [{'art': 'WORK', 'ort': 'Berlin'}], 'davHref': '', 'gruppen': ['Work'], 'id': 'contact-local', ...}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f08a3f12000>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+_ test_additive_restore_identity[contact-cleared-uid-does-not-reinstate-archived-binding] _
+
+case = {'area': 'contacts', 'collection': 'kontakte', 'current': [{'id': 'contact-local', 'notiz': '', 'sync': False, 'syncQu...}, ...}], 'expected': [{'id': 'contact-local', 'notiz': 'Restore detail', 'sync': False, 'syncQuellen': {}, ...}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f08a3f13170>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+_ test_additive_restore_identity[contact-stable-local-id-beats-unrelated-old-uid] _
+
+case = {'area': 'contacts', 'collection': 'kontakte', 'current': [{'id': 'other-contact', 'notiz': '', 'uid': 'old-uid'}, {'i...tiz': '', 'uid': 'old-uid'}, {'id': 'contact-local', 'notiz': 'Only for stable local contact', 'uid': 'new-uid'}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f08a3f1a870>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+_ test_additive_restore_identity[contact-ambiguous-current-local-id-holds-restore] _
+
+case = {'area': 'contacts', 'collection': 'kontakte', 'current': [{'id': 'ambiguous', 'notiz': '', 'uid': 'new-a'}, {'id': 'ambiguous', 'notiz': '', 'uid': 'new-b'}], 'error': 'ambiguous-local-id', ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f08a3f18ef0>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+>           with pytest.raises(ValueError):
+E           Failed: DID NOT RAISE <class 'ValueError'>
+
+magnolie-organizer/pruefungen/test_restore_identity.py:24: Failed
+_ test_additive_restore_identity[contact-ambiguous-snapshot-local-id-cannot-create-duplicates] _
+
+case = {'area': 'contacts', 'collection': 'kontakte', 'current': [], 'error': 'ambiguous-local-id', ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f08a3f1bd10>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+>           with pytest.raises(ValueError):
+E           Failed: DID NOT RAISE <class 'ValueError'>
+
+magnolie-organizer/pruefungen/test_restore_identity.py:24: Failed
+_ test_additive_restore_identity[contact-ambiguous-snapshot-local-id-cannot-pick-current-contact] _
+
+case = {'area': 'contacts', 'collection': 'kontakte', 'current': [{'id': 'ambiguous', 'notiz': '', 'uid': 'current'}], 'error': 'ambiguous-local-id', ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f08a3f19fa0>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+>           with pytest.raises(ValueError):
+E           Failed: DID NOT RAISE <class 'ValueError'>
+
+magnolie-organizer/pruefungen/test_restore_identity.py:24: Failed
+_ test_additive_restore_identity[contact-uid-change-does-not-invent-empty-content] _
+
+case = {'area': 'contacts', 'collection': 'kontakte', 'current': [{'id': 'contact-local', 'uid': 'new'}], 'expected': [{'id': 'contact-local', 'uid': 'new'}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f08a3f128d0>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[contact-import-assigned-uid-keeps-stable-local-id]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[contact-missing-uid-in-old-snapshot-keeps-assigned-uid]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[contact-changed-uid-keeps-current-provider-binding]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[contact-cleared-uid-does-not-reinstate-archived-binding]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[contact-stable-local-id-beats-unrelated-old-uid]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[contact-ambiguous-current-local-id-holds-restore]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[contact-ambiguous-snapshot-local-id-cannot-create-duplicates]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[contact-ambiguous-snapshot-local-id-cannot-pick-current-contact]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[contact-uid-change-does-not-invent-empty-content]
+9 failed, 89 passed in 0.16s

@@ -1,0 +1,214 @@
+{
+  "base_commit": "42af5bb030d5e0fb8a2bfc8b8f28459cfe31c2fe",
+  "source_commit_before_docs": "1a1423730f9b179b45bf281211f4c3f3afec8583",
+  "source_tree_before_docs": "1628e474bdda4283ef3f4cddc7ec42fcf74e5836",
+  "delivery_commit": "5839a53bdaabdb455f3f1fd298506c38c69d78db",
+  "delivery_tree": "ceb603576b01a9ea8952f9aefa74f963fe587bdf",
+  "previous_current_source_commit": "a16108297e242b1c50f45c665f42dde82c7faa5b",
+  "historical_port_ui_source_commit": "06081dd9a457ed6be74b10163a6c359220b26eeb",
+  "unchanged_841_842_839_review_files": [
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/EligibleAlarms.kt",
+      "sha256": "8748f05c16f2d9291ce2f3b0a795d8e276fd72b9509d9c90336d5651420e61b0",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ReminderReceiver.kt",
+      "sha256": "e420f92314b25e843d3e358c18056262e489f93f2b3d4cd79eaf1593ed40c6d9",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/Vault.kt",
+      "sha256": "bbf2df2909c17a0216dd96249b970f2f9b1c40a5c0947503373d0d6a54d1cef8",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/VaultTest.kt",
+      "sha256": "49f8ec1255f337b5eaead2ec22b4c47514954ad4a2d77e3e6fa9f31519703d26",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/tests/reminders.test.cjs",
+      "sha256": "5c41d293d5df668eb30ee207b9ad9831d0c79001ef47b69b0d61f816bc2877e2",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/web/tablet.js",
+      "sha256": "ebc064da5fa694871c73e34c03d12debbb5847055513763ffbcc7880f10889b9",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs",
+      "sha256": "57436552a9be4f887c922acc3d21ad736e20f2ba81f5de36be75f076a4da1cec",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/tools/project_ui.py",
+      "sha256": "4ef60c7395ad68d6efc3e88f01499d9552c0947ed9d790a4e78b5e540116e369",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "sha256": "f89bce8a239631312772b6a13840182b8078155241ca7cb19c16fc37da45b0f5",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n.js",
+      "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/Program.cs",
+      "sha256": "38291e78c149518e3cd9c8c3ace9c40e12aeca0b4ab5560f17038953a221283f",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/UnicodeImportTests.cs",
+      "sha256": "d3512af3953760b26d85c8c58eabce55e4e0ce8989d7db8f5f205f0981439389",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/regional-language-direction.js",
+      "sha256": "66c08a115f60ae9ff12b48c9e3a3ebc45971f9571d7ae34d0a0f30c707129b28",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/run.js",
+      "sha256": "d2fc5ed34f38e0522c338ee379ddf36a422cba72864424e4dd1da04897249115",
+      "equal_to_previous_current_source": true
+    },
+    {
+      "path": "magnolie-organizer/web/i18n.js",
+      "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+      "equal_to_previous_current_source": true
+    }
+  ],
+  "adopted_files_preserved": [
+    {
+      "path": "magnolie-organizer/web/i18n.js",
+      "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+      "adopted_sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n.js",
+      "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+      "adopted_sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "sha256": "f89bce8a239631312772b6a13840182b8078155241ca7cb19c16fc37da45b0f5",
+      "adopted_sha256": "f89bce8a239631312772b6a13840182b8078155241ca7cb19c16fc37da45b0f5",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/ContractGroupTests.cs",
+      "sha256": "f696aae631b96f3bc08259bf9db734914a72ca63af76bfe424ebf4d823a88377",
+      "adopted_sha256": "f696aae631b96f3bc08259bf9db734914a72ca63af76bfe424ebf4d823a88377",
+      "equal": true
+    },
+    {
+      "path": ".github/workflows/windows.yml",
+      "sha256": "2350f63b4dca4819cc4f967c74bad67fb8257f8c9e207051685228672eebe65a",
+      "adopted_sha256": "2350f63b4dca4819cc4f967c74bad67fb8257f8c9e207051685228672eebe65a",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/.github/workflows/windows.yml",
+      "sha256": "8dd4d83d70cd062b06e381db394e50383ce607575394f4ceb5d60ee276eba01d",
+      "adopted_sha256": "8dd4d83d70cd062b06e381db394e50383ce607575394f4ceb5d60ee276eba01d",
+      "equal": true
+    }
+  ],
+  "minimal_823_product_delta": [
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "adopted_sha256": "7dc6b588d62c1df6e0da9550995fd2f6761cff694a1026c47b8dc645ef704ee9",
+      "final_sha256": "f21f7e71c33e39d7479305412143965da013f1f57b77fd07c6b13265dcf7f7c4",
+      "only_change": "Add kontaktpersonen to the existing contact content whitelist",
+      "all_other_adopted_bytes_preserved": true
+    },
+    {
+      "path": "magnolie-organizer-windows/RestoreSelection.cs",
+      "adopted_sha256": "9975e5258cac0ff9cb7e340394c1f1826bf23b674bbc7349edb567b21bd076ac",
+      "final_sha256": "182a8538fa3355a08301796050bc43d61022800299300e635d2c2a0e021530c9",
+      "only_change": "Add kontaktpersonen to the existing contact content whitelist",
+      "all_other_adopted_bytes_preserved": true
+    }
+  ],
+  "adopted_40_vector_payloads_preserved": true,
+  "total_vector_cases": 53,
+  "vector_merge_manifest": "vector-merge.json",
+  "all_tree_differences_from_previous_current_source": [
+    "ARBEITSSTAND.md",
+    "contracts/restore-additive-identity-vectors.json",
+    "magnolie-organizer-windows/RestoreSelection.cs",
+    "magnolie-organizer/bin/magnolie-organizer"
+  ],
+  "unchanged_ui_port_source_inputs": [
+    {
+      "path": "magnolie-organizer/web",
+      "git_tree": "bba6a948d9e479ba6ee3a8e1bba8e6bc8cdc2ba5",
+      "historical_git_tree": "bba6a948d9e479ba6ee3a8e1bba8e6bc8cdc2ba5",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer/po",
+      "git_tree": "936d8560efec49d46f72cca6d551861193aa2824",
+      "historical_git_tree": "936d8560efec49d46f72cca6d551861193aa2824",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web",
+      "git_tree": "b9ddfad86aa682bd47f812ca58890f1e2f9fae7b",
+      "historical_git_tree": "b9ddfad86aa682bd47f812ca58890f1e2f9fae7b",
+      "equal": true
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta",
+      "git_tree": "a4d5ab365eaef1ac90c8b65458dde1d6568ab46b",
+      "historical_git_tree": "a4d5ab365eaef1ac90c8b65458dde1d6568ab46b",
+      "equal": true
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta",
+      "git_tree": "f8b1eaee6a275a10bdbc79a34edaf37680d73dd4",
+      "historical_git_tree": "f8b1eaee6a275a10bdbc79a34edaf37680d73dd4",
+      "equal": true
+    },
+    {
+      "path": "magnolie-notes",
+      "git_tree": "b22321bc47d2a11f9d1939de1cf448f03eb8b995",
+      "historical_git_tree": "b22321bc47d2a11f9d1939de1cf448f03eb8b995",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1",
+      "historical_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py",
+      "sha256": "5dbb2041bcc5b499c770c366a914e115d02c0dc35f71f890b9c3e479f91a4846",
+      "historical_sha256": "5dbb2041bcc5b499c770c366a914e115d02c0dc35f71f890b9c3e479f91a4846",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/regional-language-direction.js",
+      "sha256": "66c08a115f60ae9ff12b48c9e3a3ebc45971f9571d7ae34d0a0f30c707129b28",
+      "historical_sha256": "66c08a115f60ae9ff12b48c9e3a3ebc45971f9571d7ae34d0a0f30c707129b28",
+      "equal": true
+    }
+  ],
+  "transferred_results_without_rerun": {
+    "ui_startup": 16,
+    "mac": 398,
+    "tablet": 30,
+    "vault_jvm": 23
+  },
+  "retained_complete_base_documentation": true,
+  "runtime_tests_after_documentation": false,
+  "scope": "Only the four Python files and six C# groups were rerun; UI/port results retained by exact source/generator/fixture byte equality. No native GUI claim."
+}

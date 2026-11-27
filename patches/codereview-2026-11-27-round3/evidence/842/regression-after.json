@@ -1,0 +1,16 @@
+{
+  "exit_code": 0,
+  "command": [
+    "<review-workspace>/round3-tools/dotnet/dotnet",
+    "run",
+    "--project",
+    "tests/CoreTests.csproj",
+    "--no-launch-profile",
+    "--",
+    "UTF-16 import"
+  ],
+  "scope": "Actual C# import functions under .NET8 on Linux; no Windows GUI or native package test",
+  "source_sha256": "35bb24a7c8a01149846b1edcf569fb869d911343afa0fc01e2e1dbe2caf98938",
+  "test_sha256": "d3512af3953760b26d85c8c58eabce55e4e0ce8989d7db8f5f205f0981439389",
+  "log_sha256": "b41fa8ae28377951cb8ba5c6083c527d2faddb0b047fd46b185388ac4e86529a"
+}

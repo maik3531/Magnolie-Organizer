@@ -1,0 +1,55 @@
+{
+  "base": "42af5bb030d5e0fb8a2bfc8b8f28459cfe31c2fe",
+  "base_tree": "ebce761a5dc8774e968dc1fdbe7a11f815d04dc9",
+  "source_commit": "5839a53bdaabdb455f3f1fd298506c38c69d78db",
+  "source_tree": "ceb603576b01a9ea8952f9aefa74f963fe587bdf",
+  "series": [
+    {
+      "commit": "6559ddf5bb90720e12a406b35de57178f805b85b",
+      "path": "after-42af5bb0/series/01-823-contact-persons-regression.patch",
+      "sha256": "d7cbd09323de6593275f725b7b11446b4892485dbeae702acbd01feaf62f5b4a",
+      "bytes": 14370
+    },
+    {
+      "commit": "87ff1a67931d141903f488137dee4a86146f8265",
+      "path": "after-42af5bb0/series/02-841-startup-regression.patch",
+      "sha256": "e97e5a7ddb02f1986a218b96a21ef894baf7d936aa2dba28ba8ead31169a5ebb",
+      "bytes": 6628
+    },
+    {
+      "commit": "a2a798c377f8e8fb9652bd8ee8609019438ed59b",
+      "path": "after-42af5bb0/series/03-842-unicode-regression.patch",
+      "sha256": "29e496e8bcaaa7914780f6240686873ae2f9e12b3bc093040b375970a667e953",
+      "bytes": 8920
+    },
+    {
+      "commit": "1a1423730f9b179b45bf281211f4c3f3afec8583",
+      "path": "after-42af5bb0/series/04-839-alarm-receipts.patch",
+      "sha256": "9ede24fde0d11b2d0a619cd01bfda36d14801d26941f723db7f376a700dddb9c",
+      "bytes": 32256
+    },
+    {
+      "commit": "5839a53bdaabdb455f3f1fd298506c38c69d78db",
+      "path": "after-42af5bb0/series/05-review-handoff.patch",
+      "sha256": "b8411b9bf2fc740ac75cb7ccd29dd6fc043d061facba73a076dc33cd288e68a1",
+      "bytes": 4750
+    }
+  ],
+  "combined": {
+    "path": "after-42af5bb0/magnolie-round3-after-42af5bb0.patch",
+    "sha256": "a0979fbe478e87983b8e1f7b56fe63fa936cc7a8cb7fab1937db23f77b9f2072",
+    "bytes": 64338
+  },
+  "replay": {
+    "combined": {
+      "forward_tree": "ceb603576b01a9ea8952f9aefa74f963fe587bdf",
+      "reverse_tree": "ebce761a5dc8774e968dc1fdbe7a11f815d04dc9",
+      "exact": true
+    },
+    "series": {
+      "forward_tree": "ceb603576b01a9ea8952f9aefa74f963fe587bdf",
+      "reverse_tree": "ebce761a5dc8774e968dc1fdbe7a11f815d04dc9",
+      "exact": true
+    }
+  }
+}

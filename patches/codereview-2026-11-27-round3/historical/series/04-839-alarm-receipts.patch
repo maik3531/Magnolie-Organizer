@@ -1,0 +1,460 @@
+From 06081dd9a457ed6be74b10163a6c359220b26eeb Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 17:16:02 +0100
+Subject: [PATCH] Refs #839: acknowledge coincident port alarms across saved
+ plans
+
+---
+ .../magnolietabletbeta/EligibleAlarms.kt      | 70 ++++++++++++-
+ .../magnolietabletbeta/ReminderReceiver.kt    |  2 +-
+ .../maik3531/magnolietabletbeta/Vault.kt      | 21 +++-
+ .../maik3531/magnolietabletbeta/VaultTest.kt  | 99 +++++++++++++++++++
+ .../tests/reminders.test.cjs                  | 36 +++++++
+ .../web/tablet.js                             | 16 ++-
+ .../tests/system_reminder_import.mjs          | 53 ++++++++++
+ .../tools/project_ui.py                       | 31 ++++--
+ 8 files changed, 306 insertions(+), 22 deletions(-)
+
+diff --git a/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/EligibleAlarms.kt b/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/EligibleAlarms.kt
+index e655d6292e499e093a8e8cf6af25fb7b92101011..45425e62c78ba03a571fc731944e47b477c2673a 100644
+--- a/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/EligibleAlarms.kt
++++ b/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/EligibleAlarms.kt
+@@ -3,12 +3,76 @@ package io.gitlab.maik3531.magnolietabletbeta
+ import org.json.JSONArray
+ import org.json.JSONObject
+ 
++private val legacyEarlyAlarmSuffix = Regex(":early-[1-7]$")
++
++internal fun alarmReceiptIds(alarm: JSONObject): List<String> {
++    val id = alarm.getString("id")
++    require(id.isNotEmpty() && id.length <= 1024)
++    val aliases = if (alarm.has("receiptAliases")) alarm.getJSONArray("receiptAliases") else JSONArray()
++    require(aliases.length() <= 4)
++    return (listOf(id) + (0 until aliases.length()).map {
++        val alias = aliases.get(it)
++        require(alias is String && alias.isNotEmpty() && alias.length <= 1024)
++        alias
++    }).distinct()
++}
++
++internal fun coincidentAlarms(value: JSONObject): List<JSONObject> {
++    val alarms = value.optJSONArray("alarms") ?: JSONArray()
++    val book = value.optJSONObject("data")
++    val records = mapOf("kalender" to "termine", "aufgaben" to "aufgaben").mapValues { (_, collection) ->
++        val rows = book?.optJSONArray(collection) ?: JSONArray()
++        val counts = mutableMapOf<String, Int>()
++        for (index in 0 until rows.length()) {
++            val id = rows.optJSONObject(index)?.opt("id") as? String ?: continue
++            counts[id] = (counts[id] ?: 0) + 1
++        }
++        counts
++    }
++    fun identity(alarm: JSONObject): Triple<String, String, Long>? {
++        if (alarm.getBoolean("custom")) return null
++        val section = alarm.getString("section")
++        val ids = records[section] ?: return null
++        val at = alarm.getLong("at")
++        val id = alarm.getString("id")
++        if (!id.startsWith("$section:") || !id.endsWith(":$at")) return null
++        val encoded = id.removePrefix("$section:").removeSuffix(":$at")
++        // Old saved plans predate aliases. Bind their namespace to an actual
++        // unique stored local ID; an ID containing ':absolute' is opaque data.
++        val candidates = mutableSetOf(encoded)
++        if (encoded.endsWith(":absolute")) candidates.add(encoded.removeSuffix(":absolute"))
++        if (section == "aufgaben" && legacyEarlyAlarmSuffix.containsMatchIn(encoded))
++            candidates.add(encoded.substringBeforeLast(":"))
++        val matches = candidates.filter(ids::containsKey)
++        if (matches.size != 1 || ids[matches.single()] != 1) return null
++        return Triple(section, matches.single(), at)
++    }
++    val result = mutableListOf<JSONObject>()
++    val groups = mutableMapOf<Triple<String, String, Long>, Int>()
++    for (index in 0 until alarms.length()) {
++        val alarm = alarms.getJSONObject(index)
++        val key = identity(alarm)
++        val previous = key?.let(groups::get)
++        if (previous == null) {
++            if (key != null) groups[key] = result.size
++            result.add(alarm)
++        } else {
++            val first = result[previous]
++            val aliases = (alarmReceiptIds(first) + alarmReceiptIds(alarm)).distinct().filter { it != first.getString("id") }
++            val merged = JSONObject()
++            for (name in first.keys()) merged.put(name, first.get(name))
++            if (aliases.isNotEmpty()) merged.put("receiptAliases", JSONArray(aliases))
++            result[previous] = merged
++        }
++    }
++    return result
++}
++
+ internal fun eligibleAlarms(value: JSONObject, now: Long): List<JSONObject> {
+     if (!value.optBoolean("enabled")) return emptyList()
+-    val alarms = value.optJSONArray("alarms") ?: JSONArray()
+     val delivered = value.optJSONObject("delivered") ?: JSONObject()
+-    return (0 until alarms.length()).map { alarms.getJSONObject(it) }.filter {
++    return coincidentAlarms(value).filter {
+         (!it.getBoolean("custom") || value.optBoolean("customEnabled")) &&
+-            !delivered.has(it.getString("id")) && it.getLong("at") >= now - 24 * 60 * 60 * 1000
++            alarmReceiptIds(it).none(delivered::has) && it.getLong("at") >= now - 24 * 60 * 60 * 1000
+     }.sortedBy { it.getLong("at") }
+ }
+diff --git a/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ReminderReceiver.kt b/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ReminderReceiver.kt
+index ce3bb1a7b9831f72d4f2d50b807d1d7c94d419d8..13125002bf9047773b85eb3a5d82c2ae8ae23f88 100644
+--- a/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ReminderReceiver.kt
++++ b/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ReminderReceiver.kt
+@@ -59,7 +59,7 @@ class ReminderReceiver : BroadcastReceiver() {
+                             .build()
+                         // Stable notification IDs make a crash between delivery and receipt idempotent.
+                         manager.notify(id, notification)
+-                        delivered.put(key, now)
++                        alarmReceiptIds(alarm).forEach { delivered.put(it, now) }
+                     }
+                     value.put("delivered", delivered)
+                     vault.write(value)
+diff --git a/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/Vault.kt b/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/Vault.kt
+index 85d720d6eb86db6e58e6cb7a2ae63e7db78c823a..723ea31af3ee98dff752f03ba0d47802bd95e449 100644
+--- a/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/Vault.kt
++++ b/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/Vault.kt
+@@ -170,20 +170,31 @@ internal class Vault(directory: File, key: () -> SecretKey,
+         require(alarms.length() <= 100000)
+         for (i in 0 until alarms.length()) {
+             val a = alarms.getJSONObject(i)
+-            require(a.getString("id").length <= 1024 && a.getLong("at") > 0)
++            alarmReceiptIds(a)
++            require(a.getLong("at") > 0)
+             require(a.getString("section") in setOf("kalender", "aufgaben"))
+             require(a.getString("title").length <= 300)
+             a.getBoolean("custom")
+         }
+         val value = current ?: JSONObject().put("format", 1).put("enabled", false)
+             .put("customEnabled", false).put("delivered", JSONObject())
+-        value.put("data", data).put("alarms", alarms).put("revision", UUID.randomUUID().toString())
+-        // Keep delivery receipts only for live alarms; edits/deletions invalidate old schedules.
+         val old = value.optJSONObject("delivered") ?: JSONObject()
++        // Reconcile pre-alias plans against their old saved book before an edit
++        // removes one of the coincident alarms or changes the current record.
++        for (alarm in coincidentAlarms(value)) {
++            val ids = alarmReceiptIds(alarm)
++            val previous = ids.firstOrNull(old::has)
++            if (previous != null) ids.forEach { old.put(it, old.get(previous)) }
++        }
++        value.put("data", data).put("alarms", alarms).put("revision", UUID.randomUUID().toString())
++        // A coincident ordinary/absolute alarm acknowledges all of its former
++        // identities. Keep them across save/reopen and removal of either kind.
++        // Other deleted schedules still lose their receipts as before.
+         val retained = JSONObject()
+         for (i in 0 until alarms.length()) {
+-            val id = alarms.getJSONObject(i).getString("id")
+-            if (old.has(id)) retained.put(id, old.get(id))
++            val ids = alarmReceiptIds(alarms.getJSONObject(i))
++            val previous = ids.firstOrNull(old::has)
++            if (previous != null) ids.forEach { retained.put(it, old.get(previous)) }
+         }
+         value.put("delivered", retained)
+         commit(value)
+diff --git a/Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/VaultTest.kt b/Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/VaultTest.kt
+index 7d7aadd119672c8d6f46b1097a2e10c1dc63c318..0cc3f27652882b03c6abcc7c674797a37c8ca799 100644
+--- a/Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/VaultTest.kt
++++ b/Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/VaultTest.kt
+@@ -260,6 +260,105 @@ class VaultTest {
+             assertTrue(jsonValuesEqual(result.getJSONObject("data"),vault.openSession().value!!.getJSONObject("data")))
+         } finally {dir.deleteRecursively()}
+     }
++    @Test fun coincidentAlarmReceiptsSuppressEitherIdentityWithoutSuppressingOtherItems() {
++        val combined=alarm().put("id","absolute-one").put("receiptAliases",JSONArray().put("ordinary-one"))
++        val other=alarm().put("id","absolute-two").put("receiptAliases",JSONArray().put("ordinary-two"))
++        for (receipt in listOf("absolute-one","ordinary-one")) {
++            val value=JSONObject().put("enabled",true).put("customEnabled",true)
++                .put("alarms",JSONArray().put(combined).put(other))
++                .put("delivered",JSONObject().put(receipt,100000L))
++            assertEquals(listOf("absolute-two"),eligibleAlarms(value,100000L).map {it.getString("id")})
++        }
++    }
++    @Test fun encryptedSaveMigratesEitherOldReceiptAndRetainsItWhenEitherAlarmKindIsRemoved() {
++        for (oldId in listOf("absolute-one","ordinary-one")) for (remainingId in listOf("absolute-one","ordinary-one")) {
++            val dir=Files.createTempDirectory("tablet-alarm-receipts").toFile()
++            try {
++                val key=key(); val old=Vault(dir,{key})
++                val original=old.save(data().toString(),JSONArray().put(alarm().put("id",oldId)))
++                original.put("enabled",true).getJSONObject("delivered").put(oldId,100000L)
++                old.write(original)
++                val combined=alarm().put("id","absolute-one").put("receiptAliases",JSONArray().put("ordinary-one"))
++                val migrated=Vault(dir,{key}).save(data().toString(),JSONArray().put(combined))
++                assertEquals(setOf("absolute-one","ordinary-one"),migrated.getJSONObject("delivered").keys().asSequence().toSet())
++                assertTrue(eligibleAlarms(Vault(dir,{key}).read()!!,100000L).isEmpty())
++                val remaining=Vault(dir,{key}).save(data().toString(),JSONArray().put(alarm().put("id",remainingId)))
++                assertTrue(eligibleAlarms(remaining,100000L).isEmpty())
++                assertTrue(eligibleAlarms(Vault(dir,{key}).read()!!,100000L).isEmpty())
++                val changed=alarm().put("id","new-instant").put("at",100017L)
++                val newTime=Vault(dir,{key}).save(data().toString(),JSONArray().put(changed))
++                assertEquals(listOf("new-instant"),eligibleAlarms(newTime,100017L).map {it.getString("id")})
++            } finally {dir.deleteRecursively()}
++        }
++    }
++    @Test fun deliveredCoincidentAlarmKeepsBothReceiptsAfterEncryptedReopen() {
++        val dir=Files.createTempDirectory("tablet-alarm-delivered").toFile()
++        try {
++            val key=key(); val vault=Vault(dir,{key})
++            val combined=alarm().put("id","absolute-one").put("receiptAliases",JSONArray().put("ordinary-one"))
++            val state=vault.save(data().toString(),JSONArray().put(combined)).put("enabled",true)
++            val next=eligibleAlarms(state,100000L).single()
++            // This is the same receipt operation used after notification delivery.
++            alarmReceiptIds(next).forEach {state.getJSONObject("delivered").put(it,100000L)}
++            vault.write(state)
++            val reloaded=Vault(dir,{key}).read()!!
++            assertEquals(setOf("absolute-one","ordinary-one"),reloaded.getJSONObject("delivered").keys().asSequence().toSet())
++            assertTrue(eligibleAlarms(reloaded,100000L).isEmpty())
++        } finally {dir.deleteRecursively()}
++    }
++    @Test fun malformedReceiptAliasesCannotReplaceTheSavedBook() {
++        val dir=Files.createTempDirectory("tablet-alarm-invalid").toFile()
++        try {
++            val key=key(); val vault=Vault(dir,{key}); vault.save(data("old").toString(),JSONArray())
++            val before=dir.resolve("tablet-vault.enc").readBytes()
++            for (aliases in listOf("wrong-shape",JSONArray().put(7),JSONArray().put(""),JSONArray().put("a".repeat(1025)),
++                JSONArray(listOf("a","b","c","d","e")))) {
++                reject {vault.save(data("replacement").toString(),JSONArray().put(alarm().put("receiptAliases",aliases)))}
++                assertArrayEquals(before,dir.resolve("tablet-vault.enc").readBytes())
++            }
++        } finally {dir.deleteRecursively()}
++    }
++    @Test fun preAliasEncryptedPlansAreReconciledBeforeAnyWebSaveAndBeforeRemovingEitherKind() {
++        val ordinary="kalender:one:100000"; val absolute="kalender:one:absolute:100000"
++        for (oldId in listOf("",ordinary,absolute)) for (remainingId in listOf(ordinary,absolute)) {
++            val dir=Files.createTempDirectory("tablet-legacy-alarms").toFile()
++            try {
++                val key=key(); val vault=Vault(dir,{key})
++                fun row(id:String)=alarm().put("id",id).put("section","kalender")
++                val old=vault.save(data().toString(),JSONArray().put(row(absolute)).put(row(ordinary))).put("enabled",true)
++                if (oldId.isNotEmpty()) old.getJSONObject("delivered").put(oldId,100000L)
++                vault.write(old)
++                val reopened=Vault(dir,{key}).read()!!
++                assertEquals(2,reopened.getJSONArray("alarms").length()) // No implicit resave or UI projection.
++                assertEquals(if(oldId.isEmpty()) 1 else 0,eligibleAlarms(reopened,100000L).size)
++                if (oldId.isEmpty()) {
++                    val next=eligibleAlarms(reopened,100000L).single()
++                    alarmReceiptIds(next).forEach {reopened.getJSONObject("delivered").put(it,100000L)}
++                    Vault(dir,{key}).write(reopened)
++                }
++                val remaining=Vault(dir,{key}).save(data().toString(),JSONArray().put(row(remainingId)))
++                assertTrue(eligibleAlarms(remaining,100000L).isEmpty())
++                assertTrue(eligibleAlarms(Vault(dir,{key}).read()!!,100000L).isEmpty())
++            } finally {dir.deleteRecursively()}
++        }
++    }
++    @Test fun legacyPlanBindingKeepsDifferentRecordsSectionsInstantsAndAmbiguousOpaqueIdsSeparate() {
++        fun row(id:String,at:Long=100000L,section:String="kalender")=alarm().put("id",id).put("at",at).put("section",section)
++        fun count(book:JSONObject,alarms:JSONArray)=eligibleAlarms(JSONObject().put("enabled",true)
++            .put("data",book).put("alarms",alarms),100000L).size
++        val book=data().put("termine",JSONArray().put(JSONObject().put("id","one").put("uid","same-source-uid"))
++            .put(JSONObject().put("id","two").put("uid","same-source-uid")))
++        assertEquals(2,count(book,JSONArray().put(row("kalender:one:absolute:100000")).put(row("kalender:one:100000"))
++            .put(row("kalender:two:absolute:100000")).put(row("kalender:two:100000"))))
++        assertEquals(2,count(book,JSONArray().put(row("kalender:one:absolute:100017",100017L)).put(row("kalender:one:100000"))))
++        book.getJSONArray("aufgaben").put(JSONObject().put("id","one"))
++        assertEquals(2,count(book,JSONArray().put(row("kalender:one:absolute:100000")).put(row("kalender:one:100000"))
++            .put(row("aufgaben:one:absolute:100000",section="aufgaben")).put(row("aufgaben:one:100000",section="aufgaben"))))
++        book.getJSONArray("termine").put(JSONObject().put("id","one:absolute"))
++        assertEquals(2,count(book,JSONArray().put(row("kalender:one:absolute:100000")).put(row("kalender:one:100000"))))
++        book.put("termine",JSONArray().put(JSONObject().put("id","one")).put(JSONObject().put("id","one")))
++        assertEquals(2,count(book,JSONArray().put(row("kalender:one:absolute:100000")).put(row("kalender:one:100000"))))
++    }
+     @Test fun actualEditorAlarmVectorsReachNativeConsentAndReceiptGate() {
+         val root=java.io.File(requireNotNull(System.getProperty("tablet.root")))
+         val proof=JSONObject(root.resolve("artifacts/a3-editor-vectors.json").readText())
+diff --git a/Magnolie-Organizer-Android-Tablet-Beta/tests/reminders.test.cjs b/Magnolie-Organizer-Android-Tablet-Beta/tests/reminders.test.cjs
+index 940ccb080a0f704ba289b48b1b911315b8c8e9bd..8e6486b7ac217aa9684c3cf83bf3a20da45971e2 100644
+--- a/Magnolie-Organizer-Android-Tablet-Beta/tests/reminders.test.cjs
++++ b/Magnolie-Organizer-Android-Tablet-Beta/tests/reminders.test.cjs
+@@ -129,6 +129,42 @@ const tick=()=>new Promise(r=>setTimeout(r,30));
+     await new Promise((resolve,reject)=>w.MagnolieTabletActions.persist(resolve,reject));
+     assert.deepEqual(savedAlarms,projected,'regular durable save passes exact alarms to native');
+     cases.push({name:'absolute ICS alarms through document save',alarms:savedAlarms});
++    const collisionAt=Date.parse('2030-05-10T10:30:00Z');
++    const collisionRaw=block('TRIGGER;VALUE=DATE-TIME:20300510T103000Z');
++    const collisionEvent={id:'collision-event',uid:'shared-source-uid',titel:'Coincident event',
++      datum:'2030-05-10',zeit:'10:30',endZeit:'11:30',icsAnzeigeZeitzone:'UTC',
++      icsRoundtrip:['DTSTART:20300510T103000Z','DTEND:20300510T113000Z',...collisionRaw]};
++    data.einstellungen.regional.timeZone='UTC'; data.einstellungen.erinnerung.vorlauf=0;
++    data.aufgaben=[]; data.termine=T.normalisiere({termine:[collisionEvent]}).termine;
++    const collision=JSON.parse(JSON.stringify(w.Tablet.alarms()));
++    assert.equal(collision.length,1,'absolute and ordinary event alarm notify once');
++    assert.equal(collision[0].at,collisionAt);
++    assert.deepEqual([collision[0].id,...collision[0].receiptAliases].sort(),[
++      `kalender:collision-event:absolute:${collisionAt}`,`kalender:collision-event:${collisionAt}`].sort(),
++      'both established receipt identities survive the grouping');
++    savedAlarms=null;
++    await new Promise((resolve,reject)=>w.MagnolieTabletActions.persist(resolve,reject));
++    assert.deepEqual(savedAlarms,collision,'ordinary save passes the grouped alarm and receipt aliases');
++    cases.push({name:'coincident absolute and ordinary event alarm',alarms:savedAlarms});
++    data.termine=T.normalisiere({termine:[collisionEvent,
++      {...collisionEvent,id:'other-source-event',icsQuelleId:'other-calendar'}]}).termine;
++    const distinct=JSON.parse(JSON.stringify(w.Tablet.alarms()));
++    assert.equal(distinct.length,2,'same UID and time in different local/source records remain separate');
++    assert.equal(new Set(distinct.map(a=>a.id)).size,2);
++    cases.push({name:'distinct source records at the same instant',alarms:distinct});
++    data.termine=T.normalisiere({termine:[{...collisionEvent,zeit:'11:30',endZeit:'12:30',
++      icsRoundtrip:['DTSTART:20300510T113000Z','DTEND:20300510T123000Z',...collisionRaw,
++        ...block('TRIGGER:-PT60M')]}]}).termine;
++    const relativeCollision=JSON.parse(JSON.stringify(w.Tablet.alarms()));
++    assert.deepEqual(relativeCollision.map(a=>a.at),[collisionAt,collisionAt+3600000],
++      'coincident relative alarm groups while the later ordinary alarm remains');
++    assert.ok(relativeCollision[0].receiptAliases.includes(`kalender:collision-event:${collisionAt}`));
++    cases.push({name:'coincident relative alarm and distinct later ordinary alarm',alarms:relativeCollision});
++    data.termine=[];
++    const collisionTask={id:'collision-task',titel:'Coincident task',faellig:'2030-05-10',faelligZeit:'10:30',erinnern:true,
++      icsRoundtrip:['CLASS:PUBLIC','DUE:20300510T103000Z',...collisionRaw]};
++    const taskCollision=project('coincident absolute and task due alarm',collisionTask,'UTC',['2030-05-10T10:30:00.000Z']);
++    assert.deepEqual(Array.from(taskCollision[0].receiptAliases),[`aufgaben:collision-task:${collisionAt}`]);
+     data.einstellungen.erinnerung.an=false;
+     assert.equal(w.Tablet.alarms().length,0,'disabled global reminders');
+     data.einstellungen.erinnerung.an=true;
+diff --git a/Magnolie-Organizer-Android-Tablet-Beta/web/tablet.js b/Magnolie-Organizer-Android-Tablet-Beta/web/tablet.js
+index 6fe2bee2c56ce9a774770efd7b8607769215d2ed..02dd1edb1bb1e07eed0106dbeff5f96d7de04a8e 100644
+--- a/Magnolie-Organizer-Android-Tablet-Beta/web/tablet.js
++++ b/Magnolie-Organizer-Android-Tablet-Beta/web/tablet.js
+@@ -227,14 +227,22 @@
+     window.TabletNative.postMessage(JSON.stringify(message));
+   }
+   function alarms() {
+-    const T = window.OrganizerTest, data = T.daten(), result = [];
++    const T = window.OrganizerTest, data = T.daten(), result = [], instants = new Map();
+     const settings = data.einstellungen.erinnerung;
+     if (!settings.an) return result;
+     const add = (item, time, section, custom, mode = '', title = item.titel) => {
+       if (!Number.isFinite(time) || time <= 0) return;
+-      // Keep existing due receipts valid; early alarms have their own namespace.
+-      result.push({id: section+':'+item.id+':'+(mode && mode !== 'due' ? mode+':' : '')+time, at:time,
+-        title: String(title || tr('Untitled')).slice(0,300), section, custom});
++      // Keep every existing receipt identity, but notify an item only once at
++      // one instant when an absolute alarm coincides with its ordinary alarm.
++      const id = section+':'+item.id+':'+(mode && mode !== 'due' ? mode+':' : '')+time;
++      const identity = JSON.stringify([section,item.id,time]), previous = instants.get(identity);
++      if (previous) {
++        if (previous.id !== id && !(previous.receiptAliases || []).includes(id))
++          (previous.receiptAliases ||= []).push(id);
++        return;
++      }
++      const alarm = {id, at:time, title:String(title || tr('Untitled')).slice(0,300), section, custom};
++      instants.set(identity,alarm); result.push(alarm);
+     };
+     const recurring = x => !Array.isArray(x.icsRoundtrip || []) ||
+       (x.icsRoundtrip || []).some(line => /^\s*(RRULE|RDATE|EXDATE|EXRULE|RECURRENCE-ID)\b/i.test(line)) ||
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs b/Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs
+index ff1fe7cfbd41af60e710d51313461356dfda1848..2a833a9162f1283e3bdc486c98225f863574db5b 100644
+--- a/Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs
++++ b/Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs
+@@ -548,4 +548,57 @@ for (const kind of ["task", "note"]) {
+   } finally { b.close(); }
+ }
+ 
++for (const mode of ['standard','relative-start','relative-end']) {
++  const b = await context(), { t, messages } = b;
++  try {
++    const block = trigger => ['BEGIN:VALARM','ACTION:DISPLAY',trigger,'END:VALARM'];
++    const absolute = block('TRIGGER;VALUE=DATE-TIME:20261127T103000Z');
++    const start = mode === 'standard' ? '103000' : '110000';
++    const relative = mode === 'relative-start' ? block('TRIGGER:-PT30M')
++      : mode === 'relative-end' ? block('TRIGGER;RELATED=END:-PT90M') : [];
++    const event = {id:'collision-'+mode,uid:'shared-source-uid',titel:'Coincident '+mode,
++      datum:'2026-11-27',zeit:mode === 'standard' ? '10:30' : '11:00',endZeit:'12:00',icsAnzeigeZeitzone:'UTC',
++      icsRoundtrip:['DTSTART:20261127T'+start+'Z','DTEND:20261127T120000Z',...absolute,...relative]};
++    const book=t.daten(); book.aufgaben=[]; book.einstellungen.regional.timeZone='UTC';
++    book.einstellungen.erinnerung.an=true; book.einstellungen.erinnerung.vorlauf=0;
++    book.termine=t.normalisiere({termine:[event]}).termine;
++    const notifications=()=>messages.filter(message=>message.cmd==='erinnerung_zeigen');
++    b.at('2026-11-27T10:29:59Z'); t.pruefeErinnerungen(); equal(notifications().length,0,mode+' does not fire early');
++    b.at('2026-11-27T10:30:00Z'); t.pruefeErinnerungen();
++    equal(notifications().length,1,mode+' coincident absolute and ordinary trigger notify once');
++    t.pruefeErinnerungen(); equal(notifications().length,1,mode+' repeated polling is silent');
++    const withoutAbsolute={...event,icsRoundtrip:event.icsRoundtrip.filter((_,i)=>i<2||i>=6)};
++    book.termine=t.normalisiere({termine:[withoutAbsolute]}).termine;
++    t.pruefeErinnerungen(); equal(notifications().length,1,mode+' removing absolute alarm preserves the ordinary receipt');
++    const changed={...event,icsRoundtrip:event.icsRoundtrip.map(line=>line.replace('TRIGGER;VALUE=DATE-TIME:20261127T103000Z',
++      'TRIGGER;VALUE=DATE-TIME:20261127T103017Z'))};
++    book.termine=t.normalisiere({termine:[changed]}).termine;
++    b.at('2026-11-27T10:30:17Z'); t.pruefeErinnerungen();
++    equal(notifications().length,2,mode+' a distinct absolute second is not consumed by the ordinary receipt');
++    book.termine=t.normalisiere({termine:[{...event,id:'other-'+mode,icsQuelleId:'other-source'}]}).termine;
++    t.pruefeErinnerungen(); equal(notifications().length,3,mode+' equal UID/time from another local source record still notifies');
++  } finally {b.close();}
++}
++
++for (const lead of [0,1]) {
++  const b=await context(), {t,messages}=b;
++  try {
++    const raw=['CLASS:PUBLIC','DUE:20261128T103000Z','BEGIN:VALARM','ACTION:DISPLAY',
++      'TRIGGER;VALUE=DATE-TIME:'+(lead ? '20261127' : '20261128')+'T103000Z','END:VALARM'];
++    const task={id:'task-collision-'+lead,titel:'Coincident task',faellig:'2026-11-28',faelligZeit:'10:30',
++      erinnern:!lead,individuelleErinnerungTage:lead,icsAnzeigeZeitzone:'UTC',icsRoundtrip:raw};
++    const book=t.daten();book.termine=[];book.aufgaben=[task];
++    book.einstellungen.regional.timeZone='UTC';book.einstellungen.erinnerung.an=true;
++    const notifications=()=>messages.filter(message=>message.cmd==='erinnerung_zeigen');
++    b.at((lead ? '2026-11-27' : '2026-11-28')+'T10:30:00Z');t.pruefeErinnerungen();
++    equal(notifications().length,1,'Task absolute alarm notifies once for lead '+lead);
++    book.aufgaben=[{...task,icsRoundtrip:raw.slice(0,2)}];t.pruefeErinnerungen();
++    equal(notifications().length,1,'Removing task absolute VALARM retains due/early receipt for lead '+lead);
++    t.pruefeErinnerungen();equal(notifications().length,1,'Repeated task poll after source update stays silent for lead '+lead);
++    book.aufgaben=[{...task,icsRoundtrip:raw.map(line=>line.startsWith('TRIGGER;') ? line.replace('T103000Z','T103017Z') : line)}];
++    b.at((lead ? '2026-11-27' : '2026-11-28')+'T10:30:17Z');t.pruefeErinnerungen();
++    equal(notifications().length,2,'A distinct task absolute second still notifies for lead '+lead);
++  } finally {b.close();}
++}
++
+ console.log(`Mac reminder projection: ${checks} UI checks; shared synthetic reader/Core fixture and transport, not EventKit or macOS evidence.`);
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+index b8644eb0c563238adee8193f6c18ab742158a61c..47e4ea410ca574459b191349e64ade0d98a5f779 100644
+--- a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
++++ b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+@@ -543,25 +543,38 @@ def project(snapshot, target):
+                             "if (!initialisiert || gesperrt) return;")
+     reminder = replace_once(reminder, "    const jetztWert = new Date();",
+                             '''    const jetztWert = new Date();
+-    const absoluteMeldungen = (eintrag, aufgabe) => {
++    const absoluteMeldungen = (eintrag, aufgabe, uebliche = []) => {
+       for (const { at, titel } of festeKalenderAlarme(eintrag, aufgabe)) {
+         const id = JSON.stringify(["macOS-Beta-absolute", aufgabe, eintrag.id, at]);
+-        if (gemeldeteTermine.has(id) || +jetztWert < at || +jetztWert > at + 5 * 60000) continue;
+-        gemeldeteTermine.add(id);
++        const ids = [id, ...uebliche.filter(meldung => +meldung.ab === at).map(meldung => meldung.id)];
++        const gemeldet = ids.some(key => gemeldeteTermine.has(key));
++        if (!gemeldet && (+jetztWert < at || +jetztWert > at + 5 * 60000)) continue;
++        ids.forEach(key => gemeldeteTermine.add(key));
++        if (gemeldet) continue;
+         meldeErinnerung(aufgabe ? _("Task reminder") : _("Appointment reminder"), titel);
+       }
+     };''')
+-    reminder = replace_once(reminder, "      const zeitpunkt = terminZeitpunkt(t);",
+-                            "      absoluteMeldungen(t, false);\n      const zeitpunkt = terminZeitpunkt(t);")
++    reminder = replace_once(reminder, "      const zeitpunkt = terminZeitpunkt(t);\n      if (!zeitpunkt) continue;",
++                            "      const zeitpunkt = terminZeitpunkt(t);\n      if (!zeitpunkt) { absoluteMeldungen(t, false); continue; }")
++    reminder = replace_once(reminder, "      for (const meldung of meldungen.values()) {",
++                            "      absoluteMeldungen(t, false, [...meldungen.values()]);\n      for (const meldung of meldungen.values()) {")
+     reminder = replace_once(reminder, "      if (!tage || t.standardErinnerung !== false) {",
+                             "      if (t.nativeCalendarImport?.version === 1 ? t.standardErinnerung !== false : !tage || t.standardErinnerung !== false) {")
+     task_start = reminder.index("    for (const aufgabe of DATEN.aufgaben.concat(customAufgabenFuerErinnerung())) {")
+     task_end = reminder.index("\n    }\n  }", task_start) + len("\n    }")
+     reminder = reminder[:task_start] + '''    for (const aufgabe of DATEN.aufgaben.concat(customAufgabenFuerErinnerung())) {
+-      absoluteMeldungen(aufgabe, true);
+-      let alarms;
+-      try { alarms = window.MacBeta.taskAlarms(aufgabe, organizerZeitzone()); }
+-      catch (_) { window.MacBeta.reminderError(); continue; }
++      let alarms, receiptAlarms;
++      try {
++        alarms = window.MacBeta.taskAlarms(aufgabe, organizerZeitzone());
++        // VALARM makes the ordinary task projection unsupported. Derive only
++        // its receipt IDs from the existing top-level due fields, so removing
++        // the absolute block cannot replay the same already notified instant.
++        receiptAlarms = alarms.length || !Array.isArray(aufgabe.icsRoundtrip) ? alarms
++          : window.MacBeta.taskAlarms({ ...aufgabe,
++              icsRoundtrip: kalenderKernEigenschaften(aufgabe.icsRoundtrip).map(property => property.raw) }, organizerZeitzone());
++      }
++      catch (_) { absoluteMeldungen(aufgabe, true); window.MacBeta.reminderError(); continue; }
++      absoluteMeldungen(aufgabe, true, receiptAlarms.map(alarm => ({ id: alarm.id, ab: alarm.at })));
+       for (const alarm of alarms) {
+         if (gemeldeteTermine.has(alarm.id) || +jetztWert < alarm.at || +jetztWert > alarm.at + 5 * 60000) continue;
+         gemeldeteTermine.add(alarm.id);
+-- 
+2.56.1
+

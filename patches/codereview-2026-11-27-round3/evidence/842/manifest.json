@@ -1,0 +1,85 @@
+{
+  "issue": 842,
+  "base": "0cdd6f992e094cd724203713da3bf145c36958fc",
+  "source_commit": "565d432b78e5c3e8b9556b1616b116389e6fbef3",
+  "source_tree": "a919b7fd9a2f0617906098638785dcb12a136353",
+  "patch": "842-malformed-utf16.patch",
+  "patch_sha256": "73510fee214bf2929803c90ba70601dd1cc1fca200c4a3a51b411fdc7c740b35",
+  "tests": {
+    "malformed_before": 12,
+    "file_zip_waste_after": 148,
+    "existing_groups_after": 3,
+    "independent_decoder_after": 28
+  },
+  "files": {
+    "adjacent-after.json": {
+      "bytes": 1169,
+      "sha256": "96387c0805beae5c7cb1a06aaa80595e7639add8fe6040ddbc3b899715e47ad8",
+      "original_sha256": "f9e7010f39eac2b690efdda9c68b9502dee8746eadd738b38c138843eee88371",
+      "original_bytes": 1247
+    },
+    "842-malformed-utf16.patch": {
+      "bytes": 10524,
+      "sha256": "73510fee214bf2929803c90ba70601dd1cc1fca200c4a3a51b411fdc7c740b35"
+    },
+    "ARBEITSSTAND-fragment.md": {
+      "bytes": 695,
+      "sha256": "274e4916c8055567c4a97fb467050461dd6f84df8d502dfbfdd6487151d61ee6"
+    },
+    "README.md": {
+      "bytes": 5205,
+      "sha256": "d246ece58c468cbe763773eddc5ae58461f3ba3656333dcf3f6c761da4495e3d"
+    },
+    "tasks-after.log": {
+      "bytes": 129,
+      "sha256": "ea443dd3de0482face98cdd9129379e5d21930890f0a92e9e396719842cb1621"
+    },
+    "regression-after.json": {
+      "bytes": 565,
+      "sha256": "3149631b433a7db1b3bd2a99032fd3899a76c6a82202cacbf9a46c14cc742ed2",
+      "original_sha256": "f73a98d971cab1debbf2cae4e1ed98603ba255217724738f05b8ef5febbf7509",
+      "original_bytes": 578
+    },
+    "regression-after.log": {
+      "bytes": 199,
+      "sha256": "b41fa8ae28377951cb8ba5c6083c527d2faddb0b047fd46b185388ac4e86529a"
+    },
+    "independent-decoder-review.json": {
+      "bytes": 4021,
+      "sha256": "87d8dc9546731f6e8fcafab109199082d5c9a10cab746ee2d530ccc164f2d886"
+    },
+    "byte-dispatch-before.json": {
+      "bytes": 2410,
+      "sha256": "bfc9f9911f6476a9687f05fe6c69de07839fdc0dbac33fea192b40123436dd9e"
+    },
+    "regression-before.json": {
+      "bytes": 528,
+      "sha256": "77670c8df3f2587f05a58f86014ac558ddf6a011f336244dddb20796c3a9ae31",
+      "original_sha256": "0abeabdc3a98fc4d5b0d5e584ab1cb1737917428826d46d134f5274a5bb5d4d5",
+      "original_bytes": 434
+    },
+    "regression-before.log": {
+      "bytes": 755,
+      "sha256": "bd677adc86e12accb5d1e21dfa5a6d996ba439c287986dba235d9254b8cf9de6",
+      "original_sha256": "307a902c508030b0ac153690515bea58e6f97d74aaa5604fdaeffd39c0816c9e",
+      "original_bytes": 794
+    },
+    "exchange-after.log": {
+      "bytes": 129,
+      "sha256": "ad22ca41468c73f637ed1e552528af85ae523b89deea6c2c47548fbbc6da297d"
+    },
+    "source-after.log": {
+      "bytes": 141,
+      "sha256": "eafb47727f238cfb3056780ff26c608773a3cc95bc0af697115ff45192677847"
+    },
+    "independent-decoder-review/DecoderReview.csproj": {
+      "bytes": 237,
+      "sha256": "031da6a6f6d810b9f23ffe7818f3acefb7b0ff54b0eb8c6752735ad58d254904"
+    },
+    "independent-decoder-review/Program.cs": {
+      "bytes": 3893,
+      "sha256": "1e5756c59afade57cdaa5140fe692bd6cbcc1c53f71bbc67ead2c704ed5a2e57"
+    }
+  },
+  "scope": "Actual C# product functions in .NET8 on Linux, no Windows GUI/package/native acceptance"
+}

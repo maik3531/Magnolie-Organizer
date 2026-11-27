@@ -1,0 +1,55 @@
+{
+  "base": "dd997f01ea5a16d4c37c4ac938e068ee1a8e361a",
+  "base_tree": "31e5a52bf64b9647c3f8b9ef10f5b89f74bb6202",
+  "source_commit": "8139714cd746d6fce2f0ca14e7fcd51958beb5d6",
+  "source_tree": "ed3c0c28287d25276abd7af67d295befd4ab3a77",
+  "series": [
+    {
+      "commit": "8481b78637ea1e3bd2f9d3f1b556f2d9fd97582c",
+      "path": "after-dd997f01/series/01-823-contact-identity.patch",
+      "sha256": "ee52e2762426e939dc4b17a187893dd0f8e1721d2b4070438748b15f7a77a183",
+      "bytes": 19605
+    },
+    {
+      "commit": "8dedffde397fb4a1d56e86eb692ced25b86ca3f3",
+      "path": "after-dd997f01/series/02-841-startup-regression.patch",
+      "sha256": "0746f2c8cd57e12f92e2f6d22895fc6d8351df0b7686120ccf8d69fac8509ceb",
+      "bytes": 6640
+    },
+    {
+      "commit": "fd8ac325276d4681a944990bd03183eed721f23c",
+      "path": "after-dd997f01/series/03-842-unicode-regression.patch",
+      "sha256": "01598379c5d9be93333063b4de5557057450d6432fef50a8a7de7b46584a0f62",
+      "bytes": 8932
+    },
+    {
+      "commit": "a16108297e242b1c50f45c665f42dde82c7faa5b",
+      "path": "after-dd997f01/series/04-839-alarm-receipts.patch",
+      "sha256": "4efac8bad2e1b3809ae16a0ba483e484186dc55dfa5f38b5112257f2b3d68e19",
+      "bytes": 32268
+    },
+    {
+      "commit": "8139714cd746d6fce2f0ca14e7fcd51958beb5d6",
+      "path": "after-dd997f01/series/05-review-handoff.patch",
+      "sha256": "692ec3427778d0f8c7ffab3886486e9e3c8cf8a822ec4e3ce3b57161e64ecdee",
+      "bytes": 4228
+    }
+  ],
+  "combined": {
+    "path": "after-dd997f01/magnolie-round3-after-dd997f01.patch",
+    "sha256": "4f8d01a277cb71f1963d202a6a2e2c130bc5373d008bd1f145d49e47f8a52a13",
+    "bytes": 69001
+  },
+  "replay": {
+    "combined": {
+      "forward_tree": "ed3c0c28287d25276abd7af67d295befd4ab3a77",
+      "reverse_tree": "31e5a52bf64b9647c3f8b9ef10f5b89f74bb6202",
+      "exact": true
+    },
+    "series": {
+      "forward_tree": "ed3c0c28287d25276abd7af67d295befd4ab3a77",
+      "reverse_tree": "31e5a52bf64b9647c3f8b9ef10f5b89f74bb6202",
+      "exact": true
+    }
+  }
+}

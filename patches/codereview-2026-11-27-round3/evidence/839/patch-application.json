@@ -1,0 +1,7 @@
+{
+  "base": "0cdd6f992e094cd724203713da3bf145c36958fc",
+  "method": "git read-tree base; git apply --cached --check; git apply --cached; git write-tree in an isolated index",
+  "expected_tree": "06573f41cecdec4b8ee9d009b763fc5218c0dd6b",
+  "actual_tree": "06573f41cecdec4b8ee9d009b763fc5218c0dd6b",
+  "passed": true
+}

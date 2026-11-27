@@ -1,0 +1,37 @@
+{
+  "base": "0cdd6f992e094cd724203713da3bf145c36958fc",
+  "test_type": "actual frontend import snapshots and native Python restore; no installed GUI claim",
+  "source_sha256": "54dc0e1d01ac4a5957b25b1c3df72b6574dba4e338ee6150da4b252901973189",
+  "cases": [
+    {
+      "frontend": "magnolie-organizer",
+      "fixture_sha256": "c601ab0e22883a031380398fb64a83b73c3add0e07d5cf1fca5271fe92a5f6be",
+      "snapshot_count": 1,
+      "current_count": 1,
+      "expected_restored_count": 1,
+      "restored_count": 1,
+      "repeat_count": 1,
+      "restored_identities": [
+        {
+          "id": "contact-local",
+          "uid": "import-uid"
+        }
+      ]
+    },
+    {
+      "frontend": "magnolie-organizer-windows",
+      "fixture_sha256": "9072f4b1527d3ddbb907bedec157a321859299131414aa5cf4a534406cefaa5b",
+      "snapshot_count": 1,
+      "current_count": 1,
+      "expected_restored_count": 1,
+      "restored_count": 1,
+      "repeat_count": 1,
+      "restored_identities": [
+        {
+          "id": "contact-local",
+          "uid": "import-uid"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+BEGIN:VCARD
+VERSION:3.0
+N:;Current;;;
+FN:Current
+X-MAGNOLIE-KONTAKTPERSON-NAME:Alex Example
+X-MAGNOLIE-KONTAKTPERSON-TELEFON:+12025550101
+X-MAGNOLIE-KONTAKTPERSON-STATUS:Family
+X-MAGNOLIE-NOTFALLKONTAKT:{"name":"Alex Example"\,"telefon":"+12025550101"\
+ ,"status":"Family"}
+X-MAGNOLIE-NOTFALLKONTAKT:{"name":"Berta Example"\,"telefon":"+12025550102"
+ \,"status":"Friend"}
+UID:old-uid
+END:VCARD

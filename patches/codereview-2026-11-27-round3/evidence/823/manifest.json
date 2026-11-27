@@ -1,0 +1,179 @@
+{
+  "issue": 823,
+  "base": "0cdd6f992e094cd724203713da3bf145c36958fc",
+  "source_commit": "71c5cb2276beaa3bbb9a7748bd0e2a9f86dd4f8a",
+  "source_tree": "0294bedd87c37c9baf91b9fc72944ef0f1fbceea",
+  "patch": "823-contact-identity.patch",
+  "patch_sha256": "f272ac7f366522f5db1fbab925fddc15b8ede61d9423ab2c3f1e041cf7e02ce8",
+  "scope": "Linux/Windows contact selection during additive journal restore",
+  "sources": [
+    {
+      "path": "contracts/restore-additive-identity-vectors.json",
+      "before_sha256": "8c1dce23b463e79feac7b962cbb2b695d32e48ea7c62d93263713b0b1236eb0f",
+      "after_sha256": "4df88c32261df3de5de9daa405839356c769355baf820f0870873bb3f50bc410"
+    },
+    {
+      "path": "magnolie-organizer-windows/RestoreSelection.cs",
+      "before_sha256": "6f2735d8a0e169fccb7ef6b403c9e2b1ea51a92e7ff2e250a943690cd3dfbbbc",
+      "after_sha256": "8d0295dc995814d9e0c8a40346f1ca68538f3a3a16b4202549dfecbb427c9b21"
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "before_sha256": "df9c093ea8d18f98f0ec7e947c32b7df13dc53514c5fa12ca815e75d6447c46d",
+      "after_sha256": "54dc0e1d01ac4a5957b25b1c3df72b6574dba4e338ee6150da4b252901973189"
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_save_restore_boundary.py",
+      "before_sha256": "dfc43655f6609fe76d00378867bf9ccaf9e89873b3574ab3243022a7c7edac2d",
+      "after_sha256": "c821fd8c10beffa9f7119bb5fd031b5eb8e9b2e4373c7d6767f7f2bec96306ce"
+    }
+  ],
+  "tests": {
+    "python_baseline_vectors": {
+      "passed": 89,
+      "failed": 9,
+      "log": "python-vectors-before.log"
+    },
+    "python_fixed": {
+      "passed": 136,
+      "failed": 0,
+      "log": "python-after.log",
+      "includes": "49 shared vectors in additive/replace modes, actual restore/save boundary, commit result, backup validation"
+    },
+    "csharp_baseline": {
+      "groups_passed": 0,
+      "groups_failed": 1,
+      "log": "csharp-before.log"
+    },
+    "csharp_fixed": {
+      "groups_passed": 2,
+      "groups_failed": 0,
+      "logs": [
+        "csharp-after.log",
+        "csharp-journal-after.log"
+      ],
+      "shared_vectors": 49
+    },
+    "frontend_replay": {
+      "frontends": 2,
+      "before_restored_count": 2,
+      "after_restored_count": 1,
+      "native_python": true,
+      "compiled_actual_csharp": true,
+      "fixture_files": [
+        "round3-storage-magnolie-organizer.json",
+        "round3-storage-magnolie-organizer-windows.json"
+      ]
+    }
+  },
+  "limits": [
+    "JSDOM runs are host DOM verification, not installed GUI/native desktop acceptance.",
+    "C# code executes in the existing CoreTests host on Linux with .NET SDK8.0.408; no Windows OS/GUI/DPAPI acceptance claimed.",
+    "No product merge, native package build, release or personal data used."
+  ],
+  "files": {
+    "823-contact-identity.patch": {
+      "bytes": 19349,
+      "sha256": "f272ac7f366522f5db1fbab925fddc15b8ede61d9423ab2c3f1e041cf7e02ce8"
+    },
+    "ARBEITSSTAND-fragment.md": {
+      "bytes": 1200,
+      "sha256": "98e6c7d7f7ac4363ccdaa40a63c032d51613d71fe8367d1c58c56dc20681444d"
+    },
+    "Probe.cs": {
+      "bytes": 980,
+      "sha256": "b01de7da84c1bad4a28872e19f0d7b9db73c44c862fa1680ccd5dfb6403543f8"
+    },
+    "Probe.csproj": {
+      "bytes": 265,
+      "sha256": "fbbe88f03f4f2a7c2cefa75b6184eace91aeae9fa56e0361267432c52a4513c6"
+    },
+    "README.md": {
+      "bytes": 7256,
+      "sha256": "1e7cb9fab91affdd84235dd4f51768aed3c748e9e2596a2e66b809c4db43c451"
+    },
+    "csharp-after.log": {
+      "bytes": 138,
+      "sha256": "6986c6cd0c43c231526f54310502c45eed210f90f52e496050c883bec9388cfa"
+    },
+    "csharp-before.log": {
+      "bytes": 787,
+      "sha256": "9dda9ebbde0f5f5b67b4ffe8b7a2cb57bfc84fb4b42809a74c26b0a0ddfde763",
+      "original_sha256": "c3262ba87d09c3ccc7f2ee9f9aa867b13d9407d02a42d35adbfcea0af298a3df",
+      "original_bytes": 826
+    },
+    "csharp-build-after.log": {
+      "bytes": 334,
+      "sha256": "e3e140b7f1cbf82723c1e070c2069fddc5ee5b30fe95bb4cecb431c569d62e6b",
+      "original_sha256": "695e26f9f5e3f3eddbbdb78eb885ede67010e00d80612fe7c3cd4b9d606c9c31",
+      "original_bytes": 360
+    },
+    "csharp-frontend-after.jsonl": {
+      "bytes": 292,
+      "sha256": "d1635fe0c73902261b84c784e58883956f120b8c76a1dadb393707ab89eb99ba"
+    },
+    "csharp-frontend-before.jsonl": {
+      "bytes": 356,
+      "sha256": "1781e775325ee441c1ca0242bb647f19c90c9c0692c4330742de5617c3f3fc25"
+    },
+    "csharp-journal-after.log": {
+      "bytes": 152,
+      "sha256": "34eb6549ff506c31da2908afc868db6d7c3bb60917485fd5cd6b9ecdf4030c35"
+    },
+    "frontend-repro.cjs": {
+      "bytes": 1888,
+      "sha256": "c243a2a43336d974443af618dcc75f734ffa20eda1ae05f9d0a3a53074ac8b36"
+    },
+    "patch-replay.json": {
+      "bytes": 417,
+      "sha256": "b99a9be8e3e320e50e47bfa32780c5c1a14beafefe046488f1fb132fde56a314"
+    },
+    "python-after.json": {
+      "bytes": 1086,
+      "sha256": "67c2513b0789ee4368a7cf638bc140d642e25ea933cdbde77f9046329d8ff0ac"
+    },
+    "python-after.log": {
+      "bytes": 180,
+      "sha256": "f23e98f8302a59b633d143c7a7a84814d55de8b5d9b01c197e2ca8f4e6130e9e"
+    },
+    "python-before.json": {
+      "bytes": 1050,
+      "sha256": "989c0a2f3fba9b928df60be05f08be10e1d8f2c281c3736261dcd67e01ab518a"
+    },
+    "python-vectors-before.log": {
+      "bytes": 12345,
+      "sha256": "3a9ee18e96efafa4c091bc46a6fc7a83b325f4d3d8b78d495ef7ee4d8d1ef45d"
+    },
+    "round3-storage-magnolie-organizer-windows.json": {
+      "bytes": 14074,
+      "sha256": "9072f4b1527d3ddbb907bedec157a321859299131414aa5cf4a534406cefaa5b"
+    },
+    "round3-storage-magnolie-organizer.json": {
+      "bytes": 14968,
+      "sha256": "c601ab0e22883a031380398fb64a83b73c3add0e07d5cf1fca5271fe92a5f6be"
+    },
+    "run-python-vectors.py": {
+      "bytes": 703,
+      "sha256": "6da7665acd8d2fd68fdfaee8bca1a2381d3cdef81b73412df7b763bad4b25efc"
+    }
+  },
+  "runtimes": {
+    "python": "3.12.14",
+    "pytest": "8.3.5",
+    "node": "24.22.3",
+    "jsdom": "26.1.0",
+    "dotnet_sdk": "8.0.408"
+  },
+  "frontend_source_binding": [
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "sha256": "79ae636139dbcac89d63418ad5aa89f03eb27f1e8ec7d85d300ace0d620bd181",
+      "unchanged_from_base": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "sha256": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+      "unchanged_from_base": true
+    }
+  ]
+}

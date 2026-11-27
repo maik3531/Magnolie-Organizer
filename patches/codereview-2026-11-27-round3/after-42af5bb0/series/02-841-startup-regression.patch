@@ -1,0 +1,88 @@
+From 87ff1a67931d141903f488137dee4a86146f8265 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 17:22:19 +0100
+Subject: [PATCH] Refs #841: Retain regional-language startup regression on
+ current main
+
+---
+ .../tests/regional-language-direction.js      | 57 +++++++++++++++++++
+ magnolie-organizer-windows/tests/run.js       |  2 +-
+ 2 files changed, 58 insertions(+), 1 deletion(-)
+ create mode 100644 magnolie-organizer-windows/tests/regional-language-direction.js
+
+diff --git a/magnolie-organizer-windows/tests/regional-language-direction.js b/magnolie-organizer-windows/tests/regional-language-direction.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..4e6d962461a13b1591b2060bdd36fa2e227b13db
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/regional-language-direction.js
+@@ -0,0 +1,57 @@
++"use strict";
++// Refs #841: the native bootstrap and actual App.init must agree on Arabic
++// direction when the system browser supplies a regional language tag.
++const fs = require("node:fs"), path = require("node:path");
++const { webcrypto } = require("node:crypto");
++const { JSDOM } = require("jsdom");
++const windows = path.resolve(__dirname, "../app/web");
++const siblingLinux = path.resolve(__dirname, "../../magnolie-organizer");
++const embeddedLinux = path.resolve(__dirname, "../shared/magnolie-organizer");
++const linux = path.join(fs.existsSync(path.join(siblingLinux, "web/index.html")) ? siblingLinux : embeddedLinux, "web");
++const results = [];
++for (const [relative, web] of [["linux", linux], ["windows", windows]]) {
++  for (const test of [
++    { name: "explicit Arabic", language: "ar", system: "en-US", expectedLanguage: "ar", expectedDirection: "rtl" },
++    { name: "Arabic regional tag", language: "ar-EG", system: "en-US", expectedLanguage: "ar-eg", expectedDirection: "rtl" },
++    { name: "Arabic underscore and case", language: "AR_sa", system: "en-US", expectedLanguage: "ar-sa", expectedDirection: "rtl" },
++    { name: "Arabic script and region", language: "ar-Arab-EG", system: "en-US", expectedLanguage: "ar-arab-eg", expectedDirection: "rtl" },
++    { name: "Arabic system locale", language: "system", system: "ar-EG", expectedLanguage: "ar-eg", expectedDirection: "rtl" },
++    { name: "German system locale", language: "system", system: "de-DE", expectedLanguage: "de-de", expectedDirection: "ltr" },
++    { name: "English regional fallback", language: "en-US", system: "ar-EG", expectedLanguage: "en", expectedDirection: "ltr" },
++    { name: "Arabic catalog absent", language: "ar-EG", system: "ar-EG", catalogAbsent: true, expectedLanguage: "en", expectedDirection: "ltr" }
++  ]) {
++    const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {
++      runScripts: "outside-only", url: "https://app.magnolie.invalid/", pretendToBeVisual: true
++    });
++    const w = dom.window;
++    try {
++      Object.defineProperty(w.navigator, "languages", { value: [test.system, "en-US"] });
++      Object.defineProperty(w, "crypto", { value: webcrypto });
++      w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
++      w.__MAGNOLIE_BRUECKE__ = "test";
++      w.webkit = { messageHandlers: { test: { postMessage() {} } } };
++      for (const file of ["i18n.js", "i18n/de.js", ...(test.catalogAbsent ? [] : ["i18n/ar.js"])])
++        w.eval(fs.readFileSync(path.join(web, file), "utf8"));
++      w.__MAGNOLIE_SPRACHE__ = test.catalogAbsent ? "en" : "ar";
++      w.eval(fs.readFileSync(path.join(web, "i18n-start.js"), "utf8"));
++      const before = { language: w.document.documentElement.lang, direction: w.document.documentElement.dir };
++      for (const file of ["normative-timezones.js", "anwendung.js"])
++        w.eval(fs.readFileSync(path.join(web, file), "utf8"));
++      w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
++      w.App.init({ daten: {}, neu: false, regional: { language: test.language } });
++      const after = { language: w.document.documentElement.lang, direction: w.document.documentElement.dir,
++        settings: w.document.querySelector("#einstellungen-titel").textContent };
++      const expectedSettings = test.expectedLanguage.startsWith("ar") ? "الإعدادات"
++        : test.expectedLanguage.startsWith("de") ? "Einstellungen" : "Settings";
++      const passed = after.language === test.expectedLanguage && after.direction === test.expectedDirection && after.settings === expectedSettings;
++      const result = { source: relative, case: test.name, before, after, expected: {
++        language: test.expectedLanguage, direction: test.expectedDirection, settings: expectedSettings
++      }, passed };
++      results.push(result);
++      console.log(JSON.stringify(result));
++    } finally { w.close(); }
++  }
++}
++console.log(JSON.stringify({ checks: results.length, passed: results.filter(x => x.passed).length,
++  failed: results.filter(x => !x.passed).length, scope: "Actual desktop sources in JSDOM; native UI and visual layout not tested" }));
++if (results.some(x => !x.passed)) process.exitCode = 1;
+diff --git a/magnolie-organizer-windows/tests/run.js b/magnolie-organizer-windows/tests/run.js
+index c8578d8021192cf6d75ff1aabf976f1e6e1938f6..97f18f814b5bd447f92091948705cd84b210f922 100644
+--- a/magnolie-organizer-windows/tests/run.js
++++ b/magnolie-organizer-windows/tests/run.js
+@@ -18,7 +18,7 @@ process.env.MAGNOLIE_PYTHON = python;
+ 
+ let failed = false;
+ const results = [];
+-for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-save.js", "time-zone-planning.js", "time-zone-settings.js", "ui-bugfixes.js", "drawing-sheet.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-sms-paths.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "web-smoke.js",
++for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-save.js", "time-zone-planning.js", "time-zone-settings.js", "ui-bugfixes.js", "drawing-sheet.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-sms-paths.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "regional-language-direction.js", "web-smoke.js",
+   "handbook-page-ids.js",
+   "handbook-source-diagnostics.js",
+   "calendar-attachment-actions.js", "calendar-attachment-native.js",

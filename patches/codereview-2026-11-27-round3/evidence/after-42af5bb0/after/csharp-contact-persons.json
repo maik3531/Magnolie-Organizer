@@ -1,0 +1,24 @@
+{
+  "source_sha256": "182a8538fa3355a08301796050bc43d61022800299300e635d2c2a0e021530c9",
+  "assembly_sha256": "7074d6a49c97761c75d84619382fbcfd243e7ecd1fef0bc9d5b42cc1b4e0f4aa",
+  "vcard_sha256": "3615723db3e48f6dd80d9168f863674074294743af7e7067b0d5fbb237f08996",
+  "snapshot_person_count_from_actual_vcard_reader": 2,
+  "restored_person_list": [
+    {
+      "name": "Alex Example",
+      "telefon": "\u002B12025550101",
+      "status": "Family"
+    },
+    {
+      "name": "Berta Example",
+      "telefon": "\u002B12025550102",
+      "status": "Friend"
+    }
+  ],
+  "restored_person_list_count": 2,
+  "restored_legacy_first_person_name": "Alex Example",
+  "restored_card_count": 1,
+  "current_uid_preserved": true,
+  "inputs_unchanged": true,
+  "scope": "Actual C# vCard reader and RestoreSelection from the built .NET 8 Linux CoreTests host; no native Windows GUI claim."
+}

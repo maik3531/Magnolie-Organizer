@@ -1,0 +1,107 @@
+{
+  "base_commit": "dd997f01ea5a16d4c37c4ac938e068ee1a8e361a",
+  "source_commit_before_docs": "a16108297e242b1c50f45c665f42dde82c7faa5b",
+  "source_tree_before_docs": "5572135772b30c0f0830687070e49a5c0a749e4d",
+  "delivery_commit": "8139714cd746d6fce2f0ca14e7fcd51958beb5d6",
+  "delivery_tree": "ed3c0c28287d25276abd7af67d295befd4ab3a77",
+  "branch": "work/review3-current",
+  "documentation_original_commit": "2aeeef2e8b928f08b15e49c197045eacede257be",
+  "documentation_only_paths": [
+    "ARBEITSSTAND.md"
+  ],
+  "all_preexisting_current_main_documentation_preserved": true,
+  "runtime_rerun_after_docs": false,
+  "runtime_rerun_reason": "Only the exact root handoff section was inserted into ARBEITSSTAND.md after the six green CoreTests groups.",
+  "commit_sequence": [
+    {
+      "commit": "8481b78637ea1e3bd2f9d3f1b556f2d9fd97582c",
+      "subject": "Refs #823: Keep stable contact identity during additive restore"
+    },
+    {
+      "commit": "8dedffde397fb4a1d56e86eb692ced25b86ca3f3",
+      "subject": "Refs #841: Retain regional-language startup regression on current main"
+    },
+    {
+      "commit": "fd8ac325276d4681a944990bd03183eed721f23c",
+      "subject": "Refs #842: Retain Unicode import regression on current main"
+    },
+    {
+      "commit": "a16108297e242b1c50f45c665f42dde82c7faa5b",
+      "subject": "Refs #839: acknowledge coincident port alarms across saved plans"
+    },
+    {
+      "commit": "8139714cd746d6fce2f0ca14e7fcd51958beb5d6",
+      "subject": "Refs #113: Document the third verified code review handoff"
+    }
+  ],
+  "source_equality_manifest": "source-equality-manifest.json",
+  "test_manifest": "core-tests-manifest.json",
+  "patch": "current-remaining-series.patch",
+  "patch_sha256": "a4b6dcab6a22fc687fff29295dc0ab75a8a8bc6737c8d44397f2d434f65861b3",
+  "patch_size_bytes": 71699,
+  "private_index_replay_from_exact_base": {
+    "passed": true,
+    "result_tree": "ed3c0c28287d25276abd7af67d295befd4ab3a77",
+    "identical_to_delivery_tree": true
+  },
+  "artifacts": {
+    "841-remaining-tests.patch": {
+      "sha256": "e04f450553025a277548bdb723003eec5e6405962d0b29bb9aa85c3fe1822169",
+      "bytes": 6004
+    },
+    "842-remaining-tests.patch": {
+      "sha256": "e34cf201b3f2148f0c100f53993f593ab26e3b886af4b2a64c5917be848b7c1c",
+      "bytes": 8331
+    },
+    "core-build.log": {
+      "sha256": "255d87ef9b28480f7ef76fbd919db42d9e7f7197f8102cef7c2b6aebf52781cb",
+      "bytes": 76
+    },
+    "core-tests-manifest.json": {
+      "sha256": "7472a45d660572d4c31114429b5e90977dea779c2ac83008c8f5a421f3098ce7",
+      "bytes": 5645,
+      "original_sha256": "39c01c3cb225a509257c7650c7cce5ada9530658465366e3b5a89921ce036095",
+      "original_bytes": 5866
+    },
+    "current-remaining-series.patch": {
+      "sha256": "a4b6dcab6a22fc687fff29295dc0ab75a8a8bc6737c8d44397f2d434f65861b3",
+      "bytes": 71699
+    },
+    "exchange.log": {
+      "sha256": "1cfe61376c4d6f47a9ff446c768f69b1ceede7621707f8f2132b1989f94cdd80",
+      "bytes": 129
+    },
+    "import-file.log": {
+      "sha256": "27362e904bc89a0216ad21cea69707572fa0bd803aea7bc5f282ecce8af7a2fd",
+      "bytes": 141
+    },
+    "lotus-tasks.log": {
+      "sha256": "ea443dd3de0482face98cdd9129379e5d21930890f0a92e9e396719842cb1621",
+      "bytes": 129
+    },
+    "recovery-journal.log": {
+      "sha256": "e2955258d555ff8e8f8f90e6dfe96477baa6eb2eeff54a8a669af1adb9f91cfe",
+      "bytes": 152
+    },
+    "restore-identity.log": {
+      "sha256": "d51c590379d729900f4bd5a024b11fc88873bf22cfe3ef83b0c7ec4e53a626a6",
+      "bytes": 138
+    },
+    "run-focused-tests.py": {
+      "sha256": "429fa1ebcc77bd2f3a1a129b23fbefcb107b2e3dfdacb5b9c03b627897e3d5eb",
+      "bytes": 5148,
+      "original_sha256": "fa1734b8d6f2d0b7077d004cd70f99b457f23eec1f58459c1e32f467276b2ae5",
+      "original_bytes": 4242
+    },
+    "source-equality-manifest.json": {
+      "sha256": "2af8eb19d0b63bc025953a7d4e46d1c1926b987f66e94b251477e3062945e95c",
+      "bytes": 11081
+    },
+    "unicode-import.log": {
+      "sha256": "9a223e1c2cb63447eae89c06992ee1c75cc0700eaab73e2863eb80b8b5e4f22a",
+      "bytes": 199
+    }
+  },
+  "working_tree_clean": true,
+  "scope": "Adapted remaining review series; adopted #840/#841/#842 sources preserved. No main merge, GitHub mutation, product package or native GUI claim."
+}

@@ -1,0 +1,275 @@
+[
+  {
+    "name": "catalog-de",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "de",
+      "magnolie-organizer/po/de.po",
+      "magnolie-organizer/web/i18n/de.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-fr",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "fr",
+      "magnolie-organizer/po/fr.po",
+      "magnolie-organizer/web/i18n/fr.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-es",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "es",
+      "magnolie-organizer/po/es.po",
+      "magnolie-organizer/web/i18n/es.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-it",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "it",
+      "magnolie-organizer/po/it.po",
+      "magnolie-organizer/web/i18n/it.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-nl",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "nl",
+      "magnolie-organizer/po/nl.po",
+      "magnolie-organizer/web/i18n/nl.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-pt",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "pt",
+      "magnolie-organizer/po/pt.po",
+      "magnolie-organizer/web/i18n/pt.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-ru",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "ru",
+      "magnolie-organizer/po/ru.po",
+      "magnolie-organizer/web/i18n/ru.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-cs",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "cs",
+      "magnolie-organizer/po/cs.po",
+      "magnolie-organizer/web/i18n/cs.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-pl",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "pl",
+      "magnolie-organizer/po/pl.po",
+      "magnolie-organizer/web/i18n/pl.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-hsb",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "hsb",
+      "magnolie-organizer/po/hsb.po",
+      "magnolie-organizer/web/i18n/hsb.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-da",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "da",
+      "magnolie-organizer/po/da.po",
+      "magnolie-organizer/web/i18n/da.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-nb",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "nb",
+      "magnolie-organizer/po/nb.po",
+      "magnolie-organizer/web/i18n/nb.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-hi",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "hi",
+      "magnolie-organizer/po/hi.po",
+      "magnolie-organizer/web/i18n/hi.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-zh_CN",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "zh_CN",
+      "magnolie-organizer/po/zh_CN.po",
+      "magnolie-organizer/web/i18n/zh_CN.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-ja",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "ja",
+      "magnolie-organizer/po/ja.po",
+      "magnolie-organizer/web/i18n/ja.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-ar",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "ar",
+      "magnolie-organizer/po/ar.po",
+      "magnolie-organizer/web/i18n/ar.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-uk",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "uk",
+      "magnolie-organizer/po/uk.po",
+      "magnolie-organizer/web/i18n/uk.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-be",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "be",
+      "magnolie-organizer/po/be.po",
+      "magnolie-organizer/web/i18n/be.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "catalog-tr",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "tr",
+      "magnolie-organizer/po/tr.po",
+      "magnolie-organizer/web/i18n/tr.js"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "import-helper-dependency",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py",
+      "--prepare-dependencies"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "mac-freeze",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "Magnolie-Organizer-macOS-Beta/tools/project_ui.py",
+      "freeze",
+      "--confirm-desktop-frozen"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "mac-project",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "Magnolie-Organizer-macOS-Beta/tools/project_ui.py",
+      "generate"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "tablet-project",
+    "command": [
+      "node",
+      "Magnolie-Organizer-Android-Tablet-Beta/tools/project-web.cjs"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "mac-reminder-ui",
+    "command": [
+      "node",
+      "Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs",
+      "Magnolie-Organizer-macOS-Beta/Generated"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "tablet-reminder-ui",
+    "command": [
+      "node",
+      "Magnolie-Organizer-Android-Tablet-Beta/tests/reminders.test.cjs"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "tablet-vault-jvm",
+    "command": [
+      "<runtime>/python/bin/python3",
+      "<review-workspace>/round3-calendar-evidence/run_native_tests.py",
+      "<review-workspace>/round3-final",
+      "<review-workspace>/round3-tools/kotlin",
+      "<review-workspace>/round3-integration-evidence/ports/native"
+    ],
+    "exit_code": 0
+  }
+]

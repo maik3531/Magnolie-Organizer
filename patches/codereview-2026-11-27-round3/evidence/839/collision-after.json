@@ -1,0 +1,48 @@
+[
+  {
+    "platform": "macOS projected UI to real notification bridge",
+    "expected": 1,
+    "actual": 1,
+    "early": 0,
+    "repeated": 0,
+    "messages": [
+      {
+        "cmd": "erinnerung_zeigen",
+        "art": "both",
+        "stil": "magnolie",
+        "kopf": "Appointment reminder",
+        "rumpf": "Coincident event"
+      }
+    ]
+  },
+  {
+    "platform": "Android Tablet projected UI and durable save message",
+    "expected": 1,
+    "actual": 1,
+    "alarms": [
+      {
+        "id": "kalender:coincident-event:absolute:1904639400000",
+        "at": 1904639400000,
+        "title": "Coincident event",
+        "section": "kalender",
+        "custom": false,
+        "receiptAliases": [
+          "kalender:coincident-event:1904639400000"
+        ]
+      }
+    ],
+    "savedAlarms": [
+      {
+        "id": "kalender:coincident-event:absolute:1904639400000",
+        "at": 1904639400000,
+        "title": "Coincident event",
+        "section": "kalender",
+        "custom": false,
+        "receiptAliases": [
+          "kalender:coincident-event:1904639400000"
+        ]
+      }
+    ],
+    "errors": []
+  }
+]

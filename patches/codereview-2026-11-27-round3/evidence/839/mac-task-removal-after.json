@@ -1,0 +1,32 @@
+[
+  {
+    "lead": 0,
+    "initial": 1,
+    "afterSourceRemoval": 1,
+    "expectedAfterRemoval": 1,
+    "messages": [
+      {
+        "cmd": "erinnerung_zeigen",
+        "art": "both",
+        "stil": "magnolie",
+        "kopf": "Task reminder",
+        "rumpf": "Coincident task"
+      }
+    ]
+  },
+  {
+    "lead": 1,
+    "initial": 1,
+    "afterSourceRemoval": 1,
+    "expectedAfterRemoval": 1,
+    "messages": [
+      {
+        "cmd": "erinnerung_zeigen",
+        "art": "both",
+        "stil": "magnolie",
+        "kopf": "Task reminder",
+        "rumpf": "Coincident task"
+      }
+    ]
+  }
+]

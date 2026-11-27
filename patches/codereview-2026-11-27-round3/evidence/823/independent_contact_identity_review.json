@@ -1,0 +1,74 @@
+{
+  "reviewed_commit": "71c5cb2276beaa3bbb9a7748bd0e2a9f86dd4f8a",
+  "source_sha256": "54dc0e1d01ac4a5957b25b1c3df72b6574dba4e338ee6150da4b252901973189",
+  "independent_cases": 6,
+  "passed": 6,
+  "results": [
+    {
+      "case": "swapped UID collision",
+      "current_order": [
+        "left",
+        "right"
+      ],
+      "snapshot_order": [
+        "left",
+        "right"
+      ],
+      "passed": true
+    },
+    {
+      "case": "swapped UID collision",
+      "current_order": [
+        "left",
+        "right"
+      ],
+      "snapshot_order": [
+        "right",
+        "left"
+      ],
+      "passed": true
+    },
+    {
+      "case": "swapped UID collision",
+      "current_order": [
+        "right",
+        "left"
+      ],
+      "snapshot_order": [
+        "left",
+        "right"
+      ],
+      "passed": true
+    },
+    {
+      "case": "swapped UID collision",
+      "current_order": [
+        "right",
+        "left"
+      ],
+      "snapshot_order": [
+        "right",
+        "left"
+      ],
+      "passed": true
+    },
+    {
+      "case": "ambiguous snapshot rejects",
+      "snapshot_order": [
+        "one",
+        "two"
+      ],
+      "passed": true
+    },
+    {
+      "case": "ambiguous snapshot rejects",
+      "snapshot_order": [
+        "two",
+        "one"
+      ],
+      "passed": true
+    }
+  ],
+  "scope": "Actual Python restore selection; input immutability, idempotence, stable local ID precedence, current transport and unknown metadata preservation, ambiguity rejection; no GUI or native Windows claim."
+}
+

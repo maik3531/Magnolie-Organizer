@@ -1,0 +1,106 @@
+{
+  "839-port-alarm-receipts.patch": {
+    "bytes": 32268,
+    "sha256": "cc6382d971c634ce4ae94d738738edd8ad7eb11f949de673f7fc7426c5660bdb"
+  },
+  "ARBEITSSTAND-fragment.md": {
+    "bytes": 923,
+    "sha256": "7e93b59e52698f90c833e7d87e13ac222b143a2e5054eff5aee38c5a8347385d"
+  },
+  "NativeAlarmCollisionProbe.kt": {
+    "bytes": 1036,
+    "sha256": "4b58a7383966406c919c1665ffe72a800fc09aa9c2bd0ace524d2dbbedd94040"
+  },
+  "README.md": {
+    "bytes": 6320,
+    "sha256": "db5d9eab2969bb0e1a67fc8e720b037f722d501a19deaf0d78d832b7b78f692b"
+  },
+  "baseline-EligibleAlarms.kt": {
+    "bytes": 654,
+    "sha256": "027d56aae4a9da5a1825f932d15a68230bcbf2ce588504dea2a8ac27e859a29c"
+  },
+  "collision-after.json": {
+    "bytes": 1125,
+    "sha256": "b8b3e707891590d4ef59ba1075ee5573445f116309f1664e6443f48dec6441cb"
+  },
+  "collision-before.json": {
+    "bytes": 1524,
+    "sha256": "8e09ddf773e59667f9570ef38ad9b672a9df7cfe67bb01d81612d96295168a50"
+  },
+  "collision.ics": {
+    "bytes": 279,
+    "sha256": "48117c40cb856fcea2a1288148f07519093ad8d9f1c73b8efae654750f18531c"
+  },
+  "collision_probe.mjs": {
+    "bytes": 3856,
+    "sha256": "d9ab1d1e65b247a0012fb32d1bc51c9c7dceb84978ae3fdc8d01de779bf099e6"
+  },
+  "imported-event.json": {
+    "bytes": 864,
+    "sha256": "74b412a35279f6ca32357fd0fc440f58389055a5c8772accb7ba6ed16d8c4bab"
+  },
+  "kotlin-dependencies.json": {
+    "bytes": 5920,
+    "sha256": "2a98fd4e7636e4cd8225ddbd4ea10413649870a0d7e2764189c296f7f1e7a477"
+  },
+  "mac-task-removal-after.json": {
+    "bytes": 597,
+    "sha256": "47fa20db726eaadfa54d0c1e2003856a9b49fac6c7618aede320461b70bb20f2"
+  },
+  "mac-task-removal-before.json": {
+    "bytes": 961,
+    "sha256": "cc9ce9ecbb55e7e2a8fde6059d2b942d622ea701387669983e504f08e9f2c099"
+  },
+  "mac-ui-after.log": {
+    "bytes": 124,
+    "sha256": "74d8410e5c8cf837ecbed652592188aa43ab36e67279c4e67afd5bb29f6ede9e"
+  },
+  "native-collision-before.log": {
+    "bytes": 303,
+    "sha256": "32a8fc7f7c970bd47ce4a4f941c1a9334957ab243ae0c96b08f17aedd5b9c579"
+  },
+  "native-compile-after.log": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "native-junit-after.log": {
+    "bytes": 73,
+    "sha256": "855e90a4339a27ffe7d448f53d129ac8000ae69a50782a4451dea5661cee8f09"
+  },
+  "native-test-manifest.json": {
+    "bytes": 2577,
+    "sha256": "1c99f96896e75fb1a4b3b524f18871e394b6128096400638e7d082b8b2769490"
+  },
+  "patch-application.json": {
+    "bytes": 318,
+    "sha256": "11b450294b7f636ac4f34caafab0f1a7776db5dc405ff3fbc227fc167b126361"
+  },
+  "run_legacy_probe.py": {
+    "bytes": 1665,
+    "sha256": "f43749aa45f8bf04c9d3eaf3f949dcfd70d80554f45eaf74b2a97ead9701de9c"
+  },
+  "run_native_tests.py": {
+    "bytes": 2017,
+    "sha256": "84f6e14545e19bc377e89cc7bdf43d367a4832d5916d87ce4568be56a01cea30"
+  },
+  "run_port_checks.py": {
+    "bytes": 2656,
+    "sha256": "fade358b75a2420ed15ca7bf671e00d03500fddfee1a49254fc940e39a4cbc82"
+  },
+  "source-manifest.json": {
+    "bytes": 2514,
+    "sha256": "9557813ee227c6b23713aa69956b1e765d6129eae2c5831d1af3e76d99cc537d"
+  },
+  "tablet-editor-vectors.json": {
+    "bytes": 32864,
+    "sha256": "26b43f54f7dc3325101da919742ff6a5f731621cb8024b2e4d629dcaf44fbedb"
+  },
+  "tablet-ui-after.log": {
+    "bytes": 1567,
+    "sha256": "d5edd33583c6d7f59f545f64ec0c37354b92e279bbdd5c3e7c26077f26718d58"
+  },
+  "task_removal_probe.mjs": {
+    "bytes": 1556,
+    "sha256": "fcf3f45dfd10e82613e3cb0707eb653b71b6029ba43c5e5e94875efbd28e58f2"
+  }
+}

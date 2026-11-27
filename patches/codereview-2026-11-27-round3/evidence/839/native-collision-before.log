@@ -1,0 +1,8 @@
+{
+  "expectedAfterAbsoluteReceipt": 0,
+  "expectedInitial": 1,
+  "actualAfterAbsoluteReceipt": 1,
+  "actualInitial": 2
+}
+Exception in thread "main" java.lang.IllegalStateException: Check failed.
+	at io.gitlab.maik3531.magnolietabletbeta.NativeAlarmCollisionProbeKt.main(NativeAlarmCollisionProbe.kt:20)

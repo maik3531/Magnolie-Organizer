@@ -1,0 +1,31 @@
+{
+  "base": "0cdd6f992e094cd724203713da3bf145c36958fc",
+  "source_commit": "016f4e457a3313320c7eaa884375952e6d41ec03",
+  "source_tree": "06573f41cecdec4b8ee9d009b763fc5218c0dd6b",
+  "issue": 839,
+  "patch_sha256": "cc6382d971c634ce4ae94d738738edd8ad7eb11f949de673f7fc7426c5660bdb",
+  "source_sha256": {
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/EligibleAlarms.kt": "8748f05c16f2d9291ce2f3b0a795d8e276fd72b9509d9c90336d5651420e61b0",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ReminderReceiver.kt": "e420f92314b25e843d3e358c18056262e489f93f2b3d4cd79eaf1593ed40c6d9",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/Vault.kt": "bbf2df2909c17a0216dd96249b970f2f9b1c40a5c0947503373d0d6a54d1cef8",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/VaultTest.kt": "49f8ec1255f337b5eaead2ec22b4c47514954ad4a2d77e3e6fa9f31519703d26",
+    "Magnolie-Organizer-Android-Tablet-Beta/tests/reminders.test.cjs": "5c41d293d5df668eb30ee207b9ad9831d0c79001ef47b69b0d61f816bc2877e2",
+    "Magnolie-Organizer-Android-Tablet-Beta/web/tablet.js": "ebc064da5fa694871c73e34c03d12debbb5847055513763ffbcc7880f10889b9",
+    "Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs": "57436552a9be4f887c922acc3d21ad736e20f2ba81f5de36be75f076a4da1cec",
+    "Magnolie-Organizer-macOS-Beta/tools/project_ui.py": "4ef60c7395ad68d6efc3e88f01499d9552c0947ed9d790a4e78b5e540116e369"
+  },
+  "results": {
+    "mac_ui_checks": 398,
+    "tablet_ui_cases": 30,
+    "vault_junit_tests": 23,
+    "native_android_receiver_executed": false,
+    "native_macos_notification_executed": false
+  },
+  "tablet_projection_source_hash": "2c71ca8d531d4c7e1376a5707ad42c9f6ae90bb0320ca6901cf0e5b8288aca90",
+  "generated_runtime_sha256": {
+    "Magnolie-Organizer-macOS-Beta/Generated/web/anwendung.js": "889b1e882ba56396c36ed804ce7557ba72acdda94d41ba8cd55df832ed1f5abb",
+    "Magnolie-Organizer-macOS-Beta/Generated/web/macos-beta.js": "cec95a6f533fca9a214b4a00a49fa47d1bbb56fc4b4bd7ccc43a710ee2da9c0c",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/build/generated/projection/assets/web/anwendung.js": "b8db1b0d0e0c8d68c304a7345636ba1061598f7a2c35d1da5baecac41ee01389",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/build/generated/projection/assets/web/tablet.js": "a9fbab41e7ccb823209ad94829ddfef02f88f85dc17332bc46a7f25ef2467a18"
+  }
+}

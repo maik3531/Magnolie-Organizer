@@ -1,0 +1,73 @@
+From 2aeeef2e8b928f08b15e49c197045eacede257be Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 17:24:00 +0100
+Subject: [PATCH] Refs #113: Document the third verified code review handoff
+
+---
+ ARBEITSSTAND.md | 51 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 51 insertions(+)
+
+diff --git a/ARBEITSSTAND.md b/ARBEITSSTAND.md
+index e14e0e43dd7a96e279b844498acb834004e7e7d5..c43dcaf41f17df2ef247d6588dc4ab1653741990 100644
+--- a/ARBEITSSTAND.md
++++ b/ARBEITSSTAND.md
+@@ -1,5 +1,56 @@
+ # Aktueller Arbeitsstand
+ 
++## Codereview vom 27. November 2026: dritte Patchübergabe
++
++Dieser Abschnitt beschreibt den separat geprüften Reviewstand und seine
++Issue-Patches. Er ist keine Paketfreigabe. Der Review führt keinen Merge nach
++`main` aus. Die ursprüngliche Prüfbasis ist
++`0cdd6f992e094cd724203713da3bf145c36958fc`; für die inzwischen weiterentwickelte
++Basis `dd997f01ea5a16d4c37c4ac938e068ee1a8e361a` wird eine eigene Nachtragsserie
++bereitgestellt, die die bereits übernommenen Korrekturen erhält.
++
++- #823, zusätzlicher Kontaktfall: Eine vorhandene Karte ohne externe UID
++  behält beim gewöhnlichen Import ihre lokale ID und erhält eine UID.
++  Die ergänzende Wiederherstellung erzeugt danach keine zweite Karte mit
++  derselben lokalen ID. Bei einem UID-Wechsel werden nur bekannte fehlende
++  Kontaktinhalte ergänzt; aktuelle Inhalte, UID und Bindungen bleiben erhalten.
++  49 gemeinsame Vektoren, 136 fokussierte Python-Fälle, die C#-Auswahl- und
++  Journalgruppen sowie sechs zusätzliche unabhängige Fälle bestanden.
++- #839, Port-Nachtrag: Absolute und gewöhnliche Erinnerungen desselben
++  Eintrags zum selben Zeitpunkt ergeben eine Meldung. Alte verschlüsselte
++  Tablet-Pläne werden auch ohne erneutes Web-Speichern abgeglichen; Belege
++  bleiben bei Neustart und beim Entfernen einer Alarmart wirksam.
++  macOS-Aufgaben wiederholen eine gemeldete Fälligkeits-/Vorlauferinnerung
++  nach Entfernen des absoluten Alarms nicht. 398 Mac-Quell-/Controllerprüfungen,
++  30 Tablet-Oberflächenfälle und 23 JVM-Speicherprüfungen bestanden.
++- #841: Regionale arabische Sprachcodes behalten die Richtung RTL beim
++  tatsächlichen Systemsprachenstart. Die Produktkorrektur wurde während
++  des Reviews unabhängig mit `ecad9a05` in `main` übernommen.
++  Der Nachtrag enthält die dauerhafte Regression im bestehenden Webtestlauf;
++  alle 16 vollständigen DOM-Startfälle bestanden. Das Handbuch verwendet
++  die korrekte Untertagregel bereits.
++- #842: Beschädigtes UTF-16LE/BE mit BOM wird vor dem Windows-Import
++  zurückgewiesen. Die unabhängige Korrektur `dd997f01` in `main` bleibt
++  in der Nachtragsserie unverändert. Die zusätzliche bestehend angebundene
++  Regression besteht 148 Datei-, ZIP- und Müllkalenderfälle; 28 unabhängige
++  Decoder-Randfälle und drei bestehende Import-/Exportgruppen bestanden.
++
++Die gemeinsame historische Integration besteht 136 Python-Fälle, sechs
++C#-Gruppen, 16 DOM-Startfälle sowie die genannten Portprüfungen. Die an
++`dd997f01` angepasste Serie wird gesondert gegen die übernommenen Quellen
++geprüft und im Patchindex mit Quellen- und Prüfsummenbindung ausgewiesen.
++Host-DOM-, C#- und JVM-Läufe ersetzen weder eine installierte Desktop-GUI
++noch Android-NotificationManager, macOS-Mitteilungszustellung oder die
++Paket-/Geräteabnahme aus #113/#121.
++
++Vollständige Patches, Beschreibungen, rote/grüne Nachweise und Anwendungstests:
++[Review-Patchindex](https://github.com/maik3531/Magnolie-Organizer/tree/work/codereview-20261127-round3-patches/patches/codereview-2026-11-27-round3).
++Nächster Schritt ist die gezielte Einpflege der noch fehlenden Nachträge
++aus #823/#839 und der ergänzenden Regressionen, anschließend die jeweils
++erforderliche native Abnahme. Der gesonderte offene CSV-Kontaktteil in #566
++wird durch diese Runde nicht als erledigt dargestellt.
++
++
+ Die geprüften Einzelissues sind abgeschlossen; die weiterhin benötigten
+ Paket- und Geräteprüfungen sind in [#113](https://github.com/maik3531/Magnolie-Organizer/issues/113#issuecomment-7215114176)
+ und [#121](https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7215113730)
+-- 
+2.56.1
+

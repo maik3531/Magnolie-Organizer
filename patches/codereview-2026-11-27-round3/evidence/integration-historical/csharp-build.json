@@ -1,0 +1,14 @@
+{
+  "exit_code": 0,
+  "command": [
+    "<review-workspace>/round3-tools/dotnet/dotnet",
+    "build",
+    "tests/CoreTests.csproj",
+    "--nologo",
+    "--verbosity",
+    "quiet",
+    "-p:RestoreLockedMode=true"
+  ],
+  "source_tree": "7b009ca31c042bd9f8d17c62a89fa97256d2da6e",
+  "log_sha256": "ad8f409f149a46f537033328e8d8000a44d4d4b5945ecfe83c252ee8dd8fc947"
+}

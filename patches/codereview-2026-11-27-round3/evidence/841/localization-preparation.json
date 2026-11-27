@@ -1,0 +1,15 @@
+{
+  "exit_code": 0,
+  "log_sha256": "b1bddd7164b3a9efd85196d0d7fa363b6a2ce7da0b6b38a3441aa9ffde6367c5",
+  "native_preparation_delta": [
+    {
+      "locale": "pt",
+      "key": "No",
+      "tracked": "No",
+      "generated": "Não"
+    }
+  ],
+  "tracked_native_sha256": "7ccaced092607cf49b3e319b1d5a10694f1ba6d3bffbba31defee89eee50f01d",
+  "generated_native_sha256": "3bb802b350968fb55bf1abbfade8b79bb4a47761774748ce3f0ddfc62842b19e",
+  "note": "Existing native catalog generator used as normal test preparation; no native derivative included in #841 patch."
+}

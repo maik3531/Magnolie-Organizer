@@ -1,0 +1,29 @@
+{
+  "scope": "Actual JVM product classes and existing VaultTest. No Android OS/NotificationManager execution.",
+  "source_files": {
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/EligibleAlarms.kt": "8748f05c16f2d9291ce2f3b0a795d8e276fd72b9509d9c90336d5651420e61b0",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/Vault.kt": "bbf2df2909c17a0216dd96249b970f2f9b1c40a5c0947503373d0d6a54d1cef8",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/VaultJson.kt": "e413d0bac96529905aa4135145304f1994a7a710ef30fa5f66dee2ba52c985d6",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/StorageFileOps.kt": "b76aabe660c50b86895100214a5f4a501cfbcd1f26883b77b3e39d40c8ea131d",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/NioStorageFileOps.kt": "05ad7af4fe57109b55024b5fc29b14415e9746379ff82d048911b43a7f8940f8",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/OrdinarySaveEpochPolicy.kt": "21201831ae465642e6924898702f56d83b957c63c80ed0affde59835a3155925",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/BookRestore.kt": "323536d9a08a200828d8e98a7a47abd6c7dc92519f57b2fb5b69e6c5e763af30",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/StandardBase64.kt": "782141a3693546cbaddf03248ae35ff226f4635b8f61967a05397596933ac4b5",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/Pbkdf2Sha256.kt": "b075525217a94b5b0d28abdba38d79c4f451fd8dc1860b2f48f4b0e2bc53e27f",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/daten/DatenDateiKrypto.kt": "05405a1e70d78ff0d713c1f669de5159b6030a06a56b975003e69c0054639a13",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/JsonValueComparison.kt": "51f00de488086a94a0f9b1cf31ffc7c32ecc0dc6b2758e92962c0c09b063992d",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/VaultTest.kt": "49f8ec1255f337b5eaead2ec22b4c47514954ad4a2d77e3e6fa9f31519703d26"
+  },
+  "runs": [
+    {
+      "name": "compile",
+      "exit_code": 0,
+      "log": "native-compile-after.log"
+    },
+    {
+      "name": "junit",
+      "exit_code": 0,
+      "log": "native-junit-after.log"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "id": "contact-uid-change-restores-multiple-emergency-contacts",
+  "area": "contacts",
+  "collection": "kontakte",
+  "current": [
+    {
+      "id": "contact-local",
+      "uid": "new-uid",
+      "vorname": "Current",
+      "kontaktpersonen": [],
+      "kontaktpersonName": "",
+      "kontaktpersonTelefon": "",
+      "kontaktpersonStatus": ""
+    }
+  ],
+  "snapshot": [
+    {
+      "id": "contact-local",
+      "uid": "old-uid",
+      "vorname": "Old",
+      "kontaktpersonen": [
+        {
+          "name": "Alex Example",
+          "telefon": "+12025550101",
+          "status": "Family"
+        },
+        {
+          "name": "Berta Example",
+          "telefon": "+12025550102",
+          "status": "Friend"
+        }
+      ],
+      "kontaktpersonName": "Alex Example",
+      "kontaktpersonTelefon": "+12025550101",
+      "kontaktpersonStatus": "Family"
+    }
+  ],
+  "expected": [
+    {
+      "id": "contact-local",
+      "uid": "new-uid",
+      "vorname": "Current",
+      "kontaktpersonen": [
+        {
+          "name": "Alex Example",
+          "telefon": "+12025550101",
+          "status": "Family"
+        },
+        {
+          "name": "Berta Example",
+          "telefon": "+12025550102",
+          "status": "Friend"
+        }
+      ],
+      "kontaktpersonName": "Alex Example",
+      "kontaktpersonTelefon": "+12025550101",
+      "kontaktpersonStatus": "Family"
+    }
+  ]
+}

@@ -1,0 +1,297 @@
+From 3d0b8bffd782d0bc9868702905954e8fb0e0ff5a Mon Sep 17 00:00:00 2001
+From: Maik Walter <maik3531@users.noreply.github.com>
+Date: Fri, 27 Nov 2026 17:04:24 +0100
+Subject: [PATCH] Refs #823: Keep stable contact identity during additive
+ restore
+
+---
+ .../restore-additive-identity-vectors.json    | 84 +++++++++++++++++++
+ .../RestoreSelection.cs                       | 25 ++++--
+ magnolie-organizer/bin/magnolie-organizer     | 22 +++--
+ .../pruefungen/test_save_restore_boundary.py  | 50 +++++++++++
+ 4 files changed, 171 insertions(+), 10 deletions(-)
+
+diff --git a/contracts/restore-additive-identity-vectors.json b/contracts/restore-additive-identity-vectors.json
+index ecdf57b4aa79cada8881241a0b0fc8f360276ea9..0688992beb80de97837add8e7692827adb2abd33 100644
+--- a/contracts/restore-additive-identity-vectors.json
++++ b/contracts/restore-additive-identity-vectors.json
+@@ -259,6 +259,90 @@
+       "current": [{"id": "same", "uid": "shared", "icsQuelleId": "import-source", "syncKalenderUid": "calendar-b", "notiz": "", "davHref": ""}],
+       "snapshot": [{"id": "same", "uid": "shared", "icsQuelleId": "import-source", "syncKalenderUid": "calendar-a", "notiz": "Recovered", "davHref": "/calendar-a/old.ics", "syncQuellen": {"calendar-a": {"id": "old"}}}],
+       "expected": [{"id": "same", "uid": "shared", "icsQuelleId": "import-source", "syncKalenderUid": "calendar-b", "notiz": "Recovered", "davHref": ""}]
++    },
++    {
++      "id": "contact-import-assigned-uid-keeps-stable-local-id",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "contact-local", "uid": "import-uid", "vorname": "Keep", "email": "same@example.test", "notiz": "", "firma": "Current company"}],
++      "snapshot": [{"id": "contact-local", "uid": "", "vorname": "Old", "email": "same@example.test", "notiz": "Restore detail", "firma": "Old company"}],
++      "expected": [{"id": "contact-local", "uid": "import-uid", "vorname": "Keep", "email": "same@example.test", "notiz": "Restore detail", "firma": "Current company"}]
++    },
++    {
++      "id": "contact-missing-uid-in-old-snapshot-keeps-assigned-uid",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "contact-local", "uid": "import-uid", "notiz": ""}],
++      "snapshot": [{"id": "contact-local", "notiz": "Legacy detail"}],
++      "expected": [{"id": "contact-local", "uid": "import-uid", "notiz": "Legacy detail"}]
++    },
++    {
++      "id": "contact-changed-uid-keeps-current-provider-binding",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "contact-local", "uid": "new-uid", "vorname": "Keep", "notiz": "", "syncQuellen": {"live-source": {"id": "live.vcf"}}, "davHref": "", "kontaktAliase": {"uids": ["old-uid"]}}],
++      "snapshot": [{"id": "contact-local", "uid": "old-uid", "vorname": "Old", "notiz": "Restore detail", "telefon": "+4930123456", "anschriften": [{"art": "WORK", "ort": "Berlin"}], "gruppen": ["Work"], "syncQuellen": {"old-source": {"id": "old.vcf"}}, "davHref": "/old.vcf", "sync": true, "baumKontakt": {"freigabeId": "old-grant"}, "importBindungen": ["old-import"], "unknownProviderWitness": {"old": true}, "vcardRoundtrip": ["UID:old-uid"], "vcardParameter": {"UID": {"old": true}}}],
++      "expected": [{"id": "contact-local", "uid": "new-uid", "vorname": "Keep", "notiz": "Restore detail", "telefon": "+4930123456", "anschriften": [{"art": "WORK", "ort": "Berlin"}], "gruppen": ["Work"], "syncQuellen": {"live-source": {"id": "live.vcf"}}, "davHref": "", "kontaktAliase": {"uids": ["old-uid"]}}]
++    },
++    {
++      "id": "contact-cleared-uid-does-not-reinstate-archived-binding",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "contact-local", "uid": "", "sync": false, "syncQuellen": {}, "notiz": ""}],
++      "snapshot": [{"id": "contact-local", "uid": "old-uid", "sync": true, "syncQuellen": {"old-source": {"id": "old.vcf"}}, "notiz": "Restore detail"}],
++      "expected": [{"id": "contact-local", "uid": "", "sync": false, "syncQuellen": {}, "notiz": "Restore detail"}]
++    },
++    {
++      "id": "contact-stable-local-id-beats-unrelated-old-uid",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "other-contact", "uid": "old-uid", "notiz": ""}, {"id": "contact-local", "uid": "new-uid", "notiz": ""}],
++      "snapshot": [{"id": "contact-local", "uid": "old-uid", "notiz": "Only for stable local contact"}],
++      "expected": [{"id": "other-contact", "uid": "old-uid", "notiz": ""}, {"id": "contact-local", "uid": "new-uid", "notiz": "Only for stable local contact"}]
++    },
++    {
++      "id": "contact-unique-uid-fallback-retains-current-local-id",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "current-contact", "uid": "shared", "notiz": ""}],
++      "snapshot": [{"id": "old-contact", "uid": "shared", "notiz": "Restore detail"}],
++      "expected": [{"id": "current-contact", "uid": "shared", "notiz": "Restore detail"}]
++    },
++    {
++      "id": "contact-ambiguous-current-local-id-holds-restore",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "ambiguous", "uid": "new-a", "notiz": ""}, {"id": "ambiguous", "uid": "new-b", "notiz": ""}],
++      "snapshot": [{"id": "ambiguous", "uid": "old", "notiz": "Do not guess"}],
++      "error": "ambiguous-local-id"
++    },
++    {
++      "id": "contact-ambiguous-snapshot-local-id-cannot-create-duplicates",
++      "area": "contacts", "collection": "kontakte",
++      "current": [],
++      "snapshot": [{"id": "ambiguous", "uid": "old-a", "notiz": "A"}, {"id": "ambiguous", "uid": "old-b", "notiz": "B"}],
++      "error": "ambiguous-local-id"
++    },
++    {
++      "id": "contact-ambiguous-snapshot-local-id-cannot-pick-current-contact",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "ambiguous", "uid": "current", "notiz": ""}],
++      "snapshot": [{"id": "ambiguous", "uid": "old-a", "notiz": "A"}, {"id": "ambiguous", "uid": "old-b", "notiz": "B"}],
++      "error": "ambiguous-local-id"
++    },
++    {
++      "id": "contact-exact-existing-ambiguous-local-id-remains-idempotent",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "ambiguous", "uid": "a", "notiz": "A"}, {"id": "ambiguous", "uid": "b", "notiz": "B"}],
++      "snapshot": [{"id": "ambiguous", "uid": "a", "notiz": "A"}],
++      "expected": [{"id": "ambiguous", "uid": "a", "notiz": "A"}, {"id": "ambiguous", "uid": "b", "notiz": "B"}]
++    },
++    {
++      "id": "contact-exact-uid-disambiguates-preexisting-local-id-collision",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "ambiguous", "uid": "a", "notiz": ""}, {"id": "ambiguous", "uid": "b", "notiz": ""}],
++      "snapshot": [{"id": "ambiguous", "uid": "b", "notiz": "For B"}],
++      "expected": [{"id": "ambiguous", "uid": "a", "notiz": ""}, {"id": "ambiguous", "uid": "b", "notiz": "For B"}]
++    },
++    {
++      "id": "contact-uid-change-does-not-invent-empty-content",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "contact-local", "uid": "new"}],
++      "snapshot": [{"id": "contact-local", "uid": "old", "notiz": "", "telefon": null, "anschriften": [], "unknownProviderWitness": {"old": true}}],
++      "expected": [{"id": "contact-local", "uid": "new"}]
+     }
+   ]
+ }
+diff --git a/magnolie-organizer-windows/RestoreSelection.cs b/magnolie-organizer-windows/RestoreSelection.cs
+index e7cc8c34ac0549113cff5ff971c39e5aa83150be..f9ae8eb1bea6a0ee544c4155d9e2a3b63814aa36 100644
+--- a/magnolie-organizer-windows/RestoreSelection.cs
++++ b/magnolie-organizer-windows/RestoreSelection.cs
+@@ -27,7 +27,7 @@ internal static class RestoreSelection
+             foreach (var name in groups[area])
+                 result[name] = mode == "additive"
+                     ? AddMissing(result[name] as JsonArray, snapshot[name] as JsonArray,
+-                        sourceScoped: name is "termine" or "aufgaben")
++                        sourceScoped: name is "termine" or "aufgaben", contacts: name == "kontakte")
+                     : snapshot[name]?.DeepClone() ?? new JsonArray();
+         PreserveAttachments(result, current);
+         return result;
+@@ -79,7 +79,7 @@ internal static class RestoreSelection
+         WalkRestored(restored);
+     }
+ 
+-    private static JsonArray AddMissing(JsonArray? current, JsonArray? snapshot, bool sourceScoped)
++    private static JsonArray AddMissing(JsonArray? current, JsonArray? snapshot, bool sourceScoped, bool contacts)
+     {
+         var result = current?.DeepClone().AsArray() ?? new JsonArray();
+         string LocalId(JsonObject item) => item["id"]?.ToString() ?? "";
+@@ -111,6 +111,20 @@ internal static class RestoreSelection
+             "standardErinnerung", "wiederholung", "prio", "prioritaet", "faellig", "startDatum",
+             "startZeit", "faelligZeit", "erledigt", "erinnern", "reihenfolge"
+         };
++        if (contacts)
++        {
++            // A contact import can assign/change the UID without changing its
++            // local id. Preserve live identity/transport and only fill missing
++            // user content, never archived or unknown provider metadata.
++            contentFields = new HashSet<string>(StringComparer.Ordinal) {
++                "nachname", "vorname", "anzeigename", "firma", "strasse", "plz", "ort", "land",
++                "telefon", "mobil", "telefone", "email", "emails", "emailEintraege", "anschriften",
++                "geburtstag", "geburtstagJahrUnbekannt", "jubilaeum", "jubilaeumJahrUnbekannt",
++                "notiz", "foto", "kontaktpersonName", "kontaktpersonTelefon", "kontaktpersonStatus",
++                "kontaktpersonen", "sozialeMedien", "gruppen"
++            };
++        }
++        var preferLocalIdentity = sourceScoped || contacts;
+         var byId = new Dictionary<(string Kind, string Source, string Value), List<JsonObject>>();
+         var byLocalId = new Dictionary<string, List<JsonObject>>(StringComparer.Ordinal);
+         void Remember(JsonObject item)
+@@ -141,8 +155,8 @@ internal static class RestoreSelection
+             var matches = identity.HasValue && byId.TryGetValue(identity.Value, out var found) ? found : [];
+             var existing = matches.Count == 1 ? matches[0] : null;
+             var localId = LocalId(old);
+-            var localMatches = sourceScoped && localId.Length > 0 && byLocalId.TryGetValue(localId, out var localFound) ? localFound : [];
+-            if (sourceScoped && localId.Length > 0 && (localMatches.Count > 1 || ambiguousOldIds.Contains(localId)))
++            var localMatches = preferLocalIdentity && localId.Length > 0 && byLocalId.TryGetValue(localId, out var localFound) ? localFound : [];
++            if (preferLocalIdentity && localId.Length > 0 && (localMatches.Count > 1 || ambiguousOldIds.Contains(localId)))
+             {
+                 if (localMatches.Any(item => JsonNode.DeepEquals(item, old))) continue;
+                 // Preexisting duplicate local ids need an exact unchanged
+@@ -168,7 +182,8 @@ internal static class RestoreSelection
+                 Remember(copy);
+                 continue;
+             }
+-            var changedBinding = sourceScoped && Binding(existing) != Binding(old);
++            var changedBinding = sourceScoped && Binding(existing) != Binding(old) ||
++                contacts && (existing["uid"]?.ToString() ?? "") != (old["uid"]?.ToString() ?? "");
+             var previousLocalId = LocalId(existing);
+             foreach (var pair in old)
+             {
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index cb90c02f9f3ab15707bcef76e8e4cf71ed5307c4..ab1d986e789f4c25da6bb80b63d14fe343936c76 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -1923,7 +1923,7 @@ def journal_umschluesseln(kennwort_neu, kennwort_alt="", basis=None):
+     return {"geschafft": geschafft, "misslungen": misslungen}
+ 
+ 
+-def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False):
++def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False, kontaktbezogen=False):
+     aus = json.loads(json.dumps(aktuell or [], ensure_ascii=False))
+     index = {}
+     lokale_ids = {}
+@@ -1957,6 +1957,16 @@ def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False):
+                     "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "individuelleErinnerungTage",
+                     "standardErinnerung", "wiederholung", "prio", "prioritaet", "faellig", "startDatum",
+                     "startZeit", "faelligZeit", "erledigt", "erinnern", "reihenfolge"}
++    if kontaktbezogen:
++        # Import can assign/change a contact UID while its local id survives.
++        # Keep the live identity and transport; only missing user content may
++        # cross that boundary, never archived or unknown provider metadata.
++        inhaltsfelder = {"nachname", "vorname", "anzeigename", "firma", "strasse", "plz", "ort", "land",
++                        "telefon", "mobil", "telefone", "email", "emails", "emailEintraege", "anschriften",
++                        "geburtstag", "geburtstagJahrUnbekannt", "jubilaeum", "jubilaeumJahrUnbekannt",
++                        "notiz", "foto", "kontaktpersonName", "kontaktpersonTelefon", "kontaktpersonStatus",
++                        "kontaktpersonen", "sozialeMedien", "gruppen"}
++    lokale_identitaet = quellenbezogen or kontaktbezogen
+ 
+     for objekt in aus:
+         if isinstance(objekt, dict):
+@@ -1981,8 +1991,8 @@ def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False):
+         kandidaten = index.get(kennung, [])
+         vorhanden = kandidaten[0] if len(kandidaten) == 1 else None
+         local = lokale_id(objekt)
+-        lokale_kandidaten = lokale_ids.get(local, []) if quellenbezogen and local else []
+-        if quellenbezogen and local and (len(lokale_kandidaten) > 1 or local in mehrdeutige_alt_ids):
++        lokale_kandidaten = lokale_ids.get(local, []) if lokale_identitaet and local else []
++        if lokale_identitaet and local and (len(lokale_kandidaten) > 1 or local in mehrdeutige_alt_ids):
+             if objekt in lokale_kandidaten:
+                 continue
+             # Existing duplicate local ids can only be disambiguated by the
+@@ -2010,7 +2020,8 @@ def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False):
+             if local:
+                 lokale_ids.setdefault(local, []).append(kopie)
+             continue
+-        quellenwechsel = quellenbezogen and bindung(vorhanden) != bindung(objekt)
++        quellenwechsel = (quellenbezogen and bindung(vorhanden) != bindung(objekt) or
++                          kontaktbezogen and str(vorhanden.get("uid") or "") != str(objekt.get("uid") or ""))
+         bisherige_id = lokale_id(vorhanden)
+         for name, wert in objekt.items():
+             if quellenwechsel and name not in inhaltsfelder:
+@@ -2080,7 +2091,8 @@ def journal_restore_daten(daten, aktuell=None, bereiche=None, modus="replace"):
+             for name in gruppen.get(bereich, ()):
+                 if modus == "additive":
+                     neu[name] = _journal_liste_ergaenzen(neu.get(name), snapshot.get(name),
+-                                                       quellenbezogen=name in ("termine", "aufgaben"))
++                                                       quellenbezogen=name in ("termine", "aufgaben"),
++                                                       kontaktbezogen=name == "kontakte")
+                 else:
+                     neu[name] = json.loads(json.dumps(snapshot.get(name) or [], ensure_ascii=False))
+     _journal_anhaenge_bewahren(neu, aktuell or {})
+diff --git a/magnolie-organizer/pruefungen/test_save_restore_boundary.py b/magnolie-organizer/pruefungen/test_save_restore_boundary.py
+index 11601a1ef143d75525dd2adcfeaa1239074e9394..5ca35d620b8ef4441688bae66c32302a08fc33ee 100644
+--- a/magnolie-organizer/pruefungen/test_save_restore_boundary.py
++++ b/magnolie-organizer/pruefungen/test_save_restore_boundary.py
+@@ -57,6 +57,56 @@ class Probe:
+         return next(value for name, value in reversed(self.responses) if name == "App.gespeichert")
+ 
+ 
++def test_contact_uid_assignment_restore_keeps_one_durable_contact_and_protection(native):
++    m = native
++    snapshot_data = fixture_data("snapshot content")
++    snapshot_data["kontakte"] = [{"id": "contact-local", "uid": "", "email": "same@example.test",
++                                  "notiz": "Recovered detail", "firma": "Old company"}]
++    current = fixture_data("current unrelated content")
++    current["kontakte"] = [{"id": "contact-local", "uid": "import-uid", "email": "same@example.test",
++                            "notiz": "", "firma": "Current company", "syncQuellen": {"live": {"id": "live.vcf"}}}]
++    expected = copy.deepcopy(current["kontakte"])
++    expected[0]["notiz"] = "Recovered detail"
++    m.speichere_text(json.dumps(current))
++    snapshot = m.journal_snapshot_erzeugen(snapshot_data, "manual", basis=m.daten_verzeichnis())
++    probe = Probe(m, current)
++
++    for _ in range(2):
++        m.Fenster._journal_wiederherstellen(probe, snapshot["snapshotId"], ["contacts"], "additive")
++        response = next(value for name, value in reversed(probe.responses) if name == "App.journalWiederhergestellt")
++        assert response["ok"] and response["committed"] and not response["repairPending"]
++        durable = json.loads(Path(m.daten_datei()).read_text())
++        assert durable["kontakte"] == expected
++        assert durable["notizen"] == current["notizen"]
++        assert durable["syncEpoch"] != current["syncEpoch"]
++        protected = m.journal_snapshot_lesen(response["vorher"], basis=m.daten_verzeichnis())[1]["daten"]
++        assert protected["kontakte"] in (current["kontakte"], expected)
++        restarted = Probe(m, durable)
++        assert not restarted.save(90, current)["ok"], "A pre-restore save must not replace the restored contact"
++        assert json.loads(Path(m.daten_datei()).read_text())["kontakte"] == expected
++        probe = restarted
++    # The native restore also migrates legacy profile-local snapshots to the
++    # isolated canonical XDG journal; read the original through that same path.
++    assert m.journal_snapshot_lesen(snapshot["snapshotId"])[1]["daten"]["kontakte"] == snapshot_data["kontakte"]
++
++
++def test_ambiguous_contact_restore_rejects_before_primary_write(native):
++    m = native
++    snapshot_data = fixture_data("snapshot content")
++    snapshot_data["kontakte"] = [{"id": "ambiguous", "uid": "old", "notiz": "Do not guess"}]
++    current = fixture_data("current unrelated content")
++    current["kontakte"] = [{"id": "ambiguous", "uid": "new-a"}, {"id": "ambiguous", "uid": "new-b"}]
++    m.speichere_text(json.dumps(current))
++    original = Path(m.daten_datei()).read_bytes()
++    snapshot = m.journal_snapshot_erzeugen(snapshot_data, "manual", basis=m.daten_verzeichnis())
++    probe = Probe(m, current)
++    m.Fenster._journal_wiederherstellen(probe, snapshot["snapshotId"], ["contacts"], "additive")
++    response = next(value for name, value in reversed(probe.responses) if name == "App.journalWiederhergestellt")
++    assert not response["ok"] and response["committed"] is False
++    assert Path(m.daten_datei()).read_bytes() == original
++    assert probe._aktuelle_daten == current
++
++
+ def test_native_failed_save_restore_late_old_save_and_restart(native, monkeypatch):
+     m = native
+     old = fixture_data("old failed content")
+-- 
+2.56.1
+

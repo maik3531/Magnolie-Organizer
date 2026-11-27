@@ -1,0 +1,9 @@
+{
+  "base": "0cdd6f992e094cd724203713da3bf145c36958fc",
+  "exit_code": 1,
+  "scope": "Actual unchanged C# product source plus the new regression test only; .NET8 host on Linux",
+  "source_sha256": "521fa0647331ba34cdcacd36a2f3e49920da14cf7df1db9a41a9b3a6f4582802",
+  "test_sha256": "d3512af3953760b26d85c8c58eabce55e4e0ce8989d7db8f5f205f0981439389",
+  "log_sha256": "bd677adc86e12accb5d1e21dfa5a6d996ba439c287986dba235d9254b8cf9de6",
+  "original_log_sha256": "307a902c508030b0ac153690515bea58e6f97d74aaa5604fdaeffd39c0816c9e"
+}

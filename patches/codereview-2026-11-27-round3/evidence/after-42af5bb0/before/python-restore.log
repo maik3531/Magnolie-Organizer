@@ -1,0 +1,31 @@
+....................................................F................... [ 50%]
+........................................................................ [100%]
+=================================== FAILURES ===================================
+_ test_additive_restore_identity[contact-uid-change-restores-multiple-emergency-contacts] _
+
+case = {'area': 'contacts', 'collection': 'kontakte', 'current': [{'id': 'contact-local', 'kontaktpersonName': '', 'kontaktpe...ontaktpersonName': 'Alex Example', 'kontaktpersonStatus': 'Family', 'kontaktpersonTelefon': '+12025550101', ...}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f9af065d250>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError: assert [{'id': 'cont...550101', ...}] == [{'id': 'cont...550101', ...}]
+E         
+E         At index 0 diff: {'id': 'contact-local', 'uid': 'new-uid', 'vorname': 'Current', 'kontaktpersonen': [], 'kontaktpersonName': 'Alex Example', 'kontaktpersonTelefon': '+12025550101', 'kontaktpersonStatus': 'Family'} != {'id': 'contact-local', 'uid': 'new-uid', 'vorname': 'Current', 'kontaktpersonen': [{'name': 'Alex Example', 'telefon': '+12025550101', 'status': 'Family'}, {'name': 'Berta Example', 'telefon': '+12025550102', 'status': 'Friend'}], 'kontaktpersonName': 'Alex Example', 'kontaktpersonTelefon': '+12025550101', 'kontaktpersonStatus': 'Family'}
+E         Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[contact-uid-change-restores-multiple-emergency-contacts]
+1 failed, 143 passed in 2.07s

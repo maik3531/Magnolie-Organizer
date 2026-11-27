@@ -1,0 +1,220 @@
+{
+  "scope": "Publication copies only; all product patches and actual product-source hashes are unchanged.",
+  "changes": [
+    "Ephemeral workspace and runtime prefixes in logs/command metadata are represented by <review-workspace> and <runtime>.",
+    "The evidence/current replay helper takes explicit checkout, tool-root and output paths, and does not invent a build exit status for its preexisting build log.",
+    "Nested artifact/log hashes and sizes were updated; original_* fields retain their pre-publication values.",
+    "The latest evidence README explicitly scopes its no-GitHub-write statement to the local test phase; artifact publication is documented separately."
+  ],
+  "modified_files": [
+    {
+      "path": "evidence/823/csharp-build-after.log",
+      "original": {
+        "sha256": "695e26f9f5e3f3eddbbdb78eb885ede67010e00d80612fe7c3cd4b9d606c9c31",
+        "bytes": 360
+      },
+      "published": {
+        "sha256": "e3e140b7f1cbf82723c1e070c2069fddc5ee5b30fe95bb4cecb431c569d62e6b",
+        "bytes": 334
+      }
+    },
+    {
+      "path": "evidence/823/manifest.json",
+      "original": {
+        "sha256": "529750fe292366efd79acd98880307c306f7e154c7baa22088b178963256bfd6",
+        "bytes": 6200
+      },
+      "published": {
+        "sha256": "18b742b090fa67417ab9442f8baba38899c3b31c981aa9efc6e43b2ccacedc70",
+        "bytes": 6444
+      }
+    },
+    {
+      "path": "evidence/823/csharp-before.log",
+      "original": {
+        "sha256": "c3262ba87d09c3ccc7f2ee9f9aa867b13d9407d02a42d35adbfcea0af298a3df",
+        "bytes": 826
+      },
+      "published": {
+        "sha256": "9dda9ebbde0f5f5b67b4ffe8b7a2cb57bfc84fb4b42809a74c26b0a0ddfde763",
+        "bytes": 787
+      }
+    },
+    {
+      "path": "evidence/842/adjacent-after.json",
+      "original": {
+        "sha256": "f9e7010f39eac2b690efdda9c68b9502dee8746eadd738b38c138843eee88371",
+        "bytes": 1247
+      },
+      "published": {
+        "sha256": "96387c0805beae5c7cb1a06aaa80595e7639add8fe6040ddbc3b899715e47ad8",
+        "bytes": 1169
+      }
+    },
+    {
+      "path": "evidence/842/regression-after.json",
+      "original": {
+        "sha256": "f73a98d971cab1debbf2cae4e1ed98603ba255217724738f05b8ef5febbf7509",
+        "bytes": 578
+      },
+      "published": {
+        "sha256": "3149631b433a7db1b3bd2a99032fd3899a76c6a82202cacbf9a46c14cc742ed2",
+        "bytes": 565
+      }
+    },
+    {
+      "path": "evidence/842/regression-before.json",
+      "original": {
+        "sha256": "0abeabdc3a98fc4d5b0d5e584ab1cb1737917428826d46d134f5274a5bb5d4d5",
+        "bytes": 434
+      },
+      "published": {
+        "sha256": "77670c8df3f2587f05a58f86014ac558ddf6a011f336244dddb20796c3a9ae31",
+        "bytes": 528
+      }
+    },
+    {
+      "path": "evidence/842/manifest.json",
+      "original": {
+        "sha256": "90cece9c4c1fcf3b3d67aebc6174922fe4e3dbe86bed7421ec6c8ef23fb30477",
+        "bytes": 2745
+      },
+      "published": {
+        "sha256": "6c940271595a43ff6ec6be54adc84df91979f7c6da062f0c1382b96bf3d5b112",
+        "bytes": 3235
+      }
+    },
+    {
+      "path": "evidence/842/regression-before.log",
+      "original": {
+        "sha256": "307a902c508030b0ac153690515bea58e6f97d74aaa5604fdaeffd39c0816c9e",
+        "bytes": 794
+      },
+      "published": {
+        "sha256": "bd677adc86e12accb5d1e21dfa5a6d996ba439c287986dba235d9254b8cf9de6",
+        "bytes": 755
+      }
+    },
+    {
+      "path": "evidence/current/run-focused-tests.py",
+      "original": {
+        "sha256": "fa1734b8d6f2d0b7077d004cd70f99b457f23eec1f58459c1e32f467276b2ae5",
+        "bytes": 4242
+      },
+      "published": {
+        "sha256": "429fa1ebcc77bd2f3a1a129b23fbefcb107b2e3dfdacb5b9c03b627897e3d5eb",
+        "bytes": 5148
+      }
+    },
+    {
+      "path": "evidence/current/current-delivery-manifest.json",
+      "original": {
+        "sha256": "42e28451737493bf02e7c5dc21d7628671c776eee35365c99e625f36e0048bee",
+        "bytes": 4042
+      },
+      "published": {
+        "sha256": "14d307c1cb5f1c8bd44a57abc2455c17e5689d6cd8f66bacac5bbe478106b7be",
+        "bytes": 4288
+      }
+    },
+    {
+      "path": "evidence/current/core-tests-manifest.json",
+      "original": {
+        "sha256": "39c01c3cb225a509257c7650c7cce5ada9530658465366e3b5a89921ce036095",
+        "bytes": 5866
+      },
+      "published": {
+        "sha256": "7472a45d660572d4c31114429b5e90977dea779c2ac83008c8f5a421f3098ce7",
+        "bytes": 5645
+      }
+    },
+    {
+      "path": "evidence/integration-historical/csharp-build.json",
+      "original": {
+        "sha256": "84e257818102810dfaa488eb2c48308f349195bc20c8f005f7dcf4b4c9a827fb",
+        "bytes": 374
+      },
+      "published": {
+        "sha256": "632882fc10c4c9383138a660423ce5880d8b78fe84baf8926beca491ba77c2f9",
+        "bytes": 361
+      }
+    },
+    {
+      "path": "evidence/integration-historical/desktop-tests.json",
+      "original": {
+        "sha256": "08e290d02a84dd3deb3373d7425ae56e365766d99bc2125231eb89ca64986742",
+        "bytes": 3946
+      },
+      "published": {
+        "sha256": "b01ba7ea64103b9aac8aa481fad9eec6696dc94e8bfa1a8ebf279dfd1f9cd461",
+        "bytes": 3686
+      }
+    },
+    {
+      "path": "evidence/integration-historical/ports/port-runs.json",
+      "original": {
+        "sha256": "3ddf489bc2e7258312e557b8a79d202adfdc1f00832e7d6203f0778050cda631",
+        "bytes": 7543
+      },
+      "published": {
+        "sha256": "85379159d8cea647c5cb80e220299257a15ccffddb92688f6fcfa86346fda062",
+        "bytes": 6456
+      }
+    },
+    {
+      "path": "evidence/after-42af5bb0/latest-delivery-manifest.json",
+      "original": {
+        "sha256": "e5a751b5c1a95dea2b35adc538020724827ad2e1fc845514f23e523f2d7b4c82",
+        "bytes": 6912
+      },
+      "published": {
+        "sha256": "ba7812371f4b599025440bdd9b774bccbb52c37c4f43b216baa45e7539e6baba",
+        "bytes": 7403
+      }
+    },
+    {
+      "path": "evidence/after-42af5bb0/README.md",
+      "original": {
+        "sha256": "300abb7e93f77d9d0f8a4a640b8eff8ed865b4a0be3ec2b133642544ca29963f",
+        "bytes": 4670
+      },
+      "published": {
+        "sha256": "bc84cad97571b3486ab6381e1a80f98429b6c31e424fddef913a0a8318775fa8",
+        "bytes": 4747
+      }
+    },
+    {
+      "path": "evidence/after-42af5bb0/after/focused-tests-manifest.json",
+      "original": {
+        "sha256": "98a5a30e067779dbf0987c3545a2582dfa44ed90b0b354aa06de868657daed6a",
+        "bytes": 7699
+      },
+      "published": {
+        "sha256": "d18981e51c24f0d85f126acf75e87c837552a1dd7e452b4d0d8987937ed499c6",
+        "bytes": 7374
+      }
+    },
+    {
+      "path": "evidence/after-42af5bb0/before/restore-identity.log",
+      "original": {
+        "sha256": "eb484d73aa05491397e92759d5d32face89a405eb31f63073348e5b1bfbe53f0",
+        "bytes": 838
+      },
+      "published": {
+        "sha256": "415023ba24999b284063f73449cbb31e9e409ad6b552ec0766c60454c81ff0d1",
+        "bytes": 799
+      }
+    },
+    {
+      "path": "evidence/after-42af5bb0/before/focused-tests-manifest.json",
+      "original": {
+        "sha256": "2327be310093f9315127739892e44ecce849d9a76a723079f57c5c04ab08bbf2",
+        "bytes": 4776
+      },
+      "published": {
+        "sha256": "f1620faba2afec4f2c077bf1aa91d9d8a15a8a37ceba07eeec45782647ca3a28",
+        "bytes": 4743
+      }
+    }
+  ]
+}

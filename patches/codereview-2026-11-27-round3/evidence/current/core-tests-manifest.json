@@ -1,0 +1,133 @@
+{
+  "source_commit": "a16108297e242b1c50f45c665f42dde82c7faa5b",
+  "source_tree": "5572135772b30c0f0830687070e49a5c0a749e4d",
+  "sdk_version": "8.0.408",
+  "environment": {
+    "DOTNET_CLI_HOME": "<review-workspace>/round3-tools/dotnet-state",
+    "NUGET_PACKAGES": "<review-workspace>/round3-tools/nuget",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+    "DOTNET_GENERATE_ASPNET_CERTIFICATE": "false",
+    "TZ": "Europe/Berlin",
+    "MAGNOLIE_TEST_SOURCE_ROOT": "<review-workspace>/round3-current"
+  },
+  "build_command": [
+    "<review-workspace>/round3-tools/dotnet/dotnet",
+    "build",
+    "tests/CoreTests.csproj",
+    "--nologo",
+    "--verbosity",
+    "quiet",
+    "-p:RestoreLockedMode=true"
+  ],
+  "build_working_directory": "<review-workspace>/round3-current/magnolie-organizer-windows",
+  "build_log": "core-build.log",
+  "build_log_sha256": "255d87ef9b28480f7ef76fbd919db42d9e7f7197f8102cef7c2b6aebf52781cb",
+  "build_exit_code": 0,
+  "bindings": {
+    "magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll": "aa7d61a31bad2222b1e3b165abb35a9ddd5f497350b5dcf664a08645e6aae3a9",
+    "magnolie-organizer-windows/tests/CoreTests.csproj": "7996051654fa7c22281854561ab25c34e437187400d84b1eb085fdb0585b8d72",
+    "magnolie-organizer-windows/tests/packages.lock.json": "4699091bda905eb2d8d12e0c7e9a84ccf3b19c6bbd8c664cb13058625de29b6c",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "f89bce8a239631312772b6a13840182b8078155241ca7cb19c16fc37da45b0f5",
+    "magnolie-organizer-windows/RestoreSelection.cs": "8d0295dc995814d9e0c8a40346f1ca68538f3a3a16b4202549dfecbb427c9b21",
+    "magnolie-organizer-windows/tests/ContractGroupTests.cs": "f696aae631b96f3bc08259bf9db734914a72ca63af76bfe424ebf4d823a88377",
+    "magnolie-organizer-windows/tests/UnicodeImportTests.cs": "d3512af3953760b26d85c8c58eabce55e4e0ce8989d7db8f5f205f0981439389",
+    "contracts/restore-additive-identity-vectors.json": "4df88c32261df3de5de9daa405839356c769355baf820f0870873bb3f50bc410"
+  },
+  "tests": [
+    {
+      "name": "restore-identity",
+      "filter": "Additive restore",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Additive restore"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 0.215,
+      "groups": "CoreTests: 1/1 Gruppen bestanden.",
+      "log": "restore-identity.log",
+      "log_sha256": "d51c590379d729900f4bd5a024b11fc88873bf22cfe3ef83b0c7ec4e53a626a6"
+    },
+    {
+      "name": "recovery-journal",
+      "filter": "Wiederherstellungsjournal",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Wiederherstellungsjournal"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 0.766,
+      "groups": "CoreTests: 1/1 Gruppen bestanden.",
+      "log": "recovery-journal.log",
+      "log_sha256": "e2955258d555ff8e8f8f90e6dfe96477baa6eb2eeff54a8a669af1adb9f91cfe"
+    },
+    {
+      "name": "unicode-import",
+      "filter": "UTF-16 import",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "UTF-16 import"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 0.265,
+      "groups": "CoreTests: 1/1 Gruppen bestanden.",
+      "log": "unicode-import.log",
+      "log_sha256": "9a223e1c2cb63447eae89c06992ee1c75cc0700eaab73e2863eb80b8b5e4f22a"
+    },
+    {
+      "name": "exchange",
+      "filter": "ICS / VCF / LDIF / Claws / Lotus / Thunderbird",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "ICS / VCF / LDIF / Claws / Lotus / Thunderbird"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 0.365,
+      "groups": "CoreTests: 1/1 Gruppen bestanden.",
+      "log": "exchange.log",
+      "log_sha256": "1cfe61376c4d6f47a9ff446c768f69b1ceede7621707f8f2132b1989f94cdd80"
+    },
+    {
+      "name": "import-file",
+      "filter": "Import file / native readers",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Import file / native readers"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 0.315,
+      "groups": "CoreTests: 1/1 Gruppen bestanden.",
+      "log": "import-file.log",
+      "log_sha256": "27362e904bc89a0216ad21cea69707572fa0bd803aea7bc5f282ecce8af7a2fd"
+    },
+    {
+      "name": "lotus-tasks",
+      "filter": "Lotus task CSV",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Lotus task CSV"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 0.215,
+      "groups": "CoreTests: 1/1 Gruppen bestanden.",
+      "log": "lotus-tasks.log",
+      "log_sha256": "ea443dd3de0482face98cdd9129379e5d21930890f0a92e9e396719842cb1621"
+    }
+  ],
+  "scope": "Actual C# CoreTests source host under .NET 8 on Linux; no native Windows GUI or release-package acceptance.",
+  "passed_groups": 6,
+  "expected_groups": 6,
+  "working_tree_clean_after_tests": true,
+  "bound_inputs_unchanged_after_tests": true
+}

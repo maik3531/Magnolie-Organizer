@@ -1,0 +1,173 @@
+{
+  "checkout_head": "1a1423730f9b179b45bf281211f4c3f3afec8583",
+  "checkout_head_tree": "1628e474bdda4283ef3f4cddc7ec42fcf74e5836",
+  "index_tree": "1628e474bdda4283ef3f4cddc7ec42fcf74e5836",
+  "working_tree_status_before": "",
+  "bindings": {
+    "magnolie-organizer/pruefungen/test_restore_identity.py": "530b06ee21ee47f17d306c9c8ad3a69cf5217b272f18ce0a2d20026a6010a03b",
+    "magnolie-organizer/pruefungen/test_save_restore_boundary.py": "c821fd8c10beffa9f7119bb5fd031b5eb8e9b2e4373c7d6767f7f2bec96306ce",
+    "magnolie-organizer/pruefungen/test_restore_commit_result.py": "1f89953524ddf5eb2bfe5266546fc9f6d1882015ced3e285fb039d3e0a11886e",
+    "magnolie-organizer/pruefungen/test_backup_profile_validation.py": "aafa627f8e6aef096b23d29f0238cbf646390d77a7ce9c266dc36fd1daf35181",
+    "magnolie-organizer/bin/magnolie-organizer": "f21f7e71c33e39d7479305412143965da013f1f57b77fd07c6b13265dcf7f7c4",
+    "magnolie-organizer-windows/RestoreSelection.cs": "182a8538fa3355a08301796050bc43d61022800299300e635d2c2a0e021530c9",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "f89bce8a239631312772b6a13840182b8078155241ca7cb19c16fc37da45b0f5",
+    "magnolie-organizer-windows/tests/CoreTests.csproj": "7996051654fa7c22281854561ab25c34e437187400d84b1eb085fdb0585b8d72",
+    "magnolie-organizer-windows/tests/packages.lock.json": "4699091bda905eb2d8d12e0c7e9a84ccf3b19c6bbd8c664cb13058625de29b6c",
+    "magnolie-organizer-windows/tests/RestoreSelectionIdentityTests.cs": "95bb4d815246274fc2e2030504fcced98869d9db3b292f3b7ba768c68116cad0",
+    "magnolie-organizer-windows/tests/ContractGroupTests.cs": "f696aae631b96f3bc08259bf9db734914a72ca63af76bfe424ebf4d823a88377",
+    "contracts/restore-additive-identity-vectors.json": "0ceb29a13f7baaba345574ceba7f81f1784a229dc66910b55d9777b7ecb1fcee"
+  },
+  "vector_count": 53,
+  "environment": {
+    "DOTNET_CLI_HOME": "<review-workspace>/round3-tools/dotnet-state",
+    "NUGET_PACKAGES": "<review-workspace>/round3-tools/nuget",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+    "DOTNET_GENERATE_ASPNET_CERTIFICATE": "false",
+    "TZ": "Europe/Berlin",
+    "MAGNOLIE_TEST_SOURCE_ROOT": "<review-workspace>/round3-latest"
+  },
+  "contact_only": false,
+  "build_executed_by_runner": true,
+  "runs": [
+    {
+      "name": "python-restore",
+      "command": [
+        "<review-workspace>/round3-tools/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "magnolie-organizer/pruefungen/test_restore_identity.py",
+        "magnolie-organizer/pruefungen/test_save_restore_boundary.py",
+        "magnolie-organizer/pruefungen/test_restore_commit_result.py",
+        "magnolie-organizer/pruefungen/test_backup_profile_validation.py"
+      ],
+      "cwd": "<review-workspace>/round3-latest",
+      "exit_code": 0,
+      "elapsed_seconds": 2.222,
+      "log": "python-restore.log",
+      "log_sha256": "3f504bfda33da4681c2e1e1fd2af0a7462a0a98c3d8c99a2dedeac3dcc575cd1"
+    },
+    {
+      "name": "core-build",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "build",
+        "tests/CoreTests.csproj",
+        "--nologo",
+        "--verbosity",
+        "quiet",
+        "-p:RestoreLockedMode=true"
+      ],
+      "cwd": "<review-workspace>/round3-latest/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_seconds": 17.451,
+      "log": "core-build.log",
+      "log_sha256": "fe5c70174ff8773d9d687eb8278e5ef30741d71facadbce54f1eb97231581bc9"
+    },
+    {
+      "name": "restore-identity",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-latest/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Additive restore"
+      ],
+      "cwd": "<review-workspace>/round3-latest/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_seconds": 0.164,
+      "log": "restore-identity.log",
+      "log_sha256": "cee18f8ee6a3b9d80d2374918d893848a812cbcbdd9db533c834d3ec5c8b6282",
+      "groups_passed": 1,
+      "groups_total": 1,
+      "passed": true
+    },
+    {
+      "name": "recovery-journal",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-latest/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Wiederherstellungsjournal"
+      ],
+      "cwd": "<review-workspace>/round3-latest/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_seconds": 0.718,
+      "log": "recovery-journal.log",
+      "log_sha256": "89118a3b6d34f1f3e16a25a1a2134c75b496b27be171b074fcee3bb467456ad6",
+      "groups_passed": 1,
+      "groups_total": 1,
+      "passed": true
+    },
+    {
+      "name": "unicode-import",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-latest/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "UTF-16 import"
+      ],
+      "cwd": "<review-workspace>/round3-latest/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_seconds": 0.431,
+      "log": "unicode-import.log",
+      "log_sha256": "b41fa8ae28377951cb8ba5c6083c527d2faddb0b047fd46b185388ac4e86529a",
+      "groups_passed": 1,
+      "groups_total": 1,
+      "passed": true
+    },
+    {
+      "name": "exchange",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-latest/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "ICS / VCF / LDIF / Claws / Lotus / Thunderbird"
+      ],
+      "cwd": "<review-workspace>/round3-latest/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_seconds": 0.415,
+      "log": "exchange.log",
+      "log_sha256": "87fff6956858b9981cbc26312b6ed847a83ee532508aa31d01322dc032e3115b",
+      "groups_passed": 1,
+      "groups_total": 1,
+      "passed": true
+    },
+    {
+      "name": "import-file",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-latest/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Import file / native readers"
+      ],
+      "cwd": "<review-workspace>/round3-latest/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_seconds": 0.315,
+      "log": "import-file.log",
+      "log_sha256": "ad2c22021876f85fd27dc5131be5d534c2e7b48d51bb0c68c6267e7c3bfad723",
+      "groups_passed": 1,
+      "groups_total": 1,
+      "passed": true
+    },
+    {
+      "name": "lotus-tasks",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-latest/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Lotus task CSV"
+      ],
+      "cwd": "<review-workspace>/round3-latest/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_seconds": 0.265,
+      "log": "lotus-tasks.log",
+      "log_sha256": "ea443dd3de0482face98cdd9129379e5d21930890f0a92e9e396719842cb1621",
+      "groups_passed": 1,
+      "groups_total": 1,
+      "passed": true
+    }
+  ],
+  "scope": "Actual Python and .NET 8 C# repository tests on Linux; no native GUI or release-package acceptance.",
+  "python_counts": {
+    "passed": 144
+  },
+  "build_exit_code": 0,
+  "assembly_sha256": "7074d6a49c97761c75d84619382fbcfd243e7ecd1fef0bc9d5b42cc1b4e0f4aa",
+  "working_tree_status_after": "",
+  "bound_inputs_unchanged": true,
+  "passed": true
+}

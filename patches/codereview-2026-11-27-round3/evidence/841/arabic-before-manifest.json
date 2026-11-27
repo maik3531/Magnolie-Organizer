@@ -1,0 +1,14 @@
+{
+  "base": "0cdd6f992e094cd724203713da3bf145c36958fc",
+  "exit_code": 1,
+  "source_sha256": {
+    "magnolie-organizer/web/i18n.js": "869354b780bb22f442dedd0e62e18caae8cb2aaef07599db0f41470e4513a358",
+    "magnolie-organizer-windows/app/web/i18n.js": "869354b780bb22f442dedd0e62e18caae8cb2aaef07599db0f41470e4513a358",
+    "magnolie-organizer/po/ar.po": "511cc7230616a02c5057fe31364d8ab79ee80025f58c3141f5f495341062ad87",
+    "magnolie-organizer-windows/app/po/ar.po": "64660838462e1d3f51c9604a8ca4950aa75999414e5d89cc53e58f1a752cfcd2",
+    "magnolie-organizer/web/i18n/ar.js": "c79565e710edcecd78d6e8a9e03a9d53d59919a36e45ada11e7715b621157c1e",
+    "magnolie-organizer-windows/app/web/i18n/ar.js": "a02f29164729e91914a22b3da35ce3a69bc1184915c195253d95d78ea7aec402"
+  },
+  "log_sha256": "761a96c31bd1fc5738b4c821d207e0a3eb13c0812c77cdc41a9ba38e0cb422e8",
+  "scope": "JSDOM actual application startup with actual Arabic/German PO-derived catalogs; no native layout acceptance"
+}

@@ -1,0 +1,55 @@
+{
+  "base": "0cdd6f992e094cd724203713da3bf145c36958fc",
+  "base_tree": "e221d51dbc7d52d279cbde6ffcdea3eb23666efc",
+  "source_commit": "2aeeef2e8b928f08b15e49c197045eacede257be",
+  "source_tree": "b0c879434849e269880899f5e22419d67c21e205",
+  "series": [
+    {
+      "commit": "3d0b8bffd782d0bc9868702905954e8fb0e0ff5a",
+      "path": "historical/series/01-823-contact-identity.patch",
+      "sha256": "9e794abd93b45edd09bed101f8369abb5fb11c5ac840cdda34282cb5518eb919",
+      "bytes": 19605
+    },
+    {
+      "commit": "4c353e374c7b8a7af9a1d041e2673d05f179f079",
+      "path": "historical/series/02-841-arabic-direction.patch",
+      "sha256": "49abc14f3eb723c716b36bf2f6ccc48456119b0624e0354d8d46f2f403d7af9a",
+      "bytes": 8161
+    },
+    {
+      "commit": "a4b88eb16a2d0a53087b9f784aa108383ce3b537",
+      "path": "historical/series/03-842-utf16-validation.patch",
+      "sha256": "6b7134db70dddf5443afcb18944766062dffe1c00feff46cc311078458db1aaf",
+      "bytes": 10524
+    },
+    {
+      "commit": "06081dd9a457ed6be74b10163a6c359220b26eeb",
+      "path": "historical/series/04-839-alarm-receipts.patch",
+      "sha256": "f58efb680a83de1bcfe7e8b0e4641cfe73ee8f8085b0e1e7c3c212b6fbde2b95",
+      "bytes": 32268
+    },
+    {
+      "commit": "2aeeef2e8b928f08b15e49c197045eacede257be",
+      "path": "historical/series/05-review-handoff.patch",
+      "sha256": "4709a990880154ebc07979c22712e811d6bb24edd2e5bf81ef8c5ee2ad95282e",
+      "bytes": 4228
+    }
+  ],
+  "combined": {
+    "path": "historical/magnolie-codereview-round3.patch",
+    "sha256": "ef388376a8c6389e0edb5241dc7a12039d7826522b4a00aff99802f374b84244",
+    "bytes": 71935
+  },
+  "replay": {
+    "combined": {
+      "forward_tree": "b0c879434849e269880899f5e22419d67c21e205",
+      "reverse_tree": "e221d51dbc7d52d279cbde6ffcdea3eb23666efc",
+      "exact": true
+    },
+    "series": {
+      "forward_tree": "b0c879434849e269880899f5e22419d67c21e205",
+      "reverse_tree": "e221d51dbc7d52d279cbde6ffcdea3eb23666efc",
+      "exact": true
+    }
+  }
+}

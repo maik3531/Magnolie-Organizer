@@ -1,0 +1,67 @@
+{
+  "issue": 841,
+  "base": "0cdd6f992e094cd724203713da3bf145c36958fc",
+  "source_commit": "f24d6456e4c505e819a2a8f34e459b3c194d8a5e",
+  "source_tree": "8dfc86802cb3eced889528005981ec9ade4e1194",
+  "files": {
+    "arabic-regional-direction.cjs": {
+      "sha256": "f0d68c4993b282dc1940866993b99d117f2d1db64722501f9cae87faeb98152e",
+      "bytes": 3812
+    },
+    "arabic-before.jsonl": {
+      "sha256": "761a96c31bd1fc5738b4c821d207e0a3eb13c0812c77cdc41a9ba38e0cb422e8",
+      "bytes": 4702
+    },
+    "arabic-before-manifest.json": {
+      "sha256": "49b0fdf580a2b39f8a959b57b918d3ad993f42dfa77ced3a48ebf2f2b3f9974e",
+      "bytes": 978
+    },
+    "arabic-after.log": {
+      "sha256": "a54d1981e74513dda493a534224788eb0238f0e2fadb461ea8f65f253a02fc6a",
+      "bytes": 4695
+    },
+    "regression-in-repo.log": {
+      "sha256": "ca61a7a91b9b901af3889d575725c61559a10fc4ef397987843a5c65f22dbb6a",
+      "bytes": 4343
+    },
+    "regional-time-input.log": {
+      "sha256": "2fa5470bfea762c138e74cb5977919e8a3f8bda805d7a8b55cf4f0391faa1d19",
+      "bytes": 120
+    },
+    "localization-completeness-prepared.log": {
+      "sha256": "b1bddd7164b3a9efd85196d0d7fa363b6a2ce7da0b6b38a3441aa9ffde6367c5",
+      "bytes": 38
+    },
+    "localization-preparation.json": {
+      "sha256": "40caefd7048ea5818c7b43bf13094c8f69796f9747d79b2a3005384be74e8ce1",
+      "bytes": 561
+    },
+    "841-arabic-system-direction.patch": {
+      "sha256": "79b335b81ba174782682917081496a88555524e227e90eef24a9f5987409c866",
+      "bytes": 8161
+    },
+    "README-841.md": {
+      "sha256": "5fcd761d8237e18d8f8382f492b953b0216954f92f4324903fb87330b128e6b7",
+      "bytes": 4169
+    },
+    "arbeitsstand-841.md": {
+      "sha256": "411eb3175ae23a43e1388c1df0094a154b4c83c2bce3cd1fa431d266436f9a5d",
+      "bytes": 1322
+    }
+  },
+  "tests": {
+    "baseline": {
+      "passed": 8,
+      "failed": 8,
+      "exit_code": 1
+    },
+    "fixed": {
+      "passed": 16,
+      "failed": 0,
+      "exit_code": 0
+    },
+    "existing_regional_time_input": "20 locales per desktop source passed",
+    "existing_localization_completeness": "passed after normal native catalog generation; tracked artifact restored"
+  },
+  "scope": "Actual source runtime in JSDOM; no native GUI or package acceptance"
+}

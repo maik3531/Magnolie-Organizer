@@ -1,0 +1,149 @@
+{
+  "source_sha256": "35bb24a7c8a01149846b1edcf569fb869d911343afa0fc01e2e1dbe2caf98938",
+  "tested_assembly_sha256": "d889b40a7caa0e0c8e3ee0b9ef0dc3a6c59a5eabff8c733d0ddd5d3c7d3508f5",
+  "independent_cases": 28,
+  "passed": 28,
+  "results": [
+    {
+      "name": "LE empty BOM",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "LE literal U\u002BFFFD",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "LE minimum non-BMP",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "LE maximum non-BMP",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "LE ZWJ sequence",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "LE interior BOM",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "LE orphan high",
+      "expected": "InvalidDataException with DecoderFallbackException cause",
+      "passed": true
+    },
+    {
+      "name": "LE orphan low",
+      "expected": "InvalidDataException with DecoderFallbackException cause",
+      "passed": true
+    },
+    {
+      "name": "LE high followed by ASCII",
+      "expected": "InvalidDataException with DecoderFallbackException cause",
+      "passed": true
+    },
+    {
+      "name": "LE reversed surrogate pair",
+      "expected": "InvalidDataException with DecoderFallbackException cause",
+      "passed": true
+    },
+    {
+      "name": "LE odd payload after BOM",
+      "expected": "InvalidDataException with DecoderFallbackException cause",
+      "passed": true
+    },
+    {
+      "name": "BE empty BOM",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "BE literal U\u002BFFFD",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "BE minimum non-BMP",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "BE maximum non-BMP",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "BE ZWJ sequence",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "BE interior BOM",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "BE orphan high",
+      "expected": "InvalidDataException with DecoderFallbackException cause",
+      "passed": true
+    },
+    {
+      "name": "BE orphan low",
+      "expected": "InvalidDataException with DecoderFallbackException cause",
+      "passed": true
+    },
+    {
+      "name": "BE high followed by ASCII",
+      "expected": "InvalidDataException with DecoderFallbackException cause",
+      "passed": true
+    },
+    {
+      "name": "BE reversed surrogate pair",
+      "expected": "InvalidDataException with DecoderFallbackException cause",
+      "passed": true
+    },
+    {
+      "name": "BE odd payload after BOM",
+      "expected": "InvalidDataException with DecoderFallbackException cause",
+      "passed": true
+    },
+    {
+      "name": "empty non-BOM",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "single FF uses legacy fallback",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "single FE uses legacy fallback",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "invalid UTF-8 uses Windows-1252",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "UTF-8 BOM is stripped",
+      "expected": "exact text preserved",
+      "passed": true
+    },
+    {
+      "name": "non-BOM UTF-16-like bytes retain old dispatch",
+      "expected": "exact text preserved",
+      "passed": true
+    }
+  ],
+  "scope": "Actual compiled C# DecodeText on .NET 8 Linux; UTF-16 BOM boundaries, valid Unicode, invalid sequences, localized error key, unchanged non-BOM fallback. No native Windows GUI or package claim."
+}

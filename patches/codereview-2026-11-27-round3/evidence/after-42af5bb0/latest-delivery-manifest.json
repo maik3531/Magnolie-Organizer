@@ -1,0 +1,190 @@
+{
+  "base_commit": "42af5bb030d5e0fb8a2bfc8b8f28459cfe31c2fe",
+  "base_tree": "ebce761a5dc8774e968dc1fdbe7a11f815d04dc9",
+  "source_commit_before_docs": "1a1423730f9b179b45bf281211f4c3f3afec8583",
+  "source_tree_before_docs": "1628e474bdda4283ef3f4cddc7ec42fcf74e5836",
+  "delivery_commit": "5839a53bdaabdb455f3f1fd298506c38c69d78db",
+  "delivery_tree": "ceb603576b01a9ea8952f9aefa74f963fe587bdf",
+  "branch": "work/review3-latest",
+  "commit_sequence": [
+    {
+      "commit": "6559ddf5bb90720e12a406b35de57178f805b85b",
+      "subject": "Refs #823: Preserve multiple emergency contacts across restored UID changes"
+    },
+    {
+      "commit": "87ff1a67931d141903f488137dee4a86146f8265",
+      "subject": "Refs #841: Retain regional-language startup regression on current main"
+    },
+    {
+      "commit": "a2a798c377f8e8fb9652bd8ee8609019438ed59b",
+      "subject": "Refs #842: Retain Unicode import regression on current main"
+    },
+    {
+      "commit": "1a1423730f9b179b45bf281211f4c3f3afec8583",
+      "subject": "Refs #839: acknowledge coincident port alarms across saved plans"
+    },
+    {
+      "commit": "5839a53bdaabdb455f3f1fd298506c38c69d78db",
+      "subject": "Refs #113: Document final review addendum on 42af5bb0"
+    }
+  ],
+  "source_equality_manifest": "source-equality-manifest.json",
+  "before_test_manifest": "before/focused-tests-manifest.json",
+  "after_test_manifest": "after/focused-tests-manifest.json",
+  "python_before": {
+    "failed": 1,
+    "passed": 143
+  },
+  "python_after": {
+    "passed": 144
+  },
+  "shared_vector_count": 53,
+  "csharp_after_passed_groups": 6,
+  "build_executed_by_portable_runner": true,
+  "patch": "latest-remaining-series.patch",
+  "patch_sha256": "445739f373e42e4035c51c8499c041f4d48f148150d1d6406d8c3c3a931db56f",
+  "patch_size_bytes": 67009,
+  "private_index_replay": {
+    "base": "42af5bb030d5e0fb8a2bfc8b8f28459cfe31c2fe",
+    "result_tree": "ceb603576b01a9ea8952f9aefa74f963fe587bdf",
+    "matches_delivery_tree": true
+  },
+  "documentation_only_final_commit": "5839a53bdaabdb455f3f1fd298506c38c69d78db",
+  "working_tree_clean": true,
+  "no_later_main_followed": true,
+  "artifacts": {
+    "823-save-boundary-tests.patch": {
+      "sha256": "bbec31d3cab50d9043d6cef2b2ed3d14fbe709d972e3611b9d459ef8cb45699f",
+      "bytes": 3777
+    },
+    "README.md": {
+      "sha256": "bc84cad97571b3486ab6381e1a80f98429b6c31e424fddef913a0a8318775fa8",
+      "bytes": 4747,
+      "original_sha256": "300abb7e93f77d9d0f8a4a640b8eff8ed865b4a0be3ec2b133642544ca29963f",
+      "original_bytes": 4670
+    },
+    "after/core-build.log": {
+      "sha256": "fe5c70174ff8773d9d687eb8278e5ef30741d71facadbce54f1eb97231581bc9",
+      "bytes": 76
+    },
+    "after/csharp-contact-persons.json": {
+      "sha256": "5d06748dfccb76a780025a286eb382ac551b4fa5136f7024a4d5b68cc94050e7",
+      "bytes": 875
+    },
+    "after/emergency-contacts.vcf": {
+      "sha256": "3615723db3e48f6dd80d9168f863674074294743af7e7067b0d5fbb237f08996",
+      "bytes": 407
+    },
+    "after/exchange.log": {
+      "sha256": "87fff6956858b9981cbc26312b6ed847a83ee532508aa31d01322dc032e3115b",
+      "bytes": 129
+    },
+    "after/focused-tests-manifest.json": {
+      "sha256": "d18981e51c24f0d85f126acf75e87c837552a1dd7e452b4d0d8987937ed499c6",
+      "bytes": 7374,
+      "original_sha256": "98a5a30e067779dbf0987c3545a2582dfa44ed90b0b354aa06de868657daed6a",
+      "original_bytes": 7699
+    },
+    "after/import-file.log": {
+      "sha256": "ad2c22021876f85fd27dc5131be5d534c2e7b48d51bb0c68c6267e7c3bfad723",
+      "bytes": 141
+    },
+    "after/lotus-tasks.log": {
+      "sha256": "ea443dd3de0482face98cdd9129379e5d21930890f0a92e9e396719842cb1621",
+      "bytes": 129
+    },
+    "after/python-contact-persons.json": {
+      "sha256": "85cfcbfc77cee474a59987c2765c69bdf1472f9f8962c7579be603a7d2b3fea3",
+      "bytes": 1109
+    },
+    "after/python-restore.log": {
+      "sha256": "3f504bfda33da4681c2e1e1fd2af0a7462a0a98c3d8c99a2dedeac3dcc575cd1",
+      "bytes": 180
+    },
+    "after/recovery-journal.log": {
+      "sha256": "89118a3b6d34f1f3e16a25a1a2134c75b496b27be171b074fcee3bb467456ad6",
+      "bytes": 152
+    },
+    "after/restore-identity.log": {
+      "sha256": "cee18f8ee6a3b9d80d2374918d893848a812cbcbdd9db533c834d3ec5c8b6282",
+      "bytes": 138
+    },
+    "after/unicode-import.log": {
+      "sha256": "b41fa8ae28377951cb8ba5c6083c527d2faddb0b047fd46b185388ac4e86529a",
+      "bytes": 199
+    },
+    "before/core-build.log": {
+      "sha256": "4f57d792a093a5cd573dddf4db347b69489f5183b30fc7a3bf7847297be4e059",
+      "bytes": 76
+    },
+    "before/csharp-contact-persons.json": {
+      "sha256": "3cb7105bb1cabcc26c4642dcaaac42aa1fad387bc9e30475f07ff24dfff28821",
+      "bytes": 660
+    },
+    "before/emergency-contacts.vcf": {
+      "sha256": "3615723db3e48f6dd80d9168f863674074294743af7e7067b0d5fbb237f08996",
+      "bytes": 407
+    },
+    "before/focused-tests-manifest.json": {
+      "sha256": "f1620faba2afec4f2c077bf1aa91d9d8a15a8a37ceba07eeec45782647ca3a28",
+      "bytes": 4743,
+      "original_sha256": "2327be310093f9315127739892e44ecce849d9a76a723079f57c5c04ab08bbf2",
+      "original_bytes": 4776
+    },
+    "before/python-contact-persons.json": {
+      "sha256": "7eaf9b1ee3ea90f07266bf5878eb6380579406b7e0e3918b475d37497af4d8f3",
+      "bytes": 904
+    },
+    "before/python-restore.log": {
+      "sha256": "851b00db168f0d24519728ca905bd4cfeceaeb33a8da535412dcb317fba24c5e",
+      "bytes": 2515
+    },
+    "before/restore-identity.log": {
+      "sha256": "415023ba24999b284063f73449cbb31e9e409ad6b552ec0766c60454c81ff0d1",
+      "bytes": 799,
+      "original_sha256": "eb484d73aa05491397e92759d5d32face89a405eb31f63073348e5b1bfbe53f0",
+      "original_bytes": 838
+    },
+    "contact-persons-probe.py": {
+      "sha256": "9dd3e1211b6d7e3324d5d2067252955e95b5cfeb25ee30a2afc2c2cae8731c83",
+      "bytes": 2792
+    },
+    "emergency-contact-case.json": {
+      "sha256": "7df351f0f714db094d665d68f17bf2d9ef67f26990bae809fa3007d71d0fae6b",
+      "bytes": 1393
+    },
+    "handoff-section.md": {
+      "sha256": "bd9fc5926fc1bbe05854f4034c22d02176d6117ad3232b7ff293311eb01851fa",
+      "bytes": 3839
+    },
+    "latest-remaining-series.patch": {
+      "sha256": "445739f373e42e4035c51c8499c041f4d48f148150d1d6406d8c3c3a931db56f",
+      "bytes": 67009
+    },
+    "native-contact-probe/ContactProbe.csproj": {
+      "sha256": "031da6a6f6d810b9f23ffe7818f3acefb7b0ff54b0eb8c6752735ad58d254904",
+      "bytes": 237
+    },
+    "native-contact-probe/Program.cs": {
+      "sha256": "382eb975de1197d3abffc373838dfab851f73804dbc58bc93197736d2fba07b2",
+      "bytes": 2650
+    },
+    "native-contact-probe-build.log": {
+      "sha256": "cec2eb4eabad4ab1060b4955828819495ae4a0ea3446e9c9796879b3b28a8429",
+      "bytes": 76
+    },
+    "run-focused-tests.py": {
+      "sha256": "e2e440f6924c98697b879b2efbeaa2035463bae75a2400c9358a1fc791c88880",
+      "bytes": 6005
+    },
+    "source-equality-manifest.json": {
+      "sha256": "6c1cffc0cb7373b2482fdabc454caa4854aa44f4c19135468b40a3a4999e06b6",
+      "bytes": 9332
+    },
+    "vector-merge.json": {
+      "sha256": "ac9bb1e289343121dd3e21251edd4065ccad5036e6887a2caedfc6449f324917",
+      "bytes": 404
+    }
+  },
+  "scope": "Final pinned 42af review series. Original #823 identity fix preserved; only supported emergency-contact field remainder added. No GitHub mutation, main merge, package or native GUI acceptance."
+}

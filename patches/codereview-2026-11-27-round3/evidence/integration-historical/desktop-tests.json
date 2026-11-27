@@ -1,0 +1,94 @@
+{
+  "source_tree": "7b009ca31c042bd9f8d17c62a89fa97256d2da6e",
+  "tests": [
+    {
+      "name": "python-restore",
+      "command": [
+        "<review-workspace>/round3-tools/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "magnolie-organizer/pruefungen/test_restore_identity.py",
+        "magnolie-organizer/pruefungen/test_save_restore_boundary.py",
+        "magnolie-organizer/pruefungen/test_restore_commit_result.py",
+        "magnolie-organizer/pruefungen/test_backup_profile_validation.py"
+      ],
+      "cwd": "<review-workspace>/round3-final",
+      "exit_code": 0,
+      "log": "python-restore.log",
+      "log_sha256": "c73fa362cfd22b0cd39967a7f00d995370c8a64f837650a78184aeeb0916d0b3"
+    },
+    {
+      "name": "csharp-restore",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-final/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Additive restore"
+      ],
+      "cwd": "<review-workspace>/round3-final/magnolie-organizer-windows",
+      "exit_code": 0,
+      "log": "csharp-restore.log",
+      "log_sha256": "cee18f8ee6a3b9d80d2374918d893848a812cbcbdd9db533c834d3ec5c8b6282"
+    },
+    {
+      "name": "csharp-journal",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-final/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Wiederherstellungsjournal"
+      ],
+      "cwd": "<review-workspace>/round3-final/magnolie-organizer-windows",
+      "exit_code": 0,
+      "log": "csharp-journal.log",
+      "log_sha256": "204c896bf5b16b4680c8d7400e4a98622e17349b50bff672d024902bb0c4dfa5"
+    },
+    {
+      "name": "csharp-utf16",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-final/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "UTF-16 import"
+      ],
+      "cwd": "<review-workspace>/round3-final/magnolie-organizer-windows",
+      "exit_code": 0,
+      "log": "csharp-utf16.log",
+      "log_sha256": "3526b92d1229ec4d607c42b68d9a1fbd774f82668985221376002938761032f0"
+    },
+    {
+      "name": "csharp-exchange",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-final/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "ICS / VCF / LDIF / Claws / Lotus / Thunderbird"
+      ],
+      "cwd": "<review-workspace>/round3-final/magnolie-organizer-windows",
+      "exit_code": 0,
+      "log": "csharp-exchange.log",
+      "log_sha256": "2d0447df2113c4c861eaae7dd2bc9951a45dc3a772e4b8493c22c08e8d66594a"
+    },
+    {
+      "name": "csharp-import-file",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-final/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Import file / native readers"
+      ],
+      "cwd": "<review-workspace>/round3-final/magnolie-organizer-windows",
+      "exit_code": 0,
+      "log": "csharp-import-file.log",
+      "log_sha256": "8fa69df2619eb7f226cd479a5f373bc1b25b5d37ef7eed4d87442fb5384816ee"
+    },
+    {
+      "name": "csharp-task-csv",
+      "command": [
+        "<review-workspace>/round3-tools/dotnet/dotnet",
+        "<review-workspace>/round3-final/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Lotus task CSV"
+      ],
+      "cwd": "<review-workspace>/round3-final/magnolie-organizer-windows",
+      "exit_code": 0,
+      "log": "csharp-task-csv.log",
+      "log_sha256": "fa9612fd3495f001e616a324c23f5e64edc53fc8348e1d22ef5f25f99d81d120"
+    }
+  ]
+}

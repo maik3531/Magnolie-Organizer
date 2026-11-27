@@ -1,0 +1,37 @@
+{
+  "checkout_head": "1a1423730f9b179b45bf281211f4c3f3afec8583",
+  "source_sha256": "f21f7e71c33e39d7479305412143965da013f1f57b77fd07c6b13265dcf7f7c4",
+  "vcard_sha256": "3615723db3e48f6dd80d9168f863674074294743af7e7067b0d5fbb237f08996",
+  "field_in_supported_contract": true,
+  "snapshot_persons_from_actual_vcard_roundtrip": [
+    {
+      "name": "Alex Example",
+      "telefon": "+12025550101",
+      "status": "Family"
+    },
+    {
+      "name": "Berta Example",
+      "telefon": "+12025550102",
+      "status": "Friend"
+    }
+  ],
+  "snapshot_person_count": 2,
+  "restored_person_list": [
+    {
+      "name": "Alex Example",
+      "telefon": "+12025550101",
+      "status": "Family"
+    },
+    {
+      "name": "Berta Example",
+      "telefon": "+12025550102",
+      "status": "Friend"
+    }
+  ],
+  "restored_person_count_after_actual_normalization": 2,
+  "restored_legacy_first_person_name": "Alex Example",
+  "restored_card_count": 1,
+  "current_uid_preserved": true,
+  "inputs_unchanged": true,
+  "scope": "Actual Python vCard writer, reader, contact normalization and restore; no native GUI claim."
+}

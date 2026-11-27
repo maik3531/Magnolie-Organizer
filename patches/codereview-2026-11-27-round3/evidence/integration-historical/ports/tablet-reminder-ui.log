@@ -1,0 +1,27 @@
+Actual editor output: {"id":"mwz6p58l3zduxo","uid":"mag-task-b5d83bff85f4d1df@magnolie-organizer","elternUid":"","reihenfolge":0,"titel":"A3 editor task","prio":2,"faellig":"2030-05-10","startDatum":"","startZeit":"","faelligZeit":"10:00","erledigt":false,"notiz":"","kategorien":"","akzentFarbe":"","personen":[],"erinnern":false,"vonTermin":"","individuelleErinnerungTage":1,"herkunft":"","vonZweig":"","fremdId":"","delegiertAn":"","angelegt":1795796211909,"geaendert":1795796211909,"ursprungApp":"organizer","personalGeaendert":1795796211909,"vorlaufTage":0,"erinnerungsMinute":480}
+PASS editor early-only UTC
+PASS editor due-only UTC
+PASS editor combined UTC
+PASS spring DST calendar day, not 24 hours
+PASS autumn DST calendar day, not 24 hours
+PASS source UTC wins over organizer timezone
+PASS source TZID DST wins over organizer timezone
+PASS all-day default 08:00
+PASS done task
+PASS missing date
+PASS invalid date
+PASS global web opt-out
+PASS explicit unsupported structured recurrence
+PASS explicit unsupported raw recurrence
+PASS explicit unsupported malformed recurrence
+PASS explicit unsupported EXRULE
+PASS explicit unsupported override
+PASS explicit unsupported invalid DTSTART
+PASS explicit unsupported invalid DUE
+PASS explicit unsupported unresolved timezone
+PASS explicit unsupported contradictory timezone
+PASS explicit unsupported DATE with time
+PASS explicit unsupported date with timezone
+PASS explicit unsupported duplicate DTSTART
+PASS coincident absolute and task due alarm
+A3 actual-editor matrix passed: 30 cases, plus module/item opt-out

@@ -1,0 +1,39 @@
+{
+  "icsAnzeigeZeitzone": "UTC",
+  "datum": "2030-05-10",
+  "endDatum": "",
+  "zeit": "10:30",
+  "endZeit": "11:30",
+  "titel": "Coincident event",
+  "notiz": "",
+  "kategorien": "",
+  "akzentFarbe": "",
+  "vertraulich": false,
+  "vorlaeufig": false,
+  "kostenstelle": "",
+  "kunde": "",
+  "individuelleErinnerungTage": 0,
+  "standardErinnerung": true,
+  "wiederholung": {
+    "art": "none",
+    "bis": ""
+  },
+  "icsKomplex": false,
+  "icsSerienUid": "",
+  "icsZusatzDaten": [],
+  "icsZusatzTermine": [],
+  "icsEndeFehlt": false,
+  "icsNullDauer": false,
+  "icsRoundtrip": [
+    "DTSTART:20300510T103000Z",
+    "DTEND:20300510T113000Z",
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    "TRIGGER;VALUE=DATE-TIME:20300510T103000Z",
+    "END:VALARM"
+  ],
+  "icsSequence": 0,
+  "icsAenderungszeitFehlt": true,
+  "uid": "coincident-event",
+  "geaendert": 1893456000000
+}

@@ -1,0 +1,46 @@
+[
+  {
+    "lead": 0,
+    "initial": 1,
+    "afterSourceRemoval": 2,
+    "expectedAfterRemoval": 1,
+    "messages": [
+      {
+        "cmd": "erinnerung_zeigen",
+        "art": "both",
+        "stil": "magnolie",
+        "kopf": "Task reminder",
+        "rumpf": "Coincident task"
+      },
+      {
+        "cmd": "erinnerung_zeigen",
+        "art": "both",
+        "stil": "magnolie",
+        "kopf": "Task is due",
+        "rumpf": "Coincident task - at 10:30"
+      }
+    ]
+  },
+  {
+    "lead": 1,
+    "initial": 1,
+    "afterSourceRemoval": 2,
+    "expectedAfterRemoval": 1,
+    "messages": [
+      {
+        "cmd": "erinnerung_zeigen",
+        "art": "both",
+        "stil": "magnolie",
+        "kopf": "Task reminder",
+        "rumpf": "Coincident task"
+      },
+      {
+        "cmd": "erinnerung_zeigen",
+        "art": "both",
+        "stil": "magnolie",
+        "kopf": "Task reminder",
+        "rumpf": "Coincident task - in 1 day"
+      }
+    ]
+  }
+]

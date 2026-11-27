@@ -1,0 +1,7 @@
+Magnolie CoreTests: 1 Gruppen
+  FEHLER UTF-16 import / malformed bytes and valid roundtrip (0.05 s)
+         System.InvalidOperationException: Malformed UTF-16 was accepted: contacts.csv
+   at MagnolieOrganizer.Windows.Tests.UnicodeImportTests.Invalid(Action action, String fileName) in <review-workspace>/round3-encoding/magnolie-organizer-windows/tests/UnicodeImportTests.cs:line 133
+   at MagnolieOrganizer.Windows.Tests.UnicodeImportTests.RunAsync() in <review-workspace>/round3-encoding/magnolie-organizer-windows/tests/UnicodeImportTests.cs:line 37
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in <review-workspace>/round3-encoding/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/1 Gruppen bestanden.

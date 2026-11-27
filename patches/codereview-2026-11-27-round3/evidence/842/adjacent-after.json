@@ -1,0 +1,35 @@
+[
+  {
+    "name": "exchange",
+    "command": [
+      "<review-workspace>/round3-tools/dotnet/dotnet",
+      "<review-workspace>/round3-encoding/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+      "ICS / VCF / LDIF / Claws / Lotus / Thunderbird"
+    ],
+    "exit_code": 0,
+    "log": "exchange-after.log",
+    "sha256": "ad22ca41468c73f637ed1e552528af85ae523b89deea6c2c47548fbbc6da297d"
+  },
+  {
+    "name": "source",
+    "command": [
+      "<review-workspace>/round3-tools/dotnet/dotnet",
+      "<review-workspace>/round3-encoding/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+      "Import file / native readers"
+    ],
+    "exit_code": 0,
+    "log": "source-after.log",
+    "sha256": "eafb47727f238cfb3056780ff26c608773a3cc95bc0af697115ff45192677847"
+  },
+  {
+    "name": "tasks",
+    "command": [
+      "<review-workspace>/round3-tools/dotnet/dotnet",
+      "<review-workspace>/round3-encoding/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+      "Lotus task CSV"
+    ],
+    "exit_code": 0,
+    "log": "tasks-after.log",
+    "sha256": "ea443dd3de0482face98cdd9129379e5d21930890f0a92e9e396719842cb1621"
+  }
+]

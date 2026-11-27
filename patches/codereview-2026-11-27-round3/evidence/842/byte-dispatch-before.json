@@ -1,0 +1,114 @@
+{
+  "base": "0cdd6f992e094cd724203713da3bf145c36958fc",
+  "source_sha256": "521fa0647331ba34cdcacd36a2f3e49920da14cf7df1db9a41a9b3a6f4582802",
+  "cases": [
+    {
+      "endian": "le",
+      "format": "lotus",
+      "zip": false,
+      "windows_error": null,
+      "count": 1,
+      "value": "Mü�ller",
+      "linux": "ValueError"
+    },
+    {
+      "endian": "le",
+      "format": "lotus",
+      "zip": true,
+      "windows_error": null,
+      "count": 1,
+      "value": "Mü�ller",
+      "linux": "ValueError"
+    },
+    {
+      "endian": "le",
+      "format": "vcf",
+      "zip": false,
+      "windows_error": null,
+      "count": 1,
+      "value": "Mü�ller",
+      "linux": "UnicodeDecodeError"
+    },
+    {
+      "endian": "le",
+      "format": "vcf",
+      "zip": true,
+      "windows_error": null,
+      "count": 1,
+      "value": "Mü�ller",
+      "linux": "UnicodeDecodeError"
+    },
+    {
+      "endian": "le",
+      "format": "ics",
+      "zip": false,
+      "windows_error": null,
+      "count": 1,
+      "value": "Mü�ller",
+      "linux": "UnicodeDecodeError"
+    },
+    {
+      "endian": "le",
+      "format": "ics",
+      "zip": true,
+      "windows_error": null,
+      "count": 1,
+      "value": "Mü�ller",
+      "linux": "UnicodeDecodeError"
+    },
+    {
+      "endian": "be",
+      "format": "lotus",
+      "zip": false,
+      "windows_error": null,
+      "count": 1,
+      "value": "Mü�ller",
+      "linux": "ValueError"
+    },
+    {
+      "endian": "be",
+      "format": "lotus",
+      "zip": true,
+      "windows_error": null,
+      "count": 1,
+      "value": "Mü�ller",
+      "linux": "ValueError"
+    },
+    {
+      "endian": "be",
+      "format": "vcf",
+      "zip": false,
+      "windows_error": null,
+      "count": 1,
+      "value": "Mü�ller",
+      "linux": "UnicodeDecodeError"
+    },
+    {
+      "endian": "be",
+      "format": "vcf",
+      "zip": true,
+      "windows_error": null,
+      "count": 1,
+      "value": "Mü�ller",
+      "linux": "UnicodeDecodeError"
+    },
+    {
+      "endian": "be",
+      "format": "ics",
+      "zip": false,
+      "windows_error": null,
+      "count": 1,
+      "value": "Mü�ller",
+      "linux": "UnicodeDecodeError"
+    },
+    {
+      "endian": "be",
+      "format": "ics",
+      "zip": true,
+      "windows_error": null,
+      "count": 1,
+      "value": "Mü�ller",
+      "linux": "UnicodeDecodeError"
+    }
+  ]
+}

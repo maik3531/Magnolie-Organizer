@@ -1,0 +1,9 @@
+{
+  "source_tree": "60adf8eb76080bdddb6e98804e3aad23aa8f8e9d",
+  "command": [
+    "node",
+    "magnolie-organizer-windows/tests/regional-language-direction.js"
+  ],
+  "exit_code": 0,
+  "sha256": "ca61a7a91b9b901af3889d575725c61559a10fc4ef397987843a5c65f22dbb6a"
+}

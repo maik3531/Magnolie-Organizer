@@ -1,0 +1,12 @@
+{
+  "adopted_base": "42af5bb030d5e0fb8a2bfc8b8f28459cfe31c2fe",
+  "old_base_cases": 37,
+  "adopted_cases": 40,
+  "adopted_additional_cases": 3,
+  "review_additional_cases": 12,
+  "exact_payload_duplicates_excluding_id": [],
+  "new_supported_field_case": "contact-uid-change-restores-multiple-emergency-contacts",
+  "final_cases": 53,
+  "adopted_first_40_preserved": true,
+  "review_12_preserved": true
+}
