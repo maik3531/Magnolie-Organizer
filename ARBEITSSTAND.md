@@ -4,8 +4,9 @@
 
 - [#809](https://github.com/maik3531/Magnolie-Organizer/issues/809):
   Das offiziell signierte Mint-27-Cinnamon-Beta-ISO und die
-  Abhängigkeiten beider DEBs sind geprüft. Der Kernel startete;
-  der Temperaturschutz stoppte den Gast vor der Paketinstallation.
+  Abhängigkeiten beider DEBs sind geprüft. Mit einem Gastkern
+  erreichte die Probe die Live-Konsole. Der Temperaturschutz
+  stoppte nach 73 Sekunden vor der Paketinstallation.
   Der Vergleich installierter Programme mit Mint 22.3 steht aus.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
