@@ -7,15 +7,70 @@ static web server.
 """
 
 import argparse
+import copy
 from html.parser import HTMLParser
 from pathlib import Path
 import shutil
 from urllib.parse import unquote, urlsplit
+import zipfile
 
 SOURCE_URL = "https://maik3531.github.io/Magnolie-Organizer"
 FILES = ("index.html", ".nojekyll", "robots.txt", "sitemap.xml", "SOURCE-NOTICES.txt")
 DIRECTORIES = ("assets", "de", "en", "intl", "media", "presse", "impressum", "datenschutz")
 DOCUMENTS = ("docs/PRESSE.md",)
+
+
+def correct_promotional_archive(path):
+    """Fix #712 in the Pages artifact, keeping the existing Git ZIP unchanged."""
+    prefix = "Magnolie-Werbepaket/"
+    replacements = {
+        prefix + "Texte-und-Bilder/quellen.txt": 1,
+        prefix + "Texte-und-Bilder/verzeichniseintraege.txt": 2,
+    }
+    old = b"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE.md"
+    new = b"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE"
+    metadata = (
+        "date_time", "compress_type", "comment", "extra", "create_system", "create_version",
+        "extract_version", "reserved", "flag_bits", "volume", "internal_attr", "external_attr",
+    )
+    temporary = path.with_suffix(".zip.tmp")
+    try:
+        with zipfile.ZipFile(path) as original:
+            names = original.namelist()
+            if len(names) != len(set(names)) or not set(replacements).issubset(names):
+                raise ValueError("Unexpected promotional archive entries; review the #712 input before publishing")
+            entries = [(info, original.read(info)) for info in original.infolist()]
+            comment = original.comment
+        changed = 0
+        for info, data in entries:
+            if info.filename in replacements:
+                # Count the exact targets, including an already corrected input.
+                count = replacements[info.filename]
+                corrected = data.replace(old, new)
+                if corrected.splitlines().count(new) != count or corrected.count(new) != count:
+                    raise ValueError(f"Unexpected license links in promotional archive: {info.filename}")
+                changed += data.count(old)
+            elif old in data:
+                raise ValueError(f"Unexpected obsolete license link in promotional archive: {info.filename}")
+        if not changed:
+            return 0
+        with zipfile.ZipFile(temporary, "w") as output:
+            output.comment = comment
+            for info, data in entries:
+                output.writestr(copy.copy(info), data.replace(old, new) if info.filename in replacements else data)
+        with zipfile.ZipFile(temporary) as output:
+            if output.comment != comment or output.namelist() != names:
+                raise ValueError("Promotional archive order or comment changed")
+            for (before, data), after in zip(entries, output.infolist()):
+                wanted = data.replace(old, new) if before.filename in replacements else data
+                if output.read(after) != wanted or any(getattr(before, key) != getattr(after, key) for key in metadata):
+                    raise ValueError(f"Promotional archive content or metadata changed: {before.filename}")
+        temporary.replace(path)
+        return changed
+    except (zipfile.BadZipFile, OSError, RuntimeError) as error:
+        raise ValueError(f"Cannot prepare promotional archive: {error}") from error
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def validate_sources(source):
@@ -114,13 +169,18 @@ def main():
         shutil.copy2(source / name, target)
     for name in DIRECTORIES:
         shutil.copytree(source / name, destination / name)
+    try:
+        corrected_links = correct_promotional_archive(destination / "media/Magnolie-Werbepaket.zip")
+    except ValueError as error:
+        parser.error(str(error))
     for file in destination.rglob("*"):
         if file.is_file() and file.suffix in (".html", ".xml", ".txt", ".md"):
             text = file.read_text(encoding="utf-8")
             file.write_text(text.replace(SOURCE_URL, base_url), encoding="utf-8")
     pages = validate(destination)
     total = sum(file.stat().st_size for file in destination.rglob("*") if file.is_file())
-    print(f"Validated {pages} HTML pages; packaged {total:,} bytes for {base_url}/")
+    print(f"Validated {pages} HTML pages; corrected {corrected_links} promotional license links; "
+          f"packaged {total:,} bytes for {base_url}/")
 
 
 if __name__ == "__main__":
