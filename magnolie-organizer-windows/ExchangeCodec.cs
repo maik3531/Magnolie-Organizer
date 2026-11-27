@@ -820,13 +820,12 @@ internal static partial class ExchangeCodec
                 string Cell(int index) => index >= 0 && index < row.Count ? row[index].Trim() : "";
                 if (lastIndex >= 0 || firstIndex >= 0 || companyIndex >= 0)
                 {
-                    var phones = header.Select((name, index) => (name, index)).Where(pair => pair.name.Contains("TELEFON") || pair.name.Contains("PHONE") || pair.name.Contains("MOBIL") || pair.name.Contains("CELL") || pair.name.Contains("FAX")).Where(pair => Cell(pair.index).Length > 0)
-                        .Select(pair => new JsonObject { ["wert"] = Cell(pair.index), ["typen"] = new JsonArray(pair.name.Contains("MOBIL") || pair.name.Contains("CELL") ? "CELL" : pair.name.Contains("FAX") ? "FAX" : "VOICE") }).ToArray();
+                    var phones = LotusContactPhones(header, Cell);
                     var emails = header.Select((name, index) => (name, index)).Where(pair => pair.name.Contains("EMAIL") || pair.name.Contains("MAIL")).Select(pair => Cell(pair.index)).Where(ValidEmail).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-                    var street = Cell(Find("STRASSE", "STREET", "ANSCHRIFT")); var city = Cell(Find("ORT", "CITY", "STADT")); var postal = Cell(Find("PLZ", "POSTLEITZAHL", "ZIP")); var country = Cell(Find("LAND", "COUNTRY"));
+                    var addresses = LotusContactAddresses(header, Cell); var firstAddress = addresses.FirstOrDefault();
                     if (Cell(lastIndex).Length + Cell(firstIndex).Length + Cell(companyIndex).Length + emails.Sum(value => value.Length) == 0) { omitted++; continue; }
-                    contacts.Add(new JsonObject { ["nachname"] = Cell(lastIndex), ["vorname"] = Cell(firstIndex), ["firma"] = Cell(companyIndex), ["strasse"] = street, ["plz"] = postal, ["ort"] = city,
-                        ["anschriften"] = new JsonArray(new JsonObject { ["strasse"] = street, ["plz"] = postal, ["ort"] = city, ["land"] = country }), ["telefone"] = new JsonArray(phones), ["telefon"] = phones.FirstOrDefault()?["wert"]?.ToString() ?? "", ["mobil"] = phones.FirstOrDefault(phone => phone["typen"]?.AsArray().Any(type => type?.ToString() == "CELL") == true)?["wert"]?.ToString() ?? "",
+                    contacts.Add(new JsonObject { ["nachname"] = Cell(lastIndex), ["vorname"] = Cell(firstIndex), ["firma"] = Cell(companyIndex), ["strasse"] = firstAddress?["strasse"]?.ToString() ?? "", ["plz"] = firstAddress?["plz"]?.ToString() ?? "", ["ort"] = firstAddress?["ort"]?.ToString() ?? "",
+                        ["anschriften"] = new JsonArray(addresses), ["telefone"] = new JsonArray(phones), ["telefon"] = phones.FirstOrDefault()?["wert"]?.ToString() ?? "", ["mobil"] = phones.FirstOrDefault(phone => phone["typen"]?.AsArray().Any(type => type?.ToString() == "CELL") == true)?["wert"]?.ToString() ?? "",
                         ["email"] = emails.FirstOrDefault() ?? "", ["emails"] = new JsonArray(emails.Select(email => JsonValue.Create(email)).ToArray()), ["notiz"] = Cell(Find("BEMERKUNG", "NOTIZ", "NOTES")), ["uid"] = "", ["geaendert"] = 0 });
                 }
                 else if (dueIndex >= 0)
@@ -2338,6 +2337,48 @@ internal static partial class ExchangeCodec
         foreach (var format in new[] { "dd.MM.yyyy HH:mm", "dd.MM.yyyy", "yyyy-MM-dd HH:mm", "yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd" })
             if (DateTime.TryParseExact(value, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)) return (parsed.ToString("yyyy-MM-dd"), format.Contains("HH") ? parsed.ToString("HH:mm") : "", false);
         return ("", "", false);
+    }
+
+    private static bool LotusHeaderContains(string header, params string[] names) =>
+        names.Any(name => header.Contains(name, StringComparison.Ordinal));
+
+    private static JsonObject[] LotusContactPhones(string[] headers, Func<int, string> cell)
+    {
+        var phones = new List<JsonObject>();
+        for (var index = 0; index < headers.Length; index++)
+        {
+            var header = headers[index]; var value = cell(index);
+            if (value.Length == 0 || !LotusHeaderContains(header, "TELEFON", "PHONE", "MOBIL", "HANDY", "CELL", "RUFNUMMER", "FESTNETZ", "FAX", "PAGER")) continue;
+            string[] types = LotusHeaderContains(header, "MOBIL", "HANDY", "CELL", "FUNK") ? ["CELL"] :
+                header.Contains("FAX", StringComparison.Ordinal) ? ["FAX"] : header.Contains("PAGER", StringComparison.Ordinal) ? ["PAGER"] :
+                LotusHeaderContains(header, "GESCHAEFT", "ARBEIT", "WORK", "BUERO") ? ["WORK", "VOICE"] :
+                LotusHeaderContains(header, "PRIVAT", "HOME") ? ["HOME", "VOICE"] : ["VOICE"];
+            phones.Add(new JsonObject { ["wert"] = value, ["typen"] = new JsonArray(types.Select(type => JsonValue.Create(type)).ToArray()) });
+        }
+        return phones.ToArray();
+    }
+
+    private static JsonObject[] LotusContactAddresses(string[] headers, Func<int, string> cell)
+    {
+        var fields = new (string Name, string[] Headers)[] {
+            ("strasse", ["STRASSE", "STREET", "ANSCHRIFT", "ADRESSE"]), ("plz", ["POSTLEITZAHL", "PLZ", "ZIP", "POSTALCODE"]),
+            ("ort", ["ORT", "STADT", "CITY"]), ("land", ["LAND", "COUNTRY"]) };
+        var groups = new[] { "", "HOME", "WORK" }.ToDictionary(role => role,
+            _ => new JsonObject(fields.Select(field => new KeyValuePair<string, JsonNode?>(field.Name, JsonValue.Create("")))));
+        for (var index = 0; index < headers.Length; index++)
+        {
+            var header = headers[index]; var value = cell(index); if (value.Length == 0) continue;
+            var field = fields.FirstOrDefault(candidate => LotusHeaderContains(header, candidate.Headers)).Name;
+            if (field is null) continue;
+            var role = LotusHeaderContains(header, "PRIVAT", "HOME") ? "HOME" :
+                LotusHeaderContains(header, "GESCHAEFT", "ARBEIT", "WORK", "FIRMA") ? "WORK" : "";
+            if (role.Length > 0 || groups[role][field]!.ToString().Length == 0) groups[role][field] = value;
+        }
+        return groups.Where(pair => fields.Any(field => pair.Value[field.Name]!.ToString().Length > 0)).Select(pair =>
+        {
+            pair.Value["typen"] = pair.Key.Length > 0 ? new JsonArray(pair.Key) : new JsonArray();
+            return pair.Value;
+        }).ToArray();
     }
 
     private static bool IsYes(string value) => new[] { "JA", "J", "YES", "Y", "TRUE", "WAHR", "1", "X" }.Contains(value.Trim().ToUpperInvariant());

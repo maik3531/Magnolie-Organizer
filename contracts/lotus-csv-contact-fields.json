@@ -1,0 +1,443 @@
+{
+  "description": "Synthetic CSV contacts: independent HOME/WORK/general fields, no inferred hybrid address. Scoped file-import part of #566; not evidence for historical OR6/UI conflicts.",
+  "cases": [
+    {
+      "id": "home-and-work",
+      "headers": [
+        "Vorname",
+        "Nachname",
+        "Telefon Privat",
+        "Telefon Geschäftlich",
+        "Straße Privat",
+        "PLZ Privat",
+        "Ort Privat",
+        "Land Privat",
+        "Straße Geschäftlich",
+        "PLZ Geschäftlich",
+        "Ort Geschäftlich",
+        "Land Geschäftlich"
+      ],
+      "row": [
+        "Synthetic",
+        "CSV",
+        "030123456",
+        "040654321",
+        "Privatweg 1",
+        "10115",
+        "Berlin",
+        "DE",
+        "Firmenweg 2",
+        "20095",
+        "Hamburg",
+        "DE"
+      ],
+      "phones": [
+        {
+          "wert": "030123456",
+          "typen": [
+            "HOME",
+            "VOICE"
+          ]
+        },
+        {
+          "wert": "040654321",
+          "typen": [
+            "WORK",
+            "VOICE"
+          ]
+        }
+      ],
+      "addresses": [
+        {
+          "strasse": "Privatweg 1",
+          "plz": "10115",
+          "ort": "Berlin",
+          "land": "DE",
+          "typen": [
+            "HOME"
+          ]
+        },
+        {
+          "strasse": "Firmenweg 2",
+          "plz": "20095",
+          "ort": "Hamburg",
+          "land": "DE",
+          "typen": [
+            "WORK"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "work-only",
+      "headers": [
+        "Vorname",
+        "Nachname",
+        "Telefon Geschäftlich",
+        "Straße Geschäftlich",
+        "PLZ Geschäftlich",
+        "Ort Geschäftlich",
+        "Land Geschäftlich"
+      ],
+      "row": [
+        "Synthetic",
+        "CSV",
+        "040654321",
+        "Firmenweg 2",
+        "20095",
+        "Hamburg",
+        "DE"
+      ],
+      "phones": [
+        {
+          "wert": "040654321",
+          "typen": [
+            "WORK",
+            "VOICE"
+          ]
+        }
+      ],
+      "addresses": [
+        {
+          "strasse": "Firmenweg 2",
+          "plz": "20095",
+          "ort": "Hamburg",
+          "land": "DE",
+          "typen": [
+            "WORK"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "interleaved-fields",
+      "headers": [
+        "Vorname",
+        "Nachname",
+        "Straße Privat",
+        "Ort Geschäftlich",
+        "PLZ Privat",
+        "Straße Geschäftlich",
+        "Ort Privat",
+        "PLZ Geschäftlich",
+        "Land Privat",
+        "Land Geschäftlich"
+      ],
+      "row": [
+        "Synthetic",
+        "CSV",
+        "Privatweg 1",
+        "Hamburg",
+        "10115",
+        "Firmenweg 2",
+        "Berlin",
+        "20095",
+        "DE",
+        "DE"
+      ],
+      "phones": [],
+      "addresses": [
+        {
+          "strasse": "Privatweg 1",
+          "plz": "10115",
+          "ort": "Berlin",
+          "land": "DE",
+          "typen": [
+            "HOME"
+          ]
+        },
+        {
+          "strasse": "Firmenweg 2",
+          "plz": "20095",
+          "ort": "Hamburg",
+          "land": "DE",
+          "typen": [
+            "WORK"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "generic-and-explicit",
+      "headers": [
+        "Vorname",
+        "Nachname",
+        "Straße",
+        "PLZ",
+        "Ort",
+        "Land",
+        "Telefon Geschäftlich",
+        "Mobiltelefon",
+        "Telefon Privat",
+        "Fax",
+        "Pager",
+        "Straße Privat",
+        "PLZ Privat",
+        "Ort Privat",
+        "Land Privat",
+        "Straße Geschäftlich",
+        "PLZ Geschäftlich",
+        "Ort Geschäftlich",
+        "Land Geschäftlich"
+      ],
+      "row": [
+        "Synthetic",
+        "CSV",
+        "Allgemeinweg 3",
+        "01067",
+        "Dresden",
+        "DE",
+        "040654321",
+        "0171234567",
+        "030123456",
+        "030234567",
+        "030345678",
+        "Privatweg 1",
+        "10115",
+        "Berlin",
+        "DE",
+        "Firmenweg 2",
+        "20095",
+        "Hamburg",
+        "DE"
+      ],
+      "phones": [
+        {
+          "wert": "040654321",
+          "typen": [
+            "WORK",
+            "VOICE"
+          ]
+        },
+        {
+          "wert": "0171234567",
+          "typen": [
+            "CELL"
+          ]
+        },
+        {
+          "wert": "030123456",
+          "typen": [
+            "HOME",
+            "VOICE"
+          ]
+        },
+        {
+          "wert": "030234567",
+          "typen": [
+            "FAX"
+          ]
+        },
+        {
+          "wert": "030345678",
+          "typen": [
+            "PAGER"
+          ]
+        }
+      ],
+      "addresses": [
+        {
+          "strasse": "Allgemeinweg 3",
+          "plz": "01067",
+          "ort": "Dresden",
+          "land": "DE",
+          "typen": []
+        },
+        {
+          "strasse": "Privatweg 1",
+          "plz": "10115",
+          "ort": "Berlin",
+          "land": "DE",
+          "typen": [
+            "HOME"
+          ]
+        },
+        {
+          "strasse": "Firmenweg 2",
+          "plz": "20095",
+          "ort": "Hamburg",
+          "land": "DE",
+          "typen": [
+            "WORK"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "partial-work-does-not-borrow-home-fields",
+      "headers": [
+        "Vorname",
+        "Nachname",
+        "Straße Geschäftlich",
+        "Straße Privat",
+        "PLZ Privat",
+        "Ort Privat",
+        "Land Privat"
+      ],
+      "row": [
+        "Synthetic",
+        "CSV",
+        "Firmenweg 2",
+        "Privatweg 1",
+        "10115",
+        "Berlin",
+        "DE"
+      ],
+      "phones": [],
+      "addresses": [
+        {
+          "strasse": "Privatweg 1",
+          "plz": "10115",
+          "ort": "Berlin",
+          "land": "DE",
+          "typen": [
+            "HOME"
+          ]
+        },
+        {
+          "strasse": "Firmenweg 2",
+          "plz": "",
+          "ort": "",
+          "land": "",
+          "typen": [
+            "WORK"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "empty-role-columns",
+      "headers": [
+        "Vorname",
+        "Nachname",
+        "Telefon Privat",
+        "Telefon Geschäftlich",
+        "Straße Privat",
+        "PLZ Privat",
+        "Ort Privat",
+        "Straße Geschäftlich",
+        "PLZ Geschäftlich",
+        "Ort Geschäftlich"
+      ],
+      "row": [
+        "Synthetic",
+        "CSV",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "phones": [],
+      "addresses": []
+    },
+    {
+      "id": "generic-keeps-no-invented-role",
+      "headers": [
+        "Vorname",
+        "Nachname",
+        "Telefon",
+        "Straße",
+        "PLZ",
+        "Ort",
+        "Land"
+      ],
+      "row": [
+        "Synthetic",
+        "CSV",
+        "035123456",
+        "Allgemeinweg 3",
+        "01067",
+        "Dresden",
+        "DE"
+      ],
+      "phones": [
+        {
+          "wert": "035123456",
+          "typen": [
+            "VOICE"
+          ]
+        }
+      ],
+      "addresses": [
+        {
+          "strasse": "Allgemeinweg 3",
+          "plz": "01067",
+          "ort": "Dresden",
+          "land": "DE",
+          "typen": []
+        }
+      ]
+    },
+    {
+      "id": "english-role-columns",
+      "headers": [
+        "Vorname",
+        "Nachname",
+        "Work Phone",
+        "Home Phone",
+        "Work Street",
+        "Work ZIP",
+        "Work City",
+        "Work Country",
+        "Home Street",
+        "Home ZIP",
+        "Home City",
+        "Home Country"
+      ],
+      "row": [
+        "Synthetic",
+        "CSV",
+        "040654321",
+        "030123456",
+        "Firmenweg 2",
+        "20095",
+        "Hamburg",
+        "DE",
+        "Privatweg 1",
+        "10115",
+        "Berlin",
+        "DE"
+      ],
+      "phones": [
+        {
+          "wert": "040654321",
+          "typen": [
+            "WORK",
+            "VOICE"
+          ]
+        },
+        {
+          "wert": "030123456",
+          "typen": [
+            "HOME",
+            "VOICE"
+          ]
+        }
+      ],
+      "addresses": [
+        {
+          "strasse": "Privatweg 1",
+          "plz": "10115",
+          "ort": "Berlin",
+          "land": "DE",
+          "typen": [
+            "HOME"
+          ]
+        },
+        {
+          "strasse": "Firmenweg 2",
+          "plz": "20095",
+          "ort": "Hamburg",
+          "land": "DE",
+          "typen": [
+            "WORK"
+          ]
+        }
+      ]
+    }
+  ]
+}

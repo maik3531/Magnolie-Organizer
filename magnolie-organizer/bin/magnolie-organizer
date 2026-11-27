@@ -6454,13 +6454,12 @@ def _lotus_kontakte(zeilen, kopf):
             telefon_spalten.append((i, typen))
         sitz = "HOME" if any(w in spalte for w in ("PRIVAT", "HOME")) else \
             "WORK" if any(w in spalte for w in ("GESCHAEFT", "ARBEIT", "WORK", "FIRMA")) else ""
-        if sitz:
-            for feld, woerter in (("strasse", ("STRASSE", "STREET", "ANSCHRIFT", "ADRESSE")),
-                                  ("plz", ("POSTLEITZAHL", "PLZ", "ZIP", "POSTALCODE")),
-                                  ("ort", ("ORT", "STADT", "CITY")), ("land", ("LAND", "COUNTRY"))):
-                if any(w in spalte for w in woerter):
-                    anschrift_spalten.append((i, sitz, feld))
-                    break
+        for feld, woerter in (("strasse", ("STRASSE", "STREET", "ANSCHRIFT", "ADRESSE")),
+                              ("plz", ("POSTLEITZAHL", "PLZ", "ZIP", "POSTALCODE")),
+                              ("ort", ("ORT", "STADT", "CITY")), ("land", ("LAND", "COUNTRY"))):
+            if any(w in spalte for w in woerter):
+                anschrift_spalten.append((i, sitz, feld))
+                break
     kontakte, uebersprungen = [], 0
     for zeile in zeilen:
         def hol(feld, zeile=zeile):
@@ -6479,16 +6478,20 @@ def _lotus_kontakte(zeilen, kopf):
         for telefon in eintrag["telefone"]:
             if not telefon.get("vcardParameter"):
                 telefon.pop("vcardParameter", None)
-        anschriften = _anschrift_liste(eintrag)
-        nach_sitz = {"HOME": {"strasse": "", "plz": "", "ort": "", "land": ""},
+        # Group source columns before deriving scalar compatibility fields.
+        # First matches across HOME/WORK can otherwise invent a hybrid address.
+        anschriften = []
+        nach_sitz = {"": {"strasse": "", "plz": "", "ort": "", "land": ""},
+                     "HOME": {"strasse": "", "plz": "", "ort": "", "land": ""},
                      "WORK": {"strasse": "", "plz": "", "ort": "", "land": ""}}
         for i, sitz, feld in anschrift_spalten:
             if i >= len(zeile) or not zeile[i].strip():
                 continue
-            nach_sitz[sitz][feld] = zeile[i].strip()
+            if sitz or not nach_sitz[sitz][feld]:
+                nach_sitz[sitz][feld] = zeile[i].strip()
         for sitz, anschrift in nach_sitz.items():
             if any(anschrift.values()):
-                anschriften.append(dict(anschrift, typen=[sitz]))
+                anschriften.append(dict(anschrift, typen=[sitz] if sitz else []))
         _anschriften_setzen(eintrag, anschriften)
         kontakte.append(eintrag)
     return kontakte, uebersprungen

@@ -78,6 +78,12 @@ aufgeführt.
   einschließlich Betreuer und Betreuerin bleibt erhalten. 113 Linux-
   Prüfungen, 53 gemeinsame Fälle im C#-Wiederherstellungspfad und
   die Kontakteditorprüfungen beider Oberflächen sind bestanden.
+- [#566](https://github.com/maik3531/Magnolie-Organizer/issues/566):
+  Der CSV-Import hält generische, private und geschäftliche Anschriften
+  auseinander und erhält zugeordnete Telefonrollen. Die Korrektur
+  betrifft CSV und den anschließenden VCF-Rundlauf. 54 Linux-Prüfungen
+  und neun native Windows-Gruppen bestanden. Die gemeldete
+  Sammelentscheidung im installierten Windows-Organizer bleibt offen.
 - [#842](https://github.com/maik3531/Magnolie-Organizer/issues/842):
   Der Windows-Dateiimport weist beschädigtes UTF‑16 mit der vorhandenen
   Fehlermeldung ab. Direkte Dateien, ZIP-Einträge und der Müllkalender
