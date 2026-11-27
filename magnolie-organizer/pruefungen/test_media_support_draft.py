@@ -497,9 +497,12 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
                 book.chmod(0o600)
                 with NativeMediaRetention(service.store.root) as policy:assert policy.adopt_existing_saved()
                 session=connection.desktop_session()
-                start_error=('media_source_native_composition_required' if direction=='two_way' else 'photo_schedule_not_ready')
-                with pytest.raises(TransferError,match=start_error):
-                    session.start('sync_shared')  # Matching settings are not enough for the normal entry point.
+                manual_first_images=direction=='phone_to_pc' and kind=='images' and not automatic
+                assert connection.desktop_snapshot()['manual_image_receive']==manual_first_images
+                if not manual_first_images:
+                    start_error=('media_source_native_composition_required' if direction=='two_way' else 'photo_schedule_not_ready')
+                    with pytest.raises(TransferError,match=start_error):
+                        session.start('sync_shared')
                 if not automatic:
                     session._run('sync_shared',None)  # Check the same worker's independent final guard as well.
                     expected=('media_source_native_composition_required' if direction=='two_way'

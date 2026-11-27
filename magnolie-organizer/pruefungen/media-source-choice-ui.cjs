@@ -86,6 +86,29 @@ async function boot() {
     b.show({ shared_media: { ...b.state.shared_media, values: { ...b.state.shared_media.values, enabled: false } } });
     assert.ok(b.add().disabled); assert.equal(b.sent().length, 0);
   });
+  await test("first photo receive starts only with Synchronize now on agreed manual settings", async b => {
+    const shared = { ...b.state.shared_media, values: { ...b.state.shared_media.values,
+      collection_mode: "phone_inventory", direction: "phone_to_pc", videos_enabled: false } };
+    const show = (media, state = {}) => b.show({ manual_image_receive: true, sending_consent: null, shared_media: media, ...state });
+    const start = () => b.w.document.querySelector("[data-photo-manual-sync]");
+    const outgoing = () => b.messages.filter(m => m.cmd === "telefon_foto_aktion");
+    show({ ...shared, agreed: false }); assert.equal(start(), null);
+    show({ ...shared, values: { ...shared.values, enabled: false } }); assert.equal(start(), null);
+    show(shared);
+    let fold = b.w.document.querySelector("details.notes-foto-sync");
+    assert.equal(fold.open, false);
+    fold.querySelector("summary").click(); await tick();
+    assert.equal(outgoing().length, 0);
+    assert.ok(start() && !start().disabled && !fold.querySelector("[data-media-receive]"));
+    start().click();
+    assert.equal(outgoing().length, 1);
+    assert.deepEqual(outgoing()[0].request, { action: "sync_shared" });
+    show(shared, { enabled: true, busy: true });
+    assert.ok(start().disabled);
+    fold = b.w.document.querySelector("details.notes-foto-sync");
+    [...fold.querySelectorAll("button")].find(button => button.textContent === "Revoke · Photos").click();
+    assert.deepEqual(outgoing().at(-1).request, { action: "disable" });
+  });
   await test("unsupported two-way mode cannot be selected or start a partial run", async b => {
     const direction = () => b.w.document.querySelector('[data-media-setting="direction"]');
     assert.ok(direction().querySelector('[value="two_way"]').disabled, "Two-way must not be selectable without safe return");

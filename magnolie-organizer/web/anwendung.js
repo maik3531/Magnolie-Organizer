@@ -30135,6 +30135,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const twoWayHeld = sharedValues
         ? sharedValues.direction === "two_way" && sharedValues.collection_mode !== "import_only"
         : stand.mapped_direction === "two_way";
+      const manualImageReceive = stand.manual_image_receive === true && stand.shared_media?.agreed === true &&
+        sharedValues?.enabled === true && sharedValues.auto_mode === "manual" && sharedValues.photos_enabled === true &&
+        sharedValues.videos_enabled === false && (sharedValues.direction === "phone_to_pc" || sharedValues.collection_mode === "import_only");
       const sende = (action, album_id, job_owner, historical_choice) => {
         telefonFotoFehler.delete(peer.device_id);
         const request = { action }; if (album_id !== undefined) request.album_id = album_id;
@@ -30150,10 +30153,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const label = el("label", "telefon-medien-aktivierung"); label.title = _("Receive") + " · " + _("Photos"); label.append(an);
       label.addEventListener("click", event => event.stopPropagation());
       label.addEventListener("keydown", event => event.stopPropagation());
-      if (stand.shared_media) {
+      if (manualImageReceive && stand.enabled === true) {
+        const revoke = knopf(_("Revoke") + " · " + _("Photos"), "", () => sende("disable"));
+        revoke.title = label.title; gruppe.append(revoke);
+      } else if (stand.shared_media && !manualImageReceive) {
         const row = el("label", "hak"); row.append(an, document.createTextNode(" " + label.title));
         gruppe.append(row);
-      } else titel.append(label);
+      } else if (!stand.shared_media) titel.append(label);
       const sendeStand = stand.sending_consent || (stand.sending_setup ? { photos: false, videos: false, ...stand.sending_setup } : null);
       if (sendeStand) {
         const rights = el("section", "notes-medien-rechte"); rights.append(el("h4", null, _("Send")));
@@ -30298,7 +30304,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (stand.animation_grouping_supported === true || stand.capture_grouping_supported === true)
           gruppe.append(el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
         const status = {
-          enable: _("Preparing photo synchronization…"), permission_required: _("Allow photo access on the phone, then refresh albums."),
+          enable: _("Preparing photo synchronization…"), waiting: _("Waiting for the phone…"),
+          permission_required: _("Allow photo access on the phone, then refresh albums."),
           discover: _("Finding phone albums…"), albums: _("Phone albums are ready."), syncing: _("Photo synchronization active"),
           stopping: _("Stopping photo synchronization…"), complete: _("Selected album synchronized."),
           conflicts: _("Changes need review. No conflicting version was overwritten."),
@@ -30424,16 +30431,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
       if (twoWayHeld) gruppe.append(el("p", "einst-hinweis", _("Two-way synchronization") + " · " + _("Unavailable")));
       const backupRecovery = baueMedienBackupWiederherstellung(); gruppe.append(backupRecovery);
-      if (stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
+      if (manualImageReceive || stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
         const manuell = el("div", "knopfreihe notes-medien-manuell");
         const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => {
           telefonFotoFehler.delete(peer.device_id);
           Bruecke.sende({ cmd: "telefon_foto_aktion", kennung: peer.device_id, fingerprint: peer.fingerprint,
-            request: stand.mapped_outgoing === true && !(fotoAlbumWahl?.value || videoAlbumWahl?.value) ? { action: "sync_shared" } :
+             request: manualImageReceive || stand.mapped_outgoing === true && !(fotoAlbumWahl?.value || videoAlbumWahl?.value) ? { action: "sync_shared" } :
               { action: "sync_selected", album_id: fotoAlbumWahl?.value || null, video_album_id: videoAlbumWahl?.value || null } });
         });
         jetzt.dataset.photoManualSync = "true";
-        jetzt.disabled = twoWayHeld || stand.busy === true || !(stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length) ||
+        jetzt.disabled = twoWayHeld || stand.busy === true || !(manualImageReceive || stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length) ||
           !!(stand.shared_media && stand.shared_media.configured !== false && (!stand.shared_media.values.enabled || !stand.shared_media.agreed));
         manuell.append(jetzt);
         if (stand.busy) {

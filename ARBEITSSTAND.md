@@ -28,6 +28,11 @@ aufgeführt.
   einem verifiziert privaten Gruppen-Elternordner anlegen. Modus
   und vorhandene Dateien bleiben erhalten; unsichere Ziele bleiben
   gesperrt. Alle 194 Fälle der Ziel- und Dialogprüfung wurden erfasst.
+  Der manuelle Linux-Foto-Erstempfang startet über „Jetzt synchronisieren“.
+  Er braucht die bestätigte WLAN-Einstellung, native SEND-/RECEIVE-Freigaben
+  und die getrennte Android-Leseberechtigung. Gespeicherte Ablehnungen
+  bleiben erhalten. 91 Python- und 12 DOM-Fälle bestanden. Erstempfang
+  für Video, gemischte Läufe und die WLAN-Automatik folgen getrennt.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
   zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.
