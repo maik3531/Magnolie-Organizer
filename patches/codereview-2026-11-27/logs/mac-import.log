@@ -1,0 +1,27 @@
+{"name": "mac-import", "command": ["/usr/bin/python3", "-m", "unittest", "-v", "test_import_helper"], "source_head": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23"}
+test_all_original_program_or6_fixtures_through_isolated_stdio (test_import_helper.ImportHelperTests.test_all_original_program_or6_fixtures_through_isolated_stdio) ... ok
+test_corrupt_or6_zip_bombs_and_xml_entities_have_no_partial_result (test_import_helper.ImportHelperTests.test_corrupt_or6_zip_bombs_and_xml_entities_have_no_partial_result) ... ok
+test_desktop_calendar_vcard_ldif_and_lotus_golden_files (test_import_helper.ImportHelperTests.test_desktop_calendar_vcard_ldif_and_lotus_golden_files) ... ok
+test_file_and_network_photo_references_do_not_grant_access (test_import_helper.ImportHelperTests.test_file_and_network_photo_references_do_not_grant_access) ... ok
+test_generated_bytes_manifest_and_copy_identity_are_verified (test_import_helper.ImportHelperTests.test_generated_bytes_manifest_and_copy_identity_are_verified) ... ok
+test_legacy_android_sidecar_is_exact_and_transient (test_import_helper.ImportHelperTests.test_legacy_android_sidecar_is_exact_and_transient) ... ok
+test_malformed_headers_lengths_hashes_and_extra_authority_fail_closed (test_import_helper.ImportHelperTests.test_malformed_headers_lengths_hashes_and_extra_authority_fail_closed) ... ok
+test_normative_tzif_roundtrip_and_original_point_oracle (test_import_helper.ImportHelperTests.test_normative_tzif_roundtrip_and_original_point_oracle) ... ok
+test_output_bound_is_applied_before_a_complete_response_is_written (test_import_helper.ImportHelperTests.test_output_bound_is_applied_before_a_complete_response_is_written) ... ok
+test_selected_language_and_country_are_explicit_context (test_import_helper.ImportHelperTests.test_selected_language_and_country_are_explicit_context) ... ok
+test_source_closure_and_dependency_tampering_are_rejected (test_import_helper.ImportHelperTests.test_source_closure_and_dependency_tampering_are_rejected) ... ok
+test_utf16_csv_bom_and_decoded_null_through_isolated_helper (test_import_helper.ImportHelperTests.test_utf16_csv_bom_and_decoded_null_through_isolated_helper) ... ok
+test_vcs_lcs_csv_contact_alias_and_claws_routes (test_import_helper.ImportHelperTests.test_vcs_lcs_csv_contact_alias_and_claws_routes) ... ok
+test_waste_preview_contract_and_limits (test_import_helper.ImportHelperTests.test_waste_preview_contract_and_limits) ... ok
+test_zip_routes_use_the_same_bounded_desktop_dispatcher (test_import_helper.ImportHelperTests.test_zip_routes_use_the_same_bounded_desktop_dispatcher) ... ok
+test_canonical_temporary_parent_does_not_authorize_projection_links (test_import_helper.ProjectionPathTests.test_canonical_temporary_parent_does_not_authorize_projection_links) ... ok
+test_owned_temporary_parent_alias_is_normalized_before_projection (test_import_helper.ProjectionPathTests.test_owned_temporary_parent_alias_is_normalized_before_projection)
+#793: reproduce a macOS-shaped parent alias with real filesystem links. ... ok
+test_temporary_root_itself_cannot_be_a_link_or_a_missing_directory (test_import_helper.ProjectionPathTests.test_temporary_root_itself_cannot_be_a_link_or_a_missing_directory) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 33.574s
+
+OK
+
+{"name": "mac-import", "command": ["/usr/bin/python3", "-m", "unittest", "-v", "test_import_helper"], "source_head": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23", "exit_code": 0, "seconds": 33.877, "source_head_after": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23"}

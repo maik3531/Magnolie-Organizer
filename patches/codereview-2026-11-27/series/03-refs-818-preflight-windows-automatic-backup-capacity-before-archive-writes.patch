@@ -1,0 +1,112 @@
+From 3646157394fd63aa483953ba2aa73925baa8b177 Mon Sep 17 00:00:00 2001
+From: Maik Walter <154642264+maik3531@users.noreply.github.com>
+Date: Fri, 27 Nov 2026 11:13:44 +0100
+Subject: [PATCH] Refs #818: preflight Windows automatic-backup capacity before
+ archive writes
+
+---
+ .../CloudBackupService.cs                     |  9 +++
+ .../tests/CloudBackupTests.cs                 | 56 +++++++++++++++++++
+ 2 files changed, 65 insertions(+)
+
+diff --git a/magnolie-organizer-windows/CloudBackupService.cs b/magnolie-organizer-windows/CloudBackupService.cs
+index db5f71c223103d76d15f330d5c3db1fdc841523a..0a3c5873c4136ee2dad6ae2d7dc102b634649eae 100644
+--- a/magnolie-organizer-windows/CloudBackupService.cs
++++ b/magnolie-organizer-windows/CloudBackupService.cs
+@@ -110,6 +110,7 @@ internal sealed partial class CloudBackupService
+         var password = secrets.Lookup() ?? throw new InvalidOperationException("secret_unavailable");
+         var instant = (now ?? DateTimeOffset.UtcNow).ToUniversalTime();
+         Directory.CreateDirectory(settings.Folder);
++        EnsureCapacity(settings.Folder);
+         var target = Path.Combine(settings.Folder,
+             $"magnolie-auto-{instant:yyyyMMdd-HHmmss-ffffff}-{Guid.NewGuid():N}.magnolie");
+         try
+@@ -136,6 +137,14 @@ internal sealed partial class CloudBackupService
+         return target;
+     }
+ 
++    internal static void EnsureCapacity(string directory)
++    {
++        // The verified archive must still fit inside the bounded retention scan.
++        // Check before encryption/writing; a rejected retry must not grow the folder.
++        if (Directory.EnumerateFileSystemEntries(directory).Take(ListingLimit).Count() >= ListingLimit)
++            throw new IOException("backup_listing_limit");
++    }
++
+     internal static IReadOnlyList<string> ApplyRetention(string directory, int keep,
+         string verifiedPath)
+     {
+diff --git a/magnolie-organizer-windows/tests/CloudBackupTests.cs b/magnolie-organizer-windows/tests/CloudBackupTests.cs
+index de05e78ba6bdf8840325a51eface9dfe1357a289..2ff02f75dd75233e5f3749677c1ae4bee2f1bca8 100644
+--- a/magnolie-organizer-windows/tests/CloudBackupTests.cs
++++ b/magnolie-organizer-windows/tests/CloudBackupTests.cs
+@@ -9,6 +9,8 @@ internal static class CloudBackupTests
+     {
+         DuePolicy();
+         RetentionOwnership();
++        CapacityPreflight();
++        NativeCapacityRetries();
+         SourceRoutingAndSecretSafety();
+         await WorkerCorrelationAsync();
+     }
+@@ -43,6 +45,60 @@ internal static class CloudBackupTests
+         finally { Directory.Delete(root, true); }
+     }
+ 
++    private static void CapacityPreflight()
++    {
++        var root = Path.Combine(Path.GetTempPath(), "magnolie-cloud-capacity-" + Guid.NewGuid().ToString("N"));
++        Directory.CreateDirectory(root);
++        try
++        {
++            for (var index = 0; index < CloudBackupService.ListingLimit - 1; index++)
++                File.WriteAllText(Path.Combine(root, $"unrelated-{index:D4}.txt"), "keep");
++            CloudBackupService.EnsureCapacity(root);
++            // Include a directory: retention bounds all entries, not only archive files.
++            Directory.CreateDirectory(Path.Combine(root, "unrelated-directory"));
++            var before = Directory.GetFileSystemEntries(root).Order(StringComparer.Ordinal).ToArray();
++            for (var attempt = 0; attempt < 3; attempt++)
++                TestAssert.Throws<IOException>(() => CloudBackupService.EnsureCapacity(root),
++                    "Der neue Sicherungseintrag muss vor Erzeugung in die Auflistungsgrenze passen.");
++            TestAssert.That(before.SequenceEqual(Directory.GetFileSystemEntries(root).Order(StringComparer.Ordinal)),
++                "Wiederholte Kapazitätsprüfungen dürfen volle Ordner nicht verändern.");
++            TestAssert.That(Directory.GetFiles(root).All(path => File.ReadAllText(path) == "keep"),
++                "Fremde Dateiinhalte müssen erhalten bleiben.");
++        }
++        finally { Directory.Delete(root, true); }
++    }
++
++    private static void NativeCapacityRetries()
++    {
++        if (!OperatingSystem.IsWindows())
++        {
++            Console.WriteLine("  SKIP CloudBackup CreateVerified / DPAPI: requires native Windows; capacity policy ran.");
++            return;
++        }
++        var root = Path.Combine(Path.GetTempPath(), "magnolie-cloud-native-capacity-" + Guid.NewGuid().ToString("N"));
++        var folder = Path.Combine(root, "backups");
++        Directory.CreateDirectory(folder);
++        try
++        {
++            var service = new CloudBackupService(Path.Combine(root, "owned-secret"));
++            service.StorePassword("owned-capacity-regression-password");
++            var data = System.Text.Json.Nodes.JsonNode.Parse("{\"version\":7,\"notizen\":[],\"einstellungen\":{}}")!.AsObject();
++            var settings = new CloudBackupSettings(true, "daily", 2, "", folder);
++            for (var index = 0; index < CloudBackupService.ListingLimit - 1; index++)
++                File.WriteAllText(Path.Combine(folder, $"unrelated-{index:D4}.txt"), "keep");
++            var verified = service.CreateVerified(data, settings, "owned-version");
++            TestAssert.That(File.Exists(verified), "999 Einträge müssen eine verifizierte neue Sicherung zulassen.");
++            var before = Directory.GetFileSystemEntries(folder).Order(StringComparer.Ordinal).ToArray();
++            for (var attempt = 0; attempt < 3; attempt++)
++                TestAssert.Throws<IOException>(() => service.CreateVerified(data, settings, "owned-version"),
++                    "Volle Sicherungsordner müssen vor einer weiteren Archiverzeugung abgewiesen werden.");
++            TestAssert.That(before.SequenceEqual(Directory.GetFileSystemEntries(folder).Order(StringComparer.Ordinal)),
++                "Fehlgeschlagene Wiederholungen dürfen keine weiteren Archive hinterlassen.");
++            TestAssert.That(File.Exists(verified), "Die zuvor verifizierte Sicherung muss erhalten bleiben.");
++        }
++        finally { Directory.Delete(root, true); }
++    }
++
+     private static void SourceRoutingAndSecretSafety()
+     {
+         var root = TestSource.Root("MagnolieOrganizer.Windows.csproj");

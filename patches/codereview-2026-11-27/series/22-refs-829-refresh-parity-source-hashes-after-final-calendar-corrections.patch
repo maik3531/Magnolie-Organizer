@@ -1,0 +1,25 @@
+From c0a30d50075c1cc898d0635597a126e5a0b56518 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 12:07:05 +0100
+Subject: [PATCH] Refs #829: refresh parity source hashes after final calendar
+ corrections
+
+---
+ .../tests/resources/linux-parity-contract.json                | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/magnolie-organizer-windows/tests/resources/linux-parity-contract.json b/magnolie-organizer-windows/tests/resources/linux-parity-contract.json
+index a241dfcb47e4df72bb1e08fbd262318ee0ff3abc..2851189e28d0fad2e2eada1cd50f83c3c21949e0 100644
+--- a/magnolie-organizer-windows/tests/resources/linux-parity-contract.json
++++ b/magnolie-organizer-windows/tests/resources/linux-parity-contract.json
+@@ -1,8 +1,8 @@
+ {
+   "schema": "magnolie-linux-parity-v1",
+   "sources": {
+-    "web/anwendung.js": "dfd10df8a039766185b938f85c7092d11f60ca4f5bd4a323c431bac8d3a573c2",
+-    "bin/magnolie-organizer": "ff2333d93856f41470f2350b70d9df91bceec83140e845ed2bf888b3460234dc"
++    "web/anwendung.js": "efa4cd29e658d29018d6bc885ba7c115733bc7044e2371156937a0dd0a4bf653",
++    "bin/magnolie-organizer": "7bec4b0627a9879e6da94b49da5c9a11f3b73e6f944f2f33ce7d392bbc1587f6"
+   },
+   "commands": [
+     "ablage_holen",

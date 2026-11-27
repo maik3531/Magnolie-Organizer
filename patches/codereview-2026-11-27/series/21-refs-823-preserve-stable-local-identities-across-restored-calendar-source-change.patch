@@ -1,0 +1,423 @@
+From 092c52e8241db7a8416a09fc595b7aa894864fef Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 12:06:46 +0100
+Subject: [PATCH] Refs #823: preserve stable local identities across restored
+ calendar source changes
+
+---
+ .../restore-additive-identity-vectors.json    | 98 +++++++++++++++++++
+ .../RestoreSelection.cs                       | 81 +++++++++++----
+ .../tests/RestoreSelectionIdentityTests.cs    | 10 ++
+ magnolie-organizer/bin/magnolie-organizer     | 68 ++++++++++---
+ .../pruefungen/test_restore_identity.py       | 20 +++-
+ 5 files changed, 246 insertions(+), 31 deletions(-)
+
+diff --git a/contracts/restore-additive-identity-vectors.json b/contracts/restore-additive-identity-vectors.json
+index 97c226c3e5bc49434ad78d5991a316a72d8b8adc..ecdf57b4aa79cada8881241a0b0fc8f360276ea9 100644
+--- a/contracts/restore-additive-identity-vectors.json
++++ b/contracts/restore-additive-identity-vectors.json
+@@ -161,6 +161,104 @@
+       "current": [{"id": "a", "uid": "same", "kalenderQuelle": "invalid"}],
+       "snapshot": [{"id": "b", "uid": "same", "kalenderQuelle": {"id": "calendar"}}],
+       "expected": [{"id": "a", "uid": "same", "kalenderQuelle": "invalid"}, {"id": "b", "uid": "same", "kalenderQuelle": {"id": "calendar"}}]
++    },
++    {
++      "id": "moved-event-keeps-unique-local-id-and-current-transport",
++      "area": "calendar", "collection": "termine",
++      "current": [{"id": "event-same", "uid": "shared@example.test", "syncKalenderUid": "calendar-b", "titel": "Moved event", "notiz": "", "davHref": "", "davEtag": ""}],
++      "snapshot": [{"id": "event-same", "uid": "shared@example.test", "syncKalenderUid": "calendar-a", "titel": "Old event", "notiz": "Recovered note", "davHref": "/calendar-a/old.ics", "davEtag": "old-etag", "syncQuellen": {"calendar-a": {"id": "old.ics", "etag": "old-etag"}}, "kalenderQuelle": {"id": "calendar-a"}, "icsQuelleName": "Old calendar", "icsRoundtrip": ["X-OLD:yes"], "providerMetadaten": {"old": "metadata"}, "sync": true, "geaendert": 123, "unknownProviderWitness": {"old": "keep out"}}],
++      "expected": [{"id": "event-same", "uid": "shared@example.test", "syncKalenderUid": "calendar-b", "titel": "Moved event", "notiz": "Recovered note", "davHref": "", "davEtag": ""}]
++    },
++    {
++      "id": "moved-task-keeps-unique-local-id-and-current-source",
++      "area": "calendar", "collection": "aufgaben",
++      "current": [{"id": "task-same", "uid": "shared", "icsQuelleId": "calendar-b", "titel": "Moved task", "notiz": "", "prio": 1, "erledigt": false}],
++      "snapshot": [{"id": "task-same", "uid": "shared", "icsQuelleId": "calendar-a", "titel": "Old task", "notiz": "Task note", "prio": 3, "erledigt": true, "icsElternQuelleId": "calendar-a", "elternUid": "old-parent", "providerMetadaten": {"old": true}}],
++      "expected": [{"id": "task-same", "uid": "shared", "icsQuelleId": "calendar-b", "titel": "Moved task", "notiz": "Task note", "prio": 1, "erledigt": false}]
++    },
++    {
++      "id": "local-id-survives-calendar-source-object-change",
++      "area": "calendar", "collection": "termine",
++      "current": [{"id": "source-object", "uid": "shared", "kalenderQuelle": {"id": "calendar-b"}, "notiz": ""}],
++      "snapshot": [{"id": "source-object", "uid": "shared", "kalenderQuelle": {"id": "calendar-a"}, "notiz": "Recovered"}],
++      "expected": [{"id": "source-object", "uid": "shared", "kalenderQuelle": {"id": "calendar-b"}, "notiz": "Recovered"}]
++    },
++    {
++      "id": "local-id-survives-source-removal-and-new-uid",
++      "area": "calendar", "collection": "termine",
++      "current": [{"id": "unbound", "uid": "new-uid", "syncKalenderUid": "", "notiz": ""}],
++      "snapshot": [{"id": "unbound", "uid": "old-uid", "syncKalenderUid": "calendar-a", "icsQuelleId": "calendar-a", "notiz": "Recovered", "sync": true, "davHref": "old.ics"}],
++      "expected": [{"id": "unbound", "uid": "new-uid", "syncKalenderUid": "", "notiz": "Recovered"}]
++    },
++    {
++      "id": "id-only-record-source-change-keeps-new-transport",
++      "area": "calendar", "collection": "termine",
++      "current": [{"id": "id-only", "syncKalenderUid": "calendar-b", "notiz": ""}],
++      "snapshot": [{"id": "id-only", "syncKalenderUid": "calendar-a", "notiz": "Recovered", "davHref": "old.ics"}],
++      "expected": [{"id": "id-only", "syncKalenderUid": "calendar-b", "notiz": "Recovered"}]
++    },
++    {
++      "id": "unique-local-id-beats-unrelated-old-source-uid",
++      "area": "calendar", "collection": "termine",
++      "current": [{"id": "different-local", "uid": "shared", "syncKalenderUid": "calendar-a", "notiz": ""}, {"id": "moved", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}],
++      "snapshot": [{"id": "moved", "uid": "shared", "syncKalenderUid": "calendar-a", "notiz": "For moved only"}],
++      "expected": [{"id": "different-local", "uid": "shared", "syncKalenderUid": "calendar-a", "notiz": ""}, {"id": "moved", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": "For moved only"}]
++    },
++    {
++      "id": "ambiguous-local-id-after-source-change-holds-restore",
++      "area": "calendar", "collection": "termine",
++      "current": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}],
++      "snapshot": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-a", "notiz": "Do not guess"}],
++      "error": "ambiguous-local-id"
++    },
++    {
++      "id": "ambiguous-local-id-snapshot-cannot-create-new-duplicates",
++      "area": "calendar", "collection": "termine",
++      "current": [],
++      "snapshot": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}],
++      "error": "ambiguous-local-id"
++    },
++    {
++      "id": "ambiguous-local-id-snapshot-cannot-pick-one-current-record",
++      "area": "calendar", "collection": "aufgaben",
++      "current": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-a", "notiz": "Do not guess"}],
++      "snapshot": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}],
++      "error": "ambiguous-local-id"
++    },
++    {
++      "id": "exact-existing-ambiguous-local-id-remains-idempotent",
++      "area": "calendar", "collection": "termine",
++      "current": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}],
++      "snapshot": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}],
++      "expected": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}]
++    },
++    {
++      "id": "same-scope-disambiguates-preexisting-local-id-collision",
++      "area": "calendar", "collection": "termine",
++      "current": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}],
++      "snapshot": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": "For B"}],
++      "expected": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": "For B"}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}]
++    },
++    {
++      "id": "identical-snapshot-local-id-copies-restore-only-once",
++      "area": "calendar", "collection": "termine",
++      "current": [],
++      "snapshot": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}],
++      "expected": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}]
++    },
++    {
++      "id": "source-change-does-not-invent-empty-content-fields",
++      "area": "calendar", "collection": "aufgaben",
++      "current": [{"id": "empty", "uid": "same", "syncKalenderUid": "calendar-b"}],
++      "snapshot": [{"id": "empty", "uid": "same", "syncKalenderUid": "calendar-a", "notiz": "", "alarme": [], "organisator": {}}],
++      "expected": [{"id": "empty", "uid": "same", "syncKalenderUid": "calendar-b"}]
++    },
++    {
++      "id": "changed-secondary-binding-does-not-restore-old-transport",
++      "area": "calendar", "collection": "termine",
++      "current": [{"id": "same", "uid": "shared", "icsQuelleId": "import-source", "syncKalenderUid": "calendar-b", "notiz": "", "davHref": ""}],
++      "snapshot": [{"id": "same", "uid": "shared", "icsQuelleId": "import-source", "syncKalenderUid": "calendar-a", "notiz": "Recovered", "davHref": "/calendar-a/old.ics", "syncQuellen": {"calendar-a": {"id": "old"}}}],
++      "expected": [{"id": "same", "uid": "shared", "icsQuelleId": "import-source", "syncKalenderUid": "calendar-b", "notiz": "Recovered", "davHref": ""}]
+     }
+   ]
+ }
+diff --git a/magnolie-organizer-windows/RestoreSelection.cs b/magnolie-organizer-windows/RestoreSelection.cs
+index f37da7086decd347c98977f0130fdc3130ea82d1..e7cc8c34ac0549113cff5ff971c39e5aa83150be 100644
+--- a/magnolie-organizer-windows/RestoreSelection.cs
++++ b/magnolie-organizer-windows/RestoreSelection.cs
+@@ -82,32 +82,56 @@ internal static class RestoreSelection
+     private static JsonArray AddMissing(JsonArray? current, JsonArray? snapshot, bool sourceScoped)
+     {
+         var result = current?.DeepClone().AsArray() ?? new JsonArray();
++        string LocalId(JsonObject item) => item["id"]?.ToString() ?? "";
++        string Source(JsonObject item)
++        {
++            var source = item["icsQuelleId"]?.ToString() ?? "";
++            if (source.Length == 0) source = item["syncKalenderUid"]?.ToString() ?? "";
++            if (source.Length == 0) source = (item["kalenderQuelle"] as JsonObject)?["id"]?.ToString() ?? "";
++            return source;
++        }
++        (string Uid, string IcsSource, string SyncSource, string ObjectSource) Binding(JsonObject item) =>
++            (item["uid"]?.ToString() ?? "", item["icsQuelleId"]?.ToString() ?? "", item["syncKalenderUid"]?.ToString() ?? "",
++                (item["kalenderQuelle"] as JsonObject)?["id"]?.ToString() ?? "");
+         (string Kind, string Source, string Value)? Identity(JsonObject item)
+         {
+             var uid = item["uid"]?.ToString() ?? "";
+             if (uid.Length > 0)
+-            {
+-                var source = "";
+-                if (sourceScoped)
+-                {
+-                    source = item["icsQuelleId"]?.ToString() ?? "";
+-                    if (source.Length == 0) source = item["syncKalenderUid"]?.ToString() ?? "";
+-                    if (source.Length == 0) source = (item["kalenderQuelle"] as JsonObject)?["id"]?.ToString() ?? "";
+-                }
+-                return ("uid", source, uid);
+-            }
+-            var localId = item["id"]?.ToString() ?? "";
++                return ("uid", sourceScoped ? Source(item) : "", uid);
++            var localId = LocalId(item);
+             return localId.Length > 0 ? ("id", "", localId) : null;
+         }
++        // A moved record retains its local id, not its old provider bindings.
++        // Only known user content can fill gaps across a changed source/UID;
++        // unknown future provider metadata must remain excluded too.
++        var contentFields = new HashSet<string>(StringComparer.Ordinal) {
++            "titel", "notiz", "notizen", "text", "datum", "zeit", "endDatum", "endZeit",
++            "kategorien", "ort", "alarme", "organisator", "teilnehmer", "kalenderAnhaenge",
++            "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "individuelleErinnerungTage",
++            "standardErinnerung", "wiederholung", "prio", "prioritaet", "faellig", "startDatum",
++            "startZeit", "faelligZeit", "erledigt", "erinnern", "reihenfolge"
++        };
+         var byId = new Dictionary<(string Kind, string Source, string Value), List<JsonObject>>();
++        var byLocalId = new Dictionary<string, List<JsonObject>>(StringComparer.Ordinal);
+         void Remember(JsonObject item)
+         {
+-            if (Identity(item) is not { } identity) return;
+-            if (!byId.TryGetValue(identity, out var matches)) byId[identity] = matches = [];
+-            matches.Add(item);
++            if (Identity(item) is { } identity)
++            {
++                if (!byId.TryGetValue(identity, out var matches)) byId[identity] = matches = [];
++                matches.Add(item);
++            }
++            if (LocalId(item) is { Length: > 0 } local)
++            {
++                if (!byLocalId.TryGetValue(local, out var matches)) byLocalId[local] = matches = [];
++                matches.Add(item);
++            }
+         }
+         foreach (var item in result.OfType<JsonObject>()) Remember(item);
+         var oldItems = snapshot?.OfType<JsonObject>().ToArray() ?? [];
++        var ambiguousOldIds = oldItems.Where(item => LocalId(item).Length > 0)
++            .GroupBy(LocalId, StringComparer.Ordinal)
++            .Where(group => group.Skip(1).Any(item => !JsonNode.DeepEquals(item, group.First())))
++            .Select(group => group.Key).ToHashSet(StringComparer.Ordinal);
+         var oldCounts = new Dictionary<(string Kind, string Source, string Value), int>();
+         foreach (var item in oldItems)
+             if (Identity(item) is { } key) oldCounts[key] = oldCounts.GetValueOrDefault(key) + 1;
+@@ -116,12 +140,24 @@ internal static class RestoreSelection
+             var identity = Identity(old);
+             var matches = identity.HasValue && byId.TryGetValue(identity.Value, out var found) ? found : [];
+             var existing = matches.Count == 1 ? matches[0] : null;
+-            if (matches.Count > 1 || (identity.HasValue && oldCounts.GetValueOrDefault(identity.Value) > 1))
++            var localId = LocalId(old);
++            var localMatches = sourceScoped && localId.Length > 0 && byLocalId.TryGetValue(localId, out var localFound) ? localFound : [];
++            if (sourceScoped && localId.Length > 0 && (localMatches.Count > 1 || ambiguousOldIds.Contains(localId)))
++            {
++                if (localMatches.Any(item => JsonNode.DeepEquals(item, old))) continue;
++                // Preexisting duplicate local ids need an exact unchanged
++                // source match; otherwise hold the entire additive operation.
++                var sameSource = matches.Where(item => LocalId(item) == localId).Take(2).ToArray();
++                if (ambiguousOldIds.Contains(localId) || sameSource.Length != 1)
++                    throw new InvalidDataException(NativeLocalization.Gettext("Conflict"));
++                existing = sameSource[0];
++            }
++            else if (localMatches.Count == 1) existing = localMatches[0];
++            else if (matches.Count > 1 || (identity.HasValue && oldCounts.GetValueOrDefault(identity.Value) > 1))
+             {
+                 // A duplicate external identity must not choose an arbitrary record.
+                 existing = null;
+-                var localId = old["id"]?.ToString() ?? "";
+-                var sameId = matches.Where(item => localId.Length > 0 && item["id"]?.ToString() == localId).Take(2).ToArray();
++                var sameId = matches.Where(item => localId.Length > 0 && LocalId(item) == localId).Take(2).ToArray();
+                 if (sameId.Length == 1) existing = sameId[0];
+                 else if (matches.Any(item => JsonNode.DeepEquals(item, old))) continue;
+             }
+@@ -132,9 +168,20 @@ internal static class RestoreSelection
+                 Remember(copy);
+                 continue;
+             }
++            var changedBinding = sourceScoped && Binding(existing) != Binding(old);
++            var previousLocalId = LocalId(existing);
+             foreach (var pair in old)
++            {
++                if (changedBinding && (!contentFields.Contains(pair.Key) || pair.Value is null ||
++                    pair.Value.ToJsonString() is "\"\"" or "[]" or "{}")) continue;
+                 if ((existing[pair.Key] is null || existing[pair.Key]!.ToJsonString() is "\"\"" or "[]" or "{}") && pair.Value is not null)
+                     existing[pair.Key] = pair.Value.DeepClone();
++            }
++            if (previousLocalId.Length == 0 && LocalId(existing) is { Length: > 0 } assignedId)
++            {
++                if (!byLocalId.TryGetValue(assignedId, out var assignedMatches)) byLocalId[assignedId] = assignedMatches = [];
++                assignedMatches.Add(existing);
++            }
+         }
+         return result;
+     }
+diff --git a/magnolie-organizer-windows/tests/RestoreSelectionIdentityTests.cs b/magnolie-organizer-windows/tests/RestoreSelectionIdentityTests.cs
+index a62776482c25e967c6f483d53e5a2cc48d165033..7f1c3e2b1ff120016c50f893e782928f6259ac11 100644
+--- a/magnolie-organizer-windows/tests/RestoreSelectionIdentityTests.cs
++++ b/magnolie-organizer-windows/tests/RestoreSelectionIdentityTests.cs
+@@ -18,6 +18,16 @@ internal static class RestoreSelectionIdentityTests
+             var snapshot = new JsonObject { [name] = vector["snapshot"]!.DeepClone() };
+             var currentBefore = current.DeepClone();
+             var snapshotBefore = snapshot.DeepClone();
++            if (vector["error"]?.GetValue<string>() == "ambiguous-local-id")
++            {
++                TestAssert.Throws<InvalidDataException>(() => RestoreSelection.Select(snapshot, current, [area], "additive"),
++                    id + ": ambiguous local identity did not hold the restoration.");
++                TestAssert.That(JsonNode.DeepEquals(current, currentBefore) && JsonNode.DeepEquals(snapshot, snapshotBefore),
++                    id + ": rejected restoration mutated its inputs.");
++                var explicitReplacement = RestoreSelection.Select(snapshot, current, [area], "replace");
++                TestAssert.That(JsonNode.DeepEquals(explicitReplacement[name], vector["snapshot"]), id + ": replacement selection changed.");
++                continue;
++            }
+             var restored = RestoreSelection.Select(snapshot, current, [area], "additive");
+             TestAssert.That(JsonNode.DeepEquals(restored[name], vector["expected"]), id + ": additive selection differs.");
+             var repeated = RestoreSelection.Select(snapshot, restored, [area], "additive");
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index 77dc1a8173799bffad77ea2b350a7f1ac21de6d6..08384c5c528b50c2a9b770f8c8f3caabe11aa4ac 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -1926,40 +1926,78 @@ def journal_umschluesseln(kennwort_neu, kennwort_alt="", basis=None):
+ def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False):
+     aus = json.loads(json.dumps(aktuell or [], ensure_ascii=False))
+     index = {}
++    lokale_ids = {}
++
++    def lokale_id(objekt):
++        return str(objekt.get("id") or "")
++
++    def quelle(objekt):
++        kalender = objekt.get("kalenderQuelle")
++        return str(objekt.get("icsQuelleId") or objekt.get("syncKalenderUid") or
++                   (kalender.get("id") if isinstance(kalender, dict) else "") or "")
++
++    def bindung(objekt):
++        kalender = objekt.get("kalenderQuelle")
++        return (str(objekt.get("uid") or ""), str(objekt.get("icsQuelleId") or ""),
++                str(objekt.get("syncKalenderUid") or ""),
++                str((kalender.get("id") if isinstance(kalender, dict) else "") or ""))
+ 
+     def identitaet(objekt):
+         uid = str(objekt.get("uid") or "")
+         if uid:
+-            quelle = ""
+-            if quellenbezogen:
+-                kalender = objekt.get("kalenderQuelle")
+-                quelle = str(objekt.get("icsQuelleId") or objekt.get("syncKalenderUid") or
+-                             (kalender.get("id") if isinstance(kalender, dict) else "") or "")
+-            return ("uid", quelle, uid)
+-        lokale_id = str(objekt.get("id") or "")
+-        return ("id", "", lokale_id) if lokale_id else None
++            return ("uid", quelle(objekt) if quellenbezogen else "", uid)
++        kennung = lokale_id(objekt)
++        return ("id", "", kennung) if kennung else None
++
++    # A moved calendar record may retain its local id while all provider
++    # bindings change. Restore only known user content across that boundary;
++    # archived or future unknown provider metadata must not be reattached.
++    inhaltsfelder = {"titel", "notiz", "notizen", "text", "datum", "zeit", "endDatum", "endZeit",
++                    "kategorien", "ort", "alarme", "organisator", "teilnehmer", "kalenderAnhaenge",
++                    "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "individuelleErinnerungTage",
++                    "standardErinnerung", "wiederholung", "prio", "prioritaet", "faellig", "startDatum",
++                    "startZeit", "faelligZeit", "erledigt", "erinnern", "reihenfolge"}
+ 
+     for objekt in aus:
+         if isinstance(objekt, dict):
+             kennung = identitaet(objekt)
+             if kennung:
+                 index.setdefault(kennung, []).append(objekt)
++            if lokale_id(objekt):
++                lokale_ids.setdefault(lokale_id(objekt), []).append(objekt)
+     alte_objekte = [objekt for objekt in alt or [] if isinstance(objekt, dict)]
+     alte_anzahl = {}
++    alte_lokale_ids = {}
+     for objekt in alte_objekte:
+         kennung = identitaet(objekt)
+         if kennung:
+             alte_anzahl[kennung] = alte_anzahl.get(kennung, 0) + 1
++        if lokale_id(objekt):
++            alte_lokale_ids.setdefault(lokale_id(objekt), []).append(objekt)
++    mehrdeutige_alt_ids = {kennung for kennung, objekte in alte_lokale_ids.items()
++                          if any(objekt != objekte[0] for objekt in objekte[1:])}
+     for objekt in alte_objekte:
+         kennung = identitaet(objekt)
+         kandidaten = index.get(kennung, [])
+         vorhanden = kandidaten[0] if len(kandidaten) == 1 else None
+-        if len(kandidaten) > 1 or alte_anzahl.get(kennung, 0) > 1:
++        local = lokale_id(objekt)
++        lokale_kandidaten = lokale_ids.get(local, []) if quellenbezogen and local else []
++        if quellenbezogen and local and (len(lokale_kandidaten) > 1 or local in mehrdeutige_alt_ids):
++            if objekt in lokale_kandidaten:
++                continue
++            # Existing duplicate local ids can only be disambiguated by the
++            # exact unchanged source identity. Otherwise hold the whole restore.
++            gleiche_quelle = [item for item in kandidaten if lokale_id(item) == local]
++            if local in mehrdeutige_alt_ids or len(gleiche_quelle) != 1:
++                raise ValueError(_("Conflict"))
++            vorhanden = gleiche_quelle[0]
++        elif len(lokale_kandidaten) == 1:
++            vorhanden = lokale_kandidaten[0]
++        elif len(kandidaten) > 1 or alte_anzahl.get(kennung, 0) > 1:
+             # A duplicate external identity must not choose an arbitrary record.
+             vorhanden = None
+-            lokale_id = str(objekt.get("id") or "")
+             passende = [item for item in kandidaten
+-                        if lokale_id and str(item.get("id") or "") == lokale_id]
++                        if local and lokale_id(item) == local]
+             if len(passende) == 1:
+                 vorhanden = passende[0]
+             elif objekt in kandidaten:
+@@ -1969,10 +2007,18 @@ def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False):
+             aus.append(kopie)
+             if kennung:
+                 index.setdefault(kennung, []).append(kopie)
++            if local:
++                lokale_ids.setdefault(local, []).append(kopie)
+             continue
++        quellenwechsel = quellenbezogen and bindung(vorhanden) != bindung(objekt)
++        bisherige_id = lokale_id(vorhanden)
+         for name, wert in objekt.items():
++            if quellenwechsel and name not in inhaltsfelder:
++                continue
+             if (name not in vorhanden or vorhanden.get(name) in (None, "", [], {})) and wert not in (None, "", [], {}):
+                 vorhanden[name] = json.loads(json.dumps(wert, ensure_ascii=False))
++        if not bisherige_id and lokale_id(vorhanden):
++            lokale_ids.setdefault(lokale_id(vorhanden), []).append(vorhanden)
+     return aus
+ 
+ 
+diff --git a/magnolie-organizer/pruefungen/test_restore_identity.py b/magnolie-organizer/pruefungen/test_restore_identity.py
+index aed8b9a19a3f94e9473a9eb1124747aa61ffdad0..c911cee76be22dfe271608d11a79e8ba4040043f 100644
+--- a/magnolie-organizer/pruefungen/test_restore_identity.py
++++ b/magnolie-organizer/pruefungen/test_restore_identity.py
+@@ -14,11 +14,17 @@ native = quellmodul_laden("magnolie_restore_identity", ROOT / "magnolie-organize
+ 
+ 
+ @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+-def test_additive_restore_identity(case):
++def test_additive_restore_identity(case, monkeypatch):
++    monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+     name = case["collection"]
+     current = {name: copy.deepcopy(case["current"])}
+     snapshot = {name: copy.deepcopy(case["snapshot"])}
+     untouched = copy.deepcopy((current, snapshot))
++    if case.get("error") == "ambiguous-local-id":
++        with pytest.raises(ValueError):
++            native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
++        assert (current, snapshot) == untouched
++        return
+     restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+     assert restored[name] == case["expected"]
+     repeated = native.journal_restore_daten(snapshot, restored, [case["area"]], "additive")
+@@ -27,8 +33,16 @@ def test_additive_restore_identity(case):
+ 
+ 
+ @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+-def test_replace_restore_keeps_snapshot_selection(case):
++def test_replace_restore_keeps_snapshot_selection(case, monkeypatch):
++    monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+     name = case["collection"]
+     restored = native.journal_restore_daten(
+         {name: case["snapshot"]}, {name: case["current"]}, [case["area"]], "replace")
+-    assert restored[name] == case["snapshot"]
++    expected = copy.deepcopy(case["snapshot"])
++    # Full Linux restoration deliberately refreshes live sync timestamps after
++    # selection; the C# vectors exercise only the pure selection layer.
++    if name in ("termine", "aufgaben", "kontakte"):
++        for item in expected:
++            if isinstance(item, dict) and item.get("sync"):
++                item["geaendert"] = 123456789
++    assert restored[name] == expected

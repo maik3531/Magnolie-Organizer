@@ -1,0 +1,14 @@
+{
+  "name": "mac-import",
+  "command": [
+    "/usr/bin/python3",
+    "-m",
+    "unittest",
+    "-v",
+    "test_import_helper"
+  ],
+  "source_head": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23",
+  "exit_code": 0,
+  "seconds": 33.877,
+  "source_head_after": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23"
+}

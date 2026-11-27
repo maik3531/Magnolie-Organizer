@@ -1,0 +1,975 @@
+{
+  "baseline": "d9fa9065b1fe690616e6eae2671159c224ead406",
+  "review_origin": "63ca6c8f351dd52627dfc550ff0075e703957ab5",
+  "source_commit": "87a65670726fc226c6d9bf4dc00d0630ecb7fabb",
+  "source_tree": "1fcc414bd0c58a7cbcd9c3c676247a76d47ea6be",
+  "repository": "maik3531/Magnolie-Organizer",
+  "artifact_branch": "work/codereview-20261127-patches",
+  "delivery_kind": "patches_for_later_integration",
+  "main_changed_by_review": false,
+  "combined_patch": {
+    "path": "magnolie-codereview.patch",
+    "bytes": 3583461,
+    "sha256": "36391a599dec73baa04d4c0b192165220bd2be10e7e4ff9cabd425be85bcee36"
+  },
+  "patches": [
+    {
+      "order": 1,
+      "path": "series/01-fix-utf-16-csv-imports-before-binary-detection-refs-817.patch",
+      "issues": [
+        817
+      ],
+      "source_commit": "08db00f5d32c510a7eb8b8eff0855ada90ea0ec0",
+      "source_parent": "63ca6c8f351dd52627dfc550ff0075e703957ab5",
+      "subject": "Fix UTF-16 CSV imports before binary detection (Refs #817)",
+      "bytes": 6634,
+      "sha256": "3192304b1e46da8e1c3e01d58b2d1fb220ff0236119e034075c839e3d91f5eb2",
+      "blob_sha": "20020515d9f458863b44b4c4ab26f2783eef771a",
+      "text_length": 6581
+    },
+    {
+      "order": 2,
+      "path": "series/02-reject-full-backup-folders-before-creating-new-archives-refs-818.patch",
+      "issues": [
+        818
+      ],
+      "source_commit": "e734a9104c42d2c05477149f8df421be69fc7fd8",
+      "source_parent": "08db00f5d32c510a7eb8b8eff0855ada90ea0ec0",
+      "subject": "Reject full backup folders before creating new archives (Refs #818)",
+      "bytes": 5572,
+      "sha256": "6d9283933ce6197e5ae76f21f404dea84ac8da62a278528854cd01fcc5d9594b",
+      "blob_sha": "4140e143497b29f79e26ce5a8841af319c3933f6",
+      "text_length": 5572
+    },
+    {
+      "order": 3,
+      "path": "series/03-refs-818-preflight-windows-automatic-backup-capacity-before-archive-writes.patch",
+      "issues": [
+        818
+      ],
+      "source_commit": "3646157394fd63aa483953ba2aa73925baa8b177",
+      "source_parent": "e734a9104c42d2c05477149f8df421be69fc7fd8",
+      "subject": "Refs #818: preflight Windows automatic-backup capacity before archive writes",
+      "bytes": 6257,
+      "sha256": "08cd2c690ab79a9b0dda20111dc110cd7415edefd3d933aeb6d696b00ef49a08",
+      "blob_sha": "f69ba008ae6ad9a3f22b3ca7eae964b47293c4e8",
+      "text_length": 6248
+    },
+    {
+      "order": 4,
+      "path": "series/04-refs-819-preserve-fractional-seconds-in-note-import-timestamps.patch",
+      "issues": [
+        819
+      ],
+      "source_commit": "256424cfac01959e228fc79838d85863574cb82c",
+      "source_parent": "3646157394fd63aa483953ba2aa73925baa8b177",
+      "subject": "Refs #819: Preserve fractional seconds in note import timestamps",
+      "bytes": 7320,
+      "sha256": "9db168a7298ddd936c5e175df0b5664e0e70b575d8cc63d2c8ee593dfda08379",
+      "blob_sha": "fc387c1087aaa2238e0a2bf3d896e27aa4e76215",
+      "text_length": 7320
+    },
+    {
+      "order": 5,
+      "path": "series/05-refs-822-recognize-keep-exports-before-selecting-lossy-note-readers.patch",
+      "issues": [
+        822
+      ],
+      "source_commit": "f55cb0e13db24fcff4f9322b1753d3fe93e23e14",
+      "source_parent": "256424cfac01959e228fc79838d85863574cb82c",
+      "subject": "Refs #822: Recognize Keep exports before selecting lossy note readers",
+      "bytes": 7054,
+      "sha256": "4ca9195d5cfbaf14ef1937d3d71204802c6ecc4d94db7fd26a0eac99c180eb56",
+      "blob_sha": "1f892b0f35bc4ddcaec290c1660f5ae17e64f167",
+      "text_length": 7050
+    },
+    {
+      "order": 6,
+      "path": "series/06-refs-821-bound-the-complete-folder-note-import-before-persistence.patch",
+      "issues": [
+        821
+      ],
+      "source_commit": "88d4b08f61e69060dbec2b431aa3a4758b4c2e42",
+      "source_parent": "f55cb0e13db24fcff4f9322b1753d3fe93e23e14",
+      "subject": "Refs #821: Bound the complete folder note import before persistence",
+      "bytes": 11928,
+      "sha256": "5c891ca18e40f3b3c4ea13612374c91e7b0ffa7465f491788b531eb51f262562",
+      "blob_sha": "0ab2b9e7941f24af9c59054b1c753a3f5957db97",
+      "text_length": 11924
+    },
+    {
+      "order": 7,
+      "path": "series/07-refs-825-reject-nested-note-archives-by-contents-before-recursive-import.patch",
+      "issues": [
+        825
+      ],
+      "source_commit": "7b3054881617f7424003921c51a54b2de00341c7",
+      "source_parent": "88d4b08f61e69060dbec2b431aa3a4758b4c2e42",
+      "subject": "Refs #825: Reject nested note archives by contents before recursive import",
+      "bytes": 6119,
+      "sha256": "2303b748fd28382a3942d3aa8954f54e157246fcf6581b00c1a57f5c3fac9721",
+      "blob_sha": "3e8931269eff518a4a91ee434489af13ceae727f",
+      "text_length": 6119
+    },
+    {
+      "order": 8,
+      "path": "series/08-refs-820-complete-current-linux-catalog-sources-and-recovery-translations.patch",
+      "issues": [
+        820
+      ],
+      "source_commit": "ee399232c5a0054172c5e84277bd22b075b92916",
+      "source_parent": "7b3054881617f7424003921c51a54b2de00341c7",
+      "subject": "Refs #820: complete current Linux catalog sources and recovery translations",
+      "bytes": 82850,
+      "sha256": "e51e44bb912f38c2d2321a5669a1ff2629dec25437d00cde73cafa48a8772554",
+      "blob_sha": "340dad1fa1513bddbb20de8fdffa4d0ab1a89e4c",
+      "text_length": 77651
+    },
+    {
+      "order": 9,
+      "path": "series/09-refs-824-show-exact-replacement-for-complete-journal-restore.patch",
+      "issues": [
+        824
+      ],
+      "source_commit": "36d0d27982dece07e62637e841f208487e6e5cd1",
+      "source_parent": "ee399232c5a0054172c5e84277bd22b075b92916",
+      "subject": "Refs #824: show exact replacement for complete journal restore",
+      "bytes": 42832,
+      "sha256": "1823679cc639e34c71c1659868fa25667541704af4b023aea622367c9978dbe0",
+      "blob_sha": "73cfaa56b5697e2f11e1d44b0fb404a703e10880",
+      "text_length": 41040
+    },
+    {
+      "order": 10,
+      "path": "series/10-refs-821-92-explain-current-note-import-limits-in-every-handbook-language.patch",
+      "issues": [
+        821,
+        92
+      ],
+      "source_commit": "6ba665ec9b53c499d37e6b14daecaf7bb03a9881",
+      "source_parent": "36d0d27982dece07e62637e841f208487e6e5cd1",
+      "subject": "Refs #821 #92: Explain current note import limits in every handbook language",
+      "bytes": 158170,
+      "sha256": "2789473c2976e97e7568ab8385a4293582e7a9788e1006bc975ad3f4bbbebc72",
+      "blob_sha": "64450836ba683d92af988b19e661f468e6a41c80",
+      "text_length": 142700
+    },
+    {
+      "order": 11,
+      "path": "series/11-refs-790-verify-current-tablet-checkout-in-the-mac-source-gate.patch",
+      "issues": [
+        790
+      ],
+      "source_commit": "24cc56ed2b4b1db018dd10f7c4fd20109ea6ddc7",
+      "source_parent": "6ba665ec9b53c499d37e6b14daecaf7bb03a9881",
+      "subject": "Refs #790: verify current tablet checkout in the Mac source gate",
+      "bytes": 2443,
+      "sha256": "44a693a2f93aa42196aa3d42cbffd5f8f77bc11bbb1877b2f081150801667818",
+      "blob_sha": "13f15943a1f14300b5994e7d9911aa1c9f634b6d",
+      "text_length": 2443
+    },
+    {
+      "order": 12,
+      "path": "series/12-preserve-additive-restore-identities-across-calendar-sources-refs-823.patch",
+      "issues": [
+        823
+      ],
+      "source_commit": "dc0726807318393e8e1978079191d6670e3a5443",
+      "source_parent": "24cc56ed2b4b1db018dd10f7c4fd20109ea6ddc7",
+      "subject": "Preserve additive restore identities across calendar sources (Refs #823)",
+      "bytes": 25306,
+      "sha256": "2bc91d6ff30259379a98aee3b621fa09a03bea3b308998d5b2e8471b25c3c0ca",
+      "blob_sha": "be4ee577ffdf122259dc48d1b485aa5c8c568700",
+      "text_length": 25305
+    },
+    {
+      "order": 13,
+      "path": "series/13-refs-827-synchronize-handbook-catalogs-with-current-source-appendices.patch",
+      "issues": [
+        827
+      ],
+      "source_commit": "5cf96926f49278dd7a0e4344fff8e81d32e5c56b",
+      "source_parent": "dc0726807318393e8e1978079191d6670e3a5443",
+      "subject": "Refs #827: synchronize handbook catalogs with current source appendices",
+      "bytes": 2781733,
+      "sha256": "662f387a77434722ee7472d0df3052be2c77f0c262132863af1eb43e6976a4d4",
+      "blob_sha": "e8c9591b7523f0e836b9748a8603bca4bec59c57",
+      "text_length": 2700816
+    },
+    {
+      "order": 14,
+      "path": "series/14-refs-830-preserve-adjacent-setup-constants-when-generating-download-urls.patch",
+      "issues": [
+        830
+      ],
+      "source_commit": "b5e3d42d7da60f7b491535458b11e4885fb8480f",
+      "source_parent": "5cf96926f49278dd7a0e4344fff8e81d32e5c56b",
+      "subject": "Refs #830: Preserve adjacent setup constants when generating download URLs",
+      "bytes": 4108,
+      "sha256": "7b6baca8e428b13bc7609fd536c3c5541440c939916e80b456789eafefbc621a",
+      "blob_sha": "9a2514077f0fea31d933d9ee4dc96dd88a5f5b72",
+      "text_length": 4108
+    },
+    {
+      "order": 15,
+      "path": "series/15-refs-828-translate-portuguese-no-in-both-desktop-catalogs.patch",
+      "issues": [
+        828
+      ],
+      "source_commit": "158816db6c032c33b1df073118ffbaf202b0c17a",
+      "source_parent": "8a0b41abd6ca606e6357c9362ed873d65f9f506f",
+      "subject": "Refs #828: translate Portuguese No in both desktop catalogs",
+      "bytes": 389250,
+      "sha256": "a63d262692bd8b61e45c6dbef63956f97022550e786bf7c4cb8ce9c1847c45c6",
+      "blob_sha": "c0606ddf5fd248037e863ba4f467af49a445c939",
+      "text_length": 381282
+    },
+    {
+      "order": 16,
+      "path": "series/16-keep-calendar-sources-distinct-during-synchronization-replies-refs-826.patch",
+      "issues": [
+        826
+      ],
+      "source_commit": "c32d2cac4c925d4687517074c73d4b575c993cf0",
+      "source_parent": "158816db6c032c33b1df073118ffbaf202b0c17a",
+      "subject": "Keep calendar sources distinct during synchronization replies (Refs #826)",
+      "bytes": 22220,
+      "sha256": "41f85fb1a309bee704710daa80f3814c38d11781589245eb056ddfb8a518b1c7",
+      "blob_sha": "fc9f92b2c4b5a17af03da88572c2d38986bfa5dc",
+      "text_length": 22220
+    },
+    {
+      "order": 17,
+      "path": "series/17-refs-831-admit-existing-native-media-and-webcam-bridge-envelopes.patch",
+      "issues": [
+        831
+      ],
+      "source_commit": "8d3f462e8ac89d9618f3fcbcfb0d4a74e63c66c6",
+      "source_parent": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23",
+      "subject": "Refs #831: admit existing native media and webcam bridge envelopes",
+      "bytes": 21950,
+      "sha256": "c7f88f6fe1b1c8e370af22108bd81d1b3a4623b0824a4f48343237be8de2fb5b",
+      "blob_sha": "1227e4564549c242f8b55c6bfe6cc5286fc9d356",
+      "text_length": 21950
+    },
+    {
+      "order": 18,
+      "path": "series/18-refs-829-compare-current-media-adapters-without-masking-bridge-gaps.patch",
+      "issues": [
+        829
+      ],
+      "source_commit": "e9e3c43f1410516ef8ddbf0e5785f96cedb5389e",
+      "source_parent": "8d3f462e8ac89d9618f3fcbcfb0d4a74e63c66c6",
+      "subject": "Refs #829: compare current media adapters without masking bridge gaps",
+      "bytes": 17062,
+      "sha256": "0b99372bf7c4fad89845cfd1b1ea88783521566e5549ac0da78c35ee69fc6eab",
+      "blob_sha": "e97d71f34821eb4ee811e7acea400720ee15e9fc",
+      "text_length": 17062
+    },
+    {
+      "order": 19,
+      "path": "series/19-refs-826-isolate-contact-only-sync-from-unselected-calendars.patch",
+      "issues": [
+        826
+      ],
+      "source_commit": "68116a583c222aa7999e7f4bb2deb4e4d5eb8752",
+      "source_parent": "e9e3c43f1410516ef8ddbf0e5785f96cedb5389e",
+      "subject": "Refs #826: isolate contact-only sync from unselected calendars",
+      "bytes": 20691,
+      "sha256": "ec6150903e7986c90f7018655a54783064fbbf0d0d0b4ed4b4662d0063ab0433",
+      "blob_sha": "665ec07f1e17df2d9964a3fdf1ee99ee33e60899",
+      "text_length": 20691
+    },
+    {
+      "order": 20,
+      "path": "series/20-refs-832-bound-handbook-byte-mismatch-diagnostics-without-weakening-equality.patch",
+      "issues": [
+        832
+      ],
+      "source_commit": "420c78562b7a1b94894eed746048ceeb1c2b86b0",
+      "source_parent": "68116a583c222aa7999e7f4bb2deb4e4d5eb8752",
+      "subject": "Refs #832: bound handbook byte-mismatch diagnostics without weakening equality",
+      "bytes": 7569,
+      "sha256": "54043b14b17d8cd5d4ad53120ab15d2bd110caa0e93e0baa2fc16e8b73bdef53",
+      "blob_sha": "17f14c0132b8e5f7aa7c190412b4d2483f73fb8d",
+      "text_length": 7539
+    },
+    {
+      "order": 21,
+      "path": "series/21-refs-823-preserve-stable-local-identities-across-restored-calendar-source-change.patch",
+      "issues": [
+        823
+      ],
+      "source_commit": "092c52e8241db7a8416a09fc595b7aa894864fef",
+      "source_parent": "420c78562b7a1b94894eed746048ceeb1c2b86b0",
+      "subject": "Refs #823: preserve stable local identities across restored calendar source changes",
+      "bytes": 27034,
+      "sha256": "feab411ff59d64833a0daddcdad04fe501006965e0e9de9c55f8c6319d6698c0",
+      "blob_sha": "45ef76da99eb91d921ae8bd611bdd59cea7efb54",
+      "text_length": 27034
+    },
+    {
+      "order": 22,
+      "path": "series/22-refs-829-refresh-parity-source-hashes-after-final-calendar-corrections.patch",
+      "issues": [
+        829
+      ],
+      "source_commit": "c0a30d50075c1cc898d0635597a126e5a0b56518",
+      "source_parent": "092c52e8241db7a8416a09fc595b7aa894864fef",
+      "subject": "Refs #829: refresh parity source hashes after final calendar corrections",
+      "bytes": 1263,
+      "sha256": "cc28d462a3e2e56973e9c013beb6af0b0e4ad586eb41ba4676b149e1bf19c28e",
+      "blob_sha": "7c6ac82b8c9130098a18e070404ce7efee939707",
+      "text_length": 1263
+    },
+    {
+      "order": 23,
+      "path": "series/23-refs-113-record-continued-code-review-patch-handoff-and-verification-limits.patch",
+      "issues": [
+        113
+      ],
+      "source_commit": "87a65670726fc226c6d9bf4dc00d0630ecb7fabb",
+      "source_parent": "c0a30d50075c1cc898d0635597a126e5a0b56518",
+      "subject": "Refs #113: record continued code review, patch handoff and verification limits",
+      "bytes": 4046,
+      "sha256": "4b04345c79968a91e8ce928941e9e223759e6881f9e065d319581c55d2ad6d8b",
+      "blob_sha": "760690852b1654fdc8e53ec750a5040fc5c5b011",
+      "text_length": 3981
+    }
+  ],
+  "issue_records": [
+    {
+      "number": 790,
+      "title": "Android-Tablet: Build auf aktuelle gemeinsame Quellen umstellen und Quellstand nachweisen",
+      "state": "open",
+      "comments": 11,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/790",
+      "updated_at": "2026-11-27T10:15:35Z"
+    },
+    {
+      "number": 817,
+      "title": "Linux CSV-Import: gültige UTF-16-Dateien werden vor der Dekodierung als Binärdatei abgewiesen",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/817",
+      "updated_at": "2026-11-27T10:05:06Z"
+    },
+    {
+      "number": 818,
+      "title": "Automatische Sicherung: voller Zielordner erzeugt bei jedem Fehlversuch weitere Archive",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/818",
+      "updated_at": "2026-11-27T10:06:09Z"
+    },
+    {
+      "number": 819,
+      "title": "Notes-Import: ISO-Zeitstempel mit Sekundenbruchteilen werden zeitlich verschoben",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/819",
+      "updated_at": "2026-11-27T10:06:23Z"
+    },
+    {
+      "number": 820,
+      "title": "Linux-Übersetzungen: aktive Medien- und GIF-Texte fehlen nach abgeschlossenen Korrekturen in den Sprachkatalogen",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/820",
+      "updated_at": "2026-11-27T10:07:59Z"
+    },
+    {
+      "number": 821,
+      "title": "Notes-Ordnerimport: Mengenbegrenzung greift in flachen Ordnern nicht und kann Speicher überlasten",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/821",
+      "updated_at": "2026-11-27T10:10:21Z"
+    },
+    {
+      "number": 822,
+      "title": "Notes-Import: allgemeine JSON-/HTML-Dateien werden fälschlich als Google Keep gelesen; Inhalte und Zeiten gehen verloren",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/822",
+      "updated_at": "2026-11-27T10:10:36Z"
+    },
+    {
+      "number": 823,
+      "title": "Additive Wiederherstellung: gleiche UID aus verschiedenen Kalendern verliert Einträge; Windows kann abbrechen oder Notizen duplizieren",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/823",
+      "updated_at": "2026-11-27T10:12:18Z"
+    },
+    {
+      "number": 824,
+      "title": "Wiederherstellung: „Alles“ zeigt ergänzenden Datenerhalt an, führt aber vollständiges Ersetzen aus",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/824",
+      "updated_at": "2026-11-27T10:12:56Z"
+    },
+    {
+      "number": 825,
+      "title": "Notes-ZIP-Import: verschachtelte Archive unter anderen Dateiendungen umgehen die Größenbegrenzung",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/825",
+      "updated_at": "2026-11-27T10:16:38Z"
+    },
+    {
+      "number": 826,
+      "title": "Kalender-Sync: gleiche UID in verschiedenen Quellen vermischt Inhalte und lässt Termine verschwinden",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/826",
+      "updated_at": "2026-11-27T10:25:53Z"
+    },
+    {
+      "number": 827,
+      "title": "Handbuch: kanonischer Übersetzungskatalog ist gegenüber den aktuellen Kapiteltexten veraltet",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/827",
+      "updated_at": "2026-11-27T10:24:58Z"
+    },
+    {
+      "number": 828,
+      "title": "Portugiesisch: „Nein“ in beiden Desktop-Katalogen fälschlich als „No“ übersetzt",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/828",
+      "updated_at": "2026-11-27T10:29:40Z"
+    },
+    {
+      "number": 829,
+      "title": "Windows-Paritätsgate bricht bei aktuellem Linux-Medienpayload ab und führt veralteten Vertrag",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/829",
+      "updated_at": "2026-11-27T10:25:00Z"
+    },
+    {
+      "number": 830,
+      "title": "Downloadgenerator löscht F-Droid-Konstante des Linux-Erstassistenten und blockiert das Release-Gate",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/830",
+      "updated_at": "2026-11-27T10:27:09Z"
+    },
+    {
+      "number": 831,
+      "title": "Windows: WebBridge-Vertrag blockiert vorhandene Webcam- und Medienfunktionen vor dem nativen Handler",
+      "state": "open",
+      "comments": 0,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/831",
+      "updated_at": "2026-11-27T10:35:20Z"
+    },
+    {
+      "number": 832,
+      "title": "Handbuch-Prüfhelfer: großer Buffer-Diff verbraucht bei veralteter Kopie mehrere GiB und verdeckt den eigentlichen Fehler",
+      "state": "open",
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/issues/832"
+    }
+  ],
+  "final_verification": {
+    "source_commit": "c0a30d50075c1cc898d0635597a126e5a0b56518",
+    "tests": [
+      {
+        "name": "dotnet-build",
+        "exit": 0,
+        "seconds": 16.621
+      },
+      {
+        "name": "bridge",
+        "exit": 0,
+        "seconds": 0.616
+      },
+      {
+        "name": "restore",
+        "exit": 0,
+        "seconds": 0.566
+      },
+      {
+        "name": "journal",
+        "exit": 0,
+        "seconds": 1.709
+      },
+      {
+        "name": "backup",
+        "exit": 0,
+        "seconds": 0.826
+      },
+      {
+        "name": "live-parity",
+        "exit": 0,
+        "seconds": 0.165
+      },
+      {
+        "name": "full-parity",
+        "exit": 0,
+        "seconds": 0.539
+      },
+      {
+        "name": "sync-ui",
+        "exit": 0,
+        "seconds": 9.004
+      },
+      {
+        "name": "journal-ui",
+        "exit": 0,
+        "seconds": 3.436
+      },
+      {
+        "name": "handbook-diagnostic",
+        "exit": 0,
+        "seconds": 0.115
+      },
+      {
+        "name": "linux-data",
+        "exit": 0,
+        "seconds": 1.381
+      }
+    ]
+  },
+  "native_packages_tested_in_this_followup": false,
+  "result_tree_verified_by_combined_and_series": true,
+  "evidence": [
+    {
+      "path": "logs/817-after.txt",
+      "bytes": 99,
+      "sha256": "6e3bb15d59c4f9ddfc313d34c3a20d49014214d80f672b3101020c798edfb0c5"
+    },
+    {
+      "path": "logs/817-before.txt",
+      "bytes": 44271,
+      "sha256": "cd3cc97513b7ae328e7ec3236d8e4fbb7d47a6c7eb76c9b81f96ea1d44895dd1"
+    },
+    {
+      "path": "logs/817-mac-helper.txt",
+      "bytes": 253,
+      "sha256": "e386746cbe23b28286b2afcadbc36b6d1836f21692bef815cf2b7636f85acba9"
+    },
+    {
+      "path": "logs/818-before.txt",
+      "bytes": 3223,
+      "sha256": "bec4218ae7932eed9d695c3dafa2ecf75193eb1dd91c4ee10feff29128bd259b"
+    },
+    {
+      "path": "logs/818-linux-system-after.txt",
+      "bytes": 99,
+      "sha256": "938df73ec908e07e713ebd3399e9a6d51d0ef84655fb3b7540a7a9d8dd8a640a"
+    },
+    {
+      "path": "logs/820-catalog-after.log",
+      "bytes": 99,
+      "sha256": "4c475280c5d9bbb92ea7efc6495da7da48c296b6211eeb54534d6128eaf22dc6"
+    },
+    {
+      "path": "logs/820-catalog-before.log",
+      "bytes": 6915,
+      "sha256": "d2ab2728d3d49d3e574f9c19e30a3560e1495cfee61f0bfd2910a1b01577943d"
+    },
+    {
+      "path": "logs/820-generate-pot.log",
+      "bytes": 4052,
+      "sha256": "91ce211273e6a85b87c1150b1e04bb596f0d5eec6e2e0990b5d2420e1c3719cb"
+    },
+    {
+      "path": "logs/820-recovery-after.log",
+      "bytes": 111,
+      "sha256": "cdd0670cf82d4bdc538a3acb97d111366dc946cb7e26666fe6c6bf9c080311b9"
+    },
+    {
+      "path": "logs/820-recovery-before.log",
+      "bytes": 891,
+      "sha256": "6d755e85094585918bda9226bc3548e06811908bf338317dd0eec51d065bdb8b"
+    },
+    {
+      "path": "logs/823-after-dotnet.log",
+      "bytes": 138,
+      "sha256": "3fa043bb03f6b4dd7c75155e8e0f463f2fa9d03987243d44bfe9afa45bb18266"
+    },
+    {
+      "path": "logs/823-after-python-combined.log",
+      "bytes": 180,
+      "sha256": "7ee73be380767b6c8d4e486bb45ab395a847da0676345e89b282b862fe4800b2"
+    },
+    {
+      "path": "logs/823-before-dotnet.log",
+      "bytes": 811,
+      "sha256": "736c0008e60c4fe5d52d3e89f9dcd27562594d05e59cd152281532652cf3bf71"
+    },
+    {
+      "path": "logs/823-before-python.log",
+      "bytes": 15172,
+      "sha256": "611f86a7d175078c58facbb4032dced1b610833240d811117454271f2a41b359"
+    },
+    {
+      "path": "logs/823-existing-journal-dotnet-cwd.log",
+      "bytes": 152,
+      "sha256": "54f28afa9949a164b536000529ee695eb596f00522d97f7ea7b3eed02e4f58f5"
+    },
+    {
+      "path": "logs/823-existing-restore-dav.txt",
+      "bytes": 99,
+      "sha256": "d81491b57638fdd992d411a6852d18432883a91fc373fcd9f90d62cc48d8f7ec"
+    },
+    {
+      "path": "logs/823-linux-baseline-all-vectors.txt",
+      "bytes": 13859,
+      "sha256": "285e505a13ed1cfc9875f615b9cf7b564b7f467f4cae5197895d57a7f5be5c24"
+    },
+    {
+      "path": "logs/823-original-repro-final.json",
+      "bytes": 450,
+      "sha256": "83ade245b9bb359d0630be257463469ff4195317fd8138e69b26a2c7b16a9c46"
+    },
+    {
+      "path": "logs/823-shared-function-before-after.json",
+      "bytes": 10464,
+      "sha256": "74dc3c1a53b0258f3e0adfcb4b88491e8289e34d8293647e327b5f8f8b30fe63"
+    },
+    {
+      "path": "logs/824-journal-after.log",
+      "bytes": 1034,
+      "sha256": "b1b7b422ff844583f92806e694e9cac1c634abbea77d9b0b68aaeaf6fd0d121b"
+    },
+    {
+      "path": "logs/824-journal-before.log",
+      "bytes": 1045,
+      "sha256": "a4c95334a57f54f1f19e34a3730409e9a105b026622ec6189e6a002005e5e3a7"
+    },
+    {
+      "path": "logs/826-contact-cleanup.log",
+      "bytes": 108,
+      "sha256": "60d61551f4db5516e1cdeb1b9194b0a1eff73cfa17ab8582c9cf339f8b45b738"
+    },
+    {
+      "path": "logs/826-contact-conflicts.log",
+      "bytes": 109,
+      "sha256": "faac3fc512a395845cabaf79d1487e2004ab5df5468a33ada3c82df63e727b69"
+    },
+    {
+      "path": "logs/826-expanded-final.log",
+      "bytes": 5132,
+      "sha256": "00ae79c80fdd14b76b0ebffd6f12573545ecc9e740f9f865d28b8beb1a2b5c5e"
+    },
+    {
+      "path": "logs/826-final-before.log",
+      "bytes": 9024,
+      "sha256": "633e5a42529373ee3412f7e64a78742822e65bff7c7bdf83cfc38b3d7cdb0ee6"
+    },
+    {
+      "path": "logs/826-mcp-linux.log",
+      "bytes": 190,
+      "sha256": "818e11c591690f81a51b9f7a64c7b9ae89a5421f4758ea9eddcafedf141905de"
+    },
+    {
+      "path": "logs/826-mcp-windows.log",
+      "bytes": 202,
+      "sha256": "44553b8912767a57f8b986bb67287909fa4f0d2835a368e5f26fc8a6feaef1bd"
+    },
+    {
+      "path": "logs/826-ui-after.txt",
+      "bytes": 3086,
+      "sha256": "669fc3c260b73b3589f797c4dc0042a6c73c68626d3055b059fe489e5620dfd3"
+    },
+    {
+      "path": "logs/826-ui-before.txt",
+      "bytes": 14654,
+      "sha256": "4b3f7f9cdf0622368ef4463ffb58e72c9f3a0eea4d95f36026277fc64dd1bc01"
+    },
+    {
+      "path": "logs/827-audit-after.log",
+      "bytes": 1376,
+      "sha256": "bf40fd9fe077941881df684cf29d4de942f3ce9912d96fd1187e8cf993d4a9c7"
+    },
+    {
+      "path": "logs/827-catalog-after.log",
+      "bytes": 98,
+      "sha256": "8c77e9dee845b3dc3be8cf1be2c113f58da69f0d17ec5deaad1d6ecf7af2b8e1"
+    },
+    {
+      "path": "logs/827-editorial-after.log",
+      "bytes": 101,
+      "sha256": "2280e77410181f1d2422caa6d13c40ceeeae5fdec62fbeda4d96871f9d0e213f"
+    },
+    {
+      "path": "logs/828-portuguese-after.log",
+      "bytes": 156,
+      "sha256": "574c5ed0a0bc70b7778df78f451a31993d1ddcd8ad67d2e223ca1c736f6494e8"
+    },
+    {
+      "path": "logs/828-portuguese-before.log",
+      "bytes": 445,
+      "sha256": "0fa8d1f552b89b0142e9f9658b02c0a478b332569292cd0adc5c5c7c0f428740"
+    },
+    {
+      "path": "logs/829-fixture-repeated.json",
+      "bytes": 13818,
+      "sha256": "26f63dd5fd00c037ae06d9e4f3ed3afb5e1edda5055d4809069b4e0b5527d0da"
+    },
+    {
+      "path": "logs/829-full-parity-after.log",
+      "bytes": 189,
+      "sha256": "25f914e5d2e0677f23d4e6f60f737e6f4d36ccdc33a7a5e19d13520e6d012504"
+    },
+    {
+      "path": "logs/829-linux-live-after.log",
+      "bytes": 78,
+      "sha256": "3022236a9e9061af4498df2774bc00bc6603fafdf3cd677dc9eb1f601eaa37ee"
+    },
+    {
+      "path": "logs/829-linux-live-before.log",
+      "bytes": 1189,
+      "sha256": "46cbdb2ebf66b370c222ae78b922cb33bb024c3c07393445fb0145b4351abd4a"
+    },
+    {
+      "path": "logs/831-after.log",
+      "bytes": 251,
+      "sha256": "1ac179b42989394cf9a0fd922b26762e46544073d26eff4e2d8a9f8f1e7a6c42"
+    },
+    {
+      "path": "logs/831-before.log",
+      "bytes": 1837,
+      "sha256": "19f3fe816533431d724bd5eb15d25584677f69d31acfd5a59154124b582ae8c6"
+    },
+    {
+      "path": "logs/831-existing-media-ui.log",
+      "bytes": 222,
+      "sha256": "8c84fd7d67d9e528e56b5d64cdde28ed7f35c03b86f09cd770d0a9157c14baa1"
+    },
+    {
+      "path": "logs/831-existing-protocol-tzdb.log",
+      "bytes": 269,
+      "sha256": "c9622c0d455a394bbb40f68075bd4961cebf9d15e0d6f74f35f38f5bdc7ff8ab"
+    },
+    {
+      "path": "logs/831-existing-settings.log",
+      "bytes": 169,
+      "sha256": "e4333180627966a61b8aebcfcafda6c67c5b3bdf2a2b39a4f2b1d98cafd5dbce"
+    },
+    {
+      "path": "logs/831-existing-source-choice-ui.log",
+      "bytes": 47,
+      "sha256": "889c379097a9df2fb8efda5a4db93a7ce8ce9dce81010d53bd34b9a22a8b2e22"
+    },
+    {
+      "path": "logs/832-handbook-source-diagnostics.log",
+      "bytes": 344,
+      "sha256": "6cc528a9571ef22ae8ec28324de9e6a4f1100df4389dc00f2a34dd458e91070e"
+    },
+    {
+      "path": "logs/README.md",
+      "bytes": 1171,
+      "sha256": "f72b9c624264ab86c43b821c2b4b31a5dfbdecf3572baa22874edfdb65837ee6"
+    },
+    {
+      "path": "logs/core-closed-focused.txt",
+      "bytes": 180,
+      "sha256": "75e4fd3ab30709ca72e3526acf3a2cd4dcebde25cfbabc8bb5b50c98c29d4f5a"
+    },
+    {
+      "path": "logs/final-backup.log",
+      "bytes": 223,
+      "sha256": "84e1ade65091a25fef9e90af7091e249e72e5573c1e87c9bd6aacee806b26983"
+    },
+    {
+      "path": "logs/final-bridge.log",
+      "bytes": 251,
+      "sha256": "1722c0d3a32b2b12408884bf835ad66687781c2acf0b23446a097be2dad9632d"
+    },
+    {
+      "path": "logs/final-dotnet-build.log",
+      "bytes": 172,
+      "sha256": "fdc0c68c8e1e8d1bedc84c6919991f9e6fc37a0571b1f7e57eb3c3e454a1f63a"
+    },
+    {
+      "path": "logs/final-full-parity.log",
+      "bytes": 189,
+      "sha256": "25f914e5d2e0677f23d4e6f60f737e6f4d36ccdc33a7a5e19d13520e6d012504"
+    },
+    {
+      "path": "logs/final-handbook-diagnostic.log",
+      "bytes": 121,
+      "sha256": "6565234e77776d6d79a1d25f24c65b38dcb6649f0d8f2c84981951722798408b"
+    },
+    {
+      "path": "logs/final-journal-ui.log",
+      "bytes": 878,
+      "sha256": "789416f64669729294631e958937c073721d22ac905ba6bcad8ceecea655331e"
+    },
+    {
+      "path": "logs/final-journal.log",
+      "bytes": 152,
+      "sha256": "e75dff6fef04488d1892bec93eabf244d1c24cc647a4f06f5b76e7dfabd16173"
+    },
+    {
+      "path": "logs/final-linux-data.log",
+      "bytes": 180,
+      "sha256": "0423719a17c0bff4d32d4b9c1c7611ef31058be684d8d5341dbc1a17ab1e95a7"
+    },
+    {
+      "path": "logs/final-live-parity.log",
+      "bytes": 61,
+      "sha256": "42c5fd3ff0ef3186ba1c62b2e8e8ca19a788e435a89c5481d2b0bd0651f53e4a"
+    },
+    {
+      "path": "logs/final-restore.log",
+      "bytes": 138,
+      "sha256": "30aa83b43811208846cb4ea2c001a67c8f1bb0d13661225909a963cb01155ab6"
+    },
+    {
+      "path": "logs/final-summary.json",
+      "bytes": 971,
+      "sha256": "52436cd38e56354756f7644a422a5b9b4fd94129a003cd36e5a662163e19df93"
+    },
+    {
+      "path": "logs/final-sync-ui.log",
+      "bytes": 5132,
+      "sha256": "00ae79c80fdd14b76b0ebffd6f12573545ecc9e740f9f865d28b8beb1a2b5c5e"
+    },
+    {
+      "path": "logs/handbook-full-unmodified.json",
+      "bytes": 357,
+      "sha256": "a717bbbf99f49b8c7fe2644c0b38391e7e6b4be7709be589ad0e93975c4fc4a7"
+    },
+    {
+      "path": "logs/handbook-full-unmodified.log",
+      "bytes": 843,
+      "sha256": "a02780c17c98be3940aae754705243a6add505d20f79b520e56bacf399f6ad89"
+    },
+    {
+      "path": "logs/handbook-mac-summary.json",
+      "bytes": 1235,
+      "sha256": "20c67cf0405f2c03f6f4dbd270a19a52c3ee94cd025ef387c4b6db06f382ba16"
+    },
+    {
+      "path": "logs/handbook-smoke-canonical.json",
+      "bytes": 431,
+      "sha256": "f2b6f8d7ef37bb32dce63ebc2d18035f06aa8c3f74f345ed18fc6e2f4943d19d"
+    },
+    {
+      "path": "logs/handbook-smoke-canonical.log",
+      "bytes": 755,
+      "sha256": "184372f8610fd55684cf3e0e36098c6c0b430567ec1837b793141133d82b8406"
+    },
+    {
+      "path": "logs/independent-mobile-downloads-primary.log",
+      "bytes": 98,
+      "sha256": "65f8cb856846cf8bd38e0f9f0e33f50d36ab8e2435ac7608a76ac20becf033d8"
+    },
+    {
+      "path": "logs/independent-notes-all.log",
+      "bytes": 348,
+      "sha256": "490301adc10caac2293c9de1c91d8a726719127ae31b945ba93700e95d961e3b"
+    },
+    {
+      "path": "logs/independent-result.json",
+      "bytes": 831,
+      "sha256": "b63236d456877afff7c36adc3e1def27d9aea5b05fb5d5a60433710cedbee803"
+    },
+    {
+      "path": "logs/mac-candidate.json",
+      "bytes": 305,
+      "sha256": "945bdd3c2e6424e702d3f34a6f149017816cc86a2d98c336aee41dda0409553a"
+    },
+    {
+      "path": "logs/mac-candidate.log",
+      "bytes": 1797,
+      "sha256": "cc4d9089a2681696e726f0e960d3dc5a091bfdaf58068671f51a7ac1e0e65e51"
+    },
+    {
+      "path": "logs/mac-import.json",
+      "bytes": 299,
+      "sha256": "fc3978de2ef9191aa9d3048675e1dd590c32990208c2ff1477c50186f6d38722"
+    },
+    {
+      "path": "logs/mac-import.log",
+      "bytes": 3563,
+      "sha256": "b0c807c1d5071bece18f2a288f327ec62237fb66026d313719c0d6d560eef288"
+    },
+    {
+      "path": "logs/mac-projection-prepared.json",
+      "bytes": 353,
+      "sha256": "604726498249741c815ddc84117790c46a1cda5b5bec2d68cda5372e08c08eca"
+    },
+    {
+      "path": "logs/mac-projection-prepared.log",
+      "bytes": 6958,
+      "sha256": "658d2828eb42d84acdf4a11e484c66a65a52d94590fede40390cde2854f981d4"
+    },
+    {
+      "path": "logs/notes-after-825.log",
+      "bytes": 54,
+      "sha256": "85e0dc3e464736ca50e7c054480f9510fb9fbd43284f0cb419366b53ccbdb7a8"
+    },
+    {
+      "path": "logs/notes-before-825.log",
+      "bytes": 1651,
+      "sha256": "7c4e4ecdd9fa9a56722b5f9ad3732de6ef26649eefb84e06fd3be2947aaf39ba"
+    },
+    {
+      "path": "logs/notes-host-runner-notes.log",
+      "bytes": 485,
+      "sha256": "f4ddaa41de0bd0631b7252dc99e043eca65d1390645e072d60decbc3c4bcb869"
+    },
+    {
+      "path": "logs/notes-host-runner-tablet.log",
+      "bytes": 213,
+      "sha256": "50680656eb35a0fbfb42c44c40cc697364fad22293cbe33b180d75b0c6271c3f"
+    },
+    {
+      "path": "logs/notes-imports-baseline.log",
+      "bytes": 340,
+      "sha256": "d2ce99eb34d072bc86838dc5a34ca5390505f8ef4af4c2f59240352ee7944019"
+    },
+    {
+      "path": "logs/notes-imports-fixed.log",
+      "bytes": 426,
+      "sha256": "d14dfc905fdad53ec8263a932a1689c370dbadab38634201e16dc4248d06c0b2"
+    },
+    {
+      "path": "logs/notes-mobile-downloads-before-after.log",
+      "bytes": 182,
+      "sha256": "d4ac52bd853f9643f8e90de4bb5bd7f52122d4630885193242c722cabf7c4949"
+    },
+    {
+      "path": "logs/notes-recognition-Magnolie-Organizer.log",
+      "bytes": 2062,
+      "sha256": "c9738d35d737b72a135b38ac85f7f60e0bbe57597709f825cde0ef6a7c66b405"
+    },
+    {
+      "path": "logs/notes-recognition-notes-review.log",
+      "bytes": 55,
+      "sha256": "edfc0d530e4e1c786749a800676f8a053a7954313007cca7900be10ca039a48d"
+    },
+    {
+      "path": "logs/notes-tablet-system-import-ui.log",
+      "bytes": 3104,
+      "sha256": "cfe3256e41d50d9c465c2743e0df3d68fa4ec7ce606cc3755101a0a0ac5102ca"
+    },
+    {
+      "path": "logs/notes-timestamp-Magnolie-Organizer.log",
+      "bytes": 2049,
+      "sha256": "417bb1c82f6170c6305d6183a030005cd7601cf2b1cc3d61781620ed26c13002"
+    },
+    {
+      "path": "logs/notes-timestamp-notes-review.log",
+      "bytes": 53,
+      "sha256": "a545c9fbd813443212c48098da4506259b69c6eb40ed933ad0a73a5c19d9eef2"
+    },
+    {
+      "path": "logs/portuguese-ui-prepared.log",
+      "bytes": 156,
+      "sha256": "574c5ed0a0bc70b7778df78f451a31993d1ddcd8ad67d2e223ca1c736f6494e8"
+    },
+    {
+      "path": "logs/windows-journal-cwd.log",
+      "bytes": 152,
+      "sha256": "89118a3b6d34f1f3e16a25a1a2134c75b496b27be171b074fcee3bb467456ad6"
+    }
+  ]
+}

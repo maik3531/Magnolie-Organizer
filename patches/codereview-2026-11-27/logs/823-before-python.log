@@ -1,0 +1,218 @@
+.......................FFFFFFFFF......................................   [100%]
+=================================== FAILURES ===================================
+_ test_additive_restore_identity[moved-event-keeps-unique-local-id-and-current-transport] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'davEtag': '', 'davHref': '', 'id': 'event-same', 'notiz': '', ...}], 'expected': [{'davEtag': '', 'davHref': '', 'id': 'event-same', 'notiz': 'Recovered note', ...}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6d905f6120>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError: assert [{'davEtag': ...lendar', ...}] == [{'davEtag': ...d note', ...}]
+E         
+E         At index 0 diff: {'id': 'event-same', 'uid': 'shared@example.test', 'syncKalenderUid': 'calendar-b', 'titel': 'Moved event', 'notiz': '', 'davHref': '', 'davEtag': ''} != {'id': 'event-same', 'uid': 'shared@example.test', 'syncKalenderUid': 'calendar-b', 'titel': 'Moved event', 'notiz': 'Recovered note', 'davHref': '', 'davEtag': ''}
+E         Left contains one more item: {'davEtag': 'old-etag', 'davHref': '/calendar-a/old.ics', 'geaendert': 123456789, 'icsQuelleName': 'Old calendar', ...}
+E         Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+_ test_additive_restore_identity[moved-task-keeps-unique-local-id-and-current-source] _
+
+case = {'area': 'calendar', 'collection': 'aufgaben', 'current': [{'erledigt': False, 'icsQuelleId': 'calendar-b', 'id': 'tas....}], 'expected': [{'erledigt': False, 'icsQuelleId': 'calendar-b', 'id': 'task-same', 'notiz': 'Task note', ...}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6d90624600>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError: assert [{'erledigt':...ndar-a', ...}] == [{'erledigt':...k note', ...}]
+E         
+E         At index 0 diff: {'id': 'task-same', 'uid': 'shared', 'icsQuelleId': 'calendar-b', 'titel': 'Moved task', 'notiz': '', 'prio': 1, 'erledigt': False} != {'id': 'task-same', 'uid': 'shared', 'icsQuelleId': 'calendar-b', 'titel': 'Moved task', 'notiz': 'Task note', 'prio': 1, 'erledigt': False}
+E         Left contains one more item: {'elternUid': 'old-parent', 'erledigt': True, 'icsElternQuelleId': 'calendar-a', 'icsQuelleId': 'calendar-a', ...}
+E         Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+_ test_additive_restore_identity[local-id-survives-calendar-source-object-change] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'id': 'source-object', 'kalenderQuelle': {'id': 'calendar-b...pected': [{'id': 'source-object', 'kalenderQuelle': {'id': 'calendar-b'}, 'notiz': 'Recovered', 'uid': 'shared'}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6d906246e0>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError: assert [{'id': 'sour...d': 'shared'}] == [{'id': 'sour...d': 'shared'}]
+E         
+E         At index 0 diff: {'id': 'source-object', 'uid': 'shared', 'kalenderQuelle': {'id': 'calendar-b'}, 'notiz': ''} != {'id': 'source-object', 'uid': 'shared', 'kalenderQuelle': {'id': 'calendar-b'}, 'notiz': 'Recovered'}
+E         Left contains one more item: {'id': 'source-object', 'kalenderQuelle': {'id': 'calendar-a'}, 'notiz': 'Recovered', 'uid': 'shared'}
+E         Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+_ test_additive_restore_identity[local-id-survives-source-removal-and-new-uid] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'id': 'unbound', 'notiz': '', 'syncKalenderUid': '', 'uid': 'new-uid'}], 'expected': [{'id': 'unbound', 'notiz': 'Recovered', 'syncKalenderUid': '', 'uid': 'new-uid'}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6d906247c0>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError: assert [{'id': 'unbo...nbound', ...}] == [{'id': 'unbo...': 'new-uid'}]
+E         
+E         At index 0 diff: {'id': 'unbound', 'uid': 'new-uid', 'syncKalenderUid': '', 'notiz': ''} != {'id': 'unbound', 'uid': 'new-uid', 'syncKalenderUid': '', 'notiz': 'Recovered'}
+E         Left contains one more item: {'davHref': 'old.ics', 'geaendert': 123456789, 'icsQuelleId': 'calendar-a', 'id': 'unbound', ...}
+E         Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+_ test_additive_restore_identity[id-only-record-source-change-keeps-new-transport] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'id': 'id-only', 'notiz': '', 'syncKalenderUid': 'calendar-b'}], 'expected': [{'id': 'id-only', 'notiz': 'Recovered', 'syncKalenderUid': 'calendar-b'}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6d906249f0>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError: assert [{'davHref': ...'calendar-b'}] == [{'id': 'id-o...'calendar-b'}]
+E         
+E         At index 0 diff: {'id': 'id-only', 'syncKalenderUid': 'calendar-b', 'notiz': 'Recovered', 'davHref': 'old.ics'} != {'id': 'id-only', 'syncKalenderUid': 'calendar-b', 'notiz': 'Recovered'}
+E         Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+_ test_additive_restore_identity[unique-local-id-beats-unrelated-old-source-uid] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'id': 'different-local', 'notiz': '', 'syncKalenderUid': 'c..., 'uid': 'shared'}, {'id': 'moved', 'notiz': 'For moved only', 'syncKalenderUid': 'calendar-b', 'uid': 'shared'}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6d90624c20>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError: assert [{'id': 'diff...d': 'shared'}] == [{'id': 'diff...d': 'shared'}]
+E         
+E         At index 0 diff: {'id': 'different-local', 'uid': 'shared', 'syncKalenderUid': 'calendar-a', 'notiz': 'For moved only'} != {'id': 'different-local', 'uid': 'shared', 'syncKalenderUid': 'calendar-a', 'notiz': ''}
+E         Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+_ test_additive_restore_identity[ambiguous-local-id-after-source-change-holds-restore] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'id': 'ambiguous', 'notiz': '', 'syncKalenderUid': 'calenda...'id': 'ambiguous', 'notiz': '', 'syncKalenderUid': 'calendar-c', 'uid': 'shared'}], 'error': 'ambiguous-local-id', ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6d90624e50>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+>           with pytest.raises(ValueError):
+E           Failed: DID NOT RAISE <class 'ValueError'>
+
+magnolie-organizer/pruefungen/test_restore_identity.py:24: Failed
+_ test_additive_restore_identity[ambiguous-local-id-snapshot-cannot-create-new-duplicates] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [], 'error': 'ambiguous-local-id', ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6d9113ea50>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+>           with pytest.raises(ValueError):
+E           Failed: DID NOT RAISE <class 'ValueError'>
+
+magnolie-organizer/pruefungen/test_restore_identity.py:24: Failed
+_ test_additive_restore_identity[ambiguous-local-id-snapshot-cannot-pick-one-current-record] _
+
+case = {'area': 'calendar', 'collection': 'aufgaben', 'current': [{'id': 'ambiguous', 'notiz': 'Do not guess', 'syncKalenderUid': 'calendar-a', 'uid': 'shared'}], 'error': 'ambiguous-local-id', ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6d90625400>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+>           with pytest.raises(ValueError):
+E           Failed: DID NOT RAISE <class 'ValueError'>
+
+magnolie-organizer/pruefungen/test_restore_identity.py:24: Failed
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[moved-event-keeps-unique-local-id-and-current-transport]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[moved-task-keeps-unique-local-id-and-current-source]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[local-id-survives-calendar-source-object-change]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[local-id-survives-source-removal-and-new-uid]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[id-only-record-source-change-keeps-new-transport]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[unique-local-id-beats-unrelated-old-source-uid]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[ambiguous-local-id-after-source-change-holds-restore]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[ambiguous-local-id-snapshot-cannot-create-new-duplicates]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[ambiguous-local-id-snapshot-cannot-pick-one-current-record]
+9 failed, 61 passed in 0.41s

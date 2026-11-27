@@ -1,0 +1,213 @@
+Baseline: actual unmodified main restore function bodies; 23 shared vectors
+FFFF.F...F..FFFF.FF...F.......................                           [100%]
+=================================== FAILURES ===================================
+_ test_additive_restore_identity[events-with-the-same-uid-in-different-ics-calendars] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'icsQuelleId': 'calendar-a', 'id': 'live-a', 'titel': 'A', ...hared@example.test'}, {'icsQuelleId': 'calendar-b', 'id': 'saved-b', 'titel': 'B', 'uid': 'shared@example.test'}], ...}
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case):
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:23: AssertionError
+_ test_additive_restore_identity[tasks-with-the-same-uid-in-different-sync-calendars] _
+
+case = {'area': 'calendar', 'collection': 'aufgaben', 'current': [{'id': 'live-a', 'syncKalenderUid': 'calendar-a', 'titel': ...titel': 'A', 'uid': 'shared'}, {'id': 'saved-b', 'syncKalenderUid': 'calendar-b', 'titel': 'B', 'uid': 'shared'}], ...}
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case):
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:23: AssertionError
+_______ test_additive_restore_identity[calendar-source-object-fallback] ________
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'id': 'a', 'kalenderQuelle': {'id': 'calendar-a'}, 'uid': '...e': {'id': 'calendar-a'}, 'uid': 'shared'}, {'id': 'b', 'kalenderQuelle': {'id': 'calendar-b'}, 'uid': 'shared'}], ...}
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case):
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:23: AssertionError
+_ test_additive_restore_identity[ics-source-takes-precedence-over-sync-source] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'icsQuelleId': 'ics-a', 'id': 'a', 'syncKalenderUid': 'same...me-sync', 'uid': 'shared'}, {'icsQuelleId': 'ics-b', 'id': 'b', 'syncKalenderUid': 'same-sync', 'uid': 'shared'}], ...}
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case):
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:23: AssertionError
+_ test_additive_restore_identity[missing-source-does-not-match-a-qualified-uid] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'id': 'a', 'uid': 'shared'}], 'expected': [{'id': 'a', 'uid': 'shared'}, {'id': 'b', 'syncKalenderUid': 'calendar', 'uid': 'shared'}], ...}
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case):
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:23: AssertionError
+__ test_additive_restore_identity[external-uid-cannot-collide-with-local-id] ___
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'id': 'local', 'titel': 'UID', 'uid': 'same'}], 'expected': [{'id': 'local', 'titel': 'UID', 'uid': 'same'}, {'id': 'same', 'titel': 'ID'}], ...}
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case):
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:23: AssertionError
+_ test_additive_restore_identity[duplicate-qualified-uid-uses-unique-local-id] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'icsQuelleId': 'calendar', 'id': 'a', 'titel': 'A', 'uid': ...', 'notizen': 'For A', 'titel': 'A', ...}, {'icsQuelleId': 'calendar', 'id': 'b', 'titel': 'B', 'uid': 'shared'}], ...}
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case):
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:23: AssertionError
+_ test_additive_restore_identity[ambiguous-qualified-uid-retains-snapshot-as-separate-entry] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'icsQuelleId': 'calendar', 'id': 'a', 'uid': 'shared'}, {'i...id': 'b', 'uid': 'shared'}, {'icsQuelleId': 'calendar', 'id': 'c', 'notizen': 'Keep all three', 'uid': 'shared'}], ...}
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case):
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:23: AssertionError
+__ test_additive_restore_identity[ambiguous-idless-snapshot-is-retained-once] __
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'icsQuelleId': 'calendar', 'id': 'a', 'uid': 'shared'}, {'i...calendar', 'id': 'b', 'uid': 'shared'}, {'icsQuelleId': 'calendar', 'notizen': 'Keep original', 'uid': 'shared'}], ...}
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case):
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:23: AssertionError
+_ test_additive_restore_identity[duplicate-local-id-is-not-an-arbitrary-merge-target] _
+
+case = {'area': 'notes', 'collection': 'notizen', 'current': [{'id': 'same', 'titel': 'A'}, {'id': 'same', 'titel': 'B'}], 'e...'id': 'same', 'titel': 'A'}, {'id': 'same', 'titel': 'B'}, {'id': 'same', 'text': 'Keep original', 'titel': 'C'}], ...}
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case):
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:23: AssertionError
+_ test_additive_restore_identity[snapshot-duplicates-are-retained-in-an-empty-calendar] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [], 'expected': [{'icsQuelleId': 'calendar', 'id': 'a', 'titel': 'A', 'uid': 'shared'}, {'icsQuelleId': 'calendar', 'id': 'b', 'titel': 'B', 'uid': 'shared'}], ...}
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case):
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:23: AssertionError
+_ test_additive_restore_identity[snapshot-duplicates-use-local-id-before-filling] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'icsQuelleId': 'calendar', 'id': 'a', 'titel': 'Keep A', 'u... 'For A', 'titel': 'Keep A', ...}, {'icsQuelleId': 'calendar', 'id': 'b', 'notizen': 'For B', 'titel': 'B', ...}], ...}
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case):
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:23: AssertionError
+_ test_additive_restore_identity[malformed-source-object-has-conservative-fallback] _
+
+case = {'area': 'calendar', 'collection': 'termine', 'current': [{'id': 'a', 'kalenderQuelle': 'invalid', 'uid': 'same'}], 'e...', 'kalenderQuelle': 'invalid', 'uid': 'same'}, {'id': 'b', 'kalenderQuelle': {'id': 'calendar'}, 'uid': 'same'}], ...}
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case):
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError
+
+magnolie-organizer/pruefungen/test_restore_identity.py:23: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[events-with-the-same-uid-in-different-ics-calendars]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[tasks-with-the-same-uid-in-different-sync-calendars]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[calendar-source-object-fallback]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[ics-source-takes-precedence-over-sync-source]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[missing-source-does-not-match-a-qualified-uid]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[external-uid-cannot-collide-with-local-id]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[duplicate-qualified-uid-uses-unique-local-id]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[ambiguous-qualified-uid-retains-snapshot-as-separate-entry]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[ambiguous-idless-snapshot-is-retained-once]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[duplicate-local-id-is-not-an-arbitrary-merge-target]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[snapshot-duplicates-are-retained-in-an-empty-calendar]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[snapshot-duplicates-use-local-id-before-filling]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[malformed-source-object-has-conservative-fallback]
+13 failed, 33 passed in 0.38s

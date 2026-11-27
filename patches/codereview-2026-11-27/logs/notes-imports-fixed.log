@@ -1,0 +1,6 @@
+JSON title=generic, text={"title":"Example","body":"important"}, origin=Übernommen, time=1700000000000
+HTML actual origin=Samsung Notes, notebook=Samsung Notes, created=1700000000000; expected Samsung Notes,1700000000000
+FOLDER found=0 accepted=0 error=einfuhr_unbekannter_fehler; expected complete refusal at documented 5000 limit
+CLOSED_92 binary rejected=true
+CLOSED_92 binary rejected=true
+CLOSED_92 binary rejected=true

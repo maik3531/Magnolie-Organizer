@@ -1,0 +1,17 @@
+$REVIEW_WORKSPACE/parity-review/magnolie-organizer-windows/tests/linux-parity-fixture.js:97
+          throw new Error("Bruecke.sende-Eigenschaft: ungebundene Objektverteilung " + spread[1] +
+          ^
+
+Error: Bruecke.sende-Eigenschaft: ungebundene Objektverteilung choices bei Zeile 29902
+    at sendObjects ($REVIEW_WORKSPACE/parity-review/magnolie-organizer-windows/tests/linux-parity-fixture.js:97:17)
+    at personalSyncPayloads ($REVIEW_WORKSPACE/parity-review/magnolie-organizer-windows/tests/linux-parity-fixture.js:143:40)
+    at generate ($REVIEW_WORKSPACE/parity-review/magnolie-organizer-windows/tests/linux-parity-fixture.js:184:76)
+    at Object.<anonymous> ($REVIEW_WORKSPACE/parity-review/magnolie-organizer-windows/tests/linux-live-parity.js:27:41)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+
+Node.js v24.22.3

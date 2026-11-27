@@ -1,0 +1,131 @@
+From 420c78562b7a1b94894eed746048ceeb1c2b86b0 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 12:03:57 +0100
+Subject: [PATCH] Refs #832: bound handbook byte-mismatch diagnostics without
+ weakening equality
+
+---
+ contracts/handbook-source-diagnostics-832.md  | 29 +++++++++++
+ .../tests/handbook-source-diagnostics.js      | 50 +++++++++++++++++++
+ .../tests/handbook-source.js                  |  2 +-
+ magnolie-organizer-windows/tests/run.js       |  1 +
+ 4 files changed, 81 insertions(+), 1 deletion(-)
+ create mode 100644 contracts/handbook-source-diagnostics-832.md
+ create mode 100644 magnolie-organizer-windows/tests/handbook-source-diagnostics.js
+
+diff --git a/contracts/handbook-source-diagnostics-832.md b/contracts/handbook-source-diagnostics-832.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..a2412c3d5b683f40b7e8148e65dea1e5a611dd91
+--- /dev/null
++++ b/contracts/handbook-source-diagnostics-832.md
+@@ -0,0 +1,29 @@
++# Handbuch-Quellvergleich: begrenzte Fehlerausgabe (#832)
++
++`tests/handbook-source.js` vergleicht die gemeinsame Windows-Handbuchkopie
++mit der kanonischen Quelle. Ein abweichender ungefähr ein MiB großer
++Sprachkatalog löste im bisherigen `assert.deepStrictEqual(Buffer, Buffer)`
++die Formatierung eines sehr großen Byte-Diffs aus. Im Linux-Hostlauf mit
++Node 24.22.3 endete der ursprüngliche Smoke dadurch mit SIGKILL; ein
++zweiter Lauf erreichte 7.936.720 KiB gemessenen MaxRSS. Der Fehler trat
++vor der eigentlichen Handbuchoberfläche auf und ist keine Messung ihrer
++Darstellungsgeschwindigkeit.
++
++Der Quellvergleich verwendet jetzt die vollständige `Buffer.equals`-Prüfung
++und übergibt dem Assert ausschließlich ihr boolesches Ergebnis. Veraltete
++oder unvollständige Kopien bleiben gesperrt. Die Fehlermeldung nennt die
++betroffene relative Datei, ohne deren Byteinhalt als Diff zu formatieren.
++Quellwahl, Dateivollständigkeit und der reguläre Bauablauf bleiben erhalten.
++
++`node magnolie-organizer-windows/tests/handbook-source-diagnostics.js`
++prüft mit tatsächlichen Dateien und dem tatsächlichen Quellselektor:
++
++- Identische Dateien von einem MiB werden angenommen.
++- Ein einziges geändertes Byte am Dateiende wird abgewiesen; die präzise
++  Fehlermeldung bleibt unter 256 Zeichen.
++- Eine fehlende Datei wird weiterhin mit ihrem relativen Pfad abgewiesen.
++
++Die Regression ist im regulären Windows-Webtestläufer eingetragen. Sie
++verwendet keine künstliche Speichererschöpfung und keinen gelockerten
++Vergleich. Der Nachweis ist ein Hosttest; eine native Windows- oder
++Paketabnahme ist damit nicht verbunden.
+diff --git a/magnolie-organizer-windows/tests/handbook-source-diagnostics.js b/magnolie-organizer-windows/tests/handbook-source-diagnostics.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..1ba9434aca05864146c6eb928fc143028f4e7a06
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/handbook-source-diagnostics.js
+@@ -0,0 +1,50 @@
++"use strict";
++
++const assert = require("node:assert/strict");
++const fs = require("node:fs");
++const os = require("node:os");
++const path = require("node:path");
++const { selectHandbookWeb } = require("./handbook-source");
++
++// Refs #832: use real files and the actual source selector. Only diagnostics
++// are bounded; a difference at the very end must still reject the source.
++const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "magnolie-handbook-source-"));
++const root = path.join(temporary, "magnolie-organizer-windows");
++const canonical = path.join(temporary, "magnolie-handbuch", "web");
++const bundled = path.join(root, "shared", "magnolie-handbuch", "web");
++const configured = process.env.MAGNOLIE_HANDBOOK_WEB;
++try {
++  delete process.env.MAGNOLIE_HANDBOOK_WEB;
++  for (const directory of [canonical, bundled]) {
++    fs.mkdirSync(directory, { recursive: true });
++    fs.writeFileSync(path.join(directory, "index.html"), "<!doctype html><title>Fixture</title>");
++  }
++  const bytes = Buffer.alloc(1024 * 1024, 65);
++  for (const directory of [canonical, bundled]) fs.writeFileSync(path.join(directory, "payload.bin"), bytes);
++  assert.equal(selectHandbookWeb(root, ["index.html"]).directory, canonical,
++    "Identical complete source bytes must remain accepted");
++
++  const changed = Buffer.from(bytes);
++  changed[changed.length - 1] = 66;
++  fs.writeFileSync(path.join(bundled, "payload.bin"), changed);
++  assert.throws(() => selectHandbookWeb(root, ["index.html"]), error => {
++    assert.equal(error.code, "ERR_ASSERTION");
++    assert.equal(error.message,
++      "Gebündelte Handbuchquelle ist gegenüber der kanonischen Quelle veraltet: payload.bin");
++    assert.ok(error.message.length < 256, "Byte mismatch diagnostics must not dump either complete file");
++    return true;
++  });
++
++  fs.unlinkSync(path.join(bundled, "payload.bin"));
++  assert.throws(() => selectHandbookWeb(root, ["index.html"]), error => {
++    assert.equal(error.code, "ERR_ASSERTION");
++    assert.equal(error.message, "Gebündelte Handbuchquelle ist unvollständig: payload.bin");
++    assert.ok(error.message.length < 256);
++    return true;
++  });
++} finally {
++  if (configured === undefined) delete process.env.MAGNOLIE_HANDBOOK_WEB;
++  else process.env.MAGNOLIE_HANDBOOK_WEB = configured;
++  fs.rmSync(temporary, { recursive: true, force: true });
++}
++console.log("Handbook source diagnostics PASS: identical 1 MiB, final-byte mismatch, missing file; exact equality and bounded errors.");
+diff --git a/magnolie-organizer-windows/tests/handbook-source.js b/magnolie-organizer-windows/tests/handbook-source.js
+index b7ed5e680840f9ed83edf3903264a9ebd10e4dd3..bf2b510d99ef66bbeaa6cf6b8e55e6ba1e6d55c8 100644
+--- a/magnolie-organizer-windows/tests/handbook-source.js
++++ b/magnolie-organizer-windows/tests/handbook-source.js
+@@ -32,7 +32,7 @@ function selectHandbookWeb(root, requiredFiles) {
+     for (const relative of sourceFiles(canonical)) {
+       const bundledFile = path.join(bundled, relative);
+       assert.ok(fs.existsSync(bundledFile), `Gebündelte Handbuchquelle ist unvollständig: ${relative}`);
+-      assert.deepStrictEqual(fs.readFileSync(bundledFile), fs.readFileSync(path.join(canonical, relative)),
++      assert.ok(fs.readFileSync(bundledFile).equals(fs.readFileSync(path.join(canonical, relative))),
+         `Gebündelte Handbuchquelle ist gegenüber der kanonischen Quelle veraltet: ${relative}`);
+     }
+     return { directory: canonical, label: `canonical and bundled sync ${canonical}` };
+diff --git a/magnolie-organizer-windows/tests/run.js b/magnolie-organizer-windows/tests/run.js
+index 95f73c5d3bcd564ed6cb8d468c50845dc44eeb04..c8578d8021192cf6d75ff1aabf976f1e6e1938f6 100644
+--- a/magnolie-organizer-windows/tests/run.js
++++ b/magnolie-organizer-windows/tests/run.js
+@@ -20,6 +20,7 @@ let failed = false;
+ const results = [];
+ for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-save.js", "time-zone-planning.js", "time-zone-settings.js", "ui-bugfixes.js", "drawing-sheet.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-sms-paths.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "web-smoke.js",
+   "handbook-page-ids.js",
++  "handbook-source-diagnostics.js",
+   "calendar-attachment-actions.js", "calendar-attachment-native.js",
+   "calendar-accent-edits.js",
+   "sync-calendar-identity.js",

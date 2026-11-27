@@ -1,0 +1,34 @@
+JUnit version 4.13.2
+.E.E.E.E
+Time: 0.093
+There were 4 failures:
+1) ISO Bruchteile behalten ihren Sekundenanteil(io.gitlab.maik3531.magnolienotes.einfuhr.LeserZeitTest)
+java.lang.AssertionError: .1 expected:<1795773600100> but was:<1795773600001>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at io.gitlab.maik3531.magnolienotes.einfuhr.LeserZeitTest.ISO Bruchteile behalten ihren Sekundenanteil(LeserZeitTest.kt:15)
+2) falsche Tage und Resttext werden nicht normalisiert(io.gitlab.maik3531.magnolienotes.einfuhr.LeserZeitTest)
+java.lang.AssertionError: 2026-02-30T10:00:00.000Z expected:<0> but was:<1772445600000>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at io.gitlab.maik3531.magnolienotes.einfuhr.LeserZeitTest.falsche Tage und Resttext werden nicht normalisiert(LeserZeitTest.kt:29)
+3) lokale und numerische Altformate bleiben erhalten(io.gitlab.maik3531.magnolienotes.einfuhr.LeserZeitTest)
+java.lang.AssertionError: expected:<0> but was:<1000>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at org.junit.Assert.assertEquals(Assert.java:633)
+	at io.gitlab.maik3531.magnolienotes.einfuhr.LeserZeitTest.lokale und numerische Altformate bleiben erhalten(LeserZeitTest.kt:56)
+4) beide Exportleser erhalten Erstellungs und Aenderungszeit(io.gitlab.maik3531.magnolienotes.einfuhr.LeserZeitTest)
+java.lang.AssertionError: expected:<1795773600123> but was:<1795773723456>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at org.junit.Assert.assertEquals(Assert.java:633)
+	at io.gitlab.maik3531.magnolienotes.einfuhr.LeserZeitTest.beide Exportleser erhalten Erstellungs und Aenderungszeit(LeserZeitTest.kt:42)
+
+FAILURES!!!
+Tests run: 4,  Failures: 4
+

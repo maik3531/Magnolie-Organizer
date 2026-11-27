@@ -1,0 +1,14 @@
+{
+  "name": "mac-candidate",
+  "command": [
+    "/usr/bin/python3",
+    "-m",
+    "unittest",
+    "-v",
+    "test_candidate_sources"
+  ],
+  "source_head": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23",
+  "exit_code": 0,
+  "seconds": 0.418,
+  "source_head_after": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23"
+}

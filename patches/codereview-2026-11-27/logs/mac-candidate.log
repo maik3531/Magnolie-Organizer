@@ -1,0 +1,15 @@
+{"name": "mac-candidate", "command": ["/usr/bin/python3", "-m", "unittest", "-v", "test_candidate_sources"], "source_head": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23"}
+test_actual_old_checkout_and_staged_or_untracked_overlays_are_rejected (test_candidate_sources.CandidateSourceTests.test_actual_old_checkout_and_staged_or_untracked_overlays_are_rejected) ... ok
+test_hidden_dirty_index_flags_cannot_attest_old_bytes_as_current (test_candidate_sources.CandidateSourceTests.test_hidden_dirty_index_flags_cannot_attest_old_bytes_as_current) ... ok
+test_ignored_generated_payload_is_separate_from_git_source_proof (test_candidate_sources.CandidateSourceTests.test_ignored_generated_payload_is_separate_from_git_source_proof) ... ok
+test_later_source_or_proof_change_fails_final_verification (test_candidate_sources.CandidateSourceTests.test_later_source_or_proof_change_fails_final_verification) ... ok
+test_old_recipe_restore_into_current_checkout_is_rejected (test_candidate_sources.CandidateSourceTests.test_old_recipe_restore_into_current_checkout_is_rejected) ... ok
+test_same_version_proof_binds_current_commit_and_actual_bytes (test_candidate_sources.CandidateSourceTests.test_same_version_proof_binds_current_commit_and_actual_bytes) ... ok
+test_workflow_selects_current_checkouts_and_keeps_codec_reference (test_candidate_sources.CandidateSourceTests.test_workflow_selects_current_checkouts_and_keeps_codec_reference) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.316s
+
+OK
+
+{"name": "mac-candidate", "command": ["/usr/bin/python3", "-m", "unittest", "-v", "test_candidate_sources"], "source_head": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23", "exit_code": 0, "seconds": 0.418, "source_head_after": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23"}

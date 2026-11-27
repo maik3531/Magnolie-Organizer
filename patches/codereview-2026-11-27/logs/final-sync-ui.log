@@ -1,0 +1,57 @@
+PASS magnolie-organizer/web: contact-only sync retains unchanged unrelated ambiguous calendar entries
+PASS magnolie-organizer/web: contact-only sync retains late calendar edits, additions and deletion metadata
+PASS magnolie-organizer/web: contact-only request selection is frozen before its save acknowledgement
+PASS magnolie-organizer/web: contact-only response may omit unrelated calendar collections
+PASS magnolie-organizer/web: pending Windows transaction keeps its original source selection on retry
+PASS magnolie-organizer/web: contact-only response cannot modify unselected termine
+PASS magnolie-organizer/web: contact-only response cannot modify unselected aufgaben
+PASS magnolie-organizer/web: contact-only response cannot modify unselected deleted-termine
+PASS magnolie-organizer/web: contact-only response cannot modify unselected deleted-aufgaben
+PASS magnolie-organizer/web: a legacy baseline without a bound selection cannot bypass ambiguity checks
+PASS magnolie-organizer/web: unchanged events in different calendars
+PASS magnolie-organizer/web: termine late edit stays in its calendar
+PASS magnolie-organizer/web: aufgaben late edit stays in its calendar
+PASS magnolie-organizer/web: termine late deletion preserves the other calendar
+PASS magnolie-organizer/web: aufgaben late deletion preserves the other calendar
+PASS magnolie-organizer/web: icsQuelleId fallback keeps imported calendars
+PASS magnolie-organizer/web: kalenderQuelle fallback keeps imported calendars
+PASS magnolie-organizer/web: unqualified legacy UID is separate from another local record
+PASS magnolie-organizer/web: UID and local ID are separate namespaces
+PASS magnolie-organizer/web: same qualified UID still merges a changed remote local ID
+PASS magnolie-organizer/web: new entry binds to its first provider after a late edit
+PASS magnolie-organizer/web: new entry binds to its first provider after a late deletion
+PASS magnolie-organizer/web: imported entry binds to its first provider after a late edit
+PASS magnolie-organizer/web: imported entry binds to its first provider after a late deletion
+PASS magnolie-organizer/web: ambiguous provider identity holds before modifying data
+PASS magnolie-organizer/web: contact UID merge retains its existing semantics
+PASS magnolie-organizer/web: stale request remains rejected
+PASS magnolie-organizer/web: stale epoch remains rejected
+PASS magnolie-organizer-windows/app/web: contact-only sync retains unchanged unrelated ambiguous calendar entries
+PASS magnolie-organizer-windows/app/web: contact-only sync retains late calendar edits, additions and deletion metadata
+PASS magnolie-organizer-windows/app/web: contact-only request selection is frozen before its save acknowledgement
+PASS magnolie-organizer-windows/app/web: contact-only response may omit unrelated calendar collections
+PASS magnolie-organizer-windows/app/web: pending Windows transaction keeps its original source selection on retry
+PASS magnolie-organizer-windows/app/web: contact-only response cannot modify unselected termine
+PASS magnolie-organizer-windows/app/web: contact-only response cannot modify unselected aufgaben
+PASS magnolie-organizer-windows/app/web: contact-only response cannot modify unselected deleted-termine
+PASS magnolie-organizer-windows/app/web: contact-only response cannot modify unselected deleted-aufgaben
+PASS magnolie-organizer-windows/app/web: a legacy baseline without a bound selection cannot bypass ambiguity checks
+PASS magnolie-organizer-windows/app/web: unchanged events in different calendars
+PASS magnolie-organizer-windows/app/web: termine late edit stays in its calendar
+PASS magnolie-organizer-windows/app/web: aufgaben late edit stays in its calendar
+PASS magnolie-organizer-windows/app/web: termine late deletion preserves the other calendar
+PASS magnolie-organizer-windows/app/web: aufgaben late deletion preserves the other calendar
+PASS magnolie-organizer-windows/app/web: icsQuelleId fallback keeps imported calendars
+PASS magnolie-organizer-windows/app/web: kalenderQuelle fallback keeps imported calendars
+PASS magnolie-organizer-windows/app/web: unqualified legacy UID is separate from another local record
+PASS magnolie-organizer-windows/app/web: UID and local ID are separate namespaces
+PASS magnolie-organizer-windows/app/web: same qualified UID still merges a changed remote local ID
+PASS magnolie-organizer-windows/app/web: new entry binds to its first provider after a late edit
+PASS magnolie-organizer-windows/app/web: new entry binds to its first provider after a late deletion
+PASS magnolie-organizer-windows/app/web: imported entry binds to its first provider after a late edit
+PASS magnolie-organizer-windows/app/web: imported entry binds to its first provider after a late deletion
+PASS magnolie-organizer-windows/app/web: ambiguous provider identity holds before modifying data
+PASS magnolie-organizer-windows/app/web: contact UID merge retains its existing semantics
+PASS magnolie-organizer-windows/app/web: stale request remains rejected
+PASS magnolie-organizer-windows/app/web: stale epoch remains rejected
+Calendar synchronization identity: 56/56 cases passed

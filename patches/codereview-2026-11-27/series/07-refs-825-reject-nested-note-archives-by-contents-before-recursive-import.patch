@@ -1,0 +1,105 @@
+From 7b3054881617f7424003921c51a54b2de00341c7 Mon Sep 17 00:00:00 2001
+From: Maik Walter <154642264+maik3531@users.noreply.github.com>
+Date: Fri, 27 Nov 2026 11:18:32 +0100
+Subject: [PATCH] Refs #825: Reject nested note archives by contents before
+ recursive import
+
+---
+ .../maik3531/magnolienotes/einfuhr/Einfuhr.kt | 12 ++--
+ .../EinfuhrVerschachtelteArchiveTest.kt       | 55 +++++++++++++++++++
+ 2 files changed, 63 insertions(+), 4 deletions(-)
+ create mode 100644 magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/einfuhr/EinfuhrVerschachtelteArchiveTest.kt
+
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Einfuhr.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Einfuhr.kt
+index bbae0be194a4e41e0fdb2b897751326e7b889ce2..4d517de9c475aaef7ffeb2b73304ad4011955d0f 100644
+--- a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Einfuhr.kt
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Einfuhr.kt
+@@ -210,9 +210,9 @@ object Einfuhr {
+                 val eintrag = it.nextEntry ?: break
+                 if (++eintraege > 5000) throw IOException("Zu viele Archiveintraege")
+                 val name = eintrag.name.substringAfterLast('/')
+-                val lesbar = !eintrag.isDirectory && kommtInFrage(name) &&
+-                    !name.lowercase().endsWith(".zip")
+-                val puffer = if (lesbar) ByteArrayOutputStream() else null
++                val unterstuetzt = !eintrag.isDirectory && kommtInFrage(name)
++                val lesbar = unterstuetzt && !name.lowercase().endsWith(".zip")
++                val puffer = if (unterstuetzt) ByteArrayOutputStream() else null
+                 val brocken = ByteArray(16 * 1024)
+                 var gesamt = 0L
+                 while (true) {
+@@ -225,9 +225,13 @@ object Einfuhr {
+                     }
+                     puffer?.write(brocken, 0, gelesen)
+                 }
++                val inhalt = puffer?.toByteArray() ?: continue
++                // Nested ZIPs are unsupported regardless of their filename.
++                // Recursing through .sdocx/.jex/.txt would reset every ZIP limit.
++                if (istZip(inhalt)) throw IOException("Verschachtelte Importarchive werden nicht unterstuetzt")
+                 if (!lesbar) continue
+                 val zeit = eintrag.time.takeIf { wert -> wert > 0 } ?: 0L
+-                aus += ausInhalt(puffer!!.toByteArray(), name, zeit, zusammenhang).map { notiz ->
++                aus += ausInhalt(inhalt, name, zeit, zusammenhang).map { notiz ->
+                     if (notiz.herkunft.isBlank()) {
+                         notiz.copy(herkunft = herkunftAus(aussenName))
+                     } else notiz
+diff --git a/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/einfuhr/EinfuhrVerschachtelteArchiveTest.kt b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/einfuhr/EinfuhrVerschachtelteArchiveTest.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..4bc23ae8e3a495061e99d6d6256d10f89e35b1bb
+--- /dev/null
++++ b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/einfuhr/EinfuhrVerschachtelteArchiveTest.kt
+@@ -0,0 +1,55 @@
++package io.gitlab.maik3531.magnolienotes.einfuhr
++
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertThrows
++import org.junit.Assert.assertTrue
++import org.junit.Test
++import java.io.ByteArrayOutputStream
++import java.io.IOException
++import java.util.zip.ZipEntry
++import java.util.zip.ZipOutputStream
++
++/** Refs #825: use tiny bounded payloads to exercise the real recursive-import bypass. */
++class EinfuhrVerschachtelteArchiveTest {
++    private fun zip(vararg entries: Pair<String, ByteArray>): ByteArray = ByteArrayOutputStream().also { output ->
++        ZipOutputStream(output).use { zip -> for ((name, bytes) in entries) {
++            zip.putNextEntry(ZipEntry(name)); zip.write(bytes); zip.closeEntry()
++        } }
++    }.toByteArray()
++
++    @Test fun `verschachtelte Archive werden auch unter fremden Endungen ganz abgewiesen`() {
++        val nested = zip("note.txt" to "Nested note".toByteArray())
++        for (suffix in listOf("zip", "sdocx", "jex", "txt", "json", "html", "enex")) {
++            val outer = zip("before.txt" to "Do not partially import".toByteArray(), "nested.$suffix" to nested)
++            assertThrows(suffix, IOException::class.java) { Einfuhr.ausInhalt(outer, "outer.zip", 0L) }
++        }
++    }
++
++    @Test fun `neuer Archivaufruf kann die gesetzte Entpackgrenze nicht zuruecksetzen`() {
++        val nested = zip("note.txt" to "x".repeat(1024).toByteArray())
++        assertTrue(nested.size < 256)
++        val outer = zip("nested.sdocx" to nested)
++        assertThrows(IOException::class.java) {
++            Einfuhr.ausZip(outer, "outer.zip", null, eintragMax = 256, archivEntpacktMax = 256)
++        }
++    }
++
++    @Test fun `auch leere Unterarchive gelten nicht als gewoehnliche Textdatei`() {
++        assertThrows(IOException::class.java) { Einfuhr.ausInhalt(zip("empty.txt" to zip()), "outer.zip", 0L) }
++    }
++
++    @Test fun `oberstes Samsung Archiv mit normalen Dateien bleibt lesbar`() {
++        val archive = zip("samsung-note.html" to
++            "<html><head><title>Samsung</title></head><body>Keep this text</body></html>".toByteArray())
++        val note = Einfuhr.ausInhalt(archive, "export.sdocx", 0L).single()
++        assertEquals("Samsung Notes", note.herkunft)
++        assertTrue(note.html.contains("Keep this text"))
++    }
++
++    @Test fun `flaches Archiv und bisherige Groessengrenzen bleiben wirksam`() {
++        val archive = zip("one.txt" to "One".toByteArray(), "two.txt" to "Two".toByteArray())
++        assertEquals(listOf("One", "Two"), Einfuhr.ausInhalt(archive, "export.zip", 0L).map { it.text })
++        assertThrows(IOException::class.java) { Einfuhr.ausZip(archive, "export.zip", null, eintragMax = 2) }
++        assertThrows(IOException::class.java) { Einfuhr.ausZip(archive, "export.zip", null, archivEntpacktMax = 5) }
++    }
++}

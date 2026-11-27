@@ -1,0 +1,4 @@
+Magnolie CoreTests: 2 Gruppen
+  OK     Device file native media UI / strict requests reject browser paths and grants (0.05 s)
+  OK     Device file native media UI / outer bridge envelopes and webcam commands (0.00 s)
+CoreTests: 2/2 Gruppen bestanden.

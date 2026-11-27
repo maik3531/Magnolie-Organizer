@@ -1,0 +1,49 @@
+{
+  "initial_head": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23",
+  "checked_head": "e9e3c43f1410516ef8ddbf0e5785f96cedb5389e",
+  "scoped_source_changes_during_verification": [],
+  "mac_candidate": {
+    "tests": 7,
+    "skips": 0,
+    "passed": true
+  },
+  "mac_import": {
+    "tests": 18,
+    "skips": 0,
+    "passed": true
+  },
+  "mac_projection": {
+    "tests": 28,
+    "skips": 0,
+    "passed": true
+  },
+  "handbook_canonical_smoke": {
+    "pages": 170,
+    "passed": true
+  },
+  "handbook_full_pending": false,
+  "native_execution": false,
+  "shared_cache_mismatch_count": 35,
+  "handbook_full": {
+    "passed": true,
+    "exit_code": 0,
+    "seconds": 388.22,
+    "maxrss_kib": 681464,
+    "source_head": "e9e3c43f1410516ef8ddbf0e5785f96cedb5389e",
+    "source_head_after": "e9e3c43f1410516ef8ddbf0e5785f96cedb5389e",
+    "languages": 20,
+    "standalone_and_embedded_notes": true,
+    "editorial_both_platforms": true,
+    "complete_source_and_rendered_catalogs": true,
+    "english_pages": 170,
+    "german_pages": 170,
+    "test_script_modified": false
+  },
+  "issue_832": {
+    "commit": "0d1768a34a8d385165db216dd40b18cca4955e4e",
+    "test_cases": 3,
+    "passed": true,
+    "seconds": 0.074,
+    "maxrss_kib": 44476
+  }
+}

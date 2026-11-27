@@ -1,0 +1,13 @@
+{
+  "commit_observed_after_tests": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23",
+  "files": {
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Leser.kt": "c81d57d03b7390ec730f4ba0ba79d925c74e91a25b6ff011b1fc9d6bb50c0e50",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Einfuhr.kt": "4d7be699adeca045b8a6964a6e09ad85292df181760a6ad6db6fd76931f6f3d2",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/OrdnerImportBudget.kt": "9cb46903379441d35d0b20985feba28e9ed28a1537a7b67b16e05dad0d4787c9",
+    "tools/sync_mobile_downloads.py": "3100bae731c978d31bcade6a97000e040ba4382892feb6be58285430695dbd2a"
+  },
+  "notes_junit_groups_passed": 20,
+  "generator_pytest_cases_passed": 9,
+  "native_android_executed": false,
+  "new_product_findings": []
+}

@@ -1,0 +1,3 @@
+Handbook source diagnostics PASS: identical 1 MiB, final-byte mismatch, missing file; exact equality and bounded errors.
+
+{"command": ["node", "magnolie-organizer-windows/tests/handbook-source-diagnostics.js"], "exit_code": 0, "seconds": 0.074, "maxrss_kib": 44476, "test_cases": 3, "source_parent": "e9e3c43f1410516ef8ddbf0e5785f96cedb5389e"}

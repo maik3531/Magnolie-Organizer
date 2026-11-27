@@ -1,0 +1,316 @@
+From 68116a583c222aa7999e7f4bb2deb4e4d5eb8752 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 12:03:51 +0100
+Subject: [PATCH] Refs #826: isolate contact-only sync from unselected
+ calendars
+
+---
+ .../app/web/anwendung.js                      | 35 ++++++--
+ .../tests/sync-calendar-identity.js           | 85 ++++++++++++++++++-
+ magnolie-organizer/web/anwendung.js           | 32 +++++--
+ 3 files changed, 136 insertions(+), 16 deletions(-)
+
+diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
+index cb4f612bc04a41193d8a25b03f557a0206345599..2d38c526ace1b637fed67eba7e56e2912bf3b9ff 100644
+--- a/magnolie-organizer-windows/app/web/anwendung.js
++++ b/magnolie-organizer-windows/app/web/anwendung.js
+@@ -33159,6 +33159,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         ((DATEN.syncMetadaten || {}).nextcloud || {}).pendingCommitId) return null;
+     if (!basis) return nutzlast;
+     if (basis.syncEpoch !== DATEN.syncEpoch) return null;
++    const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
++    const nurAdressbuch = !!basis.wahl?.adressbuchUid && !basis.wahl.kalenderUid &&
++      Array.isArray(basis.wahl.kalenderUids) && basis.wahl.kalenderUids.length === 0;
++    const unbeteiligteKalender = new Set();
+     const schluessel = (item) => String(item.uid || item.id || "");
+     const kalenderSchluessel = (listen) => {
+       const nachId = new Map(), nachUid = new Map();
+@@ -33198,6 +33202,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     };
+     const kalender = {};
+     for (const feld of ["termine", "aufgaben"]) {
++      if (nurAdressbuch) {
++        // An address-book-only request cannot change calendars. Retain their
++        // current local state, including edits/deletions after the request.
++        // Any returned calendar change still rejects the complete response.
++        if ((nutzlast[feld] !== undefined && !gleich(nutzlast[feld], basis[feld] || [])) ||
++            ((nutzlast.geloescht || {})[feld] !== undefined &&
++              !gleich(nutzlast.geloescht[feld], (basis.geloescht || {})[feld] || []))) {
++          merkeSyncFehler(_("Conflict"));
++          return null;
++        }
++        unbeteiligteKalender.add(feld);
++        continue;
++      }
+       kalender[feld] = kalenderSchluessel([basis[feld], DATEN[feld], nutzlast[feld],
+         (basis.geloescht || {})[feld], DATEN.geloescht[feld], (nutzlast.geloescht || {})[feld]]);
+       if (!kalender[feld]) {
+@@ -33206,6 +33223,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       }
+     }
+     for (const feld of ["termine", "aufgaben", "kontakte"]) {
++      if (unbeteiligteKalender.has(feld)) continue;
+       const key = kalender[feld] || ((item) => item.uid);
+       const vorher = new Set((basis[feld] || []).map(key));
+       const jetzt = new Set((DATEN[feld] || []).map(key));
+@@ -33227,7 +33245,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       termine: DATEN.termine, aufgaben: DATEN.aufgaben, kontakte: DATEN.kontakte,
+       jahrestage: DATEN.jahrestage, geloescht: DATEN.geloescht
+     }));
+-    const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+     const abgleichen = (vorher, aktuell, fern, schluessel) => {
+       const alt = new Map((vorher || []).map(item => [schluessel(item), item]));
+       const jetzt = new Map((aktuell || []).map(item => [schluessel(item), item]));
+@@ -33251,12 +33268,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     };
+     nutzlast = Object.assign({}, nutzlast);
+     for (const feld of ["termine", "aufgaben", "kontakte", "jahrestage"]) {
+-      if (Array.isArray(nutzlast[feld])) nutzlast[feld] =
++      if (unbeteiligteKalender.has(feld)) nutzlast[feld] = DATEN[feld];
++      else if (Array.isArray(nutzlast[feld])) nutzlast[feld] =
+         abgleichen(basis[feld], DATEN[feld], nutzlast[feld], kalender[feld] || schluessel);
+     }
+-    if (nutzlast.geloescht) {
++    if (nutzlast.geloescht || unbeteiligteKalender.size) {
+       nutzlast.geloescht = Object.assign({}, nutzlast.geloescht);
+       for (const feld of ["termine", "aufgaben", "kontakte"]) nutzlast.geloescht[feld] =
++        unbeteiligteKalender.has(feld) ? DATEN.geloescht[feld] :
+         abgleichen((basis.geloescht || {})[feld], DATEN.geloescht[feld], nutzlast.geloescht[feld],
+           kalender[feld] || schluessel);
+     }
+@@ -33360,6 +33379,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       }).finally(() => { if (kontaktSyncPruefungLauf === lauf) kontaktSyncPruefungLauf = null; });
+       return;
+     }
++    let wahl = { kalenderUid: w.kalenderUid || kalenderUids[0] || "",
++      kalenderUids: kalenderUids.slice(), adressbuchUid: w.adressbuchUid };
+     let transactionId = String(nextcloudMetadaten.ausstehendeTransaktion || "");
+     if (!/^[0-9a-f]{64}$/.test(transactionId)) {
+       const bytes = new Uint8Array(32);
+@@ -33368,9 +33389,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         wert.toString(16).padStart(2, "0")).join("");
+       nextcloudMetadaten.ausstehendeTransaktion = transactionId;
+       DATEN.syncAbgleichBasis = JSON.parse(JSON.stringify({
+-        termine: DATEN.termine, aufgaben: DATEN.aufgaben, kontakte: DATEN.kontakte,
++        wahl, termine: DATEN.termine, aufgaben: DATEN.aufgaben, kontakte: DATEN.kontakte,
+         jahrestage: DATEN.jahrestage, geloescht: DATEN.geloescht, syncEpoch: DATEN.syncEpoch
+       }));
++    } else if (DATEN.syncAbgleichBasis?.wahl) {
++      // A pending native transaction keeps the selection of its original run.
++      wahl = JSON.parse(JSON.stringify(DATEN.syncAbgleichBasis.wahl));
+     }
+     syncLaeuft = true;
+     const syncKnopf = $("#sync-jetzt");
+@@ -33382,8 +33406,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       if (mcpStart && !mcp) { if (mcpStart.phase !== "failed") mcpSyncFehlgeschlagen(mcpStart, "source_changed"); return; }
+       const sent = Bruecke.sende({ cmd: "sync", transactionId: transactionId,
+       ...(mcp ? { mcp: true } : {}),
+-      wahl: { kalenderUid: w.kalenderUid || kalenderUids[0] || "",
+-        kalenderUids: kalenderUids, adressbuchUid: w.adressbuchUid },
++      wahl,
+       daten: { termine: (DATEN.syncAbgleichBasis || DATEN).termine, aufgaben: (DATEN.syncAbgleichBasis || DATEN).aufgaben, kontakte: (DATEN.syncAbgleichBasis || DATEN).kontakte,
+         jahrestage: (DATEN.syncAbgleichBasis || DATEN).jahrestage, geloescht: (DATEN.syncAbgleichBasis || DATEN).geloescht,
+         letzterSync: DATEN.letzterSync, letzteSyncs: DATEN.letzteSyncs,
+diff --git a/magnolie-organizer-windows/tests/sync-calendar-identity.js b/magnolie-organizer-windows/tests/sync-calendar-identity.js
+index fc8e516254f295363afbef4349cf7e56bcad1fd7..7421fcc7563f8f7421e79bf37d337ecf62489fe1 100644
+--- a/magnolie-organizer-windows/tests/sync-calendar-identity.js
++++ b/magnolie-organizer-windows/tests/sync-calendar-identity.js
+@@ -22,7 +22,81 @@ const unchanged = (data, before, messages, conflict) => {
+   assert.equal(messages.filter(message => ["sync_commit", "sync_bestaetigen"].includes(message.cmd)).length, 0);
+   if (conflict) assert.match(data.syncStatus.letzterFehler, /Conflict/);
+ };
++const addressbookOnly = { kalenderUid: "", kalenderUids: [], adressbuchUid: "synthetic-addressbook",
++  automatisch: false, erfolgsmeldungen: false };
++const unrelatedCalendars = () => ({
++  termine: [...entries().map(value => ({ ...value, sync: false, syncKalenderUid: "",
++    icsQuelleId: "offline-calendar", syncQuellen: {} })),
++    { ...item("c", "unselected-calendar"), uid: "third@example.test" }],
++  aufgaben: [{ ...item("task", "unselected-calendar"), uid: "task@example.test" }],
++  syncMetadaten: { nextcloud: { kalender: { "offline-calendar": { etag: "keep-calendar-metadata" } } } }
++});
++const updateContact = (data, payload) => {
++  payload.kontakte[0].notiz = "provider contact update";
++  payload.syncMetadaten.nextcloud.adressbuecher["synthetic-addressbook"] = { etag: "new-contact-metadata" };
++};
++const verifyContactOnly = (data, before, messages) => {
++  for (const field of ["termine", "aufgaben", "geloescht"])
++    assert.deepEqual(clone(data[field]), before[field], "unselected " + field + " changed");
++  assert.equal(data.kontakte[0].notiz, "provider contact update");
++  assert.equal(data.syncMetadaten.nextcloud.adressbuecher["synthetic-addressbook"].etag, "new-contact-metadata");
++  assert.deepEqual(clone(data.syncMetadaten.nextcloud.kalender), before.syncMetadaten.nextcloud.kalender);
++  assert.equal(data.syncStatus.letzterFehler, "");
++  assert.ok(!data.syncAbgleichBasis, "contact-only result was rejected");
++  assert.ok(messages.some(message => ["sync_commit", "sync_bestaetigen"].includes(message.cmd)), "accepted contact result was not acknowledged");
++};
++const contactOnly = { field: "kontakte", settings: addressbookOnly, extra: unrelatedCalendars,
++  initial: () => [{ id: "contact", uid: "contact@example.test", vorname: "Synthetic", notiz: "before", sync: true }] };
+ const cases = [
++  { ...contactOnly, name: "contact-only sync retains unchanged unrelated ambiguous calendar entries",
++    change: updateContact, verify: verifyContactOnly },
++  { ...contactOnly, name: "contact-only sync retains late calendar edits, additions and deletion metadata",
++    change: (data, payload, T) => {
++      updateContact(data, payload); data.termine[1].notiz = "late unrelated edit";
++      const deleted = data.termine.find(value => value.id === "c");
++      T.merkeGeloescht("termine", deleted); data.termine = data.termine.filter(value => value !== deleted);
++      const task = data.aufgaben[0]; T.merkeGeloescht("aufgaben", task); T.entferneAufgabe(task);
++      data.termine.push(T.normalisiere({ termine: [{ ...item("new", ""), uid: "new@example.test", sync: false }] }).termine[0]);
++    }, verify: verifyContactOnly },
++  { ...contactOnly, name: "contact-only request selection is frozen before its save acknowledgement",
++    beforeDispatch: data => { data.einstellungen.sync.kalenderUid = "late-calendar";
++      data.einstellungen.sync.kalenderUids = ["late-calendar"]; },
++    inspectRequest: request => { assert.equal(request.wahl.kalenderUid, ""); assert.deepEqual(request.wahl.kalenderUids, []); },
++    change: updateContact, verify: verifyContactOnly },
++  { ...contactOnly, name: "contact-only response may omit unrelated calendar collections",
++    change: (data, payload) => {
++      updateContact(data, payload); delete payload.termine; delete payload.aufgaben;
++      delete payload.geloescht.termine; delete payload.geloescht.aufgaben;
++    }, verify: verifyContactOnly },
++  { ...contactOnly, name: "pending Windows transaction keeps its original source selection on retry",
++    afterDispatch: async (T, w, messages, original) => {
++      if (!original.transactionId) return original; // Linux uses fresh request IDs, not this journal path.
++      const unexpected = { ...clone(original.daten), transactionId: original.transactionId, ok: true };
++      unexpected.termine[0].notiz = "unrequested calendar change";
++      w.App.syncFertig(unexpected); await tick();
++      assert.match(T.daten().syncStatus.letzterFehler, /Conflict/);
++      assert.equal(messages.filter(message => ["sync_commit", "sync_bestaetigen"].includes(message.cmd)).length, 0);
++      T.daten().einstellungen.sync.kalenderUid = "retry-calendar";
++      T.daten().einstellungen.sync.kalenderUids = ["retry-calendar"];
++      T.starteSync(true);
++      for (let i = 0; i < 100 && messages.filter(message => message.cmd === "sync").length < 2; i++) await tick();
++      const attempts = messages.filter(message => message.cmd === "sync"), retry = attempts[1];
++      assert.ok(retry, "pending transaction did not retry");
++      assert.equal(retry.transactionId, original.transactionId);
++      assert.deepEqual(retry.wahl, original.wahl, "retry changed the selection of a pending transaction");
++      return retry;
++    }, change: updateContact, verify: verifyContactOnly },
++  ...["termine", "aufgaben", "deleted-termine", "deleted-aufgaben"].map(field => ({
++    ...contactOnly, name: "contact-only response cannot modify unselected " + field,
++    change: (data, payload) => {
++      updateContact(data, payload);
++      if (field.startsWith("deleted-")) payload.geloescht[field.slice(8)].push({ uid: "injected", zeit: 1, syncKalenderUid: "unselected-calendar" });
++      else payload[field][0].notiz = "unexpected provider edit";
++    }, verify: (data, before, messages) => unchanged(data, before, messages, true)
++  })),
++  { ...contactOnly, name: "a legacy baseline without a bound selection cannot bypass ambiguity checks",
++    change: (data, payload) => { updateContact(data, payload); delete data.syncAbgleichBasis.wahl; },
++    verify: (data, before, messages) => unchanged(data, before, messages, true) },
+   { name: "unchanged events in different calendars", field: "termine", verify: data => both(data, "termine") },
+   ...["termine", "aufgaben"].map(field => ({ name: field + " late edit stays in its calendar", field,
+     change: data => { data[field][1].notiz = "b edited during sync"; }, verify: data => both(data, field, true) })),
+@@ -105,19 +179,22 @@ async function check(web, test) {
+       w.eval(fs.readFileSync(path.join(web, script), "utf8"));
+     w.MagnolieI18n.setLocale("en"); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
+     const initial = (test.initial || entries)();
+-    w.App.init({ neu: false, daten: { [test.field]: initial,
+-      einstellungen: { sync: { kalenderUid: "calendar-a", kalenderUids: ["calendar-a", "calendar-b"],
++    w.App.init({ neu: false, daten: { [test.field]: initial, ...(test.extra?.() || {}),
++      einstellungen: { sync: test.settings || { kalenderUid: "calendar-a", kalenderUids: ["calendar-a", "calendar-b"],
+         adressbuchUid: "synthetic-addressbook", automatisch: false, erfolgsmeldungen: false } } } });
+     await tick();
+     const T = w.OrganizerTest;
+     assert.equal(T.daten()[test.field].length, initial.length, "fixture changed during initialization");
+     T.starteSync(true);
++    test.beforeDispatch?.(T.daten());
+     for (let i = 0; i < 100 && !messages.some(message => message.cmd === "sync"); i++) await tick();
+-    const request = messages.find(message => message.cmd === "sync");
++    let request = messages.find(message => message.cmd === "sync");
+     assert.ok(request, "actual native synchronization request was not dispatched");
++    if (test.afterDispatch) request = await test.afterDispatch(T, w, messages, request);
++    test.inspectRequest?.(request);
+     const payload = { ...clone(request.daten), requestId: request.requestId,
+       transactionId: request.transactionId || "f".repeat(64), ok: true };
+-    test.change?.(T.daten(), payload);
++    test.change?.(T.daten(), payload, T);
+     const before = clone(T.daten());
+     w.App.syncFertig(payload);
+     await tick();
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+index b2f3fcae75c46fb367ea876524ad2cdf7100fa8b..60d8c4f2c6a90d14b6c57fb146b19a365ea79303 100644
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -34302,6 +34302,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         ((DATEN.syncMetadaten || {}).nextcloud || {}).pendingCommitId) return null;
+     if (!basis) return nutzlast;
+     if (basis.syncEpoch !== DATEN.syncEpoch) return null;
++    const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
++    const nurAdressbuch = !!basis.wahl?.adressbuchUid && !basis.wahl.kalenderUid &&
++      Array.isArray(basis.wahl.kalenderUids) && basis.wahl.kalenderUids.length === 0;
++    const unbeteiligteKalender = new Set();
+     const schluessel = (item) => String(item.uid || item.id || "");
+     const kalenderSchluessel = (listen) => {
+       const nachId = new Map(), nachUid = new Map();
+@@ -34341,6 +34345,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     };
+     const kalender = {};
+     for (const feld of ["termine", "aufgaben"]) {
++      if (nurAdressbuch) {
++        // An address-book-only request cannot change calendars. Retain their
++        // current local state, including edits/deletions after the request.
++        // Any returned calendar change still rejects the complete response.
++        if ((nutzlast[feld] !== undefined && !gleich(nutzlast[feld], basis[feld] || [])) ||
++            ((nutzlast.geloescht || {})[feld] !== undefined &&
++              !gleich(nutzlast.geloescht[feld], (basis.geloescht || {})[feld] || []))) {
++          merkeSyncFehler(_("Conflict"));
++          return null;
++        }
++        unbeteiligteKalender.add(feld);
++        continue;
++      }
+       kalender[feld] = kalenderSchluessel([basis[feld], DATEN[feld], nutzlast[feld],
+         (basis.geloescht || {})[feld], DATEN.geloescht[feld], (nutzlast.geloescht || {})[feld]]);
+       if (!kalender[feld]) {
+@@ -34349,6 +34366,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       }
+     }
+     for (const feld of ["termine", "aufgaben", "kontakte"]) {
++      if (unbeteiligteKalender.has(feld)) continue;
+       const key = kalender[feld] || ((item) => item.uid);
+       const vorher = new Set((basis[feld] || []).map(key));
+       const jetzt = new Set((DATEN[feld] || []).map(key));
+@@ -34370,7 +34388,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       termine: DATEN.termine, aufgaben: DATEN.aufgaben, kontakte: DATEN.kontakte,
+       jahrestage: DATEN.jahrestage, geloescht: DATEN.geloescht
+     }));
+-    const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+     const abgleichen = (vorher, aktuell, fern, schluessel) => {
+       const alt = new Map((vorher || []).map(item => [schluessel(item), item]));
+       const jetzt = new Map((aktuell || []).map(item => [schluessel(item), item]));
+@@ -34394,12 +34411,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     };
+     nutzlast = Object.assign({}, nutzlast);
+     for (const feld of ["termine", "aufgaben", "kontakte", "jahrestage"]) {
+-      if (Array.isArray(nutzlast[feld])) nutzlast[feld] =
++      if (unbeteiligteKalender.has(feld)) nutzlast[feld] = DATEN[feld];
++      else if (Array.isArray(nutzlast[feld])) nutzlast[feld] =
+         abgleichen(basis[feld], DATEN[feld], nutzlast[feld], kalender[feld] || schluessel);
+     }
+-    if (nutzlast.geloescht) {
++    if (nutzlast.geloescht || unbeteiligteKalender.size) {
+       nutzlast.geloescht = Object.assign({}, nutzlast.geloescht);
+       for (const feld of ["termine", "aufgaben", "kontakte"]) nutzlast.geloescht[feld] =
++        unbeteiligteKalender.has(feld) ? DATEN.geloescht[feld] :
+         abgleichen((basis.geloescht || {})[feld], DATEN.geloescht[feld], nutzlast.geloescht[feld],
+           kalender[feld] || schluessel);
+     }
+@@ -34422,8 +34441,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       }
+       return;
+     }
++    const wahl = { kalenderUid: w.kalenderUid || kalenderUids[0] || "",
++      kalenderUids: kalenderUids.slice(), adressbuchUid: w.adressbuchUid };
+     DATEN.syncAbgleichBasis = JSON.parse(JSON.stringify({
+-      requestId: uid(),
++      requestId: uid(), wahl,
+       termine: DATEN.termine, aufgaben: DATEN.aufgaben, kontakte: DATEN.kontakte,
+       jahrestage: DATEN.jahrestage, geloescht: DATEN.geloescht, syncEpoch: DATEN.syncEpoch
+     }));
+@@ -34438,8 +34459,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       if (mcpStart && !mcp) { if (mcpStart.phase !== "failed") mcpSyncFehlgeschlagen(mcpStart, "source_changed"); return; }
+       const gesendet = Bruecke.sende({ cmd: "sync", requestId: DATEN.syncAbgleichBasis.requestId,
+         ...(mcp ? { mcp: true } : {}),
+-        wahl: { kalenderUid: w.kalenderUid || kalenderUids[0] || "",
+-          kalenderUids: kalenderUids, adressbuchUid: w.adressbuchUid },
++        wahl,
+         daten: { termine: DATEN.syncAbgleichBasis.termine, aufgaben: DATEN.syncAbgleichBasis.aufgaben, kontakte: DATEN.syncAbgleichBasis.kontakte,
+           jahrestage: DATEN.syncAbgleichBasis.jahrestage, geloescht: DATEN.syncAbgleichBasis.geloescht,
+           letzterSync: DATEN.letzterSync, letzteSyncs: DATEN.letzteSyncs,

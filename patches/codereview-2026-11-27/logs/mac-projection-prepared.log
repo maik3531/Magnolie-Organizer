@@ -1,0 +1,60 @@
+{"name": "mac-projection-prepared", "command": ["/usr/bin/python3", "-m", "unittest", "-v", "test_host.ProjectionTests"], "source_head": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23"}
+test_actual_generated_ui_host_contract (test_host.ProjectionTests.test_actual_generated_ui_host_contract) ... ok
+test_additive_apple_notes_copy_contract (test_host.ProjectionTests.test_additive_apple_notes_copy_contract) ... ok
+test_additive_selected_note_files_contract (test_host.ProjectionTests.test_additive_selected_note_files_contract) ... ok
+test_additive_system_calendar_import_contract (test_host.ProjectionTests.test_additive_system_calendar_import_contract) ... ok
+test_additive_system_contact_copy_contract (test_host.ProjectionTests.test_additive_system_contact_copy_contract) ... ok
+test_additive_system_reminder_copy_contract (test_host.ProjectionTests.test_additive_system_reminder_copy_contract) ... ok
+test_anchor_drift_refuses_instead_of_shipping_old_payload (test_host.ProjectionTests.test_anchor_drift_refuses_instead_of_shipping_old_payload) ... ok
+test_bridge_inventory_distinguishes_partial_and_unavailable (test_host.ProjectionTests.test_bridge_inventory_distinguishes_partial_and_unavailable) ... ok
+test_canonical_calendar_export_contract (test_host.ProjectionTests.test_canonical_calendar_export_contract) ... ok
+test_canonical_manual_is_bundled_unchanged_and_hashed (test_host.ProjectionTests.test_canonical_manual_is_bundled_unchanged_and_hashed) ... ok
+test_communication_published_ui_payloads (test_host.ProjectionTests.test_communication_published_ui_payloads) ... ok
+test_current_editor_reminders_and_export (test_host.ProjectionTests.test_current_editor_reminders_and_export) ... ok
+test_device_page_existing_import_capabilities (test_host.ProjectionTests.test_device_page_existing_import_capabilities) ... ok
+test_drawing_finish_projection_and_exact_renderer_commands (test_host.ProjectionTests.test_drawing_finish_projection_and_exact_renderer_commands) ... PASS drawing release: 10 tools, owner/coalescing/current endpoint, tap/cancel/pressure/eraser, actual200000-point limit, Undo/Redo (synthetic events/mock canvas)
+PASS drawing completion: 10 tools, exact model/direct commands, erasure, Undo/Redo, idle-finish bounds (mock canvas; native pixels remain required)
+ok
+test_explicit_freeze_required (test_host.ProjectionTests.test_explicit_freeze_required) ... ok
+test_freeze_and_generated_tamper_detection (test_host.ProjectionTests.test_freeze_and_generated_tamper_detection) ... ok
+test_identity_and_no_stable_workflow (test_host.ProjectionTests.test_identity_and_no_stable_workflow) ... ok
+test_native_legacy_calendar_alias_evidence_contract (test_host.ProjectionTests.test_native_legacy_calendar_alias_evidence_contract) ... ok
+test_no_linux_native_build_claim (test_host.ProjectionTests.test_no_linux_native_build_claim) ... ok
+test_occurrence_identity_current_ui_and_published_adapter_preserve_distinct_instances (test_host.ProjectionTests.test_occurrence_identity_current_ui_and_published_adapter_preserve_distinct_instances) ... ok
+test_opaque_json_keys_reach_the_native_boundary_unchanged (test_host.ProjectionTests.test_opaque_json_keys_reach_the_native_boundary_unchanged) ... ok
+test_projection_is_reproducible_and_full_ui (test_host.ProjectionTests.test_projection_is_reproducible_and_full_ui) ... ok
+test_recovery_regional_keyboard_contract (test_host.ProjectionTests.test_recovery_regional_keyboard_contract) ... ok
+test_regional_form_drift_refuses_instead_of_guessing_native_contract (test_host.ProjectionTests.test_regional_form_drift_refuses_instead_of_guessing_native_contract) ... ok
+test_shared_display_alarm_actual_form (test_host.ProjectionTests.test_shared_display_alarm_actual_form) ... ok
+test_shared_display_alarm_adapter_binding_and_anchor_drift (test_host.ProjectionTests.test_shared_display_alarm_adapter_binding_and_anchor_drift) ... ok
+test_shared_legacy_css_fallbacks (test_host.ProjectionTests.test_shared_legacy_css_fallbacks) ... ok
+test_system_account_sync_transaction (test_host.ProjectionTests.test_system_account_sync_transaction) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 130.879s
+
+OK
+macOS Beta host UI: 109 assertions passed. jsdom/V8 only; NOT macOS or WKWebView validation.
+Mac Apple Notes plaintext copy: 195 projected UI checks; synthetic native records/transport, not AppleScript or macOS evidence.
+Mac additive note files: 41 host checks; synthetic transport, not native picker evidence.
+Mac native calendar import: 327 projected UI checks; synthetic EventKit payload/transport, not native access evidence.
+Mac system Contacts copy: 246 projected UI checks; full synthetic native records/transport, not Contacts.framework or macOS evidence.
+Mac system Reminders copy: 369 projected UI checks; shared synthetic reader/Core fixture and transport, not EventKit or macOS evidence.
+Canonical calendar vectors prepared: 19
+Swift calendar export NOT executed; pass --swift for native/portable validation.
+PASS 15 canonical communication payloads (host only; no external application opened)
+PASS 9 actual projected phone payloads (canonical country metadata; no external application opened)
+Actual current editor: {"appointments": 9, "tasks": 3, "checks": 96}
+Actual current editor: {"appointments": 9, "tasks": 3, "checks": 96}
+Actual current editor: {"appointments": 9, "tasks": 3, "checks": 96}
+Swift core execution NOT run in this host collection; use MACOS_BETA_SWIFT or tools/check_editor.py --swift.
+{"issue":784,"projectedDevicePageChecks":118,"locales":["en","de"],"existingImportActions":6,"syntheticNativeTransport":true,"nativeExecution":false}
+Mac legacy calendar aliases: 101 checks passed; synthetic native sidecar over actual Python codec, actual projected UI, synthetic Save ACK/frontend reopen; no native AppKit/disk evidence.
+current: Shared occurrence identity: 29 macos checks; actual App/normalizer/save/reopen, host JS only.
+Opaque JSON boundary: 20 actual projected UI assertions passed; Swift acceptance remains a separate test.
+macOS Beta recovery/regional/keyboard: 86 host checks. Fake native transport, NOT WKWebView validation.
+Shared DISPLAY alarm form: 11 macos checks; host JS only.
+Legacy CSS macos: 5 source/AST checks; no native layout claim.
+{"issue":786,"actualProjectedUIChecks":107,"locales":["en","de"],"sourceShapedFixture":"Manually source-shaped synthetic UI inputs derived from the existing contact/reminder/calendar copy fixtures; NOT generated by running Swift. Digests are synthetic and do not authorize any write.","syntheticProviderAndDiskReceipts":true,"nativeExecution":false}
+
+{"name": "mac-projection-prepared", "command": ["/usr/bin/python3", "-m", "unittest", "-v", "test_host.ProjectionTests"], "source_head": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23", "exit_code": 0, "seconds": 131.117, "children_maxrss_kib": 805284, "source_head_after": "e9e3c43f1410516ef8ddbf0e5785f96cedb5389e"}

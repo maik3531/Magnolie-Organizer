@@ -1,0 +1,234 @@
+From 88d4b08f61e69060dbec2b431aa3a4758b4c2e42 Mon Sep 17 00:00:00 2001
+From: Maik Walter <154642264+maik3531@users.noreply.github.com>
+Date: Fri, 27 Nov 2026 11:15:41 +0100
+Subject: [PATCH] Refs #821: Bound the complete folder note import before
+ persistence
+
+---
+ .../maik3531/magnolienotes/einfuhr/Einfuhr.kt | 32 ++++++---
+ .../einfuhr/OrdnerImportBudget.kt             | 35 ++++++++++
+ .../provider/SyntheticImportDocumentFile.kt   | 24 +++++++
+ .../einfuhr/EinfuhrOrdnerTest.kt              | 68 +++++++++++++++++++
+ 4 files changed, 148 insertions(+), 11 deletions(-)
+ create mode 100644 magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/OrdnerImportBudget.kt
+ create mode 100644 magnolie-notes/app/src/test/java/androidx/documentfile/provider/SyntheticImportDocumentFile.kt
+ create mode 100644 magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/einfuhr/EinfuhrOrdnerTest.kt
+
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Einfuhr.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Einfuhr.kt
+index 63be4628c883c7983b15322677fd273253a48f5f..bbae0be194a4e41e0fdb2b897751326e7b889ce2 100644
+--- a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Einfuhr.kt
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Einfuhr.kt
+@@ -70,7 +70,9 @@ object Einfuhr {
+             )
+         return try {
+             val gesammelt = mutableListOf<Rohnotiz>()
+-            sammle(zusammenhang, wurzel, gesammelt, 0)
++            sammle(wurzel, gesammelt, 0, OrdnerImportBudget(),
++                { datei, grenze -> lies(zusammenhang, datei.uri, grenze) },
++                { roh, datei -> ausInhalt(roh, datei.name.orEmpty(), datei.lastModified(), zusammenhang) })
+             uebernehmen(zusammenhang, gesammelt, wurzel.name.orEmpty())
+         } catch (_: GesamtarchivNichtUnterstuetzt) {
+             Einfuhrergebnis(
+@@ -85,23 +87,31 @@ object Einfuhr {
+         }
+     }
+ 
+-    private fun sammle(
+-        zusammenhang: Context,
++    internal fun sammle(
+         ordner: DocumentFile,
+         ziel: MutableList<Rohnotiz>,
+-        tiefe: Int
++        tiefe: Int,
++        budget: OrdnerImportBudget,
++        lesen: (DocumentFile, Long) -> ByteArray?,
++        parsen: (ByteArray, DocumentFile) -> List<Rohnotiz>
+     ) {
+-        if (tiefe > 6 || ziel.size > 5000) return
++        if (tiefe > 6) throw IOException("Ordner zu tief verschachtelt")
+         for (kind in ordner.listFiles()) {
++            budget.besuchen()
+             if (kind.isDirectory) {
+-                sammle(zusammenhang, kind, ziel, tiefe + 1)
++                sammle(kind, ziel, tiefe + 1, budget, lesen, parsen)
+                 continue
+             }
+-            if (kind.length() > DATEI_MAX) continue
+             val name = kind.name.orEmpty()
+             if (!kommtInFrage(name)) continue
+-            val roh = lies(zusammenhang, kind.uri) ?: continue
+-            ziel += ausInhalt(roh, name, kind.lastModified(), zusammenhang)
++            val grenze = minOf(DATEI_MAX, budget.verbleibendeRohbytes)
++            if (kind.length() > grenze) throw IOException("Ordnerimport zu gross")
++            val roh = lesen(kind, grenze) ?: throw IOException("Importdatei nicht vollstaendig lesbar")
++            budget.gelesen(roh.size.toLong())
++            for (notiz in parsen(roh, kind)) {
++                budget.aufnehmen(notiz)
++                ziel += notiz
++            }
+         }
+     }
+ 
+@@ -328,7 +338,7 @@ object Einfuhr {
+ 
+     // ------------------------------------------------------------ Dateizugriff
+ 
+-    private fun lies(zusammenhang: Context, quelle: Uri): ByteArray? = try {
++    private fun lies(zusammenhang: Context, quelle: Uri, grenze: Long = DATEI_MAX): ByteArray? = try {
+         zusammenhang.contentResolver.openInputStream(quelle)?.use { strom ->
+             val puffer = ByteArrayOutputStream()
+             val brocken = ByteArray(64 * 1024)
+@@ -337,7 +347,7 @@ object Einfuhr {
+                 val gelesen = strom.read(brocken)
+                 if (gelesen < 0) break
+                 gesamt += gelesen
+-                if (gesamt > DATEI_MAX) return null
++                if (gesamt > grenze) return null
+                 puffer.write(brocken, 0, gelesen)
+             }
+             puffer.toByteArray()
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/OrdnerImportBudget.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/OrdnerImportBudget.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..192302acd37c8228760aee3a49706ea5c88b3ea9
+--- /dev/null
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/OrdnerImportBudget.kt
+@@ -0,0 +1,35 @@
++package io.gitlab.maik3531.magnolienotes.einfuhr
++
++import java.io.IOException
++
++/** Refs #821: one budget for the complete traversal, including expanded ZIP notes. */
++internal class OrdnerImportBudget(
++    private val maxEintraege: Int = 5000,
++    private val maxNotizen: Int = 5000,
++    private val maxRohbytes: Long = 64L * 1024 * 1024,
++    private val maxTextbytes: Long = 64L * 1024 * 1024
++) {
++    private var eintraege = 0
++    private var notizen = 0
++    private var rohbytes = 0L
++    private var textbytes = 0L
++    val verbleibendeRohbytes: Long get() = maxRohbytes - rohbytes
++
++    fun besuchen() {
++        if (++eintraege > maxEintraege) throw IOException("Zu viele Ordnereintraege")
++    }
++
++    fun gelesen(bytes: Long) {
++        if (bytes < 0 || bytes > verbleibendeRohbytes) throw IOException("Ordnerimport zu gross")
++        rohbytes += bytes
++    }
++
++    fun aufnehmen(notiz: Rohnotiz) {
++        if (++notizen > maxNotizen) throw IOException("Zu viele importierte Notizen")
++        for (text in listOf(notiz.titel, notiz.text, notiz.html, notiz.herkunft, notiz.notizbuch)) {
++            val bytes = text.toByteArray(Charsets.UTF_8).size.toLong()
++            if (bytes > maxTextbytes - textbytes) throw IOException("Entpackgrenze des Ordnerimports ueberschritten")
++            textbytes += bytes
++        }
++    }
++}
+diff --git a/magnolie-notes/app/src/test/java/androidx/documentfile/provider/SyntheticImportDocumentFile.kt b/magnolie-notes/app/src/test/java/androidx/documentfile/provider/SyntheticImportDocumentFile.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..79c15533449c48444f6818b1d7fa2e8ee473b2b1
+--- /dev/null
++++ b/magnolie-notes/app/src/test/java/androidx/documentfile/provider/SyntheticImportDocumentFile.kt
+@@ -0,0 +1,24 @@
++package androidx.documentfile.provider
++
++import android.net.Uri
++
++/** Test node lives beside DocumentFile because its constructor is package-private. */
++class SyntheticImportDocumentFile(private val label: String, val bytes: ByteArray = byteArrayOf(),
++                                  private val children: Array<SyntheticImportDocumentFile>? = null) : DocumentFile(null) {
++    override fun getName() = label
++    override fun isDirectory() = children != null
++    override fun isFile() = children == null
++    override fun listFiles(): Array<DocumentFile> = children?.map { it as DocumentFile }?.toTypedArray() ?: emptyArray()
++    override fun length() = bytes.size.toLong()
++    override fun lastModified() = 0L
++    override fun canRead() = true
++    override fun canWrite() = false
++    override fun exists() = true
++    override fun isVirtual() = false
++    override fun getType(): String? = null
++    override fun getUri(): Uri = throw AssertionError("Traversal must not access an unrequested URI")
++    override fun createFile(mimeType: String, displayName: String): DocumentFile? = null
++    override fun createDirectory(displayName: String): DocumentFile? = null
++    override fun delete() = false
++    override fun renameTo(displayName: String) = false
++}
+diff --git a/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/einfuhr/EinfuhrOrdnerTest.kt b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/einfuhr/EinfuhrOrdnerTest.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..6d931241401c0cc18391f778980bad0b1ddd9464
+--- /dev/null
++++ b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/einfuhr/EinfuhrOrdnerTest.kt
+@@ -0,0 +1,68 @@
++package io.gitlab.maik3531.magnolienotes.einfuhr
++
++import androidx.documentfile.provider.DocumentFile
++import androidx.documentfile.provider.SyntheticImportDocumentFile as FileNode
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertThrows
++import org.junit.Test
++import java.io.IOException
++
++/** Actual folder traversal with synthetic provider nodes; no storage or Android device is touched. */
++class EinfuhrOrdnerTest {
++    private fun file(name: String = "a.txt", text: String = "x") = FileNode(name, text.toByteArray())
++    private fun folder(vararg children: FileNode) = FileNode("folder", children = arrayOf(*children))
++    private fun collect(root: FileNode, budget: OrdnerImportBudget = OrdnerImportBudget(),
++                        reader: (DocumentFile, Long) -> ByteArray? = { node, limit ->
++                            (node as FileNode).bytes.takeIf { it.size <= limit }
++                        }, parser: (ByteArray, DocumentFile) -> List<Rohnotiz> = { bytes, _ ->
++                            listOf(Rohnotiz("", bytes.toString(Charsets.UTF_8)))
++                        }): List<Rohnotiz> {
++        val notes = mutableListOf<Rohnotiz>()
++        Einfuhr.sammle(root, notes, 0, budget, reader, parser)
++        return notes
++    }
++
++    @Test fun `flacher Ordner ist auf 5000 Eintraege begrenzt`() {
++        assertEquals(5000, collect(folder(*Array(5000) { file("$it.txt") })).size)
++        assertThrows(IOException::class.java) { collect(folder(*Array(5001) { file("$it.txt") })) }
++    }
++
++    @Test fun `Unterordner teilen Eingabegrenze und verbleibendes Lesebudget`() {
++        val reads = mutableListOf<Long>()
++        val root = folder(folder(file("a.txt", "abc")), folder(file("b.txt", "de")))
++        assertEquals(2, collect(root, OrdnerImportBudget(maxRohbytes = 5), reader = { node, limit ->
++            reads += limit; (node as FileNode).bytes
++        }).size)
++        assertEquals(listOf(5L, 2L), reads)
++        assertThrows(IOException::class.java) {
++            collect(folder(file("a.txt", "abc"), file("b.txt", "def")), OrdnerImportBudget(maxRohbytes = 5))
++        }
++    }
++
++    @Test fun `entpackte Notizen teilen Anzahl und UTF8 Textgrenze`() {
++        val root = folder(file("one.zip"), file("two.zip"))
++        assertThrows(IOException::class.java) {
++            collect(root, OrdnerImportBudget(maxNotizen = 3), parser = { _, _ -> List(2) { Rohnotiz("", "x") } })
++        }
++        assertThrows(IOException::class.java) {
++            collect(root, OrdnerImportBudget(maxTextbytes = 7), parser = { _, _ -> listOf(Rohnotiz("", "äö")) })
++        }
++        assertEquals(2, collect(root, OrdnerImportBudget(maxTextbytes = 8),
++            parser = { _, _ -> listOf(Rohnotiz("", "äö")) }).size)
++    }
++
++    @Test fun `unlesbare oder zu tiefe Quellen liefern kein scheinbar vollstaendiges Ergebnis`() {
++        assertThrows(IOException::class.java) { collect(folder(file()), reader = { _, _ -> null }) }
++        var deep = folder(file())
++        repeat(7) { deep = folder(deep) }
++        assertThrows(IOException::class.java) { collect(deep) }
++    }
++
++    @Test fun `unbekannte Dateien werden nicht gelesen zaehlen aber zum Laufbudget`() {
++        val root = folder(file("ignore.bin"), file("yes.txt"))
++        var reads = 0
++        assertEquals(1, collect(root, reader = { node, _ -> reads++; (node as FileNode).bytes }).size)
++        assertEquals(1, reads)
++        assertThrows(IOException::class.java) { collect(root, OrdnerImportBudget(maxEintraege = 1)) }
++    }
++}

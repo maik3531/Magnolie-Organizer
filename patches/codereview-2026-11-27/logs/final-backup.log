@@ -1,0 +1,4 @@
+Magnolie CoreTests: 1 Gruppen
+  SKIP CloudBackup CreateVerified / DPAPI: requires native Windows; capacity policy ran.
+  OK     Cloud-Ordner-Sicherung / Policy / Retention / DPAPI (0.23 s)
+CoreTests: 1/1 Gruppen bestanden.

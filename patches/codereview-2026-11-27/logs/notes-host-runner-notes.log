@@ -1,0 +1,10 @@
+[0.001s][warning][perf,memops] Cannot use file /tmp/hsperfdata_agent/6 because it is locked by another process (errno = 11)
+notes-review/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Einfuhr.kt:370:38: warning: unnecessary safe call on a non-null receiver of type 'String'.
+        return quelle.lastPathSegment?.substringAfterLast('/').orEmpty()
+                                     ^^
+JUnit version 4.13.2
+....................
+Time: 0.211
+
+OK (20 tests)
+

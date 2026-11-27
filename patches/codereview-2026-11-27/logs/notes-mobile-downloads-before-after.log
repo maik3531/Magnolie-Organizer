@@ -1,0 +1,2 @@
+baseline: FAIL NameError: name 'MAGNOLIE_NOTES_FDROID_URL' is not defined
+patched: PASS, both URL assignments refreshed, independent destinations preserved and generation idempotent

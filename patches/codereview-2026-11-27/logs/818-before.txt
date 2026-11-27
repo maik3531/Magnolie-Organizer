@@ -1,0 +1,32 @@
+FFF.                                                                     [100%]
+=================================== FAILURES ===================================
+_______ test_repeated_failure_in_full_directory_does_not_create_archives _______
+magnolie-organizer/pruefungen/test_cloud_backup_capacity.py:29: in test_repeated_failure_in_full_directory_does_not_create_archives
+    assert not list(tmp_path.glob("*.magnolie"))
+E   AssertionError: assert not [PosixPath('/tmp/pytest-of-agent/pytest-1/test_repeated_failure_in_full_0/magnolie-auto-20261127-100805-891492-94896fbdc95e47868caf5f8d16b370c9.magnolie')]
+E    +  where [PosixPath('/tmp/pytest-of-agent/pytest-1/test_repeated_failure_in_full_0/magnolie-auto-20261127-100805-891492-94896fbdc95e47868caf5f8d16b370c9.magnolie')] = list(<generator object Path.glob at 0x7fd4d76ae460>)
+E    +    where <generator object Path.glob at 0x7fd4d76ae460> = glob('*.magnolie')
+E    +      where glob = PosixPath('/tmp/pytest-of-agent/pytest-1/test_repeated_failure_in_full_0').glob
+______________ test_capacity_is_checked_before_archive_encryption ______________
+magnolie-organizer/pruefungen/test_cloud_backup_capacity.py:40: in test_capacity_is_checked_before_archive_encryption
+    create(tmp_path)
+magnolie-organizer/pruefungen/test_cloud_backup_capacity.py:21: in create
+    return native.automatische_sicherung_anlegen(DATA, str(directory), PASSWORD, 2)
+magnolie-organizer/bin/magnolie-organizer:2430: in automatische_sicherung_anlegen
+    text = gesamtarchiv_erzeugen(daten, "linux", PROGRAMM_FASSUNG, kennwort)
+magnolie-organizer/pruefungen/test_cloud_backup_capacity.py:37: in must_not_encode
+    raise AssertionError("A rejected backup folder reached archive encryption")
+E   AssertionError: A rejected backup folder reached archive encryption
+____ test_last_available_slot_succeeds_and_subsequent_attempt_is_read_only _____
+magnolie-organizer/pruefungen/test_cloud_backup_capacity.py:52: in test_last_available_slot_succeeds_and_subsequent_attempt_is_read_only
+    assert list(tmp_path.glob("*.magnolie")) == [archive]
+E   AssertionError: assert [PosixPath('/...e7.magnolie')] == [PosixPath('/...e7.magnolie')]
+E     
+E     At index 0 diff: PosixPath('/tmp/pytest-of-agent/pytest-1/test_last_available_slot_succe0/magnolie-auto-20261127-100806-810832-46bea5b38d7f4b1aac70e7eee40125a2.magnolie') != PosixPath('/tmp/pytest-of-agent/pytest-1/test_last_available_slot_succe0/magnolie-auto-20261127-100806-713484-11df5776ab574605b026afd8ecc66ce7.magnolie')
+E     Left contains one more item: PosixPath('/tmp/pytest-of-agent/pytest-1/test_last_available_slot_succe0/magnolie-auto-20261127-100806-713484-11df5776ab574605b026afd8ecc66ce7.magnolie')
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_cloud_backup_capacity.py::test_repeated_failure_in_full_directory_does_not_create_archives
+FAILED magnolie-organizer/pruefungen/test_cloud_backup_capacity.py::test_capacity_is_checked_before_archive_encryption
+FAILED magnolie-organizer/pruefungen/test_cloud_backup_capacity.py::test_last_available_slot_succeeds_and_subsequent_attempt_is_read_only
+3 failed, 1 passed in 1.58s

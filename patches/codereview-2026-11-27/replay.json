@@ -1,0 +1,129 @@
+{
+  "baseline": "d9fa9065b1fe690616e6eae2671159c224ead406",
+  "expected_tree": "1fcc414bd0c58a7cbcd9c3c676247a76d47ea6be",
+  "steps": [
+    {
+      "mode": "combined",
+      "patch": "magnolie-codereview.patch",
+      "result_tree": "1fcc414bd0c58a7cbcd9c3c676247a76d47ea6be"
+    },
+    {
+      "mode": "series",
+      "patch": "series/01-fix-utf-16-csv-imports-before-binary-detection-refs-817.patch",
+      "result_tree": "dc202470ffafd2caf10f86596a8b2d60d331b0cd"
+    },
+    {
+      "mode": "series",
+      "patch": "series/02-reject-full-backup-folders-before-creating-new-archives-refs-818.patch",
+      "result_tree": "7deab4e4b012b998d4cc3fabc8b4cae6c2cdf82e"
+    },
+    {
+      "mode": "series",
+      "patch": "series/03-refs-818-preflight-windows-automatic-backup-capacity-before-archive-writes.patch",
+      "result_tree": "790263cd0344e54cfeb2491ab2ba04c9bdae74d3"
+    },
+    {
+      "mode": "series",
+      "patch": "series/04-refs-819-preserve-fractional-seconds-in-note-import-timestamps.patch",
+      "result_tree": "490e4de5618357362d78e97bf4ffe214b090c0c1"
+    },
+    {
+      "mode": "series",
+      "patch": "series/05-refs-822-recognize-keep-exports-before-selecting-lossy-note-readers.patch",
+      "result_tree": "1ec47c7387971275058232a7360031f102ca9b46"
+    },
+    {
+      "mode": "series",
+      "patch": "series/06-refs-821-bound-the-complete-folder-note-import-before-persistence.patch",
+      "result_tree": "5c0c5ef9b32d42ee395cb7ff1b9dccdb460b9525"
+    },
+    {
+      "mode": "series",
+      "patch": "series/07-refs-825-reject-nested-note-archives-by-contents-before-recursive-import.patch",
+      "result_tree": "13ce16a60478adb2410c8e12cd986cf372178c6c"
+    },
+    {
+      "mode": "series",
+      "patch": "series/08-refs-820-complete-current-linux-catalog-sources-and-recovery-translations.patch",
+      "result_tree": "af1d6fc135d7b03db4b50c55c1eb528c38ea5c95"
+    },
+    {
+      "mode": "series",
+      "patch": "series/09-refs-824-show-exact-replacement-for-complete-journal-restore.patch",
+      "result_tree": "bfb137732d5b05a5e2be672cc0c03cbc1bd04511"
+    },
+    {
+      "mode": "series",
+      "patch": "series/10-refs-821-92-explain-current-note-import-limits-in-every-handbook-language.patch",
+      "result_tree": "d568102be0b77316606fd5879720658891fdb258"
+    },
+    {
+      "mode": "series",
+      "patch": "series/11-refs-790-verify-current-tablet-checkout-in-the-mac-source-gate.patch",
+      "result_tree": "879aea63429b0860882f38ca894f1613ef4f5bd2"
+    },
+    {
+      "mode": "series",
+      "patch": "series/12-preserve-additive-restore-identities-across-calendar-sources-refs-823.patch",
+      "result_tree": "8717e1d5d03390e28669e1136671ecffa7c5119b"
+    },
+    {
+      "mode": "series",
+      "patch": "series/13-refs-827-synchronize-handbook-catalogs-with-current-source-appendices.patch",
+      "result_tree": "1138bbddda4777d855a38b628ed7e975566ca13b"
+    },
+    {
+      "mode": "series",
+      "patch": "series/14-refs-830-preserve-adjacent-setup-constants-when-generating-download-urls.patch",
+      "result_tree": "110a42f129b2160e07676f05363f7cdd47f31f46"
+    },
+    {
+      "mode": "series",
+      "patch": "series/15-refs-828-translate-portuguese-no-in-both-desktop-catalogs.patch",
+      "result_tree": "884a68f7e15f023122f337285ff22a5ec0b882a2"
+    },
+    {
+      "mode": "series",
+      "patch": "series/16-keep-calendar-sources-distinct-during-synchronization-replies-refs-826.patch",
+      "result_tree": "2f7ba83ef5a4f54069ec0fe7c538cd1ba909bcf6"
+    },
+    {
+      "mode": "series",
+      "patch": "series/17-refs-831-admit-existing-native-media-and-webcam-bridge-envelopes.patch",
+      "result_tree": "7fb0fbf26b6272eb1382bcb1c472bceb1b9e4ce6"
+    },
+    {
+      "mode": "series",
+      "patch": "series/18-refs-829-compare-current-media-adapters-without-masking-bridge-gaps.patch",
+      "result_tree": "cd677c925a989fab38d3fcef4456a9c926512d10"
+    },
+    {
+      "mode": "series",
+      "patch": "series/19-refs-826-isolate-contact-only-sync-from-unselected-calendars.patch",
+      "result_tree": "a607bfa654977e31117e897bffa638a31b5c8ac9"
+    },
+    {
+      "mode": "series",
+      "patch": "series/20-refs-832-bound-handbook-byte-mismatch-diagnostics-without-weakening-equality.patch",
+      "result_tree": "0a0ea9e9d1b6144be574405236ce23d84d0d1a76"
+    },
+    {
+      "mode": "series",
+      "patch": "series/21-refs-823-preserve-stable-local-identities-across-restored-calendar-source-change.patch",
+      "result_tree": "ce20ae25b71b7ae804f8c43668be5849a3fd86f6"
+    },
+    {
+      "mode": "series",
+      "patch": "series/22-refs-829-refresh-parity-source-hashes-after-final-calendar-corrections.patch",
+      "result_tree": "13da71360642fc3ed7ecf443df8ed809c90d67e7"
+    },
+    {
+      "mode": "series",
+      "patch": "series/23-refs-113-record-continued-code-review-patch-handoff-and-verification-limits.patch",
+      "result_tree": "1fcc414bd0c58a7cbcd9c3c676247a76d47ea6be"
+    }
+  ],
+  "combined_tree": "1fcc414bd0c58a7cbcd9c3c676247a76d47ea6be",
+  "reverse_check": true,
+  "series_tree": "1fcc414bd0c58a7cbcd9c3c676247a76d47ea6be"
+}

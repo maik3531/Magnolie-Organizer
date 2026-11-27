@@ -1,0 +1,22 @@
+JUnit version 4.13.2
+..E..E.E
+Time: 0.111
+There were 3 failures:
+1) auch leere Unterarchive gelten nicht als gewoehnliche Textdatei(io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrVerschachtelteArchiveTest)
+java.lang.AssertionError: expected java.io.IOException to be thrown, but nothing was thrown
+	at org.junit.Assert.assertThrows(Assert.java:1028)
+	at org.junit.Assert.assertThrows(Assert.java:981)
+	at io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrVerschachtelteArchiveTest.auch leere Unterarchive gelten nicht als gewoehnliche Textdatei(EinfuhrVerschachtelteArchiveTest.kt:38)
+2) verschachtelte Archive werden auch unter fremden Endungen ganz abgewiesen(io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrVerschachtelteArchiveTest)
+java.lang.AssertionError: zip: expected java.io.IOException to be thrown, but nothing was thrown
+	at org.junit.Assert.assertThrows(Assert.java:1028)
+	at io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrVerschachtelteArchiveTest.verschachtelte Archive werden auch unter fremden Endungen ganz abgewiesen(EinfuhrVerschachtelteArchiveTest.kt:24)
+3) neuer Archivaufruf kann die gesetzte Entpackgrenze nicht zuruecksetzen(io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrVerschachtelteArchiveTest)
+java.lang.AssertionError: expected java.io.IOException to be thrown, but nothing was thrown
+	at org.junit.Assert.assertThrows(Assert.java:1028)
+	at org.junit.Assert.assertThrows(Assert.java:981)
+	at io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrVerschachtelteArchiveTest.neuer Archivaufruf kann die gesetzte Entpackgrenze nicht zuruecksetzen(EinfuhrVerschachtelteArchiveTest.kt:32)
+
+FAILURES!!!
+Tests run: 5,  Failures: 3
+

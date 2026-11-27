@@ -1,0 +1,13 @@
+{
+  "name": "handbook-full-unmodified",
+  "command": [
+    "node",
+    "--max-old-space-size=512",
+    "magnolie-handbuch/pruefungen/handbuch_test.js"
+  ],
+  "source_head": "e9e3c43f1410516ef8ddbf0e5785f96cedb5389e",
+  "exit_code": 0,
+  "seconds": 388.22,
+  "children_maxrss_kib": 681464,
+  "source_head_after": "e9e3c43f1410516ef8ddbf0e5785f96cedb5389e"
+}

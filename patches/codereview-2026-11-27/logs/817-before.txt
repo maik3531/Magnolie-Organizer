@@ -1,0 +1,686 @@
+.FF.FF.FF.FF.FF.FF.FF.FF....F...                                         [100%]
+=================================== FAILURES ===================================
+_ test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-False-lotus-utf-16] _
+
+encoding = 'utf-16', kind = 'lotus', in_zip = False
+source = 'ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Prüfung 👩\u200d💻"\r\n'
+field = 'termine', key = 'titel', expected = 'Prüfung 👩\u200d💻'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6537: in import_rohdaten_lesen
+    return einzelne(bytes(roh), dateiname)
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xff\xfeA\x00N\x00F\x00A\x00N\x00G\x00S\x00D\x00A\x00T\x00U\x00M\x00Z\x00E\x00I\x00T\x00,\x00B\x00E\x00S\x00C\x00H\x...00:\x003\x000\x00"\x00,\x00"\x00P\x00r\x00\xfc\x00f\x00u\x00n\x00g\x00 \x00=\xd8i\xdc\r =\xd8\xbb\xdc"\x00\r\x00\n\x00'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-False-lotus-utf-16-be] _
+
+encoding = 'utf-16-be', kind = 'lotus', in_zip = False
+source = 'ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Prüfung 👩\u200d💻"\r\n'
+field = 'termine', key = 'titel', expected = 'Prüfung 👩\u200d💻'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6537: in import_rohdaten_lesen
+    return einzelne(bytes(roh), dateiname)
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xfe\xff\x00A\x00N\x00F\x00A\x00N\x00G\x00S\x00D\x00A\x00T\x00U\x00M\x00Z\x00E\x00I\x00T\x00,\x00B\x00E\x00S\x00C\x0...09\x00:\x003\x000\x00"\x00,\x00"\x00P\x00r\x00\xfc\x00f\x00u\x00n\x00g\x00 \xd8=\xdci \r\xd8=\xdc\xbb\x00"\x00\r\x00\n'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-False-vcf-utf-16] _
+
+encoding = 'utf-16', kind = 'vcf', in_zip = False
+source = 'ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Prüfung 👩\u200d💻"\r\n'
+field = 'termine', key = 'titel', expected = 'Prüfung 👩\u200d💻'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6537: in import_rohdaten_lesen
+    return einzelne(bytes(roh), dateiname)
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xff\xfeA\x00N\x00F\x00A\x00N\x00G\x00S\x00D\x00A\x00T\x00U\x00M\x00Z\x00E\x00I\x00T\x00,\x00B\x00E\x00S\x00C\x00H\x...00:\x003\x000\x00"\x00,\x00"\x00P\x00r\x00\xfc\x00f\x00u\x00n\x00g\x00 \x00=\xd8i\xdc\r =\xd8\xbb\xdc"\x00\r\x00\n\x00'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-False-vcf-utf-16-be] _
+
+encoding = 'utf-16-be', kind = 'vcf', in_zip = False
+source = 'ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Prüfung 👩\u200d💻"\r\n'
+field = 'termine', key = 'titel', expected = 'Prüfung 👩\u200d💻'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6537: in import_rohdaten_lesen
+    return einzelne(bytes(roh), dateiname)
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xfe\xff\x00A\x00N\x00F\x00A\x00N\x00G\x00S\x00D\x00A\x00T\x00U\x00M\x00Z\x00E\x00I\x00T\x00,\x00B\x00E\x00S\x00C\x0...09\x00:\x003\x000\x00"\x00,\x00"\x00P\x00r\x00\xfc\x00f\x00u\x00n\x00g\x00 \xd8=\xdci \r\xd8=\xdc\xbb\x00"\x00\r\x00\n'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-True-lotus-utf-16] _
+
+encoding = 'utf-16', kind = 'lotus', in_zip = True
+source = 'ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Prüfung 👩\u200d💻"\r\n'
+field = 'termine', key = 'titel', expected = 'Prüfung 👩\u200d💻'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6571: in import_rohdaten_lesen
+    teil = einzelne(daten, sicherer_eintrag,
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xff\xfeA\x00N\x00F\x00A\x00N\x00G\x00S\x00D\x00A\x00T\x00U\x00M\x00Z\x00E\x00I\x00T\x00,\x00B\x00E\x00S\x00C\x00H\x...00:\x003\x000\x00"\x00,\x00"\x00P\x00r\x00\xfc\x00f\x00u\x00n\x00g\x00 \x00=\xd8i\xdc\r =\xd8\xbb\xdc"\x00\r\x00\n\x00'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-True-lotus-utf-16-be] _
+
+encoding = 'utf-16-be', kind = 'lotus', in_zip = True
+source = 'ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Prüfung 👩\u200d💻"\r\n'
+field = 'termine', key = 'titel', expected = 'Prüfung 👩\u200d💻'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6571: in import_rohdaten_lesen
+    teil = einzelne(daten, sicherer_eintrag,
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xfe\xff\x00A\x00N\x00F\x00A\x00N\x00G\x00S\x00D\x00A\x00T\x00U\x00M\x00Z\x00E\x00I\x00T\x00,\x00B\x00E\x00S\x00C\x0...09\x00:\x003\x000\x00"\x00,\x00"\x00P\x00r\x00\xfc\x00f\x00u\x00n\x00g\x00 \xd8=\xdci \r\xd8=\xdc\xbb\x00"\x00\r\x00\n'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-True-vcf-utf-16] _
+
+encoding = 'utf-16', kind = 'vcf', in_zip = True
+source = 'ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Prüfung 👩\u200d💻"\r\n'
+field = 'termine', key = 'titel', expected = 'Prüfung 👩\u200d💻'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6571: in import_rohdaten_lesen
+    teil = einzelne(daten, sicherer_eintrag,
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xff\xfeA\x00N\x00F\x00A\x00N\x00G\x00S\x00D\x00A\x00T\x00U\x00M\x00Z\x00E\x00I\x00T\x00,\x00B\x00E\x00S\x00C\x00H\x...00:\x003\x000\x00"\x00,\x00"\x00P\x00r\x00\xfc\x00f\x00u\x00n\x00g\x00 \x00=\xd8i\xdc\r =\xd8\xbb\xdc"\x00\r\x00\n\x00'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-True-vcf-utf-16-be] _
+
+encoding = 'utf-16-be', kind = 'vcf', in_zip = True
+source = 'ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Prüfung 👩\u200d💻"\r\n'
+field = 'termine', key = 'titel', expected = 'Prüfung 👩\u200d💻'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6571: in import_rohdaten_lesen
+    teil = einzelne(daten, sicherer_eintrag,
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xfe\xff\x00A\x00N\x00F\x00A\x00N\x00G\x00S\x00D\x00A\x00T\x00U\x00M\x00Z\x00E\x00I\x00T\x00,\x00B\x00E\x00S\x00C\x0...09\x00:\x003\x000\x00"\x00,\x00"\x00P\x00r\x00\xfc\x00f\x00u\x00n\x00g\x00 \xd8=\xdci \r\xd8=\xdc\xbb\x00"\x00\r\x00\n'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-False-lotus-utf-16] _
+
+encoding = 'utf-16', kind = 'lotus', in_zip = False
+source = 'Vorname,Nachname,E-Mail\r\nZoë,Müller,zoe@example.test\r\n'
+field = 'kontakte', key = 'nachname', expected = 'Müller'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6537: in import_rohdaten_lesen
+    return einzelne(bytes(roh), dateiname)
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xff\xfeV\x00o\x00r\x00n\x00a\x00m\x00e\x00,\x00N\x00a\x00c\x00h\x00n\x00a\x00m\x00e\x00,\x00E\x00-\x00M\x00a\x00i\x...0l\x00l\x00e\x00r\x00,\x00z\x00o\x00e\x00@\x00e\x00x\x00a\x00m\x00p\x00l\x00e\x00.\x00t\x00e\x00s\x00t\x00\r\x00\n\x00'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-False-lotus-utf-16-be] _
+
+encoding = 'utf-16-be', kind = 'lotus', in_zip = False
+source = 'Vorname,Nachname,E-Mail\r\nZoë,Müller,zoe@example.test\r\n'
+field = 'kontakte', key = 'nachname', expected = 'Müller'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6537: in import_rohdaten_lesen
+    return einzelne(bytes(roh), dateiname)
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xfe\xff\x00V\x00o\x00r\x00n\x00a\x00m\x00e\x00,\x00N\x00a\x00c\x00h\x00n\x00a\x00m\x00e\x00,\x00E\x00-\x00M\x00a\x0...c\x00l\x00l\x00e\x00r\x00,\x00z\x00o\x00e\x00@\x00e\x00x\x00a\x00m\x00p\x00l\x00e\x00.\x00t\x00e\x00s\x00t\x00\r\x00\n'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-False-vcf-utf-16] _
+
+encoding = 'utf-16', kind = 'vcf', in_zip = False
+source = 'Vorname,Nachname,E-Mail\r\nZoë,Müller,zoe@example.test\r\n'
+field = 'kontakte', key = 'nachname', expected = 'Müller'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6537: in import_rohdaten_lesen
+    return einzelne(bytes(roh), dateiname)
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xff\xfeV\x00o\x00r\x00n\x00a\x00m\x00e\x00,\x00N\x00a\x00c\x00h\x00n\x00a\x00m\x00e\x00,\x00E\x00-\x00M\x00a\x00i\x...0l\x00l\x00e\x00r\x00,\x00z\x00o\x00e\x00@\x00e\x00x\x00a\x00m\x00p\x00l\x00e\x00.\x00t\x00e\x00s\x00t\x00\r\x00\n\x00'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-False-vcf-utf-16-be] _
+
+encoding = 'utf-16-be', kind = 'vcf', in_zip = False
+source = 'Vorname,Nachname,E-Mail\r\nZoë,Müller,zoe@example.test\r\n'
+field = 'kontakte', key = 'nachname', expected = 'Müller'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6537: in import_rohdaten_lesen
+    return einzelne(bytes(roh), dateiname)
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xfe\xff\x00V\x00o\x00r\x00n\x00a\x00m\x00e\x00,\x00N\x00a\x00c\x00h\x00n\x00a\x00m\x00e\x00,\x00E\x00-\x00M\x00a\x0...c\x00l\x00l\x00e\x00r\x00,\x00z\x00o\x00e\x00@\x00e\x00x\x00a\x00m\x00p\x00l\x00e\x00.\x00t\x00e\x00s\x00t\x00\r\x00\n'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-True-lotus-utf-16] _
+
+encoding = 'utf-16', kind = 'lotus', in_zip = True
+source = 'Vorname,Nachname,E-Mail\r\nZoë,Müller,zoe@example.test\r\n'
+field = 'kontakte', key = 'nachname', expected = 'Müller'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6571: in import_rohdaten_lesen
+    teil = einzelne(daten, sicherer_eintrag,
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xff\xfeV\x00o\x00r\x00n\x00a\x00m\x00e\x00,\x00N\x00a\x00c\x00h\x00n\x00a\x00m\x00e\x00,\x00E\x00-\x00M\x00a\x00i\x...0l\x00l\x00e\x00r\x00,\x00z\x00o\x00e\x00@\x00e\x00x\x00a\x00m\x00p\x00l\x00e\x00.\x00t\x00e\x00s\x00t\x00\r\x00\n\x00'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-True-lotus-utf-16-be] _
+
+encoding = 'utf-16-be', kind = 'lotus', in_zip = True
+source = 'Vorname,Nachname,E-Mail\r\nZoë,Müller,zoe@example.test\r\n'
+field = 'kontakte', key = 'nachname', expected = 'Müller'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6571: in import_rohdaten_lesen
+    teil = einzelne(daten, sicherer_eintrag,
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xfe\xff\x00V\x00o\x00r\x00n\x00a\x00m\x00e\x00,\x00N\x00a\x00c\x00h\x00n\x00a\x00m\x00e\x00,\x00E\x00-\x00M\x00a\x0...c\x00l\x00l\x00e\x00r\x00,\x00z\x00o\x00e\x00@\x00e\x00x\x00a\x00m\x00p\x00l\x00e\x00.\x00t\x00e\x00s\x00t\x00\r\x00\n'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-True-vcf-utf-16] _
+
+encoding = 'utf-16', kind = 'vcf', in_zip = True
+source = 'Vorname,Nachname,E-Mail\r\nZoë,Müller,zoe@example.test\r\n'
+field = 'kontakte', key = 'nachname', expected = 'Müller'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6571: in import_rohdaten_lesen
+    teil = einzelne(daten, sicherer_eintrag,
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xff\xfeV\x00o\x00r\x00n\x00a\x00m\x00e\x00,\x00N\x00a\x00c\x00h\x00n\x00a\x00m\x00e\x00,\x00E\x00-\x00M\x00a\x00i\x...0l\x00l\x00e\x00r\x00,\x00z\x00o\x00e\x00@\x00e\x00x\x00a\x00m\x00p\x00l\x00e\x00.\x00t\x00e\x00s\x00t\x00\r\x00\n\x00'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+_ test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-True-vcf-utf-16-be] _
+
+encoding = 'utf-16-be', kind = 'vcf', in_zip = True
+source = 'Vorname,Nachname,E-Mail\r\nZoë,Müller,zoe@example.test\r\n'
+field = 'kontakte', key = 'nachname', expected = 'Müller'
+
+    @pytest.mark.parametrize("encoding", ("utf-8-sig", "utf-16", "utf-16-be"))
+    @pytest.mark.parametrize("kind", ("lotus", "vcf"))
+    @pytest.mark.parametrize("in_zip", (False, True))
+    @pytest.mark.parametrize("source,field,key,expected", (
+        (EVENT_CSV, "termine", "titel", "Prüfung 👩‍💻"),
+        (CONTACT_CSV, "kontakte", "nachname", "Müller"),
+    ))
+    def test_unicode_csv_through_actual_dispatcher(encoding, kind, in_zip, source, field, key, expected):
+        raw = encoded(source, encoding)
+>       result = native.import_rohdaten_lesen(kind, archive(raw) if in_zip else raw,
+                                            "selected.zip" if in_zip else "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6571: in import_rohdaten_lesen
+    teil = einzelne(daten, sicherer_eintrag,
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xfe\xff\x00V\x00o\x00r\x00n\x00a\x00m\x00e\x00,\x00N\x00a\x00c\x00h\x00n\x00a\x00m\x00e\x00,\x00E\x00-\x00M\x00a\x0...c\x00l\x00l\x00e\x00r\x00,\x00z\x00o\x00e\x00@\x00e\x00x\x00a\x00m\x00p\x00l\x00e\x00.\x00t\x00e\x00s\x00t\x00\r\x00\n'
+
+    def lotus_csv_lesen(rohbytes):
+        """Liest eine CSV aus dem Lotus Organizer.
+    
+        Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
+        und Notizen. Welcher es ist, verrät die Kopfzeile."""
+        if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
+                bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+>           raise ValueError(_("The selected file is not a readable CSV file."))
+E           ValueError: The selected file is not a readable CSV file.
+
+magnolie-organizer/bin/magnolie-organizer:6329: ValueError
+___________ test_binary_and_damaged_utf16_remain_rejected[\xff\xfeA] ___________
+
+raw = b'\xff\xfeA'
+
+    @pytest.mark.parametrize("raw", (b"SQLite format 3\0" + b"x" * 50, b"\xff\xfeA", b"\xfe\xff\0", b"\xff\xfe\x00\xd8"))
+    def test_binary_and_damaged_utf16_remain_rejected(raw):
+        with pytest.raises(ValueError, match="CSV"):
+>           native.import_rohdaten_lesen("lotus", raw, "selected.csv")
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:59: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/bin/magnolie-organizer:6537: in import_rohdaten_lesen
+    return einzelne(bytes(roh), dateiname)
+magnolie-organizer/bin/magnolie-organizer:6526: in einzelne
+    return lotus_csv_lesen(daten)
+magnolie-organizer/bin/magnolie-organizer:6330: in lotus_csv_lesen
+    text = _text_dekodieren(rohbytes)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rohbytes = b'\xff\xfeA'
+
+    def _text_dekodieren(rohbytes):
+        """Bytes einer Austauschdatei möglichst verlustfrei zu Text machen."""
+        if rohbytes.startswith((b"\xff\xfe", b"\xfe\xff")):
+>           return rohbytes.decode("utf-16")
+E           UnicodeDecodeError: 'utf-16-le' codec can't decode byte 0x41 in position 2: truncated data
+
+magnolie-organizer/bin/magnolie-organizer:2621: UnicodeDecodeError
+
+During handling of the above exception, another exception occurred:
+
+raw = b'\xff\xfeA'
+
+    @pytest.mark.parametrize("raw", (b"SQLite format 3\0" + b"x" * 50, b"\xff\xfeA", b"\xfe\xff\0", b"\xff\xfe\x00\xd8"))
+    def test_binary_and_damaged_utf16_remain_rejected(raw):
+>       with pytest.raises(ValueError, match="CSV"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'CSV'
+E        Input: "'utf-16-le' codec can't decode byte 0x41 in position 2: truncated data"
+
+magnolie-organizer/pruefungen/test_csv_unicode_import.py:58: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-False-lotus-utf-16]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-False-lotus-utf-16-be]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-False-vcf-utf-16]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-False-vcf-utf-16-be]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-True-lotus-utf-16]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-True-lotus-utf-16-be]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-True-vcf-utf-16]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Pr\xfcfung \U0001f469\u200d\U0001f4bb"\r\n-termine-titel-Pr\xfcfung \U0001f469\u200d\U0001f4bb-True-vcf-utf-16-be]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-False-lotus-utf-16]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-False-lotus-utf-16-be]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-False-vcf-utf-16]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-False-vcf-utf-16-be]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-True-lotus-utf-16]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-True-lotus-utf-16-be]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-True-vcf-utf-16]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_unicode_csv_through_actual_dispatcher[Vorname,Nachname,E-Mail\r\nZo\xeb,M\xfcller,zoe@example.test\r\n-kontakte-nachname-M\xfcller-True-vcf-utf-16-be]
+FAILED magnolie-organizer/pruefungen/test_csv_unicode_import.py::test_binary_and_damaged_utf16_remain_rejected[\xff\xfeA]
+17 failed, 15 passed in 21.13s

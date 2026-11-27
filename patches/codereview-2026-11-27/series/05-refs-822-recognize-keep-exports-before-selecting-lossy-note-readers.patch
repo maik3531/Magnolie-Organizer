@@ -1,0 +1,127 @@
+From f55cb0e13db24fcff4f9322b1753d3fe93e23e14 Mon Sep 17 00:00:00 2001
+From: Maik Walter <154642264+maik3531@users.noreply.github.com>
+Date: Fri, 27 Nov 2026 11:13:27 +0100
+Subject: [PATCH] Refs #822: Recognize Keep exports before selecting lossy note
+ readers
+
+---
+ .../maik3531/magnolienotes/einfuhr/Leser.kt   | 17 ++++-
+ .../einfuhr/EinfuhrErkennungTest.kt           | 71 +++++++++++++++++++
+ 2 files changed, 87 insertions(+), 1 deletion(-)
+ create mode 100644 magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/einfuhr/EinfuhrErkennungTest.kt
+
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Leser.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Leser.kt
+index b03b786eedd9dc3420a52b1172c771f087c03a30..cecf5c8b48f6ca2a42c7fdf2a3dc2aa0d3f7c580 100644
+--- a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Leser.kt
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/einfuhr/Leser.kt
+@@ -31,10 +31,20 @@ object Leser {
+     fun keepJson(text: String, dateiname: String): List<Rohnotiz> {
+         val wurzel = runCatching { json.parseToJsonElement(text) }.getOrNull() ?: return emptyList()
+         val objekte = when (wurzel) {
+-            is JsonArray -> wurzel.filterIsInstance<JsonObject>()
++            is JsonArray -> {
++                if (wurzel.any { it !is JsonObject }) return emptyList()
++                wurzel.filterIsInstance<JsonObject>()
++            }
+             is JsonObject -> listOf(wurzel)
+             else -> return emptyList()
+         }
++        // A generic title is not a Keep signature. If any array member is not
++        // recognized, retain the entire file through the plain-text fallback.
++        if (objekte.any { objekt ->
++            val inhalt = objekt["textContent"] as? JsonPrimitive
++            inhalt?.isString != true && objekt["listContent"] !is JsonArray &&
++                zahl(objekt, "createdTimestampUsec") == null && zahl(objekt, "userEditedTimestampUsec") == null
++        }) return emptyList()
+         return objekte.mapNotNull { objekt ->
+             val titel = zeichenkette(objekt, "title")
+             val inhalt = zeichenkette(objekt, "textContent")
+@@ -68,6 +78,11 @@ object Leser {
+ 
+     /** Takeout schreibt zusätzlich HTML je Notiz. */
+     fun keepHtml(text: String, dateiname: String): List<Rohnotiz> {
++        // Ordinary browser/Samsung HTML also has title/body tags. Only the
++        // supported Takeout structure may select this reader and its origin.
++        if (!text.contains("<div class=\"heading\"", ignoreCase = true) ||
++            (!text.contains("<div class=\"title\">", ignoreCase = true) &&
++                !text.contains("<div class=\"content\">", ignoreCase = true))) return emptyList()
+         val titel = zwischen(text, "<div class=\"title\">", "</div>")
+             .ifBlank { zwischen(text, "<title>", "</title>") }
+             .let { Rohnotiz.entwirreEntitaeten(nurText(it)) }
+diff --git a/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/einfuhr/EinfuhrErkennungTest.kt b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/einfuhr/EinfuhrErkennungTest.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..ee2d96478f5144eca1ebd26501cc7ac64a41488f
+--- /dev/null
++++ b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/einfuhr/EinfuhrErkennungTest.kt
+@@ -0,0 +1,71 @@
++package io.gitlab.maik3531.magnolienotes.einfuhr
++
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertTrue
++import org.junit.Test
++
++/** Refs #822: unrelated exports must retain their text, origin and file time. */
++class EinfuhrErkennungTest {
++    private val fileTime = 1_700_000_000_000L
++    private fun read(text: String, name: String) = Einfuhr.ausInhalt(text.toByteArray(), name, fileTime).single()
++
++    @Test fun `allgemeines JSON mit Titel verliert keine unbekannten Inhaltsfelder`() {
++        val raw = """{"title":"Example","body":"important","extra":{"value":"Keep this too"}}"""
++        val note = read(raw, "ordinary.json")
++        assertEquals(raw, note.text)
++        assertEquals("Übernommen", note.herkunft)
++        assertEquals(fileTime, note.angelegt)
++        assertEquals(fileTime, note.geaendert)
++    }
++
++    @Test fun `gemischtes JSON Array wird vollstaendig als Text erhalten`() {
++        for (raw in listOf("""[{"title":"Keep","textContent":"Known"},{"title":"Other","body":"Important"}]""",
++            """[{"title":"Keep","textContent":"Known"},"Important"]""")) {
++            val note = read(raw, "mixed.json")
++            assertEquals(raw, note.text)
++            assertEquals("Übernommen", note.herkunft)
++        }
++    }
++
++    @Test fun `Samsung HTML behaelt Herkunft und Dateizeit`() {
++        val raw = "<html><head><title>Samsung export</title></head><body><div>One</div><div>Two</div></body></html>"
++        val note = read(raw, "samsung-export.html")
++        assertEquals("Samsung Notes", note.herkunft)
++        assertEquals("Samsung Notes", note.notizbuch)
++        assertEquals("Samsung export", note.titel)
++        assertEquals(fileTime, note.angelegt)
++        assertEquals(fileTime, note.geaendert)
++        assertTrue(note.html.contains("One"))
++        assertTrue(note.html.contains("Two"))
++    }
++
++    @Test fun `Browser HTML und allgemeine CSS Klassen sind kein Takeout Nachweis`() {
++        val note = read("<html><body><div class=\"title\">Heading</div><div class=\"content\">Important</div></body></html>", "page.html")
++        assertEquals("Übernommen", note.herkunft)
++        assertEquals(fileTime, note.angelegt)
++        assertTrue(note.html.contains("Heading") && note.html.contains("Important"))
++    }
++
++    @Test fun `Keep Text Listen und Titelnotizen mit Zeitmetadaten bleiben erkannt`() {
++        val raw = """[{"title":"Text","textContent":"Known"},
++            {"title":"List","listContent":[{"text":"Done","isChecked":true}]},
++            {"title":"Title only","createdTimestampUsec":1700000000000000,"userEditedTimestampUsec":1700000001000000}]"""
++        val notes = Einfuhr.ausInhalt(raw.toByteArray(), "takeout.json", fileTime)
++        assertEquals(3, notes.size)
++        assertTrue(notes.all { it.herkunft == "Google Keep" })
++        assertEquals("Known", notes[0].text)
++        assertEquals("[x] Done", notes[1].text)
++        assertEquals("Title only", notes[2].titel)
++        assertEquals(1_700_000_001_000L, notes[2].geaendert)
++    }
++
++    @Test fun `unterstuetztes Keep HTML behaelt Inhalt und Herkunft`() {
++        val raw = "<html><body><div class=\"heading\">Nov 14, 2023, 10:13:20 PM</div>" +
++            "<div class=\"title\">Keep title</div><div class=\"content\">Keep content</div></body></html>"
++        val note = read(raw, "keep.html")
++        assertEquals("Google Keep", note.herkunft)
++        assertEquals("Keep title", note.titel)
++        assertEquals("Keep content", note.html)
++        assertTrue(note.angelegt > 0)
++    }
++}

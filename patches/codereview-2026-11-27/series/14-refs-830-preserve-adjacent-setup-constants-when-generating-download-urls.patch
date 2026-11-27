@@ -1,0 +1,73 @@
+From b5e3d42d7da60f7b491535458b11e4885fb8480f Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 11:28:18 +0100
+Subject: [PATCH] Refs #830: Preserve adjacent setup constants when generating
+ download URLs
+
+---
+ tools/sync_mobile_downloads.py |  4 ++--
+ tools/test_mobile_downloads.py | 36 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 38 insertions(+), 2 deletions(-)
+
+diff --git a/tools/sync_mobile_downloads.py b/tools/sync_mobile_downloads.py
+index c2a3b909409d2b656c02d55b44ab1ff735d6eb13..facbc428d8903c91532afe012882300e34f94ef0 100644
+--- a/tools/sync_mobile_downloads.py
++++ b/tools/sync_mobile_downloads.py
+@@ -33,8 +33,8 @@ def outputs():
+     # Inline generated constants preserve standalone source/package layouts.
+     for path, entries in (
+         (ROOT / "magnolie-organizer/bin/magnolie_setup_ui.py", (
+-            (r'^MAGNOLIE_NOTES_URL = .*?(?=\nKDE_CONNECT_URL)', 'MAGNOLIE_NOTES_URL = ' + json.dumps(notes["url"])),
+-            (r'^KDE_CONNECT_URL = .*?(?=\n\n)', 'KDE_CONNECT_URL = ' + json.dumps(values["kdeConnect"]["url"])))),
++            (r'^MAGNOLIE_NOTES_URL = [^\r\n]*$', 'MAGNOLIE_NOTES_URL = ' + json.dumps(notes["url"])),
++            (r'^KDE_CONNECT_URL = [^\r\n]*$', 'KDE_CONNECT_URL = ' + json.dumps(values["kdeConnect"]["url"])))),
+         (WINDOWS / "FirstRunSetupForm.cs", (
+             (r'(?<=internal const string MagnolieNotesUrl = )[^;]+', json.dumps(notes["url"])),
+             (r'(?<=internal const string KdeConnectUrl = )[^;]+', json.dumps(values["kdeConnect"]["url"]))))):
+diff --git a/tools/test_mobile_downloads.py b/tools/test_mobile_downloads.py
+index aab72de9154dcf644a17f199f24cb24395735c7e..fcc80ae8af738ac6c9e460d99fc8216dd61762d4 100644
+--- a/tools/test_mobile_downloads.py
++++ b/tools/test_mobile_downloads.py
+@@ -87,6 +87,42 @@ def test_png_gate_preserves_pixels_not_compression(tmp_path):
+     assert not sync.matches(tmp_path / "missing.png", expected)
+ 
+ 
++def test_constant_generation_preserves_neighboring_assignments(tmp_path, monkeypatch):
++    """Refs #830: refreshing APK URLs must keep independent setup destinations."""
++    handbook = tmp_path / "magnolie-handbuch"
++    windows = tmp_path / "magnolie-organizer-windows"
++    linux = tmp_path / "magnolie-organizer/bin/magnolie_setup_ui.py"
++    (handbook / "web").mkdir(parents=True)
++    windows.mkdir()
++    linux.parent.mkdir(parents=True)
++    source = json.loads((sync.HANDBOOK / "web/mobile-downloads.json").read_text())
++    (handbook / "web/mobile-downloads.json").write_text(json.dumps(source))
++    linux.write_text(
++        'MAGNOLIE_NOTES_URL = "old-notes"\n'
++        'MAGNOLIE_NOTES_FDROID_URL = "https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes"\n'
++        'KDE_CONNECT_URL = "old-kde"\n'
++        'OTHER_DESTINATION = "keep this independent destination"\n\n'
++        'def fdroid_destination():\n    return MAGNOLIE_NOTES_FDROID_URL\n'
++    )
++    (windows / "FirstRunSetupForm.cs").write_text(
++        'internal const string MagnolieNotesUrl = "old-notes";\n'
++        'internal const string KdeConnectUrl = "old-kde";\n'
++    )
++    monkeypatch.setattr(sync, "ROOT", tmp_path)
++    monkeypatch.setattr(sync, "HANDBOOK", handbook)
++    monkeypatch.setattr(sync, "WINDOWS", windows)
++    generated = sync.outputs()[linux].decode()
++    namespace = {}
++    exec(compile(generated, str(linux), "exec"), namespace)
++    assert namespace["MAGNOLIE_NOTES_URL"] == source["notes"]["url"]
++    assert namespace["KDE_CONNECT_URL"] == source["kdeConnect"]["url"]
++    assert namespace["fdroid_destination"]() == "https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes"
++    assert namespace["OTHER_DESTINATION"] == "keep this independent destination"
++    # A second generation must be stable and preserve the same independent data.
++    linux.write_text(generated)
++    assert sync.outputs()[linux].decode() == generated
++
++
+ @pytest.mark.parametrize("version", ["1.0.14", "1.0.99", "2.7.0"])
+ def test_future_versions_keep_desktop_outputs_and_retain_history(tmp_path, version):
+     before = sync.outputs()

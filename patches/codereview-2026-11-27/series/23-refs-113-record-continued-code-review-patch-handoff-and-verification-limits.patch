@@ -1,0 +1,69 @@
+From 87a65670726fc226c6d9bf4dc00d0630ecb7fabb Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 12:10:32 +0100
+Subject: [PATCH] Refs #113: record continued code review, patch handoff and
+ verification limits
+
+---
+ ARBEITSSTAND.md | 49 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 49 insertions(+)
+
+diff --git a/ARBEITSSTAND.md b/ARBEITSSTAND.md
+index 7bc3a69e883398adc4e0cffe5d972f9bd9b9d980..45b13bc70d3253271c1d81672be3bee9acd03b45 100644
+--- a/ARBEITSSTAND.md
++++ b/ARBEITSSTAND.md
+@@ -1,5 +1,54 @@
+ # Aktueller Arbeitsstand
+ 
++## Codereview vom 27. November 2026 – vorbereitete Patchserie
++
++Der fortgesetzte Review zu #113 ist auf der ursprünglichen Basis
++`63ca6c8f351dd52627dfc550ff0075e703957ab5` begonnen und mit dem aktuellen
++Hauptzweig `d9fa9065b1fe690616e6eae2671159c224ead406` abgeglichen worden.
++Die Änderungen sind entsprechend dem Nutzerauftrag als vollständige Patches
++für die spätere Prüfung und Einpflege bereitgestellt. Der Review selbst hat
++`main` nicht verändert. Die Einzelpatches, Reihenfolge, Prüfsummen und die
++bytegenau geprüfte Wiederherstellung des Ergebnisbaums stehen im Zweig
++`work/codereview-20261127-patches` unter `patches/codereview-2026-11-27/`.
++
++Bestätigte neue Befunde: #817 UTF-16-CSV, #818 volle Sicherungsordner,
++#819 Notes-Zeitstempel, #820 Linux-Kataloge, #821 begrenzter Notes-Ordnerimport,
++#822 Keep-Erkennung, #823 ergänzende Wiederherstellungsidentitäten,
++#824 vollständige Wiederherstellung verständlich als Ersetzen anzeigen,
++#825 verschachtelte Importarchive, #826 quellengetrennte Synchronisierung,
++#827 Handbuchkataloge, #828 portugiesische Verneinung, #829 aktueller
++Paritätsvertrag, #830 Downloadgenerator, #831 Windows-Brückenvalidator und
++#832 begrenzte Handbuch-Prüfdiagnostik. #790 wurde anhand der aktuellen
++Quellprüfung erneut untersucht und wieder geöffnet; kein doppeltes Issue.
++
++Die Gegenprüfung der vorbereiteten Patches hat zwei weitere Randfälle in
++denselben Issues behoben: #823 bewahrt die eindeutige lokale Identität beim
++Kalenderwechsel ohne Rückbindung alter Providermetadaten; #826 erhält
++unbeteiligte Kalender bei reinen Kontaktläufen einschließlich späterer lokaler
++Änderungen. Unerwartete oder nicht eindeutig auflösbare Antworten bleiben
++Konflikte. Diese Nachkorrekturen gehören zwingend zur vollständigen Serie.
++
++Abschließend auf dem zusammengeführten Codestand `c0a30d50` bestanden:
++110 fokussierte Pythonfälle, der .NET-CoreTests-Bau sowie fünf passende
++C#-Testgruppen, die Live-/Gesamt-Paritätsprüfung, 56 Synchronisierungsfälle
++über beide Oberflächen, zwölf Journal-/Sprachkombinationen und drei Fälle
++für die Handbuch-Prüfdiagnose. Die Windows-DPAPI-Archivschreibung ist im
++Linux-Hostlauf ausdrücklich ausgelassen; die Kapazitätslogik ist geprüft.
++Der vollständige Handbuchlauf auf `e9e3c43f` bestand zuvor unverändert über
++20 Sprachen, beide Darstellungsmodi und 170 englische sowie 170 deutsche
++Seiten. Dazu kommen 7 Kandidatquell-, 18 Importhelper- und 28 Mac-
++Projektionsprüfungen ohne Skips. Notes-Import und Downloadgenerator wurden
++unabhängig mit 20 beziehungsweise 9 Testgruppen nachgeprüft.
++
++Die Nachweise sind Quell-, Host- und DOM-Prüfungen. Eine neue installierte
++Windows-/Linux-/Mac-/Android-Version, echte Provider-/Telefonverbindungen,
++native Druckausgabe oder muttersprachliche Gesamtabnahme wurden damit nicht
++freigegeben. Die einzelnen Issues bleiben für Einpflege und die dort
++aufgeführten Abnahmen offen. Frühere native Nachweise gelten weiterhin nur
++für ihre jeweils dokumentierten Quell- und Paketstände.
++
++Die nachfolgenden Abschnitte dokumentieren den vorherigen Releasearbeitsstand.
++
+ Die geprüften Einzelissues sind abgeschlossen; die weiterhin benötigten
+ Paket- und Geräteprüfungen sind in [#113](https://github.com/maik3531/Magnolie-Organizer/issues/113#issuecomment-7215114176)
+ und [#121](https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7215113730)

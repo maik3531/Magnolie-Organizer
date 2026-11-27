@@ -1,0 +1,19 @@
+{
+  "result": "PASS",
+  "reviewed_commit": "092c52e8241db7a8416a09fc595b7aa894864fef",
+  "original_repro_count_before": 2,
+  "original_repro_count_after": 1,
+  "rows": [
+    {
+      "id": "event-same",
+      "uid": "shared@example.test",
+      "syncKalenderUid": "calendar-b",
+      "datum": "2026-11-27",
+      "zeit": "10:00",
+      "titel": "Moved event",
+      "notiz": "Old note"
+    }
+  ],
+  "inputs_unchanged": true,
+  "repeat_stable": true
+}

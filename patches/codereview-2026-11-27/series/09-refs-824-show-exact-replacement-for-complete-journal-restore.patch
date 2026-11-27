@@ -1,0 +1,567 @@
+From 36d0d27982dece07e62637e841f208487e6e5cd1 Mon Sep 17 00:00:00 2001
+From: ChatGPT <noreply@openai.com>
+Date: Fri, 27 Nov 2026 11:25:07 +0100
+Subject: [PATCH] Refs #824: show exact replacement for complete journal
+ restore
+
+---
+ magnolie-handbuch/po/ar.po                    |  4 ++
+ magnolie-handbuch/po/be.po                    |  4 ++
+ magnolie-handbuch/po/cs.po                    |  4 ++
+ magnolie-handbuch/po/da.po                    |  4 ++
+ magnolie-handbuch/po/de.po                    |  4 ++
+ magnolie-handbuch/po/es.po                    |  4 ++
+ magnolie-handbuch/po/fr.po                    |  4 ++
+ magnolie-handbuch/po/hi.po                    |  4 ++
+ magnolie-handbuch/po/hsb.po                   |  4 ++
+ magnolie-handbuch/po/it.po                    |  4 ++
+ magnolie-handbuch/po/ja.po                    |  4 ++
+ magnolie-handbuch/po/magnolie-handbuch.pot    |  4 ++
+ magnolie-handbuch/po/nb.po                    |  4 ++
+ magnolie-handbuch/po/nl.po                    |  4 ++
+ magnolie-handbuch/po/pl.po                    |  4 ++
+ magnolie-handbuch/po/pt.po                    |  4 ++
+ magnolie-handbuch/po/ru.po                    |  4 ++
+ magnolie-handbuch/po/tr.po                    |  4 ++
+ magnolie-handbuch/po/uk.po                    |  4 ++
+ magnolie-handbuch/po/zh_CN.po                 |  4 ++
+ .../pruefungen/editorial_test.js              | 10 +++
+ magnolie-handbuch/web/i18n-markers.js         |  1 +
+ magnolie-handbuch/web/inhalt.js               |  1 +
+ .../app/web/anwendung.js                      | 27 +++++--
+ .../tests/journal-selection.js                | 43 ++++++++++--
+ magnolie-organizer/web/anwendung.js           | 27 +++++--
+ .../issue-824-journal-all.md                  | 70 +++++++++++++++++++
+ 27 files changed, 242 insertions(+), 17 deletions(-)
+ create mode 100644 pruefnachweise/code-review-2026-11-27/issue-824-journal-all.md
+
+diff --git a/magnolie-handbuch/po/ar.po b/magnolie-handbuch/po/ar.po
+index b3738e632848de07ddc2439bfdf958b0b85f5b5a..85d8238353951b384c7a865c9a43b52606f1edda 100644
+--- a/magnolie-handbuch/po/ar.po
++++ b/magnolie-handbuch/po/ar.po
+@@ -15136,3 +15136,7 @@ msgstr "حول هذا المشروع"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "معنى ألوان القياسات"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>يستخدم خيار «الكل» طريقة الاستبدال دائمًا.</b> تُستبدل التغييرات التي أُجريت بعد لقطة الاستعادة المختارة وتُحذف الإدخالات المضافة لاحقًا. تتوفر طريقة الإضافة للمجالات الفردية فقط.</p>"
+diff --git a/magnolie-handbuch/po/be.po b/magnolie-handbuch/po/be.po
+index f60bc49ce38d5e2eb9a0fd10496832f50830ddeb..d1fac870bd94d433dab42838507640b711008e9f 100644
+--- a/magnolie-handbuch/po/be.po
++++ b/magnolie-handbuch/po/be.po
+@@ -16083,3 +16083,7 @@ msgstr "Пра гэты праект"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Што азначаюць колеры паказчыка"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Варыянт «Усё» заўсёды выкарыстоўвае замену.</b> Змены, зробленыя пасля выбранага здымка, перазапісваюцца, а запісы, дададзеныя пазней, выдаляюцца. Дапаўненне даступнае толькі для асобных раздзелаў.</p>"
+diff --git a/magnolie-handbuch/po/cs.po b/magnolie-handbuch/po/cs.po
+index 7b37cf31e50c63d58344d73e424fe5a1f24ccf28..06538eeb84299095fc22587e49d862d45e7b31d3 100644
+--- a/magnolie-handbuch/po/cs.po
++++ b/magnolie-handbuch/po/cs.po
+@@ -16052,3 +16052,7 @@ msgstr "O tomto projektu"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Co znamenají barvy naměřených hodnot"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Volba Vše vždy používá nahrazení.</b> Změny provedené po vybraném snímku budou přepsány a později přidané záznamy odstraněny. Doplňující způsob je dostupný pouze pro jednotlivé oblasti.</p>"
+diff --git a/magnolie-handbuch/po/da.po b/magnolie-handbuch/po/da.po
+index 323ddaad45d709830ac0250465cdfdd56de01cfe..a40047c8273ea8748274d1f107c116eb15f311ce 100644
+--- a/magnolie-handbuch/po/da.po
++++ b/magnolie-handbuch/po/da.po
+@@ -16162,3 +16162,7 @@ msgstr "Om dette projekt"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Hvad farverne på en måling betyder"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Alle bruger altid erstatningsmetoden.</b> Ændringer efter det valgte gendannelsespunkt overskrives, og poster tilføjet senere fjernes. Den tilføjende metode er kun tilgængelig for enkelte områder.</p>"
+diff --git a/magnolie-handbuch/po/de.po b/magnolie-handbuch/po/de.po
+index 49b038fa2e05cfbe3e999a657c824652aaff1a29..b5fa4715b3bf553f1d18159787c44c396c400c99 100644
+--- a/magnolie-handbuch/po/de.po
++++ b/magnolie-handbuch/po/de.po
+@@ -17878,3 +17878,7 @@ msgstr "Über dieses Projekt"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Was die Farben eines Messwerts bedeuten"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Alles verwendet immer das ersetzende Verfahren.</b> Änderungen nach dem gewählten Wiederherstellungspunkt werden überschrieben und später hinzugefügte Einträge entfernt. Das ergänzende Verfahren ist nur für einzelne Bereiche verfügbar.</p>"
+diff --git a/magnolie-handbuch/po/es.po b/magnolie-handbuch/po/es.po
+index adf95ca558dd37a94c7b7568af647fa8c9d8230b..d5da99a28eb2e90f5ed66437d2e8b30ee044c8c8 100644
+--- a/magnolie-handbuch/po/es.po
++++ b/magnolie-handbuch/po/es.po
+@@ -16561,3 +16561,7 @@ msgstr "Sobre este proyecto"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Qué significan los colores de una medición"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Todo siempre utiliza el método de reemplazo.</b> Se sobrescriben los cambios posteriores a la instantánea seleccionada y se eliminan las entradas añadidas después. El método aditivo solo está disponible para áreas individuales.</p>"
+diff --git a/magnolie-handbuch/po/fr.po b/magnolie-handbuch/po/fr.po
+index 51d57d7d0e0edac68355a9d8548f55ed0f512e09..55e072f261cd1d9c8b1630682bbf1235ce5a4e77 100644
+--- a/magnolie-handbuch/po/fr.po
++++ b/magnolie-handbuch/po/fr.po
+@@ -17167,3 +17167,7 @@ msgstr "À propos de ce projet"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Signification des couleurs d’une mesure"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Tout utilise toujours la méthode de remplacement.</b> Les modifications postérieures à l’instantané sélectionné sont écrasées et les entrées ajoutées depuis sont supprimées. La méthode additive est réservée aux domaines individuels.</p>"
+diff --git a/magnolie-handbuch/po/hi.po b/magnolie-handbuch/po/hi.po
+index a397076d9a8a81a4e9afd30c0f90599ea4090a19..ce94f34c728dd34a81c10fd8b2f71fae5aaef447 100644
+--- a/magnolie-handbuch/po/hi.po
++++ b/magnolie-handbuch/po/hi.po
+@@ -14878,3 +14878,7 @@ msgstr "इस परियोजना के बारे में"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "रीडिंग के रंगों का अर्थ"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>सभी हमेशा बदलने की विधि का उपयोग करता है।</b> चुने हुए स्नैपशॉट के बाद किए गए बदलाव अधिलेखित हो जाते हैं और बाद में जोड़ी गई प्रविष्टियाँ हटा दी जाती हैं। जोड़ने की विधि केवल अलग-अलग क्षेत्रों के लिए उपलब्ध है।</p>"
+diff --git a/magnolie-handbuch/po/hsb.po b/magnolie-handbuch/po/hsb.po
+index 6b156ddf54bca7ca869cfb804b4a910adf96ca34..88ffeb669e719e2e33e5d48c1e14e8a49e460ee9 100644
+--- a/magnolie-handbuch/po/hsb.po
++++ b/magnolie-handbuch/po/hsb.po
+@@ -15910,3 +15910,7 @@ msgstr "Wo tutym projekće"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Što barby měrjenja woznamjenjeja"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Wšitko přeco narunanje wužiwa.</b> Změny po wubranym wobnowjenskim dypku so přepisaja a zapiski, kotrež su so pozdźišo přidali, so wotstronja. Wudospołnjace postupowanje je jenož za jednotliwe wobłuki k dispoziciji.</p>"
+diff --git a/magnolie-handbuch/po/it.po b/magnolie-handbuch/po/it.po
+index 0933158137acb7fa333ab0a6bb456db5a34ae3e9..ec062e013e460b9f17f12dda847e3525deb0792a 100644
+--- a/magnolie-handbuch/po/it.po
++++ b/magnolie-handbuch/po/it.po
+@@ -16683,3 +16683,7 @@ msgstr "Informazioni su questo progetto"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Cosa significano i colori di una misurazione"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Tutto utilizza sempre il metodo di sostituzione.</b> Le modifiche successive all’istantanea selezionata vengono sovrascritte e le voci aggiunte in seguito vengono rimosse. Il metodo aggiuntivo è disponibile solo per singole aree.</p>"
+diff --git a/magnolie-handbuch/po/ja.po b/magnolie-handbuch/po/ja.po
+index 4235f8d489f38b765793486f07e18ccbea2a851a..648b2458fcf5e4c535127f84075b363e916230ae 100644
+--- a/magnolie-handbuch/po/ja.po
++++ b/magnolie-handbuch/po/ja.po
+@@ -15150,3 +15150,7 @@ msgstr "このプロジェクトについて"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "測定値の色が示す意味"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>「すべて」は常に置き換え方式を使用します。</b>選択したスナップショットより後の変更は上書きされ、後から追加した項目は削除されます。追加方式は個別の領域でのみ利用できます。</p>"
+diff --git a/magnolie-handbuch/po/magnolie-handbuch.pot b/magnolie-handbuch/po/magnolie-handbuch.pot
+index aa394763098db008e8e56174de871da1933206f6..f8cb80791e25945bc07593b81a9804527149af93 100644
+--- a/magnolie-handbuch/po/magnolie-handbuch.pot
++++ b/magnolie-handbuch/po/magnolie-handbuch.pot
+@@ -6875,3 +6875,7 @@ msgstr ""
+ #, no-javascript-format
+ msgid "Über dieses Projekt"
+ msgstr ""
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr ""
+diff --git a/magnolie-handbuch/po/nb.po b/magnolie-handbuch/po/nb.po
+index 615df7dd1fa9efb3334db1b4d7ff05a21cc8e6a3..72ef485e1ae701377edd760d5c53f3136ad5ecf1 100644
+--- a/magnolie-handbuch/po/nb.po
++++ b/magnolie-handbuch/po/nb.po
+@@ -16184,3 +16184,7 @@ msgstr "Om dette prosjektet"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Hva fargene på en måling betyr"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Alle bruker alltid erstatningsmetoden.</b> Endringer etter det valgte gjenopprettingspunktet overskrives, og oppføringer som er lagt til senere, fjernes. Den tilføyende metoden er bare tilgjengelig for enkeltområder.</p>"
+diff --git a/magnolie-handbuch/po/nl.po b/magnolie-handbuch/po/nl.po
+index 5e8a3e398f25fe213413f7336e115a65c996a844..1db1e93da0c3123350137ba765c380884bb1ecda 100644
+--- a/magnolie-handbuch/po/nl.po
++++ b/magnolie-handbuch/po/nl.po
+@@ -16600,3 +16600,7 @@ msgstr "Over dit project"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Wat de kleuren van een meting betekenen"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Alles gebruikt altijd de vervangende methode.</b> Wijzigingen van na het geselecteerde herstelpunt worden overschreven en later toegevoegde gegevens worden verwijderd. De aanvullende methode is alleen beschikbaar voor afzonderlijke onderdelen.</p>"
+diff --git a/magnolie-handbuch/po/pl.po b/magnolie-handbuch/po/pl.po
+index c1cd1ab3cf47e94ca945f7e62ab8c00d9bdc267b..9dad53a20e7abdc11c4f4834d83cbf43ae068e24 100644
+--- a/magnolie-handbuch/po/pl.po
++++ b/magnolie-handbuch/po/pl.po
+@@ -16169,3 +16169,7 @@ msgstr "O tym projekcie"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Znaczenie kolorów pomiaru"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Wszystko zawsze używa metody zastępowania.</b> Zmiany wprowadzone po wybranej migawce zostają nadpisane, a wpisy dodane później usunięte. Metoda uzupełniająca jest dostępna tylko dla poszczególnych obszarów.</p>"
+diff --git a/magnolie-handbuch/po/pt.po b/magnolie-handbuch/po/pt.po
+index 5d8d10eccfdd75615c65e9808b612d62bb7e3a6a..98dc68d2e863d8b29c3f8b87d8d9ad2d87323bd5 100644
+--- a/magnolie-handbuch/po/pt.po
++++ b/magnolie-handbuch/po/pt.po
+@@ -16556,3 +16556,7 @@ msgstr "Sobre este projeto"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "O significado das cores de uma medição"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Tudo utiliza sempre o método de substituição.</b> As alterações posteriores ao ponto de recuperação selecionado são substituídas e as entradas adicionadas depois são removidas. O método aditivo está disponível apenas para áreas individuais.</p>"
+diff --git a/magnolie-handbuch/po/ru.po b/magnolie-handbuch/po/ru.po
+index 5ba3dd529de601940fcdb9a6dc908eba8da94d7e..389e128d5d3f212d1aa7f634a4b52b883c9d278b 100644
+--- a/magnolie-handbuch/po/ru.po
++++ b/magnolie-handbuch/po/ru.po
+@@ -16242,3 +16242,7 @@ msgstr "Об этом проекте"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Что означают цвета показателей"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Пункт «Всё» всегда использует замену.</b> Изменения, сделанные после выбранного снимка, перезаписываются, а добавленные позже записи удаляются. Дополняющий способ доступен только для отдельных разделов.</p>"
+diff --git a/magnolie-handbuch/po/tr.po b/magnolie-handbuch/po/tr.po
+index e6aa473fc282f82d1f6614359da2914012c422e2..ee8bb929aa35105430760d12af5b822e0e16e9f2 100644
+--- a/magnolie-handbuch/po/tr.po
++++ b/magnolie-handbuch/po/tr.po
+@@ -16388,3 +16388,7 @@ msgstr "Bu proje hakkında"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Ölçüm renklerinin anlamı"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Tümü her zaman değiştirme yöntemini kullanır.</b> Seçilen anlık görüntüden sonra yapılan değişikliklerin üzerine yazılır ve sonradan eklenen kayıtlar kaldırılır. Ekleme yöntemi yalnızca tek tek alanlar için kullanılabilir.</p>"
+diff --git a/magnolie-handbuch/po/uk.po b/magnolie-handbuch/po/uk.po
+index 4cba6d365519317cbfb163c319bb4f7082e1f186..08d15f8ab958368a3730b649b43c1097420928d7 100644
+--- a/magnolie-handbuch/po/uk.po
++++ b/magnolie-handbuch/po/uk.po
+@@ -16472,3 +16472,7 @@ msgstr "Про цей проєкт"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "Що означають кольори показників"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>Пункт «Усе» завжди використовує заміну.</b> Зміни, зроблені після вибраного знімка, перезаписуються, а записи, додані пізніше, видаляються. Доповнювальний спосіб доступний лише для окремих розділів.</p>"
+diff --git a/magnolie-handbuch/po/zh_CN.po b/magnolie-handbuch/po/zh_CN.po
+index 975800c959c3a94fb740821ae3a400ae6275ee92..efb1784734a3d14307371c79c23613b48ec41753 100644
+--- a/magnolie-handbuch/po/zh_CN.po
++++ b/magnolie-handbuch/po/zh_CN.po
+@@ -14088,3 +14088,7 @@ msgstr "关于本项目"
+ #, no-javascript-format
+ #~ msgid "What the colors of a reading mean"
+ #~ msgstr "测量值颜色的含义"
++
++#. Complete versus partial snapshot restoration, Refs #824.
++msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
++msgstr "<p class='achtung'><b>“全部”始终使用替换方式。</b>所选快照之后的修改会被覆盖，之后新增的条目会被删除。补充恢复方式仅适用于单独选择的区域。</p>"
+diff --git a/magnolie-handbuch/pruefungen/editorial_test.js b/magnolie-handbuch/pruefungen/editorial_test.js
+index 56187572c95bb97951c2d330451f096c698fe55c..f04d3a7413cb9fd63612239de124ec3a4cbe3510 100644
+--- a/magnolie-handbuch/pruefungen/editorial_test.js
++++ b/magnolie-handbuch/pruefungen/editorial_test.js
+@@ -80,6 +80,16 @@ for (const platform of ["linux", "windows"]) {
+       assert.ok(item.inhalt);
+       if (language !== "en") assert.notEqual(item.inhalt, item._source.inhalt, `${language}/${id}`);
+     }
++    const recoveryWarning = page("wiederherstellungspunkte-was").inhaltAnhang.en;
++    const localizedRecoveryWarning = win.MagnolieI18n.gettext(recoveryWarning);
++    assert.ok(page("wiederherstellungspunkte-was").inhalt.includes(localizedRecoveryWarning),
++      `${language}/${platform}: complete restore warning missing from the actual chapter`);
++    if (language !== "en") assert.notEqual(localizedRecoveryWarning, recoveryWarning,
++      `${language}: complete restore warning is untranslated`);
++    const recoveryNote = win.document.createElement("div");
++    recoveryNote.innerHTML = localizedRecoveryWarning;
++    assert.equal(recoveryNote.querySelectorAll("p.achtung > b").length, 1,
++      `${language}: complete restore warning must remain visibly marked`);
+     assert.ok(page("android-notes-navigation").inhaltAnhangErsetzt,
+       "Current navigation must replace the historical five-tab instructions.");
+     for (const id of ["android-notes-edit-save-delete", "android-tasks-reminders"]) {
+diff --git a/magnolie-handbuch/web/i18n-markers.js b/magnolie-handbuch/web/i18n-markers.js
+index fbc93684fba177a8c83090c6bdf237f8046da3b1..a89a88e783e3d82cd9d2a43366fbf58948913784 100644
+--- a/magnolie-handbuch/web/i18n-markers.js
++++ b/magnolie-handbuch/web/i18n-markers.js
+@@ -439,3 +439,4 @@ gettext("and");
+ gettext("of");
+ gettext("Über den Programmierer und Autor dieses Buches");
+ gettext("Über dieses Projekt");
++gettext("<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>");
+diff --git a/magnolie-handbuch/web/inhalt.js b/magnolie-handbuch/web/inhalt.js
+index a1079fc56fbd5599e31d83ae3d92cae322dc4634..f6666868ed05ecf9f26f7e57757174c00f59118a 100644
+--- a/magnolie-handbuch/web/inhalt.js
++++ b/magnolie-handbuch/web/inhalt.js
+@@ -961,6 +961,7 @@ window.HANDBUCH_SEITEN = [
+   },
+   {
+     "id": "wiederherstellungspunkte-was",
++    "inhaltAnhang": {"en": "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"},
+     "kapitel": "Security",
+     "titel": "What a recovery snapshot is",
+     "inhalt": "<p>A recovery snapshot is an integrity-checked copy of the main data kept on this computer. It is not a backup against disk loss. Open <b>Settings ▸ Security ▸ Recovery snapshots</b>.</p><h3>Automatic protection</h3><p>Saved changes are protected automatically. There is no manual snapshot button or selectable snapshot interval on this page. Mandatory snapshots also protect risky operations; if a required snapshot cannot be created, the operation does not start.</p><h3>Find and inspect a snapshot</h3><p>Use the <b>Date</b> field to filter the list by the local creation date. Clear it to see all retained snapshots. Each row shows time, reason, size, integrity and object count. <b>Preview</b> checks the snapshot and shows a summary, not a list of individual entries. A damaged snapshot cannot be restored.</p><h3>Choose what to restore</h3><p>Select the required areas: contacts and anniversaries, appointments and tasks, or notes. The initial <b>additive</b> method restores missing and deleted data while retaining newer existing data. The <b>replace</b> method resets the selected areas exactly to the snapshot and removes data added there later. <b>All</b> restores the complete main-data set. Read the confirmation carefully; a mandatory pre-restore snapshot is created first.</p><p><b>Delete</b> permanently removes the selected snapshot after confirmation. Photos and note attachments belong to the main data; device-specific credentials do not. Password-protected snapshots follow the Organizer password. Keep tested backups on another device as well.</p>"
+diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
+index 1d3472051ac47c2cc32aa99116c0b22b59263b8c..35e5f379d5422aa1a591c6ad8a4ce7b3b552fe4a 100644
+--- a/magnolie-organizer-windows/app/web/anwendung.js
++++ b/magnolie-organizer-windows/app/web/anwendung.js
+@@ -27209,20 +27209,35 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       const verfahren = auswahlFeld([
+         ["additive", _("Deleted and missing data is restored; newer existing data is retained.")],
+         ["replace", _("The selected areas are reset exactly; data added later is removed.")]], "additive");
++      const allesFeld = bereichFelder.find(([wert]) => wert === "all")[1];
++      let einzelVerfahren = verfahren.value;
++      allesFeld.addEventListener("change", () => {
++        if (allesFeld.checked) {
++          einzelVerfahren = verfahren.value;
++          verfahren.value = "replace";
++        } else {
++          verfahren.value = einzelVerfahren;
++        }
++        verfahren.disabled = allesFeld.checked;
++        for (const [wert, feld] of bereichFelder) {
++          if (wert !== "all") feld.disabled = allesFeld.checked;
++        }
++      });
+         const verfahrenZeile = formZeile(_("Restore"), verfahren);
+         verfahrenZeile.classList.add("journal-verfahren");
+         eintrag.append(bereichReihe, verfahrenZeile);
+       const restore = knopf(_("Restore"), "klein", () => {
+-        const alles = bereichFelder.find(([wert]) => wert === "all")[1].checked;
++        const alles = allesFeld.checked;
+         const bereiche = alles ? ["all"] : bereichFelder.filter(([wert, feld]) =>
+           wert !== "all" && feld.checked).map(([wert]) => wert);
++        const modus = alles ? "replace" : verfahren.value;
+         if (!bereiche.length) { zettel(_("Select something first.")); return; }
+-        frage(alles ? _("Restore this snapshot completely? A mandatory pre-restore snapshot is created first.") :
+-          (verfahren.value === "additive" ?
+-            _("Deleted and missing data is restored; newer existing data is retained.") :
+-            _("The selected areas are reset exactly; data added later is removed.")),
++        const hinweis = modus === "additive" ?
++          _("Deleted and missing data is restored; newer existing data is retained.") :
++          _("The selected areas are reset exactly; data added later is removed.");
++        frage(alles ? _("Restore this snapshot completely? A mandatory pre-restore snapshot is created first.") + "\n\n" + hinweis : hinweis,
+           _("Restore")).then((ja) => { if (ja) Bruecke.sende({ cmd: "journal_wiederherstellen",
+-            snapshotId: stand.snapshotId, bereiche: bereiche, modus: verfahren.value }); });
++            snapshotId: stand.snapshotId, bereiche: bereiche, modus: modus }); });
+       });
+       restore.disabled = journalLoeschenLaeuft || stand.integrity !== "ok";
+       const loeschen = knopf(_("Delete"), "klein rot", () => frage(
+diff --git a/magnolie-organizer-windows/tests/journal-selection.js b/magnolie-organizer-windows/tests/journal-selection.js
+index c27249842971344a524e7184861150ac20291cc3..155ca476e872bcccf7fd9d50632277a291fa9636 100644
+--- a/magnolie-organizer-windows/tests/journal-selection.js
++++ b/magnolie-organizer-windows/tests/journal-selection.js
+@@ -4,7 +4,7 @@ const fs = require("node:fs"), path = require("node:path");
+ const { webcrypto } = require("node:crypto");
+ const { JSDOM } = require("jsdom");
+ 
+-async function check(web) {
++async function check(web, locale) {
+   const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {
+     runScripts: "outside-only", url: "https://app.magnolie.invalid/index.html", pretendToBeVisual: true
+   });
+@@ -14,7 +14,9 @@ async function check(web) {
+   w.__MAGNOLIE_BRUECKE__="test";
+   w.webkit={messageHandlers:{test:{postMessage:raw=>messages.push(JSON.parse(raw))}}};
+   w.eval(fs.readFileSync(path.join(web,"i18n.js"),"utf8"));
+-  w.MagnolieI18n.setLocale("en");
++  if (locale !== "en") w.eval(fs.readFileSync(path.join(web,"i18n",locale+".js"),"utf8"));
++  w.MagnolieI18n.setLocale(locale);
++  const tr = value => w.MagnolieI18n.gettext(value);
+   w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
+   w.eval(fs.readFileSync(path.join(web,"anwendung.js"),"utf8"));
+   d.dispatchEvent(new w.Event("DOMContentLoaded"));
+@@ -25,10 +27,41 @@ async function check(web) {
+   const points=[1,2,3].map(n=>({snapshotId:`00000000-0000-4000-8000-${String(n).padStart(12,"0")}`,
+     createdAt:`2026-09-${n===3?"24":"23"}T10:00:00Z`,reason:"manual",integrity:"ok",summary:{notizen:n},payload:{size:1024}}));
+   try {
+-    w.App.init({daten:{},neu:false,regional:{language:"en"}});
++    w.App.init({daten:{},neu:false,regional:{language:locale}});
+     click("#knopf-einstellungen"); click("#einst-tab-sicherheit");
+     w.App.journalStand({snapshots:points,intervall:"off",status:"off"});
+     assert.equal(d.querySelectorAll(".journal-auswahl").length,3);
++    const first = d.querySelector(".journal-eintrag");
++    const scopes = [...first.querySelectorAll(".journal-bereiche input")];
++    const mode = first.querySelector(".journal-verfahren select");
++    const restore = [...first.querySelectorAll(".journal-aktionen button")].find(button => button.textContent === tr("Restore"));
++    const restoreRequests = () => messages.filter(message => message.cmd === "journal_wiederherstellen");
++    const exact = tr("The selected areas are reset exactly; data added later is removed.");
++    if (locale !== "en") assert.notEqual(exact,"The selected areas are reset exactly; data added later is removed.");
++    scopes[3].click(); // Preserve a real partial selection when All is cleared again.
++    const partialSelection = scopes.slice(1).map(field => field.checked);
++    for (const partialMode of ["additive", "replace"]) {
++      mode.value = partialMode; mode.dispatchEvent(new w.Event("change", {bubbles:true}));
++      scopes[0].click();
++      assert.equal(mode.value,"replace","All must display its actual destructive restore method.");
++      assert.equal(mode.disabled,true,"All does not support additive restore.");
++      assert.ok(scopes.slice(1).every(field=>field.disabled),"Ignored partial scopes must be visibly unavailable under All.");
++      assert.deepEqual(scopes.slice(1).map(field=>field.checked),partialSelection);
++      const before = restoreRequests().length;
++      restore.click();
++      assert.ok(d.querySelector("#dialog-text").textContent.includes(exact),"Complete restore must disclose removal of later data.");
++      click("#dialog-nein"); await tick();
++      assert.equal(restoreRequests().length,before,"Cancel must not restore anything.");
++      restore.click(); click("#dialog-ja"); await tick();
++      assert.deepEqual(restoreRequests().at(-1),{cmd:"journal_wiederherstellen",snapshotId:points[0].snapshotId,bereiche:["all"],modus:"replace"});
++      scopes[0].click();
++      assert.equal(mode.disabled,false);
++      assert.equal(mode.value,partialMode,"Clearing All must restore the user's partial method.");
++      assert.ok(scopes.slice(1).every(field=>!field.disabled));
++      assert.deepEqual(scopes.slice(1).map(field=>field.checked),partialSelection);
++      restore.click(); click("#dialog-ja"); await tick();
++      assert.deepEqual(restoreRequests().at(-1),{cmd:"journal_wiederherstellen",snapshotId:points[0].snapshotId,bereiche:["contacts","calendar"],modus:partialMode});
++    }
+     const restoreChecked=d.querySelectorAll(".journal-bereiche input:checked").length;
+     click("#journal-alle"); assert.equal(selected().length,3);
+     click("#journal-keine"); assert.equal(selected().length,0);
+@@ -57,10 +90,10 @@ async function check(web) {
+     assert.equal(selected().length,0);
+     assert.ok(d.querySelector("#journal-auswahl-loeschen").disabled);
+     assert.ok(d.querySelector("#zettel").textContent.includes("1"));
+-    console.log("JOURNAL SELECTION PASSED: "+web);
++    console.log("JOURNAL SELECTION PASSED: "+locale+" "+web);
+   } finally {w.close();}
+ }
+ (async()=>{
+   for(const web of [path.resolve(__dirname,"../app/web"),path.resolve(__dirname,"../../magnolie-organizer/web")])
+-    if(fs.existsSync(web))await check(web);
++    if(fs.existsSync(web)) for(const locale of ["en","de","fr","pl","hsb","ar"]) await check(web,locale);
+ })().catch(error=>{console.error(error);process.exitCode=1;});
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+index 2c227170c729ed00c630095fbd80a7be7b79c558..dde2681a3e73a8cb01950e849b5348f704a4ccd7 100644
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -27517,20 +27517,35 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         const verfahren = auswahlFeld([
+           ["additive", _("Deleted and missing data is restored; newer existing data is retained.")],
+           ["replace", _("The selected areas are reset exactly; data added later is removed.")]], "additive");
++        const allesFeld = bereichFelder.find(([wert]) => wert === "all")[1];
++        let einzelVerfahren = verfahren.value;
++        allesFeld.addEventListener("change", () => {
++          if (allesFeld.checked) {
++            einzelVerfahren = verfahren.value;
++            verfahren.value = "replace";
++          } else {
++            verfahren.value = einzelVerfahren;
++          }
++          verfahren.disabled = allesFeld.checked;
++          for (const [wert, feld] of bereichFelder) {
++            if (wert !== "all") feld.disabled = allesFeld.checked;
++          }
++        });
+         const verfahrenZeile = formZeile(_("Restore"), verfahren);
+         verfahrenZeile.classList.add("journal-verfahren");
+         eintrag.append(bereichReihe, verfahrenZeile);
+         const restore = knopf(_("Restore"), "klein", () => {
+-          const alles = bereichFelder.find(([wert]) => wert === "all")[1].checked;
++          const alles = allesFeld.checked;
+           const bereiche = alles ? ["all"] : bereichFelder.filter(([wert, feld]) =>
+             wert !== "all" && feld.checked).map(([wert]) => wert);
++          const modus = alles ? "replace" : verfahren.value;
+           if (!bereiche.length) { zettel(_("Select something first.")); return; }
+-          frage(alles ? _("Restore this snapshot completely? A mandatory pre-restore snapshot is created first.") :
+-            (verfahren.value === "additive" ?
+-              _("Deleted and missing data is restored; newer existing data is retained.") :
+-              _("The selected areas are reset exactly; data added later is removed.")),
++          const hinweis = modus === "additive" ?
++            _("Deleted and missing data is restored; newer existing data is retained.") :
++            _("The selected areas are reset exactly; data added later is removed.");
++          frage(alles ? _("Restore this snapshot completely? A mandatory pre-restore snapshot is created first.") + "\n\n" + hinweis : hinweis,
+             _("Restore")).then((ja) => { if (ja) Bruecke.sende({ cmd: "journal_wiederherstellen",
+-              snapshotId: stand.snapshotId, bereiche: bereiche, modus: verfahren.value }); });
++              snapshotId: stand.snapshotId, bereiche: bereiche, modus: modus }); });
+         });
+         restore.disabled = journalLoeschenLaeuft || stand.integrity !== "ok";
+         const loeschen = knopf(_("Delete"), "klein rot", () => frage(
+diff --git a/pruefnachweise/code-review-2026-11-27/issue-824-journal-all.md b/pruefnachweise/code-review-2026-11-27/issue-824-journal-all.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..489869cf2f2cb14339ff2b56bb6b35c95238748f
+--- /dev/null
++++ b/pruefnachweise/code-review-2026-11-27/issue-824-journal-all.md
+@@ -0,0 +1,70 @@
++# Issue #824 — Vollständige Journal-Wiederherstellung verständlich anzeigen
++
++## Ausgangspunkt und Fehlernachweis
++
++Review auf `63ca6c8f351dd52627dfc550ff0075e703957ab5` vom 27. November 2026.
++Die beiden tatsächlichen Desktop-Oberflächen wurden in jsdom geladen; die native
++Brücke wurde ausschließlich als Aufzeichnungsfixture ersetzt.
++
++Vor dem Patch zeigt die Auswahl **Alles** weiterhin das ergänzende Verfahren
++„neuere vorhandene Daten bleiben erhalten“ an. Das Verfahren bleibt veränderbar.
++Nach Bestätigung sendet die Oberfläche `bereiche: ["all"]` mit `modus: "additive"`.
++Linux und Windows behandeln die vollständige Auswahl jedoch bereits als exakte
++Wiederherstellung; spätere Änderungen und Einträge werden zurückgesetzt. Die
++bisherige Rückfrage erklärt diesen Unterschied nicht ausdrücklich.
++
++Der ergänzte Regressionstest schlägt auf der Ausgangsversion mit
++`All must display its actual destructive restore method` fehl (`additive` statt
++`replace`). Die vorhandenen Issues #21 (Mehrfachauswahl/Löschen), #142
++(Zusammenfassung von Änderungsständen), #173 (Ergebnisanzeige nach Restore) und
++#680 (native Zeitzonenabnahme) behandeln andere Fehler und ersetzen diese Prüfung
++nicht. Die alten Mehrfachauswahl-/Löschprüfungen bleiben erhalten.
++
++## Änderung
++
++- **Alles** zeigt das tatsächlich verwendete ersetzende Verfahren und sperrt die
++  Verfahrensauswahl sowie die in diesem Modus bedeutungslosen Einzelbereiche.
++- Nach Abwahl von **Alles** sind das zuvor gewählte Teilverfahren und die
++  vorherigen Einzelbereiche wieder verfügbar.
++- Die vollständige Rückfrage enthält zusätzlich den vorhandenen, in allen
++  Anwendungskatalogen übersetzten Hinweis, dass später hinzugefügte Daten
++  entfernt werden. Der gesendete Modus entspricht der bestätigten Auswahl.
++- Das Handbuch erklärt diesen Unterschied in Englisch und allen 19 übersetzten
++  Sprachen als hervorgehobenen Hinweis im bestehenden Wiederherstellungskapitel.
++
++Die nativen Wiederherstellungsalgorithmen und das Dateiformat werden nicht
++geändert. Es entstehen keine neuen gettext-Schlüssel in den Anwendungen.
++
++## Nachprüfung
++
++Mit Node.js, jsdom 26.1.0, GNU gettext 0.23.1 und generierten Laufzeitkatalogen:
++
++| Prüfung | Ergebnis |
++| --- | --- |
++| `node magnolie-organizer-windows/tests/journal-selection.js` | 12 Durchläufe erfolgreich: Linux und Windows, jeweils en/de/fr/pl/hsb/ar; beide Teilverfahren, Rückkehr zur Einzelauswahl, Abbruch/Bestätigung, tatsächlicher Brückenauftrag und vorhandene Löschregressionen |
++| `node magnolie-handbuch/pruefungen/editorial_test.js` | Alle 20 Sprachen unter beiden Plattformvarianten; Warnung im tatsächlich zusammengesetzten Kapitel, lokalisiert und als Hinweis markiert |
++| Handbuchkataloge nach kanonischem MO-/JS-Aufbau | Alle 19 PO-Dateien vollständig gegenüber dem gespeicherten POT, keine leeren/fuzzy Einträge, MO-/JS-Inhalte gleich und `msgfmt --check --check-format` erfolgreich |
++| Aktuelle Android-Tablet-Webprojektion + `tests/web.test.cjs` | 194 Prüfungen erfolgreich; weitere gemeinsame Kalender-/Zeichen-/Identitäts-/Formularprüfungen erfolgreich |
++| macOS `tools/check_current_sources.py --js-runtime node` | 27 Vertragsprüfungen plus 30 gemeinsame Datumssuchprüfungen erfolgreich, frische Projektion der geänderten kanonischen Oberfläche |
++| `git diff --check` | Erfolgreich |
++
++Die Projektionen wurden mit den vorgesehenen Generatoren frisch erzeugt. Für
++den Tablet-Vertrag wurde der im Test fest vorgegebene historische Git-Commit
++`067c38934b539943d8e1720abafd8a80b401d797` nachgeladen. Der macOS-Test verwendet
++das unveränderte gepinnte phonenumbers-Wheel. Generierte Dateien bleiben
++unversionierte Build-Ausgaben.
++
++## Grenzen und separater bestehender Befund
++
++jsdom prüft DOM-Verhalten und Texte, keine nativen GTK-, WebView2-, WKWebView-
++oder Android-Pixel. Native Geräte-/Bildschirmleserabnahme ist hier nicht belegt.
++Die macOS- und Tablet-Nachweise prüfen Projektion und vorhandene
++Funktionsgrenzen; sie behaupten keine native Wiederherstellungsfunktion.
++
++Bereits die unveränderte Ausgangsversion hat einen unabhängigen Drift zwischen
++Handbuchquellen und gespeichertem POT: neun aktuelle Schlüssel fehlen, drei
++veraltete bleiben enthalten. Der Python-Katalogtest scheitert deshalb auf der
++Ausgangsversion in zwei bestehenden Prüfungen. Dieser Patch ergänzt gezielt
++seinen eigenen Hinweis in Quellen/POT/Markern und allen PO-Dateien. Er erklärt
++die bestehende Gesamtkatalogprüfung nicht als bestanden und behebt keine
++fremden Kapitel im selben Issue.

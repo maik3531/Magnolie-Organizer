@@ -1,0 +1,384 @@
+{
+  "before": {
+    "passed": 26,
+    "failed": 11,
+    "results": [
+      {
+        "id": "events-with-the-same-uid-in-different-ics-calendars",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "tasks-with-the-same-uid-in-different-sync-calendars",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "calendar-source-object-fallback",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "ics-source-takes-precedence-over-sync-source",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "same-source-and-uid-fill-only-empty-fields",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "missing-source-does-not-match-a-qualified-uid",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "empty-uid-falls-back-to-note-id",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "null-uid-falls-back-to-event-id",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "legacy-id-only-contacts",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "external-uid-cannot-collide-with-local-id",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "structured-source-and-uid-key-has-no-separator-collision",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "existing-same-uid-in-two-calendars-restores-without-crash",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "duplicate-qualified-uid-uses-unique-local-id",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "ambiguous-qualified-uid-retains-snapshot-as-separate-entry",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "ambiguous-idless-snapshot-is-retained-once",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "duplicate-local-id-is-not-an-arbitrary-merge-target",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "already-present-ambiguous-entry-is-not-duplicated",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "snapshot-duplicates-are-retained-in-an-empty-calendar",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "snapshot-duplicates-use-local-id-before-filling",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "legacy-unqualified-uid-still-fills-missing-fields",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "note-uid-still-fills-missing-fields",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "empty-source-falls-through-to-sync-calendar",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "malformed-source-object-has-conservative-fallback",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "moved-event-keeps-unique-local-id-and-current-transport",
+        "passed": false,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "moved-task-keeps-unique-local-id-and-current-source",
+        "passed": false,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "local-id-survives-calendar-source-object-change",
+        "passed": false,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "local-id-survives-source-removal-and-new-uid",
+        "passed": false,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "id-only-record-source-change-keeps-new-transport",
+        "passed": false,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "unique-local-id-beats-unrelated-old-source-uid",
+        "passed": false,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "ambiguous-local-id-after-source-change-holds-restore",
+        "passed": false,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "ambiguous-local-id-snapshot-cannot-create-new-duplicates",
+        "passed": false,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "ambiguous-local-id-snapshot-cannot-pick-one-current-record",
+        "passed": false,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "exact-existing-ambiguous-local-id-remains-idempotent",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "same-scope-disambiguates-preexisting-local-id-collision",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "identical-snapshot-local-id-copies-restore-only-once",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "source-change-does-not-invent-empty-content-fields",
+        "passed": false,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "changed-secondary-binding-does-not-restore-old-transport",
+        "passed": false,
+        "inputs_unchanged": true
+      }
+    ]
+  },
+  "after": {
+    "passed": 37,
+    "failed": 0,
+    "results": [
+      {
+        "id": "events-with-the-same-uid-in-different-ics-calendars",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "tasks-with-the-same-uid-in-different-sync-calendars",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "calendar-source-object-fallback",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "ics-source-takes-precedence-over-sync-source",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "same-source-and-uid-fill-only-empty-fields",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "missing-source-does-not-match-a-qualified-uid",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "empty-uid-falls-back-to-note-id",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "null-uid-falls-back-to-event-id",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "legacy-id-only-contacts",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "external-uid-cannot-collide-with-local-id",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "structured-source-and-uid-key-has-no-separator-collision",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "existing-same-uid-in-two-calendars-restores-without-crash",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "duplicate-qualified-uid-uses-unique-local-id",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "ambiguous-qualified-uid-retains-snapshot-as-separate-entry",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "ambiguous-idless-snapshot-is-retained-once",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "duplicate-local-id-is-not-an-arbitrary-merge-target",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "already-present-ambiguous-entry-is-not-duplicated",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "snapshot-duplicates-are-retained-in-an-empty-calendar",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "snapshot-duplicates-use-local-id-before-filling",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "legacy-unqualified-uid-still-fills-missing-fields",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "note-uid-still-fills-missing-fields",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "empty-source-falls-through-to-sync-calendar",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "malformed-source-object-has-conservative-fallback",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "moved-event-keeps-unique-local-id-and-current-transport",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "moved-task-keeps-unique-local-id-and-current-source",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "local-id-survives-calendar-source-object-change",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "local-id-survives-source-removal-and-new-uid",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "id-only-record-source-change-keeps-new-transport",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "unique-local-id-beats-unrelated-old-source-uid",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "ambiguous-local-id-after-source-change-holds-restore",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "ambiguous-local-id-snapshot-cannot-create-new-duplicates",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "ambiguous-local-id-snapshot-cannot-pick-one-current-record",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "exact-existing-ambiguous-local-id-remains-idempotent",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "same-scope-disambiguates-preexisting-local-id-collision",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "identical-snapshot-local-id-copies-restore-only-once",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "source-change-does-not-invent-empty-content-fields",
+        "passed": true,
+        "inputs_unchanged": true
+      },
+      {
+        "id": "changed-secondary-binding-does-not-restore-old-transport",
+        "passed": true,
+        "inputs_unchanged": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,126 @@
+From e734a9104c42d2c05477149f8df421be69fc7fd8 Mon Sep 17 00:00:00 2001
+From: ChatGPT <chatgpt@users.noreply.github.com>
+Date: Fri, 27 Nov 2026 11:08:53 +0100
+Subject: [PATCH] Reject full backup folders before creating new archives (Refs
+ #818)
+
+---
+ magnolie-organizer/bin/magnolie-organizer     |  2 +
+ .../bin/magnolie_cloud_backup.py              | 12 ++++
+ .../pruefungen/test_cloud_backup_capacity.py  | 64 +++++++++++++++++++
+ 3 files changed, 78 insertions(+)
+ create mode 100644 magnolie-organizer/pruefungen/test_cloud_backup_capacity.py
+
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index a0a8eea1cde6b83af87ee35446f3a734fd8751ee..35fc94afdb903461cde88beaf340bd77a9e00b55 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -151,6 +151,7 @@ from magnolie_nextcloud import (
+ from magnolie_cloud_backup import (
+     ArchiveSecretStore, PREFIX as CLOUD_BACKUP_PREFIX,
+     apply_retention as cloud_backup_retention, due as cloud_backup_due,
++    check_capacity as cloud_backup_check_capacity,
+     retention_count as cloud_backup_retention_count)
+ from magnolie_akonadi import (AkonadiClient, AkonadiError, AkonadiUnavailable,
+     akonadi_status as akonadi_helper_status, find_helper as akonadi_helper_finden)
+@@ -2422,6 +2423,7 @@ def automatische_sicherung_anlegen(daten, ordner, kennwort, aufbewahrung,
+         raise RuntimeError("automatic_backup_not_configured")
+     zielordner = sicherungs_verzeichnis(ordner)
+     os.makedirs(zielordner, exist_ok=True)
++    cloud_backup_check_capacity(zielordner)
+     zeit = (jetzt or datetime.now(timezone.utc)).astimezone(timezone.utc)
+     name = "%s%s-%s%s" % (
+         CLOUD_BACKUP_PREFIX, zeit.strftime("%Y%m%d-%H%M%S-%f"),
+diff --git a/magnolie-organizer/bin/magnolie_cloud_backup.py b/magnolie-organizer/bin/magnolie_cloud_backup.py
+index ca2c79af07e38c5910dd45be0f0987f0c0bba2e9..d1bd78e911f6593283caed2756b490c7b46f134e 100644
+--- a/magnolie-organizer/bin/magnolie_cloud_backup.py
++++ b/magnolie-organizer/bin/magnolie_cloud_backup.py
+@@ -55,6 +55,18 @@ def retention_count(value):
+         return 7
+ 
+ 
++def check_capacity(directory):
++    """Reserve one listing slot before a new archive is encrypted or written.
++
++    Retention still re-reads the directory after verification. This preflight
++    prevents a consistently full folder from gaining an archive on every retry.
++    """
++    with os.scandir(directory) as listing:
++        for index, _entry in enumerate(listing):
++            if index >= LIST_LIMIT - 1:
++                raise OSError("The backup folder contains too many entries.")
++
++
+ def owned_regular_files(directory):
+     entries = []
+     with os.scandir(directory) as listing:
+diff --git a/magnolie-organizer/pruefungen/test_cloud_backup_capacity.py b/magnolie-organizer/pruefungen/test_cloud_backup_capacity.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..7f80495c72d814770dbfbefb4882927bdec1f6a6
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/test_cloud_backup_capacity.py
+@@ -0,0 +1,64 @@
++"""Reject a full backup directory before producing another archive (#818)."""
++from pathlib import Path
++
++import pytest
++
++from modul_laden import quellmodul_laden
++
++
++ROOT = Path(__file__).resolve().parents[1]
++native = quellmodul_laden("magnolie_cloud_capacity", ROOT / "bin/magnolie-organizer")
++DATA = {"version": 6, "termine": [], "einstellungen": {}}
++PASSWORD = "synthetic-capacity-test"
++
++
++def fill(directory, count):
++    for index in range(count):
++        (directory / ("unrelated-%04d" % index)).write_bytes(b"preserve")
++
++
++def create(directory):
++    return native.automatische_sicherung_anlegen(DATA, str(directory), PASSWORD, 2)
++
++
++def test_repeated_failure_in_full_directory_does_not_create_archives(tmp_path):
++    fill(tmp_path, 1000)
++    for _ in range(3):
++        with pytest.raises(OSError, match="too many entries"):
++            create(tmp_path)
++        assert not list(tmp_path.glob("*.magnolie"))
++        assert len(list(tmp_path.iterdir())) == 1000
++    assert all(path.read_bytes() == b"preserve" for path in tmp_path.iterdir())
++
++
++def test_capacity_is_checked_before_archive_encryption(tmp_path, monkeypatch):
++    fill(tmp_path, 1000)
++    def must_not_encode(*args, **kwargs):
++        raise AssertionError("A rejected backup folder reached archive encryption")
++    monkeypatch.setattr(native, "gesamtarchiv_erzeugen", must_not_encode)
++    with pytest.raises(OSError, match="too many entries"):
++        create(tmp_path)
++
++
++def test_last_available_slot_succeeds_and_subsequent_attempt_is_read_only(tmp_path):
++    fill(tmp_path, 999)
++    archive = Path(create(tmp_path))
++    original = archive.read_bytes()
++    result = native.gesamtarchiv_lesen(str(archive), PASSWORD)
++    assert result["daten"]["termine"] == []
++    assert len(list(tmp_path.iterdir())) == 1000
++    with pytest.raises(OSError, match="too many entries"):
++        create(tmp_path)
++    assert list(tmp_path.glob("*.magnolie")) == [archive]
++    assert archive.read_bytes() == original
++
++
++def test_bounded_directory_still_verifies_then_prunes_only_owned_archives(tmp_path):
++    fill(tmp_path, 997)
++    first = Path(create(tmp_path))
++    second = Path(create(tmp_path))
++    third = Path(create(tmp_path))
++    assert not first.exists()
++    assert second.exists() and third.exists()
++    assert len(list(tmp_path.glob("unrelated-*"))) == 997
++    assert native.gesamtarchiv_lesen(str(third), PASSWORD)["daten"]["termine"] == []

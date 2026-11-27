@@ -1,0 +1,29 @@
+xgettext: The option '--sort-output' is deprecated.
+$REVIEW_WORKSPACE/ui-review/magnolie-organizer/web/anwendung.js:32534: warning: unterminated string
+$REVIEW_WORKSPACE/ui-review/magnolie-organizer/web/anwendung.js:41348: warning: unterminated string
+xgettext: The option '--sort-output' is deprecated.
+$REVIEW_WORKSPACE/ui-review/magnolie-organizer/bin/magnolie-organizer:8837: warning: 'msgid' format string with unnamed arguments cannot be properly localized:
+                                                                                                   The translator cannot reorder the arguments.
+                                                                                                   Please consider using a format string with named arguments,
+                                                                                                   and a mapping instead of a tuple for the arguments.
+$REVIEW_WORKSPACE/ui-review/magnolie-organizer/bin/magnolie-organizer:8853: warning: 'msgid' format string with unnamed arguments cannot be properly localized:
+                                                                                                   The translator cannot reorder the arguments.
+                                                                                                   Please consider using a format string with named arguments,
+                                                                                                   and a mapping instead of a tuple for the arguments.
+$REVIEW_WORKSPACE/ui-review/magnolie-organizer/bin/magnolie-organizer:9047: warning: 'msgid' format string with unnamed arguments cannot be properly localized:
+                                                                                                   The translator cannot reorder the arguments.
+                                                                                                   Please consider using a format string with named arguments,
+                                                                                                   and a mapping instead of a tuple for the arguments.
+$REVIEW_WORKSPACE/ui-review/magnolie-organizer/bin/magnolie-organizer:13406: warning: 'msgid' format string with unnamed arguments cannot be properly localized:
+                                                                                                    The translator cannot reorder the arguments.
+                                                                                                    Please consider using a format string with named arguments,
+                                                                                                    and a mapping instead of a tuple for the arguments.
+$REVIEW_WORKSPACE/ui-review/magnolie-organizer/bin/magnolie-organizer:19691: warning: 'msgid' format string with unnamed arguments cannot be properly localized:
+                                                                                                    The translator cannot reorder the arguments.
+                                                                                                    Please consider using a format string with named arguments,
+                                                                                                    and a mapping instead of a tuple for the arguments.
+$REVIEW_WORKSPACE/ui-review/magnolie-organizer/bin/magnolie-organizer:31828: warning: 'msgid' format string with unnamed arguments cannot be properly localized:
+                                                                                                    The translator cannot reorder the arguments.
+                                                                                                    Please consider using a format string with named arguments,
+                                                                                                    and a mapping instead of a tuple for the arguments.
+xgettext: The option '--sort-output' is deprecated.

@@ -1,0 +1,279 @@
+From e9e3c43f1410516ef8ddbf0e5785f96cedb5389e Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 11:55:39 +0100
+Subject: [PATCH] Refs #829: compare current media adapters without masking
+ bridge gaps
+
+---
+ .../tests/full-parity-contract.js             | 70 ++++++++++++++++++-
+ .../tests/linux-parity-fixture.js             | 31 +++++++-
+ .../resources/linux-parity-contract.json      | 17 ++++-
+ magnolie-organizer/web/anwendung.js           |  2 +-
+ 4 files changed, 113 insertions(+), 7 deletions(-)
+
+diff --git a/magnolie-organizer-windows/tests/full-parity-contract.js b/magnolie-organizer-windows/tests/full-parity-contract.js
+index f5f725969eec39b799e748f4baf0c87f0bbe554f..cc99b402bcb9a643cc997d15bb45a3e160f56212 100644
+--- a/magnolie-organizer-windows/tests/full-parity-contract.js
++++ b/magnolie-organizer-windows/tests/full-parity-contract.js
+@@ -8,6 +8,9 @@ const { canonicalContract, commands, personalSyncPayloads, sendObjects, sha256 }
+ const root = path.resolve(__dirname, "..");
+ const read = file => fs.readFileSync(path.join(root, file), "utf8");
+ const windowsUi = read("app/web/anwendung.js");
++const windowsMediaUi = read("app/web/phone-media.js");
++const windowsMediaDispatcher = read("DeviceFileBridge.cs");
++const windowsMediaRequest = read("DeviceFileUiRequest.cs");
+ const windowsDispatcher = fs.readdirSync(root).filter(file => /^BridgeDispatcher(?:\.[A-Za-z]+)?\.cs$/.test(file))
+   .map(read).join("\n") + read("MainForm.cs");
+ const windowsCallbacks = windowsDispatcher + fs.readdirSync(root)
+@@ -34,8 +37,53 @@ assert.ok(fixture.callbacks.length > 25, "Callbackfixture ist unplausibel klein"
+ assert.ok(fixture.commands.includes("mutations_snapshot"),
+ "Linux fixture must retain mandatory mutation snapshots alongside the explicit journal policies from #142");
+ 
+-const windowsCommands = new Set(commands(windowsUi));
++const windowsCommands = new Set(commands(windowsUi + "\n" + windowsMediaUi));
+ const commandAliases = { sync_bestaetigen: "sync_commit", handbuch_herunterladen: "update_herunterladen" };
++// Refs #829: media adapters deliberately have different wire names. Check
++// each real Windows sender/action/handler instead of inventing dummy aliases.
++// This is a source-contract check, not native media/device acceptance.
++const mediaActions = {
++  medien_backup: ["backup_list", "backup_restore"],
++  medien_papierkorb: ["trash_list", "trash_restore", "trash_purge", "trash_empty", "trash_thumbnail", "trash_preview"],
++  telefon_foto_aktion: ["shared_setting", "receive_consent", "discover", "page", "sync_shared", "cancel", "request_read"],
++  telefon_fotoziel_waehlen: ["pick_destination", "default_destination"],
++  telefon_videoziel_waehlen: ["pick_destination", "default_destination"],
++  telefon_medien_senden: ["send_consent"],
++  telefon_sammlungsordner: ["pick_collection_source"]
++};
++function validateMediaRoutes(ui, dispatcher, request) {
++  for (const action of new Set(Object.values(mediaActions).flat())) {
++    assert.match(ui, new RegExp(`\\brequest\\("${action}"`), `Windows media UI misses action ${action}`);
++    assert.match(dispatcher, new RegExp(`case "${action}"`), `Windows media dispatcher misses action ${action}`);
++    assert.ok(request.includes(`"${action}"`), `Windows exact media request parser misses ${action}`);
++  }
++}
++validateMediaRoutes(windowsMediaUi, windowsMediaDispatcher, windowsMediaRequest);
++assert.throws(() => validateMediaRoutes(windowsMediaUi.replaceAll('request("backup_restore"', 'request("unknown"'),
++  windowsMediaDispatcher, windowsMediaRequest), /UI misses action backup_restore/);
++assert.throws(() => validateMediaRoutes(windowsMediaUi, windowsMediaDispatcher.replace('case "send_consent"', 'case "unknown"'),
++  windowsMediaRequest), /dispatcher misses action send_consent/);
++assert.match(windowsUi, /window\.MagnolieMedia\.createRecoveryPanel\(/);
++assert.match(windowsUi, /window\.MagnolieMedia\.createPanel\(/);
++assert.match(read("app/web/index.html"), /src="phone-media\.js"/);
++assert.match(windowsMediaDispatcher, /partial void HandleNativeMediaUi\([\s\S]*?HandleNativeMediaUiAsync\(message\)/);
++assert.match(windowsDispatcher, /HandleNativeMediaUi\(message, ref mediaHandling\)/);
++assert.match(windowsMediaDispatcher, /NativeMediaUiRequest\.Parse\(/);
++assert.match(windowsMediaRequest, /TelefonProtocolContract\.ExactObject\(value, fields\.ToArray\(\)\)/);
++assert.match(windowsMediaUi, /\["images", "Photos", "pictures"\], \["video", "Videos", "video_destination"\]/);
++// The deprecated Linux backup-folder helper is unmounted (#429/#759).
++// If it becomes reachable again, generate() includes it and this gate fails
++// until that deliberate product/UI change receives a new mapping.
++assert.ok(!fixture.commands.includes("telefon_backupziel"), "Separate backup-location chooser became part of the Linux contract again");
++
++const webcamCommands = ["telefon_webcam_stand", "telefon_webcam_start", "telefon_webcam_stop"];
++for (const command of webcamCommands) {
++  assert.match(windowsUi, new RegExp(`\\brequest\\("${command}"`), `Windows webcam UI misses ${command}`);
++  assert.match(windowsDispatcher, new RegExp(`case "${command}"`), `Windows webcam dispatcher misses ${command}`);
++  assert.match(windowsSchemas, new RegExp(`\\["${command}"\\]`), `Windows webcam schema misses ${command}`);
++}
++assert.match(windowsDispatcher, /DesktopWebcamActionAsync\(message\)/);
++assert.match(windowsDispatcher, /form\.ConfirmDesktopWebcam\(selected, RequireProfile\)/);
+ // Windows ships the manual in the Organizer installer; Linux has a separate DEB.
+ assert.ok(!windowsCommands.has("handbuch_herunterladen"));
+ assert.ok(windowsCommands.has("update_herunterladen") && windowsCommands.has("update_installieren"));
+@@ -51,6 +99,13 @@ assert.match(read("WindowsBluetoothRadio.cs"), /\["approved_capability"\] = fals
+ assert.doesNotMatch(read("WindowsBluetoothRadio.cs"), /RequestAccessAsync|RegisterApp|RegisterForTransport/);
+ for (const command of fixture.commands) {
+   if ([linuxAudioCommand, "telefon_bluetooth_einstellungen", "telefon_anruf_audio_pruefen"].includes(command)) continue;
++  if (command === "telefon_webcam_aktion") continue; // explicit native Windows webcam routes checked above
++  if (Object.hasOwn(mediaActions, command)) {
++    assert.ok(windowsCommands.has("telefon_medien"), `Windows media envelope missing for ${command}`);
++    assert.match(windowsDispatcher, /case "telefon_medien"/);
++    assert.match(windowsSchemas, /\["telefon_medien"\]/);
++    continue;
++  }
+   const nativeCommand = commandAliases[command] || command;
+   assert.ok(windowsCommands.has(nativeCommand), `Windows UI misses Linux contract command ${command}`);
+   assert.match(windowsDispatcher, new RegExp(`case "${nativeCommand}"`), `Windows dispatcher misses ${command}`);
+@@ -64,6 +119,17 @@ assert.match(windowsDispatcher, /new TelefonCoordinator\(paths, HandleTelefonEve
+ assert.match(windowsDispatcher, /await form\.SendAsync\(function, message \?\? payload\)/);
+ for (const name of fixture.callbacks) {
+   if (name === linuxAudioCallback || name === "telefonAnrufAudioGespeichert") continue;
++  if (name === "telefonFotoErgebnis") {
++    assert.match(windowsMediaDispatcher, /form\.SendAsync\("MagnolieMedia\.receive"/);
++    assert.match(windowsMediaUi, /window\.MagnolieMedia\s*=\s*\{[\s\S]*\breceive\(reply\)/);
++    assert.match(windowsMediaUi, /reply\.device_id !== item\.peerId/);
++    continue;
++  }
++  if (name === "telefonWebcam") {
++    assert.match(read("BridgeDispatcher.DesktopWebcam.cs"), /form\.SendAsync\("App\.kdeMedien"/);
++    assert.match(windowsUi, /\n\s+kdeMedien\(value\)\s*\{/);
++    continue;
++  }
+   assert.match(windowsCallbacks, new RegExp(`(?:SendAsync|emit)\\("App\\.${name}"`),
+     `Windows dispatcher misses App.${name}`);
+   assert.ok(new RegExp(`\\n\\s+(?:async\\s+)?${name}\\([^)]*\\)\\s*\\{`).test(windowsUi), `Windows UI misses App.${name}`);
+@@ -104,4 +170,4 @@ for (const [alias, canonical] of [["telefonWaehlstatus", "telefonWaehlStatus"],
+   assert.match(windowsUi, new RegExp(`${canonical}\\(nutzlast\\)`));
+ }
+ 
+-console.log(`FULL PARITY CONTRACT PASSED (${fixture.commands.length - 1} shared commands, ${fixture.callbacks.length - 1} shared callbacks; Linux-only HFP routing and Windows unsupported capability checked)`);
++console.log(`FULL PARITY CONTRACT PASSED (${fixture.commands.length} command contracts, ${fixture.callbacks.length} callback contracts; ${Object.keys(mediaActions).length} media adapters and native webcam routes checked; inactive backup chooser and Linux-only HFP routing classified)`);
+diff --git a/magnolie-organizer-windows/tests/linux-parity-fixture.js b/magnolie-organizer-windows/tests/linux-parity-fixture.js
+index 1de92bad9c07b81bf5a70b0130f453a279daafab..f1e73f4043ca0afd19e71f4aa562c4fe93514c75 100644
+--- a/magnolie-organizer-windows/tests/linux-parity-fixture.js
++++ b/magnolie-organizer-windows/tests/linux-parity-fixture.js
+@@ -123,6 +123,9 @@ require("node:assert/strict").equal(spreadProbe.has("unknown_property"), false);
+ require("node:assert/strict").equal(sendObjects('Bruecke.sende({ cmd: "example", ...(mcp ? { mcp: true } : {}) });')[0].has("mcp"), false);
+ require("node:assert/strict").throws(() => sendObjects('Bruecke.sende({ cmd: "example", cmd: "other" });'), /Doppelte/);
+ require("node:assert/strict").throws(() => sendObjects('Bruecke.sende({ ...makeArguments() });'), /nicht gelesen/);
++// Refs #829: callers must spell out the actual consent fields. A new arbitrary
++// spread must never be accepted just to refresh a stale contract fixture.
++require("node:assert/strict").throws(() => sendObjects('function telefonSendeZustimmung() { Bruecke.sende({ cmd: "telefon_medien_senden", requestId, ...choices }); }'), /ungebundene Objektverteilung choices/);
+ const originalWitness = '...(originalKontaktSpeicher?.text === auftrag.text ? { kontaktOriginalLauf: originalKontaktSpeicher.token } : {})';
+ const witnessProbe = sendObjects('Bruecke.sende({ cmd: "speichern", ' + originalWitness + ' });')[0];
+ require('node:assert/strict').equal(witnessProbe.has('kontaktOriginalLauf'), false);
+@@ -151,6 +154,28 @@ function canonicalContract(fixture) {
+   });
+ }
+ 
++function inactiveMediaCommands(ui) {
++  // A definition-only view cannot send requests. Its sender must also have
++  // no other caller/reference: mounting the view OR calling the sender
++  // directly must make the old command visible to the live gate again.
++  const view = /function baueTelefonBackupOrdner\(peer, stand\) \{/.exec(ui);
++  const sender = /function telefonBackupAnfordern\(peer, action, mediaType\) \{/.exec(ui);
++  if (!view || !sender || [...ui.matchAll(/\bbaueTelefonBackupOrdner\b/g)].length !== 1) return new Set();
++  const start = view.index + view[0].length;
++  const end = start + scanJavaScript(ui, start, true).join(",").length;
++  const references = [...ui.matchAll(/\btelefonBackupAnfordern\b/g)];
++  const senderName = sender.index + "function ".length;
++  return references.length > 1 && references.every(match => match.index === senderName || match.index >= start && match.index < end)
++    ? new Set(["telefon_backupziel"]) : new Set();
++}
++const inactiveBackupProbe = 'function telefonBackupAnfordern(peer, action, mediaType) { Bruecke.sende({cmd: "telefon_backupziel"}); }\n' +
++  'function baueTelefonBackupOrdner(peer, stand) { button(() => telefonBackupAnfordern(peer, "read", "images")); }';
++require("node:assert/strict").deepEqual([...inactiveMediaCommands(inactiveBackupProbe)], ["telefon_backupziel"]);
++for (const activation of ['\nroot.append(baueTelefonBackupOrdner(peer, stand));', '\nbutton(() => telefonBackupAnfordern(peer, "choose", "images"));',
++  '\nconst mountBackup = baueTelefonBackupOrdner;', '\nconst backupAction = telefonBackupAnfordern;']) {
++  require("node:assert/strict").equal(inactiveMediaCommands(inactiveBackupProbe + activation).size, 0);
++}
++
+ function generate(linuxRoot) {
+   const ui = fs.readFileSync(path.join(linuxRoot, "web", "anwendung.js"), "utf8");
+   const dispatcher = fs.readFileSync(path.join(linuxRoot, "bin", "magnolie-organizer"), "utf8");
+@@ -163,13 +188,17 @@ function generate(linuxRoot) {
+     for (const command of values(match[1], /"([a-z0-9_]+)"/g)) dispatchedCommands.add(command);
+   }
+   const callbackHandlers = new Set(values(ui, /\n\s+(?:async\s+)?([A-Za-z0-9_]+)\([^)]*\)\s*\{/g));
++  // Refs #829, #429, #759: the old separate backup-location chooser is no
++  // longer mounted. Count all references, not only calls: if it is reattached
++  // or aliased, its command re-enters the contract and must be reviewed.
++  const inactiveCommands = inactiveMediaCommands(ui);
+   const fixture = {
+     schema: "magnolie-linux-parity-v1",
+     sources: {
+       "web/anwendung.js": sha256(ui),
+       "bin/magnolie-organizer": sha256(dispatcher)
+     },
+-    commands: commands(ui).filter(command => dispatchedCommands.has(command) && !PLATFORM_ONLY_COMMANDS.has(command)),
++    commands: commands(ui).filter(command => dispatchedCommands.has(command) && !PLATFORM_ONLY_COMMANDS.has(command) && !inactiveCommands.has(command)),
+     callbacks: values(dispatcher, /self\.antwort\("App\.([A-Za-z0-9_]+)"/g)
+       .filter(callback => callbackHandlers.has(callback) && !PLATFORM_ONLY_CALLBACKS.has(callback)),
+     payloadSchemas: {
+diff --git a/magnolie-organizer-windows/tests/resources/linux-parity-contract.json b/magnolie-organizer-windows/tests/resources/linux-parity-contract.json
+index 56e5ce9be0bb4d2f66a5c47e1391711c69e084a4..a241dfcb47e4df72bb1e08fbd262318ee0ff3abc 100644
+--- a/magnolie-organizer-windows/tests/resources/linux-parity-contract.json
++++ b/magnolie-organizer-windows/tests/resources/linux-parity-contract.json
+@@ -1,8 +1,8 @@
+ {
+   "schema": "magnolie-linux-parity-v1",
+   "sources": {
+-    "web/anwendung.js": "dbba8281689362c3591687d74228f2f16e26113b55d80fd904de2e548a8418df",
+-    "bin/magnolie-organizer": "8a32d046a326b2bfdf236f8de7070917e8b729f0f71f518968a169b246893f76"
++    "web/anwendung.js": "dfd10df8a039766185b938f85c7092d11f60ca4f5bd4a323c431bac8d3a573c2",
++    "bin/magnolie-organizer": "ff2333d93856f41470f2350b70d9df91bceec83140e845ed2bf888b3460234dc"
+   },
+   "commands": [
+     "ablage_holen",
+@@ -80,6 +80,8 @@
+     "lo_benutzer",
+     "mail",
+     "mcp_antwort",
++    "medien_backup",
++    "medien_papierkorb",
+     "medikament_suchen",
+     "mutations_snapshot",
+     "notiz_anhang_datei",
+@@ -120,6 +122,8 @@
+     "telefon_ein",
+     "telefon_entfernen",
+     "telefon_entwickler_diagnose",
++    "telefon_foto_aktion",
++    "telefon_fotoziel_waehlen",
+     "telefon_freigabe",
+     "telefon_kontakte",
+     "telefon_kontaktfotos",
+@@ -127,15 +131,19 @@
+     "telefon_kontaktgruppentitel",
+     "telefon_kontaktwerte",
+     "telefon_mcp",
++    "telefon_medien_senden",
+     "telefon_meldung_anzeigen",
+     "telefon_pairing_abbrechen",
+     "telefon_pairing_bestaetigen",
+     "telefon_pairing_oeffnen",
+     "telefon_personal_sync_commit",
++    "telefon_sammlungsordner",
+     "telefon_sms_benachrichtigen",
+     "telefon_stand",
+     "telefon_status_anfordern",
++    "telefon_videoziel_waehlen",
+     "telefon_waehlen",
++    "telefon_webcam_aktion",
+     "tray_einstellungen",
+     "tray_status",
+     "tray_zaehler",
+@@ -192,6 +200,7 @@
+     "journalVorschau",
+     "journalWiederhergestellt",
+     "kdeMcpErgebnis",
++    "kdeMedien",
+     "kdePairingCode",
+     "kdePairingStatus",
+     "kdeSmsStatus",
+@@ -228,6 +237,7 @@
+     "telefonAnrufAudio",
+     "telefonAnrufAudioGespeichert",
+     "telefonAuflegeStatus",
++    "telefonFotoErgebnis",
+     "telefonGekoppelt",
+     "telefonKontakte",
+     "telefonMcpErgebnis",
+@@ -236,6 +246,7 @@
+     "telefonPairingOffen",
+     "telefonStand",
+     "telefonWaehlStatus",
++    "telefonWebcam",
+     "trayStand",
+     "updateErgebnis",
+     "vorschlaege",
+@@ -628,5 +639,5 @@
+       ]
+     ]
+   ],
+-  "contractSha256": "f329c44c70434a1332a70d31e07912ae5fab06b5b75d7eb34c3ce869ef3bd4a2"
++  "contractSha256": "1cf1d12b994ee388c4cde54e0086d44b6066085be62ccf31ad9e6689bb71e40f"
+ }
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+index 411512d26aa899515c15adbaebcb774708d35021..b2f3fcae75c46fb367ea876524ad2cdf7100fa8b 100644
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -29915,7 +29915,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       if (telefonSendeZustimmungen.get(peer.device_id) !== pending || DATEN !== book || current?.fingerprint !== peer.fingerprint ||
+           (current.photo_sync?.sending_consent || current.photo_sync?.sending_setup)?.version !== consent.version) { failed(); return; }
+       if (!Bruecke.sende({ cmd: "telefon_medien_senden", kennung: peer.device_id, fingerprint: peer.fingerprint,
+-        version: consent.version, requestId, ...choices })) failed();
++        version: consent.version, requestId, photos: choices.photos, videos: choices.videos })) failed();
+     }, failed);
+     zeichneTelefonFotos();
+   }

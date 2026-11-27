@@ -1,0 +1,109 @@
+...FF....                                                                [100%]
+=================================== FAILURES ===================================
+_________________ test_gettext_catalogs_are_complete_and_safe __________________
+
+    def test_gettext_catalogs_are_complete_and_safe():
+        source = _catalog(PO_DIR / "magnolie-organizer.pot")
+        dormant = {(None, "Language & region")}
+        locales = (PO_DIR / "LINGUAS").read_text(encoding="utf-8").split()
+        assert set(locales) == {path.stem for path in PO_DIR.glob("*.po")}
+        errors = []
+        for locale in locales:
+            po_path = PO_DIR / f"{locale}.po"
+            entries = _catalog(po_path)
+            header = po_path.read_text(encoding="utf-8").split("\n\n", 1)[0]
+            required_header = {
+                "Project-Id-Version": "Magnolie Organizer 2.0.18",
+                "PO-Revision-Date": "2026-09-07 00:00+0200",
+                "Last-Translator": "Magnolie translation team <maik3531@gmail.com>",
+                "Language-Team": locale,
+                "Language": locale,
+                "MIME-Version": "1.0",
+                "Content-Type": "text/plain; charset=UTF-8",
+                "Content-Transfer-Encoding": "8bit",
+            }
+            for field, value in required_header.items():
+                assert f'"{field}: {value}\\n"' in header, \
+                    f"{locale}: invalid or missing {field} header"
+            missing = source.keys() - entries.keys()
+            extra = entries.keys() - source.keys()
+            if missing:
+                errors.append(f"{locale}: missing keys: {sorted(missing)[:5]}")
+            unexpected = extra - dormant
+            if unexpected:
+                errors.append(f"{locale}: unexpected dormant keys: {sorted(unexpected)[:5]}")
+            for key, template in source.items():
+                entry = entries.get(key)
+                if not entry:
+                    continue
+                label = f"{locale}: {key[1]!r}"
+                if "fuzzy" in entry["flags"]:
+                    errors.append(f"{label} is fuzzy")
+                expected_forms = 1 if not template["plural"] else None
+                if not entry["values"] or any(not value.strip() for value in entry["values"]):
+                    errors.append(f"{label} has an empty active translation")
+                    continue
+                if expected_forms and len(entry["values"]) != expected_forms:
+                    errors.append(f"{label} has unexpected translation forms")
+                source_texts = [key[1]] + ([template["plural"]] if template["plural"] else [])
+                for index, value in enumerate(entry["values"]):
+                    source_form = source_texts[min(index, len(source_texts) - 1)]
+                    valid_tokens = [_tokens(source_form)]
+                    if template["plural"]:
+                        valid_tokens.append(_tokens(template["plural"]))
+                    if _tokens(value, source_form) not in valid_tokens:
+                        errors.append(f"{label} changes placeholders in {value!r}")
+                    if _identifiers(value) != _identifiers(source_form):
+                        errors.append(f"{label} changes technical identifiers in {value!r}")
+                    for token in PROTECTED:
+                        if token in " ".join(source_texts) and not _preserves_token(value, token, locale, key[1]):
+                            errors.append(f"{label} does not preserve {token!r}")
+                    if (value == source_form and _sentence_length(source_form)
+                            and source_form not in ENGLISH_EQUAL_ALLOWLIST):
+                        errors.append(f"{label} is still the English sentence")
+                    if (value != source_form and _sentence_length(source_form)
+                            and value.endswith(source_form)):
+                        errors.append(f"{label} appends the English source sentence")
+                    if (locale == "hsb" and re.match(
+                            r"^(?:Der|Die|Das|Ein|Eine|Es)\s", value)):
+                        errors.append(f"{label} is still German")
+            delivered = entries.get((None, "Delivered"), {}).get("values", [""])[0].casefold()
+            offline = entries.get((None, "Offline"), {}).get("values", [""])[0].casefold()
+            if delivered in {"offline", offline} or offline == "delivered":
+                errors.append(f"{locale}: Delivered/Offline state translations are inverted")
+>       assert not errors, "\n" + "\n".join(errors)
+E       AssertionError: 
+E         de: unexpected dormant keys: [(None, 'Restore media')]
+E       assert not ["de: unexpected dormant keys: [(None, 'Restore media')]"]
+
+magnolie-organizer/pruefungen/test_locale_completeness.py:207: AssertionError
+_______________ test_pot_matches_deterministic_source_extraction _______________
+
+    def test_pot_matches_deterministic_source_extraction():
+        with tempfile.TemporaryDirectory() as directory:
+            generated = Path(directory) / "magnolie-organizer.pot"
+            subprocess.run(
+                ["python3", str(ROOT / "werkzeuge" / "pot_erzeugen.py"),
+                 "--output", str(generated)],
+                check=True, capture_output=True, text=True,
+            )
+            expected = _catalog(generated)
+        actual = _catalog(PO_DIR / "magnolie-organizer.pot")
+>       assert actual == expected, "magnolie-organizer.pot is stale; regenerate it from the sources"
+E       AssertionError: magnolie-organizer.pot is stale; regenerate it from the sources
+E       assert {(None, ' (fi...': ['']}, ...} == {(None, ' (fi...': ['']}, ...}
+E         
+E         Omitting 2842 identical items, use -vv to show
+E         Left contains 4 more items:
+E         {(None, 'At least three recorded starts are needed. Bleeding days up to three days apart form one episode; only intervals of 14–60 days enter the median.'): {'flags': set(),
+E                                                                                                                                                                       'plural': None,
+E                                                                                                                                                                       'values': ['']},
+E          (None, 'Estimate the next period'): {'flags': set(),...
+E         
+E         ...Full output truncated (21 lines hidden), use '-vv' to show
+
+magnolie-organizer/pruefungen/test_locale_completeness.py:220: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_locale_completeness.py::test_gettext_catalogs_are_complete_and_safe
+FAILED magnolie-organizer/pruefungen/test_locale_completeness.py::test_pot_matches_deterministic_source_extraction
+2 failed, 7 passed in 9.12s

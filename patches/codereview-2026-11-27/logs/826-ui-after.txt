@@ -1,0 +1,37 @@
+PASS magnolie-organizer/web: unchanged events in different calendars
+PASS magnolie-organizer/web: termine late edit stays in its calendar
+PASS magnolie-organizer/web: aufgaben late edit stays in its calendar
+PASS magnolie-organizer/web: termine late deletion preserves the other calendar
+PASS magnolie-organizer/web: aufgaben late deletion preserves the other calendar
+PASS magnolie-organizer/web: icsQuelleId fallback keeps imported calendars
+PASS magnolie-organizer/web: kalenderQuelle fallback keeps imported calendars
+PASS magnolie-organizer/web: unqualified legacy UID is separate from another local record
+PASS magnolie-organizer/web: UID and local ID are separate namespaces
+PASS magnolie-organizer/web: same qualified UID still merges a changed remote local ID
+PASS magnolie-organizer/web: new entry binds to its first provider after a late edit
+PASS magnolie-organizer/web: new entry binds to its first provider after a late deletion
+PASS magnolie-organizer/web: imported entry binds to its first provider after a late edit
+PASS magnolie-organizer/web: imported entry binds to its first provider after a late deletion
+PASS magnolie-organizer/web: ambiguous provider identity holds before modifying data
+PASS magnolie-organizer/web: contact UID merge retains its existing semantics
+PASS magnolie-organizer/web: stale request remains rejected
+PASS magnolie-organizer/web: stale epoch remains rejected
+PASS magnolie-organizer-windows/app/web: unchanged events in different calendars
+PASS magnolie-organizer-windows/app/web: termine late edit stays in its calendar
+PASS magnolie-organizer-windows/app/web: aufgaben late edit stays in its calendar
+PASS magnolie-organizer-windows/app/web: termine late deletion preserves the other calendar
+PASS magnolie-organizer-windows/app/web: aufgaben late deletion preserves the other calendar
+PASS magnolie-organizer-windows/app/web: icsQuelleId fallback keeps imported calendars
+PASS magnolie-organizer-windows/app/web: kalenderQuelle fallback keeps imported calendars
+PASS magnolie-organizer-windows/app/web: unqualified legacy UID is separate from another local record
+PASS magnolie-organizer-windows/app/web: UID and local ID are separate namespaces
+PASS magnolie-organizer-windows/app/web: same qualified UID still merges a changed remote local ID
+PASS magnolie-organizer-windows/app/web: new entry binds to its first provider after a late edit
+PASS magnolie-organizer-windows/app/web: new entry binds to its first provider after a late deletion
+PASS magnolie-organizer-windows/app/web: imported entry binds to its first provider after a late edit
+PASS magnolie-organizer-windows/app/web: imported entry binds to its first provider after a late deletion
+PASS magnolie-organizer-windows/app/web: ambiguous provider identity holds before modifying data
+PASS magnolie-organizer-windows/app/web: contact UID merge retains its existing semantics
+PASS magnolie-organizer-windows/app/web: stale request remains rejected
+PASS magnolie-organizer-windows/app/web: stale epoch remains rejected
+Calendar synchronization identity: 36/36 cases passed

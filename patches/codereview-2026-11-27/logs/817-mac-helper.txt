@@ -1,0 +1,6 @@
+test_utf16_csv_bom_and_decoded_null_through_isolated_helper (__main__.ImportHelperTests.test_utf16_csv_bom_and_decoded_null_through_isolated_helper) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 6.535s
+
+OK

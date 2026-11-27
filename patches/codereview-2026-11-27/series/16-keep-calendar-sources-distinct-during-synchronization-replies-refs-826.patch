@@ -1,0 +1,359 @@
+From c32d2cac4c925d4687517074c73d4b575c993cf0 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 11:33:39 +0100
+Subject: [PATCH] Keep calendar sources distinct during synchronization replies
+ (Refs #826)
+
+---
+ .../app/web/anwendung.js                      |  64 +++++++-
+ magnolie-organizer-windows/tests/run.js       |   1 +
+ .../tests/sync-calendar-identity.js           | 137 ++++++++++++++++++
+ magnolie-organizer/web/anwendung.js           |  64 +++++++-
+ 4 files changed, 250 insertions(+), 16 deletions(-)
+ create mode 100644 magnolie-organizer-windows/tests/sync-calendar-identity.js
+
+diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
+index 35e5f379d5422aa1a591c6ad8a4ce7b3b552fe4a..cb4f612bc04a41193d8a25b03f557a0206345599 100644
+--- a/magnolie-organizer-windows/app/web/anwendung.js
++++ b/magnolie-organizer-windows/app/web/anwendung.js
+@@ -33159,12 +33159,59 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         ((DATEN.syncMetadaten || {}).nextcloud || {}).pendingCommitId) return null;
+     if (!basis) return nutzlast;
+     if (basis.syncEpoch !== DATEN.syncEpoch) return null;
++    const schluessel = (item) => String(item.uid || item.id || "");
++    const kalenderSchluessel = (listen) => {
++      const nachId = new Map(), nachUid = new Map();
++      const merken = (index, key, quelle) => {
++        if (!index.has(key)) index.set(key, new Set());
++        index.get(key).add(quelle);
++      };
++      for (const liste of listen) for (const item of liste || []) {
++        const quelle = String(item.syncKalenderUid || ""), uid = String(item.uid || "");
++        if (!quelle || !uid) continue;
++        merken(nachUid, uid, quelle);
++        if (item.id) merken(nachId, JSON.stringify([String(item.id), uid]), quelle);
++      }
++      const key = (item) => {
++        const uid = String(item.uid || "");
++        if (!uid) return item.id ? JSON.stringify(["id", String(item.id)]) : null;
++        let quelle = String(item.syncKalenderUid || "");
++        if (!quelle) {
++          // A first upload can assign a provider after a local edit/deletion.
++          // Bind only through the same local record, or an unambiguous tombstone.
++          const bekannt = item.id ? nachId.get(JSON.stringify([String(item.id), uid])) : nachUid.get(uid);
++          if (bekannt && bekannt.size > 1) return null;
++          quelle = bekannt && bekannt.size === 1 ? Array.from(bekannt)[0] :
++            String(item.icsQuelleId || (item.kalenderQuelle || {}).id || "");
++        }
++        return JSON.stringify(["uid", quelle, uid]);
++      };
++      for (const liste of listen) {
++        const gesehen = new Set();
++        for (const item of liste || []) {
++          const wert = key(item);
++          if (wert === null || gesehen.has(wert)) return null;
++          gesehen.add(wert);
++        }
++      }
++      return key;
++    };
++    const kalender = {};
++    for (const feld of ["termine", "aufgaben"]) {
++      kalender[feld] = kalenderSchluessel([basis[feld], DATEN[feld], nutzlast[feld],
++        (basis.geloescht || {})[feld], DATEN.geloescht[feld], (nutzlast.geloescht || {})[feld]]);
++      if (!kalender[feld]) {
++        merkeSyncFehler(_("Conflict"));
++        return null;
++      }
++    }
+     for (const feld of ["termine", "aufgaben", "kontakte"]) {
+-      const vorher = new Set((basis[feld] || []).map(item => item.uid));
+-      const jetzt = new Set((DATEN[feld] || []).map(item => item.uid));
++      const key = kalender[feld] || ((item) => item.uid);
++      const vorher = new Set((basis[feld] || []).map(key));
++      const jetzt = new Set((DATEN[feld] || []).map(key));
+       for (const item of nutzlast[feld] || []) {
+-        if (!item.uid || !vorher.has(item.uid) || jetzt.has(item.uid) || !item.sync) continue;
+-        let grab = DATEN.geloescht[feld].find(itemAlt => itemAlt.uid === item.uid);
++        if (!item.uid || !vorher.has(key(item)) || jetzt.has(key(item)) || !item.sync) continue;
++        let grab = DATEN.geloescht[feld].find(itemAlt => key(itemAlt) === key(item));
+         if (!grab) {
+           grab = { uid: item.uid, zeit: Date.now(), syncKalenderUid: item.syncKalenderUid || "", syncQuellen: {} };
+           DATEN.geloescht[feld].push(grab);
+@@ -33181,8 +33228,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       jahrestage: DATEN.jahrestage, geloescht: DATEN.geloescht
+     }));
+     const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+-    const schluessel = (item) => String(item.uid || item.id || "");
+-    const abgleichen = (vorher, aktuell, fern) => {
++    const abgleichen = (vorher, aktuell, fern, schluessel) => {
+       const alt = new Map((vorher || []).map(item => [schluessel(item), item]));
+       const jetzt = new Map((aktuell || []).map(item => [schluessel(item), item]));
+       const ergebnis = [];
+@@ -33205,12 +33251,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     };
+     nutzlast = Object.assign({}, nutzlast);
+     for (const feld of ["termine", "aufgaben", "kontakte", "jahrestage"]) {
+-      if (Array.isArray(nutzlast[feld])) nutzlast[feld] = abgleichen(basis[feld], DATEN[feld], nutzlast[feld]);
++      if (Array.isArray(nutzlast[feld])) nutzlast[feld] =
++        abgleichen(basis[feld], DATEN[feld], nutzlast[feld], kalender[feld] || schluessel);
+     }
+     if (nutzlast.geloescht) {
+       nutzlast.geloescht = Object.assign({}, nutzlast.geloescht);
+       for (const feld of ["termine", "aufgaben", "kontakte"]) nutzlast.geloescht[feld] =
+-        abgleichen((basis.geloescht || {})[feld], DATEN.geloescht[feld], nutzlast.geloescht[feld]);
++        abgleichen((basis.geloescht || {})[feld], DATEN.geloescht[feld], nutzlast.geloescht[feld],
++          kalender[feld] || schluessel);
+     }
+     return nutzlast;
+   }
+diff --git a/magnolie-organizer-windows/tests/run.js b/magnolie-organizer-windows/tests/run.js
+index de0d3a6c805278d15829c0ed66d4cf1f21915844..95f73c5d3bcd564ed6cb8d468c50845dc44eeb04 100644
+--- a/magnolie-organizer-windows/tests/run.js
++++ b/magnolie-organizer-windows/tests/run.js
+@@ -22,6 +22,7 @@ for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-sav
+   "handbook-page-ids.js",
+   "calendar-attachment-actions.js", "calendar-attachment-native.js",
+   "calendar-accent-edits.js",
++  "sync-calendar-identity.js",
+   "normative-timezones.js",
+   "contact-email-case.js", "contact-copy-birthday.js",
+   "oversized-note-safety.js", "desktop-state-regressions.js", "../../magnolie-organizer/pruefungen/phone-personal-status-ui.cjs", "../../magnolie-organizer/pruefungen/appointment-occurrence-delete.cjs", "mcp-ui.js", "mcp-import-review.js", "mcp-planner-export.js", "mcp-print.js", "mcp-waste-import.js", "mcp-sync-settings.js", "mcp-sync-run.js", "mcp-provider-conflicts.js", "mcp-dav-account.js", "mcp-microsoft-signin.js", "mcp-internet-accounts.js", "mcp-tree-actions.js", "save-custom-regressions.js", "custom-time-regressions.js", "regional-time-input.js", "planned-sms-save-regressions.js", "asr-sms-regressions.js", "desktop-data-regressions.js", "frontend-integrity.js", "recurrence-worker.js", "recurrence-golden.js",
+diff --git a/magnolie-organizer-windows/tests/sync-calendar-identity.js b/magnolie-organizer-windows/tests/sync-calendar-identity.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..fc8e516254f295363afbef4349cf7e56bcad1fd7
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/sync-calendar-identity.js
+@@ -0,0 +1,137 @@
++"use strict";
++const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path");
++const { webcrypto } = require("node:crypto"), { JSDOM } = require("jsdom");
++const root = path.resolve(__dirname, ".."), clone = value => JSON.parse(JSON.stringify(value));
++const tick = () => new Promise(resolve => setTimeout(resolve, 10));
++const ports = [path.join(root, "app/web")];
++const linux = path.resolve(root, "../magnolie-organizer/web");
++if (fs.existsSync(path.join(linux, "index.html"))) ports.unshift(linux);
++const item = (id, source) => ({ id, uid: "shared@example.test", syncKalenderUid: source,
++  titel: id, notiz: id + " original", datum: "2026-11-27", zeit: id === "a" ? "09:00" : "10:00",
++  faellig: "2026-11-27", sync: true, syncQuellen: { [source]: { id: "/" + id, etag: '"observed"' } } });
++const entries = () => [item("a", "calendar-a"), item("b", "calendar-b")];
++const both = (data, field, edited = false) => {
++  assert.deepEqual(Array.from(data[field], value => value.id), ["a", "b"]);
++  assert.equal(data[field][0].notiz, "a original");
++  assert.equal(data[field][1].notiz, edited ? "b edited during sync" : "b original");
++};
++const unchanged = (data, before, messages, conflict) => {
++  for (const field of ["termine", "aufgaben", "kontakte", "geloescht"])
++    assert.deepEqual(clone(data[field]), before[field], field + " changed after a rejected response");
++  assert.ok(data.syncAbgleichBasis, "rejected response discarded its recovery baseline");
++  assert.equal(messages.filter(message => ["sync_commit", "sync_bestaetigen"].includes(message.cmd)).length, 0);
++  if (conflict) assert.match(data.syncStatus.letzterFehler, /Conflict/);
++};
++const cases = [
++  { name: "unchanged events in different calendars", field: "termine", verify: data => both(data, "termine") },
++  ...["termine", "aufgaben"].map(field => ({ name: field + " late edit stays in its calendar", field,
++    change: data => { data[field][1].notiz = "b edited during sync"; }, verify: data => both(data, field, true) })),
++  ...["termine", "aufgaben"].map(field => ({ name: field + " late deletion preserves the other calendar", field,
++    change: (data, payload) => {
++      const deleted = data[field].find(value => value.id === "b");
++      data[field] = data[field].filter(value => value.id !== "b");
++      data.geloescht[field].push({ uid: deleted.uid, zeit: 10, syncKalenderUid: "calendar-b",
++        syncQuellen: { "calendar-b": { id: "/b", etag: '"observed"' } } });
++      payload[field][1].syncQuellen["calendar-b"].etag = '"new-server-revision"';
++    }, verify: data => {
++      assert.deepEqual(Array.from(data[field], value => value.id), ["a"]);
++      assert.equal(data[field][0].notiz, "a original");
++      assert.equal(data.geloescht[field].length, 1);
++      assert.equal(data.geloescht[field][0].syncKalenderUid, "calendar-b");
++      assert.equal(data.geloescht[field][0].syncQuellen["calendar-b"].etag, '"observed"');
++    } })),
++  ...["icsQuelleId", "kalenderQuelle"].map(source => ({ name: source + " fallback keeps imported calendars", field: "termine",
++    initial: () => entries().map((value, index) => ({ ...value, syncKalenderUid: "", syncQuellen: {},
++      [source]: source === "kalenderQuelle" ? { id: "import-" + index } : "import-" + index })),
++    verify: data => both(data, "termine") })),
++  { name: "unqualified legacy UID is separate from another local record", field: "termine",
++    initial: () => [ { ...item("a", ""), syncQuellen: {} }, item("b", "calendar-b") ],
++    verify: data => both(data, "termine") },
++  { name: "UID and local ID are separate namespaces", field: "termine",
++    initial: () => [ { ...item("a", ""), uid: "b", syncQuellen: {} }, { ...item("b", ""), uid: "", syncQuellen: {} } ],
++    verify: data => both(data, "termine") },
++  { name: "same qualified UID still merges a changed remote local ID", field: "termine", initial: () => [item("a", "calendar-a")],
++    change: (data, payload) => { data.termine[0].notiz = "local edit"; payload.termine[0].id = "remote-id"; },
++    verify: data => { assert.equal(data.termine.length, 1); assert.equal(data.termine[0].notiz, "local edit"); } },
++  ...[false, true].flatMap(imported => [false, true].map(deleted => ({
++    name: (imported ? "imported" : "new") + " entry binds to its first provider after a late " + (deleted ? "deletion" : "edit"), field: "termine",
++    initial: () => [{ ...item("a", ""), sync: false, syncQuellen: {}, ...(imported ? { icsQuelleId: "original-import" } : {}) }],
++    change: (data, payload) => {
++      payload.termine[0].sync = true; payload.termine[0].syncKalenderUid = "calendar-a";
++      payload.termine[0].syncQuellen = { "calendar-a": { id: "/created", etag: '"created"' } };
++      if (deleted) { data.termine = []; data.geloescht.termine.push({ uid: "shared@example.test", zeit: 10, syncKalenderUid: "", syncQuellen: {} }); }
++      else data.termine[0].notiz = "local edit";
++    }, verify: data => {
++      if (deleted) {
++        assert.equal(data.termine.length, 0, "late provider create resurrected a deleted entry");
++        assert.equal(data.geloescht.termine.length, 1);
++        assert.equal(data.geloescht.termine[0].syncKalenderUid, "calendar-a");
++        assert.equal(data.geloescht.termine[0].syncQuellen["calendar-a"].etag, '"created"');
++      } else {
++        assert.equal(data.termine.length, 1); assert.equal(data.termine[0].notiz, "local edit");
++        assert.equal(data.termine[0].syncKalenderUid, "calendar-a");
++      }
++    }
++  }))),
++  { name: "ambiguous provider identity holds before modifying data", field: "termine",
++    initial: () => [item("a", "calendar-a"), item("b", "calendar-a")],
++    change: data => { data.termine[1].notiz = "local edit"; },
++    verify: (data, before, messages) => unchanged(data, before, messages, true) },
++  { name: "contact UID merge retains its existing semantics", field: "kontakte",
++    initial: () => [{ id: "contact", uid: "shared@example.test", vorname: "Synthetic", notiz: "original", sync: true }],
++    change: (data, payload) => { data.kontakte[0].notiz = "local contact edit"; payload.kontakte[0].id = "remote-contact"; },
++    verify: data => { assert.equal(data.kontakte.length, 1); assert.equal(data.kontakte[0].notiz, "local contact edit"); } },
++  ...["request", "epoch"].map(kind => ({ name: "stale " + kind + " remains rejected", field: "termine",
++    change: (data, payload) => {
++      if (kind === "epoch") data.syncEpoch = "new-epoch";
++      else if (payload.requestId) payload.requestId = "stale";
++      else payload.transactionId = "stale";
++    },
++    verify: (data, before, messages) => unchanged(data, before, messages, false) }))
++];
++
++async function check(web, test) {
++  const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {
++    runScripts: "outside-only", url: "https://app.magnolie.invalid/", pretendToBeVisual: true });
++  const w = dom.window, messages = [];
++  Object.defineProperty(w, "crypto", { value: webcrypto }); w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
++  w.__MAGNOLIE_BRUECKE__ = "test";
++  w.webkit = { messageHandlers: { test: { postMessage(text) {
++    const message = JSON.parse(text); messages.push(message);
++    if (message.cmd === "speichern") queueMicrotask(() => w.App.gespeichert({ id: message.id, ok: true }));
++  } } } };
++  try {
++    for (const script of ["i18n.js", "normative-timezones.js", "anwendung.js"])
++      w.eval(fs.readFileSync(path.join(web, script), "utf8"));
++    w.MagnolieI18n.setLocale("en"); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
++    const initial = (test.initial || entries)();
++    w.App.init({ neu: false, daten: { [test.field]: initial,
++      einstellungen: { sync: { kalenderUid: "calendar-a", kalenderUids: ["calendar-a", "calendar-b"],
++        adressbuchUid: "synthetic-addressbook", automatisch: false, erfolgsmeldungen: false } } } });
++    await tick();
++    const T = w.OrganizerTest;
++    assert.equal(T.daten()[test.field].length, initial.length, "fixture changed during initialization");
++    T.starteSync(true);
++    for (let i = 0; i < 100 && !messages.some(message => message.cmd === "sync"); i++) await tick();
++    const request = messages.find(message => message.cmd === "sync");
++    assert.ok(request, "actual native synchronization request was not dispatched");
++    const payload = { ...clone(request.daten), requestId: request.requestId,
++      transactionId: request.transactionId || "f".repeat(64), ok: true };
++    test.change?.(T.daten(), payload);
++    const before = clone(T.daten());
++    w.App.syncFertig(payload);
++    await tick();
++    test.verify(T.daten(), before, messages);
++  } finally { w.close(); }
++}
++
++(async () => {
++  let failed = 0;
++  for (const web of ports) for (const test of cases) {
++    const name = path.relative(path.dirname(root), web) + ": " + test.name;
++    try { await check(web, test); console.log("PASS " + name); }
++    catch (error) { failed++; console.error("FAIL " + name + "\n" + error.stack); }
++  }
++  console.log(`Calendar synchronization identity: ${ports.length * cases.length - failed}/${ports.length * cases.length} cases passed`);
++  if (failed) process.exitCode = 1;
++})().catch(error => { console.error(error); process.exitCode = 1; });
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+index dde2681a3e73a8cb01950e849b5348f704a4ccd7..411512d26aa899515c15adbaebcb774708d35021 100644
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -34302,12 +34302,59 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         ((DATEN.syncMetadaten || {}).nextcloud || {}).pendingCommitId) return null;
+     if (!basis) return nutzlast;
+     if (basis.syncEpoch !== DATEN.syncEpoch) return null;
++    const schluessel = (item) => String(item.uid || item.id || "");
++    const kalenderSchluessel = (listen) => {
++      const nachId = new Map(), nachUid = new Map();
++      const merken = (index, key, quelle) => {
++        if (!index.has(key)) index.set(key, new Set());
++        index.get(key).add(quelle);
++      };
++      for (const liste of listen) for (const item of liste || []) {
++        const quelle = String(item.syncKalenderUid || ""), uid = String(item.uid || "");
++        if (!quelle || !uid) continue;
++        merken(nachUid, uid, quelle);
++        if (item.id) merken(nachId, JSON.stringify([String(item.id), uid]), quelle);
++      }
++      const key = (item) => {
++        const uid = String(item.uid || "");
++        if (!uid) return item.id ? JSON.stringify(["id", String(item.id)]) : null;
++        let quelle = String(item.syncKalenderUid || "");
++        if (!quelle) {
++          // A first upload can assign a provider after a local edit/deletion.
++          // Bind only through the same local record, or an unambiguous tombstone.
++          const bekannt = item.id ? nachId.get(JSON.stringify([String(item.id), uid])) : nachUid.get(uid);
++          if (bekannt && bekannt.size > 1) return null;
++          quelle = bekannt && bekannt.size === 1 ? Array.from(bekannt)[0] :
++            String(item.icsQuelleId || (item.kalenderQuelle || {}).id || "");
++        }
++        return JSON.stringify(["uid", quelle, uid]);
++      };
++      for (const liste of listen) {
++        const gesehen = new Set();
++        for (const item of liste || []) {
++          const wert = key(item);
++          if (wert === null || gesehen.has(wert)) return null;
++          gesehen.add(wert);
++        }
++      }
++      return key;
++    };
++    const kalender = {};
++    for (const feld of ["termine", "aufgaben"]) {
++      kalender[feld] = kalenderSchluessel([basis[feld], DATEN[feld], nutzlast[feld],
++        (basis.geloescht || {})[feld], DATEN.geloescht[feld], (nutzlast.geloescht || {})[feld]]);
++      if (!kalender[feld]) {
++        merkeSyncFehler(_("Conflict"));
++        return null;
++      }
++    }
+     for (const feld of ["termine", "aufgaben", "kontakte"]) {
+-      const vorher = new Set((basis[feld] || []).map(item => item.uid));
+-      const jetzt = new Set((DATEN[feld] || []).map(item => item.uid));
++      const key = kalender[feld] || ((item) => item.uid);
++      const vorher = new Set((basis[feld] || []).map(key));
++      const jetzt = new Set((DATEN[feld] || []).map(key));
+       for (const item of nutzlast[feld] || []) {
+-        if (!item.uid || !vorher.has(item.uid) || jetzt.has(item.uid) || !item.sync) continue;
+-        let grab = DATEN.geloescht[feld].find(itemAlt => itemAlt.uid === item.uid);
++        if (!item.uid || !vorher.has(key(item)) || jetzt.has(key(item)) || !item.sync) continue;
++        let grab = DATEN.geloescht[feld].find(itemAlt => key(itemAlt) === key(item));
+         if (!grab) {
+           grab = { uid: item.uid, zeit: Date.now(), syncKalenderUid: item.syncKalenderUid || "", syncQuellen: {} };
+           DATEN.geloescht[feld].push(grab);
+@@ -34324,8 +34371,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       jahrestage: DATEN.jahrestage, geloescht: DATEN.geloescht
+     }));
+     const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+-    const schluessel = (item) => String(item.uid || item.id || "");
+-    const abgleichen = (vorher, aktuell, fern) => {
++    const abgleichen = (vorher, aktuell, fern, schluessel) => {
+       const alt = new Map((vorher || []).map(item => [schluessel(item), item]));
+       const jetzt = new Map((aktuell || []).map(item => [schluessel(item), item]));
+       const ergebnis = [];
+@@ -34348,12 +34394,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     };
+     nutzlast = Object.assign({}, nutzlast);
+     for (const feld of ["termine", "aufgaben", "kontakte", "jahrestage"]) {
+-      if (Array.isArray(nutzlast[feld])) nutzlast[feld] = abgleichen(basis[feld], DATEN[feld], nutzlast[feld]);
++      if (Array.isArray(nutzlast[feld])) nutzlast[feld] =
++        abgleichen(basis[feld], DATEN[feld], nutzlast[feld], kalender[feld] || schluessel);
+     }
+     if (nutzlast.geloescht) {
+       nutzlast.geloescht = Object.assign({}, nutzlast.geloescht);
+       for (const feld of ["termine", "aufgaben", "kontakte"]) nutzlast.geloescht[feld] =
+-        abgleichen((basis.geloescht || {})[feld], DATEN.geloescht[feld], nutzlast.geloescht[feld]);
++        abgleichen((basis.geloescht || {})[feld], DATEN.geloescht[feld], nutzlast.geloescht[feld],
++          kalender[feld] || schluessel);
+     }
+     return nutzlast;
+   }

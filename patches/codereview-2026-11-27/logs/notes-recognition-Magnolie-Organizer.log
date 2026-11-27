@@ -1,0 +1,28 @@
+JUnit version 4.13.2
+.E..E..E.E
+Time: 0.093
+There were 4 failures:
+1) Samsung HTML behaelt Herkunft und Dateizeit(io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrErkennungTest)
+org.junit.ComparisonFailure: expected:<[Samsung Notes]> but was:<[Google Keep]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrErkennungTest.Samsung HTML behaelt Herkunft und Dateizeit(EinfuhrErkennungTest.kt:33)
+2) gemischtes JSON Array wird vollstaendig als Text erhalten(io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrErkennungTest)
+java.lang.IllegalArgumentException: List has more than one element.
+	at kotlin.collections.CollectionsKt___CollectionsKt.single(_Collections.kt:621)
+	at io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrErkennungTest.read(EinfuhrErkennungTest.kt:10)
+	at io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrErkennungTest.gemischtes JSON Array wird vollstaendig als Text erhalten(EinfuhrErkennungTest.kt:24)
+3) allgemeines JSON mit Titel verliert keine unbekannten Inhaltsfelder(io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrErkennungTest)
+org.junit.ComparisonFailure: expected:<[{"title":"Example","body":"important","extra":{"value":"Keep this too"}}]> but was:<[]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrErkennungTest.allgemeines JSON mit Titel verliert keine unbekannten Inhaltsfelder(EinfuhrErkennungTest.kt:15)
+4) Browser HTML und allgemeine CSS Klassen sind kein Takeout Nachweis(io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrErkennungTest)
+org.junit.ComparisonFailure: expected:<[Übernommen]> but was:<[Google Keep]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at io.gitlab.maik3531.magnolienotes.einfuhr.EinfuhrErkennungTest.Browser HTML und allgemeine CSS Klassen sind kein Takeout Nachweis(EinfuhrErkennungTest.kt:44)
+
+FAILURES!!!
+Tests run: 6,  Failures: 4
+

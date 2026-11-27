@@ -1,0 +1,14 @@
+Magnolie CoreTests: 2 Gruppen
+  FEHLER Device file native media UI / strict requests reject browser paths and grants (0.05 s)
+         System.IO.InvalidDataException: Bridge-Feld ungültig.
+   at MagnolieOrganizer.Windows.BridgeDispatcherContract.ValidateSchema(JsonElement value, Schema schema) in $REVIEW_WORKSPACE/parity-review/magnolie-organizer-windows/BridgeDispatcherContract.cs:line 186
+   at MagnolieOrganizer.Windows.BridgeDispatcherContract.Parse(String raw) in $REVIEW_WORKSPACE/parity-review/magnolie-organizer-windows/BridgeDispatcherContract.cs:line 165
+   at MagnolieOrganizer.Windows.Tests.DeviceFileUiTests.<StrictRequestsAsync>g__ParseThroughBridge|4_0(JsonObject message) in $REVIEW_WORKSPACE/parity-review/magnolie-organizer-windows/tests/DeviceFileUiTests.cs:line 133
+   at MagnolieOrganizer.Windows.Tests.DeviceFileUiTests.StrictRequestsAsync() in $REVIEW_WORKSPACE/parity-review/magnolie-organizer-windows/tests/DeviceFileUiTests.cs:line 153
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in $REVIEW_WORKSPACE/parity-review/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+  FEHLER Device file native media UI / outer bridge envelopes and webcam commands (0.00 s)
+         System.IO.InvalidDataException: Unbekannter Bridge-Befehl.
+   at MagnolieOrganizer.Windows.BridgeDispatcherContract.Parse(String raw) in $REVIEW_WORKSPACE/parity-review/magnolie-organizer-windows/BridgeDispatcherContract.cs:line 164
+   at MagnolieOrganizer.Windows.Tests.BridgeMediaEnvelopeTests.RunAsync() in $REVIEW_WORKSPACE/parity-review/magnolie-organizer-windows/tests/BridgeMediaEnvelopeTests.cs:line 17
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in $REVIEW_WORKSPACE/parity-review/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/2 Gruppen bestanden.

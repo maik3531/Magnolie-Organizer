@@ -1,0 +1,4 @@
+{"name": "handbook-smoke-canonical", "command": ["node", "--max-old-space-size=512", "magnolie-organizer-windows/tests/handbook-smoke.js", "2.0.30", "Magnolie-Organizer-Windows-2.0.30-Setup-x64.exe"], "source_head": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23"}
+HANDBOOK SMOKE TEST PASSED (170 shared pages; source: configured $REVIEW_SOURCE/magnolie-handbuch/web)
+
+{"name": "handbook-smoke-canonical", "command": ["node", "--max-old-space-size=512", "magnolie-organizer-windows/tests/handbook-smoke.js", "2.0.30", "Magnolie-Organizer-Windows-2.0.30-Setup-x64.exe"], "source_head": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23", "exit_code": 0, "seconds": 30.297, "children_maxrss_kib": 433864, "source_head_after": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23"}

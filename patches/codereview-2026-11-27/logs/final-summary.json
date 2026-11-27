@@ -1,0 +1,60 @@
+{
+  "source_commit": "c0a30d50075c1cc898d0635597a126e5a0b56518",
+  "tests": [
+    {
+      "name": "dotnet-build",
+      "exit": 0,
+      "seconds": 16.621
+    },
+    {
+      "name": "bridge",
+      "exit": 0,
+      "seconds": 0.616
+    },
+    {
+      "name": "restore",
+      "exit": 0,
+      "seconds": 0.566
+    },
+    {
+      "name": "journal",
+      "exit": 0,
+      "seconds": 1.709
+    },
+    {
+      "name": "backup",
+      "exit": 0,
+      "seconds": 0.826
+    },
+    {
+      "name": "live-parity",
+      "exit": 0,
+      "seconds": 0.165
+    },
+    {
+      "name": "full-parity",
+      "exit": 0,
+      "seconds": 0.539
+    },
+    {
+      "name": "sync-ui",
+      "exit": 0,
+      "seconds": 9.004
+    },
+    {
+      "name": "journal-ui",
+      "exit": 0,
+      "seconds": 3.436
+    },
+    {
+      "name": "handbook-diagnostic",
+      "exit": 0,
+      "seconds": 0.115
+    },
+    {
+      "name": "linux-data",
+      "exit": 0,
+      "seconds": 1.381
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+magnolie-organizer-windows/app/web: ["No","No"]
+magnolie-organizer/web: ["No","No"]
+Error: magnolie-organizer-windows/app/web: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   'No',
++   'No'
+-   'Não',
+-   'Não'
+  ]
+
+magnolie-organizer/web: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   'No',
++   'No'
+-   'Não',
+-   'Não'
+  ]
+
+    at $REVIEW_WORKSPACE/review-state/check-828-pt-no.cjs:26:28

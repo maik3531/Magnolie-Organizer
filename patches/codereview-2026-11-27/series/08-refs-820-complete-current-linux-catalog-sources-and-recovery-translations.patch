@@ -1,0 +1,2115 @@
+From ee399232c5a0054172c5e84277bd22b075b92916 Mon Sep 17 00:00:00 2001
+From: ChatGPT <noreply@openai.com>
+Date: Fri, 27 Nov 2026 11:13:38 +0100
+Subject: [PATCH] Refs #820: complete current Linux catalog sources and
+ recovery translations
+
+---
+ magnolie-organizer/po/ar.po                   |  32 +-
+ magnolie-organizer/po/be.po                   |  33 +-
+ magnolie-organizer/po/cs.po                   |  33 +-
+ magnolie-organizer/po/da.po                   |  32 +-
+ magnolie-organizer/po/de.po                   |  29 +-
+ magnolie-organizer/po/es.po                   |  33 +-
+ magnolie-organizer/po/fr.po                   |  33 +-
+ magnolie-organizer/po/hi.po                   |  32 +-
+ magnolie-organizer/po/hsb.po                  |  33 +-
+ magnolie-organizer/po/it.po                   |  33 +-
+ magnolie-organizer/po/ja.po                   |  32 +-
+ magnolie-organizer/po/magnolie-organizer.pot  | 520 ++++++++----------
+ magnolie-organizer/po/nb.po                   |  33 +-
+ magnolie-organizer/po/nl.po                   |  33 +-
+ magnolie-organizer/po/pl.po                   |  33 +-
+ magnolie-organizer/po/pt.po                   |  33 +-
+ magnolie-organizer/po/ru.po                   |  33 +-
+ magnolie-organizer/po/tr.po                   |  32 +-
+ magnolie-organizer/po/uk.po                   |  33 +-
+ magnolie-organizer/po/zh_CN.po                |  32 +-
+ .../pruefungen/media-trash-ui.cjs             |  22 +
+ .../pruefungen/test_locale_completeness.py    |  20 +
+ magnolie-organizer/web/i18n-markers.js        |   3 +
+ .../issue-820-linux-catalogs.md               |  77 +++
+ 24 files changed, 762 insertions(+), 497 deletions(-)
+ create mode 100644 pruefnachweise/code-review-2026-11-27/issue-820-linux-catalogs.md
+
+diff --git a/magnolie-organizer/po/ar.po b/magnolie-organizer/po/ar.po
+index 8211ee594cf3e48dd77972a589ef81f654e2b098..c9ed4de98e4790b5513a747f6d041f435069a538 100644
+--- a/magnolie-organizer/po/ar.po
++++ b/magnolie-organizer/po/ar.po
+@@ -1229,13 +1229,6 @@ msgstr "عند وقت النوم"
+ msgid "At least one health view must remain enabled."
+ msgstr "يجب إبقاء عرض صحي واحد على الأقل مفعّلًا."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"يلزم تسجيل ثلاث بدايات على الأقل. أيام النزف التي تفصلها ثلاثة أيام كحد أقصى "
+-"تُعد فترة واحدة؛ تدخل الفواصل من 14 إلى 60 يومًا فقط في الوسيط."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "يمكن تصدير 5,000 جهة اتصال كحد أقصى في المرة الواحدة."
+ 
+@@ -3080,9 +3073,6 @@ msgstr "خطأ"
+ msgid "Error: %s"
+ msgstr "خطأ: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "تقدير الدورة التالية"
+-
+ msgid "Estimated from older data"
+ msgstr "تقدير من بيانات أقدم"
+ 
+@@ -10753,3 +10743,25 @@ msgstr "تأكيد دورة شهرية جديدة"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "إبقاء الإيقاف المؤقت"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "هل تريد نقل صور GIF المتحركة المحددة؟"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "الملفات المراد نقلها"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "هل تريد نقل الملفات المحددة (%(count)d) إلى مجلد الرسوم المتحركة؟ ستُحفظ الملفات الأصلية وتعديلاتها. اختر «لا» لإبقائها في مكانها."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "هل تريد إنشاء المجلدات المفقودة داخل مجلد الرسوم المتحركة ونقل الملفات المحددة (%(count)d)؟ اختر «لا» لترك الملفات والمجلدات دون تغيير."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "استعادة الوسائط"
+diff --git a/magnolie-organizer/po/be.po b/magnolie-organizer/po/be.po
+index 8f40864bf456c7c2bdc36cb1d0ae61f8ceae4193..60b677ef694815b084735a98cfc5179bb1c54d8a 100644
+--- a/magnolie-organizer/po/be.po
++++ b/magnolie-organizer/po/be.po
+@@ -1122,14 +1122,6 @@ msgstr "Перад сном"
+ msgid "At least one health view must remain enabled."
+ msgstr "Павінен заставацца ўключаным прынамсі адзін від раздзела здароўя."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"Патрэбныя прынамсі тры запісаныя пачаткі. Дні крывацёку з прамежкамі да трох "
+-"дзён утвараюць адзін эпізод; у медыяну ўваходзяць толькі інтэрвалы 14–60 "
+-"дзён."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "За адзін раз можна экспартаваць не больш за 5 000 кантактаў."
+ 
+@@ -2999,9 +2991,6 @@ msgstr "Памылка"
+ msgid "Error: %s"
+ msgstr "Памылка: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Ацэньваць пачатак наступнай менструацыі"
+-
+ msgid "Estimated from older data"
+ msgstr "Ацэнена са старэйшых даных"
+ 
+@@ -10723,3 +10712,25 @@ msgstr "Пацвердзіць новую менструацыю"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Пакінуць паўзу"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Перамясціць выбраныя GIF-анімацыі?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Файлы для перамяшчэння"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "Перамясціць выбраныя файлы (%(count)d) у папку анімацый? Зыходныя файлы і змены захаваюцца. Выберыце «Не», каб пакінуць іх на ранейшым месцы."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "Стварыць адсутныя папкі ў папцы анімацый і перамясціць выбраныя файлы (%(count)d)? Выберыце «Не», каб пакінуць файлы і папкі без змен."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Аднавіць медыяфайлы"
+diff --git a/magnolie-organizer/po/cs.po b/magnolie-organizer/po/cs.po
+index f99618df5c6ae03a6aae76d1c54c2cfadc8efdf5..c6304e653eb768e978eccd8985ec22b00daa9293 100644
+--- a/magnolie-organizer/po/cs.po
++++ b/magnolie-organizer/po/cs.po
+@@ -1119,14 +1119,6 @@ msgstr "Před spaním"
+ msgid "At least one health view must remain enabled."
+ msgstr "Alespoň jedno zobrazení zdraví musí zůstat povolené."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"Jsou potřeba alespoň tři zaznamenané začátky. Dny krvácení vzdálené nejvýše "
+-"tři dny tvoří jednu epizodu; do mediánu se započítávají pouze intervaly 14–"
+-"60 dní."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "Najednou lze exportovat nejvýše 5 000 kontaktů."
+ 
+@@ -2990,9 +2982,6 @@ msgstr "Chyba"
+ msgid "Error: %s"
+ msgstr "Chyba: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Odhadovat příští menstruaci"
+-
+ msgid "Estimated from older data"
+ msgstr "Odhadnuto ze starších dat"
+ 
+@@ -10680,3 +10669,25 @@ msgstr "Potvrdit novou menstruaci"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Ponechat přestávku"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Přesunout vybrané animace GIF?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Soubory k přesunutí"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "Přesunout vybrané soubory (%(count)d) do složky animací? Původní soubory a úpravy budou zachovány. Zvolte Ne, pokud je chcete ponechat na původním místě."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "Vytvořit chybějící složky ve složce animací a přesunout vybrané soubory (%(count)d)? Zvolte Ne, pokud chcete ponechat soubory a složky beze změny."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Obnovit média"
+diff --git a/magnolie-organizer/po/da.po b/magnolie-organizer/po/da.po
+index 59d22e7af7c8ecc194ea5f20c134b2e04c3c7aaf..f57d03e155338edf4acb506a30d6b75c31509610 100644
+--- a/magnolie-organizer/po/da.po
++++ b/magnolie-organizer/po/da.po
+@@ -1079,13 +1079,6 @@ msgstr "Ved sengetid"
+ msgid "At least one health view must remain enabled."
+ msgstr "Mindst én sundhedsvisning skal forblive aktiveret."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"Mindst tre registrerede starter kræves. Blødningsdage med op til tre dages "
+-"mellemrum udgør én episode; kun intervaller på 14–60 dage indgår i medianen."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "Der kan højst eksporteres 5.000 kontakter ad gangen."
+ 
+@@ -2959,9 +2952,6 @@ msgstr "Fejl"
+ msgid "Error: %s"
+ msgstr "Fejl: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Anslå næste menstruation"
+-
+ msgid "Estimated from older data"
+ msgstr "Anslået ud fra ældre data"
+ 
+@@ -10665,3 +10655,25 @@ msgstr "Bekræft ny menstruation"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Behold pausen"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Flyt de valgte GIF-animationer?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Filer, der skal flyttes"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "Flyt de valgte filer (%(count)d) til mappen med animationer? De oprindelige filer og redigeringer bevares. Vælg Nej for at lade dem blive, hvor de er."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "Opret de manglende mapper i mappen med animationer, og flyt de valgte filer (%(count)d)? Vælg Nej for at lade filer og mapper være uændrede."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Gendan medier"
+diff --git a/magnolie-organizer/po/de.po b/magnolie-organizer/po/de.po
+index e592dfd284de51a72747c05f64b22f081ee97997..bc7ad5dddae010e06c757751f02b87d543a609a1 100644
+--- a/magnolie-organizer/po/de.po
++++ b/magnolie-organizer/po/de.po
+@@ -1097,14 +1097,6 @@ msgstr "Vor dem Schlafengehen"
+ msgid "At least one health view must remain enabled."
+ msgstr "Mindestens eine Gesundheitsansicht muss aktiviert bleiben."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"Mindestens drei eingetragene Regelbeginne sind nötig. Blutungstage mit bis "
+-"zu drei Tagen Abstand zählen als ein Vorkommen; nur Abstände von 14–60 Tagen "
+-"gehen in den Median ein."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "Es können höchstens 5.000 Kontakte auf einmal exportiert werden."
+ 
+@@ -3005,9 +2997,6 @@ msgstr "Fehler"
+ msgid "Error: %s"
+ msgstr "Fehler: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Nächste Regel schätzen"
+-
+ msgid "Estimated from older data"
+ msgstr "Aus älteren Daten abgeleitet"
+ 
+@@ -10882,3 +10871,21 @@ msgstr "Neue Periode bestätigen"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Pause beibehalten"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Ausgewählte GIF-Animationen verschieben?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Zu verschiebende Dateien"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "Die ausgewählten Dateien (%(count)d) in den Ordner Animationen verschieben? Die Originaldateien und Bearbeitungen bleiben erhalten. Wählen Sie Nein, um sie an ihrem bisherigen Ort zu belassen."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "Die fehlenden Ordner im Ordner Animationen anlegen und die ausgewählten Dateien (%(count)d) verschieben? Wählen Sie Nein, um Dateien und Ordner unverändert zu lassen."
+diff --git a/magnolie-organizer/po/es.po b/magnolie-organizer/po/es.po
+index a62e78f89e7ddc315ad4e3d71a420ccb2a5b3f3b..bcad9ec77b41a5715cf8d5444ecda91959a90044 100644
+--- a/magnolie-organizer/po/es.po
++++ b/magnolie-organizer/po/es.po
+@@ -1097,14 +1097,6 @@ msgstr "Al acostarse"
+ msgid "At least one health view must remain enabled."
+ msgstr "Debe permanecer activada al menos una vista de salud."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"Se necesitan al menos tres inicios registrados. Los días de sangrado "
+-"separados por hasta tres días forman un episodio; solo los intervalos de 14–"
+-"60 días entran en la mediana."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "Se pueden exportar como máximo 5.000 contactos a la vez."
+ 
+@@ -3006,9 +2998,6 @@ msgstr "Error"
+ msgid "Error: %s"
+ msgstr "Error: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Estimar la próxima menstruación"
+-
+ msgid "Estimated from older data"
+ msgstr "Estimado a partir de datos anteriores"
+ 
+@@ -10860,3 +10849,25 @@ msgstr "Confirmar nueva menstruación"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Mantener la pausa"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "¿Mover las animaciones GIF seleccionadas?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Archivos que se moverán"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "¿Mover los archivos seleccionados (%(count)d) a la carpeta de animaciones? Se conservarán los archivos originales y sus modificaciones. Seleccione No para dejarlos donde están."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "¿Crear las carpetas que faltan en la carpeta de animaciones y mover los archivos seleccionados (%(count)d)? Seleccione No para dejar los archivos y las carpetas sin cambios."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Restaurar archivos multimedia"
+diff --git a/magnolie-organizer/po/fr.po b/magnolie-organizer/po/fr.po
+index 208845bc9b1d30202982b453bcc1a78e9bdfc00f..8b24c3c069a673512dc59ac935c9feaad1796530 100644
+--- a/magnolie-organizer/po/fr.po
++++ b/magnolie-organizer/po/fr.po
+@@ -1106,14 +1106,6 @@ msgstr "Au coucher"
+ msgid "At least one health view must remain enabled."
+ msgstr "Au moins une vue de santé doit rester activée."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"Au moins trois débuts enregistrés sont nécessaires. Les jours de saignement "
+-"espacés de trois jours au maximum forment un épisode ; seuls les intervalles "
+-"de 14–60 jours entrent dans la médiane."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "Vous pouvez exporter au maximum 5 000 contacts à la fois."
+ 
+@@ -3028,9 +3020,6 @@ msgstr "Erreur"
+ msgid "Error: %s"
+ msgstr "Erreur : %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Estimer les prochaines règles"
+-
+ msgid "Estimated from older data"
+ msgstr "Estimé à partir des anciennes données"
+ 
+@@ -10962,3 +10951,25 @@ msgstr "Confirmer de nouvelles règles"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Maintenir la pause"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Déplacer les animations GIF sélectionnées ?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Fichiers à déplacer"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "Déplacer les fichiers sélectionnés (%(count)d) dans le dossier des animations ? Les fichiers originaux et leurs modifications seront conservés. Choisissez Non pour les laisser à leur emplacement actuel."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "Créer les dossiers manquants dans le dossier des animations et déplacer les fichiers sélectionnés (%(count)d) ? Choisissez Non pour laisser les fichiers et les dossiers inchangés."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Restaurer les médias"
+diff --git a/magnolie-organizer/po/hi.po b/magnolie-organizer/po/hi.po
+index c6d42439f99038a09ab221d37e28395be968b3bd..86ad5c6bb2a061c7ab450d110934f67b061313c2 100644
+--- a/magnolie-organizer/po/hi.po
++++ b/magnolie-organizer/po/hi.po
+@@ -1070,13 +1070,6 @@ msgstr "सोने के समय"
+ msgid "At least one health view must remain enabled."
+ msgstr "कम से कम एक स्वास्थ्य दृश्य सक्षम रहना चाहिए।"
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"कम से कम तीन दर्ज शुरुआत चाहिए। अधिकतम तीन दिन के अंतर वाले रक्तस्राव के दिन एक अवधि "
+-"हैं; मध्यिका में केवल 14–60 दिन के अंतर शामिल हैं।"
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "एक बार में अधिकतम 5,000 संपर्क निर्यात किए जा सकते हैं।"
+ 
+@@ -2907,9 +2900,6 @@ msgstr "गलती"
+ msgid "Error: %s"
+ msgstr "त्रुटि: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "अगली माहवारी का अनुमान लगाएँ"
+-
+ msgid "Estimated from older data"
+ msgstr "पुराने डेटा से अनुमानित"
+ 
+@@ -10454,3 +10444,25 @@ msgstr "नई माहवारी की पुष्टि करें"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "विराम बनाए रखें"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "चुने हुए GIF ऐनिमेशन स्थानांतरित करें?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "स्थानांतरित की जाने वाली फ़ाइलें"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "चुनी हुई फ़ाइलों (%(count)d) को ऐनिमेशन फ़ोल्डर में स्थानांतरित करें? मूल फ़ाइलें और उनमें किए गए संपादन सुरक्षित रहेंगे। उन्हें वहीं रखने के लिए नहीं चुनें।"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "ऐनिमेशन फ़ोल्डर में अनुपस्थित फ़ोल्डर बनाएँ और चुनी हुई फ़ाइलों (%(count)d) को स्थानांतरित करें? फ़ाइलों और फ़ोल्डरों को अपरिवर्तित रखने के लिए नहीं चुनें।"
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "मीडिया पुनर्स्थापित करें"
+diff --git a/magnolie-organizer/po/hsb.po b/magnolie-organizer/po/hsb.po
+index 829b5382657011d6fd76ef354a1d8a61420e7a69..512488da5e91e65792a2dd52aa4c8f7ad1f13249 100644
+--- a/magnolie-organizer/po/hsb.po
++++ b/magnolie-organizer/po/hsb.po
+@@ -1167,14 +1167,6 @@ msgstr "Před spanjom"
+ msgid "At least one health view must remain enabled."
+ msgstr "Znajmjeńša jedyn napohlad strowoty dyrbi zmóžnjeny wostać."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"Trjebaja so znajmjeńša tři zapisane spočatki. Krwawjenske dny z interwalom "
+-"hač do třoch dnjow tworia jedyn wuskyt; jenož interwale 14–60 dnjow do "
+-"mediana zachadźeja."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "Najwjace 5.000 kontaktow hodźi so naraz eksportować."
+ 
+@@ -3057,9 +3049,6 @@ msgstr "Fehler"
+ msgid "Error: %s"
+ msgstr "Zmylk: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Přichodnu menstruaciju wobličić"
+-
+ msgid "Estimated from older data"
+ msgstr "Ze staršich datow troštny"
+ 
+@@ -10834,3 +10823,25 @@ msgstr "Nowu menstruaciju wobkrućić"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Přestawku wobchować"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Wubrane GIF-animacije přesunyć?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Dataje za přesunjenje"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "Wubrane dataje (%(count)d) do rjadowaka animacijow přesunyć? Originalne dataje a wobdźěłanja so zachowaja. Wubjerće Ně, zo byšće je na dotalnym městnje wostajili."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "Falowace rjadowaki w rjadowaku animacijow wutworić a wubrane dataje (%(count)d) přesunyć? Wubjerće Ně, zo byšće dataje a rjadowaki njezměnjene wostajili."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Medije wobnowić"
+diff --git a/magnolie-organizer/po/it.po b/magnolie-organizer/po/it.po
+index 85dbd0c1dc86858ddb36640337dfb7f8fc2a63f3..a3a81ac584767851e70e08bf8b99ab296640d0a4 100644
+--- a/magnolie-organizer/po/it.po
++++ b/magnolie-organizer/po/it.po
+@@ -1094,14 +1094,6 @@ msgstr "Al momento di coricarsi"
+ msgid "At least one health view must remain enabled."
+ msgstr "Almeno una vista Salute deve rimanere attiva."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"Servono almeno tre inizi registrati. I giorni di sanguinamento distanti fino "
+-"a tre giorni formano un episodio; solo gli intervalli di 14–60 giorni "
+-"entrano nella mediana."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "È possibile esportare al massimo 5.000 contatti per volta."
+ 
+@@ -3005,9 +2997,6 @@ msgstr "Errore"
+ msgid "Error: %s"
+ msgstr "Errore: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Stimare le prossime mestruazioni"
+-
+ msgid "Estimated from older data"
+ msgstr "Stimato dai dati precedenti"
+ 
+@@ -10858,3 +10847,25 @@ msgstr "Conferma nuova mestruazione"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Mantieni la pausa"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Spostare le animazioni GIF selezionate?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "File da spostare"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "Spostare i file selezionati (%(count)d) nella cartella delle animazioni? I file originali e le modifiche saranno conservati. Scegliere No per lasciarli nella posizione attuale."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "Creare le cartelle mancanti nella cartella delle animazioni e spostare i file selezionati (%(count)d)? Scegliere No per lasciare invariati i file e le cartelle."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Ripristina i file multimediali"
+diff --git a/magnolie-organizer/po/ja.po b/magnolie-organizer/po/ja.po
+index 3dedc8533d580527e48f4ca8cf37bc5aed592dba..14047181423be6f0cbdc0d69ad6b6c4b8134e5ba 100644
+--- a/magnolie-organizer/po/ja.po
++++ b/magnolie-organizer/po/ja.po
+@@ -1048,13 +1048,6 @@ msgstr "就寝時"
+ msgid "At least one health view must remain enabled."
+ msgstr "健康管理の表示を 1 つ以上有効にしておく必要があります。"
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"記録された開始日が3回以上必要です。間隔が3日以内の出血日は同じ期間とし、中央"
+-"値には14〜60日の間隔だけを使用します。"
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "一度にエクスポートできる連絡先は最大 5,000 件です。"
+ 
+@@ -2924,9 +2917,6 @@ msgstr "エラー"
+ msgid "Error: %s"
+ msgstr "エラー: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "次の月経を推定する"
+-
+ msgid "Estimated from older data"
+ msgstr "古いデータから推定"
+ 
+@@ -10575,3 +10565,25 @@ msgstr "新たな月経として確認"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "一時停止を続ける"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "選択したGIFアニメーションを移動しますか？"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "移動するファイル"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "選択したファイル（%(count)d件）をアニメーションフォルダーに移動しますか？元のファイルと編集内容は保持されます。現在の場所に残すには「いいえ」を選んでください。"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "アニメーションフォルダー内に不足しているフォルダーを作成し、選択したファイル（%(count)d件）を移動しますか？ファイルとフォルダーを変更しない場合は「いいえ」を選んでください。"
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "メディアを復元"
+diff --git a/magnolie-organizer/po/magnolie-organizer.pot b/magnolie-organizer/po/magnolie-organizer.pot
+index 104957b122d7ab9ee96055f5697a900b286e11c0..91806ee067eaada81ab6a17c097b741da446441c 100644
+--- a/magnolie-organizer/po/magnolie-organizer.pot
++++ b/magnolie-organizer/po/magnolie-organizer.pot
+@@ -554,6 +554,11 @@ msgstr ""
+ msgid "A missing appointment could not be verified: %s"
+ msgstr ""
+ 
++msgid ""
++"A newly recorded period ends this planning pause. This does not determine "
++"whether pregnancy or menopause has ended."
++msgstr ""
++
+ msgid "A notebook with this name already exists in this group."
+ msgstr ""
+ 
+@@ -680,6 +685,9 @@ msgstr ""
+ msgid "Add a custom tab"
+ msgstr ""
+ 
++msgid "Add a reason or pause predictions"
++msgstr ""
++
+ msgid "Add another SMS"
+ msgstr ""
+ 
+@@ -918,6 +926,10 @@ msgstr ""
+ msgid "An existing virtual camera driver is required. Nothing was installed."
+ msgstr ""
+ 
++msgid ""
++"An interval outside 14–60 days interrupts the estimate. Check the entries."
++msgstr ""
++
+ msgid "Android restricts this device identifier."
+ msgstr ""
+ 
+@@ -1053,11 +1065,6 @@ msgstr ""
+ msgid "At least one health view must remain enabled."
+ msgstr ""
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr ""
+ 
+@@ -1198,6 +1205,9 @@ msgstr ""
+ msgid "Basic operation and appearance of the organizer."
+ msgstr ""
+ 
++msgid "Basis: %(count)s recorded intervals; typical interval %(days)s days."
++msgstr ""
++
+ msgid "Battery"
+ msgstr ""
+ 
+@@ -1246,6 +1256,9 @@ msgstr ""
+ msgid "Birthday party"
+ msgstr ""
+ 
++msgid "Birthday stored with this contact; no calendar entry."
++msgstr ""
++
+ msgid "Birthday today"
+ msgstr ""
+ 
+@@ -1261,6 +1274,23 @@ msgstr ""
+ msgid "Blank template for handwriting"
+ msgstr ""
+ 
++msgid ""
++"Bleeding during pregnancy or after menopause should be medically assessed. "
++"Record it as a new period only if that is how it has been identified."
++msgstr ""
++
++msgid "Bleeding intensity"
++msgstr ""
++
++msgid ""
++"Bleeding is recorded on %(days)s consecutive days in the latest episode. If "
++"it actually lasts this long, seek medical advice."
++msgstr ""
++
++msgid ""
++"Bleeding recorded. Is this a new period that should end the planning pause?"
++msgstr ""
++
+ msgid "Bleeding · heavy"
+ msgstr ""
+ 
+@@ -1334,6 +1364,9 @@ msgstr ""
+ msgid "Brandenburg"
+ msgstr ""
+ 
++msgid "Breastfeeding"
++msgstr ""
++
+ msgid "Bremen"
+ msgstr ""
+ 
+@@ -1372,6 +1405,13 @@ msgstr ""
+ msgid "Calculate the route to this address"
+ msgstr ""
+ 
++msgid ""
++"Calculated from at least three starts. Bleeding entries up to three days "
++"apart form one episode. After an interval outside 14–60 days, two new "
++"intervals are needed. The window spans the shortest and longest of up to "
++"twelve recent intervals, plus two days on either side."
++msgstr ""
++
+ msgid "Calendar"
+ msgstr ""
+ 
+@@ -1381,6 +1421,11 @@ msgstr ""
+ msgid "Calendar (ICS)"
+ msgstr ""
+ 
++msgid ""
++"Calendar display and reminders can be enabled separately. Existing entries "
++"are preserved."
++msgstr ""
++
+ #, python-format
+ msgid "Calendar entry %(number)d could not be read completely: %(error)s"
+ msgstr ""
+@@ -1516,6 +1561,9 @@ msgstr ""
+ msgid "Change password"
+ msgstr ""
+ 
++msgid "Change pause"
++msgstr ""
++
+ msgid "Changes are applied automatically"
+ msgstr ""
+ 
+@@ -1674,6 +1722,9 @@ msgid ""
+ "Choose sources now. Import previews are kept until you finish the assistant."
+ msgstr ""
+ 
++msgid "Choose the observed bleeding intensity, then confirm this day only."
++msgstr ""
++
+ msgid "Choose the save location for each accepted file"
+ msgstr ""
+ 
+@@ -1829,6 +1880,15 @@ msgstr ""
+ msgid "Confirm SMS plans"
+ msgstr ""
+ 
++msgid "Confirm bleeding"
++msgstr ""
++
++msgid "Confirm bleeding on %(date)s"
++msgstr ""
++
++msgid "Confirm new period"
++msgstr ""
++
+ msgid ""
+ "Confirm only if exactly the same six-digit code is shown on both devices."
+ msgstr ""
+@@ -1931,8 +1991,8 @@ msgid "Contact synchronization"
+ msgstr ""
+ 
+ msgid ""
+-"Contact synchronization preview: %(new)s new, %(changed)s changed, "
+-"%(duplicates)s possible duplicates, %(deletions)s deletion proposals."
++"Contact synchronization preview: %(new)s new, %(changed)s changed, %"
++"(duplicates)s possible duplicates, %(deletions)s deletion proposals."
+ msgstr ""
+ 
+ msgid ""
+@@ -2067,6 +2127,12 @@ msgstr ""
+ msgid "Create recovery points"
+ msgstr ""
+ 
++#, python-format
++msgid ""
++"Create the missing folders in the Animations folder and move the %(count)d "
++"selected files? Choose No to leave the files and folders unchanged."
++msgstr ""
++
+ msgid "Created"
+ msgstr ""
+ 
+@@ -2366,6 +2432,9 @@ msgstr ""
+ msgid "Destination folder"
+ msgstr ""
+ 
++msgid "Details and limitations"
++msgstr ""
++
+ msgid "Detect now"
+ msgstr ""
+ 
+@@ -2510,6 +2579,9 @@ msgid ""
+ "driver."
+ msgstr ""
+ 
++msgid "Earlier estimate: %(date)s"
++msgstr ""
++
+ msgid "Earlier occurrence"
+ msgstr ""
+ 
+@@ -2673,6 +2745,9 @@ msgctxt "time tracking"
+ msgid "End date"
+ msgstr ""
+ 
++msgid "End pause"
++msgstr ""
++
+ msgid "Ending the call"
+ msgstr ""
+ 
+@@ -2728,6 +2803,9 @@ msgstr ""
+ msgid "Enter an application command."
+ msgstr ""
+ 
++msgid "Enter an end date on or after the start of the pause."
++msgstr ""
++
+ msgid "Enter at least four characters for the backup password."
+ msgstr ""
+ 
+@@ -2776,7 +2854,9 @@ msgstr ""
+ msgid "Error: %s"
+ msgstr ""
+ 
+-msgid "Estimate the next period"
++msgid ""
++"Estimate from your entries, not a diagnosis or contraception method. Seek "
++"medical advice for new, persistent or distressing changes."
+ msgstr ""
+ 
+ msgid "Estimated from older data"
+@@ -2785,6 +2865,15 @@ msgstr ""
+ msgid "Estimated next period"
+ msgstr ""
+ 
++msgid "Estimated start window"
++msgstr ""
++
++msgid "Estimated start: %(date)s"
++msgstr ""
++
++msgid "Estimated window: %(from)s – %(to)s"
++msgstr ""
++
+ msgid "Evening"
+ msgstr ""
+ 
+@@ -2910,6 +2999,9 @@ msgstr ""
+ msgid "File saved: %(name)s"
+ msgstr ""
+ 
++msgid "Files to move"
++msgstr ""
++
+ msgid "Fill selection"
+ msgstr ""
+ 
+@@ -3038,6 +3130,9 @@ msgstr ""
+ msgid "Full"
+ msgstr ""
+ 
++msgid "Future bleeding entries are not used: %(count)s."
++msgstr ""
++
+ msgid "GNOME Maps"
+ msgstr ""
+ 
+@@ -3514,6 +3609,9 @@ msgstr ""
+ msgid "Keep instant"
+ msgstr ""
+ 
++msgid "Keep pause"
++msgstr ""
++
+ msgid ""
+ "Keep the original recurrence data; this local-time action is for individual "
+ "entries."
+@@ -3891,6 +3989,9 @@ msgstr ""
+ msgid "Medication"
+ msgstr ""
+ 
++msgid "Medication or hormonal treatment"
++msgstr ""
++
+ msgid "Medication plan"
+ msgstr ""
+ 
+@@ -4033,9 +4134,18 @@ msgstr ""
+ msgid "Move notebook up"
+ msgstr ""
+ 
++msgid "Move selected GIF animations?"
++msgstr ""
++
+ msgid "Move selection"
+ msgstr ""
+ 
++#, python-format
++msgid ""
++"Move the %(count)d selected files into the Animations folder? The original "
++"files and edits are preserved. Choose No to leave them where they are."
++msgstr ""
++
+ msgid "Move the ticked entries to the wastebasket"
+ msgstr ""
+ 
+@@ -4243,6 +4353,10 @@ msgctxt "time tracking"
+ msgid "Night shift"
+ msgstr ""
+ 
++msgid ""
++"Nine calendar months is only an editable planning pause, not a due date."
++msgstr ""
++
+ msgid "No"
+ msgstr ""
+ 
+@@ -4300,9 +4414,15 @@ msgstr ""
+ msgid "No entries yet."
+ msgstr ""
+ 
++msgid "No estimate is possible at the edge of the supported calendar range."
++msgstr ""
++
+ msgid "No file selected"
+ msgstr ""
+ 
++msgid "No fixed end date"
++msgstr ""
++
+ msgid "No history charts"
+ msgstr ""
+ 
+@@ -4460,6 +4580,9 @@ msgstr ""
+ msgid "Not enough protected disk space for a recovery snapshot."
+ msgstr ""
+ 
++msgid "Not enough recent data for a personal estimate."
++msgstr ""
++
+ msgid "Not now"
+ msgstr ""
+ 
+@@ -4554,6 +4677,9 @@ msgstr ""
+ msgid "Notifications are off unless enabled below."
+ msgstr ""
+ 
++msgid "Notify before the estimated period"
++msgstr ""
++
+ msgid "Notify, then unlock (recommended)"
+ msgstr ""
+ 
+@@ -4869,6 +4995,9 @@ msgstr ""
+ msgid "Other addresses"
+ msgstr ""
+ 
++msgid "Other known reason"
++msgstr ""
++
+ msgid "Other phone numbers"
+ msgstr ""
+ 
+@@ -4957,6 +5086,12 @@ msgstr ""
+ msgid "Pairing, file and clipboard requests are confirmed in this window."
+ msgstr ""
+ 
++msgid ""
++"Pale drops mark possible start days, not a predicted bleeding duration. "
++"Active predictions disappear after the estimated window if unconfirmed. Only "
++"days you confirm as actual bleeding enter future calculations."
++msgstr ""
++
+ msgid "Palm tree"
+ msgstr ""
+ 
+@@ -5010,6 +5145,15 @@ msgstr ""
+ msgid "Pause incoming control for this session"
+ msgstr ""
+ 
++msgid "Pause period predictions"
++msgstr ""
++
++msgid "Pause started: %(date)s."
++msgstr ""
++
++msgid "Pause until (inclusive)"
++msgstr ""
++
+ msgctxt "time tracking"
+ msgid "Paused"
+ msgstr ""
+@@ -5032,9 +5176,21 @@ msgstr ""
+ msgid "People"
+ msgstr ""
+ 
++msgid "Perimenopause or menopause"
++msgstr ""
++
+ msgid "Period"
+ msgstr ""
+ 
++msgid "Period forecast (estimate)"
++msgstr ""
++
++msgid "Period predictions paused: %(reason)s; no fixed end date."
++msgstr ""
++
++msgid "Period predictions paused: %(reason)s; until %(date)s."
++msgstr ""
++
+ msgid "Permanent KDE listener active"
+ msgstr ""
+ 
+@@ -5172,11 +5328,6 @@ msgstr ""
+ msgid "Photo synchronization could not be started."
+ msgstr ""
+ 
+-msgid ""
+-"The default folder is not private. Choose a destination folder you own that "
+-"others cannot write to, then enable photo synchronization again."
+-msgstr ""
+-
+ msgid ""
+ "Photo synchronization could not be started. Check the current phone "
+ "connection and permissions."
+@@ -5234,6 +5385,9 @@ msgstr ""
+ msgid "Please enter a unique category name without commas or semicolons."
+ msgstr ""
+ 
++msgid "Please enter a valid birth date."
++msgstr ""
++
+ msgid "Please enter a website or application for the custom action."
+ msgstr ""
+ 
+@@ -5316,6 +5470,9 @@ msgstr ""
+ msgid "Preferred backup folder"
+ msgstr ""
+ 
++msgid "Pregnancy"
++msgstr ""
++
+ msgid "Preparing photo synchronization…"
+ msgstr ""
+ 
+@@ -5476,6 +5633,9 @@ msgstr ""
+ msgid "Reason"
+ msgstr ""
+ 
++msgid "Reason for the pause"
++msgstr ""
++
+ msgid "Receipt completed. Send its historical confirmation separately."
+ msgstr ""
+ 
+@@ -5503,6 +5663,12 @@ msgstr ""
+ msgid "Reconnect"
+ msgstr ""
+ 
++msgid "Record actual bleeding on %(date)s?"
++msgstr ""
++
++msgid "Recorded bleeding overlaps the estimated window. Check the entries."
++msgstr ""
++
+ msgctxt "time tracking"
+ msgid "Recorded times"
+ msgstr ""
+@@ -5739,6 +5905,9 @@ msgstr ""
+ msgid "Restore failed."
+ msgstr ""
+ 
++msgid "Restore media"
++msgstr ""
++
+ msgid ""
+ "Restore this snapshot completely? A mandatory pre-restore snapshot is "
+ "created first."
+@@ -5943,6 +6112,9 @@ msgstr ""
+ msgid "Save endpoint"
+ msgstr ""
+ 
++msgid "Save pause"
++msgstr ""
++
+ msgid "Save rejected: The data is encrypted and has not been unlocked yet."
+ msgstr ""
+ 
+@@ -6336,6 +6508,9 @@ msgstr ""
+ msgid "Show pairing QR code"
+ msgstr ""
+ 
++msgid "Show period forecast in calendar"
++msgstr ""
++
+ msgid "Show phone screen"
+ msgstr ""
+ 
+@@ -7191,6 +7366,11 @@ msgstr ""
+ msgid "The data key is not available."
+ msgstr ""
+ 
++msgid ""
++"The default folder is not private. Choose a destination folder you own that "
++"others cannot write to, then enable photo synchronization again."
++msgstr ""
++
+ msgid ""
+ "The directory containing the interface (/usr/share/magnolie-organizer/web) "
+ "was not found."
+@@ -7230,6 +7410,11 @@ msgctxt "time tracking"
+ msgid "The entry could not be saved. Reload it and try again."
+ msgstr ""
+ 
++msgid ""
++"The estimated window ended %(days)s days ago. No new start is recorded; "
++"check for missing entries."
++msgstr ""
++
+ msgid "The file could not be read."
+ msgstr ""
+ 
+@@ -7301,9 +7486,9 @@ msgid "The import file is larger than 32 megabytes."
+ msgstr ""
+ 
+ msgid ""
+-"The information is retrieved once from the open directory openholidaysapi."
+-"org and then kept in the organizer. The application therefore needs an "
+-"internet connection only once."
++"The information is retrieved once from the open directory "
++"openholidaysapi.org and then kept in the organizer. The application "
++"therefore needs an internet connection only once."
+ msgstr ""
+ 
+ msgid "The internet service did not return a valid IP address."
+@@ -7320,6 +7505,11 @@ msgstr ""
+ msgid "The last notebook group cannot be deleted."
+ msgstr ""
+ 
++msgid ""
++"The latest recorded interval is %(days)s days; the earlier typical interval "
++"was %(baseline)s days."
++msgstr ""
++
+ msgid "The log could not be opened."
+ msgstr ""
+ 
+@@ -7473,6 +7663,11 @@ msgstr ""
+ msgid "The password transaction journal is damaged."
+ msgstr ""
+ 
++msgid ""
++"The pause has ended. A new estimate needs three newly recorded starts; "
++"earlier intervals are not reused."
++msgstr ""
++
+ msgid ""
+ "The permanent KDE listener cannot start because PyOpenSSL is unavailable."
+ msgstr ""
+@@ -7582,6 +7777,18 @@ msgstr ""
+ msgid "The public key is invalid."
+ msgstr ""
+ 
++msgid ""
++"The reason is self-reported. During the pause, estimates and cycle-deviation "
++"reminders are suppressed. Existing entries are retained."
++msgstr ""
++
++msgid ""
++"The recorded intervals vary by %(days)s days. The estimate is uncertain."
++msgstr ""
++
++msgid "The records are too old for current planning. Check or add entries."
++msgstr ""
++
+ msgid "The recovery snapshot folder must not be a symbolic link."
+ msgstr ""
+ 
+@@ -7993,6 +8200,9 @@ msgstr ""
+ msgid "This image format cannot be used."
+ msgstr ""
+ 
++msgid "This is a future estimate. Only today or a past day can be confirmed."
++msgstr ""
++
+ msgid "This is a reminder test."
+ msgstr ""
+ 
+@@ -9241,281 +9451,3 @@ msgstr[1] ""
+ 
+ msgid "＋ Add appointment"
+ msgstr ""
+-
+-#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+-msgid "Birthday stored with this contact; no calendar entry."
+-msgstr ""
+-
+-#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+-msgid "Please enter a valid birth date."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Show period forecast in calendar"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Notify before the estimated period"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Period forecast (estimate)"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Estimated start: %(date)s"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Estimated window: %(from)s – %(to)s"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Basis: %(count)s recorded intervals; typical interval %(days)s days."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Not enough recent data for a personal estimate."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "An interval outside 14–60 days interrupts the estimate. Check the entries."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Future bleeding entries are not used: %(count)s."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "The estimated window ended %(days)s days ago. No new start is recorded; check for missing entries."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "The latest recorded interval is %(days)s days; the earlier typical interval was %(baseline)s days."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "The recorded intervals vary by %(days)s days. The estimate is uncertain."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "The records are too old for current planning. Check or add entries."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Bleeding is recorded on %(days)s consecutive days in the latest episode. If it actually lasts this long, seek medical advice."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Recorded bleeding overlaps the estimated window. Check the entries."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "No estimate is possible at the edge of the supported calendar range."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Estimate from your entries, not a diagnosis or contraception method. Seek medical advice for new, persistent or distressing changes."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Calculated from at least three starts. Bleeding entries up to three days apart form one episode. After an interval outside 14–60 days, two new intervals are needed. The window spans the shortest and longest of up to twelve recent intervals, plus two days on either side."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Details and limitations"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Estimated start window"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Earlier estimate: %(date)s"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Calendar display and reminders can be enabled separately. Existing entries are preserved."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Record actual bleeding on %(date)s?"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Choose the observed bleeding intensity, then confirm this day only."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Confirm bleeding"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "This is a future estimate. Only today or a past day can be confirmed."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Pale drops mark possible start days, not a predicted bleeding duration. Active predictions disappear after the estimated window if unconfirmed. Only days you confirm as actual bleeding enter future calculations."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Bleeding intensity"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Confirm bleeding on %(date)s"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Pause period predictions"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Reason for the pause"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Pregnancy"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Breastfeeding"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Medication or hormonal treatment"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Perimenopause or menopause"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Other known reason"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Pause until (inclusive)"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "No fixed end date"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Nine calendar months is only an editable planning pause, not a due date."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "The reason is self-reported. During the pause, estimates and cycle-deviation reminders are suppressed. Existing entries are retained."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Save pause"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "End pause"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Period predictions paused: %(reason)s; until %(date)s."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Period predictions paused: %(reason)s; no fixed end date."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "The pause has ended. A new estimate needs three newly recorded starts; earlier intervals are not reused."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Change pause"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Add a reason or pause predictions"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Enter an end date on or after the start of the pause."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Bleeding during pregnancy or after menopause should be medically assessed. Record it as a new period only if that is how it has been identified."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "A newly recorded period ends this planning pause. This does not determine whether pregnancy or menopause has ended."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Pause started: %(date)s."
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Bleeding recorded. Is this a new period that should end the planning pause?"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Confirm new period"
+-msgstr ""
+-
+-
+-#. Optional period forecast improvements (Refs #803).
+-msgid "Keep pause"
+-msgstr ""
+diff --git a/magnolie-organizer/po/nb.po b/magnolie-organizer/po/nb.po
+index 4067cfa71b58f17657feddb9e2f808689e7028a4..19730beb95a478450d0d06d7bba7db1f27ab89d0 100644
+--- a/magnolie-organizer/po/nb.po
++++ b/magnolie-organizer/po/nb.po
+@@ -1078,14 +1078,6 @@ msgstr "Ved sengetid"
+ msgid "At least one health view must remain enabled."
+ msgstr "Minst én helsevisning må være aktivert."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"Minst tre registrerte starter kreves. Blødningsdager med opptil tre dagers "
+-"mellomrom utgjør én episode; bare intervaller på 14–60 dager inngår i "
+-"medianen."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "Maksimalt 5 000 kontakter kan eksporteres om gangen."
+ 
+@@ -2960,9 +2952,6 @@ msgstr "Feil"
+ msgid "Error: %s"
+ msgstr "Feil: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Anslå neste menstruasjon"
+-
+ msgid "Estimated from older data"
+ msgstr "Anslått fra eldre data"
+ 
+@@ -10672,3 +10661,25 @@ msgstr "Bekreft ny menstruasjon"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Behold pausen"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Flytte de valgte GIF-animasjonene?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Filer som skal flyttes"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "Flytte de valgte filene (%(count)d) til animasjonsmappen? De opprinnelige filene og redigeringene beholdes. Velg Nei for å la dem ligge der de er."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "Opprette de manglende mappene i animasjonsmappen og flytte de valgte filene (%(count)d)? Velg Nei for å la filer og mapper være uendret."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Gjenopprett medier"
+diff --git a/magnolie-organizer/po/nl.po b/magnolie-organizer/po/nl.po
+index 5919291730dcc5066efab04f8a34e24f70d85064..363b0abab389fc4e3bb6b7e8a78511c46a1ca5ea 100644
+--- a/magnolie-organizer/po/nl.po
++++ b/magnolie-organizer/po/nl.po
+@@ -1089,14 +1089,6 @@ msgstr "Voor het slapengaan"
+ msgid "At least one health view must remain enabled."
+ msgstr "Minstens één gezondheidsweergave moet ingeschakeld blijven."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"Minstens drie vastgelegde begindagen zijn nodig. Bloedingsdagen met "
+-"hoogstens drie dagen ertussen vormen één episode; alleen intervallen van 14–"
+-"60 dagen tellen mee voor de mediaan."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "Er kunnen maximaal 5.000 contacten tegelijk worden geëxporteerd."
+ 
+@@ -2988,9 +2980,6 @@ msgstr "Fout"
+ msgid "Error: %s"
+ msgstr "Fout: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Volgende menstruatie schatten"
+-
+ msgid "Estimated from older data"
+ msgstr "Geschat op basis van oudere gegevens"
+ 
+@@ -10809,3 +10798,25 @@ msgstr "Nieuwe menstruatie bevestigen"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Pauze behouden"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Geselecteerde GIF-animaties verplaatsen?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Te verplaatsen bestanden"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "De geselecteerde bestanden (%(count)d) naar de map met animaties verplaatsen? De oorspronkelijke bestanden en bewerkingen blijven behouden. Kies Nee om ze op hun huidige plaats te laten staan."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "De ontbrekende mappen in de map met animaties maken en de geselecteerde bestanden (%(count)d) verplaatsen? Kies Nee om bestanden en mappen ongewijzigd te laten."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Media herstellen"
+diff --git a/magnolie-organizer/po/pl.po b/magnolie-organizer/po/pl.po
+index cb268635fa1145fc3d37061be4a80472fa17ffae..b4f4c40c916488432f5c7694cee3c408b837acd7 100644
+--- a/magnolie-organizer/po/pl.po
++++ b/magnolie-organizer/po/pl.po
+@@ -1128,14 +1128,6 @@ msgstr "Przed snem"
+ msgid "At least one health view must remain enabled."
+ msgstr "Co najmniej jeden widok zdrowia musi pozostać włączony."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"Potrzebne są co najmniej trzy zapisane początki. Dni krwawienia oddalone o "
+-"najwyżej trzy dni tworzą jeden epizod; do mediany wchodzą tylko odstępy 14–"
+-"60 dni."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "Jednorazowo można wyeksportować najwyżej 5 000 kontaktów."
+ 
+@@ -3014,9 +3006,6 @@ msgstr "Błąd"
+ msgid "Error: %s"
+ msgstr "Błąd: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Szacować następną miesiączkę"
+-
+ msgid "Estimated from older data"
+ msgstr "Oszacowano na podstawie starszych danych"
+ 
+@@ -10783,3 +10772,25 @@ msgstr "Potwierdź nową miesiączkę"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Zachowaj przerwę"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Przenieść wybrane animacje GIF?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Pliki do przeniesienia"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "Przenieść wybrane pliki (%(count)d) do folderu animacji? Oryginalne pliki i wprowadzone zmiany zostaną zachowane. Wybierz Nie, aby pozostawić je w obecnym miejscu."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "Utworzyć brakujące foldery w folderze animacji i przenieść wybrane pliki (%(count)d)? Wybierz Nie, aby pozostawić pliki i foldery bez zmian."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Przywróć multimedia"
+diff --git a/magnolie-organizer/po/pt.po b/magnolie-organizer/po/pt.po
+index 14a4b7eb566cbdb0e333be4ae331b15f4620cd05..9c8c4f27de55a375e720d5bb95f406d48f275e94 100644
+--- a/magnolie-organizer/po/pt.po
++++ b/magnolie-organizer/po/pt.po
+@@ -1095,14 +1095,6 @@ msgstr "Ao deitar"
+ msgid "At least one health view must remain enabled."
+ msgstr "Pelo menos uma vista de saúde tem de permanecer ativada."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"São necessários pelo menos três inícios registados. Dias de sangramento "
+-"separados por até três dias formam um episódio; apenas intervalos de 14–60 "
+-"dias entram na mediana."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "Só é possível exportar até 5.000 contactos de cada vez."
+ 
+@@ -3001,9 +2993,6 @@ msgstr "Erro"
+ msgid "Error: %s"
+ msgstr "Erro: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Estimar a próxima menstruação"
+-
+ msgid "Estimated from older data"
+ msgstr "Estimado a partir de dados anteriores"
+ 
+@@ -10834,3 +10823,25 @@ msgstr "Confirmar nova menstruação"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Manter a pausa"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Mover as animações GIF selecionadas?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Ficheiros a mover"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "Mover os ficheiros selecionados (%(count)d) para a pasta de animações? Os ficheiros originais e as alterações serão preservados. Escolha Não para os deixar na localização atual."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "Criar as pastas em falta na pasta de animações e mover os ficheiros selecionados (%(count)d)? Escolha Não para manter os ficheiros e as pastas inalterados."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Restaurar ficheiros multimédia"
+diff --git a/magnolie-organizer/po/ru.po b/magnolie-organizer/po/ru.po
+index 3a1e43e43803c337f9cab3fc5a30114aa8664fb4..8501bb031450a1581c085edf0f57a302412a3b52 100644
+--- a/magnolie-organizer/po/ru.po
++++ b/magnolie-organizer/po/ru.po
+@@ -1132,14 +1132,6 @@ msgstr "Перед сном"
+ msgid "At least one health view must remain enabled."
+ msgstr "Должен быть включён хотя бы один вид раздела здоровья."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"Нужно не менее трёх записанных начал. Дни кровотечения с промежутками до "
+-"трёх дней считаются одним эпизодом; в медиану входят только интервалы 14–60 "
+-"дней."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "За один раз можно экспортировать не более 5 000 контактов."
+ 
+@@ -3016,9 +3008,6 @@ msgstr "Ошибка"
+ msgid "Error: %s"
+ msgstr "Ошибка: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Оценивать начало следующей менструации"
+-
+ msgid "Estimated from older data"
+ msgstr "Оценено по старым данным"
+ 
+@@ -10782,3 +10771,25 @@ msgstr "Подтвердить новую менструацию"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Сохранить паузу"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Переместить выбранные GIF-анимации?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Файлы для перемещения"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "Переместить выбранные файлы (%(count)d) в папку анимаций? Исходные файлы и изменения сохранятся. Выберите «Нет», чтобы оставить их на прежнем месте."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "Создать недостающие папки в папке анимаций и переместить выбранные файлы (%(count)d)? Выберите «Нет», чтобы оставить файлы и папки без изменений."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Восстановить медиафайлы"
+diff --git a/magnolie-organizer/po/tr.po b/magnolie-organizer/po/tr.po
+index c29c3a6ab67b8899fe667bb960ac1c27e0b045fb..f17badd316c7da26cbd3fd2639ee2bef5aaa4a4b 100644
+--- a/magnolie-organizer/po/tr.po
++++ b/magnolie-organizer/po/tr.po
+@@ -1087,13 +1087,6 @@ msgstr "Yatmadan önce"
+ msgid "At least one health view must remain enabled."
+ msgstr "En az bir sağlık görünümü etkin kalmalıdır."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"En az üç kayıtlı başlangıç gerekir. Aralarında en çok üç gün bulunan kanama "
+-"günleri tek dönem sayılır; medyana yalnızca 14–60 günlük aralıklar katılır."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "Tek seferde en fazla 5.000 kişi dışa aktarılabilir."
+ 
+@@ -2962,9 +2955,6 @@ msgstr "Hata"
+ msgid "Error: %s"
+ msgstr "Hata: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Sonraki adeti tahmin et"
+-
+ msgid "Estimated from older data"
+ msgstr "Eski verilerden tahmin edildi"
+ 
+@@ -10655,3 +10645,25 @@ msgstr "Yeni adeti onayla"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Duraklatmayı sürdür"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Seçilen GIF animasyonları taşınsın mı?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Taşınacak dosyalar"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "Seçilen dosyalar (%(count)d) animasyonlar klasörüne taşınsın mı? Özgün dosyalar ve düzenlemeler korunur. Dosyaları bulundukları yerde bırakmak için Hayır seçeneğini seçin."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "Animasyonlar klasöründe eksik klasörler oluşturulsun ve seçilen dosyalar (%(count)d) taşınsın mı? Dosyaları ve klasörleri değiştirmemek için Hayır seçeneğini seçin."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Medya dosyalarını geri yükle"
+diff --git a/magnolie-organizer/po/uk.po b/magnolie-organizer/po/uk.po
+index 2e65dc79de5a2017f5270aacb3298b614db90d88..b120ce70eb2aaaa659a1cac554975d93a7150659 100644
+--- a/magnolie-organizer/po/uk.po
++++ b/magnolie-organizer/po/uk.po
+@@ -1123,14 +1123,6 @@ msgstr "Перед сном"
+ msgid "At least one health view must remain enabled."
+ msgstr "Має залишатися ввімкненим принаймні один вид розділу здоров’я."
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"Потрібні щонайменше три записані початки. Дні кровотечі з проміжками до "
+-"трьох днів утворюють один епізод; до медіани входять лише інтервали 14–60 "
+-"днів."
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "За один раз можна експортувати не більш як 5 000 контактів."
+ 
+@@ -2999,9 +2991,6 @@ msgstr "Помилка"
+ msgid "Error: %s"
+ msgstr "Помилка: %s"
+ 
+-msgid "Estimate the next period"
+-msgstr "Оцінювати початок наступної менструації"
+-
+ msgid "Estimated from older data"
+ msgstr "Оцінено за старішими даними"
+ 
+@@ -10733,3 +10722,25 @@ msgstr "Підтвердити нову менструацію"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "Залишити паузу"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "Перемістити вибрані GIF-анімації?"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "Файли для переміщення"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "Перемістити вибрані файли (%(count)d) до папки анімацій? Початкові файли та зміни буде збережено. Виберіть «Ні», щоб залишити їх на поточному місці."
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "Створити відсутні папки в папці анімацій і перемістити вибрані файли (%(count)d)? Виберіть «Ні», щоб залишити файли та папки без змін."
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "Відновити медіафайли"
+diff --git a/magnolie-organizer/po/zh_CN.po b/magnolie-organizer/po/zh_CN.po
+index c5d17af53445a99f5396539d8c277fa9234bf7c1..167e7eed79e95321e5d687ac9f85c50fb28df428 100644
+--- a/magnolie-organizer/po/zh_CN.po
++++ b/magnolie-organizer/po/zh_CN.po
+@@ -1016,13 +1016,6 @@ msgstr "睡前"
+ msgid "At least one health view must remain enabled."
+ msgstr "必须至少保留一个健康视图。"
+ 
+-msgid ""
+-"At least three recorded starts are needed. Bleeding days up to three days "
+-"apart form one episode; only intervals of 14–60 days enter the median."
+-msgstr ""
+-"至少需要记录三次开始日期。相隔不超过三天的出血日视为同一次；中位数只使用14–60"
+-"天的间隔。"
+-
+ msgid "At most 5,000 contacts can be exported at once."
+ msgstr "一次最多可导出 5,000 个联系人。"
+ 
+@@ -2821,9 +2814,6 @@ msgstr "错误"
+ msgid "Error: %s"
+ msgstr "错误：%s"
+ 
+-msgid "Estimate the next period"
+-msgstr "估计下次月经"
+-
+ msgid "Estimated from older data"
+ msgstr "根据旧数据估算"
+ 
+@@ -10173,3 +10163,25 @@ msgstr "确认新月经"
+ #. Optional period forecast improvements (Refs #803).
+ msgid "Keep pause"
+ msgstr "保持暂停"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Move selected GIF animations?"
++msgstr "移动选中的 GIF 动画？"
++
++#. Native GIF selection confirmation; Refs #820.
++msgid "Files to move"
++msgstr "要移动的文件"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
++msgstr "将选中的 %(count)d 个文件移入动画文件夹？原始文件及其编辑内容将保留。选择“否”可将文件保留在当前位置。"
++
++#. Native GIF selection confirmation; Refs #820.
++#, python-format
++msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
++msgstr "在动画文件夹中创建缺少的文件夹，并移动选中的 %(count)d 个文件？选择“否”可保持文件和文件夹不变。"
++
++#. Existing desktop recovery label; Refs #820.
++msgid "Restore media"
++msgstr "恢复媒体文件"
+diff --git a/magnolie-organizer/pruefungen/media-trash-ui.cjs b/magnolie-organizer/pruefungen/media-trash-ui.cjs
+index f3951fefcf5d908100250110d7add800fd3546a3..55b764819f6112ea6515fb152f704bb304f8761b 100644
+--- a/magnolie-organizer/pruefungen/media-trash-ui.cjs
++++ b/magnolie-organizer/pruefungen/media-trash-ui.cjs
+@@ -17,6 +17,8 @@ for (const locale of Object.keys(messages).filter(locale => locale !== "en")) {
+   });
+   messages.en.forEach((key, index) => assert.equal(catalog.messages[key], messages[locale][index], `${locale}: ${key}`));
+   retentionMessages.en.forEach((key, index) => assert.equal(catalog.messages[key], retentionMessages[locale][index], `${locale}: ${key}`));
++  assert.equal(typeof catalog.messages["Restore media"], "string", `${locale}: recovery heading is missing`);
++  assert.notEqual(catalog.messages["Restore media"], "Restore media", `${locale}: recovery heading is untranslated`);
+ }
+ const row = (index = 1) => ({ scope: "a".repeat(64), operation: index.toString(16).padStart(32, "0"), version: "b".repeat(64),
+   name: index === 1 ? "<img src=x onerror=bad>.mp4" : `video-${index}.mp4`, media_type: "video", state: "trashed" });
+@@ -25,6 +27,26 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
+ 
+ (async () => {
+   let cases = 0;
++  // Exercise the actual offline heading in every supported non-English locale.
++  // This catches a source/catalog mismatch even when German happens to work.
++  const localized = await harness.exports.boot(linux);
++  try {
++    const before = JSON.stringify(localized.t.daten()), saves = localized.saves().length;
++    for (const locale of Object.keys(messages).filter(locale => locale !== "en")) {
++      localized.w.eval(fs.readFileSync(path.join(linux, "i18n", locale + ".js"), "utf8"));
++      localized.w.MagnolieI18n.setLocale(locale);
++      localized.t.oeffneEinstellungen();
++      localized.w.document.querySelector("#einst-tab-baum").click();
++      const heading = localized.w.document.querySelector("[data-offline-media-recovery] > details > summary");
++      assert(heading, `${locale}: offline recovery is reachable`);
++      assert.equal(heading.textContent, localized.w.MagnolieI18n.gettext("Restore media"));
++      assert.notEqual(heading.textContent, "Restore media", `${locale}: visible heading is untranslated`);
++      localized.t.schliesseEinstellungen();
++      cases++;
++    }
++    assert.equal(JSON.stringify(localized.t.daten()), before);
++    assert.equal(localized.saves().length, saves, "Reading localized recovery controls must not save the book");
++  } finally { localized.close(); }
+   for (const web of harness.exports.roots) for (const locale of ["en", "de"]) {
+     const b = await harness.exports.boot(web, { notizen: [{ id: "keep", titel: "Keep", text: "Keep", html: "Keep" }],
+       papierkorb: [{ id: "keep-trash", art: "note", name: "Existing note", geloescht: Date.now(), eintrag: { id: "old", titel: "Old", text: "Keep" } }],
+diff --git a/magnolie-organizer/pruefungen/test_locale_completeness.py b/magnolie-organizer/pruefungen/test_locale_completeness.py
+index c0bd5f62473edb40954c1735d03db492de6708f5..1c731d7bdcbacbbb3dc68618e85967aaa5d8d00c 100644
+--- a/magnolie-organizer/pruefungen/test_locale_completeness.py
++++ b/magnolie-organizer/pruefungen/test_locale_completeness.py
+@@ -252,6 +252,26 @@ def test_manual_recovery_reason_has_its_own_translation_context():
+         ["Benutzerdefiniert"]
+ 
+ 
++def test_native_gif_confirmation_catalogs_preserve_count_formatting():
++    messages = (
++        "Move selected GIF animations?",
++        "Files to move",
++        "Move the %(count)d selected files into the Animations folder? "
++        "The original files and edits are preserved. Choose No to leave them where they are.",
++        "Create the missing folders in the Animations folder and move the %(count)d selected files? "
++        "Choose No to leave the files and folders unchanged.",
++    )
++    for locale in (PO_DIR / "LINGUAS").read_text(encoding="utf-8").split():
++        translator = gettext.translation("magnolie-organizer", ROOT / "locale", languages=[locale])
++        for message in messages:
++            value = translator.gettext(message)
++            assert value != message, f"{locale}: native confirmation falls back to English: {message}"
++            if "%(count)d" in message:
++                for count in (1, 2, 17, 100001):
++                    rendered = value % {"count": count}
++                    assert str(count) in rendered and "%(count)" not in rendered
++
++
+ def test_archive_and_contributor_ui_has_no_hardcoded_visible_strings():
+     source = (ROOT / "web" / "anwendung.js").read_text(encoding="utf-8")
+     function_names = (
+diff --git a/magnolie-organizer/web/i18n-markers.js b/magnolie-organizer/web/i18n-markers.js
+index 41a32ec1774170aaf9782a4e812e6b70150da1b1..c8dd0a2710deacd37b94c705e6d348bb02ab6666 100644
+--- a/magnolie-organizer/web/i18n-markers.js
++++ b/magnolie-organizer/web/i18n-markers.js
+@@ -1,4 +1,7 @@
+ /* Nur für xgettext; diese Datei wird nicht in der Anwendung geladen. */
++/* Conditional forecast labels are not extracted from the format call. Refs #820. */
++gettext("Estimated start: %(date)s");
++gettext("Period predictions paused: %(reason)s; no fixed end date.");
+ /* Appearance selectors use translated data-driven labels. Refs #432. */
+ gettext("Visual test only; no connections or permissions are changed.");
+ gettext("Tray preview");
+diff --git a/pruefnachweise/code-review-2026-11-27/issue-820-linux-catalogs.md b/pruefnachweise/code-review-2026-11-27/issue-820-linux-catalogs.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..76ebc35bf860c73d18158b4be16e94a33950f53a
+--- /dev/null
++++ b/pruefnachweise/code-review-2026-11-27/issue-820-linux-catalogs.md
+@@ -0,0 +1,77 @@
++# #820 – Linux-Sprachkataloge nach #813/#814 vollständig halten
++
++## Bestätigter Ausgangsstand
++
++Geprüfte Basis: `63ca6c8f351dd52627dfc550ff0075e703957ab5`.
++Die geschlossenen Issues #813 und #814 wurden anhand ihrer aktuellen Quellen
++und Prüfungen nachgeprüft; ihr Status wurde nicht als Fehlerfreiheit gewertet.
++
++Der erreichbare Bereich für lokale Medienwiederherstellung verwendet seit
++#814 den Schlüssel `Restore media`. Nur Deutsch enthält ihn. In den anderen
++18 nichtenglischen Katalogen fällt diese Überschrift auf Englisch zurück.
++Der vorhandene deutsche Eintrag fehlt zugleich in der Linux-POT-Vorlage.
++
++Die vollständige kanonische Extraktion findet außerdem vier fehlende Texte
++des privaten GTK-Dialogs für eine bestätigte GIF-Auswahl. Zwei weiterhin
++benötigte bedingte Vorhersagetexte werden ohne explizite Extraktionsmarker
++nicht gefunden. Zwei alte Vorhersagetexte werden dagegen nicht mehr verwendet.
++Die Windows-Korrektur aus #813 hatte diese Vorhersagebereinigung bereits für
++den dortigen Katalog durchgeführt; der Linux-Katalog war nicht mitkorrigiert.
++
++Vor der Korrektur: vorhandene Linux-Katalogsuite **7 bestanden, 2 fehlgeschlagen**
++(PO/POT-Schlüsselmenge und deterministische Quellabdeckung). Die ergänzte
++Medienregression scheitert bereits am fehlenden arabischen Wiederherstellungstext.
++
++## Korrektur
++
++- Alle 19 Linux-Sprachkataloge erhalten die vier fehlenden GTK-Quelltexte;
++  die 18 fehlenden Wiederherstellungsübersetzungen werden exakt aus den
++  vorhandenen Windows-Katalogen übernommen. Das sind **94 neue Übersetzungen**.
++- Zwei aktive bedingte Vorhersagetexte erhalten dieselben expliziten
++  Extraktionsmarker wie unter Windows. Ihre vorhandenen Übersetzungen bleiben.
++- Die beiden nicht mehr verwendeten Vorhersagetexte werden aus Vorlage und
++  Katalogen entfernt. Alle übrigen bestehenden Übersetzungen sind unverändert.
++- Die Linux-POT wird mit dem vorhandenen Generator neu erzeugt. MO und JS
++  werden unverändert mit den vorhandenen Bauwerkzeugen daraus abgeleitet.
++- Die Medienregression prüft den tatsächlich aufgebauten Offline-Bereich in
++  allen 19 nichtenglischen Sprachen. Die neue Python-Prüfung kontrolliert die
++  vier GTK-Übersetzungen und ihre Zahlenplatzhalter im echten MO-Katalog.
++
++## Prüfnachweis
++
++Mit GNU gettext 0.23.1, Python 3.12 und Node.js/jsdom 26.1.0:
++
++```sh
++python3 -m pytest -q magnolie-organizer/pruefungen/test_locale_completeness.py
++node magnolie-organizer/pruefungen/media-trash-ui.cjs
++git diff --check
++```
++
++Zuvor müssen die regulären Linux-/Windows-Webkataloge, Linux-MO-Kataloge und
++die normativen Zeitzonendaten mit den bestehenden Quellgeneratoren erzeugt sein.
++Sie sind abgeleitete Bauausgaben und gehören nicht zum Quellpatch.
++
++- **10 Python-Testgruppen bestanden:** alle 19 Kataloge, technische Kennungen,
++  Platzhalter, deterministische vollständige Quellabdeckung und bytegleiche
++  PO→MO/JS-Ableitungen.
++- **39 Frontend-/Sprachfälle bestanden**, einschließlich der neuen 19 realen
++  DOM-Überschriften und der vorhandenen Medien-, Vorschau-, Sperr-, Fehler- und
++  Windows-Abgrenzungsfälle. Zusätzlich werden alle 19 Sprachkataloge geprüft.
++- Alle unverändert benötigten Übersetzungen gegen die Ausgangsbasis verglichen:
++  **keine inhaltliche Änderung**, nur 94 neue und 38 entfernte obsolete Einträge.
++- `git diff --check` ohne Fehler.
++
++## Grenzen und Übergabe
++
++Die Frontendprüfung verwendet die tatsächlichen Quellen mit synthetischer
++nativer Brücke. Sie ist keine Abnahme installierter Linux-/Windows-Pakete.
++Die neue GTK-Prüfung ist eine Katalogprüfung, keine native Dialogbedienung.
++Der private GIF-Helfer und seine produktive Einbindung bleiben bei #337;
++dieser Patch erteilt keine Datei- oder Gerätefreigaben und ändert keine
++Medienoperationen. Mac-/Tablet-Pakete und sprachliche Muttersprachlerabnahmen
++werden hier nicht als geprüft behauptet.
++
++Vor Übernahme auf einen späteren Stand die fünf Quelltexte und die beiden
++Marker erneut abgleichen, danach die vorhandenen Kataloggeneratoren und die
++oben genannten Tests ausführen. Das Issue bleibt bis zur tatsächlichen
++Quellübernahme offen.

@@ -1,0 +1,263 @@
+From 8d3f462e8ac89d9618f3fcbcfb0d4a74e63c66c6 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 11:53:27 +0100
+Subject: [PATCH] Refs #831: admit existing native media and webcam bridge
+ envelopes
+
+---
+ .../BridgeDispatcherContract.cs               |  7 +-
+ .../tests/BridgeMediaEnvelopeTests.cs         | 55 ++++++++++++++
+ .../tests/DeviceFileUiTests.cs                | 72 ++++++++++++-------
+ magnolie-organizer-windows/tests/Program.cs   |  1 +
+ 4 files changed, 107 insertions(+), 28 deletions(-)
+ create mode 100644 magnolie-organizer-windows/tests/BridgeMediaEnvelopeTests.cs
+
+diff --git a/magnolie-organizer-windows/BridgeDispatcherContract.cs b/magnolie-organizer-windows/BridgeDispatcherContract.cs
+index 82ddadb80eb002d05e88459c76c3c76a4ff0348d..f3bf23a438b66a4c93b31564b112cff4a5809398 100644
+--- a/magnolie-organizer-windows/BridgeDispatcherContract.cs
++++ b/magnolie-organizer-windows/BridgeDispatcherContract.cs
+@@ -86,9 +86,14 @@ internal static class BridgeDispatcherContract
+         ["baum_briefkasten_speichern"] = S(B("davAktiv"), B("briefkastenAktiv"), T("url"), T("benutzer"), T("anwendungskennwort"), B("kennwortLoeschen"), O("kontoArt", JsonValueKind.String), O("requestId", JsonValueKind.String), O("expectedRevision", JsonValueKind.String)),
+         ["erinnerung_zeigen"] = S(T("kopf"), T("rumpf"), T("art"), T("stil")), ["erinnerung_einrichten"] = S(B("an"), B("wecken"), O("vorlauf", JsonValueKind.String, JsonValueKind.Number), O("termine", JsonValueKind.Array), O("requestId", JsonValueKind.String)),
+         ["telefon_stand"] = S(), ["telefon_verbindung_stand"] = S(),
++        ["telefon_webcam_stand"] = S(T("requestId")),
++        ["telefon_webcam_start"] = S(T("requestId"), T("peer")),
++        ["telefon_webcam_stop"] = S(T("requestId"), T("run")),
+         ["telefon_medien"] = S(T("requestId"), T("device_id"), T("action"), O("media_type", JsonValueKind.String),
+             O("version", JsonValueKind.String, JsonValueKind.Null), O("operation_id", JsonValueKind.String), O("automatic", JsonValueKind.True, JsonValueKind.False), O("catalog_id", JsonValueKind.String), O("album_id", JsonValueKind.String),
+-            O("after", JsonValueKind.Number), O("photos", JsonValueKind.True, JsonValueKind.False), O("videos", JsonValueKind.True, JsonValueKind.False), O("skip_deletions", JsonValueKind.True, JsonValueKind.False)),
++            O("after", JsonValueKind.Number), O("photos", JsonValueKind.True, JsonValueKind.False), O("videos", JsonValueKind.True, JsonValueKind.False), O("skip_deletions", JsonValueKind.True, JsonValueKind.False),
++            O("backup_id", JsonValueKind.String), O("location_id", JsonValueKind.String), O("field", JsonValueKind.String),
++            O("value", JsonValueKind.String, JsonValueKind.True, JsonValueKind.False), O("granted", JsonValueKind.True, JsonValueKind.False)),
+         ["telefon_kontaktfotos"] = S(T("requestId"), T("device_id"), O("uids", JsonValueKind.Array), O("includePhoto", JsonValueKind.True, JsonValueKind.False)),
+         ["telefon_kontakte"] = S(T("requestId"), T("device_id"), O("uids", JsonValueKind.Array)),
+         ["telefon_kontaktgruppen"] = S(T("requestId"), T("device_id"), T("fingerprint"), T("action"), T("uid"), O("token", JsonValueKind.String), O("groups", JsonValueKind.Array)),
+diff --git a/magnolie-organizer-windows/tests/BridgeMediaEnvelopeTests.cs b/magnolie-organizer-windows/tests/BridgeMediaEnvelopeTests.cs
+new file mode 100644
+index 0000000000000000000000000000000000000000..e6a0017f6e5c012304cddd7323156faba6f9adcd
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/BridgeMediaEnvelopeTests.cs
+@@ -0,0 +1,55 @@
++using System.Text.Json.Nodes;
++using MagnolieOrganizer.Windows;
++
++namespace MagnolieOrganizer.Windows.Tests;
++
++internal static class BridgeMediaEnvelopeTests
++{
++    internal static Task RunAsync()
++    {
++        // Refs #831: exercise the outer parser used before the native handlers,
++        // not just the action-specific parser behind it.
++        foreach (var command in new[] { "telefon_webcam_stand", "telefon_webcam_start", "telefon_webcam_stop" })
++        {
++            var message = new JsonObject { ["cmd"] = command, ["requestId"] = "synthetic-request" };
++            if (command == "telefon_webcam_start") message["peer"] = "11111111-1111-4111-8111-111111111111";
++            if (command == "telefon_webcam_stop") message["run"] = "22222222-2222-4222-8222-222222222222";
++            using (BridgeDispatcherContract.Parse(message.ToJsonString())) { }
++            foreach (var field in message.Select(item => item.Key).Where(key => key != "cmd").ToArray())
++            {
++                var missing = message.DeepClone().AsObject(); missing.Remove(field);
++                Reject(missing, "Webcam request omitted " + field);
++                var wrongType = message.DeepClone().AsObject(); wrongType[field] = true;
++                Reject(wrongType, "Webcam request accepted a non-string " + field);
++            }
++            foreach (var field in new[] { "confirmed", "grant", "path", "receive_files" })
++            {
++                var forged = message.DeepClone().AsObject(); forged[field] = true;
++                Reject(forged, "Webcam request accepted browser authority: " + field);
++            }
++        }
++
++        var media = new JsonObject { ["cmd"] = "telefon_medien", ["requestId"] = "synthetic-request",
++            ["device_id"] = "11111111-1111-4111-8111-111111111111", ["action"] = "status" };
++        foreach (var (field, value) in new (string, JsonNode?)[] {
++            ("backup_id", JsonValue.Create(true)), ("location_id", JsonValue.Create(1)),
++            ("field", JsonValue.Create(false)), ("value", new JsonObject()),
++            ("value", new JsonArray()), ("value", JsonValue.Create(1)), ("value", null),
++            ("granted", JsonValue.Create("true")), ("granted", JsonValue.Create(1)) })
++        {
++            var wrongType = media.DeepClone().AsObject(); wrongType[field] = value;
++            Reject(wrongType, "Media envelope accepted a wrong type for " + field);
++        }
++        foreach (var field in new[] { "confirmed", "grant", "path", "receive_files" })
++        {
++            var forged = media.DeepClone().AsObject(); forged[field] = true;
++            Reject(forged, "Media envelope accepted browser authority: " + field);
++        }
++        media["cmd"] = "telefon_webcam_unknown";
++        Reject(media, "Unknown webcam command was admitted by prefix");
++        return Task.CompletedTask;
++    }
++
++    private static void Reject(JsonObject message, string reason) =>
++        TestAssert.Throws<InvalidDataException>(() => { using var parsed = BridgeDispatcherContract.Parse(message.ToJsonString()); }, reason);
++}
+diff --git a/magnolie-organizer-windows/tests/DeviceFileUiTests.cs b/magnolie-organizer-windows/tests/DeviceFileUiTests.cs
+index df9958b64ace4fe327b8c8e94a4fd87803effa62..a5f920dcb6e3f9c71c4fa11dc0017a03e72cb6e3 100644
+--- a/magnolie-organizer-windows/tests/DeviceFileUiTests.cs
++++ b/magnolie-organizer-windows/tests/DeviceFileUiTests.cs
+@@ -127,71 +127,85 @@ internal static class DeviceFileUiTests
+     }
+     internal static Task StrictRequestsAsync()
+     {
++        // Refs #831: real UI messages pass the outer bridge schema first.
++        static NativeMediaUiRequest ParseThroughBridge(JsonObject message)
++        {
++            using var envelope = BridgeDispatcherContract.Parse(message.ToJsonString());
++            return NativeMediaUiRequest.Parse(JsonNode.Parse(envelope.RootElement.GetRawText())!.AsObject());
++        }
+         var request = new JsonObject { ["cmd"] = "telefon_medien", ["requestId"] = "synthetic-request", ["device_id"] = Guid.NewGuid().ToString("D"), ["action"] = "status" };
+-        _ = NativeMediaUiRequest.Parse(request);
++        _ = ParseThroughBridge(request);
++        foreach (var (field, value) in new (string, JsonNode)[] {
++            ("backup_id", JsonValue.Create(new string('a', 64))!), ("location_id", JsonValue.Create(new string('b', 64))!),
++            ("field", JsonValue.Create("enabled")!), ("value", JsonValue.Create(true)!), ("granted", JsonValue.Create(true)!) })
++        {
++            var wrongAction = request.DeepClone().AsObject(); wrongAction[field] = value;
++            TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(wrongAction),
++                "A recognized media field bypassed the exact action schema: " + field);
++        }
+         foreach (var mediaType in new[] { "images", "video" })
+         {
+             var source = request.DeepClone().AsObject(); source["action"] = "pick_collection_source";
+             source["media_type"] = mediaType; source["version"] = new string('d', 64);
+-            TestAssert.That(NativeMediaUiRequest.Parse(source).MediaType == mediaType, "Source-folder action lost its independent media type.");
++            TestAssert.That(ParseThroughBridge(source).MediaType == mediaType, "Source-folder action lost its independent media type.");
+             foreach (var field in new[] { "path", "confirmed", "witness", "identity", "receive_files", "source_id", "version" })
+             {
+                 var forged = source.DeepClone().AsObject(); forged[field] = field == "version" ? null : JsonValue.Create("untrusted");
+-                TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(forged), "Source-folder action accepted browser authority: " + field);
++                TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(forged), "Source-folder action accepted browser authority: " + field);
+             }
+         }
+         foreach (var (field, value) in MediaSyncSettings.Effective(MediaSyncSettings.Create("11111111-1111-4111-8111-111111111111")))
+         {
+             var edit = request.DeepClone().AsObject(); edit["action"] = "shared_setting"; edit["field"] = field;
+             edit["value"] = value!.DeepClone(); edit["version"] = new string('a', 64);
+-            var parsed = NativeMediaUiRequest.Parse(edit);
++            var parsed = ParseThroughBridge(edit);
+             TestAssert.That(parsed.SharedField == field && JsonNode.DeepEquals(parsed.SharedValue, value), "Shared media choice was changed by bridge parsing.");
+             edit["version"] = null;
+-            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(edit), "Shared media choice omitted its exact field version.");
++            TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(edit), "Shared media choice omitted its exact field version.");
+         }
+         var consent = request.DeepClone().AsObject(); consent["action"] = "receive_consent";
+         consent["granted"] = true; consent["version"] = new string('b', 64);
+-        TestAssert.That(NativeMediaUiRequest.Parse(consent).ReceiveConsent, "Explicit local consent was not parsed independently.");
++        TestAssert.That(ParseThroughBridge(consent).ReceiveConsent, "Explicit local consent was not parsed independently.");
+         consent["granted"] = "true";
+-        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(consent), "Local permission accepted a truthy string.");
++        TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(consent), "Local permission accepted a truthy string.");
+         var send = request.DeepClone().AsObject(); send["action"] = "send_consent";
+         send["photos"] = true; send["videos"] = false; send["version"] = new string('c', 64);
+-        TestAssert.That(NativeMediaUiRequest.Parse(send) is { Photos: true, Videos: false }, "Independent send choices were not parsed.");
++        TestAssert.That(ParseThroughBridge(send) is { Photos: true, Videos: false }, "Independent send choices were not parsed.");
+         foreach (var field in new[] { "confirmed", "send_files", "path" })
+         {
+             var forged = send.DeepClone().AsObject(); forged[field] = true;
+-            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(forged), "Browser manufactured native send approval: " + field);
++            TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(forged), "Browser manufactured native send approval: " + field);
+         }
+         send["photos"] = "true";
+-        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(send), "Send consent accepted a truthy string.");
++        TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(send), "Send consent accepted a truthy string.");
+         send["photos"] = true; send["version"] = null;
+-        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(send), "Send consent accepted an unversioned choice.");
++        TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(send), "Send consent accepted an unversioned choice.");
+         var unknownField = request.DeepClone().AsObject(); unknownField["action"] = "shared_setting";
+         unknownField["field"] = "receive_files"; unknownField["value"] = true; unknownField["version"] = new string('a', 64);
+-        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(unknownField), "A shared edit attempted to manufacture native receiving rights.");
++        TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(unknownField), "A shared edit attempted to manufacture native receiving rights.");
+         var remove = request.DeepClone().AsObject(); remove["action"] = "trash_purge";
+         remove["operation_id"] = new string('a', 32); remove["version"] = new string('b', 64);
+-        _ = NativeMediaUiRequest.Parse(remove);
++        _ = ParseThroughBridge(remove);
+         foreach (var action in new[] { "trash_thumbnail", "trash_preview" })
+         {
+             var preview = remove.DeepClone().AsObject(); preview["action"] = action;
+-            TestAssert.That(NativeMediaUiRequest.Parse(preview).TrashOperation == new string('a', 32), "Preview lost its opaque operation.");
++            TestAssert.That(ParseThroughBridge(preview).TrashOperation == new string('a', 32), "Preview lost its opaque operation.");
+             preview["path"] = @"C:\untrusted";
+-            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(preview), "Preview accepted a filesystem path.");
++            TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(preview), "Preview accepted a filesystem path.");
+             preview.Remove("path"); preview["version"] = null;
+-            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(preview), "Preview accepted an unversioned selection.");
++            TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(preview), "Preview accepted an unversioned selection.");
+         }
+         remove["confirmed"] = true;
+-        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(remove), "Browser confirmation bypassed the native removal dialog.");
++        TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(remove), "Browser confirmation bypassed the native removal dialog.");
+         var empty = request.DeepClone().AsObject(); empty["action"] = "trash_empty"; empty["version"] = new string('e', 64);
+-        TestAssert.That(NativeMediaUiRequest.Parse(empty).Version == new string('e', 64), "Empty lost its exact inventory revision.");
++        TestAssert.That(ParseThroughBridge(empty).Version == new string('e', 64), "Empty lost its exact inventory revision.");
+         foreach (var unexpected in new[] { "confirmed", "count", "operation_id", "path" })
+         {
+             var forged = empty.DeepClone().AsObject(); forged[unexpected] = true;
+-            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(forged), "Empty accepted browser authority: " + unexpected);
++            TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(forged), "Empty accepted browser authority: " + unexpected);
+         }
+         empty["version"] = null;
+-        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(empty), "Empty accepted an unversioned overview.");
++        TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(empty), "Empty accepted an unversioned overview.");
+         var states = new[] { "prepared", "trashed", "purge_prepared", "restore_prepared", "purged", "restored" };
+         var items = states.Select((state, i) => new TelefonStore.NativeMediaTrashItem(
+             new(new string((char)('a' + i), 32), new string('b', 64), "job", "file", state, i), "file.png", "images")).ToArray();
+@@ -203,26 +217,30 @@ internal static class DeviceFileUiTests
+             "Changing even a non-purgeable visible entry must invalidate the original selection.");
+         var backup = request.DeepClone().AsObject(); backup["action"] = "backup_restore"; backup["media_type"] = "images";
+         backup["backup_id"] = new string('a', 64); backup["version"] = new string('b', 64);
+-        TestAssert.That(NativeMediaUiRequest.Parse(backup).BackupId == new string('a', 64), "Opaque backup selection was not parsed.");
++        TestAssert.That(ParseThroughBridge(backup).BackupId == new string('a', 64), "Opaque backup selection was not parsed.");
+         backup["location_id"] = new string('c', 64);
+-        TestAssert.That(NativeMediaUiRequest.Parse(backup).BackupLocation == new string('c', 64), "Historical backup source locator was not parsed independently.");
++        TestAssert.That(ParseThroughBridge(backup).BackupLocation == new string('c', 64), "Historical backup source locator was not parsed independently.");
++        var historical = request.DeepClone().AsObject(); historical["action"] = "backup_list";
++        historical["media_type"] = "images"; historical["after"] = 0; historical["location_id"] = new string('c', 64);
++        TestAssert.That(ParseThroughBridge(historical).BackupLocation == new string('c', 64),
++            "Reading a historical backup source was blocked by the outer envelope.");
+         foreach (var action in new[] { "pick_backup_parent", "backup_default", "pick_destination", "default_destination" })
+         {
+             var pick = request.DeepClone().AsObject(); pick["action"] = action; pick["media_type"] = "images"; pick["version"] = null;
+             if (action is "pick_destination" or "default_destination")
+             {
+-                TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(pick), "Destination choice accepted missing full context.");
++                TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(pick), "Destination choice accepted missing full context.");
+                 pick["version"] = new string('a', 64);
+             }
+-            _ = NativeMediaUiRequest.Parse(pick);
++            _ = ParseThroughBridge(pick);
+             pick["path"] = @"C:\untrusted";
+-            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(pick), "Backup parent action accepted a browser path.");
++            TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(pick), "Backup parent action accepted a browser path.");
+         }
+         foreach (var field in new[] { "path", "confirmed", "identity", "version", "backup_id" })
+         {
+             var changed = backup.DeepClone().AsObject();
+             changed[field] = field is "version" or "backup_id" ? null : JsonValue.Create("untrusted");
+-            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(changed), "Backup restore accepted a browser path, authority or stale selection: " + field);
++            TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(changed), "Backup restore accepted a browser path, authority or stale selection: " + field);
+         }
+         foreach (var mutation in new[] { "path", "grant", "unknown", "version", "kind" })
+         {
+@@ -232,7 +250,7 @@ internal static class DeviceFileUiTests
+             if (mutation == "unknown") changed["action"] = "delete";
+             if (mutation == "version") { changed["action"] = "sync"; changed["media_type"] = "images"; changed["version"] = null; changed["catalog_id"] = Guid.NewGuid().ToString("D"); changed["album_id"] = Guid.NewGuid().ToString("D"); }
+             if (mutation == "kind") { changed["action"] = "discover"; changed["media_type"] = "both"; }
+-            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(changed), "Native media UI admitted ignored/untrusted options: " + mutation);
++            TestAssert.Throws<InvalidDataException>(() => ParseThroughBridge(changed), "Native media UI admitted ignored/untrusted options: " + mutation);
+         }
+         return Task.CompletedTask;
+     }
+diff --git a/magnolie-organizer-windows/tests/Program.cs b/magnolie-organizer-windows/tests/Program.cs
+index badbcf6fb2106c9ab530cb82b905a382dc9c46f2..81af1609f7e56b6ae51bb4d71f057d1ecc9f3280 100644
+--- a/magnolie-organizer-windows/tests/Program.cs
++++ b/magnolie-organizer-windows/tests/Program.cs
+@@ -453,6 +453,7 @@ runner.Add("Device file native run lifecycle / strict batch and END codec", Devi
+ runner.Add("Device file native run lifecycle / retained cleanup lease boundaries", DeviceFileMetadataCommandTests.SourceCleanupLeaseAsync);
+ runner.Add("Device file native destination / absent read does not bootstrap", DeviceFileStoreDestinationsTests.DefaultsAsync);
+ runner.Add("Device file native media UI / strict requests reject browser paths and grants", DeviceFileUiTests.StrictRequestsAsync);
++runner.Add("Device file native media UI / outer bridge envelopes and webcam commands", BridgeMediaEnvelopeTests.RunAsync);
+ if (OperatingSystem.IsWindows())
+ {
+     runner.Add("Phone webcam source registration / memory-only registry ACL policy", PhoneCameraSourceRegistrationTests.RegistryAclPolicyAsync);

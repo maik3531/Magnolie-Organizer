@@ -1,0 +1,373 @@
+FAIL magnolie-organizer/web: unchanged events in different calendars
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'a',
+-   'b'
+  ]
+
+    at both ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:14:10)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:26:88)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+FAIL magnolie-organizer/web: termine late edit stays in its calendar
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'a',
+-   'b'
+  ]
+
+    at both ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:14:10)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:28:89)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+PASS magnolie-organizer/web: aufgaben late edit stays in its calendar
+PASS magnolie-organizer/web: termine late deletion preserves the other calendar
+PASS magnolie-organizer/web: aufgaben late deletion preserves the other calendar
+FAIL magnolie-organizer/web: icsQuelleId fallback keeps imported calendars
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'a',
+-   'b'
+  ]
+
+    at both ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:14:10)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:46:21)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+FAIL magnolie-organizer/web: kalenderQuelle fallback keeps imported calendars
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'a',
+-   'b'
+  ]
+
+    at both ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:14:10)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:46:21)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+FAIL magnolie-organizer/web: unqualified legacy UID is separate from another local record
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'a',
+-   'b'
+  ]
+
+    at both ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:14:10)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:49:21)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+FAIL magnolie-organizer/web: UID and local ID are separate namespaces
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'a',
+-   'b'
+  ]
+
+    at both ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:14:10)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:52:21)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+PASS magnolie-organizer/web: same qualified UID still merges a changed remote local ID
+PASS magnolie-organizer/web: new entry binds to its first provider after a late edit
+PASS magnolie-organizer/web: new entry binds to its first provider after a late deletion
+PASS magnolie-organizer/web: imported entry binds to its first provider after a late edit
+PASS magnolie-organizer/web: imported entry binds to its first provider after a late deletion
+FAIL magnolie-organizer/web: ambiguous provider identity holds before modifying data
+AssertionError [ERR_ASSERTION]: termine changed after a rejected response
++ actual - expected
+... Skipped lines
+
+  [
+    {
+      akzentFarbe: '',
+      alarme: [],
+      aufgaben: [],
+...
+      kunde: '',
++     notiz: 'local edit',
+-     notiz: 'a original',
+      organisator: {
+        email: '',
+        name: '',
+        uri: ''
+      },
+...
+    },
+-   {
+-     akzentFarbe: '',
+-     alarme: [],
+-     aufgaben: [],
+-     datum: '2026-11-27',
+-     endDatum: '',
+-     endZeit: '',
+-     faellig: '2026-11-27',
+-     geaendert: 0,
+-     icsAenderungszeitFehlt: false,
+-     icsAnzeigeZeitzone: '',
+-     icsAusnahmeTermine: [],
+-     icsAusnahmen: [],
+-     icsEndeFehlt: false,
+-     icsKomplex: false,
+-     icsNullDauer: false,
+-     icsQuelleId: '',
+-     icsQuelleName: '',
+-     icsRangeOverrides: [],
+-     icsReadOnly: false,
+-     icsReadOnlyGrund: '',
+-     icsRoundtrip: [],
+-     icsSequence: 0,
+-     icsSerienUid: '',
+-     icsTimezones: [],
+-     icsZusatzDaten: [],
+-     icsZusatzTermine: [],
+-     id: 'b',
+-     individuelleErinnerungTage: 0,
+-     kalenderAnhaenge: [],
+-     kalenderQuelle: {
+-       anbieter: '',
+-       farbe: '',
+-       gruppe: '',
+-       id: 'calendar-a',
+-       name: ''
+-     },
+-     kategorien: '',
+-     kontaktId: '',
+-     kostenstelle: '',
+-     kunde: '',
+-     notiz: 'local edit',
+-     organisator: {
+-       email: '',
+-       name: '',
+-       uri: ''
+-     },
+-     ort: '',
+-     providerMetadaten: {},
+-     standardErinnerung: true,
+-     sync: true,
+-     syncKalenderUid: 'calendar-a',
+-     syncKonflikte: [],
+-     syncQuellen: {
+-       'calendar-a': {
+-         etag: '"observed"',
+-         id: '/b'
+-       }
+-     },
+-     teilnehmer: [],
+-     titel: 'b',
+-     uid: 'shared@example.test',
+-     vertraulich: false,
+-     vorlaeufig: false,
+-     wiederholung: {
+-       art: 'none',
+-       bis: ''
+-     },
+-     zeit: '10:00'
+-   }
+  ]
+
+    at unchanged ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:20:12)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:79:41)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+PASS magnolie-organizer/web: contact UID merge retains its existing semantics
+PASS magnolie-organizer/web: stale request remains rejected
+PASS magnolie-organizer/web: stale epoch remains rejected
+FAIL magnolie-organizer-windows/app/web: unchanged events in different calendars
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'a',
+-   'b'
+  ]
+
+    at both ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:14:10)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:26:88)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+FAIL magnolie-organizer-windows/app/web: termine late edit stays in its calendar
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'a',
+-   'b'
+  ]
+
+    at both ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:14:10)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:28:89)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+PASS magnolie-organizer-windows/app/web: aufgaben late edit stays in its calendar
+PASS magnolie-organizer-windows/app/web: termine late deletion preserves the other calendar
+PASS magnolie-organizer-windows/app/web: aufgaben late deletion preserves the other calendar
+FAIL magnolie-organizer-windows/app/web: icsQuelleId fallback keeps imported calendars
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'a',
+-   'b'
+  ]
+
+    at both ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:14:10)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:46:21)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+FAIL magnolie-organizer-windows/app/web: kalenderQuelle fallback keeps imported calendars
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'a',
+-   'b'
+  ]
+
+    at both ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:14:10)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:46:21)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+FAIL magnolie-organizer-windows/app/web: unqualified legacy UID is separate from another local record
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'a',
+-   'b'
+  ]
+
+    at both ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:14:10)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:49:21)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+FAIL magnolie-organizer-windows/app/web: UID and local ID are separate namespaces
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'a',
+-   'b'
+  ]
+
+    at both ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:14:10)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:52:21)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+PASS magnolie-organizer-windows/app/web: same qualified UID still merges a changed remote local ID
+PASS magnolie-organizer-windows/app/web: new entry binds to its first provider after a late edit
+PASS magnolie-organizer-windows/app/web: new entry binds to its first provider after a late deletion
+PASS magnolie-organizer-windows/app/web: imported entry binds to its first provider after a late edit
+PASS magnolie-organizer-windows/app/web: imported entry binds to its first provider after a late deletion
+FAIL magnolie-organizer-windows/app/web: ambiguous provider identity holds before modifying data
+AssertionError [ERR_ASSERTION]: termine changed after a rejected response
++ actual - expected
+... Skipped lines
+
+  [
+    {
+      akzentFarbe: '',
+      alarme: [],
+      aufgaben: [],
+...
+      kunde: '',
++     notiz: 'local edit',
+-     notiz: 'a original',
+      organisator: {
+        email: '',
+        name: '',
+        uri: ''
+      },
+...
+    },
+-   {
+-     akzentFarbe: '',
+-     alarme: [],
+-     aufgaben: [],
+-     datum: '2026-11-27',
+-     endDatum: '',
+-     endZeit: '',
+-     faellig: '2026-11-27',
+-     geaendert: 0,
+-     icsAenderungszeitFehlt: false,
+-     icsAnzeigeZeitzone: '',
+-     icsAusnahmeTermine: [],
+-     icsAusnahmen: [],
+-     icsEndeFehlt: false,
+-     icsKomplex: false,
+-     icsNullDauer: false,
+-     icsQuelleId: '',
+-     icsQuelleName: '',
+-     icsRangeOverrides: [],
+-     icsReadOnly: false,
+-     icsReadOnlyGrund: '',
+-     icsRoundtrip: [],
+-     icsSequence: 0,
+-     icsSerienUid: '',
+-     icsTimezones: [],
+-     icsZusatzDaten: [],
+-     icsZusatzTermine: [],
+-     id: 'b',
+-     individuelleErinnerungTage: 0,
+-     kalenderAnhaenge: [],
+-     kalenderQuelle: {
+-       anbieter: '',
+-       farbe: '',
+-       gruppe: '',
+-       id: 'calendar-a',
+-       name: ''
+-     },
+-     kategorien: '',
+-     kontaktId: '',
+-     kostenstelle: '',
+-     kunde: '',
+-     notiz: 'local edit',
+-     organisator: {
+-       email: '',
+-       name: '',
+-       uri: ''
+-     },
+-     ort: '',
+-     providerMetadaten: {},
+-     standardErinnerung: true,
+-     sync: true,
+-     syncKalenderUid: 'calendar-a',
+-     syncKonflikte: [],
+-     syncQuellen: {
+-       'calendar-a': {
+-         etag: '"observed"',
+-         id: '/b'
+-       }
+-     },
+-     teilnehmer: [],
+-     titel: 'b',
+-     uid: 'shared@example.test',
+-     vertraulich: false,
+-     vorlaeufig: false,
+-     wiederholung: {
+-       art: 'none',
+-       bis: ''
+-     },
+-     zeit: '10:00'
+-   }
+  ]
+
+    at unchanged ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:20:12)
+    at Object.verify ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:79:41)
+    at check ($REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:124:10)
+    at async $REVIEW_WORKSPACE/core-review/magnolie-organizer-windows/tests/sync-calendar-identity.js:132:11
+PASS magnolie-organizer-windows/app/web: contact UID merge retains its existing semantics
+PASS magnolie-organizer-windows/app/web: stale request remains rejected
+PASS magnolie-organizer-windows/app/web: stale epoch remains rejected
+Calendar synchronization identity: 22/36 cases passed

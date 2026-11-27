@@ -1,0 +1,154 @@
+FAIL magnolie-organizer/web: contact-only sync retains unchanged unrelated ambiguous calendar entries
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'before'
+- 'provider contact update'
+
+    at Object.verifyContactOnly [as verify] ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:41:10)
+    at check ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:201:10)
+    at async $FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:209:11
+FAIL magnolie-organizer/web: contact-only sync retains late calendar edits, additions and deletion metadata
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'before'
+- 'provider contact update'
+
+    at Object.verifyContactOnly [as verify] ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:41:10)
+    at check ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:201:10)
+    at async $FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:209:11
+FAIL magnolie-organizer/web: contact-only request selection is frozen before its save acknowledgement
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'late-calendar'
+- ''
+
+    at Object.inspectRequest ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:64:41)
+    at check ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:194:26)
+    at async $FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:209:11
+FAIL magnolie-organizer/web: contact-only response may omit unrelated calendar collections
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'before'
+- 'provider contact update'
+
+    at Object.verifyContactOnly [as verify] ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:41:10)
+    at check ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:201:10)
+    at async $FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:209:11
+FAIL magnolie-organizer/web: pending Windows transaction keeps its original source selection on retry
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'before'
+- 'provider contact update'
+
+    at Object.verifyContactOnly [as verify] ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:41:10)
+    at check ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:201:10)
+    at async $FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:209:11
+PASS magnolie-organizer/web: contact-only response cannot modify unselected termine
+PASS magnolie-organizer/web: contact-only response cannot modify unselected aufgaben
+PASS magnolie-organizer/web: contact-only response cannot modify unselected deleted-termine
+PASS magnolie-organizer/web: contact-only response cannot modify unselected deleted-aufgaben
+PASS magnolie-organizer/web: a legacy baseline without a bound selection cannot bypass ambiguity checks
+PASS magnolie-organizer/web: unchanged events in different calendars
+PASS magnolie-organizer/web: termine late edit stays in its calendar
+PASS magnolie-organizer/web: aufgaben late edit stays in its calendar
+PASS magnolie-organizer/web: termine late deletion preserves the other calendar
+PASS magnolie-organizer/web: aufgaben late deletion preserves the other calendar
+PASS magnolie-organizer/web: icsQuelleId fallback keeps imported calendars
+PASS magnolie-organizer/web: kalenderQuelle fallback keeps imported calendars
+PASS magnolie-organizer/web: unqualified legacy UID is separate from another local record
+PASS magnolie-organizer/web: UID and local ID are separate namespaces
+PASS magnolie-organizer/web: same qualified UID still merges a changed remote local ID
+PASS magnolie-organizer/web: new entry binds to its first provider after a late edit
+PASS magnolie-organizer/web: new entry binds to its first provider after a late deletion
+PASS magnolie-organizer/web: imported entry binds to its first provider after a late edit
+PASS magnolie-organizer/web: imported entry binds to its first provider after a late deletion
+PASS magnolie-organizer/web: ambiguous provider identity holds before modifying data
+PASS magnolie-organizer/web: contact UID merge retains its existing semantics
+PASS magnolie-organizer/web: stale request remains rejected
+PASS magnolie-organizer/web: stale epoch remains rejected
+FAIL magnolie-organizer-windows/app/web: contact-only sync retains unchanged unrelated ambiguous calendar entries
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'before'
+- 'provider contact update'
+
+    at Object.verifyContactOnly [as verify] ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:41:10)
+    at check ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:201:10)
+    at async $FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:209:11
+FAIL magnolie-organizer-windows/app/web: contact-only sync retains late calendar edits, additions and deletion metadata
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'before'
+- 'provider contact update'
+
+    at Object.verifyContactOnly [as verify] ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:41:10)
+    at check ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:201:10)
+    at async $FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:209:11
+FAIL magnolie-organizer-windows/app/web: contact-only request selection is frozen before its save acknowledgement
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'late-calendar'
+- ''
+
+    at Object.inspectRequest ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:64:41)
+    at check ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:194:26)
+    at async $FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:209:11
+FAIL magnolie-organizer-windows/app/web: contact-only response may omit unrelated calendar collections
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'before'
+- 'provider contact update'
+
+    at Object.verifyContactOnly [as verify] ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:41:10)
+    at check ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:201:10)
+    at async $FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:209:11
+FAIL magnolie-organizer-windows/app/web: pending Windows transaction keeps its original source selection on retry
+AssertionError [ERR_ASSERTION]: retry changed the selection of a pending transaction
++ actual - expected
+
+  {
+    adressbuchUid: 'synthetic-addressbook',
++   kalenderUid: 'retry-calendar',
++   kalenderUids: [
++     'retry-calendar'
++   ]
+-   kalenderUid: '',
+-   kalenderUids: []
+  }
+
+    at Object.afterDispatch ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:86:14)
+    at async check ($FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:193:39)
+    at async $FOLLOWUP_WORKSPACE/core-audit/826-final-before.cjs:209:11
+PASS magnolie-organizer-windows/app/web: contact-only response cannot modify unselected termine
+PASS magnolie-organizer-windows/app/web: contact-only response cannot modify unselected aufgaben
+PASS magnolie-organizer-windows/app/web: contact-only response cannot modify unselected deleted-termine
+PASS magnolie-organizer-windows/app/web: contact-only response cannot modify unselected deleted-aufgaben
+PASS magnolie-organizer-windows/app/web: a legacy baseline without a bound selection cannot bypass ambiguity checks
+PASS magnolie-organizer-windows/app/web: unchanged events in different calendars
+PASS magnolie-organizer-windows/app/web: termine late edit stays in its calendar
+PASS magnolie-organizer-windows/app/web: aufgaben late edit stays in its calendar
+PASS magnolie-organizer-windows/app/web: termine late deletion preserves the other calendar
+PASS magnolie-organizer-windows/app/web: aufgaben late deletion preserves the other calendar
+PASS magnolie-organizer-windows/app/web: icsQuelleId fallback keeps imported calendars
+PASS magnolie-organizer-windows/app/web: kalenderQuelle fallback keeps imported calendars
+PASS magnolie-organizer-windows/app/web: unqualified legacy UID is separate from another local record
+PASS magnolie-organizer-windows/app/web: UID and local ID are separate namespaces
+PASS magnolie-organizer-windows/app/web: same qualified UID still merges a changed remote local ID
+PASS magnolie-organizer-windows/app/web: new entry binds to its first provider after a late edit
+PASS magnolie-organizer-windows/app/web: new entry binds to its first provider after a late deletion
+PASS magnolie-organizer-windows/app/web: imported entry binds to its first provider after a late edit
+PASS magnolie-organizer-windows/app/web: imported entry binds to its first provider after a late deletion
+PASS magnolie-organizer-windows/app/web: ambiguous provider identity holds before modifying data
+PASS magnolie-organizer-windows/app/web: contact UID merge retains its existing semantics
+PASS magnolie-organizer-windows/app/web: stale request remains rejected
+PASS magnolie-organizer-windows/app/web: stale epoch remains rejected
+Calendar synchronization identity: 46/56 cases passed

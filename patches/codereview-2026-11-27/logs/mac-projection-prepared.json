@@ -1,0 +1,15 @@
+{
+  "name": "mac-projection-prepared",
+  "command": [
+    "/usr/bin/python3",
+    "-m",
+    "unittest",
+    "-v",
+    "test_host.ProjectionTests"
+  ],
+  "source_head": "f7c4c4b40ef1858e1fe3a4c3bfc86afca190de23",
+  "exit_code": 0,
+  "seconds": 131.117,
+  "children_maxrss_kib": 805284,
+  "source_head_after": "e9e3c43f1410516ef8ddbf0e5785f96cedb5389e"
+}
