@@ -568,4 +568,28 @@ for (const kind of ["task", "note"]) {
   } finally { b.close(); }
 }
 
+for (const lead of [0, 1]) {
+  const b = await context(), { t, messages } = b;
+  try {
+    const day = lead ? "2030-05-10" : "2030-05-11";
+    const stamp = day.replaceAll("-", "");
+    const putAlarm = second => ["CLASS:PUBLIC", "DUE:20300511T103000Z", "BEGIN:VALARM",
+      "ACTION:DISPLAY", `TRIGGER;VALUE=DATE-TIME:${stamp}T1030${second}Z`, "END:VALARM"];
+    const task = { id: "coincident-task", titel: "Coincident task", faellig: "2030-05-11", faelligZeit: "10:30",
+      erinnern: !lead, individuelleErinnerungTage: lead, icsAnzeigeZeitzone: "UTC", icsRoundtrip: putAlarm("00") };
+    const book = t.daten();
+    book.termine = []; book.aufgaben = [task];
+    book.einstellungen.regional.timeZone = "UTC"; book.einstellungen.erinnerung.an = true;
+    const count = () => messages.filter(message => message.cmd === "erinnerung_zeigen").length;
+    b.at(`${day}T10:30:00Z`); t.pruefeErinnerungen();
+    equal(count(), 1, `Coincident absolute and regular task alarms notify once for lead ${lead}`);
+    task.icsRoundtrip = task.icsRoundtrip.slice(0, 2);
+    t.pruefeErinnerungen(); t.pruefeErinnerungen();
+    equal(count(), 1, `Removing the absolute alarm keeps the same receipt for lead ${lead}`);
+    task.icsRoundtrip = putAlarm("17");
+    b.at(`${day}T10:30:17Z`); t.pruefeErinnerungen();
+    equal(count(), 2, `A different trigger second still notifies for lead ${lead}`);
+  } finally { b.close(); }
+}
+
 console.log(`Mac reminder projection: ${checks} UI checks; shared synthetic reader/Core fixture and transport, not EventKit or macOS evidence.`);
