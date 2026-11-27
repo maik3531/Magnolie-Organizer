@@ -52,8 +52,10 @@ aufgeführt.
   auch im eigenständigen Windows-Quellarchiv. Die Prüfung der 1.434
   Archiveinträge und je 9.260 Assertions aus dem Checkout und dem
   entpackten Archiv bestanden. [#813](https://github.com/maik3531/Magnolie-Organizer/issues/813)
-  und [#814](https://github.com/maik3531/Magnolie-Organizer/issues/814)
-  bleiben separate Windows-CI-Befunde.
+  ist ebenfalls geprüft: Alle 19 Windows-Sprachkataloge bestehen
+  im Checkout und nach Regeneration aus dem entpackten Archiv.
+  Der Medien-Wiederherstellungstest [#814](https://github.com/maik3531/Magnolie-Organizer/issues/814)
+  ist ein separater Windows-CI-Befund.
 
 ## Linux-Telefonstatus und lokale Buchspeicherung – 27. November 2026
 

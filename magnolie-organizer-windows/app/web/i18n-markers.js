@@ -6,6 +6,10 @@ gettext("PC → phone");
 gettext("Add PC source folder …");
 gettext("Selected PC source folders");
 gettext("PC source folders are separate from receive destinations.");
+gettext("Restore media");
+/* Conditional forecast labels are not extracted from the format call. */
+gettext("Estimated start: %(date)s");
+gettext("Period predictions paused: %(reason)s; no fixed end date.");
 /* Appearance selectors use translated data-driven labels. Refs #432. */
 gettext("Visual test only; no connections or permissions are changed.");
 gettext("Tray preview");

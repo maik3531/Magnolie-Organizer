@@ -372,6 +372,11 @@ msgstr ""
 msgid "A native media operation is still running."
 msgstr ""
 
+msgid ""
+"A newly recorded period ends this planning pause. This does not determine "
+"whether pregnancy or menopause has ended."
+msgstr ""
+
 msgid "A notebook with this name already exists in this group."
 msgstr ""
 
@@ -497,6 +502,9 @@ msgid "Add %(type)s"
 msgstr ""
 
 msgid "Add PC source folder …"
+msgstr ""
+
+msgid "Add a reason or pause predictions"
 msgstr ""
 
 msgid "Add another SMS"
@@ -660,6 +668,10 @@ msgid ""
 "endpoints still need to be checked."
 msgstr ""
 
+msgid ""
+"An interval outside 14–60 days interrupts the estimate. Check the entries."
+msgstr ""
+
 msgid "Android restricts this device identifier."
 msgstr ""
 
@@ -777,11 +789,6 @@ msgid "At bedtime"
 msgstr ""
 
 msgid "At least one health view must remain enabled."
-msgstr ""
-
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
 msgstr ""
 
 msgid "At most 5,000 contacts can be exported at once."
@@ -928,6 +935,9 @@ msgstr ""
 msgid "Basic operation and appearance of the organizer."
 msgstr ""
 
+msgid "Basis: %(count)s recorded intervals; typical interval %(days)s days."
+msgstr ""
+
 msgid "Battery"
 msgstr ""
 
@@ -976,6 +986,9 @@ msgstr ""
 msgid "Birthday party"
 msgstr ""
 
+msgid "Birthday stored with this contact; no calendar entry."
+msgstr ""
+
 msgid "Birthday today"
 msgstr ""
 
@@ -989,6 +1002,23 @@ msgid "Blank health form"
 msgstr ""
 
 msgid "Blank template for handwriting"
+msgstr ""
+
+msgid ""
+"Bleeding during pregnancy or after menopause should be medically assessed. "
+"Record it as a new period only if that is how it has been identified."
+msgstr ""
+
+msgid "Bleeding intensity"
+msgstr ""
+
+msgid ""
+"Bleeding is recorded on %(days)s consecutive days in the latest episode. If "
+"it actually lasts this long, seek medical advice."
+msgstr ""
+
+msgid ""
+"Bleeding recorded. Is this a new period that should end the planning pause?"
 msgstr ""
 
 msgid "Bleeding · heavy"
@@ -1066,6 +1096,9 @@ msgstr ""
 msgid "Brandenburg"
 msgstr ""
 
+msgid "Breastfeeding"
+msgstr ""
+
 msgid "Bremen"
 msgstr ""
 
@@ -1104,6 +1137,13 @@ msgstr ""
 msgid "Calculate the route to this address"
 msgstr ""
 
+msgid ""
+"Calculated from at least three starts. Bleeding entries up to three days "
+"apart form one episode. After an interval outside 14–60 days, two new "
+"intervals are needed. The window spans the shortest and longest of up to "
+"twelve recent intervals, plus two days on either side."
+msgstr ""
+
 msgid "Calendar"
 msgstr ""
 
@@ -1111,6 +1151,11 @@ msgid "Calendar (*.ics)"
 msgstr ""
 
 msgid "Calendar (ICS)"
+msgstr ""
+
+msgid ""
+"Calendar display and reminders can be enabled separately. Existing entries "
+"are preserved."
 msgstr ""
 
 msgid "Calendar file (.ics/.vcs/.lcs) …"
@@ -1217,6 +1262,9 @@ msgid "Champagne glass"
 msgstr ""
 
 msgid "Change password"
+msgstr ""
+
+msgid "Change pause"
 msgstr ""
 
 msgid "Changes are applied automatically"
@@ -1369,6 +1417,9 @@ msgid ""
 "Choose sources now. Import previews are kept until you finish the assistant."
 msgstr ""
 
+msgid "Choose the observed bleeding intensity, then confirm this day only."
+msgstr ""
+
 msgid "Choose the save location for each accepted file"
 msgstr ""
 
@@ -1517,6 +1568,15 @@ msgid "Confirm"
 msgstr ""
 
 msgid "Confirm SMS plans"
+msgstr ""
+
+msgid "Confirm bleeding"
+msgstr ""
+
+msgid "Confirm bleeding on %(date)s"
+msgstr ""
+
+msgid "Confirm new period"
 msgstr ""
 
 msgid ""
@@ -1963,6 +2023,9 @@ msgstr ""
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr ""
 
+msgid "Details and limitations"
+msgstr ""
+
 msgid "Detect now"
 msgstr ""
 
@@ -2090,6 +2153,9 @@ msgid "Duplicates"
 msgstr ""
 
 msgid "Duration"
+msgstr ""
+
+msgid "Earlier estimate: %(date)s"
 msgstr ""
 
 msgid "Earlier occurrence"
@@ -2246,6 +2312,9 @@ msgctxt "time tracking"
 msgid "End date"
 msgstr ""
 
+msgid "End pause"
+msgstr ""
+
 msgid "Enjoy getting organized!"
 msgstr ""
 
@@ -2283,6 +2352,9 @@ msgid "Enter a web or email address."
 msgstr ""
 
 msgid "Enter an application command."
+msgstr ""
+
+msgid "Enter an end date on or after the start of the pause."
 msgstr ""
 
 msgid "Enter at least four characters for the backup password."
@@ -2329,13 +2401,24 @@ msgstr ""
 msgid "Error"
 msgstr ""
 
-msgid "Estimate the next period"
+msgid ""
+"Estimate from your entries, not a diagnosis or contraception method. Seek "
+"medical advice for new, persistent or distressing changes."
 msgstr ""
 
 msgid "Estimated from older data"
 msgstr ""
 
 msgid "Estimated next period"
+msgstr ""
+
+msgid "Estimated start window"
+msgstr ""
+
+msgid "Estimated start: %(date)s"
+msgstr ""
+
+msgid "Estimated window: %(from)s – %(to)s"
 msgstr ""
 
 msgid "Evening"
@@ -2562,6 +2645,9 @@ msgid "From"
 msgstr ""
 
 msgid "Full"
+msgstr ""
+
+msgid "Future bleeding entries are not used: %(count)s."
 msgstr ""
 
 msgid "GNOME Maps"
@@ -2987,6 +3073,9 @@ msgstr ""
 msgid "Keep instant"
 msgstr ""
 
+msgid "Keep pause"
+msgstr ""
+
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
@@ -3338,6 +3427,9 @@ msgstr ""
 msgid "Medication"
 msgstr ""
 
+msgid "Medication or hormonal treatment"
+msgstr ""
+
 msgid "Medication plan"
 msgstr ""
 
@@ -3651,6 +3743,10 @@ msgctxt "time tracking"
 msgid "Night shift"
 msgstr ""
 
+msgid ""
+"Nine calendar months is only an editable planning pause, not a due date."
+msgstr ""
+
 msgid "No"
 msgstr ""
 
@@ -3713,7 +3809,13 @@ msgstr ""
 msgid "No entries yet."
 msgstr ""
 
+msgid "No estimate is possible at the edge of the supported calendar range."
+msgstr ""
+
 msgid "No file selected"
+msgstr ""
+
+msgid "No fixed end date"
 msgstr ""
 
 msgid "No history charts"
@@ -3840,6 +3942,9 @@ msgstr ""
 msgid "Not charging"
 msgstr ""
 
+msgid "Not enough recent data for a personal estimate."
+msgstr ""
+
 msgid "Not now"
 msgstr ""
 
@@ -3914,6 +4019,9 @@ msgid ""
 msgstr ""
 
 msgid "Notifications are off unless enabled below."
+msgstr ""
+
+msgid "Notify before the estimated period"
 msgstr ""
 
 msgid "ODS"
@@ -4184,6 +4292,9 @@ msgstr ""
 msgid "Other addresses"
 msgstr ""
 
+msgid "Other known reason"
+msgstr ""
+
 msgid "Other phone numbers"
 msgstr ""
 
@@ -4258,6 +4369,12 @@ msgid ""
 "or phone key does not match. Restart pairing on both devices."
 msgstr ""
 
+msgid ""
+"Pale drops mark possible start days, not a predicted bleeding duration. "
+"Active predictions disappear after the estimated window if unconfirmed. Only "
+"days you confirm as actual bleeding enter future calculations."
+msgstr ""
+
 msgid "Palm tree"
 msgstr ""
 
@@ -4311,6 +4428,15 @@ msgstr ""
 msgid "Pause incoming control for this session"
 msgstr ""
 
+msgid "Pause period predictions"
+msgstr ""
+
+msgid "Pause started: %(date)s."
+msgstr ""
+
+msgid "Pause until (inclusive)"
+msgstr ""
+
 msgctxt "time tracking"
 msgid "Paused"
 msgstr ""
@@ -4333,7 +4459,19 @@ msgstr ""
 msgid "People"
 msgstr ""
 
+msgid "Perimenopause or menopause"
+msgstr ""
+
 msgid "Period"
+msgstr ""
+
+msgid "Period forecast (estimate)"
+msgstr ""
+
+msgid "Period predictions paused: %(reason)s; no fixed end date."
+msgstr ""
+
+msgid "Period predictions paused: %(reason)s; until %(date)s."
 msgstr ""
 
 msgid "Permanent KDE listener active"
@@ -4510,6 +4648,9 @@ msgstr ""
 msgid "Please enter a unique category name without commas or semicolons."
 msgstr ""
 
+msgid "Please enter a valid birth date."
+msgstr ""
+
 msgid "Please enter a website or application for the custom action."
 msgstr ""
 
@@ -4583,6 +4724,9 @@ msgid ""
 msgstr ""
 
 msgid "Preferred backup folder"
+msgstr ""
+
+msgid "Pregnancy"
 msgstr ""
 
 msgid "Preparing Microsoft sign-in …"
@@ -4730,6 +4874,9 @@ msgstr ""
 msgid "Reason"
 msgstr ""
 
+msgid "Reason for the pause"
+msgstr ""
+
 msgid "Receive files"
 msgstr ""
 
@@ -4749,6 +4896,12 @@ msgid "Recipient"
 msgstr ""
 
 msgid "Reconnect"
+msgstr ""
+
+msgid "Record actual bleeding on %(date)s?"
+msgstr ""
+
+msgid "Recorded bleeding overlaps the estimated window. Check the entries."
 msgstr ""
 
 msgctxt "time tracking"
@@ -4957,6 +5110,9 @@ msgstr ""
 msgid "Restore failed."
 msgstr ""
 
+msgid "Restore media"
+msgstr ""
+
 msgid ""
 "Restore this snapshot completely? A mandatory pre-restore snapshot is "
 "created first."
@@ -5095,6 +5251,9 @@ msgid "Save changes?"
 msgstr ""
 
 msgid "Save endpoint"
+msgstr ""
+
+msgid "Save pause"
 msgstr ""
 
 msgid "Save rejected: The data is encrypted and has not been unlocked yet."
@@ -5416,6 +5575,9 @@ msgid "Show log"
 msgstr ""
 
 msgid "Show more"
+msgstr ""
+
+msgid "Show period forecast in calendar"
 msgstr ""
 
 msgid "Show phone screen"
@@ -6104,6 +6266,11 @@ msgctxt "time tracking"
 msgid "The entry could not be saved. Reload it and try again."
 msgstr ""
 
+msgid ""
+"The estimated window ended %(days)s days ago. No new start is recorded; "
+"check for missing entries."
+msgstr ""
+
 msgid "The export data is missing."
 msgstr ""
 
@@ -6168,6 +6335,11 @@ msgid "The last notebook cannot be deleted."
 msgstr ""
 
 msgid "The last notebook group cannot be deleted."
+msgstr ""
+
+msgid ""
+"The latest recorded interval is %(days)s days; the earlier typical interval "
+"was %(baseline)s days."
 msgstr ""
 
 msgid "The letter was created but could not be opened."
@@ -6242,6 +6414,11 @@ msgid "The pairing file is too large."
 msgstr ""
 
 msgid "The password must contain at least four characters."
+msgstr ""
+
+msgid ""
+"The pause has ended. A new estimate needs three newly recorded starts; "
+"earlier intervals are not reused."
 msgstr ""
 
 msgid ""
@@ -6358,6 +6535,18 @@ msgid ""
 msgstr ""
 
 msgid "The public address could not be determined."
+msgstr ""
+
+msgid ""
+"The reason is self-reported. During the pause, estimates and cycle-deviation "
+"reminders are suppressed. Existing entries are retained."
+msgstr ""
+
+msgid ""
+"The recorded intervals vary by %(days)s days. The estimate is uncertain."
+msgstr ""
+
+msgid "The records are too old for current planning. Check or add entries."
 msgstr ""
 
 msgid "The recovery snapshot reason is invalid."
@@ -6615,6 +6804,9 @@ msgid "This image format cannot be used."
 msgstr ""
 
 msgid "This import format is not yet available on Windows."
+msgstr ""
+
+msgid "This is a future estimate. Only today or a past day can be confirmed."
 msgstr ""
 
 msgid "This is available only in the installed application."
@@ -7774,282 +7966,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "＋ Add appointment"
-msgstr ""
-
-#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
-msgid "Birthday stored with this contact; no calendar entry."
-msgstr ""
-
-#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
-msgid "Please enter a valid birth date."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Show period forecast in calendar"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Notify before the estimated period"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Period forecast (estimate)"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Estimated start: %(date)s"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Estimated window: %(from)s – %(to)s"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Basis: %(count)s recorded intervals; typical interval %(days)s days."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Not enough recent data for a personal estimate."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "An interval outside 14–60 days interrupts the estimate. Check the entries."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Future bleeding entries are not used: %(count)s."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "The estimated window ended %(days)s days ago. No new start is recorded; check for missing entries."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "The latest recorded interval is %(days)s days; the earlier typical interval was %(baseline)s days."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "The recorded intervals vary by %(days)s days. The estimate is uncertain."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "The records are too old for current planning. Check or add entries."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Bleeding is recorded on %(days)s consecutive days in the latest episode. If it actually lasts this long, seek medical advice."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Recorded bleeding overlaps the estimated window. Check the entries."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "No estimate is possible at the edge of the supported calendar range."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Estimate from your entries, not a diagnosis or contraception method. Seek medical advice for new, persistent or distressing changes."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Calculated from at least three starts. Bleeding entries up to three days apart form one episode. After an interval outside 14–60 days, two new intervals are needed. The window spans the shortest and longest of up to twelve recent intervals, plus two days on either side."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Details and limitations"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Estimated start window"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Earlier estimate: %(date)s"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Calendar display and reminders can be enabled separately. Existing entries are preserved."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Record actual bleeding on %(date)s?"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Choose the observed bleeding intensity, then confirm this day only."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Confirm bleeding"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "This is a future estimate. Only today or a past day can be confirmed."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Pale drops mark possible start days, not a predicted bleeding duration. Active predictions disappear after the estimated window if unconfirmed. Only days you confirm as actual bleeding enter future calculations."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Bleeding intensity"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Confirm bleeding on %(date)s"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Pause period predictions"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Reason for the pause"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Pregnancy"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Breastfeeding"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Medication or hormonal treatment"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Perimenopause or menopause"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Other known reason"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Pause until (inclusive)"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "No fixed end date"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Nine calendar months is only an editable planning pause, not a due date."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "The reason is self-reported. During the pause, estimates and cycle-deviation reminders are suppressed. Existing entries are retained."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Save pause"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "End pause"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Period predictions paused: %(reason)s; until %(date)s."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Period predictions paused: %(reason)s; no fixed end date."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "The pause has ended. A new estimate needs three newly recorded starts; earlier intervals are not reused."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Change pause"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Add a reason or pause predictions"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Enter an end date on or after the start of the pause."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Bleeding during pregnancy or after menopause should be medically assessed. Record it as a new period only if that is how it has been identified."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "A newly recorded period ends this planning pause. This does not determine whether pregnancy or menopause has ended."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Pause started: %(date)s."
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Bleeding recorded. Is this a new period that should end the planning pause?"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Confirm new period"
-msgstr ""
-
-
-#. Optional period forecast improvements (Refs #803).
-msgid "Keep pause"
 msgstr ""
