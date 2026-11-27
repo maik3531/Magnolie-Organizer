@@ -155,7 +155,7 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
             receiver.ready, receiver.paired, receiver.ownDevice, receiver.remoteOwnDevice, receiver.pairingEpoch)
     }
 
-    @Synchronized fun configure(expected: GalleryPhotoPolicySnapshot, enabled: Boolean, kinds: Set<GallerySourceKind>): GalleryPhotoPolicySnapshot {
+    fun configure(expected: GalleryPhotoPolicySnapshot, enabled: Boolean, kinds: Set<GallerySourceKind>): GalleryPhotoPolicySnapshot = synchronized(index.authorityMonitor) {
         if (uncertain || expected.repairPending) fail("gallery_policy_repair_pending")
         val receiver = configurer()
         val old = expected.policy
@@ -177,7 +177,7 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
         val pairingEpoch = receiver?.pairingEpoch ?: old?.pairingEpoch
         if (old != null && !old.videoOnlySend && old.enabled == enabled && old.kinds == kinds && old.pairingEpoch == pairingEpoch) {
             if (index.galleryPolicy() != expected || !allowed()) fail("gallery_policy_cas_conflict")
-            return expected // Same policy/mode-only traffic never rekeys data consent.
+            return@synchronized expected // Same policy/mode-only traffic never rekeys data consent.
         }
         if ((old?.revision ?: 1L) >= DeviceFileControl.MAX_REVISION) fail("gallery_policy_revision_exhausted")
         val next = GalleryPhotoPolicy(peer, identity, newEpoch(), enabled, kinds, (old?.revision ?: 1L) + 1,
@@ -189,13 +189,13 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
             val saved = index.compareAndSetGalleryPolicy(expected, next, ::allowed)
             if (saved.repairPending || saved.policy != next || index.galleryPolicy() != saved || !allowed())
                 fail("gallery_policy_commit_readback_failed")
-            return saved
+            saved
         } catch (error: Exception) { uncertain = true; throw error }
     }
 
     /** Separate explicit native video consent. It neither grants OS READ nor
      * rekeys the already acknowledged photo transport or its saved history. */
-    @Synchronized fun configureVideos(expected: GalleryPhotoPolicySnapshot, enabled: Boolean): GalleryPhotoPolicySnapshot {
+    fun configureVideos(expected: GalleryPhotoPolicySnapshot, enabled: Boolean): GalleryPhotoPolicySnapshot = synchronized(index.authorityMonitor) {
         if (uncertain || expected.repairPending) fail("gallery_policy_repair_pending")
         if (enabled && !videoAvailable()) fail("gallery_video_handlers_unavailable")
         val receiver = configurer()?.takeIf { it.allowed } ?: fail("gallery_configurer_not_ready")
@@ -211,7 +211,7 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
             if (index.galleryPolicy() != expected || !allowed()) fail("gallery_policy_cas_conflict")
             val next = GalleryPhotoPolicy(receiver.peerId, receiver.identitySha256, newEpoch(), false, GallerySourceKind.entries.toSet(),
                 2, 4, pairing, GalleryVideoPolicy(true, newEpoch(), 1), 2, videoOnlySend = true)
-            return commitVideo(expected, next, ::allowed, arm = true)
+            return@synchronized commitVideo(expected, next, ::allowed, arm = true)
         }
         if ((!old.enabled && !old.videoOnlySend) || old.receiverId != receiver.peerId || old.receiverIdentitySha256 != receiver.identitySha256 ||
             old.pairingEpoch == null || old.pairingEpoch != receiver.pairingEpoch) fail("gallery_video_photo_policy_required")
@@ -225,7 +225,7 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
         if ((old.videos?.enabled ?: false) == enabled) {
             if (index.galleryPolicy() != expected || !allowed()) fail("gallery_policy_cas_conflict")
             if (enabled) armVideo(old)
-            return expected
+            return@synchronized expected
         }
         val exhausted = when {
             old.revision >= DeviceFileControl.MAX_REVISION -> "gallery_policy_revision_exhausted"
@@ -245,7 +245,7 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
             old.revision + 1, if (old.receiving != null) 5 else 4, old.pairingEpoch,
             GalleryVideoPolicy(enabled, newEpoch(), (old.videos?.revision ?: 0L) + 1),
             if (old.videoOnlySend) old.revision + 1 else old.fileGrantRevision, old.receiving, old.videoOnlySend)
-        return commitVideo(expected, next, ::allowed, arm = enabled)
+        commitVideo(expected, next, ::allowed, arm = enabled)
     }
 
     private fun newEpoch() = ByteArray(32).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
@@ -261,26 +261,26 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
         } catch (error: Exception) { uncertain = true; throw error }
     }
 
-    @Synchronized fun currentRequest(mediaType: GalleryMediaType = GalleryMediaType.IMAGES): NativeGalleryRequest? {
-        if (uncertain) return null
-        if (mediaType == GalleryMediaType.VIDEO && !videoAvailable()) return null
+    fun currentRequest(mediaType: GalleryMediaType = GalleryMediaType.IMAGES): NativeGalleryRequest? = synchronized(index.authorityMonitor) {
+        if (uncertain) return@synchronized null
+        if (mediaType == GalleryMediaType.VIDEO && !videoAvailable()) return@synchronized null
         val intent = currentMediaIntent?.invoke(mediaType)
-        if (currentMediaIntent != null && intent == null) return null
-        val receiver = currentReceiver()?.takeIf { it.allowed } ?: return null
+        if (currentMediaIntent != null && intent == null) return@synchronized null
+        val receiver = currentReceiver()?.takeIf { it.allowed } ?: return@synchronized null
         val saved = index.galleryPolicy()
-        val policy = saved.policy ?: return null
+        val policy = saved.policy ?: return@synchronized null
         val sourceEnabled = if (mediaType == GalleryMediaType.IMAGES) policy.enabled else policy.anySendEnabled
         if (saved.repairPending || !sourceEnabled || policy.receiverId != receiver.peerId || policy.receiverIdentitySha256 != receiver.identitySha256 ||
             policy.pairingEpoch != receiver.pairingEpoch)
-            return null
-        if (!same(receiver, currentReceiver()) || index.galleryPolicy() != saved) return null
-        val epoch = if (mediaType == GalleryMediaType.IMAGES) policy.epoch else policy.videos?.takeIf { it.enabled }?.epoch ?: return null
+            return@synchronized null
+        if (!same(receiver, currentReceiver()) || index.galleryPolicy() != saved) return@synchronized null
+        val epoch = if (mediaType == GalleryMediaType.IMAGES) policy.epoch else policy.videos?.takeIf { it.enabled }?.epoch ?: return@synchronized null
         if (mediaType == GalleryMediaType.VIDEO) {
-            val activation = videoActivation ?: return null
-            if (activation.first != epoch || !same(activation.second, receiver)) return null
+            val activation = videoActivation ?: return@synchronized null
+            if (activation.first != epoch || !same(activation.second, receiver)) return@synchronized null
         }
-        if (currentMediaIntent != null && currentMediaIntent.invoke(mediaType) !== intent) return null
-        return NativeGalleryRequest(receiver, epoch, policy.kinds, mediaType, intent)
+        if (currentMediaIntent != null && currentMediaIntent.invoke(mediaType) !== intent) return@synchronized null
+        NativeGalleryRequest(receiver, epoch, policy.kinds, mediaType, intent)
     }
 
     private fun armVideo(policy: GalleryPhotoPolicy) {
@@ -293,12 +293,12 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
     /** Explicit native local decrease only, not a remote configure bypass.
      * Never creates an off default or releases app-wide Android URI permissions.
      */
-    @Synchronized fun disableLocally(expected: GalleryPhotoPolicySnapshot): GalleryPhotoPolicySnapshot {
+    fun disableLocally(expected: GalleryPhotoPolicySnapshot): GalleryPhotoPolicySnapshot = synchronized(index.authorityMonitor) {
         if (expected.policy == null) {
             if (index.galleryPolicy() != expected || expected.repairPending) fail("gallery_policy_repair_pending")
-            return expected
+            return@synchronized expected
         }
-        return GalleryPhotoPolicyController(index, currentReceiver).configure(expected, false, emptySet())
+        GalleryPhotoPolicyController(index, currentReceiver).configure(expected, false, emptySet())
     }
 
     private fun same(first: NativePhotoReceiver, second: NativePhotoReceiver?): Boolean = second != null && first.allowed && second.allowed &&

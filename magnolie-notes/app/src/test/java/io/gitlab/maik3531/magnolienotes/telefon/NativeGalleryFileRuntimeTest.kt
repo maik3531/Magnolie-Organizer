@@ -10,7 +10,11 @@ import org.robolectric.annotation.Config
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.lang.management.ManagementFactory
 import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import javax.crypto.spec.SecretKeySpec
 
 @RunWith(RobolectricTestRunner::class)
@@ -64,6 +68,45 @@ class NativeGalleryFileRuntimeTest {
             put("kinds", JsonArray(listOf(JsonPrimitive("camera"))))
         }
     }, 60_000, now)
+
+    @Test fun sourceStatusDoesNotHoldFileControlsWhileWaitingForGalleryIndex() {
+        negotiatedRuntime { runtime, echo ->
+            runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+            echo()
+            val indexGate = PhotoSourceJobIndex::class.java.getDeclaredField("gate").let {
+                it.isAccessible = true
+                it.get(null)
+            }
+            val reply = AtomicReference<JsonObject>()
+            val failure = AtomicReference<Throwable>()
+            val entered = CountDownLatch(1)
+            val request = Thread({
+                entered.countDown()
+                try { runtime.receiveSourceCommand(sourceCommand("status"), reply::set, { now }) }
+                catch (error: Throwable) { failure.set(error) }
+            }, "gallery-native-source-status").apply { isDaemon = true }
+            try {
+                synchronized(indexGate) {
+                    request.start()
+                    assertTrue(entered.await(3, TimeUnit.SECONDS))
+                    val bean = ManagementFactory.getThreadMXBean()
+                    val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3)
+                    while (request.state != Thread.State.BLOCKED && request.isAlive && System.nanoTime() < deadline)
+                        Thread.yield()
+                    val observed = requireNotNull(bean.getThreadInfo(longArrayOf(request.id), true, false).single())
+                    assertEquals(Thread.State.BLOCKED, observed.threadState)
+                    assertEquals(System.identityHashCode(indexGate), observed.lockInfo.identityHashCode)
+                    assertFalse("Source status holds file controls while waiting for the index: $observed",
+                        observed.lockedMonitors.any { it.className == NativeFileControlSession::class.java.name })
+                    assertNull(reply.get())
+                    assertNotNull(runtime.currentRequest())
+                }
+            } finally { request.join(3000) }
+            assertFalse(request.isAlive)
+            assertNull(failure.get())
+            assertEquals(DeviceFileSourceCommand.RESULT, reply.get().string("kind"))
+        }
+    }
 
     @Test fun typedFirstVideoSendNeedsNewEchoAndSeparateOsReadWithoutEnablingPhotos() {
         val videoIntent = Any()

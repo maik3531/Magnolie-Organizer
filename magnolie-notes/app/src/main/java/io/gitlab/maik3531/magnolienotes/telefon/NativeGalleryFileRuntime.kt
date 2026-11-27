@@ -117,7 +117,8 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     init {
         var prepared: NativeFileControlChannel? = null
         try {
-            prepared = NativeFileControlChannel(identity, channel, nativePeer, { grants.current() }, incomingAvailable)
+            prepared = NativeFileControlChannel(identity, channel, nativePeer, { grants.current() }, incomingAvailable,
+                authorityMonitor = index.authorityMonitor)
             controls = prepared
             val receivePeer = nativePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
             receivePolicy = GalleryReceivePolicyController(index, NativeFileControlIdentity(receivePeer.peerId, receivePeer.identitySha256),

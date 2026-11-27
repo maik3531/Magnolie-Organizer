@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.SystemClock
 import java.security.SecureRandom
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicReference
 
 internal class GalleryPhotoPermissionTicket internal constructor(internal val activation: NativeGalleryRequest,
     internal val startedMs: Long, permissions: List<String>) {
@@ -24,7 +25,11 @@ internal class GalleryPhotoAccessController private constructor(context: Context
     constructor(context: Context, current: () -> NativeGalleryRequest?, mediaType: GalleryMediaType,
         elapsedMs: () -> Long = { SystemClock.elapsedRealtime() }) : this(context, current, elapsedMs, mediaType)
     private val app = context.applicationContext
-    private var epoch = nonce()
+    // A durable source reservation can recheck this observation while holding
+    // the Gallery index monitor. Permission callbacks resolve that same native
+    // policy under this controller's UI lock, so epoch reads/rotations must
+    // not need to enter the UI lock in the opposite order.
+    private val epoch = AtomicReference<String?>(nonce())
     private var pending: GalleryPhotoPermissionTicket? = null
     private var launched = false
     private var foreground = false
@@ -33,10 +38,7 @@ internal class GalleryPhotoAccessController private constructor(context: Context
 
     val environment: GalleryAccessEnvironment = AndroidGalleryAccessEnvironment(app, mediaType) { accessEpoch() }
 
-    @Synchronized fun accessEpoch(): String {
-        if (closed) fail("gallery_access_controller_closed")
-        return epoch
-    }
+    fun accessEpoch(): String = epoch.get() ?: fail("gallery_access_controller_closed")
 
     /** Called by native activity lifecycle, never by a peer message. Every
      * return from background rotates proofs, even when selected-photo changes
@@ -54,10 +56,7 @@ internal class GalleryPhotoAccessController private constructor(context: Context
     /** Call for native permission/result/selected-photo-change notifications.
      * Rotation does not release app-wide URI or backup/import rights.
      */
-    @Synchronized fun onAccessChanged() {
-        if (closed) fail("gallery_access_controller_closed")
-        rotate()
-    }
+    fun onAccessChanged() { rotate() }
 
     @Synchronized fun preparePermissionRequest(): GalleryPhotoPermissionTicket {
         ready()
@@ -104,9 +103,9 @@ internal class GalleryPhotoAccessController private constructor(context: Context
         return coverage
     }
 
-    @Synchronized fun cancel() { pending = null; launched = false; rotate() }
+    @Synchronized fun cancel() { pending = null; launched = false; if (!closed) rotate() }
 
-    @Synchronized fun close() { cancel(); foreground = false; closed = true }
+    @Synchronized fun close() { cancel(); foreground = false; closed = true; epoch.set(null) }
 
     private fun valid(ticket: GalleryPhotoPermissionTicket): Boolean {
         val now = elapsedMs()
@@ -119,7 +118,10 @@ internal class GalleryPhotoAccessController private constructor(context: Context
         first.receiver.identitySha256 == second.receiver.identitySha256 && first.receiver.permissionEpoch == second.receiver.permissionEpoch &&
         first.receiver.pairingEpoch == second.receiver.pairingEpoch
     private fun ready() { if (closed) fail("gallery_access_controller_closed") }
-    private fun rotate() { epoch = nonce() }
+    private fun rotate() {
+        val next = nonce()
+        epoch.updateAndGet { it?.let { next } ?: fail("gallery_access_controller_closed") }
+    }
 
     companion object {
         const val MAX_PROMPT_MS = 120_000L

@@ -99,6 +99,10 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
     private var closed = false
     private var membership: PhotoSourceMembership? = null
     private var uncertain = false
+    // Reentrant across index instances. Gallery's live authority checks also
+    // run inside durable reservation/publication, so use this same monitor for
+    // their policy and file-control state; never take either lock before gate.
+    internal val authorityMonitor: Any get() = gate
 
     init {
         require(directory.isAbsolute && directory.canonicalFile == directory)

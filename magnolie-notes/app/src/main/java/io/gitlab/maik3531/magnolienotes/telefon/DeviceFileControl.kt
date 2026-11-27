@@ -106,7 +106,8 @@ internal data class NativeFileOperationBinding(val binding: DeviceTransferBindin
 internal class NativeFileControlSession(private val identity: NativeFileControlIdentity,
     private val currentPeer: () -> NativeFileControlPeer?, private val currentLocal: () -> NativeLocalFileGrant?,
     private val monotonicMs: () -> Long = { DeviceFileControl.monotonicMs() },
-    private val receiveHandlersReady: () -> Boolean = { false }) : AutoCloseable {
+    private val receiveHandlersReady: () -> Boolean = { false },
+    private val authorityMonitor: Any = Any()) : AutoCloseable {
     private val revoked = AtomicBoolean(false)
     private val peer = currentPeer()?.takeIf { it.allowed && it.peerId != identity.deviceId }
         ?: DeviceFileControl.fail("file_control_native_scope_required")
@@ -137,26 +138,26 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
         return nextPeer to nextLocal
     }
 
-    @Synchronized fun packet(): DeviceFileControlPacket {
+    fun packet(): DeviceFileControlPacket = synchronized(authorityMonitor) {
         val (_, state) = scope() ?: DeviceFileControl.fail("file_control_native_scope_changed")
         if (sequence >= DeviceFileControl.MAX_REVISION) DeviceFileControl.fail("file_control_native_scope_changed")
         if (!state.policyReady) DeviceFileControl.fail("file_control_policy_pending")
-        return DeviceFileControlPacket(state.grants, sessionEpoch, ++sequence, remote?.challenge).also { pending = it }
+        DeviceFileControlPacket(state.grants, sessionEpoch, ++sequence, remote?.challenge).also { pending = it }
     }
 
-    @Synchronized fun markSent(packet: DeviceFileControlPacket) {
+    fun markSent(packet: DeviceFileControlPacket) = synchronized(authorityMonitor) {
         val (_, state) = scope() ?: DeviceFileControl.fail("file_control_invalid_native_send_completion")
         if (!state.policyReady || packet !== pending || packet.grants != state.grants || packet.echo != remote?.challenge)
             DeviceFileControl.fail("file_control_invalid_native_send_completion")
         sentGrants = packet.grants; sentEcho = packet.echo; pending = null
     }
 
-    @Synchronized fun needsPacket(): Boolean {
-        val (_, state) = scope() ?: return false
-        return state.policyReady && (sentGrants != state.grants || remote?.let { sentEcho != it.challenge } == true)
+    fun needsPacket(): Boolean = synchronized(authorityMonitor) {
+        val (_, state) = scope() ?: return@synchronized false
+        state.policyReady && (sentGrants != state.grants || remote?.let { sentEcho != it.challenge } == true)
     }
 
-    @Synchronized fun observeRemote(packet: DeviceFileControlPacket, boundPeer: NativeFileControlPeer): Boolean {
+    fun observeRemote(packet: DeviceFileControlPacket, boundPeer: NativeFileControlPeer): Boolean = synchronized(authorityMonitor) {
         if (scope() == null || !boundPeer.allowed || boundPeer.owner !== peer.owner || boundPeer.peerId != peer.peerId ||
             boundPeer.identitySha256 != peer.identitySha256) DeviceFileControl.fail("file_control_native_scope_changed")
         remote?.let { before ->
@@ -167,7 +168,7 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
                 packet.grants.revision == before.grants.revision && packet.grants.permissionWire() != before.grants.permissionWire()) {
                 faulted = true; DeviceFileControl.fail("file_control_equivocation")
             }
-            if (same && packet == before) return false
+            if (same && packet == before) return@synchronized false
             if (!same || packet.grants.permissionWire() != before.grants.permissionWire() || 1 !in packet.grants.manifestVersions)
                 configurations.values.forEach { it.invalidated = true }
         }
@@ -180,7 +181,7 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
             operationRevision++
         }
         remote = packet
-        return true
+        true
     }
 
     private fun agreed(): Triple<NativeFileControlPeer, NativeLocalFileGrant, DeviceFileControlPacket>? {
@@ -205,16 +206,12 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
      * not from a remote Boolean. Allows source consent bootstrap while local
      * send-files is still OFF; it is not a photo read/send permission.
      */
-    @Synchronized fun configurationTicket(): NativeFileConfigurationTicket {
-        return newConfigurationTicket(false)
-    }
+    fun configurationTicket(): NativeFileConfigurationTicket = synchronized(authorityMonitor) { newConfigurationTicket(false) }
 
     /** Independent incoming bootstrap: the actual own PC must have SEND enabled
      * and this native session must own real receive handlers. Local receive-files
      * can still be OFF; the ticket itself never enables it or accepts an offer. */
-    @Synchronized fun receiveConfigurationTicket(): NativeFileConfigurationTicket {
-        return newConfigurationTicket(true)
-    }
+    fun receiveConfigurationTicket(): NativeFileConfigurationTicket = synchronized(authorityMonitor) { newConfigurationTicket(true) }
 
     private fun newConfigurationTicket(receiving: Boolean): NativeFileConfigurationTicket {
         val (current, _, received) = agreed() ?: DeviceFileControl.fail("file_control_configuration_not_ready")
@@ -228,16 +225,16 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
         }
     }
 
-    @Synchronized fun configurationAuthority(ticket: NativeFileConfigurationTicket): NativeGalleryConfigurer? {
-        val (current, configured) = configurationScope(ticket, false) ?: return null
+    fun configurationAuthority(ticket: NativeFileConfigurationTicket): NativeGalleryConfigurer? = synchronized(authorityMonitor) {
+        val (current, configured) = configurationScope(ticket, false) ?: return@synchronized null
         val epoch = configurationEpoch(current, configured, "magnolie-file-configurer-v1\u0000")
-        return NativeGalleryConfigurer(current.peerId, current.identitySha256, ticket, epoch, true,
+        NativeGalleryConfigurer(current.peerId, current.identitySha256, ticket, epoch, true,
             current.paired, current.ownDevice, current.remoteOwnDevice, current.pairingEpoch)
     }
 
-    @Synchronized fun receiveConfigurationAuthority(ticket: NativeFileConfigurationTicket): NativeFileReceiveConfigurer? {
-        val (current, configured) = configurationScope(ticket, true) ?: return null
-        return NativeFileReceiveConfigurer(current.peerId, current.identitySha256, ticket,
+    fun receiveConfigurationAuthority(ticket: NativeFileConfigurationTicket): NativeFileReceiveConfigurer? = synchronized(authorityMonitor) {
+        val (current, configured) = configurationScope(ticket, true) ?: return@synchronized null
+        NativeFileReceiveConfigurer(current.peerId, current.identitySha256, ticket,
             configurationEpoch(current, configured, "magnolie-file-receive-configurer-v1\u0000"),
             current.pairingEpoch ?: DeviceFileControl.fail("file_control_configuration_not_ready"))
     }
@@ -270,33 +267,33 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
             "remote_permission" to configured.permission)))
     }
 
-    @Synchronized fun finishConfiguration(ticket: NativeFileConfigurationTicket) {
+    fun finishConfiguration(ticket: NativeFileConfigurationTicket) = synchronized(authorityMonitor) {
         if (configurations.remove(ticket) == null) DeviceFileControl.fail("file_control_foreign_configuration_ticket")
     }
 
-    @Synchronized fun binding(destinationToken: String, senderIsLocal: Boolean = false): DeviceTransferBinding? {
-        val (current, epoch) = permitted(senderIsLocal) ?: return null
-        return if (senderIsLocal) DeviceTransferBinding(identity.deviceId, current.peerId, identity.identitySha256,
+    fun binding(destinationToken: String, senderIsLocal: Boolean = false): DeviceTransferBinding? = synchronized(authorityMonitor) {
+        val (current, epoch) = permitted(senderIsLocal) ?: return@synchronized null
+        if (senderIsLocal) DeviceTransferBinding(identity.deviceId, current.peerId, identity.identitySha256,
             current.identitySha256, epoch, destinationToken) else DeviceTransferBinding(current.peerId, identity.deviceId,
             current.identitySha256, identity.identitySha256, epoch, destinationToken)
     }
 
     /** Atomically observe the positive persistent binding AND this original
      * control session. Ordinary wire/resume bindings deliberately stay stable. */
-    @Synchronized internal fun operationBinding(destinationToken: String, senderIsLocal: Boolean = false): NativeFileOperationBinding? {
-        val binding = binding(destinationToken, senderIsLocal) ?: return null
+    internal fun operationBinding(destinationToken: String, senderIsLocal: Boolean = false): NativeFileOperationBinding? = synchronized(authorityMonitor) {
+        val binding = binding(destinationToken, senderIsLocal) ?: return@synchronized null
         val witness = DeviceFileControl.digest("magnolie-native-file-operation-session-v1\u0000", JsonObject(mapOf(
             "local_challenge" to JsonPrimitive(DeviceFileControlPacket(local.grants, sessionEpoch, 1, null).challenge),
             "remote_challenge" to JsonPrimitive(remote!!.challenge), "revision" to JsonPrimitive(operationRevision))))
-        return NativeFileOperationBinding(binding, witness)
+        NativeFileOperationBinding(binding, witness)
     }
 
     /** Actual native receiver observation for Gallery/SAF scopes. Still no OS
      * READ permission: existing source authority must independently prove it.
      */
-    @Synchronized fun photoReceiver(): NativePhotoReceiver? {
-        val (current, epoch) = permitted(true) ?: return null
-        return NativePhotoReceiver(current.peerId, current.identitySha256, this, epoch, true, current.paired,
+    fun photoReceiver(): NativePhotoReceiver? = synchronized(authorityMonitor) {
+        val (current, epoch) = permitted(true) ?: return@synchronized null
+        NativePhotoReceiver(current.peerId, current.identitySha256, this, epoch, true, current.paired,
             current.ownDevice, current.remoteOwnDevice, local.grants.sendFiles, remote!!.grants.receiveFiles, 1, current.pairingEpoch)
     }
 

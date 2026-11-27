@@ -92,6 +92,13 @@ aufgeführt.
   neue Medienaktionen werden bis zur bestätigten Projektion gehalten.
   Frisch aufgebaute Zeilen behalten ihre ersten lokalen
   Wiederherstellungsantworten. Elf gezielte DOM-Fälle bestanden.
+  In Notes trat beim gleichzeitigen Zugriff auf den Galerieindex und
+  die Statusabfrage eine gegenläufige Sperrreihenfolge auf. Galerieindex,
+  Dateisteuerung und Freigabepolitik verwenden jetzt denselben Monitor;
+  das Lesen der Android-Zugriffsbeobachtung wartet nicht auf die
+  Dialogsperre. 148 Notes-Release-JVM-Tests bestanden, einschließlich des
+  Konkurrenzfalls sowie getrennten Video-SEND- und Empfangsfreigaben.
+  Die Prüfung mit installierten Paketen bleibt offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
   zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.
