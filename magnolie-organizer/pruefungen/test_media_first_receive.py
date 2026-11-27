@@ -29,10 +29,12 @@ from test_video_destination_ui import saved_book_inputs
 @pytest.mark.parametrize('outcome', ['stop_before_echo', 'stop_during_status', 'remote_off', 'local_off',
                                       'read_missing', 'read_allowed', 'worker', 'book_changed', 'custom_target',
                                       'changed_custom_target', 'mixed_video_read_missing', 'mixed_existing_video_off',
-                                      'mixed_both_read', 'mixed_both_workers'])
+                                      'mixed_both_read', 'mixed_both_workers', 'video_only_read_missing',
+                                      'video_only_worker', 'video_only_remote_off'])
 def test_manual_first_receive_waits_for_explicit_start_and_original_file_controls(native, tmp_path, monkeypatch, outcome):
     service, peer, _ = native
     mixed=outcome.startswith('mixed_')
+    video_only=outcome.startswith('video_only_')
     peer['capabilities'] = legacy_state()
     service.store.save_peers()
     monkeypatch.setattr(service, '_native_media_support_checked', True)
@@ -47,7 +49,7 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
     choose_video=NativeVideoDestinationController.choose_default
     monkeypatch.setattr(NativeVideoDestinationController, 'choose_default',
                         lambda self, action: choose_video(self, action, videos_provider=lambda: videos))
-    if mixed:
+    if mixed or video_only:
         from magnolie_file_desktop_connection import NativeDesktopFileConnection
         monkeypatch.setattr(NativeDesktopFileConnection, '_video_data_handlers_ready', True)
     book = tmp_path / 'daten.json'
@@ -79,7 +81,8 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
             dispatch(ack(submitted))
             connection = service.open_native_file_connection(peer['device_id'], peer['static_public'], channel, binding.generation)
             connection._media_transport.change('enabled', True)
-            if mixed:connection._media_transport.change('videos_enabled',True)
+            if mixed or video_only:connection._media_transport.change('videos_enabled',True)
+            if video_only:connection._media_transport.change('photos_enabled',False)
             settings = connection._media_transport.send_settings()
             assert wire.receive() == settings
             dispatch(ack(settings))
@@ -93,7 +96,8 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                 service.photo_sync_action(peer['device_id'], finger, {'action': action})
 
             state = service.photo_sync_state(peer['device_id'])
-            assert state['shared_media']['agreed'] and state['manual_receive']
+            assert state['shared_media']['agreed']
+            assert state['manual_receive']
             assert connection._preferences.read().policy is None
             assert not list(pictures.iterdir())
             assert not list(videos.iterdir())
@@ -152,13 +156,19 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
             assert grant.receive_files and not grant.send_files
             with connection._operation(incoming=True):
                 saved = connection._preferences.read().policy
-            assert saved.enabled and saved.sending is None
-            if mixed:
+            assert saved.enabled is not video_only and saved.sending is None
+            if mixed or video_only:
                 assert saved.videos.enabled
                 assert Path(saved.videos.destination.path)==videos/video_folder_component(peer['display_name'])
                 assert saved.destination_token!=saved.videos.destination_token
             else:assert saved.videos is None
-            assert Path(saved.destination.path) == (chosen or pictures / photo_folder_component(peer['display_name']))
+            if video_only:
+                assert saved.video_only_receive and saved.destination is None and connection.desktop_snapshot()['manual_receive']
+                assert not list(pictures.iterdir())
+                with connection._operation():
+                    with pytest.raises(TransferError,match='file_desktop_receive_consent_unavailable'):
+                        connection._receive_binding(media_type='images')
+            else:assert Path(saved.destination.path) == (chosen or pictures / photo_folder_component(peer['display_name']))
             if chosen is not None:
                 assert saved.destination_token==staged.destination_token and not saved.staged_receive_targets
                 assert (chosen/'existing.jpg').read_bytes()==b'leave untouched' and not list(pictures.iterdir())
@@ -208,11 +218,11 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
             status = wire.receive()
             assert status['body']['operation'] == 'status'
             remote_off = outcome == 'remote_off'
-            video_off=outcome=='mixed_existing_video_off'
+            video_off=outcome in ('mixed_existing_video_off','video_only_remote_off')
             before = response(status, sources.RESULT, version='b'*64, revision=2 if remote_off or video_off else 0,
-                              enabled=video_off, associated=remote_off or video_off, repair_pending=False,
+                              enabled=video_off and not video_only, associated=remote_off or video_off, repair_pending=False,
                               kinds=sorted(sources.KINDS) if remote_off or video_off else [],
-                              **({'videos':dict(enabled=False,revision=1 if video_off else 0)} if mixed else {}))
+                              **({'videos':dict(enabled=False,revision=1 if video_off else 0)} if mixed or video_only else {}))
             if outcome == 'stop_during_status':
                 start('stop')
                 assert session.join(3)
@@ -227,12 +237,13 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                 quiet()
                 return
             configure = wire.receive()
-            assert configure['body']['operation'] == 'configure' and configure['body']['enabled'] is True
+            assert configure['body']['operation'] == ('configure_videos' if video_only else 'configure')
+            assert configure['body']['enabled'] is True
             assert configure['body']['expected_version'] == before['body']['version']
             assert configure['expires_ms'] <= status['expires_ms'] + 2
-            dispatch(response(configure, sources.RESULT, version='c'*64, revision=2, enabled=True,
+            dispatch(response(configure, sources.RESULT, version='c'*64, revision=2, enabled=not video_only,
                               associated=True, repair_pending=False, kinds=sorted(sources.KINDS),
-                              **({'videos':dict(enabled=False,revision=0)} if mixed else {})))
+                              **({'videos':dict(enabled=video_only,revision=1 if video_only else 0)} if mixed or video_only else {})))
             quiet()  # Positive source metadata is not the fresh SEND echo.
             assert session._schedule.active is None and not session._sync_active
             grant_state = NativeLocalFileGrant(FileGrantState(2, 'd'*64, True, False), owner, True)
@@ -240,6 +251,54 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
             remote.observe_remote(FileControlPacket.parse(wire.receive()['body']), desktop)
             send_control()
             version='c'*64
+            if video_only:
+                armed=wire.receive()
+                assert armed['body']['operation']=='configure_videos' and armed['body']['expected_version']==version
+                dispatch(response(armed,sources.RESULT,version=version,revision=2,enabled=False,
+                    associated=True,repair_pending=False,kinds=sorted(sources.KINDS),videos=dict(enabled=True,revision=1)))
+                observe=wire.receive()
+                assert observe['body']['operation']=='discover' and observe['body']['media_type']=='video'
+                worker_ready=outcome=='video_only_worker'
+                album=str(uuid4())
+                coverage=response(observe,sources.CATALOG,version=version,media_type='video',page=dict(
+                    format=1,catalog_id=str(uuid4()),after=0,next_cursor=None,
+                    coverage='full_videos' if worker_ready else 'none',proves_deletion=False,
+                    albums=[dict(album_id=album,kind='camera',display_name='Camera',visible_images=1,
+                        needs_choice=False)] if worker_ready else []))
+                video_root=Path(saved.videos.destination.path)
+                if worker_ready:
+                    from base64 import b64decode
+                    from dataclasses import replace
+                    from test_file_desktop_media import manifest
+                    from test_file_desktop_video_album_worker import video_phone
+
+                    original=b64decode(Path(__file__).with_name('fixture-original-media.mp4.base64').read_text('ascii'))
+                    fixture=(service,peer,channel,connection,video_root)
+                    seed=manifest(fixture)
+                    file=replace(seed.files[0],path='Camera/original.mp4',size=len(original),sha256=sha256(original).hexdigest())
+                    batch=replace(seed,files=(file,),total_bytes=len(original))
+                    with video_phone(fixture,video_root,[batch],monkeypatch,content=original,wire=wire) as (chunks,receipts,_,_,errors):
+                        dispatch(coverage)
+                        assert session.join(35) and session.snapshot()['state']=='complete',(
+                            session.snapshot()['state'],session.snapshot()['error'],errors,len(chunks),len(receipts))
+                        assert not errors and len(chunks)==len(receipts)==1
+                    assert (video_root/file.path).read_bytes()==original
+                else:
+                    dispatch(coverage)
+                    request=wire.receive()
+                    assert request['body']['operation']=='request_read' and request['body']['media_type']=='video'
+                    dispatch(response(request,sources.PERMISSION_RESULT,version=version,media_type='video',state='notification_posted'))
+                assert session.join(3) and session.snapshot()['state']==('complete' if worker_ready else 'permission_required')
+                assert not session._sync_active and session._schedule.active is None and connection._album_worker is None
+                assert not list(pictures.iterdir())
+                if not worker_ready:assert not list(video_root.iterdir())
+                start('videos_disable')
+                reduced=FileControlPacket.parse(wire.receive()['body']).grants
+                assert not reduced.receive_files and reduced.revision>grant.revision
+                assert session.join(3) and session.snapshot()['state']=='videos_off'
+                assert connection._preferences.read().policy.videos.destination==saved.videos.destination
+                quiet()
+                return
             if mixed:
                 configure_video=wire.receive()
                 assert configure_video['body']['operation']=='configure_videos'

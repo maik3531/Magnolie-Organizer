@@ -115,6 +115,19 @@ async function boot() {
     assert.ok(start() && !start().disabled);
     start().click();
     assert.deepEqual(outgoing().at(-1).request, { action: "sync_shared" });
+    const videoOnly = { ...mixed, values: { ...mixed.values, photos_enabled: false } };
+    show(videoOnly, { video_enabled: true, video_destination: "/Videos/Telephone-Videos" });
+    assert.ok(start() && !start().disabled);
+    assert.equal(b.w.document.querySelector("[data-media-receive]"), null);
+    show({ ...videoOnly, values: { ...videoOnly.values, enabled: false } },
+      { manual_receive: false, video_enabled: true, video_destination: "/Videos/Telephone-Videos" });
+    assert.equal(start(), null);
+    assert.equal(b.w.document.querySelector("[data-media-receive]"), null);
+    const stopVideo = [...b.w.document.querySelectorAll("details.notes-foto-sync button")]
+      .find(button => button.textContent === "Revoke · Videos");
+    assert.equal(stopVideo.title, "/Videos/Telephone-Videos");
+    stopVideo.click();
+    assert.deepEqual(outgoing().at(-1).request, { action: "videos_disable" });
   });
   await test("unsupported two-way mode cannot be selected or start a partial run", async b => {
     const direction = () => b.w.document.querySelector('[data-media-setting="direction"]');

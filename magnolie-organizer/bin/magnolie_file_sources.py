@@ -294,6 +294,9 @@ class SourcePolicyStatus:
     kinds: tuple
     videos: SourceVideoStatus | None = None
 
+    def send_enabled_for(self,kind):
+        return self.enabled if kind=='images' else kind=='video' and self.videos is not None and self.videos.enabled
+
 
 def parse_result(message, *, expected_request_id, expected_operation, expect_videos=False, now=None):
     body = _body(message, RESULT, now_ms() if now is None else now)

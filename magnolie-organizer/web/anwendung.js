@@ -30151,7 +30151,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         ? sharedValues.direction === "two_way" && sharedValues.collection_mode !== "import_only"
         : stand.mapped_direction === "two_way";
       const manualReceive = stand.manual_receive === true && stand.shared_media?.agreed === true &&
-        sharedValues?.enabled === true && sharedValues.auto_mode === "manual" && sharedValues.photos_enabled === true &&
+        sharedValues?.enabled === true && sharedValues.auto_mode === "manual" &&
+        (sharedValues.photos_enabled === true || sharedValues.videos_enabled === true) &&
         (sharedValues.direction === "phone_to_pc" || sharedValues.collection_mode === "import_only");
       const sende = (action, album_id, job_owner, historical_choice) => {
         telefonFotoFehler.delete(peer.device_id);
@@ -30168,10 +30169,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const label = el("label", "telefon-medien-aktivierung"); label.title = _("Receive") + " · " + _("Photos"); label.append(an);
       label.addEventListener("click", event => event.stopPropagation());
       label.addEventListener("keydown", event => event.stopPropagation());
-      if (manualReceive && stand.enabled === true) {
-        const revoke = knopf(_("Revoke") + " · " + _("Photos"), "", () => sende("disable"));
-        revoke.title = label.title; gruppe.append(revoke);
-      } else if (stand.shared_media && !manualReceive) {
+      const revokeVideo = stand.shared_media && stand.enabled !== true && stand.video_enabled === true;
+      if (revokeVideo || manualReceive && stand.enabled === true) {
+        const revoke = knopf(_("Revoke") + " · " + (revokeVideo ? _("Videos") : _("Photos")), "", () => sende(revokeVideo ? "videos_disable" : "disable"));
+        revoke.title = revokeVideo ? (stand.video_destination || "") : label.title;
+        gruppe.append(revoke);
+      } else if (stand.shared_media && !manualReceive && sharedValues?.photos_enabled === true) {
         const row = el("label", "hak"); row.append(an, document.createTextNode(" " + label.title));
         gruppe.append(row);
       } else if (!stand.shared_media) titel.append(label);

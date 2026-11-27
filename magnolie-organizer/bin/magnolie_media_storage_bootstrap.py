@@ -43,9 +43,9 @@ class NativeMediaStorageBootstrap:
         """Bind selected targets and storage together on an explicit native Start."""
         if (type(action) is not NativePhotoDestinationAction or action._native_current is None
                 or type(expected) is not PhotoPreferencesSnapshot
-                or kinds not in (('images',),('images','video'))
+                or kinds not in (('images',),('video',),('images','video'))
                 or expected.policy is not None and (not expected.policy.staged_receive_targets
-                    or not expected.associated or not expected.destination_available)):
+                    or 'images' not in kinds or not expected.associated or not expected.destination_available)):
             raise TransferError('media_first_receive_original_action_required')
         return self._prepare(action,expected,kinds=kinds)
 
@@ -74,7 +74,8 @@ class NativeMediaStorageBootstrap:
                     video=NativeVideoDestinationController(self._authority,monotonic_ms=self._guarded_clock)
                     owned.callback(video.close)
                     options.update(include_videos=True,video_destination_choice=video.choose_default(video.issue_action()))
-                if kinds and policy is None:
+                    if 'images' not in kinds:options['video_only_receive']=True
+                if 'images' in kinds and policy is None:
                     photos=NativePhotoDestinationController(self._authority,monotonic_ms=self._guarded_clock)
                     owned.callback(photos.close)
                     options['destination_choice']=photos.choose_default(photos.issue_action())
@@ -95,7 +96,9 @@ class NativeMediaStorageBootstrap:
                 self._validate(peer)
                 mapping_choice=mappings.bootstrap(mappings.issue_action(),mappings.read())
                 self._validate(peer)
-                result=prefs.configure(prefs.issue_action(),current,enabled=bool(kinds) or (policy is not None and policy.enabled),
+                action_guard=(lambda:self._validate(peer)) if kinds else None
+                result=prefs.configure(prefs.issue_action(_native_current=action_guard),current,
+                     enabled='images' in kinds or (policy is not None and policy.enabled),
                      mode=policy.mode if policy is not None else 'manual',
                      phone_to_pc_delete=policy.phone_to_pc_delete if policy is not None else False,
                      pc_to_phone_delete=policy.pc_to_phone_delete if policy is not None else False,

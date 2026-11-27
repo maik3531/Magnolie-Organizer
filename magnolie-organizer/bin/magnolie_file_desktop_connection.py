@@ -154,13 +154,14 @@ class NativeDesktopFileConnection:
     def _local(self):
         self._ready()
         # Do not claim receiver readiness from preferences or control codecs.
-        grant,snapshot=self._preferences.native_local_state(self._data_handlers_ready,source_handlers_ready=self._media_source is not None)
+        grant,snapshot=self._preferences.native_local_state(self._data_handlers_ready,source_handlers_ready=self._media_source is not None,
+            video_handlers_ready=self._media_support is not None and self._video_data_handlers_ready and self._authority.video_available())
         consent=snapshot.policy.sending if snapshot.associated and snapshot.policy is not None else None
         if consent is not None and consent.pairing_epoch!=snapshot.policy.pairing_epoch:consent=None
         self._media_sending_state=dict(version=snapshot.version,photos=bool(consent is not None and consent.photos),
             videos=bool(consent is not None and consent.videos))
-        self._media_receiving_state=dict(version=snapshot.version,photos=grant.grants.receive_files,
-            videos=bool(grant.grants.receive_files and snapshot.policy.videos is not None and snapshot.policy.videos.enabled),
+        self._media_receiving_state=dict(version=snapshot.version,photos=bool(grant.grants.receive_files and snapshot.policy.enabled),
+            videos=bool(grant.grants.receive_files and snapshot.include_videos),
             manual_receive=NativePhotoDesktopSession._manual_receive_kinds(snapshot))
         if grant.grants.send_files or grant.grants.receive_files:
             witness=snapshot.policy.mapping_store
@@ -217,7 +218,7 @@ class NativeDesktopFileConnection:
         """Explicit native worker start; construction/import/pairing starts nothing."""
         self._take_action(action)
         with self._operation():
-            snapshot = self._receiving_policy(); action.validate(self)
+            snapshot = self._receiving_policy(media_type=media_type); action.validate(self)
             source_messages._media_type(media_type)
             if (snapshot.direction != 'phone_to_desktop'
                     or snapshot.policy.phone_to_pc_delete or snapshot.policy.pc_to_phone_delete):
@@ -422,7 +423,7 @@ class NativeDesktopFileConnection:
         return tuple(kind for kind in ('images','video') if transport.intent_for(kind) is not None)
 
     def _manual_receive_kinds_supported(self,kinds):
-        return kinds==('images',) or (kinds==('images','video') and self._video_data_handlers_ready
+        return kinds==('images',) or (kinds in (('video',),('images','video')) and self._video_data_handlers_ready
             and self._authority.video_available())
 
     def receive_media_ack(self,message):
@@ -603,11 +604,11 @@ class NativeDesktopFileConnection:
                 value['shared_media']=shared
                 if self._media_support is not None:
                     from magnolie_media_sync import effective
-                    intent=self._media_transport.intent_for('images')
                     kinds=self._private_receive_kinds()
+                    intent=self._media_transport.intent_for(kinds[0]) if kinds else None
                     value['manual_receive']=(intent is not None and effective(intent.body)['auto_mode']=='manual'
                         and self._manual_receive_kinds_supported(kinds)
-                        and set(kinds)<=set(getattr(self,'_media_receiving_state',{}).get('manual_receive',())))
+                        and kinds in getattr(self,'_media_receiving_state',{}).get('manual_receive',()))
         if self._media_collection_roots_state is not None:
             value['collection_sources']=dict(version=self._media_collection_roots_state['version'],
                 roots=[dict(root) for root in self._media_collection_roots_state['roots']])
@@ -862,7 +863,8 @@ class NativeDesktopFileConnection:
             if pending.native_constraint is not None:pending.native_constraint.require_current()
             if self._source_native_constraint is not None and (self._source_run is not None or pending.command.operation=='next_batch'):
                 self._source_native_constraint.require_current()
-        self._receiving_policy(closing=closing)
+        self._receiving_policy(closing=closing,
+            media_type=self._command_receive_kind(pending.command.operation,pending.command.media_type))
         if pending.command.media_type=='video' and closing:
             owner=self._ended_batch if pending.command.operation=='end_album' else self._source_run
             if owner is None or owner.run_id!=pending.command.run_id or owner.media_type!='video':
@@ -904,6 +906,13 @@ class NativeDesktopFileConnection:
         scope.policy.videos.destination.verify()
         if not self._authority.video_available():raise TransferError('file_desktop_video_metadata_unavailable')
         return scope
+
+    def _command_receive_kind(self,operation,media_type):
+        if operation=='configure':return 'images'
+        if (operation in ('status','configure_videos') and self._media_support is not None
+                and self._private_receive_kinds()==('video',)):
+            return 'video'
+        return media_type
 
     def _video_resume_closing_scope(self,selected):
         # Configuration-only comparison. Never install this as a data callback
@@ -962,7 +971,7 @@ class NativeDesktopFileConnection:
             snapshot = self._receiving_policy()
             if self._source_pending is not None or self._run is not None or self._source_run is not None or self._offer is not None:
                 raise TransferError('file_desktop_receive_run_held')
-            if (self._source_status is None or self._source_status.repair_pending or not self._source_status.enabled
+            if (self._source_status is None or self._source_status.repair_pending or not self._source_status.send_enabled_for(media_type)
                     or not self._source_status.associated):
                 raise TransferError('file_desktop_source_status_required')
             if self._source_control_required is not None:
@@ -1063,12 +1072,12 @@ class NativeDesktopFileConnection:
 
     def _require_ended_batch(self, *, require_more=True):
         ended = self._ended_batch
-        policy = self._receiving_policy()
+        policy = self._receiving_policy(media_type=ended.media_type if ended is not None else None)
         if (ended is None or not ended.batched or (ended.batch_end is not False if require_more else ended.batch_end is True)
                 or ended.state != 'canceled_held'
                 or not ended.source_io_ended or self._run is not None or self._source_run is not None
                 or self._selected_preview is not None or self._source_status is None
-                or not self._source_status.enabled or not self._source_status.associated
+                or not self._source_status.send_enabled_for(ended.media_type) or not self._source_status.associated
                 or self._source_status.version != ended.version or policy.version != self._ended_batch_policy):
             raise TransferError('file_desktop_batch_continuation_not_current')
         return ended
@@ -1085,7 +1094,8 @@ class NativeDesktopFileConnection:
         with self._operation():
             constraint=_NativeMediaOperationConstraint(native_current) if native_current is not None else None
             if constraint is not None:constraint.require_current()
-            self._receiving_policy(closing=operation in ('run_status','cancel_run','end_run','end_album','resume_status','cancel_resume','end_resume'))
+            self._receiving_policy(closing=operation in ('run_status','cancel_run','end_run','end_album','resume_status','cancel_resume','end_resume'),
+                media_type=self._command_receive_kind(operation,media_type))
             if self._source_pending is not None:
                 raise TransferError('file_desktop_source_command_busy')
             if self._source_control_required is not None:
@@ -1120,10 +1130,12 @@ class NativeDesktopFileConnection:
                     raise TransferError('file_desktop_source_status_required')
                 options['expected_version'] = self._source_status.version
             if _first_policy is not None:
-                starting_images=operation=='configure' and _first_policy.revision==0
-                verifying_video=(operation=='configure_videos' and _first_policy.enabled and _first_policy.associated
-                    and _first_policy.videos is not None
-                    and (_first_policy.videos.revision==0 or _first_policy.videos.enabled))
+                video_only=self._media_support is not None and self._private_receive_kinds()==('video',)
+                starting_images=operation=='configure' and _first_policy.revision==0 and not video_only
+                verifying_video=(operation=='configure_videos' and _first_policy.videos is not None
+                    and (video_only and _first_policy.revision==0 and _first_policy.videos.revision==0
+                         or _first_policy.associated and (_first_policy.enabled or video_only)
+                         and (_first_policy.videos.revision==0 or _first_policy.videos.enabled)))
                 if (_preparation is None or enabled is not True or self._source_status is not _first_policy
                         or not (starting_images or verifying_video)):
                     raise TransferError('media_first_receive_source_policy_changed')
@@ -1144,9 +1156,9 @@ class NativeDesktopFileConnection:
             elif operation in ('next_batch', 'end_album'):
                 options['run_id'] = self._require_ended_batch(require_more=operation == 'next_batch').run_id
             elif operation in ('discover', 'request_read', 'run', 'batch_run', 'resume_run', 'catalog_page'):
-                if not self._source_status.enabled or not self._source_status.associated:
-                    raise TransferError('file_desktop_source_not_configured')
                 requested=media_type or 'images'
+                if not self._source_status.associated or requested=='images' and not self._source_status.enabled:
+                    raise TransferError('file_desktop_source_not_configured')
                 if requested=='video' and (self._source_status.videos is None or not self._source_status.videos.enabled):
                     raise TransferError('file_desktop_video_source_not_configured')
                 if operation == 'catalog_page':
@@ -1200,7 +1212,7 @@ class NativeDesktopFileConnection:
                 if operation in ('offer_run', 'media_page', 'offer_resume', 'resume_media_page') and (self._run is not None or self._offer is not None
                         or self._source_run.state != 'snapshot_ready' or not self._source_run.source_io_ended
                         or self._source_run.version != self._source_status.version
-                        or not self._source_status.enabled or not self._source_status.associated):
+                         or not self._source_status.send_enabled_for(self._source_run.media_type) or not self._source_status.associated):
                     raise TransferError('file_desktop_source_offer_not_ready')
                 if operation in ('media_page', 'resume_media_page'):
                     after = self._source_media_pages[-1].next_cursor if self._source_media_pages else 0
@@ -1365,7 +1377,8 @@ class NativeDesktopFileConnection:
                 self._album_media_scope = None
                 self._source_album_kind = None
             self._source_status = result
-            if command.operation == 'configure':
+            if (command.operation == 'configure' or command.operation=='configure_videos' and old is not None
+                    and old.revision==0 and result.associated and not result.enabled and result.send_enabled_for('video')):
                 # The phone changes native send state in this transaction and
                 # writes its updated controls after the metadata reply. That
                 # reply alone cannot authorize a following source command.
@@ -1434,13 +1447,17 @@ class NativeDesktopFileConnection:
             raise TransferError('file_desktop_native_action_required')
         action.consume(self)
 
-    def _receiving_policy(self,*,closing=False):
+    def _receiving_policy(self,*,closing=False,media_type=None):
         self._ready()
         if not self._data_handlers_ready:
             raise TransferError('file_desktop_data_handlers_unavailable')
         snapshot = self._preferences.read()
-        if (snapshot.policy is None or not snapshot.policy.enabled or not snapshot.associated
-                or not snapshot.destination_available):
+        kind=media_type or (self._run.media_type if self._run is not None else
+            self._source_run.media_type if self._source_run is not None else None)
+        if (snapshot.policy is None or not snapshot.associated
+                or not (snapshot.policy.enabled and snapshot.destination_available
+                        or kind=='video' and snapshot.independent_video_available and self._media_support is not None
+                        and self._video_data_handlers_ready and (closing or self._media_support.supports(self._channel)))):
             raise TransferError('file_desktop_receive_consent_unavailable')
         if not closing and self._run is not None and snapshot.version != self._run.policy_version:
             raise TransferError('file_desktop_receive_policy_changed')
@@ -1448,7 +1465,10 @@ class NativeDesktopFileConnection:
 
     def _receive_destination(self,snapshot,*,media_type='images'):
         source_messages._media_type(media_type)
-        if media_type=='images':return snapshot.policy.destination
+        if media_type=='images':
+            if not snapshot.policy.enabled or not snapshot.destination_available:
+                raise TransferError('file_desktop_receive_consent_unavailable')
+            return snapshot.policy.destination
         if not self._video_data_handlers_ready:raise TransferError('file_desktop_video_data_join_unavailable')
         scope=self._require_video_metadata_scope()
         if scope.version!=snapshot.version:raise TransferError('file_desktop_video_policy_changed')
@@ -1471,7 +1491,7 @@ class NativeDesktopFileConnection:
         if not checkpoint_owned:
             constraint=self._run.native_constraint if self._run is not None else self._source_native_constraint if self._source_run is not None else None
             if constraint is not None:constraint.require_current()
-        snapshot = self._receiving_policy()
+        snapshot = self._receiving_policy(media_type=media_type)
         destination=self._receive_destination(snapshot,media_type=media_type)
         token=snapshot.policy.destination_token if media_type=='images' else snapshot.policy.videos.destination_token
         if media_type=='video' and token==snapshot.policy.destination_token:
@@ -1504,7 +1524,9 @@ class NativeDesktopFileConnection:
             raise TransferError('file_desktop_video_checkpoint_owner_changed')
         self._ready();snapshot=self._preferences.read()
         policy=snapshot.policy
-        if (policy is None or not policy.enabled or not snapshot.associated or not snapshot.destination_available
+        if (policy is None or not snapshot.associated
+                or not (policy.enabled and snapshot.destination_available
+                        or policy.video_only_receive and snapshot.independent_video_available and self._media_support is not None)
                 or policy.videos is None or policy.videos.destination!=run.accepted.destination):
             raise TransferError('file_desktop_video_checkpoint_scope_changed')
         binding=self._controls.binding(policy.videos.destination_token)
@@ -3135,7 +3157,7 @@ class NativePhotoAlbumWorker:
                 raise TransferError('file_desktop_receive_policy_changed')
             return True
         with connection._operation():
-            expected_policy=connection._receiving_policy()
+            expected_policy=connection._receiving_policy(media_type=self._media_type)
             prefs=connection._preferences
             with prefs._operation(), prefs._locked(), NativeMediaRetention(connection._authority.binding.native_directory) as policy:
                 native_current()
@@ -3377,13 +3399,14 @@ class NativePhotoDesktopSession:
     @staticmethod
     def _manual_receive_kinds(snapshot):
         policy=snapshot.policy
-        if policy is None:return ('images','video')
+        if policy is None:return (('images',),('video',),('images','video'))
+        if snapshot.associated and snapshot.independent_video_available:return (('video',),)
         if not snapshot.associated or not snapshot.destination_available:return ()
-        if policy.staged_receive_targets:return ('images','video')
+        if policy.staged_receive_targets:return (('images',),('images','video'))
         if (not policy.enabled or snapshot.direction!='phone_to_desktop' or policy.phone_to_pc_delete
                 or policy.pc_to_phone_delete or policy.mapping_store is None or policy.job_catalog is None):
             return ()
-        return ('images','video') if snapshot.include_videos else ('images',)
+        return (('images',),('video',),('images','video')) if snapshot.include_videos else (('images',),)
 
     def _manual_receive_choice(self):
         connection=self.connection
@@ -3393,10 +3416,10 @@ class NativePhotoDesktopSession:
         with connection._operation():
             kinds=connection._private_receive_kinds()
             if not connection._manual_receive_kinds_supported(kinds):return None
-            intent=connection._media_transport.intent_for('images')
+            intent=connection._media_transport.intent_for(kinds[0])
             if intent is None or effective(intent.body)['auto_mode']!='manual':return None
             before=connection._preferences.read()
-            if not set(kinds)<=set(self._manual_receive_kinds(before)):
+            if kinds not in self._manual_receive_kinds(before):
                 raise TransferError('photo_schedule_not_ready')
             with NativeMediaRetention(connection._authority.binding.native_directory) as book:
                 started=time.monotonic()
@@ -3797,7 +3820,8 @@ class NativePhotoDesktopSession:
 
         saved=inspect(prepare,None)
         with self._lock:
-            self._enabled=True;self._destination=saved.policy.destination.path
+            self._enabled=saved.policy.enabled
+            self._destination=saved.policy.destination.path if saved.policy.destination is not None else None
             self._separate_animations=saved.separate_animations;self._separate_captures=saved.separate_own_recordings
             videos=saved.policy.videos
             self._video_enabled=bool(videos and videos.enabled)
@@ -3813,17 +3837,25 @@ class NativePhotoDesktopSession:
         # or foreign association stays held, and neither result grants READ.
         status=command('status')['status']
         if status.revision==0 and not status.repair_pending:
-            status=command('configure',enabled=True,kinds=tuple(sorted(source_messages.KINDS)),_first_policy=status)['status']
-        if status.repair_pending or not status.enabled or not status.associated:
+            if kinds==('video',):
+                status=command('configure_videos',enabled=True,_first_policy=status)['status']
+                if status.enabled:raise TransferError('media_source_shared_incoming_review_required')
+            else:
+                status=command('configure',enabled=True,kinds=tuple(sorted(source_messages.KINDS)),_first_policy=status)['status']
+        if status.repair_pending or not status.associated or 'images' in kinds and not status.enabled:
             raise TransferError('media_source_shared_incoming_review_required')
 
         if 'video' in kinds:
             previous=status
             video=previous.videos
-            if video is None or not video.enabled and video.revision!=0:
+            if video is None or not video.enabled and (kinds==('video',) or video.revision!=0):
                 raise TransferError('media_source_shared_incoming_review_required')
+            if kinds==('video',):
+                # A first video grant changes the aggregate SEND bit. The
+                # Android owner can rearm only after the positive file echo.
+                inspect(lambda:connection._receive_binding(media_type='video'),'file_desktop_receive_controls_not_agreed')
             status=command('configure_videos',enabled=True,_first_policy=previous)['status']
-            if (status.videos is None or not status.videos.enabled or not status.enabled or not status.associated
+            if (not status.send_enabled_for('video') or 'images' in kinds and not status.enabled or not status.associated
                     or status.repair_pending or video.enabled
                     and status!=replace(previous,request_id=status.request_id,operation='configure_videos')):
                 raise TransferError('media_source_shared_incoming_review_required')
@@ -3915,7 +3947,9 @@ class NativePhotoDesktopSession:
 
     def _disable_video(self):
         saved=self._local_video_enabled(False) # Local consent closes before any remote output or failure.
-        if saved.policy.enabled:
+        if saved.policy.video_only_receive:
+            self.connection.send_controls()
+        elif saved.policy.enabled:
             self._command('status')
             self._command('configure_videos',enabled=False)
         with self._lock:self._state='videos_off';self._active_media='video'

@@ -497,9 +497,9 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
                 book.chmod(0o600)
                 with NativeMediaRetention(service.store.root) as policy:assert policy.adopt_existing_saved()
                 session=connection.desktop_session()
-                manual_first_images=direction=='phone_to_pc' and kind=='images' and not automatic
-                assert connection.desktop_snapshot()['manual_receive']==manual_first_images
-                if not manual_first_images:
+                manual_first_receive=direction=='phone_to_pc' and not automatic
+                assert connection.desktop_snapshot()['manual_receive']==manual_first_receive
+                if not manual_first_receive:
                     start_error=('media_source_native_composition_required' if direction=='two_way' else 'photo_schedule_not_ready')
                     with pytest.raises(TransferError,match=start_error):
                         session.start('sync_shared')
@@ -630,7 +630,9 @@ def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_p
         def metadata(message):
             operation=message['body']['operation'];commands.append(operation)
             if timing is not None and operation in ('status','discover'):timing.event(operation)
-            if operation=='status':
+            if operation=='status' or operation=='configure_videos' and kind=='video':
+                if operation=='configure_videos':
+                    assert message['body']['enabled'] is True and message['body']['expected_version']=='b'*64
                 video_fields={'videos':dict(enabled=True,revision=1)} if kind=='video' else {}
                 deliver(response(message,sources.RESULT,version='b'*64,revision=2,enabled=True,associated=True,
                     repair_pending=False,kinds=sorted(sources.KINDS),**video_fields))
@@ -670,7 +672,8 @@ def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_p
         if automatic:
             assert connection._receive_binding(media_type=kind)==remote.binding(token,sender_is_local=True)
         local_path=destination/first.path
-        assert local_path.read_bytes()==original and commands==['status','discover']
+        expected_commands=['status','configure_videos','discover'] if kind=='video' else ['status','discover']
+        assert local_path.read_bytes()==original and commands==expected_commands
         # Real local edits to a mapped original survive a subsequent no-change
         # phone inventory. Neither the file bytes nor the transfer grant changes.
         edited=b'private local edit of test original'
