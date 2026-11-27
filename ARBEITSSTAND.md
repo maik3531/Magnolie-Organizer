@@ -53,8 +53,10 @@ aufgeführt.
   verspätete Duplikate beider Leser ohne Transfer.
   Das [Upgrade des privaten Linux-Pakets](https://github.com/maik3531/Magnolie-Organizer/issues/330#issuecomment-7216108304)
   auf Debian 13 bestand mit 15 bestätigten installierten Prüfsummen
-  und regulärem Fensterschluss. Die Abnahme mit installiertem Notes
-  und der echte Originaltransfer stehen aus.
+  und regulärem Fensterschluss. Zwei [isolierte Android-Updateproben](https://github.com/maik3531/Magnolie-Organizer/issues/330#issuecomment-7216893207)
+  mit exakt dieser Linux-Paketkomposition bestätigen erhaltene Kopplung
+  und Rechte, erneut vereinbarte Medienwahl AUS nach dem Wiederverbinden
+  und keinen Transfer. Der echte Originaltransfer bleibt offen.
   Fünf Notes-Tests für den getrennten lesenden Galerieentwurf
   bestanden. Alte Telefonreferenzen bleiben vom Neuimport getrennt.
   Rückschreiben in dieselbe Galeriezeile ist weiterhin offen.
