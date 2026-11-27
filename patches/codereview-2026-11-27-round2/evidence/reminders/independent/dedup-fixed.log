@@ -1,0 +1,3 @@
+{"mode":"original","keys":["aufgabe:scope:11:owned-dedup:dedup-one@absolute:20261127T103000Z"],"first":1,"restart":0,"distinctSecondCount":2,"differentTaskCount":2,"removedAbsoluteReplay":0,"legacyFirst":1,"legacyRestart":0}
+{"mode":"runtime","keys":["aufgabe:scope:11:owned-dedup:dedup-one@absolute:20261127T103000Z"],"first":1,"restart":0,"distinctSecondCount":2,"differentTaskCount":2,"removedAbsoluteReplay":0,"legacyFirst":1,"legacyRestart":0}
+{"mode":"background","keys":["aufgabe:scope:11:owned-dedup:dedup-one@absolute:20261127T103000Z"],"first":1,"restart":0,"distinctSecondCount":2,"differentTaskCount":2,"removedAbsoluteReplay":0,"legacyFirst":1,"legacyRestart":0}

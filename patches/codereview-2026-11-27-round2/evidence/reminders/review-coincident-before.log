@@ -1,0 +1,36 @@
+test_coincident_appointment_standard_or_relative_acknowledges_both (__main__.AbsoluteReminderLegacy.test_coincident_appointment_standard_or_relative_acknowledges_both) ... FAIL
+test_coincident_explicit_task_alarms_keep_distinct_seconds_and_sources (__main__.AbsoluteReminderLegacy.test_coincident_explicit_task_alarms_keep_distinct_seconds_and_sources) ... FAIL
+test_coincident_relative_occurrences_without_absolute_remain_separate (__main__.AbsoluteReminderLegacy.test_coincident_relative_occurrences_without_absolute_remain_separate) ... ok
+test_coincident_task_due_and_absolute_acknowledge_both (__main__.AbsoluteReminderLegacy.test_coincident_task_due_and_absolute_acknowledge_both) ... FAIL
+
+======================================================================
+FAIL: test_coincident_appointment_standard_or_relative_acknowledges_both (__main__.AbsoluteReminderLegacy.test_coincident_appointment_standard_or_relative_acknowledges_both)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REVIEW_SOURCE/magnolie-organizer/pruefungen/test_absolute_reminder_legacy.py", line 225, in test_coincident_appointment_standard_or_relative_acknowledges_both
+    self.assertEqual(len(self.notices(result)), 1)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 1
+
+======================================================================
+FAIL: test_coincident_explicit_task_alarms_keep_distinct_seconds_and_sources (__main__.AbsoluteReminderLegacy.test_coincident_explicit_task_alarms_keep_distinct_seconds_and_sources)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REVIEW_SOURCE/magnolie-organizer/pruefungen/test_absolute_reminder_legacy.py", line 202, in test_coincident_explicit_task_alarms_keep_distinct_seconds_and_sources
+    self.assertEqual(len(self.notices(result)), 1)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 1
+
+======================================================================
+FAIL: test_coincident_task_due_and_absolute_acknowledge_both (__main__.AbsoluteReminderLegacy.test_coincident_task_due_and_absolute_acknowledge_both)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REVIEW_SOURCE/magnolie-organizer/pruefungen/test_absolute_reminder_legacy.py", line 190, in test_coincident_task_due_and_absolute_acknowledge_both
+    self.assertEqual(len(self.notices(result)), 1)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 1
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.157s
+
+FAILED (failures=3)

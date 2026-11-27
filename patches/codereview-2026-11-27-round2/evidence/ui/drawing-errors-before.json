@@ -1,0 +1,48 @@
+{
+  "baseline": "1543858e251d7e29ebeafb67d2605991c1d442d5",
+  "nativeAcceptance": false,
+  "results": [
+    {
+      "web": "$REVIEW_WORKSPACE/round2-ui/magnolie-organizer-windows/app/web",
+      "scenario": "Real FileReader + malformed JSON selected in drawing Open control",
+      "errors": [
+        "TypeError: _ is not a function"
+      ],
+      "status": [
+        "Open the drawing tablet in KDE Connect on the paired phone."
+      ],
+      "reads": [
+        {
+          "name": "broken-drawing.json",
+          "size": 11
+        },
+        {
+          "result": "{\"version\":"
+        }
+      ],
+      "drawingUnchanged": true,
+      "savesUnchanged": true
+    },
+    {
+      "web": "$REVIEW_WORKSPACE/round2-ui/magnolie-organizer/web",
+      "scenario": "Real FileReader + malformed JSON selected in drawing Open control",
+      "errors": [
+        "TypeError: _ is not a function"
+      ],
+      "status": [
+        "Open the drawing tablet in KDE Connect on the paired phone."
+      ],
+      "reads": [
+        {
+          "name": "broken-drawing.json",
+          "size": 11
+        },
+        {
+          "result": "{\"version\":"
+        }
+      ],
+      "drawingUnchanged": true,
+      "savesUnchanged": true
+    }
+  ]
+}

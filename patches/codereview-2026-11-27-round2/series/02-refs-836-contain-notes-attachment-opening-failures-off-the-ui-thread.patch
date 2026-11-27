@@ -1,0 +1,262 @@
+From 33c1f98418d6a1eab750e76851577e1ec731845b Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 12:58:30 +0100
+Subject: [PATCH] Refs #836: contain Notes attachment opening failures off the
+ UI thread
+
+---
+ .../maik3531/magnolienotes/AnhangDatei.kt     |  37 ++--
+ .../maik3531/magnolienotes/MainActivity.kt    |   6 +-
+ .../magnolienotes/AnhangOeffnenTest.kt        | 164 ++++++++++++++++++
+ 3 files changed, 194 insertions(+), 13 deletions(-)
+ create mode 100644 magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/AnhangOeffnenTest.kt
+
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/AnhangDatei.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/AnhangDatei.kt
+index 2a77dad386635121e4e385f4a89615c4ddf2d06e..b45643184466346c3a9f4818353899de22d59a78 100644
+--- a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/AnhangDatei.kt
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/AnhangDatei.kt
+@@ -6,8 +6,10 @@ import android.net.Uri
+ import androidx.core.content.FileProvider
+ import io.gitlab.maik3531.magnolienotes.daten.Anhang
+ import io.gitlab.maik3531.magnolienotes.daten.AnhangPruefung
++import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.withContext
+ import java.io.File
+-import java.util.Base64
++import java.util.concurrent.CancellationException
+ 
+ /** Dekodiert einen geprüften Anhang ausschließlich in den internen Freigabecache. */
+ object AnhangDatei {
+@@ -45,10 +47,13 @@ object AnhangDatei {
+         ordner.listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 24 * 3600_000L }
+             ?.forEach { it.delete() }
+         val datei = File(ordner, anhang.id.filter(Char::isLetterOrDigit).take(64).ifBlank { "anhang" } + ".${inhalt.endung}")
+-        val neben = File(ordner, datei.name + ".neu")
+-        neben.writeBytes(inhalt.bytes)
+-        if (!neben.renameTo(datei)) { neben.delete(); return null }
+-        return Geoeffnet(datei, inhalt.mime)
++        // More than one editor click may prepare a file on IO at the same time.
++        val neben = File.createTempFile("anhang-", ".neu", ordner)
++        try {
++            neben.writeBytes(inhalt.bytes)
++            if (!neben.renameTo(datei)) return null
++            return Geoeffnet(datei, inhalt.mime)
++        } finally { neben.delete() }
+     }
+ 
+     fun speichern(context: Context, ziel: Uri, anhang: Anhang): Boolean {
+@@ -62,11 +67,21 @@ object AnhangDatei {
+         }.getOrDefault(false)
+     }
+ 
+-    fun oeffnen(context: Context, anhang: Anhang): Boolean {
+-        val offen = vorbereiten(context, anhang) ?: return false
+-        val uri = FileProvider.getUriForFile(context, context.packageName + ".dateien", offen.datei)
+-        val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, offen.mime)
+-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+-        return runCatching { context.startActivity(intent); true }.getOrDefault(false)
++    /** Called from the editor's Main scope; only preparation leaves that scope. */
++    suspend fun oeffnen(context: Context, anhang: Anhang): Boolean {
++        return try {
++            val intent = withContext(Dispatchers.IO) {
++                val offen = vorbereiten(context, anhang) ?: return@withContext null
++                val uri = FileProvider.getUriForFile(context, context.packageName + ".dateien", offen.datei)
++                Intent(Intent.ACTION_VIEW).setDataAndType(uri, offen.mime)
++                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
++            } ?: return false
++            context.startActivity(intent)
++            true
++        } catch (abbruch: CancellationException) {
++            throw abbruch
++        } catch (_: Exception) {
++            false
++        }
+     }
+ }
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt
+index ecdbfe7fd4b26497f9b8ecde87192ff8f8076bd3..4635c80e5bbfffb5350fd9a40eda6833e43747b8 100644
+--- a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt
+@@ -1091,8 +1091,10 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
+                 }
+             },
+             beiAnhangOeffnen = { anhang ->
+-                if (!AnhangDatei.oeffnen(zusammenhang, anhang)) {
+-                    sage(zusammenhang.getString(R.string.notiz_anhang_oeffnen_fehler))
++                faden.launch {
++                    if (!AnhangDatei.oeffnen(zusammenhang, anhang)) {
++                        sage(zusammenhang.getString(R.string.notiz_anhang_oeffnen_fehler))
++                    }
+                 }
+             },
+             beiAnhangSpeichern = { anhang ->
+diff --git a/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/AnhangOeffnenTest.kt b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/AnhangOeffnenTest.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..530f52fef6b1debf232a0fafb19416a55ddbbbdc
+--- /dev/null
++++ b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/AnhangOeffnenTest.kt
+@@ -0,0 +1,164 @@
++package io.gitlab.maik3531.magnolienotes
++
++import android.content.ActivityNotFoundException
++import android.content.Context
++import android.content.ContextWrapper
++import android.content.Intent
++import androidx.test.core.app.ApplicationProvider
++import io.gitlab.maik3531.magnolienotes.daten.Anhang
++import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.async
++import kotlinx.coroutines.awaitAll
++import kotlinx.coroutines.launch
++import kotlinx.coroutines.runBlocking
++import kotlinx.coroutines.withContext
++import org.junit.After
++import org.junit.Assert.*
++import org.junit.Test
++import org.junit.runner.RunWith
++import org.robolectric.RobolectricTestRunner
++import org.robolectric.annotation.Config
++import java.io.File
++import java.nio.file.Files
++import java.util.Base64
++import java.util.UUID
++import java.util.concurrent.CancellationException
++import java.util.concurrent.CountDownLatch
++import java.util.concurrent.TimeUnit
++
++@RunWith(RobolectricTestRunner::class)
++@Config(sdk = [35])
++class AnhangOeffnenTest {
++    private val base = ApplicationProvider.getApplicationContext<Context>()
++    private val cleanup = mutableListOf<File>()
++    private val png = Base64.getDecoder().decode(
++        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jFJkAAAAASUVORK5CYII=")
++    private val attachment = Anhang(UUID.randomUUID().toString(), "pixel.png", "image",
++        "data:image/png;base64," + Base64.getEncoder().encodeToString(png))
++
++    private fun cacheFile(): File = File(File(base.cacheDir, "anhaenge"),
++        attachment.id.filter(Char::isLetterOrDigit) + ".png").also { cleanup += it }
++
++    private open inner class RecordingContext : ContextWrapper(base) {
++        var cacheThread: Thread? = null
++        val starts = mutableListOf<Pair<Thread, Intent>>()
++        override fun getCacheDir(): File {
++            cacheThread = Thread.currentThread()
++            return base.cacheDir
++        }
++        override fun startActivity(intent: Intent) { starts += Thread.currentThread() to intent }
++    }
++
++    @After fun removeOwnFiles() { cleanup.forEach { it.deleteRecursively() } }
++
++    @Test fun `preparation leaves caller thread and viewing returns to caller with read permission`() = runBlocking {
++        val context = RecordingContext()
++        val caller = Thread.currentThread()
++        val target = cacheFile()
++        assertTrue(AnhangDatei.oeffnen(context, attachment))
++        assertNotSame(caller, context.cacheThread)
++        val (thread, intent) = context.starts.single()
++        assertSame(caller, thread)
++        assertEquals(Intent.ACTION_VIEW, intent.action)
++        assertEquals("image/png", intent.type)
++        assertEquals(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK, intent.flags)
++        assertEquals("content", intent.data?.scheme)
++        assertArrayEquals(png, target.readBytes())
++    }
++
++    @Test fun `unusable cache reports failure without changing blocker or launching viewer`() = runBlocking {
++        val blocker = Files.createTempFile("notes-cache-blocker-", ".tmp").toFile().also { cleanup += it }
++        blocker.writeText("keep")
++        val context = object : RecordingContext() { override fun getCacheDir(): File = blocker }
++        assertFalse(AnhangDatei.oeffnen(context, attachment))
++        assertTrue(context.starts.isEmpty())
++        assertEquals("keep", blocker.readText())
++    }
++
++    @Test fun `cache permission failure is reported`() = runBlocking {
++        val context = object : RecordingContext() {
++            override fun getCacheDir(): File = throw SecurityException("synthetic cache denial")
++        }
++        assertFalse(AnhangDatei.oeffnen(context, attachment))
++        assertTrue(context.starts.isEmpty())
++    }
++
++    @Test fun `provider lookup failure is reported after preparing bytes`() = runBlocking {
++        val context = object : RecordingContext() {
++            override fun getPackageName(): String = "invalid.synthetic.notes.provider"
++        }
++        val target = cacheFile()
++        assertFalse(AnhangDatei.oeffnen(context, attachment))
++        assertTrue(context.starts.isEmpty())
++        assertArrayEquals(png, target.readBytes())
++    }
++
++    @Test fun `missing viewer remains a reported failure`() = runBlocking {
++        cacheFile()
++        val context = object : RecordingContext() {
++            override fun startActivity(intent: Intent) { throw ActivityNotFoundException("synthetic absent viewer") }
++        }
++        assertFalse(AnhangDatei.oeffnen(context, attachment))
++    }
++
++    @Test fun `failed rename removes temporary bytes and retains existing destination`() = runBlocking {
++        val target = cacheFile().apply { mkdirs() }
++        val marker = File(target, "keep").apply { writeText("original") }
++        val directory = target.parentFile!!
++        val before = directory.listFiles().orEmpty().map { it.name }.toSet()
++        val context = RecordingContext()
++        assertFalse(AnhangDatei.oeffnen(context, attachment))
++        assertTrue(context.starts.isEmpty())
++        assertEquals("original", marker.readText())
++        assertEquals(before, directory.listFiles().orEmpty().map { it.name }.toSet())
++    }
++
++    @Test fun `parallel opening keeps complete bytes and no temporary files`() = runBlocking {
++        val target = cacheFile()
++        target.parentFile!!.mkdirs()
++        val before = target.parentFile!!.listFiles().orEmpty().map { it.name }.toSet()
++        val context = RecordingContext()
++        val results = List(8) { async { AnhangDatei.oeffnen(context, attachment) } }.awaitAll()
++        assertTrue(results.all { it })
++        assertEquals(8, context.starts.size)
++        assertTrue(context.starts.all { it.first === Thread.currentThread() })
++        assertArrayEquals(png, target.readBytes())
++        assertEquals(before + target.name, target.parentFile!!.listFiles().orEmpty().map { it.name }.toSet())
++    }
++
++    @Test fun `cancellation exceptions are not reported as ordinary failures`() = runBlocking {
++        val context = object : RecordingContext() {
++            override fun getCacheDir(): File = throw CancellationException("synthetic cancellation")
++        }
++        var cancelled = false
++        try { AnhangDatei.oeffnen(context, attachment) }
++        catch (_: CancellationException) { cancelled = true }
++        assertTrue(cancelled)
++        assertTrue(context.starts.isEmpty())
++    }
++
++    @Test fun `cancelled preparation never starts a late viewer`() = runBlocking {
++        cacheFile()
++        val caller = Thread.currentThread()
++        val entered = CountDownLatch(1)
++        val release = CountDownLatch(1)
++        val context = object : RecordingContext() {
++            override fun getCacheDir(): File {
++                assertNotSame(caller, Thread.currentThread())
++                entered.countDown()
++                check(release.await(5, TimeUnit.SECONDS))
++                return base.cacheDir
++            }
++        }
++        var result: Boolean? = null
++        val job = launch { result = AnhangDatei.oeffnen(context, attachment) }
++        try {
++            withContext(Dispatchers.Default) { assertTrue(entered.await(5, TimeUnit.SECONDS)) }
++            job.cancel()
++        } finally { release.countDown() }
++        job.join()
++        assertTrue(job.isCancelled)
++        assertNull(result)
++        assertTrue(context.starts.isEmpty())
++    }
++}

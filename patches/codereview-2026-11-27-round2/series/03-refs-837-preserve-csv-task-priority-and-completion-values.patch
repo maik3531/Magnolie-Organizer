@@ -1,0 +1,393 @@
+From 70a500156e35052381e5cffe8ba508e1e6d58ef1 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 12:55:37 +0100
+Subject: [PATCH] Refs #837: Preserve CSV task priority and completion values
+
+---
+ ARBEITSSTAND.md                               |  12 ++
+ contracts/lotus-csv-task-values.json          | 194 ++++++++++++++++++
+ magnolie-organizer-windows/ExchangeCodec.cs   |  12 +-
+ .../tests/LotusCsvTaskValueTests.cs           |  44 ++++
+ magnolie-organizer-windows/tests/Program.cs   |   1 +
+ magnolie-organizer/bin/magnolie-organizer     |   5 +-
+ .../pruefungen/test_lotus_csv_task_values.py  |  37 ++++
+ 7 files changed, 301 insertions(+), 4 deletions(-)
+ create mode 100644 contracts/lotus-csv-task-values.json
+ create mode 100644 magnolie-organizer-windows/tests/LotusCsvTaskValueTests.cs
+ create mode 100644 magnolie-organizer/pruefungen/test_lotus_csv_task_values.py
+
+diff --git a/ARBEITSSTAND.md b/ARBEITSSTAND.md
+index 24a544defc32403bc43f5aaf4b9533553e73d53a..aed297ba3fa925e06c4429fc60024ac8da7f3320 100644
+--- a/ARBEITSSTAND.md
++++ b/ARBEITSSTAND.md
+@@ -26,6 +26,18 @@ Einpflege bereitgestellt; daraus folgt keine Paketfreigabe.
+ 
+ ## Weitere Abnahme für den Gesamtrelease
+ 
++- [#837](https://github.com/maik3531/Magnolie-Organizer/issues/837):
++  CSV-Aufgaben behalten in Linux und Windows ihre explizite Priorität;
++  unbekannte Werte bleiben normal, insbesondere wird „Normal“ nicht mehr
++  durch einen Präfixtreffer zu niedrig. Windows übernimmt die vorhandenen
++  CSV-Abschlusswerte COMPLETED/COMPLETE/ABGESCHLOSSEN/FERTIG. 27 gemeinsame
++  Vektoren einschließlich wiederholter VTODO-Ausgabe und erneutem Einlesen
++  bestanden in beiden tatsächlichen Codecs; Linux zusätzlich acht vorhandene
++  OR6-Aufgabenfälle. Dies sind isolierte Hostprüfungen, keine Paketabnahme.
++  Der große Windows-Exchange-Gesamttest scheitert unverändert bereits auf
++  der Basis 1543858e an einer NullReferenceException im Müllkalender-Test
++  (ContractGroupTests.cs, NativeExchangeRegressions); dieser separate Rest
++  wurde nicht in den CSV-Aufgabenfix aufgenommen.
+ - [#809](https://github.com/maik3531/Magnolie-Organizer/issues/809):
+   Beide ISO-Abbilder sind anhand offizieller Signaturen geprüft.
+   Auf Mint 27 Cinnamon Beta wurden die 2.0.30-Baseline-DEBs
+diff --git a/contracts/lotus-csv-task-values.json b/contracts/lotus-csv-task-values.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..51119279b76486408d11f6385295081da758ebb6
+--- /dev/null
++++ b/contracts/lotus-csv-task-values.json
+@@ -0,0 +1,194 @@
++{
++  "description": "Synthetic CSV task priority and completion values; exact tokens, neutral unknown priorities. Refs #837.",
++  "cases": [
++    {
++      "id": "priority-high-number",
++      "priority": "1",
++      "status": "Nein",
++      "expectedPriority": 1,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-high-short",
++      "priority": "H",
++      "status": "Nein",
++      "expectedPriority": 1,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-high-german",
++      "priority": " Hoch ",
++      "status": "Nein",
++      "expectedPriority": 1,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-high-english",
++      "priority": "high",
++      "status": "Nein",
++      "expectedPriority": 1,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-low-number",
++      "priority": "3",
++      "status": "Nein",
++      "expectedPriority": 3,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-low-short",
++      "priority": "N",
++      "status": "Nein",
++      "expectedPriority": 3,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-low-german",
++      "priority": "Niedrig",
++      "status": "Nein",
++      "expectedPriority": 3,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-low-english",
++      "priority": "low",
++      "status": "Nein",
++      "expectedPriority": 3,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-normal-number",
++      "priority": "2",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-normal-text",
++      "priority": "Normal",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-empty",
++      "priority": "",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-unknown-n-prefix",
++      "priority": "Not set",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-unknown-h-prefix",
++      "priority": "Hauptsache",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-unknown-three-prefix",
++      "priority": "31",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-unknown-one-prefix",
++      "priority": "10",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "status-yes",
++      "priority": "2",
++      "status": "Ja",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-one",
++      "priority": "2",
++      "status": "1",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-check",
++      "priority": "2",
++      "status": "X",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-completed",
++      "priority": "2",
++      "status": "COMPLETED",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-complete",
++      "priority": "2",
++      "status": "complete",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-finished",
++      "priority": "2",
++      "status": " fertig ",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-closed",
++      "priority": "2",
++      "status": "Abgeschlossen",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-no",
++      "priority": "2",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "status-zero",
++      "priority": "2",
++      "status": "0",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "status-incomplete",
++      "priority": "2",
++      "status": "INCOMPLETE",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "status-not-completed",
++      "priority": "2",
++      "status": "NOT COMPLETED",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "status-empty",
++      "priority": "2",
++      "status": "",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    }
++  ]
++}
+diff --git a/magnolie-organizer-windows/ExchangeCodec.cs b/magnolie-organizer-windows/ExchangeCodec.cs
+index 4bbcca958a3f91ca13e3b1e1eacd2cf7eb1b66ff..f79760e3a5fbaf5d7a6188b92f599a33b19d19a1 100644
+--- a/magnolie-organizer-windows/ExchangeCodec.cs
++++ b/magnolie-organizer-windows/ExchangeCodec.cs
+@@ -771,8 +771,8 @@ internal static partial class ExchangeCodec
+                 else if (dueIndex >= 0)
+                 {
+                     var title = Cell(descriptionIndex >= 0 ? descriptionIndex : Find("AUFGABE", "TITEL")); if (title.Length == 0) { omitted++; continue; }
+-                    tasks.Add(new JsonObject { ["titel"] = title, ["faellig"] = ParseLotusDate(Cell(dueIndex)).Date, ["prio"] = Cell(Find("PRIORITAET", "PRIORITY")).StartsWith('1') ? 1 : 2,
+-                        ["erledigt"] = IsYes(Cell(Find("ERLEDIGT", "COMPLETED", "STATUS"))), ["notiz"] = Cell(noteTextIndex), ["uid"] = "", ["geaendert"] = 0 });
++                    tasks.Add(new JsonObject { ["titel"] = title, ["faellig"] = ParseLotusDate(Cell(dueIndex)).Date, ["prio"] = LotusTaskPriority(Cell(Find("PRIORITAET", "PRIORITY"))),
++                        ["erledigt"] = LotusTaskCompleted(Cell(Find("ERLEDIGT", "COMPLETED", "STATUS"))), ["notiz"] = Cell(noteTextIndex), ["uid"] = "", ["geaendert"] = 0 });
+                 }
+                 else if (anniversaryIndex >= 0)
+                 {
+@@ -2174,6 +2174,14 @@ internal static partial class ExchangeCodec
+         return ("", "", false);
+     }
+ 
++    private static int LotusTaskPriority(string value) => value.Trim().ToUpperInvariant() switch
++    {
++        "1" or "H" or "HIGH" or "HOCH" => 1,
++        "3" or "N" or "LOW" or "NIEDRIG" => 3,
++        _ => 2
++    };
++    private static bool LotusTaskCompleted(string value) => IsYes(value) ||
++        value.Trim().ToUpperInvariant() is "COMPLETED" or "COMPLETE" or "ABGESCHLOSSEN" or "FERTIG";
+     private static bool IsYes(string value) => new[] { "JA", "J", "YES", "Y", "TRUE", "WAHR", "1", "X" }.Contains(value.Trim().ToUpperInvariant());
+     private static string LotusDate(string date, string time) => DateOnly.TryParseExact(date, "yyyy-MM-dd", out var parsed) ? parsed.ToString("dd.MM.yyyy") + (time.Length > 0 ? " " + time : "") : "";
+     private static void WriteCsvRow(StringBuilder output, IEnumerable<string> values) => output.Append(string.Join(",",
+diff --git a/magnolie-organizer-windows/tests/LotusCsvTaskValueTests.cs b/magnolie-organizer-windows/tests/LotusCsvTaskValueTests.cs
+new file mode 100644
+index 0000000000000000000000000000000000000000..fb4ba1dd64abc23be8f63c5ddc06d4cb3a29ea42
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/LotusCsvTaskValueTests.cs
+@@ -0,0 +1,44 @@
++using System.Text;
++using System.Text.Json;
++using System.Text.Json.Nodes;
++using MagnolieOrganizer.Windows;
++
++namespace MagnolieOrganizer.Windows.Tests;
++
++internal static class LotusCsvTaskValueTests
++{
++    internal static Task RunAsync()
++    {
++        const string relative = "contracts/lotus-csv-task-values.json";
++        var vectors = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root(relative), relative)))!["cases"]!.AsArray();
++        var failures = new List<string>();
++        foreach (var vector in vectors.OfType<JsonObject>())
++        {
++            var id = vector["id"]!.ToString();
++            void Check(bool passed, string message) { if (!passed) failures.Add(id + ": " + message); }
++            string Csv(string field) => "\"" + field.Replace("\"", "\"\"") + "\"";
++            var raw = Encoding.UTF8.GetBytes("Beschreibung;Fällig;Priorität;Status\r\n" +
++                string.Join(';', new[] { id, "29.02.2028", vector["priority"]!.ToString(), vector["status"]!.ToString() }.Select(Csv)) + "\r\n");
++            var result = ExchangeCodec.ParseImport(raw, "lotus", "owned-tasks.csv");
++            Check(result.Uebersprungen == 0 && result.Aufgaben.Count == 1, "CSV record count changed");
++            if (result.Aufgaben.Count != 1) continue;
++            Check(JsonNode.DeepEquals(result.Aufgaben, ExchangeCodec.ParseImport(raw, "lotus", "owned-tasks.csv").Aufgaben), "Repeated CSV read changed the record");
++            var task = result.Aufgaben[0]!.AsObject();
++            for (var cycle = 0; cycle < 3; cycle++)
++            {
++                Check(task["titel"]!.ToString() == id && task["faellig"]!.ToString() == "2028-02-29", "Task title/date changed");
++                Check(task["prio"]!.GetValue<int>() == vector["expectedPriority"]!.GetValue<int>(), "Priority changed");
++                Check(task["erledigt"]!.GetValue<bool>() == vector["expectedCompleted"]!.GetValue<bool>(), "Completion changed");
++                var before = task.ToJsonString();
++                var exported = ExchangeCodec.WriteIcs("ics-aufgaben", JsonSerializer.SerializeToElement(new JsonArray(task.DeepClone())));
++                Check(task.ToJsonString() == before, "Export mutated the input");
++                Check(exported.Count == 1 && exported.Skipped == 0, "VTODO export lost the task");
++                var reread = ExchangeCodec.ParseIcs(exported.Text);
++                Check(reread.Aufgaben.Count == 1 && reread.Uebersprungen == 0, "VTODO import lost the task");
++                task = reread.Aufgaben.Single()!.AsObject();
++            }
++        }
++        TestAssert.That(failures.Count == 0, string.Join("\n", failures));
++        return Task.CompletedTask;
++    }
++}
+diff --git a/magnolie-organizer-windows/tests/Program.cs b/magnolie-organizer-windows/tests/Program.cs
+index 2d75c8048f560bcd13a62c0286d886fe1e9f2bce..8e779bf5dc456eaa9340ba683eb69126f555d61f 100644
+--- a/magnolie-organizer-windows/tests/Program.cs
++++ b/magnolie-organizer-windows/tests/Program.cs
+@@ -344,6 +344,7 @@ runner.Add("Document export / actual ODS / readback / target guards", VerifiedDo
+ runner.Add(".magnolie Gesamtarchiv / Cross-Platform / Anhänge / Fehler", ContractGroupTests.ArchiveAsync);
+ runner.Add("Notizanhänge / Data-URL / Dateinamen", AttachmentFileTests.RunAsync);
+ runner.Add("ICS / VCF / LDIF / Claws / Lotus / Thunderbird", ContractGroupTests.ExchangeAsync);
++runner.Add("Lotus CSV tasks / priority and completion / repeated VTODO exchange", LotusCsvTaskValueTests.RunAsync);
+ runner.Add("Calendar source case / Windows mixed component and property names roundtrip", CalendarSourceTimezoneCaseTests.RunAsync);
+ runner.Add("Thunderbird local.sqlite Schema 23", ThunderbirdSchema23Tests.RunAsync);
+ runner.Add("ODS Paket / XML / Styles / Geometrie / Chart", ContractGroupTests.OdsAsync);
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index 0aefaf9e0074df63eb9b7e9022ee2e4dd6647a9b..7145e621996e5b9c56c2ad5d8ab6f6199943ab13 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -6257,9 +6257,10 @@ def _lotus_aufgaben(zeilen, kopf):
+             continue
+         roh_prio = hol("prio").upper()
+         prio = 2
+-        if roh_prio[:1] in ("1", "H") or "HOCH" in roh_prio:
++        # Prefix guesses turn "Normal" into low and unknown values into high.
++        if roh_prio in ("1", "H", "HIGH", "HOCH"):
+             prio = 1
+-        elif roh_prio[:1] in ("3", "N") or "NIEDRIG" in roh_prio:
++        elif roh_prio in ("3", "N", "LOW", "NIEDRIG"):
+             prio = 3
+         aufgaben.append({
+             "titel": titel,
+diff --git a/magnolie-organizer/pruefungen/test_lotus_csv_task_values.py b/magnolie-organizer/pruefungen/test_lotus_csv_task_values.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..305b2ec4241d1d5044ac46f5e239dfd959bc8389
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/test_lotus_csv_task_values.py
+@@ -0,0 +1,37 @@
++"""Actual CSV import and repeated VTODO exchange preserve task values (#837)."""
++import copy
++import csv
++import io
++import json
++from pathlib import Path
++
++import pytest
++
++from test_startup_read_failure import native
++
++
++VECTORS = json.loads((Path(__file__).resolve().parents[2] /
++                     "contracts/lotus-csv-task-values.json").read_text())["cases"]
++
++
++@pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
++def test_csv_task_values_survive_vtodo_roundtrips(native, vector):
++    text = io.StringIO()
++    writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
++    writer.writerow(["Beschreibung", "Fällig", "Priorität", "Status"])
++    writer.writerow([vector["id"], "29.02.2028", vector["priority"], vector["status"]])
++    raw = text.getvalue().encode("utf-8")
++    result = native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")
++    assert result["uebersprungen"] == 0
++    task, = result["aufgaben"]
++    assert native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")["aufgaben"] == [task]
++    for _ in range(3):
++        assert task["titel"] == vector["id"]
++        assert task["faellig"] == "2028-02-29"
++        assert task["prio"] == vector["expectedPriority"]
++        assert task["erledigt"] is vector["expectedCompleted"]
++        before = copy.deepcopy(task)
++        exported = native.ics_schreiben_aufgaben([task])
++        assert task == before
++        assert exported.count("BEGIN:VTODO") == 1
++        task, = native.ics_lesen(exported)["aufgaben"]

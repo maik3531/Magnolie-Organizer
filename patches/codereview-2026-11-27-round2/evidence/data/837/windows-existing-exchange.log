@@ -1,0 +1,7 @@
+Magnolie CoreTests: 1 Gruppen
+  FEHLER ICS / VCF / LDIF / Claws / Lotus / Thunderbird (0.13 s)
+         System.NullReferenceException: Object reference not set to an instance of an object.
+   at MagnolieOrganizer.Windows.Tests.ContractGroupTests.NativeExchangeRegressions() in $REVIEW_WORKSPACE/round2-data/magnolie-organizer-windows/tests/ContractGroupTests.cs:line 615
+   at MagnolieOrganizer.Windows.Tests.ContractGroupTests.ExchangeAsync() in $REVIEW_WORKSPACE/round2-data/magnolie-organizer-windows/tests/ContractGroupTests.cs:line 95
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in $REVIEW_WORKSPACE/round2-data/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/1 Gruppen bestanden.

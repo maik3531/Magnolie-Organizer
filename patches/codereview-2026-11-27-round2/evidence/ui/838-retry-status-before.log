@@ -1,0 +1,14 @@
+AssertionError [ERR_ASSERTION]: A successful retry must replace the stale error with the loaded filename
++ actual - expected
+
++ 'This drawing cannot be edited in this version.'
+- 'owned-drawing.json'
+
+    at $REVIEW_WORKSPACE/round2-ui/magnolie-organizer-windows/tests/drawing-error-feedback.js:88:18 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 'This drawing cannot be edited in this version.',
+  expected: 'owned-drawing.json',
+  operator: 'strictEqual',
+  diff: 'simple'
+}

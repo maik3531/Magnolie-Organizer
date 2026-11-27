@@ -1,0 +1,42 @@
+Magnolie CoreTests: 1 Gruppen
+  FEHLER Lotus CSV tasks / priority and completion / repeated VTODO exchange (0.17 s)
+         System.InvalidOperationException: priority-high-short: Priority changed
+priority-high-short: Priority changed
+priority-high-short: Priority changed
+priority-high-german: Priority changed
+priority-high-german: Priority changed
+priority-high-german: Priority changed
+priority-high-english: Priority changed
+priority-high-english: Priority changed
+priority-high-english: Priority changed
+priority-low-number: Priority changed
+priority-low-number: Priority changed
+priority-low-number: Priority changed
+priority-low-short: Priority changed
+priority-low-short: Priority changed
+priority-low-short: Priority changed
+priority-low-german: Priority changed
+priority-low-german: Priority changed
+priority-low-german: Priority changed
+priority-low-english: Priority changed
+priority-low-english: Priority changed
+priority-low-english: Priority changed
+priority-unknown-one-prefix: Priority changed
+priority-unknown-one-prefix: Priority changed
+priority-unknown-one-prefix: Priority changed
+status-completed: Completion changed
+status-completed: Completion changed
+status-completed: Completion changed
+status-complete: Completion changed
+status-complete: Completion changed
+status-complete: Completion changed
+status-finished: Completion changed
+status-finished: Completion changed
+status-finished: Completion changed
+status-closed: Completion changed
+status-closed: Completion changed
+status-closed: Completion changed
+   at MagnolieOrganizer.Windows.Tests.TestAssert.That(Boolean condition, String message) in $REVIEW_WORKSPACE/round2-data/magnolie-organizer-windows/tests/TestRunner.cs:line 41
+   at MagnolieOrganizer.Windows.Tests.LotusCsvTaskValueTests.RunAsync() in $REVIEW_WORKSPACE/round2-data/magnolie-organizer-windows/tests/LotusCsvTaskValueTests.cs:line 41
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in $REVIEW_WORKSPACE/round2-data/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/1 Gruppen bestanden.

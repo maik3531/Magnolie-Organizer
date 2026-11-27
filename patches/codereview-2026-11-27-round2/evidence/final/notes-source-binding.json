@@ -1,0 +1,26 @@
+{
+  "name": "notes-source-binding",
+  "command": [
+    "git",
+    "diff",
+    "--exit-code",
+    "f2f429807186760248c5ddf4c2af3f22f4e1f568",
+    "HEAD",
+    "--",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/AnhangDatei.kt",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt",
+    "magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/AnhangOeffnenTest.kt"
+  ],
+  "cwd": "$REVIEW_SOURCE",
+  "environment": {
+    "TZ": "UTC",
+    "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+    "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+    "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+    "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+  },
+  "exit": 0,
+  "elapsed_seconds": 0.0,
+  "log": "notes-source-binding.log",
+  "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b"
+}

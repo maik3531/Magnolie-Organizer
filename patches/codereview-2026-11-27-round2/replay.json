@@ -1,0 +1,49 @@
+{
+  "baseline": "1543858e251d7e29ebeafb67d2605991c1d442d5",
+  "expected_tree": "5bf49b5e9250ba2c3f376ccf86d58dc018139c6f",
+  "steps": [
+    {
+      "mode": "combined",
+      "patch": "magnolie-codereview-round2.patch",
+      "result_tree": "5bf49b5e9250ba2c3f376ccf86d58dc018139c6f"
+    },
+    {
+      "mode": "series",
+      "patch": "series/01-refs-835-deliver-absolute-calendar-alarms-once-across-projections-and-restarts.patch",
+      "result_tree": "ea4301a18957a90d0d0f579c273ef5d261091e06"
+    },
+    {
+      "mode": "series",
+      "patch": "series/02-refs-836-contain-notes-attachment-opening-failures-off-the-ui-thread.patch",
+      "result_tree": "98ee8e6802d107617bae57e046144adc785ad964"
+    },
+    {
+      "mode": "series",
+      "patch": "series/03-refs-837-preserve-csv-task-priority-and-completion-values.patch",
+      "result_tree": "436310e6d2e6afe4133a407fdb443a4128555119"
+    },
+    {
+      "mode": "series",
+      "patch": "series/04-refs-566-preserve-csv-contact-addresses-within-their-source-roles.patch",
+      "result_tree": "c54e450df38229650c504e3604631204fe6b5e5d"
+    },
+    {
+      "mode": "series",
+      "patch": "series/05-fix-localized-drawing-error-feedback-refs-838.patch",
+      "result_tree": "850afae5b3b9d5c26fb63ac37a6ae7faf23f4c29"
+    },
+    {
+      "mode": "series",
+      "patch": "series/06-clear-drawing-import-error-after-valid-retry-refs-838.patch",
+      "result_tree": "1f0e438ba9ca72e5da7323a2c4d2d0ef2e899b2e"
+    },
+    {
+      "mode": "series",
+      "patch": "series/07-refs-113-835-836-837-566-838-record-second-review-handoff-and-verified-host-limits.patch",
+      "result_tree": "5bf49b5e9250ba2c3f376ccf86d58dc018139c6f"
+    }
+  ],
+  "combined_tree": "5bf49b5e9250ba2c3f376ccf86d58dc018139c6f",
+  "reverse_check": true,
+  "series_tree": "5bf49b5e9250ba2c3f376ccf86d58dc018139c6f"
+}

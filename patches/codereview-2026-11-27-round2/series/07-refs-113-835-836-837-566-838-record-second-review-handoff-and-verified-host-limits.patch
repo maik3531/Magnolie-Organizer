@@ -1,0 +1,59 @@
+From ed3ffa936088840e4c3437eab5c37417fd31c86b Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 13:24:50 +0100
+Subject: [PATCH] Refs #113 #835 #836 #837 #566 #838: Record second review
+ handoff and verified host limits
+
+---
+ ARBEITSSTAND.md | 25 +++++++++++++++++++------
+ 1 file changed, 19 insertions(+), 6 deletions(-)
+
+diff --git a/ARBEITSSTAND.md b/ARBEITSSTAND.md
+index 76fdf260843431720d984a8cfda93a2ea2f4fc90..f13f75e95d659e258f129629afa7de0b2f2c1d11 100644
+--- a/ARBEITSSTAND.md
++++ b/ARBEITSSTAND.md
+@@ -1,7 +1,7 @@
+ # Aktueller Arbeitsstand
+ 
+-Die geprüften Einzelissues sind abgeschlossen; die weiterhin benötigten
+-Paket- und Geräteprüfungen sind in [#113](https://github.com/maik3531/Magnolie-Organizer/issues/113#issuecomment-7215114176)
++Die Gesamtübergabe und die weiterhin benötigten Paket- und Geräteprüfungen
++sind in [#113](https://github.com/maik3531/Magnolie-Organizer/issues/113#issuecomment-7215114176)
+ und [#121](https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7215113730)
+ aufgeführt.
+ 
+@@ -23,6 +23,19 @@ Einpflege bereitgestellt; daraus folgt keine Paketfreigabe.
+   unabhängigen UTC-Sollwert ergänzt; relative Vergleichsfälle bleiben erhalten.
+   Die Nachholfenster wurden nicht plattformübergreifend verändert.
+   Native Windows-/Linux-Benachrichtigungen und Pakete sind nicht abgenommen.
++- [#836](https://github.com/maik3531/Magnolie-Organizer/issues/836):
++  Notes behandelt Fehler bei der vollständigen Anhangvorbereitung, führt
++  Dateiarbeit im I/O-Dispatcher aus und bereinigt eindeutige Tempdateien.
++  Coroutine-Abbruch bleibt erhalten. 13 JUnit-Hostgruppen bestanden;
++  ein echter Dateischreibfehler erzeugt weder einen Viewer-Start noch einen
++  Tempdateirest und erhält die vorherige Cachedatei. Android-Grenzen sind im
++  Hostlauf ersetzt; ein nativer Provider-/Viewer- oder APK-Lauf fehlt.
++- [#838](https://github.com/maik3531/Magnolie-Organizer/issues/838):
++  Beide Zeichenblattfrontends erreichen ihre lokalisierten Fehlermeldungen
++  und zeigen nach erfolgreicher Wiederholung den geladenen Dateinamen.
++  16 neue JSDOM-Szenarien über Deutsch/Englisch und Linux/Windows sowie
++  die vorhandenen Zeichenblatt- und Zeitzonenprüfungen bestanden.
++  Canvas- und Decodergrenzen sind simuliert; keine native Paketabnahme.
+ 
+ ## Weitere Abnahme für den Gesamtrelease
+ 
+@@ -45,10 +58,10 @@ Einpflege bereitgestellt; daraus folgt keine Paketfreigabe.
+   Vektoren einschließlich wiederholter VTODO-Ausgabe und erneutem Einlesen
+   bestanden in beiden tatsächlichen Codecs; Linux zusätzlich acht vorhandene
+   OR6-Aufgabenfälle. Dies sind isolierte Hostprüfungen, keine Paketabnahme.
+-  Der große Windows-Exchange-Gesamttest scheitert unverändert bereits auf
+-  der Basis 1543858e an einer NullReferenceException im Müllkalender-Test
+-  (ContractGroupTests.cs, NativeExchangeRegressions); dieser separate Rest
+-  wurde nicht in den CSV-Aufgabenfix aufgenommen.
++  Der bestehende Exchange-Gate bestand auf Basis und CSV-Endstand nach
++  expliziter Hostzeitzone `TZ=Europe/Berlin` zusammen mit der vorhandenen
++  `TZDIR`-Datenbasis; der anfängliche rote Lauf beruhte auf der isolierten
++  Testumgebung. Dafür war kein Produktfix erforderlich.
+ - [#809](https://github.com/maik3531/Magnolie-Organizer/issues/809):
+   Beide ISO-Abbilder sind anhand offizieller Signaturen geprüft.
+   Auf Mint 27 Cinnamon Beta wurden die 2.0.30-Baseline-DEBs

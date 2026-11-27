@@ -1,0 +1,32 @@
+{
+  "name": "python-combined",
+  "command": [
+    "/usr/bin/python3",
+    "-m",
+    "pytest",
+    "-q",
+    "magnolie-organizer/pruefungen/test_absolute_reminders.py",
+    "magnolie-organizer/pruefungen/test_absolute_reminder_legacy.py",
+    "magnolie-organizer/pruefungen/test_naechster_weckzeitpunkt.py",
+    "magnolie-organizer/pruefungen/test_regional_reminders.py",
+    "magnolie-organizer/pruefungen/test_reminder_projection.py",
+    "magnolie-organizer/pruefungen/test_recurrence_integration.py",
+    "magnolie-organizer/pruefungen/test_native_recurrence_regressions.py",
+    "magnolie-organizer/pruefungen/test_lotus_csv_task_values.py",
+    "magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py",
+    "magnolie-organizer/pruefungen/test_or6_task_status.py",
+    "magnolie-organizer/pruefungen/test_or6_single_task_dates.py"
+  ],
+  "cwd": "$REVIEW_SOURCE",
+  "environment": {
+    "TZ": "UTC",
+    "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+    "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+    "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+    "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+  },
+  "exit": 0,
+  "elapsed_seconds": 16.44,
+  "log": "python-combined.log",
+  "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b"
+}

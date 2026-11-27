@@ -1,0 +1,105 @@
+[
+  {
+    "case": "plain",
+    "sourceCommit": "1543858e251d7e29ebeafb67d2605991c1d442d5",
+    "zone": "UTC",
+    "source": "",
+    "trigger": "20261127T103000Z",
+    "start": "20261129T123000Z",
+    "recurrence": "",
+    "ics": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie//Owned legacy fixture//EN\r\nBEGIN:VTODO\r\nUID:independent-absolute-review\r\nDTSTAMP:20261001T000000Z\r\nSUMMARY:Owned independent alarm\r\nDTSTART:20261129T123000Z\r\nDUE:20261129T123000Z\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DATE-TIME:20261127T103000Z\r\nDESCRIPTION:Owned independent alarm\r\nEND:VALARM\r\nEND:VTODO\r\nEND:VCALENDAR\r\n",
+    "state": {
+      "gemeldet": {
+        "af-independent-absolute-review@2026-11-29T12:30:00+00:00-2026-11-29-1230-alarm-START-2026-11-27 10:30": "2026-11-27 10:30"
+      },
+      "letzter_lauf": ""
+    },
+    "noticeCount": 1
+  },
+  {
+    "case": "source",
+    "sourceCommit": "1543858e251d7e29ebeafb67d2605991c1d442d5",
+    "zone": "UTC",
+    "source": "owned-calendar-a",
+    "trigger": "20261127T103000Z",
+    "start": "20261129T123000Z",
+    "recurrence": "",
+    "ics": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie//Owned legacy fixture//EN\r\nBEGIN:VTODO\r\nUID:independent-absolute-review\r\nDTSTAMP:20261001T000000Z\r\nSUMMARY:Owned independent alarm\r\nDTSTART:20261129T123000Z\r\nDUE:20261129T123000Z\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DATE-TIME:20261127T103000Z\r\nDESCRIPTION:Owned independent alarm\r\nEND:VALARM\r\nEND:VTODO\r\nEND:VCALENDAR\r\n",
+    "state": {
+      "gemeldet": {
+        "af-58b0c6d3d9fe361ee648:independent-absolute-review@2026-11-29T12:30:00+00:00-2026-11-29-1230-alarm-START-2026-11-27 10:30": "2026-11-27 10:30"
+      },
+      "letzter_lauf": ""
+    },
+    "noticeCount": 1
+  },
+  {
+    "case": "series",
+    "sourceCommit": "1543858e251d7e29ebeafb67d2605991c1d442d5",
+    "zone": "UTC",
+    "source": "owned-calendar-a",
+    "trigger": "20261127T103000Z",
+    "start": "20261129T123000Z",
+    "recurrence": "FREQ=DAILY;COUNT=2",
+    "ics": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie//Owned legacy fixture//EN\r\nBEGIN:VTODO\r\nUID:independent-absolute-review\r\nDTSTAMP:20261001T000000Z\r\nSUMMARY:Owned independent alarm\r\nDTSTART:20261129T123000Z\r\nDUE:20261129T123000Z\r\nRRULE:FREQ=DAILY;COUNT=2\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DATE-TIME:20261127T103000Z\r\nDESCRIPTION:Owned independent alarm\r\nEND:VALARM\r\nEND:VTODO\r\nEND:VCALENDAR\r\n",
+    "state": {
+      "gemeldet": {
+        "af-58b0c6d3d9fe361ee648:independent-absolute-review@2026-11-29T12:30:00+00:00-2026-11-29-1230-alarm-START-2026-11-27 10:30": "2026-11-27 10:30",
+        "af-58b0c6d3d9fe361ee648:independent-absolute-review@2026-11-30T12:30:00+00:00-2026-11-30-1230-alarm-START-2026-11-27 10:30": "2026-11-27 10:30"
+      },
+      "letzter_lauf": ""
+    },
+    "noticeCount": 2
+  },
+  {
+    "case": "first-fold",
+    "sourceCommit": "1543858e251d7e29ebeafb67d2605991c1d442d5",
+    "zone": "America/New_York",
+    "source": "owned-calendar-a",
+    "trigger": "20261101T053000Z",
+    "start": "20261103T123000Z",
+    "recurrence": "",
+    "ics": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie//Owned legacy fixture//EN\r\nBEGIN:VTODO\r\nUID:independent-absolute-review\r\nDTSTAMP:20261001T000000Z\r\nSUMMARY:Owned independent alarm\r\nDTSTART:20261103T123000Z\r\nDUE:20261103T123000Z\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DATE-TIME:20261101T053000Z\r\nDESCRIPTION:Owned independent alarm\r\nEND:VALARM\r\nEND:VTODO\r\nEND:VCALENDAR\r\n",
+    "state": {
+      "gemeldet": {
+        "af-58b0c6d3d9fe361ee648:independent-absolute-review@2026-11-03T12:30:00+00:00-2026-11-03-0730-alarm-START-2026-11-01 01:30": "2026-11-01 01:30"
+      },
+      "letzter_lauf": ""
+    },
+    "noticeCount": 1
+  },
+  {
+    "case": "second-fold",
+    "sourceCommit": "1543858e251d7e29ebeafb67d2605991c1d442d5",
+    "zone": "America/New_York",
+    "source": "owned-calendar-a",
+    "trigger": "20261101T063000Z",
+    "start": "20261103T123000Z",
+    "recurrence": "",
+    "ics": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie//Owned legacy fixture//EN\r\nBEGIN:VTODO\r\nUID:independent-absolute-review\r\nDTSTAMP:20261001T000000Z\r\nSUMMARY:Owned independent alarm\r\nDTSTART:20261103T123000Z\r\nDUE:20261103T123000Z\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DATE-TIME:20261101T063000Z\r\nDESCRIPTION:Owned independent alarm\r\nEND:VALARM\r\nEND:VTODO\r\nEND:VCALENDAR\r\n",
+    "state": {
+      "gemeldet": {
+        "af-58b0c6d3d9fe361ee648:independent-absolute-review@2026-11-03T12:30:00+00:00-2026-11-03-0730-alarm-START-2026-11-01 01:30": "2026-11-01 01:30"
+      },
+      "letzter_lauf": ""
+    },
+    "noticeCount": 1
+  },
+  {
+    "case": "seconds",
+    "sourceCommit": "1543858e251d7e29ebeafb67d2605991c1d442d5",
+    "zone": "UTC",
+    "source": "owned-calendar-a",
+    "trigger": "20261127T103015Z",
+    "start": "20261129T123000Z",
+    "recurrence": "",
+    "ics": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie//Owned legacy fixture//EN\r\nBEGIN:VTODO\r\nUID:independent-absolute-review\r\nDTSTAMP:20261001T000000Z\r\nSUMMARY:Owned independent alarm\r\nDTSTART:20261129T123000Z\r\nDUE:20261129T123000Z\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DATE-TIME:20261127T103015Z\r\nDESCRIPTION:Owned independent alarm\r\nEND:VALARM\r\nEND:VTODO\r\nEND:VCALENDAR\r\n",
+    "state": {
+      "gemeldet": {
+        "af-58b0c6d3d9fe361ee648:independent-absolute-review@2026-11-29T12:30:00+00:00-2026-11-29-1230-alarm-START-2026-11-27 10:30": "2026-11-27 10:30"
+      },
+      "letzter_lauf": ""
+    },
+    "noticeCount": 1
+  }
+]

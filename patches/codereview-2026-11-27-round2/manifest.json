@@ -1,0 +1,1029 @@
+{
+  "repository": "maik3531/Magnolie-Organizer",
+  "artifact_branch": "work/codereview-20261127-round2-patches",
+  "delivery_kind": "patches_for_later_integration",
+  "main_changed_by_review": false,
+  "baseline": "1543858e251d7e29ebeafb67d2605991c1d442d5",
+  "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+  "source_tree": "5bf49b5e9250ba2c3f376ccf86d58dc018139c6f",
+  "changed_source_files": [
+    "ARBEITSSTAND.md",
+    "contracts/absolute-reminder-vectors.json",
+    "contracts/lotus-csv-contact-fields.json",
+    "contracts/lotus-csv-task-values.json",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/AnhangDatei.kt",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt",
+    "magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/AnhangOeffnenTest.kt",
+    "magnolie-organizer-windows/ExchangeCodec.cs",
+    "magnolie-organizer-windows/ReminderScheduler.cs",
+    "magnolie-organizer-windows/app/web/anwendung.js",
+    "magnolie-organizer-windows/tests/AbsoluteReminderCoincidenceTests.cs",
+    "magnolie-organizer-windows/tests/AbsoluteReminderTests.cs",
+    "magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs",
+    "magnolie-organizer-windows/tests/LotusCsvTaskValueTests.cs",
+    "magnolie-organizer-windows/tests/Program.cs",
+    "magnolie-organizer-windows/tests/README.md",
+    "magnolie-organizer-windows/tests/drawing-error-feedback.js",
+    "magnolie-organizer-windows/tests/run.js",
+    "magnolie-organizer/bin/magnolie-organizer",
+    "magnolie-organizer/pruefungen/test_absolute_reminder_legacy.py",
+    "magnolie-organizer/pruefungen/test_absolute_reminders.py",
+    "magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py",
+    "magnolie-organizer/pruefungen/test_lotus_csv_task_values.py",
+    "magnolie-organizer/pruefungen/test_naechster_weckzeitpunkt.py",
+    "magnolie-organizer/web/anwendung.js"
+  ],
+  "patches": [
+    {
+      "order": 1,
+      "path": "series/01-refs-835-deliver-absolute-calendar-alarms-once-across-projections-and-restarts.patch",
+      "subject": "Refs #835: Deliver absolute calendar alarms once across projections and restarts",
+      "source_commit": "91efc99b40636dddc7d2a62b53d10b79c69b97b9",
+      "source_parent": "1543858e251d7e29ebeafb67d2605991c1d442d5",
+      "issues": [
+        835
+      ],
+      "bytes": 101623,
+      "sha256": "ce21e97582bde1bfe06580a441233f53b5fda9f9689332a68758475169239294"
+    },
+    {
+      "order": 2,
+      "path": "series/02-refs-836-contain-notes-attachment-opening-failures-off-the-ui-thread.patch",
+      "subject": "Refs #836: contain Notes attachment opening failures off the UI thread",
+      "source_commit": "33c1f98418d6a1eab750e76851577e1ec731845b",
+      "source_parent": "91efc99b40636dddc7d2a62b53d10b79c69b97b9",
+      "issues": [
+        836
+      ],
+      "bytes": 12894,
+      "sha256": "231d01d1a3caf34753a4883e30c97f2d1d880baff1bcb570ff1090c46031ab1c"
+    },
+    {
+      "order": 3,
+      "path": "series/03-refs-837-preserve-csv-task-priority-and-completion-values.patch",
+      "subject": "Refs #837: Preserve CSV task priority and completion values",
+      "source_commit": "70a500156e35052381e5cffe8ba508e1e6d58ef1",
+      "source_parent": "33c1f98418d6a1eab750e76851577e1ec731845b",
+      "issues": [
+        837
+      ],
+      "bytes": 16449,
+      "sha256": "f898d25784dded8fc1f04d0bc2fef38b1646cccbc58ca41a46bbb9c40164a0c3"
+    },
+    {
+      "order": 4,
+      "path": "series/04-refs-566-preserve-csv-contact-addresses-within-their-source-roles.patch",
+      "subject": "Refs #566: Preserve CSV contact addresses within their source roles",
+      "source_commit": "b6843e5d438e18ad714a5a2cc7940dcc8da166d7",
+      "source_parent": "70a500156e35052381e5cffe8ba508e1e6d58ef1",
+      "issues": [
+        566
+      ],
+      "bytes": 28276,
+      "sha256": "c9973c16f67a10e523c203e7264a3411c093fb0892889c436ccbffc273650c31"
+    },
+    {
+      "order": 5,
+      "path": "series/05-fix-localized-drawing-error-feedback-refs-838.patch",
+      "subject": "Fix localized drawing error feedback (Refs #838)",
+      "source_commit": "d62304e101628e015ae41ee5b8f2259cc30331d9",
+      "source_parent": "b6843e5d438e18ad714a5a2cc7940dcc8da166d7",
+      "issues": [
+        838
+      ],
+      "bytes": 22123,
+      "sha256": "4e3fbeb41c161f3c3327f2047d0b735617663b17653e421803f516bbb18a8bdb"
+    },
+    {
+      "order": 6,
+      "path": "series/06-clear-drawing-import-error-after-valid-retry-refs-838.patch",
+      "subject": "Clear drawing import error after valid retry (Refs #838)",
+      "source_commit": "11e2ce80c4ec98bbcfef60f1af2870a5fe6b69e7",
+      "source_parent": "d62304e101628e015ae41ee5b8f2259cc30331d9",
+      "issues": [
+        838
+      ],
+      "bytes": 5833,
+      "sha256": "a858600d4532ae3504a3bca1dcc6ddc5702251207e5c34a665d394d3d9893638"
+    },
+    {
+      "order": 7,
+      "path": "series/07-refs-113-835-836-837-566-838-record-second-review-handoff-and-verified-host-limits.patch",
+      "subject": "Refs #113 #835 #836 #837 #566 #838: Record second review handoff and verified host limits",
+      "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+      "source_parent": "11e2ce80c4ec98bbcfef60f1af2870a5fe6b69e7",
+      "issues": [
+        113,
+        835,
+        836,
+        837,
+        566,
+        838
+      ],
+      "bytes": 3462,
+      "sha256": "59b7b3b5fe491efb780037ecde4dc5d781ad86a4e9aefcd71c2f0d66c4efb487"
+    }
+  ],
+  "combined_patch": {
+    "path": "magnolie-codereview-round2.patch",
+    "bytes": 175781,
+    "sha256": "79e8ec06b4f0565153413472fc8f4bfce4ff246c01762a638948f6253c302559"
+  },
+  "final_verification": {
+    "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+    "source_tree": "5bf49b5e9250ba2c3f376ccf86d58dc018139c6f",
+    "tests": [
+      {
+        "name": "diff-check",
+        "command": [
+          "git",
+          "diff",
+          "--check",
+          "1543858e251d7e29ebeafb67d2605991c1d442d5",
+          "HEAD"
+        ],
+        "cwd": "$REVIEW_SOURCE",
+        "environment": {
+          "TZ": "UTC",
+          "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+          "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+          "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+          "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+        },
+        "exit": 0,
+        "elapsed_seconds": 0.08,
+        "log": "diff-check.log",
+        "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+        "log_sha256": "5427a9630c3a79a204fbe7d1113fcc9f84b9c26d11ebca670ea8c4dddf5c90e2",
+        "original_log_sha256": "5427a9630c3a79a204fbe7d1113fcc9f84b9c26d11ebca670ea8c4dddf5c90e2"
+      },
+      {
+        "name": "notes-source-binding",
+        "command": [
+          "git",
+          "diff",
+          "--exit-code",
+          "f2f429807186760248c5ddf4c2af3f22f4e1f568",
+          "HEAD",
+          "--",
+          "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/AnhangDatei.kt",
+          "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt",
+          "magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/AnhangOeffnenTest.kt"
+        ],
+        "cwd": "$REVIEW_SOURCE",
+        "environment": {
+          "TZ": "UTC",
+          "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+          "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+          "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+          "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+        },
+        "exit": 0,
+        "elapsed_seconds": 0.0,
+        "log": "notes-source-binding.log",
+        "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+        "log_sha256": "10d3a980fe470815faf9fe2c17df3ba9701e6e84e41c8f05fe9871229202c814",
+        "original_log_sha256": "10d3a980fe470815faf9fe2c17df3ba9701e6e84e41c8f05fe9871229202c814"
+      },
+      {
+        "name": "python-combined",
+        "command": [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "-q",
+          "magnolie-organizer/pruefungen/test_absolute_reminders.py",
+          "magnolie-organizer/pruefungen/test_absolute_reminder_legacy.py",
+          "magnolie-organizer/pruefungen/test_naechster_weckzeitpunkt.py",
+          "magnolie-organizer/pruefungen/test_regional_reminders.py",
+          "magnolie-organizer/pruefungen/test_reminder_projection.py",
+          "magnolie-organizer/pruefungen/test_recurrence_integration.py",
+          "magnolie-organizer/pruefungen/test_native_recurrence_regressions.py",
+          "magnolie-organizer/pruefungen/test_lotus_csv_task_values.py",
+          "magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py",
+          "magnolie-organizer/pruefungen/test_or6_task_status.py",
+          "magnolie-organizer/pruefungen/test_or6_single_task_dates.py"
+        ],
+        "cwd": "$REVIEW_SOURCE",
+        "environment": {
+          "TZ": "UTC",
+          "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+          "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+          "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+          "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+        },
+        "exit": 0,
+        "elapsed_seconds": 16.44,
+        "log": "python-combined.log",
+        "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+        "log_sha256": "0f2df127e1f0ba18f5750d88565d342ebc167aa29ca31d2837d898f27cc32b0e",
+        "original_log_sha256": "0f2df127e1f0ba18f5750d88565d342ebc167aa29ca31d2837d898f27cc32b0e"
+      },
+      {
+        "name": "ui-drawing",
+        "command": [
+          "node",
+          "magnolie-organizer-windows/tests/drawing-sheet.js"
+        ],
+        "cwd": "$REVIEW_SOURCE",
+        "environment": {
+          "TZ": "UTC",
+          "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+          "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+          "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+          "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+        },
+        "exit": 0,
+        "elapsed_seconds": 1.21,
+        "log": "ui-drawing.log",
+        "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+        "log_sha256": "416d02f5ad13771fdfcc13b73c2f3231f4a5fc8b8b2601f8058f7d8f6764415e",
+        "original_log_sha256": "1716cede196cb8cb4df1f440bf6e1949e50ff8d19aa653aae8bab55ad72057cb"
+      },
+      {
+        "name": "ui-feedback",
+        "command": [
+          "node",
+          "magnolie-organizer-windows/tests/drawing-error-feedback.js"
+        ],
+        "cwd": "$REVIEW_SOURCE",
+        "environment": {
+          "TZ": "UTC",
+          "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+          "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+          "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+          "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+        },
+        "exit": 0,
+        "elapsed_seconds": 3.42,
+        "log": "ui-feedback.log",
+        "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+        "log_sha256": "1b4981192ff383711724c3caa4209d210a7026baa046be80174dec94f7d819d5",
+        "original_log_sha256": "1b4981192ff383711724c3caa4209d210a7026baa046be80174dec94f7d819d5"
+      },
+      {
+        "name": "ui-timezone",
+        "command": [
+          "node",
+          "magnolie-organizer-windows/tests/time-zone-settings.js"
+        ],
+        "cwd": "$REVIEW_SOURCE",
+        "environment": {
+          "TZ": "UTC",
+          "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+          "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+          "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+          "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+        },
+        "exit": 0,
+        "elapsed_seconds": 2.91,
+        "log": "ui-timezone.log",
+        "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+        "log_sha256": "1824d9ba8ca64fd2f3d5c515235763338dabca8c09963a641b60d91f55b4c99b",
+        "original_log_sha256": "2b4d725fa7b399e7f37db5ce6cb3ab9f2c38ea66af84a5107faf116678a8fc91"
+      },
+      {
+        "name": "windows-build",
+        "command": [
+          "$REVIEW_TOOLS/dotnet/dotnet",
+          "build",
+          "tests/CoreTests.csproj",
+          "-c",
+          "Release",
+          "--no-restore"
+        ],
+        "cwd": "$REVIEW_SOURCE/magnolie-organizer-windows",
+        "environment": {
+          "TZ": "UTC",
+          "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+          "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+          "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+          "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+        },
+        "exit": 0,
+        "elapsed_seconds": 21.67,
+        "log": "windows-build.log",
+        "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+        "log_sha256": "5ae7788d4dfb993f96ab23a4494f9e4bac6d1297730e6bd68f28adaad029f7b2",
+        "original_log_sha256": "5dab67265124d154f36d957b5ea687fae6499d83ce2d23e84ff830fc0e217c09"
+      },
+      {
+        "name": "windows-csv",
+        "command": [
+          "$REVIEW_TOOLS/dotnet/dotnet",
+          "tests/bin/Release/net8.0/CoreTests.dll",
+          "Lotus CSV"
+        ],
+        "cwd": "$REVIEW_SOURCE/magnolie-organizer-windows",
+        "environment": {
+          "TZ": "UTC",
+          "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+          "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+          "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+          "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+        },
+        "exit": 0,
+        "elapsed_seconds": 0.34,
+        "log": "windows-csv.log",
+        "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+        "log_sha256": "88d3a9483f7eb85a00e24e65104ad119e56dc9d60938355f3a1ba977b7062096",
+        "original_log_sha256": "88d3a9483f7eb85a00e24e65104ad119e56dc9d60938355f3a1ba977b7062096"
+      },
+      {
+        "name": "windows-exchange",
+        "command": [
+          "$REVIEW_TOOLS/dotnet/dotnet",
+          "tests/bin/Release/net8.0/CoreTests.dll",
+          "ICS / VCF / LDIF / Claws / Lotus / Thunderbird"
+        ],
+        "cwd": "$REVIEW_SOURCE/magnolie-organizer-windows",
+        "environment": {
+          "TZ": "Europe/Berlin",
+          "TZDIR": "$PRIMARY_RUNTIME/dependencies/python/lib/python3.12/site-packages/tzdata/zoneinfo",
+          "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+          "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+          "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+          "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+        },
+        "exit": 0,
+        "elapsed_seconds": 0.46,
+        "log": "windows-exchange.log",
+        "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+        "log_sha256": "d183d28d2bba3f2f29143e69c06b72b597c4b2ccae4121b70f6990eb19c2d48a",
+        "original_log_sha256": "d183d28d2bba3f2f29143e69c06b72b597c4b2ccae4121b70f6990eb19c2d48a"
+      },
+      {
+        "name": "windows-or6",
+        "command": [
+          "$REVIEW_TOOLS/dotnet/dotnet",
+          "tests/bin/Release/net8.0/CoreTests.dll",
+          "OR6 extension"
+        ],
+        "cwd": "$REVIEW_SOURCE/magnolie-organizer-windows",
+        "environment": {
+          "TZ": "UTC",
+          "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+          "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+          "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+          "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+        },
+        "exit": 0,
+        "elapsed_seconds": 0.77,
+        "log": "windows-or6.log",
+        "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+        "log_sha256": "62266a6b3bfb314260edfaac61d0eaa7ebe96dd7ccf01fa67b5be3580ca15c77",
+        "original_log_sha256": "62266a6b3bfb314260edfaac61d0eaa7ebe96dd7ccf01fa67b5be3580ca15c77"
+      },
+      {
+        "name": "windows-reminders",
+        "command": [
+          "$REVIEW_TOOLS/dotnet/dotnet",
+          "tests/bin/Release/net8.0/CoreTests.dll",
+          "Reminder"
+        ],
+        "cwd": "$REVIEW_SOURCE/magnolie-organizer-windows",
+        "environment": {
+          "TZ": "UTC",
+          "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+          "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+          "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+          "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+        },
+        "exit": 0,
+        "elapsed_seconds": 3.4,
+        "log": "windows-reminders.log",
+        "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b",
+        "log_sha256": "3ae7c46a818d9ceb1cc5afd21cfc9ed7388d60ece7f67105e911ffc537b088e4",
+        "original_log_sha256": "3ae7c46a818d9ceb1cc5afd21cfc9ed7388d60ece7f67105e911ffc537b088e4"
+      }
+    ]
+  },
+  "result_tree_verified_by_combined_and_series": true,
+  "main_checkpoint": {
+    "main_checkpoint": "244b1d62aa738ea5cd8fa7fc9449ccf62fb7b99d",
+    "mode": "first_four_source_patches_excluding_ARBEITSSTAND",
+    "checks": [
+      {
+        "patch": "series/01-refs-835-deliver-absolute-calendar-alarms-once-across-projections-and-restarts.patch",
+        "exit": 0,
+        "stderr": ""
+      },
+      {
+        "patch": "series/02-refs-836-contain-notes-attachment-opening-failures-off-the-ui-thread.patch",
+        "exit": 0,
+        "stderr": ""
+      },
+      {
+        "patch": "series/03-refs-837-preserve-csv-task-priority-and-completion-values.patch",
+        "exit": 0,
+        "stderr": ""
+      },
+      {
+        "patch": "series/04-refs-566-preserve-csv-contact-addresses-within-their-source-roles.patch",
+        "exit": 0,
+        "stderr": ""
+      }
+    ],
+    "result_tree": "fc7ebbb4670c3e8668665b736209a1fb2b282e7f"
+  },
+  "native_packages_tested_in_this_round": false,
+  "issues": [
+    835,
+    836,
+    837,
+    838,
+    566
+  ],
+  "evidence": [
+    {
+      "path": "evidence/data/566/566-csv-contact-fields.patch",
+      "bytes": 27791,
+      "sha256": "81c13cee283ce1852591507d130998275265edd8d50e1c7b7fb32110374c44a1"
+    },
+    {
+      "path": "evidence/data/566/HANDOFF.md",
+      "bytes": 6429,
+      "sha256": "e05c7fa430d28dbe7315c67eef224b367613ac112a5bd386fd38d985f904960d"
+    },
+    {
+      "path": "evidence/data/566/before.json",
+      "bytes": 2233,
+      "sha256": "64f1957b49f87a897aace09e21de901e204b027b5d412a7e7035a37fb566ed6b"
+    },
+    {
+      "path": "evidence/data/566/contacts-home-work.csv",
+      "bytes": 271,
+      "sha256": "0f659d7f590999d6ebf6b8ee5b8d4e98f8ecdf369c2b82bf62378f74df2cce39"
+    },
+    {
+      "path": "evidence/data/566/interleaved.csv",
+      "bytes": 214,
+      "sha256": "e91dba3f868a046985596cdc127fc0fb8d3ed37f4ddf1b4f8aa7513a330fda9a"
+    },
+    {
+      "path": "evidence/data/566/linux-layout-before.json",
+      "bytes": 1434,
+      "sha256": "2390fb651aaae875f8dd9d3251928e2432e719f10531632944ec0ee631f99c45"
+    },
+    {
+      "path": "evidence/data/566/python-after.log",
+      "bytes": 99,
+      "sha256": "7d9df3bc1bcbd9a2d39e664b273d3d3c6450714d8cfb1d83c92049da8c6b0f2c"
+    },
+    {
+      "path": "evidence/data/566/python-before.log",
+      "bytes": 12266,
+      "sha256": "8f8f67d61e2d5afb53e9be6afb975e154db4a9737ff188c945265f8986e68cc6"
+    },
+    {
+      "path": "evidence/data/566/windows-after.log",
+      "bytes": 234,
+      "sha256": "e0e69ddcc23b47eb16501b56367983dfecec147021193e0fb91501083cd59203"
+    },
+    {
+      "path": "evidence/data/566/windows-before.log",
+      "bytes": 2700,
+      "sha256": "b3914fcfc4c58ae4b5384493fb314db509bc59a5bfed289eb7ef2fba71c272c4"
+    },
+    {
+      "path": "evidence/data/566/work-only.csv",
+      "bytes": 137,
+      "sha256": "17b5ed8a74d3adaf3263537e2d912191a060f4cd5ddd0a3367ddb5eff700c71a"
+    },
+    {
+      "path": "evidence/data/837/837-csv-task-values.patch",
+      "bytes": 15964,
+      "sha256": "8654be848a85ee1ceeb33e1704f8cb4bd396cf494b96ed0943c3fa8f82c96dcc"
+    },
+    {
+      "path": "evidence/data/837/HANDOFF.md",
+      "bytes": 5943,
+      "sha256": "cf9e834aa5d0900ce4df4ad7f77004338c5e5587021cb6dec2fce9d49ffd5158"
+    },
+    {
+      "path": "evidence/data/837/before.json",
+      "bytes": 2434,
+      "sha256": "7feb29630ba1778c9a19b5714abd1d58569fab6c9ecefda87196be7e0954ac33"
+    },
+    {
+      "path": "evidence/data/837/python-after.log",
+      "bytes": 99,
+      "sha256": "e1c1894a41ef42d69ca11e6e3dd4ce211ea7b0b23b948fc5c1bf1d564051ca80"
+    },
+    {
+      "path": "evidence/data/837/python-before.log",
+      "bytes": 9209,
+      "sha256": "b26480636be54288bc8c05dd5f62b43cd9eab662dc70c7dd4b6d8b9042357856"
+    },
+    {
+      "path": "evidence/data/837/tasks-status-priority.csv",
+      "bytes": 261,
+      "sha256": "89cafdda00880632f5b7ada9e830fb4b35873a8bf25a00752b3db83ec196f2d7"
+    },
+    {
+      "path": "evidence/data/837/windows-after.log",
+      "bytes": 150,
+      "sha256": "e82e54ecde666580cfc32435ec8fde5ec0c671b36faec8b8e2453d8d31a4de93"
+    },
+    {
+      "path": "evidence/data/837/windows-before.log",
+      "bytes": 2077,
+      "sha256": "9a8c24452f286996d86eef1fb110999c761f705fd04cff05abaac12b8cf49953"
+    },
+    {
+      "path": "evidence/data/837/windows-existing-exchange-baseline.log",
+      "bytes": 735,
+      "sha256": "685fc45a618183e66deba7382aec63ccfae30e2597f5f018e34c2ac1b64746c5"
+    },
+    {
+      "path": "evidence/data/837/windows-existing-exchange.log",
+      "bytes": 735,
+      "sha256": "5c611f8bcaabe3535a0c34ad2fbe31ad0f31455758ce4a094705c951fc4b59fd"
+    },
+    {
+      "path": "evidence/data/837/windows-existing-or6.log",
+      "bytes": 158,
+      "sha256": "eab52905d6abdbb2a95c48f035b77a64eb3a7dda3161088ce03fa3d71419c494"
+    },
+    {
+      "path": "evidence/data/exchange-diagnosis/Probe.csproj",
+      "bytes": 444,
+      "sha256": "c59391b69dd341854f1bed2e8244676477f6859bf01005b7c3759f975584b8aa"
+    },
+    {
+      "path": "evidence/data/exchange-diagnosis/Program.cs",
+      "bytes": 2460,
+      "sha256": "9c4f610f90ddd53733760fb968f9bed9d0d70ff9ced1ee31af2ee167f93c24e9"
+    },
+    {
+      "path": "evidence/data/exchange-diagnosis/REPORT.md",
+      "bytes": 5097,
+      "sha256": "12b58ae82dd3c221f7a93e829b93ee3bb594780aade87a7520054f1226648779"
+    },
+    {
+      "path": "evidence/data/exchange-diagnosis/baseline-gate-correct-environment.log",
+      "bytes": 129,
+      "sha256": "44f5febaa11887d3521aba6001d533b3a12c803a6f8ad40490aaa42088cf380f"
+    },
+    {
+      "path": "evidence/data/exchange-diagnosis/build.log",
+      "bytes": 76,
+      "sha256": "afecb39a9547bb596d6f719824868910756481de4cf7eabf20808ad25b121b41"
+    },
+    {
+      "path": "evidence/data/exchange-diagnosis/current-gate-correct-environment.log",
+      "bytes": 129,
+      "sha256": "44f5febaa11887d3521aba6001d533b3a12c803a6f8ad40490aaa42088cf380f"
+    },
+    {
+      "path": "evidence/data/exchange-diagnosis/default-environment.json",
+      "bytes": 5649,
+      "sha256": "b5a024cdb027ae77a500d6f107301189bafe07382da50a4651e40953e9fd9451"
+    },
+    {
+      "path": "evidence/data/exchange-diagnosis/explicit-zone-environment.json",
+      "bytes": 5739,
+      "sha256": "c43578a590237006a450d174f78367f947c55a02aab2b61f9d0920bbcfc0e369"
+    },
+    {
+      "path": "evidence/data/exchange-diagnosis/tzdir-environment.json",
+      "bytes": 3357,
+      "sha256": "477e56c8e06dd233410f163403fe9a1c2beb0d3b678031cf34edcf44bca59327"
+    },
+    {
+      "path": "evidence/final/diff-check.json",
+      "bytes": 534,
+      "sha256": "e1d46077cd4c59a6e98b90db31c8102e594bfb328c77dcbe344a7aced35d9573"
+    },
+    {
+      "path": "evidence/final/diff-check.log",
+      "bytes": 55,
+      "sha256": "5427a9630c3a79a204fbe7d1113fcc9f84b9c26d11ebca670ea8c4dddf5c90e2"
+    },
+    {
+      "path": "evidence/final/notes-source-binding.json",
+      "bytes": 838,
+      "sha256": "1ca5801ccc13ba06112631ff528ec7326e2bb6440f786805e8cd6c62712bde78"
+    },
+    {
+      "path": "evidence/final/notes-source-binding.log",
+      "bytes": 111,
+      "sha256": "10d3a980fe470815faf9fe2c17df3ba9701e6e84e41c8f05fe9871229202c814"
+    },
+    {
+      "path": "evidence/final/python-combined.json",
+      "bytes": 1245,
+      "sha256": "c83b6a57a3f0d3e173038dd8d8fe5d1ab5cc25cb47dee9bc951496d79010d871"
+    },
+    {
+      "path": "evidence/final/python-combined.log",
+      "bytes": 341,
+      "sha256": "0f2df127e1f0ba18f5750d88565d342ebc167aa29ca31d2837d898f27cc32b0e"
+    },
+    {
+      "path": "evidence/final/summary.json",
+      "bytes": 10318,
+      "sha256": "428b4dd8808186336059f05e334db94789f879419ccadecc48070c84fea345b0"
+    },
+    {
+      "path": "evidence/final/ui-drawing.json",
+      "bytes": 505,
+      "sha256": "683c3d823110f17de5eba520cfbc0b4f84068a286fa1864be3ee5c85d26659e6"
+    },
+    {
+      "path": "evidence/final/ui-drawing.log",
+      "bytes": 160,
+      "sha256": "416d02f5ad13771fdfcc13b73c2f3231f4a5fc8b8b2601f8058f7d8f6764415e"
+    },
+    {
+      "path": "evidence/final/ui-feedback.json",
+      "bytes": 516,
+      "sha256": "47f54cffcecba321283532dee5212770d4348956c44d4d1a4ae1cfc56c87c3ad"
+    },
+    {
+      "path": "evidence/final/ui-feedback.log",
+      "bytes": 1640,
+      "sha256": "1b4981192ff383711724c3caa4209d210a7026baa046be80174dec94f7d819d5"
+    },
+    {
+      "path": "evidence/final/ui-timezone.json",
+      "bytes": 512,
+      "sha256": "3b27a9a21ff35ce450ec83134c84506780ff256d5a7fd13d7238d6d34995977e"
+    },
+    {
+      "path": "evidence/final/ui-timezone.log",
+      "bytes": 1618,
+      "sha256": "1824d9ba8ca64fd2f3d5c515235763338dabca8c09963a641b60d91f55b4c99b"
+    },
+    {
+      "path": "evidence/final/windows-build.json",
+      "bytes": 593,
+      "sha256": "855348b98d05598fca03a67629dd0ff23ad07462f877ee88b8592e9a805ad177"
+    },
+    {
+      "path": "evidence/final/windows-build.log",
+      "bytes": 172,
+      "sha256": "5ae7788d4dfb993f96ab23a4494f9e4bac6d1297730e6bd68f28adaad029f7b2"
+    },
+    {
+      "path": "evidence/final/windows-csv.json",
+      "bytes": 563,
+      "sha256": "c627d2086d66a07fde2100f7f707cc4ec605781ce1993c81b22d82f0c4ecd340"
+    },
+    {
+      "path": "evidence/final/windows-csv.log",
+      "bytes": 234,
+      "sha256": "88d3a9483f7eb85a00e24e65104ad119e56dc9d60938355f3a1ba977b7062096"
+    },
+    {
+      "path": "evidence/final/windows-exchange.json",
+      "bytes": 718,
+      "sha256": "66326e76868d26a34f42690217dd860fc3f76022ee213f352db2e0c469a913b7"
+    },
+    {
+      "path": "evidence/final/windows-exchange.log",
+      "bytes": 129,
+      "sha256": "d183d28d2bba3f2f29143e69c06b72b597c4b2ccae4121b70f6990eb19c2d48a"
+    },
+    {
+      "path": "evidence/final/windows-or6.json",
+      "bytes": 567,
+      "sha256": "a22302404830bbfc13dfa6db038cbe59aadd9d7eb0b2e8b1d26f210549cac42d"
+    },
+    {
+      "path": "evidence/final/windows-or6.log",
+      "bytes": 158,
+      "sha256": "62266a6b3bfb314260edfaac61d0eaa7ebe96dd7ccf01fa67b5be3580ca15c77"
+    },
+    {
+      "path": "evidence/final/windows-reminders.json",
+      "bytes": 573,
+      "sha256": "818a6eaaa042b962dc2f78f97c0774341042f155571301965b2f9facbb7abf1b"
+    },
+    {
+      "path": "evidence/final/windows-reminders.log",
+      "bytes": 875,
+      "sha256": "3ae7c46a818d9ceb1cc5afd21cfc9ed7388d60ece7f67105e911ffc537b088e4"
+    },
+    {
+      "path": "evidence/notes/836-attachment-open.patch",
+      "bytes": 12702,
+      "sha256": "6bf12f78c6dd97a595dd29717b27b9952f288fd698d5ebf7d8040d14052e3cc5"
+    },
+    {
+      "path": "evidence/notes/836-manifest.json",
+      "bytes": 1038,
+      "sha256": "16a5049709bee36df51ba50a12231fddf2cb35eca37d6b5ff338046d6ec312fb"
+    },
+    {
+      "path": "evidence/notes/836-report.md",
+      "bytes": 6395,
+      "sha256": "0b73f3c3ff5db46b3ed2f5497f05031d4aba592b0bd3098529ca4b9dbf73b4c1"
+    },
+    {
+      "path": "evidence/notes/attachment-open/after/junit.log",
+      "bytes": 63,
+      "sha256": "a0f77b7edceac68fa0599a043781e47306a69378a7263adb614154df4b53b16d"
+    },
+    {
+      "path": "evidence/notes/attachment-open/after/source-hashes.json",
+      "bytes": 762,
+      "sha256": "4e7ac80d685982f96c19164d2e1f6ffe60554afcfdd46f79deb49320c8d8bb72"
+    },
+    {
+      "path": "evidence/notes/attachment-open/after/write-failure.log",
+      "bytes": 44,
+      "sha256": "3f514332fa9ec1fec792e91dba9e7a79b1577b0317f19443a583de54adcca081"
+    },
+    {
+      "path": "evidence/notes/attachment-open/base/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/AnhangDatei.kt",
+      "bytes": 3092,
+      "sha256": "bd6592e2d31dfa75614865cf1320c23f166707c74e6e70365cecf7abbac0aa8c"
+    },
+    {
+      "path": "evidence/notes/attachment-open/base/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/daten/AnhangPruefung.kt",
+      "bytes": 1948,
+      "sha256": "32bfae0237035620ef094c82842dcc60e7600efefbb380edf5e0e2e1e37c2dd5"
+    },
+    {
+      "path": "evidence/notes/attachment-open/before/junit.log",
+      "bytes": 8044,
+      "sha256": "b4f8d12c33888fa24bdbfa690d5428e389a0fd4d4d88bfc73a6ddd6096ff5a44"
+    },
+    {
+      "path": "evidence/notes/attachment-open/before/source-hashes.json",
+      "bytes": 822,
+      "sha256": "b145fe9c297f408208fb43fe9fc1a0d7e479cd7ef9014d27d78dc50756d3b8c3"
+    },
+    {
+      "path": "evidence/notes/attachment-open/before/write-failure.log",
+      "bytes": 75,
+      "sha256": "d8f05c449190f78538959eb68e8a51989bac6f5d8e11222c2c698199e6b4968a"
+    },
+    {
+      "path": "evidence/notes/attachment-open/before.log",
+      "bytes": 320,
+      "sha256": "4d995e751eeb951be82448e15dde4e9e96ef8a42cffb337891fca7577a3138a5"
+    },
+    {
+      "path": "evidence/notes/attachment-open/run-regression.py",
+      "bytes": 7795,
+      "sha256": "87998aa4e699e81aa357e6ba7441c9855ac92462d66504b92215ceadda9372fe"
+    },
+    {
+      "path": "evidence/reminders/835-linux-existing.log",
+      "bytes": 2622,
+      "sha256": "3edf109f1a91ed61635e4ee7b3c90b4cd6a722becdce412049415d918be22539"
+    },
+    {
+      "path": "evidence/reminders/835-linux-final.log",
+      "bytes": 260,
+      "sha256": "779f83b3844e1125fb1aa6448a2b91aa9c3603d368cfc8876f52c192dc670241"
+    },
+    {
+      "path": "evidence/reminders/835-linux-vectors-before.log",
+      "bytes": 72454,
+      "sha256": "f1ca97d455cc36b3537f7e69358153a687c6f9bf666f1e105c91fcf5b1e64bd7"
+    },
+    {
+      "path": "evidence/reminders/835-report.md",
+      "bytes": 7979,
+      "sha256": "a2cc22357426ae87e703631bcce951c2549dcf2400f244c36f60f45b61f52657"
+    },
+    {
+      "path": "evidence/reminders/835-windows-coincidence-build.log",
+      "bytes": 172,
+      "sha256": "878c15f8b122a08b9c65043ff58ccb9094ecb4140d86135daf08a67c98a8cca5"
+    },
+    {
+      "path": "evidence/reminders/835-windows-final.log",
+      "bytes": 875,
+      "sha256": "93c172a40551c9a04c1cfe9822fd33a9155be6679ab7aff93024ba32e33b5db3"
+    },
+    {
+      "path": "evidence/reminders/835-windows-vectors-before.log",
+      "bytes": 8007,
+      "sha256": "b0a93fe224c466b20c3c8159a1f86ab982eac071252f2014dd1356012f489f06"
+    },
+    {
+      "path": "evidence/reminders/after-linux-initial.log",
+      "bytes": 992,
+      "sha256": "e502b49d5cb9e4b670f88d661d99cf1cfdcae2d5bd94175152da30a2f6cfbe7a"
+    },
+    {
+      "path": "evidence/reminders/after-windows-initial.log",
+      "bytes": 2122,
+      "sha256": "4f6f28868b614787243e7da2434b00643d718e2dccce178900bcbaac68880e8c"
+    },
+    {
+      "path": "evidence/reminders/before-linux.log",
+      "bytes": 992,
+      "sha256": "4babbfdaf2196dffa22a0a04ce6adaa0207a092ed8b8ee7e20fc3b53a21d2334"
+    },
+    {
+      "path": "evidence/reminders/before-windows.log",
+      "bytes": 1726,
+      "sha256": "3e2564618c0d140fc3561d8ce374907a41934a9a16dcbe8683e1cd343e6c5150"
+    },
+    {
+      "path": "evidence/reminders/independent/Probe.cs.txt",
+      "bytes": 10536,
+      "sha256": "092469347b2d9a0d30e02e42a165168221dbdbc2d6d7a387e00278f93a096e83"
+    },
+    {
+      "path": "evidence/reminders/independent/dedup-fixed.log",
+      "bytes": 676,
+      "sha256": "4c918992359bb034db1d2fc4c9f7a36f8ca09a1b3c3f07ef4856a47f94336fe2"
+    },
+    {
+      "path": "evidence/reminders/independent/mixed-case-fixed.log",
+      "bytes": 7974,
+      "sha256": "35410d861aa24fea98ec93f60b7522aa180fa89c8bcee19c9ba96db2eacae6d8"
+    },
+    {
+      "path": "evidence/reminders/independent/mixed-case.log",
+      "bytes": 7782,
+      "sha256": "73ac1688fbc1d845ce9cd81ff73a2266f7b097641dc1071ce8ae6c4332338067"
+    },
+    {
+      "path": "evidence/reminders/independent/mixed-fixed-hashes.json",
+      "bytes": 171,
+      "sha256": "152d0dd833cb726ee9bf9844b6beb03b543e275a7274ac732fb8be5dfdd07b97"
+    },
+    {
+      "path": "evidence/reminders/independent/normalize.cjs",
+      "bytes": 1943,
+      "sha256": "704ca2078bd2f38b7f7056695811caf9c236288a99a39ff8c0fef09edf459b98"
+    },
+    {
+      "path": "evidence/reminders/independent/results.log",
+      "bytes": 1543,
+      "sha256": "81b1031687c10e30e592e492106b7c5902b5a7e162fb75ded27fc1b22e1fea2d"
+    },
+    {
+      "path": "evidence/reminders/independent/review.md",
+      "bytes": 5346,
+      "sha256": "f50ae3fd56098b7a2bb6e7d64bbdb9b1006d08b390a697cdaf2d1a55c2239206"
+    },
+    {
+      "path": "evidence/reminders/independent/source-hashes.json",
+      "bytes": 596,
+      "sha256": "aa7d3fd90e97481808379962295d65866c71ac384a9e1e738f9aebc48770b242"
+    },
+    {
+      "path": "evidence/reminders/review-835-followup.md",
+      "bytes": 4704,
+      "sha256": "d2f4ebc5021f8f7bf145851d27b2cc70e3e6353e5a4d32a9b9765e977083ce14"
+    },
+    {
+      "path": "evidence/reminders/review-coincident-after.log",
+      "bytes": 2236,
+      "sha256": "8dd96a701ecaa54fad801ed9c5adc56eb96187456cfad998f3368077ebc0b2f5"
+    },
+    {
+      "path": "evidence/reminders/review-coincident-baseline-after.json",
+      "bytes": 792,
+      "sha256": "95b1b45d140189f99327c9ed6a6dba727b953220e8dea2be77e306b1a3e78577"
+    },
+    {
+      "path": "evidence/reminders/review-coincident-before.log",
+      "bytes": 2722,
+      "sha256": "6312d1ea97d9ba79fdf7eb5c49dba5e8532c070bddbab7ff91ecaa3ff46ef9ca"
+    },
+    {
+      "path": "evidence/reminders/review-coincident-linux.json",
+      "bytes": 360,
+      "sha256": "4d750b7d9d0f34a1417aa80fed034296b04628bf8265b5d62b114d3c2b8654de"
+    },
+    {
+      "path": "evidence/reminders/review-combined-after.log",
+      "bytes": 99,
+      "sha256": "374ddfdf75ce7198a1c30ca882acb6e02a265b0f470165044c23a5b6ee75b09b"
+    },
+    {
+      "path": "evidence/reminders/review-independent-windows-final.log",
+      "bytes": 612,
+      "sha256": "6252d1923f0bd70980a9bef65c3f8ad2d8b6302ca90ac6e5451b4ef59ba6798f"
+    },
+    {
+      "path": "evidence/reminders/review-independent-windows.log",
+      "bytes": 612,
+      "sha256": "514795acf4ee70e946c0b100021498c32c3a109de3d23ee840b290dfe6720421"
+    },
+    {
+      "path": "evidence/reminders/review-legacy-goldens.json",
+      "bytes": 5667,
+      "sha256": "3e46c25152de661186446b9613821d4238a9024190b8788f9eca492d7cc8352b"
+    },
+    {
+      "path": "evidence/reminders/review-legacy-undated-tests.log",
+      "bytes": 1545,
+      "sha256": "79175a970d0c24e00dcd9196b493d772df638e098c5c3acbe83477fd1ea9149a"
+    },
+    {
+      "path": "evidence/reminders/review-missed-window-linux.json",
+      "bytes": 118,
+      "sha256": "1bf2af998320490b3d8feb96b7a46b938eec121f28ebacba91bf50f5359cbaaf"
+    },
+    {
+      "path": "evidence/ui/838-existing-drawing-sheet.log",
+      "bytes": 186,
+      "sha256": "0930c1d019487ce0f852e2e925ab4ed7239cbf9c38786a88ffdc38b1f56c4b11"
+    },
+    {
+      "path": "evidence/ui/838-existing-time-zone-settings.log",
+      "bytes": 1774,
+      "sha256": "b9bc70a03d754694aba28f4c499f2621c71413675839ddec8ba96c82c487196b"
+    },
+    {
+      "path": "evidence/ui/838-regression-after.log",
+      "bytes": 1640,
+      "sha256": "1b4981192ff383711724c3caa4209d210a7026baa046be80174dec94f7d819d5"
+    },
+    {
+      "path": "evidence/ui/838-regression-before.log",
+      "bytes": 516,
+      "sha256": "aba3af95026db98467148cbf2dced6a132eaf5d1ec1362ffdf195be62ec15dd6"
+    },
+    {
+      "path": "evidence/ui/838-retry-status-after.log",
+      "bytes": 1640,
+      "sha256": "1b4981192ff383711724c3caa4209d210a7026baa046be80174dec94f7d819d5"
+    },
+    {
+      "path": "evidence/ui/838-retry-status-before.log",
+      "bytes": 495,
+      "sha256": "959df7bfdac202829ea140cf5de52428fb9d61d843576e38b3ed4f8786175e99"
+    },
+    {
+      "path": "evidence/ui/838-summary.json",
+      "bytes": 2389,
+      "sha256": "7646eb20a0affe39234285fdcae281d35c8f5bc834b05520e14e783b80920243"
+    },
+    {
+      "path": "evidence/ui/838-summary.md",
+      "bytes": 4201,
+      "sha256": "476a19aa34c8aeaa25e38563741c4903dfc735098c166bf9be83011ba920812c"
+    },
+    {
+      "path": "evidence/ui/drawing-errors-before.json",
+      "bytes": 1237,
+      "sha256": "b48c51ecf9fda7727000905c4522d476a75fc58dccb38f00ea450650fa8ce1f2"
+    },
+    {
+      "path": "evidence/ui/drawing-status-after-retry.json",
+      "bytes": 553,
+      "sha256": "408ac4e7b1799018bb64bbc6bb3c0b25f7a582ff838a13959b655f2993f3c88d"
+    },
+    {
+      "path": "evidence/ui/main244-retry/838-retry-only-against-244b1d62.patch",
+      "bytes": 2766,
+      "sha256": "6630017c6f9b9fcb494f58749e5d1ab3b689026f156a100112233f5085436726"
+    },
+    {
+      "path": "evidence/ui/main244-retry/README.md",
+      "bytes": 3395,
+      "sha256": "c3e3ad7973924af26c3266622424c901249b52de546ee6fc099d445de05c552e"
+    },
+    {
+      "path": "evidence/ui/main244-retry/after.json",
+      "bytes": 1716,
+      "sha256": "0da860db283f49cb6363b132524589aae87bc0e067745bdc036b323ee8385b6e"
+    },
+    {
+      "path": "evidence/ui/main244-retry/after.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/ui/main244-retry/before.json",
+      "bytes": 1877,
+      "sha256": "df4e84b0408c0616ad47f3abc22193f75fcb3bc751cb3a9f17cafef7402fbf7b"
+    },
+    {
+      "path": "evidence/ui/main244-retry/before.stderr.log",
+      "bytes": 349,
+      "sha256": "8414859a1226652211f00fd156c9346e250db7b1c6b7f42846ef380d09c9d0f4"
+    },
+    {
+      "path": "evidence/ui/main244-retry/byte-comparison.json",
+      "bytes": 1160,
+      "sha256": "adea575aa8cea1929c7c88191d91d943b8905a2c1d2455078ba40a856a0b8b48"
+    },
+    {
+      "path": "evidence/ui/main244-retry/manifest.json",
+      "bytes": 2297,
+      "sha256": "2f24e0811470fc355e695d40b22b63add3d708391419877ab11b937634900a7a"
+    },
+    {
+      "path": "evidence/ui/main244-retry/probe-retry.cjs",
+      "bytes": 8287,
+      "sha256": "413851c22bfb58495b74558c08f647a3bb3831c799dd7bdbbdbf32a044897aaf"
+    },
+    {
+      "path": "evidence/ui/reproduce-drawing-errors.cjs",
+      "bytes": 4184,
+      "sha256": "70cae386dd60818b490bdda01855117f0bf852e60ccf92d14dbb65d65095d462"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "main_checkpoint": "244b1d62aa738ea5cd8fa7fc9449ccf62fb7b99d",
+  "mode": "first_four_source_patches_excluding_ARBEITSSTAND",
+  "checks": [
+    {
+      "patch": "series/01-refs-835-deliver-absolute-calendar-alarms-once-across-projections-and-restarts.patch",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "patch": "series/02-refs-836-contain-notes-attachment-opening-failures-off-the-ui-thread.patch",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "patch": "series/03-refs-837-preserve-csv-task-priority-and-completion-values.patch",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "patch": "series/04-refs-566-preserve-csv-contact-addresses-within-their-source-roles.patch",
+      "exit": 0,
+      "stderr": ""
+    }
+  ],
+  "result_tree": "fc7ebbb4670c3e8668665b736209a1fb2b282e7f"
+}

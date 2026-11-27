@@ -1,0 +1,21 @@
+{
+  "name": "windows-exchange",
+  "command": [
+    "$REVIEW_TOOLS/dotnet/dotnet",
+    "tests/bin/Release/net8.0/CoreTests.dll",
+    "ICS / VCF / LDIF / Claws / Lotus / Thunderbird"
+  ],
+  "cwd": "$REVIEW_SOURCE/magnolie-organizer-windows",
+  "environment": {
+    "TZ": "Europe/Berlin",
+    "TZDIR": "$PRIMARY_RUNTIME/dependencies/python/lib/python3.12/site-packages/tzdata/zoneinfo",
+    "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+    "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+    "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+    "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+  },
+  "exit": 0,
+  "elapsed_seconds": 0.46,
+  "log": "windows-exchange.log",
+  "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b"
+}

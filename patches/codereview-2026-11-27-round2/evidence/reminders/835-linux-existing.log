@@ -1,0 +1,29 @@
+........................................................................ [ 52%]
+...............................F.................................        [100%]
+=================================== FAILURES ===================================
+_______ test_zeitzone_rdate_exdate_und_absolute_alarme_bleiben_erhalten ________
+
+    def test_zeitzone_rdate_exdate_und_absolute_alarme_bleiben_erhalten():
+        ics = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+               "UID:tz-serie\r\nDTSTART;TZID=Europe/Berlin:20261024T093000\r\n"
+               "DTEND;TZID=Europe/Berlin:20261024T103000\r\n"
+               "RRULE:FREQ=DAILY;COUNT=5\r\nEXDATE;TZID=Europe/Berlin:20261025T093000\r\n"
+               "RDATE;TZID=Europe/Berlin:20261030T093000\r\n"
+               "BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;RELATED=END:-PT20M\r\n"
+               "END:VALARM\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:absolut\r\n"
+               "DTSTART:20261101T120000Z\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\n"
+               "TRIGGER;VALUE=DATE-TIME:20261025T011500Z\r\nEND:VALARM\r\n"
+               "END:VEVENT\r\nEND:VCALENDAR\r\n")
+        daten = m.ics_lesen(ics)
+        jetzt = datetime(2026, 10, 25, 1, 0)
+>       assert m.naechster_weckzeitpunkt(daten, jetzt) == \
+            vollmaterialisierte_referenz(daten, jetzt)
+E       AssertionError: assert datetime.datetime(2026, 10, 25, 1, 15) == datetime.datetime(2026, 10, 26, 8, 15)
+E        +  where datetime.datetime(2026, 10, 25, 1, 15) = <function naechster_weckzeitpunkt at 0x7f25e51a4180>({'aufgaben': [], 'jahrestage': [], 'komplexeSerien': ['tz-serie'], 'termine': [{'akzentFarbe': '', 'datum': '2026-10-2...m': '', 'endZeit': '08:30', ...}, {'akzentFarbe': '', 'datum': '2026-11-01', 'endDatum': '', 'endZeit': '', ...}], ...}, datetime.datetime(2026, 10, 25, 1, 0))
+E        +    where <function naechster_weckzeitpunkt at 0x7f25e51a4180> = m.naechster_weckzeitpunkt
+E        +  and   datetime.datetime(2026, 10, 26, 8, 15) = vollmaterialisierte_referenz({'aufgaben': [], 'jahrestage': [], 'komplexeSerien': ['tz-serie'], 'termine': [{'akzentFarbe': '', 'datum': '2026-10-2...m': '', 'endZeit': '08:30', ...}, {'akzentFarbe': '', 'datum': '2026-11-01', 'endDatum': '', 'endZeit': '', ...}], ...}, datetime.datetime(2026, 10, 25, 1, 0))
+
+magnolie-organizer/pruefungen/test_naechster_weckzeitpunkt.py:110: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_naechster_weckzeitpunkt.py::test_zeitzone_rdate_exdate_und_absolute_alarme_bleiben_erhalten
+1 failed, 136 passed in 6.29s

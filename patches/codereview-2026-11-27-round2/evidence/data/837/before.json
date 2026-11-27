@@ -1,0 +1,119 @@
+{
+  "linux": {
+    "aufgaben": [
+      {
+        "titel": "Erledigt hoch",
+        "notiz": "",
+        "faellig": "2026-11-27",
+        "prio": 1,
+        "erledigt": true
+      },
+      {
+        "titel": "Erledigt niedrig",
+        "notiz": "",
+        "faellig": "2026-11-28",
+        "prio": 3,
+        "erledigt": true
+      },
+      {
+        "titel": "Offen niedrig",
+        "notiz": "",
+        "faellig": "2026-11-29",
+        "prio": 3,
+        "erledigt": false
+      },
+      {
+        "titel": "Normal offen",
+        "notiz": "",
+        "faellig": "2026-11-30",
+        "prio": 2,
+        "erledigt": false
+      },
+      {
+        "titel": "Normal text",
+        "notiz": "",
+        "faellig": "2026-11-30",
+        "prio": 3,
+        "erledigt": false
+      },
+      {
+        "titel": "Unbekannt",
+        "notiz": "",
+        "faellig": "2026-11-30",
+        "prio": 3,
+        "erledigt": false
+      }
+    ],
+    "termine": [],
+    "uebersprungen": 0,
+    "lotusArt": "aufgaben"
+  },
+  "windows": {
+    "Termine": [],
+    "Jahrestage": [],
+    "Geburtstage": [],
+    "Aufgaben": [
+      {
+        "titel": "Erledigt hoch",
+        "faellig": "2026-11-27",
+        "prio": 2,
+        "erledigt": false,
+        "notiz": "",
+        "uid": "",
+        "geaendert": 0
+      },
+      {
+        "titel": "Erledigt niedrig",
+        "faellig": "2026-11-28",
+        "prio": 2,
+        "erledigt": false,
+        "notiz": "",
+        "uid": "",
+        "geaendert": 0
+      },
+      {
+        "titel": "Offen niedrig",
+        "faellig": "2026-11-29",
+        "prio": 2,
+        "erledigt": false,
+        "notiz": "",
+        "uid": "",
+        "geaendert": 0
+      },
+      {
+        "titel": "Normal offen",
+        "faellig": "2026-11-30",
+        "prio": 2,
+        "erledigt": false,
+        "notiz": "",
+        "uid": "",
+        "geaendert": 0
+      },
+      {
+        "titel": "Normal text",
+        "faellig": "2026-11-30",
+        "prio": 2,
+        "erledigt": false,
+        "notiz": "",
+        "uid": "",
+        "geaendert": 0
+      },
+      {
+        "titel": "Unbekannt",
+        "faellig": "2026-11-30",
+        "prio": 2,
+        "erledigt": false,
+        "notiz": "",
+        "uid": "",
+        "geaendert": 0
+      }
+    ],
+    "Kontakte": [],
+    "Uebersprungen": 0,
+    "Wiederholend": 0,
+    "Bericht": "",
+    "Notizen": [],
+    "FehlerhafteTermine": 0,
+    "FehlerhafteAufgaben": 0
+  }
+}

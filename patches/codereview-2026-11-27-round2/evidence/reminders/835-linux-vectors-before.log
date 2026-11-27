@@ -1,0 +1,1263 @@
+FF.FFFFFFFFFFFFFFFFF......F.FF.FFFFFFF.F..............FF.F........FFFFFF [ 73%]
+FFFF.F........FFFF.FFFFFFF                                               [100%]
+=================================== FAILURES ===================================
+_____ test_absolute_vectors[absolute-before-future-event-VEVENT-original] ______
+
+case = {'expected': 1, 'name': 'absolute-before-future-event', 'now': '2026-11-27T10:30:00Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2e8ada70>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+____ test_absolute_vectors[absolute-before-future-event-VEVENT-background] _____
+
+case = {'expected': 1, 'name': 'absolute-before-future-event', 'now': '2026-11-27T10:30:00Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2e8ae2c0>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_____ test_absolute_vectors[absolute-before-future-event-VTODO-background] _____
+
+case = {'expected': 1, 'name': 'absolute-before-future-event', 'now': '2026-11-27T10:30:00Z', 'start': '20261129T123000Z', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc78c00>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______ test_absolute_vectors[absolute-far-outside-window-VEVENT-original] ______
+
+case = {'expected': 1, 'name': 'absolute-far-outside-window', 'now': '2026-11-27T10:30:00Z', 'start': '20351129T123000Z', ...}
+kind = 'VEVENT', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc79480>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_____ test_absolute_vectors[absolute-far-outside-window-VEVENT-background] _____
+
+case = {'expected': 1, 'name': 'absolute-far-outside-window', 'now': '2026-11-27T10:30:00Z', 'start': '20351129T123000Z', ...}
+kind = 'VEVENT', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2e8e3e50>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______ test_absolute_vectors[absolute-far-outside-window-VTODO-original] _______
+
+case = {'expected': 1, 'name': 'absolute-far-outside-window', 'now': '2026-11-27T10:30:00Z', 'start': '20351129T123000Z', ...}
+kind = 'VTODO', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cce4450>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_____ test_absolute_vectors[absolute-far-outside-window-VTODO-background] ______
+
+case = {'expected': 1, 'name': 'absolute-far-outside-window', 'now': '2026-11-27T10:30:00Z', 'start': '20351129T123000Z', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc8aa80>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_______ test_absolute_vectors[absolute-finished-series-VEVENT-original] ________
+
+case = {'expected': 1, 'name': 'absolute-finished-series', 'now': '2026-11-27T10:30:00Z', 'rule': 'FREQ=DAILY;COUNT=2', ...}
+kind = 'VEVENT', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc8b2f0>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______ test_absolute_vectors[absolute-finished-series-VEVENT-background] _______
+
+case = {'expected': 1, 'name': 'absolute-finished-series', 'now': '2026-11-27T10:30:00Z', 'rule': 'FREQ=DAILY;COUNT=2', ...}
+kind = 'VEVENT', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc59630>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+________ test_absolute_vectors[absolute-finished-series-VTODO-original] ________
+
+case = {'expected': 1, 'name': 'absolute-finished-series', 'now': '2026-11-27T10:30:00Z', 'rule': 'FREQ=DAILY;COUNT=2', ...}
+kind = 'VTODO', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc33cb0>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_______ test_absolute_vectors[absolute-finished-series-VTODO-background] _______
+
+case = {'expected': 1, 'name': 'absolute-finished-series', 'now': '2026-11-27T10:30:00Z', 'rule': 'FREQ=DAILY;COUNT=2', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cb10fc0>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+________ test_absolute_vectors[absolute-active-series-VEVENT-original] _________
+
+case = {'expected': 1, 'name': 'absolute-active-series', 'now': '2026-11-27T10:30:00Z', 'rule': 'FREQ=DAILY;COUNT=100', ...}
+kind = 'VEVENT', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2e86a450>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_______ test_absolute_vectors[absolute-active-series-VEVENT-background] ________
+
+case = {'expected': 1, 'name': 'absolute-active-series', 'now': '2026-11-27T10:30:00Z', 'rule': 'FREQ=DAILY;COUNT=100', ...}
+kind = 'VEVENT', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2e86b950>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_________ test_absolute_vectors[absolute-active-series-VTODO-original] _________
+
+case = {'expected': 1, 'name': 'absolute-active-series', 'now': '2026-11-27T10:30:00Z', 'rule': 'FREQ=DAILY;COUNT=100', ...}
+kind = 'VTODO', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc36af0>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       AssertionError: assert 13 == 1
+E        +  where 13 = len([{'aufgabe': True, 'beginn': '2026-11-27 10:30', 'datum': '2026-11-22', 'id': 'af-4ee4ba6ae4925488ce44:owned-absolute-...6ae4925488ce44:owned-absolute-alarm@2026-11-27T12:30:00+00:00-2026-11-27-1230-alarm-START-2026-11-27 10:30', ...}, ...])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+________ test_absolute_vectors[absolute-active-series-VTODO-background] ________
+
+case = {'expected': 1, 'name': 'absolute-active-series', 'now': '2026-11-27T10:30:00Z', 'rule': 'FREQ=DAILY;COUNT=100', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc36e60>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+________ test_absolute_vectors[absolute-future-series-VEVENT-original] _________
+
+case = {'expected': 1, 'name': 'absolute-future-series', 'now': '2026-11-27T10:30:00Z', 'rule': 'FREQ=DAILY;COUNT=5', ...}
+kind = 'VEVENT', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2ccb9590>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_______ test_absolute_vectors[absolute-future-series-VEVENT-background] ________
+
+case = {'expected': 1, 'name': 'absolute-future-series', 'now': '2026-11-27T10:30:00Z', 'rule': 'FREQ=DAILY;COUNT=5', ...}
+kind = 'VEVENT', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2ccb96d0>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_________ test_absolute_vectors[absolute-future-series-VTODO-original] _________
+
+case = {'expected': 1, 'name': 'absolute-future-series', 'now': '2026-11-27T10:30:00Z', 'rule': 'FREQ=DAILY;COUNT=5', ...}
+kind = 'VTODO', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc51d00>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       AssertionError: assert 4 == 1
+E        +  where 4 = len([{'aufgabe': True, 'beginn': '2026-11-27 10:30', 'datum': '2026-12-01', 'id': 'af-4ee4ba6ae4925488ce44:owned-absolute-...ee4ba6ae4925488ce44:owned-absolute-alarm@2026-12-04T12:30:00+00:00-2026-12-04-1230-alarm-START-2026-11-27 10:30', ...}])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+________ test_absolute_vectors[absolute-future-series-VTODO-background] ________
+
+case = {'expected': 1, 'name': 'absolute-future-series', 'now': '2026-11-27T10:30:00Z', 'rule': 'FREQ=DAILY;COUNT=5', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cca2050>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_____________ test_absolute_vectors[seconds-before-VTODO-original] _____________
+
+case = {'expected': 0, 'name': 'seconds-before', 'now': '2026-11-27T10:30:44Z', 'start': '20261129T123000Z', ...}
+kind = 'VTODO', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc001a0>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       AssertionError: assert 1 == 0
+E        +  where 1 = len([{'aufgabe': True, 'beginn': '2026-11-27 10:30', 'datum': '2026-11-29', 'id': 'af-4ee4ba6ae4925488ce44:owned-absolute-alarm@2026-11-29T12:30:00+00:00-2026-11-29-1230-alarm-START-2026-11-27 10:30', ...}])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______________ test_absolute_vectors[seconds-at-VEVENT-original] _______________
+
+case = {'expected': 1, 'name': 'seconds-at', 'now': '2026-11-27T10:30:45Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc00360>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_____________ test_absolute_vectors[seconds-at-VEVENT-background] ______________
+
+case = {'expected': 1, 'name': 'seconds-at', 'now': '2026-11-27T10:30:45Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc67460>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______________ test_absolute_vectors[seconds-at-VTODO-background] ______________
+
+case = {'expected': 1, 'name': 'seconds-at', 'now': '2026-11-27T10:30:45Z', 'start': '20261129T123000Z', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc00600>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______________ test_absolute_vectors[two-seconds-VEVENT-original] ______________
+
+case = {'expected': 2, 'name': 'two-seconds', 'now': '2026-11-27T10:30:46Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc006e0>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 2
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_____________ test_absolute_vectors[two-seconds-VEVENT-background] _____________
+
+case = {'expected': 2, 'name': 'two-seconds', 'now': '2026-11-27T10:30:46Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc00520>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 2
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______________ test_absolute_vectors[two-seconds-VTODO-original] _______________
+
+case = {'expected': 2, 'name': 'two-seconds', 'now': '2026-11-27T10:30:46Z', 'start': '20261129T123000Z', ...}
+kind = 'VTODO', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cced080>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       AssertionError: assert 1 == 2
+E        +  where 1 = len([{'aufgabe': True, 'beginn': '2026-11-27 10:30', 'datum': '2026-11-29', 'id': 'af-4ee4ba6ae4925488ce44:owned-absolute-alarm@2026-11-29T12:30:00+00:00-2026-11-29-1230-alarm-START-2026-11-27 10:30', ...}])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_____________ test_absolute_vectors[two-seconds-VTODO-background] ______________
+
+case = {'expected': 2, 'name': 'two-seconds', 'now': '2026-11-27T10:30:46Z', 'start': '20261129T123000Z', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cced550>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 2
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+___________ test_absolute_vectors[duplicate-trigger-VEVENT-original] ___________
+
+case = {'expected': 1, 'name': 'duplicate-trigger', 'now': '2026-11-27T10:30:00Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cced9b0>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+__________ test_absolute_vectors[duplicate-trigger-VEVENT-background] __________
+
+case = {'expected': 1, 'name': 'duplicate-trigger', 'now': '2026-11-27T10:30:00Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2ccedd30>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+__________ test_absolute_vectors[duplicate-trigger-VTODO-background] ___________
+
+case = {'expected': 1, 'name': 'duplicate-trigger', 'now': '2026-11-27T10:30:00Z', 'start': '20261129T123000Z', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc00ec0>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+____________ test_absolute_vectors[missed-enabled-VEVENT-original] _____________
+
+case = {'expected': 1, 'name': 'missed-enabled', 'now': '2026-11-28T10:30:00Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc010f0>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+___________ test_absolute_vectors[missed-enabled-VEVENT-background] ____________
+
+case = {'expected': 1, 'name': 'missed-enabled', 'now': '2026-11-28T10:30:00Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc01e80>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+____________ test_absolute_vectors[missed-enabled-VTODO-background] ____________
+
+case = {'expected': 1, 'name': 'missed-enabled', 'now': '2026-11-28T10:30:00Z', 'start': '20261129T123000Z', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc01f60>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______________ test_absolute_vectors[fold-first-VEVENT-original] _______________
+
+case = {'expected': 1, 'name': 'fold-first', 'now': '2026-10-25T00:30:15Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc02890>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_____________ test_absolute_vectors[fold-first-VEVENT-background] ______________
+
+case = {'expected': 1, 'name': 'fold-first', 'now': '2026-10-25T00:30:15Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc02970>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_______________ test_absolute_vectors[fold-first-VTODO-original] _______________
+
+case = {'expected': 1, 'name': 'fold-first', 'now': '2026-10-25T00:30:15Z', 'start': '20261129T123000Z', ...}
+kind = 'VTODO', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc02a50>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______________ test_absolute_vectors[fold-first-VTODO-background] ______________
+
+case = {'expected': 1, 'name': 'fold-first', 'now': '2026-10-25T00:30:15Z', 'start': '20261129T123000Z', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc02b30>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_______________ test_absolute_vectors[fold-both-VEVENT-original] _______________
+
+case = {'expected': 2, 'name': 'fold-both', 'now': '2026-10-25T01:30:15Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc02c10>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 2
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______________ test_absolute_vectors[fold-both-VEVENT-background] ______________
+
+case = {'expected': 2, 'name': 'fold-both', 'now': '2026-10-25T01:30:15Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2ccef150>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 2
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_______________ test_absolute_vectors[fold-both-VTODO-original] ________________
+
+case = {'expected': 2, 'name': 'fold-both', 'now': '2026-10-25T01:30:15Z', 'start': '20261129T123000Z', ...}
+kind = 'VTODO', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2ccef5b0>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 2
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______________ test_absolute_vectors[fold-both-VTODO-background] _______________
+
+case = {'expected': 2, 'name': 'fold-both', 'now': '2026-10-25T01:30:15Z', 'start': '20261129T123000Z', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2ccef7e0>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 2
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______________ test_absolute_vectors[structured-VEVENT-original] _______________
+
+case = {'expected': 1, 'name': 'structured', 'now': '2026-11-27T10:30:00Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2ccefb60>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_____________ test_absolute_vectors[structured-VEVENT-background] ______________
+
+case = {'expected': 1, 'name': 'structured', 'now': '2026-11-27T10:30:00Z', 'start': '20261129T123000Z', ...}
+kind = 'VEVENT', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2ccef460>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______________ test_absolute_vectors[structured-VTODO-background] ______________
+
+case = {'expected': 1, 'name': 'structured', 'now': '2026-11-27T10:30:00Z', 'start': '20261129T123000Z', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc03230>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+______________ test_absolute_vectors[undated-task-VTODO-original] ______________
+
+case = {'expected': 1, 'kinds': ['VTODO'], 'name': 'undated-task', 'now': '2026-11-27T10:30:00Z', ...}
+kind = 'VTODO', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc03460>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+_____________ test_absolute_vectors[undated-task-VTODO-background] _____________
+
+case = {'expected': 1, 'kinds': ['VTODO'], 'name': 'undated-task', 'now': '2026-11-27T10:30:00Z', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2ccefb60>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+___________ test_absolute_vectors[mixed-case-valarm-VEVENT-original] ___________
+
+case = {'alarmCase': 'lower', 'expected': 1, 'name': 'mixed-case-valarm', 'now': '2026-11-27T10:30:00Z', ...}
+kind = 'VEVENT', projected = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc03f50>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+__________ test_absolute_vectors[mixed-case-valarm-VEVENT-background] __________
+
+case = {'alarmCase': 'lower', 'expected': 1, 'name': 'mixed-case-valarm', 'now': '2026-11-27T10:30:00Z', ...}
+kind = 'VEVENT', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc02890>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+__________ test_absolute_vectors[mixed-case-valarm-VTODO-background] ___________
+
+case = {'alarmCase': 'lower', 'expected': 1, 'name': 'mixed-case-valarm', 'now': '2026-11-27T10:30:00Z', ...}
+kind = 'VTODO', projected = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cc28280>
+
+    @pytest.mark.parametrize("case,kind,projected", CASES,
+        ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
+    def test_absolute_vectors(case, kind, projected, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
+        data = imported(case, kind)
+        if projected:
+            data = m.erinnerungsdaten_auswaehlen(data)
+            assert "PRIVATE" not in json.dumps(data)
+        before = copy.deepcopy(data)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now, missed=case.get("missed", True))
+>       assert len(alarms) == case["expected"]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:79: AssertionError
+___________ test_actual_state_file_restart_and_changed_date[VEVENT] ____________
+
+kind = 'VEVENT'
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-25/test_actual_state_file_restart0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cb40e50>
+
+    @pytest.mark.parametrize("kind", ["VEVENT", "VTODO"])
+    def test_actual_state_file_restart_and_changed_date(kind, tmp_path, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
+        case = VECTORS[0]
+        data = imported(case, kind)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now)
+>       assert len(alarms) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:92: AssertionError
+____________ test_actual_state_file_restart_and_changed_date[VTODO] ____________
+
+kind = 'VTODO'
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-25/test_actual_state_file_restart1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cb41710>
+
+    @pytest.mark.parametrize("kind", ["VEVENT", "VTODO"])
+    def test_actual_state_file_restart_and_changed_date(kind, tmp_path, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
+        case = VECTORS[0]
+        data = imported(case, kind)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        alarms, state = run(data, now)
+        assert len(alarms) == 1
+        path = str(tmp_path / "state.json")
+        m.erinnerung_zustand_schreiben(state, pfad=path)
+        restored = m.erinnerung_zustand_lesen(pfad=path)
+        moved = imported(dict(case, start="20261201T123000Z"), kind)
+>       assert run(moved, now + timedelta(seconds=1), restored)[0] == []
+E       AssertionError: assert [{'aufgabe': ... 10:30', ...}] == []
+E         
+E         Left contains one more item: {'aufgabe': True, 'beginn': '2026-11-27 10:30', 'datum': '2026-12-01', 'id': 'af-4ee4ba6ae4925488ce44:owned-absolute-alarm@2026-12-01T12:30:00+00:00-2026-12-01-1230-alarm-START-2026-11-27 10:30', ...}
+E         Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:97: AssertionError
+________ test_next_wake_uses_absolute_trigger_outside_occurrence_window ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cb41b70>
+
+    def test_next_wake_uses_absolute_trigger_outside_occurrence_window(monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
+        case = next(x for x in VECTORS if x["name"] == "absolute-far-outside-window")
+        data = imported(case, "VEVENT")
+>       assert m.naechster_weckzeitpunkt(data, datetime(2026, 11, 27, 10, 29)) == datetime(2026, 11, 27, 10, 30)
+E       AssertionError: assert datetime.datetime(2035, 11, 29, 12, 15) == datetime.datetime(2026, 11, 27, 10, 30)
+E        +  where datetime.datetime(2035, 11, 29, 12, 15) = <function naechster_weckzeitpunkt at 0x7f3f2d7ee660>({'aufgaben': [], 'einstellungen': {'erinnerung': {'an': True, 'verpasste': True, 'vorlauf': 15}, 'sicherheit': {'erinnernTrotzKennwort': True}}, 'jahrestage': [], 'komplexeSerien': [], ...}, datetime.datetime(2026, 11, 27, 10, 29))
+E        +    where <function naechster_weckzeitpunkt at 0x7f3f2d7ee660> = m.naechster_weckzeitpunkt
+E        +    and   datetime.datetime(2026, 11, 27, 10, 29) = datetime(2026, 11, 27, 10, 29)
+E        +  and   datetime.datetime(2026, 11, 27, 10, 30) = datetime(2026, 11, 27, 10, 30)
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:104: AssertionError
+_____ test_projection_remains_idempotent_for_absolute_and_followup_alarms ______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cb41ef0>
+
+    def test_projection_remains_idempotent_for_absolute_and_followup_alarms(monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
+        for trigger in ["20261127T103045Z", "+PT10M", "-PT10M"]:
+            raw = {"bearbeitbar": False, "triggerRaw": trigger, "aktion": "display"}
+            normalized = m._alarm_normalisieren(raw)
+            assert normalized is not None
+>           assert m._alarm_normalisieren(json.loads(json.dumps(normalized))) == normalized
+E           assert None == {'absolut': '2026-11-27 10:30', 'aktion': 'display', 'aktiviert': True, 'offsetMinuten': None, ...}
+E            +  where None = <function _alarm_normalisieren at 0x7f3f2d7ed3a0>({'absolut': '2026-11-27 10:30', 'aktion': 'display', 'aktiviert': True, 'offsetMinuten': None, ...})
+E            +    where <function _alarm_normalisieren at 0x7f3f2d7ed3a0> = m._alarm_normalisieren
+E            +    and   {'absolut': '2026-11-27 10:30', 'aktion': 'display', 'aktiviert': True, 'offsetMinuten': None, ...} = <function loads at 0x7f3f30a7e7a0>('{"offsetMinuten": null, "absolut": "2026-11-27 10:30", "aktiviert": true, "related": "START", "aktion": "display"}')
+E            +      where <function loads at 0x7f3f30a7e7a0> = json.loads
+E            +      and   '{"offsetMinuten": null, "absolut": "2026-11-27 10:30", "aktiviert": true, "related": "START", "aktion": "display"}' = <function dumps at 0x7f3f30a7e160>({'absolut': '2026-11-27 10:30', 'aktion': 'display', 'aktiviert': True, 'offsetMinuten': None, ...})
+E            +        where <function dumps at 0x7f3f30a7e160> = json.dumps
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:113: AssertionError
+_______ test_same_uid_in_two_sources_and_confidential_projection[VEVENT] _______
+
+kind = 'VEVENT'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cb42040>
+
+    @pytest.mark.parametrize("kind", ["VEVENT", "VTODO"])
+    def test_same_uid_in_two_sources_and_confidential_projection(kind, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
+        case = VECTORS[0]
+        data = imported(case, kind)
+        key = "termine" if kind == "VEVENT" else "aufgaben"
+        other = copy.deepcopy(data[key][0])
+        other.pop("id", None)
+        data[key][0].pop("id", None)
+        other["icsQuelleId"] = "other-calendar"
+        data[key].append(other)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+>       assert len(run(data, now)[0]) == 2
+E       assert 0 == 2
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:128: AssertionError
+_______ test_same_uid_in_two_sources_and_confidential_projection[VTODO] ________
+
+kind = 'VTODO'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3f2cb42350>
+
+    @pytest.mark.parametrize("kind", ["VEVENT", "VTODO"])
+    def test_same_uid_in_two_sources_and_confidential_projection(kind, monkeypatch):
+        monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
+        case = VECTORS[0]
+        data = imported(case, kind)
+        key = "termine" if kind == "VEVENT" else "aufgaben"
+        other = copy.deepcopy(data[key][0])
+        other.pop("id", None)
+        data[key][0].pop("id", None)
+        other["icsQuelleId"] = "other-calendar"
+        data[key].append(other)
+        now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
+        assert len(run(data, now)[0]) == 2
+        other["vertraulich"] = True
+>       assert len(run(m.erinnerungsdaten_auswaehlen(data), now)[0]) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+magnolie-organizer/pruefungen/test_absolute_reminders.py:130: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-before-future-event-VEVENT-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-before-future-event-VEVENT-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-before-future-event-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-far-outside-window-VEVENT-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-far-outside-window-VEVENT-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-far-outside-window-VTODO-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-far-outside-window-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-finished-series-VEVENT-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-finished-series-VEVENT-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-finished-series-VTODO-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-finished-series-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-active-series-VEVENT-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-active-series-VEVENT-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-active-series-VTODO-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-active-series-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-future-series-VEVENT-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-future-series-VEVENT-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-future-series-VTODO-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[absolute-future-series-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[seconds-before-VTODO-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[seconds-at-VEVENT-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[seconds-at-VEVENT-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[seconds-at-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[two-seconds-VEVENT-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[two-seconds-VEVENT-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[two-seconds-VTODO-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[two-seconds-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[duplicate-trigger-VEVENT-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[duplicate-trigger-VEVENT-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[duplicate-trigger-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[missed-enabled-VEVENT-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[missed-enabled-VEVENT-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[missed-enabled-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[fold-first-VEVENT-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[fold-first-VEVENT-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[fold-first-VTODO-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[fold-first-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[fold-both-VEVENT-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[fold-both-VEVENT-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[fold-both-VTODO-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[fold-both-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[structured-VEVENT-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[structured-VEVENT-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[structured-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[undated-task-VTODO-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[undated-task-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[mixed-case-valarm-VEVENT-original]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[mixed-case-valarm-VEVENT-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_absolute_vectors[mixed-case-valarm-VTODO-background]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_actual_state_file_restart_and_changed_date[VEVENT]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_actual_state_file_restart_and_changed_date[VTODO]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_next_wake_uses_absolute_trigger_outside_occurrence_window
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_projection_remains_idempotent_for_absolute_and_followup_alarms
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_same_uid_in_two_sources_and_confidential_projection[VEVENT]
+FAILED magnolie-organizer/pruefungen/test_absolute_reminders.py::test_same_uid_in_two_sources_and_confidential_projection[VTODO]
+55 failed, 43 passed in 0.62s

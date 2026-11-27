@@ -1,0 +1,148 @@
+.......F.F.FFFF............                                              [100%]
+=================================== FAILURES ===================================
+_____ test_csv_task_values_survive_vtodo_roundtrips[priority-low-english] ______
+
+native = <module 'magnolie_startup_read_failure' from '$REVIEW_WORKSPACE/round2-data/magnolie-organizer/bin/magnolie-organizer'>
+vector = {'expectedCompleted': False, 'expectedPriority': 3, 'id': 'priority-low-english', 'priority': 'low', ...}
+
+    @pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
+    def test_csv_task_values_survive_vtodo_roundtrips(native, vector):
+        text = io.StringIO()
+        writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
+        writer.writerow(["Beschreibung", "Fällig", "Priorität", "Status"])
+        writer.writerow([vector["id"], "29.02.2028", vector["priority"], vector["status"]])
+        raw = text.getvalue().encode("utf-8")
+        result = native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")
+        assert result["uebersprungen"] == 0
+        task, = result["aufgaben"]
+        assert native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")["aufgaben"] == [task]
+        for _ in range(3):
+            assert task["titel"] == vector["id"]
+            assert task["faellig"] == "2028-02-29"
+>           assert task["prio"] == vector["expectedPriority"]
+E           assert 2 == 3
+
+magnolie-organizer/pruefungen/test_lotus_csv_task_values.py:31: AssertionError
+_____ test_csv_task_values_survive_vtodo_roundtrips[priority-normal-text] ______
+
+native = <module 'magnolie_startup_read_failure' from '$REVIEW_WORKSPACE/round2-data/magnolie-organizer/bin/magnolie-organizer'>
+vector = {'expectedCompleted': False, 'expectedPriority': 2, 'id': 'priority-normal-text', 'priority': 'Normal', ...}
+
+    @pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
+    def test_csv_task_values_survive_vtodo_roundtrips(native, vector):
+        text = io.StringIO()
+        writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
+        writer.writerow(["Beschreibung", "Fällig", "Priorität", "Status"])
+        writer.writerow([vector["id"], "29.02.2028", vector["priority"], vector["status"]])
+        raw = text.getvalue().encode("utf-8")
+        result = native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")
+        assert result["uebersprungen"] == 0
+        task, = result["aufgaben"]
+        assert native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")["aufgaben"] == [task]
+        for _ in range(3):
+            assert task["titel"] == vector["id"]
+            assert task["faellig"] == "2028-02-29"
+>           assert task["prio"] == vector["expectedPriority"]
+E           assert 3 == 2
+
+magnolie-organizer/pruefungen/test_lotus_csv_task_values.py:31: AssertionError
+___ test_csv_task_values_survive_vtodo_roundtrips[priority-unknown-n-prefix] ___
+
+native = <module 'magnolie_startup_read_failure' from '$REVIEW_WORKSPACE/round2-data/magnolie-organizer/bin/magnolie-organizer'>
+vector = {'expectedCompleted': False, 'expectedPriority': 2, 'id': 'priority-unknown-n-prefix', 'priority': 'Not set', ...}
+
+    @pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
+    def test_csv_task_values_survive_vtodo_roundtrips(native, vector):
+        text = io.StringIO()
+        writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
+        writer.writerow(["Beschreibung", "Fällig", "Priorität", "Status"])
+        writer.writerow([vector["id"], "29.02.2028", vector["priority"], vector["status"]])
+        raw = text.getvalue().encode("utf-8")
+        result = native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")
+        assert result["uebersprungen"] == 0
+        task, = result["aufgaben"]
+        assert native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")["aufgaben"] == [task]
+        for _ in range(3):
+            assert task["titel"] == vector["id"]
+            assert task["faellig"] == "2028-02-29"
+>           assert task["prio"] == vector["expectedPriority"]
+E           assert 3 == 2
+
+magnolie-organizer/pruefungen/test_lotus_csv_task_values.py:31: AssertionError
+___ test_csv_task_values_survive_vtodo_roundtrips[priority-unknown-h-prefix] ___
+
+native = <module 'magnolie_startup_read_failure' from '$REVIEW_WORKSPACE/round2-data/magnolie-organizer/bin/magnolie-organizer'>
+vector = {'expectedCompleted': False, 'expectedPriority': 2, 'id': 'priority-unknown-h-prefix', 'priority': 'Hauptsache', ...}
+
+    @pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
+    def test_csv_task_values_survive_vtodo_roundtrips(native, vector):
+        text = io.StringIO()
+        writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
+        writer.writerow(["Beschreibung", "Fällig", "Priorität", "Status"])
+        writer.writerow([vector["id"], "29.02.2028", vector["priority"], vector["status"]])
+        raw = text.getvalue().encode("utf-8")
+        result = native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")
+        assert result["uebersprungen"] == 0
+        task, = result["aufgaben"]
+        assert native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")["aufgaben"] == [task]
+        for _ in range(3):
+            assert task["titel"] == vector["id"]
+            assert task["faellig"] == "2028-02-29"
+>           assert task["prio"] == vector["expectedPriority"]
+E           assert 1 == 2
+
+magnolie-organizer/pruefungen/test_lotus_csv_task_values.py:31: AssertionError
+_ test_csv_task_values_survive_vtodo_roundtrips[priority-unknown-three-prefix] _
+
+native = <module 'magnolie_startup_read_failure' from '$REVIEW_WORKSPACE/round2-data/magnolie-organizer/bin/magnolie-organizer'>
+vector = {'expectedCompleted': False, 'expectedPriority': 2, 'id': 'priority-unknown-three-prefix', 'priority': '31', ...}
+
+    @pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
+    def test_csv_task_values_survive_vtodo_roundtrips(native, vector):
+        text = io.StringIO()
+        writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
+        writer.writerow(["Beschreibung", "Fällig", "Priorität", "Status"])
+        writer.writerow([vector["id"], "29.02.2028", vector["priority"], vector["status"]])
+        raw = text.getvalue().encode("utf-8")
+        result = native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")
+        assert result["uebersprungen"] == 0
+        task, = result["aufgaben"]
+        assert native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")["aufgaben"] == [task]
+        for _ in range(3):
+            assert task["titel"] == vector["id"]
+            assert task["faellig"] == "2028-02-29"
+>           assert task["prio"] == vector["expectedPriority"]
+E           assert 3 == 2
+
+magnolie-organizer/pruefungen/test_lotus_csv_task_values.py:31: AssertionError
+__ test_csv_task_values_survive_vtodo_roundtrips[priority-unknown-one-prefix] __
+
+native = <module 'magnolie_startup_read_failure' from '$REVIEW_WORKSPACE/round2-data/magnolie-organizer/bin/magnolie-organizer'>
+vector = {'expectedCompleted': False, 'expectedPriority': 2, 'id': 'priority-unknown-one-prefix', 'priority': '10', ...}
+
+    @pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
+    def test_csv_task_values_survive_vtodo_roundtrips(native, vector):
+        text = io.StringIO()
+        writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
+        writer.writerow(["Beschreibung", "Fällig", "Priorität", "Status"])
+        writer.writerow([vector["id"], "29.02.2028", vector["priority"], vector["status"]])
+        raw = text.getvalue().encode("utf-8")
+        result = native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")
+        assert result["uebersprungen"] == 0
+        task, = result["aufgaben"]
+        assert native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")["aufgaben"] == [task]
+        for _ in range(3):
+            assert task["titel"] == vector["id"]
+            assert task["faellig"] == "2028-02-29"
+>           assert task["prio"] == vector["expectedPriority"]
+E           assert 1 == 2
+
+magnolie-organizer/pruefungen/test_lotus_csv_task_values.py:31: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_lotus_csv_task_values.py::test_csv_task_values_survive_vtodo_roundtrips[priority-low-english]
+FAILED magnolie-organizer/pruefungen/test_lotus_csv_task_values.py::test_csv_task_values_survive_vtodo_roundtrips[priority-normal-text]
+FAILED magnolie-organizer/pruefungen/test_lotus_csv_task_values.py::test_csv_task_values_survive_vtodo_roundtrips[priority-unknown-n-prefix]
+FAILED magnolie-organizer/pruefungen/test_lotus_csv_task_values.py::test_csv_task_values_survive_vtodo_roundtrips[priority-unknown-h-prefix]
+FAILED magnolie-organizer/pruefungen/test_lotus_csv_task_values.py::test_csv_task_values_survive_vtodo_roundtrips[priority-unknown-three-prefix]
+FAILED magnolie-organizer/pruefungen/test_lotus_csv_task_values.py::test_csv_task_values_survive_vtodo_roundtrips[priority-unknown-one-prefix]
+6 failed, 21 passed in 1.22s

@@ -1,0 +1,47 @@
+{
+  "sourceCommit": "244b1d62aa738ea5cd8fa7fc9449ccf62fb7b99d",
+  "mode": "after",
+  "method": "Real application controls and FileReader I/O under JSDOM; canvas/native boundary simulated; candidate changes source in memory only",
+  "hashes": {
+    "magnolie-organizer/web/anwendung.js": "472eb5b801f1862cce3c7a5c0bd7436127e2fc750e0c20c581c44a58c339fb49",
+    "magnolie-organizer-windows/app/web/anwendung.js": "7a28602891d5eeebc232c5424543e65360f0b622bdc0b2b1bf13adbe6a42739d"
+  },
+  "cases": [
+    {
+      "frontend": "magnolie-organizer-windows/app/web",
+      "language": "en",
+      "afterFailure": "This drawing cannot be edited in this version.",
+      "afterSuccessfulImport": "owned-drawing.json",
+      "drawingReplaced": true,
+      "statusRecovered": true,
+      "errors": []
+    },
+    {
+      "frontend": "magnolie-organizer-windows/app/web",
+      "language": "de",
+      "afterFailure": "Dieses Zeichenblatt kann mit dieser Version nicht bearbeitet werden.",
+      "afterSuccessfulImport": "owned-drawing.json",
+      "drawingReplaced": true,
+      "statusRecovered": true,
+      "errors": []
+    },
+    {
+      "frontend": "magnolie-organizer/web",
+      "language": "en",
+      "afterFailure": "This drawing cannot be edited in this version.",
+      "afterSuccessfulImport": "owned-drawing.json",
+      "drawingReplaced": true,
+      "statusRecovered": true,
+      "errors": []
+    },
+    {
+      "frontend": "magnolie-organizer/web",
+      "language": "de",
+      "afterFailure": "Dieses Zeichenblatt kann mit dieser Version nicht bearbeitet werden.",
+      "afterSuccessfulImport": "owned-drawing.json",
+      "drawingReplaced": true,
+      "statusRecovered": true,
+      "errors": []
+    }
+  ]
+}

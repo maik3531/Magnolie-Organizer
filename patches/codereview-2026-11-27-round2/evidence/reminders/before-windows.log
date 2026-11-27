@@ -1,0 +1,12 @@
+{"kind":"VEVENT","trigger":"TRIGGER;VALUE=DATE-TIME:20261127T103000Z","mode":"original","count":0,"expected":1,"keys":[]}
+{"kind":"VEVENT","trigger":"TRIGGER;VALUE=DATE-TIME:20261127T103000Z","mode":"runtime","count":0,"expected":1,"keys":[]}
+{"kind":"VEVENT","trigger":"TRIGGER;VALUE=DATE-TIME:20261127T103000Z","mode":"background","count":0,"expected":1,"keys":[]}
+{"kind":"VEVENT","trigger":"TRIGGER:-PT120M","mode":"original","count":1,"expected":1,"keys":["scope:10:owned-test:absolute-probe@202611271230:alarm-start-120"]}
+{"kind":"VEVENT","trigger":"TRIGGER:-PT120M","mode":"runtime","count":1,"expected":1,"keys":["scope:10:owned-test:absolute-probe@202611271230:alarm-start-120"]}
+{"kind":"VEVENT","trigger":"TRIGGER:-PT120M","mode":"background","count":1,"expected":1,"keys":["scope:10:owned-test:absolute-probe@202611271230:alarm-start-120"]}
+{"kind":"VTODO","trigger":"TRIGGER;VALUE=DATE-TIME:20261127T103000Z","mode":"original","count":0,"expected":1,"keys":[]}
+{"kind":"VTODO","trigger":"TRIGGER;VALUE=DATE-TIME:20261127T103000Z","mode":"runtime","count":0,"expected":1,"keys":[]}
+{"kind":"VTODO","trigger":"TRIGGER;VALUE=DATE-TIME:20261127T103000Z","mode":"background","count":0,"expected":1,"keys":[]}
+{"kind":"VTODO","trigger":"TRIGGER:-PT120M","mode":"original","count":1,"expected":1,"keys":["aufgabe:scope:10:owned-test:absolute-probe@202611271230:alarm-start-120"]}
+{"kind":"VTODO","trigger":"TRIGGER:-PT120M","mode":"runtime","count":1,"expected":1,"keys":["aufgabe:scope:10:owned-test:absolute-probe@202611271230:alarm-start-120"]}
+{"kind":"VTODO","trigger":"TRIGGER:-PT120M","mode":"background","count":1,"expected":1,"keys":["aufgabe:scope:10:owned-test:absolute-probe@202611271230:alarm-start-120"]}

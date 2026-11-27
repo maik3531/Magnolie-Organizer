@@ -1,0 +1,257 @@
+From d62304e101628e015ae41ee5b8f2259cc30331d9 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 12:55:08 +0100
+Subject: [PATCH] Fix localized drawing error feedback (Refs #838)
+
+---
+ .../app/web/anwendung.js                      |   8 +-
+ magnolie-organizer-windows/tests/README.md    |   9 ++
+ .../tests/drawing-error-feedback.js           | 125 ++++++++++++++++++
+ magnolie-organizer-windows/tests/run.js       |   1 +
+ magnolie-organizer/web/anwendung.js           |   8 +-
+ 5 files changed, 143 insertions(+), 8 deletions(-)
+ create mode 100644 magnolie-organizer-windows/tests/drawing-error-feedback.js
+
+diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
+index 35e5f379d5422aa1a591c6ad8a4ce7b3b552fe4a..5e5af4e71309146b2e94924f78c64772c596eef2 100644
+--- a/magnolie-organizer-windows/app/web/anwendung.js
++++ b/magnolie-organizer-windows/app/web/anwendung.js
+@@ -16140,7 +16140,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     zurueck = iconButton("undo", _("Undo"), () => editor.undo()); zurueck.disabled = !editor.canUndo();
+     wieder = iconButton("redo", _("Redo"), () => editor.redo()); wieder.disabled = !editor.canRedo();
+     const exportieren = iconButton("save", _("Save as…"), async () => {
+-      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { status.textContent = _("This image format cannot be used."); return; }
++      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { status.textContent = _("This image format cannot be used."); return; }
+       if (!canvas.isConnected || gesperrt || !DATEN.customOrganizer.modules.includes(modul)) return;
+       const png = editor.exportPng(), svg = editor.exportSvg(), name = modul.title || "Magnolie";
+       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "zeichenblatt_exportieren", png, svg, name, json: JSON.stringify(modul.drawing) });
+@@ -16195,7 +16195,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       if (!rotate) dialog.append(formZeile("Y", y));
+       const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close), knopf(_("Apply"), "haupt", async () => {
+         const wholeSheet = rotate && !editor.hasSelection();
+-        if (wholeSheet) { try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { error.textContent = _("The file could not be read."); return; } }
++        if (wholeSheet) { try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { error.textContent = _("The file could not be read."); return; } }
+         if (!overlay.isConnected || !canvas.isConnected || gesperrt) return;
+         if (wholeSheet ? editor.rotateSheet(Number(x.value)) : editor.transformSelection(rotate ? Number(x.value) : 0, rotate ? 0 : Number(x.value), rotate ? 0 : Number(y.value))) { close(); canvas.focus(); }
+         else error.textContent = wholeSheet ? _("The drawing limit has been reached.") : _("Select complete strokes that fit inside the sheet.");
+@@ -16252,7 +16252,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       const sequence = ++openSequence;
+       const file = openFile.files?.[0]; if (!file || file.size > 16 * 1024 * 1024) { status.textContent = _("The file is larger than 8 megabytes."); return; }
+       if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) canvas.focus(); }
+-        catch (_) { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
++        catch { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
+       else if (/\.svg$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => {
+         const requestId = anrufClientRef(), apply = () => { if (canvas.isConnected && !gesperrt) loadImage("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(reader.result))), file.name); };
+         zeichenSvgAnfragen.set(requestId, apply); setTimeout(() => zeichenSvgAnfragen.delete(requestId), 15000);
+@@ -22357,7 +22357,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       if (gesperrt || DATEN !== bestand || !DATEN.notizen.includes(notiz)) { schliessen(); return; }
+       const modul = DATEN.customOrganizer.modules.find(wert => wert.id === auswahl.value);
+       if (!modul || !window.MagnolieZeichnen.valid(modul.drawing)) { status.textContent = _("This drawing cannot be edited in this version."); return; }
+-      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { status.textContent = _("This image format cannot be used."); return; }
++      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { status.textContent = _("This image format cannot be used."); return; }
+       if (!schleier.isConnected || gesperrt || DATEN !== bestand || !DATEN.customOrganizer.modules.includes(modul)) return;
+       const canvas = document.createElement("canvas"); window.MagnolieZeichnen.render(canvas, modul.drawing);
+       const daten = canvas.toDataURL("image/png");
+diff --git a/magnolie-organizer-windows/tests/README.md b/magnolie-organizer-windows/tests/README.md
+index 18136bf79deda326843ae88b4ee008fdb5398756..30ccfb920ed0e6f4e5bc15ec8c28d6863bfc4c5e 100644
+--- a/magnolie-organizer-windows/tests/README.md
++++ b/magnolie-organizer-windows/tests/README.md
+@@ -17,6 +17,15 @@ und übergibt Version und daraus gebildeten Installernamen an Handbuch- und
+ Release-Audit. Der Audit führt mit PowerShell echte Abbruch-, Rollback- und
+ XML-Duplikatprüfungen aus; ohne PowerShell prüft er dieselben Invarianten statisch.
+ 
++`drawing-error-feedback.js` prüft zu #838 die echten Zeichenblatt-Bedienelemente
++beider Desktop-Weboberflächen mit englischem und deutschem Katalog: ungültiger
++JSON-Import sowie nicht lesbarer Hintergrund bei Export, Blattrotation und
++Einbetten in eine Notiz. Die vorhandene übersetzte Fehlermeldung muss erscheinen,
++ohne Daten zu ändern, Speichern einzuplanen oder einen Export zu senden; eine
++anschließende gültige Eingabe muss weiter funktionieren. JSON-Dateien laufen
++durch den echten FileReader. Nur Canvas-Ausgabe und die native Bilddekodierung
++werden im JSDOM-Prüfer simuliert; das ist keine native Paketabnahme.
++
+ ## Release-Audit: Funktion und Integration
+ 
+ Die 37 funktionalen CoreTests-Gruppen sind von bereits veröffentlichten Dateien
+diff --git a/magnolie-organizer-windows/tests/drawing-error-feedback.js b/magnolie-organizer-windows/tests/drawing-error-feedback.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..9e5650121f6ef20d797e8efb52d0f1afa94c2580
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/drawing-error-feedback.js
+@@ -0,0 +1,125 @@
++"use strict";
++const fs = require("node:fs"), path = require("node:path"), Module = require("node:module"), assert = require("node:assert/strict");
++const file = path.join(__dirname, "desktop-state-regressions.js");
++const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
++harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[0] + "\nmodule.exports={boot,roots};", file);
++const tick = () => new Promise(resolve => setImmediate(resolve));
++const sheet = () => ({ version: 4, width: 900, height: 600, autoSize: false,
++  strokes: [{ tool: "pen", color: "#123456", width: 4, points: [[.1, .2, 1], [.8, .7, 1]] }] });
++// A plausible PNG header with no image data: structural validation accepts it,
++// while a browser decoder cannot load it. The native decoding boundary below
++// reports complete + zero naturalWidth; the actual ready() implementation runs.
++const pngHeader = Buffer.alloc(24); pngHeader.set([137, 80, 78, 71, 13, 10, 26, 10]);
++pngHeader.writeUInt32BE(1, 16); pngHeader.writeUInt32BE(1, 20);
++const unreadablePng = "data:image/png;base64," + pngHeader.toString("base64");
++const renderedPng = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lN8AAAAASUVORK5CYII=";
++
++async function setup(web, language) {
++  const b = await harness.exports.boot(web, {
++    einstellungen: { allgemein: { customTab: { enabled: true } } },
++    customOrganizer: { modules: [{ id: "owned-drawing-errors", type: "drawing", title: "Owned drawing", page: "right", order: 0, items: [], drawing: sheet() }] },
++    notizen: [{ id: "owned-drawing-note", titel: "Owned note", text: "Keep this text", html: "<p>Keep this text</p>", anhaenge: [] }]
++  });
++  if (language === "de") b.w.eval(fs.readFileSync(path.join(web, "i18n/de.js"), "utf8"));
++  assert.equal(b.w.MagnolieI18n.setLocale(language), language);
++  const errors = [], reads = [], rejected = error => errors.push(String(error));
++  process.on("unhandledRejection", rejected);
++  b.w.addEventListener("error", event => { errors.push(String(event.error)); event.preventDefault(); });
++  const readAsText = b.w.FileReader.prototype.readAsText;
++  b.w.FileReader.prototype.readAsText = function (value) {
++    // jsdom discards exceptions from FileReader listeners without an ownerDocument.
++    // Observe the real application callback while retaining real FileReader I/O.
++    const onload = this.onload;
++    this.onload = (...args) => { try { return onload.apply(this, args); } catch (error) { errors.push(String(error)); } };
++    reads.push(new Promise(resolve => this.addEventListener("loadend", resolve, { once: true })));
++    return readAsText.call(this, value);
++  };
++  b.w.HTMLCanvasElement.prototype.getContext = () => ({ save() {}, restore() {}, clearRect() {}, drawImage() {}, beginPath() {}, closePath() {},
++    arc() {}, fill() {}, moveTo() {}, lineTo() {}, stroke() {}, bezierCurveTo() {}, setTransform() {}, translate() {}, rotate() {},
++    createLinearGradient() { return { addColorStop() {} }; } });
++  b.w.HTMLCanvasElement.prototype.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1200, height: 800 });
++  b.w.HTMLCanvasElement.prototype.toDataURL = () => renderedPng;
++  b.w.Image = class extends b.w.EventTarget {
++    complete = true;
++    naturalWidth = 0;
++    set src(value) { assert.equal(value, unreadablePng, "Only the owned failed decode is simulated"); }
++  };
++  const d = b.w.document, tr = text => b.w.MagnolieI18n.gettext(text);
++  const button = (scope, text) => {
++    const value = [...scope.querySelectorAll("button")].find(node => node.textContent === tr(text) || node.getAttribute("aria-label") === tr(text));
++    assert.ok(value, text); return value;
++  };
++  const load = async (value, scope = d) => {
++    const input = scope.querySelector('input[type="file"][accept^=".json,.svg"]'); assert.ok(input);
++    Object.defineProperty(input, "files", { configurable: true, value: [new b.w.File([typeof value === "string" ? value : JSON.stringify(value)], "owned-drawing.json", { type: "application/json" })] });
++    input.dispatchEvent(new b.w.Event("change", { bubbles: true }));
++    await reads.at(-1); await tick();
++    assert.equal(input.value, "", "A failed selection must be selectable again");
++  };
++  const snapshot = () => ({ data: JSON.stringify(b.t.daten()), saves: b.saves().length,
++    saveTimers: b.timers.filter(timer => timer.delay === 400).length,
++    exports: b.messages.filter(message => message.cmd === "zeichenblatt_exportieren").length });
++  const unchanged = before => {
++    assert.deepEqual(snapshot(), before, "A failed action must not change data, schedule a save or export");
++    assert.deepEqual(errors, [], "The error path must not throw a translation TypeError");
++  };
++  await b.t.wechsel("custom");
++  const module = b.t.daten().customOrganizer.modules.find(value => value.id === "owned-drawing-errors");
++  assert.ok(module && d.querySelector("canvas.custom-zeichenblatt"));
++  return { ...b, d, tr, button, load, snapshot, unchanged, errors, module,
++    status: () => d.querySelector(".custom-modul-drawing > .einst-hinweis"),
++    close() { process.removeListener("unhandledRejection", rejected); b.close(); } };
++}
++
++(async () => {
++  let cases = 0;
++  for (const web of harness.exports.roots) for (const language of ["en", "de"]) {
++    for (const name of ["JSON import", "Export", "Rotate sheet", "Embed in note"]) {
++      const b = await setup(web, language);
++      try {
++        if (name === "JSON import") {
++          for (const invalid of ['{"version":', { version: 99, future: "preserve" }]) {
++            const before = b.snapshot(); await b.load(invalid);
++            b.unchanged(before);
++            assert.equal(b.status().textContent, b.tr("This drawing cannot be edited in this version."));
++          }
++          const replacement = { ...sheet(), width: 1000 }; await b.load(replacement);
++          assert.equal(JSON.stringify(b.module.drawing), JSON.stringify(replacement), "A valid file must still load after rejection");
++        } else {
++          const broken = { ...sheet(), background: unreadablePng };
++          assert.equal(b.w.MagnolieZeichnen.valid(broken), true);
++          await b.load(broken);
++          if (name === "Export") {
++            const before = b.snapshot(); b.button(b.d.querySelector(".zeichen-dokument"), "Save as…").click(); await tick();
++            b.unchanged(before); assert.equal(b.status().textContent, b.tr("This image format cannot be used."));
++            await b.load(sheet()); b.button(b.d.querySelector(".zeichen-dokument"), "Save as…").click(); await tick();
++            const exported = b.messages.filter(message => message.cmd === "zeichenblatt_exportieren");
++            assert.equal(exported.length, before.exports + 1); assert.equal(exported.at(-1).png, renderedPng);
++            assert.match(exported.at(-1).svg, /^<svg/); assert.equal(exported.at(-1).json, JSON.stringify(b.module.drawing));
++          } else if (name === "Rotate sheet") {
++            const rotate = () => { b.button(b.d.querySelector(".zeichen-stifte"), "Rotate selection").click(); return b.d.querySelector(".eingabe-dialog"); };
++            let dialog = rotate(); const before = b.snapshot(); b.button(dialog, "Apply").click(); await tick();
++            b.unchanged(before); assert.equal(dialog.querySelector(".einst-warnung").textContent, b.tr("The file could not be read."));
++            assert.equal(dialog.isConnected, true); b.button(dialog, "Cancel").click();
++            await b.load(sheet()); dialog = rotate(); b.button(dialog, "Apply").click(); await tick();
++            assert.equal(dialog.isConnected, false); assert.equal(b.module.drawing.width, 600); assert.equal(b.module.drawing.height, 900);
++          } else {
++            await b.t.wechsel("notizen");
++            b.button(b.d.querySelector(".notiz-einfuegen"), "Drawing sheet").click();
++            const dialog = [...b.d.querySelectorAll(".eingabe-dialog")].find(value => value.querySelector(".notiz-zeichen-editor")); assert.ok(dialog);
++            const before = b.snapshot(); b.button(dialog, "Embed").click(); await tick();
++            b.unchanged(before); assert.equal(dialog.querySelector(":scope > .einst-warnung").textContent, b.tr("This image format cannot be used."));
++            assert.equal(dialog.isConnected, true); await b.load(sheet(), dialog);
++            b.button(dialog, "Embed").click(); await tick(); assert.equal(dialog.isConnected, false);
++            const note = b.t.daten().notizen.find(value => value.id === "owned-drawing-note");
++            assert.equal(note.text, "Keep this text"); assert.equal(note.anhaenge.length, 1); assert.equal(note.anhaenge[0].daten, renderedPng);
++          }
++        }
++        assert.deepEqual(b.errors, []);
++        cases++;
++        console.log(`PASS ${path.basename(path.dirname(web))}/${language}: ${name} localized rejection, unchanged data/save state and valid retry`);
++      } finally { b.close(); }
++    }
++  }
++  console.log(`PASS ${cases} drawing error/recovery UI cases; JSDOM controls, native decoder/canvas boundary simulated, no native acceptance`);
++})().catch(error => { console.error(error); process.exitCode = 1; });
+diff --git a/magnolie-organizer-windows/tests/run.js b/magnolie-organizer-windows/tests/run.js
+index 59696acbd2788c9b5b1bf651e93bb758e2c48a32..96892cc67befaffe043c6011c7afdffa1b8a3fc0 100644
+--- a/magnolie-organizer-windows/tests/run.js
++++ b/magnolie-organizer-windows/tests/run.js
+@@ -19,6 +19,7 @@ process.env.MAGNOLIE_PYTHON = python;
+ let failed = false;
+ const results = [];
+ for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-save.js", "time-zone-planning.js", "time-zone-settings.js", "ui-bugfixes.js", "drawing-sheet.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-sms-paths.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "web-smoke.js",
++  "drawing-error-feedback.js",
+   "handbook-page-ids.js",
+   "handbook-source-diagnostics.js",
+   "calendar-attachment-actions.js", "calendar-attachment-native.js",
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+index c9d4b50e9a0c1e343635b5bf047c0aaa3257d19a..c01c791f3fcb022542542f6a8f4b524e81292928 100644
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -16380,7 +16380,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     zurueck = iconButton("undo", _("Undo"), () => editor.undo()); zurueck.disabled = !editor.canUndo();
+     wieder = iconButton("redo", _("Redo"), () => editor.redo()); wieder.disabled = !editor.canRedo();
+     const exportieren = iconButton("save", _("Save as…"), async () => {
+-      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { status.textContent = _("This image format cannot be used."); return; }
++      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { status.textContent = _("This image format cannot be used."); return; }
+       if (!canvas.isConnected || gesperrt || !DATEN.customOrganizer.modules.includes(modul)) return;
+       const png = editor.exportPng(), svg = editor.exportSvg(), name = modul.title || "Magnolie";
+       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "zeichenblatt_exportieren", png, svg, name, json: JSON.stringify(modul.drawing) });
+@@ -16435,7 +16435,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       if (!rotate) dialog.append(formZeile("Y", y));
+       const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close), knopf(_("Apply"), "haupt", async () => {
+         const wholeSheet = rotate && !editor.hasSelection();
+-        if (wholeSheet) { try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { error.textContent = _("The file could not be read."); return; } }
++        if (wholeSheet) { try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { error.textContent = _("The file could not be read."); return; } }
+         if (!overlay.isConnected || !canvas.isConnected || gesperrt) return;
+         if (wholeSheet ? editor.rotateSheet(Number(x.value)) : editor.transformSelection(rotate ? Number(x.value) : 0, rotate ? 0 : Number(x.value), rotate ? 0 : Number(y.value))) { close(); canvas.focus(); }
+         else error.textContent = wholeSheet ? _("The drawing limit has been reached.") : _("Select complete strokes that fit inside the sheet.");
+@@ -16492,7 +16492,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       const sequence = ++openSequence;
+       const file = openFile.files?.[0]; if (!file || file.size > 16 * 1024 * 1024) { status.textContent = _("The file is larger than 8 megabytes."); return; }
+       if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) canvas.focus(); }
+-        catch (_) { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
++        catch { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
+       else if (/\.svg$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => {
+         const requestId = anrufClientRef(), apply = () => { if (canvas.isConnected && !gesperrt) loadImage("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(reader.result))), file.name); };
+         zeichenSvgAnfragen.set(requestId, apply); setTimeout(() => zeichenSvgAnfragen.delete(requestId), 15000);
+@@ -22617,7 +22617,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       if (gesperrt || DATEN !== bestand || !DATEN.notizen.includes(notiz)) { schliessen(); return; }
+       const modul = DATEN.customOrganizer.modules.find(wert => wert.id === auswahl.value);
+       if (!modul || !window.MagnolieZeichnen.valid(modul.drawing)) { status.textContent = _("This drawing cannot be edited in this version."); return; }
+-      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { status.textContent = _("This image format cannot be used."); return; }
++      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { status.textContent = _("This image format cannot be used."); return; }
+       if (!schleier.isConnected || gesperrt || DATEN !== bestand || !DATEN.customOrganizer.modules.includes(modul)) return;
+       const canvas = document.createElement("canvas"); window.MagnolieZeichnen.render(canvas, modul.drawing);
+       const daten = canvas.toDataURL("image/png");

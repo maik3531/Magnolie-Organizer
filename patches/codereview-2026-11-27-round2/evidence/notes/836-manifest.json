@@ -1,0 +1,30 @@
+{
+  "issue": 836,
+  "base": "1543858e251d7e29ebeafb67d2605991c1d442d5",
+  "commit": "f2f429807186760248c5ddf4c2af3f22f4e1f568",
+  "branch": "review/round2-notes-20261127",
+  "worktree": "$REVIEW_WORKSPACE/round2-notes",
+  "patch": "$REVIEW_WORKSPACE/round2-evidence/notes/836-attachment-open.patch",
+  "patch_sha256": "6bf12f78c6dd97a595dd29717b27b9952f288fd698d5ebf7d8040d14052e3cc5",
+  "tests": {
+    "total": 13,
+    "baseline_passed": 8,
+    "baseline_failed": 5,
+    "patched_passed": 13,
+    "patched_failed": 0,
+    "existing_groups": 4,
+    "new_groups": 9
+  },
+  "fault_write": {
+    "limit_bytes": 32,
+    "baseline": "IOException escapes; old cache preserved; 1 temporary file",
+    "patched": "false; old cache preserved; 0 temporary files"
+  },
+  "limits": [
+    "Explicit Android boundary seams; no actual Robolectric run",
+    "No full Compose or APK build",
+    "No native Android/FileProvider/device acceptance",
+    "No new desktop native test"
+  ],
+  "report": "$REVIEW_WORKSPACE/round2-evidence/notes/836-report.md"
+}

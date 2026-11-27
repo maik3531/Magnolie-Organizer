@@ -1,0 +1,64 @@
+From 11e2ce80c4ec98bbcfef60f1af2870a5fe6b69e7 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 12:56:04 +0100
+Subject: [PATCH] Clear drawing import error after valid retry (Refs #838)
+
+---
+ magnolie-organizer-windows/app/web/anwendung.js            | 2 +-
+ magnolie-organizer-windows/tests/README.md                 | 3 ++-
+ magnolie-organizer-windows/tests/drawing-error-feedback.js | 1 +
+ magnolie-organizer/web/anwendung.js                        | 2 +-
+ 4 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
+index 5e5af4e71309146b2e94924f78c64772c596eef2..89d93b731e380a8fda9a1a914a7a462e2f42b579 100644
+--- a/magnolie-organizer-windows/app/web/anwendung.js
++++ b/magnolie-organizer-windows/app/web/anwendung.js
+@@ -16251,7 +16251,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     openFile.addEventListener("change", () => {
+       const sequence = ++openSequence;
+       const file = openFile.files?.[0]; if (!file || file.size > 16 * 1024 * 1024) { status.textContent = _("The file is larger than 8 megabytes."); return; }
+-      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) canvas.focus(); }
++      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) { status.textContent = file.name; canvas.focus(); } }
+         catch { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
+       else if (/\.svg$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => {
+         const requestId = anrufClientRef(), apply = () => { if (canvas.isConnected && !gesperrt) loadImage("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(reader.result))), file.name); };
+diff --git a/magnolie-organizer-windows/tests/README.md b/magnolie-organizer-windows/tests/README.md
+index 30ccfb920ed0e6f4e5bc15ec8c28d6863bfc4c5e..0c0cc2903e1514c3a690a56e11d5e362c51439e9 100644
+--- a/magnolie-organizer-windows/tests/README.md
++++ b/magnolie-organizer-windows/tests/README.md
+@@ -22,7 +22,8 @@ beider Desktop-Weboberflächen mit englischem und deutschem Katalog: ungültiger
+ JSON-Import sowie nicht lesbarer Hintergrund bei Export, Blattrotation und
+ Einbetten in eine Notiz. Die vorhandene übersetzte Fehlermeldung muss erscheinen,
+ ohne Daten zu ändern, Speichern einzuplanen oder einen Export zu senden; eine
+-anschließende gültige Eingabe muss weiter funktionieren. JSON-Dateien laufen
++anschließende gültige Eingabe muss weiter funktionieren und nach JSON-Import
++den geladenen Dateinamen statt des alten Fehlers zeigen. JSON-Dateien laufen
+ durch den echten FileReader. Nur Canvas-Ausgabe und die native Bilddekodierung
+ werden im JSDOM-Prüfer simuliert; das ist keine native Paketabnahme.
+ 
+diff --git a/magnolie-organizer-windows/tests/drawing-error-feedback.js b/magnolie-organizer-windows/tests/drawing-error-feedback.js
+index 9e5650121f6ef20d797e8efb52d0f1afa94c2580..1eae6e8ac53e57d090e19f4a06ee02fda0f2b0cb 100644
+--- a/magnolie-organizer-windows/tests/drawing-error-feedback.js
++++ b/magnolie-organizer-windows/tests/drawing-error-feedback.js
+@@ -85,6 +85,7 @@ async function setup(web, language) {
+           }
+           const replacement = { ...sheet(), width: 1000 }; await b.load(replacement);
+           assert.equal(JSON.stringify(b.module.drawing), JSON.stringify(replacement), "A valid file must still load after rejection");
++          assert.equal(b.status().textContent, "owned-drawing.json", "A successful retry must replace the stale error with the loaded filename");
+         } else {
+           const broken = { ...sheet(), background: unreadablePng };
+           assert.equal(b.w.MagnolieZeichnen.valid(broken), true);
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+index c01c791f3fcb022542542f6a8f4b524e81292928..07015f52e0732d18a5078262580750a09836441b 100644
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -16491,7 +16491,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     openFile.addEventListener("change", () => {
+       const sequence = ++openSequence;
+       const file = openFile.files?.[0]; if (!file || file.size > 16 * 1024 * 1024) { status.textContent = _("The file is larger than 8 megabytes."); return; }
+-      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) canvas.focus(); }
++      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) { status.textContent = file.name; canvas.focus(); } }
+         catch { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
+       else if (/\.svg$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => {
+         const requestId = anrufClientRef(), apply = () => { if (canvas.isConnected && !gesperrt) loadImage("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(reader.result))), file.name); };

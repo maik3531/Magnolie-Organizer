@@ -1,0 +1,8 @@
+{"name":"valid-undated","original":1,"background":1,"expected":1}
+{"name":"orphan-due-time","original":0,"background":0,"expected":0}
+{"name":"malformed-start-field","original":0,"background":0,"expected":0}
+{"name":"raw-invalid-DUE","importedTasks":0,"schedulerNotRun":true}
+{"name":"raw-invalid-DTSTART","importedTasks":0,"schedulerNotRun":true}
+{"name":"absolute-coincides-with-enabled-due-reminder","count":2,"expected":1}
+{"name":"absolute-task-six-minutes-late-missed-disabled","count":0}
+{"name":"actual-persisted-state-restart","firstCount":1,"afterRestartCount":0,"expectedFirst":1,"expectedRestart":0}

@@ -1,0 +1,83 @@
+{
+  "fixturePath": "$REVIEW_WORKSPACE/round2-data/contracts/waste-calendar-v1.json",
+  "fixtureSha256": "5E994ECEE570068550B6656FC6C5B35046B8217CA45719B4114FCDF079BD4695",
+  "assemblyPath": "$REVIEW_WORKSPACE/round2-evidence/data/exchange-diagnosis/bin/Debug/net8.0/CoreTests.dll",
+  "assemblySha256": "B9A3754D8F91B1039DA10EEED060847061F1163AC050430C585836F7ED32D29A",
+  "TZ": null,
+  "TZDIR": "$PRIMARY_RUNTIME/dependencies/python/lib/python3.12/site-packages/tzdata/zoneinfo",
+  "localZoneId": "Local",
+  "localZoneDisplay": "(UTC\u002B01:00) GMT",
+  "currentCulture": "",
+  "normativeSystemZoneError": "System.TimeZoneNotFoundException: Named timezone is unavailable in the bound normative rules.\n   at MagnolieOrganizer.Windows.CalendarRecurrence.Zone(String id) in $REVIEW_WORKSPACE/round2-data/magnolie-organizer-windows/CalendarRecurrence.cs:line 231\n   at Program.\u003CMain\u003E$(String[] args) in $REVIEW_WORKSPACE/round2-evidence/data/exchange-diagnosis/Program.cs:line 21",
+  "firstPayloadUnchangedAfterSecondCall": true,
+  "sameSourceIdentity": true,
+  "wasteHazardous": [
+    {
+      "uid": "hazardous-first@example.test",
+      "icsSerienUid": "",
+      "titel": "Schadstoffe",
+      "icsKomplex": true,
+      "icsReadOnly": true,
+      "icsRoundtrip": [
+        "DTSTART;VALUE=DATE:20260303",
+        "DTEND;VALUE=DATE:20260304",
+        "LOCATION:First collection point"
+      ],
+      "datum": "2026-03-03",
+      "zeit": "",
+      "icsQuelleId": "waste:ics:68b4c41ae9d33a7aec9fc2e749d3cc0b4fdbbb1f8d51ddb8a0beac2186bb9f90",
+      "ort": "First collection point"
+    },
+    {
+      "uid": "hazardous-second@example.test",
+      "icsSerienUid": "",
+      "titel": "Schadstoffe",
+      "icsKomplex": true,
+      "icsReadOnly": true,
+      "icsRoundtrip": [
+        "DTSTART;VALUE=DATE:20260303",
+        "DTEND;VALUE=DATE:20260304",
+        "LOCATION:Second collection point"
+      ],
+      "datum": "2026-03-03",
+      "zeit": "",
+      "icsQuelleId": "waste:ics:68b4c41ae9d33a7aec9fc2e749d3cc0b4fdbbb1f8d51ddb8a0beac2186bb9f90",
+      "ort": "Second collection point"
+    }
+  ],
+  "hazardousCountEqualsTwo": true,
+  "allHaveEmptyTime": true,
+  "firstHas1430NoteError": "System.NullReferenceException: Object reference not set to an instance of an object.\n   at Program.\u003CMain\u003E$(String[] args) in $REVIEW_WORKSPACE/round2-evidence/data/exchange-diagnosis/Program.cs:line 35",
+  "directImportHazardous": [
+    {
+      "uid": "hazardous-first@example.test",
+      "icsSerienUid": "",
+      "titel": "Schadstoffe",
+      "icsKomplex": true,
+      "icsReadOnly": true,
+      "icsRoundtrip": [
+        "DTSTART;VALUE=DATE:20260303",
+        "DTEND;VALUE=DATE:20260304",
+        "LOCATION:First collection point"
+      ],
+      "datum": "2026-03-03",
+      "zeit": "",
+      "icsQuelleId": "ics:50a9f4ea14ef0889ea87f143fa43c459fea1de338e72683aff23223a35c2ea9f"
+    },
+    {
+      "uid": "hazardous-second@example.test",
+      "icsSerienUid": "",
+      "titel": "Schadstoffe",
+      "icsKomplex": true,
+      "icsReadOnly": true,
+      "icsRoundtrip": [
+        "DTSTART;VALUE=DATE:20260303",
+        "DTEND;VALUE=DATE:20260304",
+        "LOCATION:Second collection point"
+      ],
+      "datum": "2026-03-03",
+      "zeit": "",
+      "icsQuelleId": "ics:50a9f4ea14ef0889ea87f143fa43c459fea1de338e72683aff23223a35c2ea9f"
+    }
+  ]
+}

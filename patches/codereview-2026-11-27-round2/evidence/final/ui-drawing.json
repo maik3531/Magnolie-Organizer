@@ -1,0 +1,19 @@
+{
+  "name": "ui-drawing",
+  "command": [
+    "node",
+    "magnolie-organizer-windows/tests/drawing-sheet.js"
+  ],
+  "cwd": "$REVIEW_SOURCE",
+  "environment": {
+    "TZ": "UTC",
+    "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+    "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+    "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+    "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+  },
+  "exit": 0,
+  "elapsed_seconds": 1.21,
+  "log": "ui-drawing.log",
+  "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b"
+}

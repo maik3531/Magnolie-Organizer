@@ -1,0 +1,114 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using MagnolieOrganizer.Windows;
+var output=Path.GetDirectoryName(Path.GetFullPath(args[1]))!;
+var now=new DateTime(2026,11,27,10,30,0,DateTimeKind.Utc);
+const string Private="PRIVATE-ALARM-DESCRIPTION-MUST-NOT-PROJECT";
+if(args[0]=="import") {
+ var cases=new JsonArray();
+ foreach(var kind in new[]{"event","task","undated-task","recurrence"}) {
+  var component=kind=="task"||kind=="undated-task"?"VTODO":"VEVENT";
+  var dates=kind=="undated-task"?"":"DTSTART:20261129T123040Z\r\n"+(kind=="task"?"DUE:20261129T123040Z\r\n":"");
+  var ics="BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:"+component+"\r\nUID:independent-"+kind+"\r\nSUMMARY:Owned "+kind+"\r\n"+dates+
+   (kind=="recurrence"?"RRULE:FREQ=DAILY;COUNT=20\r\n":"")+
+   string.Join("",new[]{("DISPLAY","20261127T103015Z"),("DISPLAY","20261127T103030Z"),("AUDIO","20261127T103000Z")}.Select(a=>"BEGIN:VALARM\r\nACTION:"+a.Item1+"\r\nTRIGGER;VALUE=DATE-TIME:"+a.Item2+"\r\nDESCRIPTION:"+Private+"\r\nEND:VALARM\r\n"))+
+   "END:"+component+"\r\nEND:VCALENDAR\r\n";
+  var data=ExchangeCodec.ParseIcs(ics,"owned-independent",CalendarRecurrence.Zone("UTC"));
+  cases.Add(new JsonObject{["name"]=kind,["data"]=new JsonObject{
+   ["termine"]=data.Termine,["aufgaben"]=data.Aufgaben,
+   ["einstellungen"]=new JsonObject{
+    ["regional"]=new JsonObject{["timeZone"]="UTC",["timeZoneManagement"]="manual"},
+    ["erinnerung"]=new JsonObject{["an"]=true,["verpasste"]=true,["vorlauf"]=15},
+    ["sicherheit"]=new JsonObject{["erinnernTrotzKennwort"]=true}
+   }
+  }});
+ }
+ File.WriteAllText(args[1],cases.ToJsonString());return;
+}
+if(args[0]=="dedup") {
+ JsonObject Book(int seconds=0,bool secondTask=false) {
+  var trigger=now.AddSeconds(seconds).ToString("yyyyMMdd'T'HHmmss'Z'");
+  string Component(string uid)=>"BEGIN:VTODO\r\nUID:"+uid+"\r\nSUMMARY:Owned dedup "+uid+"\r\nDTSTART:20261127T103000Z\r\nDUE:20261127T103000Z\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DATE-TIME:"+trigger+"\r\nDESCRIPTION:"+Private+"\r\nEND:VALARM\r\nEND:VTODO\r\n";
+  var parsed=ExchangeCodec.ParseIcs("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"+Component("dedup-one")+(secondTask?Component("dedup-two"):"")+"END:VCALENDAR\r\n","owned-dedup",CalendarRecurrence.Zone("UTC"));
+  foreach(var task in parsed.Aufgaben)task!["erinnern"]=true;
+  return new JsonObject{["termine"]=parsed.Termine,["aufgaben"]=parsed.Aufgaben,["einstellungen"]=new JsonObject{
+   ["regional"]=new JsonObject{["timeZone"]="UTC"},["erinnerung"]=new JsonObject{["an"]=true,["verpasste"]=true},["sicherheit"]=new JsonObject{["erinnernTrotzKennwort"]=true}}};
+ }
+ string Choose(JsonObject book,string mode)=>mode=="original"?book.ToJsonString():mode=="runtime"?ReminderScheduler.SelectRuntimeData(book.ToJsonString()):ReminderScheduler.SelectBackgroundData(book.ToJsonString())!;
+ List<string> Keys(string json,DateTime time){using var doc=JsonDocument.Parse(json);return ReminderScheduler.DueTasks(doc.RootElement,doc.RootElement.GetProperty("einstellungen").GetProperty("erinnerung"),time).Select(x=>x.Key).ToList();}
+ int Deliver(string json,DateTime time,string state){var notices=new List<ReminderNotice>();using var scheduler=new ReminderScheduler(state,notices.Add);scheduler.UpdateData(json);scheduler.RunOnce(time);if(scheduler.LastError is not null)throw new Exception(scheduler.LastError);return notices.Count;}
+ void Check(bool ok,string message){if(!ok)throw new Exception(message);}
+ foreach(var mode in new[]{"original","runtime","background"}) {
+  var book=Book();var json=Choose(book,mode);var state=Path.Combine(output,"dedup-"+mode+".json");
+  foreach(var old in Directory.GetFiles(output,"dedup-"+mode+".json*"))File.Delete(old);
+  var keys=Keys(json,now);Check(keys.Count==1,mode+": simultaneous absolute/default due count "+keys.Count);
+  var first=Deliver(json,now,state);var restart=Deliver(json,now.AddSeconds(1),state);
+  Check(first==1&&restart==0,mode+": actual initial/restart notices "+first+","+restart);
+  var distinct=Keys(Choose(Book(seconds:1),mode),now.AddSeconds(1));Check(distinct.Count==2,mode+": distinct seconds were collapsed");
+  var other=Keys(Choose(Book(secondTask:true),mode),now);Check(other.Count==2,mode+": different tasks were collapsed");
+  var legacyBook=book.DeepClone().AsObject();legacyBook["aufgaben"]![0]!["icsRoundtrip"]=new JsonArray("DTSTART:20261127T103000Z","DUE:20261127T103000Z");
+  var removed=Deliver(Choose(legacyBook,mode),now.AddSeconds(2),state);Check(removed==0,mode+": removing absolute alarm replays due notification");
+  var legacyState=Path.Combine(output,"dedup-existing-"+mode+".json");
+  foreach(var old in Directory.GetFiles(output,"dedup-existing-"+mode+".json*"))File.Delete(old);
+  var legacyFirst=Deliver(Choose(legacyBook,mode),now,legacyState);var resumed=Deliver(json,now.AddSeconds(1),legacyState);
+  Check(legacyFirst==1&&resumed==0,mode+": existing default key replayed "+legacyFirst+","+resumed);
+  Console.WriteLine(JsonSerializer.Serialize(new{mode,keys,first,restart,distinctSecondCount=distinct.Count,differentTaskCount=other.Count,removedAbsoluteReplay=removed,legacyFirst,legacyRestart=resumed}));
+ }
+ return;
+}
+if(args[0]=="mixed-case") {
+ foreach(var component in new[]{"VEVENT","VTODO"}) {
+  var ics="BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:"+component+"\r\nUID:mixed-case-"+component+"\r\nSUMMARY:Owned mixed case\r\nDTSTART:20261129T123000Z\r\n"+(component=="VTODO"?"DUE:20261129T123000Z\r\n":"")+"BEGIN:valarm\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DATE-TIME:20261127T103000Z\r\nDESCRIPTION:"+Private+"\r\nEND:valarm\r\nEND:"+component+"\r\nEND:VCALENDAR\r\n";
+  var imported=ExchangeCodec.ParseIcs(ics,"owned-mixed-case",CalendarRecurrence.Zone("UTC"));
+  var book=new JsonObject{["termine"]=imported.Termine,["aufgaben"]=imported.Aufgaben,["einstellungen"]=new JsonObject{
+   ["regional"]=new JsonObject{["timeZone"]="UTC"},["erinnerung"]=new JsonObject{["an"]=true},["sicherheit"]=new JsonObject{["erinnernTrotzKennwort"]=true}}};
+  foreach(var mode in new[]{"original","runtime","background"}) {
+   var text=mode=="original"?book.ToJsonString():mode=="runtime"?ReminderScheduler.SelectRuntimeData(book.ToJsonString()):ReminderScheduler.SelectBackgroundData(book.ToJsonString())!;
+   using var doc=JsonDocument.Parse(text);var root=doc.RootElement;
+   var due=component=="VEVENT"?ReminderScheduler.DueAppointments(text,now):ReminderScheduler.DueTasks(root,root.GetProperty("einstellungen").GetProperty("erinnerung"),now);
+   Console.WriteLine(JsonSerializer.Serialize(new{component,mode,count=due.Count,expected=1,projection=text}));
+  }
+ }
+ return;
+}
+var records=JsonNode.Parse(File.ReadAllText(args[1]))!.AsArray();int checks=0;
+void Ensure(bool value,string label){checks++;if(!value)throw new Exception(label);}
+List<string> AbsoluteKeys(string text,DateTime at){using var document=JsonDocument.Parse(text);var root=document.RootElement;var reminder=root.GetProperty("einstellungen").GetProperty("erinnerung");return ReminderScheduler.DueAppointments(text,at).Concat(ReminderScheduler.DueTasks(root,reminder,at)).Where(x=>x.Key.Contains("@absolute:")).Select(x=>x.Key).Order().ToList();}
+foreach(var record in records){
+ var name=record!["name"]!.GetValue<string>();var raw=record["data"]!.ToJsonString();
+ foreach(var mode in new[]{"runtime","background"}) {
+  var text=mode=="runtime"?ReminderScheduler.SelectRuntimeData(raw):ReminderScheduler.SelectBackgroundData(raw)!;
+  Ensure(!text.Contains(Private),name+mode+": private description leaked");
+  var root=JsonNode.Parse(text)!;
+  var item=(root[name.Contains("task")?"aufgaben":"termine"]!.AsArray()).Single()!;
+  if (item["alarme"] is JsonArray selectedAlarms) Ensure(selectedAlarms.Count(a=>a?["triggerRaw"] is not null)==3,name+mode+": readonly alarm projection lost");
+  else Ensure(item["icsRoundtrip"]!.AsArray().Count(a=>a!.GetValue<string>().StartsWith("TRIGGER;VALUE=DATE-TIME:"))==3,name+mode+": raw task alarms lost");
+  foreach(var (seconds,expected) in new[]{(14,0),(15,1),(29,1),(30,2)})
+   Ensure(AbsoluteKeys(text,now.AddSeconds(seconds)).Count==expected,name+mode+": early/second boundary "+seconds);
+  var keys=AbsoluteKeys(text,now.AddSeconds(30));
+  Ensure(keys[0]!=keys[1]&&keys.Any(k=>k.EndsWith("103015Z"))&&keys.Any(k=>k.EndsWith("103030Z")),name+mode+": seconds identity");
+  var path=Path.Combine(output,"state-"+name+"-"+mode+".json");
+  foreach(var file in Directory.GetFiles(output,"state-"+name+"-"+mode+".json*"))File.Delete(file);
+  foreach(var (seconds,count) in new[]{(15,1),(30,1),(31,0)}) {
+   var notices=new List<ReminderNotice>();using var scheduler=new ReminderScheduler(path,notices.Add);
+   scheduler.UpdateData(text);scheduler.RunOnce(now.AddSeconds(seconds));
+   Ensure(scheduler.LastError is null,name+mode+": scheduler error "+scheduler.LastError);
+   Ensure(notices.Count==count,name+mode+": actual restart count "+seconds+" got "+notices.Count);
+   Ensure(notices.All(n=>!n.Body.Contains(Private)),name+mode+": notice private text");
+  }
+  using(var state=JsonDocument.Parse(File.ReadAllText(path)))Ensure(state.RootElement.GetProperty("reported").GetArrayLength()==2,name+mode+": persisted key count");
+  var disabled=JsonNode.Parse(text)!;
+  if(name.Contains("task"))disabled["aufgaben"]![0]!["erledigt"]=true;
+  else foreach(var alarm in disabled["termine"]![0]!["alarme"]!.AsArray())alarm!["aktiviert"]=false;
+  Ensure(AbsoluteKeys(disabled.ToJsonString(),now.AddSeconds(30)).Count==0,name+mode+": disabled alarm resurrected from raw");
+  var cancelled=JsonNode.Parse(text)!;cancelled[name.Contains("task")?"aufgaben":"termine"]![0]!["icsStatus"]="CANCELLED";
+  Ensure(AbsoluteKeys(cancelled.ToJsonString(),now.AddSeconds(30)).Count==0,name+mode+": cancelled component");
+  var cancelledRaw=JsonNode.Parse(text)!;cancelledRaw[name.Contains("task")?"aufgaben":"termine"]![0]!["icsRoundtrip"]!.AsArray().Add("STATUS:CANCELLED");
+  Ensure(AbsoluteKeys(cancelledRaw.ToJsonString(),now.AddSeconds(30)).Count==0,name+mode+": raw cancelled component");
+  var missed=JsonNode.Parse(text)!;missed["einstellungen"]!["erinnerung"]!["verpasste"]=false;
+  Ensure(AbsoluteKeys(missed.ToJsonString(),now.AddMinutes(5).AddSeconds(16)).Count==1,name+mode+": missed false boundary");
+  Ensure(AbsoluteKeys(text,now.AddHours(72).AddSeconds(31)).Count==0,name+mode+": 72h expiry");
+  Console.WriteLine(JsonSerializer.Serialize(new{name,mode,keys,actualRestarts=3,descriptionExcluded=true}));
+ }
+}
+Console.WriteLine(JsonSerializer.Serialize(new{checks,cases=records.Count,projectionModes=2}));

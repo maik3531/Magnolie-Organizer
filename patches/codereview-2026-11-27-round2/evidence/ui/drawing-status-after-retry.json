@@ -1,0 +1,16 @@
+[
+  {
+    "web": "$REVIEW_WORKSPACE/round2-ui/magnolie-organizer-windows/app/web",
+    "afterFailure": "This drawing cannot be edited in this version.",
+    "afterSuccessfulImport": "This drawing cannot be edited in this version.",
+    "drawingReplaced": true,
+    "errors": []
+  },
+  {
+    "web": "$REVIEW_WORKSPACE/round2-ui/magnolie-organizer/web",
+    "afterFailure": "This drawing cannot be edited in this version.",
+    "afterSuccessfulImport": "This drawing cannot be edited in this version.",
+    "drawingReplaced": true,
+    "errors": []
+  }
+]

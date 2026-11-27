@@ -1,0 +1,8 @@
+{"kind": "VEVENT", "trigger": "TRIGGER;VALUE=DATE-TIME:20261127T103000Z", "mode": "original", "count": 1, "expected": 1, "errors": []}
+{"kind": "VEVENT", "trigger": "TRIGGER;VALUE=DATE-TIME:20261127T103000Z", "mode": "background", "count": 1, "expected": 1, "errors": []}
+{"kind": "VEVENT", "trigger": "TRIGGER:-PT120M", "mode": "original", "count": 1, "expected": 1, "errors": []}
+{"kind": "VEVENT", "trigger": "TRIGGER:-PT120M", "mode": "background", "count": 1, "expected": 1, "errors": []}
+{"kind": "VTODO", "trigger": "TRIGGER;VALUE=DATE-TIME:20261127T103000Z", "mode": "original", "count": 1, "expected": 1, "errors": null}
+{"kind": "VTODO", "trigger": "TRIGGER;VALUE=DATE-TIME:20261127T103000Z", "mode": "background", "count": 1, "expected": 1, "errors": null}
+{"kind": "VTODO", "trigger": "TRIGGER:-PT120M", "mode": "original", "count": 1, "expected": 1, "errors": null}
+{"kind": "VTODO", "trigger": "TRIGGER:-PT120M", "mode": "background", "count": 1, "expected": 1, "errors": null}

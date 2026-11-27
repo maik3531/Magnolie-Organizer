@@ -1,0 +1,11 @@
+Magnolie CoreTests: 6 Gruppen
+  OK     Contact group exclusions / identity / reminder privacy (0.21 s)
+  OK     Reminder / Serien (0.00 s)
+Absolute reminders: 138 shared import/projection cases, repeated runs, real persisted restart, date edit, source identities and confidentiality passed.
+  OK     Reminder / absolute triggers / source identity / restart (0.13 s)
+Absolute reminder coincidence: standard/due/relative deduplication, real persisted aliases, old acknowledgements, seconds and source separation passed in all three projections.
+  OK     Reminder / coincident absolute triggers / persisted acknowledgements (0.28 s)
+         REMINDER-PERSIST-OK REMINDER-PROTECTED-OK REMINDER-DST-OK REMINDER-ALARMS-OK
+  OK     Reminder / Neustart / Kennwort / DST (3.35 s)
+  OK     Anniversary reminder / text / independent dismissal (0.00 s)
+CoreTests: 6/6 Gruppen bestanden.

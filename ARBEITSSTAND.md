@@ -1,5 +1,18 @@
 # Aktueller Arbeitsstand
 
+## Bereitgestellte Codereview-Patches, zweite Runde – 27. November 2026
+
+Dieser Artefaktzweig stellt die vollständige Patchserie zur späteren Einpflege bereit.
+Seine Produktquellen entsprechen weiter der Basis `1543858e251d7e29ebeafb67d2605991c1d442d5`. Die geprüften
+Korrekturen liegen als Gesamtpatch und 7 geordnete Teilpatches vor.
+Beide Anwendungswege ergeben exakt den Quellbaum `5bf49b5e9250ba2c3f376ccf86d58dc018139c6f`.
+
+[Index, Anwendung und Prüfnachweise](patches/codereview-2026-11-27-round2/README.md): #835–#838 sowie der
+belegte CSV-Teilfall aus #566; Gesamtübergabe #113. Der Review hat `main`
+nicht geändert. Die erste Lieferung bleibt separat unverändert erhalten.
+
+Die folgenden Abschnitte enthalten unverändert den Arbeitsstand der Anwendungsbasis.
+
 Die geprüften Einzelissues sind abgeschlossen; die weiterhin benötigten
 Paket- und Geräteprüfungen sind in [#113](https://github.com/maik3531/Magnolie-Organizer/issues/113#issuecomment-7215114176)
 und [#121](https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7215113730)

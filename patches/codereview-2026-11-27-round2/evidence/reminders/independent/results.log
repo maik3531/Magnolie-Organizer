@@ -1,0 +1,9 @@
+{"name":"event","mode":"runtime","keys":["mwyxp3hdqcdu07@absolute:20261127T103015Z","mwyxp3hdqcdu07@absolute:20261127T103030Z"],"actualRestarts":3,"descriptionExcluded":true}
+{"name":"event","mode":"background","keys":["mwyxp3hdqcdu07@absolute:20261127T103015Z","mwyxp3hdqcdu07@absolute:20261127T103030Z"],"actualRestarts":3,"descriptionExcluded":true}
+{"name":"task","mode":"runtime","keys":["aufgabe:mwyxp3hfzwsfpa@absolute:20261127T103015Z","aufgabe:mwyxp3hfzwsfpa@absolute:20261127T103030Z"],"actualRestarts":3,"descriptionExcluded":true}
+{"name":"task","mode":"background","keys":["aufgabe:mwyxp3hfzwsfpa@absolute:20261127T103015Z","aufgabe:mwyxp3hfzwsfpa@absolute:20261127T103030Z"],"actualRestarts":3,"descriptionExcluded":true}
+{"name":"undated-task","mode":"runtime","keys":["aufgabe:mwyxp3hhc0acwf@absolute:20261127T103015Z","aufgabe:mwyxp3hhc0acwf@absolute:20261127T103030Z"],"actualRestarts":3,"descriptionExcluded":true}
+{"name":"undated-task","mode":"background","keys":["aufgabe:mwyxp3hhc0acwf@absolute:20261127T103015Z","aufgabe:mwyxp3hhc0acwf@absolute:20261127T103030Z"],"actualRestarts":3,"descriptionExcluded":true}
+{"name":"recurrence","mode":"runtime","keys":["mwyxp3hic60bg3@absolute:20261127T103015Z","mwyxp3hic60bg3@absolute:20261127T103030Z"],"actualRestarts":3,"descriptionExcluded":true}
+{"name":"recurrence","mode":"background","keys":["mwyxp3hic60bg3@absolute:20261127T103015Z","mwyxp3hic60bg3@absolute:20261127T103030Z"],"actualRestarts":3,"descriptionExcluded":true}
+{"checks":176,"cases":4,"projectionModes":2}

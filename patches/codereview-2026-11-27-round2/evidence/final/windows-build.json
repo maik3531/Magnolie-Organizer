@@ -1,0 +1,23 @@
+{
+  "name": "windows-build",
+  "command": [
+    "$REVIEW_TOOLS/dotnet/dotnet",
+    "build",
+    "tests/CoreTests.csproj",
+    "-c",
+    "Release",
+    "--no-restore"
+  ],
+  "cwd": "$REVIEW_SOURCE/magnolie-organizer-windows",
+  "environment": {
+    "TZ": "UTC",
+    "PYTHONPATH": "$REVIEW_TOOLS/pydeps",
+    "NODE_PATH": "$REVIEW_TOOLS/node_modules",
+    "DOTNET_CLI_HOME": "$REVIEW_TOOLS/dotnet-home",
+    "NUGET_PACKAGES": "$HOST_USER/.nuget/packages"
+  },
+  "exit": 0,
+  "elapsed_seconds": 21.67,
+  "log": "windows-build.log",
+  "source_commit": "ed3ffa936088840e4c3437eab5c37417fd31c86b"
+}

@@ -1,0 +1,17 @@
+PASS app/en: JSON import localized rejection, unchanged data/save state and valid retry
+PASS app/en: Export localized rejection, unchanged data/save state and valid retry
+PASS app/en: Rotate sheet localized rejection, unchanged data/save state and valid retry
+PASS app/en: Embed in note localized rejection, unchanged data/save state and valid retry
+PASS app/de: JSON import localized rejection, unchanged data/save state and valid retry
+PASS app/de: Export localized rejection, unchanged data/save state and valid retry
+PASS app/de: Rotate sheet localized rejection, unchanged data/save state and valid retry
+PASS app/de: Embed in note localized rejection, unchanged data/save state and valid retry
+PASS magnolie-organizer/en: JSON import localized rejection, unchanged data/save state and valid retry
+PASS magnolie-organizer/en: Export localized rejection, unchanged data/save state and valid retry
+PASS magnolie-organizer/en: Rotate sheet localized rejection, unchanged data/save state and valid retry
+PASS magnolie-organizer/en: Embed in note localized rejection, unchanged data/save state and valid retry
+PASS magnolie-organizer/de: JSON import localized rejection, unchanged data/save state and valid retry
+PASS magnolie-organizer/de: Export localized rejection, unchanged data/save state and valid retry
+PASS magnolie-organizer/de: Rotate sheet localized rejection, unchanged data/save state and valid retry
+PASS magnolie-organizer/de: Embed in note localized rejection, unchanged data/save state and valid retry
+PASS 16 drawing error/recovery UI cases; JSDOM controls, native decoder/canvas boundary simulated, no native acceptance

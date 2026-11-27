@@ -1,0 +1,6 @@
+{
+  "$REVIEW_WORKSPACE/round2-evidence/reminder-audit-build/core-snapshot/CoreTests.dll": "cb9a30bbe088a04f1232e13ff0ca246240a30ae7cab275e25760b3575963b637",
+  "$REVIEW_SOURCE/magnolie-organizer-windows/ReminderScheduler.cs": "5c8f79573f05b59116642f4d88880deaf5b9ba1bdce854a46736c17dee673f7b",
+  "$REVIEW_SOURCE/magnolie-organizer-windows/app/web/anwendung.js": "56da3161f707b47d7f701acdaedaedf13d7660fbf7a8875ec9957f0e920bfa31",
+  "$EARLIER_REVIEW/review-integrated/magnolie-organizer-windows/app/web/normative-timezones.js": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b"
+}

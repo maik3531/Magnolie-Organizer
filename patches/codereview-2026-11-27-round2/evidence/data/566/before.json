@@ -1,0 +1,109 @@
+{
+  "linux": {
+    "kontakte": [
+      {
+        "nachname": "CSV",
+        "vorname": "Synthetic",
+        "firma": "",
+        "strasse": "Privatweg 1",
+        "plz": "10115",
+        "ort": "Berlin",
+        "telefon": "030123456",
+        "mobil": "",
+        "email": "",
+        "notiz": "",
+        "telefone": [
+          {
+            "wert": "030123456",
+            "typen": [
+              "VOICE",
+              "HOME"
+            ]
+          },
+          {
+            "wert": "040654321",
+            "typen": [
+              "WORK",
+              "VOICE"
+            ]
+          }
+        ],
+        "anschriften": [
+          {
+            "strasse": "Privatweg 1",
+            "plz": "10115",
+            "ort": "Berlin",
+            "land": "DE",
+            "typen": [
+              "HOME"
+            ],
+            "vcardParameter": []
+          },
+          {
+            "strasse": "Firmenweg 2",
+            "plz": "20095",
+            "ort": "Hamburg",
+            "land": "DE",
+            "typen": [
+              "WORK"
+            ]
+          }
+        ]
+      }
+    ],
+    "termine": [],
+    "uebersprungen": 0,
+    "lotusArt": "kontakte"
+  },
+  "windows": {
+    "Termine": [],
+    "Jahrestage": [],
+    "Geburtstage": [],
+    "Aufgaben": [],
+    "Kontakte": [
+      {
+        "nachname": "CSV",
+        "vorname": "Synthetic",
+        "firma": "",
+        "strasse": "Privatweg 1",
+        "plz": "10115",
+        "ort": "Berlin",
+        "anschriften": [
+          {
+            "strasse": "Privatweg 1",
+            "plz": "10115",
+            "ort": "Berlin",
+            "land": "DE"
+          }
+        ],
+        "telefone": [
+          {
+            "wert": "030123456",
+            "typen": [
+              "VOICE"
+            ]
+          },
+          {
+            "wert": "040654321",
+            "typen": [
+              "VOICE"
+            ]
+          }
+        ],
+        "telefon": "030123456",
+        "mobil": "",
+        "email": "",
+        "emails": [],
+        "notiz": "",
+        "uid": "",
+        "geaendert": 0
+      }
+    ],
+    "Uebersprungen": 0,
+    "Wiederholend": 0,
+    "Bericht": "",
+    "Notizen": [],
+    "FehlerhafteTermine": 0,
+    "FehlerhafteAufgaben": 0
+  }
+}

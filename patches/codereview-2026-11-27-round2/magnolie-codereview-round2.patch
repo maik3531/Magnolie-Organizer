@@ -1,0 +1,3363 @@
+diff --git a/ARBEITSSTAND.md b/ARBEITSSTAND.md
+index 609a49395292e133f864b46db29d056f047ab5e8..f13f75e95d659e258f129629afa7de0b2f2c1d11 100644
+--- a/ARBEITSSTAND.md
++++ b/ARBEITSSTAND.md
+@@ -1,12 +1,67 @@
+ # Aktueller Arbeitsstand
+ 
+-Die geprüften Einzelissues sind abgeschlossen; die weiterhin benötigten
+-Paket- und Geräteprüfungen sind in [#113](https://github.com/maik3531/Magnolie-Organizer/issues/113#issuecomment-7215114176)
++Die Gesamtübergabe und die weiterhin benötigten Paket- und Geräteprüfungen
++sind in [#113](https://github.com/maik3531/Magnolie-Organizer/issues/113#issuecomment-7215114176)
+ und [#121](https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7215113730)
+ aufgeführt.
+ 
++## Zweite Codereviewrunde: vorbereitete Issue-Patches – 27. November 2026
++
++Prüfbasis ist `1543858e251d7e29ebeafb67d2605991c1d442d5`. Die Korrekturen
++werden entsprechend dem Reviewauftrag als vollständige Patches zur späteren
++Einpflege bereitgestellt; daraus folgt keine Paketfreigabe.
++
++- [#835](https://github.com/maik3531/Magnolie-Organizer/issues/835):
++  Feste ICS-DISPLAY-Alarme werden in beiden Desktopquellen unabhängig vom
++  aktuellen Serienfenster berücksichtigt. UTC-Sekunden, Quellenidentität,
++  Hintergrundprojektion und gültige undatierte Aufgaben bleiben erhalten.
++  Bereits quittierte Alarme werden über echte Zustandsdateien erkannt;
++  gleichzeitig fällige normale und absolute Alarme quittieren beide Marken
++  mit einer Meldung. 198 gezielte Pythonfälle und sechs C#-Remindergruppen
++  einschließlich 138 gemeinsamer Import-/Projektionsfälle bestanden.
++  Die bestehende Weckzeitreferenz wurde für absolute Trigger durch einen
++  unabhängigen UTC-Sollwert ergänzt; relative Vergleichsfälle bleiben erhalten.
++  Die Nachholfenster wurden nicht plattformübergreifend verändert.
++  Native Windows-/Linux-Benachrichtigungen und Pakete sind nicht abgenommen.
++- [#836](https://github.com/maik3531/Magnolie-Organizer/issues/836):
++  Notes behandelt Fehler bei der vollständigen Anhangvorbereitung, führt
++  Dateiarbeit im I/O-Dispatcher aus und bereinigt eindeutige Tempdateien.
++  Coroutine-Abbruch bleibt erhalten. 13 JUnit-Hostgruppen bestanden;
++  ein echter Dateischreibfehler erzeugt weder einen Viewer-Start noch einen
++  Tempdateirest und erhält die vorherige Cachedatei. Android-Grenzen sind im
++  Hostlauf ersetzt; ein nativer Provider-/Viewer- oder APK-Lauf fehlt.
++- [#838](https://github.com/maik3531/Magnolie-Organizer/issues/838):
++  Beide Zeichenblattfrontends erreichen ihre lokalisierten Fehlermeldungen
++  und zeigen nach erfolgreicher Wiederholung den geladenen Dateinamen.
++  16 neue JSDOM-Szenarien über Deutsch/Englisch und Linux/Windows sowie
++  die vorhandenen Zeichenblatt- und Zeitzonenprüfungen bestanden.
++  Canvas- und Decodergrenzen sind simuliert; keine native Paketabnahme.
++
+ ## Weitere Abnahme für den Gesamtrelease
+ 
++- [#566](https://github.com/maik3531/Magnolie-Organizer/issues/566),
++  abgegrenzter CSV-Teilbefund: Windows erhält allgemeine, private und
++  geschäftliche Anschriften sowie die vorhandenen Telefonrollen. Linux
++  bildet Anschriften zuerst je Quellrolle und leitet erst danach die
++  alten Skalarfelder ab; so entstehen weder erfundene Mischanschriften
++  noch eine zusätzliche HOME-Rolle für reine Geschäftsanschriften.
++  Acht gemeinsame Sollkontakte einschließlich vertauschter/unvollständiger
++  Spalten, leerer Werte und dreifachem vCard-Rundlauf bestanden in beiden
++  tatsächlichen Codecs. Die 27 Aufgaben-CSV-Vektoren bestanden mit.
++  Dies ist kein Nachweis zur Ursache des historischen privaten OR6-/UI-
++  Konfliktberichts und keine native Windows- oder Paketabnahme.
++- [#837](https://github.com/maik3531/Magnolie-Organizer/issues/837):
++  CSV-Aufgaben behalten in Linux und Windows ihre explizite Priorität;
++  unbekannte Werte bleiben normal, insbesondere wird „Normal“ nicht mehr
++  durch einen Präfixtreffer zu niedrig. Windows übernimmt die vorhandenen
++  CSV-Abschlusswerte COMPLETED/COMPLETE/ABGESCHLOSSEN/FERTIG. 27 gemeinsame
++  Vektoren einschließlich wiederholter VTODO-Ausgabe und erneutem Einlesen
++  bestanden in beiden tatsächlichen Codecs; Linux zusätzlich acht vorhandene
++  OR6-Aufgabenfälle. Dies sind isolierte Hostprüfungen, keine Paketabnahme.
++  Der bestehende Exchange-Gate bestand auf Basis und CSV-Endstand nach
++  expliziter Hostzeitzone `TZ=Europe/Berlin` zusammen mit der vorhandenen
++  `TZDIR`-Datenbasis; der anfängliche rote Lauf beruhte auf der isolierten
++  Testumgebung. Dafür war kein Produktfix erforderlich.
+ - [#809](https://github.com/maik3531/Magnolie-Organizer/issues/809):
+   Beide ISO-Abbilder sind anhand offizieller Signaturen geprüft.
+   Auf Mint 27 Cinnamon Beta wurden die 2.0.30-Baseline-DEBs
+diff --git a/contracts/absolute-reminder-vectors.json b/contracts/absolute-reminder-vectors.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..a9b251b51cafc8eeebc3e5c9390508d84751889f
+--- /dev/null
++++ b/contracts/absolute-reminder-vectors.json
+@@ -0,0 +1,270 @@
++{
++  "version": 1,
++  "issue": 835,
++  "description": "Synthetic absolute DISPLAY alarm scenarios, shared by actual Python and C# imports and reminder planning. Expected counts count only absolute alarms.",
++  "cases": [
++    {
++      "name": "absolute-before-future-event",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1
++    },
++    {
++      "name": "absolute-far-outside-window",
++      "start": "20351129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1
++    },
++    {
++      "name": "absolute-finished-series",
++      "start": "20200101T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1,
++      "rule": "FREQ=DAILY;COUNT=2"
++    },
++    {
++      "name": "absolute-active-series",
++      "start": "20261001T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1,
++      "rule": "FREQ=DAILY;COUNT=100"
++    },
++    {
++      "name": "absolute-future-series",
++      "start": "20261201T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1,
++      "rule": "FREQ=DAILY;COUNT=5"
++    },
++    {
++      "name": "before-trigger",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:29:59Z",
++      "zone": "UTC",
++      "expected": 0
++    },
++    {
++      "name": "seconds-before",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103045Z"
++      ],
++      "now": "2026-11-27T10:30:44Z",
++      "zone": "UTC",
++      "expected": 0
++    },
++    {
++      "name": "seconds-at",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103045Z"
++      ],
++      "now": "2026-11-27T10:30:45Z",
++      "zone": "UTC",
++      "expected": 1
++    },
++    {
++      "name": "two-seconds",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103005Z",
++        "20261127T103045Z"
++      ],
++      "now": "2026-11-27T10:30:46Z",
++      "zone": "UTC",
++      "expected": 2
++    },
++    {
++      "name": "duplicate-trigger",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z",
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1
++    },
++    {
++      "name": "cancelled",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0,
++      "status": "CANCELLED"
++    },
++    {
++      "name": "completed-task",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0,
++      "status": "COMPLETED",
++      "kinds": [
++        "VTODO"
++      ]
++    },
++    {
++      "name": "not-display",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0,
++      "action": "AUDIO"
++    },
++    {
++      "name": "malformed-trigger",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20260230T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0
++    },
++    {
++      "name": "missed-enabled",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-28T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1
++    },
++    {
++      "name": "missed-disabled",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-28T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0,
++      "missed": false
++    },
++    {
++      "name": "expired",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-30T10:30:01Z",
++      "zone": "UTC",
++      "expected": 0
++    },
++    {
++      "name": "fold-first",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261025T003015Z",
++        "20261025T013015Z"
++      ],
++      "now": "2026-10-25T00:30:15Z",
++      "zone": "Europe/Berlin",
++      "expected": 1
++    },
++    {
++      "name": "fold-both",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261025T003015Z",
++        "20261025T013015Z"
++      ],
++      "now": "2026-10-25T01:30:15Z",
++      "zone": "Europe/Berlin",
++      "expected": 2
++    },
++    {
++      "name": "structured",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1,
++      "structured": true
++    },
++    {
++      "name": "structured-disabled",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0,
++      "structured": true,
++      "enabled": false
++    },
++    {
++      "name": "structured-nondisplay",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0,
++      "structured": true,
++      "action": "AUDIO"
++    },
++    {
++      "name": "undated-task",
++      "kinds": [
++        "VTODO"
++      ],
++      "start": "",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1
++    },
++    {
++      "name": "mixed-case-valarm",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1,
++      "alarmCase": "lower"
++    }
++  ]
++}
+diff --git a/contracts/lotus-csv-contact-fields.json b/contracts/lotus-csv-contact-fields.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..b7ec33237045fa2f35b5183564fb5b5035c2ed0d
+--- /dev/null
++++ b/contracts/lotus-csv-contact-fields.json
+@@ -0,0 +1,443 @@
++{
++  "description": "Synthetic CSV contacts: independent HOME/WORK/general fields, no inferred hybrid address. Scoped file-import part of #566; not evidence for historical OR6/UI conflicts.",
++  "cases": [
++    {
++      "id": "home-and-work",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Telefon Privat",
++        "Telefon Geschäftlich",
++        "Straße Privat",
++        "PLZ Privat",
++        "Ort Privat",
++        "Land Privat",
++        "Straße Geschäftlich",
++        "PLZ Geschäftlich",
++        "Ort Geschäftlich",
++        "Land Geschäftlich"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "030123456",
++        "040654321",
++        "Privatweg 1",
++        "10115",
++        "Berlin",
++        "DE",
++        "Firmenweg 2",
++        "20095",
++        "Hamburg",
++        "DE"
++      ],
++      "phones": [
++        {
++          "wert": "030123456",
++          "typen": [
++            "HOME",
++            "VOICE"
++          ]
++        },
++        {
++          "wert": "040654321",
++          "typen": [
++            "WORK",
++            "VOICE"
++          ]
++        }
++      ],
++      "addresses": [
++        {
++          "strasse": "Privatweg 1",
++          "plz": "10115",
++          "ort": "Berlin",
++          "land": "DE",
++          "typen": [
++            "HOME"
++          ]
++        },
++        {
++          "strasse": "Firmenweg 2",
++          "plz": "20095",
++          "ort": "Hamburg",
++          "land": "DE",
++          "typen": [
++            "WORK"
++          ]
++        }
++      ]
++    },
++    {
++      "id": "work-only",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Telefon Geschäftlich",
++        "Straße Geschäftlich",
++        "PLZ Geschäftlich",
++        "Ort Geschäftlich",
++        "Land Geschäftlich"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "040654321",
++        "Firmenweg 2",
++        "20095",
++        "Hamburg",
++        "DE"
++      ],
++      "phones": [
++        {
++          "wert": "040654321",
++          "typen": [
++            "WORK",
++            "VOICE"
++          ]
++        }
++      ],
++      "addresses": [
++        {
++          "strasse": "Firmenweg 2",
++          "plz": "20095",
++          "ort": "Hamburg",
++          "land": "DE",
++          "typen": [
++            "WORK"
++          ]
++        }
++      ]
++    },
++    {
++      "id": "interleaved-fields",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Straße Privat",
++        "Ort Geschäftlich",
++        "PLZ Privat",
++        "Straße Geschäftlich",
++        "Ort Privat",
++        "PLZ Geschäftlich",
++        "Land Privat",
++        "Land Geschäftlich"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "Privatweg 1",
++        "Hamburg",
++        "10115",
++        "Firmenweg 2",
++        "Berlin",
++        "20095",
++        "DE",
++        "DE"
++      ],
++      "phones": [],
++      "addresses": [
++        {
++          "strasse": "Privatweg 1",
++          "plz": "10115",
++          "ort": "Berlin",
++          "land": "DE",
++          "typen": [
++            "HOME"
++          ]
++        },
++        {
++          "strasse": "Firmenweg 2",
++          "plz": "20095",
++          "ort": "Hamburg",
++          "land": "DE",
++          "typen": [
++            "WORK"
++          ]
++        }
++      ]
++    },
++    {
++      "id": "generic-and-explicit",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Straße",
++        "PLZ",
++        "Ort",
++        "Land",
++        "Telefon Geschäftlich",
++        "Mobiltelefon",
++        "Telefon Privat",
++        "Fax",
++        "Pager",
++        "Straße Privat",
++        "PLZ Privat",
++        "Ort Privat",
++        "Land Privat",
++        "Straße Geschäftlich",
++        "PLZ Geschäftlich",
++        "Ort Geschäftlich",
++        "Land Geschäftlich"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "Allgemeinweg 3",
++        "01067",
++        "Dresden",
++        "DE",
++        "040654321",
++        "0171234567",
++        "030123456",
++        "030234567",
++        "030345678",
++        "Privatweg 1",
++        "10115",
++        "Berlin",
++        "DE",
++        "Firmenweg 2",
++        "20095",
++        "Hamburg",
++        "DE"
++      ],
++      "phones": [
++        {
++          "wert": "040654321",
++          "typen": [
++            "WORK",
++            "VOICE"
++          ]
++        },
++        {
++          "wert": "0171234567",
++          "typen": [
++            "CELL"
++          ]
++        },
++        {
++          "wert": "030123456",
++          "typen": [
++            "HOME",
++            "VOICE"
++          ]
++        },
++        {
++          "wert": "030234567",
++          "typen": [
++            "FAX"
++          ]
++        },
++        {
++          "wert": "030345678",
++          "typen": [
++            "PAGER"
++          ]
++        }
++      ],
++      "addresses": [
++        {
++          "strasse": "Allgemeinweg 3",
++          "plz": "01067",
++          "ort": "Dresden",
++          "land": "DE",
++          "typen": []
++        },
++        {
++          "strasse": "Privatweg 1",
++          "plz": "10115",
++          "ort": "Berlin",
++          "land": "DE",
++          "typen": [
++            "HOME"
++          ]
++        },
++        {
++          "strasse": "Firmenweg 2",
++          "plz": "20095",
++          "ort": "Hamburg",
++          "land": "DE",
++          "typen": [
++            "WORK"
++          ]
++        }
++      ]
++    },
++    {
++      "id": "partial-work-does-not-borrow-home-fields",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Straße Geschäftlich",
++        "Straße Privat",
++        "PLZ Privat",
++        "Ort Privat",
++        "Land Privat"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "Firmenweg 2",
++        "Privatweg 1",
++        "10115",
++        "Berlin",
++        "DE"
++      ],
++      "phones": [],
++      "addresses": [
++        {
++          "strasse": "Privatweg 1",
++          "plz": "10115",
++          "ort": "Berlin",
++          "land": "DE",
++          "typen": [
++            "HOME"
++          ]
++        },
++        {
++          "strasse": "Firmenweg 2",
++          "plz": "",
++          "ort": "",
++          "land": "",
++          "typen": [
++            "WORK"
++          ]
++        }
++      ]
++    },
++    {
++      "id": "empty-role-columns",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Telefon Privat",
++        "Telefon Geschäftlich",
++        "Straße Privat",
++        "PLZ Privat",
++        "Ort Privat",
++        "Straße Geschäftlich",
++        "PLZ Geschäftlich",
++        "Ort Geschäftlich"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "",
++        "",
++        "",
++        "",
++        "",
++        "",
++        "",
++        ""
++      ],
++      "phones": [],
++      "addresses": []
++    },
++    {
++      "id": "generic-keeps-no-invented-role",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Telefon",
++        "Straße",
++        "PLZ",
++        "Ort",
++        "Land"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "035123456",
++        "Allgemeinweg 3",
++        "01067",
++        "Dresden",
++        "DE"
++      ],
++      "phones": [
++        {
++          "wert": "035123456",
++          "typen": [
++            "VOICE"
++          ]
++        }
++      ],
++      "addresses": [
++        {
++          "strasse": "Allgemeinweg 3",
++          "plz": "01067",
++          "ort": "Dresden",
++          "land": "DE",
++          "typen": []
++        }
++      ]
++    },
++    {
++      "id": "english-role-columns",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Work Phone",
++        "Home Phone",
++        "Work Street",
++        "Work ZIP",
++        "Work City",
++        "Work Country",
++        "Home Street",
++        "Home ZIP",
++        "Home City",
++        "Home Country"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "040654321",
++        "030123456",
++        "Firmenweg 2",
++        "20095",
++        "Hamburg",
++        "DE",
++        "Privatweg 1",
++        "10115",
++        "Berlin",
++        "DE"
++      ],
++      "phones": [
++        {
++          "wert": "040654321",
++          "typen": [
++            "WORK",
++            "VOICE"
++          ]
++        },
++        {
++          "wert": "030123456",
++          "typen": [
++            "HOME",
++            "VOICE"
++          ]
++        }
++      ],
++      "addresses": [
++        {
++          "strasse": "Privatweg 1",
++          "plz": "10115",
++          "ort": "Berlin",
++          "land": "DE",
++          "typen": [
++            "HOME"
++          ]
++        },
++        {
++          "strasse": "Firmenweg 2",
++          "plz": "20095",
++          "ort": "Hamburg",
++          "land": "DE",
++          "typen": [
++            "WORK"
++          ]
++        }
++      ]
++    }
++  ]
++}
+diff --git a/contracts/lotus-csv-task-values.json b/contracts/lotus-csv-task-values.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..51119279b76486408d11f6385295081da758ebb6
+--- /dev/null
++++ b/contracts/lotus-csv-task-values.json
+@@ -0,0 +1,194 @@
++{
++  "description": "Synthetic CSV task priority and completion values; exact tokens, neutral unknown priorities. Refs #837.",
++  "cases": [
++    {
++      "id": "priority-high-number",
++      "priority": "1",
++      "status": "Nein",
++      "expectedPriority": 1,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-high-short",
++      "priority": "H",
++      "status": "Nein",
++      "expectedPriority": 1,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-high-german",
++      "priority": " Hoch ",
++      "status": "Nein",
++      "expectedPriority": 1,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-high-english",
++      "priority": "high",
++      "status": "Nein",
++      "expectedPriority": 1,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-low-number",
++      "priority": "3",
++      "status": "Nein",
++      "expectedPriority": 3,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-low-short",
++      "priority": "N",
++      "status": "Nein",
++      "expectedPriority": 3,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-low-german",
++      "priority": "Niedrig",
++      "status": "Nein",
++      "expectedPriority": 3,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-low-english",
++      "priority": "low",
++      "status": "Nein",
++      "expectedPriority": 3,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-normal-number",
++      "priority": "2",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-normal-text",
++      "priority": "Normal",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-empty",
++      "priority": "",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-unknown-n-prefix",
++      "priority": "Not set",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-unknown-h-prefix",
++      "priority": "Hauptsache",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-unknown-three-prefix",
++      "priority": "31",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "priority-unknown-one-prefix",
++      "priority": "10",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "status-yes",
++      "priority": "2",
++      "status": "Ja",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-one",
++      "priority": "2",
++      "status": "1",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-check",
++      "priority": "2",
++      "status": "X",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-completed",
++      "priority": "2",
++      "status": "COMPLETED",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-complete",
++      "priority": "2",
++      "status": "complete",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-finished",
++      "priority": "2",
++      "status": " fertig ",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-closed",
++      "priority": "2",
++      "status": "Abgeschlossen",
++      "expectedPriority": 2,
++      "expectedCompleted": true
++    },
++    {
++      "id": "status-no",
++      "priority": "2",
++      "status": "Nein",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "status-zero",
++      "priority": "2",
++      "status": "0",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "status-incomplete",
++      "priority": "2",
++      "status": "INCOMPLETE",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "status-not-completed",
++      "priority": "2",
++      "status": "NOT COMPLETED",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    },
++    {
++      "id": "status-empty",
++      "priority": "2",
++      "status": "",
++      "expectedPriority": 2,
++      "expectedCompleted": false
++    }
++  ]
++}
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/AnhangDatei.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/AnhangDatei.kt
+index 2a77dad386635121e4e385f4a89615c4ddf2d06e..b45643184466346c3a9f4818353899de22d59a78 100644
+--- a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/AnhangDatei.kt
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/AnhangDatei.kt
+@@ -6,8 +6,10 @@ import android.net.Uri
+ import androidx.core.content.FileProvider
+ import io.gitlab.maik3531.magnolienotes.daten.Anhang
+ import io.gitlab.maik3531.magnolienotes.daten.AnhangPruefung
++import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.withContext
+ import java.io.File
+-import java.util.Base64
++import java.util.concurrent.CancellationException
+ 
+ /** Dekodiert einen geprüften Anhang ausschließlich in den internen Freigabecache. */
+ object AnhangDatei {
+@@ -45,10 +47,13 @@ object AnhangDatei {
+         ordner.listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 24 * 3600_000L }
+             ?.forEach { it.delete() }
+         val datei = File(ordner, anhang.id.filter(Char::isLetterOrDigit).take(64).ifBlank { "anhang" } + ".${inhalt.endung}")
+-        val neben = File(ordner, datei.name + ".neu")
+-        neben.writeBytes(inhalt.bytes)
+-        if (!neben.renameTo(datei)) { neben.delete(); return null }
+-        return Geoeffnet(datei, inhalt.mime)
++        // More than one editor click may prepare a file on IO at the same time.
++        val neben = File.createTempFile("anhang-", ".neu", ordner)
++        try {
++            neben.writeBytes(inhalt.bytes)
++            if (!neben.renameTo(datei)) return null
++            return Geoeffnet(datei, inhalt.mime)
++        } finally { neben.delete() }
+     }
+ 
+     fun speichern(context: Context, ziel: Uri, anhang: Anhang): Boolean {
+@@ -62,11 +67,21 @@ object AnhangDatei {
+         }.getOrDefault(false)
+     }
+ 
+-    fun oeffnen(context: Context, anhang: Anhang): Boolean {
+-        val offen = vorbereiten(context, anhang) ?: return false
+-        val uri = FileProvider.getUriForFile(context, context.packageName + ".dateien", offen.datei)
+-        val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, offen.mime)
+-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+-        return runCatching { context.startActivity(intent); true }.getOrDefault(false)
++    /** Called from the editor's Main scope; only preparation leaves that scope. */
++    suspend fun oeffnen(context: Context, anhang: Anhang): Boolean {
++        return try {
++            val intent = withContext(Dispatchers.IO) {
++                val offen = vorbereiten(context, anhang) ?: return@withContext null
++                val uri = FileProvider.getUriForFile(context, context.packageName + ".dateien", offen.datei)
++                Intent(Intent.ACTION_VIEW).setDataAndType(uri, offen.mime)
++                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
++            } ?: return false
++            context.startActivity(intent)
++            true
++        } catch (abbruch: CancellationException) {
++            throw abbruch
++        } catch (_: Exception) {
++            false
++        }
+     }
+ }
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt
+index ecdbfe7fd4b26497f9b8ecde87192ff8f8076bd3..4635c80e5bbfffb5350fd9a40eda6833e43747b8 100644
+--- a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt
+@@ -1091,8 +1091,10 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
+                 }
+             },
+             beiAnhangOeffnen = { anhang ->
+-                if (!AnhangDatei.oeffnen(zusammenhang, anhang)) {
+-                    sage(zusammenhang.getString(R.string.notiz_anhang_oeffnen_fehler))
++                faden.launch {
++                    if (!AnhangDatei.oeffnen(zusammenhang, anhang)) {
++                        sage(zusammenhang.getString(R.string.notiz_anhang_oeffnen_fehler))
++                    }
+                 }
+             },
+             beiAnhangSpeichern = { anhang ->
+diff --git a/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/AnhangOeffnenTest.kt b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/AnhangOeffnenTest.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..530f52fef6b1debf232a0fafb19416a55ddbbbdc
+--- /dev/null
++++ b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/AnhangOeffnenTest.kt
+@@ -0,0 +1,164 @@
++package io.gitlab.maik3531.magnolienotes
++
++import android.content.ActivityNotFoundException
++import android.content.Context
++import android.content.ContextWrapper
++import android.content.Intent
++import androidx.test.core.app.ApplicationProvider
++import io.gitlab.maik3531.magnolienotes.daten.Anhang
++import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.async
++import kotlinx.coroutines.awaitAll
++import kotlinx.coroutines.launch
++import kotlinx.coroutines.runBlocking
++import kotlinx.coroutines.withContext
++import org.junit.After
++import org.junit.Assert.*
++import org.junit.Test
++import org.junit.runner.RunWith
++import org.robolectric.RobolectricTestRunner
++import org.robolectric.annotation.Config
++import java.io.File
++import java.nio.file.Files
++import java.util.Base64
++import java.util.UUID
++import java.util.concurrent.CancellationException
++import java.util.concurrent.CountDownLatch
++import java.util.concurrent.TimeUnit
++
++@RunWith(RobolectricTestRunner::class)
++@Config(sdk = [35])
++class AnhangOeffnenTest {
++    private val base = ApplicationProvider.getApplicationContext<Context>()
++    private val cleanup = mutableListOf<File>()
++    private val png = Base64.getDecoder().decode(
++        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jFJkAAAAASUVORK5CYII=")
++    private val attachment = Anhang(UUID.randomUUID().toString(), "pixel.png", "image",
++        "data:image/png;base64," + Base64.getEncoder().encodeToString(png))
++
++    private fun cacheFile(): File = File(File(base.cacheDir, "anhaenge"),
++        attachment.id.filter(Char::isLetterOrDigit) + ".png").also { cleanup += it }
++
++    private open inner class RecordingContext : ContextWrapper(base) {
++        var cacheThread: Thread? = null
++        val starts = mutableListOf<Pair<Thread, Intent>>()
++        override fun getCacheDir(): File {
++            cacheThread = Thread.currentThread()
++            return base.cacheDir
++        }
++        override fun startActivity(intent: Intent) { starts += Thread.currentThread() to intent }
++    }
++
++    @After fun removeOwnFiles() { cleanup.forEach { it.deleteRecursively() } }
++
++    @Test fun `preparation leaves caller thread and viewing returns to caller with read permission`() = runBlocking {
++        val context = RecordingContext()
++        val caller = Thread.currentThread()
++        val target = cacheFile()
++        assertTrue(AnhangDatei.oeffnen(context, attachment))
++        assertNotSame(caller, context.cacheThread)
++        val (thread, intent) = context.starts.single()
++        assertSame(caller, thread)
++        assertEquals(Intent.ACTION_VIEW, intent.action)
++        assertEquals("image/png", intent.type)
++        assertEquals(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK, intent.flags)
++        assertEquals("content", intent.data?.scheme)
++        assertArrayEquals(png, target.readBytes())
++    }
++
++    @Test fun `unusable cache reports failure without changing blocker or launching viewer`() = runBlocking {
++        val blocker = Files.createTempFile("notes-cache-blocker-", ".tmp").toFile().also { cleanup += it }
++        blocker.writeText("keep")
++        val context = object : RecordingContext() { override fun getCacheDir(): File = blocker }
++        assertFalse(AnhangDatei.oeffnen(context, attachment))
++        assertTrue(context.starts.isEmpty())
++        assertEquals("keep", blocker.readText())
++    }
++
++    @Test fun `cache permission failure is reported`() = runBlocking {
++        val context = object : RecordingContext() {
++            override fun getCacheDir(): File = throw SecurityException("synthetic cache denial")
++        }
++        assertFalse(AnhangDatei.oeffnen(context, attachment))
++        assertTrue(context.starts.isEmpty())
++    }
++
++    @Test fun `provider lookup failure is reported after preparing bytes`() = runBlocking {
++        val context = object : RecordingContext() {
++            override fun getPackageName(): String = "invalid.synthetic.notes.provider"
++        }
++        val target = cacheFile()
++        assertFalse(AnhangDatei.oeffnen(context, attachment))
++        assertTrue(context.starts.isEmpty())
++        assertArrayEquals(png, target.readBytes())
++    }
++
++    @Test fun `missing viewer remains a reported failure`() = runBlocking {
++        cacheFile()
++        val context = object : RecordingContext() {
++            override fun startActivity(intent: Intent) { throw ActivityNotFoundException("synthetic absent viewer") }
++        }
++        assertFalse(AnhangDatei.oeffnen(context, attachment))
++    }
++
++    @Test fun `failed rename removes temporary bytes and retains existing destination`() = runBlocking {
++        val target = cacheFile().apply { mkdirs() }
++        val marker = File(target, "keep").apply { writeText("original") }
++        val directory = target.parentFile!!
++        val before = directory.listFiles().orEmpty().map { it.name }.toSet()
++        val context = RecordingContext()
++        assertFalse(AnhangDatei.oeffnen(context, attachment))
++        assertTrue(context.starts.isEmpty())
++        assertEquals("original", marker.readText())
++        assertEquals(before, directory.listFiles().orEmpty().map { it.name }.toSet())
++    }
++
++    @Test fun `parallel opening keeps complete bytes and no temporary files`() = runBlocking {
++        val target = cacheFile()
++        target.parentFile!!.mkdirs()
++        val before = target.parentFile!!.listFiles().orEmpty().map { it.name }.toSet()
++        val context = RecordingContext()
++        val results = List(8) { async { AnhangDatei.oeffnen(context, attachment) } }.awaitAll()
++        assertTrue(results.all { it })
++        assertEquals(8, context.starts.size)
++        assertTrue(context.starts.all { it.first === Thread.currentThread() })
++        assertArrayEquals(png, target.readBytes())
++        assertEquals(before + target.name, target.parentFile!!.listFiles().orEmpty().map { it.name }.toSet())
++    }
++
++    @Test fun `cancellation exceptions are not reported as ordinary failures`() = runBlocking {
++        val context = object : RecordingContext() {
++            override fun getCacheDir(): File = throw CancellationException("synthetic cancellation")
++        }
++        var cancelled = false
++        try { AnhangDatei.oeffnen(context, attachment) }
++        catch (_: CancellationException) { cancelled = true }
++        assertTrue(cancelled)
++        assertTrue(context.starts.isEmpty())
++    }
++
++    @Test fun `cancelled preparation never starts a late viewer`() = runBlocking {
++        cacheFile()
++        val caller = Thread.currentThread()
++        val entered = CountDownLatch(1)
++        val release = CountDownLatch(1)
++        val context = object : RecordingContext() {
++            override fun getCacheDir(): File {
++                assertNotSame(caller, Thread.currentThread())
++                entered.countDown()
++                check(release.await(5, TimeUnit.SECONDS))
++                return base.cacheDir
++            }
++        }
++        var result: Boolean? = null
++        val job = launch { result = AnhangDatei.oeffnen(context, attachment) }
++        try {
++            withContext(Dispatchers.Default) { assertTrue(entered.await(5, TimeUnit.SECONDS)) }
++            job.cancel()
++        } finally { release.countDown() }
++        job.join()
++        assertTrue(job.isCancelled)
++        assertNull(result)
++        assertTrue(context.starts.isEmpty())
++    }
++}
+diff --git a/magnolie-organizer-windows/ExchangeCodec.cs b/magnolie-organizer-windows/ExchangeCodec.cs
+index 4bbcca958a3f91ca13e3b1e1eacd2cf7eb1b66ff..e722ac1373685d65b45c19ab5f5eac260aa02bd7 100644
+--- a/magnolie-organizer-windows/ExchangeCodec.cs
++++ b/magnolie-organizer-windows/ExchangeCodec.cs
+@@ -759,20 +759,19 @@ internal static partial class ExchangeCodec
+                 string Cell(int index) => index >= 0 && index < row.Count ? row[index].Trim() : "";
+                 if (lastIndex >= 0 || firstIndex >= 0 || companyIndex >= 0)
+                 {
+-                    var phones = header.Select((name, index) => (name, index)).Where(pair => pair.name.Contains("TELEFON") || pair.name.Contains("PHONE") || pair.name.Contains("MOBIL") || pair.name.Contains("CELL") || pair.name.Contains("FAX")).Where(pair => Cell(pair.index).Length > 0)
+-                        .Select(pair => new JsonObject { ["wert"] = Cell(pair.index), ["typen"] = new JsonArray(pair.name.Contains("MOBIL") || pair.name.Contains("CELL") ? "CELL" : pair.name.Contains("FAX") ? "FAX" : "VOICE") }).ToArray();
++                    var phones = LotusContactPhones(header, Cell);
+                     var emails = header.Select((name, index) => (name, index)).Where(pair => pair.name.Contains("EMAIL") || pair.name.Contains("MAIL")).Select(pair => Cell(pair.index)).Where(ValidEmail).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+-                    var street = Cell(Find("STRASSE", "STREET", "ANSCHRIFT")); var city = Cell(Find("ORT", "CITY", "STADT")); var postal = Cell(Find("PLZ", "POSTLEITZAHL", "ZIP")); var country = Cell(Find("LAND", "COUNTRY"));
++                    var addresses = LotusContactAddresses(header, Cell); var firstAddress = addresses.FirstOrDefault();
+                     if (Cell(lastIndex).Length + Cell(firstIndex).Length + Cell(companyIndex).Length + emails.Sum(value => value.Length) == 0) { omitted++; continue; }
+-                    contacts.Add(new JsonObject { ["nachname"] = Cell(lastIndex), ["vorname"] = Cell(firstIndex), ["firma"] = Cell(companyIndex), ["strasse"] = street, ["plz"] = postal, ["ort"] = city,
+-                        ["anschriften"] = new JsonArray(new JsonObject { ["strasse"] = street, ["plz"] = postal, ["ort"] = city, ["land"] = country }), ["telefone"] = new JsonArray(phones), ["telefon"] = phones.FirstOrDefault()?["wert"]?.ToString() ?? "", ["mobil"] = phones.FirstOrDefault(phone => phone["typen"]?.AsArray().Any(type => type?.ToString() == "CELL") == true)?["wert"]?.ToString() ?? "",
++                    contacts.Add(new JsonObject { ["nachname"] = Cell(lastIndex), ["vorname"] = Cell(firstIndex), ["firma"] = Cell(companyIndex), ["strasse"] = firstAddress?["strasse"]?.ToString() ?? "", ["plz"] = firstAddress?["plz"]?.ToString() ?? "", ["ort"] = firstAddress?["ort"]?.ToString() ?? "",
++                        ["anschriften"] = new JsonArray(addresses), ["telefone"] = new JsonArray(phones), ["telefon"] = phones.FirstOrDefault()?["wert"]?.ToString() ?? "", ["mobil"] = phones.FirstOrDefault(phone => phone["typen"]?.AsArray().Any(type => type?.ToString() == "CELL") == true)?["wert"]?.ToString() ?? "",
+                         ["email"] = emails.FirstOrDefault() ?? "", ["emails"] = new JsonArray(emails.Select(email => JsonValue.Create(email)).ToArray()), ["notiz"] = Cell(Find("BEMERKUNG", "NOTIZ", "NOTES")), ["uid"] = "", ["geaendert"] = 0 });
+                 }
+                 else if (dueIndex >= 0)
+                 {
+                     var title = Cell(descriptionIndex >= 0 ? descriptionIndex : Find("AUFGABE", "TITEL")); if (title.Length == 0) { omitted++; continue; }
+-                    tasks.Add(new JsonObject { ["titel"] = title, ["faellig"] = ParseLotusDate(Cell(dueIndex)).Date, ["prio"] = Cell(Find("PRIORITAET", "PRIORITY")).StartsWith('1') ? 1 : 2,
+-                        ["erledigt"] = IsYes(Cell(Find("ERLEDIGT", "COMPLETED", "STATUS"))), ["notiz"] = Cell(noteTextIndex), ["uid"] = "", ["geaendert"] = 0 });
++                    tasks.Add(new JsonObject { ["titel"] = title, ["faellig"] = ParseLotusDate(Cell(dueIndex)).Date, ["prio"] = LotusTaskPriority(Cell(Find("PRIORITAET", "PRIORITY"))),
++                        ["erledigt"] = LotusTaskCompleted(Cell(Find("ERLEDIGT", "COMPLETED", "STATUS"))), ["notiz"] = Cell(noteTextIndex), ["uid"] = "", ["geaendert"] = 0 });
+                 }
+                 else if (anniversaryIndex >= 0)
+                 {
+@@ -2174,6 +2173,56 @@ internal static partial class ExchangeCodec
+         return ("", "", false);
+     }
+ 
++    private static bool LotusHeaderContains(string header, params string[] names) =>
++        names.Any(name => header.Contains(name, StringComparison.Ordinal));
++
++    private static JsonObject[] LotusContactPhones(string[] headers, Func<int, string> cell)
++    {
++        var phones = new List<JsonObject>();
++        for (var index = 0; index < headers.Length; index++)
++        {
++            var header = headers[index]; var value = cell(index);
++            if (value.Length == 0 || !LotusHeaderContains(header, "TELEFON", "PHONE", "MOBIL", "HANDY", "CELL", "RUFNUMMER", "FESTNETZ", "FAX", "PAGER")) continue;
++            string[] types = LotusHeaderContains(header, "MOBIL", "HANDY", "CELL", "FUNK") ? ["CELL"] :
++                header.Contains("FAX", StringComparison.Ordinal) ? ["FAX"] : header.Contains("PAGER", StringComparison.Ordinal) ? ["PAGER"] :
++                LotusHeaderContains(header, "GESCHAEFT", "ARBEIT", "WORK", "BUERO") ? ["WORK", "VOICE"] :
++                LotusHeaderContains(header, "PRIVAT", "HOME") ? ["HOME", "VOICE"] : ["VOICE"];
++            phones.Add(new JsonObject { ["wert"] = value, ["typen"] = new JsonArray(types.Select(type => JsonValue.Create(type)).ToArray()) });
++        }
++        return phones.ToArray();
++    }
++
++    private static JsonObject[] LotusContactAddresses(string[] headers, Func<int, string> cell)
++    {
++        var fields = new (string Name, string[] Headers)[] {
++            ("strasse", ["STRASSE", "STREET", "ANSCHRIFT", "ADRESSE"]), ("plz", ["POSTLEITZAHL", "PLZ", "ZIP", "POSTALCODE"]),
++            ("ort", ["ORT", "STADT", "CITY"]), ("land", ["LAND", "COUNTRY"]) };
++        var groups = new[] { "", "HOME", "WORK" }.ToDictionary(role => role,
++            _ => new JsonObject(fields.Select(field => new KeyValuePair<string, JsonNode?>(field.Name, JsonValue.Create("")))));
++        for (var index = 0; index < headers.Length; index++)
++        {
++            var header = headers[index]; var value = cell(index); if (value.Length == 0) continue;
++            var field = fields.FirstOrDefault(candidate => LotusHeaderContains(header, candidate.Headers)).Name;
++            if (field is null) continue;
++            var role = LotusHeaderContains(header, "PRIVAT", "HOME") ? "HOME" :
++                LotusHeaderContains(header, "GESCHAEFT", "ARBEIT", "WORK", "FIRMA") ? "WORK" : "";
++            if (role.Length > 0 || groups[role][field]!.ToString().Length == 0) groups[role][field] = value;
++        }
++        return groups.Where(pair => fields.Any(field => pair.Value[field.Name]!.ToString().Length > 0)).Select(pair =>
++        {
++            pair.Value["typen"] = pair.Key.Length > 0 ? new JsonArray(pair.Key) : new JsonArray();
++            return pair.Value;
++        }).ToArray();
++    }
++
++    private static int LotusTaskPriority(string value) => value.Trim().ToUpperInvariant() switch
++    {
++        "1" or "H" or "HIGH" or "HOCH" => 1,
++        "3" or "N" or "LOW" or "NIEDRIG" => 3,
++        _ => 2
++    };
++    private static bool LotusTaskCompleted(string value) => IsYes(value) ||
++        value.Trim().ToUpperInvariant() is "COMPLETED" or "COMPLETE" or "ABGESCHLOSSEN" or "FERTIG";
+     private static bool IsYes(string value) => new[] { "JA", "J", "YES", "Y", "TRUE", "WAHR", "1", "X" }.Contains(value.Trim().ToUpperInvariant());
+     private static string LotusDate(string date, string time) => DateOnly.TryParseExact(date, "yyyy-MM-dd", out var parsed) ? parsed.ToString("dd.MM.yyyy") + (time.Length > 0 ? " " + time : "") : "";
+     private static void WriteCsvRow(StringBuilder output, IEnumerable<string> values) => output.Append(string.Join(",",
+diff --git a/magnolie-organizer-windows/ReminderScheduler.cs b/magnolie-organizer-windows/ReminderScheduler.cs
+index b8f878f45af750e13c46b3424f6e78141f9bce55..8f2fd2cce87e4e8bd59c915706579cf29a9334c0 100644
+--- a/magnolie-organizer-windows/ReminderScheduler.cs
++++ b/magnolie-organizer-windows/ReminderScheduler.cs
+@@ -198,7 +198,7 @@ internal sealed class ReminderScheduler : IDisposable
+ 
+     internal static IReadOnlyList<(string Key, DateTime Start, DateTime Due)> DueAppointments(
+         string json, DateTime now, Dictionary<string, string>? titles = null, Dictionary<string, string>? errors = null,
+-        Dictionary<string, bool>? allDay = null)
++        Dictionary<string, bool>? allDay = null, Dictionary<string, List<string>>? aliases = null)
+     {
+         using var document = JsonDocument.Parse(json);
+         var root = document.RootElement;
+@@ -222,6 +222,8 @@ internal sealed class ReminderScheduler : IDisposable
+             var maximumLag = alarms.Count == 0 ? 0 : Math.Max(0, -alarms.Min(alarm => alarm.OffsetMinutes));
+             var id = Identity(item);
+             if (id.Length == 0) id = $"{Text(item, "datum")}|{Text(item, "zeit")}|{Text(item, "titel")}";
++            var absoluteKeys = AbsoluteAlarmKeys(item, id);
++            AddAbsoluteAlarms(result, item, id, absoluteKeys, first, nowUtc, includeMissed, zone, titles, allDay);
+             var lookback = duration + TimeSpan.FromDays(5) + TimeSpan.FromMinutes(maximumLag);
+             var lower = lookback.Ticks <= nowUtc.Ticks ? nowUtc.Subtract(lookback) : DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc);
+             var occurrences = ExpandForReminders(item, lower, nowUtc.AddMinutes(Math.Max(8 * 1440, maximumLead)), zone, false, alarms.Any(alarm => alarm.Related == "END"), errors);
+@@ -233,9 +235,10 @@ internal sealed class ReminderScheduler : IDisposable
+                 var individualDays = Math.Clamp(Number(item, "individuelleErinnerungTage", 0), 0, 7);
+                 var standard = !item.TryGetProperty("standardErinnerung", out var standardNode) || standardNode.ValueKind != JsonValueKind.False || individualDays == 0;
+                 var existing = new HashSet<string>(StringComparer.Ordinal);
+-                if (individualDays > 0) AddDue(result, id, "individuell", start, start.AddDays(-individualDays), now, includeMissed, zone: zone, endUtc: startUtc, occurrenceUtc: startUtc);
++                if (individualDays > 0) AddDue(result, id, "individuell", start, start.AddDays(-individualDays), now, includeMissed, zone: zone, endUtc: startUtc, occurrenceUtc: startUtc,
++                    absoluteKeys: absoluteKeys, aliases: aliases);
+                 if (standard) AddDue(result, id, "standard", start, CalendarRecurrence.FromUtc(startUtc.AddMinutes(-lead), zone), now, includeMissed,
+-                    zone: zone, dueUtc: startUtc.AddMinutes(-lead), endUtc: startUtc, occurrenceUtc: startUtc);
++                    zone: zone, dueUtc: startUtc.AddMinutes(-lead), endUtc: startUtc, occurrenceUtc: startUtc, absoluteKeys: absoluteKeys, aliases: aliases);
+                 if (individualDays > 0) existing.Add($"START:{individualDays * 1440}");
+                 if (standard) existing.Add($"START:{lead}");
+                 foreach (var alarm in alarms)
+@@ -245,7 +248,7 @@ internal sealed class ReminderScheduler : IDisposable
+                     var basis = CalendarRecurrence.FromUtc(basisUtc, zone);
+                     AddDue(result, id, $"alarm-{alarm.Related.ToLowerInvariant()}-{alarm.OffsetMinutes}",
+                         start, CalendarRecurrence.FromUtc(basisUtc.AddMinutes(-alarm.OffsetMinutes), zone), now, includeMissed, basis,
+-                        zone, basisUtc.AddMinutes(-alarm.OffsetMinutes), basisUtc, startUtc);
++                        zone, basisUtc.AddMinutes(-alarm.OffsetMinutes), basisUtc, startUtc, absoluteKeys, aliases);
+                 }
+                 if (titles is not null && occurrence.Summary is not null)
+                     foreach (var due in result.Skip(resultStart)) titles[due.Item1] = CalendarRecurrence.TextValue(occurrence.Summary);
+@@ -284,21 +287,35 @@ internal sealed class ReminderScheduler : IDisposable
+             var titles = new Dictionary<string, string>(StringComparer.Ordinal);
+             var errors = new Dictionary<string, string>(StringComparer.Ordinal);
+             var allDay = new Dictionary<string, bool>(StringComparer.Ordinal);
+-            IEnumerable<(string Key, DateTime Start, DateTime Due)> dueItems = DueAppointments(snapshot, now, titles, errors, allDay);
++            var aliases = new Dictionary<string, List<string>>(StringComparer.Ordinal);
++            IEnumerable<(string Key, DateTime Start, DateTime Due)> dueItems = DueAppointments(snapshot, now, titles, errors, allDay, aliases);
+             if (!reminder.TryGetProperty("aufgaben", out var tasksEnabled) || tasksEnabled.ValueKind != JsonValueKind.False)
+-                dueItems = dueItems.Concat(DueTasks(document.RootElement, reminder, now, titles, errors, allDay));
++                dueItems = dueItems.Concat(DueTasks(document.RootElement, reminder, now, titles, errors, allDay, aliases));
+             dueItems = dueItems.Concat(DueAnniversaries(document.RootElement, reminder, now));
+             ExpansionErrors = errors;
+             var previousError = LastError;
+             var expansionError = errors.Count == 0 ? null : string.Join("\n", errors.OrderBy(value => value.Key).Select(value => value.Key + ": " + value.Value));
+             LastError = expansionError;
+             var pending = new List<(string Key, ReminderNotice Notice)>();
++            var newlyReported = new HashSet<string>(StringComparer.Ordinal);
+             lock (gate)
+                 foreach (var key in reported)
+                     if (!reportedAt.ContainsKey(key)) { reportedAt[key] = CalendarRecurrence.NowUtc(now); dirty = true; }
+             foreach (var due in dueItems)
+             {
+-                lock (gate) { if (!reported.Add(due.Key)) continue; reportedAt[due.Key] = CalendarRecurrence.NowUtc(now); dirty = true; }
++                // A coincident ordinary/relative alarm shares the absolute
++                // component trigger, but both persisted identities must survive.
++                var keys = new[] { due.Key }.Concat(aliases.GetValueOrDefault(due.Key) ?? []).Distinct().ToArray();
++                lock (gate)
++                {
++                    var alreadyReported = keys.Any(reported.Contains);
++                    foreach (var key in keys)
++                        if (reported.Add(key))
++                        {
++                            newlyReported.Add(key); reportedAt[key] = CalendarRecurrence.NowUtc(now); dirty = true;
++                        }
++                    if (alreadyReported) continue;
++                }
+                 if (due.Key.StartsWith("jahrestag:", StringComparison.Ordinal))
+                 {
+                     pending.Add((due.Key, AnniversaryNotice(document.RootElement, due.Key, due.Start, now, kind, style)));
+@@ -311,7 +328,7 @@ internal sealed class ReminderScheduler : IDisposable
+             }
+             if (dirty && !Persist(now))
+             {
+-                lock (gate) foreach (var item in pending) { reported.Remove(item.Key); reportedAt.Remove(item.Key); }
++                lock (gate) foreach (var key in newlyReported) { reported.Remove(key); reportedAt.Remove(key); }
+                 return;
+             }
+             foreach (var item in pending)
+@@ -370,7 +387,7 @@ internal sealed class ReminderScheduler : IDisposable
+ 
+     internal static IReadOnlyList<(string Key, DateTime Start, DateTime Due)> DueTasks(
+         JsonElement root, JsonElement reminder, DateTime now, Dictionary<string, string>? titles = null, Dictionary<string, string>? errors = null,
+-        Dictionary<string, bool>? allDay = null)
++        Dictionary<string, bool>? allDay = null, Dictionary<string, List<string>>? aliases = null)
+     {
+         if (!root.TryGetProperty("aufgaben", out var tasks) || tasks.ValueKind != JsonValueKind.Array)
+             return Array.Empty<(string, DateTime, DateTime)>();
+@@ -384,8 +401,17 @@ internal sealed class ReminderScheduler : IDisposable
+             if (True(task, "erledigt")) continue;
+             var alarms = AppointmentAlarms(task);
+             var days = Math.Clamp(Number(task, "individuelleErinnerungTage", 0), 0, 7);
+-            if (!True(task, "erinnern") && days == 0 && alarms.Count == 0) continue;
+             var id = Identity(task); if (id.Length == 0) id = Text(task, "titel") + "|" + Text(task, "faellig");
++            var absoluteDatesValid = AbsoluteTaskDatesValid(task);
++            var absoluteKeys = absoluteDatesValid ? AbsoluteAlarmKeys(task, "aufgabe:" + id) : new Dictionary<DateTime, string>();
++            if (absoluteDatesValid)
++            {
++                if (TryStart(task, out var absoluteDue, task: true))
++                    AddAbsoluteAlarms(result, task, "aufgabe:" + id, absoluteKeys, absoluteDue, nowUtc, includeMissed, zone, titles, allDay);
++                else if (Text(task, "faellig").Length == 0)
++                    AddAbsoluteAlarms(result, task, "aufgabe:" + id, absoluteKeys, null, nowUtc, includeMissed, zone, titles, allDay);
++            }
++            if (!True(task, "erinnern") && days == 0 && alarms.Count == 0) continue;
+             var span = DateTime.TryParseExact(Text(task, "startDatum"), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDay) &&
+                 DateTime.TryParseExact(Text(task, "faellig"), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dueDay) ? Math.Max(0, (dueDay - startDay).TotalDays) : 0;
+             var lead = Math.Max(8 * 1440, alarms.Count == 0 ? 0 : alarms.Max(alarm => alarm.OffsetMinutes));
+@@ -400,14 +426,15 @@ internal sealed class ReminderScheduler : IDisposable
+                 var scheduledDue = occurrence.AllDay ? CalendarRecurrence.ToUtc(due, zone) : occurrence.EndUtc;
+                 if (True(task, "erinnern") || days > 0)
+                     AddDue(result, "aufgabe:" + id, days > 0 ? "individuell" : "faellig", due, due.AddDays(-days), now, includeMissed, zone: zone,
+-                        dueUtc: days == 0 ? scheduledDue : CalendarRecurrence.ToUtc(due.AddDays(-days), zone), endUtc: scheduledDue, occurrenceUtc: scheduledDue);
++                        dueUtc: days == 0 ? scheduledDue : CalendarRecurrence.ToUtc(due.AddDays(-days), zone), endUtc: scheduledDue, occurrenceUtc: scheduledDue,
++                        absoluteKeys: absoluteKeys, aliases: aliases);
+                 foreach (var alarm in alarms)
+                 {
+                     var basis = alarm.Related == "END" ? occurrence.EndUtc : occurrence.StartUtc;
+                     var trigger = basis.AddMinutes(-alarm.OffsetMinutes);
+                     AddDue(result, "aufgabe:" + id, $"alarm-{alarm.Related.ToLowerInvariant()}-{alarm.OffsetMinutes}", due,
+                         CalendarRecurrence.FromUtc(trigger, zone), now, includeMissed, zone: zone, dueUtc: trigger,
+-                        endUtc: basis > trigger ? basis : trigger, occurrenceUtc: occurrence.EndUtc);
++                        endUtc: basis > trigger ? basis : trigger, occurrenceUtc: occurrence.EndUtc, absoluteKeys: absoluteKeys, aliases: aliases);
+                 }
+                 if (titles is not null && occurrence.Summary is not null)
+                     foreach (var entry in result.Skip(resultStart)) titles[entry.Item1] = CalendarRecurrence.TextValue(occurrence.Summary);
+@@ -488,7 +515,8 @@ internal sealed class ReminderScheduler : IDisposable
+ 
+     private static void AddDue(List<(string Key, DateTime Start, DateTime Due)> result, string id,
+         string mode, DateTime start, DateTime due, DateTime now, bool includeMissed, DateTime? reminderEnd = null,
+-        CalendarRecurrence.SourceZone? zone = null, DateTime? dueUtc = null, DateTime? endUtc = null, DateTime? occurrenceUtc = null)
++        CalendarRecurrence.SourceZone? zone = null, DateTime? dueUtc = null, DateTime? endUtc = null, DateTime? occurrenceUtc = null,
++        IReadOnlyDictionary<DateTime, string>? absoluteKeys = null, Dictionary<string, List<string>>? aliases = null)
+     {
+         var end = reminderEnd ?? start;
+         zone ??= CalendarRecurrence.Zone("system");
+@@ -501,20 +529,109 @@ internal sealed class ReminderScheduler : IDisposable
+         var stamp = start.ToString(start.Second == 0 ? "yyyyMMddHHmm" : "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+         if (occurrenceUtc is not null && zone.IsAmbiguousTime(DateTime.SpecifyKind(start, DateTimeKind.Unspecified)))
+             stamp += ":utc-" + occurrenceUtc.Value.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+-        result.Add(($"{id}@{stamp}:{mode}", start, due));
++        var key = $"{id}@{stamp}:{mode}";
++        if (absoluteKeys is not null && absoluteKeys.TryGetValue(trigger, out var absoluteKey))
++        {
++            if (aliases is not null)
++            {
++                if (!aliases.TryGetValue(absoluteKey, out var values)) aliases[absoluteKey] = values = [];
++                if (!values.Contains(key)) values.Add(key);
++            }
++            key = absoluteKey;
++            if (result.Any(value => value.Key == key)) return;
++        }
++        result.Add((key, start, due));
+     }
+ 
+-    private static bool TryStart(JsonElement item, out DateTime start)
++    private static bool TryStart(JsonElement item, out DateTime start, bool task = false)
+     {
+         start = default;
+-        if (!DateOnly.TryParseExact(Text(item, "datum"), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)) return false;
+-        var timeText = Text(item, "zeit");
++        if (!DateOnly.TryParseExact(Text(item, task ? "faellig" : "datum"), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)) return false;
++        var timeText = Text(item, task ? "faelligZeit" : "zeit");
+         var time = new TimeOnly(8, 0);
+         if (timeText.Length > 0 && !TimeOnly.TryParseExact(timeText, ["HH:mm", "HH:mm:ss"], CultureInfo.InvariantCulture, DateTimeStyles.None, out time)) return false;
+         start = date.ToDateTime(time);
+         return true;
+     }
+ 
++    private static bool TryAbsoluteTrigger(string value, out DateTime instant) =>
++        DateTime.TryParseExact(value, "yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture,
++            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out instant);
++
++    private static bool AbsoluteTaskDatesValid(JsonElement task)
++    {
++        foreach (var (dateField, timeField) in new[] { ("startDatum", "startZeit"), ("faellig", "faelligZeit") })
++        {
++            var date = Text(task, dateField); var time = Text(task, timeField);
++            if (date.Length == 0) { if (time.Length != 0) return false; continue; }
++            if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _) ||
++                time.Length > 0 && !TimeOnly.TryParseExact(time, ["HH:mm", "HH:mm:ss"], CultureInfo.InvariantCulture, DateTimeStyles.None, out _)) return false;
++        }
++        return !CalendarRecurrence.Properties(task).Any(property =>
++            property.Name == "DTSTART" && Text(task, "startDatum").Length == 0 ||
++            property.Name == "DUE" && Text(task, "faellig").Length == 0);
++    }
++
++    private static IReadOnlyList<DateTime> AbsoluteAlarms(JsonElement item)
++    {
++        var result = new HashSet<DateTime>();
++        if (item.TryGetProperty("alarme", out var values) && values.ValueKind == JsonValueKind.Array)
++        {
++            foreach (var alarm in values.EnumerateArray().Take(32))
++                if (alarm.ValueKind == JsonValueKind.Object &&
++                    (!alarm.TryGetProperty("aktiviert", out var enabled) || enabled.ValueKind != JsonValueKind.False) &&
++                    (Text(alarm, "aktion") is "" || Text(alarm, "aktion").Equals("display", StringComparison.OrdinalIgnoreCase)) &&
++                    TryAbsoluteTrigger(Text(alarm, "triggerRaw"), out var instant)) result.Add(instant);
++            return result.Order().ToArray();
++        }
++        if (!item.TryGetProperty("icsRoundtrip", out var raw) || raw.ValueKind != JsonValueKind.Array) return [];
++        var inAlarm = false; var display = false; var count = 0;
++        CalendarRecurrence.Property? trigger = null;
++        foreach (var line in raw.EnumerateArray())
++        {
++            if (line.ValueKind != JsonValueKind.String || CalendarRecurrence.ParseProperty(line.GetString()!) is not { } property) continue;
++            if (property.Name == "BEGIN" && property.Value.Equals("VALARM", StringComparison.OrdinalIgnoreCase))
++            {
++                if (++count > 32) break;
++                inAlarm = true; display = false; trigger = null;
++            }
++            else if (inAlarm && property.Name == "ACTION") display = property.Value.Equals("DISPLAY", StringComparison.OrdinalIgnoreCase);
++            else if (inAlarm && property.Name == "TRIGGER") trigger = property;
++            else if (inAlarm && property.Name == "END" && property.Value.Equals("VALARM", StringComparison.OrdinalIgnoreCase))
++            {
++                if (display && trigger is { } value && value.Parameter("VALUE").Equals("DATE-TIME", StringComparison.OrdinalIgnoreCase) &&
++                    TryAbsoluteTrigger(value.Value, out var instant)) result.Add(instant);
++                inAlarm = false;
++            }
++        }
++        return result.Order().ToArray();
++    }
++
++    private static Dictionary<DateTime, string> AbsoluteAlarmKeys(JsonElement item, string id) =>
++        AbsoluteAlarms(item).ToDictionary(trigger => trigger,
++            trigger => id + "@absolute:" + trigger.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture));
++
++    private static void AddAbsoluteAlarms(List<(string Key, DateTime Start, DateTime Due)> result,
++        JsonElement item, string id, IReadOnlyDictionary<DateTime, string> absoluteKeys, DateTime? start, DateTime nowUtc, bool includeMissed,
++        CalendarRecurrence.SourceZone zone, Dictionary<string, string>? titles, Dictionary<string, bool>? allDay)
++    {
++        if (Text(item, "icsStatus").Equals("CANCELLED", StringComparison.OrdinalIgnoreCase) ||
++            CalendarRecurrence.Properties(item).Any(property => property.Name == "STATUS" &&
++                property.Value.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase))) return;
++        foreach (var (trigger, key) in absoluteKeys)
++        {
++            // Refs #835: an absolute trigger belongs to the component, not
++            // each expanded occurrence. Its catch-up window is trigger-bound.
++            var elapsed = nowUtc - trigger;
++            if (elapsed < TimeSpan.Zero || elapsed > TimeSpan.FromHours(72) ||
++                !includeMissed && elapsed > TimeSpan.FromMinutes(5)) continue;
++            var localTrigger = CalendarRecurrence.FromUtc(trigger, zone);
++            result.Add((key, start ?? localTrigger, localTrigger));
++            if (titles is not null) titles[key] = Text(item, "titel");
++            if (allDay is not null) allDay[key] = start is not null && Text(item, id.StartsWith("aufgabe:", StringComparison.Ordinal) ? "faelligZeit" : "zeit").Length == 0;
++        }
++    }
++
+     private static bool TryEnd(JsonElement item, DateTime start, out DateTime end)
+     {
+         end = start;
+@@ -647,9 +764,13 @@ internal sealed class ReminderScheduler : IDisposable
+         if (!item.TryGetProperty("alarme", out var alarms) || alarms.ValueKind != JsonValueKind.Array) return result;
+         var selected = new JsonArray();
+         foreach (var alarm in alarms.EnumerateArray().Take(32))
+-            if (alarm.ValueKind == JsonValueKind.Object &&
+-                (!alarm.TryGetProperty("bearbeitbar", out var editable) || editable.ValueKind != JsonValueKind.False))
+-                selected.Add(SelectFields(alarm, "offsetMinuten", "aktiviert", "related", "aktion"));
++            if (alarm.ValueKind == JsonValueKind.Object)
++            {
++                if (!alarm.TryGetProperty("bearbeitbar", out var editable) || editable.ValueKind != JsonValueKind.False)
++                    selected.Add(SelectFields(alarm, "offsetMinuten", "aktiviert", "related", "aktion"));
++                else if (TryAbsoluteTrigger(Text(alarm, "triggerRaw"), out _))
++                    selected.Add(SelectFields(alarm, "aktiviert", "aktion", "bearbeitbar", "triggerRaw"));
++            }
+         result["alarme"] = selected;
+         return result;
+     }
+@@ -661,7 +782,7 @@ internal sealed class ReminderScheduler : IDisposable
+         foreach (var line in lines.EnumerateArray())
+             if (line.ValueKind == JsonValueKind.String && CalendarRecurrence.ParseProperty(line.GetString()!) is { } property &&
+                  (property.Name is "DTSTART" or "DTEND" or "DUE" or "DURATION" or "RRULE" or "RDATE" or "EXDATE" or "EXRULE" or "RECURRENCE-ID" or "STATUS" or "SUMMARY" or "LOCATION" or "ACTION" or "TRIGGER" ||
+-                 property.Name is "BEGIN" or "END" && property.Value == "VALARM"))
++                 property.Name is "BEGIN" or "END" && property.Value.Equals("VALARM", StringComparison.OrdinalIgnoreCase)))
+             {
+                 var parameters = property.Parameters.Where(value => new[] { "TZID", "VALUE", "RELATED", "RANGE" }.Contains(value.Split('=', 2)[0].ToUpperInvariant()));
+                 result.Add(property.Name + string.Concat(parameters.Select(value => ";" + value)) + ":" + property.Value);
+diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
+index 35e5f379d5422aa1a591c6ad8a4ce7b3b552fe4a..89d93b731e380a8fda9a1a914a7a462e2f42b579 100644
+--- a/magnolie-organizer-windows/app/web/anwendung.js
++++ b/magnolie-organizer-windows/app/web/anwendung.js
+@@ -16140,7 +16140,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     zurueck = iconButton("undo", _("Undo"), () => editor.undo()); zurueck.disabled = !editor.canUndo();
+     wieder = iconButton("redo", _("Redo"), () => editor.redo()); wieder.disabled = !editor.canRedo();
+     const exportieren = iconButton("save", _("Save as…"), async () => {
+-      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { status.textContent = _("This image format cannot be used."); return; }
++      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { status.textContent = _("This image format cannot be used."); return; }
+       if (!canvas.isConnected || gesperrt || !DATEN.customOrganizer.modules.includes(modul)) return;
+       const png = editor.exportPng(), svg = editor.exportSvg(), name = modul.title || "Magnolie";
+       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "zeichenblatt_exportieren", png, svg, name, json: JSON.stringify(modul.drawing) });
+@@ -16195,7 +16195,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       if (!rotate) dialog.append(formZeile("Y", y));
+       const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close), knopf(_("Apply"), "haupt", async () => {
+         const wholeSheet = rotate && !editor.hasSelection();
+-        if (wholeSheet) { try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { error.textContent = _("The file could not be read."); return; } }
++        if (wholeSheet) { try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { error.textContent = _("The file could not be read."); return; } }
+         if (!overlay.isConnected || !canvas.isConnected || gesperrt) return;
+         if (wholeSheet ? editor.rotateSheet(Number(x.value)) : editor.transformSelection(rotate ? Number(x.value) : 0, rotate ? 0 : Number(x.value), rotate ? 0 : Number(y.value))) { close(); canvas.focus(); }
+         else error.textContent = wholeSheet ? _("The drawing limit has been reached.") : _("Select complete strokes that fit inside the sheet.");
+@@ -16251,8 +16251,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     openFile.addEventListener("change", () => {
+       const sequence = ++openSequence;
+       const file = openFile.files?.[0]; if (!file || file.size > 16 * 1024 * 1024) { status.textContent = _("The file is larger than 8 megabytes."); return; }
+-      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) canvas.focus(); }
+-        catch (_) { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
++      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) { status.textContent = file.name; canvas.focus(); } }
++        catch { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
+       else if (/\.svg$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => {
+         const requestId = anrufClientRef(), apply = () => { if (canvas.isConnected && !gesperrt) loadImage("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(reader.result))), file.name); };
+         zeichenSvgAnfragen.set(requestId, apply); setTimeout(() => zeichenSvgAnfragen.delete(requestId), 15000);
+@@ -22357,7 +22357,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       if (gesperrt || DATEN !== bestand || !DATEN.notizen.includes(notiz)) { schliessen(); return; }
+       const modul = DATEN.customOrganizer.modules.find(wert => wert.id === auswahl.value);
+       if (!modul || !window.MagnolieZeichnen.valid(modul.drawing)) { status.textContent = _("This drawing cannot be edited in this version."); return; }
+-      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { status.textContent = _("This image format cannot be used."); return; }
++      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { status.textContent = _("This image format cannot be used."); return; }
+       if (!schleier.isConnected || gesperrt || DATEN !== bestand || !DATEN.customOrganizer.modules.includes(modul)) return;
+       const canvas = document.createElement("canvas"); window.MagnolieZeichnen.render(canvas, modul.drawing);
+       const daten = canvas.toDataURL("image/png");
+diff --git a/magnolie-organizer-windows/tests/AbsoluteReminderCoincidenceTests.cs b/magnolie-organizer-windows/tests/AbsoluteReminderCoincidenceTests.cs
+new file mode 100644
+index 0000000000000000000000000000000000000000..e34da997acacc8b7af1f395af9c16deae03f061a
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/AbsoluteReminderCoincidenceTests.cs
+@@ -0,0 +1,142 @@
++using System.Globalization;
++using System.Text.Json;
++using System.Text.Json.Nodes;
++using MagnolieOrganizer.Windows;
++
++namespace MagnolieOrganizer.Windows.Tests;
++
++internal static class AbsoluteReminderCoincidenceTests
++{
++    private sealed record Scenario(string Name, string Kind, DateTime Trigger, bool Relative = false);
++
++    private static JsonObject Import(Scenario scenario, bool absolute = true, int seconds = 0, string source = "owned-calendar")
++    {
++        var lines = new List<string> { "BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:" + scenario.Kind,
++            "UID:owned-coincidence", "SUMMARY:Owned coincidence " + scenario.Name, "DTSTART:20261127T123000Z" };
++        if (scenario.Kind == "VTODO") lines.AddRange(["DUE:20261127T123000Z", "X-MAGNOLIE-ERINNERUNG-AM-TAG:1"]);
++        if (scenario.Relative) lines.AddRange(["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:-PT30M", "DESCRIPTION:Relative", "END:VALARM"]);
++        if (absolute) lines.AddRange(["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER;VALUE=DATE-TIME:" +
++            scenario.Trigger.AddSeconds(seconds).ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture), "DESCRIPTION:Absolute", "END:VALARM"]);
++        lines.AddRange(["END:" + scenario.Kind, "END:VCALENDAR", ""]);
++        var parsed = ExchangeCodec.ParseIcs(string.Join("\r\n", lines), source, CalendarRecurrence.Zone("UTC"));
++        TestAssert.That(parsed.Uebersprungen == 0 && parsed.Termine.Count + parsed.Aufgaben.Count == 1,
++            scenario.Name + ": actual ICS import lost the component");
++        return new JsonObject { ["termine"] = parsed.Termine, ["aufgaben"] = parsed.Aufgaben,
++            ["einstellungen"] = new JsonObject {
++                ["regional"] = new JsonObject { ["timeZone"] = "UTC" },
++                ["erinnerung"] = new JsonObject { ["an"] = true, ["vorlauf"] = 15, ["verpasste"] = true, ["aufgaben"] = true },
++                ["sicherheit"] = new JsonObject { ["erinnernTrotzKennwort"] = true }
++            } };
++    }
++
++    private static string Select(JsonObject data, string mode) => mode switch
++    {
++        "runtime" => ReminderScheduler.SelectRuntimeData(data.ToJsonString()),
++        "background" => ReminderScheduler.SelectBackgroundData(data.ToJsonString())!,
++        _ => data.ToJsonString()
++    };
++
++    private static (string Key, DateTime Start, DateTime Due)[] Due(string text, string kind, DateTime now)
++    {
++        using var document = JsonDocument.Parse(text);
++        return (kind == "VEVENT" ? ReminderScheduler.DueAppointments(text, now) :
++            ReminderScheduler.DueTasks(document.RootElement,
++                document.RootElement.GetProperty("einstellungen").GetProperty("erinnerung"), now)).ToArray();
++    }
++
++    private static void Run(string state, string text, DateTime now, List<ReminderNotice> notices)
++    {
++        using var scheduler = new ReminderScheduler(state, notices.Add);
++        scheduler.UpdateData(text);
++        scheduler.RunOnce(now);
++        scheduler.RunOnce(now.AddTicks(1));
++        TestAssert.That(scheduler.LastError is null && scheduler.ExpansionErrors.Count == 0,
++            Path.GetFileName(state) + ": scheduler reported an error instead of an actual reminder");
++    }
++
++    private static void AssertStored(string state, params string[] keys)
++    {
++        var saved = JsonNode.Parse(File.ReadAllText(state))!.AsObject();
++        var reported = saved["reported"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
++        foreach (var key in keys)
++            TestAssert.That(reported.Contains(key) && saved["reportedAt"]![key] is JsonValue timestamp &&
++                DateTimeOffset.TryParse(timestamp.GetValue<string>(), CultureInfo.InvariantCulture, DateTimeStyles.None, out _),
++                Path.GetFileName(state) + ": missing persisted canonical/legacy acknowledgement or timestamp: " + key);
++    }
++
++    internal static Task RunAsync()
++    {
++        var normalEvent = new Scenario("event-standard", "VEVENT", new DateTime(2026, 11, 27, 12, 15, 0, DateTimeKind.Utc));
++        var scenarios = new[] { normalEvent,
++            new Scenario("task-due", "VTODO", new DateTime(2026, 11, 27, 12, 30, 0, DateTimeKind.Utc)),
++            new Scenario("event-relative", "VEVENT", new DateTime(2026, 11, 27, 12, 0, 0, DateTimeKind.Utc), Relative: true) };
++        var directory = Path.Combine(Path.GetTempPath(), "magnolie-reminder-coincidence-" + Guid.NewGuid().ToString("N"));
++        Directory.CreateDirectory(directory);
++        try
++        {
++            foreach (var mode in new[] { "original", "runtime", "background" })
++            {
++                foreach (var scenario in scenarios)
++                {
++                    var label = scenario.Name + "-" + mode;
++                    var ordinary = Select(Import(scenario, absolute: false), mode);
++                    var combined = Select(Import(scenario), mode);
++                    var legacy = Due(ordinary, scenario.Kind, scenario.Trigger).Single().Key;
++                    var legacySuffix = scenario.Relative ? ":alarm-start-30" : scenario.Kind == "VEVENT" ? ":standard" : ":faellig";
++                    TestAssert.That(legacy.EndsWith(legacySuffix, StringComparison.Ordinal), label + ": ordinary-only fixture no longer establishes the historical acknowledgement");
++                    var due = Due(combined, scenario.Kind, scenario.Trigger);
++                    TestAssert.That(due.Length == 1 && due[0].Due.Ticks == scenario.Trigger.Ticks && due[0].Key.Contains("@absolute:", StringComparison.Ordinal),
++                        label + ": coincident absolute and ordinary/relative alarm were not one canonical candidate");
++                    var canonical = due[0].Key;
++                    var state = Path.Combine(directory, label + ".json");
++                    var notices = new List<ReminderNotice>();
++                    Run(state, combined, scenario.Trigger, notices);
++                    TestAssert.That(notices.Count == 1, label + ": more than one initial notification");
++                    AssertStored(state, canonical, legacy);
++                    Run(state, ordinary, scenario.Trigger.AddSeconds(1), notices);
++                    Run(state, combined, scenario.Trigger.AddSeconds(2), notices);
++                    TestAssert.That(notices.Count == 1, label + ": replay after restart and absolute alarm removal/readdition");
++
++                    if (scenario.Relative) continue;
++                    var upgraded = Path.Combine(directory, label + "-old-normal.json");
++                    var historical = new List<ReminderNotice>();
++                    Run(upgraded, ordinary, scenario.Trigger, historical);
++                    TestAssert.That(historical.Count == 1, label + ": ordinary reminder did not establish the real old acknowledgement");
++                    AssertStored(upgraded, legacy);
++                    Run(upgraded, combined, scenario.Trigger.AddSeconds(1), historical);
++                    TestAssert.That(historical.Count == 1, label + ": an existing normal acknowledgement produced a new absolute notification");
++                    AssertStored(upgraded, canonical, legacy);
++                }
++
++                // A nearby instant is a different alarm even within the same minute.
++                var separated = Select(Import(normalEvent, seconds: 1), mode);
++                var secondsDue = Due(separated, "VEVENT", normalEvent.Trigger.AddSeconds(1));
++                TestAssert.That(secondsDue.Length == 2 && secondsDue.Select(value => value.Due.Second).Order().SequenceEqual(new[] { 0, 1 }),
++                    mode + ": different trigger seconds were merged");
++                var secondsState = Path.Combine(directory, mode + "-seconds.json");
++                var secondsNotices = new List<ReminderNotice>();
++                Run(secondsState, separated, normalEvent.Trigger, secondsNotices);
++                TestAssert.That(secondsNotices.Count == 1, mode + ": future absolute second fired early");
++                Run(secondsState, separated, normalEvent.Trigger.AddSeconds(1), secondsNotices);
++                Run(secondsState, separated, normalEvent.Trigger.AddSeconds(2), secondsNotices);
++                TestAssert.That(secondsNotices.Count == 2, mode + ": independent seconds were lost or replayed after restart");
++
++                // The same UID and instant in two sources still represent two items.
++                var sources = Import(normalEvent);
++                sources["termine"]!.AsArray().Add(Import(normalEvent, source: "other-calendar")["termine"]![0]!.DeepClone());
++                var sourceText = Select(sources, mode);
++                var sourceDue = Due(sourceText, "VEVENT", normalEvent.Trigger);
++                TestAssert.That(sourceDue.Length == 2 && sourceDue.Select(value => value.Key).Distinct().Count() == 2,
++                    mode + ": coincident reminders from different sources were merged");
++                var sourceState = Path.Combine(directory, mode + "-sources.json");
++                var sourceNotices = new List<ReminderNotice>();
++                Run(sourceState, sourceText, normalEvent.Trigger, sourceNotices);
++                Run(sourceState, sourceText, normalEvent.Trigger.AddSeconds(1), sourceNotices);
++                TestAssert.That(sourceNotices.Count == 2, mode + ": source identities lost or replayed after restart");
++            }
++        }
++        finally { Directory.Delete(directory, true); }
++        Console.WriteLine("Absolute reminder coincidence: standard/due/relative deduplication, real persisted aliases, old acknowledgements, seconds and source separation passed in all three projections.");
++        return Task.CompletedTask;
++    }
++}
+diff --git a/magnolie-organizer-windows/tests/AbsoluteReminderTests.cs b/magnolie-organizer-windows/tests/AbsoluteReminderTests.cs
+new file mode 100644
+index 0000000000000000000000000000000000000000..ce9039bb2f19efa674a49004c35dce63825e468b
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/AbsoluteReminderTests.cs
+@@ -0,0 +1,140 @@
++using System.Globalization;
++using System.Text.Json;
++using System.Text.Json.Nodes;
++using MagnolieOrganizer.Windows;
++
++namespace MagnolieOrganizer.Windows.Tests;
++
++internal static class AbsoluteReminderTests
++{
++    private static string Text(JsonObject value, string key, string fallback = "") => value[key]?.GetValue<string>() ?? fallback;
++
++    private static JsonObject Import(JsonObject vector, string kind, string source = "owned-calendar")
++    {
++        var lines = new List<string> { "BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:" + kind,
++            "UID:owned-absolute-alarm", "SUMMARY:Owned absolute alarm" };
++        if (Text(vector, "start").Length > 0)
++        {
++            lines.Add("DTSTART:" + Text(vector, "start"));
++            if (kind == "VTODO") lines.Add("DUE:" + Text(vector, "start"));
++        }
++        if (vector["rule"] is not null) lines.Add("RRULE:" + Text(vector, "rule"));
++        if (vector["status"] is not null) lines.Add("STATUS:" + Text(vector, "status"));
++        var alarmComponent = Text(vector, "alarmCase") == "lower" ? "valarm" : "VALARM";
++        foreach (var value in vector["triggers"]!.AsArray())
++            lines.AddRange(["BEGIN:" + alarmComponent, "ACTION:" + Text(vector, "action", "DISPLAY"),
++                "TRIGGER;VALUE=DATE-TIME:" + value!.GetValue<string>(), "DESCRIPTION:PRIVATE ALARM TEXT", "END:" + alarmComponent]);
++        lines.AddRange(["END:" + kind, "END:VCALENDAR", ""]);
++        var parsed = ExchangeCodec.ParseIcs(string.Join("\r\n", lines), source, CalendarRecurrence.Zone(Text(vector, "zone", "UTC")));
++        var data = new JsonObject { ["termine"] = parsed.Termine, ["aufgaben"] = parsed.Aufgaben,
++            ["einstellungen"] = new JsonObject {
++                ["regional"] = new JsonObject { ["timeZone"] = Text(vector, "zone", "UTC") },
++                ["erinnerung"] = new JsonObject { ["an"] = true, ["vorlauf"] = 15, ["verpasste"] = vector["missed"]?.GetValue<bool>() ?? true },
++                ["sicherheit"] = new JsonObject { ["erinnernTrotzKennwort"] = true }
++            } };
++        foreach (var item in data[kind == "VEVENT" ? "termine" : "aufgaben"]!.AsArray().OfType<JsonObject>())
++        {
++            item["notiz"] = "PRIVATE ITEM TEXT";
++            if (vector["structured"]?.GetValue<bool>() is true)
++                item["alarme"] = new JsonArray(vector["triggers"]!.AsArray().Select(trigger => (JsonNode)new JsonObject {
++                    ["bearbeitbar"] = false, ["aktiviert"] = vector["enabled"]?.GetValue<bool>() ?? true,
++                    ["aktion"] = Text(vector, "action", "DISPLAY").ToLowerInvariant(), ["triggerRaw"] = trigger!.GetValue<string>()
++                }).ToArray());
++        }
++        return data;
++    }
++
++    private static string Select(JsonObject data, string mode) => mode switch
++    {
++        "runtime" => ReminderScheduler.SelectRuntimeData(data.ToJsonString()),
++        "background" => ReminderScheduler.SelectBackgroundData(data.ToJsonString())!,
++        _ => data.ToJsonString()
++    };
++
++    private static (string Key, DateTime Start, DateTime Due)[] Due(string text, string kind, DateTime now)
++    {
++        using var document = JsonDocument.Parse(text);
++        return (kind == "VEVENT" ? ReminderScheduler.DueAppointments(text, now) :
++            ReminderScheduler.DueTasks(document.RootElement,
++                document.RootElement.GetProperty("einstellungen").GetProperty("erinnerung"), now))
++            .Where(value => value.Key.Contains("@absolute:", StringComparison.Ordinal)).ToArray();
++    }
++
++    internal static Task RunAsync()
++    {
++        var vectors = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root("contracts/absolute-reminder-vectors.json"),
++            "contracts/absolute-reminder-vectors.json")))!["cases"]!.AsArray();
++        var failures = new List<string>();
++        var checks = 0;
++        foreach (var vector in vectors.OfType<JsonObject>())
++        foreach (var kind in vector["kinds"]?.AsArray().Select(value => value!.GetValue<string>()) ?? ["VEVENT", "VTODO"])
++        foreach (var mode in new[] { "original", "runtime", "background" })
++        {
++            var label = Text(vector, "name") + "/" + kind + "/" + mode;
++            try
++            {
++                var data = Import(vector, kind);
++                var before = data.ToJsonString();
++                var text = Select(data, mode);
++                var now = DateTime.Parse(Text(vector, "now"), CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
++                var due = Due(text, kind, now);
++                var expected = vector["expected"]!.GetValue<int>();
++                TestAssert.That(due.Length == expected, $"{label}: expected {expected}, actual {due.Length}");
++                TestAssert.That(due.Select(value => value.Key).Distinct().Count() == due.Length, label + ": duplicate identity");
++                TestAssert.That(data.ToJsonString() == before, label + ": changed source");
++                if (mode != "original") TestAssert.That(!text.Contains("PRIVATE", StringComparison.Ordinal), label + ": leaked private content");
++                checks++;
++            }
++            catch (Exception error) { failures.Add(label + ": " + error.Message); }
++        }
++        TestAssert.That(failures.Count == 0, string.Join("\n", failures));
++
++        var sample = vectors[0]!.AsObject();
++        var when = DateTime.Parse(Text(sample, "now"), CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
++        var undated = vectors.OfType<JsonObject>().Single(vector => Text(vector, "name") == "undated-task");
++        foreach (var field in new[] { "faelligZeit", "startZeit", "faellig", "startDatum", "DUE", "DTSTART" })
++        {
++            var invalid = Import(undated, "VTODO");
++            var task = invalid["aufgaben"]![0]!.AsObject();
++            if (field is "DUE" or "DTSTART") task["icsRoundtrip"]!.AsArray().Add(field + ":invalid");
++            else task[field] = field.EndsWith("Zeit", StringComparison.Ordinal) ? "12:30" : "2026-02-30";
++            foreach (var mode in new[] { "original", "runtime", "background" })
++                TestAssert.That(Due(Select(invalid, mode), "VTODO", when).Length == 0, field + "/" + mode + ": malformed date treated as absent");
++        }
++        var directory = Path.Combine(Path.GetTempPath(), "magnolie-absolute-reminder-" + Guid.NewGuid().ToString("N"));
++        Directory.CreateDirectory(directory);
++        try
++        {
++            foreach (var kind in new[] { "VEVENT", "VTODO" })
++            foreach (var mode in new[] { "original", "runtime", "background" })
++            {
++                var state = Path.Combine(directory, kind + "-" + mode + ".json");
++                var notices = new List<ReminderNotice>();
++                using (var first = new ReminderScheduler(state, notices.Add))
++                {
++                    first.UpdateData(Select(Import(sample, kind), mode));
++                    first.RunOnce(when);
++                    first.RunOnce(when.AddSeconds(1));
++                }
++                TestAssert.That(notices.Count == 1, kind + "/" + mode + ": first delivery or repeat failed");
++                var moved = sample.DeepClone().AsObject(); moved["start"] = "20261201T123000Z";
++                using (var restarted = new ReminderScheduler(state, notices.Add))
++                {
++                    restarted.UpdateData(Select(Import(moved, kind), mode));
++                    restarted.RunOnce(when.AddSeconds(2));
++                }
++                TestAssert.That(notices.Count == 1, kind + "/" + mode + ": replay after restart/date edit");
++                var data = Import(sample, kind);
++                var collection = kind == "VEVENT" ? "termine" : "aufgaben";
++                var other = Import(sample, kind, "other-calendar")[collection]![0]!.DeepClone().AsObject();
++                data[collection]!.AsArray().Add(other);
++                TestAssert.That(Due(Select(data, mode), kind, when).Length == 2, "Merged different source identities");
++                other["vertraulich"] = true;
++                TestAssert.That(Due(Select(data, "background"), kind, when).Length == 1, "Confidential projection changed");
++            }
++        }
++        finally { Directory.Delete(directory, true); }
++        Console.WriteLine($"Absolute reminders: {checks} shared import/projection cases, repeated runs, real persisted restart, date edit, source identities and confidentiality passed.");
++        return Task.CompletedTask;
++    }
++}
+diff --git a/magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs b/magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs
+new file mode 100644
+index 0000000000000000000000000000000000000000..f85bf44b9c50b24e002b1c60464ca281b3e5e593
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs
+@@ -0,0 +1,50 @@
++using System.Text;
++using System.Text.Json;
++using System.Text.Json.Nodes;
++using MagnolieOrganizer.Windows;
++
++namespace MagnolieOrganizer.Windows.Tests;
++
++internal static class LotusCsvContactFieldTests
++{
++    private static string[] Rows(JsonArray values, params string[] fields) => values.OfType<JsonObject>()
++        .Select(value => JsonSerializer.Serialize(fields.Select(field => value[field]?.ToString() ?? "")
++            .Append(string.Join(',', (value["typen"] as JsonArray ?? []).Select(type => type!.ToString()).Order(StringComparer.Ordinal)))))
++        .Order(StringComparer.Ordinal).ToArray();
++
++    internal static Task RunAsync()
++    {
++        const string relative = "contracts/lotus-csv-contact-fields.json";
++        var vectors = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root(relative), relative)))!["cases"]!.AsArray();
++        var failures = new List<string>();
++        foreach (var vector in vectors.OfType<JsonObject>())
++        {
++            var id = vector["id"]!.ToString();
++            void Check(bool passed, string message) { if (!passed) failures.Add(id + ": " + message); }
++            string Csv(JsonNode? field) => "\"" + field!.ToString().Replace("\"", "\"\"") + "\"";
++            var raw = Encoding.UTF8.GetBytes(string.Join(';', vector["headers"]!.AsArray().Select(Csv)) + "\r\n" +
++                string.Join(';', vector["row"]!.AsArray().Select(Csv)) + "\r\n");
++            var result = ExchangeCodec.ParseImport(raw, "lotus", "owned-contacts.csv");
++            Check(result.Uebersprungen == 0 && result.Kontakte.Count == 1, "CSV record count changed");
++            if (result.Kontakte.Count != 1) continue;
++            Check(JsonNode.DeepEquals(result.Kontakte, ExchangeCodec.ParseImport(raw, "vcf", "owned-contacts.csv").Kontakte), "Contact-file import disagrees with Lotus import");
++            var contact = result.Kontakte[0]!.AsObject();
++            for (var cycle = 0; cycle < 3; cycle++)
++            {
++                Check(contact["vorname"]!.ToString() == "Synthetic" && contact["nachname"]!.ToString() == "CSV", "Contact name changed");
++                Check(Rows(contact["telefone"]!.AsArray(), "wert").SequenceEqual(Rows(vector["phones"]!.AsArray(), "wert")), "Phone values or roles changed");
++                var addresses = contact["anschriften"]!.AsArray();
++                Check(Rows(addresses, "strasse", "plz", "ort", "land").SequenceEqual(Rows(vector["addresses"]!.AsArray(), "strasse", "plz", "ort", "land")), "Address lost, fabricated or assigned to another role");
++                if (addresses.Count > 0)
++                    Check(new[] { "strasse", "plz", "ort" }.All(field => contact[field]!.ToString() == addresses[0]![field]!.ToString()), "Legacy address fields combine different locations");
++                var exported = RecordExportFile.Convert("vcf-adressen", JsonSerializer.SerializeToElement(new JsonArray(contact.DeepClone())));
++                Check(exported.Count == 1 && exported.Skipped == 0, "VCF export lost the contact");
++                var reread = ExchangeCodec.ParseImport(Encoding.UTF8.GetBytes(exported.Text), "vcf", "owned.vcf");
++                Check(reread.Kontakte.Count == 1 && reread.Uebersprungen == 0, "VCF import lost the contact");
++                contact = reread.Kontakte.Single()!.AsObject();
++            }
++        }
++        TestAssert.That(failures.Count == 0, string.Join("\n", failures));
++        return Task.CompletedTask;
++    }
++}
+diff --git a/magnolie-organizer-windows/tests/LotusCsvTaskValueTests.cs b/magnolie-organizer-windows/tests/LotusCsvTaskValueTests.cs
+new file mode 100644
+index 0000000000000000000000000000000000000000..fb4ba1dd64abc23be8f63c5ddc06d4cb3a29ea42
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/LotusCsvTaskValueTests.cs
+@@ -0,0 +1,44 @@
++using System.Text;
++using System.Text.Json;
++using System.Text.Json.Nodes;
++using MagnolieOrganizer.Windows;
++
++namespace MagnolieOrganizer.Windows.Tests;
++
++internal static class LotusCsvTaskValueTests
++{
++    internal static Task RunAsync()
++    {
++        const string relative = "contracts/lotus-csv-task-values.json";
++        var vectors = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root(relative), relative)))!["cases"]!.AsArray();
++        var failures = new List<string>();
++        foreach (var vector in vectors.OfType<JsonObject>())
++        {
++            var id = vector["id"]!.ToString();
++            void Check(bool passed, string message) { if (!passed) failures.Add(id + ": " + message); }
++            string Csv(string field) => "\"" + field.Replace("\"", "\"\"") + "\"";
++            var raw = Encoding.UTF8.GetBytes("Beschreibung;Fällig;Priorität;Status\r\n" +
++                string.Join(';', new[] { id, "29.02.2028", vector["priority"]!.ToString(), vector["status"]!.ToString() }.Select(Csv)) + "\r\n");
++            var result = ExchangeCodec.ParseImport(raw, "lotus", "owned-tasks.csv");
++            Check(result.Uebersprungen == 0 && result.Aufgaben.Count == 1, "CSV record count changed");
++            if (result.Aufgaben.Count != 1) continue;
++            Check(JsonNode.DeepEquals(result.Aufgaben, ExchangeCodec.ParseImport(raw, "lotus", "owned-tasks.csv").Aufgaben), "Repeated CSV read changed the record");
++            var task = result.Aufgaben[0]!.AsObject();
++            for (var cycle = 0; cycle < 3; cycle++)
++            {
++                Check(task["titel"]!.ToString() == id && task["faellig"]!.ToString() == "2028-02-29", "Task title/date changed");
++                Check(task["prio"]!.GetValue<int>() == vector["expectedPriority"]!.GetValue<int>(), "Priority changed");
++                Check(task["erledigt"]!.GetValue<bool>() == vector["expectedCompleted"]!.GetValue<bool>(), "Completion changed");
++                var before = task.ToJsonString();
++                var exported = ExchangeCodec.WriteIcs("ics-aufgaben", JsonSerializer.SerializeToElement(new JsonArray(task.DeepClone())));
++                Check(task.ToJsonString() == before, "Export mutated the input");
++                Check(exported.Count == 1 && exported.Skipped == 0, "VTODO export lost the task");
++                var reread = ExchangeCodec.ParseIcs(exported.Text);
++                Check(reread.Aufgaben.Count == 1 && reread.Uebersprungen == 0, "VTODO import lost the task");
++                task = reread.Aufgaben.Single()!.AsObject();
++            }
++        }
++        TestAssert.That(failures.Count == 0, string.Join("\n", failures));
++        return Task.CompletedTask;
++    }
++}
+diff --git a/magnolie-organizer-windows/tests/Program.cs b/magnolie-organizer-windows/tests/Program.cs
+index ea3948513366b1c88c2c680616b1bf5c63b0b2c3..01e100ae7cecdb798c8af455ea809c3ada3a6f45 100644
+--- a/magnolie-organizer-windows/tests/Program.cs
++++ b/magnolie-organizer-windows/tests/Program.cs
+@@ -344,6 +344,8 @@ runner.Add("Document export / actual ODS / readback / target guards", VerifiedDo
+ runner.Add(".magnolie Gesamtarchiv / Cross-Platform / Anhänge / Fehler", ContractGroupTests.ArchiveAsync);
+ runner.Add("Notizanhänge / Data-URL / Dateinamen", AttachmentFileTests.RunAsync);
+ runner.Add("ICS / VCF / LDIF / Claws / Lotus / Thunderbird", ContractGroupTests.ExchangeAsync);
++runner.Add("Lotus CSV tasks / priority and completion / repeated VTODO exchange", LotusCsvTaskValueTests.RunAsync);
++runner.Add("Lotus CSV contacts / explicit role fields / repeated VCF exchange", LotusCsvContactFieldTests.RunAsync);
+ runner.Add("Calendar source case / Windows mixed component and property names roundtrip", CalendarSourceTimezoneCaseTests.RunAsync);
+ runner.Add("Thunderbird local.sqlite Schema 23", ThunderbirdSchema23Tests.RunAsync);
+ runner.Add("ODS Paket / XML / Styles / Geometrie / Chart", ContractGroupTests.OdsAsync);
+@@ -357,6 +359,8 @@ runner.Add("ODT Brief / MIME / Paket / Dateiendung", ContractGroupTests.OdtAsync
+ runner.Add("Windows Contacts / Graph / OAuth / Token", WindowsContactGraphTests.RunAsync);
+ runner.Add("Microsoft device-code sign-in / persistence / cancellation", GraphDeviceSignInTests.RunAsync);
+ runner.Add("Reminder / Serien", ContractGroupTests.RemindersAsync);
++runner.Add("Reminder / absolute triggers / source identity / restart", AbsoluteReminderTests.RunAsync);
++runner.Add("Reminder / coincident absolute triggers / persisted acknowledgements", AbsoluteReminderCoincidenceTests.RunAsync);
+ runner.Add("Cycle calendar / explicit markers and optional forecasts", CycleCalendarTests.RunAsync);
+ runner.Add("Reminder / Neustart / Kennwort / DST", ReminderPersistenceTests.RunAsync);
+ runner.Add("Anniversary reminder / text / independent dismissal", AnniversaryReminderTests.RunAsync);
+diff --git a/magnolie-organizer-windows/tests/README.md b/magnolie-organizer-windows/tests/README.md
+index 18136bf79deda326843ae88b4ee008fdb5398756..0c0cc2903e1514c3a690a56e11d5e362c51439e9 100644
+--- a/magnolie-organizer-windows/tests/README.md
++++ b/magnolie-organizer-windows/tests/README.md
+@@ -17,6 +17,16 @@ und übergibt Version und daraus gebildeten Installernamen an Handbuch- und
+ Release-Audit. Der Audit führt mit PowerShell echte Abbruch-, Rollback- und
+ XML-Duplikatprüfungen aus; ohne PowerShell prüft er dieselben Invarianten statisch.
+ 
++`drawing-error-feedback.js` prüft zu #838 die echten Zeichenblatt-Bedienelemente
++beider Desktop-Weboberflächen mit englischem und deutschem Katalog: ungültiger
++JSON-Import sowie nicht lesbarer Hintergrund bei Export, Blattrotation und
++Einbetten in eine Notiz. Die vorhandene übersetzte Fehlermeldung muss erscheinen,
++ohne Daten zu ändern, Speichern einzuplanen oder einen Export zu senden; eine
++anschließende gültige Eingabe muss weiter funktionieren und nach JSON-Import
++den geladenen Dateinamen statt des alten Fehlers zeigen. JSON-Dateien laufen
++durch den echten FileReader. Nur Canvas-Ausgabe und die native Bilddekodierung
++werden im JSDOM-Prüfer simuliert; das ist keine native Paketabnahme.
++
+ ## Release-Audit: Funktion und Integration
+ 
+ Die 37 funktionalen CoreTests-Gruppen sind von bereits veröffentlichten Dateien
+diff --git a/magnolie-organizer-windows/tests/drawing-error-feedback.js b/magnolie-organizer-windows/tests/drawing-error-feedback.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..1eae6e8ac53e57d090e19f4a06ee02fda0f2b0cb
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/drawing-error-feedback.js
+@@ -0,0 +1,126 @@
++"use strict";
++const fs = require("node:fs"), path = require("node:path"), Module = require("node:module"), assert = require("node:assert/strict");
++const file = path.join(__dirname, "desktop-state-regressions.js");
++const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
++harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[0] + "\nmodule.exports={boot,roots};", file);
++const tick = () => new Promise(resolve => setImmediate(resolve));
++const sheet = () => ({ version: 4, width: 900, height: 600, autoSize: false,
++  strokes: [{ tool: "pen", color: "#123456", width: 4, points: [[.1, .2, 1], [.8, .7, 1]] }] });
++// A plausible PNG header with no image data: structural validation accepts it,
++// while a browser decoder cannot load it. The native decoding boundary below
++// reports complete + zero naturalWidth; the actual ready() implementation runs.
++const pngHeader = Buffer.alloc(24); pngHeader.set([137, 80, 78, 71, 13, 10, 26, 10]);
++pngHeader.writeUInt32BE(1, 16); pngHeader.writeUInt32BE(1, 20);
++const unreadablePng = "data:image/png;base64," + pngHeader.toString("base64");
++const renderedPng = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lN8AAAAASUVORK5CYII=";
++
++async function setup(web, language) {
++  const b = await harness.exports.boot(web, {
++    einstellungen: { allgemein: { customTab: { enabled: true } } },
++    customOrganizer: { modules: [{ id: "owned-drawing-errors", type: "drawing", title: "Owned drawing", page: "right", order: 0, items: [], drawing: sheet() }] },
++    notizen: [{ id: "owned-drawing-note", titel: "Owned note", text: "Keep this text", html: "<p>Keep this text</p>", anhaenge: [] }]
++  });
++  if (language === "de") b.w.eval(fs.readFileSync(path.join(web, "i18n/de.js"), "utf8"));
++  assert.equal(b.w.MagnolieI18n.setLocale(language), language);
++  const errors = [], reads = [], rejected = error => errors.push(String(error));
++  process.on("unhandledRejection", rejected);
++  b.w.addEventListener("error", event => { errors.push(String(event.error)); event.preventDefault(); });
++  const readAsText = b.w.FileReader.prototype.readAsText;
++  b.w.FileReader.prototype.readAsText = function (value) {
++    // jsdom discards exceptions from FileReader listeners without an ownerDocument.
++    // Observe the real application callback while retaining real FileReader I/O.
++    const onload = this.onload;
++    this.onload = (...args) => { try { return onload.apply(this, args); } catch (error) { errors.push(String(error)); } };
++    reads.push(new Promise(resolve => this.addEventListener("loadend", resolve, { once: true })));
++    return readAsText.call(this, value);
++  };
++  b.w.HTMLCanvasElement.prototype.getContext = () => ({ save() {}, restore() {}, clearRect() {}, drawImage() {}, beginPath() {}, closePath() {},
++    arc() {}, fill() {}, moveTo() {}, lineTo() {}, stroke() {}, bezierCurveTo() {}, setTransform() {}, translate() {}, rotate() {},
++    createLinearGradient() { return { addColorStop() {} }; } });
++  b.w.HTMLCanvasElement.prototype.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1200, height: 800 });
++  b.w.HTMLCanvasElement.prototype.toDataURL = () => renderedPng;
++  b.w.Image = class extends b.w.EventTarget {
++    complete = true;
++    naturalWidth = 0;
++    set src(value) { assert.equal(value, unreadablePng, "Only the owned failed decode is simulated"); }
++  };
++  const d = b.w.document, tr = text => b.w.MagnolieI18n.gettext(text);
++  const button = (scope, text) => {
++    const value = [...scope.querySelectorAll("button")].find(node => node.textContent === tr(text) || node.getAttribute("aria-label") === tr(text));
++    assert.ok(value, text); return value;
++  };
++  const load = async (value, scope = d) => {
++    const input = scope.querySelector('input[type="file"][accept^=".json,.svg"]'); assert.ok(input);
++    Object.defineProperty(input, "files", { configurable: true, value: [new b.w.File([typeof value === "string" ? value : JSON.stringify(value)], "owned-drawing.json", { type: "application/json" })] });
++    input.dispatchEvent(new b.w.Event("change", { bubbles: true }));
++    await reads.at(-1); await tick();
++    assert.equal(input.value, "", "A failed selection must be selectable again");
++  };
++  const snapshot = () => ({ data: JSON.stringify(b.t.daten()), saves: b.saves().length,
++    saveTimers: b.timers.filter(timer => timer.delay === 400).length,
++    exports: b.messages.filter(message => message.cmd === "zeichenblatt_exportieren").length });
++  const unchanged = before => {
++    assert.deepEqual(snapshot(), before, "A failed action must not change data, schedule a save or export");
++    assert.deepEqual(errors, [], "The error path must not throw a translation TypeError");
++  };
++  await b.t.wechsel("custom");
++  const module = b.t.daten().customOrganizer.modules.find(value => value.id === "owned-drawing-errors");
++  assert.ok(module && d.querySelector("canvas.custom-zeichenblatt"));
++  return { ...b, d, tr, button, load, snapshot, unchanged, errors, module,
++    status: () => d.querySelector(".custom-modul-drawing > .einst-hinweis"),
++    close() { process.removeListener("unhandledRejection", rejected); b.close(); } };
++}
++
++(async () => {
++  let cases = 0;
++  for (const web of harness.exports.roots) for (const language of ["en", "de"]) {
++    for (const name of ["JSON import", "Export", "Rotate sheet", "Embed in note"]) {
++      const b = await setup(web, language);
++      try {
++        if (name === "JSON import") {
++          for (const invalid of ['{"version":', { version: 99, future: "preserve" }]) {
++            const before = b.snapshot(); await b.load(invalid);
++            b.unchanged(before);
++            assert.equal(b.status().textContent, b.tr("This drawing cannot be edited in this version."));
++          }
++          const replacement = { ...sheet(), width: 1000 }; await b.load(replacement);
++          assert.equal(JSON.stringify(b.module.drawing), JSON.stringify(replacement), "A valid file must still load after rejection");
++          assert.equal(b.status().textContent, "owned-drawing.json", "A successful retry must replace the stale error with the loaded filename");
++        } else {
++          const broken = { ...sheet(), background: unreadablePng };
++          assert.equal(b.w.MagnolieZeichnen.valid(broken), true);
++          await b.load(broken);
++          if (name === "Export") {
++            const before = b.snapshot(); b.button(b.d.querySelector(".zeichen-dokument"), "Save as…").click(); await tick();
++            b.unchanged(before); assert.equal(b.status().textContent, b.tr("This image format cannot be used."));
++            await b.load(sheet()); b.button(b.d.querySelector(".zeichen-dokument"), "Save as…").click(); await tick();
++            const exported = b.messages.filter(message => message.cmd === "zeichenblatt_exportieren");
++            assert.equal(exported.length, before.exports + 1); assert.equal(exported.at(-1).png, renderedPng);
++            assert.match(exported.at(-1).svg, /^<svg/); assert.equal(exported.at(-1).json, JSON.stringify(b.module.drawing));
++          } else if (name === "Rotate sheet") {
++            const rotate = () => { b.button(b.d.querySelector(".zeichen-stifte"), "Rotate selection").click(); return b.d.querySelector(".eingabe-dialog"); };
++            let dialog = rotate(); const before = b.snapshot(); b.button(dialog, "Apply").click(); await tick();
++            b.unchanged(before); assert.equal(dialog.querySelector(".einst-warnung").textContent, b.tr("The file could not be read."));
++            assert.equal(dialog.isConnected, true); b.button(dialog, "Cancel").click();
++            await b.load(sheet()); dialog = rotate(); b.button(dialog, "Apply").click(); await tick();
++            assert.equal(dialog.isConnected, false); assert.equal(b.module.drawing.width, 600); assert.equal(b.module.drawing.height, 900);
++          } else {
++            await b.t.wechsel("notizen");
++            b.button(b.d.querySelector(".notiz-einfuegen"), "Drawing sheet").click();
++            const dialog = [...b.d.querySelectorAll(".eingabe-dialog")].find(value => value.querySelector(".notiz-zeichen-editor")); assert.ok(dialog);
++            const before = b.snapshot(); b.button(dialog, "Embed").click(); await tick();
++            b.unchanged(before); assert.equal(dialog.querySelector(":scope > .einst-warnung").textContent, b.tr("This image format cannot be used."));
++            assert.equal(dialog.isConnected, true); await b.load(sheet(), dialog);
++            b.button(dialog, "Embed").click(); await tick(); assert.equal(dialog.isConnected, false);
++            const note = b.t.daten().notizen.find(value => value.id === "owned-drawing-note");
++            assert.equal(note.text, "Keep this text"); assert.equal(note.anhaenge.length, 1); assert.equal(note.anhaenge[0].daten, renderedPng);
++          }
++        }
++        assert.deepEqual(b.errors, []);
++        cases++;
++        console.log(`PASS ${path.basename(path.dirname(web))}/${language}: ${name} localized rejection, unchanged data/save state and valid retry`);
++      } finally { b.close(); }
++    }
++  }
++  console.log(`PASS ${cases} drawing error/recovery UI cases; JSDOM controls, native decoder/canvas boundary simulated, no native acceptance`);
++})().catch(error => { console.error(error); process.exitCode = 1; });
+diff --git a/magnolie-organizer-windows/tests/run.js b/magnolie-organizer-windows/tests/run.js
+index 59696acbd2788c9b5b1bf651e93bb758e2c48a32..96892cc67befaffe043c6011c7afdffa1b8a3fc0 100644
+--- a/magnolie-organizer-windows/tests/run.js
++++ b/magnolie-organizer-windows/tests/run.js
+@@ -19,6 +19,7 @@ process.env.MAGNOLIE_PYTHON = python;
+ let failed = false;
+ const results = [];
+ for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-save.js", "time-zone-planning.js", "time-zone-settings.js", "ui-bugfixes.js", "drawing-sheet.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-sms-paths.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "web-smoke.js",
++  "drawing-error-feedback.js",
+   "handbook-page-ids.js",
+   "handbook-source-diagnostics.js",
+   "calendar-attachment-actions.js", "calendar-attachment-native.js",
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index 85ce6e616f29682d489ed60fcadf9589d75567b7..bb0175d348cdc7dbb1af4547248632a5a4312d03 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -6202,13 +6202,12 @@ def _lotus_kontakte(zeilen, kopf):
+             telefon_spalten.append((i, typen))
+         sitz = "HOME" if any(w in spalte for w in ("PRIVAT", "HOME")) else \
+             "WORK" if any(w in spalte for w in ("GESCHAEFT", "ARBEIT", "WORK", "FIRMA")) else ""
+-        if sitz:
+-            for feld, woerter in (("strasse", ("STRASSE", "STREET", "ANSCHRIFT", "ADRESSE")),
+-                                  ("plz", ("POSTLEITZAHL", "PLZ", "ZIP", "POSTALCODE")),
+-                                  ("ort", ("ORT", "STADT", "CITY")), ("land", ("LAND", "COUNTRY"))):
+-                if any(w in spalte for w in woerter):
+-                    anschrift_spalten.append((i, sitz, feld))
+-                    break
++        for feld, woerter in (("strasse", ("STRASSE", "STREET", "ANSCHRIFT", "ADRESSE")),
++                              ("plz", ("POSTLEITZAHL", "PLZ", "ZIP", "POSTALCODE")),
++                              ("ort", ("ORT", "STADT", "CITY")), ("land", ("LAND", "COUNTRY"))):
++            if any(w in spalte for w in woerter):
++                anschrift_spalten.append((i, sitz, feld))
++                break
+     kontakte, uebersprungen = [], 0
+     for zeile in zeilen:
+         def hol(feld, zeile=zeile):
+@@ -6227,16 +6226,20 @@ def _lotus_kontakte(zeilen, kopf):
+         for telefon in eintrag["telefone"]:
+             if not telefon.get("vcardParameter"):
+                 telefon.pop("vcardParameter", None)
+-        anschriften = _anschrift_liste(eintrag)
+-        nach_sitz = {"HOME": {"strasse": "", "plz": "", "ort": "", "land": ""},
++        # Group source columns before deriving scalar compatibility fields.
++        # First matches across HOME/WORK can otherwise invent a hybrid address.
++        anschriften = []
++        nach_sitz = {"": {"strasse": "", "plz": "", "ort": "", "land": ""},
++                     "HOME": {"strasse": "", "plz": "", "ort": "", "land": ""},
+                      "WORK": {"strasse": "", "plz": "", "ort": "", "land": ""}}
+         for i, sitz, feld in anschrift_spalten:
+             if i >= len(zeile) or not zeile[i].strip():
+                 continue
+-            nach_sitz[sitz][feld] = zeile[i].strip()
++            if sitz or not nach_sitz[sitz][feld]:
++                nach_sitz[sitz][feld] = zeile[i].strip()
+         for sitz, anschrift in nach_sitz.items():
+             if any(anschrift.values()):
+-                anschriften.append(dict(anschrift, typen=[sitz]))
++                anschriften.append(dict(anschrift, typen=[sitz] if sitz else []))
+         _anschriften_setzen(eintrag, anschriften)
+         kontakte.append(eintrag)
+     return kontakte, uebersprungen
+@@ -6257,9 +6260,10 @@ def _lotus_aufgaben(zeilen, kopf):
+             continue
+         roh_prio = hol("prio").upper()
+         prio = 2
+-        if roh_prio[:1] in ("1", "H") or "HOCH" in roh_prio:
++        # Prefix guesses turn "Normal" into low and unknown values into high.
++        if roh_prio in ("1", "H", "HIGH", "HOCH"):
+             prio = 1
+-        elif roh_prio[:1] in ("3", "N") or "NIEDRIG" in roh_prio:
++        elif roh_prio in ("3", "N", "LOW", "NIEDRIG"):
+             prio = 3
+         aufgaben.append({
+             "titel": titel,
+@@ -7733,6 +7737,12 @@ def _alarm_normalisieren(alarm):
+              "aktiviert": alarm.get("aktiviert") is not False,
+              "related": "END" if str(alarm.get("related") or "START").upper() == "END" else "START",
+              "aktion": aktion.lower()}
++    # Refs #835: the private background projection is normalized once more
++    # when read. Keep the absolute instant, including UTC offset and seconds.
++    absolut = _alarm_absolut_lesen(alarm.get("absolut"))
++    if absolut is not None and alarm.get("offsetMinuten") is None:
++        basis["absolut"] = absolut.isoformat()
++        return basis
+     if alarm.get("bearbeitbar") is False:
+         trigger = str(alarm.get("triggerRaw") or "").strip()
+         dauer = re.fullmatch(
+@@ -7746,12 +7756,17 @@ def _alarm_normalisieren(alarm):
+                        (int(dauer.group(6) or 0) + 59) // 60)
+             if minuten <= 525600:
+                 basis["offsetMinuten"] = minuten if dauer.group(1) == "-" else -minuten
++                if basis["offsetMinuten"] < 0:
++                    basis.update(bearbeitbar=False, triggerRaw=trigger)
+                 return basis
+-        datum, zeit = _ics_datumzeit(
+-            trigger, {"TZID": str(alarm.get("triggerTzid") or "")})
+-        if datum and zeit:
+-            basis["absolut"] = datum + " " + zeit
+-            return basis
++        try:
++            zeitpunkt, ganztags = ics_date_time(trigger,
++                {"TZID": str(alarm.get("triggerTzid") or "")}, _organizer_zeitzone())
++            if zeitpunkt is not None and not ganztags:
++                basis["absolut"] = _erinnerungs_instant(zeitpunkt).isoformat()
++                return basis
++        except (ValueError, TypeError, KeyError, OverflowError):
++            pass
+         return None
+     wert = alarm.get("offsetMinuten")
+     if isinstance(wert, bool):
+@@ -7767,6 +7782,66 @@ def _alarm_normalisieren(alarm):
+     return basis
+ 
+ 
++def _alarm_absolut_lesen(wert):
++    if not isinstance(wert, str) or not re.fullmatch(
++            r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:\d{2})?", wert):
++        return None
++    try:
++        return _erinnerungs_instant(datetime.fromisoformat(wert.replace("Z", "+00:00")))
++    except (ValueError, TypeError, OverflowError):
++        return None
++
++
++def _absolute_alarm_meldungen(eintrag, kennung):
++    """One source-bound absolute alarm, independent of recurrence windows."""
++    if (str(eintrag.get("icsStatus") or "").upper() == "CANCELLED" or
++            any(name == "STATUS" and str(wert).upper() == "CANCELLED"
++                for name, _params, wert in ics_properties(eintrag.get("icsRoundtrip")))):
++        return []
++    result, gesehen = [], set()
++    for _minuten, _related, text in _strukturierte_alarme(eintrag):
++        zeitpunkt = _alarm_absolut_lesen(text)
++        if zeitpunkt is None or zeitpunkt in gesehen:
++            continue
++        gesehen.add(zeitpunkt)
++        marke = "%s@absolute:%s" % (kennung, zeitpunkt.strftime("%Y%m%dT%H%M%SZ"))
++        # Absolute alarms expire relative to their trigger, not a possibly
++        # distant event. This also prevents replay after the marker is pruned.
++        result.append((marke, zeitpunkt, 0, zeitpunkt, set()))
++    return result
++
++
++def _absolute_erinnerungen_buendeln(meldungen):
++    """Join an absolute alarm to one same-source, same-instant normal notice."""
++    gruppen, anker = [], {}
++    # Keep independent normal recurrence notices unchanged. Only the new
++    # component-bound absolute alarm joins their first exact UTC match.
++    for absolut in (False, True):
++        for meldung in meldungen:
++            if meldung[1] != absolut:
++                continue
++            zeitpunkt = (meldung[0], meldung[3])
++            if absolut and zeitpunkt in anker:
++                anker[zeitpunkt].append(meldung)
++            else:
++                gruppe = [meldung]
++                gruppen.append(gruppe)
++                anker.setdefault(zeitpunkt, gruppe)
++    return gruppen
++
++
++def _erinnerungsgruppe_quittieren(gruppe, gemeldet, wann=None):
++    if wann is None:
++        alt = next((key for meldung in gruppe for key in [meldung[2], *meldung[4]]
++                    if key in gemeldet), None)
++        if alt is None:
++            return False
++        wann = gemeldet[alt]
++    for meldung in gruppe:
++        gemeldet[meldung[2]] = wann
++    return True
++
++
+ def _custom_erinnerungseintraege(daten):
+     termine = []
+     aufgaben = []
+@@ -8214,7 +8289,8 @@ def _erinnerungs_instant(wandzeit, eintrag=None, feld=None):
+     return (wandzeit.replace(tzinfo=_organizer_zeitzone()) if wandzeit.tzinfo is None else wandzeit).astimezone(timezone.utc)
+ 
+ 
+-def _termin_meldungen(termin, kennung, beginn, vorlauf, absolut_rechnen=False, legacy=True):
++def _termin_meldungen(termin, kennung, beginn, vorlauf, absolut_rechnen=False, legacy=True,
++                     absolute=True):
+     """Deduplizierte Meldungen aus Standard-, Legacy- und Webalarmen."""
+     meldungen = {}
+ 
+@@ -8261,12 +8337,12 @@ def _termin_meldungen(termin, kennung, beginn, vorlauf, absolut_rechnen=False, l
+                   tage=tage)
+     for minuten, related, absolut in _strukturierte_alarme(termin):
+         if absolut:
+-            if termin.get("folge"):
++            if not absolute or termin.get("folge"):
+                 continue
+-            try:
+-                feste_zeit = datetime.strptime(absolut, "%Y-%m-%d %H:%M")
+-            except ValueError:
++            zeitpunkt = _alarm_absolut_lesen(absolut)
++            if zeitpunkt is None:
+                 continue
++            feste_zeit = zeitpunkt.astimezone(_organizer_zeitzone()).replace(tzinfo=None)
+             aufnehmen("alarm-absolut", 0, related, feste_zeit=feste_zeit)
+             continue
+         alarm_tage = minuten // 1440 if minuten and minuten > 0 and minuten % 1440 == 0 else 0
+@@ -8643,9 +8719,18 @@ def faellige_erinnerungen(daten, jetzt, zustand, vorlauf=15, verpasste=True,
+                           if 1 <= tage <= 7] +
+                    [(groesster_vorlauf + 1439) // 1440 + 1])
+ 
+-    for termin in termine_mit_wiederholungen(daten, jetzt,
++    kandidaten = []
++    for original in _ics_serien_abstimmen(list((daten or {}).get("termine") or [])):
++        if not isinstance(original, dict):
++            continue
++        quelle = _termin_erinnerungskennung(original)
++        kandidaten.extend((termin, False, quelle) for termin in termine_mit_wiederholungen(
++            {"termine": [original]}, jetzt,
+             tage_zurueck=max(4, (max(1, rueckblick_stunden) + 23) // 24 + 1),
+-            tage_vor=tage_vor, fehler=fehler, alarm_nachlauf=True):
++            tage_vor=tage_vor, fehler=fehler, alarm_nachlauf=True))
++        kandidaten.append((original, True, quelle))
++    alle_meldungen = []
++    for termin, nur_absolute, quelle in kandidaten:
+         if not isinstance(termin, dict) or ausgeschlossen(termin):
+             continue
+         kennung = _termin_erinnerungskennung(termin) if termin.get("id") or termin.get("uid") else ""
+@@ -8654,37 +8739,38 @@ def faellige_erinnerungen(daten, jetzt, zustand, vorlauf=15, verpasste=True,
+         beginn = _termin_zeitpunkt(termin)
+         if beginn is None:
+             continue
+-        for marke, erinnerungszeit, tage, basis, alte_marken in _termin_meldungen(
+-                termin, kennung, beginn, vorlauf, absolut_rechnen=True,
+-                legacy=bool((zustand or {}).get("gemeldet"))):
+-            if basis < jetzt_utc - timedelta(hours=max(1, rueckblick_stunden)):
+-                continue
+-            if marke in gemeldet:
+-                continue
+-            alte_marke = next((alt for alt in alte_marken if alt in gemeldet), None)
+-            if alte_marke is not None:
+-                gemeldet[marke] = gemeldet[alte_marke]
+-                continue
+-            if jetzt_utc < erinnerungszeit:
++        meldungen = (_absolute_alarm_meldungen(termin, kennung) if nur_absolute else
++            _termin_meldungen(termin, kennung, beginn, vorlauf, absolut_rechnen=True,
++                legacy=bool((zustand or {}).get("gemeldet")), absolute=False))
++        for marke, erinnerungszeit, tage, basis, alte_marken in meldungen:
++            alle_meldungen.append((quelle, nur_absolute, marke, erinnerungszeit, alte_marken,
++                                  (termin, beginn, tage, basis)))
++    for gruppe in _absolute_erinnerungen_buendeln(alle_meldungen):
++        _quelle, _absolut, marke, erinnerungszeit, _alte, (termin, beginn, tage, basis) = gruppe[0]
++        if basis < jetzt_utc - timedelta(hours=max(1, rueckblick_stunden)):
++            continue
++        if _erinnerungsgruppe_quittieren(gruppe, gemeldet):
++            continue
++        if jetzt_utc < erinnerungszeit:
++            continue
++        eintrag = {"id": marke,
++                   "titel": (termin.get("titel") or "").strip()
++                   or _("Untitled appointment"),
++                   "datum": termin.get("datum") or "",
++                   "zeit": (termin.get("zeit") or "").strip(),
++                   "ort": (termin.get("kategorien") or "").strip(),
++                   "individuelleTage": tage,
++                   "beginn": beginn.strftime("%Y-%m-%d %H:%M")}
++        if jetzt_utc > basis + spielraum:
++            if not verpasste:
++                _erinnerungsgruppe_quittieren(gruppe, gemeldet, jetzt.strftime("%Y-%m-%d %H:%M"))
+                 continue
+-            eintrag = {"id": marke,
+-                       "titel": (termin.get("titel") or "").strip()
+-                       or _("Untitled appointment"),
+-                       "datum": termin.get("datum") or "",
+-                       "zeit": (termin.get("zeit") or "").strip(),
+-                       "ort": (termin.get("kategorien") or "").strip(),
+-                       "individuelleTage": tage,
+-                       "beginn": beginn.strftime("%Y-%m-%d %H:%M")}
+-            if jetzt_utc > basis + spielraum:
+-                if not verpasste:
+-                    gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
+-                    continue
+-                eintrag["verpasst"] = True
+-                verpasst.append(eintrag)
+-            else:
+-                eintrag["verpasst"] = False
+-                faellig.append(eintrag)
+-            gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
++            eintrag["verpasst"] = True
++            verpasst.append(eintrag)
++        else:
++            eintrag["verpasst"] = False
++            faellig.append(eintrag)
++        _erinnerungsgruppe_quittieren(gruppe, gemeldet, jetzt.strftime("%Y-%m-%d %H:%M"))
+ 
+     # Vermerke zu längst vergangenen Terminen wieder wegräumen
+     behalten = {}
+@@ -8732,7 +8818,8 @@ def naechster_weckzeitpunkt(daten, jetzt, vorlauf=15, fehler=None):
+             return
+         kennung = _termin_erinnerungskennung(termin)
+         for _marke, weckzeit, _tage, _basis, _alte_marken in _termin_meldungen(
+-                termin, kennung, beginn, vorlauf, absolut_rechnen=True, legacy=False):
++                termin, kennung, beginn, vorlauf, absolut_rechnen=True, legacy=False,
++                absolute=False):
+             if weckzeit <= jetzt_utc:
+                 continue
+             if bester is None or weckzeit < bester:
+@@ -8743,6 +8830,11 @@ def naechster_weckzeitpunkt(daten, jetzt, vorlauf=15, fehler=None):
+     ende = datetime(9998, 12, 31)
+     for termin in _ics_serien_abstimmen(list((daten or {}).get("termine") or [])):
+         try:
++            if isinstance(termin, dict) and _termin_zeitpunkt(termin) is not None:
++                for _marke, weckzeit, _tage, _basis, _alte_marken in _absolute_alarm_meldungen(
++                        termin, _termin_erinnerungskennung(termin)):
++                    if weckzeit > jetzt_utc and (bester is None or weckzeit < bester):
++                        bester = weckzeit
+             alarme = _strukturierte_alarme(termin) if isinstance(termin, dict) else []
+             nachlauf = max([0] + [-minuten for minuten, _related, _absolut in alarme if minuten is not None])
+             cursor, days, queries = ab - timedelta(minutes=nachlauf), 1, 0
+@@ -8904,6 +8996,93 @@ def faellige_jahrestage(daten, jetzt, ergebnis=None, tage_vorher=0,
+     return ergebnis
+ 
+ 
++def _aufgaben_erinnerungsmarken(aufgabe, faelligkeit):
++    datum = faelligkeit.strftime("%Y-%m-%d")
++    basis = "af-%s-%s-%s" % (aufgabe.get("id") or "?", datum,
++                              faelligkeit.strftime("%H%M"))
++    alt = "af-%s-%s" % (aufgabe.get("id") or "?", datum)
++    due_utc = _erinnerungs_instant(faelligkeit, aufgabe, "icsEndUtc")
++    if faelligkeit.second and "icsOccurrence" not in aufgabe:
++        basis += "-second-%02d" % faelligkeit.second
++    local_due = due_utc.astimezone(_organizer_zeitzone())
++    if "icsOccurrence" not in aufgabe and local_due.replace(fold=0).utcoffset() != local_due.replace(fold=1).utcoffset():
++        basis += "-utc-" + due_utc.strftime("%Y%m%d%H%M%S")
++        alt = basis
++    return basis, alt, due_utc
++
++
++def _absolute_aufgaben_altmarken(aufgabe, zeitpunkt, gemeldet, stunde=8):
++    """Acknowledge only exact task/occurrence marks actually used before #835."""
++    from datetime import timedelta
++    # The former trigger parser discarded seconds and the fold. Such a mark
++    # cannot acknowledge a different second or the second repeated wall hour.
++    wandzeit = zeitpunkt.astimezone(_organizer_zeitzone()).replace(
++        tzinfo=None, second=0, microsecond=0, fold=0)
++    if _erinnerungs_instant(wandzeit) != zeitpunkt:
++        return set()
++    alarme = _strukturierte_alarme(aufgabe)
++    bezuege = {related for _minutes, related, absolute in alarme
++               if _alarm_absolut_lesen(absolute) == zeitpunkt}
++    suffixe = tuple("-alarm-%s-%s" % (related, wandzeit.strftime("%Y-%m-%d %H:%M"))
++                    for related in bezuege)
++    prefix = "af-" + _termin_erinnerungskennung(aufgabe)
++    kandidaten = {key: value for key, value in gemeldet.items()
++                  if isinstance(key, str) and key.startswith(prefix) and key.endswith(suffixe)}
++    if not kandidaten:
++        return set()
++    bestaetigt = set()
++    # Use the persisted scan time to reconstruct the *actual* source-qualified
++    # occurrence. Prefix/suffix similarity alone must never acknowledge it.
++    for wann in set(str(value)[:16] for value in kandidaten.values()):
++        try:
++            damals = datetime.strptime(wann, "%Y-%m-%d %H:%M")
++            start = aufgabe.get("startDatum") or aufgabe.get("faellig")
++            due = aufgabe.get("faellig") or start
++            span = max(0, (datetime.fromisoformat(due) - datetime.fromisoformat(start)).days) if start and due else 0
++            lead = max([8 * 1440] + [minutes for minutes, _, _ in alarme if minutes is not None])
++            lag = max([0] + [-minutes for minutes, _, _ in alarme if minutes is not None])
++            expanded = _ics_vorkommen(aufgabe, damals - timedelta(days=5 + span, minutes=lag),
++                                      damals + timedelta(minutes=lead), aufgabe=True, ueberlappung=True)
++            for mal in [aufgabe] if expanded is None else expanded:
++                faelligkeit = _termin_zeitpunkt({"datum": mal.get("faellig"),
++                                                "zeit": mal.get("faelligZeit")}, stunde)
++                if faelligkeit is None:
++                    continue
++                basis, _alt, _utc = _aufgaben_erinnerungsmarken(mal, faelligkeit)
++                for suffix in suffixe:
++                    key = basis + suffix
++                    if key in kandidaten and str(kandidaten[key])[:16] == wann:
++                        bestaetigt.add(key)
++        except (ValueError, KeyError, TypeError, OverflowError, RuntimeError, StopIteration):
++            continue
++    return bestaetigt
++
++
++def _absolute_aufgaben_datum_gueltig(aufgabe):
++    """Missing dates are valid for an absolute VTODO; malformed dates are not."""
++    for tag_feld, zeit_feld in (("startDatum", "startZeit"), ("faellig", "faelligZeit")):
++        tag, uhr = str(aufgabe.get(tag_feld) or ""), str(aufgabe.get(zeit_feld) or "")
++        if not tag:
++            if uhr:
++                return False
++            continue
++        try:
++            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", tag):
++                return False
++            datetime.strptime(tag, "%Y-%m-%d")
++            if uhr:
++                if not re.fullmatch(r"\d{2}:\d{2}(?::\d{2})?", uhr):
++                    return False
++                datetime.strptime(uhr, "%H:%M:%S" if len(uhr) == 8 else "%H:%M")
++        except ValueError:
++            return False
++    # A failed import of an existing date must not look like an undated task.
++    for name, _params, _value in ics_properties(aufgabe.get("icsRoundtrip")):
++        if name == "DUE" and not aufgabe.get("faellig") or name == "DTSTART" and not aufgabe.get("startDatum"):
++            return False
++    return True
++
++
+ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
+     """Sucht Aufgaben, an die am Fälligkeitstag oder vorher zu erinnern ist.
+ 
+@@ -8918,7 +9097,8 @@ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
+     gemeldet = ergebnis["zustand"].setdefault("gemeldet", {})
+ 
+     aufgaben = []
+-    for aufgabe in _ics_serien_abstimmen((daten or {}).get("aufgaben") or []):
++    originale = _ics_serien_abstimmen((daten or {}).get("aufgaben") or [])
++    for aufgabe in originale:
+         if not isinstance(aufgabe, dict) or aufgabe.get("erledigt"):
+             continue
+         try:
+@@ -8935,8 +9115,13 @@ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
+         except (ValueError, KeyError, TypeError, OverflowError, RuntimeError, StopIteration) as error:
+             ergebnis.setdefault("recurrenceErrors", []).append({"id": _termin_erinnerungskennung(aufgabe), "error": str(error) or type(error).__name__, "retryable": bool(getattr(error, "retryable", False))})
+             continue
+-        aufgaben.extend([aufgabe] if expanded is None else expanded)
+-    for aufgabe in aufgaben:
++        aufgaben.extend((mal, _termin_erinnerungskennung(aufgabe))
++                         for mal in ([aufgabe] if expanded is None else expanded))
++    kandidaten = [(aufgabe, False, quelle) for aufgabe, quelle in aufgaben]
++    kandidaten.extend((aufgabe, True, _termin_erinnerungskennung(aufgabe)) for aufgabe in originale
++                       if isinstance(aufgabe, dict))
++    alle_meldungen = []
++    for aufgabe, nur_absolute, quelle in kandidaten:
+         if not isinstance(aufgabe, dict):
+             continue
+         tage = _erinnerung_tage(aufgabe.get("individuelleErinnerungTage"))
+@@ -8945,41 +9130,37 @@ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
+             continue
+         if aufgabe.get("erledigt"):
+             continue
+-        datum = (aufgabe.get("faellig") or "").strip()
+-        if len(datum) < 10:
++        if nur_absolute and not _absolute_aufgaben_datum_gueltig(aufgabe):
+             continue
+-        try:
+-            faelligkeit = datetime.strptime(datum, "%Y-%m-%d").replace(
+-                hour=max(0, min(23, stunde)))
+-            zeit = str(aufgabe.get("faelligZeit") or "")
+-            if len(zeit) in (5, 8):
+-                uhr = datetime.strptime(zeit, "%H:%M:%S" if len(zeit) == 8 else "%H:%M")
+-                faelligkeit = faelligkeit.replace(hour=uhr.hour, minute=uhr.minute, second=uhr.second)
+-        except ValueError:
++        datum = (aufgabe.get("faellig") or "").strip()
++        if not datum and nur_absolute:
++            faelligkeit = None
++        elif len(datum) < 10:
+             continue
+-        basis_marke = "af-%s-%s-%s" % (
+-            aufgabe.get("id") or "?", datum,
+-            faelligkeit.strftime("%H%M"))
+-        alte_basis_marke = "af-%s-%s" % (aufgabe.get("id") or "?", datum)
+-        due_utc = _erinnerungs_instant(faelligkeit, aufgabe, "icsEndUtc")
+-        if faelligkeit.second and "icsOccurrence" not in aufgabe:
+-            basis_marke += "-second-%02d" % faelligkeit.second
+-        local_due = due_utc.astimezone(_organizer_zeitzone())
+-        if "icsOccurrence" not in aufgabe and local_due.replace(fold=0).utcoffset() != local_due.replace(fold=1).utcoffset():
+-            basis_marke += "-utc-" + due_utc.strftime("%Y%m%d%H%M%S")
+-            alte_basis_marke = basis_marke
++        else:
++            try:
++                faelligkeit = datetime.strptime(datum, "%Y-%m-%d").replace(
++                    hour=max(0, min(23, stunde)))
++                zeit = str(aufgabe.get("faelligZeit") or "")
++                if len(zeit) in (5, 8):
++                    uhr = datetime.strptime(zeit, "%H:%M:%S" if len(zeit) == 8 else "%H:%M")
++                    faelligkeit = faelligkeit.replace(hour=uhr.hour, minute=uhr.minute, second=uhr.second)
++            except ValueError:
++                continue
++        if faelligkeit is not None:
++            basis_marke, alte_basis_marke, due_utc = _aufgaben_erinnerungsmarken(aufgabe, faelligkeit)
+         meldungen = []
+-        if aufgabe.get("erinnern"):
++        if not nur_absolute and aufgabe.get("erinnern"):
+             meldungen.append((basis_marke, due_utc, 0, alte_basis_marke))
+-        if 1 <= tage <= 7:
++        if not nur_absolute and 1 <= tage <= 7:
+             meldungen.append((basis_marke + "-vorher-%d" % tage,
+                               _erinnerungs_instant(faelligkeit - timedelta(days=tage)), tage,
+                               alte_basis_marke + "-vorher-%d" % tage))
+-        for minutes, related, absolute in alarms:
++        for minutes, related, absolute in ([] if nur_absolute else alarms):
+             basis = faelligkeit if related == "END" else _termin_zeitpunkt({
+                 "datum": aufgabe.get("startDatum") or datum, "zeit": aufgabe.get("startZeit") or ""}, stunde)
+             if absolute:
+-                trigger = _erinnerungs_instant(datetime.fromisoformat(absolute.replace(" ", "T")))
++                continue
+             elif basis is not None and minutes is not None:
+                 trigger = _erinnerungs_instant(basis, aufgabe, "icsEndUtc" if related == "END" else "icsStartUtc") - timedelta(minutes=minutes)
+             else:
+@@ -8987,29 +9168,39 @@ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
+             if not any(value[1] == trigger for value in meldungen):
+                 mark = basis_marke + "-alarm-%s-%s" % (related, minutes if minutes is not None else absolute)
+                 meldungen.append((mark, trigger, 0, mark))
++        if nur_absolute:
++            meldungen = []
++            for marke, zeitpunkt, _tage, _basis, _alt in _absolute_alarm_meldungen(
++                    aufgabe, "af-" + _termin_erinnerungskennung(aufgabe)):
++                alte_marken = (_absolute_aufgaben_altmarken(aufgabe, zeitpunkt, gemeldet, stunde)
++                               if marke not in gemeldet else set())
++                meldungen.append((marke, zeitpunkt, 0, next(iter(alte_marken), marke)))
+         for marke, zeitpunkt, tage_vorher, alte_marke in meldungen:
+-            if marke not in gemeldet and alte_marke in gemeldet:
+-                gemeldet[marke] = gemeldet[alte_marke]
+-            if marke in gemeldet or jetzt_utc < zeitpunkt:
+-                continue
+-            if jetzt_utc > zeitpunkt + timedelta(hours=72):
+-                gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
+-                continue
+-            wer = ", ".join(n for n in (aufgabe.get("personenNamen") or []) if n)
+-            verpasst = jetzt_utc > zeitpunkt + timedelta(hours=14)
+-            if verpasst and not verpasste:
+-                gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
+-                continue
+-            eintrag = {
+-                "id": marke, "aufgabe": True,
+-                "kopf": _("Task reminder") if tage_vorher else _("Task is due"),
+-                "titel": aufgabe.get("titel") or _("Task"),
+-                "wer": wer, "individuelleTage": tage_vorher,
+-                "datum": datum, "zeit": faelligkeit.strftime("%H:%M:%S" if faelligkeit.second else "%H:%M"),
+-                "verpasst": verpasst,
+-                "beginn": zeitpunkt.astimezone(_organizer_zeitzone()).strftime("%Y-%m-%d %H:%M")}
+-            ergebnis["verpasst" if verpasst else "faellig"].append(eintrag)
+-            gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
++            alle_meldungen.append((quelle, nur_absolute, marke, zeitpunkt, {alte_marke},
++                                  (aufgabe, faelligkeit, datum, tage_vorher)))
++    for gruppe in _absolute_erinnerungen_buendeln(alle_meldungen):
++        _quelle, nur_absolute, marke, zeitpunkt, _alte, (aufgabe, faelligkeit, datum, tage_vorher) = gruppe[0]
++        if _erinnerungsgruppe_quittieren(gruppe, gemeldet) or jetzt_utc < zeitpunkt:
++            continue
++        if jetzt_utc > zeitpunkt + timedelta(hours=72):
++            _erinnerungsgruppe_quittieren(gruppe, gemeldet, jetzt.strftime("%Y-%m-%d %H:%M"))
++            continue
++        wer = ", ".join(n for n in (aufgabe.get("personenNamen") or []) if n)
++        verpasst = jetzt_utc > zeitpunkt + timedelta(hours=14)
++        if verpasst and not verpasste:
++            _erinnerungsgruppe_quittieren(gruppe, gemeldet, jetzt.strftime("%Y-%m-%d %H:%M"))
++            continue
++        anzeige = faelligkeit or zeitpunkt.astimezone(_organizer_zeitzone())
++        eintrag = {
++            "id": marke, "aufgabe": True,
++            "kopf": _("Task reminder") if tage_vorher or nur_absolute else _("Task is due"),
++            "titel": aufgabe.get("titel") or _("Task"),
++            "wer": wer, "individuelleTage": tage_vorher,
++            "datum": datum or anzeige.strftime("%Y-%m-%d"), "zeit": anzeige.strftime("%H:%M:%S" if anzeige.second else "%H:%M"),
++            "verpasst": verpasst,
++            "beginn": zeitpunkt.astimezone(_organizer_zeitzone()).strftime("%Y-%m-%d %H:%M")}
++        ergebnis["verpasst" if verpasst else "faellig"].append(eintrag)
++        _erinnerungsgruppe_quittieren(gruppe, gemeldet, jetzt.strftime("%Y-%m-%d %H:%M"))
+     return ergebnis
+ 
+ 
+diff --git a/magnolie-organizer/pruefungen/test_absolute_reminder_legacy.py b/magnolie-organizer/pruefungen/test_absolute_reminder_legacy.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3234973e761985c4ca2844fd34bcb3b2e0713ab4
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/test_absolute_reminder_legacy.py
+@@ -0,0 +1,245 @@
++"""#835: genuine pre-fix acknowledgment shapes and undated absolute VTODOs."""
++import copy
++import json
++from datetime import datetime, timedelta, timezone
++from pathlib import Path
++import unittest
++from unittest.mock import patch
++from zoneinfo import ZoneInfo
++
++from modul_laden import quellmodul_laden
++
++
++# Captured by executing the real importer and faellige_aufgaben from
++# 1543858e251d7e29ebeafb67d2605991c1d442d5, not generated by the code under test.
++UID = "independent-absolute-review"
++PREFIX = "af-58b0c6d3d9fe361ee648:" + UID
++OLD = PREFIX + "@2026-11-29T12:30:00+00:00-2026-11-29-1230-alarm-START-2026-11-27 10:30"
++OLD_NEXT = PREFIX + "@2026-11-30T12:30:00+00:00-2026-11-30-1230-alarm-START-2026-11-27 10:30"
++OLD_FOLD = PREFIX + "@2026-11-03T12:30:00+00:00-2026-11-03-0730-alarm-START-2026-11-01 01:30"
++NOW = datetime(2026, 11, 27, 10, 30, tzinfo=timezone.utc)
++
++
++class AbsoluteReminderLegacy(unittest.TestCase):
++    @classmethod
++    def setUpClass(cls):
++        with patch.dict("sys.modules", {"gi": None}):
++            cls.m = quellmodul_laden("absolute_reminder_legacy_test",
++                Path(__file__).resolve().parents[1] / "bin/magnolie-organizer")
++
++    def setUp(self):
++        self.zone = "UTC"
++        self.zone_name = patch.object(self.m, "_zeitzonenname", lambda: self.zone)
++        self.zone_name.start()
++        self.zone_token = self.m._LAUF_ZEITZONE.set(ZoneInfo(self.zone))
++
++    def tearDown(self):
++        self.m._LAUF_ZEITZONE.reset(self.zone_token)
++        self.zone_name.stop()
++
++    def imported(self, trigger="20261127T103000Z", start="20261129T123000Z",
++                 due="20261129T123000Z", source="owned-calendar-a", recurrence="", status="", uid=UID):
++        lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Magnolie//Owned legacy fixture//EN",
++                 "BEGIN:VTODO", "UID:" + uid, "DTSTAMP:20261001T000000Z", "SUMMARY:Owned independent alarm"]
++        if start is not None:
++            lines.append("DTSTART:" + start)
++        if due is not None:
++            lines.append("DUE:" + due)
++        if recurrence:
++            lines.append("RRULE:" + recurrence)
++        if status:
++            lines.append("STATUS:" + status)
++        lines += ["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER;VALUE=DATE-TIME:" + trigger,
++                  "DESCRIPTION:Owned independent alarm", "END:VALARM", "END:VTODO", "END:VCALENDAR", ""]
++        data = self.m.ics_lesen("\r\n".join(lines), quellen_id=source)
++        data["einstellungen"] = {"erinnerung": {"an": True}, "sicherheit": {"erinnernTrotzKennwort": True}}
++        self.assertEqual(len(data["aufgaben"]), 1)
++        return data
++
++    def run_tasks(self, data, state=None, at=NOW):
++        before = copy.deepcopy(data)
++        result = self.m.faellige_aufgaben(data, at, {"faellig": [], "verpasst": [],
++            "zustand": json.loads(json.dumps(state or {"gemeldet": {}}))})
++        self.assertEqual(data, before, "Alarm delivery must not invent or alter stored task dates")
++        return result
++
++    @staticmethod
++    def notices(result):
++        return result["faellig"] + result["verpasst"]
++
++    @staticmethod
++    def old_state(key=OLD, when="2026-11-27 10:30"):
++        return {"gemeldet": {key: when}, "letzter_lauf": ""}
++
++    def test_genuine_old_ack_survives_upgrade_and_background_projection(self):
++        for source, key in [("owned-calendar-a", OLD), ("", OLD.replace("58b0c6d3d9fe361ee648:", ""))]:
++            data = self.imported(source=source)
++            for chosen in [data, self.m.erinnerungsdaten_auswaehlen(data)]:
++                with self.subTest(source=source, background=chosen.get("nurErinnerungen", False)):
++                    result = self.run_tasks(chosen, self.old_state(key))
++                    self.assertEqual(self.notices(result), [])
++                    self.assertEqual(sum("@absolute:" in item for item in result["zustand"]["gemeldet"]), 1)
++                    self.assertEqual(self.notices(self.run_tasks(chosen, result["zustand"], at=NOW + timedelta(seconds=30))), [])
++
++    def test_real_series_occurrence_acknowledges_component_only_once(self):
++        data = self.imported(recurrence="FREQ=DAILY;COUNT=2")
++        for key in [OLD, OLD_NEXT]:
++            with self.subTest(key=key):
++                self.assertEqual(self.notices(self.run_tasks(data, self.old_state(key))), [])
++        forged = OLD_NEXT.replace("2026-11-30", "2026-12-01")
++        self.assertEqual(len(self.notices(self.run_tasks(data, self.old_state(forged)))), 1)
++
++    def test_similar_source_component_trigger_and_standard_marks_are_not_acks(self):
++        cases = [(self.imported(source="owned-calendar-b"), self.old_state(), NOW),
++                 (self.imported(uid=UID + "-different"), self.old_state(), NOW),
++                 (self.imported(trigger="20261127T103100Z"), self.old_state(), NOW + timedelta(minutes=1)),
++                 (self.imported(), self.old_state(OLD.split("-alarm-START-")[0]), NOW),
++                 (self.imported(), self.old_state(when="invalid time"), NOW)]
++        for data, state, at in cases:
++            with self.subTest(data=data["aufgaben"][0]["uid"], state=state, at=at):
++                self.assertEqual(len(self.notices(self.run_tasks(data, state, at))), 1)
++
++    def test_old_minute_mark_does_not_acknowledge_another_second(self):
++        data = self.imported(trigger="20261127T103015Z")
++        self.assertEqual(self.notices(self.run_tasks(data, self.old_state(), NOW + timedelta(seconds=14))), [])
++        result = self.run_tasks(data, self.old_state(), NOW + timedelta(seconds=15))
++        self.assertEqual(len(self.notices(result)), 1)
++        self.assertTrue(self.notices(result)[0]["id"].endswith("@absolute:20261127T103015Z"))
++        self.assertEqual(self.notices(self.run_tasks(data, result["zustand"], NOW + timedelta(seconds=45))), [])
++
++    def test_old_wall_mark_cannot_acknowledge_the_second_dst_fold(self):
++        self.zone = "America/New_York"
++        self.m._LAUF_ZEITZONE.set(ZoneInfo(self.zone))
++        first = datetime(2026, 11, 1, 5, 30, tzinfo=timezone.utc)
++        state = self.old_state(OLD_FOLD, "2026-11-01 01:30")
++        data = self.imported(trigger="20261101T053000Z", start="20261103T123000Z", due="20261103T123000Z")
++        self.assertEqual(self.notices(self.run_tasks(data, state, first)), [])
++        second = self.imported(trigger="20261101T063000Z", start="20261103T123000Z", due="20261103T123000Z")
++        self.assertEqual(self.notices(self.run_tasks(second, state, first)), [])
++        result = self.run_tasks(second, state, first + timedelta(hours=1))
++        self.assertEqual(len(self.notices(result)), 1)
++        self.assertTrue(self.notices(result)[0]["id"].endswith("@absolute:20261101T063000Z"))
++
++    def test_undated_task_uses_trigger_for_display_without_mutating_dates(self):
++        data = self.imported(trigger="20261127T103015Z", start=None, due=None)
++        for chosen in [data, self.m.erinnerungsdaten_auswaehlen(data)]:
++            self.assertEqual(self.notices(self.run_tasks(chosen, at=NOW + timedelta(seconds=14))), [])
++            result = self.run_tasks(chosen, at=NOW + timedelta(seconds=15))
++            self.assertEqual(len(self.notices(result)), 1)
++            notice = self.notices(result)[0]
++            self.assertEqual((notice["datum"], notice["zeit"]), ("2026-11-27", "10:30:15"))
++            self.assertEqual(notice["kopf"], self.m._("Task reminder"))
++            self.assertEqual(chosen["aufgaben"][0]["faellig"], "")
++            self.assertEqual(self.notices(self.run_tasks(chosen, result["zustand"], NOW + timedelta(seconds=45))), [])
++
++    def test_start_only_task_does_not_invent_a_due_date(self):
++        data = self.imported(due=None)
++        result = self.run_tasks(data)
++        self.assertEqual(len(self.notices(result)), 1)
++        self.assertEqual(self.notices(result)[0]["datum"], "2026-11-27")
++        self.assertEqual(data["aufgaben"][0]["faellig"], "")
++
++    def test_invalid_present_dates_and_times_do_not_become_undated(self):
++        cases = []
++        for field, value in [("faellig", "2026-11-31"), ("startDatum", "not-a-date"),
++                             ("faelligZeit", "12:30"), ("startZeit", "broken")]:
++            data = self.imported(start=None, due=None)
++            data["aufgaben"][0][field] = value
++            cases.append(data)
++        cases += [self.imported(start=None, due="invalid"), self.imported(start="invalid", due=None)]
++        for data in cases:
++            with self.subTest(task=data["aufgaben"][0]):
++                self.assertEqual(self.notices(self.run_tasks(data)), [])
++
++    def test_undated_task_retains_status_and_privacy_exclusions(self):
++        for status in ["CANCELLED", "COMPLETED"]:
++            self.assertEqual(self.notices(self.run_tasks(self.imported(start=None, due=None, status=status))), [])
++        data = self.imported(start=None, due=None)
++        data["aufgaben"][0]["vertraulich"] = True
++        chosen = self.m.erinnerungsdaten_auswaehlen(data)
++        self.assertEqual(chosen["aufgaben"], [])
++        self.assertEqual(self.notices(self.run_tasks(chosen)), [])
++
++    @staticmethod
++    def remove_absolute(data, collection="aufgaben"):
++        result = copy.deepcopy(data)
++        for item in result[collection]:
++            lines, block = [], None
++            for line in item["icsRoundtrip"]:
++                if line == "BEGIN:VALARM":
++                    block = [line]
++                elif block is not None:
++                    block.append(line)
++                    if line == "END:VALARM":
++                        if not any("TRIGGER;VALUE=DATE-TIME:" in value for value in block):
++                            lines.extend(block)
++                        block = None
++                else:
++                    lines.append(line)
++            item["icsRoundtrip"] = lines
++        return result
++
++    def test_coincident_task_due_and_absolute_acknowledge_both(self):
++        data = self.imported(start="20261127T093000Z", due="20261127T103000Z")
++        data["aufgaben"][0]["erinnern"] = True
++        normal = self.remove_absolute(data)
++        old_normal = self.run_tasks(normal)
++        self.assertEqual(len(self.notices(old_normal)), 1)
++        for chosen in [data, self.m.erinnerungsdaten_auswaehlen(data)]:
++            result = self.run_tasks(chosen)
++            self.assertEqual(len(self.notices(result)), 1)
++            self.assertEqual(len(result["zustand"]["gemeldet"]), 2)
++            self.assertEqual(self.notices(self.run_tasks(chosen, result["zustand"])), [])
++            self.assertEqual(self.notices(self.run_tasks(self.remove_absolute(chosen), result["zustand"])), [])
++            upgraded = self.run_tasks(chosen, old_normal["zustand"])
++            self.assertEqual(self.notices(upgraded), [])
++            self.assertEqual(len(upgraded["zustand"]["gemeldet"]), 2)
++
++    def test_coincident_explicit_task_alarms_keep_distinct_seconds_and_sources(self):
++        data = self.imported(start="20261127T113000Z", due="20261127T123000Z")
++        data["aufgaben"][0]["icsRoundtrip"] += ["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:-PT60M", "END:VALARM"]
++        result = self.run_tasks(data)
++        self.assertEqual(len(self.notices(result)), 1)
++        self.assertEqual(len(result["zustand"]["gemeldet"]), 2)
++        self.assertEqual(self.notices(self.run_tasks(self.remove_absolute(data), result["zustand"])), [])
++        other = self.imported(start="20261127T113000Z", due="20261127T123000Z", source="owned-calendar-b")
++        other["aufgaben"][0]["icsRoundtrip"] += ["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:-PT60M", "END:VALARM"]
++        data["aufgaben"].extend(other["aufgaben"])
++        self.assertEqual(len(self.notices(self.run_tasks(data))), 2)
++        seconds = self.imported(trigger="20261127T103001Z", start="20261127T093000Z", due="20261127T103000Z")
++        seconds["aufgaben"][0]["erinnern"] = True
++        self.assertEqual(len(self.notices(self.run_tasks(seconds, at=NOW + timedelta(seconds=1)))), 2)
++
++    def test_coincident_appointment_standard_or_relative_acknowledges_both(self):
++        for start, relative in [("20261127T104500Z", None), ("20261127T113000Z", "-PT60M")]:
++            lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:owned-coinciding-event",
++                     "SUMMARY:Owned event", "DTSTART:" + start, "BEGIN:VALARM", "ACTION:DISPLAY",
++                     "TRIGGER;VALUE=DATE-TIME:20261127T103000Z", "DESCRIPTION:Owned alarm", "END:VALARM"]
++            if relative:
++                lines += ["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:" + relative, "DESCRIPTION:Owned alarm", "END:VALARM"]
++            data = self.m.ics_lesen("\r\n".join(lines + ["END:VEVENT", "END:VCALENDAR", ""]), quellen_id="owned-calendar-a")
++            normal = self.remove_absolute(data, "termine")
++            old_normal = self.m.faellige_erinnerungen(normal, NOW, {})
++            self.assertEqual(len(self.notices(old_normal)), 1)
++            result = self.m.faellige_erinnerungen(data, NOW, {})
++            self.assertEqual(len(self.notices(result)), 1)
++            self.assertEqual(len(result["zustand"]["gemeldet"]), 2)
++            state = json.loads(json.dumps(result["zustand"]))
++            self.assertEqual(self.notices(self.m.faellige_erinnerungen(data, NOW, state)), [])
++            self.assertEqual(self.notices(self.m.faellige_erinnerungen(normal, NOW, state)), [])
++            upgraded = self.m.faellige_erinnerungen(data, NOW, old_normal["zustand"])
++            self.assertEqual(self.notices(upgraded), [])
++            self.assertEqual(len(upgraded["zustand"]["gemeldet"]), 2)
++
++    def test_coincident_relative_occurrences_without_absolute_remain_separate(self):
++        data = self.imported(start="20261127T103000Z", due="20261127T103000Z", recurrence="FREQ=DAILY;COUNT=2")
++        data = self.remove_absolute(data)
++        data["aufgaben"][0]["erinnern"] = True
++        data["aufgaben"][0]["icsRoundtrip"] += ["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:-P1D", "END:VALARM"]
++        result = self.run_tasks(data)
++        self.assertEqual(len(self.notices(result)), 3)
++        self.assertEqual({value["datum"] for value in self.notices(result)}, {"2026-11-27", "2026-11-28"})
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/magnolie-organizer/pruefungen/test_absolute_reminders.py b/magnolie-organizer/pruefungen/test_absolute_reminders.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..555a5bab9d25530a67b1b301991ad73d9d86c5f9
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/test_absolute_reminders.py
+@@ -0,0 +1,130 @@
++"""Refs #835: actual ICS import and reminder planning, no native notification UI."""
++import copy
++import importlib.machinery
++import importlib.util
++import json
++import re
++from datetime import datetime, timedelta
++from pathlib import Path
++from zoneinfo import ZoneInfo
++
++import pytest
++
++ROOT = Path(__file__).resolve().parents[2]
++loader = importlib.machinery.SourceFileLoader("absolute_reminder_product", str(ROOT / "magnolie-organizer/bin/magnolie-organizer"))
++spec = importlib.util.spec_from_loader(loader.name, loader)
++m = importlib.util.module_from_spec(spec)
++loader.exec_module(m)
++VECTORS = json.loads((ROOT / "contracts/absolute-reminder-vectors.json").read_text())["cases"]
++CASES = [(case, kind, projected) for case in VECTORS
++         for kind in case.get("kinds", ["VEVENT", "VTODO"]) for projected in [False, True]]
++
++
++def calendar(case, kind):
++    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:" + kind,
++             "UID:owned-absolute-alarm", "SUMMARY:Owned absolute alarm"]
++    if case["start"]:
++        lines.append("DTSTART:" + case["start"])
++        if kind == "VTODO":
++            lines.append("DUE:" + case["start"])
++    if case.get("rule"):
++        lines.append("RRULE:" + case["rule"])
++    if case.get("status"):
++        lines.append("STATUS:" + case["status"])
++    alarm_component = "valarm" if case.get("alarmCase") == "lower" else "VALARM"
++    for trigger in case["triggers"]:
++        lines.extend(["BEGIN:" + alarm_component, "ACTION:" + case.get("action", "DISPLAY"),
++                      "TRIGGER;VALUE=DATE-TIME:" + trigger,
++                      "DESCRIPTION:PRIVATE ALARM TEXT", "END:" + alarm_component])
++    return "\r\n".join(lines + ["END:" + kind, "END:VCALENDAR", ""])
++
++
++def imported(case, kind):
++    data = m.ics_lesen(calendar(case, kind))
++    data["einstellungen"] = {"erinnerung": {"an": True, "vorlauf": 15,
++        "verpasste": case.get("missed", True)}, "sicherheit": {"erinnernTrotzKennwort": True}}
++    collection = "termine" if kind == "VEVENT" else "aufgaben"
++    for item in data[collection]:
++        item["icsQuelleId"] = "owned-calendar"
++        item["notiz"] = "PRIVATE ITEM TEXT"
++        if case.get("structured"):
++            item["alarme"] = [{"bearbeitbar": False, "aktiviert": case.get("enabled", True),
++                "aktion": case.get("action", "DISPLAY").lower(), "triggerRaw": trigger}
++                for trigger in case["triggers"]]
++    return data
++
++
++def run(data, now, state=None, missed=True):
++    result = m.faellige_erinnerungen(data, now, state or {}, verpasste=missed)
++    result = m.faellige_aufgaben(data, now, result, verpasste=missed)
++    # Accept the legacy public result keys too, so running these behavioral
++    # vectors against the previous product does not manufacture lost alarms.
++    alarms = [x for key in ("faellig", "verpasst") for x in result[key]
++              if "@absolute:" in x["id"] or ":alarm-absolut-" in x["id"] or
++              re.search(r"-alarm-(?:START|END)-\d{4}-\d{2}-\d{2}", x["id"])]
++    return alarms, result["zustand"]
++
++
++@pytest.mark.parametrize("case,kind,projected", CASES,
++    ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
++def test_absolute_vectors(case, kind, projected, monkeypatch):
++    monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
++    data = imported(case, kind)
++    if projected:
++        data = m.erinnerungsdaten_auswaehlen(data)
++        assert "PRIVATE" not in json.dumps(data)
++    before = copy.deepcopy(data)
++    now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
++    alarms, state = run(data, now, missed=case.get("missed", True))
++    assert len(alarms) == case["expected"]
++    assert len({x["id"] for x in alarms}) == len(alarms)
++    assert run(data, now, json.loads(json.dumps(state)), case.get("missed", True))[0] == []
++    assert data == before
++
++
++@pytest.mark.parametrize("kind", ["VEVENT", "VTODO"])
++def test_actual_state_file_restart_and_changed_date(kind, tmp_path, monkeypatch):
++    monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
++    case = VECTORS[0]
++    data = imported(case, kind)
++    now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
++    alarms, state = run(data, now)
++    assert len(alarms) == 1
++    path = str(tmp_path / "state.json")
++    m.erinnerung_zustand_schreiben(state, pfad=path)
++    restored = m.erinnerung_zustand_lesen(pfad=path)
++    moved = imported(dict(case, start="20261201T123000Z"), kind)
++    assert run(moved, now + timedelta(seconds=1), restored)[0] == []
++
++
++def test_next_wake_uses_absolute_trigger_outside_occurrence_window(monkeypatch):
++    monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
++    case = next(x for x in VECTORS if x["name"] == "absolute-far-outside-window")
++    data = imported(case, "VEVENT")
++    assert m.naechster_weckzeitpunkt(data, datetime(2026, 11, 27, 10, 29)) == datetime(2026, 11, 27, 10, 30)
++
++
++def test_projection_remains_idempotent_for_absolute_and_followup_alarms(monkeypatch):
++    monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
++    for trigger in ["20261127T103045Z", "+PT10M", "-PT10M"]:
++        raw = {"bearbeitbar": False, "triggerRaw": trigger, "aktion": "display"}
++        normalized = m._alarm_normalisieren(raw)
++        assert normalized is not None
++        assert m._alarm_normalisieren(json.loads(json.dumps(normalized))) == normalized
++
++
++@pytest.mark.parametrize("kind", ["VEVENT", "VTODO"])
++def test_same_uid_in_two_sources_and_confidential_projection(kind, monkeypatch):
++    monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
++    case = VECTORS[0]
++    data = imported(case, kind)
++    key = "termine" if kind == "VEVENT" else "aufgaben"
++    other = copy.deepcopy(data[key][0])
++    other.pop("id", None)
++    data[key][0].pop("id", None)
++    other["icsQuelleId"] = "other-calendar"
++    data[key].append(other)
++    now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
++    assert len(run(data, now)[0]) == 2
++    other["vertraulich"] = True
++    assert len(run(m.erinnerungsdaten_auswaehlen(data), now)[0]) == 1
+diff --git a/magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py b/magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..24155ab2940de83e869a83b30a7ca47b5f59ef14
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py
+@@ -0,0 +1,44 @@
++"""CSV role groups are preserved without fabricated addresses (part of #566)."""
++import copy
++import csv
++import io
++import json
++from pathlib import Path
++
++import pytest
++
++from test_startup_read_failure import native
++
++
++VECTORS = json.loads((Path(__file__).resolve().parents[2] /
++                     "contracts/lotus-csv-contact-fields.json").read_text())["cases"]
++
++
++def rows(values, fields):
++    return sorted(tuple(str(value.get(field, "")) for field in fields) +
++                  (tuple(sorted(value.get("typen", []))),) for value in values)
++
++
++@pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
++def test_csv_contact_roles_and_addresses_survive_vcard(native, vector):
++    text = io.StringIO()
++    writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
++    writer.writerow(vector["headers"])
++    writer.writerow(vector["row"])
++    raw = text.getvalue().encode("utf-8")
++    result = native.import_rohdaten_lesen("lotus", raw, "owned-contacts.csv")
++    assert result["uebersprungen"] == 0
++    contact, = result["kontakte"]
++    assert native.import_rohdaten_lesen("vcf", raw, "owned-contacts.csv")["kontakte"] == [contact]
++    for _ in range(3):
++        assert (contact["vorname"], contact["nachname"]) == ("Synthetic", "CSV")
++        assert rows(contact.get("telefone", []), ("wert",)) == rows(vector["phones"], ("wert",))
++        fields = ("strasse", "plz", "ort", "land")
++        assert rows(contact.get("anschriften", []), fields) == rows(vector["addresses"], fields)
++        if contact.get("anschriften"):
++            assert all(contact[field] == contact["anschriften"][0][field] for field in fields[:3])
++        before = copy.deepcopy(contact)
++        exported = native.vcard_text(contact)
++        assert contact == before
++        assert exported.count("BEGIN:VCARD") == 1
++        contact, = native.import_rohdaten_lesen("vcf", exported.encode("utf-8"), "owned.vcf")["kontakte"]
+diff --git a/magnolie-organizer/pruefungen/test_lotus_csv_task_values.py b/magnolie-organizer/pruefungen/test_lotus_csv_task_values.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..305b2ec4241d1d5044ac46f5e239dfd959bc8389
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/test_lotus_csv_task_values.py
+@@ -0,0 +1,37 @@
++"""Actual CSV import and repeated VTODO exchange preserve task values (#837)."""
++import copy
++import csv
++import io
++import json
++from pathlib import Path
++
++import pytest
++
++from test_startup_read_failure import native
++
++
++VECTORS = json.loads((Path(__file__).resolve().parents[2] /
++                     "contracts/lotus-csv-task-values.json").read_text())["cases"]
++
++
++@pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
++def test_csv_task_values_survive_vtodo_roundtrips(native, vector):
++    text = io.StringIO()
++    writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
++    writer.writerow(["Beschreibung", "Fällig", "Priorität", "Status"])
++    writer.writerow([vector["id"], "29.02.2028", vector["priority"], vector["status"]])
++    raw = text.getvalue().encode("utf-8")
++    result = native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")
++    assert result["uebersprungen"] == 0
++    task, = result["aufgaben"]
++    assert native.import_rohdaten_lesen("lotus", raw, "owned-tasks.csv")["aufgaben"] == [task]
++    for _ in range(3):
++        assert task["titel"] == vector["id"]
++        assert task["faellig"] == "2028-02-29"
++        assert task["prio"] == vector["expectedPriority"]
++        assert task["erledigt"] is vector["expectedCompleted"]
++        before = copy.deepcopy(task)
++        exported = native.ics_schreiben_aufgaben([task])
++        assert task == before
++        assert exported.count("BEGIN:VTODO") == 1
++        task, = native.ics_lesen(exported)["aufgaben"]
+diff --git a/magnolie-organizer/pruefungen/test_naechster_weckzeitpunkt.py b/magnolie-organizer/pruefungen/test_naechster_weckzeitpunkt.py
+index 3e49337d9855da5726c2ba75a3e341994f9b3416..443f45f123997a95592c39d23aea98cfd576e822 100644
+--- a/magnolie-organizer/pruefungen/test_naechster_weckzeitpunkt.py
++++ b/magnolie-organizer/pruefungen/test_naechster_weckzeitpunkt.py
+@@ -1,7 +1,7 @@
+ import importlib.machinery
+ import importlib.util
+ import os
+-from datetime import datetime
++from datetime import datetime, timezone
+ 
+ import pytest
+ 
+@@ -94,7 +94,8 @@ def test_direktsuche_gleicht_vollmaterialisierte_referenz(jetzt, vorlauf):
+         vollmaterialisierte_referenz(daten, jetzt, vorlauf)
+ 
+ 
+-def test_zeitzone_rdate_exdate_und_absolute_alarme_bleiben_erhalten():
++def test_zeitzone_rdate_exdate_und_absolute_alarme_bleiben_erhalten(monkeypatch):
++    monkeypatch.setattr(m, "_organizer_zeitzone", lambda: timezone.utc)
+     ics = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:tz-serie\r\nDTSTART;TZID=Europe/Berlin:20261024T093000\r\n"
+            "DTEND;TZID=Europe/Berlin:20261024T103000\r\n"
+@@ -107,8 +108,13 @@ def test_zeitzone_rdate_exdate_und_absolute_alarme_bleiben_erhalten():
+            "END:VEVENT\r\nEND:VCALENDAR\r\n")
+     daten = m.ics_lesen(ics)
+     jetzt = datetime(2026, 10, 25, 1, 0)
+-    assert m.naechster_weckzeitpunkt(daten, jetzt) == \
+-        vollmaterialisierte_referenz(daten, jetzt)
++    # Refs #835: the old fully expanded reference skipped the absolute
++    # trigger along with every expanded occurrence. Its independent UTC
++    # value is earlier than the next non-excluded recurring appointment.
++    assert m.naechster_weckzeitpunkt(daten, jetzt) == datetime(2026, 10, 25, 1, 15)
++    relative = dict(daten, termine=[t for t in daten["termine"] if t.get("uid") != "absolut"])
++    assert m.naechster_weckzeitpunkt(relative, jetzt) == \
++        vollmaterialisierte_referenz(relative, jetzt)
+ 
+ 
+ def test_strikte_jetzt_und_seriengrenzen_stimmen_mit_referenz_ueberein():
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+index c9d4b50e9a0c1e343635b5bf047c0aaa3257d19a..07015f52e0732d18a5078262580750a09836441b 100644
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -16380,7 +16380,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     zurueck = iconButton("undo", _("Undo"), () => editor.undo()); zurueck.disabled = !editor.canUndo();
+     wieder = iconButton("redo", _("Redo"), () => editor.redo()); wieder.disabled = !editor.canRedo();
+     const exportieren = iconButton("save", _("Save as…"), async () => {
+-      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { status.textContent = _("This image format cannot be used."); return; }
++      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { status.textContent = _("This image format cannot be used."); return; }
+       if (!canvas.isConnected || gesperrt || !DATEN.customOrganizer.modules.includes(modul)) return;
+       const png = editor.exportPng(), svg = editor.exportSvg(), name = modul.title || "Magnolie";
+       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "zeichenblatt_exportieren", png, svg, name, json: JSON.stringify(modul.drawing) });
+@@ -16435,7 +16435,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       if (!rotate) dialog.append(formZeile("Y", y));
+       const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close), knopf(_("Apply"), "haupt", async () => {
+         const wholeSheet = rotate && !editor.hasSelection();
+-        if (wholeSheet) { try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { error.textContent = _("The file could not be read."); return; } }
++        if (wholeSheet) { try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { error.textContent = _("The file could not be read."); return; } }
+         if (!overlay.isConnected || !canvas.isConnected || gesperrt) return;
+         if (wholeSheet ? editor.rotateSheet(Number(x.value)) : editor.transformSelection(rotate ? Number(x.value) : 0, rotate ? 0 : Number(x.value), rotate ? 0 : Number(y.value))) { close(); canvas.focus(); }
+         else error.textContent = wholeSheet ? _("The drawing limit has been reached.") : _("Select complete strokes that fit inside the sheet.");
+@@ -16491,8 +16491,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     openFile.addEventListener("change", () => {
+       const sequence = ++openSequence;
+       const file = openFile.files?.[0]; if (!file || file.size > 16 * 1024 * 1024) { status.textContent = _("The file is larger than 8 megabytes."); return; }
+-      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) canvas.focus(); }
+-        catch (_) { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
++      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) { status.textContent = file.name; canvas.focus(); } }
++        catch { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
+       else if (/\.svg$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => {
+         const requestId = anrufClientRef(), apply = () => { if (canvas.isConnected && !gesperrt) loadImage("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(reader.result))), file.name); };
+         zeichenSvgAnfragen.set(requestId, apply); setTimeout(() => zeichenSvgAnfragen.delete(requestId), 15000);
+@@ -22617,7 +22617,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       if (gesperrt || DATEN !== bestand || !DATEN.notizen.includes(notiz)) { schliessen(); return; }
+       const modul = DATEN.customOrganizer.modules.find(wert => wert.id === auswahl.value);
+       if (!modul || !window.MagnolieZeichnen.valid(modul.drawing)) { status.textContent = _("This drawing cannot be edited in this version."); return; }
+-      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { status.textContent = _("This image format cannot be used."); return; }
++      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch { status.textContent = _("This image format cannot be used."); return; }
+       if (!schleier.isConnected || gesperrt || DATEN !== bestand || !DATEN.customOrganizer.modules.includes(modul)) return;
+       const canvas = document.createElement("canvas"); window.MagnolieZeichnen.render(canvas, modul.drawing);
+       const daten = canvas.toDataURL("image/png");

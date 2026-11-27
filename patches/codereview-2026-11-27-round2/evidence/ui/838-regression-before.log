@@ -1,0 +1,17 @@
+AssertionError [ERR_ASSERTION]: The error path must not throw a translation TypeError
++ actual - expected
+
++ [
++   'TypeError: _ is not a function'
++ ]
+- []
+
+    at Object.unchanged ($REVIEW_WORKSPACE/round2-ui/magnolie-organizer-windows/tests/drawing-error-feedback.js:64:12)
+    at $REVIEW_WORKSPACE/round2-ui/magnolie-organizer-windows/tests/drawing-error-feedback.js:83:15 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [Array],
+  expected: [],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}

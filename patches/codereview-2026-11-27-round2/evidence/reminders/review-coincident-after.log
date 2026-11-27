@@ -1,0 +1,18 @@
+test_coincident_appointment_standard_or_relative_acknowledges_both (__main__.AbsoluteReminderLegacy.test_coincident_appointment_standard_or_relative_acknowledges_both) ... ok
+test_coincident_explicit_task_alarms_keep_distinct_seconds_and_sources (__main__.AbsoluteReminderLegacy.test_coincident_explicit_task_alarms_keep_distinct_seconds_and_sources) ... ok
+test_coincident_relative_occurrences_without_absolute_remain_separate (__main__.AbsoluteReminderLegacy.test_coincident_relative_occurrences_without_absolute_remain_separate) ... ok
+test_coincident_task_due_and_absolute_acknowledge_both (__main__.AbsoluteReminderLegacy.test_coincident_task_due_and_absolute_acknowledge_both) ... ok
+test_genuine_old_ack_survives_upgrade_and_background_projection (__main__.AbsoluteReminderLegacy.test_genuine_old_ack_survives_upgrade_and_background_projection) ... ok
+test_invalid_present_dates_and_times_do_not_become_undated (__main__.AbsoluteReminderLegacy.test_invalid_present_dates_and_times_do_not_become_undated) ... ok
+test_old_minute_mark_does_not_acknowledge_another_second (__main__.AbsoluteReminderLegacy.test_old_minute_mark_does_not_acknowledge_another_second) ... ok
+test_old_wall_mark_cannot_acknowledge_the_second_dst_fold (__main__.AbsoluteReminderLegacy.test_old_wall_mark_cannot_acknowledge_the_second_dst_fold) ... ok
+test_real_series_occurrence_acknowledges_component_only_once (__main__.AbsoluteReminderLegacy.test_real_series_occurrence_acknowledges_component_only_once) ... ok
+test_similar_source_component_trigger_and_standard_marks_are_not_acks (__main__.AbsoluteReminderLegacy.test_similar_source_component_trigger_and_standard_marks_are_not_acks) ... ok
+test_start_only_task_does_not_invent_a_due_date (__main__.AbsoluteReminderLegacy.test_start_only_task_does_not_invent_a_due_date) ... ok
+test_undated_task_retains_status_and_privacy_exclusions (__main__.AbsoluteReminderLegacy.test_undated_task_retains_status_and_privacy_exclusions) ... ok
+test_undated_task_uses_trigger_for_display_without_mutating_dates (__main__.AbsoluteReminderLegacy.test_undated_task_uses_trigger_for_display_without_mutating_dates) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.552s
+
+OK

@@ -1,0 +1,79 @@
+{
+  "issue": 838,
+  "baseline": "1543858e251d7e29ebeafb67d2605991c1d442d5",
+  "branch": "review/round2-ui-20261127",
+  "source": "$REVIEW_WORKSPACE/round2-ui",
+  "commits": [
+    "4a4cdef33f784990c495bc6fd32ca634f0e5d59c",
+    "08887a810befd4cda824a8bd6f504c95c4b3068a"
+  ],
+  "nativeAcceptance": false,
+  "results": {
+    "drawingErrorRecoveryCases": {
+      "passed": 16,
+      "total": 16,
+      "sourceCommit": "08887a810befd4cda824a8bd6f504c95c4b3068a"
+    },
+    "existingDrawingIntegration": {
+      "desktopProjectionsPassed": 2,
+      "sourceCommit": "4a4cdef33f784990c495bc6fd32ca634f0e5d59c"
+    },
+    "existingTimeZoneSettings": {
+      "passed": 12,
+      "total": 12,
+      "sourceCommit": "4a4cdef33f784990c495bc6fd32ca634f0e5d59c"
+    }
+  },
+  "files": [
+    {
+      "path": "838-summary.md",
+      "bytes": 4246,
+      "sha256": "2b4a1216a156a9455a80f734ff061468c47903c68fdfb31a6b49ac1cd96a5e4f"
+    },
+    {
+      "path": "drawing-errors-before.json",
+      "bytes": 1265,
+      "sha256": "26a37b63dc383d363f92ea2d507cb8b2093984ffb532ccc004209ae517b4f027"
+    },
+    {
+      "path": "reproduce-drawing-errors.cjs",
+      "bytes": 4198,
+      "sha256": "f6ae08650b90d9822805e8ca1dcfd060a74907afc895d47973f10dcbdce72d2d"
+    },
+    {
+      "path": "838-regression-before.log",
+      "bytes": 544,
+      "sha256": "64d5b37b3c46b25d2d7b6bfd0f91a157f9ab239f29c7bd249eaa008357615f1e"
+    },
+    {
+      "path": "838-regression-after.log",
+      "bytes": 1640,
+      "sha256": "1b4981192ff383711724c3caa4209d210a7026baa046be80174dec94f7d819d5"
+    },
+    {
+      "path": "838-existing-drawing-sheet.log",
+      "bytes": 214,
+      "sha256": "0563e343275fc4f4c63d904090d0a35f311d47afad8f14fb7c59cb4f2a8da51d"
+    },
+    {
+      "path": "838-existing-time-zone-settings.log",
+      "bytes": 1942,
+      "sha256": "667a944f4f6aa73e44ebe5e03224a9496efb72d0481d850cac985aea786d2a63"
+    },
+    {
+      "path": "drawing-status-after-retry.json",
+      "bytes": 581,
+      "sha256": "392e409c068b2a1dc46b2342d9a961f449c5eb692d50e26c0e6ae339b16bec13"
+    },
+    {
+      "path": "838-retry-status-before.log",
+      "bytes": 509,
+      "sha256": "d1027e2c8335ff7f0fb057b2018fe0c3b8b88191b255adfba251fe1bd03a5bae"
+    },
+    {
+      "path": "838-retry-status-after.log",
+      "bytes": 1640,
+      "sha256": "1b4981192ff383711724c3caa4209d210a7026baa046be80174dec94f7d819d5"
+    }
+  ]
+}

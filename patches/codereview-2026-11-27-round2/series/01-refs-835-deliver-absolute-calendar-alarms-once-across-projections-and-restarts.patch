@@ -1,0 +1,1842 @@
+From 91efc99b40636dddc7d2a62b53d10b79c69b97b9 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 13:24:01 +0100
+Subject: [PATCH] Refs #835: Deliver absolute calendar alarms once across
+ projections and restarts
+
+---
+ ARBEITSSTAND.md                               |  19 +
+ contracts/absolute-reminder-vectors.json      | 270 +++++++++++++
+ .../ReminderScheduler.cs                      | 163 +++++++-
+ .../tests/AbsoluteReminderCoincidenceTests.cs | 142 +++++++
+ .../tests/AbsoluteReminderTests.cs            | 140 +++++++
+ magnolie-organizer-windows/tests/Program.cs   |   2 +
+ magnolie-organizer/bin/magnolie-organizer     | 373 +++++++++++++-----
+ .../test_absolute_reminder_legacy.py          | 245 ++++++++++++
+ .../pruefungen/test_absolute_reminders.py     | 130 ++++++
+ .../test_naechster_weckzeitpunkt.py           |  14 +-
+ 10 files changed, 1380 insertions(+), 118 deletions(-)
+ create mode 100644 contracts/absolute-reminder-vectors.json
+ create mode 100644 magnolie-organizer-windows/tests/AbsoluteReminderCoincidenceTests.cs
+ create mode 100644 magnolie-organizer-windows/tests/AbsoluteReminderTests.cs
+ create mode 100644 magnolie-organizer/pruefungen/test_absolute_reminder_legacy.py
+ create mode 100644 magnolie-organizer/pruefungen/test_absolute_reminders.py
+
+diff --git a/ARBEITSSTAND.md b/ARBEITSSTAND.md
+index 609a49395292e133f864b46db29d056f047ab5e8..24a544defc32403bc43f5aaf4b9533553e73d53a 100644
+--- a/ARBEITSSTAND.md
++++ b/ARBEITSSTAND.md
+@@ -5,6 +5,25 @@ Paket- und Geräteprüfungen sind in [#113](https://github.com/maik3531/Magnolie
+ und [#121](https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7215113730)
+ aufgeführt.
+ 
++## Zweite Codereviewrunde: vorbereitete Issue-Patches – 27. November 2026
++
++Prüfbasis ist `1543858e251d7e29ebeafb67d2605991c1d442d5`. Die Korrekturen
++werden entsprechend dem Reviewauftrag als vollständige Patches zur späteren
++Einpflege bereitgestellt; daraus folgt keine Paketfreigabe.
++
++- [#835](https://github.com/maik3531/Magnolie-Organizer/issues/835):
++  Feste ICS-DISPLAY-Alarme werden in beiden Desktopquellen unabhängig vom
++  aktuellen Serienfenster berücksichtigt. UTC-Sekunden, Quellenidentität,
++  Hintergrundprojektion und gültige undatierte Aufgaben bleiben erhalten.
++  Bereits quittierte Alarme werden über echte Zustandsdateien erkannt;
++  gleichzeitig fällige normale und absolute Alarme quittieren beide Marken
++  mit einer Meldung. 198 gezielte Pythonfälle und sechs C#-Remindergruppen
++  einschließlich 138 gemeinsamer Import-/Projektionsfälle bestanden.
++  Die bestehende Weckzeitreferenz wurde für absolute Trigger durch einen
++  unabhängigen UTC-Sollwert ergänzt; relative Vergleichsfälle bleiben erhalten.
++  Die Nachholfenster wurden nicht plattformübergreifend verändert.
++  Native Windows-/Linux-Benachrichtigungen und Pakete sind nicht abgenommen.
++
+ ## Weitere Abnahme für den Gesamtrelease
+ 
+ - [#809](https://github.com/maik3531/Magnolie-Organizer/issues/809):
+diff --git a/contracts/absolute-reminder-vectors.json b/contracts/absolute-reminder-vectors.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..a9b251b51cafc8eeebc3e5c9390508d84751889f
+--- /dev/null
++++ b/contracts/absolute-reminder-vectors.json
+@@ -0,0 +1,270 @@
++{
++  "version": 1,
++  "issue": 835,
++  "description": "Synthetic absolute DISPLAY alarm scenarios, shared by actual Python and C# imports and reminder planning. Expected counts count only absolute alarms.",
++  "cases": [
++    {
++      "name": "absolute-before-future-event",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1
++    },
++    {
++      "name": "absolute-far-outside-window",
++      "start": "20351129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1
++    },
++    {
++      "name": "absolute-finished-series",
++      "start": "20200101T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1,
++      "rule": "FREQ=DAILY;COUNT=2"
++    },
++    {
++      "name": "absolute-active-series",
++      "start": "20261001T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1,
++      "rule": "FREQ=DAILY;COUNT=100"
++    },
++    {
++      "name": "absolute-future-series",
++      "start": "20261201T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1,
++      "rule": "FREQ=DAILY;COUNT=5"
++    },
++    {
++      "name": "before-trigger",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:29:59Z",
++      "zone": "UTC",
++      "expected": 0
++    },
++    {
++      "name": "seconds-before",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103045Z"
++      ],
++      "now": "2026-11-27T10:30:44Z",
++      "zone": "UTC",
++      "expected": 0
++    },
++    {
++      "name": "seconds-at",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103045Z"
++      ],
++      "now": "2026-11-27T10:30:45Z",
++      "zone": "UTC",
++      "expected": 1
++    },
++    {
++      "name": "two-seconds",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103005Z",
++        "20261127T103045Z"
++      ],
++      "now": "2026-11-27T10:30:46Z",
++      "zone": "UTC",
++      "expected": 2
++    },
++    {
++      "name": "duplicate-trigger",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z",
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1
++    },
++    {
++      "name": "cancelled",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0,
++      "status": "CANCELLED"
++    },
++    {
++      "name": "completed-task",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0,
++      "status": "COMPLETED",
++      "kinds": [
++        "VTODO"
++      ]
++    },
++    {
++      "name": "not-display",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0,
++      "action": "AUDIO"
++    },
++    {
++      "name": "malformed-trigger",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20260230T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0
++    },
++    {
++      "name": "missed-enabled",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-28T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1
++    },
++    {
++      "name": "missed-disabled",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-28T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0,
++      "missed": false
++    },
++    {
++      "name": "expired",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-30T10:30:01Z",
++      "zone": "UTC",
++      "expected": 0
++    },
++    {
++      "name": "fold-first",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261025T003015Z",
++        "20261025T013015Z"
++      ],
++      "now": "2026-10-25T00:30:15Z",
++      "zone": "Europe/Berlin",
++      "expected": 1
++    },
++    {
++      "name": "fold-both",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261025T003015Z",
++        "20261025T013015Z"
++      ],
++      "now": "2026-10-25T01:30:15Z",
++      "zone": "Europe/Berlin",
++      "expected": 2
++    },
++    {
++      "name": "structured",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1,
++      "structured": true
++    },
++    {
++      "name": "structured-disabled",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0,
++      "structured": true,
++      "enabled": false
++    },
++    {
++      "name": "structured-nondisplay",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 0,
++      "structured": true,
++      "action": "AUDIO"
++    },
++    {
++      "name": "undated-task",
++      "kinds": [
++        "VTODO"
++      ],
++      "start": "",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1
++    },
++    {
++      "name": "mixed-case-valarm",
++      "start": "20261129T123000Z",
++      "triggers": [
++        "20261127T103000Z"
++      ],
++      "now": "2026-11-27T10:30:00Z",
++      "zone": "UTC",
++      "expected": 1,
++      "alarmCase": "lower"
++    }
++  ]
++}
+diff --git a/magnolie-organizer-windows/ReminderScheduler.cs b/magnolie-organizer-windows/ReminderScheduler.cs
+index b8f878f45af750e13c46b3424f6e78141f9bce55..8f2fd2cce87e4e8bd59c915706579cf29a9334c0 100644
+--- a/magnolie-organizer-windows/ReminderScheduler.cs
++++ b/magnolie-organizer-windows/ReminderScheduler.cs
+@@ -198,7 +198,7 @@ internal sealed class ReminderScheduler : IDisposable
+ 
+     internal static IReadOnlyList<(string Key, DateTime Start, DateTime Due)> DueAppointments(
+         string json, DateTime now, Dictionary<string, string>? titles = null, Dictionary<string, string>? errors = null,
+-        Dictionary<string, bool>? allDay = null)
++        Dictionary<string, bool>? allDay = null, Dictionary<string, List<string>>? aliases = null)
+     {
+         using var document = JsonDocument.Parse(json);
+         var root = document.RootElement;
+@@ -222,6 +222,8 @@ internal sealed class ReminderScheduler : IDisposable
+             var maximumLag = alarms.Count == 0 ? 0 : Math.Max(0, -alarms.Min(alarm => alarm.OffsetMinutes));
+             var id = Identity(item);
+             if (id.Length == 0) id = $"{Text(item, "datum")}|{Text(item, "zeit")}|{Text(item, "titel")}";
++            var absoluteKeys = AbsoluteAlarmKeys(item, id);
++            AddAbsoluteAlarms(result, item, id, absoluteKeys, first, nowUtc, includeMissed, zone, titles, allDay);
+             var lookback = duration + TimeSpan.FromDays(5) + TimeSpan.FromMinutes(maximumLag);
+             var lower = lookback.Ticks <= nowUtc.Ticks ? nowUtc.Subtract(lookback) : DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc);
+             var occurrences = ExpandForReminders(item, lower, nowUtc.AddMinutes(Math.Max(8 * 1440, maximumLead)), zone, false, alarms.Any(alarm => alarm.Related == "END"), errors);
+@@ -233,9 +235,10 @@ internal sealed class ReminderScheduler : IDisposable
+                 var individualDays = Math.Clamp(Number(item, "individuelleErinnerungTage", 0), 0, 7);
+                 var standard = !item.TryGetProperty("standardErinnerung", out var standardNode) || standardNode.ValueKind != JsonValueKind.False || individualDays == 0;
+                 var existing = new HashSet<string>(StringComparer.Ordinal);
+-                if (individualDays > 0) AddDue(result, id, "individuell", start, start.AddDays(-individualDays), now, includeMissed, zone: zone, endUtc: startUtc, occurrenceUtc: startUtc);
++                if (individualDays > 0) AddDue(result, id, "individuell", start, start.AddDays(-individualDays), now, includeMissed, zone: zone, endUtc: startUtc, occurrenceUtc: startUtc,
++                    absoluteKeys: absoluteKeys, aliases: aliases);
+                 if (standard) AddDue(result, id, "standard", start, CalendarRecurrence.FromUtc(startUtc.AddMinutes(-lead), zone), now, includeMissed,
+-                    zone: zone, dueUtc: startUtc.AddMinutes(-lead), endUtc: startUtc, occurrenceUtc: startUtc);
++                    zone: zone, dueUtc: startUtc.AddMinutes(-lead), endUtc: startUtc, occurrenceUtc: startUtc, absoluteKeys: absoluteKeys, aliases: aliases);
+                 if (individualDays > 0) existing.Add($"START:{individualDays * 1440}");
+                 if (standard) existing.Add($"START:{lead}");
+                 foreach (var alarm in alarms)
+@@ -245,7 +248,7 @@ internal sealed class ReminderScheduler : IDisposable
+                     var basis = CalendarRecurrence.FromUtc(basisUtc, zone);
+                     AddDue(result, id, $"alarm-{alarm.Related.ToLowerInvariant()}-{alarm.OffsetMinutes}",
+                         start, CalendarRecurrence.FromUtc(basisUtc.AddMinutes(-alarm.OffsetMinutes), zone), now, includeMissed, basis,
+-                        zone, basisUtc.AddMinutes(-alarm.OffsetMinutes), basisUtc, startUtc);
++                        zone, basisUtc.AddMinutes(-alarm.OffsetMinutes), basisUtc, startUtc, absoluteKeys, aliases);
+                 }
+                 if (titles is not null && occurrence.Summary is not null)
+                     foreach (var due in result.Skip(resultStart)) titles[due.Item1] = CalendarRecurrence.TextValue(occurrence.Summary);
+@@ -284,21 +287,35 @@ internal sealed class ReminderScheduler : IDisposable
+             var titles = new Dictionary<string, string>(StringComparer.Ordinal);
+             var errors = new Dictionary<string, string>(StringComparer.Ordinal);
+             var allDay = new Dictionary<string, bool>(StringComparer.Ordinal);
+-            IEnumerable<(string Key, DateTime Start, DateTime Due)> dueItems = DueAppointments(snapshot, now, titles, errors, allDay);
++            var aliases = new Dictionary<string, List<string>>(StringComparer.Ordinal);
++            IEnumerable<(string Key, DateTime Start, DateTime Due)> dueItems = DueAppointments(snapshot, now, titles, errors, allDay, aliases);
+             if (!reminder.TryGetProperty("aufgaben", out var tasksEnabled) || tasksEnabled.ValueKind != JsonValueKind.False)
+-                dueItems = dueItems.Concat(DueTasks(document.RootElement, reminder, now, titles, errors, allDay));
++                dueItems = dueItems.Concat(DueTasks(document.RootElement, reminder, now, titles, errors, allDay, aliases));
+             dueItems = dueItems.Concat(DueAnniversaries(document.RootElement, reminder, now));
+             ExpansionErrors = errors;
+             var previousError = LastError;
+             var expansionError = errors.Count == 0 ? null : string.Join("\n", errors.OrderBy(value => value.Key).Select(value => value.Key + ": " + value.Value));
+             LastError = expansionError;
+             var pending = new List<(string Key, ReminderNotice Notice)>();
++            var newlyReported = new HashSet<string>(StringComparer.Ordinal);
+             lock (gate)
+                 foreach (var key in reported)
+                     if (!reportedAt.ContainsKey(key)) { reportedAt[key] = CalendarRecurrence.NowUtc(now); dirty = true; }
+             foreach (var due in dueItems)
+             {
+-                lock (gate) { if (!reported.Add(due.Key)) continue; reportedAt[due.Key] = CalendarRecurrence.NowUtc(now); dirty = true; }
++                // A coincident ordinary/relative alarm shares the absolute
++                // component trigger, but both persisted identities must survive.
++                var keys = new[] { due.Key }.Concat(aliases.GetValueOrDefault(due.Key) ?? []).Distinct().ToArray();
++                lock (gate)
++                {
++                    var alreadyReported = keys.Any(reported.Contains);
++                    foreach (var key in keys)
++                        if (reported.Add(key))
++                        {
++                            newlyReported.Add(key); reportedAt[key] = CalendarRecurrence.NowUtc(now); dirty = true;
++                        }
++                    if (alreadyReported) continue;
++                }
+                 if (due.Key.StartsWith("jahrestag:", StringComparison.Ordinal))
+                 {
+                     pending.Add((due.Key, AnniversaryNotice(document.RootElement, due.Key, due.Start, now, kind, style)));
+@@ -311,7 +328,7 @@ internal sealed class ReminderScheduler : IDisposable
+             }
+             if (dirty && !Persist(now))
+             {
+-                lock (gate) foreach (var item in pending) { reported.Remove(item.Key); reportedAt.Remove(item.Key); }
++                lock (gate) foreach (var key in newlyReported) { reported.Remove(key); reportedAt.Remove(key); }
+                 return;
+             }
+             foreach (var item in pending)
+@@ -370,7 +387,7 @@ internal sealed class ReminderScheduler : IDisposable
+ 
+     internal static IReadOnlyList<(string Key, DateTime Start, DateTime Due)> DueTasks(
+         JsonElement root, JsonElement reminder, DateTime now, Dictionary<string, string>? titles = null, Dictionary<string, string>? errors = null,
+-        Dictionary<string, bool>? allDay = null)
++        Dictionary<string, bool>? allDay = null, Dictionary<string, List<string>>? aliases = null)
+     {
+         if (!root.TryGetProperty("aufgaben", out var tasks) || tasks.ValueKind != JsonValueKind.Array)
+             return Array.Empty<(string, DateTime, DateTime)>();
+@@ -384,8 +401,17 @@ internal sealed class ReminderScheduler : IDisposable
+             if (True(task, "erledigt")) continue;
+             var alarms = AppointmentAlarms(task);
+             var days = Math.Clamp(Number(task, "individuelleErinnerungTage", 0), 0, 7);
+-            if (!True(task, "erinnern") && days == 0 && alarms.Count == 0) continue;
+             var id = Identity(task); if (id.Length == 0) id = Text(task, "titel") + "|" + Text(task, "faellig");
++            var absoluteDatesValid = AbsoluteTaskDatesValid(task);
++            var absoluteKeys = absoluteDatesValid ? AbsoluteAlarmKeys(task, "aufgabe:" + id) : new Dictionary<DateTime, string>();
++            if (absoluteDatesValid)
++            {
++                if (TryStart(task, out var absoluteDue, task: true))
++                    AddAbsoluteAlarms(result, task, "aufgabe:" + id, absoluteKeys, absoluteDue, nowUtc, includeMissed, zone, titles, allDay);
++                else if (Text(task, "faellig").Length == 0)
++                    AddAbsoluteAlarms(result, task, "aufgabe:" + id, absoluteKeys, null, nowUtc, includeMissed, zone, titles, allDay);
++            }
++            if (!True(task, "erinnern") && days == 0 && alarms.Count == 0) continue;
+             var span = DateTime.TryParseExact(Text(task, "startDatum"), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDay) &&
+                 DateTime.TryParseExact(Text(task, "faellig"), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dueDay) ? Math.Max(0, (dueDay - startDay).TotalDays) : 0;
+             var lead = Math.Max(8 * 1440, alarms.Count == 0 ? 0 : alarms.Max(alarm => alarm.OffsetMinutes));
+@@ -400,14 +426,15 @@ internal sealed class ReminderScheduler : IDisposable
+                 var scheduledDue = occurrence.AllDay ? CalendarRecurrence.ToUtc(due, zone) : occurrence.EndUtc;
+                 if (True(task, "erinnern") || days > 0)
+                     AddDue(result, "aufgabe:" + id, days > 0 ? "individuell" : "faellig", due, due.AddDays(-days), now, includeMissed, zone: zone,
+-                        dueUtc: days == 0 ? scheduledDue : CalendarRecurrence.ToUtc(due.AddDays(-days), zone), endUtc: scheduledDue, occurrenceUtc: scheduledDue);
++                        dueUtc: days == 0 ? scheduledDue : CalendarRecurrence.ToUtc(due.AddDays(-days), zone), endUtc: scheduledDue, occurrenceUtc: scheduledDue,
++                        absoluteKeys: absoluteKeys, aliases: aliases);
+                 foreach (var alarm in alarms)
+                 {
+                     var basis = alarm.Related == "END" ? occurrence.EndUtc : occurrence.StartUtc;
+                     var trigger = basis.AddMinutes(-alarm.OffsetMinutes);
+                     AddDue(result, "aufgabe:" + id, $"alarm-{alarm.Related.ToLowerInvariant()}-{alarm.OffsetMinutes}", due,
+                         CalendarRecurrence.FromUtc(trigger, zone), now, includeMissed, zone: zone, dueUtc: trigger,
+-                        endUtc: basis > trigger ? basis : trigger, occurrenceUtc: occurrence.EndUtc);
++                        endUtc: basis > trigger ? basis : trigger, occurrenceUtc: occurrence.EndUtc, absoluteKeys: absoluteKeys, aliases: aliases);
+                 }
+                 if (titles is not null && occurrence.Summary is not null)
+                     foreach (var entry in result.Skip(resultStart)) titles[entry.Item1] = CalendarRecurrence.TextValue(occurrence.Summary);
+@@ -488,7 +515,8 @@ internal sealed class ReminderScheduler : IDisposable
+ 
+     private static void AddDue(List<(string Key, DateTime Start, DateTime Due)> result, string id,
+         string mode, DateTime start, DateTime due, DateTime now, bool includeMissed, DateTime? reminderEnd = null,
+-        CalendarRecurrence.SourceZone? zone = null, DateTime? dueUtc = null, DateTime? endUtc = null, DateTime? occurrenceUtc = null)
++        CalendarRecurrence.SourceZone? zone = null, DateTime? dueUtc = null, DateTime? endUtc = null, DateTime? occurrenceUtc = null,
++        IReadOnlyDictionary<DateTime, string>? absoluteKeys = null, Dictionary<string, List<string>>? aliases = null)
+     {
+         var end = reminderEnd ?? start;
+         zone ??= CalendarRecurrence.Zone("system");
+@@ -501,20 +529,109 @@ internal sealed class ReminderScheduler : IDisposable
+         var stamp = start.ToString(start.Second == 0 ? "yyyyMMddHHmm" : "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+         if (occurrenceUtc is not null && zone.IsAmbiguousTime(DateTime.SpecifyKind(start, DateTimeKind.Unspecified)))
+             stamp += ":utc-" + occurrenceUtc.Value.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+-        result.Add(($"{id}@{stamp}:{mode}", start, due));
++        var key = $"{id}@{stamp}:{mode}";
++        if (absoluteKeys is not null && absoluteKeys.TryGetValue(trigger, out var absoluteKey))
++        {
++            if (aliases is not null)
++            {
++                if (!aliases.TryGetValue(absoluteKey, out var values)) aliases[absoluteKey] = values = [];
++                if (!values.Contains(key)) values.Add(key);
++            }
++            key = absoluteKey;
++            if (result.Any(value => value.Key == key)) return;
++        }
++        result.Add((key, start, due));
+     }
+ 
+-    private static bool TryStart(JsonElement item, out DateTime start)
++    private static bool TryStart(JsonElement item, out DateTime start, bool task = false)
+     {
+         start = default;
+-        if (!DateOnly.TryParseExact(Text(item, "datum"), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)) return false;
+-        var timeText = Text(item, "zeit");
++        if (!DateOnly.TryParseExact(Text(item, task ? "faellig" : "datum"), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)) return false;
++        var timeText = Text(item, task ? "faelligZeit" : "zeit");
+         var time = new TimeOnly(8, 0);
+         if (timeText.Length > 0 && !TimeOnly.TryParseExact(timeText, ["HH:mm", "HH:mm:ss"], CultureInfo.InvariantCulture, DateTimeStyles.None, out time)) return false;
+         start = date.ToDateTime(time);
+         return true;
+     }
+ 
++    private static bool TryAbsoluteTrigger(string value, out DateTime instant) =>
++        DateTime.TryParseExact(value, "yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture,
++            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out instant);
++
++    private static bool AbsoluteTaskDatesValid(JsonElement task)
++    {
++        foreach (var (dateField, timeField) in new[] { ("startDatum", "startZeit"), ("faellig", "faelligZeit") })
++        {
++            var date = Text(task, dateField); var time = Text(task, timeField);
++            if (date.Length == 0) { if (time.Length != 0) return false; continue; }
++            if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _) ||
++                time.Length > 0 && !TimeOnly.TryParseExact(time, ["HH:mm", "HH:mm:ss"], CultureInfo.InvariantCulture, DateTimeStyles.None, out _)) return false;
++        }
++        return !CalendarRecurrence.Properties(task).Any(property =>
++            property.Name == "DTSTART" && Text(task, "startDatum").Length == 0 ||
++            property.Name == "DUE" && Text(task, "faellig").Length == 0);
++    }
++
++    private static IReadOnlyList<DateTime> AbsoluteAlarms(JsonElement item)
++    {
++        var result = new HashSet<DateTime>();
++        if (item.TryGetProperty("alarme", out var values) && values.ValueKind == JsonValueKind.Array)
++        {
++            foreach (var alarm in values.EnumerateArray().Take(32))
++                if (alarm.ValueKind == JsonValueKind.Object &&
++                    (!alarm.TryGetProperty("aktiviert", out var enabled) || enabled.ValueKind != JsonValueKind.False) &&
++                    (Text(alarm, "aktion") is "" || Text(alarm, "aktion").Equals("display", StringComparison.OrdinalIgnoreCase)) &&
++                    TryAbsoluteTrigger(Text(alarm, "triggerRaw"), out var instant)) result.Add(instant);
++            return result.Order().ToArray();
++        }
++        if (!item.TryGetProperty("icsRoundtrip", out var raw) || raw.ValueKind != JsonValueKind.Array) return [];
++        var inAlarm = false; var display = false; var count = 0;
++        CalendarRecurrence.Property? trigger = null;
++        foreach (var line in raw.EnumerateArray())
++        {
++            if (line.ValueKind != JsonValueKind.String || CalendarRecurrence.ParseProperty(line.GetString()!) is not { } property) continue;
++            if (property.Name == "BEGIN" && property.Value.Equals("VALARM", StringComparison.OrdinalIgnoreCase))
++            {
++                if (++count > 32) break;
++                inAlarm = true; display = false; trigger = null;
++            }
++            else if (inAlarm && property.Name == "ACTION") display = property.Value.Equals("DISPLAY", StringComparison.OrdinalIgnoreCase);
++            else if (inAlarm && property.Name == "TRIGGER") trigger = property;
++            else if (inAlarm && property.Name == "END" && property.Value.Equals("VALARM", StringComparison.OrdinalIgnoreCase))
++            {
++                if (display && trigger is { } value && value.Parameter("VALUE").Equals("DATE-TIME", StringComparison.OrdinalIgnoreCase) &&
++                    TryAbsoluteTrigger(value.Value, out var instant)) result.Add(instant);
++                inAlarm = false;
++            }
++        }
++        return result.Order().ToArray();
++    }
++
++    private static Dictionary<DateTime, string> AbsoluteAlarmKeys(JsonElement item, string id) =>
++        AbsoluteAlarms(item).ToDictionary(trigger => trigger,
++            trigger => id + "@absolute:" + trigger.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture));
++
++    private static void AddAbsoluteAlarms(List<(string Key, DateTime Start, DateTime Due)> result,
++        JsonElement item, string id, IReadOnlyDictionary<DateTime, string> absoluteKeys, DateTime? start, DateTime nowUtc, bool includeMissed,
++        CalendarRecurrence.SourceZone zone, Dictionary<string, string>? titles, Dictionary<string, bool>? allDay)
++    {
++        if (Text(item, "icsStatus").Equals("CANCELLED", StringComparison.OrdinalIgnoreCase) ||
++            CalendarRecurrence.Properties(item).Any(property => property.Name == "STATUS" &&
++                property.Value.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase))) return;
++        foreach (var (trigger, key) in absoluteKeys)
++        {
++            // Refs #835: an absolute trigger belongs to the component, not
++            // each expanded occurrence. Its catch-up window is trigger-bound.
++            var elapsed = nowUtc - trigger;
++            if (elapsed < TimeSpan.Zero || elapsed > TimeSpan.FromHours(72) ||
++                !includeMissed && elapsed > TimeSpan.FromMinutes(5)) continue;
++            var localTrigger = CalendarRecurrence.FromUtc(trigger, zone);
++            result.Add((key, start ?? localTrigger, localTrigger));
++            if (titles is not null) titles[key] = Text(item, "titel");
++            if (allDay is not null) allDay[key] = start is not null && Text(item, id.StartsWith("aufgabe:", StringComparison.Ordinal) ? "faelligZeit" : "zeit").Length == 0;
++        }
++    }
++
+     private static bool TryEnd(JsonElement item, DateTime start, out DateTime end)
+     {
+         end = start;
+@@ -647,9 +764,13 @@ internal sealed class ReminderScheduler : IDisposable
+         if (!item.TryGetProperty("alarme", out var alarms) || alarms.ValueKind != JsonValueKind.Array) return result;
+         var selected = new JsonArray();
+         foreach (var alarm in alarms.EnumerateArray().Take(32))
+-            if (alarm.ValueKind == JsonValueKind.Object &&
+-                (!alarm.TryGetProperty("bearbeitbar", out var editable) || editable.ValueKind != JsonValueKind.False))
+-                selected.Add(SelectFields(alarm, "offsetMinuten", "aktiviert", "related", "aktion"));
++            if (alarm.ValueKind == JsonValueKind.Object)
++            {
++                if (!alarm.TryGetProperty("bearbeitbar", out var editable) || editable.ValueKind != JsonValueKind.False)
++                    selected.Add(SelectFields(alarm, "offsetMinuten", "aktiviert", "related", "aktion"));
++                else if (TryAbsoluteTrigger(Text(alarm, "triggerRaw"), out _))
++                    selected.Add(SelectFields(alarm, "aktiviert", "aktion", "bearbeitbar", "triggerRaw"));
++            }
+         result["alarme"] = selected;
+         return result;
+     }
+@@ -661,7 +782,7 @@ internal sealed class ReminderScheduler : IDisposable
+         foreach (var line in lines.EnumerateArray())
+             if (line.ValueKind == JsonValueKind.String && CalendarRecurrence.ParseProperty(line.GetString()!) is { } property &&
+                  (property.Name is "DTSTART" or "DTEND" or "DUE" or "DURATION" or "RRULE" or "RDATE" or "EXDATE" or "EXRULE" or "RECURRENCE-ID" or "STATUS" or "SUMMARY" or "LOCATION" or "ACTION" or "TRIGGER" ||
+-                 property.Name is "BEGIN" or "END" && property.Value == "VALARM"))
++                 property.Name is "BEGIN" or "END" && property.Value.Equals("VALARM", StringComparison.OrdinalIgnoreCase)))
+             {
+                 var parameters = property.Parameters.Where(value => new[] { "TZID", "VALUE", "RELATED", "RANGE" }.Contains(value.Split('=', 2)[0].ToUpperInvariant()));
+                 result.Add(property.Name + string.Concat(parameters.Select(value => ";" + value)) + ":" + property.Value);
+diff --git a/magnolie-organizer-windows/tests/AbsoluteReminderCoincidenceTests.cs b/magnolie-organizer-windows/tests/AbsoluteReminderCoincidenceTests.cs
+new file mode 100644
+index 0000000000000000000000000000000000000000..e34da997acacc8b7af1f395af9c16deae03f061a
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/AbsoluteReminderCoincidenceTests.cs
+@@ -0,0 +1,142 @@
++using System.Globalization;
++using System.Text.Json;
++using System.Text.Json.Nodes;
++using MagnolieOrganizer.Windows;
++
++namespace MagnolieOrganizer.Windows.Tests;
++
++internal static class AbsoluteReminderCoincidenceTests
++{
++    private sealed record Scenario(string Name, string Kind, DateTime Trigger, bool Relative = false);
++
++    private static JsonObject Import(Scenario scenario, bool absolute = true, int seconds = 0, string source = "owned-calendar")
++    {
++        var lines = new List<string> { "BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:" + scenario.Kind,
++            "UID:owned-coincidence", "SUMMARY:Owned coincidence " + scenario.Name, "DTSTART:20261127T123000Z" };
++        if (scenario.Kind == "VTODO") lines.AddRange(["DUE:20261127T123000Z", "X-MAGNOLIE-ERINNERUNG-AM-TAG:1"]);
++        if (scenario.Relative) lines.AddRange(["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:-PT30M", "DESCRIPTION:Relative", "END:VALARM"]);
++        if (absolute) lines.AddRange(["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER;VALUE=DATE-TIME:" +
++            scenario.Trigger.AddSeconds(seconds).ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture), "DESCRIPTION:Absolute", "END:VALARM"]);
++        lines.AddRange(["END:" + scenario.Kind, "END:VCALENDAR", ""]);
++        var parsed = ExchangeCodec.ParseIcs(string.Join("\r\n", lines), source, CalendarRecurrence.Zone("UTC"));
++        TestAssert.That(parsed.Uebersprungen == 0 && parsed.Termine.Count + parsed.Aufgaben.Count == 1,
++            scenario.Name + ": actual ICS import lost the component");
++        return new JsonObject { ["termine"] = parsed.Termine, ["aufgaben"] = parsed.Aufgaben,
++            ["einstellungen"] = new JsonObject {
++                ["regional"] = new JsonObject { ["timeZone"] = "UTC" },
++                ["erinnerung"] = new JsonObject { ["an"] = true, ["vorlauf"] = 15, ["verpasste"] = true, ["aufgaben"] = true },
++                ["sicherheit"] = new JsonObject { ["erinnernTrotzKennwort"] = true }
++            } };
++    }
++
++    private static string Select(JsonObject data, string mode) => mode switch
++    {
++        "runtime" => ReminderScheduler.SelectRuntimeData(data.ToJsonString()),
++        "background" => ReminderScheduler.SelectBackgroundData(data.ToJsonString())!,
++        _ => data.ToJsonString()
++    };
++
++    private static (string Key, DateTime Start, DateTime Due)[] Due(string text, string kind, DateTime now)
++    {
++        using var document = JsonDocument.Parse(text);
++        return (kind == "VEVENT" ? ReminderScheduler.DueAppointments(text, now) :
++            ReminderScheduler.DueTasks(document.RootElement,
++                document.RootElement.GetProperty("einstellungen").GetProperty("erinnerung"), now)).ToArray();
++    }
++
++    private static void Run(string state, string text, DateTime now, List<ReminderNotice> notices)
++    {
++        using var scheduler = new ReminderScheduler(state, notices.Add);
++        scheduler.UpdateData(text);
++        scheduler.RunOnce(now);
++        scheduler.RunOnce(now.AddTicks(1));
++        TestAssert.That(scheduler.LastError is null && scheduler.ExpansionErrors.Count == 0,
++            Path.GetFileName(state) + ": scheduler reported an error instead of an actual reminder");
++    }
++
++    private static void AssertStored(string state, params string[] keys)
++    {
++        var saved = JsonNode.Parse(File.ReadAllText(state))!.AsObject();
++        var reported = saved["reported"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
++        foreach (var key in keys)
++            TestAssert.That(reported.Contains(key) && saved["reportedAt"]![key] is JsonValue timestamp &&
++                DateTimeOffset.TryParse(timestamp.GetValue<string>(), CultureInfo.InvariantCulture, DateTimeStyles.None, out _),
++                Path.GetFileName(state) + ": missing persisted canonical/legacy acknowledgement or timestamp: " + key);
++    }
++
++    internal static Task RunAsync()
++    {
++        var normalEvent = new Scenario("event-standard", "VEVENT", new DateTime(2026, 11, 27, 12, 15, 0, DateTimeKind.Utc));
++        var scenarios = new[] { normalEvent,
++            new Scenario("task-due", "VTODO", new DateTime(2026, 11, 27, 12, 30, 0, DateTimeKind.Utc)),
++            new Scenario("event-relative", "VEVENT", new DateTime(2026, 11, 27, 12, 0, 0, DateTimeKind.Utc), Relative: true) };
++        var directory = Path.Combine(Path.GetTempPath(), "magnolie-reminder-coincidence-" + Guid.NewGuid().ToString("N"));
++        Directory.CreateDirectory(directory);
++        try
++        {
++            foreach (var mode in new[] { "original", "runtime", "background" })
++            {
++                foreach (var scenario in scenarios)
++                {
++                    var label = scenario.Name + "-" + mode;
++                    var ordinary = Select(Import(scenario, absolute: false), mode);
++                    var combined = Select(Import(scenario), mode);
++                    var legacy = Due(ordinary, scenario.Kind, scenario.Trigger).Single().Key;
++                    var legacySuffix = scenario.Relative ? ":alarm-start-30" : scenario.Kind == "VEVENT" ? ":standard" : ":faellig";
++                    TestAssert.That(legacy.EndsWith(legacySuffix, StringComparison.Ordinal), label + ": ordinary-only fixture no longer establishes the historical acknowledgement");
++                    var due = Due(combined, scenario.Kind, scenario.Trigger);
++                    TestAssert.That(due.Length == 1 && due[0].Due.Ticks == scenario.Trigger.Ticks && due[0].Key.Contains("@absolute:", StringComparison.Ordinal),
++                        label + ": coincident absolute and ordinary/relative alarm were not one canonical candidate");
++                    var canonical = due[0].Key;
++                    var state = Path.Combine(directory, label + ".json");
++                    var notices = new List<ReminderNotice>();
++                    Run(state, combined, scenario.Trigger, notices);
++                    TestAssert.That(notices.Count == 1, label + ": more than one initial notification");
++                    AssertStored(state, canonical, legacy);
++                    Run(state, ordinary, scenario.Trigger.AddSeconds(1), notices);
++                    Run(state, combined, scenario.Trigger.AddSeconds(2), notices);
++                    TestAssert.That(notices.Count == 1, label + ": replay after restart and absolute alarm removal/readdition");
++
++                    if (scenario.Relative) continue;
++                    var upgraded = Path.Combine(directory, label + "-old-normal.json");
++                    var historical = new List<ReminderNotice>();
++                    Run(upgraded, ordinary, scenario.Trigger, historical);
++                    TestAssert.That(historical.Count == 1, label + ": ordinary reminder did not establish the real old acknowledgement");
++                    AssertStored(upgraded, legacy);
++                    Run(upgraded, combined, scenario.Trigger.AddSeconds(1), historical);
++                    TestAssert.That(historical.Count == 1, label + ": an existing normal acknowledgement produced a new absolute notification");
++                    AssertStored(upgraded, canonical, legacy);
++                }
++
++                // A nearby instant is a different alarm even within the same minute.
++                var separated = Select(Import(normalEvent, seconds: 1), mode);
++                var secondsDue = Due(separated, "VEVENT", normalEvent.Trigger.AddSeconds(1));
++                TestAssert.That(secondsDue.Length == 2 && secondsDue.Select(value => value.Due.Second).Order().SequenceEqual(new[] { 0, 1 }),
++                    mode + ": different trigger seconds were merged");
++                var secondsState = Path.Combine(directory, mode + "-seconds.json");
++                var secondsNotices = new List<ReminderNotice>();
++                Run(secondsState, separated, normalEvent.Trigger, secondsNotices);
++                TestAssert.That(secondsNotices.Count == 1, mode + ": future absolute second fired early");
++                Run(secondsState, separated, normalEvent.Trigger.AddSeconds(1), secondsNotices);
++                Run(secondsState, separated, normalEvent.Trigger.AddSeconds(2), secondsNotices);
++                TestAssert.That(secondsNotices.Count == 2, mode + ": independent seconds were lost or replayed after restart");
++
++                // The same UID and instant in two sources still represent two items.
++                var sources = Import(normalEvent);
++                sources["termine"]!.AsArray().Add(Import(normalEvent, source: "other-calendar")["termine"]![0]!.DeepClone());
++                var sourceText = Select(sources, mode);
++                var sourceDue = Due(sourceText, "VEVENT", normalEvent.Trigger);
++                TestAssert.That(sourceDue.Length == 2 && sourceDue.Select(value => value.Key).Distinct().Count() == 2,
++                    mode + ": coincident reminders from different sources were merged");
++                var sourceState = Path.Combine(directory, mode + "-sources.json");
++                var sourceNotices = new List<ReminderNotice>();
++                Run(sourceState, sourceText, normalEvent.Trigger, sourceNotices);
++                Run(sourceState, sourceText, normalEvent.Trigger.AddSeconds(1), sourceNotices);
++                TestAssert.That(sourceNotices.Count == 2, mode + ": source identities lost or replayed after restart");
++            }
++        }
++        finally { Directory.Delete(directory, true); }
++        Console.WriteLine("Absolute reminder coincidence: standard/due/relative deduplication, real persisted aliases, old acknowledgements, seconds and source separation passed in all three projections.");
++        return Task.CompletedTask;
++    }
++}
+diff --git a/magnolie-organizer-windows/tests/AbsoluteReminderTests.cs b/magnolie-organizer-windows/tests/AbsoluteReminderTests.cs
+new file mode 100644
+index 0000000000000000000000000000000000000000..ce9039bb2f19efa674a49004c35dce63825e468b
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/AbsoluteReminderTests.cs
+@@ -0,0 +1,140 @@
++using System.Globalization;
++using System.Text.Json;
++using System.Text.Json.Nodes;
++using MagnolieOrganizer.Windows;
++
++namespace MagnolieOrganizer.Windows.Tests;
++
++internal static class AbsoluteReminderTests
++{
++    private static string Text(JsonObject value, string key, string fallback = "") => value[key]?.GetValue<string>() ?? fallback;
++
++    private static JsonObject Import(JsonObject vector, string kind, string source = "owned-calendar")
++    {
++        var lines = new List<string> { "BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:" + kind,
++            "UID:owned-absolute-alarm", "SUMMARY:Owned absolute alarm" };
++        if (Text(vector, "start").Length > 0)
++        {
++            lines.Add("DTSTART:" + Text(vector, "start"));
++            if (kind == "VTODO") lines.Add("DUE:" + Text(vector, "start"));
++        }
++        if (vector["rule"] is not null) lines.Add("RRULE:" + Text(vector, "rule"));
++        if (vector["status"] is not null) lines.Add("STATUS:" + Text(vector, "status"));
++        var alarmComponent = Text(vector, "alarmCase") == "lower" ? "valarm" : "VALARM";
++        foreach (var value in vector["triggers"]!.AsArray())
++            lines.AddRange(["BEGIN:" + alarmComponent, "ACTION:" + Text(vector, "action", "DISPLAY"),
++                "TRIGGER;VALUE=DATE-TIME:" + value!.GetValue<string>(), "DESCRIPTION:PRIVATE ALARM TEXT", "END:" + alarmComponent]);
++        lines.AddRange(["END:" + kind, "END:VCALENDAR", ""]);
++        var parsed = ExchangeCodec.ParseIcs(string.Join("\r\n", lines), source, CalendarRecurrence.Zone(Text(vector, "zone", "UTC")));
++        var data = new JsonObject { ["termine"] = parsed.Termine, ["aufgaben"] = parsed.Aufgaben,
++            ["einstellungen"] = new JsonObject {
++                ["regional"] = new JsonObject { ["timeZone"] = Text(vector, "zone", "UTC") },
++                ["erinnerung"] = new JsonObject { ["an"] = true, ["vorlauf"] = 15, ["verpasste"] = vector["missed"]?.GetValue<bool>() ?? true },
++                ["sicherheit"] = new JsonObject { ["erinnernTrotzKennwort"] = true }
++            } };
++        foreach (var item in data[kind == "VEVENT" ? "termine" : "aufgaben"]!.AsArray().OfType<JsonObject>())
++        {
++            item["notiz"] = "PRIVATE ITEM TEXT";
++            if (vector["structured"]?.GetValue<bool>() is true)
++                item["alarme"] = new JsonArray(vector["triggers"]!.AsArray().Select(trigger => (JsonNode)new JsonObject {
++                    ["bearbeitbar"] = false, ["aktiviert"] = vector["enabled"]?.GetValue<bool>() ?? true,
++                    ["aktion"] = Text(vector, "action", "DISPLAY").ToLowerInvariant(), ["triggerRaw"] = trigger!.GetValue<string>()
++                }).ToArray());
++        }
++        return data;
++    }
++
++    private static string Select(JsonObject data, string mode) => mode switch
++    {
++        "runtime" => ReminderScheduler.SelectRuntimeData(data.ToJsonString()),
++        "background" => ReminderScheduler.SelectBackgroundData(data.ToJsonString())!,
++        _ => data.ToJsonString()
++    };
++
++    private static (string Key, DateTime Start, DateTime Due)[] Due(string text, string kind, DateTime now)
++    {
++        using var document = JsonDocument.Parse(text);
++        return (kind == "VEVENT" ? ReminderScheduler.DueAppointments(text, now) :
++            ReminderScheduler.DueTasks(document.RootElement,
++                document.RootElement.GetProperty("einstellungen").GetProperty("erinnerung"), now))
++            .Where(value => value.Key.Contains("@absolute:", StringComparison.Ordinal)).ToArray();
++    }
++
++    internal static Task RunAsync()
++    {
++        var vectors = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root("contracts/absolute-reminder-vectors.json"),
++            "contracts/absolute-reminder-vectors.json")))!["cases"]!.AsArray();
++        var failures = new List<string>();
++        var checks = 0;
++        foreach (var vector in vectors.OfType<JsonObject>())
++        foreach (var kind in vector["kinds"]?.AsArray().Select(value => value!.GetValue<string>()) ?? ["VEVENT", "VTODO"])
++        foreach (var mode in new[] { "original", "runtime", "background" })
++        {
++            var label = Text(vector, "name") + "/" + kind + "/" + mode;
++            try
++            {
++                var data = Import(vector, kind);
++                var before = data.ToJsonString();
++                var text = Select(data, mode);
++                var now = DateTime.Parse(Text(vector, "now"), CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
++                var due = Due(text, kind, now);
++                var expected = vector["expected"]!.GetValue<int>();
++                TestAssert.That(due.Length == expected, $"{label}: expected {expected}, actual {due.Length}");
++                TestAssert.That(due.Select(value => value.Key).Distinct().Count() == due.Length, label + ": duplicate identity");
++                TestAssert.That(data.ToJsonString() == before, label + ": changed source");
++                if (mode != "original") TestAssert.That(!text.Contains("PRIVATE", StringComparison.Ordinal), label + ": leaked private content");
++                checks++;
++            }
++            catch (Exception error) { failures.Add(label + ": " + error.Message); }
++        }
++        TestAssert.That(failures.Count == 0, string.Join("\n", failures));
++
++        var sample = vectors[0]!.AsObject();
++        var when = DateTime.Parse(Text(sample, "now"), CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
++        var undated = vectors.OfType<JsonObject>().Single(vector => Text(vector, "name") == "undated-task");
++        foreach (var field in new[] { "faelligZeit", "startZeit", "faellig", "startDatum", "DUE", "DTSTART" })
++        {
++            var invalid = Import(undated, "VTODO");
++            var task = invalid["aufgaben"]![0]!.AsObject();
++            if (field is "DUE" or "DTSTART") task["icsRoundtrip"]!.AsArray().Add(field + ":invalid");
++            else task[field] = field.EndsWith("Zeit", StringComparison.Ordinal) ? "12:30" : "2026-02-30";
++            foreach (var mode in new[] { "original", "runtime", "background" })
++                TestAssert.That(Due(Select(invalid, mode), "VTODO", when).Length == 0, field + "/" + mode + ": malformed date treated as absent");
++        }
++        var directory = Path.Combine(Path.GetTempPath(), "magnolie-absolute-reminder-" + Guid.NewGuid().ToString("N"));
++        Directory.CreateDirectory(directory);
++        try
++        {
++            foreach (var kind in new[] { "VEVENT", "VTODO" })
++            foreach (var mode in new[] { "original", "runtime", "background" })
++            {
++                var state = Path.Combine(directory, kind + "-" + mode + ".json");
++                var notices = new List<ReminderNotice>();
++                using (var first = new ReminderScheduler(state, notices.Add))
++                {
++                    first.UpdateData(Select(Import(sample, kind), mode));
++                    first.RunOnce(when);
++                    first.RunOnce(when.AddSeconds(1));
++                }
++                TestAssert.That(notices.Count == 1, kind + "/" + mode + ": first delivery or repeat failed");
++                var moved = sample.DeepClone().AsObject(); moved["start"] = "20261201T123000Z";
++                using (var restarted = new ReminderScheduler(state, notices.Add))
++                {
++                    restarted.UpdateData(Select(Import(moved, kind), mode));
++                    restarted.RunOnce(when.AddSeconds(2));
++                }
++                TestAssert.That(notices.Count == 1, kind + "/" + mode + ": replay after restart/date edit");
++                var data = Import(sample, kind);
++                var collection = kind == "VEVENT" ? "termine" : "aufgaben";
++                var other = Import(sample, kind, "other-calendar")[collection]![0]!.DeepClone().AsObject();
++                data[collection]!.AsArray().Add(other);
++                TestAssert.That(Due(Select(data, mode), kind, when).Length == 2, "Merged different source identities");
++                other["vertraulich"] = true;
++                TestAssert.That(Due(Select(data, "background"), kind, when).Length == 1, "Confidential projection changed");
++            }
++        }
++        finally { Directory.Delete(directory, true); }
++        Console.WriteLine($"Absolute reminders: {checks} shared import/projection cases, repeated runs, real persisted restart, date edit, source identities and confidentiality passed.");
++        return Task.CompletedTask;
++    }
++}
+diff --git a/magnolie-organizer-windows/tests/Program.cs b/magnolie-organizer-windows/tests/Program.cs
+index ea3948513366b1c88c2c680616b1bf5c63b0b2c3..2d75c8048f560bcd13a62c0286d886fe1e9f2bce 100644
+--- a/magnolie-organizer-windows/tests/Program.cs
++++ b/magnolie-organizer-windows/tests/Program.cs
+@@ -357,6 +357,8 @@ runner.Add("ODT Brief / MIME / Paket / Dateiendung", ContractGroupTests.OdtAsync
+ runner.Add("Windows Contacts / Graph / OAuth / Token", WindowsContactGraphTests.RunAsync);
+ runner.Add("Microsoft device-code sign-in / persistence / cancellation", GraphDeviceSignInTests.RunAsync);
+ runner.Add("Reminder / Serien", ContractGroupTests.RemindersAsync);
++runner.Add("Reminder / absolute triggers / source identity / restart", AbsoluteReminderTests.RunAsync);
++runner.Add("Reminder / coincident absolute triggers / persisted acknowledgements", AbsoluteReminderCoincidenceTests.RunAsync);
+ runner.Add("Cycle calendar / explicit markers and optional forecasts", CycleCalendarTests.RunAsync);
+ runner.Add("Reminder / Neustart / Kennwort / DST", ReminderPersistenceTests.RunAsync);
+ runner.Add("Anniversary reminder / text / independent dismissal", AnniversaryReminderTests.RunAsync);
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index 85ce6e616f29682d489ed60fcadf9589d75567b7..0aefaf9e0074df63eb9b7e9022ee2e4dd6647a9b 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -7733,6 +7733,12 @@ def _alarm_normalisieren(alarm):
+              "aktiviert": alarm.get("aktiviert") is not False,
+              "related": "END" if str(alarm.get("related") or "START").upper() == "END" else "START",
+              "aktion": aktion.lower()}
++    # Refs #835: the private background projection is normalized once more
++    # when read. Keep the absolute instant, including UTC offset and seconds.
++    absolut = _alarm_absolut_lesen(alarm.get("absolut"))
++    if absolut is not None and alarm.get("offsetMinuten") is None:
++        basis["absolut"] = absolut.isoformat()
++        return basis
+     if alarm.get("bearbeitbar") is False:
+         trigger = str(alarm.get("triggerRaw") or "").strip()
+         dauer = re.fullmatch(
+@@ -7746,12 +7752,17 @@ def _alarm_normalisieren(alarm):
+                        (int(dauer.group(6) or 0) + 59) // 60)
+             if minuten <= 525600:
+                 basis["offsetMinuten"] = minuten if dauer.group(1) == "-" else -minuten
++                if basis["offsetMinuten"] < 0:
++                    basis.update(bearbeitbar=False, triggerRaw=trigger)
+                 return basis
+-        datum, zeit = _ics_datumzeit(
+-            trigger, {"TZID": str(alarm.get("triggerTzid") or "")})
+-        if datum and zeit:
+-            basis["absolut"] = datum + " " + zeit
+-            return basis
++        try:
++            zeitpunkt, ganztags = ics_date_time(trigger,
++                {"TZID": str(alarm.get("triggerTzid") or "")}, _organizer_zeitzone())
++            if zeitpunkt is not None and not ganztags:
++                basis["absolut"] = _erinnerungs_instant(zeitpunkt).isoformat()
++                return basis
++        except (ValueError, TypeError, KeyError, OverflowError):
++            pass
+         return None
+     wert = alarm.get("offsetMinuten")
+     if isinstance(wert, bool):
+@@ -7767,6 +7778,66 @@ def _alarm_normalisieren(alarm):
+     return basis
+ 
+ 
++def _alarm_absolut_lesen(wert):
++    if not isinstance(wert, str) or not re.fullmatch(
++            r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:\d{2})?", wert):
++        return None
++    try:
++        return _erinnerungs_instant(datetime.fromisoformat(wert.replace("Z", "+00:00")))
++    except (ValueError, TypeError, OverflowError):
++        return None
++
++
++def _absolute_alarm_meldungen(eintrag, kennung):
++    """One source-bound absolute alarm, independent of recurrence windows."""
++    if (str(eintrag.get("icsStatus") or "").upper() == "CANCELLED" or
++            any(name == "STATUS" and str(wert).upper() == "CANCELLED"
++                for name, _params, wert in ics_properties(eintrag.get("icsRoundtrip")))):
++        return []
++    result, gesehen = [], set()
++    for _minuten, _related, text in _strukturierte_alarme(eintrag):
++        zeitpunkt = _alarm_absolut_lesen(text)
++        if zeitpunkt is None or zeitpunkt in gesehen:
++            continue
++        gesehen.add(zeitpunkt)
++        marke = "%s@absolute:%s" % (kennung, zeitpunkt.strftime("%Y%m%dT%H%M%SZ"))
++        # Absolute alarms expire relative to their trigger, not a possibly
++        # distant event. This also prevents replay after the marker is pruned.
++        result.append((marke, zeitpunkt, 0, zeitpunkt, set()))
++    return result
++
++
++def _absolute_erinnerungen_buendeln(meldungen):
++    """Join an absolute alarm to one same-source, same-instant normal notice."""
++    gruppen, anker = [], {}
++    # Keep independent normal recurrence notices unchanged. Only the new
++    # component-bound absolute alarm joins their first exact UTC match.
++    for absolut in (False, True):
++        for meldung in meldungen:
++            if meldung[1] != absolut:
++                continue
++            zeitpunkt = (meldung[0], meldung[3])
++            if absolut and zeitpunkt in anker:
++                anker[zeitpunkt].append(meldung)
++            else:
++                gruppe = [meldung]
++                gruppen.append(gruppe)
++                anker.setdefault(zeitpunkt, gruppe)
++    return gruppen
++
++
++def _erinnerungsgruppe_quittieren(gruppe, gemeldet, wann=None):
++    if wann is None:
++        alt = next((key for meldung in gruppe for key in [meldung[2], *meldung[4]]
++                    if key in gemeldet), None)
++        if alt is None:
++            return False
++        wann = gemeldet[alt]
++    for meldung in gruppe:
++        gemeldet[meldung[2]] = wann
++    return True
++
++
+ def _custom_erinnerungseintraege(daten):
+     termine = []
+     aufgaben = []
+@@ -8214,7 +8285,8 @@ def _erinnerungs_instant(wandzeit, eintrag=None, feld=None):
+     return (wandzeit.replace(tzinfo=_organizer_zeitzone()) if wandzeit.tzinfo is None else wandzeit).astimezone(timezone.utc)
+ 
+ 
+-def _termin_meldungen(termin, kennung, beginn, vorlauf, absolut_rechnen=False, legacy=True):
++def _termin_meldungen(termin, kennung, beginn, vorlauf, absolut_rechnen=False, legacy=True,
++                     absolute=True):
+     """Deduplizierte Meldungen aus Standard-, Legacy- und Webalarmen."""
+     meldungen = {}
+ 
+@@ -8261,12 +8333,12 @@ def _termin_meldungen(termin, kennung, beginn, vorlauf, absolut_rechnen=False, l
+                   tage=tage)
+     for minuten, related, absolut in _strukturierte_alarme(termin):
+         if absolut:
+-            if termin.get("folge"):
++            if not absolute or termin.get("folge"):
+                 continue
+-            try:
+-                feste_zeit = datetime.strptime(absolut, "%Y-%m-%d %H:%M")
+-            except ValueError:
++            zeitpunkt = _alarm_absolut_lesen(absolut)
++            if zeitpunkt is None:
+                 continue
++            feste_zeit = zeitpunkt.astimezone(_organizer_zeitzone()).replace(tzinfo=None)
+             aufnehmen("alarm-absolut", 0, related, feste_zeit=feste_zeit)
+             continue
+         alarm_tage = minuten // 1440 if minuten and minuten > 0 and minuten % 1440 == 0 else 0
+@@ -8643,9 +8715,18 @@ def faellige_erinnerungen(daten, jetzt, zustand, vorlauf=15, verpasste=True,
+                           if 1 <= tage <= 7] +
+                    [(groesster_vorlauf + 1439) // 1440 + 1])
+ 
+-    for termin in termine_mit_wiederholungen(daten, jetzt,
++    kandidaten = []
++    for original in _ics_serien_abstimmen(list((daten or {}).get("termine") or [])):
++        if not isinstance(original, dict):
++            continue
++        quelle = _termin_erinnerungskennung(original)
++        kandidaten.extend((termin, False, quelle) for termin in termine_mit_wiederholungen(
++            {"termine": [original]}, jetzt,
+             tage_zurueck=max(4, (max(1, rueckblick_stunden) + 23) // 24 + 1),
+-            tage_vor=tage_vor, fehler=fehler, alarm_nachlauf=True):
++            tage_vor=tage_vor, fehler=fehler, alarm_nachlauf=True))
++        kandidaten.append((original, True, quelle))
++    alle_meldungen = []
++    for termin, nur_absolute, quelle in kandidaten:
+         if not isinstance(termin, dict) or ausgeschlossen(termin):
+             continue
+         kennung = _termin_erinnerungskennung(termin) if termin.get("id") or termin.get("uid") else ""
+@@ -8654,37 +8735,38 @@ def faellige_erinnerungen(daten, jetzt, zustand, vorlauf=15, verpasste=True,
+         beginn = _termin_zeitpunkt(termin)
+         if beginn is None:
+             continue
+-        for marke, erinnerungszeit, tage, basis, alte_marken in _termin_meldungen(
+-                termin, kennung, beginn, vorlauf, absolut_rechnen=True,
+-                legacy=bool((zustand or {}).get("gemeldet"))):
+-            if basis < jetzt_utc - timedelta(hours=max(1, rueckblick_stunden)):
+-                continue
+-            if marke in gemeldet:
+-                continue
+-            alte_marke = next((alt for alt in alte_marken if alt in gemeldet), None)
+-            if alte_marke is not None:
+-                gemeldet[marke] = gemeldet[alte_marke]
+-                continue
+-            if jetzt_utc < erinnerungszeit:
++        meldungen = (_absolute_alarm_meldungen(termin, kennung) if nur_absolute else
++            _termin_meldungen(termin, kennung, beginn, vorlauf, absolut_rechnen=True,
++                legacy=bool((zustand or {}).get("gemeldet")), absolute=False))
++        for marke, erinnerungszeit, tage, basis, alte_marken in meldungen:
++            alle_meldungen.append((quelle, nur_absolute, marke, erinnerungszeit, alte_marken,
++                                  (termin, beginn, tage, basis)))
++    for gruppe in _absolute_erinnerungen_buendeln(alle_meldungen):
++        _quelle, _absolut, marke, erinnerungszeit, _alte, (termin, beginn, tage, basis) = gruppe[0]
++        if basis < jetzt_utc - timedelta(hours=max(1, rueckblick_stunden)):
++            continue
++        if _erinnerungsgruppe_quittieren(gruppe, gemeldet):
++            continue
++        if jetzt_utc < erinnerungszeit:
++            continue
++        eintrag = {"id": marke,
++                   "titel": (termin.get("titel") or "").strip()
++                   or _("Untitled appointment"),
++                   "datum": termin.get("datum") or "",
++                   "zeit": (termin.get("zeit") or "").strip(),
++                   "ort": (termin.get("kategorien") or "").strip(),
++                   "individuelleTage": tage,
++                   "beginn": beginn.strftime("%Y-%m-%d %H:%M")}
++        if jetzt_utc > basis + spielraum:
++            if not verpasste:
++                _erinnerungsgruppe_quittieren(gruppe, gemeldet, jetzt.strftime("%Y-%m-%d %H:%M"))
+                 continue
+-            eintrag = {"id": marke,
+-                       "titel": (termin.get("titel") or "").strip()
+-                       or _("Untitled appointment"),
+-                       "datum": termin.get("datum") or "",
+-                       "zeit": (termin.get("zeit") or "").strip(),
+-                       "ort": (termin.get("kategorien") or "").strip(),
+-                       "individuelleTage": tage,
+-                       "beginn": beginn.strftime("%Y-%m-%d %H:%M")}
+-            if jetzt_utc > basis + spielraum:
+-                if not verpasste:
+-                    gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
+-                    continue
+-                eintrag["verpasst"] = True
+-                verpasst.append(eintrag)
+-            else:
+-                eintrag["verpasst"] = False
+-                faellig.append(eintrag)
+-            gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
++            eintrag["verpasst"] = True
++            verpasst.append(eintrag)
++        else:
++            eintrag["verpasst"] = False
++            faellig.append(eintrag)
++        _erinnerungsgruppe_quittieren(gruppe, gemeldet, jetzt.strftime("%Y-%m-%d %H:%M"))
+ 
+     # Vermerke zu längst vergangenen Terminen wieder wegräumen
+     behalten = {}
+@@ -8732,7 +8814,8 @@ def naechster_weckzeitpunkt(daten, jetzt, vorlauf=15, fehler=None):
+             return
+         kennung = _termin_erinnerungskennung(termin)
+         for _marke, weckzeit, _tage, _basis, _alte_marken in _termin_meldungen(
+-                termin, kennung, beginn, vorlauf, absolut_rechnen=True, legacy=False):
++                termin, kennung, beginn, vorlauf, absolut_rechnen=True, legacy=False,
++                absolute=False):
+             if weckzeit <= jetzt_utc:
+                 continue
+             if bester is None or weckzeit < bester:
+@@ -8743,6 +8826,11 @@ def naechster_weckzeitpunkt(daten, jetzt, vorlauf=15, fehler=None):
+     ende = datetime(9998, 12, 31)
+     for termin in _ics_serien_abstimmen(list((daten or {}).get("termine") or [])):
+         try:
++            if isinstance(termin, dict) and _termin_zeitpunkt(termin) is not None:
++                for _marke, weckzeit, _tage, _basis, _alte_marken in _absolute_alarm_meldungen(
++                        termin, _termin_erinnerungskennung(termin)):
++                    if weckzeit > jetzt_utc and (bester is None or weckzeit < bester):
++                        bester = weckzeit
+             alarme = _strukturierte_alarme(termin) if isinstance(termin, dict) else []
+             nachlauf = max([0] + [-minuten for minuten, _related, _absolut in alarme if minuten is not None])
+             cursor, days, queries = ab - timedelta(minutes=nachlauf), 1, 0
+@@ -8904,6 +8992,93 @@ def faellige_jahrestage(daten, jetzt, ergebnis=None, tage_vorher=0,
+     return ergebnis
+ 
+ 
++def _aufgaben_erinnerungsmarken(aufgabe, faelligkeit):
++    datum = faelligkeit.strftime("%Y-%m-%d")
++    basis = "af-%s-%s-%s" % (aufgabe.get("id") or "?", datum,
++                              faelligkeit.strftime("%H%M"))
++    alt = "af-%s-%s" % (aufgabe.get("id") or "?", datum)
++    due_utc = _erinnerungs_instant(faelligkeit, aufgabe, "icsEndUtc")
++    if faelligkeit.second and "icsOccurrence" not in aufgabe:
++        basis += "-second-%02d" % faelligkeit.second
++    local_due = due_utc.astimezone(_organizer_zeitzone())
++    if "icsOccurrence" not in aufgabe and local_due.replace(fold=0).utcoffset() != local_due.replace(fold=1).utcoffset():
++        basis += "-utc-" + due_utc.strftime("%Y%m%d%H%M%S")
++        alt = basis
++    return basis, alt, due_utc
++
++
++def _absolute_aufgaben_altmarken(aufgabe, zeitpunkt, gemeldet, stunde=8):
++    """Acknowledge only exact task/occurrence marks actually used before #835."""
++    from datetime import timedelta
++    # The former trigger parser discarded seconds and the fold. Such a mark
++    # cannot acknowledge a different second or the second repeated wall hour.
++    wandzeit = zeitpunkt.astimezone(_organizer_zeitzone()).replace(
++        tzinfo=None, second=0, microsecond=0, fold=0)
++    if _erinnerungs_instant(wandzeit) != zeitpunkt:
++        return set()
++    alarme = _strukturierte_alarme(aufgabe)
++    bezuege = {related for _minutes, related, absolute in alarme
++               if _alarm_absolut_lesen(absolute) == zeitpunkt}
++    suffixe = tuple("-alarm-%s-%s" % (related, wandzeit.strftime("%Y-%m-%d %H:%M"))
++                    for related in bezuege)
++    prefix = "af-" + _termin_erinnerungskennung(aufgabe)
++    kandidaten = {key: value for key, value in gemeldet.items()
++                  if isinstance(key, str) and key.startswith(prefix) and key.endswith(suffixe)}
++    if not kandidaten:
++        return set()
++    bestaetigt = set()
++    # Use the persisted scan time to reconstruct the *actual* source-qualified
++    # occurrence. Prefix/suffix similarity alone must never acknowledge it.
++    for wann in set(str(value)[:16] for value in kandidaten.values()):
++        try:
++            damals = datetime.strptime(wann, "%Y-%m-%d %H:%M")
++            start = aufgabe.get("startDatum") or aufgabe.get("faellig")
++            due = aufgabe.get("faellig") or start
++            span = max(0, (datetime.fromisoformat(due) - datetime.fromisoformat(start)).days) if start and due else 0
++            lead = max([8 * 1440] + [minutes for minutes, _, _ in alarme if minutes is not None])
++            lag = max([0] + [-minutes for minutes, _, _ in alarme if minutes is not None])
++            expanded = _ics_vorkommen(aufgabe, damals - timedelta(days=5 + span, minutes=lag),
++                                      damals + timedelta(minutes=lead), aufgabe=True, ueberlappung=True)
++            for mal in [aufgabe] if expanded is None else expanded:
++                faelligkeit = _termin_zeitpunkt({"datum": mal.get("faellig"),
++                                                "zeit": mal.get("faelligZeit")}, stunde)
++                if faelligkeit is None:
++                    continue
++                basis, _alt, _utc = _aufgaben_erinnerungsmarken(mal, faelligkeit)
++                for suffix in suffixe:
++                    key = basis + suffix
++                    if key in kandidaten and str(kandidaten[key])[:16] == wann:
++                        bestaetigt.add(key)
++        except (ValueError, KeyError, TypeError, OverflowError, RuntimeError, StopIteration):
++            continue
++    return bestaetigt
++
++
++def _absolute_aufgaben_datum_gueltig(aufgabe):
++    """Missing dates are valid for an absolute VTODO; malformed dates are not."""
++    for tag_feld, zeit_feld in (("startDatum", "startZeit"), ("faellig", "faelligZeit")):
++        tag, uhr = str(aufgabe.get(tag_feld) or ""), str(aufgabe.get(zeit_feld) or "")
++        if not tag:
++            if uhr:
++                return False
++            continue
++        try:
++            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", tag):
++                return False
++            datetime.strptime(tag, "%Y-%m-%d")
++            if uhr:
++                if not re.fullmatch(r"\d{2}:\d{2}(?::\d{2})?", uhr):
++                    return False
++                datetime.strptime(uhr, "%H:%M:%S" if len(uhr) == 8 else "%H:%M")
++        except ValueError:
++            return False
++    # A failed import of an existing date must not look like an undated task.
++    for name, _params, _value in ics_properties(aufgabe.get("icsRoundtrip")):
++        if name == "DUE" and not aufgabe.get("faellig") or name == "DTSTART" and not aufgabe.get("startDatum"):
++            return False
++    return True
++
++
+ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
+     """Sucht Aufgaben, an die am Fälligkeitstag oder vorher zu erinnern ist.
+ 
+@@ -8918,7 +9093,8 @@ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
+     gemeldet = ergebnis["zustand"].setdefault("gemeldet", {})
+ 
+     aufgaben = []
+-    for aufgabe in _ics_serien_abstimmen((daten or {}).get("aufgaben") or []):
++    originale = _ics_serien_abstimmen((daten or {}).get("aufgaben") or [])
++    for aufgabe in originale:
+         if not isinstance(aufgabe, dict) or aufgabe.get("erledigt"):
+             continue
+         try:
+@@ -8935,8 +9111,13 @@ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
+         except (ValueError, KeyError, TypeError, OverflowError, RuntimeError, StopIteration) as error:
+             ergebnis.setdefault("recurrenceErrors", []).append({"id": _termin_erinnerungskennung(aufgabe), "error": str(error) or type(error).__name__, "retryable": bool(getattr(error, "retryable", False))})
+             continue
+-        aufgaben.extend([aufgabe] if expanded is None else expanded)
+-    for aufgabe in aufgaben:
++        aufgaben.extend((mal, _termin_erinnerungskennung(aufgabe))
++                         for mal in ([aufgabe] if expanded is None else expanded))
++    kandidaten = [(aufgabe, False, quelle) for aufgabe, quelle in aufgaben]
++    kandidaten.extend((aufgabe, True, _termin_erinnerungskennung(aufgabe)) for aufgabe in originale
++                       if isinstance(aufgabe, dict))
++    alle_meldungen = []
++    for aufgabe, nur_absolute, quelle in kandidaten:
+         if not isinstance(aufgabe, dict):
+             continue
+         tage = _erinnerung_tage(aufgabe.get("individuelleErinnerungTage"))
+@@ -8945,41 +9126,37 @@ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
+             continue
+         if aufgabe.get("erledigt"):
+             continue
+-        datum = (aufgabe.get("faellig") or "").strip()
+-        if len(datum) < 10:
++        if nur_absolute and not _absolute_aufgaben_datum_gueltig(aufgabe):
+             continue
+-        try:
+-            faelligkeit = datetime.strptime(datum, "%Y-%m-%d").replace(
+-                hour=max(0, min(23, stunde)))
+-            zeit = str(aufgabe.get("faelligZeit") or "")
+-            if len(zeit) in (5, 8):
+-                uhr = datetime.strptime(zeit, "%H:%M:%S" if len(zeit) == 8 else "%H:%M")
+-                faelligkeit = faelligkeit.replace(hour=uhr.hour, minute=uhr.minute, second=uhr.second)
+-        except ValueError:
++        datum = (aufgabe.get("faellig") or "").strip()
++        if not datum and nur_absolute:
++            faelligkeit = None
++        elif len(datum) < 10:
+             continue
+-        basis_marke = "af-%s-%s-%s" % (
+-            aufgabe.get("id") or "?", datum,
+-            faelligkeit.strftime("%H%M"))
+-        alte_basis_marke = "af-%s-%s" % (aufgabe.get("id") or "?", datum)
+-        due_utc = _erinnerungs_instant(faelligkeit, aufgabe, "icsEndUtc")
+-        if faelligkeit.second and "icsOccurrence" not in aufgabe:
+-            basis_marke += "-second-%02d" % faelligkeit.second
+-        local_due = due_utc.astimezone(_organizer_zeitzone())
+-        if "icsOccurrence" not in aufgabe and local_due.replace(fold=0).utcoffset() != local_due.replace(fold=1).utcoffset():
+-            basis_marke += "-utc-" + due_utc.strftime("%Y%m%d%H%M%S")
+-            alte_basis_marke = basis_marke
++        else:
++            try:
++                faelligkeit = datetime.strptime(datum, "%Y-%m-%d").replace(
++                    hour=max(0, min(23, stunde)))
++                zeit = str(aufgabe.get("faelligZeit") or "")
++                if len(zeit) in (5, 8):
++                    uhr = datetime.strptime(zeit, "%H:%M:%S" if len(zeit) == 8 else "%H:%M")
++                    faelligkeit = faelligkeit.replace(hour=uhr.hour, minute=uhr.minute, second=uhr.second)
++            except ValueError:
++                continue
++        if faelligkeit is not None:
++            basis_marke, alte_basis_marke, due_utc = _aufgaben_erinnerungsmarken(aufgabe, faelligkeit)
+         meldungen = []
+-        if aufgabe.get("erinnern"):
++        if not nur_absolute and aufgabe.get("erinnern"):
+             meldungen.append((basis_marke, due_utc, 0, alte_basis_marke))
+-        if 1 <= tage <= 7:
++        if not nur_absolute and 1 <= tage <= 7:
+             meldungen.append((basis_marke + "-vorher-%d" % tage,
+                               _erinnerungs_instant(faelligkeit - timedelta(days=tage)), tage,
+                               alte_basis_marke + "-vorher-%d" % tage))
+-        for minutes, related, absolute in alarms:
++        for minutes, related, absolute in ([] if nur_absolute else alarms):
+             basis = faelligkeit if related == "END" else _termin_zeitpunkt({
+                 "datum": aufgabe.get("startDatum") or datum, "zeit": aufgabe.get("startZeit") or ""}, stunde)
+             if absolute:
+-                trigger = _erinnerungs_instant(datetime.fromisoformat(absolute.replace(" ", "T")))
++                continue
+             elif basis is not None and minutes is not None:
+                 trigger = _erinnerungs_instant(basis, aufgabe, "icsEndUtc" if related == "END" else "icsStartUtc") - timedelta(minutes=minutes)
+             else:
+@@ -8987,29 +9164,39 @@ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
+             if not any(value[1] == trigger for value in meldungen):
+                 mark = basis_marke + "-alarm-%s-%s" % (related, minutes if minutes is not None else absolute)
+                 meldungen.append((mark, trigger, 0, mark))
++        if nur_absolute:
++            meldungen = []
++            for marke, zeitpunkt, _tage, _basis, _alt in _absolute_alarm_meldungen(
++                    aufgabe, "af-" + _termin_erinnerungskennung(aufgabe)):
++                alte_marken = (_absolute_aufgaben_altmarken(aufgabe, zeitpunkt, gemeldet, stunde)
++                               if marke not in gemeldet else set())
++                meldungen.append((marke, zeitpunkt, 0, next(iter(alte_marken), marke)))
+         for marke, zeitpunkt, tage_vorher, alte_marke in meldungen:
+-            if marke not in gemeldet and alte_marke in gemeldet:
+-                gemeldet[marke] = gemeldet[alte_marke]
+-            if marke in gemeldet or jetzt_utc < zeitpunkt:
+-                continue
+-            if jetzt_utc > zeitpunkt + timedelta(hours=72):
+-                gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
+-                continue
+-            wer = ", ".join(n for n in (aufgabe.get("personenNamen") or []) if n)
+-            verpasst = jetzt_utc > zeitpunkt + timedelta(hours=14)
+-            if verpasst and not verpasste:
+-                gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
+-                continue
+-            eintrag = {
+-                "id": marke, "aufgabe": True,
+-                "kopf": _("Task reminder") if tage_vorher else _("Task is due"),
+-                "titel": aufgabe.get("titel") or _("Task"),
+-                "wer": wer, "individuelleTage": tage_vorher,
+-                "datum": datum, "zeit": faelligkeit.strftime("%H:%M:%S" if faelligkeit.second else "%H:%M"),
+-                "verpasst": verpasst,
+-                "beginn": zeitpunkt.astimezone(_organizer_zeitzone()).strftime("%Y-%m-%d %H:%M")}
+-            ergebnis["verpasst" if verpasst else "faellig"].append(eintrag)
+-            gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
++            alle_meldungen.append((quelle, nur_absolute, marke, zeitpunkt, {alte_marke},
++                                  (aufgabe, faelligkeit, datum, tage_vorher)))
++    for gruppe in _absolute_erinnerungen_buendeln(alle_meldungen):
++        _quelle, nur_absolute, marke, zeitpunkt, _alte, (aufgabe, faelligkeit, datum, tage_vorher) = gruppe[0]
++        if _erinnerungsgruppe_quittieren(gruppe, gemeldet) or jetzt_utc < zeitpunkt:
++            continue
++        if jetzt_utc > zeitpunkt + timedelta(hours=72):
++            _erinnerungsgruppe_quittieren(gruppe, gemeldet, jetzt.strftime("%Y-%m-%d %H:%M"))
++            continue
++        wer = ", ".join(n for n in (aufgabe.get("personenNamen") or []) if n)
++        verpasst = jetzt_utc > zeitpunkt + timedelta(hours=14)
++        if verpasst and not verpasste:
++            _erinnerungsgruppe_quittieren(gruppe, gemeldet, jetzt.strftime("%Y-%m-%d %H:%M"))
++            continue
++        anzeige = faelligkeit or zeitpunkt.astimezone(_organizer_zeitzone())
++        eintrag = {
++            "id": marke, "aufgabe": True,
++            "kopf": _("Task reminder") if tage_vorher or nur_absolute else _("Task is due"),
++            "titel": aufgabe.get("titel") or _("Task"),
++            "wer": wer, "individuelleTage": tage_vorher,
++            "datum": datum or anzeige.strftime("%Y-%m-%d"), "zeit": anzeige.strftime("%H:%M:%S" if anzeige.second else "%H:%M"),
++            "verpasst": verpasst,
++            "beginn": zeitpunkt.astimezone(_organizer_zeitzone()).strftime("%Y-%m-%d %H:%M")}
++        ergebnis["verpasst" if verpasst else "faellig"].append(eintrag)
++        _erinnerungsgruppe_quittieren(gruppe, gemeldet, jetzt.strftime("%Y-%m-%d %H:%M"))
+     return ergebnis
+ 
+ 
+diff --git a/magnolie-organizer/pruefungen/test_absolute_reminder_legacy.py b/magnolie-organizer/pruefungen/test_absolute_reminder_legacy.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3234973e761985c4ca2844fd34bcb3b2e0713ab4
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/test_absolute_reminder_legacy.py
+@@ -0,0 +1,245 @@
++"""#835: genuine pre-fix acknowledgment shapes and undated absolute VTODOs."""
++import copy
++import json
++from datetime import datetime, timedelta, timezone
++from pathlib import Path
++import unittest
++from unittest.mock import patch
++from zoneinfo import ZoneInfo
++
++from modul_laden import quellmodul_laden
++
++
++# Captured by executing the real importer and faellige_aufgaben from
++# 1543858e251d7e29ebeafb67d2605991c1d442d5, not generated by the code under test.
++UID = "independent-absolute-review"
++PREFIX = "af-58b0c6d3d9fe361ee648:" + UID
++OLD = PREFIX + "@2026-11-29T12:30:00+00:00-2026-11-29-1230-alarm-START-2026-11-27 10:30"
++OLD_NEXT = PREFIX + "@2026-11-30T12:30:00+00:00-2026-11-30-1230-alarm-START-2026-11-27 10:30"
++OLD_FOLD = PREFIX + "@2026-11-03T12:30:00+00:00-2026-11-03-0730-alarm-START-2026-11-01 01:30"
++NOW = datetime(2026, 11, 27, 10, 30, tzinfo=timezone.utc)
++
++
++class AbsoluteReminderLegacy(unittest.TestCase):
++    @classmethod
++    def setUpClass(cls):
++        with patch.dict("sys.modules", {"gi": None}):
++            cls.m = quellmodul_laden("absolute_reminder_legacy_test",
++                Path(__file__).resolve().parents[1] / "bin/magnolie-organizer")
++
++    def setUp(self):
++        self.zone = "UTC"
++        self.zone_name = patch.object(self.m, "_zeitzonenname", lambda: self.zone)
++        self.zone_name.start()
++        self.zone_token = self.m._LAUF_ZEITZONE.set(ZoneInfo(self.zone))
++
++    def tearDown(self):
++        self.m._LAUF_ZEITZONE.reset(self.zone_token)
++        self.zone_name.stop()
++
++    def imported(self, trigger="20261127T103000Z", start="20261129T123000Z",
++                 due="20261129T123000Z", source="owned-calendar-a", recurrence="", status="", uid=UID):
++        lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Magnolie//Owned legacy fixture//EN",
++                 "BEGIN:VTODO", "UID:" + uid, "DTSTAMP:20261001T000000Z", "SUMMARY:Owned independent alarm"]
++        if start is not None:
++            lines.append("DTSTART:" + start)
++        if due is not None:
++            lines.append("DUE:" + due)
++        if recurrence:
++            lines.append("RRULE:" + recurrence)
++        if status:
++            lines.append("STATUS:" + status)
++        lines += ["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER;VALUE=DATE-TIME:" + trigger,
++                  "DESCRIPTION:Owned independent alarm", "END:VALARM", "END:VTODO", "END:VCALENDAR", ""]
++        data = self.m.ics_lesen("\r\n".join(lines), quellen_id=source)
++        data["einstellungen"] = {"erinnerung": {"an": True}, "sicherheit": {"erinnernTrotzKennwort": True}}
++        self.assertEqual(len(data["aufgaben"]), 1)
++        return data
++
++    def run_tasks(self, data, state=None, at=NOW):
++        before = copy.deepcopy(data)
++        result = self.m.faellige_aufgaben(data, at, {"faellig": [], "verpasst": [],
++            "zustand": json.loads(json.dumps(state or {"gemeldet": {}}))})
++        self.assertEqual(data, before, "Alarm delivery must not invent or alter stored task dates")
++        return result
++
++    @staticmethod
++    def notices(result):
++        return result["faellig"] + result["verpasst"]
++
++    @staticmethod
++    def old_state(key=OLD, when="2026-11-27 10:30"):
++        return {"gemeldet": {key: when}, "letzter_lauf": ""}
++
++    def test_genuine_old_ack_survives_upgrade_and_background_projection(self):
++        for source, key in [("owned-calendar-a", OLD), ("", OLD.replace("58b0c6d3d9fe361ee648:", ""))]:
++            data = self.imported(source=source)
++            for chosen in [data, self.m.erinnerungsdaten_auswaehlen(data)]:
++                with self.subTest(source=source, background=chosen.get("nurErinnerungen", False)):
++                    result = self.run_tasks(chosen, self.old_state(key))
++                    self.assertEqual(self.notices(result), [])
++                    self.assertEqual(sum("@absolute:" in item for item in result["zustand"]["gemeldet"]), 1)
++                    self.assertEqual(self.notices(self.run_tasks(chosen, result["zustand"], at=NOW + timedelta(seconds=30))), [])
++
++    def test_real_series_occurrence_acknowledges_component_only_once(self):
++        data = self.imported(recurrence="FREQ=DAILY;COUNT=2")
++        for key in [OLD, OLD_NEXT]:
++            with self.subTest(key=key):
++                self.assertEqual(self.notices(self.run_tasks(data, self.old_state(key))), [])
++        forged = OLD_NEXT.replace("2026-11-30", "2026-12-01")
++        self.assertEqual(len(self.notices(self.run_tasks(data, self.old_state(forged)))), 1)
++
++    def test_similar_source_component_trigger_and_standard_marks_are_not_acks(self):
++        cases = [(self.imported(source="owned-calendar-b"), self.old_state(), NOW),
++                 (self.imported(uid=UID + "-different"), self.old_state(), NOW),
++                 (self.imported(trigger="20261127T103100Z"), self.old_state(), NOW + timedelta(minutes=1)),
++                 (self.imported(), self.old_state(OLD.split("-alarm-START-")[0]), NOW),
++                 (self.imported(), self.old_state(when="invalid time"), NOW)]
++        for data, state, at in cases:
++            with self.subTest(data=data["aufgaben"][0]["uid"], state=state, at=at):
++                self.assertEqual(len(self.notices(self.run_tasks(data, state, at))), 1)
++
++    def test_old_minute_mark_does_not_acknowledge_another_second(self):
++        data = self.imported(trigger="20261127T103015Z")
++        self.assertEqual(self.notices(self.run_tasks(data, self.old_state(), NOW + timedelta(seconds=14))), [])
++        result = self.run_tasks(data, self.old_state(), NOW + timedelta(seconds=15))
++        self.assertEqual(len(self.notices(result)), 1)
++        self.assertTrue(self.notices(result)[0]["id"].endswith("@absolute:20261127T103015Z"))
++        self.assertEqual(self.notices(self.run_tasks(data, result["zustand"], NOW + timedelta(seconds=45))), [])
++
++    def test_old_wall_mark_cannot_acknowledge_the_second_dst_fold(self):
++        self.zone = "America/New_York"
++        self.m._LAUF_ZEITZONE.set(ZoneInfo(self.zone))
++        first = datetime(2026, 11, 1, 5, 30, tzinfo=timezone.utc)
++        state = self.old_state(OLD_FOLD, "2026-11-01 01:30")
++        data = self.imported(trigger="20261101T053000Z", start="20261103T123000Z", due="20261103T123000Z")
++        self.assertEqual(self.notices(self.run_tasks(data, state, first)), [])
++        second = self.imported(trigger="20261101T063000Z", start="20261103T123000Z", due="20261103T123000Z")
++        self.assertEqual(self.notices(self.run_tasks(second, state, first)), [])
++        result = self.run_tasks(second, state, first + timedelta(hours=1))
++        self.assertEqual(len(self.notices(result)), 1)
++        self.assertTrue(self.notices(result)[0]["id"].endswith("@absolute:20261101T063000Z"))
++
++    def test_undated_task_uses_trigger_for_display_without_mutating_dates(self):
++        data = self.imported(trigger="20261127T103015Z", start=None, due=None)
++        for chosen in [data, self.m.erinnerungsdaten_auswaehlen(data)]:
++            self.assertEqual(self.notices(self.run_tasks(chosen, at=NOW + timedelta(seconds=14))), [])
++            result = self.run_tasks(chosen, at=NOW + timedelta(seconds=15))
++            self.assertEqual(len(self.notices(result)), 1)
++            notice = self.notices(result)[0]
++            self.assertEqual((notice["datum"], notice["zeit"]), ("2026-11-27", "10:30:15"))
++            self.assertEqual(notice["kopf"], self.m._("Task reminder"))
++            self.assertEqual(chosen["aufgaben"][0]["faellig"], "")
++            self.assertEqual(self.notices(self.run_tasks(chosen, result["zustand"], NOW + timedelta(seconds=45))), [])
++
++    def test_start_only_task_does_not_invent_a_due_date(self):
++        data = self.imported(due=None)
++        result = self.run_tasks(data)
++        self.assertEqual(len(self.notices(result)), 1)
++        self.assertEqual(self.notices(result)[0]["datum"], "2026-11-27")
++        self.assertEqual(data["aufgaben"][0]["faellig"], "")
++
++    def test_invalid_present_dates_and_times_do_not_become_undated(self):
++        cases = []
++        for field, value in [("faellig", "2026-11-31"), ("startDatum", "not-a-date"),
++                             ("faelligZeit", "12:30"), ("startZeit", "broken")]:
++            data = self.imported(start=None, due=None)
++            data["aufgaben"][0][field] = value
++            cases.append(data)
++        cases += [self.imported(start=None, due="invalid"), self.imported(start="invalid", due=None)]
++        for data in cases:
++            with self.subTest(task=data["aufgaben"][0]):
++                self.assertEqual(self.notices(self.run_tasks(data)), [])
++
++    def test_undated_task_retains_status_and_privacy_exclusions(self):
++        for status in ["CANCELLED", "COMPLETED"]:
++            self.assertEqual(self.notices(self.run_tasks(self.imported(start=None, due=None, status=status))), [])
++        data = self.imported(start=None, due=None)
++        data["aufgaben"][0]["vertraulich"] = True
++        chosen = self.m.erinnerungsdaten_auswaehlen(data)
++        self.assertEqual(chosen["aufgaben"], [])
++        self.assertEqual(self.notices(self.run_tasks(chosen)), [])
++
++    @staticmethod
++    def remove_absolute(data, collection="aufgaben"):
++        result = copy.deepcopy(data)
++        for item in result[collection]:
++            lines, block = [], None
++            for line in item["icsRoundtrip"]:
++                if line == "BEGIN:VALARM":
++                    block = [line]
++                elif block is not None:
++                    block.append(line)
++                    if line == "END:VALARM":
++                        if not any("TRIGGER;VALUE=DATE-TIME:" in value for value in block):
++                            lines.extend(block)
++                        block = None
++                else:
++                    lines.append(line)
++            item["icsRoundtrip"] = lines
++        return result
++
++    def test_coincident_task_due_and_absolute_acknowledge_both(self):
++        data = self.imported(start="20261127T093000Z", due="20261127T103000Z")
++        data["aufgaben"][0]["erinnern"] = True
++        normal = self.remove_absolute(data)
++        old_normal = self.run_tasks(normal)
++        self.assertEqual(len(self.notices(old_normal)), 1)
++        for chosen in [data, self.m.erinnerungsdaten_auswaehlen(data)]:
++            result = self.run_tasks(chosen)
++            self.assertEqual(len(self.notices(result)), 1)
++            self.assertEqual(len(result["zustand"]["gemeldet"]), 2)
++            self.assertEqual(self.notices(self.run_tasks(chosen, result["zustand"])), [])
++            self.assertEqual(self.notices(self.run_tasks(self.remove_absolute(chosen), result["zustand"])), [])
++            upgraded = self.run_tasks(chosen, old_normal["zustand"])
++            self.assertEqual(self.notices(upgraded), [])
++            self.assertEqual(len(upgraded["zustand"]["gemeldet"]), 2)
++
++    def test_coincident_explicit_task_alarms_keep_distinct_seconds_and_sources(self):
++        data = self.imported(start="20261127T113000Z", due="20261127T123000Z")
++        data["aufgaben"][0]["icsRoundtrip"] += ["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:-PT60M", "END:VALARM"]
++        result = self.run_tasks(data)
++        self.assertEqual(len(self.notices(result)), 1)
++        self.assertEqual(len(result["zustand"]["gemeldet"]), 2)
++        self.assertEqual(self.notices(self.run_tasks(self.remove_absolute(data), result["zustand"])), [])
++        other = self.imported(start="20261127T113000Z", due="20261127T123000Z", source="owned-calendar-b")
++        other["aufgaben"][0]["icsRoundtrip"] += ["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:-PT60M", "END:VALARM"]
++        data["aufgaben"].extend(other["aufgaben"])
++        self.assertEqual(len(self.notices(self.run_tasks(data))), 2)
++        seconds = self.imported(trigger="20261127T103001Z", start="20261127T093000Z", due="20261127T103000Z")
++        seconds["aufgaben"][0]["erinnern"] = True
++        self.assertEqual(len(self.notices(self.run_tasks(seconds, at=NOW + timedelta(seconds=1)))), 2)
++
++    def test_coincident_appointment_standard_or_relative_acknowledges_both(self):
++        for start, relative in [("20261127T104500Z", None), ("20261127T113000Z", "-PT60M")]:
++            lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:owned-coinciding-event",
++                     "SUMMARY:Owned event", "DTSTART:" + start, "BEGIN:VALARM", "ACTION:DISPLAY",
++                     "TRIGGER;VALUE=DATE-TIME:20261127T103000Z", "DESCRIPTION:Owned alarm", "END:VALARM"]
++            if relative:
++                lines += ["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:" + relative, "DESCRIPTION:Owned alarm", "END:VALARM"]
++            data = self.m.ics_lesen("\r\n".join(lines + ["END:VEVENT", "END:VCALENDAR", ""]), quellen_id="owned-calendar-a")
++            normal = self.remove_absolute(data, "termine")
++            old_normal = self.m.faellige_erinnerungen(normal, NOW, {})
++            self.assertEqual(len(self.notices(old_normal)), 1)
++            result = self.m.faellige_erinnerungen(data, NOW, {})
++            self.assertEqual(len(self.notices(result)), 1)
++            self.assertEqual(len(result["zustand"]["gemeldet"]), 2)
++            state = json.loads(json.dumps(result["zustand"]))
++            self.assertEqual(self.notices(self.m.faellige_erinnerungen(data, NOW, state)), [])
++            self.assertEqual(self.notices(self.m.faellige_erinnerungen(normal, NOW, state)), [])
++            upgraded = self.m.faellige_erinnerungen(data, NOW, old_normal["zustand"])
++            self.assertEqual(self.notices(upgraded), [])
++            self.assertEqual(len(upgraded["zustand"]["gemeldet"]), 2)
++
++    def test_coincident_relative_occurrences_without_absolute_remain_separate(self):
++        data = self.imported(start="20261127T103000Z", due="20261127T103000Z", recurrence="FREQ=DAILY;COUNT=2")
++        data = self.remove_absolute(data)
++        data["aufgaben"][0]["erinnern"] = True
++        data["aufgaben"][0]["icsRoundtrip"] += ["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:-P1D", "END:VALARM"]
++        result = self.run_tasks(data)
++        self.assertEqual(len(self.notices(result)), 3)
++        self.assertEqual({value["datum"] for value in self.notices(result)}, {"2026-11-27", "2026-11-28"})
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/magnolie-organizer/pruefungen/test_absolute_reminders.py b/magnolie-organizer/pruefungen/test_absolute_reminders.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..555a5bab9d25530a67b1b301991ad73d9d86c5f9
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/test_absolute_reminders.py
+@@ -0,0 +1,130 @@
++"""Refs #835: actual ICS import and reminder planning, no native notification UI."""
++import copy
++import importlib.machinery
++import importlib.util
++import json
++import re
++from datetime import datetime, timedelta
++from pathlib import Path
++from zoneinfo import ZoneInfo
++
++import pytest
++
++ROOT = Path(__file__).resolve().parents[2]
++loader = importlib.machinery.SourceFileLoader("absolute_reminder_product", str(ROOT / "magnolie-organizer/bin/magnolie-organizer"))
++spec = importlib.util.spec_from_loader(loader.name, loader)
++m = importlib.util.module_from_spec(spec)
++loader.exec_module(m)
++VECTORS = json.loads((ROOT / "contracts/absolute-reminder-vectors.json").read_text())["cases"]
++CASES = [(case, kind, projected) for case in VECTORS
++         for kind in case.get("kinds", ["VEVENT", "VTODO"]) for projected in [False, True]]
++
++
++def calendar(case, kind):
++    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:" + kind,
++             "UID:owned-absolute-alarm", "SUMMARY:Owned absolute alarm"]
++    if case["start"]:
++        lines.append("DTSTART:" + case["start"])
++        if kind == "VTODO":
++            lines.append("DUE:" + case["start"])
++    if case.get("rule"):
++        lines.append("RRULE:" + case["rule"])
++    if case.get("status"):
++        lines.append("STATUS:" + case["status"])
++    alarm_component = "valarm" if case.get("alarmCase") == "lower" else "VALARM"
++    for trigger in case["triggers"]:
++        lines.extend(["BEGIN:" + alarm_component, "ACTION:" + case.get("action", "DISPLAY"),
++                      "TRIGGER;VALUE=DATE-TIME:" + trigger,
++                      "DESCRIPTION:PRIVATE ALARM TEXT", "END:" + alarm_component])
++    return "\r\n".join(lines + ["END:" + kind, "END:VCALENDAR", ""])
++
++
++def imported(case, kind):
++    data = m.ics_lesen(calendar(case, kind))
++    data["einstellungen"] = {"erinnerung": {"an": True, "vorlauf": 15,
++        "verpasste": case.get("missed", True)}, "sicherheit": {"erinnernTrotzKennwort": True}}
++    collection = "termine" if kind == "VEVENT" else "aufgaben"
++    for item in data[collection]:
++        item["icsQuelleId"] = "owned-calendar"
++        item["notiz"] = "PRIVATE ITEM TEXT"
++        if case.get("structured"):
++            item["alarme"] = [{"bearbeitbar": False, "aktiviert": case.get("enabled", True),
++                "aktion": case.get("action", "DISPLAY").lower(), "triggerRaw": trigger}
++                for trigger in case["triggers"]]
++    return data
++
++
++def run(data, now, state=None, missed=True):
++    result = m.faellige_erinnerungen(data, now, state or {}, verpasste=missed)
++    result = m.faellige_aufgaben(data, now, result, verpasste=missed)
++    # Accept the legacy public result keys too, so running these behavioral
++    # vectors against the previous product does not manufacture lost alarms.
++    alarms = [x for key in ("faellig", "verpasst") for x in result[key]
++              if "@absolute:" in x["id"] or ":alarm-absolut-" in x["id"] or
++              re.search(r"-alarm-(?:START|END)-\d{4}-\d{2}-\d{2}", x["id"])]
++    return alarms, result["zustand"]
++
++
++@pytest.mark.parametrize("case,kind,projected", CASES,
++    ids=[f"{case['name']}-{kind}-{'background' if projected else 'original'}" for case, kind, projected in CASES])
++def test_absolute_vectors(case, kind, projected, monkeypatch):
++    monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo(case["zone"]))
++    data = imported(case, kind)
++    if projected:
++        data = m.erinnerungsdaten_auswaehlen(data)
++        assert "PRIVATE" not in json.dumps(data)
++    before = copy.deepcopy(data)
++    now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
++    alarms, state = run(data, now, missed=case.get("missed", True))
++    assert len(alarms) == case["expected"]
++    assert len({x["id"] for x in alarms}) == len(alarms)
++    assert run(data, now, json.loads(json.dumps(state)), case.get("missed", True))[0] == []
++    assert data == before
++
++
++@pytest.mark.parametrize("kind", ["VEVENT", "VTODO"])
++def test_actual_state_file_restart_and_changed_date(kind, tmp_path, monkeypatch):
++    monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
++    case = VECTORS[0]
++    data = imported(case, kind)
++    now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
++    alarms, state = run(data, now)
++    assert len(alarms) == 1
++    path = str(tmp_path / "state.json")
++    m.erinnerung_zustand_schreiben(state, pfad=path)
++    restored = m.erinnerung_zustand_lesen(pfad=path)
++    moved = imported(dict(case, start="20261201T123000Z"), kind)
++    assert run(moved, now + timedelta(seconds=1), restored)[0] == []
++
++
++def test_next_wake_uses_absolute_trigger_outside_occurrence_window(monkeypatch):
++    monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
++    case = next(x for x in VECTORS if x["name"] == "absolute-far-outside-window")
++    data = imported(case, "VEVENT")
++    assert m.naechster_weckzeitpunkt(data, datetime(2026, 11, 27, 10, 29)) == datetime(2026, 11, 27, 10, 30)
++
++
++def test_projection_remains_idempotent_for_absolute_and_followup_alarms(monkeypatch):
++    monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
++    for trigger in ["20261127T103045Z", "+PT10M", "-PT10M"]:
++        raw = {"bearbeitbar": False, "triggerRaw": trigger, "aktion": "display"}
++        normalized = m._alarm_normalisieren(raw)
++        assert normalized is not None
++        assert m._alarm_normalisieren(json.loads(json.dumps(normalized))) == normalized
++
++
++@pytest.mark.parametrize("kind", ["VEVENT", "VTODO"])
++def test_same_uid_in_two_sources_and_confidential_projection(kind, monkeypatch):
++    monkeypatch.setattr(m, "_organizer_zeitzone", lambda: ZoneInfo("UTC"))
++    case = VECTORS[0]
++    data = imported(case, kind)
++    key = "termine" if kind == "VEVENT" else "aufgaben"
++    other = copy.deepcopy(data[key][0])
++    other.pop("id", None)
++    data[key][0].pop("id", None)
++    other["icsQuelleId"] = "other-calendar"
++    data[key].append(other)
++    now = datetime.fromisoformat(case["now"].replace("Z", "+00:00"))
++    assert len(run(data, now)[0]) == 2
++    other["vertraulich"] = True
++    assert len(run(m.erinnerungsdaten_auswaehlen(data), now)[0]) == 1
+diff --git a/magnolie-organizer/pruefungen/test_naechster_weckzeitpunkt.py b/magnolie-organizer/pruefungen/test_naechster_weckzeitpunkt.py
+index 3e49337d9855da5726c2ba75a3e341994f9b3416..443f45f123997a95592c39d23aea98cfd576e822 100644
+--- a/magnolie-organizer/pruefungen/test_naechster_weckzeitpunkt.py
++++ b/magnolie-organizer/pruefungen/test_naechster_weckzeitpunkt.py
+@@ -1,7 +1,7 @@
+ import importlib.machinery
+ import importlib.util
+ import os
+-from datetime import datetime
++from datetime import datetime, timezone
+ 
+ import pytest
+ 
+@@ -94,7 +94,8 @@ def test_direktsuche_gleicht_vollmaterialisierte_referenz(jetzt, vorlauf):
+         vollmaterialisierte_referenz(daten, jetzt, vorlauf)
+ 
+ 
+-def test_zeitzone_rdate_exdate_und_absolute_alarme_bleiben_erhalten():
++def test_zeitzone_rdate_exdate_und_absolute_alarme_bleiben_erhalten(monkeypatch):
++    monkeypatch.setattr(m, "_organizer_zeitzone", lambda: timezone.utc)
+     ics = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:tz-serie\r\nDTSTART;TZID=Europe/Berlin:20261024T093000\r\n"
+            "DTEND;TZID=Europe/Berlin:20261024T103000\r\n"
+@@ -107,8 +108,13 @@ def test_zeitzone_rdate_exdate_und_absolute_alarme_bleiben_erhalten():
+            "END:VEVENT\r\nEND:VCALENDAR\r\n")
+     daten = m.ics_lesen(ics)
+     jetzt = datetime(2026, 10, 25, 1, 0)
+-    assert m.naechster_weckzeitpunkt(daten, jetzt) == \
+-        vollmaterialisierte_referenz(daten, jetzt)
++    # Refs #835: the old fully expanded reference skipped the absolute
++    # trigger along with every expanded occurrence. Its independent UTC
++    # value is earlier than the next non-excluded recurring appointment.
++    assert m.naechster_weckzeitpunkt(daten, jetzt) == datetime(2026, 10, 25, 1, 15)
++    relative = dict(daten, termine=[t for t in daten["termine"] if t.get("uid") != "absolut"])
++    assert m.naechster_weckzeitpunkt(relative, jetzt) == \
++        vollmaterialisierte_referenz(relative, jetzt)
+ 
+ 
+ def test_strikte_jetzt_und_seriengrenzen_stimmen_mit_referenz_ueberein():

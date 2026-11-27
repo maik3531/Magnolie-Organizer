@@ -1,0 +1,7 @@
+Beschreibung;Fällig;Priorität;Status
+Erledigt hoch;27.11.2026;Hoch;COMPLETED
+Erledigt niedrig;28.11.2026;3;ABGESCHLOSSEN
+Offen niedrig;29.11.2026;Niedrig;Nein
+Normal offen;30.11.2026;2;Nein
+Normal text;30.11.2026;Normal;Nein
+Unbekannt;30.11.2026;Not set;Nein

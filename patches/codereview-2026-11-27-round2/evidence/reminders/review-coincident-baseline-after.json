@@ -1,0 +1,50 @@
+[
+  {
+    "kind": "VEVENT",
+    "normal": "standard",
+    "baseline": {
+      "notices": 1,
+      "acknowledgments": 1
+    },
+    "current": {
+      "notices": 1,
+      "acknowledgments": 2
+    }
+  },
+  {
+    "kind": "VEVENT",
+    "normal": "relative",
+    "baseline": {
+      "notices": 1,
+      "acknowledgments": 1
+    },
+    "current": {
+      "notices": 1,
+      "acknowledgments": 2
+    }
+  },
+  {
+    "kind": "VTODO",
+    "normal": "due",
+    "baseline": {
+      "notices": 1,
+      "acknowledgments": 1
+    },
+    "current": {
+      "notices": 1,
+      "acknowledgments": 2
+    }
+  },
+  {
+    "kind": "VTODO",
+    "normal": "relative",
+    "baseline": {
+      "notices": 1,
+      "acknowledgments": 1
+    },
+    "current": {
+      "notices": 1,
+      "acknowledgments": 2
+    }
+  }
+]

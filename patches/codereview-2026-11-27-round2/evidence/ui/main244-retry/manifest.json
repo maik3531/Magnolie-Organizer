@@ -1,0 +1,57 @@
+{
+  "baseCommit": "244b1d62aa738ea5cd8fa7fc9449ccf62fb7b99d",
+  "historicalFixCommit": "08887a810befd4cda824a8bd6f504c95c4b3068a",
+  "beforeExitCode": 1,
+  "afterExitCode": 0,
+  "casesPerRun": 4,
+  "artifacts": {
+    "README.md": {
+      "sha256": "c3e3ad7973924af26c3266622424c901249b52de546ee6fc099d445de05c552e",
+      "bytes": 3395,
+      "original_sha256": "c3e3ad7973924af26c3266622424c901249b52de546ee6fc099d445de05c552e",
+      "original_bytes": 3395
+    },
+    "838-retry-only-against-244b1d62.patch": {
+      "sha256": "6630017c6f9b9fcb494f58749e5d1ab3b689026f156a100112233f5085436726",
+      "bytes": 2766,
+      "original_sha256": "6630017c6f9b9fcb494f58749e5d1ab3b689026f156a100112233f5085436726",
+      "original_bytes": 2766
+    },
+    "probe-retry.cjs": {
+      "sha256": "413851c22bfb58495b74558c08f647a3bb3831c799dd7bdbbdbf32a044897aaf",
+      "bytes": 8287,
+      "original_sha256": "413851c22bfb58495b74558c08f647a3bb3831c799dd7bdbbdbf32a044897aaf",
+      "original_bytes": 8287
+    },
+    "before.json": {
+      "sha256": "df4e84b0408c0616ad47f3abc22193f75fcb3bc751cb3a9f17cafef7402fbf7b",
+      "bytes": 1877,
+      "original_sha256": "df4e84b0408c0616ad47f3abc22193f75fcb3bc751cb3a9f17cafef7402fbf7b",
+      "original_bytes": 1877
+    },
+    "before.stderr.log": {
+      "sha256": "8414859a1226652211f00fd156c9346e250db7b1c6b7f42846ef380d09c9d0f4",
+      "bytes": 349,
+      "original_sha256": "1b775525e32c9b8dc885064a3b9d3e3a7adf65b4023fa0bd177bdd6ed0565adb",
+      "original_bytes": 363
+    },
+    "after.json": {
+      "sha256": "0da860db283f49cb6363b132524589aae87bc0e067745bdc036b323ee8385b6e",
+      "bytes": 1716,
+      "original_sha256": "0da860db283f49cb6363b132524589aae87bc0e067745bdc036b323ee8385b6e",
+      "original_bytes": 1716
+    },
+    "after.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0
+    },
+    "byte-comparison.json": {
+      "sha256": "adea575aa8cea1929c7c88191d91d943b8905a2c1d2455078ba40a856a0b8b48",
+      "bytes": 1160,
+      "original_sha256": "adea575aa8cea1929c7c88191d91d943b8905a2c1d2455078ba40a856a0b8b48",
+      "original_bytes": 1160
+    }
+  }
+}

@@ -1,0 +1,12 @@
+TIME ZONE SETTINGS PASS: mcp anchor SaveACK precedes native CAS and final book SaveACK $REVIEW_SOURCE/magnolie-organizer-windows/app/web
+TIME ZONE SETTINGS PASS: failed-save failed save or changed source prevents native write $REVIEW_SOURCE/magnolie-organizer-windows/app/web
+TIME ZONE SETTINGS PASS: source-changed failed save or changed source prevents native write $REVIEW_SOURCE/magnolie-organizer-windows/app/web
+TIME ZONE SETTINGS PASS: gui anchor SaveACK precedes native CAS and final book SaveACK $REVIEW_SOURCE/magnolie-organizer-windows/app/web
+TIME ZONE SETTINGS PASS: failed native read shows error and re-enables GUI without writes $REVIEW_SOURCE/magnolie-organizer-windows/app/web
+TIME ZONE SETTINGS PASS: gui-delayed-read anchor SaveACK precedes native CAS and final book SaveACK $REVIEW_SOURCE/magnolie-organizer-windows/app/web
+TIME ZONE SETTINGS PASS: mcp anchor SaveACK precedes native CAS and final book SaveACK $REVIEW_SOURCE/magnolie-organizer/web
+TIME ZONE SETTINGS PASS: failed-save failed save or changed source prevents native write $REVIEW_SOURCE/magnolie-organizer/web
+TIME ZONE SETTINGS PASS: source-changed failed save or changed source prevents native write $REVIEW_SOURCE/magnolie-organizer/web
+TIME ZONE SETTINGS PASS: gui anchor SaveACK precedes native CAS and final book SaveACK $REVIEW_SOURCE/magnolie-organizer/web
+TIME ZONE SETTINGS PASS: failed native read shows error and re-enables GUI without writes $REVIEW_SOURCE/magnolie-organizer/web
+TIME ZONE SETTINGS PASS: gui-delayed-read anchor SaveACK precedes native CAS and final book SaveACK $REVIEW_SOURCE/magnolie-organizer/web

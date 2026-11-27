@@ -1,0 +1,23 @@
+{
+  "baseCommit": "244b1d62aa738ea5cd8fa7fc9449ccf62fb7b99d",
+  "method": "Patch applied to a temporary Git index; full blob bytes compared against the exact old/replacement literals extracted from probe-retry.cjs; no source files changed",
+  "patchSha256": "6630017c6f9b9fcb494f58749e5d1ab3b689026f156a100112233f5085436726",
+  "files": [
+    {
+      "file": "magnolie-organizer/web/anwendung.js",
+      "originalSha256": "472eb5b801f1862cce3c7a5c0bd7436127e2fc750e0c20c581c44a58c339fb49",
+      "patchedIndexSha256": "ba456e10baa48a72a2107139b06f9aa1f26809fa672106c6278bedda7077901a",
+      "greenProbeSourceSha256": "ba456e10baa48a72a2107139b06f9aa1f26809fa672106c6278bedda7077901a",
+      "bytes": 2883867,
+      "byteEqual": true
+    },
+    {
+      "file": "magnolie-organizer-windows/app/web/anwendung.js",
+      "originalSha256": "7a28602891d5eeebc232c5424543e65360f0b622bdc0b2b1bf13adbe6a42739d",
+      "patchedIndexSha256": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+      "greenProbeSourceSha256": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+      "bytes": 2819809,
+      "byteEqual": true
+    }
+  ]
+}
