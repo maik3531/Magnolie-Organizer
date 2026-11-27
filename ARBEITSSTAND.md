@@ -7,6 +7,11 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#790](https://github.com/maik3531/Magnolie-Organizer/issues/790):
+  Die Workflow-Tests für Mac und Tablet prüfen den aktuellen Checkout,
+  während die historische Codec-Referenz separat bleibt. Die Tablet-
+  Quellenprüfung umfasst auch die absolute Terminbenachrichtigung.
+  Sieben Mac- und 24 Tablet-Quelltests bestanden.
 - [#330](https://github.com/maik3531/Magnolie-Organizer/issues/330) /
   [#338](https://github.com/maik3531/Magnolie-Organizer/issues/338):
   Die gemeinsame Medienmaske macht den noch nicht freigegebenen

@@ -380,6 +380,7 @@ class BuildWiringTests(unittest.TestCase):
             "files": ["calendar-files"], "domains": ["domains"], "timezone": ["timezone-interop"],
             "system-records": ["system-records"], "storage": ["basics", "saf", "fault", "print"],
             "notifications": ["notifications"],
+            "absolute-notifications": ["absolute-notifications"],
         })
         self.assertIn("system-records", native.session.STAGES)
         # Like the existing services stage this probe starts no Activity and issues no input.
