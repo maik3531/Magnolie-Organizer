@@ -217,8 +217,8 @@ def test_full_legacy_schema_reaches_actual_settings_store_and_requires_separate_
             assert transport.intent_for('images') is None
             echoed = incoming(sent['body'])
             assert deliver(channel, wire, echoed, transport.observe) and wire.receive() == ack(echoed)
-            assert transport.intent_for('images', to_phone=True) is not None
-            assert transport.intent_for('video', to_phone=False) is not None  # settings only, not video-batch support
+            assert transport.intent_for('images', to_phone=True) is None
+            assert transport.intent_for('video') is None  # Agreement alone does not grant two-way transfer.
             projection = transport.display_snapshot()
             assert projection['agreed'] and {key:projection['values'][key] for key in
                 ('collection_mode','direction','auto_mode','skip_deletions')} == dict(
@@ -427,7 +427,8 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
                 book.chmod(0o600)
                 with NativeMediaRetention(service.store.root) as policy:assert policy.adopt_existing_saved()
                 session=connection.desktop_session()
-                with pytest.raises(TransferError,match='photo_schedule_not_ready'):
+                start_error=('media_source_native_composition_required' if direction=='two_way' else 'photo_schedule_not_ready')
+                with pytest.raises(TransferError,match=start_error):
                     session.start('sync_shared')  # Matching settings are not enough for the normal entry point.
                 if not automatic:
                     session._run('sync_shared',None)  # Check the same worker's independent final guard as well.

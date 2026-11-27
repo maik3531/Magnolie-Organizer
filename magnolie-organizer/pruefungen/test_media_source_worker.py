@@ -464,15 +464,15 @@ def test_lost_current_metadata_stops_live_source_and_later_real_ack_cannot_reviv
 
 
 def test_shared_two_way_automatic_does_not_invent_an_unjoined_phone_read_path(source,native,monkeypatch):
-    from magnolie_file_desktop_connection import NativePhotoDesktopSession
-    monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',.02)
     with composition(source,native[0]) as h:
-        warm_metadata(h,native[0]);session=h.connection.desktop_session();held=threading.Event()
-        h.connection._status_changed=lambda:held.set() if session.snapshot()['state']=='held' else None
-        monkeypatch.setattr(h.connection,'request_source',lambda *a,**k:pytest.fail('Unjoined shared receiving path requested phone READ'))
-        h.controller.change('auto_mode','wifi');agree(h,native[0]) # Existing two-way shared choice, receiving remains OFF.
-        assert held.wait(30),session.snapshot()
-        assert session.join(10),session.snapshot()
-        assert session.snapshot()['error']=='media_source_shared_incoming_review_required'
-        assert session.snapshot()['known_files']==1 and session._automatic_paused
+        warm_metadata(h,native[0]);session=h.connection.desktop_session()
+        monkeypatch.setattr(h.connection,'request_source',lambda *a,**k:pytest.fail('Held two-way path requested phone READ'))
+        monkeypatch.setattr(h.connection,'start_mapped_media_worker',lambda *a,**k:pytest.fail('Held two-way path started sending'))
+        h.controller.change('direction','two_way');h.controller.change('auto_mode','wifi')
+        packet=h.controller.send_settings();assert h.wire.receive()==packet
+        dispatch(h,native[0],dict(type='ack',message_id=packet['message_id'],status='accepted',error='none'))
+        dispatch(h,native[0],message('file_transfer.shared_settings',packet['body']))
+        assert h.wire.receive()['type']=='ack' and h.controller.display_snapshot()['agreed']
+        assert session._schedule_scope() is None and session._schedule.take_due() is None
+        assert session._thread is None and session._timer is None
         assert not h.source._prepared and h.connection._source_pending is None

@@ -19,8 +19,6 @@ from test_media_source_connection import dispatch as secure_dispatch
 from test_media_source_sender import message
 from test_media_shared_settings_native import prime_receiving
 from test_media_source_media_offer import png
-from test_media_source_sender import acceptance,request as source_chunk_request,saved as source_saved
-from test_media_source_media_offer import readback
 
 
 def begin(fixture,current):
@@ -94,6 +92,7 @@ def test_actual_encrypted_shared_run_keeps_original_scope_after_new_positive_agr
     import magnolie_media_sync as media
     with composition(source,native[0]) as h:
         c,session=prime_receiving(h,native[0])
+        h.controller.change('direction','phone_to_pc')
         original=agree_shared(h,native[0]);assert original is not None
         session.start('sync',ALBUM)
         h.wire.sock.settimeout(30)
@@ -114,7 +113,7 @@ def test_actual_encrypted_shared_run_keeps_original_scope_after_new_positive_agr
         with pytest.raises(TransferError,match='operation_ended'):constraint.require_current()
         # A later genuinely acknowledged agreement cannot revive the pending
         # original source command, even when its incoming direction is positive.
-        h.controller.change('direction','two_way')
+        h.controller.change('direction','phone_to_pc')
         renewed=agree_shared(h,native[0]);assert renewed is not None and renewed is not original
         with pytest.raises(TransferError,match='operation_ended'):
             secure_dispatch(h,native[0],result(batch,RUN,True))
@@ -135,9 +134,12 @@ def test_actual_encrypted_shared_incoming_png_is_saved_then_ends_without_changin
     with composition(source,native[0]) as h:
         if automatic:h.preferences.configure_sending(h.preferences.issue_action(),h.preferences.read(),photos=False,videos=False)
         c,session=prime_receiving(h,native[0])
-        if automatic:
-            h.controller.change('direction','phone_to_pc');h.controller.change('auto_mode','wifi')
+        h.controller.change('direction','two_way' if pc_change else 'phone_to_pc')
+        if pc_change:h.controller.change('collection_mode','import_only')
+        if automatic:h.controller.change('auto_mode','wifi')
         original=agree_shared(h,native[0])
+        assert original is not None and h.controller.intent_for('images',to_phone=True) is None
+        if pc_change:assert h.controller.display_snapshot()['values']['direction']=='two_way'
         content=png();path='Camera/shared-native.png'
         image=Image.open(io.BytesIO(content));image.load();assert image.format=='PNG' and image.size==(1,1)
         full=FileManifest('e'*32,'f'*32,h.peer['device_id'],c._authority.identity.receiver_id,
@@ -154,21 +156,8 @@ def test_actual_encrypted_shared_incoming_png_is_saved_then_ends_without_changin
             secure_dispatch(h,native[0],response(discover,sources.CATALOG,version='b'*64,page=dict(format=1,catalog_id=CATALOG,
                 after=0,next_cursor=None,coverage='full_images',proves_deletion=False,
                 albums=[dict(album_id=ALBUM,kind='camera',display_name='Camera',visible_images=1,needs_choice=False)])))
-        first=h.wire.receive()
-        if pc_change:
-            assert first['kind']=='file_transfer.media_offer'
-            sender=c._media_sender;cache=sender._cache;accepted=acceptance(sender,cache,first)
-            secure_dispatch(h,native[0],accepted)
-            for index in range(cache.manifest.files[0].chunks):
-                secure_dispatch(h,native[0],source_chunk_request(accepted,cache,index))
-                assert h.wire.receive()['kind']=='file_transfer.chunk'
-            secure_dispatch(h,native[0],source_saved(accepted,cache))
-            with c._operation(incoming=True):verified=readback(sender,cache,first)
-            secure_dispatch(h,native[0],verified)
-            first=h.wire.receive() # The incoming phase follows real backup/retirement, never Saved alone.
-            assert not cache.directory.exists() and list(Path(c._authority.binding.native_directory).glob('.magnolie-source-*.retired'))
-        batch=first;assert batch['body']['operation']=='batch_run'
-        assert session.snapshot()['saved_files']==(1 if pc_change else 0)
+        batch=h.wire.receive();assert batch['kind']==sources.REQUEST and batch['body']['operation']=='batch_run'
+        assert session.snapshot()['saved_files']==0 and c._media_sender is None
         secure_dispatch(h,native[0],result(batch,RUN,True))
         page_request=h.wire.receive();assert page_request['body']['operation']=='media_page'
         page=media(page_request,full)
@@ -210,8 +199,7 @@ def test_actual_encrypted_shared_incoming_png_is_saved_then_ends_without_changin
             secure_dispatch(h,native[0],result(request,RUN,True,state='canceled_held'))
         assert session.join(30),session.snapshot()
         assert session.snapshot()['state']=='complete',session.snapshot()
-        assert session.snapshot()['saved_files']==(2 if pc_change else 1)
-        assert session.snapshot()['saved_files']==(2 if pc_change else 1) and session._worker is None
+        assert session.snapshot()['saved_files']==1 and session._worker is None
         assert (Path(h.record.destination.path)/path).read_bytes()==content
         assert h.target.read_bytes()==pc_content and c._run is None and c._source_run is None
         if automatic:

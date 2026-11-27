@@ -14,8 +14,12 @@ aufgeführt.
   sichtbar; reine Importbereiche bleiben unabhängig. Die gemeinsame
   Löscheinstellung ist in Linux, Windows und Notes nur lesbar.
   Linux- und Windows-Brückentests sowie 19 Notes-JVM-Prüfungen bestanden.
-  Native Automatik mit Altwerten, sicherer Rückweg und Löschweitergabe
-  bleiben getrennt zu prüfen.
+  Linux hält gespeicherte Zwei-Wege-Einstellungen nach gültiger
+  Bestätigung auch beim manuellen Start und in der WLAN-Automatik.
+  66 gezielte Linux-Prüfungen bestanden, einschließlich reinem Import
+  und getrennter PC-Ausgabe. Die entsprechende native Laufzeitprüfung
+  unter Windows und in Notes, der sichere Rückweg und die Löschweitergabe
+  bleiben offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
   zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.

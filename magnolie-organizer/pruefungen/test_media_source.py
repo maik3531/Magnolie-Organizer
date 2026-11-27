@@ -40,7 +40,7 @@ def source(mappings):
     policy=prefs.configure_sending(prefs.issue_action(),prefs.read(),photos=True,videos=False)
     h=types.SimpleNamespace(controller=controller,wire=PeerWire(right),channel=channel,authority=authority,peer=peer,
         preferences=prefs,mappings=store,policy=policy,record=record,association=association,target=fixture[4]/record.relative_path)
-    agreement(h);h.source=NativeMappedMediaSource(prefs,store,controller)
+    agreement(h,direction='pc_to_phone');h.source=NativeMappedMediaSource(prefs,store,controller)
     try:yield h
     finally:h.source.close();controller.close();store.close();prefs.close();authority.close();left.close();right.close()
 
@@ -63,7 +63,7 @@ def test_native_source_inspects_actual_same_inode_pc_edit_without_promoting_hist
 
 def test_selected_metadata_filter_uses_actual_pc_bytes_before_cache_or_source_observation(source,monkeypatch):
     from test_photo_metadata import capture_jpeg
-    h=source;h.controller.change('photos_only',True);agreement(h)
+    h=source;h.controller.change('photos_only',True);agreement(h,direction='pc_to_phone')
     def forbidden(*args,**kwargs):raise AssertionError('Filtered source must not create a cache')
     monkeypatch.setattr('magnolie_media_source_cache._NativeSourceCacheWriter',forbidden)
     with pytest.raises(TransferError,match='photo_metadata_required'):
@@ -79,7 +79,7 @@ def test_selected_metadata_filter_uses_actual_pc_bytes_before_cache_or_source_ob
 
 def test_filter_metadata_read_still_rechecks_actual_intent_withdrawal(source,monkeypatch):
     from test_photo_metadata import capture_jpeg
-    h=source;h.target.write_bytes(capture_jpeg());h.controller.change('photos_only',True);agreement(h)
+    h=source;h.target.write_bytes(capture_jpeg());h.controller.change('photos_only',True);agreement(h,direction='pc_to_phone')
     pread=os.pread
     def revoked(fd,size,offset):
         result=pread(fd,size,offset)

@@ -3343,6 +3343,10 @@ class NativePhotoDesktopSession:
         if ((operation in ('recover_saved','repair_receipt')) != (job_owner is not None)
                 or job_owner is not None and (type(job_owner) is not str or re.fullmatch('[0-9a-f]{32}',job_owner) is None)):
             raise TransferError('photo_sync_invalid_action')
+        transport=getattr(self.connection,'_media_transport',None)
+        if (operation in ('sync','videos_sync','sync_selected','sync_shared','automatic')
+                and transport is not None and transport.requires_safe_return()):
+            raise TransferError('media_source_native_composition_required')
         with self._lock:
             running=self._running
             if operation.startswith('mode_') and running:
@@ -3415,6 +3419,7 @@ class NativePhotoDesktopSession:
         # source-policy witness; every scan/file still obtains fresh native grants.
         # Do not take the UI lock from the schedule's native-scope callback.
         transport=self.connection._media_transport
+        if transport is not None and transport.requires_safe_return():return None
         if getattr(self.connection,'_media_support',None) is not None:
             kinds=self.connection._private_receive_kinds()
             if not kinds:return None
@@ -3746,6 +3751,8 @@ class NativePhotoDesktopSession:
             shared_token=None
             transport=self.connection._media_transport
             private_media=getattr(self.connection,'_media_support',None) is not None
+            if syncing and transport is not None and transport.requires_safe_return():
+                raise TransferError('media_source_native_composition_required')
             if syncing and private_media:
                 if any(transport.intent_for(kind,to_phone=True) is not None for kind in ('images','video')):
                     # Do not silently complete the phone half of a two-way run.

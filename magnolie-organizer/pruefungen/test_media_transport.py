@@ -13,6 +13,8 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'bin'))
 import magnolie_telefon as phone
 import magnolie_media_sync as media
+from magnolie_file_desktop_connection import NativePhotoDesktopSession
+from magnolie_file_transfer import TransferError
 from magnolie_media_transport import NativeMediaSettingsTransport
 from magnolie_file_native_authority import capture_authenticated_binding
 from test_file_authenticated_desktop import native
@@ -64,8 +66,10 @@ def echo(h,body):
     assert deliver(h,incoming(body));ack=h.wire.receive();assert ack['type']=='ack' and ack['status']=='accepted'
 
 
-def agreement(h):
-    h.controller.change('enabled',True);h.controller.change('direction','two_way')
+def agreement(h, *, direction, scope=None, timing=None):
+    h.controller.change('enabled',True);h.controller.change('direction',direction)
+    if scope is not None:h.controller.change('collection_mode',scope)
+    if timing is not None:h.controller.change('auto_mode',timing)
     attempted=h.controller.send_settings();sent=h.wire.receive();assert sent==attempted
     assert h.controller.intent_for('images',to_phone=True) is None
     assert deliver(h,dict(type='ack',message_id=sent['message_id'],status='accepted',error='none'))
@@ -74,8 +78,36 @@ def agreement(h):
     return sent
 
 
+@pytest.mark.parametrize('timing', ['manual', 'wifi'])
+def test_negotiated_two_way_choice_stays_saved_without_transfer_intent(transport, timing):
+    h=transport
+    sent=agreement(h, direction='two_way', timing=timing)
+    assert h.controller.display_snapshot()['agreed']
+    assert h.controller.display_snapshot()['values']['direction']=='two_way'
+    assert h.controller._store.read()==sent['body']
+    assert h.controller.intent_for('images') is None, 'a matched two-way choice must not grant incoming worker intent'
+    assert h.controller.intent_for('images',to_phone=True) is None
+    connection=types.SimpleNamespace(_media_transport=h.controller,
+        _media_receiving_state={'photos':True}, _media_sending_state={'photos':True},
+        _source_status=types.SimpleNamespace(enabled=True,associated=True,repair_pending=False))
+    session=NativePhotoDesktopSession(connection)
+    session._enabled=True
+    assert session._schedule_scope_owned() is None
+    with pytest.raises(TransferError,match='media_source_native_composition_required'):
+        session.start('sync_shared')
+    assert session._thread is None and session._schedule.active is None
+
+
+def test_explicit_import_scope_preserves_two_way_choice_but_only_grants_import_intent(transport):
+    h=transport
+    agreement(h, direction='two_way', scope='import_only', timing='wifi')
+    assert h.controller.display_snapshot()['values']['direction']=='two_way'
+    assert h.controller.intent_for('images') is not None
+    assert h.controller.intent_for('images',to_phone=True) is None
+
+
 def test_actual_secure_send_correlated_ack_and_acknowledged_peer_echo_are_all_required(transport):
-    h=transport;sent=agreement(h);token=h.controller.intent_for('images',to_phone=True)
+    h=transport;sent=agreement(h,direction='pc_to_phone');token=h.controller.intent_for('images',to_phone=True)
     assert token is not None and token.body==sent['body']
     assert h.controller.intent_for('video',to_phone=True) is None
     body=token.body;body['settings']['enabled'].clear()
@@ -111,7 +143,7 @@ def test_failed_actual_peer_ack_output_never_publishes_even_after_persisted_merg
 
 
 def test_local_change_and_backend_withdrawal_cannot_reuse_historical_matching_receipts(transport):
-    h=transport;sent=agreement(h);assert h.controller.intent_for('images',to_phone=True) is not None
+    h=transport;sent=agreement(h,direction='phone_to_pc');assert h.controller.intent_for('images') is not None
     h.ready[0]=False;assert h.controller.intent_for('images') is None
     h.ready[0]=True
     assert not deliver(h,dict(type='ack',message_id=sent['message_id'],status='accepted',error='none'))
@@ -137,7 +169,7 @@ def test_local_change_during_real_output_retires_the_exact_attempt_without_false
 
 
 def test_malformed_expired_and_equivocated_peer_messages_hold_without_source_intent(transport):
-    h=transport;sent=agreement(h);assert h.controller.intent_for('images') is not None
+    h=transport;sent=agreement(h,direction='phone_to_pc');assert h.controller.intent_for('images') is not None
     expired=incoming(sent['body']);expired['expires_ms']=AT
     with pytest.raises(ValueError):deliver(h,expired)
     assert h.controller.intent_for('images') is None
@@ -150,7 +182,7 @@ def test_malformed_expired_and_equivocated_peer_messages_hold_without_source_int
 
 
 def test_native_owner_revocation_and_close_end_projection_without_closing_shared_socket(transport):
-    h=transport;agreement(h);assert h.controller.intent_for('images') is not None
+    h=transport;agreement(h,direction='phone_to_pc');assert h.controller.intent_for('images') is not None
     h.authority.revoke();assert h.controller.intent_for('images') is None
     h.controller.close();assert h.channel.sock.fileno()>=0
     with pytest.raises(PermissionError):h.controller.send_settings()

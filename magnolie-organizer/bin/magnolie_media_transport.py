@@ -22,7 +22,8 @@ class NativeMediaIntent:
     def body(self):return copy.deepcopy(self._body)
 
     def requested_for(self,kind,*,to_phone=False):
-        return media.requested_for(self._body,kind,to_phone=to_phone)
+        return (self._values['direction']!='two_way'
+                and media.requested_for(self._body,kind,to_phone=to_phone))
 
 
 class NativeMediaSettingsTransport:
@@ -66,6 +67,13 @@ class NativeMediaSettingsTransport:
             self._intent=None;self._withdrawn.set();return None
         token=self._intent
         return token if token is not None and token.requested_for(kind,to_phone=to_phone) else None
+
+    def requires_safe_return(self):
+        # The published snapshot can only block work. It cannot grant authority.
+        if self._closed.is_set() or self._authority._revoked.is_set() or self._ready() is not True:
+            return False
+        body=self._display_body
+        return body is not None and media.effective(body)['direction']=='two_way'
 
     def _publish(self):
         self._fresh();body=self._store.read()
