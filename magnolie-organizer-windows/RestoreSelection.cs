@@ -26,7 +26,8 @@ internal static class RestoreSelection
         foreach (var area in areas)
             foreach (var name in groups[area])
                 result[name] = mode == "additive"
-                    ? AddMissing(result[name] as JsonArray, snapshot[name] as JsonArray)
+                    ? AddMissing(result[name] as JsonArray, snapshot[name] as JsonArray,
+                        sourceScoped: name is "termine" or "aufgaben")
                     : snapshot[name]?.DeepClone() ?? new JsonArray();
         PreserveAttachments(result, current);
         return result;
@@ -78,25 +79,109 @@ internal static class RestoreSelection
         WalkRestored(restored);
     }
 
-    private static JsonArray AddMissing(JsonArray? current, JsonArray? snapshot)
+    private static JsonArray AddMissing(JsonArray? current, JsonArray? snapshot, bool sourceScoped)
     {
         var result = current?.DeepClone().AsArray() ?? new JsonArray();
-        var byId = result.OfType<JsonObject>().Select(item => (Item: item,
-            Id: item["uid"]?.ToString() ?? item["id"]?.ToString() ?? ""))
-            .Where(pair => pair.Id.Length > 0).ToDictionary(pair => pair.Id, pair => pair.Item, StringComparer.Ordinal);
-        foreach (var old in snapshot?.OfType<JsonObject>() ?? [])
+        string LocalId(JsonObject item) => item["id"]?.ToString() ?? "";
+        string Source(JsonObject item)
         {
-            var id = old["uid"]?.ToString() ?? old["id"]?.ToString() ?? "";
-            if (id.Length == 0 || !byId.TryGetValue(id, out var existing))
+            var source = item["icsQuelleId"]?.ToString() ?? "";
+            if (source.Length == 0) source = item["syncKalenderUid"]?.ToString() ?? "";
+            if (source.Length == 0) source = (item["kalenderQuelle"] as JsonObject)?["id"]?.ToString() ?? "";
+            return source;
+        }
+        (string Uid, string IcsSource, string SyncSource, string ObjectSource) Binding(JsonObject item) =>
+            (item["uid"]?.ToString() ?? "", item["icsQuelleId"]?.ToString() ?? "", item["syncKalenderUid"]?.ToString() ?? "",
+                (item["kalenderQuelle"] as JsonObject)?["id"]?.ToString() ?? "");
+        (string Kind, string Source, string Value)? Identity(JsonObject item)
+        {
+            var uid = item["uid"]?.ToString() ?? "";
+            if (uid.Length > 0)
+                return ("uid", sourceScoped ? Source(item) : "", uid);
+            var localId = LocalId(item);
+            return localId.Length > 0 ? ("id", "", localId) : null;
+        }
+        // A moved record retains its local id, not its old provider bindings.
+        // Only known user content can fill gaps across a changed source/UID;
+        // unknown future provider metadata must remain excluded too.
+        var contentFields = new HashSet<string>(StringComparer.Ordinal) {
+            "titel", "notiz", "notizen", "text", "datum", "zeit", "endDatum", "endZeit",
+            "kategorien", "ort", "alarme", "organisator", "teilnehmer", "kalenderAnhaenge",
+            "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "individuelleErinnerungTage",
+            "standardErinnerung", "wiederholung", "prio", "prioritaet", "faellig", "startDatum",
+            "startZeit", "faelligZeit", "erledigt", "erinnern", "reihenfolge"
+        };
+        var byId = new Dictionary<(string Kind, string Source, string Value), List<JsonObject>>();
+        var byLocalId = new Dictionary<string, List<JsonObject>>(StringComparer.Ordinal);
+        void Remember(JsonObject item)
+        {
+            if (Identity(item) is { } identity)
+            {
+                if (!byId.TryGetValue(identity, out var matches)) byId[identity] = matches = [];
+                matches.Add(item);
+            }
+            if (LocalId(item) is { Length: > 0 } local)
+            {
+                if (!byLocalId.TryGetValue(local, out var matches)) byLocalId[local] = matches = [];
+                matches.Add(item);
+            }
+        }
+        foreach (var item in result.OfType<JsonObject>()) Remember(item);
+        var oldItems = snapshot?.OfType<JsonObject>().ToArray() ?? [];
+        var ambiguousOldIds = oldItems.Where(item => LocalId(item).Length > 0)
+            .GroupBy(LocalId, StringComparer.Ordinal)
+            .Where(group => group.Skip(1).Any(item => !JsonNode.DeepEquals(item, group.First())))
+            .Select(group => group.Key).ToHashSet(StringComparer.Ordinal);
+        var oldCounts = new Dictionary<(string Kind, string Source, string Value), int>();
+        foreach (var item in oldItems)
+            if (Identity(item) is { } key) oldCounts[key] = oldCounts.GetValueOrDefault(key) + 1;
+        foreach (var old in oldItems)
+        {
+            var identity = Identity(old);
+            var matches = identity.HasValue && byId.TryGetValue(identity.Value, out var found) ? found : [];
+            var existing = matches.Count == 1 ? matches[0] : null;
+            var localId = LocalId(old);
+            var localMatches = sourceScoped && localId.Length > 0 && byLocalId.TryGetValue(localId, out var localFound) ? localFound : [];
+            if (sourceScoped && localId.Length > 0 && (localMatches.Count > 1 || ambiguousOldIds.Contains(localId)))
+            {
+                if (localMatches.Any(item => JsonNode.DeepEquals(item, old))) continue;
+                // Preexisting duplicate local ids need an exact unchanged
+                // source match; otherwise hold the entire additive operation.
+                var sameSource = matches.Where(item => LocalId(item) == localId).Take(2).ToArray();
+                if (ambiguousOldIds.Contains(localId) || sameSource.Length != 1)
+                    throw new InvalidDataException(NativeLocalization.Gettext("Conflict"));
+                existing = sameSource[0];
+            }
+            else if (localMatches.Count == 1) existing = localMatches[0];
+            else if (matches.Count > 1 || (identity.HasValue && oldCounts.GetValueOrDefault(identity.Value) > 1))
+            {
+                // A duplicate external identity must not choose an arbitrary record.
+                existing = null;
+                var sameId = matches.Where(item => localId.Length > 0 && LocalId(item) == localId).Take(2).ToArray();
+                if (sameId.Length == 1) existing = sameId[0];
+                else if (matches.Any(item => JsonNode.DeepEquals(item, old))) continue;
+            }
+            if (existing is null)
             {
                 var copy = old.DeepClone().AsObject();
                 result.Add(copy);
-                if (id.Length > 0) byId[id] = copy;
+                Remember(copy);
                 continue;
             }
+            var changedBinding = sourceScoped && Binding(existing) != Binding(old);
+            var previousLocalId = LocalId(existing);
             foreach (var pair in old)
+            {
+                if (changedBinding && (!contentFields.Contains(pair.Key) || pair.Value is null ||
+                    pair.Value.ToJsonString() is "\"\"" or "[]" or "{}")) continue;
                 if ((existing[pair.Key] is null || existing[pair.Key]!.ToJsonString() is "\"\"" or "[]" or "{}") && pair.Value is not null)
                     existing[pair.Key] = pair.Value.DeepClone();
+            }
+            if (previousLocalId.Length == 0 && LocalId(existing) is { Length: > 0 } assignedId)
+            {
+                if (!byLocalId.TryGetValue(assignedId, out var assignedMatches)) byLocalId[assignedId] = assignedMatches = [];
+                assignedMatches.Add(existing);
+            }
         }
         return result;
     }

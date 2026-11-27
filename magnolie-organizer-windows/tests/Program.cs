@@ -321,6 +321,7 @@ runner.Add("Category colors / native categories and accent interchange", Categor
 runner.Add("Contact group exclusions / identity / reminder privacy", ContactGroupExclusionTests.RunAsync);
 runner.Add("Note send / selected PDF / explicit adapter handoff", NoteSendTests.RunAsync);
 runner.Add("Wiederherstellungsjournal / Manifest / Tamper / Retention / Scheduler", RecoveryJournalTests.RunAsync);
+runner.Add("Additive restore / source identity / duplicate fallback", RestoreSelectionIdentityTests.RunAsync);
 runner.Add("Cloud-Ordner-Sicherung / Policy / Retention / DPAPI", CloudBackupTests.RunAsync);
 runner.Add("Loganzeige / Contributor-Marker", LogPresentationTests.RunAsync);
 runner.Add("Lokale Absturzberichte / Format / Rotation / Parallelität", CrashReportTests.RunAsync);

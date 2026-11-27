@@ -75,6 +75,12 @@ aufgeführt.
 - [#828](https://github.com/maik3531/Magnolie-Organizer/issues/828):
   Die portugiesischen Desktop-Kataloge zeigen „Não“. Beide Generatoren
   und beide Statusanzeigen bestanden den Vorher-/Nachher-Vergleich.
+- [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
+  Die ergänzende Wiederherstellung unterscheidet gleichlautende UIDs
+  verschiedener Kalender und behält bei einem Quellenwechsel die
+  eindeutige lokale Identität ohne alte Providerbindung. 97 Linux-Fälle
+  und der gemeinsame Vektortest aus dem nativen Windows-Quellarchiv
+  bestanden. Kalender-Synchronisation wird separat in #826 geprüft.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal

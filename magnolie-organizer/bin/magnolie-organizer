@@ -1922,28 +1922,102 @@ def journal_umschluesseln(kennwort_neu, kennwort_alt="", basis=None):
     return {"geschafft": geschafft, "misslungen": misslungen}
 
 
-def _journal_liste_ergaenzen(aktuell, alt):
+def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False):
     aus = json.loads(json.dumps(aktuell or [], ensure_ascii=False))
     index = {}
+    lokale_ids = {}
+
+    def lokale_id(objekt):
+        return str(objekt.get("id") or "")
+
+    def quelle(objekt):
+        kalender = objekt.get("kalenderQuelle")
+        return str(objekt.get("icsQuelleId") or objekt.get("syncKalenderUid") or
+                   (kalender.get("id") if isinstance(kalender, dict) else "") or "")
+
+    def bindung(objekt):
+        kalender = objekt.get("kalenderQuelle")
+        return (str(objekt.get("uid") or ""), str(objekt.get("icsQuelleId") or ""),
+                str(objekt.get("syncKalenderUid") or ""),
+                str((kalender.get("id") if isinstance(kalender, dict) else "") or ""))
+
+    def identitaet(objekt):
+        uid = str(objekt.get("uid") or "")
+        if uid:
+            return ("uid", quelle(objekt) if quellenbezogen else "", uid)
+        kennung = lokale_id(objekt)
+        return ("id", "", kennung) if kennung else None
+
+    # A moved calendar record may retain its local id while all provider
+    # bindings change. Restore only known user content across that boundary;
+    # archived or future unknown provider metadata must not be reattached.
+    inhaltsfelder = {"titel", "notiz", "notizen", "text", "datum", "zeit", "endDatum", "endZeit",
+                    "kategorien", "ort", "alarme", "organisator", "teilnehmer", "kalenderAnhaenge",
+                    "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "individuelleErinnerungTage",
+                    "standardErinnerung", "wiederholung", "prio", "prioritaet", "faellig", "startDatum",
+                    "startZeit", "faelligZeit", "erledigt", "erinnern", "reihenfolge"}
+
     for objekt in aus:
         if isinstance(objekt, dict):
-            kennung = str(objekt.get("uid") or objekt.get("id") or "")
+            kennung = identitaet(objekt)
             if kennung:
-                index[kennung] = objekt
-    for objekt in alt or []:
-        if not isinstance(objekt, dict):
-            continue
-        kennung = str(objekt.get("uid") or objekt.get("id") or "")
-        vorhanden = index.get(kennung) if kennung else None
+                index.setdefault(kennung, []).append(objekt)
+            if lokale_id(objekt):
+                lokale_ids.setdefault(lokale_id(objekt), []).append(objekt)
+    alte_objekte = [objekt for objekt in alt or [] if isinstance(objekt, dict)]
+    alte_anzahl = {}
+    alte_lokale_ids = {}
+    for objekt in alte_objekte:
+        kennung = identitaet(objekt)
+        if kennung:
+            alte_anzahl[kennung] = alte_anzahl.get(kennung, 0) + 1
+        if lokale_id(objekt):
+            alte_lokale_ids.setdefault(lokale_id(objekt), []).append(objekt)
+    mehrdeutige_alt_ids = {kennung for kennung, objekte in alte_lokale_ids.items()
+                          if any(objekt != objekte[0] for objekt in objekte[1:])}
+    for objekt in alte_objekte:
+        kennung = identitaet(objekt)
+        kandidaten = index.get(kennung, [])
+        vorhanden = kandidaten[0] if len(kandidaten) == 1 else None
+        local = lokale_id(objekt)
+        lokale_kandidaten = lokale_ids.get(local, []) if quellenbezogen and local else []
+        if quellenbezogen and local and (len(lokale_kandidaten) > 1 or local in mehrdeutige_alt_ids):
+            if objekt in lokale_kandidaten:
+                continue
+            # Existing duplicate local ids can only be disambiguated by the
+            # exact unchanged source identity. Otherwise hold the whole restore.
+            gleiche_quelle = [item for item in kandidaten if lokale_id(item) == local]
+            if local in mehrdeutige_alt_ids or len(gleiche_quelle) != 1:
+                raise ValueError(_("Conflict"))
+            vorhanden = gleiche_quelle[0]
+        elif len(lokale_kandidaten) == 1:
+            vorhanden = lokale_kandidaten[0]
+        elif len(kandidaten) > 1 or alte_anzahl.get(kennung, 0) > 1:
+            # A duplicate external identity must not choose an arbitrary record.
+            vorhanden = None
+            passende = [item for item in kandidaten
+                        if local and lokale_id(item) == local]
+            if len(passende) == 1:
+                vorhanden = passende[0]
+            elif objekt in kandidaten:
+                continue
         if vorhanden is None:
             kopie = json.loads(json.dumps(objekt, ensure_ascii=False))
             aus.append(kopie)
             if kennung:
-                index[kennung] = kopie
+                index.setdefault(kennung, []).append(kopie)
+            if local:
+                lokale_ids.setdefault(local, []).append(kopie)
             continue
+        quellenwechsel = quellenbezogen and bindung(vorhanden) != bindung(objekt)
+        bisherige_id = lokale_id(vorhanden)
         for name, wert in objekt.items():
+            if quellenwechsel and name not in inhaltsfelder:
+                continue
             if (name not in vorhanden or vorhanden.get(name) in (None, "", [], {})) and wert not in (None, "", [], {}):
                 vorhanden[name] = json.loads(json.dumps(wert, ensure_ascii=False))
+        if not bisherige_id and lokale_id(vorhanden):
+            lokale_ids.setdefault(lokale_id(vorhanden), []).append(vorhanden)
     return aus
 
 
@@ -2004,7 +2078,8 @@ def journal_restore_daten(daten, aktuell=None, bereiche=None, modus="replace"):
         for bereich in bereiche:
             for name in gruppen.get(bereich, ()):
                 if modus == "additive":
-                    neu[name] = _journal_liste_ergaenzen(neu.get(name), snapshot.get(name))
+                    neu[name] = _journal_liste_ergaenzen(neu.get(name), snapshot.get(name),
+                                                       quellenbezogen=name in ("termine", "aufgaben"))
                 else:
                     neu[name] = json.loads(json.dumps(snapshot.get(name) or [], ensure_ascii=False))
     _journal_anhaenge_bewahren(neu, aktuell or {})

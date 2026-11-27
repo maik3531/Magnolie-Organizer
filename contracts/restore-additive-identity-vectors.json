@@ -1,0 +1,264 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "events-with-the-same-uid-in-different-ics-calendars",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "live-a", "uid": "shared@example.test", "icsQuelleId": "calendar-a", "titel": "A"}],
+      "snapshot": [{"id": "saved-b", "uid": "shared@example.test", "icsQuelleId": "calendar-b", "titel": "B"}],
+      "expected": [{"id": "live-a", "uid": "shared@example.test", "icsQuelleId": "calendar-a", "titel": "A"}, {"id": "saved-b", "uid": "shared@example.test", "icsQuelleId": "calendar-b", "titel": "B"}]
+    },
+    {
+      "id": "tasks-with-the-same-uid-in-different-sync-calendars",
+      "area": "calendar", "collection": "aufgaben",
+      "current": [{"id": "live-a", "uid": "shared", "syncKalenderUid": "calendar-a", "titel": "A"}],
+      "snapshot": [{"id": "saved-b", "uid": "shared", "syncKalenderUid": "calendar-b", "titel": "B"}],
+      "expected": [{"id": "live-a", "uid": "shared", "syncKalenderUid": "calendar-a", "titel": "A"}, {"id": "saved-b", "uid": "shared", "syncKalenderUid": "calendar-b", "titel": "B"}]
+    },
+    {
+      "id": "calendar-source-object-fallback",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "a", "uid": "shared", "kalenderQuelle": {"id": "calendar-a"}}],
+      "snapshot": [{"id": "b", "uid": "shared", "kalenderQuelle": {"id": "calendar-b"}}],
+      "expected": [{"id": "a", "uid": "shared", "kalenderQuelle": {"id": "calendar-a"}}, {"id": "b", "uid": "shared", "kalenderQuelle": {"id": "calendar-b"}}]
+    },
+    {
+      "id": "ics-source-takes-precedence-over-sync-source",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "a", "uid": "shared", "icsQuelleId": "ics-a", "syncKalenderUid": "same-sync"}],
+      "snapshot": [{"id": "b", "uid": "shared", "icsQuelleId": "ics-b", "syncKalenderUid": "same-sync"}],
+      "expected": [{"id": "a", "uid": "shared", "icsQuelleId": "ics-a", "syncKalenderUid": "same-sync"}, {"id": "b", "uid": "shared", "icsQuelleId": "ics-b", "syncKalenderUid": "same-sync"}]
+    },
+    {
+      "id": "same-source-and-uid-fill-only-empty-fields",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "live", "uid": "same", "icsQuelleId": "calendar", "titel": "Keep", "notizen": "", "erledigt": false, "prioritaet": 0}],
+      "snapshot": [{"id": "saved", "uid": "same", "icsQuelleId": "calendar", "titel": "Old", "notizen": "Restore", "erledigt": true, "prioritaet": 3}],
+      "expected": [{"id": "live", "uid": "same", "icsQuelleId": "calendar", "titel": "Keep", "notizen": "Restore", "erledigt": false, "prioritaet": 0}]
+    },
+    {
+      "id": "missing-source-does-not-match-a-qualified-uid",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "a", "uid": "shared"}],
+      "snapshot": [{"id": "b", "uid": "shared", "syncKalenderUid": "calendar"}],
+      "expected": [{"id": "a", "uid": "shared"}, {"id": "b", "uid": "shared", "syncKalenderUid": "calendar"}]
+    },
+    {
+      "id": "empty-uid-falls-back-to-note-id",
+      "area": "notes", "collection": "notizen",
+      "current": [{"id": "note-1", "uid": "", "titel": "Keep", "text": ""}],
+      "snapshot": [{"id": "note-1", "uid": "", "titel": "Old", "text": "Restore"}],
+      "expected": [{"id": "note-1", "uid": "", "titel": "Keep", "text": "Restore"}]
+    },
+    {
+      "id": "null-uid-falls-back-to-event-id",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "event-1", "uid": null, "titel": "Keep"}],
+      "snapshot": [{"id": "event-1", "uid": null, "notizen": "Restore"}],
+      "expected": [{"id": "event-1", "uid": null, "titel": "Keep", "notizen": "Restore"}]
+    },
+    {
+      "id": "legacy-id-only-contacts",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "contact-1", "vorname": "Keep"}],
+      "snapshot": [{"id": "contact-1", "vorname": "Old", "nachname": "Restore"}],
+      "expected": [{"id": "contact-1", "vorname": "Keep", "nachname": "Restore"}]
+    },
+    {
+      "id": "external-uid-cannot-collide-with-local-id",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "local", "uid": "same", "titel": "UID"}],
+      "snapshot": [{"id": "same", "titel": "ID"}],
+      "expected": [{"id": "local", "uid": "same", "titel": "UID"}, {"id": "same", "titel": "ID"}]
+    },
+    {
+      "id": "structured-source-and-uid-key-has-no-separator-collision",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "a", "uid": "b\u0000c", "icsQuelleId": "a"}],
+      "snapshot": [{"id": "b", "uid": "c", "icsQuelleId": "a\u0000b"}],
+      "expected": [{"id": "a", "uid": "b\u0000c", "icsQuelleId": "a"}, {"id": "b", "uid": "c", "icsQuelleId": "a\u0000b"}]
+    },
+    {
+      "id": "existing-same-uid-in-two-calendars-restores-without-crash",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar-a"}, {"id": "b", "uid": "shared", "icsQuelleId": "calendar-b"}],
+      "snapshot": [{"id": "old-b", "uid": "shared", "icsQuelleId": "calendar-b", "notizen": "B"}],
+      "expected": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar-a"}, {"id": "b", "uid": "shared", "icsQuelleId": "calendar-b", "notizen": "B"}]
+    },
+    {
+      "id": "duplicate-qualified-uid-uses-unique-local-id",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar", "titel": "A"}, {"id": "b", "uid": "shared", "icsQuelleId": "calendar", "titel": "B"}],
+      "snapshot": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar", "notizen": "For A"}],
+      "expected": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar", "titel": "A", "notizen": "For A"}, {"id": "b", "uid": "shared", "icsQuelleId": "calendar", "titel": "B"}]
+    },
+    {
+      "id": "ambiguous-qualified-uid-retains-snapshot-as-separate-entry",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar"}, {"id": "b", "uid": "shared", "icsQuelleId": "calendar"}],
+      "snapshot": [{"id": "c", "uid": "shared", "icsQuelleId": "calendar", "notizen": "Keep all three"}],
+      "expected": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar"}, {"id": "b", "uid": "shared", "icsQuelleId": "calendar"}, {"id": "c", "uid": "shared", "icsQuelleId": "calendar", "notizen": "Keep all three"}]
+    },
+    {
+      "id": "ambiguous-idless-snapshot-is-retained-once",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar"}, {"id": "b", "uid": "shared", "icsQuelleId": "calendar"}],
+      "snapshot": [{"uid": "shared", "icsQuelleId": "calendar", "notizen": "Keep original"}],
+      "expected": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar"}, {"id": "b", "uid": "shared", "icsQuelleId": "calendar"}, {"uid": "shared", "icsQuelleId": "calendar", "notizen": "Keep original"}]
+    },
+    {
+      "id": "duplicate-local-id-is-not-an-arbitrary-merge-target",
+      "area": "notes", "collection": "notizen",
+      "current": [{"id": "same", "titel": "A"}, {"id": "same", "titel": "B"}],
+      "snapshot": [{"id": "same", "titel": "C", "text": "Keep original"}],
+      "expected": [{"id": "same", "titel": "A"}, {"id": "same", "titel": "B"}, {"id": "same", "titel": "C", "text": "Keep original"}]
+    },
+    {
+      "id": "already-present-ambiguous-entry-is-not-duplicated",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "same", "uid": "shared", "titel": "A"}, {"id": "same", "uid": "shared", "titel": "B"}],
+      "snapshot": [{"id": "same", "uid": "shared", "titel": "A"}],
+      "expected": [{"id": "same", "uid": "shared", "titel": "A"}, {"id": "same", "uid": "shared", "titel": "B"}]
+    },
+    {
+      "id": "snapshot-duplicates-are-retained-in-an-empty-calendar",
+      "area": "calendar", "collection": "termine",
+      "current": [],
+      "snapshot": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar", "titel": "A"}, {"id": "b", "uid": "shared", "icsQuelleId": "calendar", "titel": "B"}],
+      "expected": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar", "titel": "A"}, {"id": "b", "uid": "shared", "icsQuelleId": "calendar", "titel": "B"}]
+    },
+    {
+      "id": "snapshot-duplicates-use-local-id-before-filling",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar", "titel": "Keep A"}],
+      "snapshot": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar", "notizen": "For A"}, {"id": "b", "uid": "shared", "icsQuelleId": "calendar", "titel": "B", "notizen": "For B"}],
+      "expected": [{"id": "a", "uid": "shared", "icsQuelleId": "calendar", "titel": "Keep A", "notizen": "For A"}, {"id": "b", "uid": "shared", "icsQuelleId": "calendar", "titel": "B", "notizen": "For B"}]
+    },
+    {
+      "id": "legacy-unqualified-uid-still-fills-missing-fields",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "live", "uid": "same", "titel": "Keep"}],
+      "snapshot": [{"id": "saved", "uid": "same", "notizen": "Restore"}],
+      "expected": [{"id": "live", "uid": "same", "titel": "Keep", "notizen": "Restore"}]
+    },
+    {
+      "id": "note-uid-still-fills-missing-fields",
+      "area": "notes", "collection": "notizen",
+      "current": [{"id": "live", "uid": "same", "titel": "Keep", "text": ""}],
+      "snapshot": [{"id": "saved", "uid": "same", "text": "Restore"}],
+      "expected": [{"id": "live", "uid": "same", "titel": "Keep", "text": "Restore"}]
+    },
+    {
+      "id": "empty-source-falls-through-to-sync-calendar",
+      "area": "calendar", "collection": "aufgaben",
+      "current": [{"id": "live", "uid": "same", "icsQuelleId": "", "syncKalenderUid": "calendar", "notizen": ""}],
+      "snapshot": [{"id": "saved", "uid": "same", "syncKalenderUid": "calendar", "notizen": "Restore"}],
+      "expected": [{"id": "live", "uid": "same", "icsQuelleId": "", "syncKalenderUid": "calendar", "notizen": "Restore"}]
+    },
+    {
+      "id": "malformed-source-object-has-conservative-fallback",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "a", "uid": "same", "kalenderQuelle": "invalid"}],
+      "snapshot": [{"id": "b", "uid": "same", "kalenderQuelle": {"id": "calendar"}}],
+      "expected": [{"id": "a", "uid": "same", "kalenderQuelle": "invalid"}, {"id": "b", "uid": "same", "kalenderQuelle": {"id": "calendar"}}]
+    },
+    {
+      "id": "moved-event-keeps-unique-local-id-and-current-transport",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "event-same", "uid": "shared@example.test", "syncKalenderUid": "calendar-b", "titel": "Moved event", "notiz": "", "davHref": "", "davEtag": ""}],
+      "snapshot": [{"id": "event-same", "uid": "shared@example.test", "syncKalenderUid": "calendar-a", "titel": "Old event", "notiz": "Recovered note", "davHref": "/calendar-a/old.ics", "davEtag": "old-etag", "syncQuellen": {"calendar-a": {"id": "old.ics", "etag": "old-etag"}}, "kalenderQuelle": {"id": "calendar-a"}, "icsQuelleName": "Old calendar", "icsRoundtrip": ["X-OLD:yes"], "providerMetadaten": {"old": "metadata"}, "sync": true, "geaendert": 123, "unknownProviderWitness": {"old": "keep out"}}],
+      "expected": [{"id": "event-same", "uid": "shared@example.test", "syncKalenderUid": "calendar-b", "titel": "Moved event", "notiz": "Recovered note", "davHref": "", "davEtag": ""}]
+    },
+    {
+      "id": "moved-task-keeps-unique-local-id-and-current-source",
+      "area": "calendar", "collection": "aufgaben",
+      "current": [{"id": "task-same", "uid": "shared", "icsQuelleId": "calendar-b", "titel": "Moved task", "notiz": "", "prio": 1, "erledigt": false}],
+      "snapshot": [{"id": "task-same", "uid": "shared", "icsQuelleId": "calendar-a", "titel": "Old task", "notiz": "Task note", "prio": 3, "erledigt": true, "icsElternQuelleId": "calendar-a", "elternUid": "old-parent", "providerMetadaten": {"old": true}}],
+      "expected": [{"id": "task-same", "uid": "shared", "icsQuelleId": "calendar-b", "titel": "Moved task", "notiz": "Task note", "prio": 1, "erledigt": false}]
+    },
+    {
+      "id": "local-id-survives-calendar-source-object-change",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "source-object", "uid": "shared", "kalenderQuelle": {"id": "calendar-b"}, "notiz": ""}],
+      "snapshot": [{"id": "source-object", "uid": "shared", "kalenderQuelle": {"id": "calendar-a"}, "notiz": "Recovered"}],
+      "expected": [{"id": "source-object", "uid": "shared", "kalenderQuelle": {"id": "calendar-b"}, "notiz": "Recovered"}]
+    },
+    {
+      "id": "local-id-survives-source-removal-and-new-uid",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "unbound", "uid": "new-uid", "syncKalenderUid": "", "notiz": ""}],
+      "snapshot": [{"id": "unbound", "uid": "old-uid", "syncKalenderUid": "calendar-a", "icsQuelleId": "calendar-a", "notiz": "Recovered", "sync": true, "davHref": "old.ics"}],
+      "expected": [{"id": "unbound", "uid": "new-uid", "syncKalenderUid": "", "notiz": "Recovered"}]
+    },
+    {
+      "id": "id-only-record-source-change-keeps-new-transport",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "id-only", "syncKalenderUid": "calendar-b", "notiz": ""}],
+      "snapshot": [{"id": "id-only", "syncKalenderUid": "calendar-a", "notiz": "Recovered", "davHref": "old.ics"}],
+      "expected": [{"id": "id-only", "syncKalenderUid": "calendar-b", "notiz": "Recovered"}]
+    },
+    {
+      "id": "unique-local-id-beats-unrelated-old-source-uid",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "different-local", "uid": "shared", "syncKalenderUid": "calendar-a", "notiz": ""}, {"id": "moved", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}],
+      "snapshot": [{"id": "moved", "uid": "shared", "syncKalenderUid": "calendar-a", "notiz": "For moved only"}],
+      "expected": [{"id": "different-local", "uid": "shared", "syncKalenderUid": "calendar-a", "notiz": ""}, {"id": "moved", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": "For moved only"}]
+    },
+    {
+      "id": "ambiguous-local-id-after-source-change-holds-restore",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}],
+      "snapshot": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-a", "notiz": "Do not guess"}],
+      "error": "ambiguous-local-id"
+    },
+    {
+      "id": "ambiguous-local-id-snapshot-cannot-create-new-duplicates",
+      "area": "calendar", "collection": "termine",
+      "current": [],
+      "snapshot": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}],
+      "error": "ambiguous-local-id"
+    },
+    {
+      "id": "ambiguous-local-id-snapshot-cannot-pick-one-current-record",
+      "area": "calendar", "collection": "aufgaben",
+      "current": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-a", "notiz": "Do not guess"}],
+      "snapshot": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}],
+      "error": "ambiguous-local-id"
+    },
+    {
+      "id": "exact-existing-ambiguous-local-id-remains-idempotent",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}],
+      "snapshot": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}],
+      "expected": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}]
+    },
+    {
+      "id": "same-scope-disambiguates-preexisting-local-id-collision",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}],
+      "snapshot": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": "For B"}],
+      "expected": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": "For B"}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-c", "notiz": ""}]
+    },
+    {
+      "id": "identical-snapshot-local-id-copies-restore-only-once",
+      "area": "calendar", "collection": "termine",
+      "current": [],
+      "snapshot": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}, {"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}],
+      "expected": [{"id": "ambiguous", "uid": "shared", "syncKalenderUid": "calendar-b", "notiz": ""}]
+    },
+    {
+      "id": "source-change-does-not-invent-empty-content-fields",
+      "area": "calendar", "collection": "aufgaben",
+      "current": [{"id": "empty", "uid": "same", "syncKalenderUid": "calendar-b"}],
+      "snapshot": [{"id": "empty", "uid": "same", "syncKalenderUid": "calendar-a", "notiz": "", "alarme": [], "organisator": {}}],
+      "expected": [{"id": "empty", "uid": "same", "syncKalenderUid": "calendar-b"}]
+    },
+    {
+      "id": "changed-secondary-binding-does-not-restore-old-transport",
+      "area": "calendar", "collection": "termine",
+      "current": [{"id": "same", "uid": "shared", "icsQuelleId": "import-source", "syncKalenderUid": "calendar-b", "notiz": "", "davHref": ""}],
+      "snapshot": [{"id": "same", "uid": "shared", "icsQuelleId": "import-source", "syncKalenderUid": "calendar-a", "notiz": "Recovered", "davHref": "/calendar-a/old.ics", "syncQuellen": {"calendar-a": {"id": "old"}}}],
+      "expected": [{"id": "same", "uid": "shared", "icsQuelleId": "import-source", "syncKalenderUid": "calendar-b", "notiz": "Recovered", "davHref": ""}]
+    }
+  ]
+}
