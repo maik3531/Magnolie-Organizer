@@ -3,10 +3,10 @@
   "date": "2026-11-27",
   "repository": "maik3531/Magnolie-Organizer",
   "artifact_branch": "work/codereview-20261127-round3-patches",
-  "artifact_parent": "42af5bb030d5e0fb8a2bfc8b8f28459cfe31c2fe",
-  "artifact_base_tree": "ebce761a5dc8774e968dc1fdbe7a11f815d04dc9",
-  "artifact_scope": "Only this patch/evidence directory is added; product source remains the pinned parent. Review source changes are delivered inside patches, with no main merge or package release.",
-  "recommended_route": "after-42af5bb0",
+  "artifact_parent": "84e77506eed15a73a5cdabc69c42bf17b0986a71",
+  "artifact_base_tree": "a579c3c012a5c8eaca8d92d8577a183944afba62",
+  "artifact_scope": "Artifact-only follow-up preserving the product source base 42af5bb0. Records independent upstream port adoption and adds an exact applicable remaining patch on 852c8cf9; no main merge or package release.",
+  "recommended_route": "after-852c8cf9",
   "patch_routes": {
     "after-42af5bb0": {
       "replay_json": "after-42af5bb0/replay.json",
@@ -139,6 +139,38 @@
         }
       ],
       "exact_forward_reverse": true
+    },
+    "after-852c8cf9": {
+      "replay_json": "after-852c8cf9/replay.json",
+      "base": "852c8cf958e780063138801d5f3e7982b50ab62b",
+      "source_commit": null,
+      "source_tree": "d806b0c33e1c2d87b1e15305a0d13ec20bf5c34b",
+      "combined": {
+        "path": "after-852c8cf9/remaining-review.patch",
+        "sha256": "44e99bf0e94a2ff19041359038da8c5adead77d297e6d7eb266911c999c0c3a7",
+        "bytes": 28425
+      },
+      "series": [
+        {
+          "commit": "6559ddf5bb90720e12a406b35de57178f805b85b",
+          "path": "after-42af5bb0/series/01-823-contact-persons-regression.patch",
+          "sha256": "d7cbd09323de6593275f725b7b11446b4892485dbeae702acbd01feaf62f5b4a",
+          "bytes": 14370
+        },
+        {
+          "commit": "87ff1a67931d141903f488137dee4a86146f8265",
+          "path": "after-42af5bb0/series/02-841-startup-regression.patch",
+          "sha256": "e97e5a7ddb02f1986a218b96a21ef894baf7d936aa2dba28ba8ead31169a5ebb",
+          "bytes": 6628
+        },
+        {
+          "commit": "a2a798c377f8e8fb9652bd8ee8609019438ed59b",
+          "path": "after-42af5bb0/series/03-842-unicode-regression.patch",
+          "sha256": "29e496e8bcaaa7914780f6240686873ae2f9e12b3bc093040b375970a667e953",
+          "bytes": 8920
+        }
+      ],
+      "exact_forward_reverse": true
     }
   },
   "current_test_evidence": "evidence/after-42af5bb0/after/focused-tests-manifest.json",
@@ -148,12 +180,6 @@
     "shared_restore_vectors": 53,
     "csharp_groups": 6,
     "unicode_cases_within_csharp_groups": 148
-  },
-  "retained_results_on_byte_identical_inputs": {
-    "full_dom_start_cases": 16,
-    "mac_source_controller_checks": 398,
-    "tablet_ui_cases": 30,
-    "tablet_vault_junit_cases": 23
   },
   "historical_independent_reviews": {
     "contact_cases": 6,
@@ -167,9 +193,9 @@
   "normalization_record": "normalization.json",
   "files": {
     "README.md": {
-      "bytes": 11893,
-      "sha256": "15db6227373b60b094b2fde137489bdbe8b7b709e6dc6e7f6d05b5aa6d2d3c1e",
-      "git_blob_sha1": "4e78ceb16e720027961786be49f239eeee94a369"
+      "bytes": 13609,
+      "sha256": "971f3c0fab9df92f962a50bc0adead60ccb2795cc1f111ca573f9eadb3d88396",
+      "git_blob_sha1": "bd98689974e8154e9f8d83972c2b05a75aa86df5"
     },
     "after-42af5bb0/magnolie-round3-after-42af5bb0.patch": {
       "bytes": 64338,
@@ -205,6 +231,16 @@
       "bytes": 4750,
       "sha256": "b8411b9bf2fc740ac75cb7ccd29dd6fc043d061facba73a076dc33cd288e68a1",
       "git_blob_sha1": "b16fc5e4923d551832605361c9f60b04d1f12995"
+    },
+    "after-852c8cf9/remaining-review.patch": {
+      "bytes": 28425,
+      "sha256": "44e99bf0e94a2ff19041359038da8c5adead77d297e6d7eb266911c999c0c3a7",
+      "git_blob_sha1": "d5d6b295ba9dc7e85f805920a7900c2b174a139f"
+    },
+    "after-852c8cf9/replay.json": {
+      "bytes": 1783,
+      "sha256": "0ddd80fe31c3a8e021175223cd8be3fb836741a80d46e70a67726e3381a2bbe0",
+      "git_blob_sha1": "bf4ef2274159ccfea0efc568d1ae0b1f6e92d06a"
     },
     "after-dd997f01/magnolie-round3-after-dd997f01.patch": {
       "bytes": 69001,
@@ -1111,12 +1147,27 @@
       "sha256": "923e4d5ba226bd3569b582b74e763514165a9206ea2400c11009a93da1d256d1",
       "git_blob_sha1": "29f6fc1a35b4583df0da9dd1517bad1aa8d5bcb9"
     },
+    "upstream-852c8cf9.json": {
+      "bytes": 3453,
+      "sha256": "05781a60925275a2eb6aec2e0969dde29d7761a7afcf3cdcb103027db8cb94f3",
+      "git_blob_sha1": "52570fd49cb84b1c64c4622074ede2195617ea3f"
+    },
     "verify_delivery.py": {
       "bytes": 3389,
       "sha256": "3fe2a85dfbc9a8af009f130711600e17ce676982cf044607774d7f8773a1cdf0",
       "git_blob_sha1": "13b25a1d4f6540645809d345387a4d48d0dc019e"
     }
   },
-  "file_count_excluding_this_manifest": 190,
-  "total_payload_bytes_excluding_this_manifest": 978740
+  "file_count_excluding_this_manifest": 193,
+  "total_payload_bytes_excluding_this_manifest": 1014117,
+  "artifact_product_source_base": "42af5bb030d5e0fb8a2bfc8b8f28459cfe31c2fe",
+  "selected_steps_applicability_record": "upstream-852c8cf9.json",
+  "actual_latest_runtime_tested_source": "1a1423730f9b179b45bf281211f4c3f3afec8583",
+  "retained_ui_port_results_for_42af_review_route": {
+    "full_dom_start_cases": 16,
+    "mac_source_controller_checks": 398,
+    "tablet_ui_cases": 30,
+    "tablet_vault_junit_cases": 23
+  },
+  "recommended_route_test_scope": "The eight selected desktop source/test files match the actual tested 42af-based review integration byte-for-byte; the independent port commit does not change focused Python/C# inputs. No new runtime or native port run on 852c8cf9 is claimed."
 }

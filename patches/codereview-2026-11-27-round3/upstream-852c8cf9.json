@@ -1,0 +1,64 @@
+{
+  "observed_upstream_commit": "852c8cf958e780063138801d5f3e7982b50ab62b",
+  "upstream_parent": "42af5bb030d5e0fb8a2bfc8b8f28459cfe31c2fe",
+  "issue_839_closed_comment": "https://github.com/maik3531/Magnolie-Organizer/issues/839#issuecomment-7223553749",
+  "selected_steps": [
+    {
+      "commit": "6559ddf5bb90720e12a406b35de57178f805b85b",
+      "path": "after-42af5bb0/series/01-823-contact-persons-regression.patch",
+      "sha256": "d7cbd09323de6593275f725b7b11446b4892485dbeae702acbd01feaf62f5b4a",
+      "bytes": 14370
+    },
+    {
+      "commit": "87ff1a67931d141903f488137dee4a86146f8265",
+      "path": "after-42af5bb0/series/02-841-startup-regression.patch",
+      "sha256": "e97e5a7ddb02f1986a218b96a21ef894baf7d936aa2dba28ba8ead31169a5ebb",
+      "bytes": 6628
+    },
+    {
+      "commit": "a2a798c377f8e8fb9652bd8ee8609019438ed59b",
+      "path": "after-42af5bb0/series/03-842-unicode-regression.patch",
+      "sha256": "29e496e8bcaaa7914780f6240686873ae2f9e12b3bc093040b375970a667e953",
+      "bytes": 8920
+    }
+  ],
+  "selected_steps_apply_without_conflict": true,
+  "selected_steps_result_tree": "d806b0c33e1c2d87b1e15305a0d13ec20bf5c34b",
+  "selected_step_files_identical_to_tested_final_review": true,
+  "selected_steps_changed_paths": [
+    "contracts/restore-additive-identity-vectors.json",
+    "magnolie-organizer-windows/RestoreSelection.cs",
+    "magnolie-organizer-windows/tests/Program.cs",
+    "magnolie-organizer-windows/tests/UnicodeImportTests.cs",
+    "magnolie-organizer-windows/tests/regional-language-direction.js",
+    "magnolie-organizer-windows/tests/run.js",
+    "magnolie-organizer/bin/magnolie-organizer",
+    "magnolie-organizer/pruefungen/test_save_restore_boundary.py"
+  ],
+  "upstream_changed_paths": [
+    "ARBEITSSTAND.md",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/androidTest/java/io/gitlab/maik3531/magnolietabletbeta/NativeTabletInstrumentation.kt",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/EligibleAlarms.kt",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ReminderReceiver.kt",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/Vault.kt",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/VaultTest.kt",
+    "Magnolie-Organizer-Android-Tablet-Beta/tests/reminders.test.cjs",
+    "Magnolie-Organizer-Android-Tablet-Beta/web/tablet.js",
+    "Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs",
+    "Magnolie-Organizer-macOS-Beta/tools/project_ui.py"
+  ],
+  "selected_steps_and_upstream_changes_disjoint": true,
+  "exact_reverse_to_observed_upstream": true,
+  "excluded_steps": [
+    {
+      "step": 4,
+      "reason": "Independent port fix already adopted; the complete #839 review patch is an alternative on 42af, not a replacement for the newer implementation."
+    },
+    {
+      "step": 5,
+      "reason": "The complete review handoff belongs to its fixed 42af route; current main already contains its own newer handoff text."
+    }
+  ],
+  "runtime_tests_repeated": false,
+  "runtime_scope": "Only patch applicability and byte binding checked on the newer commit. Actual final Python/C# tests remain bound to 1a142373; their source/test paths are unchanged by the port-only upstream commit. No host or native port tests were run on 852c8cf9 by this review."
+}

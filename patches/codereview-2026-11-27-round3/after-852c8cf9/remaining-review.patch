@@ -1,0 +1,470 @@
+diff --git a/contracts/restore-additive-identity-vectors.json b/contracts/restore-additive-identity-vectors.json
+index 6ff36ae83478586aa65c9e7cf384aa155b24db19..1bd2b3a39ef56918eba1fbe139b5b35c8ac09daa 100644
+--- a/contracts/restore-additive-identity-vectors.json
++++ b/contracts/restore-additive-identity-vectors.json
+@@ -280,6 +280,150 @@
+       "current": [{"id": "contact-local", "uid": "import-uid"}],
+       "snapshot": [{"id": "contact-local", "notiz": "First"}, {"id": "contact-local", "notiz": "Second"}],
+       "error": "ambiguous-local-id"
++    },
++    {
++      "id": "contact-import-assigned-uid-keeps-stable-local-id",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "contact-local", "uid": "import-uid", "vorname": "Keep", "email": "same@example.test", "notiz": "", "firma": "Current company"}],
++      "snapshot": [{"id": "contact-local", "uid": "", "vorname": "Old", "email": "same@example.test", "notiz": "Restore detail", "firma": "Old company"}],
++      "expected": [{"id": "contact-local", "uid": "import-uid", "vorname": "Keep", "email": "same@example.test", "notiz": "Restore detail", "firma": "Current company"}]
++    },
++    {
++      "id": "contact-missing-uid-in-old-snapshot-keeps-assigned-uid",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "contact-local", "uid": "import-uid", "notiz": ""}],
++      "snapshot": [{"id": "contact-local", "notiz": "Legacy detail"}],
++      "expected": [{"id": "contact-local", "uid": "import-uid", "notiz": "Legacy detail"}]
++    },
++    {
++      "id": "contact-changed-uid-keeps-current-provider-binding",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "contact-local", "uid": "new-uid", "vorname": "Keep", "notiz": "", "syncQuellen": {"live-source": {"id": "live.vcf"}}, "davHref": "", "kontaktAliase": {"uids": ["old-uid"]}}],
++      "snapshot": [{"id": "contact-local", "uid": "old-uid", "vorname": "Old", "notiz": "Restore detail", "telefon": "+4930123456", "anschriften": [{"art": "WORK", "ort": "Berlin"}], "gruppen": ["Work"], "syncQuellen": {"old-source": {"id": "old.vcf"}}, "davHref": "/old.vcf", "sync": true, "baumKontakt": {"freigabeId": "old-grant"}, "importBindungen": ["old-import"], "unknownProviderWitness": {"old": true}, "vcardRoundtrip": ["UID:old-uid"], "vcardParameter": {"UID": {"old": true}}}],
++      "expected": [{"id": "contact-local", "uid": "new-uid", "vorname": "Keep", "notiz": "Restore detail", "telefon": "+4930123456", "anschriften": [{"art": "WORK", "ort": "Berlin"}], "gruppen": ["Work"], "syncQuellen": {"live-source": {"id": "live.vcf"}}, "davHref": "", "kontaktAliase": {"uids": ["old-uid"]}}]
++    },
++    {
++      "id": "contact-cleared-uid-does-not-reinstate-archived-binding",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "contact-local", "uid": "", "sync": false, "syncQuellen": {}, "notiz": ""}],
++      "snapshot": [{"id": "contact-local", "uid": "old-uid", "sync": true, "syncQuellen": {"old-source": {"id": "old.vcf"}}, "notiz": "Restore detail"}],
++      "expected": [{"id": "contact-local", "uid": "", "sync": false, "syncQuellen": {}, "notiz": "Restore detail"}]
++    },
++    {
++      "id": "contact-stable-local-id-beats-unrelated-old-uid",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "other-contact", "uid": "old-uid", "notiz": ""}, {"id": "contact-local", "uid": "new-uid", "notiz": ""}],
++      "snapshot": [{"id": "contact-local", "uid": "old-uid", "notiz": "Only for stable local contact"}],
++      "expected": [{"id": "other-contact", "uid": "old-uid", "notiz": ""}, {"id": "contact-local", "uid": "new-uid", "notiz": "Only for stable local contact"}]
++    },
++    {
++      "id": "contact-unique-uid-fallback-retains-current-local-id",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "current-contact", "uid": "shared", "notiz": ""}],
++      "snapshot": [{"id": "old-contact", "uid": "shared", "notiz": "Restore detail"}],
++      "expected": [{"id": "current-contact", "uid": "shared", "notiz": "Restore detail"}]
++    },
++    {
++      "id": "contact-ambiguous-current-local-id-holds-restore",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "ambiguous", "uid": "new-a", "notiz": ""}, {"id": "ambiguous", "uid": "new-b", "notiz": ""}],
++      "snapshot": [{"id": "ambiguous", "uid": "old", "notiz": "Do not guess"}],
++      "error": "ambiguous-local-id"
++    },
++    {
++      "id": "contact-ambiguous-snapshot-local-id-cannot-create-duplicates",
++      "area": "contacts", "collection": "kontakte",
++      "current": [],
++      "snapshot": [{"id": "ambiguous", "uid": "old-a", "notiz": "A"}, {"id": "ambiguous", "uid": "old-b", "notiz": "B"}],
++      "error": "ambiguous-local-id"
++    },
++    {
++      "id": "contact-ambiguous-snapshot-local-id-cannot-pick-current-contact",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "ambiguous", "uid": "current", "notiz": ""}],
++      "snapshot": [{"id": "ambiguous", "uid": "old-a", "notiz": "A"}, {"id": "ambiguous", "uid": "old-b", "notiz": "B"}],
++      "error": "ambiguous-local-id"
++    },
++    {
++      "id": "contact-exact-existing-ambiguous-local-id-remains-idempotent",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "ambiguous", "uid": "a", "notiz": "A"}, {"id": "ambiguous", "uid": "b", "notiz": "B"}],
++      "snapshot": [{"id": "ambiguous", "uid": "a", "notiz": "A"}],
++      "expected": [{"id": "ambiguous", "uid": "a", "notiz": "A"}, {"id": "ambiguous", "uid": "b", "notiz": "B"}]
++    },
++    {
++      "id": "contact-exact-uid-disambiguates-preexisting-local-id-collision",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "ambiguous", "uid": "a", "notiz": ""}, {"id": "ambiguous", "uid": "b", "notiz": ""}],
++      "snapshot": [{"id": "ambiguous", "uid": "b", "notiz": "For B"}],
++      "expected": [{"id": "ambiguous", "uid": "a", "notiz": ""}, {"id": "ambiguous", "uid": "b", "notiz": "For B"}]
++    },
++    {
++      "id": "contact-uid-change-does-not-invent-empty-content",
++      "area": "contacts", "collection": "kontakte",
++      "current": [{"id": "contact-local", "uid": "new"}],
++      "snapshot": [{"id": "contact-local", "uid": "old", "notiz": "", "telefon": null, "anschriften": [], "unknownProviderWitness": {"old": true}}],
++      "expected": [{"id": "contact-local", "uid": "new"}]
++    },
++    {
++      "id": "contact-uid-change-restores-multiple-emergency-contacts",
++      "area": "contacts",
++      "collection": "kontakte",
++      "current": [
++        {
++          "id": "contact-local",
++          "uid": "new-uid",
++          "vorname": "Current",
++          "kontaktpersonen": [],
++          "kontaktpersonName": "",
++          "kontaktpersonTelefon": "",
++          "kontaktpersonStatus": ""
++        }
++      ],
++      "snapshot": [
++        {
++          "id": "contact-local",
++          "uid": "old-uid",
++          "vorname": "Old",
++          "kontaktpersonen": [
++            {
++              "name": "Alex Example",
++              "telefon": "+12025550101",
++              "status": "Family"
++            },
++            {
++              "name": "Berta Example",
++              "telefon": "+12025550102",
++              "status": "Friend"
++            }
++          ],
++          "kontaktpersonName": "Alex Example",
++          "kontaktpersonTelefon": "+12025550101",
++          "kontaktpersonStatus": "Family"
++        }
++      ],
++      "expected": [
++        {
++          "id": "contact-local",
++          "uid": "new-uid",
++          "vorname": "Current",
++          "kontaktpersonen": [
++            {
++              "name": "Alex Example",
++              "telefon": "+12025550101",
++              "status": "Family"
++            },
++            {
++              "name": "Berta Example",
++              "telefon": "+12025550102",
++              "status": "Friend"
++            }
++          ],
++          "kontaktpersonName": "Alex Example",
++          "kontaktpersonTelefon": "+12025550101",
++          "kontaktpersonStatus": "Family"
++        }
++      ]
+     }
+   ]
+ }
+diff --git a/magnolie-organizer-windows/RestoreSelection.cs b/magnolie-organizer-windows/RestoreSelection.cs
+index 92a534e32402e28a2d12ec5936f03072f15a049b..55efdbf1ae4f668197d64f030bb3ed2fc3e704e3 100644
+--- a/magnolie-organizer-windows/RestoreSelection.cs
++++ b/magnolie-organizer-windows/RestoreSelection.cs
+@@ -120,7 +120,7 @@ internal static class RestoreSelection
+                 "telefon", "mobil", "telefone", "email", "emails", "emailEintraege", "anschriften",
+                 "geburtstag", "geburtstagJahrUnbekannt", "jubilaeum", "jubilaeumJahrUnbekannt",
+                 "notiz", "foto", "kontaktpersonName", "kontaktpersonTelefon", "kontaktpersonStatus",
+-                "sozialeMedien", "gruppen"
++                "kontaktpersonen", "sozialeMedien", "gruppen"
+             };
+         }
+         var preferLocalId = sourceScoped || contacts;
+diff --git a/magnolie-organizer-windows/tests/Program.cs b/magnolie-organizer-windows/tests/Program.cs
+index 49d4551bbd2e97c98e32c0ab7c9d8d0e500dbbc6..872e3b1871cdfb879a50f8a14fcc4798c5e97792 100644
+--- a/magnolie-organizer-windows/tests/Program.cs
++++ b/magnolie-organizer-windows/tests/Program.cs
+@@ -748,5 +748,6 @@ runner.Add("Telefonnummern / Herkunft / gemeinsame Vektoren", PhoneRegionInfoTes
+ runner.Add("Ersteinrichtung / Zustand / Atomik / Startreihenfolge", FirstRunSetupTests.RunAsync);
+ runner.Add("Vertiefte portable Cross-Platform-Regression", PortableRegressionTests.RunAsync);
+ runner.Add("Lotus task CSV / status and priority roundtrip", LotusTaskCsvTests.RunAsync);
++runner.Add("UTF-16 import / malformed bytes and valid roundtrip", UnicodeImportTests.RunAsync);
+ runner.Add("Größen, Grenzen und Last", StressTests.RunAsync);
+ return await runner.RunAsync(args.Length == 0 ? null : string.Join(' ', args));
+diff --git a/magnolie-organizer-windows/tests/UnicodeImportTests.cs b/magnolie-organizer-windows/tests/UnicodeImportTests.cs
+new file mode 100644
+index 0000000000000000000000000000000000000000..90a5abfdb69eaf7e28af9403e3e72ec1a85700f1
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/UnicodeImportTests.cs
+@@ -0,0 +1,135 @@
++using System.IO.Compression;
++using System.Text;
++using MagnolieOrganizer.Windows;
++
++namespace MagnolieOrganizer.Windows.Tests;
++
++internal static class UnicodeImportTests
++{
++    private sealed record Fixture(string Kind, string FileName, string Text, bool Contact);
++
++    internal static Task RunAsync()
++    {
++        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
++        var checks = 0;
++        // A literal replacement character is valid input. Reject broken byte sequences,
++        // never legitimate U+FFFD text or non-BMP surrogate pairs (#842).
++        const string name = "MARKER Müller 👩‍💻 �";
++        foreach (var fixture in Fixtures(name))
++        {
++            foreach (var encoding in new Encoding[] { new UTF8Encoding(false, true),
++                new UTF8Encoding(true, true), new UnicodeEncoding(false, true, true),
++                new UnicodeEncoding(true, true, true) })
++            {
++                var bytes = Encode(fixture.Text, encoding);
++                foreach (var zipped in new[] { false, true })
++                {
++                    CheckParsed(ExchangeCodec.ParseImport(zipped ? Archive((fixture.FileName, bytes)) : bytes,
++                        fixture.Kind, zipped ? "unicode.zip" : fixture.FileName), fixture.Contact, name);
++                    checks++;
++                }
++            }
++            foreach (var bigEndian in new[] { false, true })
++            {
++                var valid = Encode(fixture.Text, new UnicodeEncoding(bigEndian, true, true));
++                foreach (var broken in Damaged(valid, fixture.Text.IndexOf("MARKER", StringComparison.Ordinal), bigEndian))
++                {
++                    Invalid(() => ExchangeCodec.ParseImport(broken, fixture.Kind, fixture.FileName), fixture.FileName);
++                    // The first entry can parse successfully, but no partial import may
++                    // escape when a later supported entry has an invalid encoding.
++                    var zipped = Archive(("good/" + fixture.FileName, valid), ("bad/" + fixture.FileName, broken));
++                    Invalid(() => ExchangeCodec.ParseImport(zipped, fixture.Kind, "mixed.zip"), "mixed.zip");
++                    checks += 2;
++                }
++            }
++        }
++        const string legacyName = "MARKER Müller";
++        foreach (var fixture in Fixtures(legacyName))
++        {
++            var bytes = Encode(fixture.Text, Encoding.GetEncoding(1252));
++            foreach (var zipped in new[] { false, true })
++            {
++                CheckParsed(ExchangeCodec.ParseImport(zipped ? Archive((fixture.FileName, bytes)) : bytes,
++                    fixture.Kind, zipped ? "legacy.zip" : fixture.FileName), fixture.Contact, legacyName);
++                checks++;
++            }
++        }
++        foreach (var (fileName, text, format) in new[] {
++            ("waste.csv", "Date,Type\r\n2030-05-10,MARKER\r\n", "csv"),
++            ("waste.ics", Fixtures(name).Single(f => f.Kind == "ics").Text, "ics") })
++        {
++            foreach (var bigEndian in new[] { false, true })
++            {
++                var bytes = Encode(text, new UnicodeEncoding(bigEndian, true, true));
++                TestAssert.That(ExchangeCodec.ParseWasteImport(bytes, fileName)["muellFormat"]!.GetValue<string>() == format,
++                    "Valid UTF-16 waste import changed format.");
++                checks++;
++                foreach (var broken in Damaged(bytes, text.IndexOf("MARKER", StringComparison.Ordinal), bigEndian))
++                {
++                    Invalid(() => ExchangeCodec.ParseWasteImport(broken, fileName), fileName);
++                    checks++;
++                }
++            }
++        }
++        Console.WriteLine($"  Unicode import: {checks} file, ZIP and waste-calendar cases passed.");
++        return Task.CompletedTask;
++    }
++
++    private static Fixture[] Fixtures(string name) => [
++        new("lotus", "contacts.csv", $"Vorname,Nachname,E-Mail\r\nAlex,{name},alex@example.test\r\n", true),
++        new("vcf", "contacts.csv", $"Vorname,Nachname,E-Mail\r\nAlex,{name},alex@example.test\r\n", true),
++        new("vcf", "contacts.vcf", $"BEGIN:VCARD\r\nVERSION:3.0\r\nUID:unicode-fixture\r\nFN:Alex {name}\r\nN:{name};Alex;;;\r\nEND:VCARD\r\n", true),
++        new("ics", "calendar.ics", $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:unicode-fixture\r\nDTSTART:20300510T103000Z\r\nSUMMARY:{name}\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n", false),
++        new("claws", "contacts.ldif", "version: 1\r\n\r\ndn: uid=MARKER\r\nuid: MARKER\r\ngivenName: Alex\r\nsn:: " +
++            Convert.ToBase64String(Encoding.UTF8.GetBytes(name)) + "\r\nmail: alex@example.test\r\n\r\n", true),
++        new("claws", "contacts.xml", $"<?xml version=\"1.0\"?><address-book><person uid=\"unicode-fixture\" first-name=\"Alex\" last-name=\"{name}\"><address-list><address email=\"alex@example.test\"/></address-list></person></address-book>\n", true)
++    ];
++
++    private static byte[] Encode(string text, Encoding encoding) => [.. encoding.GetPreamble(), .. encoding.GetBytes(text)];
++
++    private static IEnumerable<byte[]> Damaged(byte[] valid, int marker, bool bigEndian)
++    {
++        TestAssert.That(marker >= 0, "Missing byte-corruption fixture marker.");
++        foreach (var unit in new ushort[] { 0xd800, 0xdc00 })
++        {
++            var broken = valid.ToArray();
++            var offset = 2 + marker * 2;
++            broken[offset] = (byte)(bigEndian ? unit >> 8 : unit & 0xff);
++            broken[offset + 1] = (byte)(bigEndian ? unit & 0xff : unit >> 8);
++            yield return broken;
++        }
++        yield return [.. valid, (byte)0x41];
++    }
++
++    private static byte[] Archive(params (string Name, byte[] Bytes)[] entries)
++    {
++        using var output = new MemoryStream();
++        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true))
++            foreach (var (name, bytes) in entries)
++            {
++                using var stream = archive.CreateEntry(name, CompressionLevel.NoCompression).Open();
++                stream.Write(bytes);
++            }
++        return output.ToArray();
++    }
++
++    private static void CheckParsed(ExchangeImportResult result, bool contact, string name)
++    {
++        var records = contact ? result.Kontakte : result.Termine;
++        TestAssert.That(records.Count == 1 && result.Uebersprungen == 0 &&
++            records[0]![contact ? "nachname" : "titel"]!.GetValue<string>() == name,
++            "Valid encoded text changed or records were lost at the actual import entry.");
++    }
++
++    private static void Invalid(Action action, string fileName)
++    {
++        try { action(); }
++        catch (InvalidDataException error) when (error.InnerException is DecoderFallbackException)
++        {
++            TestAssert.That(error.Message == NativeLocalization.Gettext("The content is unreadable."),
++                "The invalid-encoding error bypassed the localized content message.");
++            return;
++        }
++        throw new InvalidOperationException("Malformed UTF-16 was accepted: " + fileName);
++    }
++}
+diff --git a/magnolie-organizer-windows/tests/regional-language-direction.js b/magnolie-organizer-windows/tests/regional-language-direction.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..4e6d962461a13b1591b2060bdd36fa2e227b13db
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/regional-language-direction.js
+@@ -0,0 +1,57 @@
++"use strict";
++// Refs #841: the native bootstrap and actual App.init must agree on Arabic
++// direction when the system browser supplies a regional language tag.
++const fs = require("node:fs"), path = require("node:path");
++const { webcrypto } = require("node:crypto");
++const { JSDOM } = require("jsdom");
++const windows = path.resolve(__dirname, "../app/web");
++const siblingLinux = path.resolve(__dirname, "../../magnolie-organizer");
++const embeddedLinux = path.resolve(__dirname, "../shared/magnolie-organizer");
++const linux = path.join(fs.existsSync(path.join(siblingLinux, "web/index.html")) ? siblingLinux : embeddedLinux, "web");
++const results = [];
++for (const [relative, web] of [["linux", linux], ["windows", windows]]) {
++  for (const test of [
++    { name: "explicit Arabic", language: "ar", system: "en-US", expectedLanguage: "ar", expectedDirection: "rtl" },
++    { name: "Arabic regional tag", language: "ar-EG", system: "en-US", expectedLanguage: "ar-eg", expectedDirection: "rtl" },
++    { name: "Arabic underscore and case", language: "AR_sa", system: "en-US", expectedLanguage: "ar-sa", expectedDirection: "rtl" },
++    { name: "Arabic script and region", language: "ar-Arab-EG", system: "en-US", expectedLanguage: "ar-arab-eg", expectedDirection: "rtl" },
++    { name: "Arabic system locale", language: "system", system: "ar-EG", expectedLanguage: "ar-eg", expectedDirection: "rtl" },
++    { name: "German system locale", language: "system", system: "de-DE", expectedLanguage: "de-de", expectedDirection: "ltr" },
++    { name: "English regional fallback", language: "en-US", system: "ar-EG", expectedLanguage: "en", expectedDirection: "ltr" },
++    { name: "Arabic catalog absent", language: "ar-EG", system: "ar-EG", catalogAbsent: true, expectedLanguage: "en", expectedDirection: "ltr" }
++  ]) {
++    const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {
++      runScripts: "outside-only", url: "https://app.magnolie.invalid/", pretendToBeVisual: true
++    });
++    const w = dom.window;
++    try {
++      Object.defineProperty(w.navigator, "languages", { value: [test.system, "en-US"] });
++      Object.defineProperty(w, "crypto", { value: webcrypto });
++      w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
++      w.__MAGNOLIE_BRUECKE__ = "test";
++      w.webkit = { messageHandlers: { test: { postMessage() {} } } };
++      for (const file of ["i18n.js", "i18n/de.js", ...(test.catalogAbsent ? [] : ["i18n/ar.js"])])
++        w.eval(fs.readFileSync(path.join(web, file), "utf8"));
++      w.__MAGNOLIE_SPRACHE__ = test.catalogAbsent ? "en" : "ar";
++      w.eval(fs.readFileSync(path.join(web, "i18n-start.js"), "utf8"));
++      const before = { language: w.document.documentElement.lang, direction: w.document.documentElement.dir };
++      for (const file of ["normative-timezones.js", "anwendung.js"])
++        w.eval(fs.readFileSync(path.join(web, file), "utf8"));
++      w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
++      w.App.init({ daten: {}, neu: false, regional: { language: test.language } });
++      const after = { language: w.document.documentElement.lang, direction: w.document.documentElement.dir,
++        settings: w.document.querySelector("#einstellungen-titel").textContent };
++      const expectedSettings = test.expectedLanguage.startsWith("ar") ? "الإعدادات"
++        : test.expectedLanguage.startsWith("de") ? "Einstellungen" : "Settings";
++      const passed = after.language === test.expectedLanguage && after.direction === test.expectedDirection && after.settings === expectedSettings;
++      const result = { source: relative, case: test.name, before, after, expected: {
++        language: test.expectedLanguage, direction: test.expectedDirection, settings: expectedSettings
++      }, passed };
++      results.push(result);
++      console.log(JSON.stringify(result));
++    } finally { w.close(); }
++  }
++}
++console.log(JSON.stringify({ checks: results.length, passed: results.filter(x => x.passed).length,
++  failed: results.filter(x => !x.passed).length, scope: "Actual desktop sources in JSDOM; native UI and visual layout not tested" }));
++if (results.some(x => !x.passed)) process.exitCode = 1;
+diff --git a/magnolie-organizer-windows/tests/run.js b/magnolie-organizer-windows/tests/run.js
+index c8578d8021192cf6d75ff1aabf976f1e6e1938f6..97f18f814b5bd447f92091948705cd84b210f922 100644
+--- a/magnolie-organizer-windows/tests/run.js
++++ b/magnolie-organizer-windows/tests/run.js
+@@ -18,7 +18,7 @@ process.env.MAGNOLIE_PYTHON = python;
+ 
+ let failed = false;
+ const results = [];
+-for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-save.js", "time-zone-planning.js", "time-zone-settings.js", "ui-bugfixes.js", "drawing-sheet.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-sms-paths.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "web-smoke.js",
++for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-save.js", "time-zone-planning.js", "time-zone-settings.js", "ui-bugfixes.js", "drawing-sheet.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-sms-paths.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "regional-language-direction.js", "web-smoke.js",
+   "handbook-page-ids.js",
+   "handbook-source-diagnostics.js",
+   "calendar-attachment-actions.js", "calendar-attachment-native.js",
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index babb17bb3c03d4a1301f0ddc58712a7dfca02daa..46836c5d748bfb878e3bd3c9f5760ddb8981da92 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -1964,7 +1964,7 @@ def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False, kontakte=False)
+                          "telefon", "mobil", "telefone", "email", "emails", "emailEintraege", "anschriften",
+                          "geburtstag", "geburtstagJahrUnbekannt", "jubilaeum", "jubilaeumJahrUnbekannt",
+                          "notiz", "foto", "kontaktpersonName", "kontaktpersonTelefon", "kontaktpersonStatus",
+-                         "sozialeMedien", "gruppen"}
++                         "kontaktpersonen", "sozialeMedien", "gruppen"}
+     lokale_identitaet = quellenbezogen or kontakte
+ 
+     for objekt in aus:
+diff --git a/magnolie-organizer/pruefungen/test_save_restore_boundary.py b/magnolie-organizer/pruefungen/test_save_restore_boundary.py
+index 11601a1ef143d75525dd2adcfeaa1239074e9394..5ca35d620b8ef4441688bae66c32302a08fc33ee 100644
+--- a/magnolie-organizer/pruefungen/test_save_restore_boundary.py
++++ b/magnolie-organizer/pruefungen/test_save_restore_boundary.py
+@@ -57,6 +57,56 @@ class Probe:
+         return next(value for name, value in reversed(self.responses) if name == "App.gespeichert")
+ 
+ 
++def test_contact_uid_assignment_restore_keeps_one_durable_contact_and_protection(native):
++    m = native
++    snapshot_data = fixture_data("snapshot content")
++    snapshot_data["kontakte"] = [{"id": "contact-local", "uid": "", "email": "same@example.test",
++                                  "notiz": "Recovered detail", "firma": "Old company"}]
++    current = fixture_data("current unrelated content")
++    current["kontakte"] = [{"id": "contact-local", "uid": "import-uid", "email": "same@example.test",
++                            "notiz": "", "firma": "Current company", "syncQuellen": {"live": {"id": "live.vcf"}}}]
++    expected = copy.deepcopy(current["kontakte"])
++    expected[0]["notiz"] = "Recovered detail"
++    m.speichere_text(json.dumps(current))
++    snapshot = m.journal_snapshot_erzeugen(snapshot_data, "manual", basis=m.daten_verzeichnis())
++    probe = Probe(m, current)
++
++    for _ in range(2):
++        m.Fenster._journal_wiederherstellen(probe, snapshot["snapshotId"], ["contacts"], "additive")
++        response = next(value for name, value in reversed(probe.responses) if name == "App.journalWiederhergestellt")
++        assert response["ok"] and response["committed"] and not response["repairPending"]
++        durable = json.loads(Path(m.daten_datei()).read_text())
++        assert durable["kontakte"] == expected
++        assert durable["notizen"] == current["notizen"]
++        assert durable["syncEpoch"] != current["syncEpoch"]
++        protected = m.journal_snapshot_lesen(response["vorher"], basis=m.daten_verzeichnis())[1]["daten"]
++        assert protected["kontakte"] in (current["kontakte"], expected)
++        restarted = Probe(m, durable)
++        assert not restarted.save(90, current)["ok"], "A pre-restore save must not replace the restored contact"
++        assert json.loads(Path(m.daten_datei()).read_text())["kontakte"] == expected
++        probe = restarted
++    # The native restore also migrates legacy profile-local snapshots to the
++    # isolated canonical XDG journal; read the original through that same path.
++    assert m.journal_snapshot_lesen(snapshot["snapshotId"])[1]["daten"]["kontakte"] == snapshot_data["kontakte"]
++
++
++def test_ambiguous_contact_restore_rejects_before_primary_write(native):
++    m = native
++    snapshot_data = fixture_data("snapshot content")
++    snapshot_data["kontakte"] = [{"id": "ambiguous", "uid": "old", "notiz": "Do not guess"}]
++    current = fixture_data("current unrelated content")
++    current["kontakte"] = [{"id": "ambiguous", "uid": "new-a"}, {"id": "ambiguous", "uid": "new-b"}]
++    m.speichere_text(json.dumps(current))
++    original = Path(m.daten_datei()).read_bytes()
++    snapshot = m.journal_snapshot_erzeugen(snapshot_data, "manual", basis=m.daten_verzeichnis())
++    probe = Probe(m, current)
++    m.Fenster._journal_wiederherstellen(probe, snapshot["snapshotId"], ["contacts"], "additive")
++    response = next(value for name, value in reversed(probe.responses) if name == "App.journalWiederhergestellt")
++    assert not response["ok"] and response["committed"] is False
++    assert Path(m.daten_datei()).read_bytes() == original
++    assert probe._aktuelle_daten == current
++
++
+ def test_native_failed_save_restore_late_old_save_and_restart(native, monkeypatch):
+     m = native
+     old = fixture_data("old failed content")

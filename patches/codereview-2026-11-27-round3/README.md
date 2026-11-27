@@ -1,6 +1,29 @@
 # Magnolie-Codereview: dritte Patchübergabe vom 27. November 2026
 
-**Empfohlene Einpflegebasis: `42af5bb030d5e0fb8a2bfc8b8f28459cfe31c2fe`.**
+## Letzter Issue-Abgleich während der Veröffentlichung
+
+#839 wurde inzwischen unabhängig mit
+[`852c8cf9`](https://github.com/maik3531/Magnolie-Organizer/commit/852c8cf958e780063138801d5f3e7982b50ab62b)
+übernommen und [geschlossen](https://github.com/maik3531/Magnolie-Organizer/issues/839#issuecomment-7223553749).
+Diese übernommene Portfassung einschließlich ihres gesonderten nativen Nachweises
+bleibt erhalten. **Für die beobachtete Basis `852c8cf9` den
+[verbleibenden Gesamtpatch](after-852c8cf9/remaining-review.patch) verwenden:**
+Er enthält ausschließlich den #823-Notfallkontakt-Nachtrag und die zusätzlichen
+#841/#842-Regressionen. Er verändert weder Portquellen noch den bereits
+fortgeschriebenen Arbeitsstand.
+
+Die drei entsprechenden Teilpatches aus der unten stehenden Serie sind eine
+Alternative zu diesem verbleibenden Gesamtpatch. Beide Wege sind konfliktfrei
+vorwärts und rückwärts geprüft. Die acht betroffenen Quell-/Testdateien sind
+bytegleich zur tatsächlich geprüften letzten Reviewintegration; der unabhängige
+Portcommit ändert keine Eingaben der fokussierten Python-/C#-Prüfung. Es gab
+keinen erneuten Lauf gegen die Portfassung aus `852c8cf9`.
+[Anwendbarkeit und Abgrenzung](upstream-852c8cf9.json) ·
+[Exakter Patchnachweis](after-852c8cf9/replay.json).
+
+## Vollständiger Reviewstand auf der vorausgehenden Basis
+
+**Vollständige geprüfte Reviewbasis: `42af5bb030d5e0fb8a2bfc8b8f28459cfe31c2fe`.**
 Die [darauf abgestimmte vollständige Nachtragsserie](after-42af5bb0/magnolie-round3-after-42af5bb0.patch)
 erhält die inzwischen unabhängig übernommenen Produktkorrekturen aus #823,
 #841 und #842. Sie ergänzt den noch bestätigten Notfallkontakt-Rest aus #823,
@@ -28,7 +51,7 @@ UID-Wechsel; sie ist keine allgemeine Bereinigung beliebiger Kontaktmetadaten.
 Bei #839 bleiben unterschiedliche Einträge, Sektionen, Quellen und Zeitpunkte
 getrennt; mehrdeutige alte lokale Identitäten werden nicht geraten.
 
-## Empfohlene Patchreihenfolge
+## Vollständige Patchreihenfolge für die Basis 42af5bb0
 
 | Schritt | Vollständiger Patch | Beschreibung und Nachweise |
 |---|---|---|
@@ -45,7 +68,7 @@ anwenden.** Der Gesamtpatch wird mit `git apply`, die mbox-Teilpatches können m
 lokalen Reviewzweigen; maßgeblich für die Rekonstruktion sind Basis, Patchbytes
 und Ergebnisbaum im [Anwendungsnachweis](after-42af5bb0/replay.json).
 
-Beispiel aus einem Checkout dieses Artefaktzweigs:
+Beispiel zur Rekonstruktion des vollständigen 42af-Reviewstands aus einem Checkout dieses Artefaktzweigs:
 
 ```bash
 PATCH_DIR="$PWD/patches/codereview-2026-11-27-round3"
@@ -96,7 +119,8 @@ als abgeschlossen ausgewiesen.
 
 | Basis | Vollständiger Gesamtpatch | Verwendung |
 |---|---|---|
-| `42af5bb0…` | [Empfohlene aktuelle Nachtragsserie](after-42af5bb0/magnolie-round3-after-42af5bb0.patch) | Enthält nur die gegenüber dieser geprüften Basis fehlenden Produktnachträge und Tests. |
+| `852c8cf9…` | [Verbleibender Gesamtpatch nach unabhängiger Portübernahme](after-852c8cf9/remaining-review.patch) | Für diese zuletzt beobachtete Hauptzweigbasis: nur #823-Feldnachtrag und #841/#842-Tests, bestehende Portkorrektur erhalten. |
+| `42af5bb0…` | [Vollständige vorausgehende Reviewserie](after-42af5bb0/magnolie-round3-after-42af5bb0.patch) | Enthält nur die gegenüber dieser geprüften Basis fehlenden Produktnachträge und Tests. |
 | `dd997f01…` | [Zwischenstand nach Sprach-/Decoderübernahme](after-dd997f01/magnolie-round3-after-dd997f01.patch) | Historische vollständige Kontaktkorrektur plus #839 und zusätzliche Regressionen; enthält den Notfallkontakt-Feldnamen bereits. Nicht zusätzlich auf die empfohlene Serie anwenden. |
 | `0cdd6f99…` | [Ursprüngliche vollständige Reviewserie](historical/magnolie-codereview-round3.patch) | Dokumentiert alle vier ursprünglichen Produktkorrekturen und Nachweise vor den unabhängigen Übernahmen. Nicht zusätzlich auf eine neuere Route anwenden. |
 
@@ -126,7 +150,7 @@ python3 "$PATCH_DIR/verify_delivery.py" --repository ../magnolie-round3-review
 Der zweite Befehl rekonstruiert die Patches ausschließlich in temporären
 Git-Indizes. Er verändert weder den normalen Index noch die Arbeitsdateien.
 
-## Exakte Bindung der empfohlenen Serie
+## Exakte Bindung der vollständigen 42af-Serie
 
 | Bestandteil | Wert |
 |---|---|
