@@ -6,6 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.assertThrows
 import org.junit.Test
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -214,6 +215,36 @@ class EinfuhrTest {
         val titel = notizen.map { it.titel }
         assertTrue("Erste fehlt: $titel", titel.contains("Erste"))
         assertTrue("Zweite fehlt: $titel", titel.contains("Zweite"))
+    }
+
+    @Test fun `ZIP Signaturen in Eintraegen beenden die Vorbereitung vor einer Teiluebernahme`() {
+        // A header alone identifies the unsupported type; no inner archive is needed.
+        val signaturen = listOf(byteArrayOf(0x50, 0x4B, 0x03, 0x04),
+            byteArrayOf(0x50, 0x4B, 0x05, 0x06), byteArrayOf(0x50, 0x4B, 0x07, 0x08))
+        for (name in listOf("datei.zip", "datei.sdocx", "datei.jex", "datei.txt", "datei.bin")) {
+            for (signatur in signaturen) {
+                val puffer = ByteArrayOutputStream()
+                ZipOutputStream(puffer).use { archiv ->
+                    archiv.putNextEntry(ZipEntry("erste.txt"))
+                    archiv.write("Erste Notiz".toByteArray())
+                    archiv.closeEntry()
+                    archiv.putNextEntry(ZipEntry(name))
+                    archiv.write(signatur)
+                    archiv.closeEntry()
+                }
+                val fehler = assertThrows(IOException::class.java) {
+                    Einfuhr.ausInhalt(puffer.toByteArray(), "export.zip", 0)
+                }
+                assertEquals("Verschachtelte Importarchive werden nicht unterstuetzt", fehler.message)
+            }
+        }
+    }
+
+    @Test fun `ein eigenstaendiger Samsung Export bleibt lesbar`() {
+        val archiv = zip("ignoriert.zip" to "Kein ZIP-Inhalt", "notiz.txt" to "Eine Samsung-Notiz")
+        val notizen = Einfuhr.ausInhalt(archiv, "samsung.sdocx", 0)
+        assertEquals(1, notizen.size)
+        assertTrue(notizen.single().text.contains("Eine Samsung-Notiz"))
     }
 
     @Test

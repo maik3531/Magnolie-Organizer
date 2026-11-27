@@ -109,6 +109,10 @@ aufgeführt.
   Neustart und geschützte Projektion sind geprüft. 209 Linux-Fälle,
   der vollständige Parserlauf und vier Gruppen aus dem nativen
   Windows-Quellarchiv bestanden. Die Port-Fortsetzung steht in #839.
+- [#825](https://github.com/maik3531/Magnolie-Organizer/issues/825):
+  Notes erkennt verschachtelte ZIP-Inhalte beim Lesen des Eintrags und
+  bricht die Importvorbereitung ab. Takeout- und Samsung-Exporte bleiben
+  lesbar. Alle 30 Import-, Ordner- und Transaktionsprüfungen bestanden.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal

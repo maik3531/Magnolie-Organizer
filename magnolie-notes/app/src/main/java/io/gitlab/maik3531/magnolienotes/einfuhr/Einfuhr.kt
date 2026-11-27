@@ -175,8 +175,13 @@ object Einfuhr {
     }
 
     private fun istZip(roh: ByteArray): Boolean =
-        roh.size > 4 && roh[0] == 0x50.toByte() && roh[1] == 0x4B.toByte() &&
-            (roh[2] == 0x03.toByte() || roh[2] == 0x05.toByte() || roh[2] == 0x07.toByte())
+        roh.size >= 4 && roh[0] == 0x50.toByte() && roh[1] == 0x4B.toByte() &&
+            when (roh[2].toInt()) {
+                0x03 -> roh[3] == 0x04.toByte()
+                0x05 -> roh[3] == 0x06.toByte()
+                0x07 -> roh[3] == 0x08.toByte()
+                else -> false
+            }
 
     private fun istGesamtarchiv(text: String, istMagnolieDatei: Boolean): Boolean {
         val wurzel = runCatching { Json.parseToJsonElement(text) as? JsonObject }.getOrNull()
@@ -203,6 +208,8 @@ object Einfuhr {
         val erwarteteEintraege = pruefeZipStruktur(roh)
         val aus = mutableListOf<Rohnotiz>()
         val strom = ZipInputStream(roh.inputStream())
+        val brocken = ByteArray(16 * 1024)
+        val kopf = ByteArray(4)
         var eintraege = 0
         var archivGesamt = 0L
         strom.use {
@@ -213,15 +220,23 @@ object Einfuhr {
                 val lesbar = !eintrag.isDirectory && kommtInFrage(name) &&
                     !name.lowercase().endsWith(".zip")
                 val puffer = if (lesbar) ByteArrayOutputStream() else null
-                val brocken = ByteArray(16 * 1024)
                 var gesamt = 0L
                 while (true) {
                     val gelesen = it.read(brocken)
                     if (gelesen < 0) break
+                    val vorher = gesamt
                     gesamt += gelesen
                     archivGesamt += gelesen
                     if (gesamt > eintragMax || archivGesamt > archivEntpacktMax) {
                         throw IOException("Entpackgrenze ueberschritten")
+                    }
+                    if (!eintrag.isDirectory && vorher < kopf.size) {
+                        val start = vorher.toInt()
+                        val bis = minOf(gelesen, kopf.size - start)
+                        brocken.copyInto(kopf, start, 0, bis)
+                        if (start + bis == kopf.size && istZip(kopf)) {
+                            throw IOException("Verschachtelte Importarchive werden nicht unterstuetzt")
+                        }
                     }
                     puffer?.write(brocken, 0, gelesen)
                 }
