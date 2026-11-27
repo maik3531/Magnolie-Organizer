@@ -38,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -1064,6 +1065,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
 
     val offen = offeneNotiz
     if (offen != null) {
+        val anhangFaden = key(offen.id) { rememberCoroutineScope() }
         NotizEditor(
             papierkorbAn = bestand.papierkorbEinstellungen.an,
             notiz = offen,
@@ -1091,8 +1093,10 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 }
             },
             beiAnhangOeffnen = { anhang ->
-                if (!AnhangDatei.oeffnen(zusammenhang, anhang)) {
-                    sage(zusammenhang.getString(R.string.notiz_anhang_oeffnen_fehler))
+                anhangFaden.launch {
+                    if (!AnhangDatei.oeffnen(zusammenhang, anhang)) {
+                        sage(zusammenhang.getString(R.string.notiz_anhang_oeffnen_fehler))
+                    }
                 }
             },
             beiAnhangSpeichern = { anhang ->

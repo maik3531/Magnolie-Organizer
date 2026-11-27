@@ -98,6 +98,11 @@ aufgeführt.
   Zwölf gemeinsame Aufgaben bestanden den CSV-/VTODO-Rundlauf auf
   Linux und nativ aus dem Windows-Quellarchiv; der Linux-Import-/Export-Vertrag
   und die portable Windows-Regression bestanden ebenfalls.
+- [#836](https://github.com/maik3531/Magnolie-Organizer/issues/836):
+  Notes bereitet Anhänge im Hintergrund vor und zeigt bei Cache-,
+  Provider- oder Startfehlern die vorhandene Meldung. Fünf gezielte
+  Robolectric-Fälle und 24 benachbarte Tests bestanden; die native
+  Geräteabnahme gehört zum Gesamtrelease.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
