@@ -1,0 +1,17 @@
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt
+--- a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt
+@@ -394,6 +394,13 @@
+                 runCatching { stopPersonalActor(handle) }
+             }
+         }
++        // A normal completion has already retired data ownership. Its terminal
++        // authority is bound to the original channel, not the replacement session.
++        personalActorCompletions.toMap().forEach { (run, completion) ->
++            if (!completion.completed && run !in personalActorHistoricalHandoffs &&
++                personalActorTransports[run] !== activeChannel)
++                personalActorHandles[run]?.let { handle -> runCatching { stopPersonalActor(handle) } }
++        }
+         personalActorHistoricalHandoffs.values.toList().forEach { saved ->
+             if (personalActorCompletions[saved.handle.runId]?.completed != true &&
+                 currentActorCompletionAuthority(saved.handle.peerId, saved.publicKey, saved.channel, saved.generation) == null)

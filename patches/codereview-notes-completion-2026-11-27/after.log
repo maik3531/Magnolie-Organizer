@@ -1,0 +1,11 @@
+method excerpt SHA256: b9db329fbeef3380f7ed5906d863cae9814f936e0d298472101ba3d88e864811
+PASS ordinary completion lost channel
+PASS ordinary completion replacement channel
+PASS same channel waiting for scope
+PASS completed ordinary completion retained
+PASS historical loss existing retirement
+PASS historical same channel authority lost existing rule
+PASS active actor existing retirement
+PASS cleanup fault retains owner then retries
+FAILURES=0
+SQLite selection: 32 actor rows before stop; 1 status after stop; all 66 rows retained
