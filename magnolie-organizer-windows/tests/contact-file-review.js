@@ -12,6 +12,12 @@ async function check(web, mode) {
     if (m.cmd === "speichern") queueMicrotask(() => w.App.gespeichert({ id: m.id, ok: true }));
     if (m.cmd === "mutations_snapshot") queueMicrotask(() => {
       if (mode === "stale") w.OrganizerTest.daten().kontakte[0].notiz = "Local edit";
+      if (mode === "reordered-keys") {
+        const contacts = w.OrganizerTest.daten().kontakte;
+        const before = JSON.stringify(contacts[0]);
+        contacts[0] = Object.fromEntries(Object.entries(contacts[0]).reverse());
+        assert.notEqual(JSON.stringify(contacts[0]), before);
+      }
       w.App.mutationsSnapshot({ token: m.token, ok: mode !== "snapshot-error" });
     });
   } } } };
@@ -65,7 +71,7 @@ async function check(web, mode) {
       assert.equal(T.daten().kontakte.length, mode === "new" ? 3 : 2);
       assert.equal(T.daten().aufgaben.length, 1);
       assert.equal(T.daten().kontakte[0].id, "local"); assert.equal(T.daten().kontakte[0].uid, "stable");
-      assert.equal(T.daten().kontakte[0].vorname, mode === "replace" ? "Remote" : "Local");
+      assert.equal(T.daten().kontakte[0].vorname, ["replace", "reordered-keys"].includes(mode) ? "Remote" : "Local");
       const added = T.daten().kontakte.find(k => k.uid === "new");
       assert.equal(added.sync, false); assert.ok(!added.baumKontakt); assert.ok(!added.kontaktZeit);
       if (mode === "skip") {
@@ -97,7 +103,8 @@ async function check(web, mode) {
 }
 (async () => {
   for (const web of require("./web-test-roots")) {
-    for (const mode of ["replace", "merge", "keep", "skip", "new", "cancel", "snapshot-error", "stale", "profile", "lock", "changed-choice"]) await check(web, mode);
+    for (const mode of ["replace", "merge", "keep", "skip", "new", "cancel", "snapshot-error", "stale", "reordered-keys", "profile", "lock", "changed-choice"])
+      await check(web, mode);
     console.log("CONTACT FILE REVIEW PASSED:", web);
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

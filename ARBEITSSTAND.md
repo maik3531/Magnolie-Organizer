@@ -128,10 +128,16 @@ aufgeführt.
   dem vollständigen Bestand erreichbar. E-Mail-Auswahl und gespeicherte
   Organisatorwerte bleiben erhalten. Zehn gezielte Fälle mit beiden
   Desktop-Oberflächen bestanden. Der Host-Lasttest besteht mit
-  50.000 Einträgen insgesamt. Bei 250.000 Einträgen bleibt der
-  kombinierte Import-/Zeichenschritt über seinem Zeitlimit; das
-  fünfmalige Öffnen/Schließen des Terminblatts bleibt darunter.
+  50.000 Einträgen insgesamt.
   Die native N100- und 30-Tage-Prüfung bleibt offen.
+- [#847](https://github.com/maik3531/Magnolie-Organizer/issues/847):
+  Linux und Windows überspringen beim Kontaktdateiimport überflüssige
+  Buchsortierungen und die unbenutzte Kontaktsuche bei expliziter Auswahl.
+  Konflikte und die Prüfung der Buchgrundlage bleiben erhalten. Der
+  Linux-Hosttest mit 250.000 Einträgen besteht: Import und Darstellung
+  18,419 Sekunden bei unverändertem 20-Sekunden-Limit; mehrfache
+  Rufnummern und Anschriften bleiben erhalten. Fünf gezielte
+  Oberflächensuiten bestanden auf beiden Desktop-Quellen.
 - [#844](https://github.com/maik3531/Magnolie-Organizer/issues/844):
   Linux und Windows übernehmen ICS-Eintragsfarben und gültige
   Kalendervorgaben. Eigene Farben haben Vorrang; Bearbeiten, Löschen

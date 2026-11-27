@@ -34137,6 +34137,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const vorbereitung = bereiteKontaktDateiPruefungVor(liste, quelle, nurAblehnen, providerZielId, lokaleQuelle);
     if (!vorbereitung) return Promise.resolve(null);
     const { bestand, revision, providerZiel, plaene, hashes } = vorbereitung;
+    const buchJSON = JSON.stringify(bestand);
     const restfelder = kontaktKonfliktRestfelder;
     return new Promise(resolve => {
       const schleier = el("div", "eingabe-schleier kontakt-datei-pruefung"), dialog = el("section", "eingabe-dialog");
@@ -34154,7 +34155,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         beendeModal(schleier); schleier.remove(); resolve(wert);
       };
       kontaktDateiPruefungSchliessen = () => schliessen(null);
-      const gueltig = () => DATEN === bestand && !gesperrt && kanonischerEntwurf(DATEN) === revision;
+      const gueltig = () => DATEN === bestand && !gesperrt &&
+        (JSON.stringify(DATEN) === buchJSON || kanonischerEntwurf(DATEN) === revision);
       const beschreibeFelder = k => [
         [_("First name"), k.vorname], [_("Last name"), k.nachname], [_("Name"), k.anzeigename], [_("Company"), k.firma], [_("Note"), k.notiz],
         [_("Birthday"), k.geburtstag], [_("Anniversary"), k.jubilaeum],
@@ -34334,8 +34336,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function mergeKontakte(liste, zielId = null) {
     const z = { neu: 0, doppelt: 0, fotos: 0, emails: 0 };
-    const indexe = { bindungen: new Map(), uids: new Map(), mails: new Map(), telefone: new Map() };
-    if (zielId === null) for (const kontakt of DATEN.kontakte) indexiereKontakt(indexe, kontakt);
+    const indexe = zielId === null ? { bindungen: new Map(), uids: new Map(), mails: new Map(), telefone: new Map() } : null;
+    if (indexe) for (const kontakt of DATEN.kontakte) indexiereKontakt(indexe, kontakt);
     for (const k of liste || []) {
       if (!k) continue;
       const importGeburtstag = kontaktGeburtstagNurAmKontakt(k)
@@ -34423,7 +34425,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           Number(vorhanden.geaendert) || 0, Number(k.geaendert) || Date.now());
         verknuepfeKontaktGeburtstag(vorhanden);
         verknuepfeKontaktJubilaeum(vorhanden);
-        indexiereKontakt(indexe, vorhanden);
+        if (indexe) indexiereKontakt(indexe, vorhanden);
         z.doppelt++;
         continue;
       }
@@ -34455,7 +34457,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       DATEN.kontakte.push(neu);
       verknuepfeKontaktGeburtstag(neu);
       verknuepfeKontaktJubilaeum(neu);
-      indexiereKontakt(indexe, neu);
+      if (indexe) indexiereKontakt(indexe, neu);
       z.neu++;
     }
     return z;
