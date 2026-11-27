@@ -24,6 +24,10 @@ aufgeführt.
   Linux behält bei unveränderten WLAN-Fähigkeiten oder -Rechten den
   bereits bestätigten Stand bis zur neuen Quittung; tatsächliche
   Änderungen sperren ihn. 58 gezielte Prüfungen bestanden.
+  Die Linux-Standardziele für Fotos und Videos lassen sich unter
+  einem verifiziert privaten Gruppen-Elternordner anlegen. Modus
+  und vorhandene Dateien bleiben erhalten; unsichere Ziele bleiben
+  gesperrt. Alle 194 Fälle der Ziel- und Dialogprüfung wurden erfasst.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
   zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.

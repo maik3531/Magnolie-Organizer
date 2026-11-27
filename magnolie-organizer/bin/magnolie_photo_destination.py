@@ -1,9 +1,14 @@
 """Native folder selection and relative layout rules. No scan or file moves."""
 from dataclasses import dataclass
+import errno
+import grp
 from pathlib import Path
 import os
+import pwd
 import re
 import secrets
+import stat
+import struct
 import threading
 import time
 import unicodedata
@@ -123,9 +128,67 @@ def native_videos_directory():
     return value # Independent native Videos location, never the photo destination.
 
 def native_account_name():
-    import pwd
     try:return pwd.getpwuid(os.geteuid()).pw_name
     except KeyError:return ''
+
+def _local_private_user_group(account):
+    """Only accept a provably single-user group from local account sources."""
+    sources={}
+    for line in Path('/etc/nsswitch.conf').read_text().splitlines():
+        key, _, value=line.partition('#')[0].partition(':')
+        if key.strip() in ('passwd','group','initgroups'):
+            if key.strip() in sources:return False
+            sources[key.strip()]=value.split()
+    if not all(sources.get(key) and sources[key][0]=='files' and
+               set(sources[key])<= {'files','systemd'} for key in ('passwd','group')):
+        return False
+    if 'initgroups' in sources and sources['initgroups']!=['files']:return False
+    group=grp.getgrgid(account.pw_gid)
+    return (group.gr_name==account.pw_name and
+            set(group.gr_mem)<= {account.pw_name} and
+            all(entry==group for entry in grp.getgrall() if entry.gr_gid==account.pw_gid) and
+            {(user.pw_name,user.pw_uid) for user in pwd.getpwall() if user.pw_gid==account.pw_gid}
+            == {(account.pw_name,account.pw_uid)})
+
+def _acl_has_extra_writers(directory):
+    try:raw=os.getxattr(directory,'system.posix_acl_access',follow_symlinks=False)
+    except OSError as error:
+        if error.errno==errno.ENODATA:return False
+        raise
+    # Linux POSIX ACL xattr v2. Inspect effective access, not merely the
+    # presence of a named entry (e.g. a read-only traversal permission).
+    if len(raw)<4 or raw[:4]!=b'\x02\x00\x00\x00' or (len(raw)-4)%8:
+        return True
+    entries=tuple(struct.iter_unpack('<HHI',raw[4:]))
+    masks=[bits for tag,bits,_ in entries if tag==0x10]
+    if len(masks)!=1 or any(tag not in (1,2,4,8,16,32) or bits & ~7 for tag,bits,_ in entries):
+        return True
+    return any(tag in (2,8) and bits & masks[0] & 2 for tag,bits,_ in entries)
+
+def _private_home_parent_keys(path):
+    """A setup parent is not a receipt or permission to write media."""
+    try:
+        account=pwd.getpwuid(os.geteuid())
+        home=Path(account.pw_dir)
+        if home not in path.parents or path.resolve(strict=True)!=path or not _local_private_user_group(account):
+            raise ValueError
+        keys=[]
+        under_home=True
+        for directory in (path,*path.parents):
+            value=directory.lstat()
+            if not stat.S_ISDIR(value.st_mode):raise ValueError
+            if under_home:
+                if (value.st_uid!=account.pw_uid or value.st_mode & stat.S_IWOTH or
+                        value.st_mode & stat.S_IWGRP and value.st_gid!=account.pw_gid or
+                        _acl_has_extra_writers(directory)):
+                    raise ValueError
+            elif value.st_uid!=0 or value.st_mode & 0o022:
+                raise ValueError
+            keys.append((value.st_dev,value.st_ino))
+            if directory==home:under_home=False
+        return tuple(keys)
+    except (OSError,KeyError,ValueError) as error:
+        raise TransferError('file_acceptance_unsafe_destination') from error
 
 def photo_folder_component(name,*,fallback_user_name=''):
     return _media_folder_component(name,'-Fotos',fallback_user_name)
@@ -219,20 +282,33 @@ class NativePhotoDestinationController:
         pictures=provider()
         if not isinstance(pictures,(str,Path)) or not Path(pictures).is_absolute():
             raise TransferError(unavailable)
-        base=NativeAcceptedDestination.capture(pictures)
-        require_media_directory(base.path)
+        parent=Path(pictures)
+        require_media_directory(parent)
+        try:
+            base=NativeAcceptedDestination.capture(parent)
+        except TransferError as error:
+            if str(error)!='file_acceptance_unsafe_destination':raise
+            # A private primary group can write the standard parent. The
+            # actual destination below must still pass the strict leaf check.
+            keys=_private_home_parent_keys(parent)
+            def verify_parent():
+                if _private_home_parent_keys(parent)!=keys:raise TransferError('photo_destination_parent_changed')
+        else:
+            keys=base.ancestor_keys
+            verify_parent=base.verify
         fallback=self._username() if not peer.display_name.strip() else ''
         component=folder_component(peer.display_name,fallback_user_name=fallback)
-        self._peer();base.verify()
-        fd=os.open(base.path,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        self._peer();verify_parent()
+        fd=os.open(parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
         try:
             value=os.fstat(fd)
-            if (value.st_dev,value.st_ino)!=base.ancestor_keys[0]:raise TransferError('photo_destination_parent_changed')
-            self._peer();base.verify();self._open();action.validate(self)
+            if (value.st_dev,value.st_ino)!=keys[0]:raise TransferError('photo_destination_parent_changed')
+            self._peer();verify_parent();self._open();action.validate(self)
             try:os.mkdir(component,mode=0o700,dir_fd=fd)
             except FileExistsError:pass # Existing folder is not ours to reset/clear.
-            base.verify()
-            destination=NativeAcceptedDestination.capture(Path(base.path)/component)
+            verify_parent()
+            destination=NativeAcceptedDestination.capture(parent/component)
+            if destination.ancestor_keys[1:]!=keys:raise TransferError('photo_destination_parent_changed')
             self._peer();self._open();action.validate(self)
             return self._choice_type(destination,secrets.token_hex(32),self)
         finally:os.close(fd)

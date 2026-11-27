@@ -49,6 +49,56 @@ def test_group_writable_default_is_held_but_explicit_private_choice_is_available
     assert controller.verify_choice(choice).path==str(private)
     assert not choice.destination.grants_write_authority and not list(private.iterdir())
 
+@pytest.mark.parametrize('kind',['photos','videos'])
+def test_verified_private_home_parent_keeps_permissions_and_requires_a_private_leaf(chooser,monkeypatch,kind):
+    import magnolie_photo_destination as native_destination
+    _,peer,authority,controller,pictures,_=chooser
+    # Use the real filesystem for identity/mode enforcement; the isolated
+    # /tmp test path is not a system account's private home.
+    base=NativeAcceptedDestination.capture(pictures)
+    monkeypatch.setattr(native_destination,'_private_home_parent_keys',
+                        lambda path: base.ancestor_keys if path==pictures else pytest.fail('wrong parent'))
+    original=pictures/'keep.jpg';original.write_bytes(b'untouched')
+    pictures.chmod(0o775)
+    video=NativeVideoDestinationController(authority) if kind=='videos' else None
+    try:
+        owner=video or controller
+        provider={'videos_provider' if video else 'pictures_provider':lambda:pictures}
+        folder=video_folder_component if video else photo_folder_component
+        choice=owner.choose_default(owner.issue_action(),**provider)
+        leaf=pictures/folder(peer['display_name'])
+        assert choice.destination.path==str(leaf) and leaf.stat().st_mode & 0o777==0o700
+        assert pictures.stat().st_mode & 0o777==0o775 and original.read_bytes()==b'untouched'
+        leaf.chmod(0o775)
+        with pytest.raises(TransferError,match='file_acceptance_unsafe_destination'):
+            owner.choose_default(owner.issue_action(),**provider)
+        assert leaf.stat().st_mode & 0o777==0o775
+    finally:
+        if video is not None:video.close()
+
+@pytest.mark.parametrize('other_user,other_member,nss_source,allowed',[
+    (False,False,'files systemd',True),(True,False,'files systemd',False),
+    (False,True,'files systemd',False),(False,False,'files sss',False)])
+def test_private_primary_group_requires_exclusive_local_membership(monkeypatch,other_user,other_member,nss_source,allowed):
+    import magnolie_photo_destination as native_destination
+    account=types.SimpleNamespace(pw_name='owner',pw_gid=1000,pw_uid=1000)
+    other=types.SimpleNamespace(pw_name='other',pw_gid=1000,pw_uid=1001)
+    group=types.SimpleNamespace(gr_name='owner',gr_gid=1000,gr_mem=['other'] if other_member else [])
+    monkeypatch.setattr(Path,'read_text',lambda path: f'passwd: {nss_source}\ngroup: files systemd\n')
+    monkeypatch.setattr(native_destination.grp,'getgrgid',lambda _:group)
+    monkeypatch.setattr(native_destination.grp,'getgrall',lambda:[group])
+    monkeypatch.setattr(native_destination.pwd,'getpwall',lambda:[account,other] if other_user else [account])
+    assert native_destination._local_private_user_group(account) is allowed
+
+@pytest.mark.parametrize('permission,mask,extra_writes', [(1,5,False),(3,5,False),(3,7,True)])
+def test_standard_parent_acl_uses_effective_write_right(chooser,monkeypatch,permission,mask,extra_writes):
+    import struct
+    import magnolie_photo_destination as native_destination
+    entries=((1,7,0xffffffff),(2,permission,99),(4,5,0xffffffff),(16,mask,0xffffffff),(32,0,0xffffffff))
+    xattr=b'\x02\x00\x00\x00'+b''.join(struct.pack('<HHI',*entry) for entry in entries)
+    monkeypatch.setattr(os,'getxattr',lambda *args,**kwargs:xattr)
+    assert native_destination._acl_has_extra_writers(chooser[4]) is extra_writes
+
 @pytest.mark.parametrize('name',['../.config/Telefon','CON.foo','Phone: Photos\\Downloads','📱','Maiks  Telefon','Müllers Telefon'])
 def test_native_phone_name_becomes_one_safe_component_not_a_raw_path(name):
     component=photo_folder_component(name)
