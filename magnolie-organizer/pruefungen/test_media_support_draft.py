@@ -529,6 +529,10 @@ def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_p
     local=NativeLocalFileGrant(FileGrantState(1,'a'*64,True,False),object(),True)
     remote=NativeFileControlSession(phone_identity,lambda:pc,lambda:local)
     try:
+        # Read the fixture's target before the remote echo can start the real
+        # automatic worker. This assertion must not race its preference lease.
+        policy=prefs.read().policy
+        token=policy.videos.destination_token if kind=='video' else policy.destination_token
         ended=Event();activity=[]
         if automatic:
             def observe(owner,active):
@@ -546,9 +550,8 @@ def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_p
             created_ms=at,expires_ms=at+60_000,body=packet.wire()))
         remote.mark_sent(packet)
         remote.observe_remote(FileControlPacket.parse(wire.receive()['body']),pc)
-        policy=prefs.read().policy
-        token=policy.videos.destination_token if kind=='video' else policy.destination_token
-        assert connection._receive_binding(media_type=kind)==remote.binding(token,sender_is_local=True)
+        if not automatic:
+            assert connection._receive_binding(media_type=kind)==remote.binding(token,sender_is_local=True)
         commands=[]
         def metadata(message):
             operation=message['body']['operation'];commands.append(operation)
@@ -590,6 +593,8 @@ def exercise_private_receiver(service,peer,channel,wire,connection,session,tmp_p
             else:session.start('sync_shared')
             assert session.join(35) and session.snapshot()['state']=='complete',session.snapshot()
             assert not errors and len(chunks)==len(saved)==1
+        if automatic:
+            assert connection._receive_binding(media_type=kind)==remote.binding(token,sender_is_local=True)
         local_path=destination/first.path
         assert local_path.read_bytes()==original and commands==['status','discover']
         # Real local edits to a mapped original survive a subsequent no-change

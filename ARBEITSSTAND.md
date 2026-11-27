@@ -61,6 +61,10 @@ aufgeführt.
   Die Bildprobe benötigte 11,862 Sekunden Ereigniswartezeit bei
   unverändertem 12-Sekunden-Limit. Das ist keine Beschleunigung
   und kein Nachweis am installierten Paket.
+  Die Testfixture konkurriert jetzt nicht mehr mit dem Worker um
+  dessen Einstellungszugriff. Nach dieser Korrektur bestanden
+  30 private Medienfälle sowie zwölf Standardprüfungen; die
+  Standard-Bildprobe schloss nach 11,661 Sekunden ab.
 - [#812](https://github.com/maik3531/Magnolie-Organizer/issues/812):
   Der Regelkalender-Test findet seine Vektoren und die Python-Referenz
   auch im eigenständigen Windows-Quellarchiv. Die Prüfung der 1.434
