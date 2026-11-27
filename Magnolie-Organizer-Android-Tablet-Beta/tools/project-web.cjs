@@ -15,7 +15,13 @@ function walk(dir) {
       if (e.isSymbolicLink()) throw Error('Symlinks are forbidden in projection inputs: ' + p);
       return e.isDirectory() ? walk(p) : [p]; });
 }
-const inputs = [...walk(desktop), ...walk(path.join(windowsWeb,'schriften')), path.join(windowsWeb,'stil.css'), ...walk(path.join(root, 'web')),
+// The desktop generator may already have run in this checkout. The tablet
+// regenerates these exact assets from the tracked rules below (Refs #810).
+const desktopTimezoneOutputs = new Set([
+  'normative-timezones.js', 'timezones/LICENSE-tzdb.txt', 'timezones/provenance.json', 'timezones/tzdb-2026egtz.json'
+].map(name => path.join(desktop,name)));
+const inputs = [...walk(desktop).filter(file => !desktopTimezoneOutputs.has(file)),
+  ...walk(path.join(windowsWeb,'schriften')), path.join(windowsWeb,'stil.css'), ...walk(path.join(root, 'web')),
   ...walk(path.join(parent,'port-adapters')),
   path.join(windowsWeb,'anwendung.js'), ...walk(path.join(windowsWeb,'i18n')),
   ...walk(path.join(root, 'app/src')), ...walk(path.join(root, 'tests')),
