@@ -104,6 +104,21 @@ function boot() {
       if (scenario === "start") assert.equal(requests()[0].version, state.shared_start_version);
     });
   }
+  await test("waiting for phone video RECEIVE keeps Stop available", async b => {
+    b.refresh(); b.reply(b.messages.at(-1), { ...b.state, original_receive_settings: true,
+      original_settings_editable: true, shared_runtime_ready: false, automatic: true, automatic_busy: false,
+      automatic_phase: "waiting_for_phone", send_choice_kinds: ["video"],
+      shared_settings: { ...b.state.shared_settings, values: { ...b.state.shared_settings.values,
+        auto_mode: "wifi", photos_enabled: false } } });
+    const stop = [...b.panel.querySelectorAll("button")].find(button => button.textContent === "Stop");
+    assert(!stop.hidden && !stop.disabled);
+    assert(b.panel.textContent.includes("Waiting for native media status"));
+    stop.click(); await tick();
+    assert.equal(b.messages.at(-1).action, "cancel");
+    b.reply(b.messages.at(-1), { state: "stopping" });
+    assert.equal(b.messages.at(-1).action, "status");
+    assert(!b.messages.some(m => m.action === "sync_shared"));
+  });
   await test("original WLAN setup requires the explicit versioned button after a real save", async b => {
     const state = { ...b.state, original_receive_settings: true, original_settings_editable: true,
       automatic_receive_setup: true, shared_runtime_ready: false, shared_start_version: "e".repeat(64),

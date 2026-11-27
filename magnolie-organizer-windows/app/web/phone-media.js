@@ -264,7 +264,7 @@
       // overlap an unacknowledged settings edit with another mode request.
       automatic.disabled = (busy && !transfer) || !native || !enabled || settingsHeld || (!originalReceive && native.automatic_ready !== true);
       for (const entry of actions) entry.button.disabled = busy || !enabled || !runtimeReady || native?.metadata_ready?.[entry.mediaType] !== true || !(entry.mediaType === "video" ? videos.checked : photos.checked) || !native?.[entry.key];
-      stop.disabled = !transfer;
+       stop.disabled = !transfer && native?.automatic_phase !== "waiting_for_phone";
       stop.hidden = waiting && !transfer;
       if (refresh) refresh.disabled = false;
       albumChoice.disabled = busy || !catalog;
@@ -601,6 +601,7 @@
         status.textContent = t(busy ? "A native media operation is still running." : reply.metadata_ready?.images !== true
           ? "Media transfer is not available on this connection yet." : "Native settings loaded. No transfer has been started.");
         if (!shared) status.textContent = t("Synchronization settings") + " · " + t("Waiting for native media status");
+        if (reply.automatic_phase === "waiting_for_phone") status.textContent = t("Waiting for native media status");
         if (shared && reply.shared_runtime_ready !== true && shared.enabled &&
             !reply.original_manual_receive && !reply.automatic_receive_setup && !reply.automatic && !reply.collection_sources_version)
           status.textContent = t("Media transfer is not available on this connection yet.");
@@ -624,8 +625,9 @@
         status.textContent = t("Choose an album to compare. An incomplete catalog never proves deletion.") + " · " + String(reply.coverage || "");
       } else if (action === "request_read") {
         status.textContent = t("Check the access request on your phone, then read the albums again.");
-      } else if (action === "cancel" && reply.state === "idle") {
-        status.textContent = t("No active media operation.");
+       } else if (action === "cancel") {
+         if (native?.automatic_phase === "waiting_for_phone") request("status", {}, false);
+         else if (reply.state === "idle") status.textContent = t("No active media operation.");
       } else if (action === "sync_shared") {
         if (reply.state === "waiting") request("status", {}, false);
         else status.textContent = t(reply.state === "content_pass" ? "Content comparison finished." : "Content comparison needs review.") +

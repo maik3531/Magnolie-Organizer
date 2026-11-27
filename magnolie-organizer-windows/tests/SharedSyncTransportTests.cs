@@ -105,6 +105,18 @@ internal static class SharedSyncTransportTests
         DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
             ? NativeMediaSupportAsync(firstReceive: "pc_video_manual_entry", transfer: true, composed: true)
             : Task.CompletedTask;
+    internal static Task NativeOriginalPcVideoAutomaticEntryAsync() =>
+        DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
+            ? NativeMediaSupportAsync(firstReceive: "pc_video_automatic_entry", transfer: true, composed: true)
+            : Task.CompletedTask;
+    internal static Task NativeOriginalPcVideoAutomaticStopAsync() =>
+        DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
+            ? NativeMediaSupportAsync(firstReceive: "pc_video_automatic_stop", composed: true)
+            : Task.CompletedTask;
+    internal static Task NativeOriginalPcVideoAutomaticOffAsync() =>
+        DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
+            ? NativeMediaSupportAsync(firstReceive: "pc_video_automatic_off", composed: true)
+            : Task.CompletedTask;
     internal static Task NativeOriginalCompositionAsync() =>
         DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
             ? NativeMediaSupportAsync(firstReceive: null, composed: true)
@@ -128,7 +140,7 @@ internal static class SharedSyncTransportTests
             return null;
         }
         using var fixture = new PhoneCameraParentTests.Fixture(filePairingEpoch: new string('a', 64), receive: PublishMetadata,
-             lifetime: transfer ? TimeSpan.FromSeconds(firstReceive is "pc_image_manual" or "pc_video_manual_entry" ? 240 : 50) : null,
+             lifetime: transfer ? TimeSpan.FromSeconds(firstReceive is "pc_image_manual" or "pc_video_manual_entry" or "pc_video_automatic_entry" ? 240 : 50) : null,
             peerName: useDefaults ? "Magnolie Test " + Guid.NewGuid().ToString("N") : "Controlled original parent");
         var connection = fixture.Connection;
         fixture.Store.SavePeers([fixture.Peer]);
@@ -296,7 +308,7 @@ internal static class SharedSyncTransportTests
             var remote = fixture.Peer.Id;
             var selected = MediaSyncSettings.Change(MediaSyncSettings.Create(remote), remote, local.Id, "enabled", JsonValue.Create(true)!);
             var pcImages = firstReceive is "pc_image_hello" or "pc_image_manual";
-            var pcVideo = firstReceive == "pc_video_manual_entry";
+            var pcVideo = firstReceive is "pc_video_manual_entry" or "pc_video_automatic_entry" or "pc_video_automatic_stop" or "pc_video_automatic_off";
             selected = MediaSyncSettings.Change(selected, remote, local.Id, "direction", JsonValue.Create(pcImages || pcVideo ? "pc_to_phone" : "phone_to_pc")!);
             if (pcImages || pcVideo)
                 selected = MediaSyncSettings.Change(selected, remote, local.Id, "collection_mode", JsonValue.Create("entire_collection")!);
@@ -352,7 +364,8 @@ internal static class SharedSyncTransportTests
                 }
                 if (pcVideo)
                 {
-                    await VerifyPcVideoManualEntry(fixture, () => fixture.Read(received++), frame => fixture.Send(frame, sent++));
+                    await VerifyPcVideoEntry(fixture, composition!, () => fixture.Read(received++),
+                        frame => fixture.Send(frame, sent++), Control, Ping, firstReceive!);
                     return;
                 }
                 originalImport = connection.CapturePrivateMediaPhoneImport(body);
@@ -431,11 +444,11 @@ internal static class SharedSyncTransportTests
         }
     }
 
-    private static async Task VerifyPcVideoManualEntry(PhoneCameraParentTests.Fixture fixture,
-        Func<Task<JsonObject>> read, Func<JsonObject, Task> send)
+    private static async Task VerifyPcVideoEntry(PhoneCameraParentTests.Fixture fixture, TelefonCoordinator coordinator,
+        Func<Task<JsonObject>> read, Func<JsonObject, Task> send, Func<string, JsonObject, Task> control,
+        Func<Task> heartbeat, string scenario)
     {
         var peer = fixture.Peer.Id;
-        using var coordinator = new TelefonCoordinator(fixture.Paths, (_, _) => Task.CompletedTask, dataStore: fixture.Store, localOnly: true);
         var book = new PersonalActorNativeSaveHost(Path.Combine(fixture.Paths.Root, "pc-video-book"),
             "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}");
         coordinator.NativeProducerBook = book.Snapshot;
@@ -453,7 +466,123 @@ internal static class SharedSyncTransportTests
                 !fixture.Store.ReadNativeMediaSendConsent(peer).Explicit &&
                 fixture.Store.NativeMediaCollectionRoots(peer).Count == 0,
                 "Viewing the video choice granted SEND, picked a root, or started work.");
-            await DeviceFileOriginalImagesTests.VerifyManualAsync(fixture, coordinator, read, send, video: true);
+            if (scenario == "pc_video_manual_entry")
+            {
+                await DeviceFileOriginalImagesTests.VerifyManualAsync(fixture, coordinator, read, send, video: true);
+                return;
+            }
+            var stop = scenario == "pc_video_automatic_stop";
+            var off = scenario == "pc_video_automatic_off";
+            var pcReceive = fixture.Store.ReadNativeMediaReceiveConsent(peer);
+            pcReceive = fixture.Store.ChangeNativeMediaReceiveConsent(peer, pcReceive.Version, granted: false);
+            async Task Agree(JsonObject proposal)
+            {
+                await send(new JsonObject { ["type"] = "ack", ["message_id"] = proposal["message_id"]!.DeepClone(),
+                    ["status"] = "accepted", ["error"] = "none" });
+                await control(MediaSyncSettings.Kind, proposal["body"]!.AsObject());
+                await heartbeat();
+            }
+            var sendVersion = view["send_consent"]!["version"]!.GetValue<string>();
+            var allowed = coordinator.ConfirmNativeMediaUiSendConsent(peer, sendVersion, false, true, () => true);
+            var root = Path.Combine(fixture.Paths.Root, "deliberate-wlan-video-source");
+            Directory.CreateDirectory(root);
+            var originals = new Dictionary<string, byte[]> { ["original.mp4"] = DeviceFileOriginalImagesTests.OriginalMp4() };
+            File.WriteAllBytes(Path.Combine(root, "original.mp4"), originals["original.mp4"]);
+            var selected = coordinator.ChooseNativeMediaCollectionFolder(peer, "video", allowed["collection_sources_version"]!.GetValue<string>(),
+                current => { current(); return DeviceFileNativeDirectory.OpenExisting(root); });
+            await coordinator.RunNativeMediaAutomaticOnceAsync(peer, CancellationToken.None);
+            TestAssert.That(!fixture.HasUnexpectedFrame && fixture.Store.NativeMediaSourceHistory(peer).Count == 0,
+                "A selected folder and manual settings started a background pass.");
+            var timingVersion = selected["shared_settings"]!["versions"]!["auto_mode"]!.GetValue<string>();
+            await coordinator.ChangeNativeMediaUiSharedSettingAsync(peer, "auto_mode", JsonValue.Create("wifi")!, timingVersion);
+            var proposal = await read();
+            TestAssert.That(proposal["kind"]?.GetValue<string>() == MediaSyncSettings.Kind, "Missing WLAN settings proposal.");
+            await coordinator.RunNativeMediaAutomaticOnceAsync(peer, CancellationToken.None);
+            TestAssert.That(!fixture.HasUnexpectedFrame, "Unacknowledged WLAN choice started a pass.");
+            await send(new JsonObject { ["type"] = "ack", ["message_id"] = proposal["message_id"]!.DeepClone(),
+                ["status"] = "accepted", ["error"] = "none" });
+            await heartbeat();
+            await coordinator.RunNativeMediaAutomaticOnceAsync(peer, CancellationToken.None);
+            TestAssert.That(!fixture.HasUnexpectedFrame, "WLAN choice without the matching echo started a pass.");
+            await control(MediaSyncSettings.Kind, proposal["body"]!.AsObject());
+            await heartbeat();
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(230));
+            var scheduled = coordinator.RunNativeMediaAutomaticOnceAsync(peer, deadline.Token);
+            try
+            {
+                var next = read();
+                if (await Task.WhenAny(next, scheduled).WaitAsync(deadline.Token) == scheduled) await scheduled;
+                var packet = DeviceFileControlEnvelope.Validate(await next.WaitAsync(deadline.Token), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                TestAssert.That(packet.Grants.SendFiles && !packet.Grants.ReceiveFiles &&
+                    fixture.Store.NativeMediaSourceHistory(peer).Count == 0,
+                    "The background setup did not wait for separate phone RECEIVE before creating a source.");
+                await scheduled;
+                await coordinator.RunNativeMediaAutomaticOnceAsync(peer, deadline.Token);
+                TestAssert.That(!fixture.HasUnexpectedFrame && fixture.Store.NativeMediaSourceHistory(peer).Count == 0,
+                    "A repeated background tick without phone RECEIVE started work.");
+                var identity = fixture.Store.ReadFileIdentity();
+                var phone = new NativeFileControlIdentity(peer, Convert.ToHexString(SHA256.HashData(fixture.Peer.PublicKey)).ToLowerInvariant());
+                var desktop = new NativeFileControlPeer(identity.DeviceId, identity.IdentitySha256, new object(),
+                    true, true, true, true, true, fixture.Peer.FilePairingEpoch);
+                var phoneGrant = new NativeLocalFileGrant(new(1, new string('a', 64), false, true), new object(), true);
+                using var controls = new NativeFileControlSession(phone, () => desktop, () => phoneGrant);
+                controls.ObserveRemote(packet, desktop);
+                var waiting = coordinator.NativeMediaUiStatus(peer);
+                TestAssert.That(waiting["automatic_phase"]?.GetValue<string>() == "waiting_for_phone" &&
+                    waiting["automatic_busy"]?.GetValue<bool>() == false && waiting["automatic"]?.GetValue<bool>() == true &&
+                    fixture.Store.ReadNativeMediaReceiveConsent(peer) == pcReceive,
+                    "Waiting for phone RECEIVE did not release the worker or depended on PC RECEIVE.");
+                if (stop) TestAssert.That(coordinator.StopNativeMediaAutomatic(peer), "The waiting SEND could not be stopped.");
+                if (off)
+                {
+                    var enabledVersion = waiting["shared_settings"]!["versions"]!["enabled"]!.GetValue<string>();
+                    var disabled = await coordinator.ChangeNativeMediaUiSharedSettingAsync(peer, "enabled", JsonValue.Create(false)!, enabledVersion);
+                    TestAssert.That(disabled["automatic_phase"]?.GetValue<string>() != "waiting_for_phone" &&
+                        disabled["automatic"]?.GetValue<bool>() == false,
+                        "Switching OFF retained the waiting video setup.");
+                    await Agree(await read().WaitAsync(deadline.Token));
+                }
+                var echoed = controls.Packet();
+                controls.MarkSent(echoed);
+                await send(DeviceFileControlEnvelope.Create(echoed, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+                var answer = DeviceFileControlEnvelope.Validate(await read().WaitAsync(deadline.Token), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                controls.ObserveRemote(answer, desktop);
+                await heartbeat();
+                scheduled = coordinator.RunNativeMediaAutomaticOnceAsync(peer, deadline.Token);
+                if (stop || off)
+                {
+                    await scheduled;
+                    TestAssert.That(!answer.Grants.SendFiles && !fixture.HasUnexpectedFrame &&
+                        fixture.Store.NativeMediaSourceHistory(peer).Count == 0,
+                        "A delayed RECEIVE echo revived the stopped video pass.");
+                    if (stop)
+                    {
+                        foreach (var mode in new[] { "manual", "wifi" })
+                        {
+                            var timing = coordinator.NativeMediaUiStatus(peer)["shared_settings"]!["versions"]!["auto_mode"]!.GetValue<string>();
+                            await coordinator.ChangeNativeMediaUiSharedSettingAsync(peer, "auto_mode", JsonValue.Create(mode)!, timing);
+                            await Agree(await read().WaitAsync(deadline.Token));
+                        }
+                        TestAssert.That(coordinator.NativeMediaUiStatus(peer)["automatic"]?.GetValue<bool>() == true &&
+                            !fixture.HasUnexpectedFrame && fixture.Store.NativeMediaSourceHistory(peer).Count == 0,
+                            "A deliberate fresh WLAN choice did not resume the paused scheduler or started outside its tick.");
+                    }
+                    return;
+                }
+                var competingTick = coordinator.RunNativeMediaAutomaticOnceAsync(peer, deadline.Token);
+                await DeviceFileOriginalImagesTests.VerifyTransferAsync(fixture, read, send, true, originals, root,
+                    scheduled, deadline, controls);
+                await competingTick;
+                var retained = fixture.Store.NativeMediaSourceHistory(peer).Single();
+                await coordinator.RunNativeMediaAutomaticOnceAsync(peer, CancellationToken.None);
+                TestAssert.That(fixture.Store.NativeMediaSourceHistory(peer).Single() == retained && !fixture.HasUnexpectedFrame,
+                    "The same confirmed WLAN settings started a second transfer after local END.");
+            }
+            finally
+            {
+                deadline.Cancel();
+                try { await scheduled; } catch (OperationCanceledException) { }
+            }
         }
         finally { online.Remove(peer); }
     }

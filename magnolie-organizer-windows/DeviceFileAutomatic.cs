@@ -14,10 +14,14 @@ internal sealed partial class TelefonCoordinator
         internal bool Paused;
         internal string Phase = "idle";
         internal CancellationTokenSource? Active;
+        internal JsonObject? ObservedVideoIntent;
+        internal ArmedVideoExport? AutomaticVideo;
+        internal bool AwaitingVideoReceive;
     }
     private readonly ConcurrentDictionary<string, NativeAutomaticMediaState> nativeAutomaticMedia = new(StringComparer.Ordinal);
     private sealed record OriginalExport(string Kind, NativeBookSaveState Book, NativeMediaSendConsent Consent,
         NativeMediaCollectionRoot[] Roots, byte[] PeerKey, Func<bool> Agreement);
+    private sealed record ArmedVideoExport(JsonObject Intent, OriginalExport Choice);
 
     partial void StartNativeMediaAutomatic(CancellationToken token)
         => Track(McpServiceTask(() => NativeMediaAutomaticLoopAsync(token)));
@@ -51,12 +55,18 @@ internal sealed partial class TelefonCoordinator
     {
         if (!nativeAutomaticMedia.TryGetValue(peerId, out var state)) return false;
         CancellationTokenSource? active;
+        bool awaitingReceive;
         lock (state)
         {
             state.Paused = true;
-            if (state.Active is null) { state.Phase = "paused"; return false; }
-            active = state.Active; state.Phase = "stopping";
+            state.AutomaticVideo = null;
+            awaitingReceive = state.AwaitingVideoReceive;
+            state.AwaitingVideoReceive = false;
+            active = state.Active;
+            state.Phase = active is null ? "paused" : "stopping";
         }
+        if (awaitingReceive) state.Connection.RevokeNativeMediaUiConsent();
+        if (active is null) return awaitingReceive;
         try { active.Cancel(); } catch (ObjectDisposedException) { return false; }
         return true;
     }
@@ -70,6 +80,42 @@ internal sealed partial class TelefonCoordinator
             return;
         }
         if (!connection.OriginalMediaSettingsEditable || NativeSavedBook() is not { } book) return;
+        if (nativeAutomaticMedia.TryGetValue(peerId, out var state) && ReferenceEquals(state.Connection, connection))
+        {
+            ArmedVideoExport? video;
+            string before;
+            lock (state)
+            {
+                video = state.Paused ? null : state.AutomaticVideo;
+                before = state.Phase;
+            }
+            if (video is not null)
+            {
+                var choice = video.Choice;
+                if (choice.Agreement() && choice.Book == book &&
+                    store.ReadNativeMediaSendConsent(peerId) == choice.Consent &&
+                    OriginalExportRoots(peerId, "video").SequenceEqual(choice.Roots))
+                    await RunNativeMediaInventoryOnceAsync(peerId, video.Intent, token, connection, originalBackground: true,
+                        originalExport: choice, automaticVideo: video);
+                else
+                {
+                    bool revoke;
+                    lock (state)
+                    {
+                        if (!ReferenceEquals(state.AutomaticVideo, video) || state.Active is not null) return;
+                        state.AutomaticVideo = null;
+                        revoke = state.AwaitingVideoReceive;
+                        state.AwaitingVideoReceive = false;
+                        if (revoke) state.Phase = "held";
+                    }
+                    if (revoke) connection.RevokeNativeMediaUiConsent();
+                }
+                bool changed;
+                lock (state) changed = state.Phase != before;
+                if (changed) await emit("MagnolieMedia.changed", new { device_id = peerId });
+                return;
+            }
+        }
         var preferences = store.ReadNativeMediaPreferences(peerId);
         if (!preferences.AutomaticWifi || preferences.OriginalAutomaticKey is null) return;
         var peer = store.LoadPeers().Single(value => value.Id == peerId);
@@ -78,6 +124,55 @@ internal sealed partial class TelefonCoordinator
         if (intent is null || !receive.Granted || !OriginalReceiveAvailable(connection, intent, "wifi") ||
             preferences.OriginalAutomaticKey != OriginalAutomaticReceiveKey(peerId, intent, receive, book)) return;
         await RunNativeMediaInventoryOnceAsync(peerId, intent, token, connection, receive, book, originalBackground: true);
+    }
+
+    private void ObserveOriginalAutomaticVideo(string peerId, TelefonConnection connection)
+    {
+        RetireChangedAutomaticVideo(peerId, connection);
+        if (!connection.OriginalMediaSettingsEditable || !ReferenceEquals(NativeMediaOnlineConnection(peerId), connection)) return;
+        var peer = store.LoadPeers().Single(value => value.Id == peerId);
+        var intent = store.ReadNativeMediaSharedSettings(peerId, peer.PublicKey);
+        if (intent is null || connection.CapturePrivatePcVideoExport(intent) is not { } agreement ||
+            MediaSyncSettings.Effective(intent)["auto_mode"]?.GetValue<string>() != "wifi") return;
+        var consent = store.ReadNativeMediaSendConsent(peerId);
+        var roots = OriginalExportRoots(peerId, "video");
+        var book = NativeSavedBook();
+        NativeAutomaticMediaState state;
+        lock (gate)
+        {
+            if (!online.TryGetValue(peerId, out var currentConnection) || !ReferenceEquals(currentConnection, connection)) return;
+            state = nativeAutomaticMedia.AddOrUpdate(peerId, _ => new(connection),
+                (_, current) => ReferenceEquals(current.Connection, connection) ? current : new(connection));
+        }
+        lock (state)
+        {
+            if (!agreement() || JsonNode.DeepEquals(state.ObservedVideoIntent, intent)) return;
+            var previousTiming = state.ObservedVideoIntent?["settings"]?["auto_mode"];
+            if (state.Paused && previousTiming is not null && !JsonNode.DeepEquals(previousTiming, intent["settings"]?["auto_mode"]))
+            {
+                state.Paused = false;
+                state.Phase = "idle";
+            }
+            // The matching Settings ACK+echo is the only event that can arm.
+            // Adding a root or granting SEND later does not reuse this receipt.
+            state.ObservedVideoIntent = intent;
+            state.AutomaticVideo = consent is { Explicit: true, Videos: true } && roots.Length != 0 && book is not null
+                ? new(intent, new("video", book, consent, roots, peer.PublicKey, agreement)) : null;
+        }
+    }
+
+    private void RetireChangedAutomaticVideo(string peerId, TelefonConnection connection)
+    {
+        if (!nativeAutomaticMedia.TryGetValue(peerId, out var state) || !ReferenceEquals(state.Connection, connection)) return;
+        lock (state)
+        {
+            if (state.AutomaticVideo is not { } video || video.Choice.Agreement()) return;
+            state.AutomaticVideo = null;
+            if (!state.AwaitingVideoReceive) return;
+            state.AwaitingVideoReceive = false;
+            state.Phase = "idle";
+            connection.RevokeNativeMediaUiConsent();
+        }
     }
 
     private string? OriginalAutomaticReceiveKey(string peerId, JsonObject intent, NativeMediaReceiveConsent receive, NativeBookSaveState book)
@@ -118,7 +213,8 @@ internal sealed partial class TelefonCoordinator
 
     private async Task<string> RunNativeMediaInventoryOnceAsync(string peerId, JsonObject? manualIntent, CancellationToken token,
         TelefonConnection? expectedConnection = null, NativeMediaReceiveConsent? originalReceive = null, NativeBookSaveState? originalBook = null,
-        bool originalAutomaticSetup = false, bool originalBackground = false, OriginalExport? originalExport = null)
+        bool originalAutomaticSetup = false, bool originalBackground = false, OriginalExport? originalExport = null,
+        ArmedVideoExport? automaticVideo = null)
     {
         var manual = manualIntent is not null && !originalBackground;
         JsonObject? runIntent = manualIntent;
@@ -185,17 +281,22 @@ internal sealed partial class TelefonCoordinator
             lock (state)
             {
                 if (manual) state.Paused = false; // Only a new explicit action resumes a stopped pass.
-                else if (state.Paused) return "held";
+                else if (state.Paused || automaticVideo is not null && !ReferenceEquals(state.AutomaticVideo, automaticVideo)) return "held";
                 state.Active = lifetime; state.Phase = "running";
             }
             activity = TraySyncActivity.Enter();
             var permit = NativeMediaBookPermit.Capture(NativeProducerBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required"), NativeSavedBook);
             if (originalExport is not null)
             {
+                var waitingForVideoReceive = false;
                 void RequireIntent()
                 {
                     lifetime.Token.ThrowIfCancellationRequested(); permit.Require();
-                     if (!JsonNode.DeepEquals(store.ReadNativeMediaSharedSettings(peerId, originalExport.PeerKey), runIntent))
+                     if (!JsonNode.DeepEquals(store.ReadNativeMediaSharedSettings(peerId, originalExport.PeerKey), runIntent) ||
+                        automaticVideo is not null && (NativeSavedBook() != originalExport.Book ||
+                            Volatile.Read(ref nativeMediaCollectionDialog) != 0 ||
+                            store.ReadNativeMediaSendConsent(peerId) != originalExport.Consent ||
+                            !OriginalExportRoots(peerId, "video").SequenceEqual(originalExport.Roots)))
                         throw DeviceFileControl.Error("media_source_current_sending_owner_required");
                 }
                 try
@@ -203,8 +304,19 @@ internal sealed partial class TelefonCoordinator
                      if (NativeSavedBook() != originalExport.Book)
                         throw DeviceFileControl.Error("file_media_current_saved_book_required");
                     RequireIntent();
-                     await connection.PrepareNativeMediaSendUiAsync(NativeSavedBook, originalExport.Kind, lifetime.Token,
-                         originalExport.Agreement, originalExport.Consent);
+                    var ready = await connection.PrepareNativeMediaSendUiAsync(NativeSavedBook, originalExport.Kind, lifetime.Token,
+                        originalExport.Agreement, originalExport.Consent, waitForReceiveEcho: automaticVideo is null);
+                    if (automaticVideo is not null)
+                    {
+                        RequireIntent();
+                        lock (state)
+                        {
+                            if (state.Paused || !ReferenceEquals(state.AutomaticVideo, automaticVideo)) return "held";
+                            state.AwaitingVideoReceive = waitingForVideoReceive = !ready;
+                            if (!ready) return state.Phase = "waiting_for_phone";
+                            state.AutomaticVideo = null;
+                        }
+                    }
                      if (originalExport.Kind == "images")
                          await connection.SynchronizeOriginalPcImageCollectionAsync(runIntent!, permit, RequireIntent, originalExport.Agreement,
                              originalExport.Consent, originalExport.Roots, lifetime.Token);
@@ -214,7 +326,10 @@ internal sealed partial class TelefonCoordinator
                     lock (state) state.Phase = "content_pass";
                     return "content_pass";
                 }
-                finally { connection.RevokeNativeMediaUiConsent(); }
+                finally
+                {
+                    if (!waitingForVideoReceive) connection.RevokeNativeMediaUiConsent();
+                }
             }
             NativeMediaReceiveConsent? accepted = originalReceive;
             var kinds = new[] { "images", "video" };

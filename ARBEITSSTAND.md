@@ -136,7 +136,12 @@ aufgeführt.
   Drei native Windows-Gruppen bestätigten den bytegleichen MP4-Versand
   mit Saved, Rücklesen und gespeichertem Quellenabschluss, den bisherigen
   Fotoexport und den Video-Erstempfang. Der Windows-Produktbuild und die
-  DOM-Prüfungen bestanden. WLAN-Ausgabeautomatik und Mischversand bleiben offen.
+  DOM-Prüfungen bestanden. Die bewusst eingerichtete Windows-WLAN-Ausgabe
+  für Videos wartet bei geschlossenen Einstellungen auf das eigenständige
+  Empfangsecho und überträgt einmal pro bestätigter Einstellung und Verbindung.
+  STOP und AUS sperren ein verspätetes Echo; eine neue WLAN-Wahl kann nach
+  STOP erneut aktivieren. Vier native Windows-Prüfgruppen und der Produktbuild
+  bestanden. Mischversand bleibt offen.
   Die Prüfung mit installierten Paketen bleibt offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte

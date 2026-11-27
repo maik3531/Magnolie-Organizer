@@ -10,7 +10,6 @@ internal static class DeviceFileOriginalImagesTests
     {
         var peer = fixture.Peer.Id;
         var kind = video ? "video" : "images";
-        var mime = video ? "video/mp4" : "image/png";
         var offered = coordinator.NativeMediaUiStatus(peer);
         var sendVersion = offered["send_consent"]?["version"]?.GetValue<string>();
         TestAssert.That(sendVersion is not null && offered["send_choice_kinds"] is JsonArray kinds &&
@@ -40,6 +39,17 @@ internal static class DeviceFileOriginalImagesTests
         request["version"] = selected["shared_start_version"]!.DeepClone();
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(230));
         var pass = coordinator.RunNativeMediaUiSharedAsync(NativeMediaUiRequest.Parse(request), deadline.Token);
+        await VerifyTransferAsync(fixture, read, send, video, originals, root, pass, deadline);
+    }
+
+    internal static async Task VerifyTransferAsync(PhoneCameraParentTests.Fixture fixture,
+        Func<Task<JsonObject>> read, Func<JsonObject, Task> send, bool video,
+        Dictionary<string, byte[]> originals, string root, Task pass, CancellationTokenSource deadline,
+        NativeFileControlSession? agreedControls = null)
+    {
+        var peer = fixture.Peer.Id;
+        var kind = video ? "video" : "images";
+        var mime = video ? "video/mp4" : "image/png";
         try
         {
             async Task<JsonObject> ReadApplication(string expectedKind)
@@ -48,7 +58,10 @@ internal static class DeviceFileOriginalImagesTests
                 {
                     var next = read();
                     if (await Task.WhenAny(next, pass).WaitAsync(deadline.Token) == pass)
-                        throw new InvalidDataException($"The native action ended before {expectedKind}: {await pass}.");
+                    {
+                        await pass;
+                        throw new InvalidDataException($"The native action ended before {expectedKind}.");
+                    }
                     var frame = await next;
                     if (JsonNode.DeepEquals(frame["type"], JsonValue.Create("ping")))
                     {
@@ -66,14 +79,18 @@ internal static class DeviceFileOriginalImagesTests
             var desktop = new NativeFileControlPeer(local.DeviceId, local.IdentitySha256, new object(),
                 true, true, true, true, true, fixture.Peer.FilePairingEpoch);
             var phoneGrant = new NativeLocalFileGrant(new(1, new string('a', 64), false, true), new object(), true);
-            using var controls = new NativeFileControlSession(phone, () => desktop, () => phoneGrant);
-            var first = DeviceFileControlEnvelope.Validate(await ReadApplication(DeviceFileControl.Kind), Now());
-            TestAssert.That(first.Grants.SendFiles && !first.Grants.ReceiveFiles && !pass.IsCompleted,
-                "Manual export did not wait for independent phone RECEIVE.");
-            controls.ObserveRemote(first, desktop);
-            var echoed = controls.Packet(); controls.MarkSent(echoed);
-            await send(DeviceFileControlEnvelope.Create(echoed, Now()));
-            controls.ObserveRemote(DeviceFileControlEnvelope.Validate(await ReadApplication(DeviceFileControl.Kind), Now()), desktop);
+            using var ownedControls = agreedControls is null ? new NativeFileControlSession(phone, () => desktop, () => phoneGrant) : null;
+            var controls = agreedControls ?? ownedControls!;
+            if (agreedControls is null)
+            {
+                var first = DeviceFileControlEnvelope.Validate(await ReadApplication(DeviceFileControl.Kind), Now());
+                TestAssert.That(first.Grants.SendFiles && !first.Grants.ReceiveFiles && !pass.IsCompleted,
+                    "Manual export did not wait for independent phone RECEIVE.");
+                controls.ObserveRemote(first, desktop);
+                var echoed = controls.Packet(); controls.MarkSent(echoed);
+                await send(DeviceFileControlEnvelope.Create(echoed, Now()));
+                controls.ObserveRemote(DeviceFileControlEnvelope.Validate(await ReadApplication(DeviceFileControl.Kind), Now()), desktop);
+            }
             Console.WriteLine("Original WLAN SEND/RECEIVE echoed.");
 
             var binding = controls.Binding(new string('f', 64), senderIsLocal: false)!;
@@ -144,7 +161,8 @@ internal static class DeviceFileOriginalImagesTests
                     DevicePublishedBatchReadbackEnvelope.EncodeBody(context, readback), acceptance));
             }
             Console.WriteLine("Original WLAN complete readback sent.");
-            TestAssert.That(await pass.WaitAsync(deadline.Token) == "content_pass" &&
+            await pass.WaitAsync(deadline.Token);
+            TestAssert.That((pass is not Task<string> result || result.Result == "content_pass") &&
                 !fixture.Store.ReadNativeMediaReceiveConsent(peer).Granted &&
                 originals.All(pair => File.ReadAllBytes(Path.Combine(root, pair.Key)).SequenceEqual(pair.Value)),
                 "The completed export changed an original or acquired PC RECEIVE.");
@@ -165,7 +183,7 @@ internal static class DeviceFileOriginalImagesTests
     }
 
     // One synthetic 16×16 AVC frame, the same original used by the Notes fixture.
-    private static byte[] OriginalMp4() => Convert.FromBase64String("""
+    internal static byte[] OriginalMp4() => Convert.FromBase64String("""
         AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMVbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAA+gAAQAAAQAAAAAA
         AAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAj90cmFr
         AAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA

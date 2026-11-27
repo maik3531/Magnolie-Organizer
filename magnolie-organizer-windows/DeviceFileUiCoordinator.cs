@@ -173,8 +173,8 @@ internal sealed partial class TelefonConnection
         }
     }
 
-    internal async Task PrepareNativeMediaSendUiAsync(Func<NativeBookSaveState?> savedBook, string mediaType, CancellationToken token,
-        Func<bool>? originalExport = null, NativeMediaSendConsent? expectedSend = null)
+    internal async Task<bool> PrepareNativeMediaSendUiAsync(Func<NativeBookSaveState?> savedBook, string mediaType, CancellationToken token,
+        Func<bool>? originalExport = null, NativeMediaSendConsent? expectedSend = null, bool waitForReceiveEcho = true)
     {
         var saved = savedBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required");
         var consent = store.ReadNativeMediaSendConsent(peer.Id);
@@ -217,7 +217,7 @@ internal sealed partial class TelefonConnection
             bool ready;
             try { ready = RequireNativeFileControls().Binding(new string('0', 64), senderIsLocal: true) is not null; }
             finally { fileControlIo.Release(); }
-            if (ready) { Current(); return; }
+            if (ready || !waitForReceiveEcho) { Current(); return ready; }
             await Task.Delay(100, deadline.Token);
         }
     }
@@ -374,7 +374,11 @@ internal sealed partial class TelefonCoordinator
 
     private Task NativeMediaSharedPreferencesChangedAsync(string peerId, TelefonConnection connection)
     {
-        try { ApplyMatchedNativeMediaPreferences(peerId, connection); }
+        try
+        {
+            ApplyMatchedNativeMediaPreferences(peerId, connection);
+            ObserveOriginalAutomaticVideo(peerId, connection);
+        }
         catch (Exception error) when (error is InvalidDataException or IOException or InvalidOperationException or CryptographicException)
         { /* Shared choices stay durable; a missing local authority HOLDs IO, not metadata. */ }
         emit("MagnolieMedia.changed", new { device_id = peerId });
@@ -452,9 +456,14 @@ internal sealed partial class TelefonCoordinator
             }
             catch (InvalidDataException) { return null; }
         }
-        var automaticPhase = "idle"; var automaticBusy = false;
+        var automaticPhase = "idle"; var automaticBusy = false; var automaticVideoArmed = false;
         if (nativeAutomaticMedia.TryGetValue(peerId, out var automatic) && ReferenceEquals(automatic.Connection, connection))
-            lock (automatic) { automaticPhase = automatic.Phase; automaticBusy = automatic.Active is not null; }
+            lock (automatic)
+            {
+                automaticPhase = automatic.Phase;
+                automaticBusy = automatic.Active is not null;
+                automaticVideoArmed = !automatic.Paused && automatic.AutomaticVideo is not null;
+            }
         var result = new JsonObject { ["supported"] = true, ["photos"] = preference.PhotosEnabled, ["videos"] = preference.VideosEnabled,
             ["automatic"] = preference.AutomaticWifi, ["skip_deletions"] = preference.SkipDeletions is bool skip ? JsonValue.Create(skip) : null,
             ["version"] = preference.Version, ["pictures"] = Destination("images"), ["video_destination"] = Destination("video"),
@@ -485,7 +494,7 @@ internal sealed partial class TelefonCoordinator
             result["shared_runtime_ready"] = false; // The legacy settings writer does not own this reader.
             var receive = store.ReadNativeMediaReceiveConsent(peerId);
             result["receive_consent"] = new JsonObject { ["granted"] = receive.Granted, ["version"] = receive.Version };
-            result["automatic"] = false;
+            result["automatic"] = automaticVideoArmed;
             var send = store.ReadNativeMediaSendConsent(peerId);
             var imageBook = NativeSavedBook();
             var imageSetup = imageBook is not null && intent is not null && connection.CapturePrivatePcImageExport(intent) is not null;
@@ -519,7 +528,7 @@ internal sealed partial class TelefonCoordinator
                 var auto = OriginalReceiveAvailable(connection, intent, "wifi");
                 var armed = auto && receive.Granted && preference.OriginalAutomaticKey is { } key &&
                     key == OriginalAutomaticReceiveKey(peerId, intent, receive, book);
-                result["automatic"] = armed;
+                result["automatic"] = armed || automaticVideoArmed;
                 if (manual || auto && !armed)
                 {
                     result["manual_receive_setup"] = manual && !receive.Granted;
@@ -664,6 +673,7 @@ internal sealed partial class TelefonCoordinator
                     throw DeviceFileControl.Error("media_shared_controls_unavailable");
                 return store.ChangeNativeMediaSharedSetting(peerId, currentPeer.PublicKey, field, value, version);
             });
+            RetireChangedAutomaticVideo(peerId, connection);
             permit.Require(); return NativeMediaUiStatus(peerId);
         }
         store.ChangeNativeMediaSharedSetting(peerId, currentPeer.PublicKey, field, value, version);
