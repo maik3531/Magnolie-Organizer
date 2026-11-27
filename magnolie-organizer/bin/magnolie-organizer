@@ -6401,10 +6401,17 @@ def lotus_csv_lesen(rohbytes):
 
     Erkannt werden alle Bereiche: Termine, Adressen, Aufgaben, Jahrestage
     und Notizen. Welcher es ist, verrät die Kopfzeile."""
-    if (not isinstance(rohbytes, (bytes, bytearray)) or b"\x00" in rohbytes or
-            bytes(rohbytes).startswith(b"SQLite format 3\x00")):
+    if not isinstance(rohbytes, (bytes, bytearray)):
         raise ValueError(_("The selected file is not a readable CSV file."))
-    text = _text_dekodieren(rohbytes)
+    # Nur UTF-16 mit BOM darf Nullbytes als Teil normaler Zeichen enthalten.
+    if not rohbytes.startswith((b"\xff\xfe", b"\xfe\xff")) and b"\x00" in rohbytes:
+        raise ValueError(_("The selected file is not a readable CSV file."))
+    try:
+        text = _text_dekodieren(rohbytes)
+    except UnicodeDecodeError as fehler:
+        raise ValueError(_("The selected file is not a readable CSV file.")) from fehler
+    if "\x00" in text:
+        raise ValueError(_("The selected file is not a readable CSV file."))
     if re.match(r"^sep\s*=\s*[,;\t|]\s*$", text.splitlines()[0] if text.splitlines()
                 else "", re.I):
         text = "\n".join(text.splitlines()[1:])

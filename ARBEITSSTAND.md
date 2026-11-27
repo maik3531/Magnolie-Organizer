@@ -130,6 +130,11 @@ aufgeführt.
   Archiverzeugung. Abgewiesene Wiederholungen lassen vorhandene
   Dateien unverändert. Elf Linux-Prüfungen und der native
   Windows-DPAPI-Rundlauf aus dem Quellarchiv bestanden.
+- [#817](https://github.com/maik3531/Magnolie-Organizer/issues/817):
+  Der Linux-CSV-Import und der daraus erzeugte macOS-Importhelfer
+  lesen UTF-16LE und UTF-16BE mit BOM auch aus ZIP-Dateien.
+  Beschädigtes UTF-16 und eingebettete Nullzeichen werden abgewiesen.
+  35 Linux-Prüfungen und 18 Prüfungen des Importhelfers auf Linux bestanden.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal

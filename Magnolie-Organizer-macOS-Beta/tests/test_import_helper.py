@@ -166,6 +166,17 @@ class ImportHelperTests(unittest.TestCase):
         self.assertEqual(result["kontakte"][0]["vorname"], "Ada")
         self.same_as_desktop((directory / "golden-kontakt.ldif").read_bytes(), "claws", "source.ldi")
 
+    def test_utf16_csv_bom_and_decoded_null_through_isolated_helper(self):
+        text = 'ANFANGSDATUMZEIT,BESCHREIBUNG\r\n"27.11.2026 09:30","Prüfung 👩‍💻"\r\n'
+        for encoding, bom in (("utf-16-le", b"\xff\xfe"), ("utf-16-be", b"\xfe\xff")):
+            for art in ("lotus", "vcf"):
+                with self.subTest(encoding=encoding, art=art):
+                    result = self.same_as_desktop(bom + text.encode(encoding), art, "selected.csv")
+                    self.assertEqual(result["termine"][0]["titel"], "Prüfung 👩‍💻")
+                    self.assertEqual(result["termine"][0]["zeit"], "09:30")
+                    rejected = self.request(bom + text.replace("Prüfung", "Prü\0fung").encode(encoding), art, "selected.csv")
+                    self.assertFalse(rejected["ok"])
+
     def test_zip_routes_use_the_same_bounded_desktop_dispatcher(self):
         directory = REPO / "magnolie-organizer/pruefungen/fixtures"
         source_or6 = next(data for _source, name, data, _proof in native_files() if name == "known-values.or6")
