@@ -64,7 +64,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
     for (const mutation of ["edit-add-delete", "import", "personal", "retry"]) {
       const b = await harness.exports.boot(web, {
         syncNachRestore: { additiv: true, loeschungsfrei: true },
-        einstellungen: { sync: { adressbuchUid: "windows-contacts" } },
+        einstellungen: { sync: { kalenderUid: "source", kalenderUids: ["source"] } },
         aufgaben: [{ id: "one", uid: "one", titel: "Before", geaendert: 1 },
           { id: "remove", uid: "remove", titel: "Delete me", geaendert: 1 }]
       });
@@ -72,6 +72,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
         b.t.starteSync(false); b.ack();
         const request = b.messages.find(message => message.cmd === "sync");
         assert.ok(request);
+        assert.deepEqual(request.wahl.kalenderUids, ["source"]);
         assert.equal(request.daten.syncNachRestore.additiv, true);
         const response = plain(request.daten);
         response.transactionId = request.transactionId;
@@ -115,13 +116,16 @@ const plain = value => JSON.parse(JSON.stringify(value));
     }
     for (const [collection, field] of [["termine", "titel"], ["kontakte", "vorname"], ["jahrestage", "name"]]) {
       const b = await harness.exports.boot(web, {
-        einstellungen: { sync: { adressbuchUid: "windows-contacts" } },
+        einstellungen: { sync: collection === "kontakte"
+          ? { adressbuchUid: "source" } : { kalenderUid: "source", kalenderUids: ["source"] } },
         [collection]: [{ id: "one", uid: "one", [field]: "Before", datum: "2026-09-11" },
           { id: "remove", uid: "remove", [field]: "Remove", datum: "2026-09-12" }]
       });
       try {
         b.t.starteSync(false); b.ack();
         const request = b.messages.find(message => message.cmd === "sync");
+        assert.ok(request);
+        assert.deepEqual(request.wahl.kalenderUids, collection === "kontakte" ? [] : ["source"]);
         const response = plain(request.daten);
         response.transactionId = request.transactionId;
         response.requestId = request.requestId;
