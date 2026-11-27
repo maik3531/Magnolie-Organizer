@@ -129,6 +129,14 @@ aufgeführt.
   einschließlich Android-Testdialog, Saved, Rücklesen, Quellenabschluss
   und unveränderter Wiederholung. Mischversand und die installierte
   Windows/Notes-Gegenprobe bleiben offen.
+  Windows kann in der privaten Medienkonfiguration Original-MP4 aus
+  einem ausdrücklich gewählten Videoordner manuell senden. Die Auswahl
+  startet keine Übertragung. Der Lauf braucht getrennt bestätigtes
+  Video-SEND und das tatsächliche RECEIVE-Echo der Gegenstelle.
+  Drei native Windows-Gruppen bestätigten den bytegleichen MP4-Versand
+  mit Saved, Rücklesen und gespeichertem Quellenabschluss, den bisherigen
+  Fotoexport und den Video-Erstempfang. Der Windows-Produktbuild und die
+  DOM-Prüfungen bestanden. WLAN-Ausgabeautomatik und Mischversand bleiben offen.
   Die Prüfung mit installierten Paketen bleibt offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
