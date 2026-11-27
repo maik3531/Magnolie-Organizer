@@ -138,6 +138,9 @@ internal class PersonalNoteSession {
     var timeSnapshot: String? = null
     var sharedSent: JsonObject? = null
     var sharedReceived: JsonObject? = null
+    // One authenticated WLAN transition, consumed only after its current scope
+    // has retired stale runs and received all membership acknowledgments.
+    var autoWifiCheckPending = false
     var localContentScope: JsonObject? = null
     var contentScopeSelection: io.gitlab.maik3531.magnolienotes.daten.PersonalContentSelection? = null
     var contentScopeRestoreEpoch: String? = null

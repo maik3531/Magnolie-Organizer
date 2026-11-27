@@ -29,6 +29,13 @@ für die Medien-Aufbewahrung auch bei gültigen Dezimalzahlen.
 bestanden. Der Auslöser des früher gemeldeten GUI-Abbruchs und die
 installierte In-place-Probe für die Aufbewahrung bleiben offen.
 
+[#762](https://github.com/maik3531/Magnolie-Organizer/issues/762):
+Notes berücksichtigt nach authentifizierter WLAN-Rückkehr verspätete
+Inhaltsfreigaben, bevor es den einmaligen automatischen Abgleich auslöst.
+Alle 135 gezielten Notes-Tests bestanden, einschließlich der Fälle für
+gültige Alt-Läufe, Widerruf und ersetzte Verbindungen. Die Heimkehrprobe
+mit der installierten Organizer-Gegenstelle bleibt offen.
+
 ## Windows-Testbereinigung – 27. November 2026
 
 [#794](https://github.com/maik3531/Magnolie-Organizer/issues/794):

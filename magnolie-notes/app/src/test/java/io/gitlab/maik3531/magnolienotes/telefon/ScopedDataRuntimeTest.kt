@@ -136,7 +136,18 @@ class ScopedDataRuntimeTest {
     @Test fun revokedSingleSendDoesNotQueueOrStartAFullRun() = exercise("send-revoked", 14)
     @Test fun linkedNotesUsePersonalRouteWhileForeignNotesAndDelegatedTasksDoNot() = exercise("send-route", 14)
 
+    @Test fun authenticatedWifiWithLateSettingsReplacesOnlyTheStaleAutomaticRun() = exercise("auto-late-stale")
+    @Test fun automaticWifiWaitsForLateSettingsWithoutExpiringTheTransition() = exercise("auto-late-delayed")
+    @Test fun unchangedWifiReconnectDoesNotQueueAnotherRun() = exercise("auto-late-unchanged")
+    @Test fun resumedValidAutomaticRunDoesNotCreateADuplicateAfterCompletion() = exercise("auto-late-active")
+    @Test fun automaticWifiOffThenOnDoesNotReviveAnOldPendingTransition() = exercise("auto-late-off")
+    @Test fun revokedThenRestoredGrantsDoNotReviveAnOldPendingTransition() = exercise("auto-late-grants")
+    @Test fun bluetoothAuthenticationDoesNotAuthorizeALaterAutomaticWifiRun() = exercise("auto-late-bluetooth")
+    @Test fun aReplacedAuthenticatedChannelCannotStartItsPendingAutomaticRun() = exercise("auto-late-channel")
+    @Test fun aReplacedOriginalPipeCannotStartItsPendingAutomaticRun() = exercise("auto-late-pipe")
+
     private fun exercise(mode: String, format: Int = 3) {
+        val automaticReconnect = mode.startsWith("auto-late-")
         val actorDeletion = mode.startsWith("actor-deletions")
         val actorCommit = mode.startsWith("actor-commit")
         val actorTerminal = mode.startsWith("actor-commit-terminal")
@@ -174,7 +185,7 @@ class ScopedDataRuntimeTest {
                 ursprungApp = if (format == 14) "notes" else "",
                 baumQuelle = if (mode == "send-route") "linked-origin" else "",
                 persoenlichVerknuepft = mode == "send-route"))
-            if (actorDeletion || actorCommit || mode.startsWith("actor-producer-incoming-mixed-") || mode.startsWith("send-") || mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
+            if (automaticReconnect || actorDeletion || actorCommit || mode.startsWith("actor-producer-incoming-mixed-") || mode.startsWith("send-") || mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
             if (mode.startsWith("send-")) {
                 documents.setzeNotiz(Notiz("private-note", "Unselected note", "Never transfer", notizbuchId = book.id))
                 documents.setzeAufgabe(Aufgabe("private-task", "Unselected task",
@@ -264,6 +275,7 @@ class ScopedDataRuntimeTest {
             }
             val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
             var local = work.changeSharedSetting(peerId, peer.static_public, "content_mode", JsonPrimitive("phone_scope"))
+            if (automaticReconnect) local = work.changeSharedSetting(peerId, peer.static_public, "auto_mode", JsonPrimitive("wifi"))
             if (actorTerminal || actorProducer && mode != "actor-producer-skip" || mode.startsWith("actor-deletions-origin") || mode in setOf("delete", "actor-deletions")) local = work.changeSharedSetting(peerId, peer.static_public, "skip_deletions", JsonPrimitive(false))
             field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
             val identity = storage.identity("Synthetic"); val actor = identity.first.device_id; identity.second.fill(0)
@@ -303,6 +315,120 @@ class ScopedDataRuntimeTest {
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
+                if (automaticReconnect) {
+                    val enqueue = TelefonWerk::class.java.getDeclaredMethod("enqueuePersonalSync", TelefonPeer::class.java,
+                        String::class.java, String::class.java, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
+                    val secureTransition = TelefonWerk::class.java.getDeclaredMethod("startPersonalSyncOnSecureWifi",
+                        TelefonPeer::class.java, TelefonSecureChannel::class.java, Long::class.javaPrimitiveType).apply { isAccessible = true }
+                    field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                    (field(TelefonWerk::class.java, "scopedWakeup").get(work) as AtomicBoolean).set(true)
+                    sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
+                    val needsReplacement = mode in setOf("auto-late-stale", "auto-late-delayed")
+                    val oldRun = if (needsReplacement || mode == "auto-late-active") {
+                        assertEquals(true, enqueue.invoke(work, peer, "auto_wifi", null, false))
+                        pump.invoke(work, peer, channel, 0L, false)
+                        val request = scoped(sent()).single { PhoneContentScope.unwrap(it.getValue("body").jsonObject,
+                            requireNotNull(session.localContentScope)).first == "personal_sync.request" }
+                        assertTrue(queue.hasActiveAutoRun(peerId))
+                        PhoneContentScope.unwrap(request.getValue("body").jsonObject,
+                            requireNotNull(session.localContentScope)).second.string("run_id")
+                    } else {
+                        documents.personalSyncScopedSnapshot(PersonalSync.livePersonalContent(documents.bestand.value), peerId, format)
+                        null
+                    }
+                    val baselineCounter = documents.personalSyncCounter()
+                    storage.setPersonalSyncLastCounter(baselineCounter)
+                    storage.setPersonalSyncLastAuto(System.currentTimeMillis())
+                    if (mode !in setOf("auto-late-unchanged", "auto-late-active"))
+                        documents.setzeNotiz(Notiz("new-offline-note", "Offline note", "Synthetic content", notizbuchId = book.id))
+                    // Reconnect with fresh bilateral controls but delayed common settings.
+                    session = PersonalNoteSession().apply { capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true }
+                    sessions[channel] = session
+                    queue.removeKind(peerId, SharedSyncSettings.KIND)
+                    pump.invoke(work, peer, channel, 0L, true); sent()
+                    assertNull(session.sharedReceived)
+                    if (mode == "auto-late-bluetooth")
+                        field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.BLUETOOTH to pipe)
+                    secureTransition.invoke(work, peer, channel, 0L)
+                    if (mode == "auto-late-bluetooth")
+                        field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
+                    if (mode == "auto-late-delayed")
+                        org.robolectric.shadows.ShadowSystemClock.advanceBy(java.time.Duration.ofSeconds(61))
+                    var currentShared = shared
+                    if (mode == "auto-late-off") {
+                        val disabled = SharedSyncSettings.change(shared, peerId, actor, "auto_mode", JsonPrimitive("manual"))
+                        work.receiveMessage(peer, TelefonNachrichten.message(SharedSyncSettings.KIND, disabled, 60000), channel, 0)
+                        assertFalse(session.autoWifiCheckPending)
+                        val enabled = SharedSyncSettings.change(disabled, peerId, actor, "auto_mode", JsonPrimitive("wifi"))
+                        work.receiveMessage(peer, TelefonNachrichten.message(SharedSyncSettings.KIND, enabled, 60000), channel, 0)
+                        currentShared = enabled
+                    }
+                    if (mode == "auto-late-grants") {
+                        for ((revision, granted) in listOf(1L to false, 2L to true)) {
+                            work.receiveMessage(peer, TelefonNachrichten.message("grants.update",
+                                TelefonNachrichten.grants(revision, personalNotes = granted, personalTasks = true), 60000), channel, 0)
+                            assertFalse(session.autoWifiCheckPending)
+                        }
+                    }
+                    if (mode == "auto-late-channel") {
+                        TelefonSecureChannel(pipe.input, pipe.output, ByteArray(32) { 1 }, ByteArray(32) { 2 }, ByteArray(4) { 3 },
+                            ByteArray(32) { 4 }, ByteArray(4) { 5 }).use { replacement ->
+                            field(TelefonWerk::class.java, "activeChannel").set(work, replacement)
+                            pump.invoke(work, peer, channel, 0L, false)
+                            assertFalse(session.autoWifiCheckPending)
+                        }
+                        field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                    }
+                    if (mode == "auto-late-pipe") {
+                        val replacement = object : TelefonRoehre {
+                            override val input = ByteArrayInputStream(ByteArray(0))
+                            override val output = ByteArrayOutputStream()
+                            override fun close() {}
+                        }
+                        field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to replacement)
+                        pump.invoke(work, peer, channel, 0L, false)
+                        assertFalse(session.autoWifiCheckPending)
+                        field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
+                    }
+                    // No data is permitted merely because shared settings arrived.
+                    work.receiveMessage(peer, TelefonNachrichten.message(SharedSyncSettings.KIND, currentShared, 60000), channel, 0)
+                    pump.invoke(work, peer, channel, 0L, false); pump.invoke(work, peer, channel, 0L, false)
+                    if (needsReplacement) {
+                        assertNull(queue.personalRun(peerId, requireNotNull(oldRun)))
+                        assertFalse(queue.hasActiveAutoRun(peerId))
+                    }
+                    assertTrue("Unconfirmed membership sent a request", scoped(sent()).isEmpty())
+                    ackScope(); pump.invoke(work, peer, channel, 0L, false)
+                    if (needsReplacement) {
+                        assertTrue(queue.hasActiveAutoRun(peerId))
+                        val requests = scoped(sent())
+                        assertEquals(1, requests.size)
+                        val nextManifest = requireNotNull(session.localContentScope)
+                        val request = PhoneContentScope.unwrap(requests.single().getValue("body").jsonObject, nextManifest)
+                        assertEquals("personal_sync.request", request.first)
+                        assertEquals("auto_wifi", request.second.string("trigger"))
+                        assertNotEquals(oldRun, request.second.string("run_id"))
+                        assertFalse(queue.scopedRequestAccepted(peerId, request.second.string("run_id")))
+                        pump.invoke(work, peer, channel, 0L, false)
+                        assertTrue("Data preceded request receipt", scoped(sent()).isEmpty())
+                        ack(requests.single().string("message_id")); pump.invoke(work, peer, channel, 0L, false)
+                        val records = scoped(sent()).map { PhoneContentScope.unwrap(it.getValue("body").jsonObject, nextManifest) }
+                            .filter { it.first == "personal_sync.batch" }.flatMap { PersonalSyncProtokoll.decodeBatch(it.second) }
+                        assertTrue(records.any { it.kind == "note" && it.id == PersonalSync.noteWireId(documents.bestand.value.personalSync, "new-offline-note") })
+                        queue.markPersonalRun(peerId, request.second.string("run_id"), "reported")
+                    } else if (mode == "auto-late-active") {
+                        assertTrue(queue.hasActiveAutoRun(peerId)); assertNotNull(queue.personalRun(peerId, requireNotNull(oldRun)))
+                        assertTrue(scoped(sent()).none { PhoneContentScope.unwrap(it.getValue("body").jsonObject,
+                            requireNotNull(session.localContentScope)).second.string("run_id") != oldRun })
+                        queue.markPersonalRun(peerId, oldRun, "reported")
+                    } else {
+                        assertFalse(queue.hasActiveAutoRun(peerId)); assertTrue(scoped(sent()).isEmpty())
+                    }
+                    assertFalse(session.autoWifiCheckPending)
+                    repeat(3) { pump.invoke(work, peer, channel, 0L, false) }
+                    assertFalse("A heartbeat repeated the completed transition", queue.hasActiveAutoRun(peerId))
+                    return@use
+                }
                 if (mode.startsWith("send-")) {
                     field(TelefonWerk::class.java, "activeChannel").set(work, channel)
                     (field(TelefonWerk::class.java, "scopedWakeup").get(work) as AtomicBoolean).set(true)
