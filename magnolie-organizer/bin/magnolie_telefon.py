@@ -3555,6 +3555,16 @@ class PhoneService:
         if request['action']=='sync_selected':options['video_album_id']=request['video_album_id']
         return connection.desktop_session().start(request['action'],request.get('album_id'),**options)
 
+    @staticmethod
+    def _equivalent_native_metadata_refresh(previous, current):
+        # Compare the complete validated bodies, including flags not used by
+        # this consumer. A refresh can retain authority, never add any.
+        return (type(previous) is dict and type(current) is dict
+                and type(previous.get('revision')) is int and type(current.get('revision')) is int
+                and current['revision']>previous['revision']
+                and {key:value for key,value in previous.items() if key!='revision'}==
+                    {key:value for key,value in current.items() if key!='revision'})
+
     def _observe_native_file_control(self, peer, channel, kind, message, *, duplicate=False, acknowledged=True):
         # Positive connection metadata requires actual secure ACK completion.
         # A validated withdrawal revokes immediately, even if ACK output fails.
@@ -3562,6 +3572,7 @@ class PhoneService:
         # capabilities alone must not start a file session during FS1 warmup.
         if kind not in ('capabilities.update','grants.update','personal_sync.settings'):return
         body=message['body']
+        peer_field={'capabilities.update':'capabilities','grants.update':'grants'}.get(kind)
         if not acknowledged and not (kind=='personal_sync.settings' and body.get('own_device') is False):
             # A changed/uncertain metadata exchange cannot reuse an older
             # positive witness, even if a later persisted value looks identical.
@@ -3572,6 +3583,18 @@ class PhoneService:
                     # The original exact ACK already completed on this channel.
                     # A repeated receipt neither grants anything nor withdraws it.
                     return
+                current=controls.get(kind)
+                if peer_field is not None:
+                    latest=peer.get(peer_field)
+                    if (duplicate and type(previous) is dict and type(current) is dict
+                            and current==latest and previous.get('body')==current
+                            and type(current.get('revision')) is int and type(body.get('revision')) is int
+                            and body['revision']<current['revision']):
+                        # The dispatcher checked the superseded receipt against
+                        # durable replay history. Keep this reader's newer ACK.
+                        return
+                    if body==latest and self._equivalent_native_metadata_refresh(current,body):
+                        return # Keep the old acknowledged body until the new ACK is written.
                 controls.pop(kind,None)
                 support=self._native_media_support.get(channel)
                 if support is not None:support.close()
@@ -3579,15 +3602,16 @@ class PhoneService:
         with self.lock:
             receipts=self._native_file_control_receipts.setdefault(channel,{})
             previous=receipts.get(kind)
-            if (kind in ('capabilities.update','grants.update')
-                    and body!=peer.get('capabilities' if kind=='capabilities.update' else 'grants')):return
+            if peer_field is not None and body!=peer.get(peer_field):return
             if duplicate and previous is not None and previous!=message:
                 if kind=='personal_sync.settings':
                     if body.get('own_device') is not False:return
                 elif body.get('revision',-1)<=previous.get('body',{}).get('revision',-1):return
             controls=self._native_file_controls.setdefault(channel,{})
             support=self._native_media_support.get(channel)
-            if support is not None and controls.get(kind)!=body:support.close()
+            current=controls.get(kind)
+            equivalent=peer_field is not None and self._equivalent_native_metadata_refresh(current,body)
+            if support is not None and current!=body and not equivalent:support.close()
             controls[kind]=json.loads(json.dumps(body))
             receipts[kind]=json.loads(json.dumps(message))
         if self._native_photo_built:
@@ -3657,8 +3681,10 @@ class PhoneService:
             and status.get('available') is True and 21 in status.get('versions',[])
             and (not require_legacy_shared or 23 in status.get('versions',[]))
             and 'capabilities.update' in controls and 'grants.update' in controls
-            and controls.get('capabilities.update')==peer.get('capabilities')
-            and controls.get('grants.update')==peer.get('grants')
+            and (controls.get('capabilities.update')==peer.get('capabilities')
+                 or self._equivalent_native_metadata_refresh(controls.get('capabilities.update'),peer.get('capabilities')))
+            and (controls.get('grants.update')==peer.get('grants')
+                 or self._equivalent_native_metadata_refresh(controls.get('grants.update'),peer.get('grants')))
             and controls.get('personal_sync.settings')=={'format':1,'own_device':True})
 
     def _begin_native_media_support(self,peer,channel):

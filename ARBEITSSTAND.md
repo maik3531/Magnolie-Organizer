@@ -21,6 +21,9 @@ aufgeführt.
   getrennter PC-Ausgabe. 94 gezielte Notes-JVM-Prüfungen bestanden,
   darunter fünf gekoppelte Python-/Kotlin-Prüfungen. Der sichere
   Rückweg, die Löschweitergabe und die Paket-Paarprüfung bleiben offen.
+  Linux behält bei unveränderten WLAN-Fähigkeiten oder -Rechten den
+  bereits bestätigten Stand bis zur neuen Quittung; tatsächliche
+  Änderungen sperren ihn. 58 gezielte Prüfungen bestanden.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
   zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.

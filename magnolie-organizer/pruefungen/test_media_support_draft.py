@@ -44,6 +44,76 @@ def legacy_state():
     return phone.validate_capabilities(capabilities)
 
 
+@pytest.mark.parametrize('field', ['grants', 'capabilities'])
+@pytest.mark.parametrize('change', ['same', 'ack_failure', 'withdraw', 'late_duplicate'])
+def test_equivalent_wlan_controls_keep_the_already_acknowledged_media_lane(native, monkeypatch, field, change):
+    service, peer, _ = native
+    peer['capabilities'] = legacy_state(); service.store.save_peers()
+    monkeypatch.setattr(service, '_native_media_support_checked', True)
+    monkeypatch.setattr(service, '_resume_automatic_photos', lambda *_: None)
+    with wire_pair() as (channel, wire):
+        binding = capture_authenticated_binding(dict(service.store.identity), dict(peer), service._generation, service.store)
+        service._activate_connection(peer['device_id'], channel, 'wifi', file_binding=binding)
+
+        def deliver(message):
+            wire.send(message); service._payload(peer, channel, channel.receive())
+
+        try:
+            ack_all(service, peer, channel)
+            remote = offer(phone.now_ms()); deliver(remote)
+            local = wire.receive(); assert wire.receive() == ack(remote)
+            deliver(ack(local))
+            support = service._native_media_support[channel]
+            original = service.photo_sync_state(peer['device_id'])['shared_media']
+            kind = field + '.update'
+            old = deepcopy(peer[field])
+            previous = deepcopy(service._native_file_control_receipts[channel][kind])
+            body = deepcopy(old); body['revision'] += 1
+            if change == 'withdraw':
+                if field == 'grants':
+                    body['grants']['device_status'] = not old['grants']['device_status']
+                else:
+                    body['items']['device_status']['versions'].remove(22)
+            if change == 'late_duplicate':
+                service.store.remember_message(peer['device_id'], previous, 'accepted', 'none')
+            at = phone.now_ms()
+            message = dict(type='message', v=1, message_id=str(uuid.uuid4()), kind=kind,
+                           created_ms=at, expires_ms=at + 60_000, body=body)
+            during = []
+            send = channel.send
+
+            def observe_ack(frame):
+                if frame.get('message_id') == message['message_id']:
+                    during.append((service._native_file_controls[channel].get(kind), support.supports(channel)))
+                    if change == 'ack_failure':
+                        raise OSError('ACK output did not complete')
+                return send(frame)
+
+            monkeypatch.setattr(channel, 'send', observe_ack)
+            if change == 'ack_failure':
+                with pytest.raises(OSError, match='ACK output'):
+                    deliver(message)
+                assert during == [(old, True)]
+                assert service._native_file_controls[channel][kind] == old
+                assert service._native_file_control_receipts[channel][kind] == previous
+                assert service.photo_sync_state(peer['device_id']) is None
+                return
+
+            deliver(message)
+            assert wire.receive() == ack(message)
+            assert during == ([(None, False)] if change == 'withdraw' else [(old, True)])
+            if change == 'late_duplicate':
+                deliver(previous)
+                assert wire.receive() == dict(type='ack', message_id=previous['message_id'], status='duplicate', error='none')
+            assert service._native_file_control_receipts[channel][kind] == message
+            assert support.supports(channel) == (change != 'withdraw')
+            state = service.photo_sync_state(peer['device_id']) or {}
+            assert state.get('shared_media') == (None if change == 'withdraw' else original)
+            assert not service._native_file_connections
+        finally:
+            service._end_native_file_connection(channel)
+
+
 def test_exact_duplicate_control_preserves_existing_media_support_but_changed_control_retires(native,monkeypatch):
     service,peer,_=native
     peer['capabilities']=legacy_state();service.store.save_peers()
