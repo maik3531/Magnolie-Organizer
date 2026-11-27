@@ -55,7 +55,9 @@ aufgeführt.
   ist ebenfalls geprüft: Alle 19 Windows-Sprachkataloge bestehen
   im Checkout und nach Regeneration aus dem entpackten Archiv.
   Der Medien-Wiederherstellungstest [#814](https://github.com/maik3531/Magnolie-Organizer/issues/814)
-  ist ein separater Windows-CI-Befund.
+  prüft den direkt sichtbaren Offline-Bereich ohne aktive Notes-Verbindung.
+  Je 20 UI-Fälle und 19 Kataloge bestehen im Checkout und im Quellarchiv.
+  Die vollständige Windows-Abnahme steht in #113.
 
 ## Linux-Telefonstatus und lokale Buchspeicherung – 27. November 2026
 

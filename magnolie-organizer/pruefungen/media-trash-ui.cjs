@@ -41,10 +41,9 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
         const baum = d.querySelector("#einst-tab-baum") || [...d.querySelectorAll(".einst-reiter-knopf")]
           .find(button => button.textContent === "Magnolienbaum");
         baum.click();
-        const fold = d.querySelector("[data-media-backup-recovery] > details");
-        assert(fold);
-        const media = fold.closest(".notes-foto-sync"), advanced = media.closest(".notes-erweiterte-funktionen");
-        advanced.open = media.open = true;
+        const fold = d.querySelector("[data-notes-photo-root] > [data-offline-media-recovery] > details");
+        assert(fold, "Local recovery is reachable without a live Notes peer");
+        assert.equal(fold.closest(".notes-erweiterte-funktionen"), null);
         fold.open = true;
         await tick(); await new Promise(resolve => setTimeout(resolve, 10));
       }

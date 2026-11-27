@@ -14,6 +14,7 @@ on:
       - "magnolie-handbuch/**"
       - "contracts/**"
       - "magnolie-organizer/pruefungen/fixtures/recurrence-rfc-oracle.json"
+      - "magnolie-organizer/pruefungen/media-trash-ui.cjs"
       - "magnolie-organizer/bin/magnolie_cycle.py"
       - "magnolie-organizer/bin/magnolie_recurrence.py"
       - "magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py"
