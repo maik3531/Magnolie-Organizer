@@ -44,8 +44,7 @@ class NativeMediaStorageBootstrap:
         if (type(action) is not NativePhotoDestinationAction or action._native_current is None
                 or type(expected) is not PhotoPreferencesSnapshot
                 or kinds not in (('images',),('video',),('images','video'))
-                or expected.policy is not None and (not expected.policy.staged_receive_targets
-                    or 'images' not in kinds or not expected.associated or not expected.destination_available)):
+                or expected.policy is not None and not expected.staged_receive_available(kinds)):
             raise TransferError('media_first_receive_original_action_required')
         pending=PendingAutomaticReceive(automatic_book,kinds) if automatic_book is not None else None
         return self._prepare(action,expected,kinds=kinds,pending=pending)
@@ -72,11 +71,13 @@ class NativeMediaStorageBootstrap:
                 if 'video' in kinds:
                     if not self._authority.video_available():
                         raise TransferError('file_desktop_video_data_join_unavailable')
-                    video=NativeVideoDestinationController(self._authority,monotonic_ms=self._guarded_clock)
-                    owned.callback(video.close)
-                    options.update(include_videos=True,video_destination_choice=video.choose_default(video.issue_action()))
+                    options['include_videos']=True
+                    if policy is None or policy.videos is None or policy.videos.destination is None:
+                        video=NativeVideoDestinationController(self._authority,monotonic_ms=self._guarded_clock)
+                        owned.callback(video.close)
+                        options['video_destination_choice']=video.choose_default(video.issue_action())
                     if 'images' not in kinds:options['video_only_receive']=True
-                if 'images' in kinds and policy is None:
+                if 'images' in kinds and (policy is None or policy.destination is None):
                     photos=NativePhotoDestinationController(self._authority,monotonic_ms=self._guarded_clock)
                     owned.callback(photos.close)
                     options['destination_choice']=photos.choose_default(photos.issue_action())

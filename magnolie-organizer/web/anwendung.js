@@ -30427,6 +30427,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         gruppe.append(fotoOrdner);
         if (stand.destination) gruppe.append(el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
       }
+      if (stand.enabled !== true && (stand.video_destination_setup === true || stand.video_destination)) {
+        const videoOrdner = el("div", "kde-empfangsordner");
+        const videoZiel = knopf(_("Videos") + " · " + _("Destination folder"), "", () => Bruecke.sende({
+          cmd: "telefon_videoziel_waehlen", kennung: peer.device_id, fingerprint: peer.fingerprint }));
+        videoZiel.dataset.videoDestination = "true";
+        videoZiel.title = stand.video_destination || "";
+        videoZiel.disabled = stand.busy === true || stand.video_enabled === true || stand.video_destination_setup !== true;
+        videoOrdner.append(videoZiel);
+        gruppe.append(videoOrdner);
+      }
       const sharedSources = stand.shared_media;
       if (stand.collection_sources_supported === true && sharedSources?.values.collection_mode === "entire_collection" &&
           sharedSources.values.direction === "pc_to_phone") {

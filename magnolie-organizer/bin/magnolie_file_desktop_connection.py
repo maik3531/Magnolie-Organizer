@@ -613,6 +613,7 @@ class NativeDesktopFileConnection:
                     receiving=getattr(self,'_media_receiving_state',{})
                     value['manual_receive']=mode=='manual' and supported and kinds in receiving.get('manual_receive',())
                     value['automatic_receive_setup']=mode=='wifi' and supported and kinds in receiving.get('automatic_setup',())
+                    value['video_destination_setup']='video' in kinds and supported and not value.get('enabled') and not value.get('video_enabled')
         if self._media_collection_roots_state is not None:
             value['collection_sources']=dict(version=self._media_collection_roots_state['version'],
                 roots=[dict(root) for root in self._media_collection_roots_state['roots']])
@@ -3403,14 +3404,15 @@ class NativePhotoDesktopSession:
     @staticmethod
     def _manual_receive_kinds(snapshot):
         policy=snapshot.policy
-        if policy is None:return (('images',),('video',),('images','video'))
+        kinds=(('images',),('video',),('images','video'))
+        if policy is None:return kinds
+        if policy.staged_receive_targets:return tuple(scope for scope in kinds if snapshot.staged_receive_available(scope))
         if snapshot.associated and snapshot.independent_video_available:return (('video',),)
         if not snapshot.associated or not snapshot.destination_available:return ()
-        if policy.staged_receive_targets:return (('images',),('images','video'))
         if (not policy.enabled or snapshot.direction!='phone_to_desktop' or policy.phone_to_pc_delete
                 or policy.pc_to_phone_delete or policy.mapping_store is None or policy.job_catalog is None):
             return ()
-        return (('images',),('video',),('images','video')) if snapshot.include_videos else (('images',),)
+        return kinds if snapshot.include_videos else (('images',),)
 
     @classmethod
     def _automatic_setup_kinds(cls,snapshot):

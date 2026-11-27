@@ -55,6 +55,11 @@ aufgeführt.
   Typen. Reiner Videoempfang wartet nach einem WLAN-Wechsel auf die frische
   Vereinbarung und läuft dann auch bei geschlossenen Einstellungen an.
   154 Python- und 13 DOM-Fälle sowie die 19 Sprachkataloge bestanden.
+  Vor dem ersten reinen Videoempfang kann Linux einen bestehenden
+  Ordner separat wählen. Die Wahl erteilt noch kein Empfangsrecht.
+  Beim Start bleibt das gewählte Ziel erhalten; ein am selben Pfad
+  ausgetauschter Ordner hält den Lauf an. Die Original-MP4-Übertragung
+  in das gewählte Ziel und 14 DOM-Fälle sind geprüft.
   Windows-Erstempfang und installierte Paarprüfung bleiben offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte

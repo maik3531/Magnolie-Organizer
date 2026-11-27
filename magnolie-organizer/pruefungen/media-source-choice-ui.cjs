@@ -153,6 +153,23 @@ async function boot() {
     assert.ok([...b.w.document.querySelectorAll("details.notes-foto-sync button")]
       .some(button => button.textContent === "Revoke · Photos"));
   });
+  await test("a staged first video target uses the native picker without starting sync", async b => {
+    const shared = { ...b.state.shared_media, values: { ...b.state.shared_media.values,
+      direction: "phone_to_pc", photos_enabled: false, videos_enabled: true } };
+    const state = { enabled: false, manual_receive: true, video_destination_setup: true,
+      video_supported: true, sending_consent: null, shared_media: shared };
+    b.show(state);
+    const target = () => b.w.document.querySelector("[data-video-destination]");
+    assert(target() && !target().disabled && !target().title);
+    assert.equal(b.messages.filter(message => message.cmd === "telefon_foto_aktion").length, 0);
+    target().click();
+    assert.equal(b.messages.at(-1).cmd, "telefon_videoziel_waehlen");
+    assert.deepEqual(Object.keys(b.messages.at(-1)).sort(), ["cmd", "fingerprint", "kennung"]);
+    b.show({ ...state, video_destination: "/Owned private target", busy: true });
+    assert.equal(target().title, "/Owned private target");
+    assert(target().disabled && !b.w.document.body.textContent.includes("/Owned private target"));
+    assert.equal(b.messages.filter(message => message.cmd === "telefon_foto_aktion").length, 0);
+  });
   await test("unsupported two-way mode cannot be selected or start a partial run", async b => {
     const direction = () => b.w.document.querySelector('[data-media-setting="direction"]');
     assert.ok(direction().querySelector('[value="two_way"]').disabled, "Two-way must not be selectable without safe return");

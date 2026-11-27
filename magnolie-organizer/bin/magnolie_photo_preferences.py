@@ -182,6 +182,14 @@ class PhotoPreferencesSnapshot:
     associated: bool
     destination_available: bool
     independent_video_available: bool = False
+    video_destination_available: bool = False
+
+    def staged_receive_available(self,kinds):
+        policy=self.policy
+        return bool(self.associated and policy is not None and policy.staged_receive_targets
+            and ('images' not in kinds or policy.destination is None or self.destination_available)
+            and ('video' not in kinds or policy.videos is None or policy.videos.destination is None or self.video_destination_available))
+
     @property
     def mode(self):return self.policy.mode if self.policy is not None else 'manual'
     @property
@@ -384,12 +392,14 @@ class ProtectedPhotoPreferences:
             try:
                 policy.destination.verify();available=os.access(policy.destination.path,os.W_OK|os.X_OK,effective_ids=True)
             except (OSError,TransferError):available=False
-        if policy is not None and policy.video_only_receive and policy.videos.enabled:
+        if policy is not None and policy.videos is not None and policy.videos.destination is not None:
             try:
                 policy.videos.destination.verify()
                 video_available=os.access(policy.videos.destination.path,os.W_OK|os.X_OK,effective_ids=True)
             except (OSError,TransferError):pass
-        return PhotoPreferencesSnapshot(version,policy,policy is not None and policy.pairing_epoch==peer.pairing_epoch,available,video_available)
+        independent=bool(video_available and policy.video_only_receive and policy.videos.enabled)
+        return PhotoPreferencesSnapshot(version,policy,policy is not None and policy.pairing_epoch==peer.pairing_epoch,
+            available,independent,video_available)
 
     def _sync(self):
         os.fsync(self._db_fd);os.fsync(self._root_fd);os.fsync(self._parent_fd);self._fresh()
@@ -422,14 +432,17 @@ class ProtectedPhotoPreferences:
                 or phone_to_pc_delete or direction not in (None,'phone_to_desktop')
                 or mapping_store_choice is None or job_catalog_choice is None):
             raise TransferError('media_automatic_receive_invalid_setup')
-        if type(video_only_receive) is not bool or video_only_receive and (enabled or expected.policy is not None
+        if type(video_only_receive) is not bool or video_only_receive and (enabled
+                or expected.policy is not None and not expected.staged_receive_available(('video',))
                 or action._native_current is None or include_videos is not True or destination_choice is not None
-                or video_destination_choice is None or mapping_store_choice is None or job_catalog_choice is None
+                or video_destination_choice is None and not expected.video_destination_available
+                or mapping_store_choice is None or job_catalog_choice is None
                 or phone_to_pc_delete or direction not in (None,'phone_to_desktop')):
             raise TransferError('video_preferences_invalid_independent_consent')
         if (type(staged_receive_targets) is not bool or staged_receive_targets and (
                 expected.policy is not None or action._native_current is None or enabled or phone_to_pc_delete
-                or mode!='manual' or direction not in (None,'phone_to_desktop') or destination_choice is None
+                 or mode!='manual' or direction not in (None,'phone_to_desktop')
+                 or destination_choice is None and video_destination_choice is None
                 or include_videos is True or mapping_store_choice is not None or job_catalog_choice is not None)):
             raise TransferError('photo_preferences_invalid_staged_receive_targets')
         if include_videos is not None and type(include_videos) is not bool:raise TransferError('video_preferences_invalid_settings')

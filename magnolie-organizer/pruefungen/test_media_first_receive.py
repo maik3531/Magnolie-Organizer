@@ -31,6 +31,7 @@ from test_video_destination_ui import saved_book_inputs
                                       'changed_custom_target', 'mixed_video_read_missing', 'mixed_existing_video_off',
                                       'mixed_both_read', 'mixed_both_workers', 'video_only_read_missing',
                                       'video_only_worker', 'video_only_remote_off',
+                                      'video_only_custom_target', 'video_only_changed_target',
                                       'automatic_ready', 'automatic_read_missing', 'automatic_stopped',
                                       'automatic_mixed_video_read_missing', 'automatic_video_ready'])
 def test_manual_first_receive_waits_for_explicit_start_and_original_file_controls(native, tmp_path, monkeypatch, outcome):
@@ -125,7 +126,34 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                 quiet()
                 return
 
-            chosen=None
+            chosen=None; chosen_video=None
+            if outcome in ('video_only_custom_target','video_only_changed_target'):
+                chosen_video=tmp_path/'Owned video folder'
+                chosen_video.mkdir(mode=0o700)
+                (chosen_video/'existing.mp4').write_bytes(b'leave untouched')
+                prepared=service.photo_sync_destination_choice(peer['device_id'],finger,'prepare','video',
+                    **saved_book_inputs(connection))
+                with NativeCollectionRoot(str(chosen_video),lambda:True) as root:
+                    service.photo_sync_destination_choice(peer['device_id'],finger,'commit','video',
+                        selection=prepared['selection'],path=str(chosen_video),witness=native_folder_witness(root))
+                original=connection._preferences.read()
+                staged=original.policy
+                assert staged.staged_receive_targets and not staged.enabled and staged.destination is None
+                assert not staged.videos.enabled and Path(staged.videos.destination.path)==chosen_video
+                assert staged.mapping_store is None and staged.job_catalog is None
+                assert service.photo_sync_state(peer['device_id'])['video_destination']==str(chosen_video)
+                assert not list(pictures.iterdir()) and not list(videos.iterdir())
+                quiet()
+                if outcome=='video_only_changed_target':
+                    moved=chosen_video.rename(chosen_video.with_name('Original video folder'))
+                    chosen_video.mkdir(mode=0o700)
+                    with pytest.raises(TransferError,match='photo_schedule_not_ready'):
+                        start('sync_shared')
+                    assert connection._preferences.read().version==original.version
+                    assert (moved/'existing.mp4').read_bytes()==b'leave untouched'
+                    assert not list(chosen_video.iterdir()) and not list(videos.iterdir())
+                    quiet()
+                    return
             if outcome in ('custom_target','changed_custom_target'):
                 chosen=tmp_path/'Owned photo folder'
                 chosen.mkdir(mode=0o700)
@@ -166,8 +194,10 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
             assert saved.enabled is not video_only and saved.sending is None
             if mixed or video_only:
                 assert saved.videos.enabled
-                assert Path(saved.videos.destination.path)==videos/video_folder_component(peer['display_name'])
+                assert Path(saved.videos.destination.path)==(chosen_video or videos/video_folder_component(peer['display_name']))
                 assert saved.destination_token!=saved.videos.destination_token
+                if chosen_video is not None:
+                    assert saved.videos.destination_token==staged.videos.destination_token and not saved.staged_receive_targets
             else:assert saved.videos is None
             if video_only:
                 assert saved.video_only_receive and saved.destination is None
@@ -265,7 +295,7 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                     associated=True,repair_pending=False,kinds=sorted(sources.KINDS),videos=dict(enabled=True,revision=1)))
                 observe=wire.receive()
                 assert observe['body']['operation']=='discover' and observe['body']['media_type']=='video'
-                worker_ready=outcome=='video_only_worker'
+                worker_ready=outcome in ('video_only_worker','video_only_custom_target')
                 album=str(uuid4())
                 coverage=response(observe,sources.CATALOG,version=version,media_type='video',page=dict(
                     format=1,catalog_id=str(uuid4()),after=0,next_cursor=None,
@@ -304,6 +334,8 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                             session.snapshot()['state'],session.snapshot()['error'],errors,len(chunks),len(receipts))
                         assert not errors and len(chunks)==len(receipts)==1
                     assert (video_root/file.path).read_bytes()==original
+                    if chosen_video is not None:
+                        assert (chosen_video/'existing.mp4').read_bytes()==b'leave untouched' and not list(videos.iterdir())
                 else:
                     dispatch(coverage)
                     request=wire.receive()
