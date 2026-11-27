@@ -376,6 +376,8 @@ runner.Add("DAV wildcard ETag / exact version preconditions / no transport", Nex
 runner.Add("Nextcloud CalDAV / CardDAV / Discovery / ETag / Sicherheit", NextcloudDavTests.RunAsync);
 runner.Add("Calendar birthday cleanup", CalendarBirthdayCleanupTests.RunAsync);
 runner.Add("Nextcloud ICS birthdays", NextcloudIcsBirthdayTests.RunAsync);
+runner.Add("Nextcloud ICS birthdays / edited last-February recurrence", NextcloudIcsBirthdayTests.EditedLeapBirthdaysAsync);
+runner.Add("Nextcloud ICS birthdays / reimport with detached override", NextcloudIcsBirthdayTests.ExportedBirthdayKeepsDetachedOverrideAsync);
 runner.Add("Shared preference controller", SharedSyncControllerTests.RunAsync);
 runner.Add("Own profile / LibreOffice field comparison", OfficeProfileTests.RunAsync);
 runner.Add("Thunderbird bridge / framing / provider identity", ThunderbirdBridgeTests.RunAsync);

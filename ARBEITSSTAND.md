@@ -106,6 +106,13 @@ aufgeführt.
   andere Markertypen und Serienausnahmen bleiben Kalendertermine.
   102 Linux-Prüfungen, sechs native Windows-Gruppen, beide
   Oberflächenpfade und 44 Projektionsprüfungen bestanden.
+  Der Nachtrag hält die Regel für den letzten Februartag bei einem
+  weiterhin passenden Typ- oder Jahreswechsel. Ein exportierter
+  Geburtstag bleibt bei einer späteren Ausnahme Teil der Terminserie.
+  Linux-CalDAV meldet ausdrücklich, wenn solche Jahrestage im reinen
+  Terminabgleich nicht verarbeitet werden können. Die vollständige
+  DAV-Jahrestagsintegration bleibt in #441. 219 Linux-Prüfungen und
+  neun native Windows-Gruppen bestanden.
 - [#846](https://github.com/maik3531/Magnolie-Organizer/issues/846):
   Ältere ICS-Serienausnahmen lassen sich wieder über die MCP-Importvorschau
   übernehmen. Eine fehlende Kalenderfarbe bleibt fehlend; der Import

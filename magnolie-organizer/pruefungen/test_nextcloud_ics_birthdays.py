@@ -58,3 +58,54 @@ def test_nextcloud_marker_cannot_detach_a_series_master_from_its_exception(codec
         "END:VEVENT", "END:VCALENDAR", ""])
     parsed = codec.ics_lesen(text)
     assert not parsed["jahrestage"] and len(parsed["termine"]) == 2
+
+
+@pytest.mark.parametrize("start,years,date,kind", [
+    ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "--02-29", "wedding-anniversary"),
+    ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "1988-02-29", "wedding-anniversary"),
+    ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "1988-02-29", "birthday"),
+    ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "--02-29", "birthday"),
+])
+def test_type_or_year_edit_keeps_last_february_recurrence(codec, start, years, date, kind):
+    text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:edited-leap",
+        "SUMMARY:Synthetic birthday", f"DTSTART;VALUE=DATE:{start}",
+        "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1", "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY",
+        years, "X-SYNTHETIC-PRESERVE:keep", "END:VEVENT", "END:VCALENDAR", ""])
+    item = codec.ics_lesen(text)["jahrestage"][0]
+    item.update(datum=date, typ=kind)
+    for _round in range(2):
+        exported = codec.ics_schreiben_jahrestage([item])
+        assert "X-NEXTCLOUD-BC-" not in exported
+        assert "X-SYNTHETIC-PRESERVE:keep" in exported
+        assert [line for line in exported.splitlines() if line.startswith("RRULE:")] == [
+            "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1"]
+        parsed = codec.ics_lesen(exported)
+        assert not parsed["termine"] and len(parsed["jahrestage"]) == 1
+        item = parsed["jahrestage"][0]
+        assert (item["datum"], item["typ"]) == (date, kind)
+    exception = "\r\n".join(["BEGIN:VEVENT", "UID:edited-leap", "RECURRENCE-ID;VALUE=DATE:20270228",
+        "DTSTART;VALUE=DATE:20270301", "SUMMARY:Moved", "END:VEVENT", ""])
+    parsed = codec.ics_lesen(exported.replace("END:VCALENDAR", exception + "END:VCALENDAR"))
+    assert not parsed["jahrestage"] and len(parsed["termine"]) == 2
+
+
+@pytest.mark.parametrize("leap", [False, True])
+def test_nextcloud_birthday_scope_is_not_silently_omitted_by_linux_dav(monkeypatch, leap):
+    from test_nextcloud import m, nc, SyncDav, run_sync, empty_data
+    start = "19720229" if leap else "19700417"
+    rule = "FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1" if leap else "FREQ=YEARLY"
+    text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:provider-scope",
+        f"DTSTART;VALUE=DATE:{start}", f"RRULE:{rule}", "SUMMARY:Synthetic birthday",
+        "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1",
+        "BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER;VALUE=DURATION:PT9H", "END:VALARM",
+        "END:VEVENT", "END:VCALENDAR", ""])
+    assert len(m.ics_lesen(text)["jahrestage"]) == 1
+    dav = SyncDav({"calendar": [dict(href="https://cloud.example/calendar/birthday.ics",
+                                   etag='"fixture"', data=text)], "addressbook": []})
+    data = empty_data()
+    import copy
+    before = copy.deepcopy(data)
+    with pytest.raises(nc.NextcloudError) as failed:
+        run_sync(monkeypatch, dav, data)
+    assert failed.value.code == "calendar_anniversaries_unsupported"
+    assert not dav.puts and not dav.deletes and data == before

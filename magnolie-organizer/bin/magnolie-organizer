@@ -3131,6 +3131,12 @@ _NEXTCLOUD_GEBURTSTAG_FELDER = (
 _NEXTCLOUD_GEBURTSTAG_SERIE = ("DTSTART", "DTEND", "RRULE")
 
 
+def _ics_letzter_februartag(regel, datum):
+    teile = regel.upper().split(";")
+    return (str(datum).endswith("02-29") and len(teile) == 3 and
+            set(teile) == {"FREQ=YEARLY", "BYMONTH=2", "BYMONTHDAY=-1"})
+
+
 def _nextcloud_geburtstagsdatum(props):
     markiert, unbekannt, jahr = _NEXTCLOUD_GEBURTSTAG_FELDER
     if not any(name == markiert and wert.upper() == "BDAY" for name, _, wert in props):
@@ -3383,7 +3389,8 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
                      if rrule and not nicht_abbildbar else None))
     # Der einfache interne Serienparser lehnt den 29. Februar fuer normale
     # Termine bewusst ab. Jahrestage koennen dieses Datum jedoch darstellen.
-    einfache_jahresregel = (rrule in ("FREQ=YEARLY", "FREQ=YEARLY;INTERVAL=1") and
+    einfache_jahresregel = ((rrule in ("FREQ=YEARLY", "FREQ=YEARLY;INTERVAL=1") or
+                            _ics_letzter_februartag(rrule, datum)) and
                             not komplexe_serie and
                             wiederholungsteile == ["RRULE"])
     jahrestag_regel = (not rrule or einfache_jahresregel or
@@ -4202,6 +4209,9 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
             elif not tiefe:
                 haupt_props.append(prop)
         provider_datum = _nextcloud_geburtstagsdatum(haupt_props)
+        regeln = [wert for name, _params, wert in haupt_props if name == "RRULE"]
+        if eintrag is not None and len(regeln) == 1 and _ics_letzter_februartag(regeln[0], eintrag.get("datum")):
+            eigene.discard("RRULE")
         if provider_datum:
             if (provider_datum == _maschinen_datum(eintrag.get("datum"))
                     and jahrestag_typ_id(eintrag.get("typ")) == "birthday"):
@@ -30200,13 +30210,28 @@ class Fenster(_FENSTER_BASIS):
             # ordinary yearly appointments. Until their full DAV merge/write/
             # deletion lifecycle is supported, fail BEFORE any selected calendar
             # can write, run duplicate cleanup or advance its success cursor.
+            def nextcloud_jahrestag(item):
+                props, tiefe = [], 0
+                for line in item.get("icsRoundtrip", []):
+                    prop = _prop_zerlegen(line)
+                    if not prop:
+                        continue
+                    if prop[0] == "BEGIN":
+                        tiefe += 1
+                    elif prop[0] == "END":
+                        tiefe = max(0, tiefe - 1)
+                    elif not tiefe:
+                        props.append(prop)
+                return bool(_nextcloud_geburtstagsdatum(props))
+
             def pruefe_jahrestagsbereich(gelesen, text):
                 # Existing contact-derived legacy birthday resources have a
                 # separate supported duplicate-cleanup/recovery lifecycle.
                 # Fence the explicit marker from this confirmed missing scope,
                 # without disabling that existing lifecycle.
-                if gelesen.get("jahrestage") and any(line.split(":", 1)[0].split(";", 1)[0].upper() ==
-                        "X-MAGNOLIE-JAHRESTAG-TYP" for line in _entfalte_zeilen(text)):
+                if gelesen.get("jahrestage") and (any(line.split(":", 1)[0].split(";", 1)[0].upper() ==
+                        "X-MAGNOLIE-JAHRESTAG-TYP" for line in _entfalte_zeilen(text)) or
+                        any(nextcloud_jahrestag(item) for item in gelesen["jahrestage"])):
                     raise NextcloudError("Marked CalDAV anniversaries are not supported.",
                                          "calendar_anniversaries_unsupported")
             kalender_vorab = {}

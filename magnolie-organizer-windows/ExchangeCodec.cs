@@ -223,7 +223,8 @@ internal static partial class ExchangeCodec
         // A detached instance needs its VEVENT master, even when the master
         // carries a provider birthday marker.
         var detachedUids = new HashSet<string>(StringComparer.Ordinal);
-        if (unfoldedText.Contains(NextcloudBirthdayType, StringComparison.OrdinalIgnoreCase) &&
+        if ((unfoldedText.Contains(NextcloudBirthdayType, StringComparison.OrdinalIgnoreCase) ||
+             unfoldedText.Contains("BYMONTHDAY=-1", StringComparison.OrdinalIgnoreCase)) &&
             unfoldedText.Contains("RECURRENCE-ID", StringComparison.OrdinalIgnoreCase))
         {
             foreach (Match block in EventBlock().Matches(unfoldedText))
@@ -271,7 +272,7 @@ internal static partial class ExchangeCodec
                         {
                             var hasDetached = detachedUids.Count > 0 &&
                                 detachedUids.Contains(IcsText(First(TopLevelProperties(properties), "UID")?.Value ?? ""));
-                            var result = ParseEvent(properties, timeZone, zones, birthdayRepairs, allowProviderBirthday: !hasDetached);
+                            var result = ParseEvent(properties, timeZone, zones, birthdayRepairs, allowAnniversary: !hasDetached);
                             if (result.Anniversary) anniversaries.Add(result.Value); else appointments.Add(result.Value);
                             if (parent == "VCALENDAR" && result.Value.ContainsKey("akzentFarbe")) calendarItems.Add(result.Value);
                             if (result.Complex && !CalendarRecurrence.SupportsRules(properties.Select(value => value.Raw))) complex++;
@@ -907,7 +908,7 @@ internal static partial class ExchangeCodec
         return new ExchangeExportResult(output.ToString(), count, skipped, report.Trim());
     }
 
-    private static (JsonObject Value, bool Anniversary, bool Complex) ParseEvent(List<IcsProperty> values, CalendarRecurrence.SourceZone? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null, ISet<string>? birthdayRepairs = null, bool allowProviderBirthday = true)
+    private static (JsonObject Value, bool Anniversary, bool Complex) ParseEvent(List<IcsProperty> values, CalendarRecurrence.SourceZone? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null, ISet<string>? birthdayRepairs = null, bool allowAnniversary = true)
     {
         var roundtripValues = values;
         values = TopLevelProperties(values);
@@ -978,9 +979,11 @@ internal static partial class ExchangeCodec
         var anniversaryType = IcsText(First(values, "X-MAGNOLIE-TYPE-ID")?.Value ??
                                        First(values, "X-MAGNOLIE-TYP")?.Value ??
                                        First(values, "X-MAGNOLIE-JAHRESTAG-TYP")?.Value ?? "");
-        var providerDate = allowProviderBirthday && (anniversaryType.Length == 0 || IsBirthdayType(anniversaryType))
+        var providerDate = allowAnniversary && (anniversaryType.Length == 0 || IsBirthdayType(anniversaryType))
             ? NextcloudBirthdayDate(values) : "";
-        var anniversary = start.AllDay && (providerDate.Length > 0 || IsUnboundedAnnualRule(recurrence) && anniversaryType.Length > 0) &&
+        var anniversary = allowAnniversary && start.AllDay && (providerDate.Length > 0 || anniversaryType.Length > 0 &&
+            (IsUnboundedAnnualRule(recurrence) || values.Count(value => value.Name == "RRULE") == 1 &&
+             IsLastFebruaryAnnualRule(recurrence, start.DateTime.ToString("yyyy-MM-dd")))) &&
             !values.Any(value => value.Name is "EXDATE" or "RDATE" or "EXRULE" or "RECURRENCE-ID") &&
             (end is null || end.Value.DateTime.Date == start.DateTime.Date);
         if (anniversary)
@@ -1147,6 +1150,13 @@ internal static partial class ExchangeCodec
     }
 
     internal static bool IsUnboundedAnnualRule(string rule) => Regex.IsMatch(rule, @"^FREQ=YEARLY(?:;INTERVAL=1)?$|^INTERVAL=1;FREQ=YEARLY$", RegexOptions.IgnoreCase);
+
+    private static bool IsLastFebruaryAnnualRule(string rule, string date)
+    {
+        var parts = rule.ToUpperInvariant().Split(';');
+        return date.EndsWith("02-29", StringComparison.Ordinal) && parts.Length == 3 &&
+            parts.Order(StringComparer.Ordinal).SequenceEqual(new[] { "BYMONTH=2", "BYMONTHDAY=-1", "FREQ=YEARLY" });
+    }
     // Keep shipped instance IDs stable; timezone-qualified identity remains in RECURRENCE-ID.
     private static string InstanceUid(string uid, IcsProperty recurrenceId) => uid + "#" + recurrenceId.Value;
 
@@ -1611,8 +1621,11 @@ internal static partial class ExchangeCodec
         if (anniversary)
         {
             // Annual core fields are generated; nested VALARM data remains opaque.
-            var providerDate = NextcloudBirthdayDate(TopLevelProperties(raw.Select(ParseIcsProperty).OfType<IcsProperty>()));
+            var anniversaryProperties = TopLevelProperties(raw.Select(ParseIcsProperty).OfType<IcsProperty>());
+            var providerDate = NextcloudBirthdayDate(anniversaryProperties);
             var keepProviderAnchor = providerDate.Length > 0 && providerDate == J(item, "datum") && IsBirthdayType(J(item, "typ"));
+            var rules = anniversaryProperties.Where(property => property.Name == "RRULE").ToArray();
+            var keepFebruaryRule = rules.Length == 1 && IsLastFebruaryAnnualRule(rules[0].Value, J(item, "datum"));
             var depth = 0;
             raw = raw.Where(line =>
             {
@@ -1620,7 +1633,8 @@ internal static partial class ExchangeCodec
                 if (name == "BEGIN") depth++;
                 var keep = depth > 0 || (name switch
                 {
-                    "DTSTART" or "DTEND" or "RRULE" => keepProviderAnchor,
+                    "DTSTART" or "DTEND" => keepProviderAnchor,
+                    "RRULE" => keepProviderAnchor || keepFebruaryRule,
                     NextcloudBirthdayType or NextcloudBirthdayUnknownYear or NextcloudBirthdayYear => providerDate.Length == 0 || keepProviderAnchor,
                     _ => name is not ("DUE" or "DURATION" or
                         "X-MAGNOLIE-DATE" or "X-MAGNOLIE-TYPE-ID" or "X-MAGNOLIE-TYP" or "X-MAGNOLIE-JAHRESTAG-TYP")

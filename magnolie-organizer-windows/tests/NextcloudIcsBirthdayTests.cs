@@ -64,4 +64,56 @@ internal static class NextcloudIcsBirthdayTests
         TestAssert.That(withException.Jahrestage.Count == 0 && withException.Termine.Count == 2, "The master was detached from its override.");
         return Task.CompletedTask;
     }
+
+    internal static Task ExportedBirthdayKeepsDetachedOverrideAsync()
+    {
+        const string source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:exported-birthday\r\nSUMMARY:Synthetic birthday\r\n" +
+            "DTSTART;VALUE=DATE:19850417\r\nRRULE:FREQ=YEARLY\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\n" +
+            "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1985\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        var imported = ExchangeCodec.ParseIcs(source);
+        using var data = JsonDocument.Parse(imported.Jahrestage.ToJsonString());
+        var exported = ExchangeCodec.WriteIcs("ics-jahrestage", data.RootElement).Text;
+        TestAssert.That(exported.Contains("X-MAGNOLIE-TYPE-ID:birthday") && exported.Contains("X-NEXTCLOUD-BC-FIELD-TYPE:BDAY"),
+            "The fixture did not traverse the actual provider birthday export.");
+        var ordinary = ExchangeCodec.ParseIcs(exported);
+        TestAssert.That(ordinary.Termine.Count == 0 && ordinary.Jahrestage.Count == 1 &&
+            ordinary.Jahrestage[0]!["datum"]!.ToString() == "1985-04-17", "An ordinary exported birthday changed classification.");
+        const string exception = "BEGIN:VEVENT\r\nUID:exported-birthday\r\nRECURRENCE-ID;VALUE=DATE:20260417\r\n" +
+            "DTSTART;VALUE=DATE:20260418\r\nSUMMARY:Moved\r\nEND:VEVENT\r\n";
+        var withException = ExchangeCodec.ParseIcs(exported.Replace("END:VCALENDAR", exception + "END:VCALENDAR"));
+        TestAssert.That(withException.Jahrestage.Count == 0 && withException.Termine.Count == 2,
+            "The own type marker detached the exported birthday master from its override.");
+        return Task.CompletedTask;
+    }
+
+    internal static Task EditedLeapBirthdaysAsync()
+    {
+        foreach (var (start, years, date, type) in new[] {
+            ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "--02-29", "wedding-anniversary"),
+            ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "1988-02-29", "wedding-anniversary"),
+            ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "1988-02-29", "birthday"),
+            ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "--02-29", "birthday") })
+        {
+            var text = $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:edited-leap\r\nSUMMARY:Synthetic birthday\r\nDTSTART;VALUE=DATE:{start}\r\n" +
+                $"RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\n{years}\r\nX-SYNTHETIC-PRESERVE:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+            var items = ExchangeCodec.ParseIcs(text).Jahrestage;
+            items[0]!["datum"] = date; items[0]!["typ"] = type;
+            var exported = "";
+            for (var round = 0; round < 2; round++)
+            {
+                using var data = JsonDocument.Parse(items.ToJsonString());
+                exported = ExchangeCodec.WriteIcs("ics-jahrestage", data.RootElement).Text;
+                TestAssert.That(!exported.Contains("X-NEXTCLOUD-BC-") && exported.Contains("X-SYNTHETIC-PRESERVE:keep"), "Edited type/year retained stale marker or lost foreign metadata.");
+                TestAssert.That(exported.Split("\r\n").Where(line => line.StartsWith("RRULE:")).SequenceEqual(new[] { "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1" }), "Edited type/year changed last-February recurrence.");
+                var parsed = ExchangeCodec.ParseIcs(exported);
+                TestAssert.That(parsed.Termine.Count == 0 && parsed.Jahrestage.Count == 1 &&
+                    parsed.Jahrestage[0]!["datum"]!.ToString() == date && parsed.Jahrestage[0]!["typ"]!.ToString() == type, "Edited last-February anniversary lost date/type on reimport.");
+                items = parsed.Jahrestage;
+            }
+            const string exception = "BEGIN:VEVENT\r\nUID:edited-leap\r\nRECURRENCE-ID;VALUE=DATE:20270228\r\nDTSTART;VALUE=DATE:20270301\r\nSUMMARY:Moved\r\nEND:VEVENT\r\n";
+            var withException = ExchangeCodec.ParseIcs(exported.Replace("END:VCALENDAR", exception + "END:VCALENDAR"));
+            TestAssert.That(withException.Jahrestage.Count == 0 && withException.Termine.Count == 2, "An edited anniversary lost its detached override.");
+        }
+        return Task.CompletedTask;
+    }
 }
