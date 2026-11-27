@@ -23,6 +23,7 @@ for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-sav
   "handbook-source-diagnostics.js",
   "calendar-attachment-actions.js", "calendar-attachment-native.js",
   "calendar-accent-edits.js",
+  "sync-calendar-identity.js",
   "normative-timezones.js",
   "contact-email-case.js", "contact-copy-birthday.js",
   "oversized-note-safety.js", "desktop-state-regressions.js", "../../magnolie-organizer/pruefungen/phone-personal-status-ui.cjs", "../../magnolie-organizer/pruefungen/appointment-occurrence-delete.cjs", "mcp-ui.js", "mcp-import-review.js", "mcp-planner-export.js", "mcp-print.js", "mcp-waste-import.js", "mcp-sync-settings.js", "mcp-sync-run.js", "mcp-provider-conflicts.js", "mcp-dav-account.js", "mcp-microsoft-signin.js", "mcp-internet-accounts.js", "mcp-tree-actions.js", "save-custom-regressions.js", "custom-time-regressions.js", "regional-time-input.js", "planned-sms-save-regressions.js", "asr-sms-regressions.js", "desktop-data-regressions.js", "frontend-integrity.js", "recurrence-worker.js", "recurrence-golden.js",

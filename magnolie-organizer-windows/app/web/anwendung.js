@@ -33159,12 +33159,77 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         ((DATEN.syncMetadaten || {}).nextcloud || {}).pendingCommitId) return null;
     if (!basis) return nutzlast;
     if (basis.syncEpoch !== DATEN.syncEpoch) return null;
+    const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const nurAdressbuch = !!basis.wahl?.adressbuchUid && !basis.wahl.kalenderUid &&
+      Array.isArray(basis.wahl.kalenderUids) && basis.wahl.kalenderUids.length === 0;
+    const unbeteiligteKalender = new Set();
+    const schluessel = (item) => String(item.uid || item.id || "");
+    const kalenderSchluessel = (listen) => {
+      const nachId = new Map(), nachUid = new Map();
+      const merken = (index, key, quelle) => {
+        if (!index.has(key)) index.set(key, new Set());
+        index.get(key).add(quelle);
+      };
+      for (const liste of listen) for (const item of liste || []) {
+        const quelle = String(item.syncKalenderUid || ""), uid = String(item.uid || "");
+        if (!quelle || !uid) continue;
+        merken(nachUid, uid, quelle);
+        if (item.id) merken(nachId, JSON.stringify([String(item.id), uid]), quelle);
+      }
+      const key = (item) => {
+        const uid = String(item.uid || "");
+        if (!uid) return item.id ? JSON.stringify(["id", String(item.id)]) : null;
+        let quelle = String(item.syncKalenderUid || "");
+        if (!quelle) {
+          // A first upload can assign a provider after a local edit/deletion.
+          // Bind only through the same local record, or an unambiguous tombstone.
+          const bekannt = item.id ? nachId.get(JSON.stringify([String(item.id), uid])) : nachUid.get(uid);
+          if (bekannt && bekannt.size > 1) return null;
+          quelle = bekannt && bekannt.size === 1 ? Array.from(bekannt)[0] :
+            String(item.icsQuelleId || (item.kalenderQuelle || {}).id || "");
+        }
+        return JSON.stringify(["uid", quelle, uid]);
+      };
+      for (const liste of listen) {
+        const gesehen = new Set();
+        for (const item of liste || []) {
+          const wert = key(item);
+          if (wert === null || gesehen.has(wert)) return null;
+          gesehen.add(wert);
+        }
+      }
+      return key;
+    };
+    const kalender = {};
+    for (const feld of ["termine", "aufgaben"]) {
+      if (nurAdressbuch) {
+        // An address-book-only request cannot change calendars. Retain their
+        // current local state, including edits/deletions after the request.
+        // Any returned calendar change still rejects the complete response.
+        if ((nutzlast[feld] !== undefined && !gleich(nutzlast[feld], basis[feld] || [])) ||
+            ((nutzlast.geloescht || {})[feld] !== undefined &&
+              !gleich(nutzlast.geloescht[feld], (basis.geloescht || {})[feld] || []))) {
+          merkeSyncFehler(_("Conflict"));
+          return null;
+        }
+        unbeteiligteKalender.add(feld);
+        continue;
+      }
+      kalender[feld] = kalenderSchluessel([basis[feld], DATEN[feld], nutzlast[feld],
+        (basis.geloescht || {})[feld], DATEN.geloescht[feld], (nutzlast.geloescht || {})[feld]]);
+      if (!kalender[feld]) {
+        merkeSyncFehler(_("Conflict"));
+        return null;
+      }
+    }
     for (const feld of ["termine", "aufgaben", "kontakte"]) {
-      const vorher = new Set((basis[feld] || []).map(item => item.uid));
-      const jetzt = new Set((DATEN[feld] || []).map(item => item.uid));
+      if (unbeteiligteKalender.has(feld)) continue;
+      const key = kalender[feld] || ((item) => item.uid);
+      const vorher = new Set((basis[feld] || []).map(key));
+      const jetzt = new Set((DATEN[feld] || []).map(key));
       for (const item of nutzlast[feld] || []) {
-        if (!item.uid || !vorher.has(item.uid) || jetzt.has(item.uid) || !item.sync) continue;
-        let grab = DATEN.geloescht[feld].find(itemAlt => itemAlt.uid === item.uid);
+        if (!item.uid || !vorher.has(key(item)) || jetzt.has(key(item)) || !item.sync) continue;
+        let grab = DATEN.geloescht[feld].find(itemAlt => key(itemAlt) === key(item));
         if (!grab) {
           grab = { uid: item.uid, zeit: Date.now(), syncKalenderUid: item.syncKalenderUid || "", syncQuellen: {} };
           DATEN.geloescht[feld].push(grab);
@@ -33180,9 +33245,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       termine: DATEN.termine, aufgaben: DATEN.aufgaben, kontakte: DATEN.kontakte,
       jahrestage: DATEN.jahrestage, geloescht: DATEN.geloescht
     }));
-    const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-    const schluessel = (item) => String(item.uid || item.id || "");
-    const abgleichen = (vorher, aktuell, fern) => {
+    const abgleichen = (vorher, aktuell, fern, schluessel) => {
       const alt = new Map((vorher || []).map(item => [schluessel(item), item]));
       const jetzt = new Map((aktuell || []).map(item => [schluessel(item), item]));
       const ergebnis = [];
@@ -33205,12 +33268,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
     nutzlast = Object.assign({}, nutzlast);
     for (const feld of ["termine", "aufgaben", "kontakte", "jahrestage"]) {
-      if (Array.isArray(nutzlast[feld])) nutzlast[feld] = abgleichen(basis[feld], DATEN[feld], nutzlast[feld]);
+      if (unbeteiligteKalender.has(feld)) nutzlast[feld] = DATEN[feld];
+      else if (Array.isArray(nutzlast[feld])) nutzlast[feld] =
+        abgleichen(basis[feld], DATEN[feld], nutzlast[feld], kalender[feld] || schluessel);
     }
-    if (nutzlast.geloescht) {
+    if (nutzlast.geloescht || unbeteiligteKalender.size) {
       nutzlast.geloescht = Object.assign({}, nutzlast.geloescht);
       for (const feld of ["termine", "aufgaben", "kontakte"]) nutzlast.geloescht[feld] =
-        abgleichen((basis.geloescht || {})[feld], DATEN.geloescht[feld], nutzlast.geloescht[feld]);
+        unbeteiligteKalender.has(feld) ? DATEN.geloescht[feld] :
+        abgleichen((basis.geloescht || {})[feld], DATEN.geloescht[feld], nutzlast.geloescht[feld],
+          kalender[feld] || schluessel);
     }
     return nutzlast;
   }
@@ -33312,6 +33379,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }).finally(() => { if (kontaktSyncPruefungLauf === lauf) kontaktSyncPruefungLauf = null; });
       return;
     }
+    let wahl = { kalenderUid: w.kalenderUid || kalenderUids[0] || "",
+      kalenderUids: kalenderUids.slice(), adressbuchUid: w.adressbuchUid };
     let transactionId = String(nextcloudMetadaten.ausstehendeTransaktion || "");
     if (!/^[0-9a-f]{64}$/.test(transactionId)) {
       const bytes = new Uint8Array(32);
@@ -33320,9 +33389,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         wert.toString(16).padStart(2, "0")).join("");
       nextcloudMetadaten.ausstehendeTransaktion = transactionId;
       DATEN.syncAbgleichBasis = JSON.parse(JSON.stringify({
-        termine: DATEN.termine, aufgaben: DATEN.aufgaben, kontakte: DATEN.kontakte,
+        wahl, termine: DATEN.termine, aufgaben: DATEN.aufgaben, kontakte: DATEN.kontakte,
         jahrestage: DATEN.jahrestage, geloescht: DATEN.geloescht, syncEpoch: DATEN.syncEpoch
       }));
+    } else if (DATEN.syncAbgleichBasis?.wahl) {
+      // A pending native transaction keeps the selection of its original run.
+      wahl = JSON.parse(JSON.stringify(DATEN.syncAbgleichBasis.wahl));
     }
     syncLaeuft = true;
     const syncKnopf = $("#sync-jetzt");
@@ -33334,8 +33406,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (mcpStart && !mcp) { if (mcpStart.phase !== "failed") mcpSyncFehlgeschlagen(mcpStart, "source_changed"); return; }
       const sent = Bruecke.sende({ cmd: "sync", transactionId: transactionId,
       ...(mcp ? { mcp: true } : {}),
-      wahl: { kalenderUid: w.kalenderUid || kalenderUids[0] || "",
-        kalenderUids: kalenderUids, adressbuchUid: w.adressbuchUid },
+      wahl,
       daten: { termine: (DATEN.syncAbgleichBasis || DATEN).termine, aufgaben: (DATEN.syncAbgleichBasis || DATEN).aufgaben, kontakte: (DATEN.syncAbgleichBasis || DATEN).kontakte,
         jahrestage: (DATEN.syncAbgleichBasis || DATEN).jahrestage, geloescht: (DATEN.syncAbgleichBasis || DATEN).geloescht,
         letzterSync: DATEN.letzterSync, letzteSyncs: DATEN.letzteSyncs,

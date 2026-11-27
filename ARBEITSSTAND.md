@@ -81,6 +81,11 @@ aufgeführt.
   eindeutige lokale Identität ohne alte Providerbindung. 97 Linux-Fälle
   und der gemeinsame Vektortest aus dem nativen Windows-Quellarchiv
   bestanden. Kalender-Synchronisation wird separat in #826 geprüft.
+- [#826](https://github.com/maik3531/Magnolie-Organizer/issues/826):
+  Der Kalenderabgleich ordnet gleichlautende UIDs der richtigen Quelle
+  zu. Reine Adressbuchläufe erhalten nicht ausgewählte Kalender samt
+  lokalen Änderungen. Alle 56 Dialogfälle auf den Linux-/Windows-Quellen
+  sowie MCP-, Kontaktkonflikt- und Paritätsprüfungen bestanden.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
