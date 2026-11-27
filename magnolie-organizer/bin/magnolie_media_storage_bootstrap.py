@@ -6,7 +6,7 @@ import time
 
 from magnolie_file_native_authority import NativeDesktopFileAuthority
 from magnolie_file_transfer import TransferError
-from magnolie_photo_destination import NativePhotoDestinationAction, NativePhotoDestinationController
+from magnolie_photo_destination import NativePhotoDestinationAction, NativePhotoDestinationController, NativeVideoDestinationController
 from magnolie_photo_mappings import ProtectedPhotoMappings
 from magnolie_photo_preferences import ProtectedPhotoPreferences,PhotoPreferencesSnapshot
 from magnolie_transfer_job_catalog import ProtectedTransferJobCatalog
@@ -39,16 +39,17 @@ class NativeMediaStorageBootstrap:
     def prepare(self,action,expected):
         return self._prepare(action,expected)
 
-    def prepare_first_images(self,action,expected):
-        """Bind the first photo target on an explicit, guarded native Start."""
+    def prepare_first_receive(self,action,expected,kinds):
+        """Bind selected targets and storage together on an explicit native Start."""
         if (type(action) is not NativePhotoDestinationAction or action._native_current is None
                 or type(expected) is not PhotoPreferencesSnapshot
+                or kinds not in (('images',),('images','video'))
                 or expected.policy is not None and (not expected.policy.staged_receive_targets
                     or not expected.associated or not expected.destination_available)):
             raise TransferError('media_first_receive_original_action_required')
-        return self._prepare(action,expected,first_images=True)
+        return self._prepare(action,expected,kinds=kinds)
 
-    def _prepare(self,action,expected,*,first_images=False):
+    def _prepare(self,action,expected,*,kinds=()):
         self._open()
         if type(action) is not NativePhotoDestinationAction:raise TransferError('media_storage_native_action_required')
         action.consume(self)
@@ -66,11 +67,17 @@ class NativeMediaStorageBootstrap:
                 policy=current.policy
                 if policy is not None and not current.associated:
                     raise TransferError('media_storage_bootstrap_reassociation_required')
-                destination=None
-                if first_images and policy is None:
+                options={}
+                if 'video' in kinds:
+                    if not self._authority.video_available():
+                        raise TransferError('file_desktop_video_data_join_unavailable')
+                    video=NativeVideoDestinationController(self._authority,monotonic_ms=self._guarded_clock)
+                    owned.callback(video.close)
+                    options.update(include_videos=True,video_destination_choice=video.choose_default(video.issue_action()))
+                if kinds and policy is None:
                     photos=NativePhotoDestinationController(self._authority,monotonic_ms=self._guarded_clock)
                     owned.callback(photos.close)
-                    destination=photos.choose_default(photos.issue_action())
+                    options['destination_choice']=photos.choose_default(photos.issue_action())
                 mappings=ProtectedPhotoMappings(self._authority,monotonic_ms=self._guarded_clock);owned.callback(mappings.close)
                 if policy is not None and policy.mapping_store is not None:
                     mappings.verify_witness(policy.mapping_store)
@@ -88,11 +95,11 @@ class NativeMediaStorageBootstrap:
                 self._validate(peer)
                 mapping_choice=mappings.bootstrap(mappings.issue_action(),mappings.read())
                 self._validate(peer)
-                result=prefs.configure(prefs.issue_action(),current,enabled=first_images or (policy is not None and policy.enabled),
+                result=prefs.configure(prefs.issue_action(),current,enabled=bool(kinds) or (policy is not None and policy.enabled),
                      mode=policy.mode if policy is not None else 'manual',
                      phone_to_pc_delete=policy.phone_to_pc_delete if policy is not None else False,
                      pc_to_phone_delete=policy.pc_to_phone_delete if policy is not None else False,
-                     destination_choice=destination,mapping_store_choice=mapping_choice,job_catalog_choice=catalog_choice)
+                     mapping_store_choice=mapping_choice,job_catalog_choice=catalog_choice,**options)
                 self._validate(peer)
                 if result.policy.mapping_store!=mapping_choice.witness or result.policy.job_catalog!=catalog_choice.witness:
                     raise TransferError('media_storage_bootstrap_joint_readback_failed')

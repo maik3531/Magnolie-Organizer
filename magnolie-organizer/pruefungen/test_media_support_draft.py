@@ -498,7 +498,7 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
                 with NativeMediaRetention(service.store.root) as policy:assert policy.adopt_existing_saved()
                 session=connection.desktop_session()
                 manual_first_images=direction=='phone_to_pc' and kind=='images' and not automatic
-                assert connection.desktop_snapshot()['manual_image_receive']==manual_first_images
+                assert connection.desktop_snapshot()['manual_receive']==manual_first_images
                 if not manual_first_images:
                     start_error=('media_source_native_composition_required' if direction=='two_way' else 'photo_schedule_not_ready')
                     with pytest.raises(TransferError,match=start_error):

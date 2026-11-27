@@ -89,7 +89,7 @@ async function boot() {
   await test("first photo receive starts only with Synchronize now on agreed manual settings", async b => {
     const shared = { ...b.state.shared_media, values: { ...b.state.shared_media.values,
       collection_mode: "phone_inventory", direction: "phone_to_pc", videos_enabled: false } };
-    const show = (media, state = {}) => b.show({ manual_image_receive: true, sending_consent: null, shared_media: media, ...state });
+    const show = (media, state = {}) => b.show({ manual_receive: true, sending_consent: null, shared_media: media, ...state });
     const start = () => b.w.document.querySelector("[data-photo-manual-sync]");
     const outgoing = () => b.messages.filter(m => m.cmd === "telefon_foto_aktion");
     show({ ...shared, agreed: false }); assert.equal(start(), null);
@@ -108,6 +108,13 @@ async function boot() {
     fold = b.w.document.querySelector("details.notes-foto-sync");
     [...fold.querySelectorAll("button")].find(button => button.textContent === "Revoke · Photos").click();
     assert.deepEqual(outgoing().at(-1).request, { action: "disable" });
+    const mixed = { ...shared, values: { ...shared.values, videos_enabled: true } };
+    show(mixed, { manual_receive: false });
+    assert.equal(start(), null);
+    show(mixed);
+    assert.ok(start() && !start().disabled);
+    start().click();
+    assert.deepEqual(outgoing().at(-1).request, { action: "sync_shared" });
   });
   await test("unsupported two-way mode cannot be selected or start a partial run", async b => {
     const direction = () => b.w.document.querySelector('[data-media-setting="direction"]');

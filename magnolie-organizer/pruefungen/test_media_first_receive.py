@@ -13,7 +13,9 @@ from magnolie_file_control import FileControlPacket, FileGrantState, NativeFileC
 from magnolie_media_retention import NativeMediaRetention
 from magnolie_media_source_choice import native_folder_witness
 from magnolie_media_source_collection import NativeCollectionRoot
-from magnolie_photo_destination import NativePhotoDestinationController, photo_folder_component
+from magnolie_photo_destination import (
+    NativePhotoDestinationController, NativeVideoDestinationController, photo_folder_component, video_folder_component,
+)
 from magnolie_transfer_job_catalog import NativeJobCatalogIdentity
 from magnolie_file_transfer import TransferError
 from test_file_authenticated_desktop import native
@@ -26,18 +28,28 @@ from test_video_destination_ui import saved_book_inputs
 
 @pytest.mark.parametrize('outcome', ['stop_before_echo', 'stop_during_status', 'remote_off', 'local_off',
                                       'read_missing', 'read_allowed', 'worker', 'book_changed', 'custom_target',
-                                      'changed_custom_target'])
+                                      'changed_custom_target', 'mixed_video_read_missing', 'mixed_existing_video_off',
+                                      'mixed_both_read', 'mixed_both_workers'])
 def test_manual_first_receive_waits_for_explicit_start_and_original_file_controls(native, tmp_path, monkeypatch, outcome):
     service, peer, _ = native
+    mixed=outcome.startswith('mixed_')
     peer['capabilities'] = legacy_state()
     service.store.save_peers()
     monkeypatch.setattr(service, '_native_media_support_checked', True)
     monkeypatch.setattr(service, '_resume_automatic_photos', lambda *_: None)
     pictures = tmp_path / 'Pictures'
     pictures.mkdir(mode=0o700)
+    videos = tmp_path / 'Videos'
+    videos.mkdir(mode=0o700)
     choose = NativePhotoDestinationController.choose_default
     monkeypatch.setattr(NativePhotoDestinationController, 'choose_default',
                         lambda self, action: choose(self, action, pictures_provider=lambda: pictures))
+    choose_video=NativeVideoDestinationController.choose_default
+    monkeypatch.setattr(NativeVideoDestinationController, 'choose_default',
+                        lambda self, action: choose_video(self, action, videos_provider=lambda: videos))
+    if mixed:
+        from magnolie_file_desktop_connection import NativeDesktopFileConnection
+        monkeypatch.setattr(NativeDesktopFileConnection, '_video_data_handlers_ready', True)
     book = tmp_path / 'daten.json'
     book.write_text('{"einstellungen":{"papierkorb":{"an":true,"tage":30}}}', encoding='utf-8')
     book.chmod(0o600)
@@ -67,6 +79,7 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
             dispatch(ack(submitted))
             connection = service.open_native_file_connection(peer['device_id'], peer['static_public'], channel, binding.generation)
             connection._media_transport.change('enabled', True)
+            if mixed:connection._media_transport.change('videos_enabled',True)
             settings = connection._media_transport.send_settings()
             assert wire.receive() == settings
             dispatch(ack(settings))
@@ -80,9 +93,10 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                 service.photo_sync_action(peer['device_id'], finger, {'action': action})
 
             state = service.photo_sync_state(peer['device_id'])
-            assert state['shared_media']['agreed'] and state['manual_image_receive']
+            assert state['shared_media']['agreed'] and state['manual_receive']
             assert connection._preferences.read().policy is None
             assert not list(pictures.iterdir())
+            assert not list(videos.iterdir())
             assert connection._album_worker is None and connection._mapped_worker is None
             quiet()
             if outcome == 'local_off':
@@ -95,7 +109,7 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                     opted_out=prefs.configure(prefs.issue_action(), prefs.read(), enabled=False, mode='manual',
                         destination_choice=old_target)
                     connection._local()
-                assert not service.photo_sync_state(peer['device_id'])['manual_image_receive']
+                assert not service.photo_sync_state(peer['device_id'])['manual_receive']
                 with pytest.raises(TransferError, match='photo_schedule_not_ready'):
                     start('sync_shared')
                 assert connection._preferences.read() == opted_out
@@ -138,7 +152,12 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
             assert grant.receive_files and not grant.send_files
             with connection._operation(incoming=True):
                 saved = connection._preferences.read().policy
-            assert saved.enabled and saved.sending is None and saved.videos is None
+            assert saved.enabled and saved.sending is None
+            if mixed:
+                assert saved.videos.enabled
+                assert Path(saved.videos.destination.path)==videos/video_folder_component(peer['display_name'])
+                assert saved.destination_token!=saved.videos.destination_token
+            else:assert saved.videos is None
             assert Path(saved.destination.path) == (chosen or pictures / photo_folder_component(peer['display_name']))
             if chosen is not None:
                 assert saved.destination_token==staged.destination_token and not saved.staged_receive_targets
@@ -168,15 +187,32 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                               created_ms=at, expires_ms=at + 60_000, body=outgoing.wire()))
                 remote.mark_sent(outgoing)
 
+            def finish_empty_worker(scope, album, source_version):
+                request=wire.receive()
+                assert request['body']['operation']=='batch_run' and request['body']['album_id']==album
+                assert request['body'].get('media_type','images')==scope
+                assert session._schedule.active is not None and session._sync_active and connection._album_worker is not None
+                run=dict(version=source_version,run_id=str(uuid4()),source_io_ended=True)
+                if scope=='video':run['media_type']='video'
+                dispatch(response(request,sources.RUN_RESULT,**run,state='empty_ready',batch_end=True))
+                cancel=wire.receive()
+                assert cancel['body']['operation']=='cancel_run'
+                dispatch(response(cancel,sources.RUN_RESULT,**run,state='canceled_held',batch_end=True))
+                end=wire.receive()
+                assert end['body']['operation']=='end_run'
+                dispatch(response(end,sources.RUN_RESULT,**run,state='canceled_held',run_ended=True))
+
             send_control()
             remote.observe_remote(FileControlPacket.parse(wire.receive()['body']), desktop)
             send_control()
             status = wire.receive()
             assert status['body']['operation'] == 'status'
             remote_off = outcome == 'remote_off'
-            before = response(status, sources.RESULT, version='b'*64, revision=2 if remote_off else 0,
-                              enabled=False, associated=remote_off, repair_pending=False,
-                              kinds=sorted(sources.KINDS) if remote_off else [])
+            video_off=outcome=='mixed_existing_video_off'
+            before = response(status, sources.RESULT, version='b'*64, revision=2 if remote_off or video_off else 0,
+                              enabled=video_off, associated=remote_off or video_off, repair_pending=False,
+                              kinds=sorted(sources.KINDS) if remote_off or video_off else [],
+                              **({'videos':dict(enabled=False,revision=1 if video_off else 0)} if mixed else {}))
             if outcome == 'stop_during_status':
                 start('stop')
                 assert session.join(3)
@@ -185,7 +221,7 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                 quiet()
                 return
             dispatch(before)
-            if remote_off:
+            if remote_off or video_off:
                 assert session.join(3)
                 assert session.snapshot()['error'] == 'media_source_shared_incoming_review_required'
                 quiet()
@@ -195,21 +231,33 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
             assert configure['body']['expected_version'] == before['body']['version']
             assert configure['expires_ms'] <= status['expires_ms'] + 2
             dispatch(response(configure, sources.RESULT, version='c'*64, revision=2, enabled=True,
-                              associated=True, repair_pending=False, kinds=sorted(sources.KINDS)))
+                              associated=True, repair_pending=False, kinds=sorted(sources.KINDS),
+                              **({'videos':dict(enabled=False,revision=0)} if mixed else {})))
             quiet()  # Positive source metadata is not the fresh SEND echo.
             assert session._schedule.active is None and not session._sync_active
             grant_state = NativeLocalFileGrant(FileGrantState(2, 'd'*64, True, False), owner, True)
             send_control()
             remote.observe_remote(FileControlPacket.parse(wire.receive()['body']), desktop)
             send_control()
+            version='c'*64
+            if mixed:
+                configure_video=wire.receive()
+                assert configure_video['body']['operation']=='configure_videos'
+                assert configure_video['body']['expected_version']==version
+                version='e'*64
+                dispatch(response(configure_video,sources.RESULT,version=version,revision=3,enabled=True,
+                    associated=True,repair_pending=False,kinds=sorted(sources.KINDS),videos=dict(enabled=True,revision=1)))
             discover = wire.receive()
             assert discover['body']['operation'] == 'discover' and discover['expires_ms'] <= status['expires_ms'] + 2
             assert session._schedule.active is None and not session._sync_active
             coverage = 'none' if outcome == 'read_missing' else 'full_images'
             album_id = str(uuid4())
             albums = [dict(album_id=album_id, kind='camera', display_name='Camera',
-                           visible_images=1, needs_choice=False)] if outcome == 'worker' else []
-            catalog = response(discover, sources.CATALOG, version='c'*64,
+                           visible_images=1, needs_choice=False)] if outcome in ('worker','mixed_video_read_missing','mixed_both_workers') else []
+            video_album_id=str(uuid4())
+            video_albums=[dict(album_id=video_album_id,kind='camera',display_name='Video Camera',
+                visible_images=1,needs_choice=False)] if outcome=='mixed_both_workers' else []
+            catalog = response(discover, sources.CATALOG, version=version,
                                page=dict(format=1, catalog_id=str(uuid4()), after=0, next_cursor=None,
                                          coverage=coverage, proves_deletion=False, albums=albums))
             if outcome == 'book_changed':
@@ -219,25 +267,42 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                     book.write_text('{"einstellungen":{"papierkorb":{"an":true,"tage":7}}}', encoding='utf-8')
                     retention.publish_saved(paused, changed)
             dispatch(catalog)
+            if mixed:
+                video_discover=wire.receive()
+                assert video_discover['body']['operation']=='discover' and video_discover['body']['media_type']=='video'
+                assert not session._sync_active and session._schedule.active is None
+                assert connection._album_worker is None
+                video_missing=outcome=='mixed_video_read_missing'
+                dispatch(response(video_discover,sources.CATALOG,version=version,media_type='video',page=dict(
+                    format=1,catalog_id=str(uuid4()),after=0,next_cursor=None,
+                    coverage='none' if video_missing else 'full_videos',proves_deletion=False,albums=video_albums)))
+                if video_missing:
+                    permission=wire.receive()
+                    assert permission['body']['operation']=='request_read' and permission['body']['media_type']=='video'
+                    dispatch(response(permission,sources.PERMISSION_RESULT,version=version,media_type='video',state='notification_posted'))
+                else:
+                    for scope in ('images','video'):
+                        refresh=wire.receive()
+                        assert refresh['body']['operation']=='discover' and refresh['body'].get('media_type','images')==scope
+                        reply=response(refresh,sources.CATALOG,version=version,page=dict(
+                            format=1,catalog_id=str(uuid4()),after=0,next_cursor=None,
+                            coverage='full_images' if scope=='images' else 'full_videos',proves_deletion=False,
+                            albums=albums if scope=='images' else video_albums),
+                            **({'media_type':'video'} if scope=='video' else {}))
+                        dispatch(reply)
+                        if outcome=='mixed_both_workers':
+                            finish_empty_worker(scope,album_id if scope=='images' else video_album_id,version)
             if outcome == 'read_missing':
                 request = wire.receive()
                 assert request['body']['operation'] == 'request_read' and request['body'].get('media_type', 'images') == 'images'
                 dispatch(response(request, sources.PERMISSION_RESULT, version='c'*64, state='notification_posted'))
             if outcome == 'worker':
-                request = wire.receive()
-                assert request['body']['operation'] == 'batch_run' and request['body']['album_id'] == album_id
-                assert session._schedule.active is not None and session._sync_active and connection._album_worker is not None
-                run=dict(version='c'*64, run_id=str(uuid4()), source_io_ended=True)
-                dispatch(response(request, sources.RUN_RESULT, **run, state='empty_ready', batch_end=True))
-                cancel=wire.receive()
-                assert cancel['body']['operation']=='cancel_run'
-                dispatch(response(cancel, sources.RUN_RESULT, **run, state='canceled_held', batch_end=True))
-                end=wire.receive()
-                assert end['body']['operation']=='end_run'
-                dispatch(response(end, sources.RUN_RESULT, **run, state='canceled_held', run_ended=True))
+                finish_empty_worker('images',album_id,version)
             assert session.join(3), session.snapshot()
             expected = {'read_allowed': 'complete', 'worker': 'complete',
-                        'read_missing': 'permission_required', 'book_changed': 'held'}
+                        'read_missing': 'permission_required', 'book_changed': 'held',
+                        'mixed_video_read_missing':'permission_required','mixed_both_read':'complete',
+                        'mixed_both_workers':'complete'}
             assert session.snapshot()['state'] == expected[outcome], session.snapshot()
             if outcome == 'book_changed':
                 assert session.snapshot()['error'] == 'media_retention_lease_changed'

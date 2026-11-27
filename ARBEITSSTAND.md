@@ -34,12 +34,15 @@ aufgeführt.
   Der manuelle Linux-Foto-Erstempfang startet über „Jetzt synchronisieren“.
   Er braucht die bestätigte WLAN-Einstellung, native SEND-/RECEIVE-Freigaben
   und die getrennte Android-Leseberechtigung. Gespeicherte Ablehnungen
-  bleiben erhalten. 91 Python- und 12 DOM-Fälle bestanden. Erstempfang
-  für Video, gemischte Läufe und die WLAN-Automatik folgen getrennt.
+  bleiben erhalten. 91 Python- und 12 DOM-Fälle bestanden.
   Ein vor dem ersten Fotoempfang nativ gewählter Ordner bleibt beim
   Start erhalten. Wurde der Ordner am selben Pfad ausgetauscht oder
   war der Empfang schon ausdrücklich aus, bleibt der Start gesperrt.
   151 Prüfungen zu Erstempfang, Präferenzen und Ordnerwahl bestanden.
+  Der manuelle gemischte Erstempfang prüft beide Ziele und beide
+  Android-Lesefreigaben, bevor der erste Transfer beginnt. 82 Python-
+  und 12 DOM-Fälle bestanden. Reiner Video-Erstempfang, WLAN-Ersteinrichtung
+  und die installierte Paarprüfung bleiben offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
   zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.
