@@ -7,6 +7,14 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#841](https://github.com/maik3531/Magnolie-Organizer/issues/841):
+  Organizer übernimmt die Schreibrichtung auch bei regionalen arabischen
+  Sprachcodes aus dem primären Sprachuntertag. 16 Startfälle mit den
+  Linux- und Windows-Oberflächen bestanden; macOS und Tablet übernehmen
+  den korrigierten Kern bei ihrer nächsten Projektion.
+- [#840](https://github.com/maik3531/Magnolie-Organizer/issues/840):
+  Normale Windows-CI-Läufe bauen und testen ohne Paket-Upload. Nur der
+  ausdrücklich offizielle Lauf kann die vorgesehenen Dateien hochladen.
 - [#809](https://github.com/maik3531/Magnolie-Organizer/issues/809):
   Beide ISO-Abbilder sind anhand offizieller Signaturen geprüft.
   Dieselben 2.0.30-Baseline-DEBs wurden auf Mint 22.3 und Mint 27
