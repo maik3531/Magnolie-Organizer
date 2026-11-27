@@ -13,9 +13,13 @@ aufgeführt.
   Vorsicherung und getrenntem Freigabestatus bestanden. Nach simuliertem
   Fehler direkt nach dem atomaren Dateiaustausch zeigte ein frischer
   Lesevorgang das wiederhergestellte Buch; alte UI-Schreibversuche wurden
-  abgewiesen. API-34-Speicherabnahme ([#471](https://github.com/maik3531/Magnolie-Organizer/issues/471)),
-  die 40 Touchwechsel und PDF-Druck ([#848](https://github.com/maik3531/Magnolie-Organizer/issues/848))
-  bleiben offen.
+  abgewiesen. API-34-Speicherabnahme ([#471](https://github.com/maik3531/Magnolie-Organizer/issues/471))
+  und die 40 Touchwechsel bleiben offen.
+- [#848](https://github.com/maik3531/Magnolie-Organizer/issues/848):
+  Die isolierte Tablet-Druck-WebView lädt ihr Hauptdokument direkt.
+  Die Android-Druckvorschau einer Notiz und die Speicherung über den
+  Dateidialog bestanden unter API 35. Die erzeugte PDF enthielt den
+  erwarteten Notiztext. Druck weiterer Bereiche bleibt Teil von #121.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

@@ -15,12 +15,14 @@ session = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(session)
 SUITES = {
     'ui': ['basics', 'restart', 'layout', 'time'],
+    'navigation': ['basics', 'navigation'],
     'services': ['services'],
     'files': ['calendar-files'],
     'domains': ['domains'],
     'timezone': ['timezone-interop'],
     'system-records': ['system-records'],
     'storage': ['basics', 'saf', 'fault', 'print'],
+    'print': ['basics', 'print'],
     'notifications': ['notifications'],
     'absolute-notifications': ['absolute-notifications'],
 }

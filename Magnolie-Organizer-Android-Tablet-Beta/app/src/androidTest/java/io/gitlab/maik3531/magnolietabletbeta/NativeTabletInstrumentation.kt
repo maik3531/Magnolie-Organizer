@@ -1015,9 +1015,12 @@ class NativeTabletInstrumentation : Instrumentation() {
         check(save.performAction(AccessibilityNodeInfo.ACTION_CLICK)); SystemClock.sleep(500)
         selectProvider(); setNativeText("tablet-print.pdf")
         confirmDocumentDestination("tablet-print.pdf")
-        SystemClock.sleep(1500)
+        waitFor("Android print flow returned to Organizer", 25) {
+            uiAutomation.rootInActiveWindow?.packageName?.toString() == targetContext.packageName
+        }
         val bytes=documentControl("tablet-print.pdf")
-        check(String(bytes.copyOfRange(0,5))=="%PDF-"); File(out,"tablet-print.pdf").writeBytes(bytes)
+        check(bytes.size >= 5 && String(bytes.copyOfRange(0,5))=="%PDF-") {"Invalid PDF output (${bytes.size} bytes)"}
+        File(out,"tablet-print.pdf").writeBytes(bytes)
         pass("actual PrintManager/Print UI/SAF PDF file",bytes.size)
     }
     private fun customTimeKeyboard() {

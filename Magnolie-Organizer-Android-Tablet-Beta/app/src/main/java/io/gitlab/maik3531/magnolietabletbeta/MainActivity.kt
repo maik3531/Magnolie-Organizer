@@ -852,15 +852,36 @@ class MainActivity : Activity() {
         }
     }
     private fun printDocument(html: String) {
-        require(html.toByteArray().size <= MAX_BYTES)
+        val document = html.toByteArray(Charsets.UTF_8)
+        require(document.size <= MAX_BYTES)
         check(!printing)
         printing = true
         val view = WebView(this); secureSettings(view); view.settings.javaScriptEnabled=false
+        val documentUrl = "$ORIGIN/print/${java.util.UUID.randomUUID()}"
         printViews.add(view)
+        var printStarted = false
+        fun release() {
+            if (!printViews.remove(view)) return
+            view.destroy()
+            printing = false
+        }
+        fun documentFailed(request: WebResourceRequest) {
+            if (request.isForMainFrame && !printStarted && view in printViews) {
+                release()
+                respond("error", getString(R.string.failed))
+            }
+        }
         view.webViewClient = object : WebViewClient() {
-            override fun shouldInterceptRequest(v: WebView, r: WebResourceRequest) = blocked()
+            override fun shouldInterceptRequest(v: WebView, r: WebResourceRequest): WebResourceResponse =
+                if (r.isForMainFrame && r.method == "GET" && r.url.toString() == documentUrl)
+                    WebResourceResponse("text/html", "UTF-8", 200, "OK", mapOf("Cache-Control" to "no-store"), ByteArrayInputStream(document))
+                else blocked()
             override fun shouldOverrideUrlLoading(v: WebView, r: WebResourceRequest) = true
+            override fun onReceivedError(v: WebView, r: WebResourceRequest, error: WebResourceError) = documentFailed(r)
+            override fun onReceivedHttpError(v: WebView, r: WebResourceRequest, response: WebResourceResponse) = documentFailed(r)
             override fun onPageFinished(v: WebView, url: String) {
+                if (url != documentUrl || printStarted || v !in printViews) return
+                printStarted = true
                 val delegate = v.createPrintDocumentAdapter(appName)
                 val adapter = object : android.print.PrintDocumentAdapter() {
                     override fun onStart() = delegate.onStart()
@@ -871,7 +892,7 @@ class MainActivity : Activity() {
                         signal: android.os.CancellationSignal?, callback: WriteResultCallback?) =
                         delegate.onWrite(pages,destination,signal,callback)
                     override fun onFinish() {
-                        delegate.onFinish(); printViews.remove(v); v.destroy(); printing=false
+                        try { delegate.onFinish() } finally { release() }
                     }
                 }
                 try { getSystemService(PrintManager::class.java).print(appName,adapter,null) }
@@ -879,7 +900,7 @@ class MainActivity : Activity() {
             }
         }
         // No bridge, JavaScript, external resources or automatic success message in print documents.
-        view.loadDataWithBaseURL(ORIGIN,html,"text/html","UTF-8",null)
+        view.loadUrl(documentUrl)
     }
     override fun onPause() { if (ready) web.evaluateJavascript("window.Tablet.flush()",null); super.onPause() }
     override fun onResume() { super.onResume(); if (ready) work { AndroidStore.vault(this).read()?.let {scheduleReminders(this,it)} } }
