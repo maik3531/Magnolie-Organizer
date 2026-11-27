@@ -1,0 +1,43 @@
+2026-11-26T12:21:13.1863409Z     {
+2026-11-26T12:21:13.1863828Z       "name": "same SOURCE_ID survives a genuinely different raw row; rowBinding changes",
+2026-11-26T12:21:13.1864284Z       "detail": true
+2026-11-26T12:21:13.1864503Z     },
+2026-11-26T12:21:13.1864691Z     {
+2026-11-26T12:21:13.1865152Z       "name": "changed SOURCE_ID on the same row yields a different record with the same rowBinding",
+2026-11-26T12:21:13.1865640Z       "detail": true
+2026-11-26T12:21:13.1865862Z     },
+2026-11-26T12:21:13.1866050Z     {
+2026-11-26T12:21:13.1866471Z       "name": "selected calendar only; timed half-open bounds and all-day UTC date bounds",
+2026-11-26T12:21:13.1866928Z       "detail": true
+2026-11-26T12:21:13.1867295Z     },
+2026-11-26T12:21:13.1867473Z     {
+2026-11-26T12:21:13.1867844Z       "name": "all-day selection also keeps the final selected date in a western instant window",
+2026-11-26T12:21:13.1868240Z       "detail": true
+2026-11-26T12:21:13.1868438Z     },
+2026-11-26T12:21:13.1868599Z     {
+2026-11-26T12:21:13.1868915Z       "name": "moving one actual Events row preserves single-event identity",
+2026-11-26T12:21:13.1869290Z       "detail": true
+2026-11-26T12:21:13.1869491Z     },
+2026-11-26T12:21:13.1869661Z     {
+2026-11-26T12:21:13.1870012Z       "name": "owned fixture IDs removed; fixture WRITE permissions absent after cleanup",
+2026-11-26T12:21:13.1870411Z       "detail": true
+2026-11-26T12:21:13.1870609Z     }
+2026-11-26T12:21:13.1870781Z   ],
+2026-11-26T12:21:13.1870967Z   "passed": false,
+2026-11-26T12:21:13.1871188Z   "injector": "async",
+2026-11-26T12:21:13.1871411Z   "sdk": 34,
+2026-11-26T12:21:13.1871664Z   "model": "sdk_gphone64_x86_64",
+2026-11-26T12:21:13.1871939Z   "brand": "google",
+2026-11-26T12:21:13.1872330Z   "applicationId": "io.gitlab.maik3531.magnolieorganizer.tablet.beta",
+2026-11-26T12:21:13.1872869Z   "applicationLabel": "Magnolie Organizer Android Tablet Beta 2.0.30Beta",
+2026-11-26T12:21:13.1873457Z   "sourceHash": "6c0e5542020d04ffaf556ee1334bbe32c91fcfd0da81ff90749b64ca33a6fe8a",
+2026-11-26T12:21:13.1873952Z   "webview": "113.0.5672.136",
+2026-11-26T12:21:13.1874253Z   "startup": null,
+2026-11-26T12:21:13.1876880Z   "error": "java.lang.IllegalStateException: Provider must replace the original recurring slot, not duplicate it\n\tat io.gitlab.maik3531.magnolietabletbeta.NativeSystemProviderSmoke$Probe.run(NativeSystemProviderSmoke.kt:185)\n\tat io.gitlab.maik3531.magnolietabletbeta.NativeSystemProviderSmoke.run(NativeSystemProviderSmoke.kt:32)\n\tat io.gitlab.maik3531.magnolietabletbeta.NativeTabletInstrumentation.onStart(NativeTabletInstrumentation.kt:74)\n\tat android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2402)\n"
+2026-11-26T12:21:13.1879591Z }
+2026-11-26T12:21:13.1879719Z 
+2026-11-26T12:21:13.1879852Z INSTRUMENTATION_CODE: 0
+2026-11-26T12:21:13.1880013Z 
+2026-11-26T12:21:13.1880504Z [2026-11-26T12:21:13+00:00] elapsed=58.1s failed {"reason": "Native stage did not report success", "output": ""}
+2026-11-26T12:21:13.1921090Z [2026-11-26T12:21:13+00:00] elapsed=58.1s native-failure-resources {"memoryCurrentBytes": 4302970880, "memoryPeakBytes": 4303536128, "cpuStat": {"usage_usec": 94776667, "user_usec": 88602936, "system_usec": 6173730, "nice_usec": 0, "core_sched.force_idle_usec": 0, "nr_periods": 579, "nr_throttled": 64, "throttled_usec": 23222, "nr_bursts": 0, "burst_usec": 0}, "cpuPressure": "some avg10=44.27 avg60=21.17 avg300=5.57 total=17657705\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=59513", "hostCpuPressure": "some avg10=45.62 avg60=26.28 avg300=13.27 total=59371096\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0"}
+2026-11-26T12:21:13.2019316Z [2026-11-26T12:21:13+00:00] elapsed=58.1s command-started {"pid": 12660}

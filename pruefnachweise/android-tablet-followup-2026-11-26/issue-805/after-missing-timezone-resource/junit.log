@@ -1,0 +1,20 @@
+$ java -XX:ActiveProcessorCount=2 -Xmx512m -Dtablet.root=/workspace/scratch/acde70e8594b/tablet-native-followup/issue-805/after/source-bound-test-input -cp /workspace/scratch/acde70e8594b/tablet-build-dependencies/annotation-jvm-1.8.1.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/annotations-13.0.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/core-1.13.1-classes.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/hamcrest-core-1.3.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/json-20240303.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/junit-4.13.2.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlin-build-tools-api-2.4.21.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlin-compiler-embeddable-2.4.21.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlin-daemon-embeddable-2.4.21.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlin-reflect-1.6.10.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlin-script-runtime-2.4.21.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlin-stdlib-2.4.21.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlinx-coroutines-core-jvm-1.8.0.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/okhttp-4.12.0.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/okio-jvm-3.6.0.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/threetenbp-1.7.5.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/webkit-1.12.1-classes.jar:/workspace/scratch/acde70e8594b/tablet-native-followup/full-compile/run-xgr0rcb2/classes:/workspace/scratch/acde70e8594b/tablet-native-followup/issue-805/after/test-classes:/workspace/scratch/acde70e8594b/Magnolie-Organizer/Magnolie-Organizer-Android-Tablet-Beta/app/src/test/resources org.junit.runner.JUnitCore io.gitlab.maik3531.magnolietabletbeta.DocumentRequestsTest io.gitlab.maik3531.magnolietabletbeta.NativeCalendarFileFixtureTest io.gitlab.maik3531.magnolietabletbeta.VaultTest io.gitlab.maik3531.magnolietabletbeta.VaultJsonTest io.gitlab.maik3531.magnolietabletbeta.JsonValueComparisonTest
+JUnit version 4.13.2
+.......E...................................
+Time: 0.752
+There was 1 failure:
+1) actualSafSourceDecodesToTheInputConsumedByTheSharedUiContract(io.gitlab.maik3531.magnolietabletbeta.NativeCalendarFileFixtureTest)
+java.lang.IllegalStateException: missing-timezone-database
+	at io.gitlab.maik3531.magnolietabletbeta.ProviderZoneDatabase.bundled_delegate$lambda$0(ProviderZone.kt:130)
+	at kotlin.SynchronizedLazyImpl.getValue(LazyJVM.kt:86)
+	at io.gitlab.maik3531.magnolietabletbeta.ProviderZoneDatabase$Companion.getBundled(ProviderZone.kt:129)
+	at io.gitlab.maik3531.magnolietabletbeta.ICalendarImport.knownZone(ICalendarImport.kt:202)
+	at io.gitlab.maik3531.magnolietabletbeta.ICalendarImport.decode(ICalendarImport.kt:598)
+	at io.gitlab.maik3531.magnolietabletbeta.ICalendarImport.decode$default(ICalendarImport.kt:587)
+	at io.gitlab.maik3531.magnolietabletbeta.NativeCalendarFileFixtureTest.actualSafSourceDecodesToTheInputConsumedByTheSharedUiContract(NativeCalendarFileFixtureTest.kt:11)
+
+FAILURES!!!
+Tests run: 42,  Failures: 1
+
+
+exit=1

@@ -1,0 +1,44 @@
+{
+  "result": "passed",
+  "nativeRuntimeTest": false,
+  "emulatorStarted": false,
+  "sourceProofTests": 24,
+  "ownerContractTests": 4,
+  "workflowYamlParsed": true,
+  "pythonSyntaxParsed": true,
+  "sourceHashes": {
+    ".github/workflows/ports-2.0.30.yml": "a3a8d7ae4168afc135f804bb5df0c9bad9b17d732fbfc84617b6567c25915038",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/androidTest/java/io/gitlab/maik3531/magnolietabletbeta/NativeSystemProviderSmoke.kt": "fa527cd2039c4d07d309d6fe9aefbe77bd6a8fd1f28b53ef32c1416018d26375",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/androidTest/java/io/gitlab/maik3531/magnolietabletbeta/NativeTabletInstrumentation.kt": "0d53017cb81175e0ac4346d478b69e15568c78db5af9cc92e713d88434e52171",
+    "Magnolie-Organizer-Android-Tablet-Beta/tools/emulator-session.py": "98d41a4f031c441a9b301d22817affe2152d4f45e4136983e1886118bfcd06b3",
+    "Magnolie-Organizer-Android-Tablet-Beta/tools/native-checks.py": "8b0a30b8d379f7c13c7941492207e528d86e5fb025aa3c875a0c522637f98b15",
+    "Magnolie-Organizer-Android-Tablet-Beta/tests/test_source_proof.py": "b4db1eea1cabb5e9ac3021661ab34d1eb948ef0241587dcadf107d601d2d686e"
+  },
+  "executedChecks": [
+    {
+      "check": "source-proof",
+      "exit": 0,
+      "command": [
+        "python3",
+        "-B",
+        "/workspace/scratch/acde70e8594b/Magnolie-Organizer/Magnolie-Organizer-Android-Tablet-Beta/tests/test_source_proof.py"
+      ],
+      "cwd": "/workspace/scratch/acde70e8594b/Magnolie-Organizer"
+    },
+    {
+      "check": "owner-contracts",
+      "exit": 0,
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "test_emulator_session.LifecycleTest.test_native_suites_execute_through_owner_stage_contract",
+        "test_emulator_session.LifecycleTest.test_cold_start_applies_only_to_ui_stages_not_alarm_or_reboot_stages",
+        "test_emulator_session.LifecycleTest.test_next_suite_requires_main_before_process_or_lock",
+        "test_emulator_session.LifecycleTest.test_next_suite_rejects_stale_source_and_tampered_apks"
+      ],
+      "cwd": "/workspace/scratch/acde70e8594b/Magnolie-Organizer/Magnolie-Organizer-Android-Tablet-Beta/tests"
+    }
+  ]
+}

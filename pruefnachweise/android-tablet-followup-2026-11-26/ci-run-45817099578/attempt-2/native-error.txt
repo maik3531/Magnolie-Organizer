@@ -1,0 +1,5 @@
+java.lang.IllegalStateException: Provider must replace the original recurring slot, not duplicate it
+	at io.gitlab.maik3531.magnolietabletbeta.NativeSystemProviderSmoke$Probe.run(NativeSystemProviderSmoke.kt:185)
+	at io.gitlab.maik3531.magnolietabletbeta.NativeSystemProviderSmoke.run(NativeSystemProviderSmoke.kt:32)
+	at io.gitlab.maik3531.magnolietabletbeta.NativeTabletInstrumentation.onStart(NativeTabletInstrumentation.kt:74)
+	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2402)

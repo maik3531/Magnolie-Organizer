@@ -190,6 +190,11 @@ function Get-ReleaseArchiveSources([string] $Root) {
     foreach ($file in Get-ChildItem -LiteralPath $contracts -Recurse -File -Force | Sort-Object FullName) {
         $relative = [IO.Path]::GetRelativePath($contracts, $file.FullName).Replace('\', '/')
         if (Test-PrivateReleasePath $relative) { continue }
+        if ($relative -ceq 'android-tablet-audit-2026-11-26.md') {
+            # Refs #795: historical review evidence, not a product contract.
+            Assert-SourceFileSafe $file
+            continue
+        }
         if ($file.Extension -cnotin @('.json', '.md')) { throw 'Only reviewed JSON/Markdown contracts may enter source archives.' }
         Assert-SourceFileSafe $file
         $content = [IO.File]::ReadAllText($file.FullName)

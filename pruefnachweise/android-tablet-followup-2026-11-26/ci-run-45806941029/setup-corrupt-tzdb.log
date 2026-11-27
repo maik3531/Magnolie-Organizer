@@ -1,0 +1,20 @@
+$ node --require /workspace/scratch/acde70e8594b/tablet-setup-ci-followup/probe-timezone-inputs.cjs magnolie-organizer-windows/tests/setup-holidays.js
+Timezone input probe: corrupt-tzdb; desktop cache reads=0; mutated payload reads=1.
+/workspace/scratch/acde70e8594b/Magnolie-Organizer/port-adapters/timezones/projection-assets.cjs:9
+    throw Error('Normative timezone source/identity/license mismatch');
+    ^
+
+Error: Normative timezone source/identity/license mismatch
+    at timezoneAssets (/workspace/scratch/acde70e8594b/Magnolie-Organizer/port-adapters/timezones/projection-assets.cjs:9:11)
+    at Object.<anonymous> (/workspace/scratch/acde70e8594b/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js:9:85)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.22.3
+
+exit=1

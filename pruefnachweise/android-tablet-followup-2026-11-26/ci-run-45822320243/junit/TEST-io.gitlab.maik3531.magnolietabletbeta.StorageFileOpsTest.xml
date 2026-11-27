@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.StorageFileOpsTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:47:07.313Z" hostname="ip-10-0-142-104" time="0.033">
+  <properties/>
+  <testcase name="credentialAndConfigStoresUseTheInjectedBackendForEveryBarrier" classname="io.gitlab.maik3531.magnolietabletbeta.StorageFileOpsTest" time="0.006"/>
+  <testcase name="failedAtomicMoveNeverLooksLikeSuccessfulReplacement" classname="io.gitlab.maik3531.magnolietabletbeta.StorageFileOpsTest" time="0.002"/>
+  <testcase name="vaultDirectoryFailurePoisonsSessionUntilARealBarrierCompletes" classname="io.gitlab.maik3531.magnolietabletbeta.StorageFileOpsTest" time="0.009"/>
+  <testcase name="privateModesCheckedAtomicReplacementAndRealDirectorySync" classname="io.gitlab.maik3531.magnolietabletbeta.StorageFileOpsTest" time="0.001"/>
+  <testcase name="childCreationSyncsOwnedFrameworkStyleParentWithoutChangingItsMode" classname="io.gitlab.maik3531.magnolietabletbeta.StorageFileOpsTest" time="0.002"/>
+  <testcase name="nofollowHardlinkAndBoundedReadWriteGuardsPreserveOriginals" classname="io.gitlab.maik3531.magnolietabletbeta.StorageFileOpsTest" time="0.003"/>
+  <testcase name="vaultRenameFailureWithholdsAckAndRetainsOriginalAfterReopen" classname="io.gitlab.maik3531.magnolietabletbeta.StorageFileOpsTest" time="0.007"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

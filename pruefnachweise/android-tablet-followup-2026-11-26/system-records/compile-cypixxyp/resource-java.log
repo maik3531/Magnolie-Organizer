@@ -1,0 +1,5 @@
+$ java -m jdk.compiler/com.sun.tools.javac.Main -source 17 -target 17 -d /workspace/scratch/acde70e8594b/tablet-system-records-checks/compile-cypixxyp/product-classes /workspace/scratch/acde70e8594b/tablet-system-records-checks/compile-cypixxyp/generated/io/gitlab/maik3531/magnolietabletbeta/R.java
+warning: [options] system modules path not set in conjunction with -source 17
+1 warning
+
+exit=0

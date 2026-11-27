@@ -1,0 +1,97 @@
+{
+  "browser": "156.0.8078.108",
+  "cases": 3,
+  "checks": 108,
+  "passed": 69,
+  "failures": [
+    "split-screen: contacts permission wait keeps focus inside the dialog",
+    "split-screen: contacts permission result focuses the now available source choice",
+    "split-screen: events permission wait keeps focus inside the dialog",
+    "split-screen: events permission result focuses the now available source choice",
+    "split-screen: source refresh wait keeps focus inside the dialog",
+    "split-screen: source refresh restores its trigger",
+    "split-screen: source update retains the focused date field",
+    "split-screen: contacts import wait moves focus to the available cancel action",
+    "split-screen: cancel restores the contact import trigger",
+    "split-screen: events import wait moves focus to the available cancel action",
+    "split-screen: save acknowledgement wait keeps focus inside the dialog",
+    "split-screen: completed import restores the calendar import trigger",
+    "split-screen: events import wait moves focus to the available cancel action",
+    "compact-landscape: contacts permission wait keeps focus inside the dialog",
+    "compact-landscape: contacts permission result focuses the now available source choice",
+    "compact-landscape: events permission wait keeps focus inside the dialog",
+    "compact-landscape: events permission result focuses the now available source choice",
+    "compact-landscape: source refresh wait keeps focus inside the dialog",
+    "compact-landscape: source refresh restores its trigger",
+    "compact-landscape: source update retains the focused date field",
+    "compact-landscape: contacts import wait moves focus to the available cancel action",
+    "compact-landscape: cancel restores the contact import trigger",
+    "compact-landscape: events import wait moves focus to the available cancel action",
+    "compact-landscape: save acknowledgement wait keeps focus inside the dialog",
+    "compact-landscape: completed import restores the calendar import trigger",
+    "compact-landscape: events import wait moves focus to the available cancel action",
+    "keyboard-reduced-window: contacts permission wait keeps focus inside the dialog",
+    "keyboard-reduced-window: contacts permission result focuses the now available source choice",
+    "keyboard-reduced-window: events permission wait keeps focus inside the dialog",
+    "keyboard-reduced-window: events permission result focuses the now available source choice",
+    "keyboard-reduced-window: source refresh wait keeps focus inside the dialog",
+    "keyboard-reduced-window: source refresh restores its trigger",
+    "keyboard-reduced-window: source update retains the focused date field",
+    "keyboard-reduced-window: contacts import wait moves focus to the available cancel action",
+    "keyboard-reduced-window: cancel restores the contact import trigger",
+    "keyboard-reduced-window: events import wait moves focus to the available cancel action",
+    "keyboard-reduced-window: save acknowledgement wait keeps focus inside the dialog",
+    "keyboard-reduced-window: completed import restores the calendar import trigger",
+    "keyboard-reduced-window: events import wait moves focus to the available cancel action"
+  ]
+}
+AssertionError [ERR_ASSERTION]: split-screen: contacts permission wait keeps focus inside the dialog
+split-screen: contacts permission result focuses the now available source choice
+split-screen: events permission wait keeps focus inside the dialog
+split-screen: events permission result focuses the now available source choice
+split-screen: source refresh wait keeps focus inside the dialog
+split-screen: source refresh restores its trigger
+split-screen: source update retains the focused date field
+split-screen: contacts import wait moves focus to the available cancel action
+split-screen: cancel restores the contact import trigger
+split-screen: events import wait moves focus to the available cancel action
+split-screen: save acknowledgement wait keeps focus inside the dialog
+split-screen: completed import restores the calendar import trigger
+split-screen: events import wait moves focus to the available cancel action
+compact-landscape: contacts permission wait keeps focus inside the dialog
+compact-landscape: contacts permission result focuses the now available source choice
+compact-landscape: events permission wait keeps focus inside the dialog
+compact-landscape: events permission result focuses the now available source choice
+compact-landscape: source refresh wait keeps focus inside the dialog
+compact-landscape: source refresh restores its trigger
+compact-landscape: source update retains the focused date field
+compact-landscape: contacts import wait moves focus to the available cancel action
+compact-landscape: cancel restores the contact import trigger
+compact-landscape: events import wait moves focus to the available cancel action
+compact-landscape: save acknowledgement wait keeps focus inside the dialog
+compact-landscape: completed import restores the calendar import trigger
+compact-landscape: events import wait moves focus to the available cancel action
+keyboard-reduced-window: contacts permission wait keeps focus inside the dialog
+keyboard-reduced-window: contacts permission result focuses the now available source choice
+keyboard-reduced-window: events permission wait keeps focus inside the dialog
+keyboard-reduced-window: events permission result focuses the now available source choice
+keyboard-reduced-window: source refresh wait keeps focus inside the dialog
+keyboard-reduced-window: source refresh restores its trigger
+keyboard-reduced-window: source update retains the focused date field
+keyboard-reduced-window: contacts import wait moves focus to the available cancel action
+keyboard-reduced-window: cancel restores the contact import trigger
+keyboard-reduced-window: events import wait moves focus to the available cancel action
+keyboard-reduced-window: save acknowledgement wait keeps focus inside the dialog
+keyboard-reduced-window: completed import restores the calendar import trigger
+keyboard-reduced-window: events import wait moves focus to the available cancel action
+
+39 !== 0
+
+    at /workspace/scratch/acde70e8594b/Magnolie-Organizer/Magnolie-Organizer-Android-Tablet-Beta/tests/system-import-browser.cjs:222:12 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 39,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

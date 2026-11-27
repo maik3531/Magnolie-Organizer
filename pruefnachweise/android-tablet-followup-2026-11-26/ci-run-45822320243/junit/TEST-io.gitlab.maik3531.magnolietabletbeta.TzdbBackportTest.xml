@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.TzdbBackportTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:47:07.943Z" hostname="ip-10-0-142-104" time="0.02">
+  <properties/>
+  <testcase name="normativeProviderHasPinnedPublicVersionAndRealHistoryAndFuture" classname="io.gitlab.maik3531.magnolietabletbeta.TzdbBackportTest" time="0.006"/>
+  <testcase name="checkedInSupplyChainRecordMatchesThePackagedDatabaseAndRetainedLicense" classname="io.gitlab.maik3531.magnolietabletbeta.TzdbBackportTest" time="0.001"/>
+  <testcase name="gapsAndFoldsUseCompleteRulesIncludingRamadanTransitionsWithinNinetyDays" classname="io.gitlab.maik3531.magnolietabletbeta.TzdbBackportTest" time="0.001"/>
+  <testcase name="nativeGoldenFutureClocksMatchTheActualPublishedPythonOracle" classname="io.gitlab.maik3531.magnolietabletbeta.TzdbBackportTest" time="0.001"/>
+  <testcase name="completeDatabaseMatchesIndependentJavaTimeHistoryAndWideFuture" classname="io.gitlab.maik3531.magnolietabletbeta.TzdbBackportTest" time="0.006"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

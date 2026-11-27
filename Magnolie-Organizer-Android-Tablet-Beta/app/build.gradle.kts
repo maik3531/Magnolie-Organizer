@@ -3,7 +3,6 @@ import java.util.zip.ZipFile
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
 }
 
 val projection = tasks.register<Exec>("projectDesktop") {
@@ -70,9 +69,22 @@ val createBetaDebugKey = tasks.register<Exec>("createBetaDebugKey") {
         "-keyalg", "RSA", "-keysize", "2048", "-validity", "3650")
 }
 
+// AGP built-in Kotlin has no per-source-directory include filter. Copy only
+// the two existing storage helpers, never the Notes application or transports.
+val sharedStorageSources = layout.buildDirectory.dir("generated/shared-storage/kotlin")
+val prepareSharedStorageSources = tasks.register<Sync>("prepareSharedStorageSources") {
+    from(rootProject.file("../magnolie-notes/app/src/main/java")) {
+        include("io/gitlab/maik3531/magnolienotes/daten/DatenDateiKrypto.kt",
+            "io/gitlab/maik3531/magnolienotes/daten/DateiDauerhaft.kt")
+    }
+    into(sharedStorageSources)
+}
+
 android {
     namespace = "io.gitlab.maik3531.magnolietabletbeta"
-    compileSdk = 35
+    // Compiler preparation does not raise the product's behavior target.
+    compileSdk { version = release(37) { minorApiLevel = 2 } }
+    buildToolsVersion = "36.0.0"
     defaultConfig {
         applicationId = "io.gitlab.maik3531.magnolieorganizer.tablet.beta"
         minSdk = 26
@@ -85,30 +97,24 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
     signingConfigs.getByName("debug").storeFile = betaDebugKey
-    sourceSets["androidTest"].assets.srcDir(rootProject.file("../port-adapters/tests"))
-    sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/projection/assets"))
-    sourceSets["main"].res.srcDir(layout.buildDirectory.dir("generated/projection/res"))
-    sourceSets["main"].resources.srcDir(normativeTimezoneResources)
+    sourceSets["androidTest"].assets.directories.add(rootProject.file("../port-adapters/tests").absolutePath)
+    sourceSets["androidTest"].kotlin.directories.add(rootProject.file("tests/input").absolutePath)
+    sourceSets["test"].kotlin.directories.add(rootProject.file("tests/input").absolutePath)
+    sourceSets["main"].kotlin.directories.add(sharedStorageSources.get().asFile.absolutePath)
+    sourceSets["main"].assets.directories.add(layout.buildDirectory.dir("generated/projection/assets").get().asFile.absolutePath)
+    sourceSets["main"].res.directories.add(layout.buildDirectory.dir("generated/projection/res").get().asFile.absolutePath)
+    sourceSets["main"].resources.directories.add(normativeTimezoneResources.get().asFile.absolutePath)
     testOptions { unitTests.isReturnDefaultValues = false }
 }
 kotlin {
-    jvmToolchain(17)
-    sourceSets.getByName("androidTest").kotlin.srcDir(rootProject.file("tests/input"))
-    sourceSets.getByName("test").kotlin.srcDir(rootProject.file("tests/input"))
-    // Kotlin has its own source filter; Android's Java filter does not constrain it.
-    sourceSets.getByName("main").kotlin.apply {
-        srcDir(rootProject.file("../magnolie-notes/app/src/main/java"))
-        include("io/gitlab/maik3531/magnolietabletbeta/**",
-            "io/gitlab/maik3531/magnolienotes/daten/DatenDateiKrypto.kt",
-            "io/gitlab/maik3531/magnolienotes/daten/DateiDauerhaft.kt")
-    }
+    jvmToolchain(21)
+    compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
 }
-tasks.named("preBuild") { dependsOn(projection, verifyThreeTenRuntime, prepareNormativeTimezones) }
+tasks.named("preBuild") { dependsOn(projection, verifyThreeTenRuntime, prepareNormativeTimezones, prepareSharedStorageSources) }
 tasks.matching { it.name == "validateSigningDebug" }.configureEach { dependsOn(createBetaDebugKey) }
 tasks.configureEach {
-    if (name.startsWith("compile") || name.startsWith("test") || name.endsWith("JavaRes")) dependsOn(verifyThreeTenRuntime,prepareNormativeTimezones)
+    if (name.startsWith("compile") || name.startsWith("test") || name.endsWith("JavaRes")) dependsOn(verifyThreeTenRuntime,prepareNormativeTimezones,prepareSharedStorageSources)
     if (name.contains("Release")) doFirst { error("Development gate supports debug only; production workflow required.") }
 }
 tasks.withType<Test>().configureEach {

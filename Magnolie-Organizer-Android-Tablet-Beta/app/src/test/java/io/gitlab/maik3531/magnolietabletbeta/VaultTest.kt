@@ -23,8 +23,8 @@ class VaultTest {
         for(key in expected.keys().asSequence()) {
             if(key=="einstellungen") {
                 val source=expected.getJSONObject(key);val target=actual.getJSONObject(key)
-                for(setting in source.keys().asSequence()) assertTrue(JSONObject().put("v",source.get(setting)).similar(JSONObject().put("v",target.get(setting))))
-            } else assertTrue(key,JSONObject().put("v",expected.get(key)).similar(JSONObject().put("v",actual.get(key))))
+                for(setting in source.keys().asSequence()) assertTrue(setting,jsonValuesEqual(source.get(setting),target.get(setting)))
+            } else assertTrue(key,jsonValuesEqual(expected.get(key),actual.get(key)))
         }
         assertEquals(expected.keys().asSequence().toSet()+setOf("syncEpoch","syncMetadaten","geloescht","tombstones","baumKontaktGeloescht","syncNachRestore","personalSync"),actual.keys().asSequence().toSet())
         val epoch=actual.getString("syncEpoch");java.util.UUID.fromString(epoch)
@@ -257,7 +257,7 @@ class VaultTest {
             val result=vault.replace(page,token)
             reject {error("simulated notification scheduler unavailable")}
             reject {vault.save(page,data("A").toString(),JSONArray())}
-            assertTrue(result.getJSONObject("data").similar(vault.openSession().value!!.getJSONObject("data")))
+            assertTrue(jsonValuesEqual(result.getJSONObject("data"),vault.openSession().value!!.getJSONObject("data")))
         } finally {dir.deleteRecursively()}
     }
     @Test fun actualEditorAlarmVectorsReachNativeConsentAndReceiptGate() {

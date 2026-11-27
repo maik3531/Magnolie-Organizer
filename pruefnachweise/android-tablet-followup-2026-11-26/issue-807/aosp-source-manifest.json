@@ -1,0 +1,18 @@
+{
+  "branch": "android14-release",
+  "commit": "94405b4ad2ca9ddec5fcad85d42cd308229b61f0",
+  "files": [
+    {
+      "file": "CalendarInstancesHelper.java",
+      "url": "https://android.googlesource.com/platform/packages/providers/CalendarProvider/+/94405b4ad2ca9ddec5fcad85d42cd308229b61f0/src/com/android/providers/calendar/CalendarInstancesHelper.java?format=TEXT",
+      "bytes": 42523,
+      "sha256": "04b9f6d643172c2d47b7245a806fa0bd48f3befe4d1ea8922fc04bdd3fcdb3e0"
+    },
+    {
+      "file": "CalendarProvider2.java",
+      "url": "https://android.googlesource.com/platform/packages/providers/CalendarProvider/+/94405b4ad2ca9ddec5fcad85d42cd308229b61f0/src/com/android/providers/calendar/CalendarProvider2.java?format=TEXT",
+      "bytes": 249380,
+      "sha256": "37c13f9830df96df538f6dfd4b21d3369b7b1bdeeb8f1ce4d59d6012cfad3dd7"
+    }
+  ]
+}

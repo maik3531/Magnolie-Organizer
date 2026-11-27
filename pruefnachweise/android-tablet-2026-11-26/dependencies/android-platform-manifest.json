@@ -1,0 +1,10 @@
+{
+  "url": "https://dl.google.com/android/repository/platform-37.2_r02.zip",
+  "archive_bytes": 68094624,
+  "archive_sha1": "d52b3062af96f7c4dfdca5a479cd1db33ae83762",
+  "archive_sha256": "17af98ec1427a1fed9ea278184aba71e53b87eca103655602f9fc64ef11ea4d3",
+  "member": "android-37.2/android.jar",
+  "android_jar_sha256": "2507cf762abe2171a8cb3c289837fc71f2e66e598f396f1cc10bb7dc10020329",
+  "android_jar_bytes": 44042952,
+  "scope": "Official SDK API stubs extracted for compile-only checks; no SDK installation, runtime, APK or device acceptance"
+}

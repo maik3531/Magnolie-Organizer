@@ -60,11 +60,72 @@ class MainActivity : Activity() {
     private fun cancelAccountDiscovery() { accountCancellation?.cancel(); accountCancellation = null }
     private val systemSourceWorker = java.util.concurrent.Executors.newSingleThreadExecutor()
     @Volatile private var systemSourceControl: AndroidSystemSources.Control? = null
+    @Volatile private var systemImportControl: AndroidSystemSources.Control? = null
     private data class PendingSystemAccess(val request: SystemSourceRequest, val epoch: Int, val session: DocumentSession, val code: Int)
     private var systemPermissionGate = SystemPermissionGate.restore(currentProcess=SYSTEM_PERMISSION_PROCESS)
     private var pendingSystemAccess: PendingSystemAccess? = null
     private fun cancelSystemSources() {
         systemSourceControl?.cancel(); systemSourceControl = null
+        systemImportControl?.cancel(); systemImportControl = null
+    }
+    private fun dispatchSystemImport(message: JSONObject, epoch: Int, session: DocumentSession) {
+        val request = SystemImportRequest.parse(message)
+        systemImportControl?.cancel()
+        val control = AndroidSystemSources.Control().also { systemImportControl = it }
+        systemSourceWorker.execute {
+            val payload = try {
+                AndroidSystemRecords(applicationContext).read(request, control) {
+                    check(currentPage(epoch, session) && ready && systemImportControl === control) { "stale_request" }
+                }
+            } catch (_: SecurityException) { request.failure("permission_required") }
+            catch (error: Exception) {
+                val known = setOf("source_limit", "record_limit", "source_unavailable", "provider_changed", "stale_request", "provider_timeout")
+                request.failure(if (error.message in known) error.message!!
+                    else if (control.signal.isCanceled) "provider_timeout" else "provider_unavailable")
+            } finally { control.close() }
+            runOnUiThread {
+                if (accountCurrent(epoch, session) && systemImportControl === control) {
+                    // Recheck at delivery: a permission revoked while the worker was finishing
+                    // must not disclose the completed candidate to the old page.
+                    val reply = when {
+                        !currentPage(epoch, session) -> request.failure("stale_request")
+                        checkSelfPermission(AndroidSystemSources.permission(request.kind)) != android.content.pm.PackageManager.PERMISSION_GRANTED -> request.failure("permission_required")
+                        else -> payload
+                    }
+                    systemImportControl = null
+                    respond(SystemImportRequest.CALLBACK, reply, epoch)
+                }
+            }
+        }
+    }
+    private fun dispatchAttachment(message: JSONObject, epoch: Int, session: DocumentSession) {
+        val request = AttachmentLaunchRequest.parse(message)
+        work({ error ->
+            val reason = error.message?.takeIf { it in setOf("attachment_blocked", "attachment_not_saved", "invalid_url", "unsupported_action") }
+                ?: "attachment_unavailable"
+            respond(AttachmentLaunchRequest.CALLBACK, request.reply(false, reason), epoch)
+        }) {
+            val vault = AndroidStore.vault(this)
+            vault.requireSession(session)
+            val target = AttachmentLaunchPolicy.savedTarget(request, vault.read()?.getJSONObject("data") ?: error("attachment_not_saved"))
+            runOnUiThread {
+                if (!currentPage(epoch, session) || !ready) {
+                    if (accountCurrent(epoch, session)) respond(AttachmentLaunchRequest.CALLBACK, request.reply(false, "stale_request"), epoch)
+                    return@runOnUiThread
+                }
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(target)).addCategory(Intent.CATEGORY_BROWSABLE))
+                    // Acceptance by an Android handler is not a network/download success proof.
+                    respond(AttachmentLaunchRequest.CALLBACK, request.reply(true), epoch)
+                } catch (_: android.content.ActivityNotFoundException) {
+                    respond(AttachmentLaunchRequest.CALLBACK, request.reply(false, "handler_unavailable"), epoch)
+                } catch (_: SecurityException) {
+                    respond(AttachmentLaunchRequest.CALLBACK, request.reply(false, "handler_denied"), epoch)
+                } catch (_: Exception) {
+                    respond(AttachmentLaunchRequest.CALLBACK, request.reply(false, "handler_failed"), epoch)
+                }
+            }
+        }
     }
     private fun dispatchSystemSources(message: JSONObject, epoch: Int, session: DocumentSession) {
         val request = SystemSourceRequest.parse(message)
@@ -351,6 +412,12 @@ class MainActivity : Activity() {
         }
         if (cmd in SystemSourceRequest.commands) {
             dispatchSystemSources(message,epoch,requireNotNull(session)); return
+        }
+        if (cmd == SystemImportRequest.COMMAND) {
+            dispatchSystemImport(message, epoch, requireNotNull(session)); return
+        }
+        if (cmd == "sozial") {
+            dispatchAttachment(message, epoch, requireNotNull(session)); return
         }
         if (cmd in DavAccountBridgeRequest.commands) {
             dispatchAccount(message, epoch, requireNotNull(session)); return

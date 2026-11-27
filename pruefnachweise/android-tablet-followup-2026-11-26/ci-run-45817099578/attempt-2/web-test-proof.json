@@ -1,0 +1,6 @@
+{
+  "passed": 194,
+  "sourceHash": "6c0e5542020d04ffaf556ee1334bbe32c91fcfd0da81ff90749b64ca33a6fe8a",
+  "emulator": false,
+  "scope": "jsdom + shared contract vectors; not Android runtime acceptance"
+}

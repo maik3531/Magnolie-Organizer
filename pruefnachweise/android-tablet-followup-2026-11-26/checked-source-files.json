@@ -1,0 +1,21 @@
+{
+  "localSourceCommit": "dbe791faab785741ff9c6519ea443d69405ee00b",
+  "sourceTree": "4f5b27a2357b1eeb5cd01f6552d6ebd3aed4d12c",
+  "hashes": {
+    ".github/workflows/ports-2.0.30.yml": "0c2974b083815372fc1a6e073c78c12f2946b2868981c783743c3348fd7e2e58",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/androidTest/java/io/gitlab/maik3531/magnolietabletbeta/NativeDomainAcceptance.kt": "3b6e3b52f14dcf60ca402bb615b17915590ac651c155d14370d9c6928329ce65",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/AndroidSystemRecords.kt": "b7197e69f8c9e2f9aa4e29a2122db659965517ee3fe711085690c3593e8ca8ab",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/SystemImportPolicy.kt": "12767aebd8c90df2ba19f4d30b628d6e35813099891ac4fa7a035cbf1bbe7b45",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/NativeWindowOwnershipPolicyTest.kt": "1b173db7e86e0cea3a0ecfe4e72ce86ce0cc36460bfaa54fbf6434ef38a4c380",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/SystemImportPolicyTest.kt": "78fa04131df1a5eccce314ba4052e6841c8d14828b4cadcb5342a5658073f566",
+    "Magnolie-Organizer-Android-Tablet-Beta/tests/input/NativeWindowOwnershipPolicy.kt": "cb12ed7f41f70dbe21b848fe222225d920d2d113d80f644394a8e470ab1ec39d",
+    "Magnolie-Organizer-Android-Tablet-Beta/tests/system-import-browser.cjs": "6efad14666103f703e631ae4ebc5c0c81b36781f39cf0dc9ee62877c34592e8f",
+    "Magnolie-Organizer-Android-Tablet-Beta/tests/system-import.test.cjs": "eeaf3df3cbe4ffce72e4accef8ea97469193799344c0ea39c8d17a41ad57752d",
+    "Magnolie-Organizer-Android-Tablet-Beta/tests/test_source_proof.py": "c4c1b4757ca5337b4608446ac228bcf1fe733d425ee5e5e9d514f790e6ed4872",
+    "Magnolie-Organizer-Android-Tablet-Beta/tools/artifacts.cjs": "6ebf8ddde76349533b168c9f2865adde6f636d9066c6ee736e50c04c453e9158",
+    "Magnolie-Organizer-Android-Tablet-Beta/tools/project-web.cjs": "34611f57f265e87e9c91e6056d8b002bdfa965b80de48aff54f4d1733d98251a",
+    "Magnolie-Organizer-Android-Tablet-Beta/web/system-import-i18n.json": "f8d2fdc425c64fb6fe130191bfbccae18177944c48c79b9e4bc1431f39fe148a",
+    "Magnolie-Organizer-Android-Tablet-Beta/web/system-import.js": "0c46a75d5322fc0f007d84b8ded4d5e96e7c3ea9f3f1ad3f86d4614d561eefe0",
+    "Magnolie-Organizer-Android-Tablet-Beta/web/tablet.js": "8858422587c2d866b0aba32e81aec90baa8a0b5857bf2c8f9e13df2d0bde9886"
+  }
+}

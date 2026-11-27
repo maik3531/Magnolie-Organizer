@@ -1,0 +1,21 @@
+{
+  "issue": 463,
+  "kind": "JVM policy execution and real Android API compile-only",
+  "jvm_tests": 9,
+  "recorded_reference_truth_table_cases": 432,
+  "android_api": "37.2",
+  "compiler": "Kotlin 2.4.21",
+  "jvm_target": 17,
+  "nativeRuntimeTest": false,
+  "apkBuild": false,
+  "sources": {
+    "Magnolie-Organizer-Android-Tablet-Beta/tests/input/NativeWindowOwnershipPolicy.kt": "cb12ed7f41f70dbe21b848fe222225d920d2d113d80f644394a8e470ab1ec39d",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/NativeWindowOwnershipPolicyTest.kt": "1b173db7e86e0cea3a0ecfe4e72ce86ce0cc36460bfaa54fbf6434ef38a4c380",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/androidTest/java/io/gitlab/maik3531/magnolietabletbeta/NativeDomainAcceptance.kt": "3b6e3b52f14dcf60ca402bb615b17915590ac651c155d14370d9c6928329ce65",
+    "Magnolie-Organizer-Android-Tablet-Beta/tests/input/SavedBookEpochExpectation.kt": "6368a089531ba1180478c60df2110d8ece24ee99894554130046447698673984"
+  },
+  "dependencyManifests": {
+    "/workspace/scratch/acde70e8594b/tablet-build-dependencies/maven-dependency-manifest.json": "ba8c44feded32c559c783a86fec88d3c7595c65dbe30212e2f44d9953edc843e",
+    "/workspace/scratch/acde70e8594b/tablet-build-dependencies/android-platform-manifest.json": "6a72cf490b7bd551f2fa4ae51888cbf0b2d544375165417ad5f1277c8129cffc"
+  }
+}

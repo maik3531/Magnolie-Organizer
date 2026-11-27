@@ -70,6 +70,8 @@ class NativeTabletInstrumentation : Instrumentation() {
                     pass("native Android DAV parser and secure account transactions", NativeDavAccountSmoke.run(targetContext))
                     pass("native Android calendar codecs and system time zones", NativeCalendarSmoke.run(context,targetContext))
                 }
+                "system-records" -> pass("native Android system-provider smoke",
+                    NativeSystemProviderSmoke.run(this, File(out,"system-records-receipt.json"), ::pass))
                 "domains" -> domains()
                 "basics" -> basics()
                 "restart" -> {launch(); assertPersisted()}
@@ -86,7 +88,7 @@ class NativeTabletInstrumentation : Instrumentation() {
                 "verify-reboot" -> verifyReboot()
                 else -> error("Unknown stage")
             }
-            if (stage != "services") capture(stage)
+            if (stage !in listOf("services", "system-records")) capture(stage)
         } catch(t: Throwable) {
             error=t
             android.util.Log.e("TabletNativeTest","FAIL $stage",t)

@@ -1,0 +1,76 @@
+{
+  "kind": "fresh-derived-saved-evidence-integrity-verification",
+  "verifiedAtUtc": "2026-11-26T13:36:08.907330+00:00",
+  "scope": "Read-only verification of saved evidence and source/patch binding. No new functional test, build, emulator, provider action, network verification, merge or release.",
+  "repository": "/workspace/scratch/acde70e8594b/Magnolie-Organizer",
+  "head": "680d348f3f9cff6ecf3adc5536a6490649d25ef6",
+  "tree": "4f3cc2051a5b598171f690e3ff72d1c136068c9c",
+  "workingTreeCleanBeforeAndAfter": true,
+  "proofs": {
+    "sha256FilesVerified": 232,
+    "manifestSha256": "b18b78e070f50aff6dc340fb09f643c387f413750f39c516e4db3df76be93386",
+    "allTrackedProofFilesCoveredExceptManifestItself": true
+  },
+  "ci101": {
+    "runId": 45822320243,
+    "remoteHead": "7a7d90b04796cf338b98f0fdbb87e8da1c967043",
+    "localSameTreeCommit": "41ce9f771ac42c6203f5e7fe2065d086dd2ab306",
+    "testedTree": "06c1a8cf6f115908dc21252682c2a358246f2cb7",
+    "sourceInputsVerifiedAgainstGit": 462,
+    "sourceInputSetSha256": "86748803313288fe7b25428e13fe3e972bb6848323ee595d57588a3afe299f55",
+    "currentSourceInputsChanged": [
+      "Magnolie-Organizer-Android-Tablet-Beta/README.md",
+      "contracts/android-tablet-followup-2026-11-26.md"
+    ],
+    "currentExecutableInputsByteIdentical": true,
+    "changedTrackedPaths": 63,
+    "changedDocumentationPaths": [
+      "ARBEITSSTAND.md",
+      "Magnolie-Organizer-Android-Tablet-Beta/README.md",
+      "contracts/android-tablet-followup-2026-11-26.md"
+    ],
+    "allOtherChangedPathsAreEvidence": true
+  },
+  "runtime": {
+    "outputCount": 83,
+    "currentOutputBytesMatchTestedManifest": true,
+    "originalApkAssetsVerified": 63,
+    "testedProjection": "dbe502cf4ad4661be79dca584c120d8623676cf8be5c3ff0d61eba840b676c09",
+    "currentDocumentationProjection": "257fa1cd947bbc89cb4db9c2a240dfd784edff2b562029869d904805cde73613"
+  },
+  "artifactVerification": {
+    "output": "/workspace/scratch/acde70e8594b/tablet-fresh-artifact-integrity-20261126.json",
+    "sha256": "08a7bddc52ed4a9e14417c33867c8528c759331ec7449169aa0b163e668395d2",
+    "byteIdenticalToSavedReceipt": true,
+    "originalZipSha256": "094747195afdd58a42fc3f83ef77046fef7e579d9daeedabc537eb9d6b585b72",
+    "completeJobLogReverified": true,
+    "copies": 48,
+    "junitReports": 42,
+    "tests": 303,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "providerGroups": 11,
+    "productPermissionChecksWithoutWrite": 19
+  },
+  "patchChain": {
+    "patches": 12,
+    "allPatchBytesVerified": true,
+    "allParentLinksVerified": true,
+    "isolatedReplayPerformed": true,
+    "allIntermediateTreesMatched": true,
+    "base": "29acde7e3df2b8bcaaab0cc19b3377b8dbf4bd14",
+    "finalTree": "4f3cc2051a5b598171f690e3ff72d1c136068c9c",
+    "manifestSha256": "bce36351cabae8a92ffa2472f0fc7d8ca897a91ea78dd5acb5654dee5d102e2b",
+    "publicationReceiptSha256": "e6b613446e8bc21146b32b2303ed5f58e0315e83b04de20098f93363c6028cec",
+    "recordedRemoteHead": "8d5dc47fecf77b7ebc2db0e5cbb7cb4754005b29",
+    "freshRemoteVerificationPerformed": false
+  },
+  "limits": {
+    "nativeAcceptance": false,
+    "productionRelease": false,
+    "googleAcceptance": false,
+    "functionalCoverageExpanded": false
+  },
+  "result": "passed"
+}

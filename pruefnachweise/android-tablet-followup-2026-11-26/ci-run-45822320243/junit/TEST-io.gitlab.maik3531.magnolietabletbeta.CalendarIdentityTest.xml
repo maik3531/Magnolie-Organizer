@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.CalendarIdentityTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:47:02.261Z" hostname="ip-10-0-142-104" time="0.263">
+  <properties/>
+  <testcase name="sourceQualifiedRecurrenceUidMatchesUnchangedPublishedReferenceAcrossReimport" classname="io.gitlab.maik3531.magnolietabletbeta.CalendarIdentityTest" time="0.192"/>
+  <testcase name="evidenceBindsActualSourceWireRIDAndAppointmentIndexWithoutChangingDTO" classname="io.gitlab.maik3531.magnolietabletbeta.CalendarIdentityTest" time="0.02"/>
+  <testcase name="evidenceIndexesOnlyAppointmentsAndPreservesOpaqueWireUIDs" classname="io.gitlab.maik3531.magnolietabletbeta.CalendarIdentityTest" time="0.022"/>
+  <testcase name="sidecarBytesShareTheUnchangedProjectionCap" classname="io.gitlab.maik3531.magnolietabletbeta.CalendarIdentityTest" time="0.013"/>
+  <testcase name="canonicalIdentityStringsMatchIndependentPythonBytesWithoutPlatformEscaping" classname="io.gitlab.maik3531.magnolietabletbeta.CalendarIdentityTest" time="0.003"/>
+  <testcase name="legacyEvidenceQuoteAndFullUIDsMatchActualAOSPBytes" classname="io.gitlab.maik3531.magnolietabletbeta.CalendarIdentityTest" time="0.008"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

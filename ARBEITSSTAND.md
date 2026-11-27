@@ -1,5 +1,18 @@
 # Aktueller Arbeitsstand
 
+## Tablet-Integration – 27. November 2026
+
+Die Quellserie aus [PR #795](https://github.com/maik3531/Magnolie-Organizer/pull/795)
+ist mit dem aktuellen Standardstand zusammengeführt. Gegenüber dem
+[API-34-Lauf mit 303 Unit-Tests und Providerprüfung](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45822320243)
+blieben die Tablet-Laufzeitquellen und ihre gemeinsamen Eingaben unverändert.
+Die 24 Provenienztests und die Windows-Archivprüfung mit 1.406 Dateien
+bestanden bei der Übernahme. Der historische Tablet-Audit bleibt im
+Repository und gehört nicht in das eigenständige Windows-Quellarchiv.
+
+Offen bleiben die in #795 aufgeführten Android-Laufzeitprüfungen und das
+signierte Tablet-Release. Der geprüfte Debug-Bau ist kein Release-Paket.
+
 `main` ist die Standardquelle. Dieser Eintrag trennt den verifizierten
 Quellstand von der installierten Produktversion. Die nachfolgenden
 Integrationsstände sind noch nicht Teil von `main`. Ihre Git-Zweige beim
@@ -288,3 +301,187 @@ Nächster inhaltlicher Schritt: Eine belegte Artikeladresse zur angekündigten
 Veröffentlichung prüfen und danach neu einordnen. Die privaten Kampagnenbelege
 bleiben außerhalb des Repositorys. Es wurden keine Nachrichten oder neuen
 Einreichungen versendet; #595 bleibt für ausstehende Portalangaben offen.
+
+## Eigenständiger Android-Tablet-Organizer – 26. November 2026
+
+Nutzerauftrag: alle Tablet-Issues gegen den tatsächlichen Quell-/Prüfstand
+abgleichen, die aktuelle gemeinsame Oberfläche tabletgerecht verwenden und
+Kontakte/Kalender direkt über Android anbinden. Magnolie Notes und KDE Connect
+sind keine Voraussetzung; lokale Organizer-Notizen bleiben Bestandteil der App.
+Die präzisierte Plattformabgrenzung steht auch in `AGENTS.md` und der Tablet-README.
+
+**Einstieg für die spätere Übernahme:**
+[Übergabe, Aktualisierung und vollständige Prüfreihenfolge](pruefnachweise/android-tablet-followup-2026-11-26/handover/README.md).
+Festgehaltene Dokumentations-/Nachweisbasis ist `8d5dc47fecf77b7ebc2db0e5cbb7cb4754005b29`;
+der tatsächlich in CI #101 gebaute und mit Android-Providern geprüfte Head bleibt
+`7a7d90b04796cf338b98f0fdbb87e8da1c967043`. Die Übergabe ergänzt diese Basis als
+Folgepatch 13. Der [vollständige Patchindex](https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7188858114)
+bindet die ersten fünf Patches, alle Folgepatches und den jeweils aktuellen
+Remote-Head. Die Anleitung enthält das Vorgehen bei späteren Änderungen in
+`main`, die vorhandenen Workflowtargets und die offenen nativen Freigabepunkte.
+Die frische Integritätsprüfung bestätigt die bisherigen 232 Belegdateien,
+462 CI-Inputs und 83 bytegleichen Laufzeitoutputs; sie ist kein neuer Funktionstest.
+
+Arbeitsbasis ist `d4da48a5eadd0bda22422b924bef4ee3b4324040`; Änderungen werden im
+Prüfzweig `work/android-tablet-20261126` mit vollständigen Issue-Patches zur
+späteren Prüfung/Übernahme bereitgestellt. Keine Freigabe eines neuen APK-Pakets
+oder Release erfolgt aus diesem Quellnachweis. Der vollständige Audit mit
+26 maßgeblichen Issues steht in `contracts/android-tablet-audit-2026-11-26.md`.
+Die Fortsetzung baut auf PR-Head `29acde7e3df2b8bcaaab0cc19b3377b8dbf4bd14`
+auf und ergänzt denselben Draft-PR #795. Der Folgeaudit in
+`contracts/android-tablet-followup-2026-11-26.md` erfasst vier weitere
+reproduzierte Fehler (#798–#801). Zwei tatsächliche CI-Prüfcodebefunde
+(#804/#805) und der spätere native Serienfixture-Befund #807 ergänzen die
+Zuordnung auf 33 Issues. CI #101 belegt inzwischen den vollständigen APK-Gate
+und die begrenzte API34-Providerstufe auf dem oben genannten Testhead. Die
+vollständige native Bedien-/Geräteabnahme und Produktionsfreigabe bleiben offen.
+
+- #790: Der Tablet-CI-Bau verwendet den aktuellen gemeinsamen Checkout. Das alte
+  `v2.0.30` bleibt nur unabhängige Codec-Referenz. Git-/Datei-/Projektions- und
+  geprüfte APK-Hashes werden gebunden; JDK21/Gradle9.6/AGP9.5.1 mit integriertem
+  Kotlin2.4.21 und compileSdk37.2 sind angeglichen. TargetSDK35 und minSDK26 bleiben.
+  Das neue manuelle Workflowziel `tablet-build-only` nutzt denselben vollständigen
+  APK-Gate mit allen Ressourcen-/Koordinationsgrenzen. Es überspringt ausschließlich
+  Runtimeimage, KVM, Emulator und native Prüfschritte. Job, Artefaktname und
+  Metadaten kennzeichnen den reinen Bau; es entsteht keine native Abnahme.
+- #791: explizite native Kontakt- und Kalenderkopien mit Quellenwahl,
+  Berechtigungsprüfung, Abbruch/Fristen und Session-/Revisionsbindung. Nur neue
+  Identitäten ergänzen; vorhandene Datensätze bleiben erhalten. Die gemeinsame
+  Normalisierung schützt Kontaktgeburtstage und wiederholtes Öffnen. Termine
+  werden für 1–366 Kalendertage als Instanzen übernommen; keine laufende
+  Synchronisierung oder Provider-Schreibrechte. Erfolg erst nach Save-ACK.
+  #799/#800 ergänzen Schema 2 für Kopierantwort und Herkunft: Kontakte verwenden
+  Provider-Source-/Backup-ID beziehungsweise einen gerätegebundenen Raw-ID-Fallback
+  mit zusätzlicher Zeilenbindung. Einzelterminidentität hängt nicht von bearbeiteten
+  Zeiten ab; Serieninstanzen behalten ihren ursprünglichen Slot einschließlich
+  verschobener Ausnahmen. Alte experimentelle Herkunft oder Identitätskonflikte
+  werden abgelehnt, nicht geraten oder pauschal bereinigt. Keine allgemeine
+  Identitätsgarantie über Provider-Resets und Gerätewechsel hinweg.
+- #792: Buchaufteilung nach Fensterbreite, mindestens 48 CSS-Pixel große
+  Aktionsziele, kompakte Register und erreichbare, begrenzte Dialoge. Bestehende
+  Darstellung sowie Scroll-, RTL- und reduzierte Bewegungsoptionen bleiben.
+  #798 erhält den Fokus bei asynchronem Neuaufbau des Quellenbereichs nur, wenn er
+  zuvor darin lag. Abbruch, Abschluss und Freigabe besitzen erreichbare Folgeziele;
+  andere Controls/Editoren werden nicht zurückfokussiert. Importtexte sind für
+  dieselben 20 Sprachkataloge vorhanden; sprachliche Gesamtabnahme nicht behauptet.
+- #682: gespeicherte HTTPS-Kalenderanhänge werden nach dem bestehenden
+  Speicherschutz direkt an Android übergeben; kein Notes-/KDE-Umweg. Die native
+  Richtlinie prüft den tatsächlichen gespeicherten Anhang und dessen Freigabe.
+- #463: fehlender/fehlgeschlagener Accessibility-Nachweis wird von positiv
+  erkanntem fremdem Paket/Fenster und eigenem nicht bereitem Appzustand getrennt.
+  Fokus vorhanden, beide Fensterkennungen `-1` und leeres aktives Paket bedeutet
+  jetzt `input-ownership-unverified`. Besitzbedingung, Flags und 420-ms-Geste sind
+  unverändert. Keine Ursachenlösung für `-1`, kein Retry/Prewarm und keine
+  Zulassung einer unbelegten Geste.
+
+Erste Patchserie, jeweils an ihrem dokumentierten Stand geprüft: 194 bestehende
+Tablet-Webchecks; 31 zusätzliche tatsächliche
+Frontend-Integrationsfälle mit synthetischer Native-Bridge; 31 JVM-Tests der
+Import-/Quellen-/Anhangsrichtlinien; alle 38 Kotlin-Produktdateien gegen echte
+Android-37.2-/AndroidX-Abhängigkeiten einschließlich aapt2-Ressourcenübersetzung;
+19 Provenienztests plus ein gezielter JAVA_HOME-Weitergabetest; 150/150 echte
+Chromium-Layoutchecks in zehn Fenster-/Schrift-/RTL-Fällen. Derselbe Layoutrunner
+fand mit dem alten CSS 40 Fehler. Der korrigierte Legacy-CSS-Test prüft die
+tatsächlich geltenden vh-/dvh-Fallbacks; Mac-Prüfungen bleiben erhalten.
+
+Gezielte Folgeprüfungen: **22 Provenienz-/Workflowvertragstests** einschließlich
+Build-only-Auswahl und unveränderten bisherigen Zielen; **9 JVM-Tests mit 432
+Zustandskombinationen** für die unveränderte Besitzentscheidung und neue
+Ownership-Diagnose. Der zugehörige Android-Adapter ist gegen echte API 37.2
+kompiliert, ohne native Laufzeitprüfung. Zusätzlich sind **46 JVM-Tests** der
+Import-/Quellen-/Anhangsregeln und **167 echte Chromium-Prüfungen** des
+Importformulars mit synthetischer Native-Bridge, Fokus-/Touchabläufen und
+Katalogvollständigkeit belegt. #801 ergänzt die persistente Statusregion im
+Dialog; der echte Identitätskonflikt erhält Live-/Speicherbuch und seine Meldung
+ist nach Scrollen vollständig sichtbar und per Hitprobe unverdeckt.
+**194 Webchecks, 46 Import-/Anhangsintegrationschecks und 150/150 Layoutchecks**
+sind auf der gemeinsamen finalen Projektion erneut bestanden:
+`7a0c31a550761badd32e07f4bdaee6b016fd158a769a64017c7525332bb70416`.
+Rohbelege, Quellhashes und Reproduktion stehen in
+`pruefnachweise/android-tablet-followup-2026-11-26/`. Diese Zahlen sind
+spezifische Hostnachweise, kein gemeinsamer Androidlauf.
+
+Der echte Actions-Baulauf 45806941029 auf `e7d396e` bestand Vorbereitung,
+Readiness, Provenienz und die 194/46 Web-/Importchecks. Er stoppte vor Gradle,
+weil der gemeinsame Desktop-Setuptest einen nicht vorhandenen generierten
+Zeitzonencache erwartete. Folgepatch 8 zu #790 erzeugt den bestehenden Bootstrap
+für diesen Test im Speicher; 88 Cross-Desktop-Fälle in 20 Sprachen sind bestanden.
+Veraltete Caches werden nicht gelesen, beschädigte normative Daten bleiben ein
+harter Fehler. Neue Projektion:
+`3dcf2073c46012e193900fce971a5bab91cefd5194f433bac7169e7f98917907`.
+Alle 83 Laufzeitdateien sind exakt identisch zum zuvor geprüften Stand; nur der
+gemeinsame Test ist als Projektionsquelle verändert. Dieser gemeinsame
+Cross-Desktop-Befund ist zusätzlich in #804 mit engem Quellpatch dokumentiert.
+
+Der folgende echte Actions-Lauf 45809316206 auf `2dd93930` bestätigt den
+Setupfix im frischen Checkout: 88/20 Fälle, 194/46 Web-/Importchecks und
+22 Provenienztests bestanden. Gradle kompiliert Produkt-Kotlin, Manifest und
+Ressourcen; `compileDebugUnitTestKotlin` scheitert anschließend an fünf auf dem
+Android-Kompilierpfad fehlenden `JSONObject.similar`-Aufrufen. Der eigene
+Test-Kompilierbefund #805 wird mit einem vollständigen strukturellen Vergleich
+über öffentliche JSON-APIs korrigiert. Genaue Zahlenwerte, Arrayreihenfolge,
+Null-/Fehlfeld- und Typunterschiede bleiben Prüfanforderungen. Die originalen
+CI-Fehlerbelege stehen in `pruefnachweise/android-tablet-followup-2026-11-26/ci-run-45809316206/`.
+Dieser Lauf erzeugte kein APK und führte keine nativen Schritte aus.
+Die enge Korrektur zu #805 kompiliert gegen die echten Android-37.2-APIs;
+42/42 gezielte JVM-Tests sind bestanden, darunter alle betroffenen Dokument-/
+Kalender-/Vaulttests sowie zwölf neue exakte Vergleichsfälle. Die vorherige
+Kompilierstörung und die unveränderten 38 Produktquellen sind hashgebunden belegt.
+Kein Produktcode, Manifest, Gradle-Gate oder vorhandener Test wurde dafür entfernt
+oder umgangen. Rohbelege unter `pruefnachweise/android-tablet-followup-2026-11-26/issue-805/`.
+
+Für #791 wurde zusätzlich `tablet-system-records` vorbereitet: vollständiger
+APK-Bau, anschließend eine eigene API-34-/google_apis-Providerstufe mit elf
+Prüfgruppen. Sie verwendet echte Kontakt-/Kalenderprovider, ausschließlich eigene
+synthetische Fixtures und die tatsächlichen Produktleser. Schreibrechte gelten
+nur bei Fixture-Arbeiten; jeder Produktzugriff prüft zuvor die abgelegte
+Shellidentität und fehlende Schreibrechte. Zwei Kalender erlauben einen echten
+Auswahlvergleich; Kontakt-Quellenisolierung wird mit der einzigen lokalen
+Kontaktquelle ausdrücklich nicht behauptet. 24 Quellen-/Workflowprüfungen,
+vier Owner-Verträge und die reale API-Kompilierung sind belegt; die beiden letzten
+Scope-Literale wurden gesondert nachkompiliert. Diese Vorbereitungsbelege enthielten
+noch keine Emulator-/Provider-Ausführung. Der anschließend tatsächlich ausgeführte
+Lauf #99 wird im folgenden Absatz getrennt ausgewertet. Ein UI-/Berechtigungsdialog-,
+Save-ACK- oder vollständiger nativer Abnahmenachweis folgt daraus nicht.
+Die Rohbelege der Vorbereitung stehen im Unterordner `system-records/`.
+
+Der tatsächliche Actions-Lauf #99 auf Head `92e2c645cf0a8075325874f335087412e7f79c79`
+ist getrennt ausgewertet. Versuch 1 scheitert extern an Maven-Central-HTTP429.
+Versuch 2 besteht den vollständigen APK-Gate und **303 JUnit-Tests aus 42 XML-Reports,
+0 Fehler/Ausfälle/Skips**. Tatsächliche App-/Instrumentierungsbytes,
+Kandidatenmanifest und die Projektion innerhalb der APK sind gegen die
+Quellbindung geprüft. Die native Providerstufe besteht acht Fachgruppen und
+Cleanup, scheitert aber an der erwarteten Zweiermenge nach einer Serienausnahme.
+Ihre Ist-Anzahl fehlt im Originalreceipt; kein Duplikat wird daraus abgeleitet.
+Alle 16 Produktaufrufe liefen ohne WRITE. Eigene Kontakte/Kalender vollständig
+entfernt; Cancellation nach dem Fehler nicht erreicht. Belege: `ci-run-45817099578/`.
+
+Der enge Folgefix #807 ergänzt die bereits synthetische Syncadapter-Fixture um
+vollständige Master-/Ausnahmeverknüpfung, direktes Event-Rücklesen und begrenzte
+Vorher-/Nachher-Slots. Alle bisherigen Anzahl-/Identitäts-/Zeitprüfungen bleiben
+hart; Produktcode und Gates bleiben unverändert. Die unsyncte lokale
+Serienausnahme ist ausdrücklich nicht durch diese Fixture abgenommen. Bei
+Erstellung von Folgepatch 11 stand dessen native Wiederholung noch aus.
+
+Die anschließende Wiederholung [Actions #101](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45822320243)
+auf Head `7a7d90b04796cf338b98f0fdbb87e8da1c967043` / Tree
+`06c1a8cf6f115908dc21252682c2a358246f2cb7` besteht den vollständigen APK-Gate
+und die echte API34-Providerstufe. 42 Original-JUnit-Reports bestätigen erneut
+303 Tests ohne Fehler/Ausfälle/Skips. Alle elf Providergruppen einschließlich
+Cleanup bestehen. Die Serien-Fixture liefert vor/nach der Ausnahme genau zwei
+Instanzen: 09:00 wird bei gleicher ursprünglicher ID zu 12:00; der Folgetag
+bleibt unverändert. Beide vorab abgebrochenen Abfragen wurden erreicht;
+19 protokollierte Produkt-/Readbackaufrufe liefen ohne WRITE. Die zwei eigenen
+RawContacts und zwei Kalender wurden vollständig entfernt. Originalbelege und
+ausgeführter Artefaktprüfer stehen unter `ci-run-45822320243/`.
+Der abschließende Nachtrag ändert nur Dokumentation und Nachweise; der tatsächlich
+gebaute und nativ geprüfte Head bleibt ausdrücklich der oben genannte.
+
+Offen bleiben unsynchronisierte lokale Serienausnahmen, eine zweite Kontaktquelle,
+Android-Berechtigungsdialoge und Live-Widerrufe, UI-/Save-ACK, laufende Query-Cancellation,
+TalkBack, IME, Stift, native Pixel-/SAF-/Restore-/Neustartmatrix und tatsächliche
+HTTPS-/Clipboard-Bedienung. Historische native
+Teilnachweise und heutige Reste werden im Audit getrennt geführt. Für die
+unterschiedlichen Befunde in #458, #463 und #471 bleiben die jeweiligen Ursachen-
+und Restprüfungen offen. Geschlossene Quell-/Native-Teilfixes werden nicht ohne
+neue Regression wieder geöffnet.

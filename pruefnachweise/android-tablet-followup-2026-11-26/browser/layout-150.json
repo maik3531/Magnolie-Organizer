@@ -1,0 +1,2134 @@
+{
+  "browser": "156.0.8078.108",
+  "scope": "Chromium host layout with synthetic native bridge; no Android acceptance",
+  "checks": 150,
+  "passed": 150,
+  "failures": [],
+  "cases": [
+    {
+      "name": "landscape",
+      "width": 1280,
+      "height": 800,
+      "columns": true,
+      "layout": {
+        "left": {
+          "x": 147,
+          "y": 163.75,
+          "width": 475,
+          "height": 551.25,
+          "right": 622,
+          "bottom": 715
+        },
+        "right": {
+          "x": 658,
+          "y": 163.75,
+          "width": 475,
+          "height": 551.25,
+          "right": 1133,
+          "bottom": 715
+        },
+        "tabs": [
+          {
+            "x": 1123,
+            "y": 200.75,
+            "width": 152,
+            "height": 48,
+            "right": 1275,
+            "bottom": 248.75,
+            "label": "Kalender",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1116,
+            "y": 254.75,
+            "width": 152,
+            "height": 48,
+            "right": 1268,
+            "bottom": 302.75,
+            "label": "Aufgaben",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1116,
+            "y": 308.75,
+            "width": 152,
+            "height": 48,
+            "right": 1268,
+            "bottom": 356.75,
+            "label": "Adressen",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1116,
+            "y": 362.75,
+            "width": 152,
+            "height": 48,
+            "right": 1268,
+            "bottom": 410.75,
+            "label": "Notizen",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1116,
+            "y": 416.75,
+            "width": 152,
+            "height": 48,
+            "right": 1268,
+            "bottom": 464.75,
+            "label": "Jahrestage",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1116,
+            "y": 470.75,
+            "width": 152,
+            "height": 48,
+            "right": 1268,
+            "bottom": 518.75,
+            "label": "Planer",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1116,
+            "y": 524.75,
+            "width": 152,
+            "height": 48,
+            "right": 1268,
+            "bottom": 572.75,
+            "label": "Gesundheit",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          }
+        ],
+        "toolbar": [
+          {
+            "x": 528.171875,
+            "y": 5,
+            "width": 165,
+            "height": 48,
+            "right": 693.171875,
+            "bottom": 53,
+            "id": "",
+            "label": "Übernehmen JSON"
+          },
+          {
+            "x": 701.171875,
+            "y": 5,
+            "width": 153,
+            "height": 48,
+            "right": 854.171875,
+            "bottom": 53,
+            "id": "",
+            "label": "Übernehmen ICS"
+          },
+          {
+            "x": 862.171875,
+            "y": 5,
+            "width": 164,
+            "height": 48,
+            "right": 1026.171875,
+            "bottom": 53,
+            "id": "",
+            "label": "Weitergeben JSON"
+          },
+          {
+            "x": 1034.171875,
+            "y": 5,
+            "width": 157,
+            "height": 48,
+            "right": 1191.171875,
+            "bottom": 53,
+            "id": "",
+            "label": "Benachrichtigung"
+          },
+          {
+            "x": 1199.171875,
+            "y": 5,
+            "width": 68.828125,
+            "height": 48,
+            "right": 1268,
+            "bottom": 53,
+            "id": "",
+            "label": "Über"
+          },
+          {
+            "x": 753,
+            "y": 742,
+            "width": 127,
+            "height": 48,
+            "right": 880,
+            "bottom": 790,
+            "id": "knopf-drucken",
+            "label": "Auswahloptionen"
+          },
+          {
+            "x": 892,
+            "y": 742,
+            "width": 106,
+            "height": 48,
+            "right": 998,
+            "bottom": 790,
+            "id": "knopf-einstellungen",
+            "label": "Einstellungen"
+          },
+          {
+            "x": 1010,
+            "y": 742,
+            "width": 138,
+            "height": 48,
+            "right": 1148,
+            "bottom": 790,
+            "id": "knopf-sicherung",
+            "label": "Sicherung anlegen"
+          }
+        ],
+        "documentWidth": 1280
+      },
+      "settings": {
+        "dialog": {
+          "x": 170,
+          "y": 8,
+          "width": 940,
+          "height": 784,
+          "right": 1110,
+          "bottom": 792
+        },
+        "close": {
+          "x": 1043,
+          "y": 21,
+          "width": 48,
+          "height": 48,
+          "right": 1091,
+          "bottom": 69
+        },
+        "content": {
+          "x": 189,
+          "y": 191,
+          "width": 902,
+          "height": 559,
+          "right": 1091,
+          "bottom": 750
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "large-portrait",
+      "width": 1200,
+      "height": 1600,
+      "columns": true,
+      "layout": {
+        "left": {
+          "x": 147,
+          "y": 163.75,
+          "width": 435,
+          "height": 1351.25,
+          "right": 582,
+          "bottom": 1515
+        },
+        "right": {
+          "x": 618,
+          "y": 163.75,
+          "width": 435,
+          "height": 1351.25,
+          "right": 1053,
+          "bottom": 1515
+        },
+        "tabs": [
+          {
+            "x": 1043,
+            "y": 200.75,
+            "width": 152,
+            "height": 48,
+            "right": 1195,
+            "bottom": 248.75,
+            "label": "Kalender",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1036,
+            "y": 254.75,
+            "width": 152,
+            "height": 48,
+            "right": 1188,
+            "bottom": 302.75,
+            "label": "Aufgaben",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1036,
+            "y": 308.75,
+            "width": 152,
+            "height": 48,
+            "right": 1188,
+            "bottom": 356.75,
+            "label": "Adressen",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1036,
+            "y": 362.75,
+            "width": 152,
+            "height": 48,
+            "right": 1188,
+            "bottom": 410.75,
+            "label": "Notizen",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1036,
+            "y": 416.75,
+            "width": 152,
+            "height": 48,
+            "right": 1188,
+            "bottom": 464.75,
+            "label": "Jahrestage",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1036,
+            "y": 470.75,
+            "width": 152,
+            "height": 48,
+            "right": 1188,
+            "bottom": 518.75,
+            "label": "Planer",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1036,
+            "y": 524.75,
+            "width": 152,
+            "height": 48,
+            "right": 1188,
+            "bottom": 572.75,
+            "label": "Gesundheit",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          }
+        ],
+        "toolbar": [
+          {
+            "x": 448.171875,
+            "y": 5,
+            "width": 165,
+            "height": 48,
+            "right": 613.171875,
+            "bottom": 53,
+            "id": "",
+            "label": "Übernehmen JSON"
+          },
+          {
+            "x": 621.171875,
+            "y": 5,
+            "width": 153,
+            "height": 48,
+            "right": 774.171875,
+            "bottom": 53,
+            "id": "",
+            "label": "Übernehmen ICS"
+          },
+          {
+            "x": 782.171875,
+            "y": 5,
+            "width": 164,
+            "height": 48,
+            "right": 946.171875,
+            "bottom": 53,
+            "id": "",
+            "label": "Weitergeben JSON"
+          },
+          {
+            "x": 954.171875,
+            "y": 5,
+            "width": 157,
+            "height": 48,
+            "right": 1111.171875,
+            "bottom": 53,
+            "id": "",
+            "label": "Benachrichtigung"
+          },
+          {
+            "x": 1119.171875,
+            "y": 5,
+            "width": 68.828125,
+            "height": 48,
+            "right": 1188,
+            "bottom": 53,
+            "id": "",
+            "label": "Über"
+          },
+          {
+            "x": 673,
+            "y": 1542,
+            "width": 127,
+            "height": 48,
+            "right": 800,
+            "bottom": 1590,
+            "id": "knopf-drucken",
+            "label": "Auswahloptionen"
+          },
+          {
+            "x": 812,
+            "y": 1542,
+            "width": 106,
+            "height": 48,
+            "right": 918,
+            "bottom": 1590,
+            "id": "knopf-einstellungen",
+            "label": "Einstellungen"
+          },
+          {
+            "x": 930,
+            "y": 1542,
+            "width": 138,
+            "height": 48,
+            "right": 1068,
+            "bottom": 1590,
+            "id": "knopf-sicherung",
+            "label": "Sicherung anlegen"
+          }
+        ],
+        "documentWidth": 1200
+      },
+      "settings": {
+        "dialog": {
+          "x": 130,
+          "y": 390,
+          "width": 940,
+          "height": 820,
+          "right": 1070,
+          "bottom": 1210
+        },
+        "close": {
+          "x": 995,
+          "y": 407,
+          "width": 48,
+          "height": 48,
+          "right": 1043,
+          "bottom": 455
+        },
+        "content": {
+          "x": 157,
+          "y": 577,
+          "width": 886,
+          "height": 585,
+          "right": 1043,
+          "bottom": 1162
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "portrait",
+      "width": 800,
+      "height": 1280,
+      "layout": {
+        "left": {
+          "x": 22,
+          "y": 326.75,
+          "width": 756,
+          "height": 860,
+          "right": 778,
+          "bottom": 1186.75
+        },
+        "right": {
+          "x": 22,
+          "y": 1196.75,
+          "width": 756,
+          "height": 860,
+          "right": 778,
+          "bottom": 2056.75
+        },
+        "tabs": [
+          {
+            "x": 22,
+            "y": 214.75,
+            "width": 144.796875,
+            "height": 48,
+            "right": 166.796875,
+            "bottom": 262.75,
+            "label": "Kalender",
+            "scrollWidth": 143,
+            "clientWidth": 143
+          },
+          {
+            "x": 174.796875,
+            "y": 214.75,
+            "width": 144.8125,
+            "height": 48,
+            "right": 319.609375,
+            "bottom": 262.75,
+            "label": "Aufgaben",
+            "scrollWidth": 143,
+            "clientWidth": 143
+          },
+          {
+            "x": 327.609375,
+            "y": 214.75,
+            "width": 144.796875,
+            "height": 48,
+            "right": 472.40625,
+            "bottom": 262.75,
+            "label": "Adressen",
+            "scrollWidth": 143,
+            "clientWidth": 143
+          },
+          {
+            "x": 480.40625,
+            "y": 214.75,
+            "width": 144.796875,
+            "height": 48,
+            "right": 625.203125,
+            "bottom": 262.75,
+            "label": "Notizen",
+            "scrollWidth": 143,
+            "clientWidth": 143
+          },
+          {
+            "x": 633.203125,
+            "y": 214.75,
+            "width": 144.796875,
+            "height": 48,
+            "right": 778,
+            "bottom": 262.75,
+            "label": "Jahrestage",
+            "scrollWidth": 143,
+            "clientWidth": 143
+          },
+          {
+            "x": 22,
+            "y": 270.75,
+            "width": 374,
+            "height": 48,
+            "right": 396,
+            "bottom": 318.75,
+            "label": "Planer",
+            "scrollWidth": 372,
+            "clientWidth": 372
+          },
+          {
+            "x": 404,
+            "y": 270.75,
+            "width": 374,
+            "height": 48,
+            "right": 778,
+            "bottom": 318.75,
+            "label": "Gesundheit",
+            "scrollWidth": 372,
+            "clientWidth": 372
+          }
+        ],
+        "toolbar": [
+          {
+            "x": 462,
+            "y": 5,
+            "width": 165,
+            "height": 48,
+            "right": 627,
+            "bottom": 53,
+            "id": "",
+            "label": "Übernehmen JSON"
+          },
+          {
+            "x": 635,
+            "y": 5,
+            "width": 153,
+            "height": 48,
+            "right": 788,
+            "bottom": 53,
+            "id": "",
+            "label": "Übernehmen ICS"
+          },
+          {
+            "x": 12,
+            "y": 61,
+            "width": 164,
+            "height": 48,
+            "right": 176,
+            "bottom": 109,
+            "id": "",
+            "label": "Weitergeben JSON"
+          },
+          {
+            "x": 184,
+            "y": 61,
+            "width": 157,
+            "height": 48,
+            "right": 341,
+            "bottom": 109,
+            "id": "",
+            "label": "Benachrichtigung"
+          },
+          {
+            "x": 349,
+            "y": 61,
+            "width": 68.828125,
+            "height": 48,
+            "right": 417.828125,
+            "bottom": 109,
+            "id": "",
+            "label": "Über"
+          },
+          {
+            "x": 271.5,
+            "y": 2103.59375,
+            "width": 127,
+            "height": 48,
+            "right": 398.5,
+            "bottom": 2151.59375,
+            "id": "knopf-drucken",
+            "label": "Auswahloptionen"
+          },
+          {
+            "x": 410.5,
+            "y": 2103.59375,
+            "width": 106,
+            "height": 48,
+            "right": 516.5,
+            "bottom": 2151.59375,
+            "id": "knopf-einstellungen",
+            "label": "Einstellungen"
+          },
+          {
+            "x": 528.5,
+            "y": 2103.59375,
+            "width": 138,
+            "height": 48,
+            "right": 666.5,
+            "bottom": 2151.59375,
+            "id": "knopf-sicherung",
+            "label": "Sicherung anlegen"
+          }
+        ],
+        "documentWidth": 800
+      },
+      "settings": {
+        "dialog": {
+          "x": 16,
+          "y": 230,
+          "width": 768,
+          "height": 820,
+          "right": 784,
+          "bottom": 1050
+        },
+        "close": {
+          "x": 709,
+          "y": 247,
+          "width": 48,
+          "height": 48,
+          "right": 757,
+          "bottom": 295
+        },
+        "content": {
+          "x": 43,
+          "y": 468,
+          "width": 714,
+          "height": 534,
+          "right": 757,
+          "bottom": 1002
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "compact-landscape",
+      "width": 800,
+      "height": 480,
+      "layout": {
+        "left": {
+          "x": 22,
+          "y": 324,
+          "width": 756,
+          "height": 345.59375,
+          "right": 778,
+          "bottom": 669.59375
+        },
+        "right": {
+          "x": 22,
+          "y": 679.59375,
+          "width": 756,
+          "height": 345.59375,
+          "right": 778,
+          "bottom": 1025.1875
+        },
+        "tabs": [
+          {
+            "x": 22,
+            "y": 212,
+            "width": 144.796875,
+            "height": 48,
+            "right": 166.796875,
+            "bottom": 260,
+            "label": "Kalender",
+            "scrollWidth": 143,
+            "clientWidth": 143
+          },
+          {
+            "x": 174.796875,
+            "y": 212,
+            "width": 144.8125,
+            "height": 48,
+            "right": 319.609375,
+            "bottom": 260,
+            "label": "Aufgaben",
+            "scrollWidth": 143,
+            "clientWidth": 143
+          },
+          {
+            "x": 327.609375,
+            "y": 212,
+            "width": 144.796875,
+            "height": 48,
+            "right": 472.40625,
+            "bottom": 260,
+            "label": "Adressen",
+            "scrollWidth": 143,
+            "clientWidth": 143
+          },
+          {
+            "x": 480.40625,
+            "y": 212,
+            "width": 144.796875,
+            "height": 48,
+            "right": 625.203125,
+            "bottom": 260,
+            "label": "Notizen",
+            "scrollWidth": 143,
+            "clientWidth": 143
+          },
+          {
+            "x": 633.203125,
+            "y": 212,
+            "width": 144.796875,
+            "height": 48,
+            "right": 778,
+            "bottom": 260,
+            "label": "Jahrestage",
+            "scrollWidth": 143,
+            "clientWidth": 143
+          },
+          {
+            "x": 22,
+            "y": 268,
+            "width": 374,
+            "height": 48,
+            "right": 396,
+            "bottom": 316,
+            "label": "Planer",
+            "scrollWidth": 372,
+            "clientWidth": 372
+          },
+          {
+            "x": 404,
+            "y": 268,
+            "width": 374,
+            "height": 48,
+            "right": 778,
+            "bottom": 316,
+            "label": "Gesundheit",
+            "scrollWidth": 372,
+            "clientWidth": 372
+          }
+        ],
+        "toolbar": [
+          {
+            "x": 462,
+            "y": 5,
+            "width": 165,
+            "height": 48,
+            "right": 627,
+            "bottom": 53,
+            "id": "",
+            "label": "Übernehmen JSON"
+          },
+          {
+            "x": 635,
+            "y": 5,
+            "width": 153,
+            "height": 48,
+            "right": 788,
+            "bottom": 53,
+            "id": "",
+            "label": "Übernehmen ICS"
+          },
+          {
+            "x": 12,
+            "y": 61,
+            "width": 164,
+            "height": 48,
+            "right": 176,
+            "bottom": 109,
+            "id": "",
+            "label": "Weitergeben JSON"
+          },
+          {
+            "x": 184,
+            "y": 61,
+            "width": 157,
+            "height": 48,
+            "right": 341,
+            "bottom": 109,
+            "id": "",
+            "label": "Benachrichtigung"
+          },
+          {
+            "x": 349,
+            "y": 61,
+            "width": 68.828125,
+            "height": 48,
+            "right": 417.828125,
+            "bottom": 109,
+            "id": "",
+            "label": "Über"
+          },
+          {
+            "x": 271.5,
+            "y": 1072.03125,
+            "width": 127,
+            "height": 48,
+            "right": 398.5,
+            "bottom": 1120.03125,
+            "id": "knopf-drucken",
+            "label": "Auswahloptionen"
+          },
+          {
+            "x": 410.5,
+            "y": 1072.03125,
+            "width": 106,
+            "height": 48,
+            "right": 516.5,
+            "bottom": 1120.03125,
+            "id": "knopf-einstellungen",
+            "label": "Einstellungen"
+          },
+          {
+            "x": 528.5,
+            "y": 1072.03125,
+            "width": 138,
+            "height": 48,
+            "right": 666.5,
+            "bottom": 1120.03125,
+            "id": "knopf-sicherung",
+            "label": "Sicherung anlegen"
+          }
+        ],
+        "documentWidth": 800
+      },
+      "settings": {
+        "dialog": {
+          "x": 16,
+          "y": 8,
+          "width": 768,
+          "height": 464,
+          "right": 784,
+          "bottom": 472
+        },
+        "close": {
+          "x": 717,
+          "y": 21,
+          "width": 48,
+          "height": 48,
+          "right": 765,
+          "bottom": 69
+        },
+        "content": {
+          "x": 35,
+          "y": 144,
+          "width": 730,
+          "height": 286,
+          "right": 765,
+          "bottom": 430
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "split-screen",
+      "width": 600,
+      "height": 960,
+      "layout": {
+        "left": {
+          "x": 22,
+          "y": 354.34375,
+          "width": 556,
+          "height": 691.1875,
+          "right": 578,
+          "bottom": 1045.53125
+        },
+        "right": {
+          "x": 22,
+          "y": 1055.53125,
+          "width": 556,
+          "height": 691.1875,
+          "right": 578,
+          "bottom": 1746.71875
+        },
+        "tabs": [
+          {
+            "x": 22,
+            "y": 242.34375,
+            "width": 133,
+            "height": 48,
+            "right": 155,
+            "bottom": 290.34375,
+            "label": "Kalender",
+            "scrollWidth": 131,
+            "clientWidth": 131
+          },
+          {
+            "x": 163,
+            "y": 242.34375,
+            "width": 133,
+            "height": 48,
+            "right": 296,
+            "bottom": 290.34375,
+            "label": "Aufgaben",
+            "scrollWidth": 131,
+            "clientWidth": 131
+          },
+          {
+            "x": 304,
+            "y": 242.34375,
+            "width": 133,
+            "height": 48,
+            "right": 437,
+            "bottom": 290.34375,
+            "label": "Adressen",
+            "scrollWidth": 131,
+            "clientWidth": 131
+          },
+          {
+            "x": 445,
+            "y": 242.34375,
+            "width": 133,
+            "height": 48,
+            "right": 578,
+            "bottom": 290.34375,
+            "label": "Notizen",
+            "scrollWidth": 131,
+            "clientWidth": 131
+          },
+          {
+            "x": 22,
+            "y": 298.34375,
+            "width": 180,
+            "height": 48,
+            "right": 202,
+            "bottom": 346.34375,
+            "label": "Jahrestage",
+            "scrollWidth": 178,
+            "clientWidth": 178
+          },
+          {
+            "x": 210,
+            "y": 298.34375,
+            "width": 180,
+            "height": 48,
+            "right": 390,
+            "bottom": 346.34375,
+            "label": "Planer",
+            "scrollWidth": 178,
+            "clientWidth": 178
+          },
+          {
+            "x": 398,
+            "y": 298.34375,
+            "width": 180,
+            "height": 48,
+            "right": 578,
+            "bottom": 346.34375,
+            "label": "Gesundheit",
+            "scrollWidth": 178,
+            "clientWidth": 178
+          }
+        ],
+        "toolbar": [
+          {
+            "x": 12,
+            "y": 32.59375,
+            "width": 165,
+            "height": 48,
+            "right": 177,
+            "bottom": 80.59375,
+            "id": "",
+            "label": "Übernehmen JSON"
+          },
+          {
+            "x": 185,
+            "y": 32.59375,
+            "width": 153,
+            "height": 48,
+            "right": 338,
+            "bottom": 80.59375,
+            "id": "",
+            "label": "Übernehmen ICS"
+          },
+          {
+            "x": 346,
+            "y": 32.59375,
+            "width": 164,
+            "height": 48,
+            "right": 510,
+            "bottom": 80.59375,
+            "id": "",
+            "label": "Weitergeben JSON"
+          },
+          {
+            "x": 12,
+            "y": 88.59375,
+            "width": 157,
+            "height": 48,
+            "right": 169,
+            "bottom": 136.59375,
+            "id": "",
+            "label": "Benachrichtigung"
+          },
+          {
+            "x": 177,
+            "y": 88.59375,
+            "width": 68.828125,
+            "height": 48,
+            "right": 245.828125,
+            "bottom": 136.59375,
+            "id": "",
+            "label": "Über"
+          },
+          {
+            "x": 171.5,
+            "y": 1793.5625,
+            "width": 127,
+            "height": 48,
+            "right": 298.5,
+            "bottom": 1841.5625,
+            "id": "knopf-drucken",
+            "label": "Auswahloptionen"
+          },
+          {
+            "x": 310.5,
+            "y": 1793.5625,
+            "width": 106,
+            "height": 48,
+            "right": 416.5,
+            "bottom": 1841.5625,
+            "id": "knopf-einstellungen",
+            "label": "Einstellungen"
+          },
+          {
+            "x": 428.5,
+            "y": 1793.5625,
+            "width": 138,
+            "height": 48,
+            "right": 566.5,
+            "bottom": 1841.5625,
+            "id": "knopf-sicherung",
+            "label": "Sicherung anlegen"
+          }
+        ],
+        "documentWidth": 600
+      },
+      "settings": {
+        "dialog": {
+          "x": 12,
+          "y": 70,
+          "width": 576,
+          "height": 820,
+          "right": 588,
+          "bottom": 890
+        },
+        "close": {
+          "x": 513,
+          "y": 87,
+          "width": 48,
+          "height": 48,
+          "right": 561,
+          "bottom": 135
+        },
+        "content": {
+          "x": 39,
+          "y": 210,
+          "width": 522,
+          "height": 632,
+          "right": 561,
+          "bottom": 842
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "narrow-split",
+      "width": 360,
+      "height": 740,
+      "layout": {
+        "left": {
+          "x": 18,
+          "y": 540,
+          "width": 324,
+          "height": 532.796875,
+          "right": 342,
+          "bottom": 1072.796875
+        },
+        "right": {
+          "x": 18,
+          "y": 1082.796875,
+          "width": 324,
+          "height": 532.796875,
+          "right": 342,
+          "bottom": 1615.59375
+        },
+        "tabs": [
+          {
+            "x": 18,
+            "y": 316,
+            "width": 158,
+            "height": 48,
+            "right": 176,
+            "bottom": 364,
+            "label": "Kalender",
+            "scrollWidth": 156,
+            "clientWidth": 156
+          },
+          {
+            "x": 184,
+            "y": 316,
+            "width": 158,
+            "height": 48,
+            "right": 342,
+            "bottom": 364,
+            "label": "Aufgaben",
+            "scrollWidth": 156,
+            "clientWidth": 156
+          },
+          {
+            "x": 18,
+            "y": 372,
+            "width": 158,
+            "height": 48,
+            "right": 176,
+            "bottom": 420,
+            "label": "Adressen",
+            "scrollWidth": 156,
+            "clientWidth": 156
+          },
+          {
+            "x": 184,
+            "y": 372,
+            "width": 158,
+            "height": 48,
+            "right": 342,
+            "bottom": 420,
+            "label": "Notizen",
+            "scrollWidth": 156,
+            "clientWidth": 156
+          },
+          {
+            "x": 18,
+            "y": 428,
+            "width": 158,
+            "height": 48,
+            "right": 176,
+            "bottom": 476,
+            "label": "Jahrestage",
+            "scrollWidth": 156,
+            "clientWidth": 156
+          },
+          {
+            "x": 184,
+            "y": 428,
+            "width": 158,
+            "height": 48,
+            "right": 342,
+            "bottom": 476,
+            "label": "Planer",
+            "scrollWidth": 156,
+            "clientWidth": 156
+          },
+          {
+            "x": 18,
+            "y": 484,
+            "width": 324,
+            "height": 48,
+            "right": 342,
+            "bottom": 532,
+            "label": "Gesundheit",
+            "scrollWidth": 322,
+            "clientWidth": 322
+          }
+        ],
+        "toolbar": [
+          {
+            "x": 12,
+            "y": 48.1875,
+            "width": 165,
+            "height": 48,
+            "right": 177,
+            "bottom": 96.1875,
+            "id": "",
+            "label": "Übernehmen JSON"
+          },
+          {
+            "x": 181,
+            "y": 48.1875,
+            "width": 153,
+            "height": 48,
+            "right": 334,
+            "bottom": 96.1875,
+            "id": "",
+            "label": "Übernehmen ICS"
+          },
+          {
+            "x": 12,
+            "y": 100.1875,
+            "width": 164,
+            "height": 48,
+            "right": 176,
+            "bottom": 148.1875,
+            "id": "",
+            "label": "Weitergeben JSON"
+          },
+          {
+            "x": 180,
+            "y": 100.1875,
+            "width": 157,
+            "height": 48,
+            "right": 337,
+            "bottom": 148.1875,
+            "id": "",
+            "label": "Benachrichtigung"
+          },
+          {
+            "x": 12,
+            "y": 152.1875,
+            "width": 68.828125,
+            "height": 48,
+            "right": 80.828125,
+            "bottom": 200.1875,
+            "id": "",
+            "label": "Über"
+          },
+          {
+            "x": 185.5,
+            "y": 1662.4375,
+            "width": 127,
+            "height": 48,
+            "right": 312.5,
+            "bottom": 1710.4375,
+            "id": "knopf-drucken",
+            "label": "Auswahloptionen"
+          },
+          {
+            "x": 52,
+            "y": 1722.4375,
+            "width": 106,
+            "height": 48,
+            "right": 158,
+            "bottom": 1770.4375,
+            "id": "knopf-einstellungen",
+            "label": "Einstellungen"
+          },
+          {
+            "x": 170,
+            "y": 1722.4375,
+            "width": 138,
+            "height": 48,
+            "right": 308,
+            "bottom": 1770.4375,
+            "id": "knopf-sicherung",
+            "label": "Sicherung anlegen"
+          }
+        ],
+        "documentWidth": 360
+      },
+      "settings": {
+        "dialog": {
+          "x": 8,
+          "y": 8,
+          "width": 344,
+          "height": 724,
+          "right": 352,
+          "bottom": 732
+        },
+        "close": {
+          "x": 293,
+          "y": 19,
+          "width": 48,
+          "height": 48,
+          "right": 341,
+          "bottom": 67
+        },
+        "content": {
+          "x": 19,
+          "y": 142,
+          "width": 322,
+          "height": 538,
+          "right": 341,
+          "bottom": 680
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "resized-keyboard-window",
+      "width": 1280,
+      "height": 360,
+      "columns": true,
+      "layout": {
+        "left": {
+          "x": 147,
+          "y": 163.75,
+          "width": 475,
+          "height": 490,
+          "right": 622,
+          "bottom": 653.75
+        },
+        "right": {
+          "x": 658,
+          "y": 163.75,
+          "width": 475,
+          "height": 490,
+          "right": 1133,
+          "bottom": 653.75
+        },
+        "tabs": [
+          {
+            "x": 1123,
+            "y": 200.75,
+            "width": 152,
+            "height": 48,
+            "right": 1275,
+            "bottom": 248.75,
+            "label": "Kalender",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1116,
+            "y": 254.75,
+            "width": 152,
+            "height": 48,
+            "right": 1268,
+            "bottom": 302.75,
+            "label": "Aufgaben",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1116,
+            "y": 308.75,
+            "width": 152,
+            "height": 48,
+            "right": 1268,
+            "bottom": 356.75,
+            "label": "Adressen",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1116,
+            "y": 362.75,
+            "width": 152,
+            "height": 48,
+            "right": 1268,
+            "bottom": 410.75,
+            "label": "Notizen",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1116,
+            "y": 416.75,
+            "width": 152,
+            "height": 48,
+            "right": 1268,
+            "bottom": 464.75,
+            "label": "Jahrestage",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1116,
+            "y": 470.75,
+            "width": 152,
+            "height": 48,
+            "right": 1268,
+            "bottom": 518.75,
+            "label": "Planer",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          },
+          {
+            "x": 1116,
+            "y": 524.75,
+            "width": 152,
+            "height": 48,
+            "right": 1268,
+            "bottom": 572.75,
+            "label": "Gesundheit",
+            "scrollWidth": 150,
+            "clientWidth": 150
+          }
+        ],
+        "toolbar": [
+          {
+            "x": 528.171875,
+            "y": 5,
+            "width": 165,
+            "height": 48,
+            "right": 693.171875,
+            "bottom": 53,
+            "id": "",
+            "label": "Übernehmen JSON"
+          },
+          {
+            "x": 701.171875,
+            "y": 5,
+            "width": 153,
+            "height": 48,
+            "right": 854.171875,
+            "bottom": 53,
+            "id": "",
+            "label": "Übernehmen ICS"
+          },
+          {
+            "x": 862.171875,
+            "y": 5,
+            "width": 164,
+            "height": 48,
+            "right": 1026.171875,
+            "bottom": 53,
+            "id": "",
+            "label": "Weitergeben JSON"
+          },
+          {
+            "x": 1034.171875,
+            "y": 5,
+            "width": 157,
+            "height": 48,
+            "right": 1191.171875,
+            "bottom": 53,
+            "id": "",
+            "label": "Benachrichtigung"
+          },
+          {
+            "x": 1199.171875,
+            "y": 5,
+            "width": 68.828125,
+            "height": 48,
+            "right": 1268,
+            "bottom": 53,
+            "id": "",
+            "label": "Über"
+          },
+          {
+            "x": 753,
+            "y": 680.75,
+            "width": 127,
+            "height": 48,
+            "right": 880,
+            "bottom": 728.75,
+            "id": "knopf-drucken",
+            "label": "Auswahloptionen"
+          },
+          {
+            "x": 892,
+            "y": 680.75,
+            "width": 106,
+            "height": 48,
+            "right": 998,
+            "bottom": 728.75,
+            "id": "knopf-einstellungen",
+            "label": "Einstellungen"
+          },
+          {
+            "x": 1010,
+            "y": 680.75,
+            "width": 138,
+            "height": 48,
+            "right": 1148,
+            "bottom": 728.75,
+            "id": "knopf-sicherung",
+            "label": "Sicherung anlegen"
+          }
+        ],
+        "documentWidth": 1280
+      },
+      "settings": {
+        "dialog": {
+          "x": 170,
+          "y": 8,
+          "width": 940,
+          "height": 344,
+          "right": 1110,
+          "bottom": 352
+        },
+        "close": {
+          "x": 1043,
+          "y": 21,
+          "width": 48,
+          "height": 48,
+          "right": 1091,
+          "bottom": 69
+        },
+        "content": {
+          "x": 189,
+          "y": 144,
+          "width": 902,
+          "height": 166,
+          "right": 1091,
+          "bottom": 310
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "compact-keyboard-window",
+      "width": 640,
+      "height": 360,
+      "layout": {
+        "left": {
+          "x": 22,
+          "y": 276,
+          "width": 596,
+          "height": 340,
+          "right": 618,
+          "bottom": 616
+        },
+        "right": {
+          "x": 22,
+          "y": 626,
+          "width": 596,
+          "height": 340,
+          "right": 618,
+          "bottom": 966
+        },
+        "tabs": [
+          {
+            "x": 22,
+            "y": 164,
+            "width": 143,
+            "height": 48,
+            "right": 165,
+            "bottom": 212,
+            "label": "Kalender",
+            "scrollWidth": 141,
+            "clientWidth": 141
+          },
+          {
+            "x": 173,
+            "y": 164,
+            "width": 143,
+            "height": 48,
+            "right": 316,
+            "bottom": 212,
+            "label": "Aufgaben",
+            "scrollWidth": 141,
+            "clientWidth": 141
+          },
+          {
+            "x": 324,
+            "y": 164,
+            "width": 143,
+            "height": 48,
+            "right": 467,
+            "bottom": 212,
+            "label": "Adressen",
+            "scrollWidth": 141,
+            "clientWidth": 141
+          },
+          {
+            "x": 475,
+            "y": 164,
+            "width": 143,
+            "height": 48,
+            "right": 618,
+            "bottom": 212,
+            "label": "Notizen",
+            "scrollWidth": 141,
+            "clientWidth": 141
+          },
+          {
+            "x": 22,
+            "y": 220,
+            "width": 193.328125,
+            "height": 48,
+            "right": 215.328125,
+            "bottom": 268,
+            "label": "Jahrestage",
+            "scrollWidth": 191,
+            "clientWidth": 191
+          },
+          {
+            "x": 223.328125,
+            "y": 220,
+            "width": 193.34375,
+            "height": 48,
+            "right": 416.671875,
+            "bottom": 268,
+            "label": "Planer",
+            "scrollWidth": 191,
+            "clientWidth": 191
+          },
+          {
+            "x": 424.671875,
+            "y": 220,
+            "width": 193.328125,
+            "height": 48,
+            "right": 618,
+            "bottom": 268,
+            "label": "Gesundheit",
+            "scrollWidth": 191,
+            "clientWidth": 191
+          }
+        ],
+        "toolbar": [
+          {
+            "x": 463,
+            "y": 5,
+            "width": 165,
+            "height": 48,
+            "right": 628,
+            "bottom": 53,
+            "id": "",
+            "label": "Übernehmen JSON"
+          },
+          {
+            "x": 12,
+            "y": 61,
+            "width": 153,
+            "height": 48,
+            "right": 165,
+            "bottom": 109,
+            "id": "",
+            "label": "Übernehmen ICS"
+          },
+          {
+            "x": 173,
+            "y": 61,
+            "width": 164,
+            "height": 48,
+            "right": 337,
+            "bottom": 109,
+            "id": "",
+            "label": "Weitergeben JSON"
+          },
+          {
+            "x": 345,
+            "y": 61,
+            "width": 157,
+            "height": 48,
+            "right": 502,
+            "bottom": 109,
+            "id": "",
+            "label": "Benachrichtigung"
+          },
+          {
+            "x": 510,
+            "y": 61,
+            "width": 68.828125,
+            "height": 48,
+            "right": 578.828125,
+            "bottom": 109,
+            "id": "",
+            "label": "Über"
+          },
+          {
+            "x": 191.5,
+            "y": 1012.84375,
+            "width": 127,
+            "height": 48,
+            "right": 318.5,
+            "bottom": 1060.84375,
+            "id": "knopf-drucken",
+            "label": "Auswahloptionen"
+          },
+          {
+            "x": 330.5,
+            "y": 1012.84375,
+            "width": 106,
+            "height": 48,
+            "right": 436.5,
+            "bottom": 1060.84375,
+            "id": "knopf-einstellungen",
+            "label": "Einstellungen"
+          },
+          {
+            "x": 448.5,
+            "y": 1012.84375,
+            "width": 138,
+            "height": 48,
+            "right": 586.5,
+            "bottom": 1060.84375,
+            "id": "knopf-sicherung",
+            "label": "Sicherung anlegen"
+          }
+        ],
+        "documentWidth": 640
+      },
+      "settings": {
+        "dialog": {
+          "x": 12.796875,
+          "y": 8,
+          "width": 614.390625,
+          "height": 344,
+          "right": 627.1875,
+          "bottom": 352
+        },
+        "close": {
+          "x": 560.1875,
+          "y": 21,
+          "width": 48,
+          "height": 48,
+          "right": 608.1875,
+          "bottom": 69
+        },
+        "content": {
+          "x": 31.796875,
+          "y": 144,
+          "width": 576.390625,
+          "height": 166,
+          "right": 608.1875,
+          "bottom": 310
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "rtl-split",
+      "width": 600,
+      "height": 960,
+      "rtl": true,
+      "layout": {
+        "left": {
+          "x": 22,
+          "y": 354.34375,
+          "width": 556,
+          "height": 691.1875,
+          "right": 578,
+          "bottom": 1045.53125
+        },
+        "right": {
+          "x": 22,
+          "y": 1055.53125,
+          "width": 556,
+          "height": 691.1875,
+          "right": 578,
+          "bottom": 1746.71875
+        },
+        "tabs": [
+          {
+            "x": 445,
+            "y": 242.34375,
+            "width": 133,
+            "height": 48,
+            "right": 578,
+            "bottom": 290.34375,
+            "label": "Kalender",
+            "scrollWidth": 131,
+            "clientWidth": 131
+          },
+          {
+            "x": 304,
+            "y": 242.34375,
+            "width": 133,
+            "height": 48,
+            "right": 437,
+            "bottom": 290.34375,
+            "label": "Aufgaben",
+            "scrollWidth": 131,
+            "clientWidth": 131
+          },
+          {
+            "x": 163,
+            "y": 242.34375,
+            "width": 133,
+            "height": 48,
+            "right": 296,
+            "bottom": 290.34375,
+            "label": "Adressen",
+            "scrollWidth": 131,
+            "clientWidth": 131
+          },
+          {
+            "x": 22,
+            "y": 242.34375,
+            "width": 133,
+            "height": 48,
+            "right": 155,
+            "bottom": 290.34375,
+            "label": "Notizen",
+            "scrollWidth": 131,
+            "clientWidth": 131
+          },
+          {
+            "x": 398,
+            "y": 298.34375,
+            "width": 180,
+            "height": 48,
+            "right": 578,
+            "bottom": 346.34375,
+            "label": "Jahrestage",
+            "scrollWidth": 178,
+            "clientWidth": 178
+          },
+          {
+            "x": 210,
+            "y": 298.34375,
+            "width": 180,
+            "height": 48,
+            "right": 390,
+            "bottom": 346.34375,
+            "label": "Planer",
+            "scrollWidth": 178,
+            "clientWidth": 178
+          },
+          {
+            "x": 22,
+            "y": 298.34375,
+            "width": 180,
+            "height": 48,
+            "right": 202,
+            "bottom": 346.34375,
+            "label": "Gesundheit",
+            "scrollWidth": 178,
+            "clientWidth": 178
+          }
+        ],
+        "toolbar": [
+          {
+            "x": 423,
+            "y": 32.59375,
+            "width": 165,
+            "height": 48,
+            "right": 588,
+            "bottom": 80.59375,
+            "id": "",
+            "label": "Übernehmen JSON"
+          },
+          {
+            "x": 262,
+            "y": 32.59375,
+            "width": 153,
+            "height": 48,
+            "right": 415,
+            "bottom": 80.59375,
+            "id": "",
+            "label": "Übernehmen ICS"
+          },
+          {
+            "x": 90,
+            "y": 32.59375,
+            "width": 164,
+            "height": 48,
+            "right": 254,
+            "bottom": 80.59375,
+            "id": "",
+            "label": "Weitergeben JSON"
+          },
+          {
+            "x": 431,
+            "y": 88.59375,
+            "width": 157,
+            "height": 48,
+            "right": 588,
+            "bottom": 136.59375,
+            "id": "",
+            "label": "Benachrichtigung"
+          },
+          {
+            "x": 354.171875,
+            "y": 88.59375,
+            "width": 68.828125,
+            "height": 48,
+            "right": 423,
+            "bottom": 136.59375,
+            "id": "",
+            "label": "Über"
+          },
+          {
+            "x": 301.5,
+            "y": 1793.5625,
+            "width": 127,
+            "height": 48,
+            "right": 428.5,
+            "bottom": 1841.5625,
+            "id": "knopf-drucken",
+            "label": "Auswahloptionen"
+          },
+          {
+            "x": 183.5,
+            "y": 1793.5625,
+            "width": 106,
+            "height": 48,
+            "right": 289.5,
+            "bottom": 1841.5625,
+            "id": "knopf-einstellungen",
+            "label": "Einstellungen"
+          },
+          {
+            "x": 33.5,
+            "y": 1793.5625,
+            "width": 138,
+            "height": 48,
+            "right": 171.5,
+            "bottom": 1841.5625,
+            "id": "knopf-sicherung",
+            "label": "Sicherung anlegen"
+          }
+        ],
+        "documentWidth": 600
+      },
+      "settings": {
+        "dialog": {
+          "x": 12,
+          "y": 70,
+          "width": 576,
+          "height": 820,
+          "right": 588,
+          "bottom": 890
+        },
+        "close": {
+          "x": 39,
+          "y": 87,
+          "width": 48,
+          "height": 48,
+          "right": 87,
+          "bottom": 135
+        },
+        "content": {
+          "x": 39,
+          "y": 210,
+          "width": 522,
+          "height": 632,
+          "right": 561,
+          "bottom": 842
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "enlarged-text",
+      "width": 600,
+      "height": 960,
+      "enlarged": true,
+      "layout": {
+        "left": {
+          "x": 22,
+          "y": 354.34375,
+          "width": 556,
+          "height": 691.1875,
+          "right": 578,
+          "bottom": 1045.53125
+        },
+        "right": {
+          "x": 22,
+          "y": 1055.53125,
+          "width": 556,
+          "height": 691.1875,
+          "right": 578,
+          "bottom": 1746.71875
+        },
+        "tabs": [
+          {
+            "x": 22,
+            "y": 242.34375,
+            "width": 133,
+            "height": 48,
+            "right": 155,
+            "bottom": 290.34375,
+            "label": "Kalender",
+            "scrollWidth": 131,
+            "clientWidth": 131
+          },
+          {
+            "x": 163,
+            "y": 242.34375,
+            "width": 133,
+            "height": 48,
+            "right": 296,
+            "bottom": 290.34375,
+            "label": "Aufgaben",
+            "scrollWidth": 131,
+            "clientWidth": 131
+          },
+          {
+            "x": 304,
+            "y": 242.34375,
+            "width": 133,
+            "height": 48,
+            "right": 437,
+            "bottom": 290.34375,
+            "label": "Adressen",
+            "scrollWidth": 131,
+            "clientWidth": 131
+          },
+          {
+            "x": 445,
+            "y": 242.34375,
+            "width": 133,
+            "height": 48,
+            "right": 578,
+            "bottom": 290.34375,
+            "label": "Notizen",
+            "scrollWidth": 131,
+            "clientWidth": 131
+          },
+          {
+            "x": 22,
+            "y": 298.34375,
+            "width": 180,
+            "height": 48,
+            "right": 202,
+            "bottom": 346.34375,
+            "label": "Jahrestage",
+            "scrollWidth": 178,
+            "clientWidth": 178
+          },
+          {
+            "x": 210,
+            "y": 298.34375,
+            "width": 180,
+            "height": 48,
+            "right": 390,
+            "bottom": 346.34375,
+            "label": "Planer",
+            "scrollWidth": 178,
+            "clientWidth": 178
+          },
+          {
+            "x": 398,
+            "y": 298.34375,
+            "width": 180,
+            "height": 48,
+            "right": 578,
+            "bottom": 346.34375,
+            "label": "Gesundheit",
+            "scrollWidth": 178,
+            "clientWidth": 178
+          }
+        ],
+        "toolbar": [
+          {
+            "x": 12,
+            "y": 32.59375,
+            "width": 165,
+            "height": 48,
+            "right": 177,
+            "bottom": 80.59375,
+            "id": "",
+            "label": "Übernehmen JSON"
+          },
+          {
+            "x": 185,
+            "y": 32.59375,
+            "width": 153,
+            "height": 48,
+            "right": 338,
+            "bottom": 80.59375,
+            "id": "",
+            "label": "Übernehmen ICS"
+          },
+          {
+            "x": 346,
+            "y": 32.59375,
+            "width": 164,
+            "height": 48,
+            "right": 510,
+            "bottom": 80.59375,
+            "id": "",
+            "label": "Weitergeben JSON"
+          },
+          {
+            "x": 12,
+            "y": 88.59375,
+            "width": 157,
+            "height": 48,
+            "right": 169,
+            "bottom": 136.59375,
+            "id": "",
+            "label": "Benachrichtigung"
+          },
+          {
+            "x": 177,
+            "y": 88.59375,
+            "width": 68.828125,
+            "height": 48,
+            "right": 245.828125,
+            "bottom": 136.59375,
+            "id": "",
+            "label": "Über"
+          },
+          {
+            "x": 171.5,
+            "y": 1793.5625,
+            "width": 127,
+            "height": 48,
+            "right": 298.5,
+            "bottom": 1841.5625,
+            "id": "knopf-drucken",
+            "label": "Auswahloptionen"
+          },
+          {
+            "x": 310.5,
+            "y": 1793.5625,
+            "width": 106,
+            "height": 48,
+            "right": 416.5,
+            "bottom": 1841.5625,
+            "id": "knopf-einstellungen",
+            "label": "Einstellungen"
+          },
+          {
+            "x": 428.5,
+            "y": 1793.5625,
+            "width": 138,
+            "height": 48,
+            "right": 566.5,
+            "bottom": 1841.5625,
+            "id": "knopf-sicherung",
+            "label": "Sicherung anlegen"
+          }
+        ],
+        "documentWidth": 600
+      },
+      "settings": {
+        "dialog": {
+          "x": 12,
+          "y": 70,
+          "width": 576,
+          "height": 820,
+          "right": 588,
+          "bottom": 890
+        },
+        "close": {
+          "x": 513,
+          "y": 95.5,
+          "width": 48,
+          "height": 48,
+          "right": 561,
+          "bottom": 143.5
+        },
+        "content": {
+          "x": 39,
+          "y": 227,
+          "width": 522,
+          "height": 615,
+          "right": 561,
+          "bottom": 842
+        }
+      },
+      "errors": []
+    }
+  ]
+}

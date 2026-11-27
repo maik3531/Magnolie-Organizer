@@ -33,7 +33,8 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
     assert(!projected.includes('PORT_DISPLAY_ALARM_HELPER_BEGIN'));
     assert(projected.includes('    neu.push(...erhalteDisplayAlarme(termin, vorher, alt));'));
   }
-  const reviewed=withoutAlarmAdapter.replace(/\/\*TABLET_ICS_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_ICS_\1_END\*\//g,'').replace(/\/\*TABLET_DAV_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_DAV_\1_END\*\//g,'');
+  const reviewed=withoutAlarmAdapter.replace(/\/\*TABLET_ICS_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_ICS_\1_END\*\//g,'').replace(/\/\*TABLET_DAV_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_DAV_\1_END\*\//g,'')
+    .replace(/\/\*TABLET_SYSTEM_ACTIONS_BEGIN\*\/[\s\S]*?\/\*TABLET_SYSTEM_ACTIONS_END\*\//g,'');
   const orderedStartup=reviewed.replace('  if (document.readyState === "loading" || document.currentScript?.defer && document.readyState === "interactive") {', '  if (document.readyState === "loading") {');
   ok(orderedStartup.replace('  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed), exportCalendar: art => starteExport(art) };\n','').replace('    { id: "regional", name: msgid("Language and regional display") },\n','').replace('  async function aktualisiereAutomatischeZeitzone() { return;', '  async function aktualisiereAutomatischeZeitzone() {')===canonical,
     'generated core differs only by reviewed guards, deferred startup ordering, regional entry, DAV prefixes and native detection suppression');

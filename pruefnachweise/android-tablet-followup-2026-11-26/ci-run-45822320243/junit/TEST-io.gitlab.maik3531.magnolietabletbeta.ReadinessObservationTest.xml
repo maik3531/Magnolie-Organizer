@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.ReadinessObservationTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:47:06.952Z" hostname="ip-10-0-142-104" time="0.001">
+  <properties/>
+  <testcase name="lateReadinessDoesNotBecomeSuccess" classname="io.gitlab.maik3531.magnolietabletbeta.ReadinessObservationTest" time="0.0"/>
+  <testcase name="backwardsObservationIsRejected" classname="io.gitlab.maik3531.magnolietabletbeta.ReadinessObservationTest" time="0.001"/>
+  <testcase name="deadlineObservationIsInclusiveAndCannotBeRewritten" classname="io.gitlab.maik3531.magnolietabletbeta.ReadinessObservationTest" time="0.0"/>
+  <testcase name="timeoutAndCancellationCannotAcceptLaterReadiness" classname="io.gitlab.maik3531.magnolietabletbeta.ReadinessObservationTest" time="0.0"/>
+  <testcase name="earlyObservationSurvivesDelayedWaiterScheduling" classname="io.gitlab.maik3531.magnolietabletbeta.ReadinessObservationTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

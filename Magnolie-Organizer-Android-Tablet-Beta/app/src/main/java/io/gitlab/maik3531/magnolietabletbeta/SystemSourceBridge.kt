@@ -23,6 +23,7 @@ internal object SystemSourceBridge {
     /** Merge only observed provider rows with actual cached DAV collections. No settings mutation. */
     fun merge(dav: JSONObject, snapshots: Map<SystemSourcePolicy.Kind,SystemSourcePolicy.Snapshot>, requestId: String?): JSONObject {
         val result=JSONObject(dav.toString()).put("android",true).put("systemAccountSyncImplemented",false)
+            .put("systemImportImplemented",JSONObject().put("contacts",true).put("events","instances-window"))
         val permissions=JSONObject().put("reminders","unsupported")
         val errors=JSONObject()
         val calendars=JSONArray();val books=JSONArray()

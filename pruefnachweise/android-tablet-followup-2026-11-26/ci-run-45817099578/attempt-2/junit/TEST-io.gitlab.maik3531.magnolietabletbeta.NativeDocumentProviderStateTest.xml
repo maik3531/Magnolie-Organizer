@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.NativeDocumentProviderStateTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:18:43.514Z" hostname="ip-10-0-135-230" time="0.0">
+  <properties/>
+  <testcase name="actualSaveControlUsesPositiveButtonIdentityInsteadOfItsUppercaseCaption" classname="io.gitlab.maik3531.magnolietabletbeta.NativeDocumentProviderStateTest" time="0.0"/>
+  <testcase name="actualA804AlreadySelectedRootDoesNotClickItsNonclickableBreadcrumb" classname="io.gitlab.maik3531.magnolietabletbeta.NativeDocumentProviderStateTest" time="0.0"/>
+  <testcase name="initialPickerAndPendingDrawerAreDistinctBoundedStates" classname="io.gitlab.maik3531.magnolietabletbeta.NativeDocumentProviderStateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

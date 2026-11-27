@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:18:42.404Z" hostname="ip-10-0-135-230" time="1.092">
+  <properties/>
+  <testcase name="publishedPythonOracleCasesHaveMatchingSemanticRecordsAndSourceProperties" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest" time="0.019"/>
+  <testcase name="projectedOutputLimitsComponentCountAndCancellationAreAtomic" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest" time="0.59"/>
+  <testcase name="dealiasedTaskUIDsRemainDistinctAcrossSourcesAndRejectSameSourceDuplicates" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest" time="0.002"/>
+  <testcase name="unfoldingAndCalendarMetadataPreserveUnknownParametersAndNestedAlarms" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest" time="0.0"/>
+  <testcase name="manySmallFoldsAccumulateWithoutLosingCharacters" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest" time="0.024"/>
+  <testcase name="aBadLaterComponentNeverReturnsAPrefixOrTreatsDuplicatesAsSuccess" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest" time="0.42"/>
+  <testcase name="customFixedZonesResolveRFCOffsetsIncludingBeyondJavaZoneOffsetLimit" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest" time="0.008"/>
+  <testcase name="durationUsesCalendarDaysAcrossDSTAndExactHoursSeparately" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest" time="0.006"/>
+  <testcase name="customSeasonalZoneRejectsGapsChoosesFirstFoldAndKeepsUnboundedFuture" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest" time="0.007"/>
+  <testcase name="CRLFLFAndMixedTerminatorsAndBOMHaveIdenticalRecordsWithoutBareCRAcceptance" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest" time="0.007"/>
+  <testcase name="rangeExceptionsRetainSourceBodiesAndMasterExclusionsWithoutExpandingEvents" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest" time="0.001"/>
+  <testcase name="qualifiedTaskParentsAndStrictIdentityStayBoundToTheirOriginalSource" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarImportTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

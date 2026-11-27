@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.Pbkdf2Sha256Test" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:18:43.885Z" hostname="ip-10-0-135-230" time="0.143">
+  <properties/>
+  <testcase name="fallbackMatchesPublishedPbkdf2HmacSha256Vectors" classname="io.gitlab.maik3531.magnolietabletbeta.Pbkdf2Sha256Test" time="0.009"/>
+  <testcase name="existingEnvelopeKeyParametersRemainExactlyCompatible" classname="io.gitlab.maik3531.magnolietabletbeta.Pbkdf2Sha256Test" time="0.121"/>
+  <testcase name="utf8NulSupplementaryAndMalformedCharactersMatchNamedFactory" classname="io.gitlab.maik3531.magnolietabletbeta.Pbkdf2Sha256Test" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

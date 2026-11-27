@@ -1,0 +1,54 @@
+{
+  "kind": "remote-baseline-and-local-merge-tree-observation",
+  "observedAtUtc": "2026-11-26T13:44:52.758Z",
+  "repository": "maik3531/Magnolie-Organizer",
+  "sources": [
+    "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/ref/heads/main",
+    "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/ref/heads/work/android-tablet-20261126",
+    "https://api.github.com/repos/maik3531/Magnolie-Organizer/pulls/795"
+  ],
+  "main": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+  "tabletBranch": "work/android-tablet-20261126",
+  "tabletRemoteHead": "8d5dc47fecf77b7ebc2db0e5cbb7cb4754005b29",
+  "tabletLocalSameTreeHead": "680d348f3f9cff6ecf3adc5536a6490649d25ef6",
+  "tabletTree": "4f3cc2051a5b598171f690e3ff72d1c136068c9c",
+  "pullRequest": {
+    "number": 795,
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "mergeable": true,
+    "mergeableState": "unstable",
+    "head": "8d5dc47fecf77b7ebc2db0e5cbb7cb4754005b29",
+    "base": "d4da48a5eadd0bda22422b924bef4ee3b4324040"
+  },
+  "localReadOnlyAncestryAndMergeTree": [
+    {
+      "command": [
+        "git",
+        "merge-base",
+        "--is-ancestor",
+        "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+        "680d348f3f9cff6ecf3adc5536a6490649d25ef6"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "git",
+        "merge-tree",
+        "--write-tree",
+        "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+        "680d348f3f9cff6ecf3adc5536a6490649d25ef6"
+      ],
+      "exitCode": 0,
+      "resultTree": "4f3cc2051a5b598171f690e3ff72d1c136068c9c"
+    }
+  ],
+  "scope": "Observation before handover-only follow-up patch 13. main was unchanged and the baseline was conflict-free against it. No branch merge, new functional test, APK build, emulator or release was performed. mergeable=true does not mean all checks or acceptance are complete; mergeable_state was unstable. Future main changes require a new comparison and source-bound verification.",
+  "limits": {
+    "nativeAcceptance": false,
+    "googleAcceptance": false,
+    "productionRelease": false
+  }
+}

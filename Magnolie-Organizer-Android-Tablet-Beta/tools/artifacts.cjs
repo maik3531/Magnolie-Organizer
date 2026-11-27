@@ -12,7 +12,7 @@ if(!build.runnerTests || !build.setupHolidayCases) throw Error('Run the complete
 if(reminders.sourceHash!==manifest.sourceHash) throw Error('Editor reminder tests used a different projection');
 if(web.sourceHash!==manifest.sourceHash) throw Error('Web tests did not run against this projection; rerun the gate');
 const sdk=process.env.ANDROID_HOME || path.join(process.env.HOME,'.local/share/android-sdk');
-const tools=path.join(sdk,'build-tools/35.0.0');
+const tools=path.join(sdk,'build-tools/36.0.0');
 const badging=execFileSync(path.join(tools,'aapt'),['dump','badging',apkPath],{encoding:'utf8'});
 if(!badging.includes("package: name='io.gitlab.maik3531.magnolieorganizer.tablet.beta'") ||
    !badging.includes("versionCode='20030'") || !badging.includes("versionName='2.0.30Beta'") ||
@@ -67,7 +67,7 @@ fs.writeFileSync(path.join(out,'candidate.json'),JSON.stringify({name,sha256:has
   webChecks:web.passed,editorReminderCases:reminders.cases.length,unitTests,unitReport:'app/build/reports/tests/testDebugUnitTest/index.html',
   runnerTests:build.runnerTests,setupHolidayCases:build.setupHolidayCases,setupLocales:build.setupLocales,
   apkAssetsVerified:true,apkPermissions,
-  systemSourceIntegration:{scope:'explicit read-only discovery',
+  systemSourceIntegration:{scope:'read-only discovery and explicit local copy',
     readPermissions:['android.permission.READ_CALENDAR','android.permission.READ_CONTACTS'],
     permissionRequestRequiresUserAction:true,providerWrites:false,accountManagerEnumeration:false,
     fullSynchronization:false,nativeRuntimeAccepted:false}},null,2)+'\n');

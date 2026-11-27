@@ -64,7 +64,8 @@ try {
         Write-Fixture (Join-Path $root "contracts/$name") '{"synthetic":true}'
     }
     foreach ($name in 'baum-1-receipt-v1.md', 'phone-bluetooth-first-pair.md', 'phone-setup-daemon-lifecycle.md', 'phone-wlan-invitation.md',
-        'device-status-v4.md', 'native-call-audio.md', 'call-alert-actions-v2.md', 'sms-plan-review-v1.md', 'media-recovery-preview.md') {
+        'device-status-v4.md', 'native-call-audio.md', 'call-alert-actions-v2.md', 'sms-plan-review-v1.md', 'media-recovery-preview.md',
+        'android-tablet-audit-2026-11-26.md') {
         Write-Fixture (Join-Path $root "contracts/$name") '# Synthetic public contract documentation'
     }
     foreach ($relative in 'local.token', 'local.secret', 'local.pem', '.private-testing/personal.json',
@@ -104,6 +105,7 @@ try {
         $names -notcontains 'contracts/new-reviewed-contract.json' -or
         $names -notcontains 'tests/fixtures/new-schema.sql') { throw 'Standalone source dependencies were dropped.' }
     if (@($names | Where-Object { Test-PrivateReleasePath $_ }).Count) { throw 'Private file entered source enumeration.' }
+    if ($names -contains 'contracts/android-tablet-audit-2026-11-26.md') { throw 'Tablet audit entered source enumeration.' }
     if (@($names | Where-Object { $_.StartsWith('shared/magnolie-organizer/web/i18n/', [StringComparison]::Ordinal) }).Count) { throw 'Locally generated Linux catalogues entered source enumeration.' }
     if (@($names | Where-Object { $_ -match '^(?:app|shared/magnolie-organizer)/web/(?:normative-timezones\.js$|timezones/)' }).Count) { throw 'Locally generated timezone assets entered source enumeration.' }
     $tree = Join-Path $temp 'archive-tree'

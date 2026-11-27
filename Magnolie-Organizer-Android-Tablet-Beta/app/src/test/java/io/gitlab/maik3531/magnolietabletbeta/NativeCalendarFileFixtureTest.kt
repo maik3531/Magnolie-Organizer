@@ -22,7 +22,7 @@ class NativeCalendarFileFixtureTest {
         else {
             val stream=javaClass.classLoader!!.getResourceAsStream("calendar-files-native-merge.json") ?: error("Missing actual native file import contract")
             val expected=stream.bufferedReader().use {JSONObject(it.readText())}
-            assertTrue("Production decoder drifted from shared UI contract input",expected.similar(actual))
+            assertTrue("Production decoder drifted from shared UI contract input",jsonValuesEqual(expected,actual))
         }
     }
 }

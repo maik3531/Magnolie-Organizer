@@ -1,0 +1,318 @@
+{
+  "browser": "156.0.8078.108",
+  "scope": "Chromium host with synthetic Android provider and SaveACK; no native acceptance",
+  "checks": 108,
+  "passed": 108,
+  "failures": [],
+  "cases": [
+    {
+      "name": "split-screen",
+      "width": 600,
+      "height": 960,
+      "formBounds": {
+        "clientWidth": 507,
+        "scrollWidth": 507,
+        "height": 632
+      },
+      "measurements": [
+        {
+          "label": "contacts permission",
+          "x": 43,
+          "y": 691.5,
+          "width": 156,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "contacts source choice",
+          "x": 43,
+          "y": 761.25,
+          "width": 498,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "events permission",
+          "x": 43,
+          "y": 412.5,
+          "width": 154,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "events source choice",
+          "x": 43,
+          "y": 482.25,
+          "width": 498,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "from date",
+          "x": 124,
+          "y": 530.25,
+          "width": 152,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "to date",
+          "x": 349,
+          "y": 530.25,
+          "width": 152,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "source refresh",
+          "x": 195,
+          "y": 770.25,
+          "width": 90,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "contacts import",
+          "x": 43,
+          "y": 770.25,
+          "width": 152,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "events import",
+          "x": 43,
+          "y": 604.5,
+          "width": 150,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "events import",
+          "x": 43,
+          "y": 604.5,
+          "width": 150,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "compact-landscape",
+      "width": 800,
+      "height": 480,
+      "formBounds": {
+        "clientWidth": 715,
+        "scrollWidth": 715,
+        "height": 286
+      },
+      "measurements": [
+        {
+          "label": "contacts permission",
+          "x": 39,
+          "y": 263,
+          "width": 156,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "contacts source choice",
+          "x": 114,
+          "y": 311,
+          "width": 584,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "events permission",
+          "x": 39,
+          "y": 262.5,
+          "width": 154,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "events source choice",
+          "x": 111,
+          "y": 310.5,
+          "width": 604,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "from date",
+          "x": 120,
+          "y": 357.5,
+          "width": 152,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "to date",
+          "x": 345,
+          "y": 357.5,
+          "width": 152,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "source refresh",
+          "x": 191,
+          "y": 263,
+          "width": 90,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "contacts import",
+          "x": 39,
+          "y": 263,
+          "width": 152,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "events import",
+          "x": 39,
+          "y": 168,
+          "width": 150,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "events import",
+          "x": 39,
+          "y": 168,
+          "width": 150,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "keyboard-reduced-window",
+      "width": 600,
+      "height": 360,
+      "formBounds": {
+        "clientWidth": 523,
+        "scrollWidth": 523,
+        "height": 166
+      },
+      "measurements": [
+        {
+          "label": "contacts permission",
+          "x": 35,
+          "y": 202.5,
+          "width": 156,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "contacts source choice",
+          "x": 35,
+          "y": 250.25,
+          "width": 514,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "events permission",
+          "x": 35,
+          "y": 202.5,
+          "width": 154,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "events source choice",
+          "x": 35,
+          "y": 250.25,
+          "width": 514,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "from date",
+          "x": 116,
+          "y": 203.25,
+          "width": 152,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "to date",
+          "x": 341,
+          "y": 203.25,
+          "width": 152,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "source refresh",
+          "x": 187,
+          "y": 203.25,
+          "width": 90,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "contacts import",
+          "x": 35,
+          "y": 203.25,
+          "width": 152,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "events import",
+          "x": 35,
+          "y": 202.5,
+          "width": 150,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        },
+        {
+          "label": "events import",
+          "x": 35,
+          "y": 202.5,
+          "width": 150,
+          "height": 48,
+          "visible": true,
+          "hit": true
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

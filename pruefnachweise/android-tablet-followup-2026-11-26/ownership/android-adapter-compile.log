@@ -1,0 +1,6 @@
+Magnolie-Organizer-Android-Tablet-Beta/app/src/androidTest/java/io/gitlab/maik3531/magnolietabletbeta/NativeDomainAcceptance.kt:29:31: warning: 'fun recycle(): Unit' is deprecated. Deprecated in Java.
+                finally {root.recycle()}
+                              ^^^^^^^
+Magnolie-Organizer-Android-Tablet-Beta/app/src/androidTest/java/io/gitlab/maik3531/magnolietabletbeta/NativeDomainAcceptance.kt:48:114: warning: 'fun recycle(): Unit' is deprecated. Deprecated in Java.
+                if(node!=null)try {state.put("targetNodePresent",true);targetWindow=node.windowId} finally {node.recycle()}
+                                                                                                                 ^^^^^^^

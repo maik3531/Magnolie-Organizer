@@ -1,0 +1,165 @@
+{
+  "kind": "selection; not the original complete record",
+  "originalBytes": 22202,
+  "originalSha256": "a45e85e4e4a9938a43105c6e9bc8ce933feb18f5150dd7d1d06c812e4e24e7e0",
+  "originalName": "attempt-1-original-records.json",
+  "omitted": "Full repository/owner payloads, skipped macOS job, full commit payload",
+  "selected": {
+    "repository": "maik3531/Magnolie-Organizer",
+    "run": {
+      "id": 45822320243,
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45822320243",
+      "event": "workflow_dispatch",
+      "run_number": 101,
+      "run_attempt": 1,
+      "head_branch": "work/android-tablet-20261126",
+      "head_sha": "7a7d90b04796cf338b98f0fdbb87e8da1c967043",
+      "status": "completed",
+      "conclusion": "success",
+      "run_started_at": "2026-11-26T12:43:28Z",
+      "created_at": "2026-11-26T12:43:28Z",
+      "updated_at": "2026-11-26T12:49:49Z"
+    },
+    "job": {
+      "id": 139917463400,
+      "name": "tablet-system-records-API34-provider-only",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 45822320243,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Bind the tablet to the unchanged current checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Prepare the existing resource-limited build gate",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Build and verify debug APKs within the original locks and resource limits",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Prepare the official Android runtime image",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7
+        },
+        {
+          "name": "Exercise the candidate in the owned Android tablet emulator",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8
+        },
+        {
+          "name": "Verify Android DAV parser and Keystore transactions independently of UI timing",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9
+        },
+        {
+          "name": "Exercise actual ICS import and export file pickers independently",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10
+        },
+        {
+          "name": "Verify health, custom design and drawing in an isolated component session",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11
+        },
+        {
+          "name": "Compare actual WebView and native time-zone clocks against independent golden data",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12
+        },
+        {
+          "name": "Verify local Android contacts and calendar providers in an isolated API34 session",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        },
+        {
+          "name": "Collect synthetic native evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14
+        },
+        {
+          "name": "Preserve build diagnostics even when a gate fails",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15
+        },
+        {
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29
+        },
+        {
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31
+        }
+      ]
+    },
+    "artifact": {
+      "id": 15117579862,
+      "name": "Android-Tablet-2.0.30Beta-system-records-API34-provider-only-and-proof",
+      "size_in_bytes": 12393742,
+      "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/artifacts/15117579862",
+      "archive_download_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/artifacts/15117579862/zip",
+      "expired": false,
+      "created_at": "2026-11-26T12:49:47Z",
+      "expires_at": "2026-12-10T12:49:46Z",
+      "updated_at": "2026-11-26T12:49:47Z",
+      "digest": "sha256:094747195afdd58a42fc3f83ef77046fef7e579d9daeedabc537eb9d6b585b72",
+      "workflow_run": {
+        "id": 45822320243,
+        "repository_id": 1332679672,
+        "head_repository_id": 1332679672,
+        "head_branch": "work/android-tablet-20261126",
+        "head_sha": "7a7d90b04796cf338b98f0fdbb87e8da1c967043"
+      }
+    },
+    "observedCommit": {
+      "sha": "7a7d90b04796cf338b98f0fdbb87e8da1c967043",
+      "tree": "06c1a8cf6f115908dc21252682c2a358246f2cb7"
+    }
+  }
+}

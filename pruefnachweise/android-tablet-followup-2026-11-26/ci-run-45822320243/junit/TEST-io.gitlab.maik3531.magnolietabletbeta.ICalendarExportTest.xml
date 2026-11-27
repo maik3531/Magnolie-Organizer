@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:47:04.563Z" hostname="ip-10-0-142-104" time="0.258">
+  <properties/>
+  <testcase name="actualAppointmentFormEditsAndRemovalMatchCurrentRawSemanticsDespiteStaleHints" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.011"/>
+  <testcase name="UTF8FoldingIsBoundedAndCancellationNeverReturnsOutput" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.059"/>
+  <testcase name="calendarSourceDisplayIsBoundedLocalMetadataAndCannotSmuggleCredentialsOrRebindSource" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.004"/>
+  <testcase name="taskAliasesPreserveSourceQualifiedParentsWithCollidingExternalUIDs" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.011"/>
+  <testcase name="editedDisabledAdditionalOrMissingStructuredAlarmsCannotDisappearIntoOldRawData" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.007"/>
+  <testcase name="customEmbeddedTimeZoneBeatsSystemDatabaseAndUnknownDataStayExact" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.007"/>
+  <testcase name="mixedCaseSourceZoneValidationStillRejectsWrongAndUnbalancedComponentsAtomically" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.002"/>
+  <testcase name="coherentlyDisabledEditableAlarmNeedsItsRawBlockRemovedAndCannotDisableReadonly" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.004"/>
+  <testcase name="oversizedDurationAndTaskRecurrenceWithoutAStartCannotBecomeOneOffs" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.003"/>
+  <testcase name="sourceZoneCaseAcceptanceDoesNotConflateOpaqueTZIDValues" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.012"/>
+  <testcase name="importedMixedCaseSourceZonesRoundtripWithoutRewritingRawTokens" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.013"/>
+  <testcase name="readonlyAlarmTriggerAndTimezoneRemainAuthoritative" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.001"/>
+  <testcase name="contradictionsInvalidRulesAndDSTGapsNeverProduceAPartialFile" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.008"/>
+  <testcase name="actualSharedImportedAndSavedAlarmProjectionExportsItsAuthoritativeValarms" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.004"/>
+  <testcase name="structuredRulesExcludedDaysAndYearlessAnniversariesKeepOneComponent" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.006"/>
+  <testcase name="publishedCanonicalRecordsAndImportedSourceBodiesRetainSemantics" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.093"/>
+  <testcase name="matchingLocallyEditedAlarmCanUseCurrentRawTriggerWithoutStaleDisplayHint" classname="io.gitlab.maik3531.magnolietabletbeta.ICalendarExportTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

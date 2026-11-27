@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.NativeGestureBindingTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:18:43.516Z" hostname="ip-10-0-135-230" time="0.005">
+  <properties/>
+  <testcase name="rejectedOrReversedIssuedEventsCannotPass" classname="io.gitlab.maik3531.magnolietabletbeta.NativeGestureBindingTest" time="0.002"/>
+  <testcase name="receiptMustMatchTheIssuedPairAndActualScreenTarget" classname="io.gitlab.maik3531.magnolietabletbeta.NativeGestureBindingTest" time="0.001"/>
+  <testcase name="malformedAndWrongClockMappingAreRejected" classname="io.gitlab.maik3531.magnolietabletbeta.NativeGestureBindingTest" time="0.001"/>
+  <testcase name="capturedPrecisionBoundaryMatchesNewNativeInjection" classname="io.gitlab.maik3531.magnolietabletbeta.NativeGestureBindingTest" time="0.0"/>
+  <testcase name="oldOrReusedNativeEpochCannotPass" classname="io.gitlab.maik3531.magnolietabletbeta.NativeGestureBindingTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

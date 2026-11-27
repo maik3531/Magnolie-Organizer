@@ -1,0 +1,3 @@
+$ /workspace/scratch/acde70e8594b/tablet-build-dependencies/aapt2-36 link -I /workspace/scratch/acde70e8594b/tablet-build-dependencies/android-37.2.jar --manifest /workspace/scratch/acde70e8594b/tablet-native-followup/full-compile/run-xgr0rcb2/AndroidManifest.xml --java /workspace/scratch/acde70e8594b/tablet-native-followup/full-compile/run-xgr0rcb2/generated --min-sdk-version 26 --target-sdk-version 35 --auto-add-overlay -R /workspace/scratch/acde70e8594b/tablet-native-followup/full-compile/run-xgr0rcb2/main-res.zip -R /workspace/scratch/acde70e8594b/tablet-native-followup/full-compile/run-xgr0rcb2/projected-res.zip -o /workspace/scratch/acde70e8594b/tablet-native-followup/full-compile/run-xgr0rcb2/resources-only.ap_
+
+exit=0

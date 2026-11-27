@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<manifest xmlns:ns0="http://schemas.android.com/apk/res/android" package="io.gitlab.maik3531.magnolietabletbeta">
+    <uses-permission ns0:name="android.permission.INTERNET" />
+    <uses-permission ns0:name="android.permission.READ_CALENDAR" />
+    <uses-permission ns0:name="android.permission.READ_CONTACTS" />
+    <uses-permission ns0:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission ns0:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-feature ns0:name="android.hardware.touchscreen" ns0:required="false" />
+    <application ns0:label="Magnolie Organizer Android Tablet Beta 2.0.30Beta" ns0:icon="@drawable/beta_icon" ns0:theme="@android:style/Theme.Material.Light.NoActionBar" ns0:allowBackup="false" ns0:fullBackupContent="false" ns0:usesCleartextTraffic="false" ns0:supportsRtl="true">
+        <activity ns0:name=".MainActivity" ns0:exported="true" ns0:enableOnBackInvokedCallback="false" ns0:configChanges="orientation|screenSize|keyboardHidden|keyboard|smallestScreenSize" ns0:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action ns0:name="android.intent.action.MAIN" />
+                <category ns0:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <receiver ns0:name=".ReminderReceiver" ns0:exported="false">
+            <intent-filter>
+                <action ns0:name="android.intent.action.BOOT_COMPLETED" />
+                <action ns0:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action ns0:name="android.intent.action.TIME_SET" />
+                <action ns0:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

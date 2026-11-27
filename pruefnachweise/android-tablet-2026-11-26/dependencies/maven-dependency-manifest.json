@@ -1,0 +1,90 @@
+[
+  {
+    "file": "kotlin-compiler-embeddable-2.4.21.jar",
+    "coordinate": "org.jetbrains.kotlin:kotlin-compiler-embeddable:2.4.21",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-compiler-embeddable/2.4.21/kotlin-compiler-embeddable-2.4.21.jar",
+    "bytes": 58593291,
+    "sha256": "ef19419c765e7ac8404465fa026ca8fc4dbb8a822de0fc79aa53c8dce29f1d02",
+    "repository_sha1": "3cd9c37c505fb9879e03ebeaf91d9c9500ab6eca"
+  },
+  {
+    "file": "kotlin-build-tools-api-2.4.21.jar",
+    "coordinate": "org.jetbrains.kotlin:kotlin-build-tools-api:2.4.21",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-build-tools-api/2.4.21/kotlin-build-tools-api-2.4.21.jar",
+    "bytes": 468126,
+    "sha256": "c5cd6a49bd072b529ae10809111c16a7aa0f92147e95d288354017fd65799461",
+    "repository_sha1": "f5fd68c20ba38519b91ab2411b004a1730453d6f"
+  },
+  {
+    "file": "kotlin-stdlib-2.4.21.jar",
+    "coordinate": "org.jetbrains.kotlin:kotlin-stdlib:2.4.21",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/2.4.21/kotlin-stdlib-2.4.21.jar",
+    "bytes": 1853315,
+    "sha256": "bd8250210584cb659847dce9cda660f8e9906e5def7fbebcea93dc6dcb6a88a3",
+    "repository_sha1": "c343e135bd1e7dd94b7ed76b4159068d888d09db"
+  },
+  {
+    "file": "kotlin-script-runtime-2.4.21.jar",
+    "coordinate": "org.jetbrains.kotlin:kotlin-script-runtime:2.4.21",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-script-runtime/2.4.21/kotlin-script-runtime-2.4.21.jar",
+    "bytes": 46533,
+    "sha256": "a658cf5902a1525a06c264a5e42b437e97a6679ddeef8ca641246f270cf6a013",
+    "repository_sha1": "abc7ff9f7e229cb6bdfadad81e93c871e6cdde41"
+  },
+  {
+    "file": "kotlin-reflect-1.6.10.jar",
+    "coordinate": "org.jetbrains.kotlin:kotlin-reflect:1.6.10",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-reflect/1.6.10/kotlin-reflect-1.6.10.jar",
+    "bytes": 3038560,
+    "sha256": "3277ac102ae17aad10a55abec75ff5696c8d109790396434b496e75087854203",
+    "repository_sha1": "1cbe9c92c12a94eea200d23c2bbaedaf3daf5132"
+  },
+  {
+    "file": "kotlin-daemon-embeddable-2.4.21.jar",
+    "coordinate": "org.jetbrains.kotlin:kotlin-daemon-embeddable:2.4.21",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-daemon-embeddable/2.4.21/kotlin-daemon-embeddable-2.4.21.jar",
+    "bytes": 393410,
+    "sha256": "7b3ef24674e5bcffcadfc4e43202ea314194939ecbcdd90a4770b2f1b04e0d07",
+    "repository_sha1": "5d9b0394b3ff65cd3dd33c6c31a2956b1d59885a"
+  },
+  {
+    "file": "kotlinx-coroutines-core-jvm-1.8.0.jar",
+    "coordinate": "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.0",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.8.0/kotlinx-coroutines-core-jvm-1.8.0.jar",
+    "bytes": 1548360,
+    "sha256": "9860906a1937490bf5f3b06d2f0e10ef451e65b95b269f22daf68a3d1f5065c5",
+    "repository_sha1": "ac1dc37a30a93150b704022f8d895ee1bd3a36b3"
+  },
+  {
+    "file": "annotations-13.0.jar",
+    "coordinate": "org.jetbrains:annotations:13.0",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/annotations/13.0/annotations-13.0.jar",
+    "bytes": 17536,
+    "sha256": "ace2a10dc8e2d5fd34925ecac03e4988b2c0f851650c94b8cef49ba1bd111478",
+    "repository_sha1": "919f0dfe192fb4e063e7dacadee7f8bb9a2672a9"
+  },
+  {
+    "file": "junit-4.13.2.jar",
+    "coordinate": "junit:junit:4.13.2",
+    "url": "https://repo.maven.apache.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar",
+    "bytes": 384581,
+    "sha256": "8e495b634469d64fb8acfa3495a065cbacc8a0fff55ce1e31007be4c16dc57d3",
+    "repository_sha1": "8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12"
+  },
+  {
+    "file": "hamcrest-core-1.3.jar",
+    "coordinate": "org.hamcrest:hamcrest-core:1.3",
+    "url": "https://repo.maven.apache.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar",
+    "bytes": 45024,
+    "sha256": "66fdef91e9739348df7a096aa384a5685f4e875584cce89386a7a47251c4d8e9",
+    "repository_sha1": "42a25dc3219429f0e5d060061f71acb49bf010a0"
+  },
+  {
+    "file": "json-20240303.jar",
+    "coordinate": "org.json:json:20240303",
+    "url": "https://repo.maven.apache.org/maven2/org/json/json/20240303/json-20240303.jar",
+    "bytes": 78332,
+    "sha256": "3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed",
+    "repository_sha1": "0ebb88e8fb5122b7506d5cf1d69f1ccdb790d22a"
+  }
+]

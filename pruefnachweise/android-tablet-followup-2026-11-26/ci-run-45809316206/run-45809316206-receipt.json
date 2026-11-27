@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "source": "Read-only GitHub Actions run/jobs/logs/artifact APIs; original artifact downloaded and SHA256 verified",
+  "repository": "maik3531/Magnolie-Organizer",
+  "run": {
+    "id": 45809316206,
+    "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45809316206",
+    "headSha": "2dd93930ecff3752fdea22121813a1b6ee4b79a7",
+    "headBranch": "work/android-tablet-20261126",
+    "event": "workflow_dispatch",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "failure",
+    "startedAt": "2026-11-26T11:18:00Z",
+    "updatedAt": "2026-11-26T11:37:38Z"
+  },
+  "job": {
+    "id": 139872720224,
+    "name": "tablet-build-only-no-native-acceptance",
+    "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45809316206/job/139872720224",
+    "status": "completed",
+    "conclusion": "failure",
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1
+      },
+      {
+        "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2
+      },
+      {
+        "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3
+      },
+      {
+        "name": "Bind the tablet to the unchanged current checkout",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4
+      },
+      {
+        "name": "Prepare the existing resource-limited build gate",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5
+      },
+      {
+        "name": "Build and verify debug APKs within the original locks and resource limits",
+        "status": "completed",
+        "conclusion": "failure",
+        "number": 6
+      },
+      {
+        "name": "Prepare the official Android runtime image",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 7
+      },
+      {
+        "name": "Exercise the candidate in the owned Android tablet emulator",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 8
+      },
+      {
+        "name": "Verify Android DAV parser and Keystore transactions independently of UI timing",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 9
+      },
+      {
+        "name": "Exercise actual ICS import and export file pickers independently",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 10
+      },
+      {
+        "name": "Verify health, custom design and drawing in an isolated component session",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 11
+      },
+      {
+        "name": "Compare actual WebView and native time-zone clocks against independent golden data",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 12
+      },
+      {
+        "name": "Collect synthetic native evidence",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 13
+      },
+      {
+        "name": "Preserve build diagnostics even when a gate fails",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 14
+      },
+      {
+        "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 27
+      },
+      {
+        "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 28
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 29
+      }
+    ]
+  },
+  "failure": {
+    "stepNumber": 6,
+    "task": ":app:compileDebugUnitTestKotlin",
+    "timestamp": "2026-11-26T11:37:34.9017571Z",
+    "exitCode": 1,
+    "compilerCode": "UNRESOLVED_REFERENCE",
+    "message": "Unresolved reference 'similar' on receiver of type 'JSONObject'.",
+    "sites": [
+      "DocumentRequestsTest.kt:91:29",
+      "NativeCalendarFileFixtureTest.kt:25:92",
+      "VaultTest.kt:26:113",
+      "VaultTest.kt:27:75",
+      "VaultTest.kt:260:53"
+    ],
+    "commandFailure": "Command '['bash', '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-notes/gradlew', '-p', '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/Magnolie-Organizer-Android-Tablet-Beta', '--console=plain', '--no-daemon', '--max-workers=1', '--rerun-tasks', ':app:testDebugUnitTest']' returned non-zero exit status 1.",
+    "gradleReportedDuration": "1m 56s",
+    "gradleExecutedTasks": 24
+  },
+  "scope": {
+    "productionKotlinCompilationCompleted": true,
+    "unitTestCompilationSucceeded": false,
+    "unitTestsExecuted": false,
+    "apkVerified": false,
+    "nativeAcceptance": false,
+    "productionRelease": false,
+    "sourceCheckoutCaptured": true,
+    "finalCandidateSourceBindingCompleted": false
+  },
+  "artifact": {
+    "id": 15114411668,
+    "name": "Android-Tablet-2.0.30Beta-build-only-no-native-acceptance-and-proof",
+    "bytes": 41805,
+    "digest": "sha256:03f633885577f34145e9ae37400ad90adc39ba65837baa4fcbe4c461dd98a290",
+    "kind": "failure diagnostics only",
+    "localZip": "run-45809316206.zip",
+    "verifiedDownloadedSha256": "03f633885577f34145e9ae37400ad90adc39ba65837baa4fcbe4c461dd98a290",
+    "files": [
+      "artifacts/a3-editor-vectors.json",
+      "artifacts/debug-build.json",
+      "artifacts/source-checkout.json",
+      "artifacts/web-test-proof.json"
+    ],
+    "containsApk": false
+  },
+  "proofs": {
+    "sourceMode": "current-checkout",
+    "portCommit": "2dd93930ecff3752fdea22121813a1b6ee4b79a7",
+    "desktopCommit": "2dd93930ecff3752fdea22121813a1b6ee4b79a7",
+    "gitTree": "e70d81ac94fbd80711ee1bab7ddeb7eeeb7c0d35",
+    "sourceInputSetSha256": "126c4f7c349ffeda9b7bcb212cee1ceaac14feb8143dcf368178a7b279e729fc",
+    "webChecks": 194,
+    "webProjectionSourceHash": "3dcf2073c46012e193900fce971a5bab91cefd5194f433bac7169e7f98917907",
+    "setupHolidayCases": 88,
+    "setupLocales": 20,
+    "provenanceTests": 22,
+    "runnerTests": 59
+  },
+  "resourceLimits": {
+    "memoryMaxBytes": 6442450944,
+    "cpuQuota": 200000,
+    "cpuPeriod": 100000,
+    "cpuAffinity": [
+      0,
+      2
+    ]
+  },
+  "excerpts": {
+    "verbatimJobLog": {
+      "file": "run-45809316206-job-139872720224-failure.log",
+      "firstLine": 1638,
+      "lastLine": 1667
+    },
+    "decodedFailureOutput": {
+      "file": "run-45809316206-gradle-failure.txt",
+      "description": "Exact JSON-decoded output field from the failure event; the existing gate bounded this output to its last8000 characters."
+    }
+  }
+}

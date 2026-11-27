@@ -1,0 +1,52 @@
+{
+  "stage": "system-records",
+  "checks": [
+    {
+      "name": "real provider reads require runtime READ permissions",
+      "detail": true
+    },
+    {
+      "name": "real discovery finds the local contact source and both fixture calendars",
+      "detail": true
+    },
+    {
+      "name": "real contact Data rows project name, phone type and birthday",
+      "detail": true
+    },
+    {
+      "name": "same SOURCE_ID survives a genuinely different raw row; rowBinding changes",
+      "detail": true
+    },
+    {
+      "name": "changed SOURCE_ID on the same row yields a different record with the same rowBinding",
+      "detail": true
+    },
+    {
+      "name": "selected calendar only; timed half-open bounds and all-day UTC date bounds",
+      "detail": true
+    },
+    {
+      "name": "all-day selection also keeps the final selected date in a western instant window",
+      "detail": true
+    },
+    {
+      "name": "moving one actual Events row preserves single-event identity",
+      "detail": true
+    },
+    {
+      "name": "owned fixture IDs removed; fixture WRITE permissions absent after cleanup",
+      "detail": true
+    }
+  ],
+  "passed": false,
+  "injector": "async",
+  "sdk": 34,
+  "model": "sdk_gphone64_x86_64",
+  "brand": "google",
+  "applicationId": "io.gitlab.maik3531.magnolieorganizer.tablet.beta",
+  "applicationLabel": "Magnolie Organizer Android Tablet Beta 2.0.30Beta",
+  "sourceHash": "6c0e5542020d04ffaf556ee1334bbe32c91fcfd0da81ff90749b64ca33a6fe8a",
+  "webview": "113.0.5672.136",
+  "startup": null,
+  "error": "java.lang.IllegalStateException: Provider must replace the original recurring slot, not duplicate it\n\tat io.gitlab.maik3531.magnolietabletbeta.NativeSystemProviderSmoke$Probe.run(NativeSystemProviderSmoke.kt:185)\n\tat io.gitlab.maik3531.magnolietabletbeta.NativeSystemProviderSmoke.run(NativeSystemProviderSmoke.kt:32)\n\tat io.gitlab.maik3531.magnolietabletbeta.NativeTabletInstrumentation.onStart(NativeTabletInstrumentation.kt:74)\n\tat android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2402)\n"
+}

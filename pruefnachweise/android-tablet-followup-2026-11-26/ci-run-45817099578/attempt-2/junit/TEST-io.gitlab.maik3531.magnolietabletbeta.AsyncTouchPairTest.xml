@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.AsyncTouchPairTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:18:38.399Z" hostname="ip-10-0-135-230" time="0.028">
+  <properties/>
+  <testcase name="queuesBothEventsWithoutWaitingForAnyUiReceipt" classname="io.gitlab.maik3531.magnolietabletbeta.AsyncTouchPairTest" time="0.018"/>
+  <testcase name="delayedInjectionReturnDoesNotForgeEarlierUpTimestamp" classname="io.gitlab.maik3531.magnolietabletbeta.AsyncTouchPairTest" time="0.004"/>
+  <testcase name="rejectedInjectionCannotBeReportedAsSuccess" classname="io.gitlab.maik3531.magnolietabletbeta.AsyncTouchPairTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

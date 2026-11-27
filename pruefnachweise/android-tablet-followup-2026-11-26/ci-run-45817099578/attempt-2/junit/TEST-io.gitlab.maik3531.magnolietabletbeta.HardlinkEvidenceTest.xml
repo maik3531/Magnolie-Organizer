@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.HardlinkEvidenceTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:18:41.620Z" hostname="ip-10-0-135-230" time="0.003">
+  <properties/>
+  <testcase name="onlyObservedPermissionErrorsWithUntouchedSourceAndNoDestinationQualify" classname="io.gitlab.maik3531.magnolietabletbeta.HardlinkEvidenceTest" time="0.001"/>
+  <testcase name="unlinkIsBoundToRecordedDirectorySourceAndLinkIdentities" classname="io.gitlab.maik3531.magnolietabletbeta.HardlinkEvidenceTest" time="0.001"/>
+  <testcase name="successfulCreationMustActuallyMakeTwoNamesForSameOwnedInode" classname="io.gitlab.maik3531.magnolietabletbeta.HardlinkEvidenceTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

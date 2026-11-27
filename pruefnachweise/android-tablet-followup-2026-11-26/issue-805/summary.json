@@ -1,0 +1,47 @@
+{
+  "issue": 805,
+  "gitHead": "c9c309247b28e3540a23f2aedd6c1c17b1c2b7b4",
+  "result": "passed",
+  "androidApi": "37.2",
+  "kotlin": "2.4.21",
+  "jvmTarget": 17,
+  "java": "openjdk version \"21.0.13.1\" 2026-11-17\nOpenJDK Runtime Environment (build 21.0.13.1+2-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.13.1+2-1-deb13u1-Debian, mixed mode, sharing)",
+  "baselineErrors": 5,
+  "baselineFailure": "JSONObject.similar unavailable in Android SDK API",
+  "compileAfter": 0,
+  "junitTests": 42,
+  "junitFailures": 0,
+  "classes": {
+    "DocumentRequestsTest": 6,
+    "NativeCalendarFileFixtureTest": 1,
+    "VaultTest": 17,
+    "VaultJsonTest": 6,
+    "JsonValueComparisonTest": 12
+  },
+  "goldenRecordingEnabled": false,
+  "boundProjectionSourceHash": "3dcf2073c46012e193900fce971a5bab91cefd5194f433bac7169e7f98917907",
+  "priorHarnessFailure": {
+    "path": "after-missing-timezone-resource",
+    "junitTests": 42,
+    "failures": 1,
+    "reason": "Host runner omitted existing generated normative timezone resource; unchanged payload included for final run",
+    "originalPathsRecordedBeforeArchive": true
+  },
+  "sourceComparison": "All 38 existing compiled product input hashes exactly match current checkout; product unchanged.",
+  "apkBuild": false,
+  "gradleFullBuild": false,
+  "nativeRuntimeTest": false,
+  "evidence": {
+    "before/android-json-api.log": "85940d7306ae8cf731419cc735db54c01155ebad4932997441faba66da98e92a",
+    "before/java-version.log": "49c3b24dff33c6cc781e80d3bae462fd4d18492c2c3701e2f5c7768bc3e70004",
+    "before/receipt.json": "96c67e6ecbc9bf60d9c6890e68b92cd163c3207b606c17adf386d0a4e5b29d71",
+    "before/test-kotlin.log": "660c4042075f71c1d8a9064d1e5b47cbe7269bdbfafa92e75a3c1698155f937f",
+    "before/verify-json-comparison.py": "f455bcbaea93c30a1b7f7df24643214e3998f2b2e1bc354a9a78e41f29bf147f",
+    "after/android-json-api.log": "85940d7306ae8cf731419cc735db54c01155ebad4932997441faba66da98e92a",
+    "after/java-version.log": "49c3b24dff33c6cc781e80d3bae462fd4d18492c2c3701e2f5c7768bc3e70004",
+    "after/junit.log": "a763d7b747ee48d8b2c712a2add6f1260f1ee005cb59ff973667aefe0793c03f",
+    "after/receipt.json": "29cbbda00f27a512efb76f93c39b049bbf7104221054cb9a8194684a0200bd17",
+    "after/test-kotlin.log": "228f2016045d6292bb26594b241896ed452a7298d352614867e55584e9020023",
+    "after/verify-json-comparison.py": "f825afb0829119f9a46ce6eee1f55eb8838c1dbf392abf32db2aaa0b34678874"
+  }
+}

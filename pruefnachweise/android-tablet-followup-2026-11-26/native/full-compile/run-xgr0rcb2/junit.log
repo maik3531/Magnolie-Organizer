@@ -1,0 +1,9 @@
+$ java -cp /workspace/scratch/acde70e8594b/tablet-build-dependencies/annotation-jvm-1.8.1.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/annotations-13.0.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/core-1.13.1-classes.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/hamcrest-core-1.3.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/json-20240303.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/junit-4.13.2.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlin-build-tools-api-2.4.21.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlin-compiler-embeddable-2.4.21.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlin-daemon-embeddable-2.4.21.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlin-reflect-1.6.10.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlin-script-runtime-2.4.21.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlin-stdlib-2.4.21.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/kotlinx-coroutines-core-jvm-1.8.0.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/okhttp-4.12.0.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/okio-jvm-3.6.0.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/threetenbp-1.7.5.jar:/workspace/scratch/acde70e8594b/tablet-build-dependencies/webkit-1.12.1-classes.jar:/workspace/scratch/acde70e8594b/tablet-native-followup/full-compile/run-xgr0rcb2/test-classes org.junit.runner.JUnitCore io.gitlab.maik3531.magnolietabletbeta.SystemImportPolicyTest io.gitlab.maik3531.magnolietabletbeta.SystemSourcePolicyTest io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest
+JUnit version 4.13.2
+..............................................
+Time: 0.286
+
+OK (46 tests)
+
+
+exit=0

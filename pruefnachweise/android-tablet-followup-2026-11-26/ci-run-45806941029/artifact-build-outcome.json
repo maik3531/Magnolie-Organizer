@@ -1,0 +1,83 @@
+{
+  "owner": {
+    "pid": 11040,
+    "start": "13874",
+    "uid": 1001,
+    "boot": "80a6f4f9-50c8-4a73-9dce-ea51fbf42b63"
+  },
+  "ownerPid": 11040,
+  "startedUtc": "2026-11-26T11:03:53+00:00",
+  "runtimeSeconds": 870,
+  "phase": "finished",
+  "updatedUtc": "2026-11-26T11:04:16+00:00",
+  "elapsedSeconds": 22.617,
+  "progress": true,
+  "memoryCurrentBytes": 10342400,
+  "memoryPeakBytes": 10346496,
+  "cpuStat": {
+    "usage_usec": 53935,
+    "user_usec": 46943,
+    "system_usec": 6991,
+    "nice_usec": 0,
+    "core_sched.force_idle_usec": 0,
+    "nr_periods": 0,
+    "nr_throttled": 0,
+    "throttled_usec": 0,
+    "nr_bursts": 0,
+    "burst_usec": 0
+  },
+  "cpuPressure": "some avg10=0.00 avg60=0.00 avg300=0.00 total=3\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=3",
+  "hostCpuPressure": "some avg10=2.96 avg60=1.43 avg300=0.64 total=2921378\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0",
+  "pid": 11041,
+  "actualExit": 0,
+  "jvm": true,
+  "build": true,
+  "memoryMax": "6442450944",
+  "cpuQuota": "200000",
+  "cpuPeriod": "100000",
+  "cpuAffinity": [
+    0,
+    2
+  ],
+  "temporaryResources": "/tmp/opencode/tablet-beta-qotsa6qs",
+  "dependencyDownloads": true,
+  "command": [
+    "node",
+    "/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js"
+  ],
+  "runnerTests": 59,
+  "reason": "Command '['node', '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js']' returned non-zero exit status 1.",
+  "output": "node:fs:440\n    return binding.readFileUtf8(path, stringToFlags(options.flag));\n                   ^\n\nError: ENOENT: no such file or directory, open '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer/web/normative-timezones.js'\n    at Object.readFileSync (node:fs:440:20)\n    at boot (/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js:26:13)\n    at Object.<anonymous> (/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js:43:15)\n    at Module._compile (node:internal/modules/cjs/loader:1781:14)\n    at Object..js (node:internal/modules/cjs/loader:1913:10)\n    at Module.load (node:internal/modules/cjs/loader:1505:32)\n    at Function._load (node:internal/modules/cjs/loader:1309:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49 {\n  errno: -2,\n  code: 'ENOENT',\n  syscall: 'open',\n  path: '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer/web/normative-timezones.js'\n}\n\nNode.js v22.23.5\n",
+  "exitCode": 1,
+  "events": [
+    {
+      "utc": "2026-11-26T11:03:53+00:00",
+      "elapsed": 0.1,
+      "phase": "offline-checks",
+      "jvm": true,
+      "build": true,
+      "memoryMax": "6442450944",
+      "cpuQuota": "200000",
+      "cpuPeriod": "100000",
+      "cpuAffinity": [
+        0,
+        2
+      ],
+      "temporaryResources": "/tmp/opencode/tablet-beta-qotsa6qs",
+      "dependencyDownloads": true
+    },
+    {
+      "utc": "2026-11-26T11:04:16+00:00",
+      "elapsed": 22.601,
+      "phase": "failed",
+      "reason": "Command '['node', '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js']' returned non-zero exit status 1.",
+      "output": "node:fs:440\n    return binding.readFileUtf8(path, stringToFlags(options.flag));\n                   ^\n\nError: ENOENT: no such file or directory, open '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer/web/normative-timezones.js'\n    at Object.readFileSync (node:fs:440:20)\n    at boot (/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js:26:13)\n    at Object.<anonymous> (/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer-windows/tests/setup-holidays.js:43:15)\n    at Module._compile (node:internal/modules/cjs/loader:1781:14)\n    at Object..js (node:internal/modules/cjs/loader:1913:10)\n    at Module.load (node:internal/modules/cjs/loader:1505:32)\n    at Function._load (node:internal/modules/cjs/loader:1309:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49 {\n  errno: -2,\n  code: 'ENOENT',\n  syscall: 'open',\n  path: '/home/runner/work/Magnolie-Organizer/Magnolie-Organizer/magnolie-organizer/web/normative-timezones.js'\n}\n\nNode.js v22.23.5\n"
+    },
+    {
+      "utc": "2026-11-26T11:04:16+00:00",
+      "elapsed": 22.617,
+      "phase": "finished",
+      "exitCode": 1
+    }
+  ]
+}

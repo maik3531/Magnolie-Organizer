@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:47:04.008Z" hostname="ip-10-0-142-104" time="0.49">
+  <properties/>
+  <testcase name="providerScopesUnionAndAllExceptLabelsPreserveSelection" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.008"/>
+  <testcase name="queryBoundsNormalizationAndDeduplication" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.001"/>
+  <testcase name="canonicalNamesMergeAndLanguageFallsBackToFirstNonempty" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.002"/>
+  <testcase name="transportErrorsExposeNoRemoteOrSensitiveMessage" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.001"/>
+  <testcase name="canonicalMessageParsesSingleAndAllRegionsWithAuthority" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.0"/>
+  <testcase name="failedSchoolOrLaterYearReturnsNoPartialResultAndNoPersistentCache" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.001"/>
+  <testcase name="deadlineAndCancellationAlsoFenceJsonParsing" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.001"/>
+  <testcase name="wrapperDatesAndDeterministicOrdering" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.001"/>
+  <testcase name="groupedRowsRetainEveryFallbackRegionAndNationwideBoolean" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.002"/>
+  <testcase name="missingSchoolRegionStillFetchesCountryPublicHolidays" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.0"/>
+  <testcase name="redirectsAndMalformedDataCannotProducePartialRows" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.001"/>
+  <testcase name="wrongBridgeTypesAndUnrequestedUrlsAreRejected" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.0"/>
+  <testcase name="totalDeadlineBoundsLaterRequestAndRejectsItsLateResponse" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.007"/>
+  <testcase name="fixedOriginEndpointLanguageAndInclusiveLeapDates" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.002"/>
+  <testcase name="cancellationBeforeAndDuringTransportNeverPublishesData" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.0"/>
+  <testcase name="responseByteTotalRowAndDepthLimitsAreEnforced" classname="io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest" time="0.457"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

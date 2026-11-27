@@ -32,16 +32,24 @@ function run({web,platform}) {
     assert.ok(!document.querySelector('input').matches(none.selectorText));checks++;
   } finally {dom.window.close();}
   if(platform==='tablet') {
-    assert.match(css,/height: 72vh; height: 72dvh;/);assert.match(css,/max-height: 90vh; max-height: 90dvh;/);checks++;
     // Profile Chrome106's rejection of dvh declarations and inspect the parsed
-    // surviving rules; modern rules retain dvh as the final declaration.
-    const legacy=parse(css.replace(/(?:max-height|height):\s*\d+dvh;/g,''));
+    // surviving rules, including units inside clamp()/calc(). Refs #792 bounds
+    // page heights and every dialog while retaining the older engine fallback.
+    const legacyCss=css.replace(/\b(?:max-height|height):[^;{}]*dvh[^;{}]*;/g,'');
+    assert.notEqual(legacyCss,css,'The legacy feature profile must remove actual dynamic viewport declarations');
+    assert.doesNotMatch(legacyCss,/\d(?:\.\d+)?dvh\b/);checks++;
+    const legacy=parse(legacyCss);
     const modern=parse(css);
     const all=sheet=>Array.from(sheet.cssRules).flatMap(rule=>rule.cssRules?Array.from(rule.cssRules):[rule]);
-    assert.equal(all(legacy).find(rule=>rule.selectorText==='#seiten > .seite').style.height,'72vh');
-    assert.equal(all(modern).find(rule=>rule.selectorText==='#seiten > .seite').style.height,'72dvh');checks++;
-    assert.equal(all(legacy).find(rule=>rule.selectorText==='#einstellungen-blatt, [role=dialog]').style.getPropertyValue('max-height'),'90vh');
-    assert.equal(all(modern).find(rule=>rule.selectorText==='#einstellungen-blatt, [role=dialog]').style.getPropertyValue('max-height'),'90dvh');checks++;
+    const style=(sheet,selector)=>all(sheet).find(rule=>rule.selectorText===selector).style;
+    assert.equal(style(legacy,'#seiten > .seite').height,'clamp(340px, 72vh, 860px)');
+    assert.equal(style(modern,'#seiten > .seite').height,'clamp(340px, 72dvh, 860px)');checks++;
+    for(const selector of ['body [role=dialog]','#einstellungen-blatt']) {
+      assert.equal(style(legacy,selector).getPropertyValue('max-height'),'calc(100vh - 16px)');
+      assert.equal(style(modern,selector).getPropertyValue('max-height'),'calc(100dvh - 16px)');
+    }
+    assert.equal(style(legacy,'#einstellungen-blatt').height,'min(820px, calc(100vh - 16px))');
+    assert.equal(style(modern,'#einstellungen-blatt').height,'min(820px, calc(100dvh - 16px))');checks++;
   }
   return checks;
 }

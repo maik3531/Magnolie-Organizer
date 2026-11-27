@@ -1,0 +1,222 @@
+{
+  "en": {
+    "title": "Android data",
+    "copyNote": "Copy new contacts or appointments from a selected Android source. Existing entries stay unchanged.",
+    "windowNote": "Appointments are copied for the selected dates. Recurrence rules and later changes are not synchronized.",
+    "busy": "Reading Android data…",
+    "scope": "Android data can be copied with permission; automatic synchronization is unavailable.",
+    "allowAccess": "Allow access",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "identityConflict": "Import stopped: an existing Android copy cannot be matched reliably. Existing entries remain unchanged."
+  },
+  "de": {
+    "title": "Android-Daten",
+    "copyNote": "Neue Kontakte oder Termine aus einer ausgewählten Android-Quelle übernehmen. Vorhandene Einträge bleiben unverändert.",
+    "windowNote": "Termine werden für den ausgewählten Zeitraum übernommen. Wiederholungsregeln und spätere Änderungen werden nicht synchronisiert.",
+    "busy": "Android-Daten werden gelesen…",
+    "scope": "Android-Daten lassen sich mit Berechtigung übernehmen; automatischer Abgleich ist nicht verfügbar.",
+    "allowAccess": "Zugriff erlauben",
+    "startDate": "Startdatum",
+    "endDate": "Enddatum",
+    "identityConflict": "Übernahme gestoppt: Eine vorhandene Android-Kopie lässt sich nicht eindeutig zuordnen. Vorhandene Einträge bleiben unverändert."
+  },
+  "ar": {
+    "title": "بيانات Android",
+    "copyNote": "انسخ جهات اتصال أو مواعيد جديدة من مصدر Android محدد. تبقى الإدخالات الموجودة دون تغيير.",
+    "windowNote": "تُنسخ المواعيد للتواريخ المحددة. لا تتم مزامنة قواعد التكرار أو التغييرات اللاحقة.",
+    "busy": "جارٍ قراءة بيانات Android…",
+    "scope": "يمكن نسخ بيانات Android بعد منح الإذن؛ المزامنة التلقائية غير متاحة.",
+    "allowAccess": "السماح بالوصول",
+    "startDate": "تاريخ البدء",
+    "endDate": "تاريخ الانتهاء",
+    "identityConflict": "تم إيقاف الاستيراد: لا يمكن مطابقة نسخة Android موجودة بشكل موثوق. تبقى الإدخالات الموجودة دون تغيير."
+  },
+  "be": {
+    "title": "Даныя Android",
+    "copyNote": "Скапіруйце новыя кантакты або падзеі з выбранай крыніцы Android. Існыя запісы застануцца без змен.",
+    "windowNote": "Падзеі капіруюцца за выбраны перыяд. Правілы паўтарэння і пазнейшыя змены не сінхранізуюцца.",
+    "busy": "Чытанне даных Android…",
+    "scope": "Даныя Android можна капіраваць з дазволу; аўтаматычная сінхранізацыя недаступная.",
+    "allowAccess": "Дазволіць доступ",
+    "startDate": "Дата пачатку",
+    "endDate": "Дата заканчэння",
+    "identityConflict": "Імпарт спынены: немагчыма надзейна супаставіць існую копію Android. Існыя запісы застануцца без змен."
+  },
+  "cs": {
+    "title": "Data Androidu",
+    "copyNote": "Zkopírujte nové kontakty nebo události z vybraného zdroje Androidu. Stávající záznamy zůstanou beze změny.",
+    "windowNote": "Události se kopírují pro vybrané období. Pravidla opakování a pozdější změny se nesynchronizují.",
+    "busy": "Načítání dat Androidu…",
+    "scope": "Data Androidu lze kopírovat s oprávněním; automatická synchronizace není dostupná.",
+    "allowAccess": "Povolit přístup",
+    "startDate": "Datum začátku",
+    "endDate": "Datum konce",
+    "identityConflict": "Import zastaven: existující kopii z Androidu nelze spolehlivě přiřadit. Stávající záznamy zůstanou beze změny."
+  },
+  "da": {
+    "title": "Android-data",
+    "copyNote": "Kopiér nye kontakter eller aftaler fra en valgt Android-kilde. Eksisterende poster forbliver uændrede.",
+    "windowNote": "Aftaler kopieres for de valgte datoer. Gentagelsesregler og senere ændringer synkroniseres ikke.",
+    "busy": "Læser Android-data…",
+    "scope": "Android-data kan kopieres med tilladelse; automatisk synkronisering er ikke tilgængelig.",
+    "allowAccess": "Tillad adgang",
+    "startDate": "Startdato",
+    "endDate": "Slutdato",
+    "identityConflict": "Importen er stoppet: En eksisterende Android-kopi kan ikke matches entydigt. Eksisterende poster forbliver uændrede."
+  },
+  "es": {
+    "title": "Datos de Android",
+    "copyNote": "Copie nuevos contactos o citas de una fuente de Android seleccionada. Las entradas existentes no se modifican.",
+    "windowNote": "Las citas se copian para las fechas seleccionadas. Las reglas de repetición y los cambios posteriores no se sincronizan.",
+    "busy": "Leyendo datos de Android…",
+    "scope": "Los datos de Android se pueden copiar con permiso; la sincronización automática no está disponible.",
+    "allowAccess": "Permitir acceso",
+    "startDate": "Fecha de inicio",
+    "endDate": "Fecha de fin",
+    "identityConflict": "Importación detenida: no se puede asociar de forma fiable una copia de Android existente. Las entradas existentes no se modifican."
+  },
+  "fr": {
+    "title": "Données Android",
+    "copyNote": "Copiez de nouveaux contacts ou rendez-vous depuis une source Android sélectionnée. Les entrées existantes restent inchangées.",
+    "windowNote": "Les rendez-vous sont copiés pour les dates sélectionnées. Les règles de répétition et les modifications ultérieures ne sont pas synchronisées.",
+    "busy": "Lecture des données Android…",
+    "scope": "Les données Android peuvent être copiées avec autorisation ; la synchronisation automatique n’est pas disponible.",
+    "allowAccess": "Autoriser l’accès",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "identityConflict": "Importation arrêtée : une copie Android existante ne peut pas être associée de manière fiable. Les entrées existantes restent inchangées."
+  },
+  "hi": {
+    "title": "Android डेटा",
+    "copyNote": "चुने गए Android स्रोत से नए संपर्क या अपॉइंटमेंट कॉपी करें। मौजूदा प्रविष्टियाँ नहीं बदलेंगी।",
+    "windowNote": "अपॉइंटमेंट चुनी गई तारीखों के लिए कॉपी किए जाते हैं। दोहराव के नियम और बाद के बदलाव सिंक्रनाइज़ नहीं होते।",
+    "busy": "Android डेटा पढ़ा जा रहा है…",
+    "scope": "अनुमति मिलने पर Android डेटा कॉपी किया जा सकता है; स्वचालित सिंक्रनाइज़ेशन उपलब्ध नहीं है।",
+    "allowAccess": "पहुँच की अनुमति दें",
+    "startDate": "शुरुआत की तारीख",
+    "endDate": "समाप्ति की तारीख",
+    "identityConflict": "आयात रोक दिया गया: Android की मौजूदा कॉपी का विश्वसनीय रूप से मिलान नहीं हो सका। मौजूदा प्रविष्टियाँ नहीं बदलेंगी।"
+  },
+  "hsb": {
+    "title": "Daty Androida",
+    "copyNote": "Kopěrujće nowe kontakty abo terminy z wubraneho žórła Androida. Eksistowace zapiski wostanu njezměnjene.",
+    "windowNote": "Terminy so za wubrany časowy wotrězk kopěruja. Prawidła wospjetowanja a pozdźiše změny so njesynchronizuja.",
+    "busy": "Daty Androida so čitaja…",
+    "scope": "Daty Androida hodźa so z dowolnosću kopěrować; awtomatiska synchronizacija njeje k dispoziciji.",
+    "allowAccess": "Přistup dowolić",
+    "startDate": "Spočatny datum",
+    "endDate": "Kónčny datum",
+    "identityConflict": "Import zastajeny: Eksistowaca kopija Androida njeda so jednoznačnje přirjadować. Eksistowace zapiski wostanu njezměnjene."
+  },
+  "it": {
+    "title": "Dati Android",
+    "copyNote": "Copia nuovi contatti o appuntamenti da una fonte Android selezionata. Le voci esistenti restano invariate.",
+    "windowNote": "Gli appuntamenti vengono copiati per le date selezionate. Le regole di ricorrenza e le modifiche successive non vengono sincronizzate.",
+    "busy": "Lettura dei dati Android…",
+    "scope": "I dati Android possono essere copiati con autorizzazione; la sincronizzazione automatica non è disponibile.",
+    "allowAccess": "Consenti accesso",
+    "startDate": "Data di inizio",
+    "endDate": "Data di fine",
+    "identityConflict": "Importazione interrotta: non è possibile associare in modo affidabile una copia Android esistente. Le voci esistenti restano invariate."
+  },
+  "ja": {
+    "title": "Androidのデータ",
+    "copyNote": "選択したAndroidのデータ元から新しい連絡先や予定をコピーします。既存の項目は変更されません。",
+    "windowNote": "選択した期間の予定をコピーします。繰り返しのルールや後からの変更は同期されません。",
+    "busy": "Androidのデータを読み込み中…",
+    "scope": "権限を許可するとAndroidのデータをコピーできます。自動同期には対応していません。",
+    "allowAccess": "アクセスを許可",
+    "startDate": "開始日",
+    "endDate": "終了日",
+    "identityConflict": "インポートを停止しました。既存のAndroidコピーを確実に照合できません。既存の項目は変更されません。"
+  },
+  "nb": {
+    "title": "Android-data",
+    "copyNote": "Kopier nye kontakter eller avtaler fra en valgt Android-kilde. Eksisterende oppføringer forblir uendret.",
+    "windowNote": "Avtaler kopieres for de valgte datoene. Gjentakelsesregler og senere endringer synkroniseres ikke.",
+    "busy": "Leser Android-data…",
+    "scope": "Android-data kan kopieres med tillatelse; automatisk synkronisering er ikke tilgjengelig.",
+    "allowAccess": "Tillat tilgang",
+    "startDate": "Startdato",
+    "endDate": "Sluttdato",
+    "identityConflict": "Importen er stoppet: En eksisterende Android-kopi kan ikke identifiseres entydig. Eksisterende oppføringer forblir uendret."
+  },
+  "nl": {
+    "title": "Android-gegevens",
+    "copyNote": "Kopieer nieuwe contacten of afspraken uit een geselecteerde Android-bron. Bestaande items blijven ongewijzigd.",
+    "windowNote": "Afspraken worden gekopieerd voor de geselecteerde datums. Herhalingsregels en latere wijzigingen worden niet gesynchroniseerd.",
+    "busy": "Android-gegevens worden gelezen…",
+    "scope": "Android-gegevens kunnen met toestemming worden gekopieerd; automatische synchronisatie is niet beschikbaar.",
+    "allowAccess": "Toegang toestaan",
+    "startDate": "Begindatum",
+    "endDate": "Einddatum",
+    "identityConflict": "Import gestopt: een bestaande Android-kopie kan niet betrouwbaar worden gekoppeld. Bestaande items blijven ongewijzigd."
+  },
+  "pl": {
+    "title": "Dane Androida",
+    "copyNote": "Skopiuj nowe kontakty lub terminy z wybranego źródła Androida. Istniejące wpisy pozostaną bez zmian.",
+    "windowNote": "Terminy są kopiowane dla wybranego zakresu dat. Reguły powtarzania i późniejsze zmiany nie są synchronizowane.",
+    "busy": "Odczytywanie danych Androida…",
+    "scope": "Dane Androida można kopiować po udzieleniu uprawnienia; automatyczna synchronizacja jest niedostępna.",
+    "allowAccess": "Zezwól na dostęp",
+    "startDate": "Data rozpoczęcia",
+    "endDate": "Data zakończenia",
+    "identityConflict": "Import zatrzymany: nie można jednoznacznie dopasować istniejącej kopii z Androida. Istniejące wpisy pozostaną bez zmian."
+  },
+  "pt": {
+    "title": "Dados do Android",
+    "copyNote": "Copie novos contactos ou compromissos de uma fonte Android selecionada. As entradas existentes permanecem inalteradas.",
+    "windowNote": "Os compromissos são copiados para as datas selecionadas. As regras de repetição e as alterações posteriores não são sincronizadas.",
+    "busy": "A ler dados do Android…",
+    "scope": "Os dados do Android podem ser copiados com permissão; a sincronização automática não está disponível.",
+    "allowAccess": "Permitir acesso",
+    "startDate": "Data de início",
+    "endDate": "Data de fim",
+    "identityConflict": "Importação interrompida: não é possível associar de forma fiável uma cópia Android existente. As entradas existentes permanecem inalteradas."
+  },
+  "ru": {
+    "title": "Данные Android",
+    "copyNote": "Скопируйте новые контакты или события из выбранного источника Android. Существующие записи останутся без изменений.",
+    "windowNote": "События копируются за выбранный период. Правила повторения и последующие изменения не синхронизируются.",
+    "busy": "Чтение данных Android…",
+    "scope": "Данные Android можно копировать с разрешения; автоматическая синхронизация недоступна.",
+    "allowAccess": "Разрешить доступ",
+    "startDate": "Дата начала",
+    "endDate": "Дата окончания",
+    "identityConflict": "Импорт остановлен: невозможно однозначно сопоставить существующую копию Android. Существующие записи останутся без изменений."
+  },
+  "tr": {
+    "title": "Android verileri",
+    "copyNote": "Seçilen bir Android kaynağından yeni kişileri veya randevuları kopyalayın. Mevcut kayıtlar değişmeden kalır.",
+    "windowNote": "Randevular seçilen tarihler için kopyalanır. Yineleme kuralları ve sonraki değişiklikler eşitlenmez.",
+    "busy": "Android verileri okunuyor…",
+    "scope": "Android verileri izin verilerek kopyalanabilir; otomatik eşitleme kullanılamaz.",
+    "allowAccess": "Erişime izin ver",
+    "startDate": "Başlangıç tarihi",
+    "endDate": "Bitiş tarihi",
+    "identityConflict": "İçe aktarma durduruldu: Mevcut bir Android kopyası güvenilir biçimde eşleştirilemiyor. Mevcut kayıtlar değişmeden kalır."
+  },
+  "uk": {
+    "title": "Дані Android",
+    "copyNote": "Скопіюйте нові контакти або події з вибраного джерела Android. Наявні записи залишаться без змін.",
+    "windowNote": "Події копіюються за вибраний період. Правила повторення та подальші зміни не синхронізуються.",
+    "busy": "Читання даних Android…",
+    "scope": "Дані Android можна копіювати з дозволу; автоматична синхронізація недоступна.",
+    "allowAccess": "Дозволити доступ",
+    "startDate": "Дата початку",
+    "endDate": "Дата завершення",
+    "identityConflict": "Імпорт зупинено: неможливо однозначно зіставити наявну копію Android. Наявні записи залишаться без змін."
+  },
+  "zh_CN": {
+    "title": "Android数据",
+    "copyNote": "从所选Android来源复制新联系人或日程。现有条目保持不变。",
+    "windowNote": "复制所选日期范围内的日程。重复规则和后续更改不会同步。",
+    "busy": "正在读取Android数据…",
+    "scope": "获得权限后可复制Android数据；暂不支持自动同步。",
+    "allowAccess": "允许访问",
+    "startDate": "开始日期",
+    "endDate": "结束日期",
+    "identityConflict": "导入已停止：无法可靠地匹配现有Android副本。现有条目保持不变。"
+  }
+}

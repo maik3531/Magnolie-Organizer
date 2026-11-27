@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.CalendarExportRequestTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:18:39.666Z" hostname="ip-10-0-135-230" time="0.011">
+  <properties/>
+  <testcase name="unsupportedKindsFrontendBodiesAndCoercedAuthorityRejectBeforeEncoding" classname="io.gitlab.maik3531.magnolietabletbeta.CalendarExportRequestTest" time="0.001"/>
+  <testcase name="invalidOrEmptyNativeRecordsCannotCreateAFile" classname="io.gitlab.maik3531.magnolietabletbeta.CalendarExportRequestTest" time="0.001"/>
+  <testcase name="eachActionReadsOnlyItsWholeAuthoritativeBookCollection" classname="io.gitlab.maik3531.magnolietabletbeta.CalendarExportRequestTest" time="0.005"/>
+  <testcase name="icsAndJsonExportsHaveIndependentExplicitFormatsAndOneShotResults" classname="io.gitlab.maik3531.magnolietabletbeta.CalendarExportRequestTest" time="0.001"/>
+  <testcase name="documentWriteFlushAndCloseFailuresNeverReturnSuccessfulCompletion" classname="io.gitlab.maik3531.magnolietabletbeta.CalendarExportRequestTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

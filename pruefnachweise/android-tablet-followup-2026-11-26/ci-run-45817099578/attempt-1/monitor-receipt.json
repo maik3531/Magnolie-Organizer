@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "repository": "maik3531/Magnolie-Organizer",
+  "runId": 45817099578,
+  "attempt": 1,
+  "jobId": 139899561178,
+  "jobName": "tablet-system-records-API34-provider-only",
+  "headSha": "92e2c645cf0a8075325874f335087412e7f79c79",
+  "gitTree": "d7b912c6aba697da48ccf1919591a162a4a4a452",
+  "conclusion": "failure",
+  "failedStep": 6,
+  "failure": {
+    "phase": "Gradle root-project configuration dependency resolution",
+    "httpStatus": 429,
+    "repository": "Maven Central",
+    "artifact": "org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-gradle-plugin/2.4.21/kotlin-gradle-plugin-2.4.21.pom",
+    "additionalIdenticalFailures": 61,
+    "timestamp": "2026-11-26T12:12:41Z",
+    "gradleVersion": "9.6.0",
+    "gradleDuration": "25s",
+    "sourceCompilerErrorObserved": false
+  },
+  "scope": {
+    "unitTestsExecuted": false,
+    "apkVerified": false,
+    "providerStageExecuted": false,
+    "nativeAcceptance": false,
+    "productionRelease": false
+  },
+  "checks": {
+    "provenance": 24,
+    "web": {
+      "passed": 194,
+      "sourceHash": "6c0e5542020d04ffaf556ee1334bbe32c91fcfd0da81ff90749b64ca33a6fe8a",
+      "emulator": false,
+      "scope": "jsdom + shared contract vectors; not Android runtime acceptance"
+    },
+    "syntheticCopyAttachmentIntegration": 46,
+    "runnerTests": 59,
+    "setupHolidayCases": 88,
+    "setupLocales": 20
+  },
+  "sourceInputSetSha256": "90ac565f4dc17d780d5d7c2a755e23e9f7b1706cf08478abf50f2bee9d65c2c8",
+  "artifact": {
+    "id": 15115733348,
+    "bytes": 41044,
+    "sha256": "91bb767247dce6d279c5c50250de82d020a81522bbfec21c83fd991c5f1bb08b",
+    "files": [
+      "artifacts/a3-editor-vectors.json",
+      "artifacts/source-checkout.json",
+      "artifacts/debug-build.json",
+      "artifacts/web-test-proof.json"
+    ],
+    "containsApk": false
+  },
+  "evidenceFiles": {
+    "run-45817099578-attempt-1-original-records.json": {
+      "bytes": 21642,
+      "sha256": "ae38222df63953deddc4ff973bdeb2090962e04d80415051793925c29af93952"
+    },
+    "run-45817099578-attempt-1-job-139899561178-failure.log": {
+      "bytes": 5483,
+      "sha256": "5076497572b696fa8c569ec094763f02501d06bf328d234ffc8d474df4e4c668"
+    },
+    "run-45817099578-attempt-1-gradle-failure.txt": {
+      "bytes": 2012,
+      "sha256": "700a308ad873982e4136c639342fbd1f33fab9c56ec74f58c5ec5e90b48f374d"
+    },
+    "run-45817099578-attempt-1.zip": {
+      "bytes": 41044,
+      "sha256": "91bb767247dce6d279c5c50250de82d020a81522bbfec21c83fd991c5f1bb08b"
+    }
+  }
+}

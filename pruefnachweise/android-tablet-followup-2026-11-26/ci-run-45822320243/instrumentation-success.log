@@ -1,0 +1,21 @@
+2026-11-26T12:49:43.2597760Z         "passed": true
+2026-11-26T12:49:43.2597933Z       }
+2026-11-26T12:49:43.2598081Z     }
+2026-11-26T12:49:43.2598228Z   ],
+2026-11-26T12:49:43.2598389Z   "passed": true,
+2026-11-26T12:49:43.2598576Z   "injector": "async",
+2026-11-26T12:49:43.2598755Z   "sdk": 34,
+2026-11-26T12:49:43.2598950Z   "model": "sdk_gphone64_x86_64",
+2026-11-26T12:49:43.2599170Z   "brand": "google",
+2026-11-26T12:49:43.2599474Z   "applicationId": "io.gitlab.maik3531.magnolieorganizer.tablet.beta",
+2026-11-26T12:49:43.2599900Z   "applicationLabel": "Magnolie Organizer Android Tablet Beta 2.0.30Beta",
+2026-11-26T12:49:43.2600359Z   "sourceHash": "dbe502cf4ad4661be79dca584c120d8623676cf8be5c3ff0d61eba840b676c09",
+2026-11-26T12:49:43.2600725Z   "webview": "113.0.5672.136",
+2026-11-26T12:49:43.2600928Z   "startup": null,
+2026-11-26T12:49:43.2601107Z   "error": null
+2026-11-26T12:49:43.2601282Z }
+2026-11-26T12:49:43.2601379Z 
+2026-11-26T12:49:43.2601481Z INSTRUMENTATION_CODE: -1
+2026-11-26T12:49:43.2601613Z 
+2026-11-26T12:49:43.2602155Z [2026-11-26T12:49:43+00:00] elapsed=63.8s test-passed {"test": "system-records", "sourceHash": "dbe502cf4ad4661be79dca584c120d8623676cf8be5c3ff0d61eba840b676c09"}
+2026-11-26T12:49:43.2602861Z [2026-11-26T12:49:43+00:00] elapsed=63.8s command-started {"pid": 12688}

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:47:01.335Z" hostname="ip-10-0-142-104" time="0.908">
+  <properties/>
+  <testcase name="rawJavaNullAndTypedNestedCopiesPreserveJsonNullWithoutAliasing" classname="io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest" time="0.015"/>
+  <testcase name="quarantineExactContentDedupIsContainerLocalAndOpaqueIdentityPreserved" classname="io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest" time="0.045"/>
+  <testcase name="quarantineCountBoundAndUtf8KeyOrderingRemainDeterministic" classname="io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest" time="0.535"/>
+  <testcase name="additiveMarkersLocalEvidenceAndUnknownsArePreservedExactly" classname="io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest" time="0.008"/>
+  <testcase name="aggregateMergedOutputBoundBeforePublicationAndDomainLimits" classname="io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest" time="0.207"/>
+  <testcase name="rootMetaSettingsMissingNullMalformedConflictMatrix" classname="io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest" time="0.009"/>
+  <testcase name="publicInputPreflightRejectsCyclesNonFiniteMalformedUtf16DepthAndAggregateBytes" classname="io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest" time="0.053"/>
+  <testcase name="malformedOrUnknownQuarantineNeverSilentlyReplaced" classname="io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest" time="0.023"/>
+  <testcase name="matchesExactSharedMacGoldenFixtureAndDoesNotMutateOrAliasInputs" classname="io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest" time="0.002"/>
+  <testcase name="newEpochCannotReuseAnyLiveOrArchiveSlotAndTimeCannotBeNegative" classname="io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest" time="0.003"/>
+  <testcase name="typedCopiesPreserveLargeDoublesAndNumericDistinctQuarantineEntries" classname="io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest" time="0.004"/>
+  <testcase name="actualCanonicalNormalizedBindingFixtureRetainsEpochAndQuarantine" classname="io.gitlab.maik3531.magnolietabletbeta.BookRestoreTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

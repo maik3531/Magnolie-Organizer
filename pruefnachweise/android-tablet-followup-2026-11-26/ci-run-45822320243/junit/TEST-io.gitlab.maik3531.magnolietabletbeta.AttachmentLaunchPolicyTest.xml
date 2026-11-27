@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-26T12:47:01.286Z" hostname="ip-10-0-142-104" time="0.044">
+  <properties/>
+  <testcase name="sharedCommandCannotEnableUnrelatedSocialPhoneMailOrProcessHandlers" classname="io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest" time="0.022"/>
+  <testcase name="unsavedUriAndMixedLocalOnlyBindingsDoNotBorrowOtherAttachmentsAuthority" classname="io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest" time="0.007"/>
+  <testcase name="failedHandoffIsNotReportedAsOpenedOrDownloaded" classname="io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest" time="0.002"/>
+  <testcase name="localOnlyUnknownAndDavAttachmentsRemainBlockedEvenWithHttps" classname="io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest" time="0.004"/>
+  <testcase name="schemesCredentialsInvalidPortsAndControlsCannotReachAndroid" classname="io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest" time="0.001"/>
+  <testcase name="exactSavedHttpsAttachmentPreservesAllEscapesQueryAndFragment" classname="io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest" time="0.002"/>
+  <testcase name="overlongUrlsAndUnboundedRequestIdentifiersAreRejected" classname="io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest" time="0.001"/>
+  <testcase name="ExplicitLocalHttpsAndPunycodeHostsNeedNoNetworkProbe" classname="io.gitlab.maik3531.magnolietabletbeta.AttachmentLaunchPolicyTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
