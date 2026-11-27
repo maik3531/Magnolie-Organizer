@@ -1,0 +1,753 @@
+{
+  "started": "2026-11-27",
+  "lead_updates": [
+    {
+      "number": 146,
+      "kind": "lead",
+      "title": "Eigenprofil: automatische Quelle, bestätigte Eigenidentität und optionale medizinische Angaben vervollständigen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/146",
+      "updated_at": "2026-11-27T18:01:24Z",
+      "verified": true,
+      "sources": [
+        158,
+        159
+      ]
+    },
+    {
+      "number": 275,
+      "kind": "lead",
+      "title": "Internetkonten: Offlinebetrieb, erforderliche Anmeldung und Providerfehler einheitlich führen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/275",
+      "updated_at": "2026-11-27T18:01:27Z",
+      "verified": true,
+      "sources": [
+        274
+      ]
+    },
+    {
+      "number": 156,
+      "kind": "lead",
+      "title": "Native Online-Konten: Providerfähigkeiten und Google-Rückabgleich tatsächlich prüfen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/156",
+      "updated_at": "2026-11-27T18:01:29Z",
+      "verified": true,
+      "sources": [
+        65
+      ]
+    },
+    {
+      "number": 192,
+      "kind": "lead",
+      "title": "MCP: verbleibende Telefon-/KDE-Kommunikation, Empfangsvorgaben und Geräteaktionen anbinden",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/192",
+      "updated_at": "2026-11-27T18:01:31Z",
+      "verified": true,
+      "sources": [
+        193
+      ]
+    },
+    {
+      "number": 680,
+      "kind": "lead",
+      "title": "Zeitzonen: aktuelle native Linux-/Windows-/Mac-/Tablet-Abnahme und Benachrichtigungszustellung",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/680",
+      "updated_at": "2026-11-27T18:01:33Z",
+      "verified": true,
+      "sources": [
+        452,
+        453,
+        659
+      ]
+    },
+    {
+      "number": 465,
+      "kind": "lead",
+      "title": "ICS-Ausnahmeidentität: Altkennungen, gespeicherte Doppelpaare und native Save-/Reopen-Abnahme",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/465",
+      "updated_at": "2026-11-27T18:01:35Z",
+      "verified": true,
+      "sources": [
+        464
+      ]
+    },
+    {
+      "number": 113,
+      "kind": "lead",
+      "title": "Nächster Gesamtkandidat: Restpunkte, private Testlieferung und Paketabnahme",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/113",
+      "updated_at": "2026-11-27T18:01:38Z",
+      "verified": true,
+      "sources": [
+        254,
+        809,
+        237,
+        384,
+        434,
+        687,
+        695,
+        451
+      ]
+    },
+    {
+      "number": 121,
+      "kind": "lead",
+      "title": "Nach Gesamtabnahme: macOS- und Android-Organizer auf Funktions- und Darstellungsparität bringen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121",
+      "updated_at": "2026-11-27T18:01:40Z",
+      "verified": true,
+      "sources": [
+        816,
+        461,
+        463,
+        468,
+        472
+      ]
+    },
+    {
+      "number": 330,
+      "kind": "lead",
+      "title": "Datei-/Foto-/Videosynchronisation: Aktivierung, native Integration und Gesamtabnahme",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/330",
+      "updated_at": "2026-11-27T18:01:42Z",
+      "verified": true,
+      "sources": [
+        335,
+        759
+      ]
+    },
+    {
+      "number": 245,
+      "kind": "lead",
+      "title": "Bildschirm: Spiegelung und echten Zweitmonitor auf Telefon oder Tablet ergänzen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/245",
+      "updated_at": "2026-11-27T18:01:45Z",
+      "verified": true,
+      "sources": [
+        727
+      ]
+    },
+    {
+      "number": 153,
+      "kind": "lead",
+      "title": "KDE Connect: Ferneingabe, Präsentationsmodus und konfigurierte Befehle abschließen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/153",
+      "updated_at": "2026-11-27T18:01:47Z",
+      "verified": true,
+      "sources": [
+        149
+      ]
+    },
+    {
+      "number": 503,
+      "kind": "lead",
+      "title": "Webcam: produktiver Kamera-/Mikrofonpfad, kombinierte Einrichtung und native OBS-Abnahme",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/503",
+      "updated_at": "2026-11-27T18:01:49Z",
+      "verified": true,
+      "sources": [
+        517,
+        597
+      ]
+    },
+    {
+      "number": 691,
+      "kind": "lead",
+      "title": "Notes: target37-/LAN-Manifestmigration und native Upgrade-/Gerätematrix – Rest #672",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/691",
+      "updated_at": "2026-11-27T18:01:51Z",
+      "verified": true,
+      "sources": [
+        558
+      ]
+    },
+    {
+      "number": 338,
+      "kind": "policy",
+      "title": "Medien-Abgleichrichtung wie Notes wählen: Handy zu PC als Vorgabe, beidseitig nur mit sicherem Rückweg",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/338",
+      "updated_at": "2026-11-27T18:01:52Z",
+      "verified": true,
+      "sources": []
+    },
+    {
+      "number": 128,
+      "kind": "policy",
+      "title": "Notes: automatischen Abgleich auf freigegebene aktive Transporte erweitern",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/128",
+      "updated_at": "2026-11-27T18:01:54Z",
+      "verified": true,
+      "sources": []
+    }
+  ],
+  "closures": [
+    {
+      "number": 158,
+      "lead_issue": 146,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:23Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/158",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/158#issuecomment-7225064642",
+      "verified": true
+    },
+    {
+      "number": 159,
+      "lead_issue": 146,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:27Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/159",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/159#issuecomment-7225074095",
+      "verified": true
+    },
+    {
+      "number": 274,
+      "lead_issue": 275,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:31Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/274",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/274#issuecomment-7225075342",
+      "verified": true
+    },
+    {
+      "number": 65,
+      "lead_issue": 156,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:35Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/65",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/65#issuecomment-7225076565",
+      "verified": true
+    },
+    {
+      "number": 193,
+      "lead_issue": 192,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:39Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/193",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/193#issuecomment-7225077921",
+      "verified": true
+    },
+    {
+      "number": 452,
+      "lead_issue": 680,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:42Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/452",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/452#issuecomment-7225079081",
+      "verified": true
+    },
+    {
+      "number": 453,
+      "lead_issue": 680,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:47Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/453",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/453#issuecomment-7225080369",
+      "verified": true
+    },
+    {
+      "number": 659,
+      "lead_issue": 680,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:51Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/659",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/659#issuecomment-7225081690",
+      "verified": true
+    },
+    {
+      "number": 464,
+      "lead_issue": 465,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:54Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/464",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/464#issuecomment-7225082777",
+      "verified": true
+    },
+    {
+      "number": 254,
+      "lead_issue": 113,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:59Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/254",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/254#issuecomment-7225084037",
+      "verified": true
+    },
+    {
+      "number": 809,
+      "lead_issue": 113,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:03Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/809",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/809#issuecomment-7225085505",
+      "verified": true
+    },
+    {
+      "number": 237,
+      "lead_issue": 113,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:06Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/237",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/237#issuecomment-7225086569",
+      "verified": true
+    },
+    {
+      "number": 384,
+      "lead_issue": 113,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:11Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/384",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/384#issuecomment-7225087847",
+      "verified": true
+    },
+    {
+      "number": 434,
+      "lead_issue": 113,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:15Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/434",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/434#issuecomment-7225089203",
+      "verified": true
+    },
+    {
+      "number": 687,
+      "lead_issue": 113,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:19Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/687",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/687#issuecomment-7225090586",
+      "verified": true
+    },
+    {
+      "number": 695,
+      "lead_issue": 113,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:23Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/695",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/695#issuecomment-7225091706",
+      "verified": true
+    },
+    {
+      "number": 451,
+      "lead_issue": 113,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:27Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/451",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/451#issuecomment-7225092959",
+      "verified": true
+    },
+    {
+      "number": 816,
+      "lead_issue": 121,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:31Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/816",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/816#issuecomment-7225094350",
+      "verified": true
+    },
+    {
+      "number": 461,
+      "lead_issue": 121,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:35Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/461",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/461#issuecomment-7225095452",
+      "verified": true
+    },
+    {
+      "number": 463,
+      "lead_issue": 121,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:39Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/463",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/463#issuecomment-7225096649",
+      "verified": true
+    },
+    {
+      "number": 468,
+      "lead_issue": 121,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:43Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/468",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/468#issuecomment-7225098012",
+      "verified": true
+    },
+    {
+      "number": 472,
+      "lead_issue": 121,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:46Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/472",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/472#issuecomment-7225099186",
+      "verified": true
+    },
+    {
+      "number": 335,
+      "lead_issue": 330,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:50Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/335",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/335#issuecomment-7225100426",
+      "verified": true
+    },
+    {
+      "number": 759,
+      "lead_issue": 330,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:55Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/759",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/759#issuecomment-7225101751",
+      "verified": true
+    },
+    {
+      "number": 727,
+      "lead_issue": 245,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:04:58Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/727",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/727#issuecomment-7225103061",
+      "verified": true
+    },
+    {
+      "number": 149,
+      "lead_issue": 153,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:05:02Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/149",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/149#issuecomment-7225104204",
+      "verified": true
+    },
+    {
+      "number": 517,
+      "lead_issue": 503,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:05:06Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/517",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/517#issuecomment-7225105415",
+      "verified": true
+    },
+    {
+      "number": 597,
+      "lead_issue": 503,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:05:10Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/597",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/597#issuecomment-7225106573",
+      "verified": true
+    },
+    {
+      "number": 558,
+      "lead_issue": 691,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:05:13Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/558",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/558#issuecomment-7225107887",
+      "verified": true
+    },
+    {
+      "number": 389,
+      "lead_issue": 338,
+      "requested_reason": "not_planned",
+      "state_reason": "not_planned",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:05:17Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/389",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/389#issuecomment-7225109048",
+      "verified": true
+    },
+    {
+      "number": 731,
+      "lead_issue": null,
+      "requested_reason": "completed",
+      "state_reason": "completed",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:08:07Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/731",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/731#issuecomment-7225161853",
+      "verified": true
+    }
+  ],
+  "comments": [
+    {
+      "number": 158,
+      "id": 7225064642,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/158#issuecomment-7225064642",
+      "verified": true
+    },
+    {
+      "number": 159,
+      "id": 7225074095,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/159#issuecomment-7225074095",
+      "verified": true
+    },
+    {
+      "number": 274,
+      "id": 7225075342,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/274#issuecomment-7225075342",
+      "verified": true
+    },
+    {
+      "number": 65,
+      "id": 7225076565,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/65#issuecomment-7225076565",
+      "verified": true
+    },
+    {
+      "number": 193,
+      "id": 7225077921,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/193#issuecomment-7225077921",
+      "verified": true
+    },
+    {
+      "number": 452,
+      "id": 7225079081,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/452#issuecomment-7225079081",
+      "verified": true
+    },
+    {
+      "number": 453,
+      "id": 7225080369,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/453#issuecomment-7225080369",
+      "verified": true
+    },
+    {
+      "number": 659,
+      "id": 7225081690,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/659#issuecomment-7225081690",
+      "verified": true
+    },
+    {
+      "number": 464,
+      "id": 7225082777,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/464#issuecomment-7225082777",
+      "verified": true
+    },
+    {
+      "number": 254,
+      "id": 7225084037,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/254#issuecomment-7225084037",
+      "verified": true
+    },
+    {
+      "number": 809,
+      "id": 7225085505,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/809#issuecomment-7225085505",
+      "verified": true
+    },
+    {
+      "number": 237,
+      "id": 7225086569,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/237#issuecomment-7225086569",
+      "verified": true
+    },
+    {
+      "number": 384,
+      "id": 7225087847,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/384#issuecomment-7225087847",
+      "verified": true
+    },
+    {
+      "number": 434,
+      "id": 7225089203,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/434#issuecomment-7225089203",
+      "verified": true
+    },
+    {
+      "number": 687,
+      "id": 7225090586,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/687#issuecomment-7225090586",
+      "verified": true
+    },
+    {
+      "number": 695,
+      "id": 7225091706,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/695#issuecomment-7225091706",
+      "verified": true
+    },
+    {
+      "number": 451,
+      "id": 7225092959,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/451#issuecomment-7225092959",
+      "verified": true
+    },
+    {
+      "number": 816,
+      "id": 7225094350,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/816#issuecomment-7225094350",
+      "verified": true
+    },
+    {
+      "number": 461,
+      "id": 7225095452,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/461#issuecomment-7225095452",
+      "verified": true
+    },
+    {
+      "number": 463,
+      "id": 7225096649,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/463#issuecomment-7225096649",
+      "verified": true
+    },
+    {
+      "number": 468,
+      "id": 7225098012,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/468#issuecomment-7225098012",
+      "verified": true
+    },
+    {
+      "number": 472,
+      "id": 7225099186,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/472#issuecomment-7225099186",
+      "verified": true
+    },
+    {
+      "number": 335,
+      "id": 7225100426,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/335#issuecomment-7225100426",
+      "verified": true
+    },
+    {
+      "number": 759,
+      "id": 7225101751,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/759#issuecomment-7225101751",
+      "verified": true
+    },
+    {
+      "number": 727,
+      "id": 7225103061,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/727#issuecomment-7225103061",
+      "verified": true
+    },
+    {
+      "number": 149,
+      "id": 7225104204,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/149#issuecomment-7225104204",
+      "verified": true
+    },
+    {
+      "number": 517,
+      "id": 7225105415,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/517#issuecomment-7225105415",
+      "verified": true
+    },
+    {
+      "number": 597,
+      "id": 7225106573,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/597#issuecomment-7225106573",
+      "verified": true
+    },
+    {
+      "number": 558,
+      "id": 7225107887,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/558#issuecomment-7225107887",
+      "verified": true
+    },
+    {
+      "number": 389,
+      "id": 7225109048,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/389#issuecomment-7225109048",
+      "verified": true
+    },
+    {
+      "number": 731,
+      "id": 7225161853,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/731#issuecomment-7225161853",
+      "verified": true
+    }
+  ],
+  "errors": [],
+  "requirement_updates": [
+    {
+      "number": 395,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/395",
+      "updated_at": "2026-11-27T18:13:08Z",
+      "verified": true,
+      "scope": "User-requested large-volume and month-long tray operation acceptance"
+    },
+    {
+      "number": 113,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/113",
+      "updated_at": "2026-11-27T18:13:10Z",
+      "verified": true,
+      "scope": "User-requested large-volume and month-long tray operation acceptance"
+    },
+    {
+      "number": 113,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/113",
+      "updated_at": "2026-11-27T18:23:06Z",
+      "verified": true,
+      "scope": "User-requested semantic, complete import/export and roundtrip acceptance"
+    }
+  ],
+  "new_issues": [
+    {
+      "number": 843,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/843",
+      "title": "Linux/Windows: Serien-Worker hält Blob-URLs nach fehlgeschlagenem Aufbau bis zum Fensterende",
+      "verified": true,
+      "reason": "New independently reproduced cross-platform Blob URL retention failure"
+    },
+    {
+      "number": 844,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/844",
+      "title": "Linux/Windows: fremde ICS-Farben fehlen in der Anzeige und Kalenderfarben gehen verloren",
+      "verified": true,
+      "reason": "New synthetic cross-platform external calendar color loss"
+    }
+  ]
+}

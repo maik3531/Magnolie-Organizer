@@ -1,0 +1,41 @@
+From 164f923a723c976441e7efd20dd78605bde9f63f Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 18:36:11 +0100
+Subject: [PATCH] Refs #790: align Mac source gate with current Tablet checkout
+
+---
+ .../tests/test_candidate_sources.py                   | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py b/Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py
+index 2996b13497fb0a6e1c21b5d6163262b7aa17d9fd..714eb387c2ac5f09b03ddbd123e95642b99c3f45 100644
+--- a/Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py
++++ b/Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py
+@@ -105,7 +105,7 @@ class CandidateSourceTests(unittest.TestCase):
+         source.verify(self.repo, self.current, proof)
+         self.assertNotIn("Magnolie-Organizer-macOS-Beta/Generated/anwendung.js", proof["sourceFiles"])
+ 
+-    def test_workflow_selects_current_mac_checkout_and_keeps_tablet_reference(self):
++    def test_workflow_selects_current_checkouts_and_keeps_codec_reference(self):
+         workflow = (BETA.parent / ".github/workflows/ports-2.0.30.yml").read_text()
+         mac, tablet = workflow.split("\n  macos:\n", 1)[1].split("\n  tablet:\n", 1)
+         self.assertNotIn("git restore", mac)
+@@ -114,7 +114,14 @@ class CandidateSourceTests(unittest.TestCase):
+         self.assertIn("tests/test_candidate_sources.py", mac)
+         self.assertLess(mac.index("candidate_sources.py record"), mac.index("project_ui.py freeze"))
+         self.assertLess(mac.index("candidate_sources.py verify"), mac.index("ditto -c -k"))
+-        self.assertIn('git restore --source="$DESKTOP_COMMIT"', tablet)
++        self.assertNotIn("git restore", tablet)
++        self.assertIn("tests/test_source_proof.py", tablet)
++        self.assertIn('source-proof.py capture', tablet)
++        self.assertIn('--expected-commit "$GITHUB_SHA"', tablet)
++        self.assertIn("source-proof.py bind", tablet)
++        self.assertLess(tablet.index("source-proof.py capture"), tablet.index("bash tools/build-beta.sh --online"))
++        self.assertLess(tablet.index("bash tools/build-beta.sh --online"), tablet.index("source-proof.py bind"))
++        self.assertIn('test "$(git rev-parse v2.0.30^{commit})" = "$DESKTOP_COMMIT"', tablet)
+         self.assertIn("DESKTOP_COMMIT: " + source.REFERENCE_DESKTOP_COMMIT, workflow)
+ 
+ 
+-- 
+2.56.1
+

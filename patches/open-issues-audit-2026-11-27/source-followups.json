@@ -1,0 +1,146 @@
+{
+  "date": "2026-11-27",
+  "initial_base": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "intermediate_base": "50b1512234a765635f82af4537f277594fbf9878",
+  "frozen_patch_base": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "base_tree": "c465628581d0e4f49bc02e64db41f8a9cc73b2ae",
+  "latest_comparison": {
+    "base": "50b1512234a765635f82af4537f277594fbf9878",
+    "head": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+    "commits": [
+      {
+        "sha": "4664c8940fba6d71134ac952ba98e214203a7fb0",
+        "subject": "Refs #841: Cover regional Arabic through application startup"
+      },
+      {
+        "sha": "9fff707a5c3f76fac9b4022bf52a4a340e07aed4",
+        "subject": "Refs #842: Expand the Windows import encoding regression matrix"
+      },
+      {
+        "sha": "f635d84068ffcf11a483dd50827be7f585649877",
+        "subject": "Refs #839: Cover coincident due-day and early task reminders"
+      },
+      {
+        "sha": "d25b0142fda1c0e23bd845d736497d0a2e5738b9",
+        "subject": "Refs #330: Preserve acknowledged Linux media controls on equivalent WLAN refresh"
+      },
+      {
+        "sha": "312366a363a413a31139da149d2846f8ca76c8cf",
+        "subject": "Refs #330 #429: Create private media defaults under verified user-group directories"
+      },
+      {
+        "sha": "bf47c5b484113728e6086452497ca8651dd29e2a",
+        "subject": "Refs #330: Admit manual first photo receive on the original WLAN reader"
+      },
+      {
+        "sha": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+        "subject": "Refs #330: Keep acknowledged Notes media agreement across equivalent WLAN revisions"
+      }
+    ],
+    "files": [
+      {
+        "path": "ARBEITSSTAND.md",
+        "status": "modified",
+        "additions": 15,
+        "deletions": 0
+      },
+      {
+        "path": "Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs",
+        "status": "modified",
+        "additions": 24,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt",
+        "status": "modified",
+        "additions": 22,
+        "deletions": 5
+      },
+      {
+        "path": "magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/telefon/PhoneWebcamWerkDispatchTest.kt",
+        "status": "modified",
+        "additions": 56,
+        "deletions": 4
+      },
+      {
+        "path": "magnolie-organizer-windows/tests/Program.cs",
+        "status": "modified",
+        "additions": 1,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer-windows/tests/UnicodeImportTests.cs",
+        "status": "added",
+        "additions": 135,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer-windows/tests/regional-language-direction.js",
+        "status": "added",
+        "additions": 57,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer-windows/tests/run.js",
+        "status": "modified",
+        "additions": 1,
+        "deletions": 1
+      },
+      {
+        "path": "magnolie-organizer/bin/magnolie_file_desktop_connection.py",
+        "status": "modified",
+        "additions": 182,
+        "deletions": 22
+      },
+      {
+        "path": "magnolie-organizer/bin/magnolie_media_storage_bootstrap.py",
+        "status": "modified",
+        "additions": 23,
+        "deletions": 8
+      },
+      {
+        "path": "magnolie-organizer/bin/magnolie_photo_destination.py",
+        "status": "modified",
+        "additions": 85,
+        "deletions": 9
+      },
+      {
+        "path": "magnolie-organizer/bin/magnolie_telefon.py",
+        "status": "modified",
+        "additions": 31,
+        "deletions": 5
+      },
+      {
+        "path": "magnolie-organizer/pruefungen/media-source-choice-ui.cjs",
+        "status": "modified",
+        "additions": 23,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/pruefungen/test_media_first_receive.py",
+        "status": "added",
+        "additions": 211,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/pruefungen/test_media_support_draft.py",
+        "status": "modified",
+        "additions": 76,
+        "deletions": 3
+      },
+      {
+        "path": "magnolie-organizer/pruefungen/test_photo_destination.py",
+        "status": "modified",
+        "additions": 50,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/web/anwendung.js",
+        "status": "modified",
+        "additions": 13,
+        "deletions": 6
+      }
+    ]
+  },
+  "scope_de": "Vollständige ursprüngliche Inventur auf 3f4b69ca; zwei begrenzte Nachträge bis 50b15122 und 24927cf9. Kein fortlaufendes Neuaudit eines beweglichen main."
+}

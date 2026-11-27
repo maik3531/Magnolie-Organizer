@@ -1,0 +1,698 @@
+{
+  "repository": "maik3531/Magnolie-Organizer",
+  "snapshot_issues": 106,
+  "pre_mutation_open": 105,
+  "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "followup_commit": "50b1512234a765635f82af4537f277594fbf9878",
+  "authorization_de": "Nutzer hat das Zusammenführen doppelter/zusammengehöriger Issues und Schließen der ersetzten Issues ausdrücklich beauftragt.",
+  "groups": [
+    {
+      "lead_issue": 146,
+      "source_issues": [
+        158,
+        159
+      ],
+      "suggested_title_de": "Eigenprofil: automatische Quelle, bestätigte Eigenidentität und optionale medizinische Angaben vervollständigen",
+      "reason_de": "Alle drei Aufträge arbeiten am bewusst getrennten Eigenprofil und seinem tatsächlichen Android-/Samsung-Quellvertrag. #158 und #159 sind Funktionsabschnitte dieses Modells. Die Zusammenführung darf ihren Umfang nicht auf die Samsung-Zugriffsdiagnose verengen.",
+      "implemented_notes_de": [
+        "Normale Eigenprofilkarte, Mehrfeld-/Fotoeditor und selektiver Versand sind vorhanden.",
+        "Canonical Profile und exakt systemmarkierte Eigenprofilzeilen werden nativ gelesen; dokumentierte Samsung-Konfiguration liefert bisher keine öffentliche Quelle.",
+        "Medizinische MIME-Namen sind nur Fähigkeitsmetadaten; es werden darüber keine medizinischen Werte übertragen."
+      ],
+      "unique_remaining_by_issue": {
+        "146": [
+          "Automatische unterstützte Android-/Samsung-Eigenprofilquelle mit tatsächlich gelesenen Profilwerten/Foto/Geburtstag nachweisen; keine Namensheuristik, kein privater API-Bypass.",
+          "Das vom Nutzer abgelehnte manuelle VCF-Importangebot nicht als Erfüllung der automatischen Quelle einsetzen.",
+          "Separates Eigenprofil, vorhandene manuelle Angaben und echte selektive Weitergabe erhalten; konkrete OEM-Grenze statt allgemeiner Samsung-Behauptung dokumentieren."
+        ],
+        "158": [
+          "Persönliche Ansprache am echten Geburtstag; Vorabmeldung bleibt zeitlich korrekt und gratuliert nicht zu früh.",
+          "Eigene Person über ausdrücklich bestätigte Google-/EDS-/DAV-/Telefon-/weitere Quellenbindungen erkennen; keine zweite generische Geburtstagsmeldung.",
+          "Provider-UIDs, ETags, Serien und getrenntes Eigenprofil bewahren; Kalenderdarstellung und native Linux-/Windows-Erinnerungen prüfen, keine Namensheuristik allein."
+        ],
+        "159": [
+          "Tatsächlich öffentlich zugängliche medizinische Felder/MIME-Typen und passende Berechtigungen zuerst belegen.",
+          "Übernahme und Anzeige getrennt optional, nur explizit ausgewählte vorhandene Werte, manuelle Angaben erhalten.",
+          "Fehlenden OEM-Zugriff nachvollziehbar anzeigen; Datenmodell, Notes-/Desktoptransport, Handbuch und synthetische sowie echte API-Belege ergänzen."
+        ]
+      },
+      "close_condition_de": "#158/#159 erst nach vollständiger Übernahme dieser jeweiligen offenen Kriterien und Rückverlinkung schließen; das Leitissue bleibt offen. Persönliche Geburtstagsfunktion ist auch bei weiterhin ungelöstem OEM-Zugriff ein eigenständiger Abschnitt."
+    },
+    {
+      "lead_issue": 275,
+      "source_issues": [
+        274
+      ],
+      "suggested_title_de": "Internetkonten: Offlinebetrieb, erforderliche Anmeldung und Providerfehler einheitlich führen",
+      "reason_de": "#274 und #275 verlangen denselben durchgehenden Konto-/Status-/Settings-/Sync-Zustandsvertrag: still vorhandene Anmeldung nutzen, Nichterreichbarkeit von echter Authentifizierung unterscheiden und nur erforderliche Interaktion anzeigen. Die bisherigen Bodies verweisen bereits gegenseitig auf genau diese Grenze.",
+      "implemented_notes_de": [
+        "Der konkrete frische/wiederholte Helferstart ohne sichtbare Thunderbird-Fenster ist behoben und darf nicht erneut als fehlend geführt werden.",
+        "Statuslesen und explizite sign_in-Aktion sind getrennt; lokale Inhalte und bestehende Telefon-WLAN-Wege sind vorhanden."
+      ],
+      "unique_remaining_by_issue": {
+        "275": [
+          "Tatsächlich erforderliche neue Anmeldung/Wiederanmeldung, Erfolg, Abbruch und Providerfehler einheitlich in Magnolie führen.",
+          "Keine Mail-, Datenschutz-, Setup- oder nativen Fehlerfenster; keine leeren Dialoge/Hänger oder kontofremden Änderungen.",
+          "Erfolg erst nach tatsächlicher Provider-/Speicher-Rücklese; ein sichtbares Teilkonto beweist nicht die vollständige Kontakt-/Kalenderbereitstellung.",
+          "Bestehende sichere Auth-/Providerverfahren nutzen, keine Zugangsdaten oder Token in Diagnosen; #273-Quellenwahl und #292-Datenpipeline bleiben separate Integration."
+        ],
+        "274": [
+          "Offline-Start, DNS-/Verbindungsverlust und Wiederverbindung mit vorhandenen Konten als normalen wartenden Zustand behandeln, ohne pauschal alle Fehler als offline zu verstecken.",
+          "Gespeicherte Anmeldungen/Token/Grants/Daten bewahren; keine interaktive Anmeldung durch reines Settings-/Status-/Importlesen.",
+          "Lokale Kontakte, Kalender, Notizen und Erinnerungen weiter nutzbar; Telefon-/LAN-Weg auch ohne Internet.",
+          "Ausstehende Syncarbeit bei Wiederverbindung fortsetzen; keine doppelten Worker, Resets oder falschen Erfolgszustände."
+        ]
+      },
+      "close_condition_de": "#274 nach vollständiger Aufnahme als eigener Offline-/Wiederverbindungsabschnitt und wechselseitiger Verlinkung schließen; #275 offen halten."
+    },
+    {
+      "lead_issue": 156,
+      "source_issues": [
+        65
+      ],
+      "suggested_title_de": "Native Online-Konten: Providerfähigkeiten und Google-Rückabgleich tatsächlich prüfen",
+      "reason_de": "Der noch unbestätigte historische Googlebericht #65 kann als ausdrücklich unbestätigter konkreter Google-Prüffall in die bereits offene native Providermatrix #156 aufgenommen werden. Ein separates pauschales Rücksync-Bugissue ist nach den dokumentierten positiven anderen Adapterläufen nicht nötig, sofern der echte Google-Rest vollständig erhalten bleibt.",
+      "implemented_notes_de": [
+        "EDS/Akonadi-Schreibwege existieren. Dokumentierte installierte und isolierte DAV-Läufe waren positiv; diese Belege sind weder ein Google-Livebeleg noch der Beweis, dass der ursprüngliche Bericht falsch war.",
+        "EDS-Systemquellen werden generisch über SourceRegistry geladen, nicht nur Google."
+      ],
+      "unique_remaining_by_issue": {
+        "156": [
+          "Tatsächlich unter System-Online-Konten vorhandene EDS-Kontakt-/Kalenderdienste der installierten Anbieter erfassen; keine zusätzlichen Provider oder zweite Anmeldung auf Verdacht.",
+          "Auswahl, tatsächliche Schreibrechte, vollständige Baselines, Aktualisierung und Fehler-/Datenerhalt für diese angebotenen Fähigkeiten prüfen.",
+          "Googleerfolg nicht als universelle WebDAV-/Nextcloud-/Exchange-/Microsoft365-Abnahme ausgeben."
+        ],
+        "65": [
+          "Den ursprünglichen 2.0.24-Googlebericht und unbekannten Adapter als unbestätigten Verlauf erhalten.",
+          "Konkreten echten Google-Rückabgleich über reguläres Bearbeiten/Speichern/Sync/Provider-Rücklesen samt genauer ausgewählter Quelle und Rechten prüfen.",
+          "Die bereits positiven EDS-/Akonadi-/isolierten DAV-Fälle und deren Grenzen erhalten; nicht nochmals blind prüfen oder als persönlichen Google-Lauf umetikettieren.",
+          "Keinen Adapterfehler erfinden; falls ein neuer konkreter Fehler reproduziert wird, eng mit Baseline und tatsächlicher Ursache behandeln."
+        ]
+      },
+      "close_condition_de": "#65 als konsolidierten unbestätigten Bericht schließen, nicht als nachweislich reparierten Googlefehler. Leitissue muss den gesonderten Google-Livefall und ursprüngliche Beleggrenze ausdrücklich führen."
+    },
+    {
+      "lead_issue": 192,
+      "source_issues": [
+        193
+      ],
+      "suggested_title_de": "MCP: verbleibende Telefon-/KDE-Kommunikation, Empfangsvorgaben und Geräteaktionen anbinden",
+      "reason_de": "Telefon-/KDE-Routing und Benachrichtigungsvorgaben überschneiden sich unmittelbar. Die zusätzlichen KDE-Geräte-/Eingabe-/Zeichenaktionen lassen sich im gleichen klar abgegrenzten nativen Gerätewerkzeug-Backlog vollständig als eigene Untergruppe erhalten.",
+      "implemented_notes_de": [
+        "Öffentliche call_read und call_command_start/status/cancel sind in beiden Frontends samt nativen Linux/C#-Actors vorhanden.",
+        "Grundkopplung, Medien, Dateisystem und grundlegende KDE-input_status/input_settings sind bereits verbunden.",
+        "Der #192-Dokumentationspatch korrigiert die überholte Coverage-Aussage; er implementiert keine neue Geräteaktion."
+      ],
+      "unique_remaining_by_issue": {
+        "192": [
+          "Telefon-/KDE-Kommunikationsrouting und Benachrichtigungsvorgaben an vorhandene Handler anschließen.",
+          "SMS senden, Verlauf und Planung nach tatsächlich angebotenen nativen Fähigkeiten verbinden; Queue/Transportquittung nicht als Empfängerzustellung ausgeben.",
+          "Bereits verbundene Call-Actors nicht neu bauen; aktuelle Quellen/Fingerprint/Transport/Grants, sitzungsgebundene Jobs, Cancel und späte Antworten weiter schützen.",
+          "Passende native Aktions-/Readbackbelege, gleiche Linux-/Windows-Schemas und Handbuch/20 Sprachen; physische Handset-/Providerbelege getrennt von Fixtures."
+        ],
+        "193": [
+          "Noch nicht verbundene KDE-Empfangsvorgaben und angebotene Lifecycle-/Geräte-/Eingabe-/Zeichenaktionen einzeln inventarisieren.",
+          "Nur tatsächlich vorhandene Capability-/Permission-/Request-/Attempt-/Sourcehandler; keine beliebige Shell oder erfundene Betriebssystem-KDE-Fähigkeit.",
+          "Zeichenblattweitergabe aus #168 standardmäßig AUS; zugrunde liegende Produktaufträge #153 (einschließlich der hierher konsolidierten Ferneingabe aus #149), #168 und #171 bleiben getrennt von der MCP-Anbindung.",
+          "Für jede angebotene Aktion Tool oder ehrliche Plattformgrenze, native Ergebnis-/Fehlerbelege, Book-/Device-/Attemptwechsel sowie Cancel/LateReply-Negative. Gemeinsame installierte Matrix #113 bleibt getrennt."
+        ]
+      },
+      "close_condition_de": "#193 erst nach vollständiger Aufnahme seines Geräte-/Eingabeumfangs schließen; #192 offen für die verbleibenden tatsächlichen Anschlüsse/Abnahmen. #194 wegen anderer Produktwerkzeuge gesondert lassen."
+    },
+    {
+      "lead_issue": 680,
+      "source_issues": [
+        452,
+        453,
+        659
+      ],
+      "suggested_title_de": "Zeitzonen: aktuelle native Linux-/Windows-/Mac-/Tablet-Abnahme und Benachrichtigungszustellung",
+      "reason_de": "Die Codefehler aus #452/#453 sind umgesetzt; ihre aktuellen nativen Sonderfälle und der Windows-Dateidialogrest gehören in dieselbe plattformspezifische Zeitmatrix.",
+      "implemented_notes_de": [
+        "Installierter Linux-Restore v152 stellte 37 Kalenderfälle atomar wieder her und erhielt Notizen/Sync-Epoch über getrennten Prozess. Start-/Ressourcen- und DEB-Payloadlücken wurden separat korrigiert. #839-Tablet-Zustellung wurde nativ nachgewiesen."
+      ],
+      "unique_remaining_by_issue": {
+        "680": [
+          "Aktueller installierter Linux-Paket-/Dienst-/OS-Reminderpfad, vollständige aktuelle Mac-/Tablet-Matrix und tatsächliche macOS-Notification-Zustellung bleiben. Die vorliegenden entpackten Payload-/Hostläufe ersetzen diese Grenzen nicht."
+        ],
+        "452": [
+          "Aktuelle Tablet-/Mac-Codecs mit normativer TZDB prüfen, insbesondere Gaza/Hebron im Jahr 2074; ursprüngliche 12:30-Ortszeit muss dem belegten UTC-Zeitpunkt entsprechen. Embedded VTIMEZONE hat Vorrang.",
+          "37 unabhängige Referenzuhren, DATE/floating, eigene VTIMEZONE, historische Sekunden sowie Gap/Fold in Main/echtem Worker; UTC→America/New_York→UTC und Restore/getrennter Prozessneustart mit exakter Paket-/Daten-/Quellbindung."
+        ],
+        "453": [
+          "Eigene eingebettete TZIDs @utc, @magnolie-utc-instant und UTC nativ importieren, exportieren, erneut einlesen, speichern und getrennt wiederöffnen; kein Stringmarker darf eine Quellzone ersetzen.",
+          "Die am 27.11. erneut bestandenen sieben JVM-Codecfälle sind aktueller Corebeleg, keine native Android-/Mac-Dateidialog-/Speicherabnahme."
+        ],
+        "659": [
+          "Windows: echter Datei-Speichern-Dialog muss den gewählten synthetischen Zielpfad bestätigen; genau diese Datei wieder über regulären Dialog importieren und Werte nativ zurücklesen.",
+          "Positive Vorbelege erhalten:37 native+37 WebView-Uhren, sechs DATE/floating/VTIMEZONE-Kontextfälle, stiller nativer Timer, persistierte UTC-Foldidentität über getrennten Prozess, unveränderter Autostart und echter Datei-Öffnen-Import.",
+          "v142 erzeugte einen eigenen synthetischen Export unter Standardname; v145 fand kein eindeutiges semantisches Dateinamenfeld. Das ist ein Automationsblocker, keine bewiesene Produktursache. Kein neuer Dialog-PASS aus Hosttests."
+        ]
+      }
+    },
+    {
+      "lead_issue": 465,
+      "source_issues": [
+        464
+      ],
+      "suggested_title_de": "ICS-Ausnahmeidentität: Altkennungen, gespeicherte Doppelpaare und native Save-/Reopen-Abnahme",
+      "reason_de": "Die zwei ursprünglichen Quellprobleme sind getrennt gelöst; der verbleibende native Identitätsnachweis und die tatsächliche Altbestandsreparatur lassen sich in einem Leitissue mit getrennten Prüfabschnitten führen.",
+      "implemented_notes_de": [
+        "Die heutige Mac-Dateiroute läuft über FileImportHost und den Python-Helfer. calendar_evidence erzeugt den transienten quellhash-/index-/Wire-/RID-gebundenen Sidecar; file-import.js führt ihn zur streng gebundenen Aliasregistrierung. Die frühere direkte main.swift→ICalendarImport.response-Route ist nicht mehr die aktuelle Route."
+      ],
+      "unique_remaining_by_issue": {
+        "465": [
+          "Exakt bestätigte bereits doppelte gespeicherte Paare samt widersprüchlichen Listen, unbekannten Feldern, Verweisen und Komponentenassoziationen reparieren; strenge Wiederöffnungsprüfung erhalten; aktueller nativer Mac-/Tablet-Save/Reopen."
+        ],
+        "464": [
+          "Zwei verschiedene RECURRENCE-ID-Ausnahmen am gleichen Zielzeitpunkt müssen nach echtem nativen Save, beendetem Prozess und Wiederöffnung als getrennte Datensätze erhalten bleiben.",
+          "Jeweils Quelle, Wire-UID und vollständige rohe RID einschließlich VALUE/TZID/RANGE sowie lokale IDs, Aufgabenreferenzen und unbekannte Felder erhalten; echte gleiche qualifizierte Duplikate weiter korrekt behandeln.",
+          "Erneut bestandene 29 Mac- und29 Tablet-UI-Prüfungen verwenden synthetische Save-ACKs; die echte native Speichergrenze bleibt die Abnahme."
+        ]
+      }
+    },
+    {
+      "lead_issue": 113,
+      "source_issues": [
+        254,
+        809,
+        237,
+        384,
+        434,
+        687,
+        695,
+        451
+      ],
+      "suggested_title_de": "Nächster Gesamtkandidat: Restpunkte, private Testlieferung und Paketabnahme",
+      "reason_de": "Zwei umgesetzte Ausgangsaufträge haben nur noch konkret benannte Prüfzeilen am finalen installierten Gesamtkandidaten. Diese gehören in dessen bestehende Abnahmematrix.",
+      "implemented_notes_de": [
+        "Der heutige Arbeitsstand dokumentiert übernommene Mac-/Tabletquellen, zahlreiche Desktop-/Notesfixes und getrennte native Teilbelege. Drei Reviewübergaben liefern vollständige Quellenpatches samt Bindungen; ihre historischen Ausgangsstände dürfen nicht pauschal über aktuelle Quellen gelegt werden."
+      ],
+      "unique_remaining_by_issue": {
+        "113": [
+          "Noch fehlende konkrete Implementierungen in ihren Leitissues verfolgen; danach exakte endgültige Paketbytes je Plattform samt Installation/Start/Bedienung/Upgrade und nötiger Signatur abnehmen. Quelle, private Testlieferung und öffentliche Veröffentlichung getrennt halten. Konsolidierte kleine Abnahmereste hier mit eigenem Kriterium statt wiederholten Sammelissues führen."
+        ],
+        "254": [
+          "Installiertes Linux/Windows: vollständige Vorschau bei aktuell richtigem Peer übernehmen, danach bestätigten nativen Save und Readback prüfen.",
+          "Unvollständige, fehlgeschlagene, abgebrochene oder veraltete Vorschau und Notes-Verbindung zu anderem/gewechseltem Rechner sperren die Übernahme ohne Teilmutation. Handler prüft dieselbe Quelle/Fingerprint/Index/Buchrevision erneut.",
+          "Bloße Seitennavigation einer vollständig eingelesenen Quelle bleibt zulässig. Die bestehende Doppel-Desktop-DOMsuite ist am 27.11. erneut bestanden; daraus wird kein physischer Peer-/GUI-Erfolg abgeleitet. Persönlicher Kontext bei Bedarf #242."
+        ],
+        "809": [
+          "Den nächsten ausdrücklich festgelegten finalen DEB-Gesamtkandidaten auf Mint 22.3 und der konkret dokumentierten Mint 27-Cinnamon-X11-Ausgabe prüfen; Paket-/ISO-/Runtimebindung, Installation/dpkg-V, Organizerregister, Handbuch vor/zurück und reguläres Ende erhalten.",
+          "Der bereits erfolgreiche Vergleich derselben 2.0.30-DEBs auf beiden früheren Live-ISOs ist abgeschlossen; frühere abgebrochene Versuche sind keine weiterhin offenen Baselinefehler. Eine spätere Mint 27-Finalversion braucht ihren eigenen Versionsbeleg."
+        ],
+        "237": [
+          "Endgültig eingefrorene Paketbytes durch die vorhandene native Gesamtmatrix führen; passende alte Komponentenbelege nur bei identischen Eingaben wiederverwenden."
+        ],
+        "384": [
+          "Neues identifizierbares Handbuchpaket ohne Upgrade/PPA/pip in passender bestehender Umgebung installieren und Start, Bilder sowie Druck/PDF prüfen; Nutzerdistribution bestätigen."
+        ],
+        "434": [
+          "Original-/Verbindungsicons, Synchronisierungspfeile, zeitlich begrenzte TEST-Anzeige, Saisondarstellungen, Druckausblendung und Skalierungen in tatsächlich installierter Oberfläche prüfen."
+        ],
+        "687": [
+          "Exakte korrigierte Fedora-Paketbytes regulär installieren, öffentlichen Starter/Fenster/Ansichtswechsel und synthetisches Speichern/Neuöffnen prüfen; andere RPM-Distributionen jeweils gesondert nachweisen."
+        ],
+        "695": [
+          "Bei den tatsächlich gebauten AppImage-/Flatpak-Kandidaten Metainfo/ID/URL prüfen; finalen Paketlauf je Format in der Linuxmatrix nachweisen. Katalogzulassung und ausdrücklich menschliche Flathub-Einreichung bleiben eigenständig.",
+          "Ausschließlich Upstream-/Paketstatus führen. Erforderliche Katalog-/Flathub-Freigaben bleiben Aufgabe berechtigter menschlicher Maintainer; keine KI-unterstützten Einreichungsmanifeste, Einreichungs-PRs oder zugehörige Flathub-Interaktion durch diesen Audit.",
+          "Bestehende Store-/Play-Priorität und Geräte-/VM-/Signier-/Installations-/Publikationsgrenzen bleiben erhalten. Weder lokale Testlieferung noch Screenshot-/Payloadvalidierung ist eine Produktabnahme oder neue Veröffentlichungsfreigabe.",
+          "Bestehende AppID/Desktopzuordnung und echte Organizer-Bilder erhalten; keine Notes-Bilder umdeuten oder IDs wegen reinem Pedantichinweis ändern. AppImage auch auf der ausdrücklich vorgesehenen Arch-Zielumgebung prüfen."
+        ],
+        "451": [
+          "Reale Linux-WebKit-, Windows-WebView2-, WKWebView- und Android-WebView-Versionen samt Auswahl, Kopieren, Markerfarben und unterstützten älteren Engines prüfen.",
+          "Desktopteil vor Desktopfreigabe: echte Linux-WebKit-/Windows-WebView2-Versionen dokumentieren; Kalender-/Marker-/Ferien-/Urlaubsfarben, Maus-/Tastaturauswahl und Kopieren bewusst auswählbarer Konflikt-/Notiztexte prüfen. Nichtauswahl der Bedienflächen erhalten.",
+          "Ältere ausdrücklich unterstützte Engines ohne color-mix tatsächlich ausführen; Entfernung moderner Regeln im Speicher ist keine alte Engine. Mac-/Tablet-Teil mit #121 verknüpfen: native Touchauswahl, Kopieren, lange Texte, IME und TalkBack bleiben eigene echte Plattformnachweise."
+        ]
+      },
+      "additional_evidence": {
+        "237": [
+          {
+            "kind": "source",
+            "path_or_url": "magnolie-handbuch/bin/magnolie_print_portal.py",
+            "detail_de": "PortalPrint: Wayland export/unexport, PreparePrint, Print und Cancel sind implementiert."
+          },
+          {
+            "kind": "comment",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/237#issuecomment-6428481871",
+            "detail_de": "Paketgebundener Fedora/KWin-Systemportalbeleg mit PDF-Hash; nennt finale Gesamtmatrix ausdrücklich als Rest."
+          },
+          {
+            "kind": "policy",
+            "path_or_url": "AGENTS.md",
+            "detail_de": "Native Startprüfung jedes installierbaren Releasepakets vor Veröffentlichung."
+          }
+        ],
+        "384": [
+          {
+            "kind": "source",
+            "path_or_url": "magnolie-handbuch/bin/magnolie_print_pdf.py",
+            "detail_de": "prepare_pillow_for_pdf, ca. 215–237: begrenzter Versions-/Konstantencheck und IntEnum-Brücke."
+          },
+          {
+            "kind": "test",
+            "path_or_url": "magnolie-handbuch/pruefungen/test_pillow_compat.py",
+            "detail_de": "Prüft Legacy-Brücke, moderne unveränderte Implementierung und konsistente Paketmindestversionen."
+          },
+          {
+            "kind": "issue",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/384",
+            "detail_de": "Abnahme verlangt neues Paket, echte Depends-Auflösung und native Bedienung; alte 2.0.30-Bytes dürfen nicht ersetzt werden."
+          }
+        ],
+        "434": [
+          {
+            "kind": "source",
+            "path_or_url": "magnolie-organizer-windows/TrayAppearanceState.cs",
+            "detail_de": "Native Ownerzustände und FromOwners-Auswahl; Pairings allein gelten nicht als Aktivität."
+          },
+          {
+            "kind": "source",
+            "path_or_url": "magnolie-organizer-windows/TrayAppearanceRenderer.cs",
+            "detail_de": "Vorhandene native Darstellung des Zustands."
+          },
+          {
+            "kind": "test",
+            "path_or_url": "magnolie-organizer-windows/tests/TrayAppearanceTests.cs",
+            "detail_de": "Komponenten-/Darstellungsprüfungen vorhanden."
+          },
+          {
+            "kind": "issue",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/434",
+            "detail_de": "Body grenzt GDI-/SVG-/Harnessbelege ausdrücklich von installierter visueller Abnahme ab."
+          }
+        ],
+        "687": [
+          {
+            "kind": "source",
+            "path_or_url": "magnolie-organizer/rpm/magnolie-organizer.spec",
+            "detail_de": "Feste Webassetliste ab Zeile237 und Buildrootgates ab288; der fehlende Quellenumfang ist vorhanden."
+          },
+          {
+            "kind": "issue",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/687",
+            "detail_de": "Abnahme fordert ausdrücklich echte RPM-Installation, öffentliche Starter und native Save-ACK/Persistenz; historischer Payloadpass ist enger."
+          },
+          {
+            "kind": "discussion",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/695#issuecomment-6926804472",
+            "detail_de": "Späterer Fedora-RPM-Bau/Payload/Metainfo bestätigt, ausdrücklich nicht installiert."
+          }
+        ],
+        "695": [
+          {
+            "kind": "source",
+            "path_or_url": "magnolie-organizer/magnolie-organizer.appdata.xml",
+            "detail_de": "Defaultbild bindet fb2fe53e und echte 1440×900-Ressource; AppID bleibt erhalten."
+          },
+          {
+            "kind": "test",
+            "path_or_url": "magnolie-organizer/pruefungen/test_appstream_screenshots.py",
+            "detail_de": "Offlineverträge für ein Defaultbild, Captions, commitgebundene URL und PNGbytes."
+          },
+          {
+            "kind": "test",
+            "path_or_url": "magnolie-organizer/pruefungen/test_flatpak.py",
+            "detail_de": "Tatsächlicher OSTree-Payloadpfad /files/share/metainfo/<APP_ID>.appdata.xml und aktuelle Version geprüft."
+          },
+          {
+            "kind": "discussion",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/695#issuecomment-6926804472",
+            "detail_de": "RPM-Payload samt Metainfo inzwischen positiv, native Installation weiterhin offen."
+          },
+          {
+            "kind": "discussion",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/695#issuecomment-7001476068",
+            "detail_de": "Zwei Flatpak-Prüferwartungen in main korrigiert; kein tatsächlicher Flatpak-Bau aus dieser Korrektur."
+          }
+        ],
+        "451": [
+          {
+            "kind": "source",
+            "path_or_url": "magnolie-organizer/web/stil.css",
+            "detail_de": "Präfix-/Standardregeln für none/text sowie color-mix-Fallbackkaskade sind vorhanden."
+          },
+          {
+            "kind": "source",
+            "path_or_url": "Magnolie-Organizer-macOS-Beta/tools/project_ui.py",
+            "detail_de": "Gemeinsame Webquellen werden in die Mac-Projektion übernommen."
+          },
+          {
+            "kind": "comment",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/451#issuecomment-7186470128",
+            "detail_de": "Mac-Audit bestätigt vorhandenen Quellfix und nennt echte WK-Gestenabnahme als Rest."
+          },
+          {
+            "kind": "issue",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/451",
+            "detail_de": "Host-Geometrie/Provider-CI werden ausdrücklich nicht als Android-Auswahl-/TalkBack-Nachweis gewertet."
+          }
+        ]
+      },
+      "release_gate_de": "Zunächst nur die vereinbarte private Nutzer-Testlieferung vorbereiten. Installierbare Pakete und Release NICHT VERÖFFENTLICHEN, bevor die verbindlichen Prüfungen bestanden sind und ein neues ausdrückliches Nutzer-Okay vorliegt. Die Issuebereinigung erteilt keine neue Paket-/Store-/Installationsfreigabe.",
+      "source_requirements_exact": {
+        "434": "Abnahme nach ausdrücklicher Freigabe eines passenden isolierten Testlaufs:\n- Linux vorhandene Tray-Varianten und Windows tatsächliche Taskleisten-Skalierungen prüfen: Originalicon ohne Verbindung, weiße/gelbe/orange Blüte aus echten aktuellen Verbindungen; Goldrahmen/Bindung bleiben unverändert.\n- Synchronisierungspfeile bei realer Arbeit, Überlappung und Ende; Benachrichtigungszähler bleiben erhalten, keine GUI-Blockade bei langsamem Sender.\n- Entwickler-TEST-Knopf, eindeutig visuelle Kamera-/Smartphone-/Pfeilformen, native TEST-Kennzeichnung, Ablauf nach 60 s sowie Sperren/Modusentzug/neuer gespeicherter Buchkontext.\n- Saisonhintergründe, maximal etwa 1 cm große Kristalle, Sternvorrang am 30.12. und dezente Wochen-Wasserzeichen einschließlich Ostern; Lesbarkeit, Nicht-Interaktivität, Druckausblendung und unterschiedliche Skalierungen prüfen.\n- Neue Begriffe liegen in allen 19 Sprachkatalogen vor und bestehen die Oberflächenprüfung; eine muttersprachliche redaktionelle Kontrolle ist von technischen Tests zu unterscheiden.\n"
+      }
+    },
+    {
+      "lead_issue": 121,
+      "source_issues": [
+        816,
+        461,
+        463,
+        468,
+        472
+      ],
+      "suggested_title_de": "Nach Gesamtabnahme: macOS- und Android-Organizer auf Funktions- und Darstellungsparität bringen",
+      "reason_de": "Der alte dritte Touch-Timeout ist überholt; der präzise verbleibende Navigationsnachweis ist eine Zeile der bestehenden Tablet-Abnahmematrix.",
+      "implemented_notes_de": [
+        "Gemeinsame aktuelle Frontendprojektion, Mac-Datei-/Apple-Kopieranschlüsse und begrenzter manueller Systemfeldabgleich sind vorhanden. Tablet nutzt direkte Android-Kontakt-/Kalenderquellen ohne Notes/KDE-Pflicht, eigene Notizen, verschlüsselte Persistenz und gebundene Debugkandidaten. Historische Mac ARM/Intel- und API 34-Provider-/Basisnachweise bleiben ihren exakten Quellen zugeordnet."
+      ],
+      "unique_remaining_by_issue": {
+        "121": [
+          "Konkrete fehlende Integrationen (u. a. Mac-Gesamtarchiv/volle Syncparität und nutzbare iPhone-Gegenstellen, Tablet vollständige Provider-/Datenwege) sowie echte Picker/TCC/IME/TalkBack/Stift-/Persistenz-/Navigation-/Upgradeabnahme erhalten. Produktionssignierweg getrennt unter #810; keine eigene iOS-Notes-App."
+        ],
+        "816": [
+          "Aktuelle bytegebundene API 34-WebView-Prüfung mit 17 realen Worker-Serien: alle 40 gebundenen Touchwechsel im unveränderten 120-Sekunden-Gesamtbudget; Vorbereitung, native DOWN/UP, Browser-ACK und zwei stabile Frames dokumentieren.",
+          "Fünfsekundenbudget je Zielvorbereitung und bestehende Besitz-/Kontextgrenzen nicht lockern. Spätere Läufe erreichten 20/40 bzw. 26/40 und bestanden den dritten Wechsel; einmaliges Kontextmenü beiSchritt 21 ist keine bewiesene Produktursache.",
+          "Geeigneter ruhiger Android-Prüfhost und echte native Navigation erforderlich; Host-UI-Regressionen ersetzen diesen 40/40-Nachweis nicht."
+        ],
+        "461": [
+          "Echten ungeeigneten Provider auf API 26, regulären Update-/Einstellungsweg, Rückkehr und passenden Provider mit normalem Appstart nachvollziehbar prüfen; heutige Build-/Gerätepausen beachten."
+        ],
+        "463": [
+          "Eine echte aktuelle App-/Accessibility-Fensterbindung und danach zugelassene native Gesten nachweisen. Der Lauf mit Fokus=true, IDs=-1 und leerem activePackage ist weder bestandene Eingabeprüfung noch bewiesener Launcher-ANR."
+        ],
+        "468": [
+          "Aktuellen projizierten Quellstand mit echten Maus-/Touch-/Stift-Releaseereignissen, pressure=0, Capture/Cancel, gespeichertem Vektormodell und getrenntem Pixelvergleich prüfen; #463/#458 nicht durch DOM-Ergebnisse ersetzen."
+        ],
+        "472": [
+          "Aktuelle Files-/Domain-Flüsse mit wirklichem Save-ACK, Vault/Dateipersistenz, Neuöffnen und Fehlerpfaden nachweisen. Keine Lockerung der nativen Epochen- oder Berechtigungsrichtlinie."
+        ]
+      },
+      "additional_evidence": {
+        "461": [
+          {
+            "kind": "source",
+            "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/MainActivity.kt",
+            "detail_de": "Fähigkeitsprüfung vor addWebMessageListener und loadUrl; unsupportedWebView erstellt Diagnose vor Vault-/Save-Nutzung."
+          },
+          {
+            "kind": "source",
+            "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/UnsupportedWebViewScreen.kt",
+            "detail_de": "Native Update-/Einstellungs-/Retry-Schaltflächen mit realer Providerkennung und begrenzten Rückfällen."
+          },
+          {
+            "kind": "test",
+            "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/WebViewStartupTest.kt",
+            "detail_de": "Vorhandene Fähigkeit-/Provider-Metadatenprüfungen."
+          },
+          {
+            "kind": "discussion",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/461#issuecomment-6729061647",
+            "detail_de": "Quellkorrektur und Hostprüfungen abgegrenzt; tatsächlicher Providerwechsel ausdrücklich offen."
+          }
+        ],
+        "463": [
+          {
+            "kind": "source",
+            "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/tests/input/NativeWindowOwnershipPolicy.kt",
+            "detail_de": "Ownership-Prädikat unverändert; fehlende oder nicht lesbare Evidenz erhält eigenen Status."
+          },
+          {
+            "kind": "source",
+            "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/app/src/androidTest/java/io/gitlab/maik3531/magnolietabletbeta/NativeDomainAcceptance.kt",
+            "detail_de": "Der reale Instrumentation-Helfer ruft die neue Policy auf."
+          },
+          {
+            "kind": "test",
+            "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/NativeWindowOwnershipPolicyTest.kt",
+            "detail_de": "Tests für Ursachenklassen und Äquivalenz der ursprünglichen Besitzbedingung."
+          },
+          {
+            "kind": "discussion",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/463#issuecomment-7190036755",
+            "detail_de": "Vollständigen Diagnosepatch und Grenzen gelesen; negative native Läufe bleiben negativ."
+          }
+        ],
+        "468": [
+          {
+            "kind": "source",
+            "path_or_url": "port-adapters/drawing-finish-patch.json",
+            "detail_de": "releaseAfter enthält explizite letzte Position und ownergebundene coalesced Samples."
+          },
+          {
+            "kind": "source",
+            "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/tools/project-web.cjs",
+            "detail_de": "Zeilen 80–90 binden und projizieren den gemeinsamen Zeichenpatch."
+          },
+          {
+            "kind": "source",
+            "path_or_url": "Magnolie-Organizer-macOS-Beta/tools/project_ui.py",
+            "detail_de": "Zeilen 274–279 prüfen kanonischen Hash und projizieren dieselben Finish-/Release-Blöcke."
+          },
+          {
+            "kind": "test",
+            "path_or_url": "port-adapters/tests/drawing-finish.cjs",
+            "detail_de": "Vorhandene Endpunkt-, Fremdpointer-, Cancel- und pressure=0-Fälle."
+          },
+          {
+            "kind": "discussion",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/468#issuecomment-7186475580",
+            "detail_de": "Historische Host-/Mac-Ergebnisse von aktueller nativer Eingabeabnahme getrennt."
+          }
+        ],
+        "472": [
+          {
+            "kind": "source",
+            "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/tests/input/SavedBookEpochExpectation.kt",
+            "detail_de": "Zwei exakt begrenzte Platzhalterausnahmen; rekursive werttreue Kopie."
+          },
+          {
+            "kind": "source",
+            "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/app/src/androidTest/java/io/gitlab/maik3531/magnolietabletbeta/NativeDomainAcceptance.kt",
+            "detail_de": "requireSavedBookEqual nutzt den Helfer im echten nativen Abnahmepfad."
+          },
+          {
+            "kind": "test",
+            "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/SavedBookEpochExpectationTest.kt",
+            "detail_de": "Positive Platzhalterfälle und abweichende Epochen, Strukturen, unbekannte Felder bleiben negativ."
+          },
+          {
+            "kind": "discussion",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/472#issuecomment-6732895893",
+            "detail_de": "Begrenzte Speicher-/JCE-/NIO-Prüfungen, aber Files-/Domainabnahme ausdrücklich nicht erreicht."
+          },
+          {
+            "kind": "discussion",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/472#issuecomment-7186476384",
+            "detail_de": "Aktuelle Port-Abnahmegrenzen bleiben erhalten."
+          }
+        ]
+      },
+      "cross_references_de": [
+        "Die native WebView-/Auswahl-/Markerabnahme aus #451 wird in #113 geführt. Dort bleibt der Desktopteil vor Desktopfreigabe; dieser Portauftrag übernimmt den ausdrücklich zugeordneten Mac-/Tablet-Teil, ohne den Desktopnachweis zeitlich nach hinten zu verschieben."
+      ]
+    },
+    {
+      "lead_issue": 330,
+      "source_issues": [
+        335,
+        759
+      ],
+      "suggested_title_de": "Datei-/Foto-/Videosynchronisation: Aktivierung, native Integration und Gesamtabnahme",
+      "reason_de": "Video ist ein eigener vorhandener Teilzweig derselben Medienintegration; die gemeldeten alten Medienoptionen sind ein konkreter Einstieg in diese gemeinsame Aktivierungs- und Abnahmekette.",
+      "implemented_notes_de": [
+        "Geschützte Datei-/Medienjobs, getrennte Rechte und Ziele, Hash-/Saved-Nachweise, Mapping, Backup/Restore, gemeinsame Einstellungen und manuelle/WLAN-Teilpfade sind vorhanden. Historische Nachweise auf dem exakten privaten Linux/Notes-Paketpaar belegen Erstimport, Wiederholung ohne neue Frames, WLAN-Wiederanlauf und getrennten Neudatei-Export. Windows hat native kontrollierte Gruppen, jedoch keine vollständige installierte Gegenstellenabnahme."
+      ],
+      "unique_remaining_by_issue": {
+        "330": [
+          "Private Support-/Runtime-Kompositionen nachvollziehbar in die freizugebende Quelle integrieren und die vollständige Linux/Windows/Notes-Kette abnehmen. Sichere Rückgabe geänderter vorhandener Android-Originale, typisierte dauerhafte Löschbelege, konsistente Wiederherstellung und vollständige native Paket-/Geräteabnahme bleiben offen. Automatik, Hauptschalter AUS, Rechte, Neu-/Altbestand und Originalformate müssen jeweils ihrer tatsächlichen Freigabe folgen."
+        ],
+        "335": [
+          "Videos initial AUS, Fotooption aktiviert Videos nicht; bestehende Nutzerwahl bleibt erhalten.",
+          "Eigener nativer Videoordner bzw. ausdrücklich gewähltes natives Ziel, keine fremde Pfadbehauptung.",
+          "Getrennte Video-OS-/READ-/SEND-/RECV-Rechte und originale Typ-/Sitzungsbindung.",
+          "Gemeinsamer Löschungen-auslassen-Schalter gemäß späterer Nutzerentscheidung; sichere Löschbelege bleiben #338.",
+          "AUS, Widerruf, Verbindungs-/Peerwechsel, unterbrochene Läufe, Wiederholung und Originaldateien in der echten freizugebenden Kette prüfen.",
+          "Private JPEG/MP4-Proben nicht als vollständige native Windows/Notes-Paarfreigabe ausgeben."
+        ],
+        "759": [
+          "Gemeinsame Organizer-/Notes-Einstellungen einmal im Organizer ändern; Notes übernimmt automatisch. Keine zweite oder dritte manuelle Bestätigung auf Notes, kein zusätzlicher Bestätigungsdialog. Technische ACK-/Echo-/Revisionsprüfung bleibt intern; bei fehlender Verbindung verständlichen Status zeigen und vorhandene automatische Übertragung erhalten. Ein Wartezustand darf die benötigte Initialisierung nicht blockieren.",
+          "Kompatibler Notes-Peer ohne gemeinsam bestätigte shared_settings: eindeutigen Wartezustand anzeigen, keine alten Einzelmedienoptionen als aktivierbaren Ersatz anbieten. Der aktuelle !shared||master.checked-Zweig ist separat als enger UI-Befund zu prüfen/fixen.",
+          "Die zehn nummerierten Originalkriterien aus #759 samt Erhaltungsregeln werden unten vollständig als eigener Abschnitt übernommen. Windows und Linux müssen dieselbe korrigierte Bedienung und Wirkung haben; native Dialoge/Rechte bleiben plattformspezifisch.",
+          "Historische v761-Peerstatusursache und finale installierte Transfer-/Plattformparität nicht aus einer korrigierten Host-UI ableiten; #330/#429 bleiben die Gesamtintegration."
+        ]
+      },
+      "source_requirements_exact": {
+        "759": "1. **Sichtbarkeit und Aktivierung.** „Fotos und Videos“ bei passender aktiver Magnolie-Notes-Telefonverbindung mit bestätigter Unterstützung anzeigen, nicht aufgrund von KDE Connect oder allein durch das Organizer-Update. Abgesetzte, standardmäßig eingeklappte Überschrift mit eigenem Ein-/Aus-Schalter. Aufklappen ist weder Aktivieren noch Freigabe. Ein Einrichtungsdialog oder eine Ordnerauswahl aktiviert, synchronisiert und löscht nichts. Ist die Verbindung passend, aber die gemeinsame Einstellung nicht verfügbar, den konkreten Wartezustand anzeigen, nicht auf alte Medienoptionen ausweichen oder Bereitschaft behaupten. Eine bewusst gespeicherte Aktivierung, bestätigte gemeinsame Einstellungen und notwendige native Rechte sind getrennte Zustände. Lokale Wiederherstellung vorhandener Kopien bleibt unabhängig von der Handyverbindung erreichbar.\n2. **Bestandsumfang.**\n   - **„Nur Handybestand“:** Neue, nur am PC vorhandene Medien kommen nicht in den Abgleich. Bearbeitungen bereits zugeordneter Handy-Medien dürfen in der gewählten Richtung übernommen werden. Beispiel: Ein am PC bearbeitetes, zuvor zugeordnetes Handyfoto kann bei PC→Handy zurück; ein daneben neu am PC abgelegtes Bild nicht.\n   - **„Gesamte Sammlung“:** Zusätzlich können PC-Medien aus ausdrücklich gewählten PC-Quellordnern teilnehmen, soweit die gewählte Richtung das erlaubt. Ein Empfangsziel wird nicht automatisch auch zur Quelle.\n   - **„Reiner Handy→PC-Import“:** Importiert nur vom Handy. Sendet keine PC-Datei und keine PC-Bearbeitung zurück, auch wenn als unabhängige Richtung gerade „beide“ oder „PC→Handy“ gespeichert ist. Die Richtungswahl wird deswegen nicht umgeschrieben; beim Wechsel zurück zu einem anderen Umfang gilt wieder die gespeicherte Richtung.\n3. **Zeitpunkt.** Danach **„Manuell“** oder **„Automatisch über WLAN“**. Manuell startet nur auf ausdrückliche Aktion. Automatik läuft erst nach bewusster Aktivierung, gültiger Einrichtung und bestätigtem WLAN; sie wartet bei fehlender Verbindung. Die Wahl ändert weder Umfang noch Richtung.\n4. **Richtung.** Danach **„Beide Richtungen“**, **„Handy→PC“**, **„PC→Handy“**, unabhängig angezeigt und gespeichert. Der beim Lauf wirksame Umfang begrenzt die Richtung, wie beim reinen Import beschrieben. Die Anzeige darf keine andere Richtung vortäuschen.\n5. **„Auch Videos synchronisieren“.** Eigener Schalter, standardmäßig aus. Nur bei bestätigter Video-Unterstützung der beteiligten Systeme nutzbar. Aus bedeutet kein Video-Scan, keine Video-Lesefreigabe und kein Videotransfer. Getrenntes Ziel und tatsächliche native Rechte, kein zusätzlicher erzwungener Telefon-Einstellbereich. Aktivierung von Fotos allein schaltet Videos nicht ein.\n6. **„Nur Fotos“.** Echte Aufnahme anhand gültiger EXIF-Aufnahmezeit `DateTimeOriginal` und `Make` oder `Model`, nicht anhand der Dateiendung, der Quelle oder einer bloßen Bildklassifizierung. Screenshots und Grafiken werden nicht als Aufnahmen behandelt. GIF ist ein Bildformat, kein Video; Animations-Sonderablage bleibt separat und standardmäßig aus. „Eigene Aufnahmen“ ist separat, lokal und nicht an die Geräteliste gebunden.\n7. **Löschungen.** Bei neuer Einrichtung nach #429 standardmäßig wie in der persönlichen Synchronisation mitführen, jedoch nur im jeweils freigegebenen Abgleich. Ausdrücklich vorhandene Entscheidungen, insbesondere „Löschungen auslassen“, unverändert erhalten. Eine UI-/Default-Umstellung oder ein unvollständiger, abgebrochener oder nicht freigegebener Scan gilt nicht als Löschauftrag.\n8. **Zielordner.** Danach unabhängige Zeilen für Bilder und Videos nach dem Aufbau des KDE-Dateiempfangs, mit **„Ordner auswählen“** und **„Standardordner“** am Zeilenende. Pfade nur im Tooltip, nicht als dauerhafte sichtbare Pfadfelder ([spätere Präzisierung](https://github.com/maik3531/Magnolie-Organizer/issues/429#issuecomment-6728271226)). Ohne Pflichtdialog: native Windows-Ordner Bilder/Eigene Bilder und Videos/Eigene Videos, darunter `<Handyname>-Fotos` und `<Handyname>-Videos`. Bei fehlendem Gerätenamen den Kontonamen verwenden; unbrauchbarer vorhandener Name führt zu `Telefon-Fotos`/`Telefon-Videos`. Bestehende individuelle Ziele und Zuordnungen erhalten. Ist ein Ziel nicht sicher nutzbar, das verständlich melden und die ausdrückliche native Wahl anbieten; keine stillschweigende Rechteänderung, Ausweichablage oder Verschiebung.\n9. **„Wiederherstellen“.** Danach der separat eingeklappte Unterbereich **„Fotos und Videos · Wiederherstellen“**, nicht ein zweiter Sicherungsschalter unter „Sicherheit“. Keine sichtbaren technischen Ablagepfade. Aufbewahrung erklären (z. B. 30 Tage), Deaktivieren und Leeren als verschiedene bewusste Aktionen anbieten: Deaktivieren leert nichts; Öffnen oder Wiederherstellen ersetzt keine vorhandene Datei. Für Handy-Originale gelten Androids nativer Galeriepapierkorb, dessen tatsächliche Frist und erforderliche OS-Zustimmung; 30 Tage sind keine Android-Garantie. Endgültiges Löschen nicht durch heimliches Wiederherstellen unterlaufen.\n10. **„Jetzt synchronisieren“.** Zum Schluss die ausdrückliche Startaktion wie bei der persönlichen Synchronisation. Kein Lauf durch Aufklappen, Speichern einer Einstellung oder Auswählen eines Ordners. Das installierte Produkt muss die gespeicherten Einstellungen tatsächlich anwenden, nicht nur die richtigen Beschriftungen zeigen.\n\n**Erhaltungsregeln für alle Schritte:** Originalbytes, Formate, Metadaten, Bearbeitungen, Konfliktversionen, Zuordnungen, Historien, Rechte und bestehende Kopplungen erhalten. Unveränderte und bereits abgeglichene Originale nicht erneut senden. Keine nachträgliche Umsortierung ohne separate Frage: **Nein** behält die vorhandenen Orte; **Ja** bedeutet nachvollziehbare verlustfreie Verschiebung mit dauerhaftem Journal, keine zweite Kopie und kein Löschen mit anschließendem Neutransfer. Keine Neuinstallation, Rückstufung oder Entkopplung als vermeintliche Korrektur."
+      },
+      "binding_user_requirement_de": "Gemeinsame Organizer-/Notes-Einstellungen einmal im Organizer ändern; Notes übernimmt automatisch. Keine zweite oder dritte manuelle Bestätigung auf Notes, kein zusätzlicher Bestätigungsdialog. Technische ACK-/Echo-/Revisionsprüfung bleibt intern; bei fehlender Verbindung verständlichen Status zeigen und vorhandene automatische Übertragung erhalten. Ein Wartezustand darf die benötigte Initialisierung nicht blockieren."
+    },
+    {
+      "lead_issue": 245,
+      "source_issues": [
+        727
+      ],
+      "suggested_title_de": "Bildschirm: Spiegelung und echten Zweitmonitor auf Telefon oder Tablet ergänzen",
+      "reason_de": "Die noch offene KWin-Sitzungs-/Ausgangsbindung ist ein präziser Teil des beauftragten echten Zusatzmonitors.",
+      "implemented_notes_de": [
+        "Eigene Linux-/Windows-Viewer, Notes-MediaProjection und separate Screen-Steuer-/Datenkanäle sind vorhanden. Die jüngste private Paketkomposition und erhaltene Notes-Paarung wurden isoliert geprüft. Für PC→Handy gibt es einen privaten Portal/PipeWire-/JPEG-Pfad; KWin-Ausgangsbeobachtung ist vorbereitet."
+      ],
+      "unique_remaining_by_issue": {
+        "245": [
+          "Realer selbst bedienter Bild-/Sperrtest des exakten Paketpaars; Linux-desktop_session-Befund nachvollziehbar klären. Produktive Desktop→Handy-Anbindung und bei Erweiterung eindeutiger zusätzlicher Ausgang, Fensterbewegung sowie beobachtetes Entfernen. Die tatsächliche Portalroute/Beobachterintegration ist noch nicht freigegeben. Private Zweig-/Paketnachweise sind kein Nachweis, dass jede Folgeänderung im aktuellen Hauptquellstand aktiviert ist."
+        ],
+        "727": [
+          "Tatsächlich vom Portal gewählte KDE-Backendroute unabhängig verifizieren; Desktopname/Socket/Geometrie reichen nicht.",
+          "Ursprüngliche vollständige Registry vor Start beobachten; nach SelectSources geordneten Roundtrip vor Start bestätigen.",
+          "mapping_id genau einem neuen KWin-Ausgang derselben Sitzung/Registry-Instanz zuordnen.",
+          "Fehlende/pending Namen, EOF, abgelaufene Barriere oder Obserververlust halten bzw. entziehen die Freigabe.",
+          "Einen echten zusätzlichen Monitor anzeigen und ein Fenster dorthin verschieben.",
+          "Beim Stop die Entfernung ausschließlich der ursprünglichen Instanz beobachten, unabhängig vom Transport-Drain.",
+          "Bei unbestätigter Entfernung keinen virtuellen Slot freigeben; keine automatische Übernahme fremder Ausgänge."
+        ]
+      }
+    },
+    {
+      "lead_issue": 153,
+      "source_issues": [
+        149
+      ],
+      "suggested_title_de": "KDE Connect: Ferneingabe, Präsentationsmodus und konfigurierte Befehle abschließen",
+      "reason_de": "Ferneingabe und die darauf aufbauenden Presenter-/Befehlsaktionen teilen denselben nativen Eingabe-/Besitzkontext; implementierter Eingabepfad und fehlende neue Aktionen bleiben getrennt sichtbar.",
+      "implemented_notes_de": [
+        "Linux presenter_body und Windows KdeInputProtocol.Pointer validieren begrenzte Zeigerpakete. Maus/Tastatur ist als eigener empfangender Pfad umgesetzt."
+      ],
+      "unique_remaining_by_issue": {
+        "153": [
+          "Presenter-Pakete werden im untersuchten Direktbackend weder als produktive Fähigkeit angekündigt noch im aktiven Paketdispatch verarbeitet. Eine Anbindung zum Laden/Anzeigen/Auslösen konfigurierter KDE-Runcommand-IDs ist im geprüften Linux-/Windows-Produktbestand nicht vorhanden. Es fehlen Oberfläche, native Berechtigungs-/Lebenszyklusintegration und Abnahme."
+        ],
+        "149": [
+          "Korrigierten späteren Backend-Start auf tatsächlichem Linux/Mint-Paket nachprüfen.",
+          "Ausschließlich Handy→Rechner-Steuerung; nicht unterstützte Empfänger ausblenden.",
+          "X11/Wayland/Windows tatsächlich vorhandene Backend-/Systemrechte unterscheiden.",
+          "Gehaltene Maus-/Tastenfreigaben bei Sperre, Zielwechsel, Trennung oder GUI-Bereitschaftsverlust beenden.",
+          "Eigene isolierte Testfenster für Zeiger/Klick, Unicode/Shortcuts und Drag-Freigabe nutzen.",
+          "Handbuch und konsistente Bedienung gemeinsam mit echter Presenter-/konfigurierter Befehls-ID-Integration abnehmen."
+        ]
+      }
+    },
+    {
+      "lead_issue": 503,
+      "source_issues": [
+        517,
+        597
+      ],
+      "suggested_title_de": "Webcam: produktiver Kamera-/Mikrofonpfad, kombinierte Einrichtung und native OBS-Abnahme",
+      "reason_de": "Linux- und Windows-Einrichtung sind die beiden Plattformabschnitte des produktiven Webcamabschlusses; ihre unterschiedlichen echten Abnahmegrenzen bleiben ausdrücklich getrennt.",
+      "implemented_notes_de": [
+        "Notes-Capture, authentifizierte getrennte AV-Kanäle, Linux-Ausgabe-/Pacingpfade, Windows-Parent/Session/native Output-Komposition und native Bestätigungsoberfläche existieren. Webcam-Bedienung liegt inzwischen unter Notes→Erweitert, nicht mehr unter KDE. Aktuelle Guard- und Cleanup-Korrekturen besitzen gezielte historische Nachweise."
+      ],
+      "unique_remaining_by_issue": {
+        "503": [
+          "Produktive Provider-/Setup-Freigabe und tatsächlicher Kamera-/Mikrofonlauf einschließlich synchronem Bild/Ton in OBS, Stop/Trennung/Sperre/Widerruf. Windows bleibt im echten UI-Gate standardmäßig gesperrt; kombinierter Source-/Mikrofonsetup-Aufrufer und normale FrameServer-Adoption sind nicht als fertige Leistung belegt. Bestehende Geräte-/Audio-/VM-Pausen bleiben verbindlich.",
+          "Gesamt: echte Notes-Kamera-/Mikrofonfreigabe, Bild und hörbaren synchronen Ton in OBS bzw. Capture-Software, Mute, Stop, Denial, Sperre, Widerruf, Trennung und erneuten bewussten Start abnehmen.",
+          "Vorhandene Android-/Audio-/VM-/Gerätepausen ausdrücklich erhalten; dieser Audit autorisiert keine neue Installation oder Geräteaktion."
+        ],
+        "517": [
+          "Linux: eine tatsächliche normale Polkit-Zustimmung für vertrauenswürdige PackageKit-Installation plus Setup, keine zweite verdeckte Freigabe.",
+          "Linux: Ablehnung/Abbruch, feste Fristen/Heartbeat, Fehler, Kontextwechsel und eigene Konfigurationszuständigkeit nativ beobachten.",
+          "Linux: Udev-Verfügbarkeit und Autoload beim nächsten echten Boot bestätigen; AV-Ausgabe allein ersetzt Setup-/Bootprobe nicht."
+        ],
+        "597": [
+          "Windows: ursprünglichen kombinierten Setup-Aufrufer für Source und Mikrofon tatsächlich anschließen; ein gemeinsamer genehmigter Systemlauf.",
+          "Windows: geschützte Source-Datei/Registrierung, ursprüngliches Journal/Transaktion und getrennte Teil-/Ungewissheitszustände erhalten; Audio-only-Reboot ist kein kombinierter Erfolg.",
+          "Windows: echte Source-/FrameServer-Adoption durch normalen nicht erhöhten Laufzeitbesitzer; keine privilegierte Streaming-/ACL-/Identity-Ausweichlösung.",
+          "Windows: reale installierte Source und beide ursprünglichen nativen Output-Adapter mit gemeinsamem AV-Takt prüfen."
+        ]
+      }
+    },
+    {
+      "lead_issue": 691,
+      "source_issues": [
+        558
+      ],
+      "suggested_title_de": "Notes: target37-/LAN-Manifestmigration und native Upgrade-/Gerätematrix – Rest #672",
+      "reason_de": "Der Notes-target37-Migrationsstand enthält den aktualisierten Compile-SDK-/Offline-Kandidatenumfang. Vor Schließung die produktiven targetSdk-/Signatur-/Native-Kriterien ausdrücklich übernehmen.",
+      "implemented_notes_de": [
+        "Separater expliziter Offline-/testOnly-Validierungsbau mit targetSdk 37, eigener LAN-Manifestvariante und Build-/Manifestprüfung ist vorhanden. Das normale Ziel bleibt 35 bei minSdk 26. Die aktuelle Proguard-Datei schützt inzwischen den von #736 betroffenen reflektiven WorkDatabase_Impl-Konstruktor."
+      ],
+      "unique_remaining_by_issue": {
+        "691": [
+          "Den Ziel-37-Kandidaten aus dem aktuellen korrigierten Stand neu bauen und den tatsächlichen DEX einschließlich Room-Konstruktor prüfen, bevor seine native LAN-/Upgrade-Matrix beginnt. Der alte APK-Kandidat ist laut jüngstem Kommentar ungeeignet. Noch keine Produktions-Zielanhebung ohne Geräte-/Upgrade-Nachweise."
+        ],
+        "558": [
+          "Den gekoppelten Ziel-37-Kandidaten nativ auf neuem und älterem Android abnehmen und erst danach den produktiven Zielwechsel samt signiertem Release-AAB/Artefaktmanifest vervollständigen; kein bloßes Umsetzen einer Zahl oder spekulativer LAN-Permissionfix im Ziel35.",
+          "Android 16/API 36 ausdrücklich einschließen: tatsächliche Berechtigungen, Hintergrunddienste, Erinnerungen, gekoppelter Notiz-/Aufgabenaustausch sowie Installation, Erststart, Speichern und getrenntes Wiederöffnen; aussagekräftige ältere Android-Ausgabe getrennt prüfen.",
+          "Das tatsächlich für eine spätere Einreichung vorgesehene signierte Release-AAB bauen und prüfen, Ziel-API aus genau diesem Artefakt nachweisen und Quell-/Signier-/Manifestbindung erhalten. Compile-SDK oder unsigned target37-Kandidat allein erfüllt das nicht.",
+          "MinSdk nur bei eigenständigem technischem Grund verändern; Identität, App-Signatur, Datenschutz und weitere Console-/Store-Anforderungen bleiben eigene Veröffentlichungsaufgaben."
+        ]
+      },
+      "additional_evidence": {
+        "558": [
+          {
+            "kind": "source",
+            "path_or_url": "magnolie-notes/app/build.gradle.kts",
+            "detail_de": "compileSdk release(37), minorApiLevel2; minSdk26; bedingtes targetSdk37/35 und gesicherter unsignierter Kandidatenmodus."
+          },
+          {
+            "kind": "source",
+            "path_or_url": "contracts/notes-android-api-37-readiness.md",
+            "detail_de": "Laufendes Android17 und target37 getrennt; gemeinsame Migration, bisheriger Nutzungsbericht und Berechtigungsgrenzen."
+          },
+          {
+            "kind": "source",
+            "path_or_url": "contracts/notes-691-target37-migration.md",
+            "detail_de": "Konkreter Kandidat, Quellen-/Manifestprüfungen und ausstehende native Upgrade-/Gerätematrix."
+          },
+          {
+            "kind": "discussion",
+            "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/558#issuecomment-6894257801",
+            "detail_de": "Positive reale Samsung-Nutzung erhalten, aber installierte Artefaktziel-API nicht unabhängig belegt; #648/#691 getrennt."
+          }
+        ]
+      }
+    }
+  ],
+  "standalone_closures": [
+    {
+      "issue": 389,
+      "reason": "not_planned",
+      "classification": "requirement_withdrawn",
+      "target_issue": 338,
+      "reason_de": "Eigener dauerhafter Android-Medienpapierkorb ist nach ausdrücklicher Nutzervereinfachung keine Auslieferungsvoraussetzung mehr. Vorhandene Archive/Schlüssel/Historien bleiben erhalten.",
+      "preserved_de": [
+        "PC-Sicherung genügt; auf dem Smartphone vorhandenen Galerie-/Systempapierkorb benutzen. Keine allgemeine 30-Tage-Zusage für alle Anbieter.",
+        "Offene Löschrichtungsentscheidung vor Freischaltung ausdrücklich unter #338 erhalten: PC-Backup beim Löschen auf dem Telefon behalten oder ausdrücklich gemeinsame Löschwahl? Keine stille Richtungsänderung. PC-Aufbewahrung inklusive 0/Nie bleibt #392."
+      ],
+      "evidence": "https://github.com/maik3531/Magnolie-Organizer/issues/389#issuecomment-6656075424"
+    },
+    {
+      "issue": 731,
+      "reason": "completed",
+      "classification": "scoped_work_completed",
+      "target_issue": null,
+      "reason_de": "Begrenzte lokale Medienphasen, Datenschutz-/Puffer-/Opt-in-Grenzen und signierter privater Teststand sind umgesetzt und dokumentiert.",
+      "preserved_de": [
+        "Tatsächliche Foto-/Video-, Webcam- und Spiegelungsabnahme bleibt bei #330, #503 und #245; Phasenmeldungen sind kein Medien-Erfolgsnachweis.",
+        "Kein neuer Android-/Robolectriclauf in dieser Umgebung: passende SDK 35-/Robolectric-/AndroidX-Abhängigkeiten fehlen. Vorhandene native/isolierte Updatebelege werden exakt als historische Belege verlinkt."
+      ],
+      "evidence": "https://github.com/maik3531/Magnolie-Organizer/issues/245#issuecomment-7216893749"
+    }
+  ],
+  "already_closed_during_audit": [
+    823
+  ],
+  "planned_close_count": 31,
+  "preservation_de": "Leitissue bekommt jeden einzigartigen Rest und aktuelle Belegverweise. Originalbodies/Diskussionen bleiben zugänglich; Teilprüfungen werden nicht als native Gesamtabnahme umbenannt.",
+  "status": "prepared_not_yet_executed",
+  "review_changes_de": [
+    "Unabhängiger Zweitreview: zusätzliche konkrete Desktop-/Portmatrixzeilen übernommen.",
+    "#451-Desktopfreigabe bleibt vor Veröffentlichung; Portteil ausdrücklich mit #121 verknüpft.",
+    "#558 erhält Android16 und signiertes AAB mit echter Ziel-API.",
+    "#759 enthält zehn vollständige Originalkriterien samt Erhaltungsregeln.",
+    "#790 bleibt bis tatsächlicher Patchübernahme offen."
+  ],
+  "latest_user_requirement_de": "Gemeinsame Organizer-/Notes-Einstellungen einmal im Organizer ändern; Notes übernimmt automatisch. Keine zweite oder dritte manuelle Bestätigung auf Notes, kein zusätzlicher Bestätigungsdialog. Technische ACK-/Echo-/Revisionsprüfung bleibt intern; bei fehlender Verbindung verständlichen Status zeigen und vorhandene automatische Übertragung erhalten. Ein Wartezustand darf die benötigte Initialisierung nicht blockieren."
+}

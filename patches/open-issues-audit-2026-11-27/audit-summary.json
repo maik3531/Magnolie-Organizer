@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-27",
+  "initial_snapshot": 106,
+  "audit_base": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "patch_base": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "classifications": {
+    "unconfirmed_report": 9,
+    "feature_or_integration_remaining": 47,
+    "tracking_or_policy": 4,
+    "acceptance_or_live_evidence": 37,
+    "resolved_or_obsolete": 5,
+    "source_fix_needed": 4
+  },
+  "verified_closures": 31,
+  "consolidations": 29,
+  "other_closed_by_audit": [
+    389,
+    731
+  ],
+  "closed_by_upstream_during_audit": [
+    823
+  ],
+  "new_supplementary_issues": [
+    {
+      "number": 843,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/843",
+      "title": "Linux/Windows: Serien-Worker hält Blob-URLs nach fehlgeschlagenem Aufbau bis zum Fensterende",
+      "verified": true,
+      "reason": "New independently reproduced cross-platform Blob URL retention failure"
+    },
+    {
+      "number": 844,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/844",
+      "title": "Linux/Windows: fremde ICS-Farben fehlen in der Anzeige und Kalenderfarben gehen verloren",
+      "verified": true,
+      "reason": "New synthetic cross-platform external calendar color loss"
+    }
+  ],
+  "scope": "All 106 original issues individually assessed. Supplementary user-requested performance/import-export findings recorded separately. Patch publication is not main integration or package acceptance."
+}
