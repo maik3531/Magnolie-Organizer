@@ -29,6 +29,7 @@ internal static class PhoneCameraParentTests
         private readonly TcpClient desktop;
         private readonly TcpClient phone;
         private readonly CancellationTokenSource deadline = new(TimeSpan.FromSeconds(10));
+        private readonly OwnedTelefonPool pools;
         internal readonly TelefonStore Store;
         internal WindowsPaths Paths { get; }
         internal readonly TelefonPeer Peer;
@@ -41,6 +42,7 @@ internal static class PhoneCameraParentTests
         {
             Peer = new(Guid.NewGuid().ToString("D"), "Controlled original parent", new byte[32]) { FilePairingEpoch = filePairingEpoch };
             Paths = new WindowsPaths(root); Store = new TelefonStore(Paths, new byte[32]);
+            pools = new OwnedTelefonPool(Store);
             var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
             try
             {
@@ -87,9 +89,7 @@ internal static class PhoneCameraParentTests
         public void Dispose()
         {
             Connection.Dispose(); desktop.Dispose(); phone.Dispose(); deadline.Dispose();
-            // Windows retains the SQLite file through this fixture's pooled
-            // connections. Release only the exact OWN pool, never global pools.
-            using (var ownPool = Store.OpenDatabase()) Microsoft.Data.Sqlite.SqliteConnection.ClearPool(ownPool);
+            pools.Dispose();
             if (Directory.Exists(root)) Directory.Delete(root, true);
         }
     }

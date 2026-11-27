@@ -1,5 +1,14 @@
 # Aktueller Arbeitsstand
 
+## Windows-Testbereinigung – 27. November 2026
+
+[#794](https://github.com/maik3531/Magnolie-Organizer/issues/794):
+Auf echtem Windows war `phone.db` nach dem WLAN-Medientest noch
+geöffnet. Die Fixture gibt jetzt ihre beiden eigenen SQLite-Pools
+frei. Der zuvor rote Einzeltest, elf Webcam-Nachbargruppen und der
+Isolationstest für unabhängige Pools bestehen nativ. Die Telefon-
+und Medienlogik im Produkt bleibt unverändert.
+
 ## Mac-Integration – 27. November 2026
 
 Der Mac-Quellstand aus `work/macos-issue-fixes-20261126` ist mit der

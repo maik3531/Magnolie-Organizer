@@ -2,19 +2,32 @@ using Microsoft.Data.Sqlite;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
-/// <summary>Release only this fixture's exact TelefonStore pool, after its users drain.</summary>
+/// <summary>Release this fixture's exact TelefonStore pools after its users drain.</summary>
 internal sealed class OwnedTelefonPool : IDisposable
 {
     private readonly SqliteConnection original;
+    private readonly SqliteConnection media;
     private int released;
 
-    internal OwnedTelefonPool(TelefonStore store) => original = store.OpenDatabase();
+    internal OwnedTelefonPool(TelefonStore store)
+    {
+        original = store.OpenDatabase();
+        media = store.OpenNativeMediaDatabase();
+    }
 
     public void Dispose()
     {
         if (Interlocked.Exchange(ref released, 1) != 0) return;
-        try { SqliteConnection.ClearPool(original); }
-        finally { original.Dispose(); }
+        try
+        {
+            SqliteConnection.ClearPool(original);
+            SqliteConnection.ClearPool(media);
+        }
+        finally
+        {
+            original.Dispose();
+            media.Dispose();
+        }
     }
 
     internal static void VerifyIsolation()
@@ -30,6 +43,10 @@ internal sealed class OwnedTelefonPool : IDisposable
             using var otherPool = new OwnedTelefonPool(other);
             TestAssert.That(File.Exists(firstPaths.TelefonDatabase) && File.Exists(otherPaths.TelefonDatabase),
                 "Owned pool fixtures did not create their actual databases.");
+            using (var firstMedia = first.OpenNativeMediaDatabase()) firstMedia.Open();
+            using (var otherMedia = other.OpenNativeMediaDatabase()) otherMedia.Open();
+            // Isolate the other fixture's media handle from its ordinary pool.
+            using (var otherRegular = other.OpenDatabase()) SqliteConnection.ClearPool(otherRegular);
             firstPool.Dispose();
             File.Delete(firstPaths.TelefonDatabase);
             if (OperatingSystem.IsWindows())

@@ -21,7 +21,7 @@ internal sealed record NativeMediaPreferences(long Revision, string? Version,
 
 internal sealed partial class TelefonStore
 {
-    private SqliteConnection OpenNativeMediaDatabase() => new(new SqliteConnectionStringBuilder
+    internal SqliteConnection OpenNativeMediaDatabase() => new(new SqliteConnectionStringBuilder
     { DataSource = paths.TelefonDatabase, Mode = SqliteOpenMode.ReadWrite }.ToString());
 
     private sealed record NativeMediaPreferenceScope(string PeerId, string PeerKey, string PairingEpoch,
