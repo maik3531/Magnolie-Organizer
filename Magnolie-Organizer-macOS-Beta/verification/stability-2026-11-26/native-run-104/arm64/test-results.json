@@ -1,0 +1,290 @@
+{
+  "architecture": "arm64",
+  "headSHA": "3f3ec069895dec254c53660d14e6851cb23077cd",
+  "hostSkipDetails": [
+    {
+      "line": 30293,
+      "text": "test_no_linux_native_build_claim (__main__.ProjectionTests.test_no_linux_native_build_claim) ... skipped 'Negative Linux-only build gate'"
+    }
+  ],
+  "jobId": 139934825830,
+  "log": {
+    "bytes": 6282335,
+    "path": "/workspace/scratch/61dd4cfa9094/stability-checks/native-run-104/job-139934825830-arm64.log",
+    "sha256": "e2ab8aeb38d5e284c83a8f064f9121e626b93f517f9347c6135845e853215aa8"
+  },
+  "nativeProcessLog": {
+    "line": 44343,
+    "text": "Native Swift-to-bundled-import process: 9 checks passed; 4 original OR6 collections; no UI/profile acceptance."
+  },
+  "pythonTests": {
+    "airplayBuilder": {
+      "durationSeconds": 0.261,
+      "errors": 0,
+      "failures": 0,
+      "passed": 27,
+      "result": "OK",
+      "resultLine": 997,
+      "skipped": 0,
+      "summaryLine": 995,
+      "tests": 27
+    },
+    "host": {
+      "durationSeconds": 503.931,
+      "errors": 0,
+      "failures": 0,
+      "passed": 34,
+      "result": "OK (skipped=1)",
+      "resultLine": 30323,
+      "skipped": 1,
+      "summaryLine": 30321,
+      "tests": 35
+    },
+    "importHelperAndProjectionPaths": {
+      "durationSeconds": 72.188,
+      "errors": 0,
+      "failures": 0,
+      "passed": 17,
+      "result": "OK",
+      "resultLine": 1046,
+      "skipped": 0,
+      "summaryLine": 1044,
+      "tests": 17
+    },
+    "runtimeBuilder": {
+      "durationSeconds": 3.521,
+      "errors": 0,
+      "failures": 0,
+      "passed": 26,
+      "result": "OK",
+      "resultLine": 992,
+      "skipped": 0,
+      "summaryLine": 990,
+      "tests": 26
+    },
+    "sourceContract": {
+      "durationSeconds": 1.335,
+      "errors": 0,
+      "failures": 0,
+      "passed": 7,
+      "result": "OK",
+      "resultLine": 248,
+      "skipped": 0,
+      "summaryLine": 246,
+      "tests": 7
+    }
+  },
+  "runId": 45827353062,
+  "schema": 1,
+  "swiftContexts": [
+    {
+      "allTestsDurationSeconds": 59.684,
+      "configuration": "debug",
+      "contextNumber": 1,
+      "failures": 0,
+      "passed": 497,
+      "skipDetails": [
+        {
+          "line": 1273,
+          "reason": "Run tools/check_editor.py --swift with a JS runtime to test live canonical editor records.",
+          "test": "BetaCoreTests.CoreTests testCurrentEditorAppointments"
+        },
+        {
+          "line": 1684,
+          "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+          "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+        },
+        {
+          "line": 1737,
+          "reason": "Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.",
+          "test": "BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested"
+        },
+        {
+          "line": 1852,
+          "reason": "Actual shared print fixture is supplied by tools/check_editor.py on the Mac runner.",
+          "test": "BetaCoreTests.NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+        }
+      ],
+      "skipped": 4,
+      "startLine": 1073,
+      "summaryLine": 2246,
+      "testDurationSeconds": 59.645,
+      "tests": 501,
+      "unexpectedFailures": 0
+    },
+    {
+      "allTestsDurationSeconds": 54.098,
+      "configuration": "debug",
+      "contextNumber": 2,
+      "failures": 0,
+      "passed": 496,
+      "skipDetails": [
+        {
+          "line": 15228,
+          "reason": "Run tools/check_calendar.py --swift for current desktop codec roundtrips.",
+          "test": "BetaCoreTests.CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs"
+        },
+        {
+          "line": 15722,
+          "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+          "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+        },
+        {
+          "line": 15775,
+          "reason": "Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.",
+          "test": "BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested"
+        },
+        {
+          "line": 15795,
+          "reason": "Run tools/check_calendar.py --swift to execute the actual canonical parser oracle.",
+          "test": "BetaCoreTests.ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles"
+        },
+        {
+          "line": 15821,
+          "reason": "Published parser oracle runs through tools/check_calendar.py --swift",
+          "test": "BetaCoreTests.ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+        }
+      ],
+      "skipped": 5,
+      "startLine": 15112,
+      "summaryLine": 16285,
+      "testDurationSeconds": 54.066,
+      "tests": 501,
+      "unexpectedFailures": 0
+    },
+    {
+      "allTestsDurationSeconds": 52.01,
+      "configuration": "debug",
+      "contextNumber": 3,
+      "failures": 0,
+      "passed": 496,
+      "skipDetails": [
+        {
+          "line": 29223,
+          "reason": "Run tools/check_calendar.py --swift for current desktop codec roundtrips.",
+          "test": "BetaCoreTests.CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs"
+        },
+        {
+          "line": 29717,
+          "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+          "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+        },
+        {
+          "line": 29770,
+          "reason": "Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.",
+          "test": "BetaCoreTests.HolidayServiceTests testLivePublicHolidayServiceWhenRequested"
+        },
+        {
+          "line": 29790,
+          "reason": "Run tools/check_calendar.py --swift to execute the actual canonical parser oracle.",
+          "test": "BetaCoreTests.ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles"
+        },
+        {
+          "line": 29816,
+          "reason": "Published parser oracle runs through tools/check_calendar.py --swift",
+          "test": "BetaCoreTests.ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+        }
+      ],
+      "skipped": 5,
+      "startLine": 29107,
+      "summaryLine": 30280,
+      "testDurationSeconds": 51.971,
+      "tests": 501,
+      "unexpectedFailures": 0
+    },
+    {
+      "allTestsDurationSeconds": 53.893,
+      "configuration": "debug",
+      "contextNumber": 4,
+      "failures": 0,
+      "passed": 495,
+      "skipDetails": [
+        {
+          "line": 43255,
+          "reason": "Run tools/check_calendar.py --swift for current desktop codec roundtrips.",
+          "test": "BetaCoreTests.CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs"
+        },
+        {
+          "line": 43339,
+          "reason": "Run tools/check_editor.py --swift with a JS runtime to test live canonical editor records.",
+          "test": "BetaCoreTests.CoreTests testCurrentEditorAppointments"
+        },
+        {
+          "line": 43750,
+          "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+          "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+        },
+        {
+          "line": 43822,
+          "reason": "Run tools/check_calendar.py --swift to execute the actual canonical parser oracle.",
+          "test": "BetaCoreTests.ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles"
+        },
+        {
+          "line": 43848,
+          "reason": "Published parser oracle runs through tools/check_calendar.py --swift",
+          "test": "BetaCoreTests.ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+        },
+        {
+          "line": 43919,
+          "reason": "Actual shared print fixture is supplied by tools/check_editor.py on the Mac runner.",
+          "test": "BetaCoreTests.NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+        }
+      ],
+      "skipped": 6,
+      "startLine": 43139,
+      "summaryLine": 44313,
+      "testDurationSeconds": 53.852,
+      "tests": 501,
+      "unexpectedFailures": 0
+    },
+    {
+      "allTestsDurationSeconds": 36.802,
+      "configuration": "release",
+      "contextNumber": 5,
+      "failures": 0,
+      "passed": 495,
+      "skipDetails": [
+        {
+          "line": 45841,
+          "reason": "Run tools/check_calendar.py --swift for current desktop codec roundtrips.",
+          "test": "BetaCoreTests.CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs"
+        },
+        {
+          "line": 45925,
+          "reason": "Run tools/check_editor.py --swift with a JS runtime to test live canonical editor records.",
+          "test": "BetaCoreTests.CoreTests testCurrentEditorAppointments"
+        },
+        {
+          "line": 46336,
+          "reason": "Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.",
+          "test": "BetaCoreTests.DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary"
+        },
+        {
+          "line": 46408,
+          "reason": "Run tools/check_calendar.py --swift to execute the actual canonical parser oracle.",
+          "test": "BetaCoreTests.ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles"
+        },
+        {
+          "line": 46434,
+          "reason": "Published parser oracle runs through tools/check_calendar.py --swift",
+          "test": "BetaCoreTests.ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+        },
+        {
+          "line": 46505,
+          "reason": "Actual shared print fixture is supplied by tools/check_editor.py on the Mac runner.",
+          "test": "BetaCoreTests.NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+        }
+      ],
+      "skipped": 6,
+      "startLine": 45725,
+      "summaryLine": 46899,
+      "testDurationSeconds": 36.767,
+      "tests": 501,
+      "unexpectedFailures": 0
+    }
+  ],
+  "swiftContextsRepeatCaseSet": true,
+  "swiftRepeatMeaning": "Four debug invocation contexts plus one optimized release context; these are repeated case sets, not 2505 independent tests.",
+  "swiftUniqueTestDefinitions": 501,
+  "workflowErrorLines": []
+}

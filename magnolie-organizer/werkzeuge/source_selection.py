@@ -13,6 +13,10 @@ SECRET = re.compile(r"\.(?:pem|key|pfx|p12|jks|keystore|secret|token)$|^\.env(?:
 NOTE = re.compile(r"(?:REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
 ARCHIVE = re.compile(r"\.(?:tar(?:\.[a-z0-9]+)?|zip|rpm|deb|dsc|buildinfo|changes|AppImage|flatpak|apk|aab|exe|dll|msi|iso|qcow2|img|raw|pyc|pdb|mo)$", re.I)
 PRIVATE_KEY = re.compile(rb"-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----\r?\n")
+# Refs #787: published recovery/proof trees are not release contract inputs.
+# Keep this exact exclusion narrow; new contracts and unexpected types retain
+# their existing selection and validation rules.
+CONTRACT_EVIDENCE_DIRS = {"macos-issue-publication-2026-11-26", "macos-verification-2026-11-26"}
 
 
 def private_path(relative):
@@ -20,6 +24,11 @@ def private_path(relative):
                ".magnolie-desktop-", ".installer-", "obj-")) or
                ".rollback" in part for part in relative.parts) or \
         relative.name == "an-claude.md" or bool(NOTE.search(relative.name))
+
+
+def contract_evidence_directory(root, relative):
+    parts = (("contracts",) + relative.parts) if root.name == "contracts" else relative.parts
+    return len(parts) == 2 and parts[0] == "contracts" and parts[1] in CONTRACT_EVIDENCE_DIRS
 
 
 def source_files(root):
@@ -38,6 +47,9 @@ def source_files(root):
         for name in dirs:
             if (base / name).is_symlink():
                 raise ValueError("Source directory symlink is not permitted")
+        # Check linked directory boundaries before excluding these public trees.
+        dirs[:] = [name for name in dirs
+                   if not contract_evidence_directory(root, (base / name).relative_to(root))]
         for name in sorted(files):
             path = base / name
             relative = path.relative_to(root)

@@ -1,0 +1,336 @@
+{
+  "copiedModules": {
+    "magnolie_or6.py": {
+      "imports": [
+        "array:array",
+        "datetime:datetime",
+        "gettext",
+        "re",
+        "struct",
+        "sys"
+      ],
+      "source": "magnolie-organizer/bin/magnolie_or6.py"
+    },
+    "magnolie_social_profiles.py": {
+      "imports": [
+        "re",
+        "urllib.parse:parse_qs",
+        "urllib.parse:urlsplit",
+        "urllib.parse:urlunsplit"
+      ],
+      "source": "magnolie-organizer/bin/magnolie_social_profiles.py"
+    }
+  },
+  "issue": 785,
+  "projections": {
+    "desktop_imports.py": {
+      "adapters": {
+        "_": "translate",
+        "_organizer_zeitzone": "organizer_zone",
+        "_zeitzonenname": "organizer_zone_name",
+        "open": "deny_file_access",
+        "os": "read_only_os"
+      },
+      "reviewed": {
+        "definitions": [
+          "GroessenFehler",
+          "IMPORT_ARCHIV_EINTRAEGE_MAX",
+          "IMPORT_ARCHIV_EINTRAG_MAX",
+          "IMPORT_ARCHIV_VERHAELTNIS_MAX",
+          "IMPORT_DATEI_MAX",
+          "LOTUS_ADRESS_FELDER",
+          "LOTUS_AUFGABEN_FELDER",
+          "LOTUS_JAHRESTAG_FELDER",
+          "LOTUS_NOTIZ_FELDER",
+          "_EMAIL_MUSTER",
+          "_ISO_DATUM",
+          "_JT_TYP_SCHLUESSEL",
+          "_KALENDER_ZEITFORMATE",
+          "_TELEFON_STANDARDTYPEN",
+          "_VCARD_KOPF_CACHE",
+          "_anschrift_liste",
+          "_anschriften_setzen",
+          "_aufgaben_export_alias",
+          "_aufgaben_identitaet_lesen",
+          "_bday_datum",
+          "_claws_datum",
+          "_claws_kontakt",
+          "_datumzeit_lesen",
+          "_email_adresse",
+          "_email_eintraege",
+          "_email_liste",
+          "_entfalte_zeilen",
+          "_hole",
+          "_ical_unescape",
+          "_ics_datumzeit",
+          "_ics_komponente",
+          "_ics_native_serie_unterstuetzt",
+          "_ics_prop_roh",
+          "_ics_quelle_setzen",
+          "_ics_roundtrip",
+          "_ics_serien_abstimmen",
+          "_ics_wiederholung",
+          "_ist_eds_zeigerwert",
+          "_ist_iso",
+          "_ist_ja",
+          "_jahrestag_aus_ereignis",
+          "_kalender_akzentfarbe",
+          "_kalender_strptime",
+          "_kontakt_label",
+          "_kontaktpersonen_liste",
+          "_kontaktpersonen_setzen",
+          "_lotus_aufgaben",
+          "_lotus_ja",
+          "_lotus_jahrestage",
+          "_lotus_kontakte",
+          "_lotus_notiz",
+          "_lotus_notizen",
+          "_lotus_teile",
+          "_lotus_termin_zuordnung",
+          "_lotus_titel",
+          "_lotus_zuordnung",
+          "_maschinen_datum",
+          "_maschinen_monat_tag",
+          "_mit_vcard_kopf_cache",
+          "_prop_gruppe",
+          "_prop_zerlegen",
+          "_semikolon_teile",
+          "_sicherer_ics_quellenpfad",
+          "_soziale_medien_liste",
+          "_spaltenname_norm",
+          "_stempel_zu_ms",
+          "_telefon_liste",
+          "_telefon_schluessel",
+          "_telefon_typ_gruppe",
+          "_telefon_typen",
+          "_telefon_typen_aus_label",
+          "_telefone_setzen",
+          "_termin_recurrence_id",
+          "_termin_zeitpunkt",
+          "_text_dekodieren",
+          "_text_sha256",
+          "_typen_von",
+          "_vcard_foto",
+          "_vcard_karten",
+          "_vcard_parameter_liste",
+          "_vcard_restparameter",
+          "_vcard_rev_zu_ms",
+          "_vcard_wert",
+          "claws_xml_lesen",
+          "ics_lesen",
+          "import_rohdaten_lesen",
+          "jahrestag_typ_id",
+          "kanonischer_text",
+          "ldif_lesen",
+          "lotus_art_erkennen",
+          "lotus_csv_lesen",
+          "muell_import_lesen",
+          "vcf_lesen"
+        ],
+        "imports": {
+          "ContextVar": [
+            "contextvars",
+            "ContextVar"
+          ],
+          "ET": [
+            "xml.etree.ElementTree",
+            null
+          ],
+          "IcsRule": [
+            "magnolie_recurrence",
+            "Rule"
+          ],
+          "base64": [
+            "base64",
+            null
+          ],
+          "calendar_zones": [
+            "magnolie_recurrence",
+            "calendar_zones"
+          ],
+          "csv": [
+            "csv",
+            null
+          ],
+          "datetime": [
+            "datetime",
+            "datetime"
+          ],
+          "hashlib": [
+            "hashlib",
+            null
+          ],
+          "ics_date_time": [
+            "magnolie_recurrence",
+            "date_time"
+          ],
+          "ics_duration_end": [
+            "magnolie_recurrence",
+            "duration_end"
+          ],
+          "ics_properties": [
+            "magnolie_recurrence",
+            "properties"
+          ],
+          "io": [
+            "io",
+            null
+          ],
+          "json": [
+            "json",
+            null
+          ],
+          "quopri": [
+            "quopri",
+            null
+          ],
+          "re": [
+            "re",
+            null
+          ],
+          "timedelta": [
+            "datetime",
+            "timedelta"
+          ],
+          "timezone": [
+            "datetime",
+            "timezone"
+          ],
+          "unicodedata": [
+            "unicodedata",
+            null
+          ],
+          "wraps": [
+            "functools",
+            "wraps"
+          ],
+          "zipfile": [
+            "zipfile",
+            null
+          ]
+        },
+        "localImports": [
+          "hashlib",
+          "magnolie_or6:read_or6",
+          "magnolie_phone_region:normalize",
+          "magnolie_social_profiles:from_vcard",
+          "urllib.parse:unquote",
+          "urllib.parse:urlsplit",
+          "zoneinfo:ZoneInfo"
+        ]
+      },
+      "roots": [
+        "import_rohdaten_lesen",
+        "muell_import_lesen"
+      ],
+      "source": "magnolie-organizer/bin/magnolie-organizer"
+    },
+    "magnolie_phone_region.py": {
+      "adapters": {
+        "phonenumbers": "phone_numbers",
+        "regional_context": "regional_context"
+      },
+      "reviewed": {
+        "definitions": [
+          "normalize"
+        ],
+        "imports": {
+          "re": [
+            "re",
+            null
+          ]
+        },
+        "localImports": []
+      },
+      "roots": [
+        "normalize"
+      ],
+      "source": "magnolie-organizer/bin/magnolie_phone_region.py"
+    },
+    "magnolie_recurrence.py": {
+      "adapters": {
+        "ZoneInfo": "zone_info"
+      },
+      "reviewed": {
+        "definitions": [
+          "CalendarZone",
+          "MAX_CANDIDATES",
+          "MAX_OCCURRENCES",
+          "MAX_ORDINAL",
+          "MAX_PERIODS",
+          "RecurrenceLimitError",
+          "Rule",
+          "UNITS",
+          "WEEKDAYS",
+          "_Budget",
+          "_Prefix",
+          "_calendar_zone",
+          "_calendar_zones",
+          "_exists",
+          "_instant",
+          "_prefix_state",
+          "calendar_zones",
+          "date_time",
+          "duration_end",
+          "properties"
+        ],
+        "imports": {
+          "OrderedDict": [
+            "collections",
+            "OrderedDict"
+          ],
+          "bisect": [
+            "bisect",
+            null
+          ],
+          "calendar": [
+            "calendar",
+            null
+          ],
+          "datetime": [
+            "datetime",
+            "datetime"
+          ],
+          "lru_cache": [
+            "functools",
+            "lru_cache"
+          ],
+          "math": [
+            "math",
+            null
+          ],
+          "re": [
+            "re",
+            null
+          ],
+          "threading": [
+            "threading",
+            null
+          ],
+          "timedelta": [
+            "datetime",
+            "timedelta"
+          ],
+          "timezone": [
+            "datetime",
+            "timezone"
+          ],
+          "tzinfo": [
+            "datetime",
+            "tzinfo"
+          ]
+        },
+        "localImports": []
+      },
+      "roots": [
+        "Rule",
+        "date_time",
+        "duration_end",
+        "properties",
+        "calendar_zones"
+      ],
+      "source": "magnolie-organizer/bin/magnolie_recurrence.py"
+    }
+  },
+  "schema": 1
+}

@@ -10394,3 +10394,11 @@ msgstr "Vil du se skjermen på denne telefonen?"
 
 msgid "Your phone must approve screen sharing."
 msgstr "Godkjenn skjermdeling på telefonen."
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Birthday stored with this contact; no calendar entry."
+msgstr "Fødselsdatoen er lagret på denne kontakten; ingen kalenderoppføring."
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Please enter a valid birth date."
+msgstr "Skriv inn en gyldig fødselsdato."

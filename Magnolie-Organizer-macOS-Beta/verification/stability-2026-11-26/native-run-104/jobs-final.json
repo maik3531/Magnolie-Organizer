@@ -1,0 +1,392 @@
+{
+  "total_count": 3,
+  "jobs": [
+    {
+      "id": 139934825830,
+      "run_id": 45827353062,
+      "workflow_name": "Organizer 2.0.30 port candidates",
+      "head_branch": "work/macos-issue-fixes-20261126",
+      "run_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/runs/45827353062",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT28T-M8AAAAglMP9Zg",
+      "head_sha": "3f3ec069895dec254c53660d14e6851cb23077cd",
+      "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/jobs/139934825830",
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062/job/139934825830",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-26T13:15:19Z",
+      "started_at": "2026-11-26T13:20:22Z",
+      "completed_at": "2026-11-26T13:40:07Z",
+      "name": "macos (macos-15, arm64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-26T13:20:23Z",
+          "completed_at": "2026-11-26T13:20:25Z"
+        },
+        {
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-26T13:20:25Z",
+          "completed_at": "2026-11-26T13:20:42Z"
+        },
+        {
+          "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-26T13:20:42Z",
+          "completed_at": "2026-11-26T13:20:42Z"
+        },
+        {
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-26T13:20:42Z",
+          "completed_at": "2026-11-26T13:20:43Z"
+        },
+        {
+          "name": "Bind the Mac candidate to the current selected checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-26T13:20:43Z",
+          "completed_at": "2026-11-26T13:20:49Z"
+        },
+        {
+          "name": "Prepare private dependencies and canonical catalogs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-26T13:20:49Z",
+          "completed_at": "2026-11-26T13:21:01Z"
+        },
+        {
+          "name": "Verify the standalone Swift time-zone engine against independent references",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-26T13:21:01Z",
+          "completed_at": "2026-11-26T13:22:38Z"
+        },
+        {
+          "name": "Build the private source-pinned import runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-26T13:22:38Z",
+          "completed_at": "2026-11-26T13:24:43Z"
+        },
+        {
+          "name": "Freeze this isolated build's current source and run host and Apple tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-26T13:24:43Z",
+          "completed_at": "2026-11-26T13:36:39Z"
+        },
+        {
+          "name": "Exercise the actual Swift import process and packaged private runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-26T13:36:39Z",
+          "completed_at": "2026-11-26T13:36:54Z"
+        },
+        {
+          "name": "Verify optimized Swift code for the later stable integration",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-26T13:36:54Z",
+          "completed_at": "2026-11-26T13:39:36Z"
+        },
+        {
+          "name": "Start, save, quit and reopen the real app bundle",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-26T13:39:36Z",
+          "completed_at": "2026-11-26T13:39:52Z"
+        },
+        {
+          "name": "Package the ad-hoc development app with its evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-26T13:39:52Z",
+          "completed_at": "2026-11-26T13:39:58Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-26T13:39:58Z",
+          "completed_at": "2026-11-26T13:40:01Z"
+        },
+        {
+          "name": "Preserve native failure diagnostics",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15,
+          "started_at": "2026-11-26T13:40:01Z",
+          "completed_at": "2026-11-26T13:40:01Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 28,
+          "started_at": "2026-11-26T13:40:01Z",
+          "completed_at": "2026-11-26T13:40:01Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-11-26T13:40:01Z",
+          "completed_at": "2026-11-26T13:40:01Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-11-26T13:40:01Z",
+          "completed_at": "2026-11-26T13:40:02Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-11-26T13:40:02Z",
+          "completed_at": "2026-11-26T13:40:04Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/check-runs/139934825830",
+      "labels": [
+        "macos-15"
+      ],
+      "runner_id": 1000001440,
+      "runner_name": "GitHub Actions 1000001440",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 139934826621,
+      "run_id": 45827353062,
+      "workflow_name": "Organizer 2.0.30 port candidates",
+      "head_branch": "work/macos-issue-fixes-20261126",
+      "run_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/runs/45827353062",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT28T-M8AAAAglMQAfQ",
+      "head_sha": "3f3ec069895dec254c53660d14e6851cb23077cd",
+      "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/jobs/139934826621",
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062/job/139934826621",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-26T13:15:19Z",
+      "started_at": "2026-11-26T13:15:22Z",
+      "completed_at": "2026-11-26T13:49:42Z",
+      "name": "macos (macos-15-intel, x86_64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-26T13:15:22Z",
+          "completed_at": "2026-11-26T13:15:24Z"
+        },
+        {
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-26T13:15:24Z",
+          "completed_at": "2026-11-26T13:15:40Z"
+        },
+        {
+          "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-26T13:15:40Z",
+          "completed_at": "2026-11-26T13:15:40Z"
+        },
+        {
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-26T13:15:40Z",
+          "completed_at": "2026-11-26T13:15:42Z"
+        },
+        {
+          "name": "Bind the Mac candidate to the current selected checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-26T13:15:42Z",
+          "completed_at": "2026-11-26T13:15:59Z"
+        },
+        {
+          "name": "Prepare private dependencies and canonical catalogs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-26T13:15:59Z",
+          "completed_at": "2026-11-26T13:16:21Z"
+        },
+        {
+          "name": "Verify the standalone Swift time-zone engine against independent references",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-26T13:16:21Z",
+          "completed_at": "2026-11-26T13:19:54Z"
+        },
+        {
+          "name": "Build the private source-pinned import runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-26T13:19:54Z",
+          "completed_at": "2026-11-26T13:23:52Z"
+        },
+        {
+          "name": "Freeze this isolated build's current source and run host and Apple tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-26T13:23:52Z",
+          "completed_at": "2026-11-26T13:44:32Z"
+        },
+        {
+          "name": "Exercise the actual Swift import process and packaged private runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-26T13:44:32Z",
+          "completed_at": "2026-11-26T13:44:52Z"
+        },
+        {
+          "name": "Verify optimized Swift code for the later stable integration",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-26T13:44:52Z",
+          "completed_at": "2026-11-26T13:49:06Z"
+        },
+        {
+          "name": "Start, save, quit and reopen the real app bundle",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-26T13:49:06Z",
+          "completed_at": "2026-11-26T13:49:29Z"
+        },
+        {
+          "name": "Package the ad-hoc development app with its evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-26T13:49:29Z",
+          "completed_at": "2026-11-26T13:49:35Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-26T13:49:35Z",
+          "completed_at": "2026-11-26T13:49:39Z"
+        },
+        {
+          "name": "Preserve native failure diagnostics",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15,
+          "started_at": "2026-11-26T13:49:39Z",
+          "completed_at": "2026-11-26T13:49:39Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 28,
+          "started_at": "2026-11-26T13:49:39Z",
+          "completed_at": "2026-11-26T13:49:39Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-11-26T13:49:39Z",
+          "completed_at": "2026-11-26T13:49:39Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-11-26T13:49:39Z",
+          "completed_at": "2026-11-26T13:49:40Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-11-26T13:49:40Z",
+          "completed_at": "2026-11-26T13:49:40Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/check-runs/139934826621",
+      "labels": [
+        "macos-15-intel"
+      ],
+      "runner_id": 1000001439,
+      "runner_name": "GitHub Actions 1000001439",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 139934828233,
+      "run_id": 45827353062,
+      "workflow_name": "Organizer 2.0.30 port candidates",
+      "head_branch": "work/macos-issue-fixes-20261126",
+      "run_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/runs/45827353062",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT28T-M8AAAAglMQGyQ",
+      "head_sha": "3f3ec069895dec254c53660d14e6851cb23077cd",
+      "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/actions/jobs/139934828233",
+      "html_url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062/job/139934828233",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-11-26T13:15:20Z",
+      "started_at": "2026-11-26T13:15:20Z",
+      "completed_at": "2026-11-26T13:15:19Z",
+      "name": "inputs.target == 'tablet-timezone-interop' && 'tablet-timezone-interop-comparison-only' || inputs.target == 'tablet-api26-components' && format('tablet-API26-component-only-{0}', matrix.suite) || inputs.target == 'tablet-aosp' && 'tablet-AOSP-API34-diagnostic-only' || inputs.target == 'tablet-components' && format('tablet-component-only-{0}', matrix.suite) || 'tablet'",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/check-runs/139934828233",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ]
+}

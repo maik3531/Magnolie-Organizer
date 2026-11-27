@@ -1,0 +1,582 @@
+{
+  "schema": 1,
+  "kind": "original-handoff-isolated-restore-and-sequential-index-replay",
+  "observedAtUTC": "2026-11-26T12:12:43.221852+00:00",
+  "repository": "maik3531/Magnolie-Organizer",
+  "publishedHead": "c8a7690d5eb4e002ebadb1d0aab03c8780af9e0b",
+  "originalHead": "0dfeb1b30a208480eb6901e3d3148a5efeaae5ff",
+  "originalTree": "d731a6bd56acd68e79aab83fbadb19ab94ad6547",
+  "prerequisiteMain": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+  "method": [
+    "An independent bare repository reads pre-existing Git objects through a read-only alternate.",
+    "Missing main-prerequisite objects from the partial clone were materialized in this scratch repository before importing the bundle.",
+    "The original head must be absent before importing the delivered bundle.",
+    "All original objects beyond the main prerequisite are required to be present in the verified imported bundle pack.",
+    "Every delivered patch is applied in manifest order to an isolated index and compared with its exact recorded tree.",
+    "The preserved merge delta is inserted at its actual dependency boundary; no merge is inferred or silently skipped."
+  ],
+  "checks": {
+    "complete_published_file_set": true,
+    "publication_file_count": true,
+    "checksum_CODEX-RESTORE.md": true,
+    "checksum_bundle-verify.txt": true,
+    "checksum_macos-issue-fixes-0dfeb1b30a208480eb6901e3d3148a5efeaae5ff.bundle": true,
+    "checksum_manifest.json": true,
+    "checksum_patches/0a14d268913337bd436e560ab47f670ed43d89c3.patch": true,
+    "checksum_patches/0dfeb1b30a208480eb6901e3d3148a5efeaae5ff.patch": true,
+    "checksum_patches/136922870a3a3ee2caf6d6be431b00a67ff9fcce.patch": true,
+    "checksum_patches/1a24abefcfdc58689fb5291cb5c4c60c1af189d5.patch": true,
+    "checksum_patches/2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa.patch": true,
+    "checksum_patches/4e4de89025d3d9f9cba932a217a8de13425b44f9.patch": true,
+    "checksum_patches/52a22ff8c14244cd79a4267fe875cef9bfcf8cd4.patch": true,
+    "checksum_patches/540eae279638ee260cdaf392096fca922adc02f1.patch": true,
+    "checksum_patches/55a312701a259c9c91d11d3dfb95efdd9a73f0eb.patch": true,
+    "checksum_patches/62835e02e422bfcd8ae0fccea36dac08813e42cf.patch": true,
+    "checksum_patches/6341a2f1fa188a15ba63fd43bacf4dccfc148dfc.patch": true,
+    "checksum_patches/6372a409b849dffa2856d8e0993cfaef96b44a3d.patch": true,
+    "checksum_patches/7c9cf20394aef73d261a77f746ebca7340826d30.patch": true,
+    "checksum_patches/8d4004a99648add539450e3658f50861a6d90f32.patch": true,
+    "checksum_patches/9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa.patch": true,
+    "checksum_patches/a071458954ce4532fa013649a09a5d346f4d7469.patch": true,
+    "checksum_patches/a26bb1302f3f5b772b83c9530f3098df34262f20.patch": true,
+    "checksum_patches/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa.patch": true,
+    "checksum_patches/c9c3ebebd621e3562c601a2fa6d49909ca42fadd.patch.gz": true,
+    "checksum_patches/d57ef304417695dea5f488842bc3b49432f7bbf2.patch": true,
+    "checksum_patches/dc8036514b54dc50e3c3a2bc69e343383ff7da79.patch": true,
+    "checksum_patches/e2a71b5eaf2635b38f0496bb8df9bb6cbf387121.patch": true,
+    "checksum_patches/e89d2eec099a933ddbad4bdc529eb7f7698af2ed.patch": true,
+    "checksum_patches/e925f9f44de0fedbdd222908e0a05e7229a3bb70.patch": true,
+    "checksum_restore-verification.json": true,
+    "checksum_scope": true,
+    "bundle_manifest_bytes": true,
+    "bundle_manifest_sha256": true,
+    "scratch_object_alternate_exact": true,
+    "original_head_absent_before_bundle": true,
+    "prerequisite_reachable_d4da48a5eadd0bda22422b924bef4ee3b4324040": true,
+    "prerequisite_reachable_00776ce70e155c7a607ed55a4502d6fcee5a860c": true,
+    "restored_head_exact": true,
+    "restored_tree_exact": true,
+    "restored_commit_count": true,
+    "all_non_prerequisite_objects_in_bundle_pack": true,
+    "complete_topological_patch_order": true,
+    "exact_patch_count": true,
+    "complete_preserved_merge_list": true,
+    "commit_metadata_540eae279638ee260cdaf392096fca922adc02f1": true,
+    "patch_parent_tree_540eae279638ee260cdaf392096fca922adc02f1": true,
+    "patch_publication_bytes_540eae279638ee260cdaf392096fca922adc02f1": true,
+    "patch_decoded_bytes_540eae279638ee260cdaf392096fca922adc02f1": true,
+    "patch_from_identity_540eae279638ee260cdaf392096fca922adc02f1": true,
+    "patch_result_tree_540eae279638ee260cdaf392096fca922adc02f1": true,
+    "commit_metadata_e89d2eec099a933ddbad4bdc529eb7f7698af2ed": true,
+    "patch_parent_tree_e89d2eec099a933ddbad4bdc529eb7f7698af2ed": true,
+    "patch_publication_bytes_e89d2eec099a933ddbad4bdc529eb7f7698af2ed": true,
+    "patch_decoded_bytes_e89d2eec099a933ddbad4bdc529eb7f7698af2ed": true,
+    "patch_from_identity_e89d2eec099a933ddbad4bdc529eb7f7698af2ed": true,
+    "patch_result_tree_e89d2eec099a933ddbad4bdc529eb7f7698af2ed": true,
+    "commit_metadata_a26bb1302f3f5b772b83c9530f3098df34262f20": true,
+    "patch_parent_tree_a26bb1302f3f5b772b83c9530f3098df34262f20": true,
+    "patch_publication_bytes_a26bb1302f3f5b772b83c9530f3098df34262f20": true,
+    "patch_decoded_bytes_a26bb1302f3f5b772b83c9530f3098df34262f20": true,
+    "patch_from_identity_a26bb1302f3f5b772b83c9530f3098df34262f20": true,
+    "patch_result_tree_a26bb1302f3f5b772b83c9530f3098df34262f20": true,
+    "commit_metadata_e925f9f44de0fedbdd222908e0a05e7229a3bb70": true,
+    "patch_parent_tree_e925f9f44de0fedbdd222908e0a05e7229a3bb70": true,
+    "patch_publication_bytes_e925f9f44de0fedbdd222908e0a05e7229a3bb70": true,
+    "patch_decoded_bytes_e925f9f44de0fedbdd222908e0a05e7229a3bb70": true,
+    "patch_from_identity_e925f9f44de0fedbdd222908e0a05e7229a3bb70": true,
+    "patch_result_tree_e925f9f44de0fedbdd222908e0a05e7229a3bb70": true,
+    "commit_metadata_55a312701a259c9c91d11d3dfb95efdd9a73f0eb": true,
+    "patch_parent_tree_55a312701a259c9c91d11d3dfb95efdd9a73f0eb": true,
+    "patch_publication_bytes_55a312701a259c9c91d11d3dfb95efdd9a73f0eb": true,
+    "patch_decoded_bytes_55a312701a259c9c91d11d3dfb95efdd9a73f0eb": true,
+    "patch_from_identity_55a312701a259c9c91d11d3dfb95efdd9a73f0eb": true,
+    "patch_result_tree_55a312701a259c9c91d11d3dfb95efdd9a73f0eb": true,
+    "commit_metadata_52a22ff8c14244cd79a4267fe875cef9bfcf8cd4": true,
+    "patch_parent_tree_52a22ff8c14244cd79a4267fe875cef9bfcf8cd4": true,
+    "patch_publication_bytes_52a22ff8c14244cd79a4267fe875cef9bfcf8cd4": true,
+    "patch_decoded_bytes_52a22ff8c14244cd79a4267fe875cef9bfcf8cd4": true,
+    "patch_from_identity_52a22ff8c14244cd79a4267fe875cef9bfcf8cd4": true,
+    "patch_result_tree_52a22ff8c14244cd79a4267fe875cef9bfcf8cd4": true,
+    "commit_metadata_c9c3ebebd621e3562c601a2fa6d49909ca42fadd": true,
+    "patch_parent_tree_c9c3ebebd621e3562c601a2fa6d49909ca42fadd": true,
+    "patch_publication_bytes_c9c3ebebd621e3562c601a2fa6d49909ca42fadd": true,
+    "patch_decoded_bytes_c9c3ebebd621e3562c601a2fa6d49909ca42fadd": true,
+    "patch_from_identity_c9c3ebebd621e3562c601a2fa6d49909ca42fadd": true,
+    "patch_result_tree_c9c3ebebd621e3562c601a2fa6d49909ca42fadd": true,
+    "commit_metadata_4e4de89025d3d9f9cba932a217a8de13425b44f9": true,
+    "patch_parent_tree_4e4de89025d3d9f9cba932a217a8de13425b44f9": true,
+    "patch_publication_bytes_4e4de89025d3d9f9cba932a217a8de13425b44f9": true,
+    "patch_decoded_bytes_4e4de89025d3d9f9cba932a217a8de13425b44f9": true,
+    "patch_from_identity_4e4de89025d3d9f9cba932a217a8de13425b44f9": true,
+    "patch_result_tree_4e4de89025d3d9f9cba932a217a8de13425b44f9": true,
+    "commit_metadata_0a14d268913337bd436e560ab47f670ed43d89c3": true,
+    "patch_parent_tree_0a14d268913337bd436e560ab47f670ed43d89c3": true,
+    "patch_publication_bytes_0a14d268913337bd436e560ab47f670ed43d89c3": true,
+    "patch_decoded_bytes_0a14d268913337bd436e560ab47f670ed43d89c3": true,
+    "patch_from_identity_0a14d268913337bd436e560ab47f670ed43d89c3": true,
+    "patch_result_tree_0a14d268913337bd436e560ab47f670ed43d89c3": true,
+    "commit_metadata_9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa": true,
+    "merge_first_parent_ff5798765f9943411200df4302edfc7779fa74b7": true,
+    "merge_metadata_ff5798765f9943411200df4302edfc7779fa74b7": true,
+    "exact_preserved_merge_replay_ff5798765f9943411200df4302edfc7779fa74b7": true,
+    "patch_parent_tree_9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa": true,
+    "patch_publication_bytes_9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa": true,
+    "patch_decoded_bytes_9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa": true,
+    "patch_from_identity_9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa": true,
+    "patch_result_tree_9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa": true,
+    "commit_metadata_6341a2f1fa188a15ba63fd43bacf4dccfc148dfc": true,
+    "patch_parent_tree_6341a2f1fa188a15ba63fd43bacf4dccfc148dfc": true,
+    "patch_publication_bytes_6341a2f1fa188a15ba63fd43bacf4dccfc148dfc": true,
+    "patch_decoded_bytes_6341a2f1fa188a15ba63fd43bacf4dccfc148dfc": true,
+    "patch_from_identity_6341a2f1fa188a15ba63fd43bacf4dccfc148dfc": true,
+    "patch_result_tree_6341a2f1fa188a15ba63fd43bacf4dccfc148dfc": true,
+    "commit_metadata_62835e02e422bfcd8ae0fccea36dac08813e42cf": true,
+    "patch_parent_tree_62835e02e422bfcd8ae0fccea36dac08813e42cf": true,
+    "patch_publication_bytes_62835e02e422bfcd8ae0fccea36dac08813e42cf": true,
+    "patch_decoded_bytes_62835e02e422bfcd8ae0fccea36dac08813e42cf": true,
+    "patch_from_identity_62835e02e422bfcd8ae0fccea36dac08813e42cf": true,
+    "patch_result_tree_62835e02e422bfcd8ae0fccea36dac08813e42cf": true,
+    "commit_metadata_2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa": true,
+    "patch_parent_tree_2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa": true,
+    "patch_publication_bytes_2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa": true,
+    "patch_decoded_bytes_2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa": true,
+    "patch_from_identity_2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa": true,
+    "patch_result_tree_2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa": true,
+    "commit_metadata_6372a409b849dffa2856d8e0993cfaef96b44a3d": true,
+    "patch_parent_tree_6372a409b849dffa2856d8e0993cfaef96b44a3d": true,
+    "patch_publication_bytes_6372a409b849dffa2856d8e0993cfaef96b44a3d": true,
+    "patch_decoded_bytes_6372a409b849dffa2856d8e0993cfaef96b44a3d": true,
+    "patch_from_identity_6372a409b849dffa2856d8e0993cfaef96b44a3d": true,
+    "patch_result_tree_6372a409b849dffa2856d8e0993cfaef96b44a3d": true,
+    "commit_metadata_d57ef304417695dea5f488842bc3b49432f7bbf2": true,
+    "patch_parent_tree_d57ef304417695dea5f488842bc3b49432f7bbf2": true,
+    "patch_publication_bytes_d57ef304417695dea5f488842bc3b49432f7bbf2": true,
+    "patch_decoded_bytes_d57ef304417695dea5f488842bc3b49432f7bbf2": true,
+    "patch_from_identity_d57ef304417695dea5f488842bc3b49432f7bbf2": true,
+    "patch_result_tree_d57ef304417695dea5f488842bc3b49432f7bbf2": true,
+    "commit_metadata_e2a71b5eaf2635b38f0496bb8df9bb6cbf387121": true,
+    "patch_parent_tree_e2a71b5eaf2635b38f0496bb8df9bb6cbf387121": true,
+    "patch_publication_bytes_e2a71b5eaf2635b38f0496bb8df9bb6cbf387121": true,
+    "patch_decoded_bytes_e2a71b5eaf2635b38f0496bb8df9bb6cbf387121": true,
+    "patch_from_identity_e2a71b5eaf2635b38f0496bb8df9bb6cbf387121": true,
+    "patch_result_tree_e2a71b5eaf2635b38f0496bb8df9bb6cbf387121": true,
+    "commit_metadata_dc8036514b54dc50e3c3a2bc69e343383ff7da79": true,
+    "patch_parent_tree_dc8036514b54dc50e3c3a2bc69e343383ff7da79": true,
+    "patch_publication_bytes_dc8036514b54dc50e3c3a2bc69e343383ff7da79": true,
+    "patch_decoded_bytes_dc8036514b54dc50e3c3a2bc69e343383ff7da79": true,
+    "patch_from_identity_dc8036514b54dc50e3c3a2bc69e343383ff7da79": true,
+    "patch_result_tree_dc8036514b54dc50e3c3a2bc69e343383ff7da79": true,
+    "commit_metadata_c903f436fe7853d5f92b7d40b64ed9121bd5d6fa": true,
+    "patch_parent_tree_c903f436fe7853d5f92b7d40b64ed9121bd5d6fa": true,
+    "patch_publication_bytes_c903f436fe7853d5f92b7d40b64ed9121bd5d6fa": true,
+    "patch_decoded_bytes_c903f436fe7853d5f92b7d40b64ed9121bd5d6fa": true,
+    "patch_from_identity_c903f436fe7853d5f92b7d40b64ed9121bd5d6fa": true,
+    "patch_result_tree_c903f436fe7853d5f92b7d40b64ed9121bd5d6fa": true,
+    "commit_metadata_a071458954ce4532fa013649a09a5d346f4d7469": true,
+    "patch_parent_tree_a071458954ce4532fa013649a09a5d346f4d7469": true,
+    "patch_publication_bytes_a071458954ce4532fa013649a09a5d346f4d7469": true,
+    "patch_decoded_bytes_a071458954ce4532fa013649a09a5d346f4d7469": true,
+    "patch_from_identity_a071458954ce4532fa013649a09a5d346f4d7469": true,
+    "patch_result_tree_a071458954ce4532fa013649a09a5d346f4d7469": true,
+    "commit_metadata_1a24abefcfdc58689fb5291cb5c4c60c1af189d5": true,
+    "patch_parent_tree_1a24abefcfdc58689fb5291cb5c4c60c1af189d5": true,
+    "patch_publication_bytes_1a24abefcfdc58689fb5291cb5c4c60c1af189d5": true,
+    "patch_decoded_bytes_1a24abefcfdc58689fb5291cb5c4c60c1af189d5": true,
+    "patch_from_identity_1a24abefcfdc58689fb5291cb5c4c60c1af189d5": true,
+    "patch_result_tree_1a24abefcfdc58689fb5291cb5c4c60c1af189d5": true,
+    "commit_metadata_8d4004a99648add539450e3658f50861a6d90f32": true,
+    "patch_parent_tree_8d4004a99648add539450e3658f50861a6d90f32": true,
+    "patch_publication_bytes_8d4004a99648add539450e3658f50861a6d90f32": true,
+    "patch_decoded_bytes_8d4004a99648add539450e3658f50861a6d90f32": true,
+    "patch_from_identity_8d4004a99648add539450e3658f50861a6d90f32": true,
+    "patch_result_tree_8d4004a99648add539450e3658f50861a6d90f32": true,
+    "commit_metadata_136922870a3a3ee2caf6d6be431b00a67ff9fcce": true,
+    "patch_parent_tree_136922870a3a3ee2caf6d6be431b00a67ff9fcce": true,
+    "patch_publication_bytes_136922870a3a3ee2caf6d6be431b00a67ff9fcce": true,
+    "patch_decoded_bytes_136922870a3a3ee2caf6d6be431b00a67ff9fcce": true,
+    "patch_from_identity_136922870a3a3ee2caf6d6be431b00a67ff9fcce": true,
+    "patch_result_tree_136922870a3a3ee2caf6d6be431b00a67ff9fcce": true,
+    "commit_metadata_7c9cf20394aef73d261a77f746ebca7340826d30": true,
+    "patch_parent_tree_7c9cf20394aef73d261a77f746ebca7340826d30": true,
+    "patch_publication_bytes_7c9cf20394aef73d261a77f746ebca7340826d30": true,
+    "patch_decoded_bytes_7c9cf20394aef73d261a77f746ebca7340826d30": true,
+    "patch_from_identity_7c9cf20394aef73d261a77f746ebca7340826d30": true,
+    "patch_result_tree_7c9cf20394aef73d261a77f746ebca7340826d30": true,
+    "commit_metadata_0dfeb1b30a208480eb6901e3d3148a5efeaae5ff": true,
+    "patch_parent_tree_0dfeb1b30a208480eb6901e3d3148a5efeaae5ff": true,
+    "patch_publication_bytes_0dfeb1b30a208480eb6901e3d3148a5efeaae5ff": true,
+    "patch_decoded_bytes_0dfeb1b30a208480eb6901e3d3148a5efeaae5ff": true,
+    "patch_from_identity_0dfeb1b30a208480eb6901e3d3148a5efeaae5ff": true,
+    "patch_result_tree_0dfeb1b30a208480eb6901e3d3148a5efeaae5ff": true,
+    "sequential_final_original_tree": true,
+    "sequential_final_original_commit": true,
+    "api_source_tree_equal_to_original": true
+  },
+  "patches": [
+    {
+      "position": 1,
+      "commit": "540eae279638ee260cdaf392096fca922adc02f1",
+      "parents": [
+        "616069f15fed21d8d8d05c8ef795f4ed21bd059c"
+      ],
+      "file": "patches/540eae279638ee260cdaf392096fca922adc02f1.patch",
+      "encoding": "utf-8",
+      "expectedTree": "8555fa5b0ba1808bccf2e2a3a40ee048d7ae2438",
+      "replayedTree": "8555fa5b0ba1808bccf2e2a3a40ee048d7ae2438",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 2,
+      "commit": "e89d2eec099a933ddbad4bdc529eb7f7698af2ed",
+      "parents": [
+        "540eae279638ee260cdaf392096fca922adc02f1"
+      ],
+      "file": "patches/e89d2eec099a933ddbad4bdc529eb7f7698af2ed.patch",
+      "encoding": "utf-8",
+      "expectedTree": "10879d3ff6e257042ac443ba2608e6c79f67fc09",
+      "replayedTree": "10879d3ff6e257042ac443ba2608e6c79f67fc09",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 3,
+      "commit": "a26bb1302f3f5b772b83c9530f3098df34262f20",
+      "parents": [
+        "e89d2eec099a933ddbad4bdc529eb7f7698af2ed"
+      ],
+      "file": "patches/a26bb1302f3f5b772b83c9530f3098df34262f20.patch",
+      "encoding": "utf-8",
+      "expectedTree": "aac4d0db57c6f026993003cba49318d8815d8dfd",
+      "replayedTree": "aac4d0db57c6f026993003cba49318d8815d8dfd",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 4,
+      "commit": "e925f9f44de0fedbdd222908e0a05e7229a3bb70",
+      "parents": [
+        "a26bb1302f3f5b772b83c9530f3098df34262f20"
+      ],
+      "file": "patches/e925f9f44de0fedbdd222908e0a05e7229a3bb70.patch",
+      "encoding": "utf-8",
+      "expectedTree": "8efc42564aa0b86787eb130b7461073bc03962e0",
+      "replayedTree": "8efc42564aa0b86787eb130b7461073bc03962e0",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 5,
+      "commit": "55a312701a259c9c91d11d3dfb95efdd9a73f0eb",
+      "parents": [
+        "e925f9f44de0fedbdd222908e0a05e7229a3bb70"
+      ],
+      "file": "patches/55a312701a259c9c91d11d3dfb95efdd9a73f0eb.patch",
+      "encoding": "utf-8",
+      "expectedTree": "7d24075f1aa34da983ddde9a010122a407764e55",
+      "replayedTree": "7d24075f1aa34da983ddde9a010122a407764e55",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 6,
+      "commit": "52a22ff8c14244cd79a4267fe875cef9bfcf8cd4",
+      "parents": [
+        "55a312701a259c9c91d11d3dfb95efdd9a73f0eb"
+      ],
+      "file": "patches/52a22ff8c14244cd79a4267fe875cef9bfcf8cd4.patch",
+      "encoding": "utf-8",
+      "expectedTree": "9a93df3cfccd854d82d21e1aeed52e5ea0905143",
+      "replayedTree": "9a93df3cfccd854d82d21e1aeed52e5ea0905143",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 7,
+      "commit": "c9c3ebebd621e3562c601a2fa6d49909ca42fadd",
+      "parents": [
+        "52a22ff8c14244cd79a4267fe875cef9bfcf8cd4"
+      ],
+      "file": "patches/c9c3ebebd621e3562c601a2fa6d49909ca42fadd.patch.gz",
+      "encoding": "gzip",
+      "expectedTree": "61c805535297c0494c2c80bd9c319c60f6844592",
+      "replayedTree": "61c805535297c0494c2c80bd9c319c60f6844592",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 8,
+      "commit": "4e4de89025d3d9f9cba932a217a8de13425b44f9",
+      "parents": [
+        "c9c3ebebd621e3562c601a2fa6d49909ca42fadd"
+      ],
+      "file": "patches/4e4de89025d3d9f9cba932a217a8de13425b44f9.patch",
+      "encoding": "utf-8",
+      "expectedTree": "33e75ec04d862d7048c2eed96ef5f43a9dadadce",
+      "replayedTree": "33e75ec04d862d7048c2eed96ef5f43a9dadadce",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 9,
+      "commit": "0a14d268913337bd436e560ab47f670ed43d89c3",
+      "parents": [
+        "4e4de89025d3d9f9cba932a217a8de13425b44f9"
+      ],
+      "file": "patches/0a14d268913337bd436e560ab47f670ed43d89c3.patch",
+      "encoding": "utf-8",
+      "expectedTree": "4e838d60a7fabe8deb69d37bf0c06eca5283aaf0",
+      "replayedTree": "4e838d60a7fabe8deb69d37bf0c06eca5283aaf0",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 10,
+      "commit": "9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa",
+      "parents": [
+        "ff5798765f9943411200df4302edfc7779fa74b7"
+      ],
+      "file": "patches/9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa.patch",
+      "encoding": "utf-8",
+      "expectedTree": "52400b3dae40a80234388c2665764dad052ec911",
+      "replayedTree": "52400b3dae40a80234388c2665764dad052ec911",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 11,
+      "commit": "6341a2f1fa188a15ba63fd43bacf4dccfc148dfc",
+      "parents": [
+        "9f35d4d0d0b7c0ff37fda500091f774f3dab0bfa"
+      ],
+      "file": "patches/6341a2f1fa188a15ba63fd43bacf4dccfc148dfc.patch",
+      "encoding": "utf-8",
+      "expectedTree": "d1cd4ec2c3d40bfe20a8a0813b43f5841ed37ab6",
+      "replayedTree": "d1cd4ec2c3d40bfe20a8a0813b43f5841ed37ab6",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 12,
+      "commit": "62835e02e422bfcd8ae0fccea36dac08813e42cf",
+      "parents": [
+        "6341a2f1fa188a15ba63fd43bacf4dccfc148dfc"
+      ],
+      "file": "patches/62835e02e422bfcd8ae0fccea36dac08813e42cf.patch",
+      "encoding": "utf-8",
+      "expectedTree": "84cd5747afdce52ff8900d180ce7d637e43ec74a",
+      "replayedTree": "84cd5747afdce52ff8900d180ce7d637e43ec74a",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 13,
+      "commit": "2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa",
+      "parents": [
+        "62835e02e422bfcd8ae0fccea36dac08813e42cf"
+      ],
+      "file": "patches/2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa.patch",
+      "encoding": "utf-8",
+      "expectedTree": "d5df0bd251b84767880d2ba06f503df50e925058",
+      "replayedTree": "d5df0bd251b84767880d2ba06f503df50e925058",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 14,
+      "commit": "6372a409b849dffa2856d8e0993cfaef96b44a3d",
+      "parents": [
+        "2d31e0eb3d2f0ffa80fe3cdec936c9ec54bf83aa"
+      ],
+      "file": "patches/6372a409b849dffa2856d8e0993cfaef96b44a3d.patch",
+      "encoding": "utf-8",
+      "expectedTree": "054476f6261a90747f339eff98261aa67a7bdf9d",
+      "replayedTree": "054476f6261a90747f339eff98261aa67a7bdf9d",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 15,
+      "commit": "d57ef304417695dea5f488842bc3b49432f7bbf2",
+      "parents": [
+        "6372a409b849dffa2856d8e0993cfaef96b44a3d"
+      ],
+      "file": "patches/d57ef304417695dea5f488842bc3b49432f7bbf2.patch",
+      "encoding": "utf-8",
+      "expectedTree": "8c70c64d50af3ca03a121f7e88119b885d1088c3",
+      "replayedTree": "8c70c64d50af3ca03a121f7e88119b885d1088c3",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 16,
+      "commit": "e2a71b5eaf2635b38f0496bb8df9bb6cbf387121",
+      "parents": [
+        "d57ef304417695dea5f488842bc3b49432f7bbf2"
+      ],
+      "file": "patches/e2a71b5eaf2635b38f0496bb8df9bb6cbf387121.patch",
+      "encoding": "utf-8",
+      "expectedTree": "481a95333d9d136d917ba7a9ca531cada1c0d578",
+      "replayedTree": "481a95333d9d136d917ba7a9ca531cada1c0d578",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 17,
+      "commit": "dc8036514b54dc50e3c3a2bc69e343383ff7da79",
+      "parents": [
+        "e2a71b5eaf2635b38f0496bb8df9bb6cbf387121"
+      ],
+      "file": "patches/dc8036514b54dc50e3c3a2bc69e343383ff7da79.patch",
+      "encoding": "utf-8",
+      "expectedTree": "0673a35e37414bd023f86338331640233e009023",
+      "replayedTree": "0673a35e37414bd023f86338331640233e009023",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 18,
+      "commit": "c903f436fe7853d5f92b7d40b64ed9121bd5d6fa",
+      "parents": [
+        "dc8036514b54dc50e3c3a2bc69e343383ff7da79"
+      ],
+      "file": "patches/c903f436fe7853d5f92b7d40b64ed9121bd5d6fa.patch",
+      "encoding": "utf-8",
+      "expectedTree": "703b570c264aea276cd075f7e11479d8ab51f9ae",
+      "replayedTree": "703b570c264aea276cd075f7e11479d8ab51f9ae",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 19,
+      "commit": "a071458954ce4532fa013649a09a5d346f4d7469",
+      "parents": [
+        "c903f436fe7853d5f92b7d40b64ed9121bd5d6fa"
+      ],
+      "file": "patches/a071458954ce4532fa013649a09a5d346f4d7469.patch",
+      "encoding": "utf-8",
+      "expectedTree": "23ea10ae58faff979a9489836ab918b9583c58fb",
+      "replayedTree": "23ea10ae58faff979a9489836ab918b9583c58fb",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 20,
+      "commit": "1a24abefcfdc58689fb5291cb5c4c60c1af189d5",
+      "parents": [
+        "a071458954ce4532fa013649a09a5d346f4d7469"
+      ],
+      "file": "patches/1a24abefcfdc58689fb5291cb5c4c60c1af189d5.patch",
+      "encoding": "utf-8",
+      "expectedTree": "aeafa067d4dd42116245dd6693ddc52b2c25572f",
+      "replayedTree": "aeafa067d4dd42116245dd6693ddc52b2c25572f",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 21,
+      "commit": "8d4004a99648add539450e3658f50861a6d90f32",
+      "parents": [
+        "1a24abefcfdc58689fb5291cb5c4c60c1af189d5"
+      ],
+      "file": "patches/8d4004a99648add539450e3658f50861a6d90f32.patch",
+      "encoding": "utf-8",
+      "expectedTree": "db220029e12bc77e01f5e29af82a76396861b471",
+      "replayedTree": "db220029e12bc77e01f5e29af82a76396861b471",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 22,
+      "commit": "136922870a3a3ee2caf6d6be431b00a67ff9fcce",
+      "parents": [
+        "8d4004a99648add539450e3658f50861a6d90f32"
+      ],
+      "file": "patches/136922870a3a3ee2caf6d6be431b00a67ff9fcce.patch",
+      "encoding": "utf-8",
+      "expectedTree": "84dbe7e6ff9c3b41eb77adcecebe28255de97998",
+      "replayedTree": "84dbe7e6ff9c3b41eb77adcecebe28255de97998",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 23,
+      "commit": "7c9cf20394aef73d261a77f746ebca7340826d30",
+      "parents": [
+        "136922870a3a3ee2caf6d6be431b00a67ff9fcce"
+      ],
+      "file": "patches/7c9cf20394aef73d261a77f746ebca7340826d30.patch",
+      "encoding": "utf-8",
+      "expectedTree": "46237257bb34924b4f3da308d4378ce97d144f94",
+      "replayedTree": "46237257bb34924b4f3da308d4378ce97d144f94",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    },
+    {
+      "position": 24,
+      "commit": "0dfeb1b30a208480eb6901e3d3148a5efeaae5ff",
+      "parents": [
+        "7c9cf20394aef73d261a77f746ebca7340826d30"
+      ],
+      "file": "patches/0dfeb1b30a208480eb6901e3d3148a5efeaae5ff.patch",
+      "encoding": "utf-8",
+      "expectedTree": "d731a6bd56acd68e79aab83fbadb19ab94ad6547",
+      "replayedTree": "d731a6bd56acd68e79aab83fbadb19ab94ad6547",
+      "applyCheckExit": 0,
+      "applyExit": 0
+    }
+  ],
+  "mergeTransitions": [
+    {
+      "beforePatch": 10,
+      "merge": "ff5798765f9943411200df4302edfc7779fa74b7",
+      "parents": [
+        "0a14d268913337bd436e560ab47f670ed43d89c3",
+        "d4da48a5eadd0bda22422b924bef4ee3b4324040"
+      ],
+      "preservedTree": "032d62c7e14fb161db544db5f6ce9b0790902941",
+      "replayedTree": "032d62c7e14fb161db544db5f6ce9b0790902941",
+      "automaticReconstructionExit": 0,
+      "automaticReconstruction": "032d62c7e14fb161db544db5f6ce9b0790902941\n\nAuto-merging ARBEITSSTAND.md",
+      "automaticReconstructionError": "",
+      "method": "Apply the exact recorded first-parent merge delta from the restored bundle."
+    }
+  ],
+  "mainChanged": false,
+  "sourceWorktreeChanged": false,
+  "remoteMutation": false,
+  "newNativeTests": false,
+  "publishedFiles": 30,
+  "checksumEntries": 29,
+  "manifestSHA256": "a06a18a0b6422b38e44ee50b4afd8fb21daa26663c7ddb7145c42c646126f94a",
+  "checksumsSHA256": "be22854f1962b8dae6d612d0bae0f218e41d324a1d5aa8047d14f3d4b8d68d6b",
+  "bundleVerification": {
+    "exit": 0,
+    "output": "The bundle contains this ref:\n0dfeb1b30a208480eb6901e3d3148a5efeaae5ff refs/heads/work/macos-issue-fixes-20261126\nThe bundle requires these 2 refs:\nd4da48a5eadd0bda22422b924bef4ee3b4324040 \n00776ce70e155c7a607ed55a4502d6fcee5a860c \nThe bundle uses this hash algorithm: sha1\nmacos-issue-fixes-0dfeb1b30a208480eb6901e3d3148a5efeaae5ff.bundle is okay\n"
+  },
+  "restoredCommitsBeyondMain": 32,
+  "bundleObjects": {
+    "packs": [
+      {
+        "name": "pack-0d48e3fb6cf6f678dac98c0e0527b3329b1c3fad.idx",
+        "objects": 781,
+        "verifyExit": 0
+      }
+    ],
+    "requiredBeyondMain": 688,
+    "presentInImportedPack": 688,
+    "missing": []
+  },
+  "patchSeriesBase": "616069f15fed21d8d8d05c8ef795f4ed21bd059c",
+  "sequentialReplayFinalTree": "d731a6bd56acd68e79aab83fbadb19ab94ad6547",
+  "bundleRestoresExactCommitMetadata": true,
+  "patchReplayCreatesOriginalTreesOnly": true,
+  "passed": true,
+  "finishedAtUTC": "2026-11-26T12:12:45.301826+00:00",
+  "captureProvenance": {
+    "rawCaptureFilename": "original-handoff-replay.json",
+    "rawBytes": 27809,
+    "rawSHA256": "482c0953737d01a1039a3e30d9442907a9ac1e27ffebd83e498b9f4f1c46044f",
+    "normalization": "Only review-checkout and scratch absolute prefixes are replaced by explicit placeholders; result values, object IDs and test counts are unchanged."
+  }
+}

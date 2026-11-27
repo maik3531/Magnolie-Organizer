@@ -21,12 +21,18 @@ def digest(data):
 
 
 def inputs():
-    roots = [LINUX / "web", LINUX / "symbole", REPO / "contracts", REPO / "port-adapters", BETA / "Projection", BETA / "Sources", BETA / "Resources", REPO / "magnolie-handbuch/web"]
+    # Standalone adapter oracles load this file without the tools search path.
+    # Only a full source capture/build needs the separate import-codec recipe.
+    import project_import_helper
+    roots = [LINUX / "web", LINUX / "symbole", REPO / "contracts", REPO / "port-adapters", BETA / "Projection", BETA / "Sources", BETA / "Resources", BETA / "Receiver", REPO / "magnolie-handbuch/web"]
     files = []
     for root in roots:
         if root.is_symlink():
             raise ValueError("Symlinked source root refused: " + str(root))
         for file in sorted(root.rglob("*")):
+            if root == BETA / "Receiver" and any(part in {".build", "build", "CMakeFiles", "__pycache__"}
+                                                  for part in file.relative_to(root).parts):
+                continue
             if file.is_symlink():
                 raise ValueError("Symlinked source refused: " + str(file))
             if file.is_file():
@@ -36,8 +42,14 @@ def inputs():
               REPO / "magnolie-organizer-windows/BridgeDispatcherContract.cs",
               REPO / "magnolie-organizer-windows/EncryptionService.cs",
               REPO / "magnolie-handbuch/web/mobile-downloads.json",
-              BETA / "Package.swift", BETA / "tools/build_dev.py", Path(__file__).resolve()]
-    return {str(file.relative_to(REPO)): file.read_bytes() for file in sorted(set(files))}
+              BETA / "Package.swift", BETA / "tools/build_dev.py", BETA / "tools/airplay_bundle.py",
+              BETA / "tools/import_python_bundle.py", Path(__file__).resolve()]
+    snapshot = {str(file.relative_to(REPO)): file.read_bytes() for file in sorted(set(files))}
+    imports = project_import_helper.input_snapshot(REPO)
+    if any(snapshot[name] != data for name, data in imports.items() if name in snapshot):
+        raise ValueError("Canonical sources changed while capturing the import helper")
+    snapshot.update(imports)
+    return snapshot
 
 
 def inventory(snapshot):
@@ -138,6 +150,89 @@ def replace_once(text, old, new):
     return text.replace(old, new, 1)
 
 
+def project_contact_copy_birthdays(text):
+    """#776: shared canonical contact-only semantics; no Mac-only rewriting.
+
+    Keep strict source guards for the reviewed normalizer, editor, mutator,
+    print/export and MCP paths so a future drift cannot silently weaken the
+    native-copy contract. Both desktop sources implement the same behavior.
+    """
+    anchors = [
+        '''  // #776: only the explicit public-field copy contract separates a contact
+  // birthday from annual calendar entries. Provenance grants no sync rights.
+  function kontaktGeburtstagNurAmKontakt(kontakt) {
+    const meta = kontakt?.nativeContactImport;
+    return meta?.version === 1 && meta.copyKind === "public-fields" && meta.birthdayPolicy === "contact-only";
+  }
+  function kontaktGeburtstagsEditor(kontakt) {
+    if (!kontaktGeburtstagNurAmKontakt(kontakt)) return null;
+    const field = eingabe("date", kontakt.geburtstag || "", {
+      jahrOptional: true, jahrUnbekannt: !!kontakt.geburtstagJahrUnbekannt });
+    field.id = "kontakt-geburtstag";
+    const element = formZeile(_("Birthday"), field);
+    element.append(el("p", "einst-hinweis", _("Birthday stored with this contact; no calendar entry.")));
+    return { field, element };
+  }
+
+''',
+        '''      const geburtstag = kontaktGeburtstagNurAmKontakt(k)
+        ? kanonischesJahresdatum(S(k.geburtstag), k.geburtstagJahrUnbekannt)
+        : kanonischesGeburtsdatum(S(k.geburtstag), k.geburtstagJahrUnbekannt);''',
+        '''    const kontakteNachName = new Map();
+    for (const k of d.kontakte) {
+      if (kontaktGeburtstagNurAmKontakt(k)) continue;
+      const namen = new Set([''',
+        '''    for (const k of d.kontakte) {
+      if (kontaktGeburtstagNurAmKontakt(k)) continue;
+      const verknuepft = d.jahrestage.find((j) => j.kontaktId === k.id &&''',
+        '''    const fNotiz = eingabe("textarea", k ? k.notiz : "");
+    const contactBirthday = !eigenesProfil && kontaktGeburtstagsEditor(k);
+    fNach.id = "kontakt-nachname";''',
+        '''    form.append(formZeile(_("Note"), fNotiz));
+    if (contactBirthday) form.append(contactBirthday.element);''',
+        '''      notiz: fNotiz.value, foto: fotoWert, fotoManuell: fotoManuell,
+      ...(contactBirthday ? { geburtstag: datumswert(contactBirthday.field), geburtstagText: contactBirthday.field.value } : {}),
+      telefone: kopie(telefone), anschriften: kopie(anschriften),''',
+        '''    const speichernFn = () => {
+      if (contactBirthday && contactBirthday.field.value.trim() && !gueltigesJahresdatum(datumswert(contactBirthday.field))) {
+        contactBirthday.field.focus(); zettel(_("Please enter a valid birth date.")); return false;
+      }
+      if ([...kontaktpersonFotos].some(p => kontaktpersonen.includes(p)))''',
+        '''        firma: fFirma.value.trim(),
+        ...(contactBirthday ? { geburtstag: datumswert(contactBirthday.field),
+          geburtstagJahrUnbekannt: gueltigesTeildatum(datumswert(contactBirthday.field)) } : {}),
+        email: emails[0] || "", emails: emails, emailEintraege: saubereEmails,''',
+        '''      if (!kontaktGeburtstagNurAmKontakt(ziel)) {
+        const birthday = DATEN.jahrestage.find(item => item.kontaktId === ziel.id && istGeburtstagTyp(item.typ));
+        ziel.geburtstag = birthday?.datum || "";
+        ziel.geburtstagJahrUnbekannt = !!birthday && gueltigesTeildatum(birthday.datum);
+      }''',
+        '''  function verknuepfeKontaktGeburtstag(kontakt) {
+    if (kontaktGeburtstagNurAmKontakt(kontakt)) return;
+    if (!kontakt || !gueltigesJahresdatum(kontakt.geburtstag)) return;''',
+        '''    if (kontaktGeburtstagNurAmKontakt(k)) fuege(_("Birthday"), datumAnzeige(k.geburtstag));
+    telefonListe(k).forEach((telefon) => fuege(telefonBezeichnung(telefon), telefon.wert));''',
+        '''      const jahrestag = k.geburtstag ? { datum: k.geburtstag,
+        jahrUnbekannt: !!k.geburtstagJahrUnbekannt } : kontaktGeburtstagNurAmKontakt(k) ? null :''',
+        '''    if (kontaktGeburtstagNurAmKontakt(base) && args.birth_date !== undefined) {
+      if (args.birth_date && !gueltigesJahresdatum(args.birth_date)) throw new MagnolieMcp.ToolError("invalid_date", "Contact birth date is invalid");
+      values.geburtstag = args.birth_date;
+      values.geburtstagJahrUnbekannt = gueltigesTeildatum(args.birth_date);
+    }
+    if (args.anniversaries !== undefined || args.birth_date !== undefined && !kontaktGeburtstagNurAmKontakt(base)) {
+      details.ereignisse =''',
+        '''      if (args.birth_date !== undefined && !kontaktGeburtstagNurAmKontakt(base)) {
+        if (args.birth_date && !gueltigesJahresdatum(args.birth_date))''',
+        '''      const importGeburtstag = kontaktGeburtstagNurAmKontakt(k)
+        ? kanonischesJahresdatum(String(k.geburtstag || ""), k.geburtstagJahrUnbekannt)
+        : kanonischesGeburtsdatum(String(k.geburtstag || ""), k.geburtstagJahrUnbekannt);''',
+    ]
+    for anchor in anchors:
+        if text.count(anchor) != 1:
+            raise ValueError("Canonical contact-only birthday anchor changed: " + anchor[:100])
+    return text
+
+
 def commands(snapshot):
     source = snapshot[str((BETA / "Sources/BetaCore/Contract.swift").relative_to(REPO))].decode()
     block = source.split("public enum Command: String, CaseIterable {", 1)[1].split("\n}", 1)[0]
@@ -161,9 +256,11 @@ def shared_catalogs(snapshot):
 
 def project(snapshot, target):
     """Also used by host tests in a temporary directory, without creating a source freeze."""
+    import project_import_helper
     if target.exists():
         raise ValueError("Projection destination must not exist.")
     target.mkdir(parents=True)
+    project_import_helper.project_snapshot(snapshot, target / "ImportHelper")
     prefix = str(LINUX.relative_to(REPO)) + "/"
     for name, data in snapshot.items():
         if name.startswith(prefix + "web/") or name.startswith(prefix + "symbole/"):
@@ -224,6 +321,29 @@ def project(snapshot, target):
     text = replace_once(text, "  function normalisiere(roh) {",
                         "  function normalisiere(roh) { return window.MacBeta.preserve(roh, normalisiereDesktop(roh)); }\n"
                         "  function normalisiereDesktop(roh) {")
+    text = project_contact_copy_birthdays(text)
+    # #770: an imported EventKit copy carries no native alarm mapping. Preserve
+    # its explicit opt-out on reload instead of canonical legacy defaults
+    # silently enabling the Organizer's standard reminder for the new copy.
+    reminder_default = '''        standardErinnerung: ![1, 2, 3, 4, 5, 6, 7]
+          .includes(Number(t.individuelleErinnerungTage)) ||
+          t.standardErinnerung === undefined ? true : !!t.standardErinnerung,'''
+    text = replace_once(text, reminder_default,
+                        '''        standardErinnerung: t.nativeCalendarImport?.version === 1 && t.standardErinnerung === false
+          ? false : ![1, 2, 3, 4, 5, 6, 7].includes(Number(t.individuelleErinnerungTage)) ||
+            t.standardErinnerung === undefined ? true : !!t.standardErinnerung,''')
+    # Preserve that opt-out through ordinary local edits as well. The existing
+    # checkbox remains visible for native copies even with no custom-day offset,
+    # so enabling an Organizer reminder is an intentional user choice.
+    text = replace_once(text, '''      standardZeile.style.display = hatIndividuelle ? "" : "none";
+      if (!hatIndividuelle) standardHak.checked = true;''',
+                        '''      const nativeCalendarCopy = !neu && termin.nativeCalendarImport?.version === 1;
+      standardZeile.style.display = hatIndividuelle || nativeCalendarCopy ? "" : "none";
+      if (!hatIndividuelle && !nativeCalendarCopy) standardHak.checked = true;''')
+    text = replace_once(text, '''        standardErinnerung: erinnerungsTageAusText(individuellFeld.value)
+          ? standardHak.checked : true,''',
+                        '''        standardErinnerung: erinnerungsTageAusText(individuellFeld.value) || (!neu && termin.nativeCalendarImport?.version === 1)
+          ? standardHak.checked : true,''')
     text = replace_once(text, "  function baueSeiteSync(wurzel) {", '''  function baueSeiteSync(wurzel) {
     const systemSources = el("div"); wurzel.append(systemSources);
     window.MacBetaSystemAccounts.render(systemSources, { tr: _, id: uid,
@@ -232,7 +352,16 @@ def project(snapshot, target):
       send: message => Bruecke.sende(message) });
     baueNextcloudKonto(wurzel); return;''')
     text = replace_once(text, "  function starteSync(stumm) {", '''  function starteSync(stumm) {
-    if (!stumm) zettel("macOS system source synchronization is not implemented. No system data was changed."); return;''')
+    macOSBetaStartSelectedSystemSync(stumm); return;''')
+    # #784: the Mac device page offers only existing local import paths. Keep
+    # desktop phone/Notes/KDE services out of this page until a real Mac adapter
+    # exists; the external KDE Connect application remains a file-transfer route.
+    device_page = snapshot[str((BETA / "Projection/device-import-page.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  function baueSeiteBaum(wurzel) {",
+                        device_page + "\n  function baueSeiteBaum(wurzel) {\n"
+                        "    macOSBetaDeviceImportPage(wurzel); return;")
+    text = replace_once(text, '        (einstSeite === s.id ? " aktiv" : ""), _(s.name));',
+                        '        (einstSeite === s.id ? " aktiv" : ""), s.id === "baum" ? window.MacBeta.text("Devices and imports") : _(s.name));')
     for function in ["baueSicherungsdateien"]:
         anchor = "  function " + function + "(wurzel) {"
         text = replace_once(text, anchor, anchor + '''
@@ -297,8 +426,63 @@ def project(snapshot, target):
     text = replace_once(text, '    { id: "ort", name: msgid("Country & holidays") },',
                         '    { id: "regional", name: msgid("Language and regional display") },\n'
                         '    { id: "ort", name: msgid("Country & holidays") },')
+    system_sync = snapshot[str((BETA / "Projection/system-account-sync.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", system_sync + "\n  const App = {\n"
+                        "    macOSBetaStartSystemSync, macOSBetaSystemSyncBusy, macOSBetaAdmitSystemSync,\n"
+                        "    macOSBetaPrepareSystemSync, macOSBetaCommitSystemSync, macOSBetaSystemSyncFinished,")
     note_import = snapshot[str((BETA / "Projection/note-file-import.js").relative_to(REPO))].decode()
     text = replace_once(text, "  const App = {", note_import + "\n  const App = {\n    macOSBetaStartNoteImport, macOSBetaImportNoteFiles,")
+    legacy_alias = snapshot[str((BETA / "Projection/calendar-legacy-alias.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", legacy_alias + "\n  const App = {\n    macOSBetaNativeCalendarResult,")
+    text = replace_once(text, "  async function bereiteAlteAndroidTerminAliase(nutzlast) {",
+                        "  async function bereiteAlteAndroidTerminAliase(nutzlast) {\n"
+                        "    const nativeAliases = macOSBetaNativeCalendarAliases(nutzlast);")
+    legacy_digest = '''      const text = personalSyncKanonisch([id.params, id.wert]).replace(/\\//g, "\\\\/");
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+      if (DATEN !== bestand || gesperrt || JSON.stringify(DATEN.termine) !== vorher) throw alterAndroidTerminKonflikt();
+      const alt = id.serie + "-magnolie-instanz-" + Array.from(new Uint8Array(digest), x => x.toString(16).padStart(2, "0")).join("").slice(0, 16);'''
+    text = replace_once(text, legacy_digest, '''      let alt;
+      if (nativeAliases) {
+        alt = nativeAliases.get(JSON.stringify([id.key, t.uid]));
+        if (!alt) throw alterAndroidTerminKonflikt();
+      } else {
+''' + "\n".join("  " + line for line in legacy_digest.replace("const alt =", "alt =").splitlines()) + '''
+      }''')
+    text = replace_once(text,
+                        "  function wendeDateiImportDatenAn(nutzlast, termineNormalisiert = false, kontaktPruefung = null, leise = false, notizbuchId = null) {",
+                        "  function wendeDateiImportDatenAn(nutzlast, termineNormalisiert = false, kontaktPruefung = null, leise = false, notizbuchId = null) {\n"
+                        "    macOSBetaNativeCalendarAliases(nutzlast); // Validate before mutating any collection.")
+    text = replace_once(text, "          App.importErgebnis({ ...nutzlast, termine: termine }, true);",
+                        "          return App.importErgebnis({ ...nutzlast, termine: termine }, true);")
+    file_import = snapshot[str((BETA / "Projection/file-import.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", file_import + "\n  const App = {\n"
+                        "    macOSBetaPrepareFileImport, macOSBetaCommitFileImport, macOSBetaCancelFileImport,")
+    text = replace_once(text, "    importErgebnis(nutzlast, termineNormalisiert = false, kontaktPruefung = null) {",
+                        "    importErgebnis(nutzlast, termineNormalisiert = false, kontaktPruefung = null) {\n"
+                        "      macOSBetaFileImportFailure(nutzlast);")
+    text = replace_once(text, '          return new Promise(resolve => mitMutationsSnapshot("pre-contact-import", () => {',
+                        '          return new Promise((resolve, reject) => mitMutationsSnapshot("pre-contact-import", () => {')
+    text = replace_once(text, "            App.importErgebnis(eingang, termineNormalisiert, pruefung); resolve();",
+                        "            try { Promise.resolve(App.importErgebnis(eingang, termineNormalisiert, pruefung)).then(resolve, reject); }\n"
+                        "            catch (error) { reject(error); }")
+    text = replace_once(text, "      zettel(text);\n      setupImportBeenden();\n    },\n    printErgebnis(nutzlast) {",
+                        "      macOSBetaFileImportNotice(text);\n      setupImportBeenden();\n    },\n    printErgebnis(nutzlast) {")
+    calendar_import = snapshot[str((BETA / "Projection/system-calendar-import.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", calendar_import + "\n  const App = {\n"
+                        "    macOSBetaStartCalendarImport, macOSBetaPrepareCalendarImport,\n"
+                        "    macOSBetaCommitCalendarImport, macOSBetaCancelCalendarImport,")
+    apple_notes_import = snapshot[str((BETA / "Projection/apple-notes-import.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", apple_notes_import + "\n  const App = {\n"
+                        "    macOSBetaStartAppleNotesImport, macOSBetaPrepareAppleNotesImport,\n"
+                        "    macOSBetaCommitAppleNotesImport, macOSBetaCancelAppleNotesImport,")
+    contact_import = snapshot[str((BETA / "Projection/system-contact-import.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", contact_import + "\n  const App = {\n"
+                        "    macOSBetaStartContactImport, macOSBetaPrepareContactImport,\n"
+                        "    macOSBetaCommitContactImport, macOSBetaCancelContactImport,")
+    reminder_import = snapshot[str((BETA / "Projection/system-reminder-import.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", reminder_import + "\n  const App = {\n"
+                        "    macOSBetaStartReminderImport, macOSBetaPrepareReminderImport,\n"
+                        "    macOSBetaCommitReminderImport, macOSBetaCancelReminderImport,")
     text = replace_once(text, "  const App = {", '''  let macOSBetaPreparedRestore = null;
   const App = {
     macOSBetaPrepareNativeRestore(text, operationID) {
@@ -357,6 +541,8 @@ def project(snapshot, target):
     reminder = text[reminder_start:reminder_end]
     reminder = replace_once(reminder, "if (Bruecke.vorhanden) return;",
                             "if (!initialisiert || gesperrt) return;")
+    reminder = replace_once(reminder, "      if (!tage || t.standardErinnerung !== false) {",
+                            "      if (t.nativeCalendarImport?.version === 1 ? t.standardErinnerung !== false : !tage || t.standardErinnerung !== false) {")
     task_start = reminder.index("    for (const aufgabe of DATEN.aufgaben.concat(customAufgabenFuerErinnerung())) {")
     task_end = reminder.index("\n    }\n  }", task_start) + len("\n    }")
     reminder = reminder[:task_start] + '''    for (const aufgabe of DATEN.aufgaben.concat(customAufgabenFuerErinnerung())) {
@@ -411,6 +597,8 @@ def project(snapshot, target):
     adapter = snapshot[str((BETA / "Projection/macos-beta.js").relative_to(REPO))].decode()
     adapter = replace_once(adapter, "/*GENERATED_COMMANDS*/[]", json.dumps(commands(snapshot)))
     adapter = replace_once(adapter, "/*GENERATED_IDENTITY*/{}", json.dumps(identity))
+    adapter = replace_once(adapter, "/*GENERATED_NATIVE_TEXT*/{}",
+                           json.dumps(json.loads(snapshot[str((BETA / "Resources/native-extra-i18n.json").relative_to(REPO))]), ensure_ascii=False))
     (target / "web/macos-beta.js").write_text(adapter)
     (target / "web/system-accounts.js").write_bytes(snapshot[str((BETA / "Projection/system-accounts.js").relative_to(REPO))])
     (target / "web/macos-beta.css").write_bytes(snapshot[str((BETA / "Projection/macos-beta.css").relative_to(REPO))] +
@@ -481,6 +669,7 @@ def frozen(snapshot):
 
 
 def verify():
+    from project_import_helper import canonical_temporary_root
     snapshot = inputs()
     freeze = frozen(snapshot)
     manifest = json.loads((GENERATED / "ProjectionManifest.json").read_text())
@@ -488,7 +677,7 @@ def verify():
         raise ValueError("Generated payload differs from its frozen input/output manifest.")
     # A manifest is not authority for hand-edited payloads; reproduce the projection and compare.
     with tempfile.TemporaryDirectory(prefix="macOS-Beta-check-") as temp:
-        expected = Path(temp) / "UI"
+        expected = canonical_temporary_root(temp) / "UI"
         project(snapshot, expected)
         if tree_hashes(expected) != tree_hashes(GENERATED):
             raise ValueError("Generated UI is not the reproducible canonical projection.")

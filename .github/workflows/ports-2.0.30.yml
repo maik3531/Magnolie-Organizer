@@ -44,7 +44,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     env:
       MACOS_ARCH: ${{ matrix.arch }}
-    timeout-minutes: 25
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash
@@ -59,24 +59,22 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
-      - name: Select the published desktop sources without replacing the port
+      - name: Bind the Mac candidate to the current selected checkout
         run: |
           set -euo pipefail
-          test "$(git rev-parse v2.0.30^{commit})" = "$DESKTOP_COMMIT"
-          git restore --source="$DESKTOP_COMMIT" -- magnolie-organizer magnolie-organizer-windows magnolie-handbuch magnolie-notes contracts LICENSE.md PROTECTED-ASSETS-LICENSE.txt
           mkdir -p "$RUNNER_TEMP/port-proof"
-          python3 - <<'PY'
-          import json, os, pathlib, subprocess
-          proof = dict(portCommit=os.environ['GITHUB_SHA'], desktopTag='v2.0.30',
-                       desktopCommit=os.environ['DESKTOP_COMMIT'],
-                       nativeAcceptance=False, productionRelease=False)
-          pathlib.Path(os.environ['RUNNER_TEMP'], 'port-proof', 'sources.json').write_text(json.dumps(proof, indent=2)+'\n')
-          PY
+          python3 Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py
+          python3 Magnolie-Organizer-macOS-Beta/tools/candidate_sources.py record --expected-commit "$GITHUB_SHA" \
+            --proof "$RUNNER_TEMP/port-proof/sources.json"
+          python3 Magnolie-Organizer-macOS-Beta/tools/check_cloud_environment.py \
+            --name "GitHub macOS VM $MACOS_ARCH" --require-native-build \
+            --output "$RUNNER_TEMP/port-proof/environment-$MACOS_ARCH.json"
       - name: Prepare private dependencies and canonical catalogs
         run: |
           set -euo pipefail
           if ! brew list gettext >/dev/null 2>&1; then brew install gettext; fi
           export PATH="$(brew --prefix gettext)/bin:$PATH"
+          python3 Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py --prepare-dependencies
           python3 -m venv "$RUNNER_TEMP/mac-python"
           "$RUNNER_TEMP/mac-python/bin/pip" install --disable-pip-version-check cryptography==46.0.3
           npm install --prefix "$RUNNER_TEMP/mac-js" --ignore-scripts --no-audit --no-fund --save-exact jsdom@26.1.0
@@ -105,18 +103,57 @@ jobs:
           python3 tools/check_timezone_provider.py --definitions --swift "$(command -v swift)" \
             --archive "$RUNNER_TEMP/tzdata2026egtz-rearguard.tar.gz" \
             | tee "$RUNNER_TEMP/port-proof/timezone-provider-$MACOS_ARCH.log"
-      - name: Freeze this isolated build's published source and run host and Apple tests
+      - name: Build the private source-pinned import runtime
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          python3 Magnolie-Organizer-macOS-Beta/tests/test_import_python_bundle.py
+          python3 Magnolie-Organizer-macOS-Beta/tests/test_airplay_bundle.py
+          python3 Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py \
+            --download --source-archive "$RUNNER_TEMP/Python-3.15.2.tar.xz" \
+            --output "$RUNNER_TEMP/import-python" \
+            > "$RUNNER_TEMP/port-proof/import-python-$MACOS_ARCH.log" 2>&1
+          cp "$RUNNER_TEMP/import-python/runtime.json" "$RUNNER_TEMP/port-proof/import-python-$MACOS_ARCH.json"
+      - name: Freeze this isolated build's current source and run host and Apple tests
         working-directory: Magnolie-Organizer-macOS-Beta
         run: |
           set -euo pipefail
+          export PATH="$(brew --prefix gettext)/bin:$PATH"
+          export MACOS_BETA_IMPORT_PYTHON="$RUNNER_TEMP/import-python/ImportPython.app/Contents/MacOS/python3.15"
+          "$RUNNER_TEMP/mac-python/bin/python" tests/test_import_helper.py
           python3 tools/project_ui.py freeze --confirm-desktop-frozen
           python3 tools/project_ui.py generate
           export MACOS_BETA_JSDOM="$RUNNER_TEMP/mac-js/node_modules/jsdom/lib/api.js"
           export MACOS_BETA_SWIFT="$(command -v swift)"
           export MACOS_BETA_UI_PATH="$PWD/Generated"
+          python3 tools/check_current_sources.py --js-runtime node
+          python3 tools/check_file_import.py --js-runtime node --ui "$PWD/Generated"
           "$RUNNER_TEMP/mac-python/bin/python" tools/crypto_vectors.py --check
           "$RUNNER_TEMP/mac-python/bin/python" tests/test_host.py
-          MACOS_BETA_LIVE_HOLIDAYS=1 python3 tools/build_dev.py
+          MACOS_BETA_LIVE_HOLIDAYS=1 python3 tools/build_dev.py --import-runtime "$RUNNER_TEMP/import-python"
+          python3 tools/project_ui.py check
+      - name: Exercise the actual Swift import process and packaged private runtime
+        working-directory: Magnolie-Organizer-macOS-Beta
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          python3 tools/check_native_file_import_process.py \
+            --bundle "$PWD/Output/Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app" \
+            --sources "$RUNNER_TEMP/port-proof/sources.json" --expected-commit "$GITHUB_SHA" \
+            --output "$RUNNER_TEMP/port-proof/native-file-import-process-$MACOS_ARCH.json"
+      - name: Verify optimized Swift code for the later stable integration
+        working-directory: Magnolie-Organizer-macOS-Beta
+        timeout-minutes: 12
+        run: |
+          set -euo pipefail
+          # Refs #121: optimization is a separate test context. The packaged
+          # candidate remains the explicitly identified ad-hoc Debug app.
+          export MACOSX_DEPLOYMENT_TARGET=12.7
+          export MACOS_BETA_UI_PATH="$PWD/Generated"
+          export MACOS_BETA_JSDOM="$RUNNER_TEMP/mac-js/node_modules/jsdom/lib/api.js"
+          export MACOS_BETA_IMPORT_PYTHON="$RUNNER_TEMP/import-python/ImportPython.app/Contents/MacOS/python3.15"
+          MACOS_BETA_LIVE_HOLIDAYS=1 swift test -c release --jobs 2 \
+            2>&1 | tee "$RUNNER_TEMP/port-proof/swift-release-$MACOS_ARCH.log"
           python3 tools/project_ui.py check
       - name: Start, save, quit and reopen the real app bundle
         working-directory: Magnolie-Organizer-macOS-Beta
@@ -130,6 +167,8 @@ jobs:
           set -euo pipefail
           output='Output/Magnolie Organizer macOS Beta-2.0.30-beta.1'
           app="$output/Magnolie Organizer macOS Beta.app"
+          python3 tools/candidate_sources.py verify --expected-commit "$GITHUB_SHA" \
+            --proof "$RUNNER_TEMP/port-proof/sources.json"
           codesign --verify --strict "$app"
           cp "$RUNNER_TEMP/port-proof/sources.json" "$output/sources.json"
           cp SourceFreeze.json "$output/SourceFreeze.json"

@@ -6,6 +6,7 @@ __pycache__/
 *.pyc
 .ci-js/
 .ci-python/
+.import-dependencies/
 
 # Private working reports, not product source
 /HANDOFF.md

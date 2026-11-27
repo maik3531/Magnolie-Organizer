@@ -10455,3 +10455,11 @@ msgstr "Переглянути екран цього телефона?"
 
 msgid "Your phone must approve screen sharing."
 msgstr "Підтвердьте демонстрацію екрана на телефоні."
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Birthday stored with this contact; no calendar entry."
+msgstr "Дата народження збережена в контакті; запис у календарі не створюється."
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Please enter a valid birth date."
+msgstr "Введіть коректну дату народження."

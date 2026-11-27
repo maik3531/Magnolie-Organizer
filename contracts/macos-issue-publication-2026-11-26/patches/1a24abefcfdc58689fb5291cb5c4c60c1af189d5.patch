@@ -1,0 +1,55 @@
+From 1a24abefcfdc58689fb5291cb5c4c60c1af189d5 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 08:37:48 +0100
+Subject: [PATCH] Refs #121 #786: record runner access and refresh native
+ bridge coverage
+
+---
+ Magnolie-Organizer-macOS-Beta/BRIDGE-COVERAGE.md   | 5 +++--
+ Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md | 7 ++++++-
+ 2 files changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/Magnolie-Organizer-macOS-Beta/BRIDGE-COVERAGE.md b/Magnolie-Organizer-macOS-Beta/BRIDGE-COVERAGE.md
+index e1afa3f96a7f091f7ea3b36e226366e36b0ecb61..d149c3018d15726a51f8c88e193701eb2499becf 100644
+--- a/Magnolie-Organizer-macOS-Beta/BRIDGE-COVERAGE.md
++++ b/Magnolie-Organizer-macOS-Beta/BRIDGE-COVERAGE.md
+@@ -50,7 +50,7 @@ Windows contract SHA-256: `7d1245d48d7b378832cadf2291ee5eb23d59339d0a0fad87f7775
+ | `contributor_pruefen` | yes | yes | UNSUPPORTED: negative Beta response |
+ | `debug_startphase` | yes | — | UNSUPPORTED: negative Beta response |
+ | `drucken` | yes | yes | source: isolated JS-free print renderer and AppKit system print/PDF dialog; native acceptance pending |
+-| `eds_status` | yes | yes | partial: passive native EventKit/Contacts discovery; no synchronization |
++| `eds_status` | yes | yes | partial: passive native EventKit/Contacts discovery and field-sync capabilities; discovery itself grants no write authority |
+ | `eigenes_profil_office` | yes | yes | UNSUPPORTED: negative Beta response |
+ | `eigenes_profil_telefon` | yes | yes | UNSUPPORTED: negative Beta response |
+ | `entsperren` | yes | yes | partial: v1/v2 Apple crypto fixtures verified; full password lifecycle pending |
+@@ -127,7 +127,8 @@ Windows contract SHA-256: `7d1245d48d7b378832cadf2291ee5eb23d59339d0a0fad87f7775
+ | `macos_erinnerungen_importieren` | — | — | source: explicit EventKit reminder list/item selection, reviewed standalone local task copies + re-read + recovery + save ACK; hierarchy unavailable, no source writes or sync; native execution unverified (#777) |
+ | `macos_kalender_importieren` | — | — | source: explicit EventKit calendar/date picker, reviewed additive local copies + recovery + save ACK; no sync; native execution unverified (#770) |
+ | `macos_kontakte_importieren` | — | — | source: explicit Contacts container/contact selection, reviewed additive public-field copies + re-read + recovery + save ACK; no source writes or sync; native execution unverified (#775) |
+-| `macos_systemzugriff` | — | — | partial: explicit OS access prompt and refreshed source status; no synchronization |
++| `macos_system_sync` | — | — | source: explicit native source/book/window grant; additive first linking and bounded two-way field updates; encrypted intent/readback journal + actual saved-disk baseline commit; no create/delete/automatic schedule; Apple API execution unverified (#786) |
++| `macos_systemzugriff` | — | — | partial: explicit OS access prompt and refreshed source status; separate native field-sync grant required |
+ | `mail` | yes | yes | partial: bounded single-recipient mailto to resolved system app; open acceptance only; native handler unverified |
+ | `mcp_antwort` | yes | yes | UNSUPPORTED: negative Beta response |
+ | `medien_backup` | yes | — | UNSUPPORTED: negative Beta response |
+diff --git a/Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md b/Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md
+index b6b5f2d9660577dcb8bcbf4fdd3244542838071a..5247127fad0fe12960db177a3e2cd4ef14a75fcb 100644
+--- a/Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md
++++ b/Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md
+@@ -151,7 +151,12 @@ gh workflow run ports-2.0.30.yml \
+ ```
+ 
+ Das ist eine vorbereitete Anweisung; im aktuellen Auftrag wurde dieser neue
+-Mac-Lauf nicht ausgeführt. Run-ID und `head_sha` danach tatsächlich auslesen.
++Mac-Lauf nicht ausgeführt. Die verfügbare GitHub-Anbindung erlaubte die
++Issue-/Quellarbeit, bot aber keinen Workflow-Start an; die hier installierte
++GitHub-CLI meldete beim lesenden `gh auth status --hostname github.com`
++ausdrücklich keine angemeldete Sitzung. Deshalb wurde keine erfolgreiche
++Dispatch- oder Runnerausführung behauptet. Run-ID und `head_sha` nach einem
++tatsächlichen späteren Start auslesen.
+ Nur ein grüner Lauf auf genau dem geprüften Commit zählt für dessen native
+ Abnahme. Die Prüfung ist keine Freigabe zur Veröffentlichung eines Pakets.
+ 
+-- 
+2.56.1
+

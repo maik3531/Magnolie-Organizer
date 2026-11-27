@@ -1,0 +1,1216 @@
+{
+  "architecture": "arm64",
+  "files": {
+    "Contents/Info.plist": "a478cbb10e7f192b8647e46858a5c48dec014578bbf0b114747a62da825283ab",
+    "Contents/MacOS/python3.15": "7b430e4eb4a8a6d14b6ac3ffebb461cc53ed129bc55fc87c6aacc23e28a8032b",
+    "Contents/PlugIns/_bisect.cpython-315.so": "91cb231fa8e1a81c425924b714edda32ff18ac85adf73b71f764473fb3d54cb6",
+    "Contents/PlugIns/_blake2.cpython-315.so": "56e89a1be1423006ea7d662188682466b25279039988759464d48dfd573fbbb8",
+    "Contents/PlugIns/_bz2.cpython-315.so": "6c95c3cc59213d424e92621bc89802f1211a10fe4a94433fa56ed268f7caede3",
+    "Contents/PlugIns/_codecs_cn.cpython-315.so": "113748e085d0de63d09aa69aba44e3b1bfda668e4afa7dcfaa32a3ad6ed92978",
+    "Contents/PlugIns/_codecs_hk.cpython-315.so": "dbcc59a384acbad2ad62526167b9209ec95dcb11df59c232f74d21a05c78e838",
+    "Contents/PlugIns/_codecs_iso2022.cpython-315.so": "7f1924f8dba6156adf8fa89c683260f2549e3de6530e42404b2cf6438140a70c",
+    "Contents/PlugIns/_codecs_jp.cpython-315.so": "eac90e358f3d109e9c2dc58326ed355a06d450abc17e7eaeab38d72757172dde",
+    "Contents/PlugIns/_codecs_kr.cpython-315.so": "4911046a310eee0e45e98ac30df50eda84cbd1d0d631d608172e936286a0494a",
+    "Contents/PlugIns/_codecs_tw.cpython-315.so": "637b591cae091950fb9b8213a65ca44d79d03603cc7bc2f68bf89a6170b6ac0f",
+    "Contents/PlugIns/_csv.cpython-315.so": "b9052aea09b48a0da008eaf867402442fafaf22910b599f0ad1322fd55869135",
+    "Contents/PlugIns/_elementtree.cpython-315.so": "d16314d0e3396b9103a4042885dba07959980cec292865af0203b61fb9853ccd",
+    "Contents/PlugIns/_heapq.cpython-315.so": "5d20e7d00038b2c7e7d70805138f379df47fb1989e538ac64381c92e91f0c439",
+    "Contents/PlugIns/_hmac.cpython-315.so": "69b826aa80da22bb0534a61de6c45951488f4a98f32bbc0a33fab2fafe32dad4",
+    "Contents/PlugIns/_interpchannels.cpython-315.so": "b7cfa84fdaad92c384a3b8474d90f6259152da304084665cb56c32338e273fe6",
+    "Contents/PlugIns/_interpqueues.cpython-315.so": "4383bb89a320b646fd8ce7fe03f7d40bb0909e8334751a9be67e46f2fc297266",
+    "Contents/PlugIns/_interpreters.cpython-315.so": "0830e160752d0750c62e12103d241f2df220cbf42b401fccf4564361f8d9392d",
+    "Contents/PlugIns/_json.cpython-315.so": "74d495283d3960cb86ca5c386e2683d4db0ba7e8e4c51bd04888b6126350a0a5",
+    "Contents/PlugIns/_lsprof.cpython-315.so": "9d8b7095ed57e308f724cd873e866e2beaf2e09511899801a9468f065b1003f5",
+    "Contents/PlugIns/_lzma.cpython-315.so": "d2b998c77813e4f524a6a855e798d9dce8964f9267e41d46e404335122a27a98",
+    "Contents/PlugIns/_math_integer.cpython-315.so": "75c4bccc900ec83d8515de11882f0ee5384e86cd2efb80361fc681f99a2720d9",
+    "Contents/PlugIns/_md5.cpython-315.so": "58977acbeec62f7c50d0d7f6f7514900a54e1154081b831f421c3b1d1cba61cd",
+    "Contents/PlugIns/_multibytecodec.cpython-315.so": "52fc07e47f248bd2574410ca3b4e4498a6d236b1f63e46b8d8405075fcc95c2d",
+    "Contents/PlugIns/_multiprocessing.cpython-315.so": "2222f78731c2540e83aaf349ff62b893cc3adc1c20947719a2768baabc927e81",
+    "Contents/PlugIns/_pickle.cpython-315.so": "320421ecd8b78ba7730cd237a998bac1cc3ca7ccf82592df83194536451b000c",
+    "Contents/PlugIns/_posixshmem.cpython-315.so": "8de0d49976c89d1f15691555419764795cf104caa842b9d0fa321219dcc34f95",
+    "Contents/PlugIns/_posixsubprocess.cpython-315.so": "4aa31a247c8b4b4c582818bc339ff99385f31ce641490291f6fcd92163b10639",
+    "Contents/PlugIns/_queue.cpython-315.so": "c4f3c1c04b245efc1c792bce5f0eea73fe668a6be3653a7fa2a4cf6b30ea4d24",
+    "Contents/PlugIns/_random.cpython-315.so": "9172696e1f9d198f83bc40b66924c166555e79407b68cf67bf5ab969f65d6946",
+    "Contents/PlugIns/_scproxy.cpython-315.so": "cfc77684825094139fcf006b7f26360c96e2955810944b5b8e4ccc5297282ccd",
+    "Contents/PlugIns/_sha1.cpython-315.so": "d00da1e3f96706fb8cfb753ab39ade35dd57401ffe4bb2688c031f3577df2fc1",
+    "Contents/PlugIns/_sha2.cpython-315.so": "f39edf0ef9ee0525767f0565232815905dbd0105333c1c4afad6697f5d3ab498",
+    "Contents/PlugIns/_sha3.cpython-315.so": "f9a8ad256caa6b756a4a86b6b027fba8df16daf14de2c65096a1908c8f68b279",
+    "Contents/PlugIns/_socket.cpython-315.so": "8b9058310d00bcc262dfc8794aa0101127b213e8e01f7d50084a2117c1027359",
+    "Contents/PlugIns/_statistics.cpython-315.so": "4e0e6900116b41a010dbe6e54682530f77c295d320d64160c4819cf803df3a1d",
+    "Contents/PlugIns/_struct.cpython-315.so": "6500356629c20739d28bd9d23192f47a1f6df3ae006eea5923dc1d28a1c49dbc",
+    "Contents/PlugIns/_uuid.cpython-315.so": "ba123b748da3587be2af5de7842cf90dc971bfe5e6173ce85fba4f73a8781e4e",
+    "Contents/PlugIns/_zoneinfo.cpython-315.so": "3a6cfa38b42de5da13d848f64508c9d2ae63be4bd15661deef2f414961b2376b",
+    "Contents/PlugIns/array.cpython-315.so": "a1877330033e889d96a6771406cb7faf62e7427d888c0030a4801c9ef1128ee9",
+    "Contents/PlugIns/binascii.cpython-315.so": "a3c23e0b3623da9cdc4e12ab9d11faf9456f05542eddb3e3ab43240fc7f37205",
+    "Contents/PlugIns/cmath.cpython-315.so": "a5d0d3a6b25d20519f170bef17738dba9c5b56071d2289d37584d507aa077db6",
+    "Contents/PlugIns/fcntl.cpython-315.so": "4e60361f326027507e510325e0c43cea2f79c402ee718d1e3b00e3171530204e",
+    "Contents/PlugIns/grp.cpython-315.so": "eb218408497de95b00af3e1d69f53a3e7b167cf982263a9b527302fa629c6b6c",
+    "Contents/PlugIns/math.cpython-315.so": "951be9ec9b4d474aead35d2ed70679712a8aa5f6a842b4c6b4d6b5e05b9f5e34",
+    "Contents/PlugIns/mmap.cpython-315.so": "5775873ba6320acde1a5acd0b36f2dbeb862235f1f3f0be5cdd822df39dbd304",
+    "Contents/PlugIns/pyexpat.cpython-315.so": "02f2fe2c6858f60019537f78db28e85288c09aa52f720ba1d20f3b926bc58031",
+    "Contents/PlugIns/resource.cpython-315.so": "43dfc232919535fbc1b86fce90bc788ce7457d5dc1e27a85546a54176017e807",
+    "Contents/PlugIns/select.cpython-315.so": "5367630025a36b90c8fd14e81e02d0d4a9708180be8e01aa5b9cf15de79c1dc2",
+    "Contents/PlugIns/syslog.cpython-315.so": "b935a329d480794807a690bd6bcaa51bb8c6408c08b91b975267a973de4e9199",
+    "Contents/PlugIns/termios.cpython-315.so": "6748c7a9b42a465d2f40559b0cd8d649898228a5655daae9d0a14421ef5d3d46",
+    "Contents/PlugIns/unicodedata.cpython-315.so": "579dc9a548061afed8626d9af47ba6aa026857fd1b6f57323e41f2c2fe16793b",
+    "Contents/PlugIns/zlib.cpython-315.so": "47e9fcc3d244b73fa97009ee89eefc715f2f21a1d5459df14ba7b6ecfd898d63",
+    "Contents/Resources/LICENSE-Python.txt": "b0e25a78cffb43f4d92de8b61ccfa1f1f98ecbc22330b54b5251e7b6ba010231",
+    "Contents/Resources/LICENSE-XZ-Utils.txt": "616a3ad264ce29b8f1cb97e53037b139d406899ca8d1f799651e17bfa09830b8",
+    "Contents/Resources/LICENSE-liblzma-0BSD.txt": "0b01625d853911cd0e2e088dcfb743261034a091bb379246cb25a14cc4c74bf1",
+    "Contents/Resources/lib/python3.15/__future__.py": "981d4c398849f9ebcab72300d9c1fe288fd6d7f28957b3b3fa3a493a5836d95c",
+    "Contents/Resources/lib/python3.15/__hello__.py": "a8ce70b199497950f0f06def93115a6814daf1f961934457f59046909901487f",
+    "Contents/Resources/lib/python3.15/__phello__/__init__.py": "56f7ed595e767c558ded05def14b682893105daf504500c3443b458ca2431bc6",
+    "Contents/Resources/lib/python3.15/__phello__/ham/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Contents/Resources/lib/python3.15/__phello__/ham/eggs.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Contents/Resources/lib/python3.15/__phello__/spam.py": "56f7ed595e767c558ded05def14b682893105daf504500c3443b458ca2431bc6",
+    "Contents/Resources/lib/python3.15/_aix_support.py": "0982f187c62fbfc1e8d368c8eb4104b56df71009a6b2823565a699e7b4cd945c",
+    "Contents/Resources/lib/python3.15/_android_support.py": "2892865f6914f27885d4290d71690336f13210fb1465ae7e47ae1cb3e13c0a5e",
+    "Contents/Resources/lib/python3.15/_apple_support.py": "3bde7533b66dafa0c755c92bf09b30932a723ca58905a3fac670d53e3149f47b",
+    "Contents/Resources/lib/python3.15/_ast_unparse.py": "ced4879bf243b902b4f9011d5f15634bb3549da63f5fb82355992f784cb2e50a",
+    "Contents/Resources/lib/python3.15/_collections_abc.py": "db8e671d51f932adbb0cb303934a603232f04f359bb66b275cb577912d059d63",
+    "Contents/Resources/lib/python3.15/_colorize.py": "d43930e23704a39ba9a4c554652b3776732537b81df46152487064adf9a50362",
+    "Contents/Resources/lib/python3.15/_compat_pickle.py": "c05d6fe432dccba616ee61e61356d1ca796121c905bc7cc876a14722ee9acd4b",
+    "Contents/Resources/lib/python3.15/_ios_support.py": "9ea3cf1835d877cdc944c7167e5460d9f8174c1aa4a601e0afa40dc894bc92ea",
+    "Contents/Resources/lib/python3.15/_markupbase.py": "01046da4883344a898fb1261a0805a7ab1bae371e95ade31311ac03b43b33c98",
+    "Contents/Resources/lib/python3.15/_opcode_metadata.py": "3a451ba73726b21e47424721df8fb42dc43b7e9cc29579cd60e36e9bc2157d7e",
+    "Contents/Resources/lib/python3.15/_osx_support.py": "038de9860881d8d9852fd73e846b62d79347731c1158b210ec1728f76446f637",
+    "Contents/Resources/lib/python3.15/_py_abc.py": "1cb1d58564945345e5dd6c8efda3c30022c43c90d465a742d79f99ce35f691d8",
+    "Contents/Resources/lib/python3.15/_py_warnings.py": "cee96b0b1d025884d88904b84f3c1982910693dcf84ef41920f7359435c86694",
+    "Contents/Resources/lib/python3.15/_pydatetime.py": "657fa302b8d219a9ec3fe8997cfe1195b6eaa35e9cabbf402c2aa87f07e0ecec",
+    "Contents/Resources/lib/python3.15/_pydecimal.py": "f65b1d4204dd7dbfedf0970bb8d69d1170343df9401deacc5361ee45be16ed70",
+    "Contents/Resources/lib/python3.15/_pyio.py": "553b58f16a118b56602804877a0216cd48b5e8b2876ca6adc348a7773e186364",
+    "Contents/Resources/lib/python3.15/_pylong.py": "3c82c3d1f8ed6058fc9b2c1362634d6fdfb8db9db207a980f702fedde5cb93ff",
+    "Contents/Resources/lib/python3.15/_pyrepl/__init__.py": "f2de534027869b0b5cf0f9a62d3d0b53e62688b483ef0d8b351257e07f255165",
+    "Contents/Resources/lib/python3.15/_pyrepl/__main__.py": "3b207710ddae4728028d57c550d4315f88a626f06265cb719dd29f7b04977685",
+    "Contents/Resources/lib/python3.15/_pyrepl/_module_completer.py": "76877c1c0eae0e5299fa04f953b6068b9a7cb0b0ab6014cbca6876f3293dd0c3",
+    "Contents/Resources/lib/python3.15/_pyrepl/_threading_handler.py": "fa38840e7d147f5969bc76e2269ccfeb6ab4e64350845a6b34f9df576a04d7fe",
+    "Contents/Resources/lib/python3.15/_pyrepl/base_eventqueue.py": "4ec1110f52ccba2e4e751e8c0fc0f6842ea2b67c2458b8639cc62c068f6e11f1",
+    "Contents/Resources/lib/python3.15/_pyrepl/commands.py": "05e72a32e6f284e48db7cd38e479975e9c0494df99f830e7416ce0128308c5c2",
+    "Contents/Resources/lib/python3.15/_pyrepl/completing_reader.py": "9450fecdfc6331d05d5c93fa46d9df3ae042105acad67189499a5292e1af38cd",
+    "Contents/Resources/lib/python3.15/_pyrepl/console.py": "9d2dbd4bdef4128f3f0e4958a68921e33dfaa3886e495e381e1e4fffebe4a626",
+    "Contents/Resources/lib/python3.15/_pyrepl/content.py": "149baf9278403c1b169e22864a58e44e8333d5e36e36643118fcfdad547cff52",
+    "Contents/Resources/lib/python3.15/_pyrepl/fancy_termios.py": "a9228c28fb0bbbcd55957945e91aab7e7e97a0e4cb6ea79dd1cb71e03ce8b8b3",
+    "Contents/Resources/lib/python3.15/_pyrepl/fancycompleter.py": "4c15537f1c17e97a1c0f92c747a741fb26daca07d5e0d6a216e159dedea222f0",
+    "Contents/Resources/lib/python3.15/_pyrepl/historical_reader.py": "f04a530a489791361c3ea44cd0f2c71d781a3c208039f9978eac18f9096a5b94",
+    "Contents/Resources/lib/python3.15/_pyrepl/input.py": "359369c136d1827a5db7f41975af00b0daa1a89ec8ba065cd6ed64c3c77c1177",
+    "Contents/Resources/lib/python3.15/_pyrepl/keymap.py": "b8c2fa9bf99adcbfc56b2f45784a9006dec50f02dd8d518f741a62c47f4fa46c",
+    "Contents/Resources/lib/python3.15/_pyrepl/layout.py": "1e0dcb38edc6430810a1d3908760987149c00b0cbcbbdcb91e8d3c3ea695d1fb",
+    "Contents/Resources/lib/python3.15/_pyrepl/main.py": "6bf86e18aea5d678a1c7c32fc3fae3c2c421bebf81b519130dbc2886ecc8900f",
+    "Contents/Resources/lib/python3.15/_pyrepl/mypy.ini": "e645bb87dcaf295c22350795e24e4508914aa825e63daa294b5e218e0683da2a",
+    "Contents/Resources/lib/python3.15/_pyrepl/pager.py": "e5f5d0eb4fc8e6e35915e7346a0ddffa77492c60a614cf24ac4905c08082c8b7",
+    "Contents/Resources/lib/python3.15/_pyrepl/reader.py": "8272483f4dab21eb6f837be166fa0a79b230067a6e8f3e17e756a61dcd265d99",
+    "Contents/Resources/lib/python3.15/_pyrepl/readline.py": "990a880d58b61c14e7f7171c2d2e5772e1c1dc11dc7237fa94cf53469a0928d9",
+    "Contents/Resources/lib/python3.15/_pyrepl/render.py": "008730d70c759519839b0e96dedf16f9b2cd8a7f6f92630f8e19fd9c301f0dca",
+    "Contents/Resources/lib/python3.15/_pyrepl/simple_interact.py": "35951e59d0fa74ebc1180f81e2ec329cfd85fb64f2afedffa82149083bb72af4",
+    "Contents/Resources/lib/python3.15/_pyrepl/terminfo.py": "af39087c07b02c10c845e646d98facf243df12359dbdf0446c9ad61df99ea612",
+    "Contents/Resources/lib/python3.15/_pyrepl/trace.py": "3c01ce896844b3d69147b83e0d5aa965d087596c274a22046bc918ac7209e0bb",
+    "Contents/Resources/lib/python3.15/_pyrepl/types.py": "2840b6447451bdddb096f38c27a4e0628d89cfbfa14c345c127ec7b5b82165bb",
+    "Contents/Resources/lib/python3.15/_pyrepl/unix_console.py": "bce12fce7f6ac948dc557bbfb4b7b0f8343418ebf1f7ae7e3539d42213fcf5ec",
+    "Contents/Resources/lib/python3.15/_pyrepl/unix_eventqueue.py": "85fcc878c81b99f10f2735ce83aabd5acb8f923758aaa1395d8e50d6edd8c0e8",
+    "Contents/Resources/lib/python3.15/_pyrepl/utils.py": "b7e65a5ddf2df3368d791e9ffc0af270750344407f4f8ca42aa75c7b3a7761f6",
+    "Contents/Resources/lib/python3.15/_pyrepl/windows_console.py": "c128216597bf0431a0d1edb1898423fe93affc7e41380eb45524755fc2c6f19a",
+    "Contents/Resources/lib/python3.15/_pyrepl/windows_eventqueue.py": "ca39efc778d55c97357fc8b95f25f1c9301f79f487ee7486f24bf872a87c3aa7",
+    "Contents/Resources/lib/python3.15/_sitebuiltins.py": "90f81ebf8ec61dd3f79d642cbab7c6e92c6dfd746cbd121fb11f83cf5647d47c",
+    "Contents/Resources/lib/python3.15/_strptime.py": "19929250bbd4494d586343214961c035a935fcc6f46352ce88390f460d9b8ee3",
+    "Contents/Resources/lib/python3.15/_sysconfigdata__darwin_.py": "fe3de66c4a9975f73abab229b331f4312223c32fb9be35cf31f11ff7eb4226e4",
+    "Contents/Resources/lib/python3.15/_threading_local.py": "1bc7e6396d22859404f7c9cb606256201c07bf75b7a8e4a0355aff13cf52699c",
+    "Contents/Resources/lib/python3.15/_weakrefset.py": "2dd7cb459d654fe78b00c5c47ee8e786c037ee77763304603f5e976dd62cbf81",
+    "Contents/Resources/lib/python3.15/abc.py": "e558702a95cdce3febd289da021715d2b92bc43995b8a1bc58dfa1c3d8010287",
+    "Contents/Resources/lib/python3.15/annotationlib.py": "6d56359e05c4995b23ee5a4c105702bad67925eae076f9950dd9522fe2fcfe76",
+    "Contents/Resources/lib/python3.15/antigravity.py": "8a5ee63e1b79ba2733e7ff4290b6eefea60e7f3a1ccb6bb519535aaf92b44967",
+    "Contents/Resources/lib/python3.15/argparse.py": "4857acfc44ee2339b2ae856df66fadda22cf7a437395d9c792db7bf66998e154",
+    "Contents/Resources/lib/python3.15/ast.py": "573d22fefb010c4f2b0d848d74f2599a414f3c767d34164876532c4ba0375b1f",
+    "Contents/Resources/lib/python3.15/asyncio/__init__.py": "8148552daea881e3b33639d6e9bdab0da2021367ab694ee0604431c33c16983f",
+    "Contents/Resources/lib/python3.15/asyncio/__main__.py": "48951daceebe910de89278eec8ee0d5b6537922b02844ad07963a2d6d3787a26",
+    "Contents/Resources/lib/python3.15/asyncio/base_events.py": "fabef0e5045a38862ccd271218f5d998f63b798cb1a07e8499684808ff76a89b",
+    "Contents/Resources/lib/python3.15/asyncio/base_futures.py": "2f3798c4b82f5ac77647908b157c924f734f36871d98970e72849ea9a9a07856",
+    "Contents/Resources/lib/python3.15/asyncio/base_subprocess.py": "23578fd6d8647243b791583ef0c1bc997c3eef34250719e2544b04b82ff67aac",
+    "Contents/Resources/lib/python3.15/asyncio/base_tasks.py": "56efac65b63db927af336fa55eb5bda93c97a2defa4734ea8d695ed20fd6712a",
+    "Contents/Resources/lib/python3.15/asyncio/constants.py": "873fc2f9e66313c3c19c337269e704f204b59f9e91d6ecbec59f68335484d338",
+    "Contents/Resources/lib/python3.15/asyncio/coroutines.py": "c5b8563c88e343f3076630aa6545fc77c548ceefb76936a360d7895c13691753",
+    "Contents/Resources/lib/python3.15/asyncio/events.py": "62e2c619c38407309c0d2c98638642174ee7be5b874676c0225392fed4a00b0f",
+    "Contents/Resources/lib/python3.15/asyncio/exceptions.py": "a5971f88be14cd1417d59adf539ae48c5d818f95362a4e0eb00017e3690ab37b",
+    "Contents/Resources/lib/python3.15/asyncio/format_helpers.py": "c02f2f8c1e2508ddb2f8d8c1bef452be1f6b9a1d2a998b89a56d153e42a5f1ef",
+    "Contents/Resources/lib/python3.15/asyncio/futures.py": "32db1900d74514ed85f63d54e94d16636f5bfc5c797b2becd848b1891e3b93b1",
+    "Contents/Resources/lib/python3.15/asyncio/graph.py": "8583a402fcd5d0bc296f753b6f05af1225459a00b1d18062a460862e87863897",
+    "Contents/Resources/lib/python3.15/asyncio/locks.py": "8ded089e680b9b67fca60893071356fa29343539f5113e66cf9da5f6ab734285",
+    "Contents/Resources/lib/python3.15/asyncio/log.py": "80e4cc3ded4b138baba486519e7444801a23d6ac35f229d336a407a96af7e8d2",
+    "Contents/Resources/lib/python3.15/asyncio/mixins.py": "8f4a3e16eca845ebfba422550cbcee7340ec8166d2bff6b750a8ed0de6b9ae3c",
+    "Contents/Resources/lib/python3.15/asyncio/proactor_events.py": "776d3c48822d0e7f5dac7b052b54c4852242931cb0039e40ed3e7c49afc8a91b",
+    "Contents/Resources/lib/python3.15/asyncio/protocols.py": "1d1b49988c338b4ef06e30f9e92d9db2e00080c341f0a3f573bb8312deb8aff6",
+    "Contents/Resources/lib/python3.15/asyncio/queues.py": "9ce87bf63f113509d479ea25fecd25a705766d750c304a180d1bff02a0fe6f6a",
+    "Contents/Resources/lib/python3.15/asyncio/runners.py": "d3b0765c4bd022dac4d101a034ba8c16b6e9c598e44d7b9d82b3239f3106fe65",
+    "Contents/Resources/lib/python3.15/asyncio/selector_events.py": "9a41e82a52b00fce181176189e21a3169c948d1b10cdcbe33345a0fd4a8be3be",
+    "Contents/Resources/lib/python3.15/asyncio/sslproto.py": "365b34dd7b0a958164c9eecb271e7417971224688d6b801a2dfea4fc128c8c14",
+    "Contents/Resources/lib/python3.15/asyncio/staggered.py": "43f4094830e6cfcf43e7aee410676f2aca6a4fd8e88e5b5355f7f07b291d1d35",
+    "Contents/Resources/lib/python3.15/asyncio/streams.py": "5c28e21deeeb5004673c3b9df284f1d44eabc760eb0c64e05828b273d244b05a",
+    "Contents/Resources/lib/python3.15/asyncio/subprocess.py": "7b70605716334f63cc482123b2aaa3b7c5bb7138eeab63a037bd8068d43307c1",
+    "Contents/Resources/lib/python3.15/asyncio/taskgroups.py": "af4dd9657a16874b90e6822205c947c78443b3c836110e5ed5a5459b2e58c2ef",
+    "Contents/Resources/lib/python3.15/asyncio/tasks.py": "a2b1724a5433427aaec585e3ff061fd1fd06b3cacc5babebe35dc9348513fbdf",
+    "Contents/Resources/lib/python3.15/asyncio/threads.py": "95877db9bf2c36ce9e630780ae145627f1401b95a9e8ee101b018df2898e8072",
+    "Contents/Resources/lib/python3.15/asyncio/timeouts.py": "dc1544c3c27ace84e2abc10f8fd13e340709a8579ff008ebc64c0d0fae6c0837",
+    "Contents/Resources/lib/python3.15/asyncio/tools.py": "fc980da1104805d697d57240679c65485799197d837b2cdb8ac60f81114c079c",
+    "Contents/Resources/lib/python3.15/asyncio/transports.py": "bfd414b25979e07b74081140bf91332957a9bf8b5aa5a0c7ff0d779d93eada21",
+    "Contents/Resources/lib/python3.15/asyncio/trsock.py": "c0eac37debcc51b702b808f6b7ed3e417343f5ff5f57125dad600a27eb082328",
+    "Contents/Resources/lib/python3.15/asyncio/unix_events.py": "c0570fb3eaf1e692e60279012020ce7cf086e578654557526c091b0fa022285b",
+    "Contents/Resources/lib/python3.15/asyncio/windows_events.py": "6a8b221f3e71a0959f3245b83a8c2f7d2a1551c600f925f116be85086c9360e2",
+    "Contents/Resources/lib/python3.15/asyncio/windows_utils.py": "b9c40e077d5c00dd22a1058ffd3fad8e21c8753b0710f02d97ade7bfdad03493",
+    "Contents/Resources/lib/python3.15/base64.py": "93319e370390777e2b0a14dcb02b53d61e1bc83719c088e760eb5ab74eafa978",
+    "Contents/Resources/lib/python3.15/bdb.py": "4424591274df9355ca445c39263eea56dfcc994f02eeb5cb3d11122a9427a8a2",
+    "Contents/Resources/lib/python3.15/bisect.py": "f1cf7b85fc36b5da249813fc5ab97d9464f8cc1bc817f7146206fa2713e35999",
+    "Contents/Resources/lib/python3.15/bz2.py": "368b9ee55f0b6dbfc81b15e1a17c51cccddb009389eae8e9a7acf2402ca4109a",
+    "Contents/Resources/lib/python3.15/cProfile.py": "c6308f6bfe676744e4b284980a2dee5ae277597735386f139c77a2328575e7ee",
+    "Contents/Resources/lib/python3.15/calendar.py": "af59a85ff831a28bc9d37b0fabcd260b198e55b09db32fb170536f0e2f8daf1c",
+    "Contents/Resources/lib/python3.15/cmd.py": "2412ce55bbaa0be0bb33e11e3a13735160194e674a7d88a262da708ee00e4d7f",
+    "Contents/Resources/lib/python3.15/code.py": "69c888362e47838ffbe9e5d31af204fcf2b23e614d629f4e343402b4c8a0f66b",
+    "Contents/Resources/lib/python3.15/codecs.py": "718f39b3ea68fe934214d789c5bce3005fa828040b03a72d2f715fc5e2647b7e",
+    "Contents/Resources/lib/python3.15/codeop.py": "439aee4fb7caea581d11fdcaeb5cba9fcf98ebc1407e72e95970defac16c3e04",
+    "Contents/Resources/lib/python3.15/collections/__init__.py": "7a9fbd993f9d43231729980689ec0860fd560690a3399571f216331c32e37abd",
+    "Contents/Resources/lib/python3.15/colorsys.py": "65e3dfbf7bad61d4d7d7731a69dd7e75a347fd350d91327a51010a94e6fd2f1d",
+    "Contents/Resources/lib/python3.15/compileall.py": "164c497fefb8f39f210a37c9492cc1bdabff6e3b40ff8716cafcfcc3515253bd",
+    "Contents/Resources/lib/python3.15/compression/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Contents/Resources/lib/python3.15/compression/_common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Contents/Resources/lib/python3.15/compression/_common/_streams.py": "8b8e943815c748d030e540a023400cb87fb13f75c2f0615a63ec42ef9f156c92",
+    "Contents/Resources/lib/python3.15/compression/bz2.py": "0179b1d941eb89941776a5a4a92108c2680cc3b9da614998ca5e621617ce8bf8",
+    "Contents/Resources/lib/python3.15/compression/gzip.py": "20c9914eeadab67976d460979f111c0679f6c515ad2430df605a592bac71f7e8",
+    "Contents/Resources/lib/python3.15/compression/lzma.py": "b9c1d0a5a84f0af8c022db06732a2a9331186cb1fc589123ab39d53525491352",
+    "Contents/Resources/lib/python3.15/compression/zlib.py": "421ce16560784b698eeda5052235308e80807889847393845eeec9ffc4f4f7d7",
+    "Contents/Resources/lib/python3.15/compression/zstd/__init__.py": "4575544839872594ad5c9be284d062384dd5abdd0ddcc0258f6d66dac2c51d60",
+    "Contents/Resources/lib/python3.15/compression/zstd/_zstdfile.py": "84da3160987a2ee10f3b99813a68e70f16ec42a52612fef32581eb628aabc720",
+    "Contents/Resources/lib/python3.15/concurrent/__init__.py": "87ad5c8954dd56fbbca04517bf87477ff4dce575170c7dd1281d7ef1f4214ac8",
+    "Contents/Resources/lib/python3.15/concurrent/futures/__init__.py": "6be0eb257a564a219c0c8f0b69663d42fff992e35a7eaeabb84389cef26b832b",
+    "Contents/Resources/lib/python3.15/concurrent/futures/_base.py": "3967a432db22b9be89a4bcd2ef8dfbe03a112559178db66a652fa97085dfec03",
+    "Contents/Resources/lib/python3.15/concurrent/futures/interpreter.py": "424fac5bf71743b4e02cfa8150919cac1a9e53e2e5173729f7ba75dd2da78e1e",
+    "Contents/Resources/lib/python3.15/concurrent/futures/process.py": "99c0fb6fd4f238829a52f982405f3de47b406f0c5096e34da34db77d690a8df4",
+    "Contents/Resources/lib/python3.15/concurrent/futures/thread.py": "7f95079dda8064cd372c9c0ea60c7e172b34c8f2aa0c3d9213e85b8584aa033c",
+    "Contents/Resources/lib/python3.15/concurrent/interpreters/__init__.py": "b1a6276ee15bcb7b820553a5447aa6b792869e51b6aab814e3b92e737aea0ee5",
+    "Contents/Resources/lib/python3.15/concurrent/interpreters/_crossinterp.py": "029fa98334c0dd71aead1cb3662a661f292aee5c9960fd71a15c1ac7a941cc72",
+    "Contents/Resources/lib/python3.15/concurrent/interpreters/_queues.py": "93d24436f428e07ab29db9ef7cf0aa9071b1475948dd9a3348238eb645296ddf",
+    "Contents/Resources/lib/python3.15/configparser.py": "503e39c7a2f2e7594791d2908fbeb2ee2546d05f97b675ab666c836714ce9215",
+    "Contents/Resources/lib/python3.15/contextlib.py": "5338a9678ac868e56b08fb55200788521ff437e69d7e1ca3f712fc52972ede5a",
+    "Contents/Resources/lib/python3.15/contextvars.py": "cf0d77b49a9cde369bb6fc3e5c3e51658e8878cb9dab64a883b70caa86119007",
+    "Contents/Resources/lib/python3.15/copy.py": "120238f795fdb0364d7a29450ce5494b3e32dc7f6367e0076138f77663ecf086",
+    "Contents/Resources/lib/python3.15/copyreg.py": "6376eb5722806396f5842997ac18add369ea9ac3ff4fcfe1460c41a088cac425",
+    "Contents/Resources/lib/python3.15/csv.py": "7588c062d28be62a6430a6e5e45b0bcfc5dcadb6b0f7557f4366f3af716438d4",
+    "Contents/Resources/lib/python3.15/ctypes/__init__.py": "0169e7476bd22f9d4c4f502219f1f0e6ba8ca963e3a7aa2401af6aefcaa71fbf",
+    "Contents/Resources/lib/python3.15/ctypes/_aix.py": "540e2821fa36981bde5c6ffb8f972474b06db4a37c1854c0e0e379b75d2b0fa3",
+    "Contents/Resources/lib/python3.15/ctypes/_endian.py": "499773a028a41ee18153fedfe0a00a26efb2a650f568b9bc17e2f3a914a23468",
+    "Contents/Resources/lib/python3.15/ctypes/_layout.py": "ebc2cfbb736884aac24a92b57478a750638c617aac07fb77cada8a31258f8ef9",
+    "Contents/Resources/lib/python3.15/ctypes/macholib/README.ctypes": "dc29d1da83b6a0a09a41647e4111eee878ed079c2d6b54a98fd6d8b88dd581f2",
+    "Contents/Resources/lib/python3.15/ctypes/macholib/__init__.py": "876f4486d08d3eac3581a8681d7fb3cec2fe5b823d1bef27cca15e755510365c",
+    "Contents/Resources/lib/python3.15/ctypes/macholib/dyld.py": "eb8e7b17f1533bc3e86e23e8695f7a5e4b7a99ef1b1575d10af54f389161b655",
+    "Contents/Resources/lib/python3.15/ctypes/macholib/dylib.py": "f19ee056b18165cc6735efab0b4ca3508be9405b9646c38113316c15e8278a6f",
+    "Contents/Resources/lib/python3.15/ctypes/macholib/fetch_macholib": "a9f6faacdb1aa00ac2f68043cd445171de9639a732b861bd5e64090a2865ab23",
+    "Contents/Resources/lib/python3.15/ctypes/macholib/fetch_macholib.bat": "7497fbdbb98afca4ac455e3a057c59bcdebaf1280e25c94741dc301f05cb53e5",
+    "Contents/Resources/lib/python3.15/ctypes/macholib/framework.py": "302439e40d9cbdd61b8b7cffd0b7e1278a6811b635044ee366a36e0d991f62da",
+    "Contents/Resources/lib/python3.15/ctypes/util.py": "7b7ff6764958eb2657abfd3befd1eb2a9d7ad9feacc25d96d2c2e2767f9528ab",
+    "Contents/Resources/lib/python3.15/ctypes/wintypes.py": "d48a951550b66cfc96fa66497d573c401927afcdaa70172e92d52c5ba166cb79",
+    "Contents/Resources/lib/python3.15/curses/__init__.py": "4e236c4f25a5eab3d9e5b277dfa817cb2e67f1f093f3b24d4c70e255d5f0358c",
+    "Contents/Resources/lib/python3.15/curses/ascii.py": "780dd8bbaf0ee7e832f164c1772953e694a9cd1031d1ab1471af65344d3645e6",
+    "Contents/Resources/lib/python3.15/curses/has_key.py": "008211a5f708abb0d48311bc17942cba51b9655a94495ba99962f82d5c116eb6",
+    "Contents/Resources/lib/python3.15/curses/panel.py": "13ef404a30da1825a612ca3e453db88c305d45deef4441c4c9e2ef7ee0ef50c7",
+    "Contents/Resources/lib/python3.15/curses/textpad.py": "a62185f0041a70132426f7d1a2660c1d1b76da2f314d644b310697182d06d343",
+    "Contents/Resources/lib/python3.15/dataclasses.py": "85284c01e378472f3f431bb699c73cf1ccaaff10d122d72c3bd1b75b548dd813",
+    "Contents/Resources/lib/python3.15/datetime.py": "742884b0c8e7dc69911858245db4f34d42e8ec0f769d580c570bd56032b0866c",
+    "Contents/Resources/lib/python3.15/dbm/__init__.py": "64576a77d107294ffcb7be37049c2bedb6b61d102526d31e5ca1d8d5aa138459",
+    "Contents/Resources/lib/python3.15/dbm/dumb.py": "55fbd4d3e053609ad8f8d8ea73fe66ee479bd075cc6dd81fa4cfa27c845c51b8",
+    "Contents/Resources/lib/python3.15/dbm/gnu.py": "36cd4904f50e00c4df4ad9d450b3970e150957425f47c00cf979ba73eff49778",
+    "Contents/Resources/lib/python3.15/dbm/ndbm.py": "1bcc2d9b2fad1901f3421a174eeecb5b8ccc6763283b87bbe0705b404c71904b",
+    "Contents/Resources/lib/python3.15/dbm/sqlite3.py": "abab5d52e8c92a06036f75e7fdf5a57cf1cfd95c31a1fba72715e7c04702ebb7",
+    "Contents/Resources/lib/python3.15/decimal.py": "94f23eb2b0703278a1df8041ba1171b657b8b2f817f2fa6e6d7152cb0d32da6e",
+    "Contents/Resources/lib/python3.15/difflib.py": "aaa3d1ccdb8d8f0d2e8c99fe1a320a983b770fad94779f1dd417cdd37c033159",
+    "Contents/Resources/lib/python3.15/dis.py": "bfcd5b49946afdc19b8c2c18ed093af2076e6f3f6c1fb65b5d999830d6ff1af2",
+    "Contents/Resources/lib/python3.15/doctest.py": "822e293ae054f1bfc3daaa4ccbe45d523314a26845a10d1be5c6c393b04621cb",
+    "Contents/Resources/lib/python3.15/email/__init__.py": "dafca994154b9a6eb2b69d0e6e69e7596f397c2aec9bc62702259f4b39bd111a",
+    "Contents/Resources/lib/python3.15/email/_encoded_words.py": "a3c3de0ee744eef46a351d6b1eb21abd6c47aa1a534a52339bca4c6100c357d7",
+    "Contents/Resources/lib/python3.15/email/_header_value_parser.py": "e95340a5344f50d2c21c7bdeb1335a0a0649ba45273fa82f696c0e10b8449751",
+    "Contents/Resources/lib/python3.15/email/_parseaddr.py": "ab5eb0af4e62eec9fbbf23db36c35d85ecdae49e1a653604d4af286a7daaab13",
+    "Contents/Resources/lib/python3.15/email/_policybase.py": "2ec3466accb39a185a34af2d82022b3c0f7612a03dea4e79239187fa53e984fe",
+    "Contents/Resources/lib/python3.15/email/architecture.rst": "f2b2ba7497fd02d13abcfc2a98099283a94b09e8b4f2c1c822ecacde3bec3eae",
+    "Contents/Resources/lib/python3.15/email/base64mime.py": "3a6e4cd4112fc25e2f0ee7fccc7526131b3bbecaeb1329312e3153bd247b95e5",
+    "Contents/Resources/lib/python3.15/email/charset.py": "ebdc7a46a5bc0afa759d338482bb9097ad3e8317970c3ed90b1a2548126fcdeb",
+    "Contents/Resources/lib/python3.15/email/contentmanager.py": "ee8d0fabd6575486f50f4e9ece39ce59d7f0ac7714c59df69f81ff59dc99c421",
+    "Contents/Resources/lib/python3.15/email/encoders.py": "cc09bd113246fd8084162298948bdf64c3684ed2c8780f03814c7897ce32dca3",
+    "Contents/Resources/lib/python3.15/email/errors.py": "3982311f9f0d3e0057196df9ad104b7fabd92c565cf826cc3f22629a1775cc3f",
+    "Contents/Resources/lib/python3.15/email/feedparser.py": "2e68e34c6e956e94bdbd5077d75f1fff3e0d2423726914555f5695fc5cb2bacd",
+    "Contents/Resources/lib/python3.15/email/generator.py": "afd4e95001c77d3e341cb6b3b0fd50902c22ffd0490be4c9ee3ccc8f0497d601",
+    "Contents/Resources/lib/python3.15/email/header.py": "a816f57626b0555399407369c7484bd2e1f2a5884a425801ec65afa31822ba74",
+    "Contents/Resources/lib/python3.15/email/headerregistry.py": "88dc33c7689f073ea0cf28c4e1a4389178117fe27dcf1aa669bff8b0973adf63",
+    "Contents/Resources/lib/python3.15/email/iterators.py": "3fa231c15961a6cf3f61ef8362d9558417b23ab93ce43ab5fc66cb5847e5fcf2",
+    "Contents/Resources/lib/python3.15/email/message.py": "a1ba779c997dd5cbef3266c26787416527a593b67b35d744fb1b8c49e8436289",
+    "Contents/Resources/lib/python3.15/email/mime/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Contents/Resources/lib/python3.15/email/mime/application.py": "84cd51ceac08e42b7fd0af9dbaad59afee9a62fb7ba3adeb54c28728a32fcb87",
+    "Contents/Resources/lib/python3.15/email/mime/audio.py": "5dcd137f6fa1548648c0a4120eebee5a5d0aee5329d3e33f5d7ae917574e1e7b",
+    "Contents/Resources/lib/python3.15/email/mime/base.py": "883ea9430679ff2738bf72619b7ebfefcfe1eed561eef354e6b41e9300bcc981",
+    "Contents/Resources/lib/python3.15/email/mime/image.py": "846833f2fda471df0a391aa68643867d624a223ddd7a0d78b0b6ee0368921acc",
+    "Contents/Resources/lib/python3.15/email/mime/message.py": "ee9786db4e3434dc8883ea9df2ee8a9d0471aabf189b5ce08201ed430f5dc5e5",
+    "Contents/Resources/lib/python3.15/email/mime/multipart.py": "5be186cfbf465c7d6d523ccb8628057b7f774e247c4cf526dc40659bb5bd9742",
+    "Contents/Resources/lib/python3.15/email/mime/nonmultipart.py": "e93a956cf8cc781fc8c36e1fd2d2c3105f2e258df5465292c2980abef2f3d3ed",
+    "Contents/Resources/lib/python3.15/email/mime/text.py": "214c42aa6c1d74320177d8bdc75de5a8490362b1fdd869e0327eb5ce17b3dc8c",
+    "Contents/Resources/lib/python3.15/email/parser.py": "5af6ef2ef9eb5aed6cae264ec2418ac466fe4316b41fd3f7ece4b149d521a1ee",
+    "Contents/Resources/lib/python3.15/email/policy.py": "cbfb4c45be89dc7f72d5a6a6631db318eed3102e01ff0bf76c12dd741b460ef6",
+    "Contents/Resources/lib/python3.15/email/quoprimime.py": "d5cadc6903aa0e977d44b46d21608ed7dc4ba99ab6d910a052826402bbda8e14",
+    "Contents/Resources/lib/python3.15/email/utils.py": "5d11b79625396853b83605ab88e5cea3cb2ede41b4c2b53228b13e38fbb557ea",
+    "Contents/Resources/lib/python3.15/encodings/__init__.py": "849a5e31effe6c647b6d526b92f2f063a67fac36e7750267f721f15e3693de08",
+    "Contents/Resources/lib/python3.15/encodings/_win_cp_codecs.py": "a10ef385d2096ff10a4ed00e7adfb7750fefcd10aa8eea1b573846145c9abad7",
+    "Contents/Resources/lib/python3.15/encodings/aliases.py": "b831396bf208ed70dd74498c582f2313d6a43f7e8e6cf01c163673a90ebdd310",
+    "Contents/Resources/lib/python3.15/encodings/ascii.py": "578aa1173f7cc60dad2895071287fe6182bd14787b3fbf47a6c7983dfe3675e3",
+    "Contents/Resources/lib/python3.15/encodings/base64_codec.py": "cf9ac7a464f541492486241d1b4bf33e37b45c6499275cc4d69c5a8e564e5976",
+    "Contents/Resources/lib/python3.15/encodings/big5.py": "98fac6f86a20dd05da197e2058176ebfd47edee7074c3248f5f48fe0fb672d7c",
+    "Contents/Resources/lib/python3.15/encodings/big5hkscs.py": "21d051a00fb5c6a86ba187e0c50e811d659ce00991fd5f5b408f71ebb2ef0f16",
+    "Contents/Resources/lib/python3.15/encodings/bz2_codec.py": "1181a2a89102a2b1d2b2f1f4473236d5d1ececdd0be8fdaa498a3dbe21a185ab",
+    "Contents/Resources/lib/python3.15/encodings/charmap.py": "1b8b5fdb36ce3becc62a6115ed904a17083949ec8aaef5a80f7078cec232f43b",
+    "Contents/Resources/lib/python3.15/encodings/cp037.py": "fda6ca994d710e4e0c760e0204c29a4273fc0f14ebe3169306d2eb54c9953f58",
+    "Contents/Resources/lib/python3.15/encodings/cp1006.py": "eaded38b427841bdf280e878f1e26da506e743eaa9429075332af60cce429473",
+    "Contents/Resources/lib/python3.15/encodings/cp1026.py": "f5227237dd7ce5005b16a8e4d8342f0d193193c878e3cf35b9305d22b3b1aaf9",
+    "Contents/Resources/lib/python3.15/encodings/cp1125.py": "f84c7d30ce222e6a50cff1a4c9737173411da108cbd2c9bb57c854480103c470",
+    "Contents/Resources/lib/python3.15/encodings/cp1140.py": "3379d78b244aa905ffe1171a968caaf41b9a0154d1ddc76c05a2abaca2b289fd",
+    "Contents/Resources/lib/python3.15/encodings/cp1250.py": "ebcec1adf9167863fb0bab29708c546300c80a77ef07838c9e0437a59e265970",
+    "Contents/Resources/lib/python3.15/encodings/cp1251.py": "d57f8cfa34494c5acb6692ddb31f616ae2dd89a075d2af6d36b0b7ec2ffe7af1",
+    "Contents/Resources/lib/python3.15/encodings/cp1252.py": "19aa5bee667f5fb387924a813aec9fa1dda47769d09e8483a748bdb202be6a84",
+    "Contents/Resources/lib/python3.15/encodings/cp1253.py": "8c27696dcfb6894b378869bc89f113703fbd1e9b13a83934463d5999b055d1e8",
+    "Contents/Resources/lib/python3.15/encodings/cp1254.py": "06517ec2f74f1c6562d0a1a500c48ba43f2e6e9d0c3d28356d747f274f1a4c8d",
+    "Contents/Resources/lib/python3.15/encodings/cp1255.py": "54a1b5087578fa78e5bdd0afa6a9e80e8c5467c1e4226cf6e586cfe7a674a653",
+    "Contents/Resources/lib/python3.15/encodings/cp1256.py": "ad3768ac2fef2a646b3301c20af705f4d4a1544f22fa8a84241bada27ab84133",
+    "Contents/Resources/lib/python3.15/encodings/cp1257.py": "d9149d2925b3f719809ef2297e541461079f15c658af207a3e498be314ab2c6b",
+    "Contents/Resources/lib/python3.15/encodings/cp1258.py": "672e05b51952a82c8dbd5603769195fcedf565e457bb86c0d5bae04955d04630",
+    "Contents/Resources/lib/python3.15/encodings/cp273.py": "6c6aec3b213ea3aebc2c526dd4d121c95d4a25a2fc928a87cd80f8448988185f",
+    "Contents/Resources/lib/python3.15/encodings/cp424.py": "30414c2186ea0802bbf3db034122ddec1f8a10061b97c50871e14b74ee36d0ca",
+    "Contents/Resources/lib/python3.15/encodings/cp437.py": "5c2a5015cd36cf7f561269f33dec4c323093d3d88b0673969accdabdcb9ce2cb",
+    "Contents/Resources/lib/python3.15/encodings/cp500.py": "630f503f9110d98ea3e1529f2f965ebc275a2f78d3de47f8e9b69d35589d764b",
+    "Contents/Resources/lib/python3.15/encodings/cp720.py": "395496001271b92efe5df07fc0ae7c3410d1dd2bdfebbd3e4d8e806c8166beb0",
+    "Contents/Resources/lib/python3.15/encodings/cp737.py": "be3ca1785a3970ec62310710eaf7de82932181b04d06fe4528f8adaba9fb8c4b",
+    "Contents/Resources/lib/python3.15/encodings/cp775.py": "e0dba85b99329d7f16907e620adada06be5216abcb964406c827b569b2cf1aeb",
+    "Contents/Resources/lib/python3.15/encodings/cp850.py": "257e29f235e2a8790dd68cee45668776648bab809ce8584f893cdd8fd007993c",
+    "Contents/Resources/lib/python3.15/encodings/cp852.py": "cc6faaa9dc4a933127da0aaacd1dc7a44c09266051af56bfe3215ff228636b6b",
+    "Contents/Resources/lib/python3.15/encodings/cp855.py": "7b25c61c9e8c47b218d3fbb801541a2861926ac712843d2113fff90e2074f5ba",
+    "Contents/Resources/lib/python3.15/encodings/cp856.py": "2e52ec5cb1eafa6739b5569b0b98ee89df5f7358b84ccdc8da64e86f017d359f",
+    "Contents/Resources/lib/python3.15/encodings/cp857.py": "8d1b769058bfccdb3c6c70c49a104f5081a2fcc9fad68f7b5eb3e4f67f0b33da",
+    "Contents/Resources/lib/python3.15/encodings/cp858.py": "a24930c4a6ad0ff66dde9a69f2027e4b92c2c9c61dcda2992e940654c606577b",
+    "Contents/Resources/lib/python3.15/encodings/cp860.py": "2dfae7e31d3d9aa3013cff44a4d7ad842f257ac63765a9998436701b629cd86a",
+    "Contents/Resources/lib/python3.15/encodings/cp861.py": "701930d77a2177497586e99bc3fe60f2d4beffb645608f167c76874a72ff405e",
+    "Contents/Resources/lib/python3.15/encodings/cp862.py": "15a2844b6ed9544c6400cf7299b42d0c2bef93c9bee70a9e89f66b8610ad6d6d",
+    "Contents/Resources/lib/python3.15/encodings/cp863.py": "a3d57f61fce1b98fc81ea8e4ebebaf402fae40bbcdd35d4b8297b9bb49a79aa2",
+    "Contents/Resources/lib/python3.15/encodings/cp864.py": "15ad8f1fdfdd842c7522241372e7eddda7df687e815692a89157c5f256f21a08",
+    "Contents/Resources/lib/python3.15/encodings/cp865.py": "bdbaded987242ed2a8de7133ec2f61ddcc1c2e9de27816ab7cd0a4c678a3a907",
+    "Contents/Resources/lib/python3.15/encodings/cp866.py": "9efcc8e85bbd1687272a0991f6d0429a4c06679db2d114b2ac95db27a70f9d13",
+    "Contents/Resources/lib/python3.15/encodings/cp869.py": "52582d9fb769b24eac7154f18d7dae856588297d6da98f37fb5efd8da883826d",
+    "Contents/Resources/lib/python3.15/encodings/cp874.py": "fe4752fa2e65741e08a563a31ff914fe71068942ce9c6f4070b1dfd7b25e5e7f",
+    "Contents/Resources/lib/python3.15/encodings/cp875.py": "2fe72632015db2cba2bb4367055551da6fe22051b96d170c7b96fa271c46b257",
+    "Contents/Resources/lib/python3.15/encodings/cp932.py": "99748e28113d2d49f5d666b49b78accd2c6e10a7852f7dd6dece9b5b71aa83c4",
+    "Contents/Resources/lib/python3.15/encodings/cp949.py": "950a7d29467ce0590b4a1137830d43d88d8f20e4035dcaaa8b2a5c3c3f1de962",
+    "Contents/Resources/lib/python3.15/encodings/cp950.py": "27811178b450731fc955b1247656a605d04e5ee98e0d585e4596b94b703a27f6",
+    "Contents/Resources/lib/python3.15/encodings/euc_jis_2004.py": "9fa426cd9f17629f6320700ed18baa94839304cf1bcabbee7edb501747dc055d",
+    "Contents/Resources/lib/python3.15/encodings/euc_jisx0213.py": "e28315910da20218dae8b7d5becd81de1e283dfd8b0415a4980d67065de73a0b",
+    "Contents/Resources/lib/python3.15/encodings/euc_jp.py": "b453a439787b0efa031e43416a7d852a6be705c985e1200693eb96d87ea79cdc",
+    "Contents/Resources/lib/python3.15/encodings/euc_kr.py": "633a1a5504bfad04b1ec9c96d44d4ebb3bb99066a218318e7d67d866e20887a6",
+    "Contents/Resources/lib/python3.15/encodings/gb18030.py": "6c10b4dc49bc63724e539137ede6936304fcca1c97c28d16d89f381e10849521",
+    "Contents/Resources/lib/python3.15/encodings/gb2312.py": "3d2d567d8d079b78f3f3b566ed52ad2f38af61bf832b7dc28858b0039a032d6b",
+    "Contents/Resources/lib/python3.15/encodings/gbk.py": "eff9b8cbc9ad2ef2e10e96afa83d3db1f775ea044aed275b7a35574ae0d8645b",
+    "Contents/Resources/lib/python3.15/encodings/hex_codec.py": "fc5f0a31b59efe990b86efb98936769f33dd91d912ce55b49a5a4cfc516cd047",
+    "Contents/Resources/lib/python3.15/encodings/hp_roman8.py": "c43cce763d12e8f71a63dbc16641bd87147eaf5f9d9054ea856864b216b2735b",
+    "Contents/Resources/lib/python3.15/encodings/hz.py": "025a9531e3046e52d3e039c0be04f9a5a74651d7683a13c7c7ebd4c7dfb5996a",
+    "Contents/Resources/lib/python3.15/encodings/idna.py": "1d8da56341692e2258d1f0ee67d223ad19344aefabed9f8ca2dcfcfa4a24326e",
+    "Contents/Resources/lib/python3.15/encodings/iso2022_jp.py": "461a0e7f72eccb8b29f351c4e7926cfbda58e0edd6d0770bd82e0b36c5febe77",
+    "Contents/Resources/lib/python3.15/encodings/iso2022_jp_1.py": "63bacad13a979a5519fcaa4f1e1e07b2c7415005167fac3a689408c7d886fabd",
+    "Contents/Resources/lib/python3.15/encodings/iso2022_jp_2.py": "5d4248181548b0fc89a9f5ee9cf52ebecb235708ba87d47896ad14130884ef9f",
+    "Contents/Resources/lib/python3.15/encodings/iso2022_jp_2004.py": "b4d1468bcd608b46f38cb0c6ef115510dcf9aa0f71e590792f407efc6e165164",
+    "Contents/Resources/lib/python3.15/encodings/iso2022_jp_3.py": "3aceaa5661909de14e2861d864443b8472460ce39b99cce5c6965346d47aa5ac",
+    "Contents/Resources/lib/python3.15/encodings/iso2022_jp_ext.py": "f4c9ed8f3031995faa224bcb10153d2b6144944477d1f27d1a6cc4a879fac34c",
+    "Contents/Resources/lib/python3.15/encodings/iso2022_kr.py": "1c86362e17944f0bcf68db02f4995bdeea605867795fff7ab4079073f96705e4",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_1.py": "b5cebd515e057d670bf54e10b8a6f162ef3daa7f21b146aee3249160caf3c32d",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_10.py": "54c886b41819ebb7f4fb34b8dbae1c45f4fc0864f019ecd772676ccfac5fae7b",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_11.py": "ed5a964470a241b4da7a6cfb718e4149d09644933af38f0497602baab6e563ef",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_13.py": "7312237e8e5d201d920b4130f057cfdf1b0be9baafaa246826e6d93204fcc206",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_14.py": "82778b995a0ee87c5f1180fcc52900359eee15bd9a6e3a0e25f0d963e0b2a343",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_15.py": "01976a81811873dc9a0c79db9fc00d1c30103487f3c6bc3a6d81b4043cd48e02",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_16.py": "b5ac8f5a5d8f84c0f903b2b7c342184758d590d8bcf810d561f942fe5b372d66",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_2.py": "2b57cab6111cae9021505e3ae1b2adbbfc344ec48165fda322f6b069fbb18adc",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_3.py": "4ffdf89004bf0c5230caa7079f7ca3142fc112f8b923ddb2c7358369d2d3c242",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_4.py": "87bd130daa0eaef3e4cb465e10cffb2bcd194ff74097e0c186b4b8eb7be41ac5",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_5.py": "9961d96cc7b9fdf011ebcaaeaeca7b50b8670fadbd7b75fde66192f8c1f68f30",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_6.py": "4840e68014346517680f593ca22f67133c39ba7e46f34b9be62c980a728448c6",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_7.py": "b352eca3b819488f64fb3338fd93f39c1e30f32bb13f2f9c577925e58f2960e4",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_8.py": "4cf9e8a8bbe04accb1c1a80853efb19ae0772d18f81e270adefc1b2386cb368e",
+    "Contents/Resources/lib/python3.15/encodings/iso8859_9.py": "84d9b15263e81685f7513c5ab45caf80b2f73c301c68e659f7162c1b1882d359",
+    "Contents/Resources/lib/python3.15/encodings/johab.py": "9586615917afd3d848c1c4328656603b2834af6115f2aec932fccc935e1a60fb",
+    "Contents/Resources/lib/python3.15/encodings/koi8_r.py": "4d4e353aee8039bb71e2145a6e68fe1e6833a1b4250b70ee0ac5ec70bbb8c51d",
+    "Contents/Resources/lib/python3.15/encodings/koi8_t.py": "9c9043814abdbe7dc39ff98f3857d5d110a84c978ad2304158d810a4e9eacef1",
+    "Contents/Resources/lib/python3.15/encodings/koi8_u.py": "d449f9858e357fa8c2edbd4b9fe739337e9f201cac3ded20f99bfcecd4970ff7",
+    "Contents/Resources/lib/python3.15/encodings/kz1048.py": "76beb30e98a911f72f97609a2373782573c17c88a5fb3537db338aa382979ffc",
+    "Contents/Resources/lib/python3.15/encodings/latin_1.py": "b75503e532a27c636477396c855209ff5f3036536d2a4bede0a576c89382b60c",
+    "Contents/Resources/lib/python3.15/encodings/mac_arabic.py": "5eafd9a3136abfbd8ed52df9c90203c7a283e7429ed60502a87a02511e0fb777",
+    "Contents/Resources/lib/python3.15/encodings/mac_croatian.py": "a880cd05c82a8d11a29c65ee86a396def3344465dd71441b0bb4a73826024953",
+    "Contents/Resources/lib/python3.15/encodings/mac_cyrillic.py": "83616786a1c6308b03a0dc82536908d24d0974b2248d67393d613fe558cea4bd",
+    "Contents/Resources/lib/python3.15/encodings/mac_farsi.py": "f5763c38fb4ab0423fafe2fdca34d6f9932ac7f1a74c0cd8109d60234c7dc624",
+    "Contents/Resources/lib/python3.15/encodings/mac_greek.py": "63016a323ddf98cb3aa9cfa78f3bab4768bedbfe9a5262a36a5aecb13d291f6e",
+    "Contents/Resources/lib/python3.15/encodings/mac_iceland.py": "753cc1ac635caa7e1b4630fbcebef8db8db332c098154a5b11f652912bf64f37",
+    "Contents/Resources/lib/python3.15/encodings/mac_latin2.py": "31670da18ce8b5394cd53fe6bf216268e7e8eae4c0247532e420e2e103727d50",
+    "Contents/Resources/lib/python3.15/encodings/mac_roman.py": "230367d96aef8e8d7f185b4acfb84923714f39ddbcbf9cf38a06bf6f5d621c22",
+    "Contents/Resources/lib/python3.15/encodings/mac_romanian.py": "49630cf035c19e896a123ed6e5fee18b5e485123daf2f15da38bf727ff387bee",
+    "Contents/Resources/lib/python3.15/encodings/mac_turkish.py": "99758a5cad2825cb3be3fa5d031e0821e4eba910a46f417fd890207b9b6be77b",
+    "Contents/Resources/lib/python3.15/encodings/mbcs.py": "f6ed445ed537c9f856d8defe8b56505727737d0dc9348d0a877abedab4bdd864",
+    "Contents/Resources/lib/python3.15/encodings/oem.py": "481656d3a35f792d0e5109e3f821e6dbfcf097163a19b0cdfcbff3b3db99292f",
+    "Contents/Resources/lib/python3.15/encodings/palmos.py": "79b4edcfaede8f7deb25b278d60e472217c0ff55e830ef1ccd2c408413742fa0",
+    "Contents/Resources/lib/python3.15/encodings/ptcp154.py": "0eabcb2c287d335e86b71b0abe5718bd6ddc9aaee234f0f0f2363845d2926d8d",
+    "Contents/Resources/lib/python3.15/encodings/punycode.py": "3c89c0d87227daf0cb3eb988a30e3ebbe8c282ea46e8282c2b52d01dbe2155d0",
+    "Contents/Resources/lib/python3.15/encodings/quopri_codec.py": "502a213c34c05a94ed063ee03f47680bd6efbb35036e06fb4dc809bf398cfa64",
+    "Contents/Resources/lib/python3.15/encodings/raw_unicode_escape.py": "fa6328486b8f5a5cbd10e377e80adb8cf94acbbe19c38b4e1bf708d831a80a3a",
+    "Contents/Resources/lib/python3.15/encodings/rot_13.py": "14767f475acdc0bf48e6272280dd15b80efaecafb93c06be21136f83dd1ee7e4",
+    "Contents/Resources/lib/python3.15/encodings/shift_jis.py": "ad4ac50ebf58294304e412cc0f1b12980988dd6edc414e4110029c0a1abbe966",
+    "Contents/Resources/lib/python3.15/encodings/shift_jis_2004.py": "d21c5930f21063ea78fea3b0f76dfb8fd92858d2a4a200064a52126a43dd1a99",
+    "Contents/Resources/lib/python3.15/encodings/shift_jisx0213.py": "2c8d0b93bb36edf31c1236b1b4d1c0008553868bd2fc9137570115b96b834f2e",
+    "Contents/Resources/lib/python3.15/encodings/tis_620.py": "647c4719e2c1a7375105e15a89b377c66f6b699977dcabbb71d923a4607b7902",
+    "Contents/Resources/lib/python3.15/encodings/undefined.py": "0e1e3e7c1dbc4690b71494099541e73de23c9010a54b6822f3867aec35a74a62",
+    "Contents/Resources/lib/python3.15/encodings/unicode_escape.py": "507e7ca8f18df639fd823d7cc23ce4028a3550ceefdfa40b3c76f81d1a94531d",
+    "Contents/Resources/lib/python3.15/encodings/utf_16.py": "08437559c8d255a5ba1449c1c75beaa62b0834fe4259d161ecf8699381e4c8e1",
+    "Contents/Resources/lib/python3.15/encodings/utf_16_be.py": "3357196f3fa52433326a6626880e34964e00c5570aee50e9a0a0a7c6d86f6e4f",
+    "Contents/Resources/lib/python3.15/encodings/utf_16_le.py": "3aedaf3eb49769282daef1eaedfd4fa1c31fe5eebeff67fe2307c89dc2e2fd80",
+    "Contents/Resources/lib/python3.15/encodings/utf_32.py": "6c235e377e1e277cde5f684cee6f6f8da4c73d153a21891df0cb834f17cd2b6f",
+    "Contents/Resources/lib/python3.15/encodings/utf_32_be.py": "cbba20e1f6d0879c7c4293446c371a9f79e7c90bf3c78a77a9b8fc72b18915dd",
+    "Contents/Resources/lib/python3.15/encodings/utf_32_le.py": "9134b91047d85b442898d59effe23e7e0cf4167ca341ae31119a731dbf880a7b",
+    "Contents/Resources/lib/python3.15/encodings/utf_7.py": "9ff32314f4f1fa074f206bbf7fdb851504e5313128636d73b4bf75b886e4a87d",
+    "Contents/Resources/lib/python3.15/encodings/utf_8.py": "ba0cac060269583523ca9506473a755203037c57d466a11aa89a30a5f6756f3d",
+    "Contents/Resources/lib/python3.15/encodings/utf_8_sig.py": "1ef3da8d8aa08149e7f274dc64dbfce2155da812e5258ca8e8f832428d3b5c2d",
+    "Contents/Resources/lib/python3.15/encodings/uu_codec.py": "587d63e669a8f399ee7d5b12ec80a69472ca7e3ce96d851a5d8f76e6779b1963",
+    "Contents/Resources/lib/python3.15/encodings/zlib_codec.py": "6ef01e8d3a5fe1cc52f7b5ae008df12f1dbce7304111bf8d4758f1bfc0115759",
+    "Contents/Resources/lib/python3.15/enum.py": "f77c8a439a02ea294f465310449b567e0ad82331ce9bec6ea284e9b4d87cca26",
+    "Contents/Resources/lib/python3.15/filecmp.py": "f895d4defb64409dd31f860e8af58f3d2877bfc17aed4f93217d1417c791c28a",
+    "Contents/Resources/lib/python3.15/fileinput.py": "c28f39e002286c3e822e7a0767d2db0a04613d5ec4f65599bccf29654a4dff3b",
+    "Contents/Resources/lib/python3.15/fnmatch.py": "ce582bc266922e4c682e2a85d72095124430a6bf58716c6f2537103480eae742",
+    "Contents/Resources/lib/python3.15/fractions.py": "0beea8be61f7b93f7a7faa14bb822505ea708977e101e654e22a64555e34c877",
+    "Contents/Resources/lib/python3.15/ftplib.py": "388711ae0a23c45714a95774de7f20586d48991a9fee0978e2e94043454db8d1",
+    "Contents/Resources/lib/python3.15/functools.py": "18bf706edd1852f95a3a1dffec05bf543a022a890e18f8079ca6c360c84d488b",
+    "Contents/Resources/lib/python3.15/genericpath.py": "fd97c8ac5b229e804bace69540cf8a62ea3e415be420b7d059c7fc4adbc9d5a1",
+    "Contents/Resources/lib/python3.15/getopt.py": "f42eecb0e854a89b0c08d4c8c10930b49fbde0baea2bfcce9b23e797b7d10a38",
+    "Contents/Resources/lib/python3.15/getpass.py": "552d0cc52dd52855df4248af36e3744123cca3a0f25991856d25024a7fce6ee7",
+    "Contents/Resources/lib/python3.15/gettext.py": "5883d7898b8b0600bdc817ac054b54612e19659485f6cb3ddfc42a912ad45ffd",
+    "Contents/Resources/lib/python3.15/glob.py": "0ab5c8629500211f0e09d2855afda42e6df5a02702e80afd7241427df2dc4360",
+    "Contents/Resources/lib/python3.15/graphlib.py": "905c5e625e19dd472d4e960518f51e640b7ee44788cab81cad5bc4a9baaa011b",
+    "Contents/Resources/lib/python3.15/gzip.py": "4651f4a02316d1be8633bf3a64d57400816859a135afb59d23033660241a9fc9",
+    "Contents/Resources/lib/python3.15/hashlib.py": "0378e0b986a11d171ee50ee6dc94913df574ae15a58b0c606c4b60599b58a4dd",
+    "Contents/Resources/lib/python3.15/heapq.py": "70210fab9de1fef44b4ec7fe5ece39ec0d0d243edd80ea973f2c56515633a050",
+    "Contents/Resources/lib/python3.15/hmac.py": "534223e79f40ea3907652809850c7f8a4254d2e9816a10ff623a5abe75b0f397",
+    "Contents/Resources/lib/python3.15/html/__init__.py": "923d82d821e75e8d235392c10c145ab8587927b3faf9c952bbd48081eebd8522",
+    "Contents/Resources/lib/python3.15/html/entities.py": "d9c65fb2828dbc1f3e399058a341d51e9375ec5bca95a8e92599c41bd5b78bde",
+    "Contents/Resources/lib/python3.15/html/parser.py": "5c5ed245889135564e75dfed9a47aeb6b4d3e5a2e9614d918a986767e3747539",
+    "Contents/Resources/lib/python3.15/http/__init__.py": "ff5f3d443b9174909975e1c9c67573cf2ffd5fbff9fc2e28529c0601cd17ed9b",
+    "Contents/Resources/lib/python3.15/http/client.py": "f4506633b5fe4fe06add63d9e32ab5e6e7cda84ec1df365da7faa5c1315fdbc5",
+    "Contents/Resources/lib/python3.15/http/cookiejar.py": "fd45df08b50b098cee0e6a67d326caa815fd48452dcc8478585196981387dbc0",
+    "Contents/Resources/lib/python3.15/http/cookies.py": "e4eab3206b471fd94b04cfbdd99057c0a55a49cc6acb5e3b8cf5370a36cbb3e8",
+    "Contents/Resources/lib/python3.15/http/server.py": "5b9c88fe8af9ef7655d9c9a2a41832e4b09107e8f0f05ea7359b7d0f8d39fb31",
+    "Contents/Resources/lib/python3.15/imaplib.py": "ebb09bab21dbabf7414aca19d8334aea67fa1c21b1cefa83149ad3ae14957570",
+    "Contents/Resources/lib/python3.15/importlib/__init__.py": "72b07de4133a7e39b2f6a7920465669aa04626f217e800779587bc0713fe002e",
+    "Contents/Resources/lib/python3.15/importlib/_abc.py": "c32797a975a00558737e9a8ae622d805100a88df6638022f7ea8be3021a0e634",
+    "Contents/Resources/lib/python3.15/importlib/_bootstrap.py": "c9781100756b2d1f79e9cb52390c473fef9defdcbe44436226378b9fbf403465",
+    "Contents/Resources/lib/python3.15/importlib/_bootstrap_external.py": "12645e50f67f8743825adc03c129429c9e4ee99e7d679c2410e6d2fc045327ac",
+    "Contents/Resources/lib/python3.15/importlib/abc.py": "622aedcc567d79c4d872272fa293d4ed95834bc61f12f2470f9f3e0565490de0",
+    "Contents/Resources/lib/python3.15/importlib/machinery.py": "611da9b9c777d56552ea5b1c5b8fc8dc68f57a124deaf9bdffaa65262a6c1d05",
+    "Contents/Resources/lib/python3.15/importlib/metadata/__init__.py": "253487d7bed74182b36b950bb7fb6867e1afe31adc9fd7d49705a181077736e4",
+    "Contents/Resources/lib/python3.15/importlib/metadata/_adapters.py": "af98bc5cbaca4fac66ae9a11119859adf7333980e6ad565e2415b9bb41f32065",
+    "Contents/Resources/lib/python3.15/importlib/metadata/_collections.py": "0b1021ce5177835af0bbf7cc881e7726d450894161d11822329a0ebe62bfa1c8",
+    "Contents/Resources/lib/python3.15/importlib/metadata/_context.py": "f90c0a260f5ff19a908409c8e1f6f990470d8924346657257332e608e59efd29",
+    "Contents/Resources/lib/python3.15/importlib/metadata/_functools.py": "8553c3fb141917af095c08503b30eaa6c0fe81abf6f066b4a754ffc03ccbbb07",
+    "Contents/Resources/lib/python3.15/importlib/metadata/_itertools.py": "9ccbe9f527c7010fc96302b82f68bae25af71915c69589629064d5cd66f2b3f1",
+    "Contents/Resources/lib/python3.15/importlib/metadata/_meta.py": "12d1f2889e641b35850df2b24365d0a7a56ed75dc279a74a5b555fe9a19cd41e",
+    "Contents/Resources/lib/python3.15/importlib/metadata/_text.py": "1c2b0592c66924b7933f734493f9e0ac079755146d4ebb7287d78e001a113f80",
+    "Contents/Resources/lib/python3.15/importlib/metadata/_typing.py": "1102a186c120cff49af859de3c8f9f682ef6acd38e430a298c0d62e691bc1435",
+    "Contents/Resources/lib/python3.15/importlib/metadata/diagnose.py": "9e4491322a309669212d884a86f0a0f60966b7fd750a8c7e1262f311ba984daf",
+    "Contents/Resources/lib/python3.15/importlib/readers.py": "d0d57d118d64916f7e6edb04f8bd1a760a1abb879125899ef50a36d09ef54df4",
+    "Contents/Resources/lib/python3.15/importlib/resources/__init__.py": "17a48e31920b89ecfdea52b787d76e13f7399114c4c9dcc7bc8e83ed345c3891",
+    "Contents/Resources/lib/python3.15/importlib/resources/_adapters.py": "be9ac919b51e1db6a35fa5c2b8c3fa27794caea0a2f8ffcc4e5ce225447b8df9",
+    "Contents/Resources/lib/python3.15/importlib/resources/_common.py": "30b0acda2e1c80223a8e514e241d5a4f02b086aa127ead60a80fb5cca3f50ddd",
+    "Contents/Resources/lib/python3.15/importlib/resources/_functional.py": "9cca29f5973b8356218b2939a2aafdba4bdf25c3b1e2f9efa83ee7876e2157b6",
+    "Contents/Resources/lib/python3.15/importlib/resources/_itertools.py": "7838ac57a46a88d64ea202d25dfe8b3861ce61cefd14680faca34bcc52e60ab5",
+    "Contents/Resources/lib/python3.15/importlib/resources/abc.py": "9106f9effb2ace47ddb949f5106aabc2b865adfbe0afbbe7ab6f9f918177068e",
+    "Contents/Resources/lib/python3.15/importlib/resources/readers.py": "5a6ba66819d7d543dfff4028c9e6aebba850b590f743ecb025dc8a7b90d24c16",
+    "Contents/Resources/lib/python3.15/importlib/resources/simple.py": "b70b988b3ed4d7c8aaa050bee3da201439e2683180d811b81c9f71eb470b82e3",
+    "Contents/Resources/lib/python3.15/importlib/simple.py": "8e687aeeb1db537d2717cb0352c5f126ff7d4095c6de6dc7f00d5103f3009c40",
+    "Contents/Resources/lib/python3.15/importlib/util.py": "7bdfadad42664ba169ffac8160765673cd79937f74324f4664de8d820c35b863",
+    "Contents/Resources/lib/python3.15/inspect.py": "c658688867700378d174d2e01c6bfa7419dcbc44f185190c1b37faf037054647",
+    "Contents/Resources/lib/python3.15/io.py": "1b75584d4efcc612dc0db2ae98619408276585a106f0544879edb5e25b55430a",
+    "Contents/Resources/lib/python3.15/ipaddress.py": "66bccdc23e14565cab738aadc3a1b16e8657668229aacb89dcc3e32172e0b3d9",
+    "Contents/Resources/lib/python3.15/json/__init__.py": "4cc35eb04b789ce4890cffa944829c946e4c5dd032aaa6dc01f53449b250985a",
+    "Contents/Resources/lib/python3.15/json/__main__.py": "2135d18ded78bcb96b7b96e144b822039c90c37609fe6311ee239af2424a003a",
+    "Contents/Resources/lib/python3.15/json/decoder.py": "6a06aad3e054e600b06959e93fe1713f88a4665348ee4a82f553ae5104038329",
+    "Contents/Resources/lib/python3.15/json/encoder.py": "2d3ded41ec1251b6334ee2d8a53b3fbb22a05202b7085636c749f99a38d00902",
+    "Contents/Resources/lib/python3.15/json/scanner.py": "b8ca5e22d0f8d6a9ade7574f3f7c9dfa9eea2f848a6c0123f96eb454112f854a",
+    "Contents/Resources/lib/python3.15/json/tool.py": "b8eea9965a36526f582bb7f3e6e2a36a7a30221d5efa3ccdb389507f1f3f7fac",
+    "Contents/Resources/lib/python3.15/keyword.py": "c19283cfc26952b350c9dfb75c51bd7d2670c08587dd19b8c63f71179e836ea2",
+    "Contents/Resources/lib/python3.15/linecache.py": "62debf7c0f2cb51e0cab874af033aa53518cdb76ea16b39499a79d1db8eddfbf",
+    "Contents/Resources/lib/python3.15/locale.py": "95fcbdfe551ee96930369721788a07b3f707e8bf381a69345dd3c31fb925475e",
+    "Contents/Resources/lib/python3.15/logging/__init__.py": "87a1907cd9081e07c3a92e678015f94cd77acb2fe8987b70a4d589bcf89338ea",
+    "Contents/Resources/lib/python3.15/logging/config.py": "7c04cd5fa3036f462c01b4f4ef00415c68647b7435505c7ac20bf6a985ee3f61",
+    "Contents/Resources/lib/python3.15/logging/handlers.py": "413517dcfddc937bc3ba92ea0d015b5502781fef6e4e9187fbb289f4f886f84c",
+    "Contents/Resources/lib/python3.15/lzma.py": "b01a78a04c6a9ba6c645758cace78ed53a53871ea3ff88744e23f6263613d507",
+    "Contents/Resources/lib/python3.15/mailbox.py": "591f05345a91252fbe109734c298108f1b1ce26a18cb3e36ed91092692e88ec4",
+    "Contents/Resources/lib/python3.15/mimetypes.py": "0e4233cbc6001d55527adf7c7ab87e7d53a3905f839661fb5a108e7cc5b41c64",
+    "Contents/Resources/lib/python3.15/modulefinder.py": "24ae22599a4525c610fb1ac709423e90f8ec8c39aec80f58540ad069bc14dc38",
+    "Contents/Resources/lib/python3.15/multiprocessing/__init__.py": "a5a42976033c7d63ee2740acceef949a3582dcb0e0442845f9717e1be771c68b",
+    "Contents/Resources/lib/python3.15/multiprocessing/connection.py": "1d660d6518b098ffca5b3f9a0173cf9dd9b50f1fa8cf3cdadf644b3e318b5bd1",
+    "Contents/Resources/lib/python3.15/multiprocessing/context.py": "e49d49a7807ecd0957c195acee3f066fb276c807a79ea65d2027456fb1a3bd92",
+    "Contents/Resources/lib/python3.15/multiprocessing/dummy/__init__.py": "bd08f18fce4393e38be9a94a67b6595c05959d59140135d65dc6b3fecfe70e54",
+    "Contents/Resources/lib/python3.15/multiprocessing/dummy/connection.py": "d63dd1979fde9c133efe430ee870e6ba6de43c0a0513866ce3ce475791fe57ab",
+    "Contents/Resources/lib/python3.15/multiprocessing/forkserver.py": "811a5bfcda2944eaa8f3b939fc490e3947cde2d0e994c3715b65b12474f53989",
+    "Contents/Resources/lib/python3.15/multiprocessing/heap.py": "af1dfdf2b930ae048bdbe75edd9826039142624ae4e35a31a1c5ca2733ad895e",
+    "Contents/Resources/lib/python3.15/multiprocessing/managers.py": "6698920db7bfab5ee8ef377525a14c8581c1a7181ce770b30d017768d1933daa",
+    "Contents/Resources/lib/python3.15/multiprocessing/pool.py": "2b1e92bfc230007ac463aa0a3bd18c948a3c62f97e7e73858ae8b3f61dd13a6e",
+    "Contents/Resources/lib/python3.15/multiprocessing/popen_fork.py": "9687a24fb0bca30f66ab4168aea2cfdf40679faf318d3f4e76e0e02ae823f9d1",
+    "Contents/Resources/lib/python3.15/multiprocessing/popen_forkserver.py": "0588ad0e5a36718b4377dc2a2a97864a10986c25a33dc3bfed12595711b0cdab",
+    "Contents/Resources/lib/python3.15/multiprocessing/popen_spawn_posix.py": "3738d2da3f5f57c83149232120a389a3b03cb4ed6f275957b884b18eb227628a",
+    "Contents/Resources/lib/python3.15/multiprocessing/popen_spawn_win32.py": "c3be536c83f59c5c6b83bb78af06366307000be2a63b093767bd2cc732f82d24",
+    "Contents/Resources/lib/python3.15/multiprocessing/process.py": "9cad9791c8ff9aba8f688c4e7ad9f620384231f8d0dfcc88dbc1e4c947ec28bc",
+    "Contents/Resources/lib/python3.15/multiprocessing/queues.py": "2749328cec74ac7abfb2f1b06df3eb70955d3951ea9c90aea21f25a729369cc7",
+    "Contents/Resources/lib/python3.15/multiprocessing/reduction.py": "7cd1652f08e4685f380f2484ad3441d363fe58fe5b328f50050fb0f281a535f9",
+    "Contents/Resources/lib/python3.15/multiprocessing/resource_sharer.py": "bba3c7f2b76a9cf4e8ceb642801c405411da95adf91947d81b0043586038290e",
+    "Contents/Resources/lib/python3.15/multiprocessing/resource_tracker.py": "fd185d864cfd061519952542f017c361d107239df8ed4bff15fdb093d046a89d",
+    "Contents/Resources/lib/python3.15/multiprocessing/shared_memory.py": "f6c69c219fc7ab36abbcd386573a41880ae869a2861e546b72afbd3387cc163e",
+    "Contents/Resources/lib/python3.15/multiprocessing/sharedctypes.py": "bf97c6a75e61c67303bb77007369771fe0feb562897fc655a7e74b35ce731391",
+    "Contents/Resources/lib/python3.15/multiprocessing/spawn.py": "e38307ad8d7a6107ca90a943e2d7a01c9a16fbe4cbac6d0f5087a8bfef4ebf2a",
+    "Contents/Resources/lib/python3.15/multiprocessing/synchronize.py": "d77f983907f050516dceae8e25af70628c644b720d51ae13d10f8b46442645c2",
+    "Contents/Resources/lib/python3.15/multiprocessing/util.py": "f54d44ee1d9698ff9c103fcb46b9c2a74e2f78b80c9ed87a4c68f6e20d1f9d55",
+    "Contents/Resources/lib/python3.15/netrc.py": "665f4535ebee3e8ddb90b1a149bfe78005c1eeab8c4c42c75324d9033f2e6e51",
+    "Contents/Resources/lib/python3.15/ntpath.py": "dd1dd79af505c9324fe455fa766a48c0fa7d91ac6e08d99f4e73a375c2fa6c83",
+    "Contents/Resources/lib/python3.15/nturl2path.py": "2d367c4edde6bdbb85c32a20afaec5a49b3979e8c423896fb41144f04e362f1b",
+    "Contents/Resources/lib/python3.15/numbers.py": "e5e73beba4a7674bd5e9a881a202d403a0c3e2b59af4181699155ea4827a7561",
+    "Contents/Resources/lib/python3.15/opcode.py": "2afb1b49a8f0e8f41e70b5d9192181ea31cb2844c9b298275722f4e698cd0b39",
+    "Contents/Resources/lib/python3.15/operator.py": "a9f9910965c31f841caad0447ee47299ac539a371422aefe200c86c60f3b4697",
+    "Contents/Resources/lib/python3.15/optparse.py": "632248c623b68e40332762c27712154ec25cd34d3965a53e2d2f3286e89a10b3",
+    "Contents/Resources/lib/python3.15/os.py": "ccbdcea8e4a40a2dd8b1c205a025e45dcf39c9cd269ddc194d9518640aad70af",
+    "Contents/Resources/lib/python3.15/pathlib/__init__.py": "5aa0c2ede47406f28d38c02c82fc573270fd6fab2744c1d9b3ff9b28d8f0d8fd",
+    "Contents/Resources/lib/python3.15/pathlib/_local.py": "dd1067a4fc49212d10583e0a340cd87eb638a7d70725203d40834b70272fa675",
+    "Contents/Resources/lib/python3.15/pathlib/_os.py": "dd6ab97af30fe5e1714c5a0e23404324821404abe352a50bb83a465e2284c53b",
+    "Contents/Resources/lib/python3.15/pathlib/types.py": "ed1a949483928bba20387e0655ff97c5997cbe0db3152a3f4be600e8d5d11cda",
+    "Contents/Resources/lib/python3.15/pdb.py": "be06b7afe04ba87383df002e80de3db5077af53a26dc0d85f8f14388956ec763",
+    "Contents/Resources/lib/python3.15/pickle.py": "d4c01f696a404b966032c0ac3589b54f226ab76c447d127a4598e51737cbe1b7",
+    "Contents/Resources/lib/python3.15/pickletools.py": "6f8b8bdd681d07e3d27add2d92e13d5b49492232d4c110fe8d64265226480d94",
+    "Contents/Resources/lib/python3.15/pkgutil.py": "5df90db7c9682e3738e2b63cf105628d740fb8a461d15c90f8da3e2bbd224fc0",
+    "Contents/Resources/lib/python3.15/platform.py": "6eea3ae748e936f61d298469b77086c07c0387117809f4864dfd48002648463c",
+    "Contents/Resources/lib/python3.15/plistlib.py": "bfee9ebf95cc01899498a8440defa191a2751bb721031d1cd0bc0a5af5d273be",
+    "Contents/Resources/lib/python3.15/poplib.py": "a6ffff188814b56d95b043c31d9e0dfee51ac6d6e92afe74ab070cb6136b076f",
+    "Contents/Resources/lib/python3.15/posixpath.py": "fb385aa49b97674cd1eb2b71b2407874e4a3579e3bcb7b31e0cb89a00de373df",
+    "Contents/Resources/lib/python3.15/pprint.py": "fa053614940cf0021d688cf30bef1cdf6bd571887340931cea98b0ab3824f0fa",
+    "Contents/Resources/lib/python3.15/profile.py": "81cacb01915af5ae1d7162c9d40031bbce2d273044bb02cb3e457149fca0c0e4",
+    "Contents/Resources/lib/python3.15/profiling/__init__.py": "dd57fc9b639982930126e257bd859f2d0d8e946415f742acf8b855e076963382",
+    "Contents/Resources/lib/python3.15/profiling/sampling/__init__.py": "d2602d940d0f81db7b07e1b82e3c4869aa910d2ca1ad993ef469e862722694f4",
+    "Contents/Resources/lib/python3.15/profiling/sampling/__main__.py": "fb39b84f265364784992a63839e531bfe6189dbc2b1a182cf8d1ac26522adb75",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_assets/python-logo-only.png": "e3f8eab3350854c5ab8785e34a7165aba827dbd0cbba211f9235ea31607d09e1",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_assets/tachyon-logo.png": "b72b0e28079ee7c033458f279e1c721d4d689db43f6e616848504d09ebe9c85d",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_child_monitor.py": "9a73bc782b1f2bac75f28155e72ea0b466c9aa43c3be0a3693fa7f06575ddf5b",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_css_utils.py": "ac8c5c226c5fa247997b1671a3b3cefdb28845213288c8a69f0e81c0d8d291dc",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_flamegraph_assets/flamegraph.css": "a57f0512fe7071ca7915ac063e45df2173d7cea3b1fdded36fbb481cc14dafbb",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_flamegraph_assets/flamegraph.js": "9b39e61bfeadb6e4f9132c6dedb3b6f62f421821dc98261079ca6942f7649995",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_flamegraph_assets/flamegraph_template.html": "6469b5f46e27eaccf9b212e2d30d30807bca15873ea106a66726cbafc0babf39",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_format_utils.py": "00d1b0d1adee3d262073b8babfb8d91e95e9bf542c40541a5abfdfc5e77e5f25",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_heatmap_assets/heatmap.css": "17dd5a24ea930b2c8e3e51cd16dda20b68434273b9400ef3f965159e31213608",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_heatmap_assets/heatmap.js": "335f02d7b8baa94f0294afc0a71a3a4cbc5799187524524ce2a62ee18d16023f",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_heatmap_assets/heatmap_index.js": "d75ff0fe6781bba58b3a2ce3af63a329da39a7002f3eabf1adcc3cdc14c4d3fd",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_heatmap_assets/heatmap_index_template.html": "152b8b80c6cd318403c8e4a7a6d3b9256ae2dc3459698c606398bb58e199cffe",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_heatmap_assets/heatmap_pyfile_template.html": "ed68e3905f19b4535d561628359464ef7d575332a126a827fdc7b70ca4c17099",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_heatmap_assets/heatmap_shared.js": "15e4ba8b7830fb5e33f9aec95c42acf62b950df11210884aee62eddd580a68ab",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_shared_assets/base.css": "f09f2a549ce69a31e6a3fc29979a32204781320b377bd6488f00f71c3811af23",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_shared_assets/base.js": "b6f0d0a0720a7f3b20b14be710b7db257a89098178f3ab785d77da76eb019b18",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_sync_coordinator.py": "c901de1525a3137f938e077b3faddda0ecdb5031ba0b134104c356777e0bb34d",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_vendor/d3-flame-graph/4.1.3/d3-flamegraph-tooltip.min.js": "105738fc5fe7ca67327cf9a91a63fbd54e5fd3d2becd0e07650ca919b5678ac9",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_vendor/d3-flame-graph/4.1.3/d3-flamegraph.css": "7d75d68cb662819a37401248863100dd9db351f4bebf3310845d9196fbab7e2a",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_vendor/d3-flame-graph/4.1.3/d3-flamegraph.min.js": "1846f1e636ed1bd2c32fc87d1e24d63aff7e4f18629b4bbd819351f09ea22353",
+    "Contents/Resources/lib/python3.15/profiling/sampling/_vendor/d3/7.8.5/d3.min.js": "d6b03aefc9f6c44c7bc78713679c78c295028fa914319119e5cc4b4954855b1c",
+    "Contents/Resources/lib/python3.15/profiling/sampling/binary_collector.py": "4610e2f07a58db81f3ab60ec52e18ed3af1b9855665d03a9794664af02606b73",
+    "Contents/Resources/lib/python3.15/profiling/sampling/binary_reader.py": "caf1e617d144ab4810fbc8957697d2baa0cbbcb163840d75243782cca97314ca",
+    "Contents/Resources/lib/python3.15/profiling/sampling/cli.py": "1e916b6ec990249f33eefecfcee62e9a7656cccca1b6a358f4a8d53ff396ae0b",
+    "Contents/Resources/lib/python3.15/profiling/sampling/collector.py": "476528b765fb13d9a2f8cadb05f8a652083b7b14582bdaed10cd4f71d36cbcbb",
+    "Contents/Resources/lib/python3.15/profiling/sampling/constants.py": "d4105560d62cd778513cd2b9a084617fb0b091cedeb1794fe3432e226d03e0d1",
+    "Contents/Resources/lib/python3.15/profiling/sampling/dump.py": "827933d1d8c11ddd9acb6ac9d697c66b2874572fcb627f3c878c747112b72c46",
+    "Contents/Resources/lib/python3.15/profiling/sampling/errors.py": "198d09b581ac8488e8a69d95b12ffeab753666b4f3e44f923e149cc0f735af91",
+    "Contents/Resources/lib/python3.15/profiling/sampling/gecko_collector.py": "904442de651c204ab0196582d318782d1e585c73df657502f17665a9e425d662",
+    "Contents/Resources/lib/python3.15/profiling/sampling/heatmap_collector.py": "54703a037d8781af856b0cf7feab64cd56515d3d66668d877046b394dc666ae2",
+    "Contents/Resources/lib/python3.15/profiling/sampling/jsonl_collector.py": "f4c829157f085b0597a1c19f587c2d6c7fbe8b7c5f249466871c84ab16b0cb9e",
+    "Contents/Resources/lib/python3.15/profiling/sampling/live_collector/__init__.py": "5e6d9660c4478325e81f2d5186d059e76837877a2a0b9a498b69b9e1878446b3",
+    "Contents/Resources/lib/python3.15/profiling/sampling/live_collector/collector.py": "f23714421a51f20c4d71fe265b83afce8759c817643495a3912d5d3d8115fb7d",
+    "Contents/Resources/lib/python3.15/profiling/sampling/live_collector/constants.py": "7527ca50823193df3130216db65e9ab3614b78ca6a215dec244f5c919c1bca3c",
+    "Contents/Resources/lib/python3.15/profiling/sampling/live_collector/display.py": "94c63419248c89adf6dc0c74e510dd970529aa7b19aaa77a3d8ab7f36eb8a466",
+    "Contents/Resources/lib/python3.15/profiling/sampling/live_collector/trend_tracker.py": "37dd2b670f93c3244877bba084af45c3a6462575af9caf575992a690570eddf9",
+    "Contents/Resources/lib/python3.15/profiling/sampling/live_collector/widgets.py": "b53a4b53207fc687044ae35796afb810f8f5f7781de2ac2483d20c905c63a47c",
+    "Contents/Resources/lib/python3.15/profiling/sampling/module_utils.py": "ce5f73824979ec94fe1c5a3dfc45449fbc92c41212007637192c357f2efe166f",
+    "Contents/Resources/lib/python3.15/profiling/sampling/opcode_utils.py": "6e054a254a739dad07ec55757219a39d41373d0cc8f41711161e280b8d352dcc",
+    "Contents/Resources/lib/python3.15/profiling/sampling/pstats_collector.py": "3c50d5b718ef559fe41393594f17179bc5dfbd03d234b344169fb576501d1784",
+    "Contents/Resources/lib/python3.15/profiling/sampling/sample.py": "ffed075feabfe6dfb323258d14f3c108827d2a7ff3ea9e5b9d6e4023009bbfc2",
+    "Contents/Resources/lib/python3.15/profiling/sampling/stack_collector.py": "7fe7893fddef39442a023aa1ed90f4ce276b933256039389bd9878cea1745638",
+    "Contents/Resources/lib/python3.15/profiling/sampling/string_table.py": "e328fe030e61fac36dd1ee195e05c982f0a08d92d913441424bb03ec87503c76",
+    "Contents/Resources/lib/python3.15/profiling/tracing/__init__.py": "b941954883268391363ad5e6265485398966d9e5601fe9942a0e69af1c7846dd",
+    "Contents/Resources/lib/python3.15/profiling/tracing/__main__.py": "fa987289c398ed28f2d4c9dd6bae6d985626dc16c0a23fcc77435c78c1644033",
+    "Contents/Resources/lib/python3.15/profiling/tracing/_utils.py": "e54a8ed2aa43a3e00260be273df6c6cca526d7df70c4623254494b1232542ef4",
+    "Contents/Resources/lib/python3.15/pstats.py": "c241927ca87fccdbae862e84fc1d34d46855952b096267829c7278687c77cf63",
+    "Contents/Resources/lib/python3.15/pty.py": "655814df6302412a3991305d05a301e0a2514d1363b7465a30898513a53bddfc",
+    "Contents/Resources/lib/python3.15/py_compile.py": "afddb6f9118adfe5f5213b4836b41042855aa7365396f7ddb42b1420b187243d",
+    "Contents/Resources/lib/python3.15/pyclbr.py": "19217afe6c6410c848af98ada1333dfdece3db09854a3bbc1dc36b10c5af2717",
+    "Contents/Resources/lib/python3.15/pydoc.py": "09eff763617617141b23af2f6483640787ebbefde042dbc6e5bd2ca989c5c2d1",
+    "Contents/Resources/lib/python3.15/pydoc_data/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Contents/Resources/lib/python3.15/pydoc_data/_pydoc.css": "038d4bf51b4d373284640f3658d70eaa856def24d8d02b8e29b289beaabf1cc9",
+    "Contents/Resources/lib/python3.15/pydoc_data/module_docs.py": "0dbd41926f6e34dbf1ee7a1de1b8a6e8ac541070582c0310a6abc3920a0e2a5e",
+    "Contents/Resources/lib/python3.15/pydoc_data/topics.py": "71e51b4ad1f5d8b9b093156f049911cf53da5e6a304ff839aebd632b10751601",
+    "Contents/Resources/lib/python3.15/queue.py": "5a368568f849096d4b619503389e3832a1a0b9a8c053f87e29da7f47db753a23",
+    "Contents/Resources/lib/python3.15/quopri.py": "744ae69027b180e7155b8be70ea2bb264c2358f7ea4e3af986a215d4c743390f",
+    "Contents/Resources/lib/python3.15/random.py": "6a0439b76a1050cd86d2bcf7e121f9ddd57be389d37fd9ba87ee4f86b4330e52",
+    "Contents/Resources/lib/python3.15/re/__init__.py": "4884aa60c267974b51e372b547bf13dc0315d7d75fe1f2a9ebd01ddfed24a14b",
+    "Contents/Resources/lib/python3.15/re/_casefix.py": "1b12d9136f23db6c3f6f26053fefc15ca964b886838c7b9c1fabf8d2efc1e5c8",
+    "Contents/Resources/lib/python3.15/re/_compiler.py": "170f7ff5432b78cdcd2227a01cf8e42110d2184426ebea7395177e9fe7b088ea",
+    "Contents/Resources/lib/python3.15/re/_constants.py": "42253b3181b81aad6c46392f44a0ab26dcfa31feea411296f43ba16616a1ab0b",
+    "Contents/Resources/lib/python3.15/re/_parser.py": "a3ae4b5e8442b39d82ac611a11bec6a7367fb47a95b3b5bceaee6e7e9c39883a",
+    "Contents/Resources/lib/python3.15/reprlib.py": "b04872e10d76252e44eae50cc785eb0fe478491afc4d7f0825a93f82b2eaba5f",
+    "Contents/Resources/lib/python3.15/rlcompleter.py": "e611fa1cb5378df52e42439000baa85b5ecc67ba77e9dbae147a1f3a9a302050",
+    "Contents/Resources/lib/python3.15/runpy.py": "6d8112c4e30f0e4e1c28e7aebd8191c238c5ba14dad66371803c511bdd882e4f",
+    "Contents/Resources/lib/python3.15/sched.py": "56588f00a68ef953014f41baf36e0dbb7ed7793f8aa883ebcb1a8bd3787c06a6",
+    "Contents/Resources/lib/python3.15/secrets.py": "277000574358a6ecda4bb40e73332ae81a3bc1c8e1fa36f50e5c6a7d4d3f0f17",
+    "Contents/Resources/lib/python3.15/selectors.py": "4b8a60cfbb619d080f87dffe1578372e56e8c0ac826f043224a154cf7b77606d",
+    "Contents/Resources/lib/python3.15/shelve.py": "79c518486265716cefe12673055269af73b82397992c4326fcd58e0c04a63135",
+    "Contents/Resources/lib/python3.15/shlex.py": "aeda1c54188363d907654a19d338e5961416ebec2e2f506afab19be61ada8120",
+    "Contents/Resources/lib/python3.15/shutil.py": "98e55751e02872a25e35cc39798accffc272044d7551643a26fcc731470adc44",
+    "Contents/Resources/lib/python3.15/signal.py": "0363c964c90ac0b3e515de5749205e6e6454051a1211058375d84d91eab6071a",
+    "Contents/Resources/lib/python3.15/site.py": "687f54712e5df424dccdb399cd2b73be88507797801db7ee38f17dd79de62666",
+    "Contents/Resources/lib/python3.15/smtplib.py": "fc846e9b3154d39593a25de7c5815de50c7ab22f5dd04a8ad65d5da99a7f25ef",
+    "Contents/Resources/lib/python3.15/socket.py": "463dc951122dff8a378862e32461d020a457ef4d80697b3396adca80c87f9e79",
+    "Contents/Resources/lib/python3.15/socketserver.py": "e13cc60543946045479cbd093005fd31bea2deee8bce300ddd5ad7c54f4f76d6",
+    "Contents/Resources/lib/python3.15/sqlite3/__init__.py": "24b0d5e0b2c2ddee085bc316a71164a8f40b84d3f173cfecbdcc7787fb0e1d83",
+    "Contents/Resources/lib/python3.15/sqlite3/__main__.py": "ce69b0259f9359f2f3d2dbd4487db77bda47cd394554171fb86bdeebb824e585",
+    "Contents/Resources/lib/python3.15/sqlite3/_completer.py": "e438b509dc37dc505d8a410cc5cb2a326c5da01d8a95befbf56e3c807b91316b",
+    "Contents/Resources/lib/python3.15/sqlite3/dbapi2.py": "a79d47b93dba1aa26c3908d0d960b513e498e125bb54812cb52fbc75ec0e9f3a",
+    "Contents/Resources/lib/python3.15/sqlite3/dump.py": "ebbe93df602f6bde103d48835df31a099924d1564e2b393556189f22c2d27bc2",
+    "Contents/Resources/lib/python3.15/ssl.py": "1cdaab9afcc26ea540d12444916421357a1fc55da4ad784cb0cd01352bb09db8",
+    "Contents/Resources/lib/python3.15/stat.py": "f83dea46958993c0e4b2a83b7d635d79a60c999b15805649195337eff774ba18",
+    "Contents/Resources/lib/python3.15/statistics.py": "a37d2238bf63d464b16aaa76e017061bd06061a56b7d49ebf9da987513382bc5",
+    "Contents/Resources/lib/python3.15/string/__init__.py": "76fa02fa29f029cf1b0a25ab635fe0d5b859c6981d8be9832636fd8d2a565ba5",
+    "Contents/Resources/lib/python3.15/string/templatelib.py": "cafa8b20e15ffc8839a93aacd64f9e28b6596055a04e0ece4d789575ab36b057",
+    "Contents/Resources/lib/python3.15/stringprep.py": "8af662ca53f21d5f29f4ddaf8866d62472f1368b3ca6d422aff7b8c10b460a9e",
+    "Contents/Resources/lib/python3.15/struct.py": "50c14e55f94957804c1e45e975fedbe8e86f7e1dbb745b150370ff681155370a",
+    "Contents/Resources/lib/python3.15/subprocess.py": "18b3f766e34f183a7bef17975238feb1fa35defaa694877a5a86b1b2e63984c2",
+    "Contents/Resources/lib/python3.15/symtable.py": "a8a4cc5fd2486963d03eef78a0ff604afa24c9d722520aa983125029ce3fa4f0",
+    "Contents/Resources/lib/python3.15/sysconfig/__init__.py": "baea877ee2b12c9952675becfd8bf8c271d4ac6feeb61814b8ccc89d4b9432f1",
+    "Contents/Resources/lib/python3.15/sysconfig/__main__.py": "571daec753e9f8cd85fa80e64ac3366d1b0e7b8fbcf2f696f98d6921e2681be7",
+    "Contents/Resources/lib/python3.15/tabnanny.py": "e3c2709ad9673217a16dd63f38494037faed614711b718cec2079c1885bd674c",
+    "Contents/Resources/lib/python3.15/tarfile.py": "2e54eb6be69fe49c5019d186398990ea07562d89d35de9410696544853ba7543",
+    "Contents/Resources/lib/python3.15/tempfile.py": "27d249cdc722ec6a574bd068962a09d50d52976b24a02e59aa4b4033f3d04d07",
+    "Contents/Resources/lib/python3.15/textwrap.py": "7f05d89c983f5aa8cefcff707a9cc561ed60c51fc8a68e2e3ab61cc6dfa84544",
+    "Contents/Resources/lib/python3.15/this.py": "481d0cb3de511eae0b5713dad18542b07eafd9c013bb7690f7497bad49923a71",
+    "Contents/Resources/lib/python3.15/threading.py": "634407c1b2d16f0204359fca189e2b6d1c1c3fc0a4e863a27f03ad09f102c725",
+    "Contents/Resources/lib/python3.15/timeit.py": "70b6223460556d89eb9455f8c79d8c8d3de993189f31e3e586621d4f7e2465a3",
+    "Contents/Resources/lib/python3.15/token.py": "61d4270311099c8a0c0b2e45fb363fd1c4e347a720bcc25f682b63dc28c34234",
+    "Contents/Resources/lib/python3.15/tokenize.py": "3253bdce27b31649cc31c04e9bae6a74f5a59abd89077153f405aa77c792dfcb",
+    "Contents/Resources/lib/python3.15/tomllib/__init__.py": "71f67036895f4c5acab942618af0cbd3d814451ba61e967f358d0f341a5b8f51",
+    "Contents/Resources/lib/python3.15/tomllib/_parser.py": "1eca6101d6135d4ba30573eb2212becb4cea39cb3416f48225a1deeecdd94c4d",
+    "Contents/Resources/lib/python3.15/tomllib/_re.py": "a12359fe294523a72112e434d58452a14c9d050affa2417f9927474e4166bfdd",
+    "Contents/Resources/lib/python3.15/tomllib/_types.py": "f864c6d9552a929c7032ace654ee05ef26ca75d21b027b801d77e65907138b74",
+    "Contents/Resources/lib/python3.15/tomllib/mypy.ini": "a56b56a5cddd960d38677d3850a085e8ecdac2620bf42e7034eff22730a89618",
+    "Contents/Resources/lib/python3.15/trace.py": "914775ca3a1ddc86c3bbdeadeb0389d553c8d672517a8555fb70c494722e7839",
+    "Contents/Resources/lib/python3.15/traceback.py": "ce0e28269675d3558725ef6ef1b0e32d7060d70318d566fa25926f5a67877528",
+    "Contents/Resources/lib/python3.15/tracemalloc.py": "c2cc84a05b824df79840c98729a0e94ef8909b11c528a1b2c5a00aa436b97b25",
+    "Contents/Resources/lib/python3.15/tty.py": "1ab5e5e047130b310355e907a3306178299b9f2044fb526ac63bd116e9a16d2b",
+    "Contents/Resources/lib/python3.15/turtle.py": "c6b3d51cfb2c6cd43041da6f6032cc640fde2b2a47b2caf1a5f82c98a743f606",
+    "Contents/Resources/lib/python3.15/turtledemo/__init__.py": "5f465277c96c107a5af544b0a962561f97cb0bfd75906d9bf9741450ed02b0e1",
+    "Contents/Resources/lib/python3.15/turtledemo/__main__.py": "825b32ebb9be6903ddbe558ffc35078b32121e931ddb8a78bc6f4346acefa53c",
+    "Contents/Resources/lib/python3.15/turtledemo/bytedesign.py": "2f5ddeae7018a93c1bd0bc4917549f48cb3498edd34230a8617f6f6198ba37f8",
+    "Contents/Resources/lib/python3.15/turtledemo/chaos.py": "32732badb76e21131074e82ee26b5a6d510db2612f86a71b58d1d795a4e88578",
+    "Contents/Resources/lib/python3.15/turtledemo/clock.py": "b6867f4aa24548f51f43d201cb1f75ea8cfc34a462b0dab77746fadfad41b860",
+    "Contents/Resources/lib/python3.15/turtledemo/colormixer.py": "d3c471b192c769f24a658a29f3f78646d2267d674f477fce3f883aef57fa69d3",
+    "Contents/Resources/lib/python3.15/turtledemo/forest.py": "469aad82b623f793b4a9db54b40f828c40e414b1493f468f44a6907ddfb15790",
+    "Contents/Resources/lib/python3.15/turtledemo/fractalcurves.py": "205bb803ab169ca541bba73bd7d67688634af2f3b4df884ca42511b8446237d1",
+    "Contents/Resources/lib/python3.15/turtledemo/lindenmayer.py": "7dbf445991815f465303d61dcd1878bde5655f681cb6f22c8e3fe9435364bc23",
+    "Contents/Resources/lib/python3.15/turtledemo/minimal_hanoi.py": "21902fdba0367e6a3df5f96752254f711767bd32de2b56b124afbdc25cbd340e",
+    "Contents/Resources/lib/python3.15/turtledemo/nim.py": "313923085890915fd464d7dd726ca8d87dbfe20cebfc609703acbd7d3cade8b8",
+    "Contents/Resources/lib/python3.15/turtledemo/paint.py": "24a52c4127c6ee3b239720135037c55cc8740426e175ea06144c4c2990d4d385",
+    "Contents/Resources/lib/python3.15/turtledemo/peace.py": "8ad65a5bbd34e4448c60cd357647bf6f303bc6c7b0caa7be3b9684d346f436e2",
+    "Contents/Resources/lib/python3.15/turtledemo/penrose.py": "05738c513650f1d62857664da7fd35af2f4d90cd1cabc44b3562e2a5d10ced3b",
+    "Contents/Resources/lib/python3.15/turtledemo/planet_and_moon.py": "aacee50de54b6eae84602ef50bcf2a270294e948b1cb8954a62918b498212845",
+    "Contents/Resources/lib/python3.15/turtledemo/rosette.py": "eebe6795eecfec4fb6432bf3761d937cc62bdfc57e1426d16a92f33940c2d65f",
+    "Contents/Resources/lib/python3.15/turtledemo/round_dance.py": "d474933d21fbcbb71f6518901d696b5ddee4666d8bbdba7970d2ffaadd303b5b",
+    "Contents/Resources/lib/python3.15/turtledemo/sorting_animate.py": "114344f30d758e187f378eac71478d01ba6b80074ad9136122d107dffefff2a0",
+    "Contents/Resources/lib/python3.15/turtledemo/tree.py": "de33a9818e1f37f31e6e5ceabac4c19f87ebae55788a85eefecc248ca2d8779a",
+    "Contents/Resources/lib/python3.15/turtledemo/turtle.cfg": "de66698dc4f083792df6aaed1e5d94e879852d72f1f24ac09c8fb4cd144c6c88",
+    "Contents/Resources/lib/python3.15/turtledemo/two_canvases.py": "6fe0a6b5d7fcda098b3822100864760406dfe3c155f0c7e383679de4c93d6dc4",
+    "Contents/Resources/lib/python3.15/turtledemo/yinyang.py": "7ed2d74aeacd701f8721c1a62200bef1dafffc1d88b82a43fe0b4454de4abda1",
+    "Contents/Resources/lib/python3.15/types.py": "9343ae6ff9c982d6b0a017f1a2750a11f478dfe2298ab3d73e51f98b88f4ca58",
+    "Contents/Resources/lib/python3.15/typing.py": "c94d236aeec98160988fb70a04a724b09920bf16d4da4e241dbb4b8c092a63f9",
+    "Contents/Resources/lib/python3.15/unittest/__init__.py": "2698f2daf7a02609a6825b89cd459ebaa283dec2403c7b846315a0701bc74a0d",
+    "Contents/Resources/lib/python3.15/unittest/__main__.py": "ff6b9a100d32001715b40d61bc4d613623b139edb1fdc3566427b83c331caae3",
+    "Contents/Resources/lib/python3.15/unittest/_log.py": "2531f42c18879500cc6fe514f90a791875371983a86a589ffdc81f63972cc746",
+    "Contents/Resources/lib/python3.15/unittest/async_case.py": "5e8265cb20ead3877aef870cda91f2462acf107513933f84b4f3419028e8746f",
+    "Contents/Resources/lib/python3.15/unittest/case.py": "17330ded38827cf8ba771af42643763765cf43594a6ad7e2c6daf9785022334c",
+    "Contents/Resources/lib/python3.15/unittest/loader.py": "b993c1631e000d5f13256cdd71e40f6453974b90074eddec929f3685c59e0855",
+    "Contents/Resources/lib/python3.15/unittest/main.py": "d12476964f88bd7d57e9d26b0b8e4443ee64740a579c633a9246924d350a2828",
+    "Contents/Resources/lib/python3.15/unittest/mock.py": "6fb14a6d9516c2b622b02fc29211e302b6efb24eb0044de03c618e97d8f556e1",
+    "Contents/Resources/lib/python3.15/unittest/result.py": "813415b331a53acc1bd88ffebadfcb46886dba1ff2bbda2908533e24548db50c",
+    "Contents/Resources/lib/python3.15/unittest/runner.py": "f59df4f4808ab38b7c61cc6a33bc773fb467addfa4c7c48589fa9e905ea4ff23",
+    "Contents/Resources/lib/python3.15/unittest/signals.py": "f8286e818ca56e10e03745bc056cdfd31147678f9a1dc8cb6b0fe96ef9a4362a",
+    "Contents/Resources/lib/python3.15/unittest/suite.py": "8b4873f4af13ee0732763d9341a5c63c534b6c5548e5dcdd924fe7810e98d982",
+    "Contents/Resources/lib/python3.15/unittest/util.py": "0d5d48f31ad69f19c7175a8c08f558bd25ede2944c7469aa5928e9295f0ccdcf",
+    "Contents/Resources/lib/python3.15/urllib/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Contents/Resources/lib/python3.15/urllib/error.py": "90d331bf4720fb538b121fd3893dece0067e0483ec3c820f2dde6d9027f8f924",
+    "Contents/Resources/lib/python3.15/urllib/parse.py": "178fce6bb504b9e544ac22015778554234c63865d94374913f988bb731e0d825",
+    "Contents/Resources/lib/python3.15/urllib/request.py": "f6d78eb641e716a8e9ca0093d0969547089d36e67e2bae9022c55b4f99788c02",
+    "Contents/Resources/lib/python3.15/urllib/response.py": "7e6c3b6d7a95f0d74f5968f51a87adae8a51bf42390cdfec98c7a99203e7bb76",
+    "Contents/Resources/lib/python3.15/urllib/robotparser.py": "621c586e66d917d99dad44ff698bf9492cf5afc82cf9b3794199a589d553c38f",
+    "Contents/Resources/lib/python3.15/uuid.py": "bab6d1ad54f2b6e7faaa8485404fd3a092aa05f1ff32c33fe3355c754de01758",
+    "Contents/Resources/lib/python3.15/venv/__init__.py": "42424f4daa1dcac6a6505487944a415704f26de3388fda2f3f8a39714bf04fdb",
+    "Contents/Resources/lib/python3.15/venv/__main__.py": "ac861a02c7483fa4a67449a61b79d82723d94676860173b3580d9a9322807153",
+    "Contents/Resources/lib/python3.15/venv/scripts/common/Activate.ps1": "eb8ce20f580877d300c4fed60a7f36daa18715d35c50bb3596d6995d023b4ffe",
+    "Contents/Resources/lib/python3.15/venv/scripts/common/activate": "22f58a87e8aceeed2510a1a51e11ebfabd4af3dbc8b0a5d3bfdcd23485e2cbb7",
+    "Contents/Resources/lib/python3.15/venv/scripts/common/activate.fish": "2bcbb64b5d7bb78f5ec87cbd134cc39e98186dd77627b6548261ae67f4fea6df",
+    "Contents/Resources/lib/python3.15/venv/scripts/nt/activate.bat": "91386e7d007a5686df97dc3def4b296ab7f98cd6ac091be6bb27f05502c57d8f",
+    "Contents/Resources/lib/python3.15/venv/scripts/nt/deactivate.bat": "71a538b72eca0de387c391be0ea41f04c287c0800f63893b2a9adb0a8bbe9188",
+    "Contents/Resources/lib/python3.15/venv/scripts/posix/activate.csh": "cd18b4f8ce4c1cc1fbd88ac81042d2c603fc652d8b4775d88858e6519a3cbdb2",
+    "Contents/Resources/lib/python3.15/warnings.py": "142225786de63c593f1c9abdacf5b4fc0b05dd847f6bed0ebb4b4aa2d4d93b02",
+    "Contents/Resources/lib/python3.15/wave.py": "880bdd3146b6a4a54a34b0f03412e8aba0f3ffd18d746773bbd4f34ae9f0fa0e",
+    "Contents/Resources/lib/python3.15/weakref.py": "2526b21ff722b7ad6defd5df81bf32889e3f08c52cdc11cc24d6cdae9e5417b3",
+    "Contents/Resources/lib/python3.15/webbrowser.py": "723aa8f2cfe4838d3710a448e821c7863caaf98f699e078a51a2c47f07a4f3cd",
+    "Contents/Resources/lib/python3.15/wsgiref/__init__.py": "c30e144025a63d267778d92f2f066fa592b476e789d888f79b96c059bf0bef60",
+    "Contents/Resources/lib/python3.15/wsgiref/handlers.py": "23c282e39c41231f90ef122558f8454652e5459ba61c6edb5032a22e87d9f69b",
+    "Contents/Resources/lib/python3.15/wsgiref/headers.py": "19f9b42a406f007e977a3c20aaf4da8efbc9f6693435ffad12c64492dfcb85af",
+    "Contents/Resources/lib/python3.15/wsgiref/simple_server.py": "d616eb722edb426d0412f08c3e90b36b419473bdd436f2b3c7d03097d4d3ed67",
+    "Contents/Resources/lib/python3.15/wsgiref/types.py": "ba66d30ce511a88eba9b809616c51e12bf89c67972102e7d976b18557f7a6387",
+    "Contents/Resources/lib/python3.15/wsgiref/util.py": "c38778f289f859523d703f8fcf9dd56647448c235dda439c17b32c33b0222f28",
+    "Contents/Resources/lib/python3.15/wsgiref/validate.py": "4132f87dcf11a332f6ec5b051e68e59ff493dd6fdcc4f716ea72373734977a0a",
+    "Contents/Resources/lib/python3.15/xml/__init__.py": "2bc39585f90699558cbc6f4123d52980faaedb227f676628ee5c4299e94e5b98",
+    "Contents/Resources/lib/python3.15/xml/dom/NodeFilter.py": "9bfacbbb64e239a75591a7260b3ed86748eeb4366e6c40f3542753e79bace9a7",
+    "Contents/Resources/lib/python3.15/xml/dom/__init__.py": "e7139ed583a7f60fbbc750044df4f1e3655371d8b8c4f80a43bff4aa3ba97857",
+    "Contents/Resources/lib/python3.15/xml/dom/domreg.py": "826b02a803930834b96b1086cbee7db1d21c684f65dd3073706dc7bb5ba1a3e8",
+    "Contents/Resources/lib/python3.15/xml/dom/expatbuilder.py": "63db48cce0a0e7d20b5d909b8c233dc0218f3348f519d8de87f2c5ec8e49de52",
+    "Contents/Resources/lib/python3.15/xml/dom/minicompat.py": "42974c4c67803dfe80b016ff8aeea0d1e5c751703ab3aec5be765f4e534367be",
+    "Contents/Resources/lib/python3.15/xml/dom/minidom.py": "3f0fb54471c91854f1d8c7e6e39e8076217b01b9386d2d96b974f843f84e2167",
+    "Contents/Resources/lib/python3.15/xml/dom/pulldom.py": "0b1b6a3406194fde1d2b51e867a1747606188d1c1af55b7e800a281a25fffbc4",
+    "Contents/Resources/lib/python3.15/xml/dom/xmlbuilder.py": "26883dc30a461cb6a3583bd79d363858059569c04e94e3787d4d028f5fab7354",
+    "Contents/Resources/lib/python3.15/xml/etree/ElementInclude.py": "8e10c99668216701224831c82f13b36d29cd408554c19e34d290c351595df4ce",
+    "Contents/Resources/lib/python3.15/xml/etree/ElementPath.py": "f9c2102cf56cf9859d34e69877ad4e8a04a0cdabb6390cf2189f04aa8101759f",
+    "Contents/Resources/lib/python3.15/xml/etree/ElementTree.py": "dff733aee5ac81054dd0330f1f990d20de4d3f2a48135b5815df21e74391dcf1",
+    "Contents/Resources/lib/python3.15/xml/etree/__init__.py": "91950edfb196c105d93886f8af7ea3c0a79e06a6b63be3e5a4ea09804e8672a6",
+    "Contents/Resources/lib/python3.15/xml/etree/cElementTree.py": "d0f57acab07fe4f9c116c3392d85946bac8e78608f409cea70005f16ea019b57",
+    "Contents/Resources/lib/python3.15/xml/parsers/__init__.py": "b88497adc30d5d5eda7789c25a2206ee9270c932d584d7ac42680325651da45c",
+    "Contents/Resources/lib/python3.15/xml/parsers/expat.py": "64e1947747c2874117a7458bba1f07c86620cc0ed9a4a4116d262878e4a2aa09",
+    "Contents/Resources/lib/python3.15/xml/sax/__init__.py": "8cc9367d9a3489157dd89ece950abd5a0f0b55ffa8a99211596c942dd3b1856b",
+    "Contents/Resources/lib/python3.15/xml/sax/_exceptions.py": "26564d5742496196d17a4a0ee135d28f652ec81742cf2fa4bff83e64323578ac",
+    "Contents/Resources/lib/python3.15/xml/sax/expatreader.py": "38f98fd3ddf8e48458d4776d7c373d7142fb4e57d5648b4500048408edd99db1",
+    "Contents/Resources/lib/python3.15/xml/sax/handler.py": "5d8b2355eae4e519f3938851878a5587b2ab884deebc0cf960a66a2923eb8f6a",
+    "Contents/Resources/lib/python3.15/xml/sax/saxutils.py": "8f5619903cd3711855686283d8f6b96a4c30907e56010d408dd056bf0c88ffc5",
+    "Contents/Resources/lib/python3.15/xml/sax/xmlreader.py": "06c01faae400b8c039543ce3cae2fbafe4eb7c7e8bf93b7c02842756dc0b02ff",
+    "Contents/Resources/lib/python3.15/xml/utils.py": "952f92abc95dbfe329d6353676985d166333c8a6357fc8c50b3dffc3a13e1471",
+    "Contents/Resources/lib/python3.15/xmlrpc/__init__.py": "87ad5c8954dd56fbbca04517bf87477ff4dce575170c7dd1281d7ef1f4214ac8",
+    "Contents/Resources/lib/python3.15/xmlrpc/client.py": "ca052dc6dc70af60518c94cfaeaf9b3dfcc7d82629d0323e0417fba40839978b",
+    "Contents/Resources/lib/python3.15/xmlrpc/server.py": "56a5fd432aaab78c2b369d60daf6dc1934ccd9a93182c68e70252911c0604d58",
+    "Contents/Resources/lib/python3.15/zipapp.py": "5509b095419623128ba2378ceb8bd823d395516be928198a070a240be9873715",
+    "Contents/Resources/lib/python3.15/zipfile/__init__.py": "a09d7de3e46e0fa3cc8d57e4edfb175b80c3bb01cc555fc4945098af908ad6bc",
+    "Contents/Resources/lib/python3.15/zipfile/__main__.py": "e418cdbb27adf0063e3cec28179ac6b7bdb6ac743bb49d157f450551fcf38be2",
+    "Contents/Resources/lib/python3.15/zipfile/_path/__init__.py": "fee319dde0f23390fa0fb549dffd88f186cd227ec1cab91e213325c88ac8e630",
+    "Contents/Resources/lib/python3.15/zipfile/_path/_functools.py": "2d9aeab7a6eed08e1bc7101b0ec36cd3b7dbe5a779fc835d1b583349d8532eff",
+    "Contents/Resources/lib/python3.15/zipfile/_path/glob.py": "d84da9b313d40544a87657a0ea2f9cf719416fd3c3450724c5d2dde5b475d2b5",
+    "Contents/Resources/lib/python3.15/zipimport.py": "fca4f4acd029d97c62d65eef4ae2c518216293209bf4174bf31ca2d832e0c5ce",
+    "Contents/Resources/lib/python3.15/zoneinfo/__init__.py": "9091c902b8d0385f835e9d393017f03b68f92fae7cbe1e31833b2911d65947e6",
+    "Contents/Resources/lib/python3.15/zoneinfo/_common.py": "0da0f341817363ada0437a53d41611aeb85ac3a9f58229f3b34d4acc49576465",
+    "Contents/Resources/lib/python3.15/zoneinfo/_tzpath.py": "5ff3dabe978a13d9da76d7d2dade85e391908af1ffcc5498f73b187cd8912e75",
+    "Contents/Resources/lib/python3.15/zoneinfo/_zoneinfo.py": "41beeb5d7c75dd64479a16416fbb5dc286bacab3a9bff6587a9257c5ddeab984",
+    "Contents/_CodeSignature/CodeResources": "7895805848c7f067e354779064292bcf29ed912073a9637a27af3529c5184a03"
+  },
+  "launcher": {
+    "source": "tools/import_python_main.c",
+    "sourceSHA256": "4c9591d11ac184208ad6b5cb5cc087a9e076c4784745ac82f38256145bf02d3e"
+  },
+  "machO": {
+    "Contents/MacOS/python3.15": {
+      "dependencies": [
+        "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_bisect.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_blake2.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_bz2.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libbz2.1.0.dylib",
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_codecs_cn.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_codecs_hk.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_codecs_iso2022.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_codecs_jp.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_codecs_kr.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_codecs_tw.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_csv.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_elementtree.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_heapq.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_hmac.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_interpchannels.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_interpqueues.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_interpreters.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_json.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_lsprof.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_lzma.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_math_integer.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_md5.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_multibytecodec.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_multiprocessing.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_pickle.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_posixshmem.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_posixsubprocess.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_queue.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_random.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_scproxy.cpython-315.so": {
+      "dependencies": [
+        "/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration",
+        "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_sha1.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_sha2.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_sha3.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_socket.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_statistics.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_struct.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_uuid.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/_zoneinfo.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/array.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/binascii.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libz.1.dylib",
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/cmath.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/fcntl.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/grp.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/math.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/mmap.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/pyexpat.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/resource.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/select.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/syslog.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/termios.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/unicodedata.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    },
+    "Contents/PlugIns/zlib.cpython-315.so": {
+      "dependencies": [
+        "/usr/lib/libz.1.dylib",
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "minimumOS": [
+        "12.7"
+      ]
+    }
+  },
+  "minimumSystemVersion": "12.7",
+  "nativeUIValidated": false,
+  "pin": {
+    "bundleDirectory": "Helpers/ImportPython.app",
+    "bundleIdentifier": "io.gitlab.maik3531.MagnolieOrganizer.ImportPython",
+    "bundleManifest": "Resources/ImportPython/runtime.json",
+    "executable": "Contents/MacOS/python3.15",
+    "extensionDirectory": "Contents/PlugIns",
+    "helperDirectory": "ImportHelper",
+    "implementation": "CPython",
+    "liblzma": {
+      "allowedRedirectHosts": [
+        "release-assets.githubusercontent.com"
+      ],
+      "archiveName": "xz-5.8.4.tar.xz",
+      "implementation": "XZ Utils",
+      "licenseFiles": {
+        "COPYING": "LICENSE-XZ-Utils.txt",
+        "COPYING.0BSD": "LICENSE-liblzma-0BSD.txt"
+      },
+      "maximumArchiveBytes": 4194304,
+      "maximumExpandedBytes": 67108864,
+      "sourceRoot": "xz-5.8.4",
+      "sourceSHA256": "4ce24038fd4221e0d13bc1a2de7a4db56e90b92b3bf75321f6c14be73f65de4b",
+      "sourceURL": "https://github.com/tukaani-project/xz/releases/download/v5.8.4/xz-5.8.4.tar.xz",
+      "version": "5.8.4"
+    },
+    "maximumArchiveBytes": 41943040,
+    "minimumSystemVersion": "12.7",
+    "releaseURL": "https://www.python.org/downloads/release/python-3152/",
+    "requiredModules": [
+      "array",
+      "base64",
+      "bz2",
+      "csv",
+      "datetime",
+      "email",
+      "gettext",
+      "hashlib",
+      "io",
+      "json",
+      "lzma",
+      "math",
+      "re",
+      "struct",
+      "unicodedata",
+      "urllib.parse",
+      "xml.etree.ElementTree",
+      "zipfile",
+      "zlib",
+      "zoneinfo"
+    ],
+    "schema": 2,
+    "sdkBundleDirectory": "ImportPython.app",
+    "series": "3.15",
+    "sourceSHA256": "8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de",
+    "sourceURL": "https://www.python.org/ftp/python/3.15.2/Python-3.15.2.tar.xz",
+    "standardLibraryDirectory": "Contents/Resources/lib/python3.15",
+    "version": "3.15.2"
+  },
+  "relocation": {
+    "bundleLayout": true,
+    "executableBound": true,
+    "isolated": true,
+    "moduleClosure": true,
+    "version": "3.15.2"
+  },
+  "schema": 2,
+  "signing": "ad-hoc development only",
+  "staticDependencies": {
+    "liblzma": {
+      "librarySHA256": "854a2f588240abdf9f8189ccc8128d159ee8d0fdabcc07841d8288332ce64000",
+      "linkage": "static",
+      "sourceSHA256": "4ce24038fd4221e0d13bc1a2de7a4db56e90b92b3bf75321f6c14be73f65de4b",
+      "version": "5.8.4"
+    }
+  }
+}

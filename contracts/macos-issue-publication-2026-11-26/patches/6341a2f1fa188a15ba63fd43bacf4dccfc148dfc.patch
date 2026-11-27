@@ -1,0 +1,598 @@
+From 6341a2f1fa188a15ba63fd43bacf4dccfc148dfc Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 07:41:42 +0100
+Subject: [PATCH] Refs #785: bundle a source-pinned private Mac import runtime
+
+---
+ .github/workflows/ports-2.0.30.yml            |  14 +-
+ .../IMPORT-RUNTIME.md                         |  79 ++++++
+ .../Resources/ImportPython.json               |  15 +
+ .../tests/test_import_python_bundle.py        | 103 +++++++
+ .../tools/build_dev.py                        |  15 +-
+ .../tools/import_python_bundle.py             | 264 ++++++++++++++++++
+ 6 files changed, 487 insertions(+), 3 deletions(-)
+ create mode 100644 Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Resources/ImportPython.json
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tests/test_import_python_bundle.py
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py
+
+diff --git a/.github/workflows/ports-2.0.30.yml b/.github/workflows/ports-2.0.30.yml
+index c2ff3265742f9c0096472ed76bade2fa531c8d3f..1a26ec69fea7cd0a3fdb239715023602363f61ca 100644
+--- a/.github/workflows/ports-2.0.30.yml
++++ b/.github/workflows/ports-2.0.30.yml
+@@ -44,7 +44,7 @@ jobs:
+     runs-on: ${{ matrix.runner }}
+     env:
+       MACOS_ARCH: ${{ matrix.arch }}
+-    timeout-minutes: 25
++    timeout-minutes: 45
+     defaults:
+       run:
+         shell: bash
+@@ -99,6 +99,16 @@ jobs:
+           python3 tools/check_timezone_provider.py --definitions --swift "$(command -v swift)" \
+             --archive "$RUNNER_TEMP/tzdata2026egtz-rearguard.tar.gz" \
+             | tee "$RUNNER_TEMP/port-proof/timezone-provider-$MACOS_ARCH.log"
++      - name: Build the private source-pinned import runtime
++        timeout-minutes: 20
++        run: |
++          set -euo pipefail
++          python3 Magnolie-Organizer-macOS-Beta/tests/test_import_python_bundle.py
++          python3 Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py \
++            --download --source-archive "$RUNNER_TEMP/Python-3.15.2.tar.xz" \
++            --output "$RUNNER_TEMP/import-python" \
++            > "$RUNNER_TEMP/port-proof/import-python-$MACOS_ARCH.log" 2>&1
++          cp "$RUNNER_TEMP/import-python/runtime.json" "$RUNNER_TEMP/port-proof/import-python-$MACOS_ARCH.json"
+       - name: Freeze this isolated build's current source and run host and Apple tests
+         working-directory: Magnolie-Organizer-macOS-Beta
+         run: |
+@@ -111,7 +121,7 @@ jobs:
+           python3 tools/check_current_sources.py --js-runtime node
+           "$RUNNER_TEMP/mac-python/bin/python" tools/crypto_vectors.py --check
+           "$RUNNER_TEMP/mac-python/bin/python" tests/test_host.py
+-          MACOS_BETA_LIVE_HOLIDAYS=1 python3 tools/build_dev.py
++          MACOS_BETA_LIVE_HOLIDAYS=1 python3 tools/build_dev.py --import-runtime "$RUNNER_TEMP/import-python"
+           python3 tools/project_ui.py check
+       - name: Start, save, quit and reopen the real app bundle
+         working-directory: Magnolie-Organizer-macOS-Beta
+diff --git a/Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md b/Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..533b6e025918337b9a89babbcf32623fad7cd753
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md
+@@ -0,0 +1,79 @@
++# Private import runtime — #785
++
++The Mac file-import adapter reuses a reviewed projection of the current Linux
++parsers. Its interpreter belongs inside the application; the user does not
++install Python. `/usr/bin/python3`, Homebrew, a user virtual environment and
++`/Library/Frameworks/Python.framework` are not runtime fallbacks.
++
++## Source and deployment contract
++
++`Resources/ImportPython.json` pins CPython **3.15.2**, source SHA-256
++`8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de`.
++The [official release page](https://www.python.org/downloads/release/python-3152/)
++publishes this checksum and macOS 10.15-or-newer support for its installer.
++Our separately built application keeps its existing **macOS 12.7** minimum;
++the upstream installer statement does not prove our build works on Monterey.
++
++`tools/import_python_bundle.py` builds the source on each matching Apple
++architecture with the 12.7 deployment target, a static interpreter core and
++JIT disabled. Optional SSL, GUI, database and FFI extensions are excluded.
++Required parsing, compression, hashing, XML and ZoneInfo modules are imported
++by the actual relocated interpreter as a build gate. Compiled runtime images
++must have the selected architecture, a minimum OS no newer than 12.7 and only
++Apple system-library dependencies. A Homebrew-linked extension blocks the
++build. The source license travels with the runtime.
++
++Final paths:
++
++- Interpreter: `Contents/Helpers/ImportPython/bin/python3.15`.
++- Standard library: `Contents/Helpers/ImportPython/lib/python3.15`.
++- Parser projection and normative zone data: `Contents/Resources/ImportHelper`.
++
++The helper is outside the WKWebView-readable UI directory. Native launch uses
++`-I -S -B`, a fixed bundle script and bounded pipes. There is no shell command,
++renderer-specified executable, source-file path or installation operation.
++
++## Reproducible native development build
++
++Use a new private output directory on a Mac with Xcode command-line tools:
++
++```sh
++python3 tools/import_python_bundle.py --download \
++  --source-archive /absolute/private/build/Python-3.15.2.tar.xz \
++  --output /absolute/private/build/import-python
++python3 tools/build_dev.py --import-runtime /absolute/private/build/import-python
++```
++
++The first command explicitly downloads the fixed build source, verifies the
++hash before extraction and rejects archive traversal, links, special files,
++duplicate members and excessive expansion. An existing wrong archive or
++runtime directory is retained and reported, never silently replaced. No source
++download or compiler is used by the installed application.
++
++The build directory is removed before the relocation probe. The probe also
++uses a foreign working directory and deliberately wrong `PYTHONHOME` and
++`PYTHONPATH`; every admitted standard-library search path must remain inside
++the private runtime. The packaging step rechecks the complete file inventory,
++Mach-O dependencies, signatures and relocated imports after copying the SDK.
++Nested binaries are signed before the outer development application.
++
++The existing Mac candidate workflow performs these steps for arm64 and x86_64
++and preserves `runtime.json` and the actual build log. It does not silently
++produce an ICS-only candidate if the required import runtime is absent.
++
++## Evidence on 26 November 2026
++
++Executed on the Linux source-review host:
++
++- Seven Python tests, including seven malformed-archive subcases and four
++  Mach-O rejection subcases: passed.
++- Actual official source download: **27,960,396 bytes**, exact pinned SHA-256.
++- Complete extraction through the bounded production extractor: passed.
++- Configure flags and the case-insensitive-Mac `python.exe` build-name rule
++  checked against the downloaded CPython source.
++
++Not executed here: native CPython compilation, Apple dynamic-loader tests,
++codesigning, Swift/AppKit/WKWebView, Monterey runtime checks or real imports.
++The workflow and build gates are prepared evidence producers, not evidence
++that those native gates have already passed. The parser/UI pipeline has its
++separate #785 tests and contract.
+diff --git a/Magnolie-Organizer-macOS-Beta/Resources/ImportPython.json b/Magnolie-Organizer-macOS-Beta/Resources/ImportPython.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..88933395f112a6b51602ccd4c06bccbea7340841
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Resources/ImportPython.json
+@@ -0,0 +1,15 @@
++{
++  "schema": 1,
++  "implementation": "CPython",
++  "version": "3.15.2",
++  "series": "3.15",
++  "sourceURL": "https://www.python.org/ftp/python/3.15.2/Python-3.15.2.tar.xz",
++  "sourceSHA256": "8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de",
++  "releaseURL": "https://www.python.org/downloads/release/python-3152/",
++  "maximumArchiveBytes": 41943040,
++  "minimumSystemVersion": "12.7",
++  "executable": "bin/python3.15",
++  "bundleDirectory": "Helpers/ImportPython",
++  "helperDirectory": "ImportHelper",
++  "requiredModules": ["array", "base64", "bz2", "csv", "datetime", "email", "gettext", "hashlib", "io", "json", "lzma", "math", "re", "struct", "unicodedata", "urllib.parse", "xml.etree.ElementTree", "zipfile", "zlib", "zoneinfo"]
++}
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/test_import_python_bundle.py b/Magnolie-Organizer-macOS-Beta/tests/test_import_python_bundle.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..c3426554f6a0f315377e458059d6bd602f83206b
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tests/test_import_python_bundle.py
+@@ -0,0 +1,103 @@
++"""Host checks for the #785 build boundary; never a native-Mac pass claim."""
++import io
++import json
++from pathlib import Path
++import subprocess
++import sys
++import tarfile
++import tempfile
++import unittest
++from unittest.mock import patch
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
++import import_python_bundle as runtime
++
++
++class ImportPythonBundleTests(unittest.TestCase):
++    def archive(self, root, entries):
++        path = root / "source.tar.xz"
++        with tarfile.open(path, "w:xz") as archive:
++            for name, kind, body in entries:
++                member = tarfile.TarInfo(name)
++                member.type = kind
++                if kind == tarfile.REGTYPE:
++                    member.size = len(body)
++                    archive.addfile(member, io.BytesIO(body))
++                else:
++                    member.linkname = body.decode()
++                    archive.addfile(member)
++        return path
++
++    def test_extracts_regular_source_without_using_tar_extractall(self):
++        with tempfile.TemporaryDirectory() as name:
++            root = Path(name)
++            archive = self.archive(root, [("Python-3.15.2/LICENSE", tarfile.REGTYPE, b"license")])
++            result = runtime.extract_source(archive, root / "expanded")
++            self.assertEqual((result / "LICENSE").read_bytes(), b"license")
++
++    def test_rejects_traversal_links_devices_duplicate_names_and_wrong_root_before_writing(self):
++        cases = [
++            ("Python-3.15.2/../../outside", tarfile.REGTYPE, b"x"),
++            ("/Python-3.15.2/file", tarfile.REGTYPE, b"x"),
++            ("Python-3.15.2/link", tarfile.SYMTYPE, b"../../outside"),
++            ("Python-3.15.2/link", tarfile.LNKTYPE, b"Python-3.15.2/LICENSE"),
++            ("Python-3.15.2/device", tarfile.CHRTYPE, b""),
++            ("other/source", tarfile.REGTYPE, b"x"),
++            ("Python-3.15.2/LICENSE", tarfile.REGTYPE, b"duplicate"),
++        ]
++        for member_name, kind, body in cases:
++            with self.subTest(member=member_name, kind=kind), tempfile.TemporaryDirectory() as temporary:
++                root = Path(temporary)
++                archive = self.archive(root, [("Python-3.15.2/LICENSE", tarfile.REGTYPE, b"license"), (member_name, kind, body)])
++                with self.assertRaisesRegex(ValueError, "Unsafe CPython"):
++                    runtime.extract_source(archive, root / "expanded")
++                self.assertFalse((root / "expanded").exists())
++
++    def test_expansion_bound_is_checked_before_extracting(self):
++        with tempfile.TemporaryDirectory() as name:
++            root = Path(name)
++            archive = self.archive(root, [("Python-3.15.2/file", tarfile.REGTYPE, b"12345")])
++            with patch.object(runtime, "MAXIMUM_EXPANDED", 4), self.assertRaisesRegex(ValueError, "expansion"):
++                runtime.extract_source(archive, root / "expanded")
++            self.assertFalse((root / "expanded").exists())
++
++    def test_existing_wrong_source_is_never_replaced_or_downloaded(self):
++        with tempfile.TemporaryDirectory() as name:
++            source = Path(name) / "source.tar.xz"
++            source.write_bytes(b"wrong source")
++            with patch.object(runtime.urllib.request, "urlopen") as fetch, self.assertRaisesRegex(ValueError, "checksum"):
++                runtime.fetch_archive(source)
++            fetch.assert_not_called()
++            self.assertEqual(source.read_bytes(), b"wrong source")
++
++    def test_runtime_rejects_symlinks_even_when_target_is_inside(self):
++        with tempfile.TemporaryDirectory() as name:
++            root = Path(name)
++            (root / "actual").write_bytes(b"x")
++            (root / "alias").symlink_to("actual")
++            with self.assertRaisesRegex(ValueError, "Linked"):
++                runtime.checked_files(root)
++
++    def test_macho_rejects_newer_minimum_foreign_arch_and_external_dependencies(self):
++        def run(outputs):
++            with patch.object(runtime.subprocess, "check_output", side_effect=outputs):
++                return runtime.check_macho(Path("test-runtime"), "arm64", "12.7")
++        self.assertEqual(run(["arm64\n", " minos 12.7\n", "test-runtime:\n /usr/lib/libSystem.B.dylib (compatibility version 1.0.0)\n"])["minimumOS"], ["12.7"])
++        for outputs in [
++            ["x86_64\n"],
++            ["arm64\n", " minos 14.0\n"],
++            ["arm64\n", " minos 12.7\n", "test-runtime:\n /opt/homebrew/lib/liblzma.dylib (compatibility version 1.0.0)\n"],
++            ["arm64\n", " minos 12.7\n", "test-runtime:\n @rpath/Python (compatibility version 1.0.0)\n"],
++        ]:
++            with self.subTest(outputs=outputs), self.assertRaises(ValueError):
++                run(outputs)
++
++    def test_native_build_does_not_run_on_linux(self):
++        with patch.object(runtime.platform, "system", return_value="Linux"), patch.object(runtime.subprocess, "run") as execute:
++            with self.assertRaisesRegex(ValueError, "Apple build host"):
++                runtime.build_runtime("not-read", "not-written", "arm64", "12.7")
++        execute.assert_not_called()
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/build_dev.py b/Magnolie-Organizer-macOS-Beta/tools/build_dev.py
+index 624e5ceda666d465086fb4bfc3f09bf6570a506f..aab49f67b2d08bdaa7adb85ec5c2ea1e43355b46 100644
+--- a/Magnolie-Organizer-macOS-Beta/tools/build_dev.py
++++ b/Magnolie-Organizer-macOS-Beta/tools/build_dev.py
+@@ -12,12 +12,15 @@ import sys
+ from pathlib import Path
+ from project_ui import BETA, GENERATED, verify
+ from airplay_bundle import build_airplay_bundle
++from import_python_bundle import bundle_runtime
+ 
+ 
+ def main():
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument("--airplay-sdk", type=Path,
+                         help="Local, source/license-complete AirPlay SDK; builds the internal receiver into the app")
++    parser.add_argument("--import-runtime", type=Path, required=True,
++                        help="Private CPython SDK built by tools/import_python_bundle.py; no system-Python fallback")
+     arguments = parser.parse_args()
+     if platform.system() != "Darwin":
+         raise RuntimeError("Apple macOS host required. Linux, jsdom and QEMU are not macOS build or emulation evidence.")
+@@ -64,6 +67,12 @@ def main():
+     assert info["CFBundleVersion"] == identity["bundleVersion"]
+     assert info["LSMinimumSystemVersion"] == minimum
+     shutil.copytree(GENERATED, contents / "Resources/UI")
++    # The helper is not web-readable and runs only via the native bounded pipe.
++    helper = contents / "Resources/UI/ImportHelper"
++    if not (helper / "manifest.json").is_file() or not (helper / "helper.py").is_file():
++        raise RuntimeError("Verified current-source import helper is missing.")
++    shutil.move(str(helper), str(contents / "Resources/ImportHelper"))
++    import_runtime = bundle_runtime(app, arguments.import_runtime)
+     airplay = None
+     if arguments.airplay_sdk is not None:
+         airplay = build_airplay_bundle(BETA, app, arguments.airplay_sdk, platform.machine(), minimum)
+@@ -73,6 +82,10 @@ def main():
+         "minimumSystemVersion": minimum, "machOMinimumVerified": True,
+         "montereyRuntimeValidated": False,
+         "nativeUIValidated": False, "productionRelease": False,
++        "importRuntimeVersion": import_runtime["pin"]["version"],
++        "importRuntimeSourceSHA256": import_runtime["pin"]["sourceSHA256"],
++        "importRuntimeRelocationVerified": True,
++        "importNativeUIValidated": False,
+         "airplayBundled": airplay is not None,
+         "airplayDependencyClosureVerified": airplay is not None,
+         "airplayNativeDeviceValidated": False,
+@@ -83,7 +96,7 @@ def main():
+     # Replace it only inside this newly created, versioned development bundle.
+     subprocess.run(["codesign", "--force", "--sign", "-", str(app)], check=True)
+     subprocess.run(["codesign", "--verify", "--strict", str(app)], check=True)
+-    if airplay is not None:
++    if airplay is not None or import_runtime is not None:
+         # Helpers/libraries were signed individually before the outer bundle;
+         # this verifies the enclosing seals without modifying nested signatures.
+         subprocess.run(["codesign", "--verify", "--strict", "--deep", str(app)], check=True)
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py b/Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..7daa6088828a2750df68b883457869b6e6a1d5db
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py
+@@ -0,0 +1,264 @@
++#!/usr/bin/env python3
++"""#785: build a private, relocated CPython from an explicitly pinned source.
++
++This is a development build dependency, never an application-start install.
++No Homebrew/Python-framework or user-Python fallback is accepted. Runtime
++images may link only Apple system libraries. All bundle paths are fixed.
++"""
++import argparse
++import hashlib
++import json
++import os
++from pathlib import Path, PurePosixPath
++import platform
++import re
++import shlex
++import shutil
++import subprocess
++import tarfile
++import tempfile
++import urllib.request
++
++from airplay_bundle import is_macho, system_library
++
++BETA = Path(__file__).resolve().parents[1]
++PIN = json.loads((BETA / "Resources/ImportPython.json").read_text())
++MAXIMUM_EXPANDED = 256 * 1024 * 1024
++EXCLUDED = {"__pycache__", "test", "tests", "idlelib", "tkinter", "ensurepip", "site-packages"}
++
++
++def sha256(path):
++    digest = hashlib.sha256()
++    with Path(path).open("rb") as source:
++        for block in iter(lambda: source.read(1024 * 1024), b""):
++            digest.update(block)
++    return digest.hexdigest()
++
++
++def verify_archive(path):
++    path = Path(path)
++    if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= PIN["maximumArchiveBytes"]:
++        raise ValueError("Invalid CPython source archive")
++    if sha256(path) != PIN["sourceSHA256"]:
++        raise ValueError("CPython source archive checksum mismatch")
++
++
++def fetch_archive(path):
++    """Explicit build-tool operation; the installed app has no download path."""
++    path = Path(path)
++    if path.exists() or path.is_symlink():
++        verify_archive(path)
++        return
++    path.parent.mkdir(parents=True, exist_ok=True)
++    with tempfile.NamedTemporaryFile(dir=path.parent, prefix="python-source-", delete=False) as output:
++        temporary = Path(output.name)
++        try:
++            with urllib.request.urlopen(PIN["sourceURL"], timeout=60) as source:
++                if source.geturl() != PIN["sourceURL"]:
++                    raise ValueError("Unexpected CPython download redirect")
++                size = 0
++                while block := source.read(1024 * 1024):
++                    size += len(block)
++                    if size > PIN["maximumArchiveBytes"]:
++                        raise ValueError("CPython download exceeds its size bound")
++                    output.write(block)
++            output.flush()
++            os.fsync(output.fileno())
++            verify_archive(temporary)
++            # Keep a concurrently supplied file; do not replace someone else's input.
++            os.link(temporary, path)
++        finally:
++            temporary.unlink(missing_ok=True)
++
++
++def extract_source(archive, destination):
++    """No links, special files, traversal or unbounded tar expansion."""
++    root_name = "Python-" + PIN["version"]
++    seen, expanded = set(), 0
++    with tarfile.open(archive, "r:xz") as source:
++        members = source.getmembers()
++        if len(members) > 20000:
++            raise ValueError("Too many CPython source members")
++        for member in members:
++            path = PurePosixPath(member.name)
++            if (path.is_absolute() or not path.parts or path.parts[0] != root_name or
++                    any(part in ("", ".", "..") for part in member.name.rstrip("/").split("/")) or
++                    "\\" in member.name or member.name in seen or not (member.isdir() or member.isfile())):
++                raise ValueError("Unsafe CPython source member")
++            seen.add(member.name)
++            expanded += member.size
++            if member.size < 0 or expanded > MAXIMUM_EXPANDED:
++                raise ValueError("CPython source expansion exceeds its bound")
++        for member in members:
++            target = Path(destination) / member.name
++            if member.isdir():
++                target.mkdir(parents=True, exist_ok=True)
++            else:
++                target.parent.mkdir(parents=True, exist_ok=True)
++                with source.extractfile(member) as src, target.open("xb") as dst:
++                    shutil.copyfileobj(src, dst)
++                target.chmod(0o755 if member.mode & 0o111 else 0o644)
++    return Path(destination) / root_name
++
++
++def checked_files(root):
++    root = Path(root)
++    if root.is_symlink() or not root.is_dir():
++        raise ValueError("Runtime must be a real directory")
++    files = []
++    for path in sorted(root.rglob("*")):
++        if path.is_symlink() or not (path.is_file() or path.is_dir()):
++            raise ValueError("Linked or special runtime file refused")
++        if path.is_file():
++            files.append(path)
++    return files
++
++
++def version_tuple(value):
++    if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){0,2}", value):
++        raise ValueError("Invalid Mach-O minimum OS")
++    parts = [int(part) for part in value.split(".")]
++    return tuple(parts + [0] * (3 - len(parts)))
++
++
++def check_macho(path, architecture, minimum):
++    arch = subprocess.check_output(["lipo", "-archs", str(path)], text=True).strip().split()
++    if arch != [architecture]:
++        raise ValueError("Import runtime architecture mismatch")
++    build = subprocess.check_output(["xcrun", "vtool", "-show-build", str(path)], text=True)
++    targets = re.findall(r"^\s*minos\s+(\S+)\s*$", build, re.MULTILINE)
++    if not targets or any(version_tuple(value) > version_tuple(minimum) for value in targets):
++        raise ValueError("Import runtime exceeds the application's minimum macOS")
++    links = subprocess.check_output(["otool", "-L", str(path)], text=True).splitlines()[1:]
++    libraries = [line.strip().split(" (compatibility version", 1)[0] for line in links if line.strip()]
++    if not libraries or any(not system_library(library) for library in libraries):
++        raise ValueError("Import runtime has a non-system dynamic dependency")
++    return {"minimumOS": targets, "dependencies": libraries}
++
++
++def verify_relocation(runtime):
++    """Executed on the final relocated tree, with hostile Python env ignored."""
++    runtime = Path(runtime).resolve()
++    script = (
++        "import importlib,json,os,sys; root=os.path.realpath(sys.argv[1]); "
++        "[importlib.import_module(x) for x in json.loads(sys.argv[2])]; "
++        "assert sys.version.split()[0]==sys.argv[3]; "
++        "assert sys.flags.isolated and sys.flags.no_site and sys.flags.dont_write_bytecode; "
++        "assert os.path.realpath(sys.prefix)==root; "
++        "assert all(os.path.commonpath([root,os.path.realpath(x)])==root for x in sys.path); "
++        "print(json.dumps({'version':sys.version.split()[0],'isolated':True,'moduleClosure':True}))"
++    )
++    with tempfile.TemporaryDirectory(prefix="magnolie-python-hostile-") as hostile:
++        Path(hostile, "sitecustomize.py").write_text("raise RuntimeError('external Python path admitted')\n")
++        environment = {"PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "PYTHONPATH": hostile, "PYTHONHOME": hostile}
++        response = subprocess.check_output(
++            [str(runtime / PIN["executable"]), "-I", "-S", "-B", "-c", script, str(runtime),
++             json.dumps(PIN["requiredModules"]), PIN["version"]], cwd=hostile, env=environment,
++            timeout=30, text=True)
++    return json.loads(response)
++
++
++def build_runtime(archive, destination, architecture, minimum):
++    if platform.system() != "Darwin" or architecture != platform.machine() or architecture not in ("arm64", "x86_64"):
++        raise ValueError("A matching native Apple build host is required")
++    if minimum != PIN["minimumSystemVersion"]:
++        raise ValueError("Unreviewed import runtime deployment target")
++    verify_archive(archive)
++    destination = Path(destination)
++    if destination.exists() or destination.is_symlink():
++        raise ValueError("Existing runtime output retained")
++    sdk = subprocess.check_output(["xcrun", "--sdk", "macosx", "--show-sdk-path"], text=True).strip()
++    compiler = subprocess.check_output(["xcrun", "--find", "clang"], text=True).strip()
++    with tempfile.TemporaryDirectory(prefix="magnolie-cpython-build-") as temporary:
++        source = extract_source(archive, temporary)
++        # Exclude optional third-party services; required codec dependencies
++        # (zlib/bz2/lzma/expat and builtin hashes) are checked after relocation.
++        (source / "Modules/Setup.local").write_text(
++            "*disabled*\n" + "\n".join(["_ssl", "_hashlib", "_tkinter", "_ctypes", "_sqlite3",
++                                        "_gdbm", "_dbm", "readline", "_curses", "_curses_panel"]) + "\n")
++        environment = {
++            "PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "LANG": "C", "LC_ALL": "C",
++            "CC": shlex.quote(compiler), "MACOSX_DEPLOYMENT_TARGET": minimum,
++            "CFLAGS": f"-O2 -arch {architecture} -isysroot {shlex.quote(sdk)} -mmacosx-version-min={minimum}",
++            "LDFLAGS": f"-arch {architecture} -isysroot {shlex.quote(sdk)} -mmacosx-version-min={minimum}",
++        }
++        subprocess.run([str(source / "configure"), "--prefix=" + str(Path(temporary) / "not-installed"),
++                        "--disable-shared", "--without-ensurepip", "--disable-test-modules",
++                        "--without-readline", "--with-pkg-config=no", "--enable-experimental-jit=no"],
++                       cwd=source, env=environment, check=True, timeout=180)
++        subprocess.run(["make", "-j2"], cwd=source, env=environment, check=True, timeout=900)
++        (destination / "bin").mkdir(parents=True)
++        # CPython calls this python.exe on case-insensitive Mac volumes because
++        # its source already contains a directory named Python.
++        binaries = [path for path in [source / "python", source / "python.exe"] if path.is_file() and not path.is_symlink()]
++        if len(binaries) != 1:
++            raise ValueError("Ambiguous CPython executable output")
++        shutil.copy2(binaries[0], destination / PIN["executable"])
++        library = destination / "lib" / ("python" + PIN["series"])
++        shutil.copytree(source / "Lib", library, ignore=lambda _, names: [name for name in names if name in EXCLUDED])
++        dynamic = library / "lib-dynload"
++        dynamic.mkdir()
++        builds = list((source / "build").glob("lib.*"))
++        if len(builds) != 1:
++            raise ValueError("Ambiguous CPython extension output")
++        for path in sorted(builds[0].iterdir()):
++            if path.is_symlink():
++                raise ValueError("Linked CPython extension output refused")
++            if path.suffix == ".so":
++                shutil.copy2(path, dynamic / path.name)
++            elif path.name.startswith("_sysconfigdata_") and path.suffix == ".py":
++                shutil.copy2(path, library / path.name)
++        shutil.copy2(source / "LICENSE", destination / "LICENSE-Python.txt")
++    # No original build path remains available at this point.
++    proof = verify_relocation(destination)
++    images = {}
++    for path in checked_files(destination):
++        if is_macho(path):
++            images[str(path.relative_to(destination))] = check_macho(path, architecture, minimum)
++            subprocess.run(["codesign", "--force", "--sign", "-", str(path)], check=True)
++            subprocess.run(["codesign", "--verify", "--strict", str(path)], check=True)
++    if PIN["executable"] not in images:
++        raise ValueError("Runtime executable is not Mach-O")
++    manifest = {"schema": 1, "pin": PIN, "architecture": architecture, "minimumSystemVersion": minimum,
++                "relocation": proof, "machO": images,
++                "files": {str(path.relative_to(destination)): sha256(path) for path in checked_files(destination)},
++                "signing": "ad-hoc development only", "nativeUIValidated": False}
++    (destination / "runtime.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
++    return manifest
++
++
++def bundle_runtime(app, runtime):
++    """Accept only the exact, complete locally built SDK; sign nested images first."""
++    runtime = Path(runtime)
++    manifest = json.loads((runtime / "runtime.json").read_text())
++    if (manifest.get("schema") != 1 or manifest.get("pin") != PIN or
++            manifest.get("architecture") != platform.machine() or
++            manifest.get("minimumSystemVersion") != PIN["minimumSystemVersion"]):
++        raise ValueError("Import runtime identity mismatch")
++    actual = {str(path.relative_to(runtime)): sha256(path) for path in checked_files(runtime) if path.name != "runtime.json"}
++    if manifest.get("files") != actual:
++        raise ValueError("Import runtime inventory mismatch")
++    target = Path(app) / "Contents" / PIN["bundleDirectory"]
++    shutil.copytree(runtime, target)
++    for path in checked_files(target):
++        if is_macho(path):
++            check_macho(path, platform.machine(), PIN["minimumSystemVersion"])
++            subprocess.run(["codesign", "--verify", "--strict", str(path)], check=True)
++    verify_relocation(target)
++    return manifest
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--source-archive", type=Path, required=True)
++    parser.add_argument("--download", action="store_true", help="Explicitly fetch the checksum-pinned build source")
++    parser.add_argument("--output", type=Path, required=True)
++    arguments = parser.parse_args()
++    if arguments.download:
++        fetch_archive(arguments.source_archive)
++    result = build_runtime(arguments.source_archive, arguments.output, platform.machine(), PIN["minimumSystemVersion"])
++    print(json.dumps({"version": PIN["version"], "architecture": result["architecture"], "relocated": True}))
++
++
++if __name__ == "__main__":
++    main()
+-- 
+2.56.1
+

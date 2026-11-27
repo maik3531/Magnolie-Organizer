@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "method": "Read one GitHub Git blob through the connector; verify exact Git blob identity before writing only scratch object storage",
+  "sourceURL": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/blobs/217e032980bbd8d86633feb52f3fa13986066b2c",
+  "gitBlob": "217e032980bbd8d86633feb52f3fa13986066b2c",
+  "bytes": 29466,
+  "sha256": "c6083dd558c23951f522d4f4432a56c8a0e07986f3b5a0a84391fac4995b1d3f",
+  "verifiedAtUTC": "2026-11-26T12:54:00.385342+00:00",
+  "remoteMutation": false,
+  "rootWorktreeOrRefsChanged": false
+}

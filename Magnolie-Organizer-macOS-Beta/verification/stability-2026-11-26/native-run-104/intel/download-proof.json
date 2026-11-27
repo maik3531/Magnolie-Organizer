@@ -1,0 +1,82 @@
+{
+  "artifactId": 15122883740,
+  "bytes": 25526868,
+  "sha256": "319ee90a09cff175bd6e7ca53a8e4e85357a9a3f8476617fbfbacceb78ef024e",
+  "members": [
+    {
+      "path": "Magnolie-Organizer-macOS-2.0.30-beta.1-x86_64.zip",
+      "bytes": 24200163,
+      "sha256": "353f0763aa8c5de4bcd284c3def66de56023c8de211abe723909e456d2624dda"
+    },
+    {
+      "path": "SHA256SUMS",
+      "bytes": 116,
+      "sha256": "91724264c1ed9dedbd51e311e000a09fabe060654231713977c2fef98e3d43e6"
+    },
+    {
+      "path": "bundle-console.log",
+      "bytes": 1651458,
+      "sha256": "9e757ddfd34533c5a994fbe94c351c1f0661359022251be2289739793c31506e"
+    },
+    {
+      "path": "bundle-smoke-first-window.json",
+      "bytes": 1975,
+      "sha256": "cd75cc86ff09ec0cb1b4ea01485426d5c4be6330ef5f7f4ab0a716420d5324c5"
+    },
+    {
+      "path": "bundle-smoke-observations.json",
+      "bytes": 227,
+      "sha256": "e72f570bd51b33d347bff96b9cb5664963a68e074d82ad9af4dce6da8a9e5a63"
+    },
+    {
+      "path": "bundle-smoke-progress.log",
+      "bytes": 1511,
+      "sha256": "eaff3c0e26d4ebf26e3611bf1d95856a9a8680585e4a3f03b5d99f5c69a16259"
+    },
+    {
+      "path": "bundle-smoke.json",
+      "bytes": 700,
+      "sha256": "f8b21cfd4fd2a6c0a78b4d124be5b4505eee4a11190122b3af2c8b5d7748b0e8"
+    },
+    {
+      "path": "bundle-window.png",
+      "bytes": 1751215,
+      "sha256": "9489d144a9259be76d641955c5fa9afc233c34837a52be7fff6b343acd3737c2"
+    },
+    {
+      "path": "environment-x86_64.json",
+      "bytes": 2337,
+      "sha256": "d52cee967c77c77c05d8715f117d83bb38f13f741146547f33d32730ddd167f1"
+    },
+    {
+      "path": "import-python-x86_64.json",
+      "bytes": 103030,
+      "sha256": "c74f277d81db0b7dc000e01050c0a156b686f45a6e1423917b0735ca9f7ce9a1"
+    },
+    {
+      "path": "import-python-x86_64.log",
+      "bytes": 866234,
+      "sha256": "f6d5643f3c8a2229a88724f77ec661457d0f29b9f1551d4be2e69615c233bfb2"
+    },
+    {
+      "path": "native-file-import-process-x86_64.json",
+      "bytes": 17872,
+      "sha256": "88578568a31c5f7b8f1a664fdeb16248026f59efb6087401987a8f5e4f977805"
+    },
+    {
+      "path": "sources.json",
+      "bytes": 982713,
+      "sha256": "cbe081b6b8787a42686990f74c027aea90c35177a28c4b486e0e77e80aeba67c"
+    },
+    {
+      "path": "swift-release-x86_64.log",
+      "bytes": 322844,
+      "sha256": "abf6d74063fa69d379150373b358e836f43061ea66153dd4b3547ae546f7a25e"
+    },
+    {
+      "path": "timezone-provider-x86_64.log",
+      "bytes": 77731,
+      "sha256": "d9080ba8f814fe09d12d1f2b67a9592447e993950c939832d55603dabb09566b"
+    }
+  ]
+}

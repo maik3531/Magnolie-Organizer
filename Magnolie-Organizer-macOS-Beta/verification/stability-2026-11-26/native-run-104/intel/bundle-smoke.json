@@ -1,0 +1,16 @@
+{
+  "bundleLaunch" : true,
+  "firstProfileSHA256" : "80a2ec884d2ab04dda7790031fd45be96db5ee5659d86c92927a3d245f94e6e3",
+  "freshNormalizedProfileSaved" : true,
+  "nativeAcceptance" : false,
+  "normalQuit" : true,
+  "pidBoundVisibleWindow" : true,
+  "productionRelease" : false,
+  "profileDataPreserved" : true,
+  "reopen" : true,
+  "reopenedProfileAtomicallySaved" : true,
+  "reopenedProfileSHA256" : "80a2ec884d2ab04dda7790031fd45be96db5ee5659d86c92927a3d245f94e6e3",
+  "scope" : "Real bundled Host\/resources, fresh local init, normal save-before-quit, reopen; no editor, permissions, accessibility or full feature acceptance.",
+  "screenshot" : "bundle-window.png",
+  "screenshotCaptured" : true
+}

@@ -1,0 +1,765 @@
+From 62835e02e422bfcd8ae0fccea36dac08813e42cf Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 08:19:58 +0100
+Subject: [PATCH] Refs #785: prepare native file imports with bounded parser
+ and durable save handoff
+
+---
+ .../Projection/file-import.js                 |  89 +++++++++++
+ .../Resources/native-extra-i18n.json          |  31 +++-
+ .../Sources/BetaCore/Contract.swift           |  10 +-
+ .../Sources/BetaCore/FileImportProtocol.swift |  86 +++++++++++
+ .../Sources/MacBeta/FileImportHost.swift      |  72 +++++++++
+ .../Sources/MacBeta/FileImportProcess.swift   | 140 ++++++++++++++++++
+ .../Sources/MacBeta/main.swift                |  84 ++++++-----
+ .../FileImportProtocolTests.swift             | 119 +++++++++++++++
+ .../tools/project_ui.py                       |  13 ++
+ 9 files changed, 609 insertions(+), 35 deletions(-)
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Projection/file-import.js
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Sources/BetaCore/FileImportProtocol.swift
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportHost.swift
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportProcess.swift
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/FileImportProtocolTests.swift
+
+diff --git a/Magnolie-Organizer-macOS-Beta/Projection/file-import.js b/Magnolie-Organizer-macOS-Beta/Projection/file-import.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..a1b0dd13afc178b19792eee30ed4c3cd63839378
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Projection/file-import.js
+@@ -0,0 +1,89 @@
++  // #785: the existing parser/merge rules still own format semantics. This
++  // native bridge binds the source result to a book and waits for durable save.
++  let macOSBetaFileImport = null;
++  function macOSBetaFileImportSave() {
++    return new Promise((resolve, reject) => {
++      let settled = false;
++      const finish = (error) => {
++        if (settled) return;
++        settled = true; clearTimeout(timer);
++        if (error) reject(error); else resolve();
++      };
++      const timer = setTimeout(() => finish(new Error(window.MacBeta.text("Saving the import was not confirmed."))), 30000);
++      try { nachDauerhaftemSpeichern(() => finish(), error => finish(error || new Error("Save rejected"))); }
++      catch (error) { finish(error); }
++    });
++  }
++  async function macOSBetaPrepareFileImport(format) {
++    if (macOSBetaFileImport && macOSBetaFileImport.book !== DATEN) macOSBetaFileImport = null;
++    if (macOSBetaFileImport || !["ics", "lotus", "vcf", "claws", "ldif", "muell"].includes(format) ||
++        gesperrt || !initialisiert || !antwortErhalten || window.MacBeta.calendarImportBlocked())
++      throw new Error(window.MacBeta.text("File import is not available right now."));
++    const pending = { book: DATEN, format, token: uid(), notice: "" };
++    macOSBetaFileImport = pending;
++    try {
++      if (macOSBetaCalendarImportHasSettingsDraft()) throw new Error(window.MacBeta.text("Save or discard the account changes before importing."));
++      let admitted = false;
++      await navigiereMitGuard(() => { admitted = true; });
++      if (!admitted) { macOSBetaFileImport = null; if (format === "muell") muellImportLauf = null; return { cancelled: true }; }
++      await macOSBetaFileImportSave();
++      if (DATEN !== pending.book || gesperrt || window.MacBeta.calendarImportBlocked()) throw new Error(_("Conflict"));
++      const settings = $("#einstellungen-schleier");
++      if (modalStapel.some(item => item.schleier.isConnected && item.schleier !== settings))
++        throw new Error(window.MacBeta.text("Finish or close the current editor before importing."));
++      if (macOSBetaCalendarImportHasSettingsDraft()) throw new Error(window.MacBeta.text("Save or discard the account changes before importing."));
++      if (settings && !settings.classList.contains("verborgen")) schliesseEinstellungen();
++      await new Promise((resolve, reject) => mitMutationsSnapshot("pre-file-import", resolve, reject));
++      if (DATEN !== pending.book || gesperrt || window.MacBeta.calendarImportBlocked()) throw new Error(_("Conflict"));
++      pending.before = JSON.stringify(DATEN);
++      pending.expires = Date.now() + 5 * 60 * 1000;
++      return { token: pending.token };
++    } catch (error) {
++      if (macOSBetaFileImport === pending) macOSBetaFileImport = null;
++      if (format === "muell") muellImportLauf = null;
++      throw error;
++    }
++  }
++  function macOSBetaFileImportNotice(text) {
++    if (macOSBetaFileImport?.committing) macOSBetaFileImport.notice = text;
++    else zettel(text);
++  }
++  function macOSBetaFileImportFailure(payload) {
++    if (macOSBetaFileImport?.committing && payload?.fehler) throw new Error(String(payload.fehler));
++  }
++  async function macOSBetaCommitFileImport(payload, token) {
++    const operation = macOSBetaFileImport;
++    if (!operation || operation.token !== token || operation.committing || operation.expires < Date.now() ||
++        DATEN !== operation.book || gesperrt || !initialisiert || window.MacBeta.calendarImportBlocked() ||
++        JSON.stringify(DATEN) !== operation.before) throw new Error(_("Conflict"));
++    operation.committing = true;
++    let saved = false;
++    try {
++      if (operation.format === "muell") {
++        // The existing waste preview has its own token, model-drift and save
++        // guards. Opening it is not a durable import receipt.
++        App.importErgebnis(payload);
++        return { ok: true, handedToPreview: true, saveConfirmed: false };
++      }
++      await App.macOSBetaNativeCalendarResult(payload);
++      if (DATEN !== operation.book || gesperrt || window.MacBeta.calendarImportBlocked()) throw new Error(_("Conflict"));
++      const changed = JSON.stringify(DATEN) !== operation.before;
++      if (changed) await macOSBetaFileImportSave();
++      saved = true;
++      if (DATEN !== operation.book || gesperrt || window.MacBeta.calendarImportBlocked()) throw new Error(_("Conflict"));
++      if (operation.notice) zettel(operation.notice);
++      return { ok: true, changed, saveConfirmed: changed };
++    } catch (error) {
++      if (!saved && DATEN === operation.book && JSON.stringify(DATEN) !== operation.before)
++        throw new Error(window.MacBeta.text("Imported data is present, but saving was not confirmed. Save the pending changes before importing again.") + " " + String(error?.message || error));
++      throw error;
++    } finally {
++      if (macOSBetaFileImport === operation) macOSBetaFileImport = null;
++    }
++  }
++  function macOSBetaCancelFileImport(token) {
++    if (macOSBetaFileImport?.token === token && !macOSBetaFileImport.committing) macOSBetaFileImport = null;
++    // The canonical waste operation must be released on picker cancellation.
++    if (muellImportLauf && !macOSBetaFileImport) muellImportLauf = null;
++    return { ok: true };
++  }
+diff --git a/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json b/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
+index 9ae98ffc4e4dbacfb0821f423bffcf95d305d9ab..bd0ab1de81d8d28b2ad6635a8e87405e4e6c52be 100644
+--- a/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
++++ b/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
+@@ -424,7 +424,36 @@
+     "Local copies from macOS apps": "Lokale Kopien aus Mac-Apps",
+     "Choose items from Calendar, Contacts, Reminders or Apple Notes. Review the local copies before saving. Changes in Magnolie do not synchronize back.": "Wählen Sie Einträge aus Kalender, Kontakte, Erinnerungen oder Apple Notizen. Prüfen Sie die lokalen Kopien vor dem Speichern. Änderungen in Magnolie werden nicht zurücksynchronisiert.",
+     "Magnolia tree sharing is not available in this macOS version.": "Die Freigabe über den Magnolienbaum ist in dieser macOS-Ausgabe noch nicht verfügbar.",
+-    "Finish or close the current editor before importing.": "Schließen Sie die aktuelle Bearbeitung ab oder schließen Sie den Editor, bevor Sie importieren."
++    "Finish or close the current editor before importing.": "Schließen Sie die aktuelle Bearbeitung ab oder schließen Sie den Editor, bevor Sie importieren.",
++    "Saving the import was not confirmed.": "Die Speicherung des Imports wurde nicht bestätigt.",
++    "File import is not available right now.": "Der Dateiimport ist derzeit nicht verfügbar.",
++    "Imported data is present, but saving was not confirmed. Save the pending changes before importing again.": "Importierte Daten sind vorhanden, ihre Speicherung wurde jedoch nicht bestätigt. Speichern Sie die ausstehenden Änderungen vor einem erneuten Import.",
++    "The import document is no longer available.": "Das Dokument für den Import ist nicht mehr verfügbar.",
++    "The document changed. Start the file import again.": "Das Dokument wurde geändert. Starten Sie den Dateiimport erneut.",
++    "The document or regional settings changed. Start the file import again.": "Das Dokument oder die regionalen Einstellungen wurden geändert. Starten Sie den Dateiimport erneut.",
++    "Invalid file import request.": "Ungültige Anfrage zum Dateiimport.",
++    "Missing waste-import operation.": "Der Vorgang zum Import von Müllterminen fehlt.",
++    "The import did not complete.": "Der Import wurde nicht abgeschlossen.",
++    "The import helper exceeded its output limit.": "Das Importprogramm hat die Ausgabegrenze überschritten.",
++    "The private import runtime is missing or linked outside the app.": "Die mitgelieferte Importlaufzeit fehlt oder verweist auf eine Datei außerhalb des Programms.",
++    "A local selected file is required.": "Es wird eine lokal ausgewählte Datei benötigt.",
++    "The selected file is unavailable or is a symbolic link.": "Die ausgewählte Datei ist nicht verfügbar oder ist ein symbolischer Verweis.",
++    "Select a regular import file no larger than 32 MiB.": "Wählen Sie eine reguläre Importdatei mit höchstens 32 MiB aus.",
++    "The selected file grew beyond the import limit.": "Die ausgewählte Datei hat während des Lesens die Importgrenze überschritten.",
++    "The selected file changed while it was read.": "Die ausgewählte Datei wurde während des Lesens geändert.",
++    "Invalid import manifest size.": "Das Importmanifest hat eine ungültige Größe.",
++    "Cannot prepare the private import stream.": "Der geschützte Datenstrom für den Import konnte nicht vorbereitet werden.",
++    "Cannot unlink the private import stream.": "Der Dateiname des geschützten Datenstroms konnte nicht entfernt werden.",
++    "The file import exceeded its time limit. No import result was applied.": "Der Dateiimport hat das Zeitlimit überschritten. Es wurde kein Importergebnis übernommen.",
++    "The import helper did not close its response streams.": "Das Importprogramm hat seine Antwortdatenströme nicht geschlossen.",
++    "The import helper exited without a successful result.": "Das Importprogramm wurde ohne erfolgreiches Ergebnis beendet.",
++    "File import header is too large.": "Die Kopfdaten für den Dateiimport sind zu groß.",
++    "The import helper returned an invalid response.": "Das Importprogramm hat eine ungültige Antwort zurückgegeben.",
++    "The import helper response schema is invalid.": "Das Antwortschema des Importprogramms ist ungültig.",
++    "The import helper returned an invalid error.": "Das Importprogramm hat eine ungültige Fehlermeldung zurückgegeben.",
++    "The import result does not belong to the selected file and parser.": "Das Importergebnis gehört nicht zur ausgewählten Datei und zum verwendeten Parser.",
++    "Invalid import collection.": "Eine importierte Datensammlung ist ungültig.",
++    "The import exceeds the supported record limit.": "Der Import überschreitet die unterstützte Anzahl von Datensätzen."
+   },
+   "es": {
+     "Undo": "Deshacer",
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift
+index 53daed681595fc4f076556241982fe0ff91dbdec..0b1af89b9841b51100901351fc58574735b52b19 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift
+@@ -85,7 +85,9 @@ public struct Request {
+         case .drucken:
+             schema.merge(["html": "string", "requestId": "string"]) { _, b in b }
+             optional = ["requestId"]
+-        case .import: schema["art"] = "string"
++        case .import:
++            schema.merge(["art": "string", "muellToken": "string"]) { _, b in b }
++            optional = ["muellToken"]
+         case .export: schema.merge(["art": "string", "daten": "array"]) { _, b in b }
+         case .erinnerung_zeigen:
+             for key in ["kopf", "rumpf", "art", "stil"] { schema[key] = "string" }
+@@ -129,6 +131,12 @@ public struct Request {
+         if command == .macos_systemzugriff {
+             guard SystemSourcePolicy.Kind(rawValue: fields["art"] as? String ?? "") != nil else { throw BetaError("Invalid macOS source kind.") }
+         }
++        if command == .import {
++            guard FileImportProtocol.formats.contains(text("art")),
++                  (text("art") == "muell" ? (!text("muellToken").isEmpty && text("muellToken").utf8.count <= 1024) : fields["muellToken"] == nil) else {
++                throw BetaError("Invalid file import format or operation token.")
++            }
++        }
+         if let revision = fields["expectedRevision"] as? String {
+             guard revision.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil else {
+                 throw BetaError("Invalid account revision.")
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/FileImportProtocol.swift b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/FileImportProtocol.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..cc9b01fdd806d75e2fae5d38cbee18f9b4f2384c
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/FileImportProtocol.swift
+@@ -0,0 +1,86 @@
++import Foundation
++import CoreFoundation
++import CryptoKit
++
++/// #785: one framed input and one bounded response. Only native-selected bytes
++/// are passed to the helper. Neither side receives an arbitrary source path.
++public enum FileImportProtocol {
++    public static let maximumInputBytes = 32 * 1024 * 1024
++    public static let maximumHeaderBytes = 8192
++    public static let maximumOutputBytes = 96 * 1024 * 1024
++    public static let formats: Set<String> = ["ics", "lotus", "vcf", "claws", "ldif", "muell"]
++
++    public struct Input {
++        public let bytes: Data, header: Data
++        public let format: String, name: String, sourceSHA256: String
++        public init(bytes: Data, format: String, name: String, language: String, timeZone: String, homeCountry: String) throws {
++            guard !bytes.isEmpty, bytes.count <= maximumInputBytes, formats.contains(format),
++                  !name.isEmpty, name.utf8.count <= 1024, name != ".", name != "..",
++                  !name.contains("/"), !name.contains("\\"),
++                  name.unicodeScalars.allSatisfy({ $0.value >= 32 && $0.value != 127 }),
++                  language.range(of: "^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$", options: .regularExpression) != nil,
++                  language.utf8.count <= 64, !timeZone.isEmpty, timeZone.utf8.count <= 256,
++                  homeCountry.range(of: "^[A-Z]{2}$", options: .regularExpression) != nil else {
++                throw BetaError("Invalid file import request.")
++            }
++            self.bytes = bytes; self.format = format; self.name = name
++            sourceSHA256 = Self.digest(bytes)
++            let fields: [String: Any] = ["schema": 1, "format": format, "name": name, "language": language,
++                "timeZone": timeZone, "homeCountry": homeCountry, "byteLength": bytes.count, "sha256": sourceSHA256]
++            var encoded = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
++            encoded.append(10)
++            guard encoded.count <= maximumHeaderBytes else { throw BetaError("File import header is too large.") }
++            header = encoded
++        }
++        private static func digest(_ data: Data) -> String { FileImportProtocol.digest(data) }
++    }
++
++    public static func digest(_ data: Data) -> String {
++        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
++    }
++    private static func integer(_ value: Any?, equals expected: Int) -> Bool {
++        guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID() else { return false }
++        return number.doubleValue == Double(expected)
++    }
++
++    public static func response(_ bytes: Data, input: Input, manifestSHA256: String) throws -> [String: Any] {
++        guard !bytes.isEmpty, bytes.count <= maximumOutputBytes, bytes.last == 10,
++              let text = String(data: bytes, encoding: .utf8),
++              manifestSHA256.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil else {
++            throw BetaError("The import helper returned an invalid response.")
++        }
++        let value = try Document.object(text)
++        guard integer(value["schema"], equals: 1),
++              let ok = value["ok"] as? NSNumber, CFGetTypeID(ok) == CFBooleanGetTypeID() else {
++            throw BetaError("The import helper response schema is invalid.")
++        }
++        if !ok.boolValue {
++            guard Set(value.keys) == Set(["schema", "ok", "sourceSHA256", "parserManifestSHA256", "error"]),
++                  value["sourceSHA256"] is NSNull || value["sourceSHA256"] as? String == input.sourceSHA256,
++                  value["parserManifestSHA256"] is NSNull || value["parserManifestSHA256"] as? String == manifestSHA256,
++                  let error = value["error"] as? [String: Any], Set(error.keys) == Set(["code", "message"]),
++                  let code = error["code"] as? String, !code.isEmpty, code.utf8.count <= 128,
++                  let message = error["message"] as? String, !message.isEmpty, message.utf8.count <= 4096 else {
++                throw BetaError("The import helper returned an invalid error.")
++            }
++            throw BetaError(message)
++        }
++        guard Set(value.keys) == Set(["schema", "ok", "format", "name", "sourceSHA256", "parserManifestSHA256", "result"]),
++              value["sourceSHA256"] as? String == input.sourceSHA256,
++              value["parserManifestSHA256"] as? String == manifestSHA256,
++              value["format"] as? String == input.format,
++              let name = value["name"] as? String, OpaqueUTF8Identity(name) == OpaqueUTF8Identity(input.name),
++              let result = value["result"] as? [String: Any], result["fehler"] == nil else {
++            throw BetaError("The import result does not belong to the selected file and parser.")
++        }
++        var records = 0
++        for collection in ["termine", "aufgaben", "kontakte", "notizen", "jahrestage", "geburtstage"] {
++            if let value = result[collection] {
++                guard let list = value as? [[String: Any]] else { throw BetaError("Invalid import collection.") }
++                records += list.count
++            }
++        }
++        guard records <= 100_000 else { throw BetaError("The import exceeds the supported record limit.") }
++        return result
++    }
++}
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportHost.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportHost.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..e30afbb250d005850df1b7813b1392cba231bc7e
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportHost.swift
+@@ -0,0 +1,72 @@
++#if os(macOS)
++import AppKit
++import BetaCore
++
++/// #785: native selection -> frozen current parser -> shared merge -> Save ACK.
++/// A parser response alone never counts as a saved import.
++@MainActor final class FileImportHost {
++    private var busy = false
++    var active: Bool { busy }
++
++    func begin(format: String, wasteToken: String?, bundle: URL,
++               isCurrent: @escaping () -> Bool, settings: @escaping () throws -> [String: String],
++               prepare: @escaping () async throws -> [String: Any],
++               commit: @escaping ([String: Any], String) async throws -> [String: Any],
++               cancel: @escaping (String) async -> Void,
++               translate: @escaping (String) -> String) async {
++        guard !busy, isCurrent(), FileImportProtocol.formats.contains(format) else { return }
++        busy = true
++        defer { busy = false }
++        var token = ""
++        do {
++            let prepared = try await prepare()
++            if prepared["cancelled"] as? Bool == true { return }
++            guard isCurrent(), let selectedToken = prepared["token"] as? String, !selectedToken.isEmpty else {
++                throw BetaError("The import document is no longer available.")
++            }
++            token = selectedToken
++            let context = try settings()
++            guard let language = context["language"], let timeZone = context["timeZone"],
++                  let homeCountry = context["homeCountry"] else {
++                throw BetaError("Invalid file import request.")
++            }
++            let types = ["ics": ["ics", "vcs", "lcs", "zip"], "lotus": ["or6", "csv", "zip"],
++                         "vcf": ["vcf", "csv", "zip"], "claws": ["xml", "ldif", "ldi", "zip"],
++                         "ldif": ["ldif", "ldi", "zip"], "muell": ["ics", "csv"]]
++            let panel = NSOpenPanel()
++            panel.title = translate("Import")
++            panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
++            panel.allowedFileTypes = types[format]
++            guard panel.runModal() == .OK, let url = panel.url else { await cancel(token); return }
++            guard isCurrent() else { throw BetaError("The document changed. Start the file import again.") }
++            let scoped = url.startAccessingSecurityScopedResource()
++            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
++            let response: [String: Any] = try await withCheckedThrowingContinuation { continuation in
++                DispatchQueue.global(qos: .userInitiated).async {
++                    do {
++                        let bytes = try FileImportProcess.readSelected(url)
++                        let request = try FileImportProtocol.Input(bytes: bytes, format: format, name: url.lastPathComponent,
++                            language: language, timeZone: timeZone, homeCountry: homeCountry)
++                        var result = try FileImportProcess.run(request, bundle: bundle)
++                        if format == "muell" {
++                            guard let wasteToken, !wasteToken.isEmpty else { throw BetaError("Missing waste-import operation.") }
++                            result["art"] = "muell"; result["muellToken"] = wasteToken
++                        }
++                        continuation.resume(returning: result)
++                    } catch { continuation.resume(throwing: error) }
++                }
++            }
++            guard isCurrent(), try settings() == context else {
++                throw BetaError("The document or regional settings changed. Start the file import again.")
++            }
++            let receipt = try await commit(response, token)
++            guard receipt["ok"] as? Bool == true else { throw BetaError("The import did not complete.") }
++        } catch {
++            if !token.isEmpty { await cancel(token) }
++            let alert = NSAlert(); alert.messageText = translate("Import failed")
++            alert.informativeText = translate(error.localizedDescription)
++            alert.runModal()
++        }
++    }
++}
++#endif
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportProcess.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportProcess.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..57add63e4b07ffd30b9a99e2c6eebdb7dfa35a2d
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportProcess.swift
+@@ -0,0 +1,140 @@
++#if os(macOS)
++import Foundation
++import Darwin
++import BetaCore
++
++/// One process per file, no shell, no inherited Python paths, no output on disk.
++/// Call on a worker queue. The stdin descriptor is unlinked before any source
++/// bytes are written, avoiding both a visible plaintext copy and pipe deadlocks.
++enum FileImportProcess {
++    private final class Output {
++        private let lock = NSLock()
++        private var bytes = Data()
++        private var failed = false
++        func append(_ block: Data, limit: Int, retain: Bool) -> Bool {
++            lock.lock(); defer { lock.unlock() }
++            guard !failed, block.count <= limit - bytes.count else { failed = true; return false }
++            if retain { bytes.append(block) }
++            else { bytes.append(contentsOf: repeatElement(UInt8(0), count: block.count)) }
++            return true
++        }
++        func result() throws -> Data {
++            lock.lock(); defer { lock.unlock() }
++            guard !failed else { throw BetaError("The import helper exceeded its output limit.") }
++            return bytes
++        }
++    }
++
++    private static func fixedFile(_ root: URL, _ relative: String) throws -> URL {
++        let canonicalRoot = root.resolvingSymlinksInPath().standardizedFileURL
++        let file = canonicalRoot.appendingPathComponent(relative).standardizedFileURL
++        guard file.resolvingSymlinksInPath() == file, file.path.hasPrefix(canonicalRoot.path + "/"),
++              (try file.resourceValues(forKeys: [.isRegularFileKey])).isRegularFile == true else {
++            throw BetaError("The private import runtime is missing or linked outside the app.")
++        }
++        return file
++    }
++
++    static func readSelected(_ url: URL) throws -> Data {
++        guard url.isFileURL, url.host == nil || url.host == "" else { throw BetaError("A local selected file is required.") }
++        let descriptor = open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
++        guard descriptor >= 0 else { throw BetaError("The selected file is unavailable or is a symbolic link.") }
++        let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
++        defer { try? handle.close() }
++        var before = stat(), after = stat()
++        guard fstat(descriptor, &before) == 0, before.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG),
++              before.st_size > 0, before.st_size <= Int64(FileImportProtocol.maximumInputBytes) else {
++            throw BetaError("Select a regular import file no larger than 32 MiB.")
++        }
++        var bytes = Data()
++        while true {
++            let block = try handle.read(upToCount: min(65536, FileImportProtocol.maximumInputBytes - bytes.count + 1)) ?? Data()
++            if block.isEmpty { break }
++            guard bytes.count + block.count <= FileImportProtocol.maximumInputBytes else { throw BetaError("The selected file grew beyond the import limit.") }
++            bytes.append(block)
++        }
++        guard fstat(descriptor, &after) == 0, before.st_dev == after.st_dev, before.st_ino == after.st_ino,
++              before.st_size == after.st_size, Int64(bytes.count) == before.st_size,
++              before.st_mtimespec.tv_sec == after.st_mtimespec.tv_sec,
++              before.st_mtimespec.tv_nsec == after.st_mtimespec.tv_nsec,
++              before.st_ctimespec.tv_sec == after.st_ctimespec.tv_sec,
++              before.st_ctimespec.tv_nsec == after.st_ctimespec.tv_nsec else {
++            throw BetaError("The selected file changed while it was read.")
++        }
++        return bytes
++    }
++
++    static func run(_ input: FileImportProtocol.Input, bundle: URL) throws -> [String: Any] {
++        let contents = bundle.resolvingSymlinksInPath().appendingPathComponent("Contents")
++        let executable = try fixedFile(contents, "Helpers/ImportPython/bin/python3.15")
++        let helper = try fixedFile(contents, "Resources/ImportHelper/helper.py")
++        let manifest = try fixedFile(contents, "Resources/ImportHelper/manifest.json")
++        let manifestBytes = try Data(contentsOf: manifest, options: [.mappedIfSafe])
++        guard manifestBytes.count <= 1024 * 1024 else { throw BetaError("Invalid import manifest size.") }
++        let manifestHash = FileImportProtocol.digest(manifestBytes)
++        var template = Array((NSTemporaryDirectory() + "magnolie-import-XXXXXX").utf8CString)
++        let descriptor = template.withUnsafeMutableBufferPointer { mkstemp($0.baseAddress!) }
++        guard descriptor >= 0 else { throw BetaError("Cannot prepare the private import stream.") }
++        let standardInput = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
++        defer { try? standardInput.close() }
++        guard template.withUnsafeBufferPointer({ unlink($0.baseAddress!) }) == 0 else {
++            throw BetaError("Cannot unlink the private import stream.")
++        }
++        guard fcntl(descriptor, F_SETFD, FD_CLOEXEC) == 0 else {
++            throw BetaError("Cannot prepare the private import stream.")
++        }
++        try standardInput.write(contentsOf: input.header)
++        try standardInput.write(contentsOf: input.bytes)
++        try standardInput.seek(toOffset: 0)
++
++        let process = Process(), stdout = Pipe(), stderr = Pipe()
++        process.executableURL = executable
++        process.arguments = ["-I", "-S", "-B", helper.path]
++        process.environment = ["PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"]
++        process.currentDirectoryURL = helper.deletingLastPathComponent()
++        process.standardInput = standardInput; process.standardOutput = stdout; process.standardError = stderr
++        let ended = DispatchSemaphore(value: 0)
++        process.terminationHandler = { _ in ended.signal() }
++        let output = Output(), diagnostics = Output(), readers = DispatchGroup()
++        try process.run()
++        for (handle, accumulator, limit, retain) in [
++            (stdout.fileHandleForReading, output, FileImportProtocol.maximumOutputBytes, true),
++            (stderr.fileHandleForReading, diagnostics, 65536, false)
++        ] {
++            readers.enter()
++            DispatchQueue.global(qos: .userInitiated).async {
++                defer { try? handle.close(); readers.leave() }
++                do {
++                    while let block = try handle.read(upToCount: 65536), !block.isEmpty {
++                        if !accumulator.append(block, limit: limit, retain: retain) {
++                            if process.isRunning { process.terminate() }
++                            return
++                        }
++                    }
++                } catch {
++                    _ = accumulator.append(Data([0]), limit: 0, retain: false)
++                    if process.isRunning { process.terminate() }
++                }
++            }
++        }
++        if ended.wait(timeout: .now() + 60) == .timedOut {
++            if process.isRunning { process.terminate() }
++            if ended.wait(timeout: .now() + 1) == .timedOut, process.isRunning { kill(process.processIdentifier, SIGKILL) }
++            _ = ended.wait(timeout: .now() + 2)
++            _ = readers.wait(timeout: .now() + 2)
++            throw BetaError("The file import exceeded its time limit. No import result was applied.")
++        }
++        guard readers.wait(timeout: .now() + 2) == .success else {
++            throw BetaError("The import helper did not close its response streams.")
++        }
++        _ = try diagnostics.result() // Never expose source-containing stderr.
++        let bytes = try output.result()
++        guard process.terminationReason == .exit, process.terminationStatus == 0 else {
++            // A well-formed helper error may explain unsupported/corrupt data.
++            _ = try FileImportProtocol.response(bytes, input: input, manifestSHA256: manifestHash)
++            throw BetaError("The import helper exited without a successful result.")
++        }
++        return try FileImportProtocol.response(bytes, input: input, manifestSHA256: manifestHash)
++    }
++}
++#endif
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
+index 56436e9bb56f01f2175315884198653672f49f7e..3bb4d9c2b5b618b4736a27a6f6ea826968a81682 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
+@@ -16,6 +16,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+     private var appleNotesImport: AppleNotesImportHost?
+     private var contactImport: SystemContactImportHost?
+     private var reminderImport: SystemReminderImportHost?
++    private var fileImport: FileImportHost?
+     private var airPlay: AirPlayHost?
+     private var window: NSWindow!
+     private var web: WKWebView!
+@@ -280,6 +281,55 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+         guard plain != nil, !restoring, !closePending else { alert("Unlock first."); return }
+         web.evaluateJavaScript("window.App?.macOSBetaStartReminderImport()")
+     }
++    private func importFile(_ request: Request) throws {
++        guard plain != nil, !restoring, !closePending, let database = calendarDatabase else {
++            throw BetaError("File import is not available while the document is locked or closing.")
++        }
++        let generation = documentGeneration, format = request.text("art")
++        Task { @MainActor in
++            let current = { [weak self] in
++                guard let self else { return false }
++                return self.plain != nil && !self.restoring && !self.closePending && self.documentGeneration == generation
++            }
++            guard current() else { return }
++            if self.fileImport == nil { self.fileImport = FileImportHost() }
++            await self.fileImport!.begin(format: format, wasteToken: request.fields["muellToken"] as? String,
++                bundle: Bundle.main.bundleURL, isCurrent: current, settings: {
++                    guard current() else { throw BetaError("The document changed. Start the file import again.") }
++                    let preferences = self.regional(self.plain)
++                    var language = preferences["language"] as? String ?? "system"
++                    if language == "system" { language = Locale.preferredLanguages.first ?? "en" }
++                    language = language.replacingOccurrences(of: "_", with: "-").lowercased()
++                    if language.hasPrefix("zh") { language = "zh-cn" }
++                    let requestedZone = preferences["timeZone"] as? String ?? "system"
++                    let zone = requestedZone == "system" || requestedZone.isEmpty ? TimeZone.current.identifier : requestedZone
++                    _ = try database.named(zone)
++                    let country = preferences["homeCountry"] as? String ?? "DE"
++                    guard Locale.isoRegionCodes.contains(country) else { throw BetaError("Invalid home country for import.") }
++                    return ["language": language, "timeZone": zone, "homeCountry": country]
++                }, prepare: {
++                    guard current() else { throw BetaError("The document changed. Start the file import again.") }
++                    return try await self.fileImportUI("return await window.App.macOSBetaPrepareFileImport(format);", arguments: ["format": format])
++                }, commit: { payload, token in
++                    guard current() else { throw BetaError("The document changed. Start the file import again.") }
++                    return try await self.fileImportUI("return await window.App.macOSBetaCommitFileImport(payload, token);", arguments: ["payload": payload, "token": token])
++                }, cancel: { token in
++                    guard self.documentGeneration == generation else { return }
++                    _ = try? await self.fileImportUI("return window.App.macOSBetaCancelFileImport(token);", arguments: ["token": token])
++                }, translate: { self.tr($0) })
++        }
++    }
++    @MainActor private func fileImportUI(_ script: String, arguments: [String: Any]) async throws -> [String: Any] {
++        let guarded = "try { " + script + " } catch (error) { return { fileImportError: String(error?.message || error).slice(0, 4096) }; }"
++        let value: Any = try await withCheckedThrowingContinuation { continuation in
++            web.callAsyncJavaScript(guarded, arguments: arguments, in: nil, in: .page) { (result: Result<Any, Error>) in
++                continuation.resume(with: result)
++            }
++        }
++        guard let result = value as? [String: Any] else { throw BetaError("Invalid file import response.") }
++        if let message = result["fileImportError"] as? String { throw BetaError(message) }
++        return result
++    }
+     private func importReminders() throws {
+         guard plain != nil, !restoring, !closePending, let database = calendarDatabase else {
+             throw BetaError("Reminder copying is not available while the document is locked or closing.")
+@@ -811,39 +861,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+             self.plain = next; authenticatedOrigin = nil; envelope = encryption == nil ? nil : output
+             send("regionalErgebnis", ["ok": true, "regional": settings])
+         case .import:
+-            guard plain != nil else { throw BetaError("Unlock first.") }
+-            guard request.text("art") == "ics" else {
+-                throw BetaError("This import format is not implemented in macOS Beta.")
+-            }
+-            let generation = documentGeneration
+-            let panel = NSOpenPanel(); panel.title = tr("Import")
+-            panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
+-            panel.allowedFileTypes = ["ics"]
+-            guard panel.runModal() == .OK, let url = panel.url else {
+-                send("importErgebnis", ["abgebrochen": true]); return
+-            }
+-            guard plain != nil, !restoring, documentGeneration == generation else {
+-                throw BetaError("The current document changed. Start the import again.")
+-            }
+-            let zone = regional(plain)["timeZone"] as? String ?? "system"
+-            let sourceName = url.lastPathComponent
+-            guard let database = calendarDatabase else { throw BetaError("Verified calendar timezone data is unavailable.") }
+-            let timeContext = try CalendarTimeContext(database: database, systemIdentifier: TimeZone.current.identifier)
+-            // Only the explicitly selected file is read, with a hard byte bound.
+-            // Parsing and time-zone projection must not block AppKit or WebKit.
+-            DispatchQueue.global(qos: .userInitiated).async {
+-                let response: [String: Any]
+-                do {
+-                    let handle = try FileHandle(forReadingFrom: url)
+-                    defer { try? handle.close() }
+-                    let bytes = try handle.read(upToCount: ICalendarImport.maximumBytes + 1) ?? Data()
+-                    response = try ICalendarImport.decode(bytes, context: timeContext, displayTimeZone: zone, sourceName: sourceName).response
+-                } catch { response = ["fehler": error.localizedDescription] }
+-                DispatchQueue.main.async {
+-                    guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
+-                    self.send("importErgebnis", response)
+-                }
+-            }
++            try importFile(request)
+         case .mail, .karte, .sozial:
+             guard plain != nil, !restoring else { throw BetaError("Unlock first.") }
+             let target = try CommunicationLaunchPolicy.target(command: request.command.rawValue, fields: request.fields)
+diff --git a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/FileImportProtocolTests.swift b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/FileImportProtocolTests.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..6e6fb763debaa396cb4d3ded2a4d6697cce0c712
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/FileImportProtocolTests.swift
+@@ -0,0 +1,119 @@
++import Foundation
++import XCTest
++@testable import BetaCore
++
++/// #785. Prepared for the real macOS Swift test job. These are protocol tests,
++/// not claims about an Apple picker, a signed Python runtime or account access.
++final class FileImportProtocolTests: XCTestCase {
++    let manifest = String(repeating: "a", count: 64)
++    func input(name: String = "original.or6") throws -> FileImportProtocol.Input {
++        try .init(bytes: Data("original bytes\u{0}retained".utf8), format: "lotus", name: name,
++                  language: "de-de", timeZone: "Europe/Berlin", homeCountry: "DE")
++    }
++    func envelope(_ source: FileImportProtocol.Input, result: [String: Any] = ["notizen": [["titel": "Original", "text": "Literal <text>"]]]) -> [String: Any] {
++        ["schema": 1, "ok": true, "format": source.format, "name": source.name,
++         "sourceSHA256": source.sourceSHA256, "parserManifestSHA256": manifest, "result": result]
++    }
++    func wire(_ object: [String: Any]) throws -> Data {
++        var data = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
++        data.append(10); return data
++    }
++    func testHeaderDescribesExactSelectedBytesAndConcreteRegionalContext() throws {
++        let source = try input()
++        XCTAssertEqual(source.header.last, 10)
++        let header = try XCTUnwrap(JSONSerialization.jsonObject(with: source.header) as? [String: Any])
++        XCTAssertEqual(Set(header.keys), Set(["schema", "format", "name", "language", "timeZone", "homeCountry", "byteLength", "sha256"]))
++        XCTAssertEqual(header["byteLength"] as? Int, source.bytes.count)
++        XCTAssertEqual(header["sha256"] as? String, FileImportProtocol.digest(source.bytes))
++        XCTAssertEqual(header["language"] as? String, "de-de")
++        XCTAssertEqual(header["timeZone"] as? String, "Europe/Berlin")
++        XCTAssertEqual(header["homeCountry"] as? String, "DE")
++        XCTAssertEqual(source.bytes, Data("original bytes\u{0}retained".utf8))
++    }
++    func testNativeCommandAdmitsFormatsWithoutWebSelectedPaths() throws {
++        for format in FileImportProtocol.formats {
++            var fields: [String: Any] = ["cmd": "import", "art": format]
++            if format == "muell" { fields["muellToken"] = "waste-operation" }
++            XCTAssertNoThrow(try Request(String(decoding: wire(fields), as: UTF8.self)))
++            fields["path"] = "/unselected.or6"
++            XCTAssertThrowsError(try Request(String(decoding: wire(fields), as: UTF8.self)))
++        }
++        for request in [#"{"cmd":"import","art":"magnolie"}"#,
++                        #"{"cmd":"import","art":"muell"}"#,
++                        #"{"cmd":"import","art":"lotus","muellToken":"wrong-purpose"}"#] {
++            XCTAssertThrowsError(try Request(request))
++        }
++    }
++    func testUnsafeNamesEmptyAndOversizedInputsAreRejected() throws {
++        for name in ["", ".", "..", "../input.or6", "folder\\input.or6", "line\n.or6", String(repeating: "a", count: 1025)] {
++            XCTAssertThrowsError(try input(name: name), name)
++        }
++        for bytes in [Data(), Data(repeating: 0, count: FileImportProtocol.maximumInputBytes + 1)] {
++            XCTAssertThrowsError(try FileImportProtocol.Input(bytes: bytes, format: "lotus", name: "file.or6",
++                language: "en", timeZone: "UTC", homeCountry: "DE"))
++        }
++    }
++    func testSuccessfulResultIsBoundToSourceAndParserManifest() throws {
++        let source = try input(), value = envelope(try input())
++        let result = try FileImportProtocol.response(wire(value), input: source, manifestSHA256: manifest)
++        XCTAssertEqual((result["notizen"] as? [[String: String]])?.first?["text"], "Literal <text>")
++        for (field, replacement) in [("sourceSHA256", String(repeating: "b", count: 64)),
++                                      ("parserManifestSHA256", String(repeating: "b", count: 64)),
++                                      ("format", "ics"), ("name", "another.or6")] {
++            var changed = value; changed[field] = replacement
++            XCTAssertThrowsError(try FileImportProtocol.response(wire(changed), input: source, manifestSHA256: manifest), field)
++        }
++    }
++    func testSourceNameUsesExactUTF8Identity() throws {
++        let source = try input(name: "caf\u{00e9}.or6")
++        var changed = envelope(source); changed["name"] = "cafe\u{0301}.or6"
++        XCTAssertThrowsError(try FileImportProtocol.response(wire(changed), input: source, manifestSHA256: manifest))
++    }
++    func testBooleansAndNumbersCannotMasqueradeAsSchemaOrSuccess() throws {
++        let source = try input()
++        for (field, invalid) in [("schema", true as Any), ("schema", 1.5 as Any), ("ok", 1 as Any), ("ok", "true" as Any)] {
++            var value = envelope(source); value[field] = invalid
++            XCTAssertThrowsError(try FileImportProtocol.response(wire(value), input: source, manifestSHA256: manifest))
++        }
++    }
++    func testCollectionsAndRecordBudgetAreCheckedBeforeApplication() throws {
++        let source = try input()
++        let invalidResults: [[String: Any]] = [["termine": "wrong"], ["notizen": [1]], ["fehler": "partial-result"],
++            ["notizen": Array(repeating: ["titel": "over limit"], count: 100_001)]]
++        for result in invalidResults {
++            XCTAssertThrowsError(try FileImportProtocol.response(wire(envelope(source, result: result)), input: source, manifestSHA256: manifest))
++        }
++    }
++    func testFramingDuplicateKeysAndExtraSuccessFieldsAreRejected() throws {
++        let source = try input()
++        var valid = try wire(envelope(source)); valid.removeLast()
++        XCTAssertThrowsError(try FileImportProtocol.response(valid, input: source, manifestSHA256: manifest))
++        XCTAssertThrowsError(try FileImportProtocol.response(Data("{\"schema\":1,\"schema\":1,\"ok\":true}\n".utf8), input: source, manifestSHA256: manifest))
++        var extra = envelope(source); extra["unexpected"] = true
++        XCTAssertThrowsError(try FileImportProtocol.response(wire(extra), input: source, manifestSHA256: manifest))
++    }
++    func testWellFormedHelperFailureNeverProvidesAPartialResult() throws {
++        let source = try input()
++        var failure: [String: Any] = ["schema": 1, "ok": false, "sourceSHA256": source.sourceSHA256,
++            "parserManifestSHA256": manifest, "error": ["code": "unsupported", "message": "Synthetic invalid source"]]
++        XCTAssertThrowsError(try FileImportProtocol.response(wire(failure), input: source, manifestSHA256: manifest)) { error in
++            XCTAssertEqual(error.localizedDescription, "Synthetic invalid source")
++        }
++        failure["result"] = ["notizen": [["titel": "must not apply"]]]
++        XCTAssertThrowsError(try FileImportProtocol.response(wire(failure), input: source, manifestSHA256: manifest)) { error in
++            XCTAssertNotEqual(error.localizedDescription, "Synthetic invalid source")
++        }
++    }
++    func testForeignOrMalformedFailureIsNotTrusted() throws {
++        let source = try input()
++        let base: [String: Any] = ["schema": 1, "ok": false, "sourceSHA256": NSNull(),
++            "parserManifestSHA256": NSNull(), "error": ["code": "invalid-header", "message": "Safe helper failure"]]
++        for (field, bad) in [("sourceSHA256", "foreign" as Any), ("error", ["message": "No code"] as Any),
++                            ("error", ["code": "invalid", "message": String(repeating: "x", count: 4097)] as Any)] {
++            var value = base; value[field] = bad
++            XCTAssertThrowsError(try FileImportProtocol.response(wire(value), input: source, manifestSHA256: manifest)) { error in
++                XCTAssertNotEqual(error.localizedDescription, "Safe helper failure")
++            }
++        }
++    }
++}
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+index 008df00b88322d62c9b2a093f5adf8fcea539bd9..d35857f38afb31ed5b039b36c712e9a61b69d84a 100644
+--- a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
++++ b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+@@ -439,6 +439,19 @@ def project(snapshot, target):
+                         "    macOSBetaNativeCalendarAliases(nutzlast); // Validate before mutating any collection.")
+     text = replace_once(text, "          App.importErgebnis({ ...nutzlast, termine: termine }, true);",
+                         "          return App.importErgebnis({ ...nutzlast, termine: termine }, true);")
++    file_import = snapshot[str((BETA / "Projection/file-import.js").relative_to(REPO))].decode()
++    text = replace_once(text, "  const App = {", file_import + "\n  const App = {\n"
++                        "    macOSBetaPrepareFileImport, macOSBetaCommitFileImport, macOSBetaCancelFileImport,")
++    text = replace_once(text, "    importErgebnis(nutzlast, termineNormalisiert = false, kontaktPruefung = null) {",
++                        "    importErgebnis(nutzlast, termineNormalisiert = false, kontaktPruefung = null) {\n"
++                        "      macOSBetaFileImportFailure(nutzlast);")
++    text = replace_once(text, '          return new Promise(resolve => mitMutationsSnapshot("pre-contact-import", () => {',
++                        '          return new Promise((resolve, reject) => mitMutationsSnapshot("pre-contact-import", () => {')
++    text = replace_once(text, "            App.importErgebnis(eingang, termineNormalisiert, pruefung); resolve();",
++                        "            try { Promise.resolve(App.importErgebnis(eingang, termineNormalisiert, pruefung)).then(resolve, reject); }\n"
++                        "            catch (error) { reject(error); }")
++    text = replace_once(text, "      zettel(text);\n      setupImportBeenden();\n    },\n    printErgebnis(nutzlast) {",
++                        "      macOSBetaFileImportNotice(text);\n      setupImportBeenden();\n    },\n    printErgebnis(nutzlast) {")
+     calendar_import = snapshot[str((BETA / "Projection/system-calendar-import.js").relative_to(REPO))].decode()
+     text = replace_once(text, "  const App = {", calendar_import + "\n  const App = {\n"
+                         "    macOSBetaStartCalendarImport, macOSBetaPrepareCalendarImport,\n"
+-- 
+2.56.1
+

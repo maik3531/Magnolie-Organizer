@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "source": {
+    "sourceUID": "macos-reminders:cmVtaW5kZXItbGlzdC1vbmU=",
+    "calendarID": "reminder-list-one",
+    "title": "Selected reminder list",
+    "parentUID": "macos-account:cmVtaW5kZXItYWNjb3VudC1vbmU=",
+    "parentTitle": "Selected account",
+    "parentType": "source:2",
+    "nativeType": "calendar:2",
+    "readOnly": false,
+    "permission": "authorized"
+  },
+  "displayTimeZone": "Europe/Berlin",
+  "records": [
+    {
+      "identifier": "reminder-one",
+      "fields": {
+        "metadataIncomplete": [
+          "native-reminder-hierarchy",
+          "native-reminder-attachments",
+          "native-reminder-tags",
+          "native-reminder-flags",
+          "native-reminder-assignees",
+          "native-reminder-rich-text",
+          "provider-opaque-fields"
+        ],
+        "hierarchyAvailable": false,
+        "title": "Review native reminder 🌼",
+        "notes": "First line\nSecond line with é and literal <b>text</b>.",
+        "hasNotes": true,
+        "location": "Room 4",
+        "url": "https://example.test/review",
+        "externalIdentifier": "provider-original-id",
+        "itemTimeZone": null,
+        "created": 1780000000.125,
+        "modified": 1780000600.5,
+        "completed": false,
+        "completionDate": null,
+        "priority": 0,
+        "startComponents": {
+          "calendar": "gregorian",
+          "calendarTimeZone": "Pacific/Auckland",
+          "year": 2026,
+          "month": 11,
+          "day": 27,
+          "hour": 9,
+          "minute": 5,
+          "second": 0
+        },
+        "dueComponents": {
+          "calendar": "gregorian",
+          "calendarTimeZone": "Pacific/Auckland",
+          "year": 2026,
+          "month": 11,
+          "day": 27,
+          "hour": 10,
+          "minute": 45,
+          "second": 0
+        },
+        "hasAlarms": false,
+        "alarms": [],
+        "hasRecurrenceRules": false,
+        "recurrenceRules": []
+      },
+      "failure": null
+    }
+  ],
+  "expectedTask": {
+    "titel": "Review native reminder 🌼",
+    "notiz": "First line\nSecond line with é and literal <b>text</b>.",
+    "prio": 2,
+    "erledigt": false,
+    "startDatum": "2026-11-27",
+    "startZeit": "09:05",
+    "faellig": "2026-11-27",
+    "faelligZeit": "10:45",
+    "icsRoundtrip": [
+      "DTSTART:20261127T090500",
+      "DUE:20261127T104500"
+    ],
+    "icsAnzeigeZeitzone": "Europe/Berlin",
+    "erinnern": false,
+    "individuelleErinnerungTage": 0,
+    "vorlaufTage": 0,
+    "erinnerungsMinute": 480
+  },
+  "expectedNotices": [
+    "native-reminder-extra-public-fields-in-source",
+    "native-reminder-priority-grouped",
+    "native-reminder-public-fields-only",
+    "native-reminder-source-timestamps",
+    "native-reminder-standalone-copy"
+  ],
+  "expectedIdentity": "fa4999421a0fd4503f43eb9baff01c7eed3e5034558b954a5e2791ae2565369b"
+}

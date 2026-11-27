@@ -8880,3 +8880,11 @@ msgstr "Ожидание разрешения телефона и захвата
 
 msgid "Your phone must approve screen sharing."
 msgstr "Подтвердите показ экрана на телефоне."
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Birthday stored with this contact; no calendar entry."
+msgstr "Дата рождения сохранена в контакте; запись в календаре не создаётся."
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Please enter a valid birth date."
+msgstr "Введите корректную дату рождения."

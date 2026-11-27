@@ -1,0 +1,716 @@
+From 0a14d268913337bd436e560ab47f670ed43d89c3 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 07:05:13 +0100
+Subject: [PATCH] Refs #783 #121: build Mac candidates from current checked
+ sources
+
+---
+ .github/workflows/ports-2.0.30.yml            |  19 ++-
+ .../CURRENT-SOURCE-CANDIDATE.md               | 109 ++++++++++++++++
+ .../FEATURE-MATRIX.md                         |  43 +++---
+ Magnolie-Organizer-macOS-Beta/README.md       |  21 ++-
+ .../CandidateCapabilityTests.swift            |  24 ++++
+ .../tests/current_source_contract.mjs         |  85 ++++++++++++
+ .../tests/test_candidate_sources.py           | 122 ++++++++++++++++++
+ .../tools/candidate_sources.py                | 104 +++++++++++++++
+ .../tools/check_current_sources.py            |  39 ++++++
+ 9 files changed, 532 insertions(+), 34 deletions(-)
+ create mode 100644 Magnolie-Organizer-macOS-Beta/CURRENT-SOURCE-CANDIDATE.md
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/CandidateCapabilityTests.swift
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tests/current_source_contract.mjs
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tools/candidate_sources.py
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tools/check_current_sources.py
+
+diff --git a/.github/workflows/ports-2.0.30.yml b/.github/workflows/ports-2.0.30.yml
+index 64f9a767d327152bee97af0154db257f0127eb1d..c2ff3265742f9c0096472ed76bade2fa531c8d3f 100644
+--- a/.github/workflows/ports-2.0.30.yml
++++ b/.github/workflows/ports-2.0.30.yml
+@@ -59,19 +59,13 @@ jobs:
+       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+         with:
+           node-version: '22'
+-      - name: Select the published desktop sources without replacing the port
++      - name: Bind the Mac candidate to the current selected checkout
+         run: |
+           set -euo pipefail
+-          test "$(git rev-parse v2.0.30^{commit})" = "$DESKTOP_COMMIT"
+-          git restore --source="$DESKTOP_COMMIT" -- magnolie-organizer magnolie-organizer-windows magnolie-handbuch magnolie-notes contracts LICENSE.md PROTECTED-ASSETS-LICENSE.txt
+           mkdir -p "$RUNNER_TEMP/port-proof"
+-          python3 - <<'PY'
+-          import json, os, pathlib, subprocess
+-          proof = dict(portCommit=os.environ['GITHUB_SHA'], desktopTag='v2.0.30',
+-                       desktopCommit=os.environ['DESKTOP_COMMIT'],
+-                       nativeAcceptance=False, productionRelease=False)
+-          pathlib.Path(os.environ['RUNNER_TEMP'], 'port-proof', 'sources.json').write_text(json.dumps(proof, indent=2)+'\n')
+-          PY
++          python3 Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py
++          python3 Magnolie-Organizer-macOS-Beta/tools/candidate_sources.py record --expected-commit "$GITHUB_SHA" \
++            --proof "$RUNNER_TEMP/port-proof/sources.json"
+       - name: Prepare private dependencies and canonical catalogs
+         run: |
+           set -euo pipefail
+@@ -105,7 +99,7 @@ jobs:
+           python3 tools/check_timezone_provider.py --definitions --swift "$(command -v swift)" \
+             --archive "$RUNNER_TEMP/tzdata2026egtz-rearguard.tar.gz" \
+             | tee "$RUNNER_TEMP/port-proof/timezone-provider-$MACOS_ARCH.log"
+-      - name: Freeze this isolated build's published source and run host and Apple tests
++      - name: Freeze this isolated build's current source and run host and Apple tests
+         working-directory: Magnolie-Organizer-macOS-Beta
+         run: |
+           set -euo pipefail
+@@ -114,6 +108,7 @@ jobs:
+           export MACOS_BETA_JSDOM="$RUNNER_TEMP/mac-js/node_modules/jsdom/lib/api.js"
+           export MACOS_BETA_SWIFT="$(command -v swift)"
+           export MACOS_BETA_UI_PATH="$PWD/Generated"
++          python3 tools/check_current_sources.py --js-runtime node
+           "$RUNNER_TEMP/mac-python/bin/python" tools/crypto_vectors.py --check
+           "$RUNNER_TEMP/mac-python/bin/python" tests/test_host.py
+           MACOS_BETA_LIVE_HOLIDAYS=1 python3 tools/build_dev.py
+@@ -130,6 +125,8 @@ jobs:
+           set -euo pipefail
+           output='Output/Magnolie Organizer macOS Beta-2.0.30-beta.1'
+           app="$output/Magnolie Organizer macOS Beta.app"
++          python3 tools/candidate_sources.py verify --expected-commit "$GITHUB_SHA" \
++            --proof "$RUNNER_TEMP/port-proof/sources.json"
+           codesign --verify --strict "$app"
+           cp "$RUNNER_TEMP/port-proof/sources.json" "$output/sources.json"
+           cp SourceFreeze.json "$output/SourceFreeze.json"
+diff --git a/Magnolie-Organizer-macOS-Beta/CURRENT-SOURCE-CANDIDATE.md b/Magnolie-Organizer-macOS-Beta/CURRENT-SOURCE-CANDIDATE.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..7db1013b3f0885aa4968a76936a9e7fc80468c30
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/CURRENT-SOURCE-CANDIDATE.md
+@@ -0,0 +1,109 @@
++# Current shared sources for the Mac candidate — #783 / #121
++
++The Mac UI generator reads the current checkout of `magnolie-organizer/web`.
++The candidate workflow previously replaced the common product trees with the
++published `v2.0.30` commit `067c38934b539943d8e1720abafd8a80b401d797` immediately
++after checkout. A newer Mac port commit therefore did not make its bundled
++desktop UI current. The visible `2.0.30-beta.1` version did not reveal this.
++
++## Corrected source selection
++
++The Mac job now keeps the selected workflow checkout intact. It records the
++exact `GITHUB_SHA` as both `portCommit` and `desktopCommit`, plus the Git blob
++identity, executable mode and SHA-256 of every tracked product/adapter/build input covered by
++`tools/candidate_sources.py`. A different HEAD, edited or staged source,
++untracked non-ignored source, missing input, or changed final proof blocks the
++candidate. The check never repairs or replaces the source tree.
++Actual file bytes are hashed as Git objects and compared directly to HEAD;
++`assume-unchanged` and `skip-worktree` cannot hide stale input. Both SHA-1 and
++SHA-256 repositories use their actual object format.
++
++Catalog preparation still runs before the existing explicit freeze. Generated
++catalogs and payloads are covered by `SourceFreeze.json` and
++`Generated/ProjectionManifest.json`; their reproducibility is checked by
++`project_ui.py` and again by the existing native builder. The tracked-source
++proof is rechecked before packaging and archived with that freeze and the
++existing build/smoke evidence. These are complementary checks: a source commit
++does not by itself certify generated output or native behavior.
++
++The Tablet job and its `DESKTOP_COMMIT` stay on their existing reference. Tagged
++codec fixtures and narrow historical adapter comparisons keep their original
++references. A complete old desktop UI without the common contact-copy contract
++introduced for #776 is explicitly unsupported by the current Mac projector;
++historical fixtures are not silently upgraded into a current candidate.
++
++## What catches up automatically
++
++The audit compared current main `00776ce70e155c7a607ed55a4502d6fcee5a860c`
++with the published reference. The Mac projection already accepts the current
++shared tree. Representative current local UI/model changes are:
++
++| Common change | Source commit | Mac handling |
++| --- | --- | --- |
++| Calendar spread arrow navigation (#744) | `84dd54e8` | Current shared handler; generated-Mac DOM regression included |
++| Notes search by actual creation/modification date (#720) | `bcb2b2e4` | Current shared search; all 30 original search assertions run in generated Mac UI |
++| Equivalent messenger targets preserve local actions (#757) | `ef14afd0` | Current shared merge logic; launching still uses Mac's separate native policy |
++| Note web-link recognition without rewriting stored text (#608) | `9b847b55` | Current shared renderer; native external handlers remain separately bounded |
++| Contact email normalization (#603) | `a2055d26` | Current shared model; it does not grant provider write access |
++| Opaque DISPLAY alarm preservation (#444) | `f7c94727` | Projector verifies the accepted current helper hash instead of reinstalling the old helper |
++| Welcome-note first-save normalization (#437) | `846075c9` | Current canonical normalized form is accepted |
++| Drawing pointer ownership/release (#467/#468) | `4f228fc3`, `cbdc0876` | Reviewed current release handler plus existing canonical finish-redraw adapter |
++| Normative GUI time-zone runtime (#447/#657) | `f190cc2b` | Already-promoted current hooks are verified and retained; no second legacy runtime is installed |
++
++Occurrence identity, timezone hooks, drawing and display-alarm replacements
++remain exact-anchor/hash checked. Source drift fails the build instead of
++falling back to a stale generated UI. Startup readiness, ordinary-save and
++restore fences remain the Mac implementations; shared frontend presence does
++not substitute for their native acceptance.
++
++## Deliberate Mac integration boundary
++
++Mac does not require a separate Magnolie Notes companion app. Its supported
++Apple calendar, Contacts, Reminders and Apple Notes paths use Mac-specific
++native access and reviewed local copies. Existing KDE Connect clients remain
++a valid route for supported phone functions; availability of the external
++client and implementation of a particular Magnolie native adapter are separate
++facts. This patch adds no new sync transport, pairing, background service or
++source-write grant.
++
++`check_current_sources.py` boots the actual newly generated UI and compares its
++traffic with the unchanged Swift `Command` allowlist. Every currently
++unimplemented desktop command is rejected before native delivery. Imported
++provenance-shaped metadata and a saved automatic-sync preference do not widen
++that list. A rejected legacy `sync` request may record its existing local error
++diagnostic; this is not a native sync operation. Existing local-copy commands
++remain reachable, and the existing copy-import suites separately verify their
++actual transactions without acquiring source synchronization/delegation rights.
++The new native `CandidateCapabilityTests` also exercise `Request` rejection of
++currently missing transports and unauthorized sync fields on ordinary saves.
++These are current implementation checks, not a permanent exclusion of KDE
++Connect or future explicitly implemented Mac integrations.
++
++## Evidence and limits
++
++The historical green run
++[42562106430](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42562106430)
++used Mac/adapter source `cbdc0876` **with published desktop source `067c3893`**.
++Earlier runs such as `42506117045` at port source `0c22df32` used the same
++published source policy. Their native results must not be presented as tests of
++today's shared UI or new #770–#777 imports.
++
++Local checks for this patch passed on Linux with Node 24.22.3 / JSDOM 26.1.0
++and synthetic native transport: **7 source-selection tests** in each of actual
++SHA-1 and SHA-256 Git repositories; **27 current-source/capability assertions**
++plus **30 original date-search assertions**. All **181 currently unavailable
++desktop commands** were blocked before native delivery.
++
++```sh
++python3 Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py
++python3 Magnolie-Organizer-macOS-Beta/tools/check_current_sources.py --js-runtime node
++```
++
++The first uses actual temporary Git repositories, including the old restore
++recipe against a newer commit with the **same visible version**. The second
++uses the existing JSDOM installation (`MACOS_BETA_JSDOM` can select it) and
++current source inputs. It is wired into the existing Mac workflow before native
++tests. The two new Swift test methods are prepared for that workflow; no Swift/macOS
++execution, updated native candidate, signing/notarization or release approval
++is claimed by these host checks. Both existing macOS architecture jobs and the
++real bundle lifecycle must pass again with the new recorded source policy.
+diff --git a/Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md b/Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md
+index c76916be8ba0ab0301d676e6e09ae9e7312a120d..59bfacd694b4f780acba319a917bc1871a6e613b 100644
+--- a/Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md
++++ b/Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md
+@@ -1,31 +1,38 @@
+ # macOS Beta Feature Matrix — 2.0.30-beta.1
+ 
+-Updated 2026-11-25 (Apple Notes text-copy source patch #772, following calendar copies #770; earlier native evidence below remains tied to its original baseline).
+-The target remains the same UI and functionality as the current
+-Linux/Windows Organizer. This phase does **not** achieve native feature parity.
+-Native builds, ad-hoc signing, core/WKWebView tests and the real bundle lifecycle
+-smoke passed on macOS 15 for arm64 and x86_64 (Actions run 42506117045, port source
+-0c22df32; later source changes still require native checks). The smoke
+-verifies first save, normal quit, reopen, a second atomic save and strict whole-data
+-equality. Full application/feature acceptance remains pending. Linux host tests
+-alone do not establish macOS behavior.
++Updated 2026-11-26 (#783 current-source candidate recipe; #775 contact and #777
++reminder copies; #121 evidence correction). The shared Organizer UI and data
++behavior follow current Linux/Windows sources, with Mac-specific native
++integrations. Mac does not require its own Magnolie Notes companion app.
++Apple services and supported existing KDE Connect clients remain intended
++integration paths; an available client does not establish a particular
++Organizer adapter. Full native feature parity is not claimed.
++
++Historical macOS 15 arm64/x86_64 run **42562106430** passed at Mac/adapter source
++`cbdc0876` with **published desktop inputs `067c3893`**. Earlier run 42506117045
++at port source `0c22df32` used that same published-input policy. These runs
++include native builds, core/WKWebView checks and real first-save/quit/reopen
++smoke, but do not certify current shared UI or the later import modules.
++#783 removes the Mac workflow's old source reset and binds candidates to the
++selected checkout with commit/file hashes. Current-source native runs remain
++required; see [CURRENT-SOURCE-CANDIDATE.md](CURRENT-SOURCE-CANDIDATE.md).
+ 
+ ## Local Features
+ 
+ | Feature | Source implementation/evidence | Remaining work |
+ | --- | --- | --- |
+-| Calendar/day views, tasks/subtasks, notes, contacts, anniversaries | Current shared frontend projection; host rendering and actual editor cases | Real WKWebView visual/input acceptance; full native feature parity cannot be inferred from views |
++| Calendar/day views, tasks/subtasks, notes, contacts, anniversaries | Current shared frontend projection; #783 also selects current checkout for candidate builds and tests shared note-date search/calendar navigation in generated Mac UI | Renewed current-source WKWebView visual/input acceptance; full native feature parity cannot be inferred from views |
+ | Planner, health and Custom module/designers | Current shared UI/model code is projected, not manually forked | Broader functional acceptance, system print-panel/manual acceptance, office export and Custom sync |
+ | Create/edit/save | Whole JSON, private lease, atomic write, fsync, expected-file check; portable Swift tests | APFS/F_FULLFSYNC, disk-full, native quit/crash injection |
+ | Delete/recycle bin/merge edits | Shared UI logic; destructive structural saves require recovery copy; contact deletion waits for token ACK | Full deletion/merge matrix on Mac; snapshots are not automatic recovery of unsaved edits |
+ | Local recovery | Exact disk bytes in private `Recovery-macOS-Beta/*.json`; read-back verification before destructive commit; restart tested in portable Swift | No indexed desktop journal, schedules, retention/pruning, selective/additive recovery, cryptographic plaintext snapshot index |
+-| Full JSON import/restore | Native selected-file capability; pinned bytes/path; duplicate-key/shape checks; canonical normalizer preflight; durable pre-restore copy; complete replacement | Native picker/crypto/commit integration on Mac; not `.magnolie` complete archive import |
++| Full JSON import/restore | Native selected-file capability; pinned bytes/path; duplicate-key/shape checks; canonical normalizer preflight; durable pre-restore copy; complete replacement. Core/epoch/WK handoff passed on both architectures at the historical `cbdc0876`/`067c3893` checkpoint (#454) | Current-source native rerun and actual picker/manual acceptance; not `.magnolie` complete archive import |
+ | JSON backup/export | Whole document including unknown fields and embedded attachments; always encrypted; separate password prompt for plain profile | Native prompt/save panel/crypto interoperability run; no external backups rekeyed |
+ | Encryption | Desktop v1 read/v2 read-write CryptoKit/CommonCrypto implementation and public test vectors | Apple crypto execution; password change/removal; keychain/rekey transactions |
+ | ICS export | Source-preserving appointments/tasks/anniversaries, recurrence and exception/raw properties, historical/future VTIMEZONE; real shared editor → Swift tests | Eight independent published-codec roundtrips pass on both architectures; native picker/manual acceptance remains open; unsupported fields fail the whole export |
+ | ICS/vCard/CSV import/export | Selected-file ICS import, canonical merge and source-header metadata; eight published-codec import/reexport cases pass on both architectures | Native picker/manual import acceptance; vCard/CSV and other formats remain unsupported |
+ | `.magnolie` multi-file complete archive | Unsupported explicitly | Full format/attachments/settings/restore transaction and shared fixtures |
+-| System printing / PDF | Isolated ephemeral WKWebView, JavaScript disabled, no bridge/network/local-file access; AppKit print dialog includes Save as PDF | Native PDF-engine test and manual OS print-panel acceptance pending; physical paper output is never inferred |
++| System printing / PDF | Isolated ephemeral WKWebView, JavaScript disabled, no bridge/network/local-file access; AppKit print dialog includes Save as PDF. Native AppKit PDF generation passed at the historical `cbdc0876`/`067c3893` checkpoint | Current-source rerun and manual OS print-panel acceptance; physical paper output is never inferred |
+ | Clipboard/attachments | Native text clipboard; Save for supported PDF/image data URLs | Native AppKit validation; automatic attachment opening |
+ | Regional settings | Current shared renderer bound to existing Beta handler (not the desktop MCP API); save-ACK before native commit; validated values; field mapping/save-failure/double-click host tests. Native time-zone management shows an explicit limitation; automatic native zone refresh is inactive and imported settings remain intact | Native locale/timezone behavior and all localized system dialogs; desktop revision-bound native MCP and automatic time-zone detection parity |
+ | Localization | Entire current shared gettext-generated UI catalogs; native catalog generated from those same messages; English fallback + 19 locale catalogs | Existing Beta capability prose, EventKit/notification notices and many diagnostic messages remain English; full native localization is **not** claimed |
+@@ -41,18 +48,18 @@ alone do not establish macOS behavior.
+ | Notifications | Open/unlocked/consented checker only; one-off early/due task calculations tested | P0 for reminder parity: durable scheduler, restart deduplication, recurrence, wake/closed-app delivery, denial/revocation |
+ | macOS calendar copies | #770: explicit native source/date picker, bounded one-way copies of supported single appointments, preview, stable source identity, re-read before commit, recovery and durable-save acknowledgement; actual projected JS checks with synthetic native transport | New Swift source and EventKit/AppKit execution unverified; series/alarms/participants and unrepresentable records are excluded; no automatic update/delete/write-back; see `SYSTEM-CALENDAR-IMPORT.md` |
+ | Apple Notes text copies | #772: direct NSAppleScript reader, explicit account/folder/note selection, full plaintext preview, exact source identity, source reread, canonical local note transaction and durable-save acknowledgement; no additional application | New Swift/AppKit/Notes-Dictionary/TCC execution unverified; protected notes and notes reporting attachments excluded; only reviewed text is copied, no source writes or synchronization; see `APPLE-NOTES-IMPORT.md` |
+-| macOS reminders | Async EventKit facade, explicit OS permission actions, native settings source selection; unavailable sources preserved | Complete task/component/hierarchy mapping, import/edit/sync coordinator and actual account/permission acceptance; sync remains disabled |
+-| System contacts | Contacts.framework discovery, bounded vCard reads and explicit OS access facade | Full UI import/sync integration and real account permission acceptance |
++| macOS reminders | #777: explicit EventKit list/item selection, public-field preview, source reread, independently editable local task copies, provenance and durable-save acknowledgement; existing source selections preserved | Current-source Swift/EventKit/AppKit/account/permission acceptance; complete component/hierarchy fidelity and synchronization remain separate |
++| System contacts | #775: Contacts.framework container/contact selection, reviewed local public-field copies, source reread, exact provenance, contact-only birthdays and durable-save acknowledgement | Current-source native execution/permission acceptance and further mapping fidelity; source writes and complete synchronization remain separate |
+ | DAV/CalDAV/CardDAV/Nextcloud/Graph | Native DAV configuration/discovery GUI, bounded HTTPS protocol (20 tests), Keychain storage, 19 account/boundary/transaction cases, 15 typed calendar-snapshot tests and sibling-preserving resource-patch tests pass on both architectures | Real server/account GUI acceptance and complete conflict/deletion/local-commit synchronization coordinator; Graph unsupported |
+ | Magnolienbaum/personal sync | Unsupported | Pairing, consent, durable queues/receipts, contact/custom/attachment interop |
+-| Phone/SMS/Bluetooth/KDE Connect/audio | Unsupported | Native transport/hardware/control contracts and actual-device validation |
++| Phone/SMS/Bluetooth/KDE Connect/audio | Existing KDE Connect clients remain an applicable external Mac/iPhone path. The current Organizer bridge does not implement the desktop phone/pairing/media commands; importing their shared UI does not activate them | Implement and validate concrete supported Mac-to-client capabilities; no separate Magnolie Notes app is required and no blanket KDE exclusion is intended |
+ | Background/tray/autostart/cloud backup | Unsupported | LaunchAgent/status item lifecycle, encrypted/locked policy, durable jobs |
+-| Printing/PDF/ODS/office letters | Unsupported native bridge | Print pagination, export fidelity and platform launch integration |
++| ODS / office letters | Native export/launch bridge unsupported; system printing/PDF is covered separately above | Office export fidelity and platform launch integration |
+ | Weather/holidays/maps/mail/external links | Native public/school holiday HTTPS service and canonical callback; atomic complete results and regional scopes | Live public-holiday HTTPS passed on both architectures; broader school/region/native UI acceptance pending; other listed services unsupported |
+-| Handbook | Canonical offline 2.0.30 manual bundled byte-for-byte; isolated local WebKit window, search, Help menu and shared handbook command; 17 host tests pass | Native manual/search/isolation tests running on both architectures at 8e3aa630; no manual-specific native result yet |
++| Handbook | Current canonical offline manual bundled byte-for-byte; isolated local WebKit window/search/Help. Native load/search/isolation passed in both architecture jobs at the historical `cbdc0876`/`067c3893` checkpoint | Current-source native rerun for later manual/UI changes; no claim that an old run validates new content |
+ | Update/contributor/protected-image rendering | Unsupported; no production trust roots installed | Separate Beta metadata/trust policy and native implementation |
+ | Compatibility | Deployment target 12.7 with actual Mach-O minimum verification implemented | Native build verification running; actual Monterey runtime and older-device acceptance pending |
+-| Shipping/signing/notarization/installer | User explicitly authorized publication after complete validation; no production artifact or release yet | Complete native feature/package acceptance, production signing/notarization and upgrade checks |
++| Shipping/signing/notarization/installer | Current request authorizes reviewable issue patches for later Codex review/application; it does not authorize a production release. No new package or native result is claimed by this patch | Current-source native feature/package acceptance, production signing/notarization and upgrade checks remain separate; obtain any required release authorization at that stage |
+ 
+ `BRIDGE-COVERAGE.md` lists each statically detected shared frontend/Windows-contract
+ command against the Swift allowlist. `erinnerung_einrichten`, for example, is only
+diff --git a/Magnolie-Organizer-macOS-Beta/README.md b/Magnolie-Organizer-macOS-Beta/README.md
+index b622d8e362bfc1c3395ae670435a5c56bad9e9bc..a1930af0dd113fbc5ffc96b79d685f495de94545 100644
+--- a/Magnolie-Organizer-macOS-Beta/README.md
++++ b/Magnolie-Organizer-macOS-Beta/README.md
+@@ -293,15 +293,26 @@ ad-hoc bundle signature using `codesign --force --sign -`, only in the newly
+ created output. Strict signature verification remains required. No production
+ certificate or notarization is used.
+ 
+-The authorized candidate workflow is
++The development candidate workflow is
+ [`ports-2.0.30.yml`](../.github/workflows/ports-2.0.30.yml). It runs manually or on
+-the dedicated `codex/ports-2.0.30` branch. It retains the reviewed port sources but
+-selects canonical desktop inputs from the exact published `v2.0.30` commit
+-`067c38934b539943d8e1720abafd8a80b401d797` in its disposable runner checkout.
+-Catalog generation precedes the build-local freeze. Host, Apple crypto and real
++the dedicated `codex/ports-2.0.30` branch. The Mac job now uses the complete
++selected checkout, including its current shared Organizer sources (#783).
++`candidate_sources.py` binds the exact workflow commit and tracked-source hashes
++before preparation and verifies them again before packaging. It rejects mixed
++old/new source trees. Catalog generation precedes the build-local freeze;
++generated inputs/output retain their separate reproducibility checks. The
++Tablet job and tagged reference fixtures retain their previous source policy.
++Host, Apple crypto and real
+ WKWebView tests must pass before the development app is packaged and uploaded.
+ The zip includes source provenance and SHA-256 checksums; Actions retains it for
+ 14 days. Its architecture follows the runner and is recorded in the build metadata.
++Historical Mac runs, including `42562106430` at port source `cbdc0876`, still used
++published desktop source `067c3893`; they are not current-shared-source native
++acceptance. See [CURRENT-SOURCE-CANDIDATE.md](CURRENT-SOURCE-CANDIDATE.md) for the
++catch-up scope and exact evidence boundary. A shared-source update does not add
++a Magnolie Notes companion app or enable unimplemented sync commands. Apple
++services and supported existing KDE Connect clients remain separate Mac
++integration paths requiring their own implemented adapters and acceptance.
+ 
+ This workflow has read-only repository permissions and creates development
+ artifacts, not a GitHub Release. A successful WKWebView test is not full production
+diff --git a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/CandidateCapabilityTests.swift b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/CandidateCapabilityTests.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..f169b866b2cac8acbe03a8dc43477cbe75a5b03b
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/CandidateCapabilityTests.swift
+@@ -0,0 +1,24 @@
++import XCTest
++@testable import BetaCore
++
++/// #783: shared UI updates do not implement new native transports or grants.
++/// These describe today's adapter; future intentional implementations update it.
++final class CandidateCapabilityTests: XCTestCase {
++    func testUnimplementedDesktopCommandsCannotBypassTheNativeBoundary() throws {
++        for command in ["sync", "notes_original_ready", "notes_original_save_cancel", "notes_setup_prepared",
++                        "telefon_ein", "telefon_pairing_bestaetigen", "telefon_kontakte", "telefon_medien_senden",
++                        "personal_sync_senden", "personal_sync_gemeinsam_initialisieren", "background_settings_set"] {
++            XCTAssertNil(Command(rawValue: command))
++            XCTAssertThrowsError(try Request(Document.encode(["cmd": command])))
++        }
++    }
++
++    func testOrdinarySaveCannotAcquireDesktopSyncAuthority() throws {
++        XCTAssertEqual(try Request(#"{"cmd":"speichern","id":1,"text":"{}","baumSyncLauf":null}"#).command, .speichern)
++        for field in ["notesOriginalLauf", "kontaktOriginalLauf"] {
++            XCTAssertThrowsError(try Request(Document.encode([
++                "cmd": "speichern", "id": 1, "text": "{}", field: "untrusted-token"])))
++        }
++        XCTAssertThrowsError(try Request(#"{"cmd":"speichern","id":1,"text":"{}","baumSyncLauf":{"run":"untrusted"}}"#))
++    }
++}
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/current_source_contract.mjs b/Magnolie-Organizer-macOS-Beta/tests/current_source_contract.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..eacd5f82e1dfee5aaf86b4c5eacb2061a21ec58b
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tests/current_source_contract.mjs
+@@ -0,0 +1,85 @@
++// Refs #783: current local UI fixes do not grant unimplemented native capabilities.
++import assert from "node:assert/strict";
++import fs from "node:fs";
++import { boot, tick } from "./ui_harness.mjs";
++
++const contract = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
++const allowed = new Set(contract.allowed);
++const clone = value => JSON.parse(JSON.stringify(value));
++let checks = 0;
++const equal = (actual, expected, label) => { assert.deepEqual(clone(actual), clone(expected), label); checks++; };
++const b = await boot(process.argv[2]);
++const { w, t, messages } = b;
++try {
++  w.MacBeta.receive("init", { daten: {}, neu: false, regional: { language: "en", timeZone: "UTC" } });
++  // Reuse the actual shared #720 search probe, including local-zone date edges.
++  const probe = fs.readFileSync(new URL("../../magnolie-organizer/pruefungen/notes-date-search-probe.js", import.meta.url), "utf8");
++  const searched = JSON.parse(w.eval(probe + "\nJSON.stringify(notesDateSearchProbe());"));
++  equal(searched.checks, 30, "Current shared date-search assertions run in the generated Mac UI");
++  equal(searched.errors, [], "Current note-search behavior survives Mac projection");
++
++  // #744: the new shared keyboard handler must also be present and active.
++  w.MacBeta.receive("init", { daten: {}, neu: false, regional: { language: "en", timeZone: "UTC" } });
++  t.oeffneBuch();
++  await t.wechsel("aufgaben");
++  Object.assign(t.zustand().kalender, { ansicht: "month", jahr: 2026, monat: 11, tag: "2026-12-31" });
++  await t.wechsel("kalender");
++  const key = (target, options = {}) => {
++    const event = new w.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true, ...options });
++    target.dispatchEvent(event); return event.defaultPrevented;
++  };
++  equal(key(w.document.body), true, "Current calendar spread navigation handles the arrow");
++  equal([t.zustand().kalender.jahr, t.zustand().kalender.monat], [2027, 0], "Calendar advances across the year");
++  const input = w.document.createElement("input"); input.value = "Local text"; w.document.body.append(input);
++  equal(key(input), false, "An editable field keeps its arrow key"); input.remove();
++  equal(key(w.document.body, { metaKey: true }), false, "Command shortcuts are not consumed by spread navigation");
++
++  // These are stored provenance-shaped values, not native permissions. Existing
++  // import suites separately execute each actual reviewed-copy transaction.
++  const data = t.leereDaten();
++  const provenance = { version: 1, sourceUID: "synthetic-source", identifier: "synthetic-record", permission: "full", readOnly: false };
++  data.notizen = [{ id: "note-copy", titel: "Local note", text: "Keep", nativeAppleNotesImport: clone(provenance) }];
++  data.kontakte = [{ id: "contact-copy", vorname: "Local", nativeContactImport: clone(provenance) }];
++  data.aufgaben = [{ id: "task-copy", uid: "task-copy-uid", titel: "Local task", nativeReminderImport: clone(provenance) }];
++  data.termine = [{ id: "event-copy", uid: "event-copy-uid", titel: "Local event", datum: "2026-12-01", nativeCalendarImport: clone(provenance) }];
++  data.einstellungen.sync.automatisch = true;
++  w.MacBeta.receive("init", { daten: data, neu: false, regional: { language: "en", timeZone: "UTC" } });
++  await tick();
++  for (const key of ["notizen", "kontakte", "aufgaben", "termine"])
++    equal(t.daten()[key][0].sync === true, false, key + ": provenance does not enable source synchronization");
++  const before = JSON.stringify(t.daten()), sent = messages.length;
++  t.starteSync(false); t.starteSync(true);
++  equal(messages.length, sent, "Current shared sync entry point retains the Mac limitation");
++  for (const cmd of contract.unavailable) {
++    if (cmd === "sync") continue;
++    assert.ok(!allowed.has(cmd));
++    w.MacBeta.send({ cmd }, "hostTest");
++  }
++  await tick();
++  equal(messages.length, sent, "Unimplemented desktop commands never reach the native Mac handler");
++  equal(JSON.stringify(t.daten()), before, "Negative capability replies preserve the whole local document");
++  // A directly rejected legacy sync request intentionally records diagnostics.
++  // This existing local error record is neither a sync ACK nor native authority.
++  assert.ok(contract.unavailable.includes("sync"));
++  w.MacBeta.send({ cmd: "sync" }, "hostTest"); await tick();
++  const afterSync = clone(t.daten()), beforeSync = JSON.parse(before);
++  equal(afterSync.syncStatus.letzterFehler.includes("Not implemented"), true, "Rejected sync records an explicit limitation");
++  equal(afterSync.syncStatus.letzterVersuch > 0, true, "Rejected sync records the local attempt time");
++  delete afterSync.syncStatus; delete beforeSync.syncStatus;
++  equal(afterSync, beforeSync, "Sync diagnostics grant no other data or permissions");
++  equal(messages.length, sent, "Rejected sync never reaches the native handler");
++  for (const method of ["notesOriginalSpeichern", "notesSetupVorbereiten", "telefonStand", "originalKontaktFreigabe"]) {
++    assert.throws(() => w.MacBeta.receive(method, {}), /Invalid native callback/); checks++;
++  }
++  // Explicit local copy requests remain supported. Availability of an external
++  // KDE Connect client is independent of this current Organizer adapter list.
++  for (const cmd of ["notiz_dateien_importieren", "macos_kalender_importieren", "macos_apple_notizen_importieren",
++                     "macos_kontakte_importieren", "macos_erinnerungen_importieren"]) {
++    assert.ok(allowed.has(cmd)); w.MacBeta.send({ cmd }, "hostTest");
++    equal(messages.at(-1), { cmd }, "Existing Mac local-copy request remains available");
++  }
++  equal(messages.every(message => allowed.has(message.cmd)), true, "All observed native traffic uses the actual Swift allowlist");
++  console.log(JSON.stringify({ issue: 783, assertions: checks, sharedDateSearchAssertions: searched.checks,
++    unavailableDesktopCommands: contract.unavailable.length, currentSharedUI: true,
++    syntheticNativeTransport: true, nativeExecution: false }));
++} finally { b.close(); }
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py b/Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2996b13497fb0a6e1c21b5d6163262b7aa17d9fd
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py
+@@ -0,0 +1,122 @@
++#!/usr/bin/env python3
++"""Refs #783: actual Git selection and mixed-tree rejection, without a native build."""
++import importlib.util
++import json
++from pathlib import Path
++import subprocess
++import tempfile
++import unittest
++
++
++BETA = Path(__file__).resolve().parents[1]
++spec = importlib.util.spec_from_file_location("candidate_sources", BETA / "tools/candidate_sources.py")
++source = importlib.util.module_from_spec(spec)
++spec.loader.exec_module(source)
++
++
++class CandidateSourceTests(unittest.TestCase):
++    def setUp(self):
++        self.temporary = tempfile.TemporaryDirectory(prefix="macOS-candidate-source-")
++        self.addCleanup(self.temporary.cleanup)
++        self.repo = Path(self.temporary.name)
++        self.git("init", "-q")
++        self.git("config", "user.name", "Synthetic source test")
++        self.git("config", "user.email", "source-test@example.invalid")
++        for name in source.SOURCE_PATHS:
++            file = self.repo / name
++            if not file.suffix:
++                file /= "source.txt"
++            file.parent.mkdir(parents=True, exist_ok=True)
++            file.write_text("published source\n")
++        (self.repo / "LICENSING.md").write_text("synthetic license\n")
++        (self.repo / ".gitignore").write_text("Generated/\nSourceFreeze.json\n")
++        self.app = self.repo / "magnolie-organizer/web/anwendung.js"
++        self.app.parent.mkdir(parents=True)
++        self.app.write_text('const FASSUNG = "2.0.30";\n// Published behavior\n')
++        self.published = self.commit("Published synthetic desktop")
++        self.app.write_text('const FASSUNG = "2.0.30";\n// Current fixed behavior\n')
++        self.current = self.commit("Current source with the same visible version")
++
++    def git(self, *args):
++        return subprocess.check_output(["git", *args], cwd=self.repo).decode().strip()
++
++    def commit(self, message):
++        self.git("add", ".")
++        self.git("commit", "-qm", message)
++        return self.git("rev-parse", "HEAD")
++
++    def test_same_version_proof_binds_current_commit_and_actual_bytes(self):
++        proof = source.capture(self.repo, self.current)
++        self.assertEqual(proof["desktopCommit"], self.current)
++        self.assertEqual(proof["portCommit"], self.current)
++        self.assertEqual(proof["sourcePolicy"], "current-checkout")
++        self.assertFalse(proof["nativeAcceptance"])
++        entry = proof["sourceFiles"]["magnolie-organizer/web/anwendung.js"]
++        self.assertEqual(entry["gitBlob"], self.git("rev-parse", "HEAD:magnolie-organizer/web/anwendung.js"))
++        self.assertEqual(entry["sha256"], source.hashlib.sha256(self.app.read_bytes()).hexdigest())
++        source.verify(self.repo, self.current, json.loads(json.dumps(proof)))
++
++    def test_old_recipe_restore_into_current_checkout_is_rejected(self):
++        self.git("restore", "--source=" + self.published, "--", "magnolie-organizer")
++        with self.assertRaisesRegex(ValueError, "mixed source build"):
++            source.capture(self.repo, self.current)
++        self.assertIn("Published behavior", self.app.read_text(), "Checking must not repair or replace inputs")
++
++    def test_actual_old_checkout_and_staged_or_untracked_overlays_are_rejected(self):
++        with self.assertRaisesRegex(ValueError, "selected candidate commit"):
++            source.capture(self.repo, self.published)
++        self.app.write_text("altered source\n")
++        self.git("add", "magnolie-organizer/web/anwendung.js")
++        with self.assertRaisesRegex(ValueError, "mixed source build"):
++            source.capture(self.repo, self.current)
++        self.git("restore", "--source=HEAD", "--staged", "--worktree", "--", "magnolie-organizer")
++        (self.app.parent / "unreviewed.js").write_text("new input\n")
++        with self.assertRaisesRegex(ValueError, "mixed source build"):
++            source.capture(self.repo, self.current)
++
++    def test_later_source_or_proof_change_fails_final_verification(self):
++        proof = source.capture(self.repo, self.current)
++        changed = json.loads(json.dumps(proof))
++        changed["sourceFiles"]["magnolie-organizer/web/anwendung.js"]["sha256"] = "0" * 64
++        with self.assertRaisesRegex(ValueError, "proof no longer matches"):
++            source.verify(self.repo, self.current, changed)
++        self.app.write_text("later source edit\n")
++        with self.assertRaisesRegex(ValueError, "mixed source build"):
++            source.verify(self.repo, self.current, proof)
++
++    def test_hidden_dirty_index_flags_cannot_attest_old_bytes_as_current(self):
++        original = self.app.read_bytes()
++        relative = "magnolie-organizer/web/anwendung.js"
++        for flag in ["assume-unchanged", "skip-worktree"]:
++            with self.subTest(flag=flag):
++                self.git("update-index", "--" + flag, relative)
++                self.app.write_text("hidden older or altered source\n")
++                self.assertEqual(self.git("status", "--porcelain", "--", relative), "")
++                with self.assertRaisesRegex(ValueError, "committed Git blob"):
++                    source.capture(self.repo, self.current)
++                self.app.write_bytes(original)
++                self.git("update-index", "--no-" + flag, relative)
++
++    def test_ignored_generated_payload_is_separate_from_git_source_proof(self):
++        proof = source.capture(self.repo, self.current)
++        generated = self.repo / "Magnolie-Organizer-macOS-Beta/Generated"
++        generated.mkdir()
++        (generated / "anwendung.js").write_text("This is checked by project_ui.verify, not the source proof.\n")
++        source.verify(self.repo, self.current, proof)
++        self.assertNotIn("Magnolie-Organizer-macOS-Beta/Generated/anwendung.js", proof["sourceFiles"])
++
++    def test_workflow_selects_current_mac_checkout_and_keeps_tablet_reference(self):
++        workflow = (BETA.parent / ".github/workflows/ports-2.0.30.yml").read_text()
++        mac, tablet = workflow.split("\n  macos:\n", 1)[1].split("\n  tablet:\n", 1)
++        self.assertNotIn("git restore", mac)
++        self.assertIn('candidate_sources.py record --expected-commit "$GITHUB_SHA"', mac)
++        self.assertIn('candidate_sources.py verify --expected-commit "$GITHUB_SHA"', mac)
++        self.assertIn("tests/test_candidate_sources.py", mac)
++        self.assertLess(mac.index("candidate_sources.py record"), mac.index("project_ui.py freeze"))
++        self.assertLess(mac.index("candidate_sources.py verify"), mac.index("ditto -c -k"))
++        self.assertIn('git restore --source="$DESKTOP_COMMIT"', tablet)
++        self.assertIn("DESKTOP_COMMIT: " + source.REFERENCE_DESKTOP_COMMIT, workflow)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/candidate_sources.py b/Magnolie-Organizer-macOS-Beta/tools/candidate_sources.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..d1dda2d068291efd0d63db194df1a401b9e25333
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tools/candidate_sources.py
+@@ -0,0 +1,104 @@
++#!/usr/bin/env python3
++"""Refs #783: bind a Mac candidate to its unchanged, selected Git checkout."""
++import argparse
++import hashlib
++import json
++from pathlib import Path
++import subprocess
++import sys
++
++
++REPO = Path(__file__).resolve().parents[2]
++SOURCE_PATHS = (
++    "magnolie-organizer", "magnolie-organizer-windows", "magnolie-handbuch",
++    "magnolie-notes", "contracts", "port-adapters", "Magnolie-Organizer-macOS-Beta",
++    ".github/workflows/ports-2.0.30.yml", "PROTECTED-ASSETS-LICENSE.txt",
++)
++REFERENCE_DESKTOP_COMMIT = "067c38934b539943d8e1720abafd8a80b401d797"
++
++
++def git(repo, *arguments):
++    return subprocess.check_output(["git", "--no-optional-locks", *arguments], cwd=repo)
++
++
++def capture(repo, expected_commit):
++    """Read only; never restore a tag, generate assets, or bless a mixed tree."""
++    head = git(repo, "rev-parse", "HEAD").decode().strip()
++    if head != expected_commit:
++        raise ValueError("The checked-out commit differs from the selected candidate commit.")
++    object_format = git(repo, "rev-parse", "--show-object-format").decode().strip()
++    if object_format not in {"sha1", "sha256"}:
++        raise ValueError("Unsupported Git object format.")
++    paths = list(SOURCE_PATHS)
++    notice = "LICENSE.md" if (repo / "LICENSE.md").is_file() else "LICENSING.md"
++    paths.append(notice)
++    for name in paths:
++        if not (repo / name).exists():
++            raise ValueError("A required candidate source path is missing: " + name)
++    # Inspect tracked and non-ignored untracked inputs. Generated catalogs and
++    # build output have their own exact SourceFreeze/ProjectionManifest checks.
++    if git(repo, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", *paths):
++        raise ValueError("Candidate sources differ from the selected checkout; refusing a mixed source build.")
++    files = {}
++    for entry in git(repo, "ls-tree", "-r", "-z", "HEAD", "--", *paths).split(b"\0"):
++        if not entry:
++            continue
++        metadata, name = entry.split(b"\t", 1)
++        mode, kind, blob = metadata.decode().split()
++        if kind != "blob" or mode not in {"100644", "100755"}:
++            raise ValueError("Non-file candidate source refused.")
++        relative = name.decode("utf-8")
++        file = repo / relative
++        if file.is_symlink() or not file.is_file():
++            raise ValueError("Changed candidate source type refused.")
++        data = file.read_bytes()
++        # Git status can intentionally ignore assume-unchanged/skip-worktree
++        # entries. Bind actual bytes directly to the committed object instead.
++        actual_blob = hashlib.new(object_format, b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
++        if actual_blob != blob or bool(file.stat().st_mode & 0o111) != (mode == "100755"):
++            raise ValueError("Candidate source bytes or mode differ from their committed Git blob.")
++        files[relative] = {"gitBlob": blob, "gitMode": mode, "sha256": hashlib.sha256(data).hexdigest()}
++    if not files:
++        raise ValueError("Candidate source inventory is empty.")
++    # Detect an edit or checkout change during the inventory as well.
++    if (git(repo, "rev-parse", "HEAD").decode().strip() != head or
++            git(repo, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", *paths)):
++        raise ValueError("Candidate sources changed while their inventory was recorded.")
++    return {
++        "format": 2, "sourcePolicy": "current-checkout", "gitObjectFormat": object_format,
++        "portCommit": head, "desktopCommit": head,
++        "referenceDesktopTag": "v2.0.30", "referenceDesktopCommit": REFERENCE_DESKTOP_COMMIT,
++        "sourceFiles": files,
++        "nativeAcceptance": False, "productionRelease": False,
++    }
++
++
++def verify(repo, expected_commit, proof):
++    if proof != capture(repo, expected_commit):
++        raise ValueError("Candidate source proof no longer matches the selected checkout.")
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("action", choices=["record", "verify"])
++    parser.add_argument("--expected-commit", required=True)
++    parser.add_argument("--proof", required=True, type=Path)
++    args = parser.parse_args()
++    if args.action == "record":
++        proof = capture(REPO, args.expected_commit)
++        # The workflow puts this in its private runner output, outside sources.
++        with args.proof.open("x", encoding="utf-8") as output:
++            output.write(json.dumps(proof, indent=2, sort_keys=True) + "\n")
++    else:
++        proof = json.loads(args.proof.read_text())
++        verify(REPO, args.expected_commit, proof)
++    print("Current-checkout Mac source proof: " + args.expected_commit +
++          "; " + str(len(proof["sourceFiles"])) + " tracked files; no native acceptance claim.")
++
++
++if __name__ == "__main__":
++    try:
++        main()
++    except (OSError, ValueError, subprocess.CalledProcessError) as error:
++        print("macOS candidate source check blocked: " + str(error), file=sys.stderr)
++        sys.exit(1)
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/check_current_sources.py b/Magnolie-Organizer-macOS-Beta/tools/check_current_sources.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..908110049d67e9bdb58a9164f76793982578b0d9
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tools/check_current_sources.py
+@@ -0,0 +1,39 @@
++#!/usr/bin/env python3
++"""Refs #783: current shared UI fixes with the existing Mac capability boundary."""
++import argparse
++import json
++import re
++from pathlib import Path
++import subprocess
++import tempfile
++
++from project_ui import BETA, commands, digest, inputs, inventory, project
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--js-runtime", required=True)
++    args = parser.parse_args()
++    snapshot = inputs()
++    app = snapshot["magnolie-organizer/web/anwendung.js"].decode()
++    windows = snapshot["magnolie-organizer-windows/BridgeDispatcherContract.cs"].decode()
++    desktop = set(re.findall(r'\bcmd\s*:\s*["\']([a-z][a-z0-9_]+)["\']', app))
++    desktop.update(re.findall(r'\["([a-z][a-z0-9_]+)"\]\s*=\s*S\(', windows))
++    native = set(commands(snapshot))
++    with tempfile.TemporaryDirectory(prefix="macOS-current-source-") as temporary:
++        root = Path(temporary)
++        project(snapshot, root / "UI")
++        contract = root / "contract.json"
++        contract.write_text(json.dumps({"allowed": sorted(native), "unavailable": sorted(desktop - native)}))
++        runtime = [args.js_runtime]
++        if Path(args.js_runtime).name == "deno":
++            runtime += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
++        subprocess.run(runtime + [str(BETA / "tests/current_source_contract.mjs"), str(root / "UI"), str(contract)],
++                       cwd=BETA, check=True, timeout=120)
++    if inventory(inputs()) != inventory(snapshot):
++        raise RuntimeError("Source inputs changed during the current-source check.")
++    print("Current canonical frontend SHA-256: " + digest(app.encode()) + "; native execution not performed.")
++
++
++if __name__ == "__main__":
++    main()
+-- 
+2.56.1
+

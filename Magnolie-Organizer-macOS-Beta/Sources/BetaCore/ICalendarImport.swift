@@ -37,6 +37,13 @@ public enum ICalendarImport {
             ["termine": appointments, "aufgaben": tasks, "jahrestage": anniversaries,
              "icsImportMetadata": ["version": 1, "calendarProperties": calendarProperties, "sourceSHA256": sourceSHA256]]
         }
+        /// Native callback envelope only. The alias evidence must never be
+        /// persisted as book data or folded into the source metadata.
+        public var response: [String: Any] {
+            var value = document
+            if let legacyAndroidAliases { value["legacyAndroidAliases"] = legacyAndroidAliases.payload }
+            return value
+        }
     }
     static func validateProjection(_ document: [String: Any], aliases: LegacyAndroidAliases?, maximum: Int = maximumProjectedBytes) throws {
         let documentSize = try JSONSerialization.data(withJSONObject: document).count

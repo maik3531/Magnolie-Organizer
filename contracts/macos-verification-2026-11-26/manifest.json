@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "date": "2026-11-26",
+  "environment": "Linux x86_64",
+  "nativeMacValidated": false,
+  "files": [
+    {
+      "file": "host-initial.log",
+      "sha256": "489b3c8cfc8631ab40b296f2bdb11059221c52c8cc713ed41a09870db932bccf",
+      "bytes": 11357,
+      "sourceCommit": "1a24abefcfdc58689fb5291cb5c4c60c1af189d5",
+      "command": "python3 tests/test_host.py",
+      "result": "35 Gruppen; 2 Testtreiberfehler, unten korrigiert",
+      "nativeMacExecuted": false
+    },
+    {
+      "file": "host-final.log",
+      "sha256": "89d8a4fd7dc53f5d2a77fd753006a366fe429b27a5ddb61260fcb0f7f42fbd00",
+      "bytes": 7598,
+      "sourceCommit": "7c9cf20394aef73d261a77f746ebca7340826d30",
+      "command": "python3 tests/test_host.py",
+      "result": "35/35 bestanden, 118.272s",
+      "nativeMacExecuted": false
+    },
+    {
+      "file": "file-import-ui.log",
+      "sha256": "e75c9a910f926c60bb52036e97568585098805698f02dc541d80277086523a60",
+      "bytes": 508,
+      "sourceCommit": "1a24abefcfdc58689fb5291cb5c4c60c1af189d5",
+      "command": "python3 tools/check_file_import.py --js-runtime node",
+      "result": "90 bestanden; tatsächlicher Helper/UI, synthetische native Persistenz",
+      "nativeMacExecuted": false
+    },
+    {
+      "file": "current-source-ui.log",
+      "sha256": "a80d0b5f93c7bc1fc7b575df5d150712d710ba5eedc47127e1deab15f35444e5",
+      "bytes": 308,
+      "sourceCommit": "7c9cf20394aef73d261a77f746ebca7340826d30",
+      "command": "python3 tools/check_current_sources.py --js-runtime node",
+      "result": "27 Assertions + 30 originale Suchtests, 181 Grenzen bestanden",
+      "nativeMacExecuted": false
+    },
+    {
+      "file": "parser.log",
+      "sha256": "93bd8bf8786d8daa4ab31b7de37bccf7cb7772e08ae6b5d3c6ce9b861731100f",
+      "bytes": 2216,
+      "sourceCommit": "c903f436fe7853d5f92b7d40b64ed9121bd5d6fa",
+      "command": "python3 tests/test_import_helper.py",
+      "result": "14/14 bestanden, 26.694s",
+      "nativeMacExecuted": false
+    },
+    {
+      "file": "runtime.log",
+      "sha256": "b5985bb5d4095da848c1e4e38b9358c2d452a471f0f3fb2fd143db7544944125",
+      "bytes": 105,
+      "sourceCommit": "136922870a3a3ee2caf6d6be431b00a67ff9fcce",
+      "command": "python3 tests/test_import_python_bundle.py",
+      "result": "7/7 bestanden, 0.021s",
+      "nativeMacExecuted": false
+    },
+    {
+      "file": "source-selection.log",
+      "sha256": "089dba8c395566bf8332bdec39ea9aab0c096acdb71045cd4f1f67d7c819743f",
+      "bytes": 105,
+      "sourceCommit": "1a24abefcfdc58689fb5291cb5c4c60c1af189d5",
+      "command": "python3 tests/test_candidate_sources.py",
+      "result": "7/7 bestanden, 0.263s",
+      "nativeMacExecuted": false
+    },
+    {
+      "file": "runtime-configure.json",
+      "sha256": "1466a4331a54a08e98b5494d36ccfa0b830cb4adc5caa4f04d4ce8e99cf81b8b",
+      "bytes": 4840,
+      "sourceCommit": "6341a2f1fa188a15ba63fd43bacf4dccfc148dfc",
+      "command": "Pinned CPython configure and Modules/makesetup; full commands in JSON",
+      "result": "Linux configure evidence, no native Mac build",
+      "nativeMacExecuted": false
+    }
+  ]
+}

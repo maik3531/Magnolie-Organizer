@@ -1,0 +1,1137 @@
+{
+  "schema": 1,
+  "provenance": {
+    "sourceCapture": {
+      "captureFilename": "run97-evidence.json",
+      "bytes": 49055,
+      "sha256": "c2fced1ef91e90e73b539dfae90478842870d7b99a2330238c3fd162b357ebab"
+    },
+    "transformation": "All result fields, public URLs and scope statements are preserved from the final source capture. Local capture paths are replaced by captureFilename identifiers formed by joining the original capture-relative path components with two hyphens. Existing capture-relative audit references are unchanged and identify the same path components. Referenced raw files are not embedded in this report.",
+    "validationScope": "JSON structure, exact preservation of the original fields after capture-path normalization, unique capture identifiers, unchanged source bytes and absence of local scratch paths or tokenized download URLs. No new tests, product changes, downloads, artifact reanalysis or native execution."
+  },
+  "kind": "sanitized-native-macos-verification-evidence",
+  "repository": "maik3531/Magnolie-Organizer",
+  "sourceSHA": "215d89029df02df2dce78f35412785ec9f9b36d8",
+  "branch": "work/macos-issue-fixes-20261126",
+  "run": {
+    "id": 45807249788,
+    "run_number": 97,
+    "run_attempt": 1,
+    "head_sha": "215d89029df02df2dce78f35412785ec9f9b36d8",
+    "head_branch": "work/macos-issue-fixes-20261126",
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-11-26T11:04:49Z",
+    "run_started_at": "2026-11-26T11:04:49Z",
+    "updated_at": "2026-11-26T11:34:46Z",
+    "html_url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788"
+  },
+  "issue": 802,
+  "overallNativePipelinePassed": true,
+  "nativeAcceptance": false,
+  "productionRelease": false,
+  "evidencePolicy": "Metadata, counts, hashes and bounded review observations only; no raw test payloads, console output or inherited environment values are copied into this summary.",
+  "testCounting": "Four intentional XCTest contexts per architecture each list501 tests with the recorded skips. Counts are not added across repeated contexts or architectures to claim more unique tests.",
+  "boundaries": [
+    "Actual GitHub macOS15 ARM64 and Intel execution;12.7 deployment metadata is not execution on Monterey.",
+    "The real app smoke covers fresh initialization, visible PID-bound windows, normal save/quit, atomic save after reopening and preserved profile data.",
+    "The90 OR6-to-projected-UI checks use synthetic transport and do not establish real native file-import persistence.",
+    "No full editor/import/UI/TCC/account/device/accessibility acceptance is claimed.",
+    "Ad-hoc debug development candidates; no notarization, production release, main merge or issue closure.",
+    "The byte audits inspect packaged headers, embedded signature structures, nested-code references and resource hashes on Linux; native codesign validity comes from the actual Mac CI gates."
+  ],
+  "architectures": [
+    {
+      "architecture": "arm64",
+      "jobId": 139865644275,
+      "jobURL": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788/job/139865644275",
+      "status": "completed",
+      "conclusion": "success",
+      "nativeStages": [
+        {
+          "number": 5,
+          "name": "Bind the Mac candidate to the current selected checkout",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Prepare private dependencies and canonical catalogs",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Verify the standalone Swift time-zone engine against independent references",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Build the private source-pinned import runtime",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Freeze this isolated build's current source and run host and Apple tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 10,
+          "name": "Start, save, quit and reopen the real app bundle",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 11,
+          "name": "Package the ad-hoc development app with its evidence",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 12,
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 13,
+          "name": "Preserve native failure diagnostics",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ],
+      "testsAndLog": {
+        "architecture": "arm64",
+        "log": {
+          "captureFilename": "mac-native-run-45807249788-arm64.log",
+          "bytes": 5882016,
+          "sha256": "b7f63e6e40766f26e8b1706d561c17918814d4270caccb97a900050250ed0d8b"
+        },
+        "pythonTests": {
+          "runtimeBuilder": {
+            "tests": 21,
+            "seconds": 0.569,
+            "failures": 0,
+            "skipped": 0
+          },
+          "importHelperAndProjectionPaths": {
+            "tests": 17,
+            "seconds": 86.037,
+            "failures": 0,
+            "skipped": 0
+          },
+          "host": {
+            "tests": 35,
+            "seconds": 602.843,
+            "failures": 0,
+            "skipped": 1,
+            "skipReason": "test_no_linux_native_build_claim: Negative Linux-only build gate"
+          }
+        },
+        "xctestExecutions": [
+          {
+            "context": "calendar wrapper",
+            "tests": 501,
+            "skipped": 4,
+            "failures": 0,
+            "testSeconds": 60.842,
+            "suiteSeconds": 60.877,
+            "logLine": 2239,
+            "skippedCases": [
+              "CoreTests testCurrentEditorAppointments",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "HolidayServiceTests testLivePublicHolidayServiceWhenRequested",
+              "NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            ]
+          },
+          {
+            "context": "editor UTC",
+            "tests": 501,
+            "skipped": 5,
+            "failures": 0,
+            "testSeconds": 70.967,
+            "suiteSeconds": 71.021,
+            "logLine": 16278,
+            "skippedCases": [
+              "CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "HolidayServiceTests testLivePublicHolidayServiceWhenRequested",
+              "ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles",
+              "ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            ]
+          },
+          {
+            "context": "editor Europe/Berlin",
+            "tests": 501,
+            "skipped": 5,
+            "failures": 0,
+            "testSeconds": 67.421,
+            "suiteSeconds": 67.468,
+            "logLine": 30274,
+            "skippedCases": [
+              "CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "HolidayServiceTests testLivePublicHolidayServiceWhenRequested",
+              "ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles",
+              "ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            ]
+          },
+          {
+            "context": "build_dev",
+            "tests": 501,
+            "skipped": 6,
+            "failures": 0,
+            "testSeconds": 53.758,
+            "suiteSeconds": 53.797,
+            "logLine": 44307,
+            "skippedCases": [
+              "CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs",
+              "CoreTests testCurrentEditorAppointments",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles",
+              "ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts",
+              "NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            ]
+          }
+        ],
+        "namedRegressionPassedExecutions": {
+          "testProtectedBodiesAreAContractErrorAndNeverBecomeAProposal": 4,
+          "testUTF8FoldingPreservesTheExactLogicalLine": 4,
+          "testFoldingBoundariesCountOctetsAndPreserveCombiningScalars": 4,
+          "testTextMustSurviveRealEditorWhitespaceAndLineEndingRules": 4,
+          "testLeadingBOMTitleRemainsExcludedAndRevisionBound": 4,
+          "testCallerOwnedMutableTextAndArraysCannotRewriteAnExistingPlan": 4
+        },
+        "wrappers": {
+          "canonicalCalendar": "passed",
+          "publishedCommunication": "passed"
+        },
+        "OR6ToUI": {
+          "checks": 90,
+          "passed": true,
+          "nativePersistenceClaim": false
+        },
+        "aggregation": "The four XCTest executions are separate contexts of one suite, not additive counts of unique tests."
+      },
+      "sourceBinding": {
+        "manifest": {
+          "captureFilename": "run97-arm64--sources.json",
+          "bytes": 979798,
+          "sha256": "6cbb85bcdc2ab56739c605ca9c470404a890e77af9046a7ecbecf46a59f717fc"
+        },
+        "portCommit": "215d89029df02df2dce78f35412785ec9f9b36d8",
+        "desktopCommit": "215d89029df02df2dce78f35412785ec9f9b36d8",
+        "sourcePolicy": "current-checkout",
+        "sourceFiles": 3910,
+        "sameSourceManifestAsARM": true,
+        "audit": {
+          "filesVerified": 3910,
+          "gitBlobBytesRead": 126351181,
+          "uniqueGitBlobsRead": 3806,
+          "worktreeBytesUsed": false
+        }
+      },
+      "environmentSnapshot": {
+        "file": {
+          "captureFilename": "run97-arm64--environment-arm64.json",
+          "bytes": 2376,
+          "sha256": "e85c323f6b90631683130942a9b444e1dfcdbdf826289489475156903dd6bb2b"
+        },
+        "observedAtUTC": "2026-11-26T11:05:22.392683+00:00",
+        "system": "Darwin",
+        "architecture": "arm64",
+        "nativeMagnolieTestsExecuted": false,
+        "meaning": "Early prerequisites snapshot before test execution; the false execution field remains unchanged and is separate from the later native logs and smoke proof.",
+        "apple": {
+          "productVersion": "15.8.2",
+          "productBuild": "24H232",
+          "sdkVersion": "15.5",
+          "swiftVersion": "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)\nTarget: arm64-apple-macosx15.0",
+          "nativeBuildPrerequisitesObserved": true
+        }
+      },
+      "runtime": {
+        "manifest": {
+          "captureFilename": "run97-arm64--import-python-arm64.json",
+          "bytes": 103029,
+          "sha256": "05fef3361e8993d70967902b5e1aab82a78cc30aa1bc3d9e5dbb5bd76b978416"
+        },
+        "schema": 2,
+        "version": "3.15.2",
+        "architecture": "arm64",
+        "minimumSystemVersion": "12.7",
+        "layout": {
+          "sdkBundleDirectory": "ImportPython.app",
+          "bundleIdentifier": "io.gitlab.maik3531.MagnolieOrganizer.ImportPython",
+          "executable": "Contents/MacOS/python3.15",
+          "standardLibraryDirectory": "Contents/Resources/lib/python3.15",
+          "extensionDirectory": "Contents/PlugIns",
+          "bundleDirectory": "Helpers/ImportPython.app",
+          "bundleManifest": "Resources/ImportPython/runtime.json"
+        },
+        "launcher": {
+          "source": "tools/import_python_main.c",
+          "sourceSHA256": "4c9591d11ac184208ad6b5cb5cc087a9e076c4784745ac82f38256145bf02d3e"
+        },
+        "relocation": {
+          "bundleLayout": true,
+          "executableBound": true,
+          "isolated": true,
+          "moduleClosure": true,
+          "version": "3.15.2"
+        },
+        "files": 706,
+        "machOImages": 52,
+        "helperSealSHA256": "f963dc2f1e5371cd793032c2ade3a4190382a365cdce814546f6d67766d5c33d",
+        "staticDependencies": {
+          "liblzma": {
+            "librarySHA256": "8f205ebd2e908b24b4297972db807b5bca7692f76eef36534cc26c348080fd9e",
+            "linkage": "static",
+            "sourceSHA256": "4ce24038fd4221e0d13bc1a2de7a4db56e90b92b3bf75321f6c14be73f65de4b",
+            "version": "5.8.4"
+          }
+        },
+        "signing": "ad-hoc development only",
+        "nativeUIValidated": false
+      },
+      "packagedBuild": {
+        "file": {
+          "captureFilename": "run97-arm64--packaged-build.json",
+          "bytes": 71863,
+          "sha256": "5c96a9d07279238f81da7e3aa6fc0c9711783e9824913ae5d0a8f13f8b8914f6"
+        },
+        "metadata": {
+          "name": "Magnolie Organizer macOS Beta",
+          "version": "2.0.30-beta.1",
+          "configuration": "debug",
+          "architecture": "arm64",
+          "swiftTestsPassed": true,
+          "minimumSystemVersion": "12.7",
+          "machOMinimumVerified": true,
+          "montereyRuntimeValidated": false,
+          "nativeUIValidated": false,
+          "productionRelease": false,
+          "importRuntimeVersion": "3.15.2",
+          "importRuntimeSourceSHA256": "8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de",
+          "importRuntimeRelocationVerified": true,
+          "importNativeUIValidated": false,
+          "airplayBundled": false,
+          "airplayDependencyClosureVerified": false,
+          "airplayNativeDeviceValidated": false,
+          "signing": "ad-hoc development only, not notarized"
+        },
+        "sourceInputs": 554,
+        "meaning": "Build metadata precedes the separate real app smoke; its broader nativeUI/Monterey/production flags remain unchanged."
+      },
+      "packagedArchitecture": {
+        "main": {
+          "cpuSubtype": 0,
+          "cpuType": 16777228,
+          "dependencies": [
+            "/usr/lib/libSystem.B.dylib",
+            "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+            "/System/Library/Frameworks/CFNetwork.framework/Versions/A/CFNetwork",
+            "/System/Library/Frameworks/Contacts.framework/Versions/A/Contacts",
+            "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+            "/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics",
+            "/System/Library/Frameworks/CryptoKit.framework/Versions/A/CryptoKit",
+            "/System/Library/Frameworks/EventKit.framework/Versions/A/EventKit",
+            "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+            "/System/Library/Frameworks/ImageIO.framework/Versions/A/ImageIO",
+            "/System/Library/Frameworks/Security.framework/Versions/A/Security",
+            "/System/Library/Frameworks/UserNotifications.framework/Versions/A/UserNotifications",
+            "/System/Library/Frameworks/WebKit.framework/Versions/A/WebKit",
+            "/usr/lib/libc++.1.dylib",
+            "/usr/lib/libobjc.A.dylib",
+            "/usr/lib/swift/libswiftCore.dylib",
+            "/usr/lib/swift/libswiftCoreFoundation.dylib",
+            "/usr/lib/swift/libswiftCoreImage.dylib",
+            "/usr/lib/swift/libswiftCoreLocation.dylib",
+            "/usr/lib/swift/libswiftDarwin.dylib",
+            "/usr/lib/swift/libswiftDataDetection.dylib",
+            "/usr/lib/swift/libswiftDispatch.dylib",
+            "/usr/lib/swift/libswiftIOKit.dylib",
+            "/usr/lib/swift/libswiftMetal.dylib",
+            "/usr/lib/swift/libswiftOSLog.dylib",
+            "/usr/lib/swift/libswiftObjectiveC.dylib",
+            "/usr/lib/swift/libswiftQuartzCore.dylib",
+            "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+            "/usr/lib/swift/libswiftXPC.dylib",
+            "/usr/lib/swift/libswift_Concurrency.dylib",
+            "/usr/lib/swift/libswiftos.dylib",
+            "/usr/lib/swift/libswiftFoundation.dylib",
+            "/usr/lib/swift/libswiftWebKit.dylib",
+            "/usr/lib/swift/libswiftCoreGraphics.dylib"
+          ],
+          "embeddedCodeSignature": true,
+          "fileType": 2,
+          "minimumOS": [
+            "12.7.0"
+          ],
+          "platform": 1,
+          "sdk": "15.5.0"
+        },
+        "helper": {
+          "cpuSubtype": 0,
+          "cpuType": 16777228,
+          "dependencies": [
+            "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+            "/usr/lib/libSystem.B.dylib"
+          ],
+          "embeddedCodeSignature": true,
+          "fileType": 2,
+          "minimumOS": [
+            "12.7.0"
+          ],
+          "platform": 1,
+          "sdk": "15.5.0"
+        },
+        "runtimeImagesVerified": 52
+      },
+      "signatures": {
+        "nativeHelperGateStep8": true,
+        "nativeOuterAndDeepVerificationStep9": true,
+        "nativePostSmokeOuterVerificationStep11": true,
+        "byteAudit": {
+          "helperCDHashReference": "f7750e6015bbfaee230f1a574e62fbd2c5430a39",
+          "helperNestedCodeEntries": 51,
+          "outerNestedCodeEntries": 1,
+          "resourceHashesVerified": 1967
+        },
+        "cryptographicVerificationRerunLocally": false
+      },
+      "appSmoke": {
+        "file": {
+          "captureFilename": "run97-arm64--bundle-smoke.json",
+          "bytes": 700,
+          "sha256": "a1d380aeae6018a618726a0a0fcca5bd7aedb04e6c5cd716001a4e41337c3adb"
+        },
+        "flags": {
+          "bundleLaunch": true,
+          "pidBoundVisibleWindow": true,
+          "normalQuit": true,
+          "freshNormalizedProfileSaved": true,
+          "reopen": true,
+          "reopenedProfileAtomicallySaved": true,
+          "profileDataPreserved": true
+        },
+        "firstProfileSHA256": "0e18503bbc173cb3a661ccd6fc0c1cd7838cee9c623132902b6699268f9adb24",
+        "reopenedProfileSHA256": "0e18503bbc173cb3a661ccd6fc0c1cd7838cee9c623132902b6699268f9adb24",
+        "screenshotCaptured": true,
+        "nativeAcceptance": false,
+        "productionRelease": false,
+        "scope": "Real bundled Host/resources, fresh local init, normal save-before-quit, reopen; no editor, permissions, accessibility or full feature acceptance."
+      },
+      "visualReview": {
+        "reviewed": true,
+        "reviewer": "root using view_image",
+        "image": {
+          "captureFilename": "run97-arm64--bundle-window.png",
+          "bytes": 1126350,
+          "sha256": "4512efc579b9142a0bd4f2377384a116fa3327dd2b16f6e8bbfb73fb6762e404"
+        },
+        "width": 1136,
+        "height": 793,
+        "scope": "First rendered start window only; no interaction or feature acceptance.",
+        "observations": [
+          "Rendered Magnolie cover/start screen; visible application window; not blank.",
+          "ARM64: CLICK TO OPEN, date line, Settings/Backup and Beta status with existing unsupported telefon_stand message."
+        ]
+      },
+      "artifact": {
+        "id": 15112160240,
+        "name": "macOS-2.0.30-beta.1-arm64-development-candidate",
+        "size_in_bytes": 24622479,
+        "digest": "sha256:05ae0dda0d82ce7f36da050bc93d4ae2f15b444c693b24548584e3ac2ba78af9",
+        "created_at": "2026-11-26T11:24:07Z",
+        "expires_at": "2026-12-10T11:24:04Z",
+        "expired": false,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788/artifacts/15112160240",
+        "download": {
+          "captureFilename": "run97-arm64--development-candidate-artifact.zip",
+          "bytes": 24622479,
+          "sha256": "05ae0dda0d82ce7f36da050bc93d4ae2f15b444c693b24548584e3ac2ba78af9"
+        },
+        "digestVerified": true,
+        "retentionDaysConfigured": 14
+      },
+      "candidateZIP": {
+        "captureFilename": "run97-arm64--Magnolie-Organizer-macOS-2.0.30-beta.1-arm64.zip",
+        "bytes": 23985094,
+        "sha256": "4c79ed1c2272f02d403ad07887f5e24948ab41ceaa2a7ebfea60024fcff181a0"
+      },
+      "SHA256SUMS": {
+        "captureFilename": "run97-arm64--SHA256SUMS",
+        "bytes": 115,
+        "sha256": "3c602fedab909efe21e979992588aeb2a99d667cbb7614bbe92b0b7ff658bedc"
+      },
+      "artifactMembers": [
+        {
+          "captureFilename": "run97-arm64--Magnolie-Organizer-macOS-2.0.30-beta.1-arm64.zip",
+          "bytes": 23985094,
+          "sha256": "4c79ed1c2272f02d403ad07887f5e24948ab41ceaa2a7ebfea60024fcff181a0"
+        },
+        {
+          "captureFilename": "run97-arm64--bundle-console.log",
+          "bytes": 1615621,
+          "sha256": "49042fe46e49e9a704b35f77de86fb1dd3d590a7c910def51a81611d0ed47551"
+        },
+        {
+          "captureFilename": "run97-arm64--SHA256SUMS",
+          "bytes": 115,
+          "sha256": "3c602fedab909efe21e979992588aeb2a99d667cbb7614bbe92b0b7ff658bedc"
+        },
+        {
+          "captureFilename": "run97-arm64--bundle-smoke-first-window.json",
+          "bytes": 1973,
+          "sha256": "2bc7d7bc9f7830b04d40f17242849273f979d38e402b7cbc9526328c6b7ce5a6"
+        },
+        {
+          "captureFilename": "run97-arm64--bundle-smoke-observations.json",
+          "bytes": 227,
+          "sha256": "a8bba9209b6639b41dec033417e12810ef08c0dc7d13fa478d59c2c9c91b3c4b"
+        },
+        {
+          "captureFilename": "run97-arm64--bundle-smoke-progress.log",
+          "bytes": 1506,
+          "sha256": "51c25ef163392d5c680e13442fa995923ba55e4d38f2418205784d936e4eee7b"
+        },
+        {
+          "captureFilename": "run97-arm64--bundle-smoke.json",
+          "bytes": 700,
+          "sha256": "a1d380aeae6018a618726a0a0fcca5bd7aedb04e6c5cd716001a4e41337c3adb"
+        },
+        {
+          "captureFilename": "run97-arm64--bundle-window.png",
+          "bytes": 1126350,
+          "sha256": "4512efc579b9142a0bd4f2377384a116fa3327dd2b16f6e8bbfb73fb6762e404"
+        },
+        {
+          "captureFilename": "run97-arm64--environment-arm64.json",
+          "bytes": 2376,
+          "sha256": "e85c323f6b90631683130942a9b444e1dfcdbdf826289489475156903dd6bb2b"
+        },
+        {
+          "captureFilename": "run97-arm64--import-python-arm64.json",
+          "bytes": 103029,
+          "sha256": "05fef3361e8993d70967902b5e1aab82a78cc30aa1bc3d9e5dbb5bd76b978416"
+        },
+        {
+          "captureFilename": "run97-arm64--import-python-arm64.log",
+          "bytes": 866607,
+          "sha256": "4761b91797df4d59e01e26bbc9b0881e9dbf907b47095d22fd1091f00590890c"
+        },
+        {
+          "captureFilename": "run97-arm64--sources.json",
+          "bytes": 979798,
+          "sha256": "6cbb85bcdc2ab56739c605ca9c470404a890e77af9046a7ecbecf46a59f717fc"
+        },
+        {
+          "captureFilename": "run97-arm64--timezone-provider-arm64.log",
+          "bytes": 77729,
+          "sha256": "c2a9c7831fe308b3da8e99e5831e48258848de470792dea8c01157896162bf8c"
+        }
+      ],
+      "independentByteAudit": {
+        "file": {
+          "captureFilename": "run97-arm64--independent-candidate-audit.json",
+          "bytes": 7092,
+          "sha256": "0f86d1fd8b889343e9c84ac05df766e2576d1bf5276c911879a6fb65a3fba733"
+        },
+        "passed": true,
+        "checks": 43,
+        "allChecksTrue": true,
+        "failures": [],
+        "projection": {
+          "catalogSourceHashesMatchPackagedOutputs": true,
+          "dependencyWheelMatchesCommittedPin": true,
+          "generatedCatalogs": 19,
+          "importHelperRelocationAccountedFor": true,
+          "inputs": 554,
+          "outputsVerified": 1312,
+          "pinnedDependencyWheels": 1,
+          "preparedInputsNotInGit": 20,
+          "trackedInputsVerified": 534
+        },
+        "runtime": {
+          "filesVerified": 706,
+          "launcherSourceSHA256": "4c9591d11ac184208ad6b5cb5cc087a9e076c4784745ac82f38256145bf02d3e",
+          "machOImagesVerified": 52,
+          "minimumSystemVersion": "12.7",
+          "pluginsSealedAsNestedCode": 51,
+          "schema": 2
+        },
+        "codeResources": {
+          "helperCDHashReference": "f7750e6015bbfaee230f1a574e62fbd2c5430a39",
+          "helperNestedCodeEntries": 51,
+          "outerNestedCodeEntries": 1,
+          "resourceHashesVerified": 1967
+        },
+        "source": {
+          "filesVerified": 3910,
+          "gitBlobBytesRead": 126351181,
+          "uniqueGitBlobsRead": 3806,
+          "worktreeBytesUsed": false
+        },
+        "limitations": [
+          "No macOS codesign command or application execution was rerun by this audit.",
+          "Embedded signature presence, nested-code references and resource hashes are byte observations; native signature validity is the CI gate.",
+          "The smoke covers fresh profile initialization, normal save/quit and reopen; no editor, permission, account, device or full feature acceptance.",
+          "Mach-O deployment target12.7 is not execution on macOS12.7.",
+          "Ad-hoc debug candidate; no production release or notarization claim."
+        ]
+      }
+    },
+    {
+      "architecture": "x86_64",
+      "jobId": 139865643788,
+      "jobURL": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788/job/139865643788",
+      "status": "completed",
+      "conclusion": "success",
+      "nativeStages": [
+        {
+          "number": 5,
+          "name": "Bind the Mac candidate to the current selected checkout",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Prepare private dependencies and canonical catalogs",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Verify the standalone Swift time-zone engine against independent references",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Build the private source-pinned import runtime",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Freeze this isolated build's current source and run host and Apple tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 10,
+          "name": "Start, save, quit and reopen the real app bundle",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 11,
+          "name": "Package the ad-hoc development app with its evidence",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 12,
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 13,
+          "name": "Preserve native failure diagnostics",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ],
+      "testsAndLog": {
+        "architecture": "x86_64",
+        "log": {
+          "captureFilename": "mac-native-run-45807249788-intel.log",
+          "bytes": 5896112,
+          "sha256": "5ec4e07b3e93cb7e561778208fcc23ff1cc92f6cae6fd72f248a15e2b4fe85df"
+        },
+        "pythonTests": {
+          "runtimeBuilder": {
+            "tests": 21,
+            "seconds": 0.782,
+            "failures": 0,
+            "skipped": 0
+          },
+          "importHelperAndProjectionPaths": {
+            "tests": 17,
+            "seconds": 119.759,
+            "failures": 0,
+            "skipped": 0
+          },
+          "host": {
+            "tests": 35,
+            "seconds": 881.394,
+            "failures": 0,
+            "skipped": 1,
+            "skipReason": "test_no_linux_native_build_claim: Negative Linux-only build gate"
+          }
+        },
+        "xctestExecutions": [
+          {
+            "context": "calendar wrapper",
+            "tests": 501,
+            "skipped": 4,
+            "failures": 0,
+            "testSeconds": 91.456,
+            "suiteSeconds": 91.517,
+            "logLine": 2306,
+            "skippedCases": [
+              "CoreTests testCurrentEditorAppointments",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "HolidayServiceTests testLivePublicHolidayServiceWhenRequested",
+              "NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            ]
+          },
+          {
+            "context": "editor UTC",
+            "tests": 501,
+            "skipped": 5,
+            "failures": 0,
+            "testSeconds": 92.099,
+            "suiteSeconds": 92.163,
+            "logLine": 16349,
+            "skippedCases": [
+              "CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "HolidayServiceTests testLivePublicHolidayServiceWhenRequested",
+              "ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles",
+              "ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            ]
+          },
+          {
+            "context": "editor Europe/Berlin",
+            "tests": 501,
+            "skipped": 5,
+            "failures": 0,
+            "testSeconds": 84.729,
+            "suiteSeconds": 84.787,
+            "logLine": 30345,
+            "skippedCases": [
+              "CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "HolidayServiceTests testLivePublicHolidayServiceWhenRequested",
+              "ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles",
+              "ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts"
+            ]
+          },
+          {
+            "context": "build_dev",
+            "tests": 501,
+            "skipped": 6,
+            "failures": 0,
+            "testSeconds": 73.488,
+            "suiteSeconds": 73.537,
+            "logLine": 44381,
+            "skippedCases": [
+              "CalendarInterchangeTests testLiveCanonicalCalendarRecordsAndWriteIndependentOracleInputs",
+              "CoreTests testCurrentEditorAppointments",
+              "DocumentOpaqueIdentityTests testActualProjectedSaveRemainsGuardedAtNativeBoundary",
+              "ICalendarImportTests testLiveCanonicalImportAndReexportProduceIndependentOracleFiles",
+              "ICalendarResourcePatchTests testPublishedParserPatchOracleArtifacts",
+              "NativePrintTests testIsolatedRendererAndRealAppKitPdfOutput"
+            ]
+          }
+        ],
+        "namedRegressionPassedExecutions": {
+          "testProtectedBodiesAreAContractErrorAndNeverBecomeAProposal": 4,
+          "testUTF8FoldingPreservesTheExactLogicalLine": 4,
+          "testFoldingBoundariesCountOctetsAndPreserveCombiningScalars": 4,
+          "testTextMustSurviveRealEditorWhitespaceAndLineEndingRules": 4,
+          "testLeadingBOMTitleRemainsExcludedAndRevisionBound": 4,
+          "testCallerOwnedMutableTextAndArraysCannotRewriteAnExistingPlan": 4
+        },
+        "wrappers": {
+          "canonicalCalendar": "passed",
+          "publishedCommunication": "passed"
+        },
+        "OR6ToUI": {
+          "checks": 90,
+          "passed": true,
+          "nativePersistenceClaim": false
+        },
+        "aggregation": "The four XCTest executions are separate contexts of one suite, not additive counts of unique tests."
+      },
+      "sourceBinding": {
+        "manifest": {
+          "captureFilename": "run97-intel--sources.json",
+          "bytes": 979798,
+          "sha256": "6cbb85bcdc2ab56739c605ca9c470404a890e77af9046a7ecbecf46a59f717fc"
+        },
+        "portCommit": "215d89029df02df2dce78f35412785ec9f9b36d8",
+        "desktopCommit": "215d89029df02df2dce78f35412785ec9f9b36d8",
+        "sourcePolicy": "current-checkout",
+        "sourceFiles": 3910,
+        "sameSourceManifestAsARM": true,
+        "audit": {
+          "filesVerified": 3910,
+          "gitBlobBytesRereadForInventory": 0,
+          "priorAudit": "run97-arm64/independent-candidate-audit.json",
+          "priorAuditSHA256": "0f86d1fd8b889343e9c84ac05df766e2576d1bf5276c911879a6fb65a3fba733",
+          "reusedVerifiedGitInventory": true,
+          "sourceJSONSHA256": "6cbb85bcdc2ab56739c605ca9c470404a890e77af9046a7ecbecf46a59f717fc",
+          "worktreeBytesUsed": false
+        }
+      },
+      "environmentSnapshot": {
+        "file": {
+          "captureFilename": "run97-intel--environment-x86_64.json",
+          "bytes": 2337,
+          "sha256": "9e12e34183ce0023e1ae3eb0d0879733abe0d9fb9cc9c2ccb0dbdcc24d5473ba"
+        },
+        "observedAtUTC": "2026-11-26T11:05:33.995237+00:00",
+        "system": "Darwin",
+        "architecture": "x86_64",
+        "nativeMagnolieTestsExecuted": false,
+        "meaning": "Early prerequisites snapshot before test execution; the false execution field remains unchanged and is separate from the later native logs and smoke proof.",
+        "apple": {
+          "productVersion": "15.7.9",
+          "productBuild": "24G830",
+          "sdkVersion": "15.5",
+          "swiftVersion": "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)\nTarget: x86_64-apple-macosx15.0",
+          "nativeBuildPrerequisitesObserved": true
+        }
+      },
+      "runtime": {
+        "manifest": {
+          "captureFilename": "run97-intel--import-python-x86_64.json",
+          "bytes": 103030,
+          "sha256": "19aac62229bf8c2676f3af4713e54318c6ed9b67f3179d56e5348001577003c4"
+        },
+        "schema": 2,
+        "version": "3.15.2",
+        "architecture": "x86_64",
+        "minimumSystemVersion": "12.7",
+        "layout": {
+          "sdkBundleDirectory": "ImportPython.app",
+          "bundleIdentifier": "io.gitlab.maik3531.MagnolieOrganizer.ImportPython",
+          "executable": "Contents/MacOS/python3.15",
+          "standardLibraryDirectory": "Contents/Resources/lib/python3.15",
+          "extensionDirectory": "Contents/PlugIns",
+          "bundleDirectory": "Helpers/ImportPython.app",
+          "bundleManifest": "Resources/ImportPython/runtime.json"
+        },
+        "launcher": {
+          "source": "tools/import_python_main.c",
+          "sourceSHA256": "4c9591d11ac184208ad6b5cb5cc087a9e076c4784745ac82f38256145bf02d3e"
+        },
+        "relocation": {
+          "bundleLayout": true,
+          "executableBound": true,
+          "isolated": true,
+          "moduleClosure": true,
+          "version": "3.15.2"
+        },
+        "files": 706,
+        "machOImages": 52,
+        "helperSealSHA256": "83a3aec7046dd3cf33d7619cd1f9ad8238b5a3381961ae7d4b5452c35233e255",
+        "staticDependencies": {
+          "liblzma": {
+            "librarySHA256": "50c3325a4ec4cd3b3f58692368d97f97bd96ddb62e43770e7b1487302597e692",
+            "linkage": "static",
+            "sourceSHA256": "4ce24038fd4221e0d13bc1a2de7a4db56e90b92b3bf75321f6c14be73f65de4b",
+            "version": "5.8.4"
+          }
+        },
+        "signing": "ad-hoc development only",
+        "nativeUIValidated": false
+      },
+      "packagedBuild": {
+        "file": {
+          "captureFilename": "run97-intel--packaged-build.json",
+          "bytes": 71864,
+          "sha256": "a5bd2acaccc77e8f411477c125f3c93bc1752a1b8b506565ec8602523eb1cdba"
+        },
+        "metadata": {
+          "name": "Magnolie Organizer macOS Beta",
+          "version": "2.0.30-beta.1",
+          "configuration": "debug",
+          "architecture": "x86_64",
+          "swiftTestsPassed": true,
+          "minimumSystemVersion": "12.7",
+          "machOMinimumVerified": true,
+          "montereyRuntimeValidated": false,
+          "nativeUIValidated": false,
+          "productionRelease": false,
+          "importRuntimeVersion": "3.15.2",
+          "importRuntimeSourceSHA256": "8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de",
+          "importRuntimeRelocationVerified": true,
+          "importNativeUIValidated": false,
+          "airplayBundled": false,
+          "airplayDependencyClosureVerified": false,
+          "airplayNativeDeviceValidated": false,
+          "signing": "ad-hoc development only, not notarized"
+        },
+        "sourceInputs": 554,
+        "meaning": "Build metadata precedes the separate real app smoke; its broader nativeUI/Monterey/production flags remain unchanged."
+      },
+      "packagedArchitecture": {
+        "main": {
+          "cpuSubtype": 3,
+          "cpuType": 16777223,
+          "dependencies": [
+            "/usr/lib/libSystem.B.dylib",
+            "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+            "/System/Library/Frameworks/CFNetwork.framework/Versions/A/CFNetwork",
+            "/System/Library/Frameworks/Contacts.framework/Versions/A/Contacts",
+            "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+            "/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics",
+            "/System/Library/Frameworks/CryptoKit.framework/Versions/A/CryptoKit",
+            "/System/Library/Frameworks/EventKit.framework/Versions/A/EventKit",
+            "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+            "/System/Library/Frameworks/ImageIO.framework/Versions/A/ImageIO",
+            "/System/Library/Frameworks/Security.framework/Versions/A/Security",
+            "/System/Library/Frameworks/UserNotifications.framework/Versions/A/UserNotifications",
+            "/System/Library/Frameworks/WebKit.framework/Versions/A/WebKit",
+            "/usr/lib/libc++.1.dylib",
+            "/usr/lib/libobjc.A.dylib",
+            "/usr/lib/swift/libswiftCore.dylib",
+            "/usr/lib/swift/libswiftCoreFoundation.dylib",
+            "/usr/lib/swift/libswiftCoreImage.dylib",
+            "/usr/lib/swift/libswiftCoreLocation.dylib",
+            "/usr/lib/swift/libswiftDarwin.dylib",
+            "/usr/lib/swift/libswiftDataDetection.dylib",
+            "/usr/lib/swift/libswiftDispatch.dylib",
+            "/usr/lib/swift/libswiftIOKit.dylib",
+            "/usr/lib/swift/libswiftMetal.dylib",
+            "/usr/lib/swift/libswiftOSLog.dylib",
+            "/usr/lib/swift/libswiftObjectiveC.dylib",
+            "/usr/lib/swift/libswiftQuartzCore.dylib",
+            "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+            "/usr/lib/swift/libswiftXPC.dylib",
+            "/usr/lib/swift/libswift_Concurrency.dylib",
+            "/usr/lib/swift/libswiftos.dylib",
+            "/usr/lib/swift/libswiftFoundation.dylib",
+            "/usr/lib/swift/libswiftWebKit.dylib",
+            "/usr/lib/swift/libswiftCoreGraphics.dylib"
+          ],
+          "embeddedCodeSignature": true,
+          "fileType": 2,
+          "minimumOS": [
+            "12.7.0"
+          ],
+          "platform": 1,
+          "sdk": "15.5.0"
+        },
+        "helper": {
+          "cpuSubtype": 3,
+          "cpuType": 16777223,
+          "dependencies": [
+            "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+            "/usr/lib/libSystem.B.dylib"
+          ],
+          "embeddedCodeSignature": true,
+          "fileType": 2,
+          "minimumOS": [
+            "12.7.0"
+          ],
+          "platform": 1,
+          "sdk": "15.5.0"
+        },
+        "runtimeImagesVerified": 52
+      },
+      "signatures": {
+        "nativeHelperGateStep8": true,
+        "nativeOuterAndDeepVerificationStep9": true,
+        "nativePostSmokeOuterVerificationStep11": true,
+        "byteAudit": {
+          "helperCDHashReference": "18c32748cc29a8920e05f0b4ae9d6edd16a2961e",
+          "helperNestedCodeEntries": 51,
+          "outerNestedCodeEntries": 1,
+          "resourceHashesVerified": 1967
+        },
+        "cryptographicVerificationRerunLocally": false
+      },
+      "appSmoke": {
+        "file": {
+          "captureFilename": "run97-intel--bundle-smoke.json",
+          "bytes": 700,
+          "sha256": "10a07276de7975ce4e364392c7d6389c2bfbff7d0620d517063830deca7e1ab3"
+        },
+        "flags": {
+          "bundleLaunch": true,
+          "pidBoundVisibleWindow": true,
+          "normalQuit": true,
+          "freshNormalizedProfileSaved": true,
+          "reopen": true,
+          "reopenedProfileAtomicallySaved": true,
+          "profileDataPreserved": true
+        },
+        "firstProfileSHA256": "5a3fff7e4c5e34e26593e9db4005b656ecec71f8a935e22984e1b93acfe5281c",
+        "reopenedProfileSHA256": "5a3fff7e4c5e34e26593e9db4005b656ecec71f8a935e22984e1b93acfe5281c",
+        "screenshotCaptured": true,
+        "nativeAcceptance": false,
+        "productionRelease": false,
+        "scope": "Real bundled Host/resources, fresh local init, normal save-before-quit, reopen; no editor, permissions, accessibility or full feature acceptance."
+      },
+      "visualReview": {
+        "reviewed": true,
+        "reviewer": "root using view_image",
+        "image": {
+          "captureFilename": "run97-intel--bundle-window.png",
+          "bytes": 1714028,
+          "sha256": "f0456f1ad8848b3f4066c72f4d2cc35f9f0b0503ad81a84c5d4441d445a8d571"
+        },
+        "width": 1312,
+        "height": 990,
+        "scope": "First rendered start window only; no interaction or feature acceptance.",
+        "observations": [
+          "Rendered Magnolie cover/start screen; visible application window; not blank.",
+          "Intel: Beta status with existing unsupported update_pruefen notice and reminder toast for an opened/unlocked app."
+        ]
+      },
+      "artifact": {
+        "id": 15114016468,
+        "name": "macOS-2.0.30-beta.1-x86_64-development-candidate",
+        "size_in_bytes": 25444840,
+        "digest": "sha256:d6a46d5cce35369dc1a53d2561e8ff67b0b5577bedd7b13ad3b77fecc64624bb",
+        "created_at": "2026-11-26T11:34:40Z",
+        "expires_at": "2026-12-10T11:34:37Z",
+        "expired": false,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788/artifacts/15114016468",
+        "download": {
+          "captureFilename": "run97-intel--development-candidate-artifact.zip",
+          "bytes": 25444840,
+          "sha256": "d6a46d5cce35369dc1a53d2561e8ff67b0b5577bedd7b13ad3b77fecc64624bb"
+        },
+        "digestVerified": true,
+        "retentionDaysConfigured": 14
+      },
+      "candidateZIP": {
+        "captureFilename": "run97-intel--Magnolie-Organizer-macOS-2.0.30-beta.1-x86_64.zip",
+        "bytes": 24198307,
+        "sha256": "0ee0ab9fca6ec2aa58b5427a47f44c4007f0f4ee9147b1d7870f229ddddc6ade"
+      },
+      "SHA256SUMS": {
+        "captureFilename": "run97-intel--SHA256SUMS",
+        "bytes": 116,
+        "sha256": "ee9274c0efb0ee0ec08573f0568564d1b01148ec884c7abae995cf334ec20a29"
+      },
+      "artifactMembers": [
+        {
+          "captureFilename": "run97-intel--Magnolie-Organizer-macOS-2.0.30-beta.1-x86_64.zip",
+          "bytes": 24198307,
+          "sha256": "0ee0ab9fca6ec2aa58b5427a47f44c4007f0f4ee9147b1d7870f229ddddc6ade"
+        },
+        {
+          "captureFilename": "run97-intel--bundle-console.log",
+          "bytes": 1685411,
+          "sha256": "50d2919f211e3748ae57eaf9eb66e8f29b18620676dce0e64d48572e8ee90d32"
+        },
+        {
+          "captureFilename": "run97-intel--SHA256SUMS",
+          "bytes": 116,
+          "sha256": "ee9274c0efb0ee0ec08573f0568564d1b01148ec884c7abae995cf334ec20a29"
+        },
+        {
+          "captureFilename": "run97-intel--bundle-smoke-first-window.json",
+          "bytes": 1973,
+          "sha256": "046f6fa82ce3136e18600c3095fc5086830a02561687c49d9a11cdcdff2abc66"
+        },
+        {
+          "captureFilename": "run97-intel--bundle-smoke-observations.json",
+          "bytes": 227,
+          "sha256": "ac371cbe735408797d552a303b44216cf8fcee20b7eaa33b008d38f3d0708525"
+        },
+        {
+          "captureFilename": "run97-intel--bundle-smoke-progress.log",
+          "bytes": 1523,
+          "sha256": "3734db323f65c03fa02847e096b76502638050a9dbc522c517a4a6bf58f9809c"
+        },
+        {
+          "captureFilename": "run97-intel--bundle-smoke.json",
+          "bytes": 700,
+          "sha256": "10a07276de7975ce4e364392c7d6389c2bfbff7d0620d517063830deca7e1ab3"
+        },
+        {
+          "captureFilename": "run97-intel--bundle-window.png",
+          "bytes": 1714028,
+          "sha256": "f0456f1ad8848b3f4066c72f4d2cc35f9f0b0503ad81a84c5d4441d445a8d571"
+        },
+        {
+          "captureFilename": "run97-intel--environment-x86_64.json",
+          "bytes": 2337,
+          "sha256": "9e12e34183ce0023e1ae3eb0d0879733abe0d9fb9cc9c2ccb0dbdcc24d5473ba"
+        },
+        {
+          "captureFilename": "run97-intel--import-python-x86_64.json",
+          "bytes": 103030,
+          "sha256": "19aac62229bf8c2676f3af4713e54318c6ed9b67f3179d56e5348001577003c4"
+        },
+        {
+          "captureFilename": "run97-intel--import-python-x86_64.log",
+          "bytes": 866234,
+          "sha256": "5ec0f307948164623f45f61705764f64668ac3a74fa655c677a3b71c09bb90b8"
+        },
+        {
+          "captureFilename": "run97-intel--sources.json",
+          "bytes": 979798,
+          "sha256": "6cbb85bcdc2ab56739c605ca9c470404a890e77af9046a7ecbecf46a59f717fc"
+        },
+        {
+          "captureFilename": "run97-intel--timezone-provider-x86_64.log",
+          "bytes": 77731,
+          "sha256": "583da8a9b5e791ce8def002cec0215f94cb2796c6aaee77d8c797f13ce0b0756"
+        }
+      ],
+      "independentByteAudit": {
+        "file": {
+          "captureFilename": "run97-intel--independent-candidate-audit.json",
+          "bytes": 7459,
+          "sha256": "dedbbf697b5757eb11a96a25d25eb4260fcda580a126dbe800e5fe6ebeb8a98e"
+        },
+        "passed": true,
+        "checks": 43,
+        "allChecksTrue": true,
+        "failures": [],
+        "projection": {
+          "generatedCatalogs": 19,
+          "importHelperRelocationAccountedFor": true,
+          "inputs": 554,
+          "outputsVerified": 1312,
+          "pinnedDependencyWheels": 1,
+          "preparedInputsNotInGit": 20,
+          "trackedInputsVerified": 534
+        },
+        "runtime": {
+          "filesVerified": 706,
+          "launcherSourceSHA256": "4c9591d11ac184208ad6b5cb5cc087a9e076c4784745ac82f38256145bf02d3e",
+          "machOImagesVerified": 52,
+          "minimumSystemVersion": "12.7",
+          "pluginsSealedAsNestedCode": 51,
+          "schema": 2
+        },
+        "codeResources": {
+          "helperCDHashReference": "18c32748cc29a8920e05f0b4ae9d6edd16a2961e",
+          "helperNestedCodeEntries": 51,
+          "outerNestedCodeEntries": 1,
+          "resourceHashesVerified": 1967
+        },
+        "source": {
+          "filesVerified": 3910,
+          "gitBlobBytesRereadForInventory": 0,
+          "priorAudit": "run97-arm64/independent-candidate-audit.json",
+          "priorAuditSHA256": "0f86d1fd8b889343e9c84ac05df766e2576d1bf5276c911879a6fb65a3fba733",
+          "reusedVerifiedGitInventory": true,
+          "sourceJSONSHA256": "6cbb85bcdc2ab56739c605ca9c470404a890e77af9046a7ecbecf46a59f717fc",
+          "worktreeBytesUsed": false
+        },
+        "limitations": [
+          "No macOS codesign command or application execution was rerun by this audit.",
+          "Embedded signature presence, nested-code references and resource hashes are byte observations; native signature validity is the CI gate.",
+          "The smoke covers fresh profile initialization, normal save/quit and reopen; no editor, permission, account, device or full feature acceptance.",
+          "Mach-O deployment target12.7 is not execution on macOS12.7.",
+          "Ad-hoc debug candidate; no production release or notarization claim."
+        ]
+      }
+    }
+  ]
+}

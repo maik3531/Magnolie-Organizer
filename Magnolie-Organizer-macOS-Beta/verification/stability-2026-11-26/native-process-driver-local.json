@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "kind": "portable-native-process-driver-checks",
+  "host": "Linux",
+  "passed": true,
+  "checks": {
+    "pythonSyntax": true,
+    "originalFixturePreparation": true,
+    "realChildSuccessAndReap": true,
+    "realChildOutputBound": true,
+    "realChildDeadline": true,
+    "realChildFailure": true,
+    "helpCLI": true,
+    "realLinuxRefusalBeforeArtifacts": true,
+    "whitespace_check_native_file_import_process.py": true,
+    "whitespace_native_file_import_probe.swift": true
+  },
+  "details": {
+    "fixture": {
+      "contract": "contracts/or6-native-fixtures.json",
+      "contractSHA256": "87f218681f8d3fef65c819d985656457c4b7ed67adefb2654077b0cf0fc92890",
+      "name": "known-values.or6",
+      "bytes": 155648,
+      "sha256": "1c12517b17c213b1c9a2c73e6168eadb00c2feebafb1ab2bd35d5a5a6b968a0e",
+      "expectedFields": 22
+    },
+    "realChildOutputBoundSeconds": 0.051,
+    "realChildDeadlineSeconds": 0.153,
+    "realChildFailureSeconds": 0.051
+  },
+  "fileSHA256": {
+    "check_native_file_import_process.py": "a6dcfbe3b160c2a49ff081d66612f72585f7f044013b99c2b9d1c6b34478542f",
+    "native_file_import_probe.swift": "b68cb3cc6f0f2b2e56577d7de1ad7289d9ef4986f386f26532daadb1307c9a8d"
+  },
+  "nativeSwiftCompileExecuted": false,
+  "nativeProcessBridgeExecuted": false,
+  "codesignExecuted": false,
+  "captureProvenance": {
+    "rawBytes": 1328,
+    "rawSHA256": "e034542d018a0ccd065f092c275eb3e92ece1a4a424a812e7b5b9e9df726101a",
+    "rawCaptureFilename": "native-process-driver-local.json",
+    "normalization": "Only absolute scratch/review checkout prefixes replaced; native macOS execution is not claimed by this local driver proof."
+  }
+}

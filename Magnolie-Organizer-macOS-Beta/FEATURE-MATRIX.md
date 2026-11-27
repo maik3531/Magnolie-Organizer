@@ -1,31 +1,69 @@
 # macOS Beta Feature Matrix — 2.0.30-beta.1
 
-Updated 2026-11-08 (2.0.30 projection and native candidate verification).
-The target remains the same UI and functionality as the current
-Linux/Windows Organizer. This phase does **not** achieve native feature parity.
-Native builds, ad-hoc signing, core/WKWebView tests and the real bundle lifecycle
-smoke passed on macOS 15 for arm64 and x86_64 (Actions run 42506117045, port source
-0c22df32; later source changes still require native checks). The smoke
-verifies first save, normal quit, reopen, a second atomic save and strict whole-data
-equality. Full application/feature acceptance remains pending. Linux host tests
-alone do not establish macOS behavior.
+Updated 2026-11-26 (#783 current-source candidates; #784 device page; #785 current
+file parsers; #786 bounded native field sync; #121 evidence/VM planning). The shared Organizer UI and data
+behavior follow current Linux/Windows sources, with Mac-specific native
+integrations. Mac does not require its own Magnolie Notes companion app.
+Apple services and supported existing KDE Connect clients remain intended
+integration paths; an available client does not establish a particular
+Organizer adapter. Full native feature parity is not claimed.
+
+The current extended verification is recorded in the
+[stability report](STABILITY-VERIFICATION-2026-11-26.md).
+[Run #104](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45827353062)
+on `3f3ec069895dec254c53660d14e6851cb23077cd` completed with **`success` on
+ARM64 and Intel**, on 26 November 2026 from **14:15:18 to 14:49:42
+Europe/Berlin** (13:15:18–13:49:42 UTC). The
+[durable #104 record](verification/native-run-104.json) records, per architecture,
+26 runtimebuilder, 27 AirPlay and 17 ImportHelper/path tests passed; the host
+suite has 34 passes and one Linux-only skip. Four Debug contexts each run the
+same 501 XCTest names with 4/5/5/6 skips and no failures; the separate optimized
+Release context has 495 passes, six skips and no failures. These overlapping
+contexts are not independent unique-test totals.
+
+The actual production Swift-to-packaged-Python process passed all nine checks,
+the real fresh-profile app lifecycle passed all seven criteria, and the
+independent byte audit passed all 65 checks on each package. Both source proofs
+bind 3921 files; the projection binds 555 inputs and 1312 outputs. Packaged apps
+remain ad-hoc Debug candidates. Process fixtures do not exercise the picker,
+editor, durable import save or TCC; the fresh-profile smoke does not supply
+those missing user-flow checks.
+
+The preceding complete current-source native checkpoint is
+[run #97](https://github.com/maik3531/Magnolie-Organizer/actions/runs/45807249788)
+at `215d89029df02df2dce78f35412785ec9f9b36d8`, successful on macOS 15
+ARM64 and Intel. Both jobs passed 21 runtimebuilder tests, 17 ImportHelper/path
+tests, 35 host tests with one skip, and four Swift contexts of 501 cases each
+with 4/5/5/6 skips. The repeated contexts overlap and are not unique test totals.
+Strict signatures, actual app start/save/normal-quit/reopen and development
+packaging passed. Exact scope and independent artifact checks are in the
+[native report](NATIVE-VERIFICATION-2026-11-26.md) and
+[durable evidence](verification/native-run-97.json).
+
+Historical runs such as **42562106430** used Mac/adapter source `cbdc0876`
+with published desktop inputs `067c3893`. They remain historical evidence.
+#97 instead binds both Mac and shared inputs to its selected current checkout;
+see [CURRENT-SOURCE-CANDIDATE.md](CURRENT-SOURCE-CANDIDATE.md). Full native
+feature/UI, Monterey, TCC, account/device and production distribution
+acceptance remain open. A CI pass does not implement the missing features below.
 
 ## Local Features
 
 | Feature | Source implementation/evidence | Remaining work |
 | --- | --- | --- |
-| Calendar/day views, tasks/subtasks, notes, contacts, anniversaries | Current shared frontend projection; host rendering and actual editor cases | Real WKWebView visual/input acceptance; full native feature parity cannot be inferred from views |
+| Calendar/day views, tasks/subtasks, notes, contacts, anniversaries | Current shared frontend projection; #783 also selects current checkout for candidate builds and tests shared note-date search/calendar navigation in generated Mac UI | Renewed current-source WKWebView visual/input acceptance; full native feature parity cannot be inferred from views |
 | Planner, health and Custom module/designers | Current shared UI/model code is projected, not manually forked | Broader functional acceptance, system print-panel/manual acceptance, office export and Custom sync |
-| Create/edit/save | Whole JSON, private lease, atomic write, fsync, expected-file check; portable Swift tests | APFS/F_FULLFSYNC, disk-full, native quit/crash injection |
+| Create/edit/save | Whole JSON, private lease, atomic write, fsync, expected-file check; current Swift tests and actual fresh-profile save/normal-quit/reopen on both architectures in #104 | Full editing/UI acceptance, APFS/F_FULLFSYNC fault scenarios, disk-full and native crash injection |
 | Delete/recycle bin/merge edits | Shared UI logic; destructive structural saves require recovery copy; contact deletion waits for token ACK | Full deletion/merge matrix on Mac; snapshots are not automatic recovery of unsaved edits |
 | Local recovery | Exact disk bytes in private `Recovery-macOS-Beta/*.json`; read-back verification before destructive commit; restart tested in portable Swift | No indexed desktop journal, schedules, retention/pruning, selective/additive recovery, cryptographic plaintext snapshot index |
-| Full JSON import/restore | Native selected-file capability; pinned bytes/path; duplicate-key/shape checks; canonical normalizer preflight; durable pre-restore copy; complete replacement | Native picker/crypto/commit integration on Mac; not `.magnolie` complete archive import |
+| Full JSON import/restore | Native selected-file capability; pinned bytes/path; duplicate-key/shape checks; canonical normalizer preflight; durable pre-restore copy; complete replacement. Applicable current core/epoch/WK tests passed in #104 (#454) | Actual picker/import/save/reopen acceptance; #511's complete opaque-Unicode path; not `.magnolie` complete archive import |
 | JSON backup/export | Whole document including unknown fields and embedded attachments; always encrypted; separate password prompt for plain profile | Native prompt/save panel/crypto interoperability run; no external backups rekeyed |
-| Encryption | Desktop v1 read/v2 read-write CryptoKit/CommonCrypto implementation and public test vectors | Apple crypto execution; password change/removal; keychain/rekey transactions |
+| Encryption | Desktop v1 read/v2 read-write CryptoKit/CommonCrypto implementation and public test vectors; applicable Apple crypto tests passed in #104 | Actual password/picker/UI acceptance; password change/removal and keychain/rekey transactions |
 | ICS export | Source-preserving appointments/tasks/anniversaries, recurrence and exception/raw properties, historical/future VTIMEZONE; real shared editor → Swift tests | Eight independent published-codec roundtrips pass on both architectures; native picker/manual acceptance remains open; unsupported fields fail the whole export |
-| ICS/vCard/CSV import/export | Selected-file ICS import, canonical merge and source-header metadata; eight published-codec import/reexport cases pass on both architectures | Native picker/manual import acceptance; vCard/CSV and other formats remain unsupported |
+| File import / #785 | Native picker and bounded private-parser path for current ICS/VCS/LCS, OR6/CSV, vCard/CSV, Claws/LDIF, ZIP and waste formats; native runtime/relocation and 17 helper/path tests passed on both architectures in #104; its nine-check probe exercises the original Swift process with the actual signed packaged interpreter/helper and 22 OR6 fields in four collections; the separate 90 OR6-to-projected-UI checks use synthetic native transport | Actual production picker/import/save/reopen; full Magnolie archive and local-program discovery remain follow-up work. The fresh-profile app smoke does not prove imported-data persistence. See IMPORT-CODECS.md and IMPORT-RUNTIME.md |
+| ICS/vCard/CSV export | Existing selected-file export routes and published-codec comparisons retain their exact earlier scope | Import parity does not by itself establish new export formats or native acceptance |
 | `.magnolie` multi-file complete archive | Unsupported explicitly | Full format/attachments/settings/restore transaction and shared fixtures |
-| System printing / PDF | Isolated ephemeral WKWebView, JavaScript disabled, no bridge/network/local-file access; AppKit print dialog includes Save as PDF | Native PDF-engine test and manual OS print-panel acceptance pending; physical paper output is never inferred |
+| System printing / PDF | Isolated ephemeral WKWebView, JavaScript disabled, no bridge/network/local-file access; AppKit print dialog includes Save as PDF; applicable native PDF-generation tests passed in #104 | Manual OS print-panel acceptance; physical paper output is never inferred |
 | Clipboard/attachments | Native text clipboard; Save for supported PDF/image data URLs | Native AppKit validation; automatic attachment opening |
 | Regional settings | Current shared renderer bound to existing Beta handler (not the desktop MCP API); save-ACK before native commit; validated values; field mapping/save-failure/double-click host tests. Native time-zone management shows an explicit limitation; automatic native zone refresh is inactive and imported settings remain intact | Native locale/timezone behavior and all localized system dialogs; desktop revision-bound native MCP and automatic time-zone detection parity |
 | Localization | Entire current shared gettext-generated UI catalogs; native catalog generated from those same messages; English fallback + 19 locale catalogs | Existing Beta capability prose, EventKit/notification notices and many diagnostic messages remain English; full native localization is **not** claimed |
@@ -37,20 +75,23 @@ alone do not establish macOS behavior.
 
 | Area | Current status | Priority/acceptance |
 | --- | --- | --- |
-| AppKit/WKWebView host | Both architectures passed real WKWebView tests and application save/quit/reopen at the earlier baseline | New native modules require renewed builds; permission/native-dialog/upgrade acceptance remains open |
+| AppKit/WKWebView host | Both architectures passed current-source WKWebView tests and actual application save/normal-quit/reopen in #104; both captured start windows were visually inspected | Full interaction, permission/native-dialog and upgrade acceptance remains open; later source edits need their own checks |
 | Notifications | Open/unlocked/consented checker only; one-off early/due task calculations tested | P0 for reminder parity: durable scheduler, restart deduplication, recurrence, wake/closed-app delivery, denial/revocation |
-| macOS calendars/reminders | Async EventKit facade, explicit OS permission actions, native settings source selection; unavailable sources preserved | Full item import/edit/sync coordinator and actual account/permission acceptance; sync remains disabled |
-| System contacts | Contacts.framework discovery, bounded vCard reads and explicit OS access facade | Full UI import/sync integration and real account permission acceptance |
+| macOS calendar copies | #770: explicit native source/date picker, bounded one-way copies of supported single appointments, preview, stable source identity, re-read before commit, recovery and durable-save acknowledgement; projected JS checks use synthetic native transport; current Swift compilation/applicable CI tests passed | Actual EventKit account/TCC/picker execution; series/alarms/participants and unrepresentable records are excluded; no automatic update/delete/write-back; see `SYSTEM-CALENDAR-IMPORT.md` |
+| Apple Notes text copies | #772: direct NSAppleScript reader, explicit account/folder/note selection, full plaintext preview, exact source identity, source reread, canonical local note transaction and durable-save acknowledgement; current Swift compilation/applicable CI tests passed; no additional application | Actual Notes Dictionary/account/TCC/UI execution; protected notes and notes reporting attachments excluded; only reviewed text is copied, no source writes or synchronization; see `APPLE-NOTES-IMPORT.md` |
+| macOS reminders | #777: explicit EventKit list/item selection, public-field preview, source reread, independently editable local task copies, provenance and durable-save acknowledgement; existing source selections preserved; current Swift and #797 text-copy regressions passed in #104 | Actual EventKit/account/permission/UI acceptance; complete component/hierarchy fidelity and synchronization remain separate |
+| System contacts | #775: Contacts.framework container/contact selection, reviewed local public-field copies, source reread, exact provenance, contact-only birthdays and durable-save acknowledgement; current Swift compilation/applicable CI tests passed | Actual provider/permission/UI acceptance and further mapping fidelity; source writes and complete synchronization remain separate |
+| Native system-account field sync / #786 | Separate explicit source/book binding, current EventKit/Contacts adapters, baseline comparison in both directions, supported-field updates, readback and encrypted transaction ledger; current Swift compilation/applicable CI tests passed. Existing copy provenance grants no authority | Actual provider/TCC/account/Keychain/UI acceptance in a real macOS VM. No new native records, deletes, series, automatic/background sync, or Apple Notes writeback. See `../contracts/macos-786-native-system-sync.md` and `CLOUD-MAC-TESTING.md` |
 | DAV/CalDAV/CardDAV/Nextcloud/Graph | Native DAV configuration/discovery GUI, bounded HTTPS protocol (20 tests), Keychain storage, 19 account/boundary/transaction cases, 15 typed calendar-snapshot tests and sibling-preserving resource-patch tests pass on both architectures | Real server/account GUI acceptance and complete conflict/deletion/local-commit synchronization coordinator; Graph unsupported |
 | Magnolienbaum/personal sync | Unsupported | Pairing, consent, durable queues/receipts, contact/custom/attachment interop |
-| Phone/SMS/Bluetooth/KDE Connect/audio | Unsupported | Native transport/hardware/control contracts and actual-device validation |
+| Phone/SMS/Bluetooth/KDE Connect/audio | Existing KDE Connect clients remain an applicable external Mac/iPhone path. The current Organizer bridge does not implement the desktop phone/pairing/media commands; importing their shared UI does not activate them | Implement and validate concrete supported Mac-to-client capabilities; no separate Magnolie Notes app is required and no blanket KDE exclusion is intended |
 | Background/tray/autostart/cloud backup | Unsupported | LaunchAgent/status item lifecycle, encrypted/locked policy, durable jobs |
-| Printing/PDF/ODS/office letters | Unsupported native bridge | Print pagination, export fidelity and platform launch integration |
+| ODS / office letters | Native export/launch bridge unsupported; system printing/PDF is covered separately above | Office export fidelity and platform launch integration |
 | Weather/holidays/maps/mail/external links | Native public/school holiday HTTPS service and canonical callback; atomic complete results and regional scopes | Live public-holiday HTTPS passed on both architectures; broader school/region/native UI acceptance pending; other listed services unsupported |
-| Handbook | Canonical offline 2.0.30 manual bundled byte-for-byte; isolated local WebKit window, search, Help menu and shared handbook command; 17 host tests pass | Native manual/search/isolation tests running on both architectures at 8e3aa630; no manual-specific native result yet |
+| Handbook | Current canonical offline manual bundled byte-for-byte; isolated local WebKit window/search/Help; applicable current native load/search/isolation tests passed in #104 | Actual user interaction and Monterey acceptance; later manual/UI changes require their own checks |
 | Update/contributor/protected-image rendering | Unsupported; no production trust roots installed | Separate Beta metadata/trust policy and native implementation |
-| Compatibility | Deployment target 12.7 with actual Mach-O minimum verification implemented | Native build verification running; actual Monterey runtime and older-device acceptance pending |
-| Shipping/signing/notarization/installer | User explicitly authorized publication after complete validation; no production artifact or release yet | Complete native feature/package acceptance, production signing/notarization and upgrade checks |
+| Compatibility | Deployment target 12.7 and actual Mach-O architecture/platform/minimum checks passed for both #104 candidates. The #806 native positive/iOS/Catalyst/simulator boundary cases also passed on both architectures in #104 | Actual Monterey runtime and older-device acceptance pending; a Mach-O target is not execution on that OS |
+| Shipping/signing/notarization/installer | Both ad-hoc Debug development ZIPs and strict nested/outer signatures passed in #104; source, runtime, resource and package inventories were independently checked | Full feature acceptance, production signing/notarization/Gatekeeper, install/upgrade and release authorization remain separate; development packages are not stable releases |
 
 `BRIDGE-COVERAGE.md` lists each statically detected shared frontend/Windows-contract
 command against the Swift allowlist. `erinnerung_einrichten`, for example, is only
@@ -60,8 +101,9 @@ datasets are not fabricated as successful empty results.
 ## Next Bounded Phase
 
 1. Review the new recovery/restore transaction and its encryption retention policy.
-2. Continue the authorized GitHub macOS runner checks on both architectures.
-   Record exact source, SDK, test output and failures for each candidate.
+2. For later source changes, repeat the applicable GitHub macOS runner checks
+   on both architectures and record their own source, SDK, results and failures.
+   The completed #104 result remains bound to `3f3ec069`.
 3. Exercise the production Host (not just the WK test harness) for native dialogs,
    permissions, write failure/quit, VoiceOver and keyboard-only operation.
 4. Continue common format/import/export and native service implementations against

@@ -1,0 +1,2077 @@
+From e2a71b5eaf2635b38f0496bb8df9bb6cbf387121 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 08:24:18 +0100
+Subject: [PATCH] Project current desktop import codecs into isolated Mac
+ helper
+
+Refs #785. Preserve the original OR6 and reviewed parser closure, bind bundled phonenumbers and normative zones, and exercise actual helper output through the projected contact preview and Save ACK path. Native picker/runtime acceptance remains pending.
+---
+ .github/workflows/ports-2.0.30.yml            |   5 +
+ Magnolie-Organizer-macOS-Beta/.gitignore      |   1 +
+ .../IMPORT-CODECS.md                          | 238 ++++++++++
+ .../ImportHelper/calendar_evidence.py         |  58 +++
+ .../ImportHelper/closure-policy.json          | 336 +++++++++++++
+ .../ImportHelper/helper.py                    | 201 ++++++++
+ .../ImportHelper/import_context.py            |  74 +++
+ .../tests/file_import.mjs                     | 152 ++++++
+ .../tests/test_import_helper.py               | 329 +++++++++++++
+ .../tools/check_file_import.py                |  75 +++
+ .../tools/project_import_helper.py            | 448 ++++++++++++++++++
+ .../tools/project_ui.py                       |  12 +-
+ 12 files changed, 1927 insertions(+), 2 deletions(-)
+ create mode 100644 Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md
+ create mode 100644 Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py
+ create mode 100644 Magnolie-Organizer-macOS-Beta/ImportHelper/closure-policy.json
+ create mode 100644 Magnolie-Organizer-macOS-Beta/ImportHelper/helper.py
+ create mode 100644 Magnolie-Organizer-macOS-Beta/ImportHelper/import_context.py
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tests/file_import.mjs
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tools/check_file_import.py
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py
+
+diff --git a/.github/workflows/ports-2.0.30.yml b/.github/workflows/ports-2.0.30.yml
+index dcebe7cfbf126b9a1d622cb246b4b3b9af343377..1d4a3ef49ddc116c5366b7e68f160100ed5e4fb5 100644
+--- a/.github/workflows/ports-2.0.30.yml
++++ b/.github/workflows/ports-2.0.30.yml
+@@ -74,6 +74,7 @@ jobs:
+           set -euo pipefail
+           if ! brew list gettext >/dev/null 2>&1; then brew install gettext; fi
+           export PATH="$(brew --prefix gettext)/bin:$PATH"
++          python3 Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py --prepare-dependencies
+           python3 -m venv "$RUNNER_TEMP/mac-python"
+           "$RUNNER_TEMP/mac-python/bin/pip" install --disable-pip-version-check cryptography==46.0.3
+           npm install --prefix "$RUNNER_TEMP/mac-js" --ignore-scripts --no-audit --no-fund --save-exact jsdom@26.1.0
+@@ -116,12 +117,16 @@ jobs:
+         working-directory: Magnolie-Organizer-macOS-Beta
+         run: |
+           set -euo pipefail
++          export PATH="$(brew --prefix gettext)/bin:$PATH"
++          export MACOS_BETA_IMPORT_PYTHON="$RUNNER_TEMP/import-python/bin/python3.15"
++          "$RUNNER_TEMP/mac-python/bin/python" tests/test_import_helper.py
+           python3 tools/project_ui.py freeze --confirm-desktop-frozen
+           python3 tools/project_ui.py generate
+           export MACOS_BETA_JSDOM="$RUNNER_TEMP/mac-js/node_modules/jsdom/lib/api.js"
+           export MACOS_BETA_SWIFT="$(command -v swift)"
+           export MACOS_BETA_UI_PATH="$PWD/Generated"
+           python3 tools/check_current_sources.py --js-runtime node
++          python3 tools/check_file_import.py --js-runtime node --ui "$PWD/Generated"
+           "$RUNNER_TEMP/mac-python/bin/python" tools/crypto_vectors.py --check
+           "$RUNNER_TEMP/mac-python/bin/python" tests/test_host.py
+           MACOS_BETA_LIVE_HOLIDAYS=1 python3 tools/build_dev.py --import-runtime "$RUNNER_TEMP/import-python"
+diff --git a/Magnolie-Organizer-macOS-Beta/.gitignore b/Magnolie-Organizer-macOS-Beta/.gitignore
+index ddf8bcf3c2c2b1823d8745e156cf392350b41ccf..e03257c90458c55744f2cfd8cb2007e8b7eca4f1 100644
+--- a/Magnolie-Organizer-macOS-Beta/.gitignore
++++ b/Magnolie-Organizer-macOS-Beta/.gitignore
+@@ -6,6 +6,7 @@ __pycache__/
+ *.pyc
+ .ci-js/
+ .ci-python/
++.import-dependencies/
+ 
+ # Private working reports, not product source
+ /HANDOFF.md
+diff --git a/Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md b/Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..0a691c4f5694fa86b4b4802528980f8bc151f166
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md
+@@ -0,0 +1,238 @@
++# Aktuelle Dateiimporte auf dem Mac — Refs #785, #121
++
++## Quellumfang und getrennte Zuständigkeiten
++
++Die aktuelle gemeinsame Importseite bot bereits Formate an, für die der Mac-Host
++nur einen ICS-Reader besaß. Eine neuere UI-Projektion allein schließt diese Lücke
++nicht. Dieser Patch stellt die tatsächlichen aktuellen Desktopparser als einen
++lokalen, begrenzten Helper bereit. Die native Dateiauswahl, erneute Prüfung der
++ausgewählten Datei, Vorschau, Buchbindung und Speicherquittung gehören zum
++getrennten Host-/UI-Anschluss desselben Issues.
++
++| Headerformat | Tatsächlich wiederverwendeter Parser | Dateien und Sammlungen |
++| --- | --- | --- |
++| `ics` | `import_rohdaten_lesen` → `ics_lesen` | ICS, VCS, LCS; Termine, Jahrestage, VTODO; erhaltene Serien-/Alarm-/VTIMEZONE-Rohfelder |
++| `lotus` | `lotus_csv_lesen` oder unverändertes `magnolie_or6.read_or6` | CSV und binäres OR6; die im aktuellen Desktopvertrag unterstützten Sammlungen |
++| `vcf` | `vcf_lesen`, bei CSV `lotus_csv_lesen` | vCard 2.1/3.0/4.0 und CSV, strukturierte Kontaktfelder und erhaltene Originalzeilen |
++| `claws` | `claws_xml_lesen` oder `ldif_lesen` | Claws-XML, LDIF und LDI |
++| `ldif` | dieselbe Desktoproute mit internem Format `claws` | LDIF/LDI, einschließlich der bestehenden Claws-Erkennung |
++| `muell` | `muell_import_lesen` | eigene ICS-/CSV-Vorschau; noch kein gespeicherter Müllterminplan |
++
++Die ersten fünf Routen verwenden auch die vorhandene ZIP-Auswahl. Es wird kein
++Archiv ins Dateisystem entpackt. Die Desktopgrenzen bleiben erhalten: höchstens
++128 Dateieinträge, 16 MiB pro unterstütztem Eintrag, 32 MiB insgesamt und
++Kompressionsverhältnis 200. Verschlüsselte Einträge werden abgewiesen. Die
++Müllvorschau bleibt ein eigener Vertrag; ihr `muellToken` wird ausschließlich im
++Host gebunden und ist kein Helperparameter.
++
++Das Paket enthält keine Magnolie-Notes-Begleitapp, keinen Telefontransport,
++keinen KDE-Verbindungsadapter und keine Hintergrundsynchronisation. Der kleine
++projizierte Teil aus `magnolie_phone_region.py` verarbeitet ausschließlich
++Telefonnummernfelder eines Kontakts. `magnolie_social_profiles.py` erkennt
++passive vCard-URL-Metadaten. Beide eröffnen keine Verbindung. Dateien, die etwa
++mit KDE Connect oder AirDrop ankommen, können anschließend bewusst ausgewählt
++werden. Diese externen Wege werden dadurch weder ersetzt noch ausgeschlossen.
++
++## Eine Parserquelle und eine nachprüfbare Projektion
++
++`tools/project_import_helper.py` liest Python-ASTs, ohne das Desktopprogramm
++zu importieren oder auszuführen. `ImportHelper/closure-policy.json` benennt
++die geprüften Entrypoints, Definitionen, globalen und lokalen Imports sowie
++die wenigen Mac-Kontextadapter. Die aktuelle Auswahl enthält:
++
++- 93 Definitionen aus `magnolie-organizer/bin/magnolie-organizer`;
++- 20 Definitionen aus `magnolie_recurrence.py`;
++- ausschließlich `normalize` aus `magnolie_phone_region.py`;
++- das unveränderte vollständige `magnolie_or6.py` und das reine
++  `magnolie_social_profiles.py`.
++
++Die ausgewählten Funktionen werden mit ihren originalen Quellzeilen und
++Dekoratoren erzeugt. Eine neue unbekannte globale Abhängigkeit, ein zusätzlicher
++Import oder dynamische Codeausführung lässt den Bau scheitern. Codex muss dann
++die Ursache prüfen und eine Erweiterung der Closure ausdrücklich im Patch
++belegen. Es wird keine ältere Parserfassung still beibehalten.
++
++Der Host übergibt Sprache, konkrete Zeitzone und `homeCountry`. Der Helper liest
++keine Linux-Profile, Systemkonten oder Benutzereinstellungen. `file:`-Fotos und
++Netz-URLs geben ihm keine Dateiberechtigung. Die vorhandene lokale Fotooption
++ist in dieser Route ausgeschaltet; zusätzliche Kontextadapter verweigern
++externe Lesezugriffe auch bei einem versehentlichen internen Aufruf.
++
++Die reine Datenbibliothek **phonenumbers 9.0.38** verwendet exakt den vorhandenen
++AppImage-Pin aus `magnolie-organizer/werkzeuge/appimage_bauen.sh`:
++SHA-256 `f3cbeb1a42bf226060c60fc6277f5431755d325eddc23fbf2c72ef7e156113c6`.
++Nur ein expliziter Prepare-Befehl lädt das offizielle Wheel. Es liegt im
++ignorierten `.import-dependencies`-Verzeichnis. Inputinventur, Projektion und
++installierte App greifen nicht aufs Netz zu. Die Wheelbytes erscheinen im
++SourceFreeze unter dem stabilen Namen
++`macos-import-dependencies/phonenumbers.whl`; Parsermanifest, entpackte Dateien
++und mitgelieferte Apache-Lizenz sind an diese Bytes gebunden.
++
++Die 19 Übersetzungskataloge werden mit dem vorhandenen `po_zu_js.py` und GNU
++`msgfmt` aus den tatsächlich erfassten PO-Bytes erzeugt. Deshalb muss `msgfmt`
++auch bei Generate/Verify im Baupfad verfügbar sein.
++
++## Zeitzonen
++
++Der Projektor serialisiert die bereits geprüften normativen Daten aus
++`port-adapters/timezones/tzdb-2026egtz.json` zurück in TZif v3: **439 vollständige
++Regelsätze für 597 Namen**. Es kommt keine neue Zeitzonenarithmetik hinzu.
++Historische Typen, Übergänge und der originale POSIX-Footer bleiben erhalten.
++Die Payload-, Provenienz- und Lizenzhashes sind dieselben wie im bestehenden
++Mac-Port. Ein Rücklesen mit dem vorhandenen `build-tzif.py::parse_tzif` prüft
++jeden Regelsatz; die vorhandenen unabhängigen Zeitpunktfixtures werden mit
++Python `ZoneInfo` ausgewertet.
++
++Der Helper setzt seinen einzigen TZif-Pfad auf das überprüfte `zones/` im
++Bundle. Unbekannte Namen erteilen keinen Zugriff auf Systemdateien oder ein
++optional installiertes `tzdata`-Paket. Eingebettete VTIMEZONE-Definitionen
++behalten die Priorität des gemeinsamen Parsers.
++
++## Stdio-Protokoll 1
++
++Der native Host startet genau einen Prozess mit `-I -S -B`:
++`Contents/Helpers/ImportPython/bin/python3.15`, danach der feste Skriptpfad
++`Contents/Resources/ImportHelper/helper.py`. Es gibt keinen Shellaufruf,
++keinen wählbaren Interpreter und keinen System-Python-Fallback. Der private
++Runtimebau und seine noch erforderliche Mac-Abnahme sind in
++[IMPORT-RUNTIME.md](IMPORT-RUNTIME.md) beschrieben.
++
++Stdin enthält eine UTF-8-JSON-Kopfzeile, LF und anschließend unveränderte
++Quelldateibytes. Die Kopfzeile hat **genau** diese Felder:
++
++| Feld | Vertrag |
++| --- | --- |
++| `schema` | Integer `1`, kein Boolean |
++| `format` | eines der sechs oben genannten Formate |
++| `name` | Anzeigename der ausgewählten Datei, kein Pfad; höchstens 1024 UTF-8-Bytes |
++| `language` | aufgelöster Sprachcode mit optionaler Region/Schrift, z.B. `de`, `en-us`, `zh-hant-de`; höchstens 64 Bytes |
++| `timeZone` | konkrete gebündelte IANA-Zone; höchstens 128 Bytes, kein `system` |
++| `homeCountry` | einer der 249 kanonischen ISO-3166-1-Zweibuchstabencodes; kein leerer Wert |
++| `byteLength` | exakte Ganzzahl zwischen 0 und 33.554.432 |
++| `sha256` | SHA-256 der folgenden Bytes, 64 kleine Hexzeichen |
++
++Der Helper normalisiert Sprachcodes auf Kleinbuchstaben und Bindestriche. Er
++nutzt einen exakt passenden Katalog, danach den Basissprachkatalog und sonst
++die englischen Quelltexte. `zh` und `zh-*` verwenden den vorhandenen `zh-cn`-
++Katalog, entsprechend `NativeLocalization.ResolveLanguage` des aktuellen
++Windowsprogramms. IANA-Aliasse sind zulässig, sofern sie zu den 597 Namen der
++gebündelten normativen Registry gehören, beispielsweise `US/Eastern`.
++
++Die Kopfzeile einschließlich LF ist auf **8192 Bytes** begrenzt. Doppelte oder
++zusätzliche Felder, nicht endliche JSON-Zahlen, Steuerzeichen, falsche Längen
++und falsche Hashes werden abgewiesen. Nach genau `byteLength` Bytes muss EOF
++folgen; ein angehängter zweiter Request ist unzulässig. Der Host muss den
++Eingabekanal schließen und besitzt einen 60-Sekunden-Watchdog.
++
++Stdout enthält genau eine UTF-8-JSON-Antwort mit abschließendem LF, insgesamt
++höchstens **100.663.296 Bytes (96 MiB)**. Die gesamte Antwort wird auf die Grenze
++geprüft, bevor sie ausgegeben wird. Bei Erfolg:
++
++```json
++{
++  "schema": 1,
++  "ok": true,
++  "format": "lotus",
++  "name": "selected.or6",
++  "sourceSHA256": "SHA256 der tatsächlich gelesenen Quelldateibytes",
++  "parserManifestSHA256": "SHA256 der tatsächlich geprüften manifest.json",
++  "result": { "termine": [], "aufgaben": [], "kontakte": [], "notizen": [] }
++}
++```
++
++Die beiden erläuternden Hashstrings oben stehen für die echten 64-stelligen
++Hexwerte. `result` ist die vorhandene Desktopantwort einschließlich ihrer
++Zähler, Auslassungen und Berichte; die tatsächlichen Sammlungen hängen vom
++Format ab. Ein Fehler liefert `ok: false`, keinen `result` und
++`error: {code, message}`. Die Hashfelder sind `null`, solange sie noch nicht
++geprüft werden konnten. Die Meldung ist auf 512 Zeichen begrenzt.
++
++Fehlercodes sind `invalid_header`, `unsupported_format`, `input_too_large`,
++`input_length`, `input_identity`, `invalid_timezone`, `bundle_invalid`,
++`parse_failed` und `output_too_large`. Ein erfolgreich übertragenes
++Fehler-Envelope hat Exitcode 0; Prozessabbruch, Timeout, fehlendes EOF oder
++fehlende/ungültige Ausgabe bleiben Hostfehler. Der native Host prüft Quellhash
++und Manifesthash nochmals. Eine Parserantwort ist noch keine Speicherquittung.
++
++## #465 bleibt im ICS-Anschluss erhalten
++
++Für `ics` ergänzt `calendar_evidence.py` ausschließlich im Callback-Envelope
++`icsImportMetadata` und gegebenenfalls `legacyAndroidAliases`. Der Sidecar
++bindet den Hash der vollständigen ausgewählten Bytes, auch bei ZIP, an die
++Terminzahl, Position, Quelle, Wire-UID und vollständige originale RID-Zeile.
++Die kanonische Instanz-UID wird gegen die unveränderte gemeinsame
++RID-Serialisierung geprüft; die alte Android-Quote-Kennung wird separat
++berechnet. Der vorhandene bekannte Alias aus #465 wird als feste Referenz
++geprüft. Kein Alias wird in einen Termin oder in die Quellmetadaten geschrieben.
++Der Host muss diese Antwort über den bestehenden nativen #465-Callback führen.
++
++## Belegte Prüfungen und verbleibende Abnahme
++
++Auf dieser **Linux-x86_64-Umgebung** wurden die tatsächlichen isolierten
++Pythonprozesse geprüft; sie ist keine nachgewiesene macOS-VM und hat weder
++Swift noch das Apple-SDK. Die Helpertests laufen hier mit CPython 3.12.14.
++Der native Workflow führt denselben Test mit dem privat gebauten CPython
++3.15.2 aus. Dieser zusätzliche native Lauf ist vorbereitet, hier nicht ausgeführt.
++
++`tests/test_import_helper.py` bestand **14 Prüfgruppen** einschließlich aller **27**
++ursprünglich mit Organizer 6 erzeugten, hashgebundenen OR6-Dateien, aktueller
++Desktop-Goldens, ZIP-Grenzen, Müllvorschau, Sprache/Land, Quell-/EOF-Bindung,
++Closure-Drift, beschädigter Abhängigkeiten, Codeänderungen im Bundle und
++Datei-/Netz-Fotoverweisen. Die OR6-Ausgaben werden vollständig mit dem aktuellen
++Originalparser und bekannten unabhängigen Fixturewerten verglichen.
++
++`tools/check_file_import.py` führt echte OR6-Bytes durch diesen Prozess in die
++tatsächlich erzeugte gemeinsame Mac-UI und bestand **90 Prüfungen**. Der Test
++bedient die Kontaktvorschau, prüft den Save-ACK, Wiederöffnung, Wiederimport und
++Fehlerzustände. Transport-
++und Save-Callbacks bleiben dabei synthetisch; daraus folgt kein Beleg für
++AppKit-Dateiauswahl oder reale native Persistenz. Die alte Native-Fixture nutzt
++`.invalid`, die die gemeinsame UI bewusst ablehnt. Eine weitere Originaldatei
++prüft deshalb separat die erhaltene `.test`-Adresse nach bestätigter Speicherung.
++
++```sh
++python3 tools/project_import_helper.py --prepare-dependencies
++python3 tests/test_import_helper.py
++MACOS_BETA_JSDOM=/absolute/path/to/jsdom/lib/api.js \
++  python3 tools/check_file_import.py --js-runtime /absolute/path/to/node
++```
++
++GNU `msgfmt` muss im `PATH` stehen; die gemeinsamen UI-Kataloge müssen wie im
++bestehenden Mac-Bauablauf vorbereitet sein. Für einen vorhandenen privaten
++Interpreter setzt Codex `MACOS_BETA_IMPORT_PYTHON` auf dessen absoluten Pfad.
++
++## Präzise offene Folgearbeiten für Codex
++
++**Vollarchiv `.magnolie`:** Der Befehl `gesamtarchiv_waehlen` und die vollständige
++Archivtransaktion sind von den oben implementierten Dateicodecs getrennt.
++Maßgebliche Quellen sind `gesamtarchiv_lesen_text`/`gesamtarchiv_lesen` und
++`gesamtarchiv_lokales_bewahren` im Linuxprogramm sowie
++`magnolie-organizer-windows/GesamtarchivService.cs`. Das Format ist ein
++schema-/hashgebundenes Gesamtarchiv, gegebenenfalls zusätzlich verschlüsselt;
++es darf nicht als gewöhnliche ZIP- oder OR6-Route behandelt werden. Codex muss
++einen nativen Picker, Passwort-/Integritätsprüfung, vollständige Vorschau,
++Recovery-Checkpoint, Buch-/Generation-Bindung und die bereits vorhandene
++Mac-Restore-Transaktion verbinden. Plattformfremde Integrationsgeheimnisse
++dürfen daraus keine Berechtigung erhalten. Prüfungen benötigen vollständige
++plattformübergreifende Archive, Fotos/Anhänge, unbekannte Felder, falsches
++Kennwort, Manipulation, Konflikt, NACK und tatsächliche Wiederöffnung.
++
++**Lokale Evolution-/Thunderbird-Erkennung:** `import_lokal` und Linux
++`_import_lokal_arbeit` sind ein anderer Adapter. Linux-Systemdienste und
++Profilpfade sind keine Mac-Berechtigung. Codex muss tatsächlich verfügbare
++Mac-Quellen und deren konkrete Auswahl prüfen, Leserechte an den ausgewählten
++Quellen binden und danach denselben Vorschau-/Speichervertrag verwenden.
++Dateiexporte dieser Programme können bereits über die passenden neuen
++Dateirouten importiert werden. Es wird keine funktionierende Mac-Profilsuche
++behauptet.
++
++**Systemkonto-Synchronisation:** Apple-Kontakte, -Kalender und -Erinnerungen
++benötigen einen eigenen, dauerhaft autorisierten Abgleich mit Konflikt- und
++Readbackregeln. Weder die neuen Dateiimporte noch die bestehenden Kopierimporte
++belegen diese Synchronisation. Dieser Helper enthält dafür keine Adapter.
++
++Für die native Abnahme nutzt Codex eine tatsächlich verfügbare Apple-macOS-
++CI-/Cloudumgebung mit SDK und dokumentiert Architektur, OS, Quellmanifest,
++Runtimehash und Ergebnis. Wenn eine solche Umgebung fehlt, bleibt dieser
++Schritt ausdrücklich offen. Keine persönliche Mac-Hardware wird vorausgesetzt;
++dieser Patch ist keine Paketveröffentlichung.
+diff --git a/Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py b/Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..d564515ad1221181b1dfe2b63448900aaa31d5d3
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py
+@@ -0,0 +1,58 @@
++"""Transient #465 evidence around the unchanged current desktop ICS result."""
++import hashlib
++import io
++import re
++import zipfile
++
++
++def with_calendar_evidence(result, raw, source_sha256, codec):
++    response = dict(result)
++    properties = []
++    if not zipfile.is_zipfile(io.BytesIO(raw)):
++        stack = []
++        for line in codec._entfalte_zeilen(codec._text_dekodieren(raw)):
++            prop = codec._prop_zerlegen(line)
++            if not prop:
++                continue
++            name, _parameters, value = prop
++            if name == "BEGIN":
++                stack.append(value.strip().upper())
++            elif name == "END":
++                if stack:
++                    stack.pop()
++            elif stack == ["VCALENDAR"]:
++                properties.append(line)
++    response["icsImportMetadata"] = {"version": 1, "sourceSHA256": source_sha256,
++                                     "calendarProperties": properties}
++    rows = result.get("termine", [])
++    entries = []
++    for index, row in enumerate(rows):
++        lines = [line for line in row.get("icsRoundtrip", [])
++                 if isinstance(line, str) and re.match(r"^RECURRENCE-ID[;:]", line, re.I)]
++        if not lines:
++            continue
++        if len(lines) != 1:
++            raise ValueError("Ambiguous calendar recurrence identity.")
++        wire = row.get("icsSerienUid")
++        source_id = row.get("icsQuelleId")
++        if not isinstance(wire, str) or not wire or not isinstance(source_id, str) or not source_id:
++            raise ValueError("The calendar recurrence source identity is missing.")
++        # Reuse the parser's exact full parameter/value serialization. Source
++        # identity and the original complete RID line stay separate witnesses.
++        current = codec._termin_recurrence_id(row)
++        canonical_uid = wire + "-magnolie-instanz-" + hashlib.sha256(current.encode("utf-8")).hexdigest()[:16]
++        if row.get("uid") != canonical_uid:
++            raise ValueError("Canonical calendar recurrence evidence differs.")
++        legacy_uid = wire + "-magnolie-instanz-" + hashlib.sha256(current.replace("/", "\\/").encode("utf-8")).hexdigest()[:16]
++        if canonical_uid != legacy_uid:
++            entries.append({"appointmentIndex": index, "canonicalUID": canonical_uid,
++                            "legacyUID": legacy_uid, "sourceID": source_id, "wireUID": wire,
++                            "recurrenceLine": lines[0]})
++    if entries:
++        if len(rows) > 50000:
++            raise ValueError("The calendar alias evidence exceeds the supported limits.")
++        response["legacyAndroidAliases"] = {
++            "version": 1, "algorithm": "android-jsonobject-quote-v1", "sourceSHA256": source_sha256,
++            "appointmentCount": len(rows), "entries": entries,
++        }
++    return response
+diff --git a/Magnolie-Organizer-macOS-Beta/ImportHelper/closure-policy.json b/Magnolie-Organizer-macOS-Beta/ImportHelper/closure-policy.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..870e6081a478e130217b67be55d479841269d423
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/ImportHelper/closure-policy.json
+@@ -0,0 +1,336 @@
++{
++  "copiedModules": {
++    "magnolie_or6.py": {
++      "imports": [
++        "array:array",
++        "datetime:datetime",
++        "gettext",
++        "re",
++        "struct",
++        "sys"
++      ],
++      "source": "magnolie-organizer/bin/magnolie_or6.py"
++    },
++    "magnolie_social_profiles.py": {
++      "imports": [
++        "re",
++        "urllib.parse:parse_qs",
++        "urllib.parse:urlsplit",
++        "urllib.parse:urlunsplit"
++      ],
++      "source": "magnolie-organizer/bin/magnolie_social_profiles.py"
++    }
++  },
++  "issue": 785,
++  "projections": {
++    "desktop_imports.py": {
++      "adapters": {
++        "_": "translate",
++        "_organizer_zeitzone": "organizer_zone",
++        "_zeitzonenname": "organizer_zone_name",
++        "open": "deny_file_access",
++        "os": "read_only_os"
++      },
++      "reviewed": {
++        "definitions": [
++          "GroessenFehler",
++          "IMPORT_ARCHIV_EINTRAEGE_MAX",
++          "IMPORT_ARCHIV_EINTRAG_MAX",
++          "IMPORT_ARCHIV_VERHAELTNIS_MAX",
++          "IMPORT_DATEI_MAX",
++          "LOTUS_ADRESS_FELDER",
++          "LOTUS_AUFGABEN_FELDER",
++          "LOTUS_JAHRESTAG_FELDER",
++          "LOTUS_NOTIZ_FELDER",
++          "_EMAIL_MUSTER",
++          "_ISO_DATUM",
++          "_JT_TYP_SCHLUESSEL",
++          "_KALENDER_ZEITFORMATE",
++          "_TELEFON_STANDARDTYPEN",
++          "_VCARD_KOPF_CACHE",
++          "_anschrift_liste",
++          "_anschriften_setzen",
++          "_aufgaben_export_alias",
++          "_aufgaben_identitaet_lesen",
++          "_bday_datum",
++          "_claws_datum",
++          "_claws_kontakt",
++          "_datumzeit_lesen",
++          "_email_adresse",
++          "_email_eintraege",
++          "_email_liste",
++          "_entfalte_zeilen",
++          "_hole",
++          "_ical_unescape",
++          "_ics_datumzeit",
++          "_ics_komponente",
++          "_ics_native_serie_unterstuetzt",
++          "_ics_prop_roh",
++          "_ics_quelle_setzen",
++          "_ics_roundtrip",
++          "_ics_serien_abstimmen",
++          "_ics_wiederholung",
++          "_ist_eds_zeigerwert",
++          "_ist_iso",
++          "_ist_ja",
++          "_jahrestag_aus_ereignis",
++          "_kalender_akzentfarbe",
++          "_kalender_strptime",
++          "_kontakt_label",
++          "_kontaktpersonen_liste",
++          "_kontaktpersonen_setzen",
++          "_lotus_aufgaben",
++          "_lotus_ja",
++          "_lotus_jahrestage",
++          "_lotus_kontakte",
++          "_lotus_notiz",
++          "_lotus_notizen",
++          "_lotus_teile",
++          "_lotus_termin_zuordnung",
++          "_lotus_titel",
++          "_lotus_zuordnung",
++          "_maschinen_datum",
++          "_maschinen_monat_tag",
++          "_mit_vcard_kopf_cache",
++          "_prop_gruppe",
++          "_prop_zerlegen",
++          "_semikolon_teile",
++          "_sicherer_ics_quellenpfad",
++          "_soziale_medien_liste",
++          "_spaltenname_norm",
++          "_stempel_zu_ms",
++          "_telefon_liste",
++          "_telefon_schluessel",
++          "_telefon_typ_gruppe",
++          "_telefon_typen",
++          "_telefon_typen_aus_label",
++          "_telefone_setzen",
++          "_termin_recurrence_id",
++          "_termin_zeitpunkt",
++          "_text_dekodieren",
++          "_text_sha256",
++          "_typen_von",
++          "_vcard_foto",
++          "_vcard_karten",
++          "_vcard_parameter_liste",
++          "_vcard_restparameter",
++          "_vcard_rev_zu_ms",
++          "_vcard_wert",
++          "claws_xml_lesen",
++          "ics_lesen",
++          "import_rohdaten_lesen",
++          "jahrestag_typ_id",
++          "kanonischer_text",
++          "ldif_lesen",
++          "lotus_art_erkennen",
++          "lotus_csv_lesen",
++          "muell_import_lesen",
++          "vcf_lesen"
++        ],
++        "imports": {
++          "ContextVar": [
++            "contextvars",
++            "ContextVar"
++          ],
++          "ET": [
++            "xml.etree.ElementTree",
++            null
++          ],
++          "IcsRule": [
++            "magnolie_recurrence",
++            "Rule"
++          ],
++          "base64": [
++            "base64",
++            null
++          ],
++          "calendar_zones": [
++            "magnolie_recurrence",
++            "calendar_zones"
++          ],
++          "csv": [
++            "csv",
++            null
++          ],
++          "datetime": [
++            "datetime",
++            "datetime"
++          ],
++          "hashlib": [
++            "hashlib",
++            null
++          ],
++          "ics_date_time": [
++            "magnolie_recurrence",
++            "date_time"
++          ],
++          "ics_duration_end": [
++            "magnolie_recurrence",
++            "duration_end"
++          ],
++          "ics_properties": [
++            "magnolie_recurrence",
++            "properties"
++          ],
++          "io": [
++            "io",
++            null
++          ],
++          "json": [
++            "json",
++            null
++          ],
++          "quopri": [
++            "quopri",
++            null
++          ],
++          "re": [
++            "re",
++            null
++          ],
++          "timedelta": [
++            "datetime",
++            "timedelta"
++          ],
++          "timezone": [
++            "datetime",
++            "timezone"
++          ],
++          "unicodedata": [
++            "unicodedata",
++            null
++          ],
++          "wraps": [
++            "functools",
++            "wraps"
++          ],
++          "zipfile": [
++            "zipfile",
++            null
++          ]
++        },
++        "localImports": [
++          "hashlib",
++          "magnolie_or6:read_or6",
++          "magnolie_phone_region:normalize",
++          "magnolie_social_profiles:from_vcard",
++          "urllib.parse:unquote",
++          "urllib.parse:urlsplit",
++          "zoneinfo:ZoneInfo"
++        ]
++      },
++      "roots": [
++        "import_rohdaten_lesen",
++        "muell_import_lesen"
++      ],
++      "source": "magnolie-organizer/bin/magnolie-organizer"
++    },
++    "magnolie_phone_region.py": {
++      "adapters": {
++        "phonenumbers": "phone_numbers",
++        "regional_context": "regional_context"
++      },
++      "reviewed": {
++        "definitions": [
++          "normalize"
++        ],
++        "imports": {
++          "re": [
++            "re",
++            null
++          ]
++        },
++        "localImports": []
++      },
++      "roots": [
++        "normalize"
++      ],
++      "source": "magnolie-organizer/bin/magnolie_phone_region.py"
++    },
++    "magnolie_recurrence.py": {
++      "adapters": {
++        "ZoneInfo": "zone_info"
++      },
++      "reviewed": {
++        "definitions": [
++          "CalendarZone",
++          "MAX_CANDIDATES",
++          "MAX_OCCURRENCES",
++          "MAX_ORDINAL",
++          "MAX_PERIODS",
++          "RecurrenceLimitError",
++          "Rule",
++          "UNITS",
++          "WEEKDAYS",
++          "_Budget",
++          "_Prefix",
++          "_calendar_zone",
++          "_calendar_zones",
++          "_exists",
++          "_instant",
++          "_prefix_state",
++          "calendar_zones",
++          "date_time",
++          "duration_end",
++          "properties"
++        ],
++        "imports": {
++          "OrderedDict": [
++            "collections",
++            "OrderedDict"
++          ],
++          "bisect": [
++            "bisect",
++            null
++          ],
++          "calendar": [
++            "calendar",
++            null
++          ],
++          "datetime": [
++            "datetime",
++            "datetime"
++          ],
++          "lru_cache": [
++            "functools",
++            "lru_cache"
++          ],
++          "math": [
++            "math",
++            null
++          ],
++          "re": [
++            "re",
++            null
++          ],
++          "threading": [
++            "threading",
++            null
++          ],
++          "timedelta": [
++            "datetime",
++            "timedelta"
++          ],
++          "timezone": [
++            "datetime",
++            "timezone"
++          ],
++          "tzinfo": [
++            "datetime",
++            "tzinfo"
++          ]
++        },
++        "localImports": []
++      },
++      "roots": [
++        "Rule",
++        "date_time",
++        "duration_end",
++        "properties",
++        "calendar_zones"
++      ],
++      "source": "magnolie-organizer/bin/magnolie_recurrence.py"
++    }
++  },
++  "schema": 1
++}
+diff --git a/Magnolie-Organizer-macOS-Beta/ImportHelper/helper.py b/Magnolie-Organizer-macOS-Beta/ImportHelper/helper.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..b2b0cd8e3dbddcf1823522c83e9c410a8276fb75
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/ImportHelper/helper.py
+@@ -0,0 +1,201 @@
++#!/usr/bin/env python3
++"""One bounded header+binary request -> one bounded result; protocol #785 v1."""
++import hashlib
++import io
++import json
++import os
++from pathlib import Path
++import re
++import sys
++
++
++MAX_HEADER_BYTES = 8192
++MAX_INPUT_BYTES = 32 * 1024 * 1024
++MAX_OUTPUT_BYTES = 96 * 1024 * 1024
++MAX_MANIFEST_BYTES = 512 * 1024
++FORMATS = frozenset({"ics", "lotus", "vcf", "claws", "ldif", "muell"})
++HEADER_FIELDS = frozenset({"schema", "format", "name", "language", "timeZone", "homeCountry", "byteLength", "sha256"})
++
++
++class RequestError(ValueError):
++    def __init__(self, code, message):
++        super().__init__(message)
++        self.code = code
++
++
++def unique_object(pairs):
++    result = {}
++    for key, value in pairs:
++        if key in result:
++            raise ValueError("Duplicate JSON property.")
++        result[key] = value
++    return result
++
++
++def read_json(data):
++    def invalid_constant(_value):
++        raise ValueError("Non-finite JSON number.")
++    return json.loads(data.decode("utf-8"), object_pairs_hook=unique_object,
++                      parse_constant=invalid_constant)
++
++
++def digest(data):
++    return hashlib.sha256(data).hexdigest()
++
++
++def bundle_file(bundle, name):
++    if (not isinstance(name, str) or not name or Path(name).is_absolute()
++            or any(part in {"", ".", ".."} for part in name.split("/"))):
++        raise ValueError("Invalid helper manifest path.")
++    path = bundle / name
++    if any(candidate.is_symlink() for candidate in (path, *path.parents)):
++        raise ValueError("Symlinked helper input.")
++    return path
++
++
++def verify_bundle(bundle):
++    raw = bundle_file(bundle, "manifest.json").read_bytes()
++    if len(raw) > MAX_MANIFEST_BYTES:
++        raise ValueError("Helper manifest is too large.")
++    manifest = read_json(raw)
++    if (manifest.get("schema") != 1 or manifest.get("protocol") != 1
++            or manifest.get("kind") != "magnolie-macos-import-helper"
++            or manifest.get("maximumInputBytes") != MAX_INPUT_BYTES
++            or manifest.get("maximumOutputBytes") != MAX_OUTPUT_BYTES
++            or set(manifest.get("formats", [])) != FORMATS):
++        raise ValueError("Helper manifest contract differs.")
++    generated = manifest["generated"]
++    actual = {str(path.relative_to(bundle)) for path in bundle.rglob("*") if path.is_file()}
++    if actual != set(generated) | {"manifest.json"}:
++        raise ValueError("Helper file set differs.")
++    for name, proof in generated.items():
++        data = bundle_file(bundle, name).read_bytes()
++        if len(data) != proof["bytes"] or digest(data) != proof["sha256"]:
++            raise ValueError("Helper input identity differs.")
++    return manifest, digest(raw)
++
++
++def read_request(stream):
++    line = stream.readline(MAX_HEADER_BYTES + 1)
++    if len(line) > MAX_HEADER_BYTES or not line.endswith(b"\n"):
++        raise RequestError("invalid_header", "The import header is invalid or too large.")
++    try:
++        header = read_json(line)
++    except (ValueError, UnicodeError) as error:
++        raise RequestError("invalid_header", "The import header is invalid.") from error
++    if not isinstance(header, dict) or set(header) != HEADER_FIELDS:
++        raise RequestError("invalid_header", "The import header fields differ.")
++    if type(header["schema"]) is not int or header["schema"] != 1:
++        raise RequestError("invalid_header", "The import protocol is unsupported.")
++    if not isinstance(header["format"], str) or header["format"] not in FORMATS:
++        raise RequestError("unsupported_format", "The file has an unsupported format.")
++    for key, limit in (("name", 1024), ("language", 64), ("timeZone", 128)):
++        value = header[key]
++        if (not isinstance(value, str) or not value or len(value.encode("utf-8")) > limit
++                or any(ord(character) < 32 or ord(character) == 127 for character in value)):
++            raise RequestError("invalid_header", "The import header contains invalid text.")
++    if "/" in header["name"] or "\\" in header["name"] or header["name"] in {".", ".."}:
++        raise RequestError("invalid_header", "The import requires a display filename, not a path.")
++    if not re.fullmatch(r"[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*", header["language"]):
++        raise RequestError("invalid_header", "The import language is invalid.")
++    if not isinstance(header["homeCountry"], str) or not re.fullmatch(r"[A-Z]{2}", header["homeCountry"]):
++        raise RequestError("invalid_header", "The import home country is invalid.")
++    count = header["byteLength"]
++    if type(count) is not int or not 0 <= count <= MAX_INPUT_BYTES:
++        raise RequestError("input_too_large", "The import file is larger than 32 megabytes.")
++    if not isinstance(header["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", header["sha256"]):
++        raise RequestError("invalid_header", "The import source identity is invalid.")
++    data = stream.read(count + 1)
++    if len(data) != count:
++        raise RequestError("input_length", "The import byte count differs or trailing input remains.")
++    if digest(data) != header["sha256"]:
++        raise RequestError("input_identity", "The import source identity differs.")
++    return header, data
++
++
++def restrict_io(bundle):
++    # This is a narrow runtime guard, not a claim of an operating-system sandbox.
++    # The isolated interpreter and this verified bundle are the only read roots.
++    roots = (bundle.resolve(), Path(sys.base_prefix).resolve(), Path(sys.prefix).resolve())
++
++    def audit(event, args):
++        if event == "open":
++            path, mode, flags = args
++            if isinstance(path, int):
++                if path not in (0, 1, 2):
++                    raise PermissionError("External file descriptor refused.")
++                return
++            if (isinstance(mode, str) and any(letter in mode for letter in "wax+")) or flags & (os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC | os.O_APPEND):
++                raise PermissionError("Import writes are refused.")
++            candidate = Path(os.fsdecode(path)).resolve()
++            if not any(candidate == root or root in candidate.parents for root in roots):
++                raise PermissionError("External import file access refused.")
++        elif event.startswith(("socket.", "subprocess.", "os.exec", "os.spawn")) or event in {"os.system", "os.fork", "os.forkpty"}:
++            raise PermissionError("Import process or network access refused.")
++    sys.addaudithook(audit)
++
++
++def encode_response(response, limit=MAX_OUTPUT_BYTES):
++    buffer = io.BytesIO()
++    encoder = json.JSONEncoder(ensure_ascii=False, allow_nan=False, separators=(",", ":"))
++    for part in encoder.iterencode(response):
++        raw = part.encode("utf-8")
++        if buffer.tell() + len(raw) + 1 > limit:
++            raise RequestError("output_too_large", "The import result exceeds the supported limits.")
++        buffer.write(raw)
++    buffer.write(b"\n")
++    return buffer.getvalue()
++
++
++def main():
++    manifest_digest = None
++    source_digest = None
++    translate = lambda message: message
++    try:
++        bundle = Path(__file__).resolve().parent
++        try:
++            manifest, manifest_digest = verify_bundle(bundle)
++        except (OSError, ValueError, KeyError, TypeError) as error:
++            raise RequestError("bundle_invalid", "The bundled import helper could not be verified.") from error
++        header, data = read_request(sys.stdin.buffer)
++        source_digest = header["sha256"]
++        # -I -S -B intentionally omits the script directory, cwd and user site.
++        # Add only this verified bundle, never a caller-provided search path.
++        sys.path.insert(0, str(bundle / "vendor"))
++        sys.path.insert(0, str(bundle))
++        restrict_io(bundle)
++        import import_context
++        if header["homeCountry"] not in manifest["homeCountries"]:
++            raise RequestError("invalid_header", "The import home country is invalid.")
++        try:
++            import_context.configure(bundle, header, read_json((bundle / "catalogs.json").read_bytes()), manifest["timezones"])
++        except (KeyError, ValueError) as error:
++            raise RequestError("invalid_timezone", "The calendar timezone is unavailable.") from error
++        translate = import_context.translate
++        import desktop_imports
++        art = "claws" if header["format"] == "ldif" else header["format"]
++        result = (desktop_imports.muell_import_lesen(data, header["name"]) if art == "muell"
++                  else desktop_imports.import_rohdaten_lesen(art, data, header["name"]))
++        if art == "ics":
++            from calendar_evidence import with_calendar_evidence
++            result = with_calendar_evidence(result, data, source_digest, desktop_imports)
++        response = {"schema": 1, "ok": True, "format": header["format"], "name": header["name"],
++                    "sourceSHA256": source_digest, "parserManifestSHA256": manifest_digest, "result": result}
++        encoded = encode_response(response)
++    except Exception as error:
++        code = error.code if isinstance(error, RequestError) else "parse_failed"
++        message = str(error) if isinstance(error, (RequestError, ValueError)) else "The content is unreadable."
++        response = {"schema": 1, "ok": False, "sourceSHA256": source_digest,
++                    "parserManifestSHA256": manifest_digest,
++                    "error": {"code": code, "message": translate(message)[:512]}}
++        encoded = encode_response(response)
++    try:
++        sys.stdout.buffer.write(encoded)
++        sys.stdout.buffer.flush()
++        return 0
++    except BrokenPipeError:
++        return 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/Magnolie-Organizer-macOS-Beta/ImportHelper/import_context.py b/Magnolie-Organizer-macOS-Beta/ImportHelper/import_context.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..7fe837731562a70f12f940738557b60eccd62dea
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/ImportHelper/import_context.py
+@@ -0,0 +1,74 @@
++"""Mac-only context for projected pure codecs; no profile, account or file grants."""
++import posixpath
++from types import SimpleNamespace
++import zoneinfo
++
++
++_zone = None
++_zone_name = None
++_zones = frozenset()
++_catalog = {}
++_home_country = None
++_language = None
++phone_numbers = None
++
++
++def configure(bundle, header, catalogs, registry):
++    global _zone, _zone_name, _zones, _catalog, _home_country, _language, phone_numbers
++    _zones = frozenset(registry)
++    zoneinfo.reset_tzpath([str(bundle / "zones")])
++    zoneinfo.ZoneInfo.clear_cache()
++    _zone_name = header["timeZone"]
++    _zone = zone_info(_zone_name)
++    import phonenumbers
++    phone_numbers = phonenumbers
++    _home_country = header["homeCountry"]
++    _language = header["language"]
++    language = header["language"].replace("_", "-").lower()
++    # Match the current desktop native catalog selection for Chinese tags;
++    # regions/scripts do not create a new catalog or a system-locale lookup.
++    if language == "zh" or language.startswith("zh-"):
++        language = "zh-cn"
++    _catalog = catalogs.get(language, catalogs.get(language.split("-", 1)[0], {}))
++
++
++def zone_info(name):
++    # No system-zoneinfo or optional tzdata-package fallback for unknown names.
++    if not isinstance(name, str) or name not in _zones:
++        raise ValueError("The calendar timezone is unavailable.")
++    return zoneinfo.ZoneInfo(name)
++
++
++def organizer_zone():
++    if _zone is None:
++        raise RuntimeError("Import context is not configured.")
++    return _zone
++
++
++def organizer_zone_name():
++    if _zone_name is None:
++        raise RuntimeError("Import context is not configured.")
++    return _zone_name
++
++
++def translate(message):
++    return _catalog.get(message, message)
++
++
++def deny_file_access(*_args, **_kwargs):
++    raise PermissionError("The file import has no access to external files.")
++
++
++# Only string operations are needed by the selected-file parsers. The desktop
++# local-contact photo branch remains in the exact projected function, but cannot
++# turn a file: value into a read capability even if accidentally called later.
++read_only_os = SimpleNamespace(path=SimpleNamespace(
++    basename=posixpath.basename, splitext=posixpath.splitext,
++    isabs=posixpath.isabs, getsize=deny_file_access,
++))
++
++
++def regional_context():
++    if _home_country is None:
++        raise RuntimeError("Import context is not configured.")
++    return _home_country, _language
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/file_import.mjs b/Magnolie-Organizer-macOS-Beta/tests/file_import.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..95cdff32f07ca9d555c0fa568ebfaa75843aea40
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tests/file_import.mjs
+@@ -0,0 +1,152 @@
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import { webcrypto } from 'node:crypto';
++import { boot, tick } from './ui_harness.mjs';
++
++const fixture = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
++assert.equal(fixture.response.ok, true);
++const payload = { ...fixture.response.result, art: 'lotus', abgebrochen: false, datei: fixture.response.name };
++let checks = 0;
++const equal = (actual, expected, label) => {
++  const plain = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
++  assert.deepEqual(plain(actual), plain(expected), label); checks++;
++};
++async function environment() {
++  const b = await boot(process.argv[2]);
++  Object.defineProperty(b.w.crypto, 'subtle', { value: webcrypto.subtle });
++  b.w.MacBeta.receive('init', { daten: {
++    termine: [], aufgaben: [], kontakte: [], notizen: [],
++    futureRoot: { preserve: ['unknown', { value: 17 }] },
++    einstellungen: { allgemein: { handbuchHinweisGezeigt: true }, regional: { homeCountry: 'DE' } }
++  }, neu: false, regional: { language: 'en', timeZone: 'Europe/Berlin' } });
++  const seen = new Set(), clicked = new WeakSet();
++  b.receiptErrors = [];
++  b.pump = async ({ saves = true, saveOK = true, snapshots = true, apply = false } = {}) => {
++    for (const message of [...b.messages]) {
++      const key = message.cmd + ':' + (message.id ?? message.token ?? '');
++      if (seen.has(key)) continue;
++      if (message.cmd === 'speichern' && saves) {
++        seen.add(key); b.w.MacBeta.receive('gespeichert', { id: message.id, ok: saveOK, fehler: saveOK ? '' : 'Synthetic failed write' });
++      }
++      if (message.cmd === 'mutations_snapshot' && snapshots) {
++        seen.add(key);
++        try { b.w.MacBeta.receive('mutationsSnapshot', { token: message.token, ok: true }); }
++        catch (error) { b.receiptErrors.push(String(error?.message || error)); }
++      }
++    }
++    if (apply) {
++      const button = b.w.document.querySelector('[data-import-anwenden]');
++      if (button && !button.disabled && button.closest('[aria-busy]')?.getAttribute('aria-busy') !== 'true' && !clicked.has(button)) {
++        clicked.add(button); button.click();
++      }
++    }
++    await tick();
++  };
++  b.until = async (condition, options = {}) => {
++    for (let n = 0; n < 800; n++) { if (condition()) return; await b.pump(options); }
++    throw new Error('Actual file import did not finish: ' + JSON.stringify({ receiptErrors: b.receiptErrors,
++      dialog: b.w.document.querySelector('[data-import-anwenden]')?.closest('section')?.textContent.slice(0, 1600),
++      messages: b.messages.slice(-4).map(m => ({ cmd: m.cmd, id: m.id, token: m.token })) }));
++  };
++  b.prepare = async () => {
++    let result, error;
++    b.w.App.macOSBetaPrepareFileImport('lotus').then(value => { result = value; }, value => { error = value; });
++    await b.until(() => result || error);
++    if (error) throw error;
++    assert.equal(typeof result.token, 'string'); checks++;
++    return result.token;
++  };
++  await b.pump(); await b.pump();
++  return b;
++}
++
++const b = await environment();
++try {
++  const before = JSON.stringify(b.t.daten());
++  const token = await b.prepare();
++  equal(JSON.stringify(b.t.daten()), before, 'Preparing the native import changes no book content');
++  let outcome, error;
++  b.w.App.macOSBetaCommitFileImport(structuredClone(payload), token).then(value => { outcome = value; }, value => { error = value; });
++  await b.until(() => b.w.document.querySelector('[data-import-anwenden]') || error, { saves: false });
++  assert.ifError(error); checks++;
++  equal(JSON.stringify(b.t.daten()), before, 'Actual OR6 contact preview precedes every collection mutation');
++  await b.until(() => b.messages.some(m => m.cmd === 'speichern' && JSON.parse(m.text).notizen?.length === 1) || error,
++    { saves: false, apply: true });
++  assert.ifError(error); checks++;
++  equal(outcome, undefined, 'No successful file-import receipt before the final save ACK');
++  const pending = b.messages.filter(m => m.cmd === 'speichern').at(-1);
++  b.w.MacBeta.receive('gespeichert', { id: pending.id + 10000, ok: true }); await tick();
++  equal(outcome, undefined, 'An unrelated save ACK does not complete the import');
++  await b.until(() => outcome || error, { apply: true });
++  assert.ifError(error); checks++;
++  equal(outcome, { ok: true, changed: true, saveConfirmed: true }, 'Success follows the canonical durable-save callback');
++  equal(b.t.daten().futureRoot, { preserve: ['unknown', { value: 17 }] }, 'Unrelated root values remain intact');
++  for (const [kind, field] of [['contact', 'kontakte'], ['appointment', 'termine'], ['task', 'aufgaben'], ['note', 'notizen']]) {
++    equal(b.t.daten()[field].length, 1, 'Exactly one original OR6 ' + kind);
++    for (const [key, value] of Object.entries(fixture.expected[kind])) {
++      // The original native fixture intentionally uses example.invalid. The
++      // shared desktop UI rejects that domain; a second real OR6 source below
++      // proves that accepted .test addresses remain intact through persistence.
++      const expected = kind === 'contact' && key === 'email' ? '' : value;
++      equal(b.t.daten()[field][0][key], expected, 'Original fixture with shared validation ' + kind + '.' + key);
++    }
++  }
++  const saved = JSON.parse(b.messages.filter(m => m.cmd === 'speichern').at(-1).text);
++  for (const field of ['termine', 'aufgaben', 'kontakte', 'notizen']) equal(saved[field], b.t.daten()[field], 'Save payload retains complete ' + field);
++  b.w.MacBeta.receive('init', { daten: saved, neu: false, regional: { language: 'en', timeZone: 'Europe/Berlin' } });
++  await b.pump();
++  for (const field of ['termine', 'aufgaben', 'kontakte', 'notizen']) {
++    equal(b.t.daten()[field].length, saved[field].length, 'Reopened book retains the ' + field + ' count');
++    for (const row of saved[field]) {
++      const reopened = b.t.daten()[field].find(item => item.id === row.id);
++      assert.ok(reopened); checks++;
++      equal(Object.fromEntries(Object.keys(row).map(key => [key, reopened[key]])), row,
++        'Reopen preserves every saved ' + field + ' value while allowing shared default fields');
++    }
++  }
++  const secondToken = await b.prepare();
++  outcome = error = undefined;
++  b.w.App.macOSBetaCommitFileImport(structuredClone(payload), secondToken).then(value => { outcome = value; }, value => { error = value; });
++  await b.until(() => outcome || error, { apply: true });
++  assert.ifError(error); checks++;
++  for (const field of ['termine', 'aufgaben', 'kontakte', 'notizen']) equal(b.t.daten()[field].length, 1, 'Reimport does not duplicate ' + field);
++  const staleToken = await b.prepare();
++  b.t.daten().futureRoot.changedDuringPicker = true;
++  await assert.rejects(b.w.App.macOSBetaCommitFileImport(structuredClone(payload), staleToken), /Conflict/); checks++;
++  b.w.App.macOSBetaCancelFileImport(staleToken);
++  const validSource = fixture.validContactResponse;
++  assert.equal(validSource.ok, true); checks++;
++  const validToken = await b.prepare();
++  outcome = error = undefined;
++  b.w.App.macOSBetaCommitFileImport({ ...structuredClone(validSource.result), art: 'lotus', abgebrochen: false, datei: validSource.name }, validToken)
++    .then(value => { outcome = value; }, value => { error = value; });
++  await b.until(() => outcome || error, { apply: true });
++  assert.ifError(error); checks++;
++  const grace = b.t.daten().kontakte.find(contact => contact.vorname === 'Grace' && contact.firma === 'OR6-222');
++  assert.ok(grace); checks++;
++  equal(grace.email, 'grace.or6@example.test', 'Actual OR6 .test email survives preview, apply and save');
++  equal(JSON.parse(b.messages.filter(m => m.cmd === 'speichern').at(-1).text).kontakte.find(contact => contact.id === grace.id).email,
++    'grace.or6@example.test', 'Confirmed save contains the original accepted OR6 address');
++} finally { b.close(); }
++
++for (const mode of ['save-rejected', 'renderer-threw']) {
++  const b = await environment();
++  try {
++    const token = await b.prepare();
++    let outcome, error;
++    const appearance = b.w.MagnolieAppearance;
++    if (mode === 'renderer-threw') b.w.MagnolieAppearance = { ...appearance, update() { throw new Error('Synthetic renderer failure after OR6 append'); } };
++    b.w.App.macOSBetaCommitFileImport(structuredClone(payload), token).then(value => { outcome = value; }, value => { error = value; });
++    await b.until(() => outcome || error, { apply: true, saveOK: mode !== 'save-rejected' });
++    b.w.MagnolieAppearance = appearance;
++    assert.ok(error, mode + ' must not return a successful receipt'); checks++;
++    assert.match(String(error.message), /saving was not confirmed|Synthetic/i); checks++;
++    equal(outcome, undefined, mode + ' does not report success');
++    for (const field of ['termine', 'aufgaben', 'kontakte', 'notizen']) equal(b.t.daten()[field].length, 1, mode + ' retains the appended ' + field);
++    b.t.speichereJetzt();
++    for (let n = 0; n < 12; n++) await b.pump();
++    const saved = JSON.parse(b.messages.filter(m => m.cmd === 'speichern').at(-1).text);
++    for (const field of ['termine', 'aufgaben', 'kontakte', 'notizen']) equal(saved[field].length, 1, mode + ' retry saves exactly the retained ' + field);
++  } finally { b.close(); }
++}
++console.log(`Actual OR6 helper → projected Mac UI: ${checks} checks; explicit WebCrypto, real contact preview and shared Save-ACK path; synthetic transport, no native persistence claim.`);
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py b/Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..5cb074797ffbb6092ecb58b5bab8db48382c60b9
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py
+@@ -0,0 +1,329 @@
++#!/usr/bin/env python3
++"""Actual isolated helper, canonical desktop oracle and original OR6 fixtures (#785).
++
++The full desktop module is loaded only as a test oracle, never by the bundle.
++Prepare the explicit dependency cache before running; tests do not download.
++"""
++import base64
++from datetime import datetime, timezone
++import gzip
++import hashlib
++import importlib.machinery
++import importlib.util
++import io
++import json
++import os
++from pathlib import Path
++import subprocess
++import sys
++import tempfile
++import unittest
++from unittest import mock
++import zipfile
++import zoneinfo
++
++
++BETA = Path(__file__).resolve().parents[1]
++REPO = BETA.parent
++sys.path.insert(0, str(BETA / "tools"))
++import project_import_helper as projector
++
++
++def load_module(name, path):
++    loader = importlib.machinery.SourceFileLoader(name, str(path))
++    spec = importlib.util.spec_from_loader(name, loader)
++    module = importlib.util.module_from_spec(spec)
++    sys.modules[name] = module
++    loader.exec_module(module)
++    return module
++
++
++def native_files():
++    for path in sorted((REPO / "contracts").glob("or6-native-*.json")):
++        contract = json.loads(path.read_text())
++        files = contract.get("files", {})
++        if "file" in contract:
++            files = {contract["file"]["name"]: contract["file"]}
++        for name, proof in files.items():
++            data = gzip.decompress(base64.b64decode(proof["gzip_base64"], validate=True))
++            if len(data) != proof["bytes"] or hashlib.sha256(data).hexdigest() != proof["sha256"]:
++                raise AssertionError("Native OR6 fixture identity differs")
++            yield path.name, name, data, contract
++
++
++class ImportHelperTests(unittest.TestCase):
++    @classmethod
++    def setUpClass(cls):
++        cls.old_bytecode = sys.dont_write_bytecode
++        sys.dont_write_bytecode = True
++        cls.helper_python = os.environ.get("MACOS_BETA_IMPORT_PYTHON", sys.executable)
++        cls.temporary = tempfile.TemporaryDirectory(prefix="magnolie-import-helper-test-")
++        cls.directory = Path(cls.temporary.name)
++        cls.bundle = cls.directory / "ImportHelper"
++        cls.snapshot = projector.input_snapshot(REPO)
++        with mock.patch.object(projector.urllib.request, "urlopen", side_effect=AssertionError("Projection must remain offline")):
++            cls.manifest = projector.project_snapshot(cls.snapshot, cls.bundle)
++        cls.manifest_sha = hashlib.sha256((cls.bundle / "manifest.json").read_bytes()).hexdigest()
++        cls.helper_module = load_module("mac_import_protocol_under_test", BETA / "ImportHelper/helper.py")
++        cls.old_tzpath = zoneinfo.TZPATH
++        zoneinfo.reset_tzpath([str(cls.bundle / "zones")])
++        zoneinfo.ZoneInfo.clear_cache()
++        cls.old_path = list(sys.path)
++        sys.path[:0] = [str(REPO / "magnolie-organizer/bin"), str(cls.bundle / "vendor")]
++        cls.old_config = os.environ.get("XDG_CONFIG_HOME")
++        os.environ["XDG_CONFIG_HOME"] = str(cls.directory / "isolated-config")
++        cls.oracle = load_module("mac_import_current_desktop_oracle", REPO / projector.MONOLITH)
++        cls.oracle._ = lambda message: message
++        cls.oracle._zeitzonenname = lambda: "Europe/Berlin"
++        cls.oracle._organizer_zeitzone = lambda: zoneinfo.ZoneInfo("Europe/Berlin")
++        import magnolie_phone_region
++        magnolie_phone_region.regional_context = lambda: ("DE", "en")
++        cls.or6 = load_module("mac_import_current_or6_oracle", REPO / projector.OR6)
++        cls.tzif = load_module("mac_import_existing_tzif_reader", REPO / "port-adapters/timezones/build-tzif.py")
++
++    @classmethod
++    def tearDownClass(cls):
++        sys.dont_write_bytecode = cls.old_bytecode
++        sys.path[:] = cls.old_path
++        zoneinfo.reset_tzpath(cls.old_tzpath)
++        zoneinfo.ZoneInfo.clear_cache()
++        if cls.old_config is None:
++            os.environ.pop("XDG_CONFIG_HOME", None)
++        else:
++            os.environ["XDG_CONFIG_HOME"] = cls.old_config
++        cls.temporary.cleanup()
++
++    def header(self, data, art="lotus", name="known-values.or6", **updates):
++        value = {"schema": 1, "format": art, "name": name, "language": "en", "timeZone": "Europe/Berlin",
++                 "homeCountry": "DE", "byteLength": len(data), "sha256": hashlib.sha256(data).hexdigest()}
++        value.update(updates)
++        return value
++
++    def request(self, data, art="lotus", name="known-values.or6", header=None, line=None, **updates):
++        value = self.header(data, art, name, **updates) if header is None else header
++        line = json.dumps(value, ensure_ascii=False).encode() + b"\n" if line is None else line
++        process = subprocess.run([self.helper_python, "-I", "-S", "-B", str(self.bundle / "helper.py")],
++            input=line + data, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60,
++            cwd=self.directory, env=dict(os.environ, PYTHONPATH="/not-a-grant", PYTHONHOME="/not-a-runtime", PYTHONTZPATH="/not-a-zone-grant"))
++        self.assertEqual(process.returncode, 0, process.stderr.decode(errors="replace"))
++        self.assertEqual(process.stderr, b"")
++        self.assertTrue(process.stdout.endswith(b"\n"))
++        self.assertLessEqual(len(process.stdout), 96 * 1024 * 1024)
++        answer = json.loads(process.stdout)
++        self.assertEqual(answer["schema"], 1)
++        return answer
++
++    def parsed(self, data, art, name, **updates):
++        answer = self.request(data, art, name, **updates)
++        self.assertTrue(answer["ok"], answer)
++        self.assertEqual(answer["sourceSHA256"], hashlib.sha256(data).hexdigest())
++        self.assertEqual(answer["parserManifestSHA256"], self.manifest_sha)
++        self.assertEqual(answer["format"], art)
++        self.assertEqual(answer["name"], name)
++        return answer["result"]
++
++    def same_as_desktop(self, data, art, name):
++        actual = self.parsed(data, art, name)
++        expected = (self.oracle.muell_import_lesen(data, name) if art == "muell"
++                    else self.oracle.import_rohdaten_lesen("claws" if art == "ldif" else art, data, name))
++        if art == "ics":
++            actual = {key: value for key, value in actual.items() if key not in {"legacyAndroidAliases", "icsImportMetadata"}}
++        self.assertEqual(actual, expected)
++        return expected
++
++    def test_all_original_program_or6_fixtures_through_isolated_stdio(self):
++        rows = list(native_files())
++        self.assertEqual(len(rows), 27)
++        for source, name, data, contract in rows:
++            with self.subTest(source=source, file=name):
++                result = self.parsed(data, "lotus", name)
++                self.assertEqual(result, self.or6.read_or6(data))
++                if name == "known-values.or6":
++                    for kind, field in (("contact", "kontakte"), ("appointment", "termine"), ("task", "aufgaben"), ("note", "notizen")):
++                        self.assertEqual(len(result[field]), 1)
++                        for key, expected in contract["expected"][kind].items():
++                            self.assertEqual(result[field][0][key], expected)
++
++    def test_desktop_calendar_vcard_ldif_and_lotus_golden_files(self):
++        directory = REPO / "magnolie-organizer/pruefungen/fixtures"
++        for name, art in (("golden-komplex.ics", "ics"), ("caldav-series-resource.ics", "ics"),
++                          ("icalendar-all-components.ics", "ics"), ("muster-organizer-lotus.ics", "ics"),
++                          ("muster-jahrestage-thunderbird.ics", "ics"), ("golden-kontakt.vcf", "vcf"),
++                          ("provider-vcards.vcf", "vcf"), ("nextcloud-anniversaries.vcf", "vcf"),
++                          ("golden-kontakt.ldif", "ldif"), ("muster-organizer-lotus.csv", "lotus")):
++            with self.subTest(name=name):
++                self.same_as_desktop((directory / name).read_bytes(), art, name)
++
++    def test_vcs_lcs_csv_contact_alias_and_claws_routes(self):
++        directory = REPO / "magnolie-organizer/pruefungen/fixtures"
++        calendar = (directory / "golden-komplex.ics").read_bytes()
++        for suffix in ("vcs", "lcs"):
++            with self.subTest(suffix=suffix):
++                self.same_as_desktop(calendar, "ics", "calendar." + suffix)
++        self.same_as_desktop((directory / "muster-organizer-lotus.csv").read_bytes(), "vcf", "source.csv")
++        claws = b'<?xml version="1.0"?><address-book><person uid="a" first-name="Ada" last-name="Example"><address-list><address email="ada@example.test"/></address-list></person></address-book>'
++        result = self.same_as_desktop(claws, "claws", "address-book.xml")
++        self.assertEqual(result["kontakte"][0]["vorname"], "Ada")
++        self.same_as_desktop((directory / "golden-kontakt.ldif").read_bytes(), "claws", "source.ldi")
++
++    def test_zip_routes_use_the_same_bounded_desktop_dispatcher(self):
++        directory = REPO / "magnolie-organizer/pruefungen/fixtures"
++        source_or6 = next(data for _source, name, data, _proof in native_files() if name == "known-values.or6")
++        for art, name, data in (("ics", "calendar.ics", (directory / "golden-komplex.ics").read_bytes()),
++                                ("lotus", "native.or6", source_or6),
++                                ("vcf", "address.vcf", (directory / "golden-kontakt.vcf").read_bytes()),
++                                ("ldif", "address.ldif", (directory / "golden-kontakt.ldif").read_bytes())):
++            with self.subTest(art=art):
++                memory = io.BytesIO()
++                with zipfile.ZipFile(memory, "w", zipfile.ZIP_STORED) as archive:
++                    archive.writestr("folder/" + name, data)
++                    archive.writestr("ignored.exe", b"not executable")
++                self.same_as_desktop(memory.getvalue(), art, "selected.zip")
++
++    def test_waste_preview_contract_and_limits(self):
++        source = b"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALNAME:Waste\r\nBEGIN:VEVENT\r\nUID:waste-1\r\nDTSTART;VALUE=DATE:20261127\r\nSUMMARY:Paper\r\nLOCATION:Road\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
++        result = self.same_as_desktop(source, "muell", "waste.ics")
++        self.assertEqual(result["muellFormat"], "ics")
++        self.assertEqual(result["termine"][0]["ort"], "Road")
++        result = self.same_as_desktop(b'Date;Type\n2026-11-27;Paper\n', "muell", "waste.csv")
++        self.assertEqual(result["muellFormat"], "csv")
++        self.assertEqual(len(result["zeilen"]), 2)
++        rejected = self.request(b'a,b\n' + b'1,2\n' * 10002, "muell", "waste.csv")
++        self.assertFalse(rejected["ok"])
++        self.assertNotIn("result", rejected)
++
++    def test_legacy_android_sidecar_is_exact_and_transient(self):
++        data = (REPO / "magnolie-organizer/pruefungen/fixtures/caldav-series-resource.ics").read_bytes()
++        result = self.parsed(data, "ics", "caldav-series-resource.ics")
++        proof = result["legacyAndroidAliases"]
++        self.assertEqual(proof["sourceSHA256"], hashlib.sha256(data).hexdigest())
++        self.assertEqual(proof["appointmentCount"], len(result["termine"]))
++        self.assertEqual(proof["algorithm"], "android-jsonobject-quote-v1")
++        self.assertTrue(proof["entries"])
++        self.assertEqual(proof["entries"][0]["legacyUID"], "caldav-series-1-magnolie-instanz-7f5e24178d89f683")
++        for entry in proof["entries"]:
++            row = result["termine"][entry["appointmentIndex"]]
++            self.assertEqual(row["uid"], entry["canonicalUID"])
++            self.assertEqual(row["icsQuelleId"], entry["sourceID"])
++            self.assertIn(entry["recurrenceLine"], row["icsRoundtrip"])
++            self.assertNotEqual(entry["canonicalUID"], entry["legacyUID"])
++            self.assertNotIn("legacyAndroidAliases", row)
++        self.assertNotIn("legacyAndroidAliases", result["icsImportMetadata"])
++        self.assertIn("X-WR-CALNAME:Team Calendar", result["icsImportMetadata"]["calendarProperties"])
++        bare = b"BEGIN:VEVENT\nUID:bare\nDTSTART;VALUE=DATE:20261127\nSUMMARY:Bare\nEND:VEVENT\n"
++        self.assertEqual(self.parsed(bare, "ics", "bare.ics")["icsImportMetadata"]["calendarProperties"], [])
++
++    def test_normative_tzif_roundtrip_and_original_point_oracle(self):
++        packet = json.loads(self.snapshot[projector.TZ_PREFIX + "tzdb-2026egtz.json"])
++        for index, row in enumerate(packet["rules"]):
++            with self.subTest(rule=index):
++                self.assertEqual(self.tzif.parse_tzif(projector.encode_tzif(row)), row)
++        self.assertEqual(len(self.manifest["timezones"]), 597)
++        for name in self.manifest["timezones"]:
++            self.assertEqual(zoneinfo.ZoneInfo(name).key, name)
++        oracle = json.loads((REPO / "port-adapters/tests/timezone-interop-oracle.json").read_text())
++        for clock in oracle["clocks"]:
++            with self.subTest(clock=clock):
++                value = datetime.fromtimestamp(clock["epochMs"] / 1000, timezone.utc).astimezone(zoneinfo.ZoneInfo(clock["identifier"]))
++                self.assertEqual(value.strftime("%Y-%m-%dT%H:%M"), clock["wall"])
++                self.assertEqual(int(value.utcoffset().total_seconds()), clock["offsetSeconds"])
++
++    def test_selected_language_and_country_are_explicit_context(self):
++        data = next(data for _source, name, data, _proof in native_files() if name == "known-values.or6")
++        translated = self.parsed(data, "lotus", "source.or6", language="de")
++        self.assertNotEqual(translated["bericht"], self.or6.read_or6(data)["bericht"])
++        regional = self.parsed(data, "lotus", "source.or6", language="de-DE")
++        self.assertEqual(regional["bericht"], translated["bericht"])
++        english = self.parsed(data, "lotus", "source.or6", language="en-us")
++        self.assertEqual(english["bericht"], self.or6.read_or6(data)["bericht"])
++        chinese = self.parsed(data, "lotus", "source.or6", language="zh-cn")
++        script = self.parsed(data, "lotus", "source.or6", language="zh-hant-de")
++        self.assertEqual(script["bericht"], chinese["bericht"])
++        self.assertNotEqual(chinese["bericht"], english["bericht"])
++        self.parsed(data, "lotus", "source.or6", timeZone="US/Eastern")
++        vcard = b'BEGIN:VCARD\nVERSION:3.0\nFN:Contact\nN:Contact;;;;\nTEL:0305550123\nTEL:+49305550123\nEND:VCARD\n'
++        german = self.parsed(vcard, "vcf", "contact.vcf", homeCountry="DE")
++        british = self.parsed(vcard, "vcf", "contact.vcf", homeCountry="GB")
++        self.assertEqual(len(german["kontakte"][0]["telefone"]), 1)
++        self.assertEqual(len(british["kontakte"][0]["telefone"]), 2)
++
++    def test_file_and_network_photo_references_do_not_grant_access(self):
++        sentinel = self.directory / "never-read.jpg"
++        sentinel.write_bytes(b"\xff\xd8\xffprivate-secret")
++        for reference in (sentinel.as_uri(), "https://example.invalid/private.jpg"):
++            with self.subTest(reference=reference):
++                text = "BEGIN:VCARD\nVERSION:3.0\nFN:A\nN:A;;;;\nPHOTO;VALUE=URI:" + reference + "\nEND:VCARD\n"
++                result = self.parsed(text.encode(), "vcf", "photo.vcf")
++                self.assertFalse(result["kontakte"][0].get("foto"))
++                self.assertNotIn("private-secret", json.dumps(result))
++
++    def test_malformed_headers_lengths_hashes_and_extra_authority_fail_closed(self):
++        source = b"test"
++        for change, expected in (({"schema": True}, "invalid_header"), ({"format": "import_lokal"}, "unsupported_format"),
++                                 ({"path": "/tmp/source"}, "invalid_header"), ({"name": "../source"}, "invalid_header"),
++                                 ({"homeCountry": "ZZ"}, "invalid_header"), ({"timeZone": "../../etc/passwd"}, "invalid_timezone"),
++                                 ({"byteLength": 32 * 1024 * 1024 + 1}, "input_too_large"),
++                                 ({"byteLength": 3}, "input_length"), ({"byteLength": 5}, "input_length"),
++                                 ({"sha256": "0" * 64}, "input_identity")):
++            with self.subTest(change=change):
++                result = self.request(source, header=self.header(source, **change))
++                self.assertFalse(result["ok"])
++                self.assertEqual(result["error"]["code"], expected)
++                self.assertNotIn("result", result)
++        for line in (b"{}", b" " * 8192 + b"\n", b'{"schema":1,"schema":1}\n', b'{"schema":NaN}\n'):
++            with self.subTest(lineLength=len(line)):
++                self.assertEqual(self.request(source, line=line)["error"]["code"], "invalid_header")
++
++    def test_corrupt_or6_zip_bombs_and_xml_entities_have_no_partial_result(self):
++        source = next(data for _source, name, data, _proof in native_files() if name == "known-values.or6")
++        cases = [("lotus", "bad.or6", source[:-4]), ("lotus", "bad.or6", b"NOPE" + source[4:]),
++                 ("claws", "bad.xml", b'<?xml version="1.0"?><!DOCTYPE address-book [<!ENTITY x SYSTEM "file:///etc/passwd">]><address-book>&x;</address-book>')]
++        for many in (False, True):
++            memory = io.BytesIO()
++            with zipfile.ZipFile(memory, "w", zipfile.ZIP_DEFLATED) as archive:
++                for index in range(129 if many else 1):
++                    archive.writestr(str(index) + ".vcf", b"0" * (1 if many else 1024 * 1024))
++            cases.append(("vcf", "bad.zip", memory.getvalue()))
++        for art, name, raw in cases:
++            with self.subTest(art=art, bytes=len(raw)):
++                result = self.request(raw, art, name)
++                self.assertFalse(result["ok"])
++                self.assertNotIn("result", result)
++
++    def test_output_bound_is_applied_before_a_complete_response_is_written(self):
++        with self.assertRaises(self.helper_module.RequestError) as error:
++            self.helper_module.encode_response({"result": "x" * 1000}, limit=64)
++        self.assertEqual(error.exception.code, "output_too_large")
++
++    def test_source_closure_and_dependency_tampering_are_rejected(self):
++        source = self.snapshot[projector.MONOLITH].decode()
++        for insertion in ("    unknown_import_authority()\n", "    import socket\n", "    exec('pass')\n"):
++            with self.subTest(insertion=insertion):
++                changed = dict(self.snapshot)
++                changed[projector.MONOLITH] = source.replace('def import_rohdaten_lesen(art, roh, dateiname=""):\n',
++                    'def import_rohdaten_lesen(art, roh, dateiname=""):\n' + insertion, 1).encode()
++                with self.assertRaises(ValueError):
++                    projector.build(changed)
++        for name in (projector.PHONE_SNAPSHOT, projector.TZ_PREFIX + "tzdb-2026egtz.json"):
++            with self.subTest(name=name):
++                changed = dict(self.snapshot)
++                changed[name] = b"not the reviewed dependency"
++                with self.assertRaises(ValueError):
++                    projector.build(changed)
++
++    def test_generated_bytes_manifest_and_copy_identity_are_verified(self):
++        projector.project_snapshot(self.snapshot, self.bundle, verify=True)
++        self.assertEqual((self.bundle / "magnolie_or6.py").read_bytes(), self.snapshot[projector.OR6])
++        self.assertNotIn("magnolie_telefon.py", self.manifest["generated"])
++        self.assertNotIn("PhoneService", (self.bundle / "magnolie_phone_region.py").read_text())
++        module = self.bundle / "desktop_imports.py"
++        before = module.read_bytes()
++        try:
++            module.write_bytes(before + b"\n# changed\n")
++            self.assertEqual(self.request(b"test")["error"]["code"], "bundle_invalid")
++        finally:
++            module.write_bytes(before)
++
++
++if __name__ == "__main__":
++    unittest.main(verbosity=2)
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/check_file_import.py b/Magnolie-Organizer-macOS-Beta/tools/check_file_import.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..19f911ff2d4766fa72d284c8524d8244977fa578
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tools/check_file_import.py
+@@ -0,0 +1,75 @@
++#!/usr/bin/env python3
++"""Actual OR6 bytes -> isolated helper -> actual projected UI -> synthetic save ACK."""
++import argparse
++import base64
++import gzip
++import hashlib
++import json
++import os
++from pathlib import Path
++import subprocess
++import sys
++import tempfile
++
++import project_import_helper
++import project_ui
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--js-runtime", required=True)
++    parser.add_argument("--ui", type=Path, help="An already generated UI for independent integration review")
++    parser.add_argument("--helper-python", default=os.environ.get("MACOS_BETA_IMPORT_PYTHON", sys.executable))
++    args = parser.parse_args()
++    snapshot = project_ui.inputs()
++    with tempfile.TemporaryDirectory(prefix="macOS-file-import-ui-") as directory:
++        root = Path(directory)
++        ui = args.ui
++        if ui is None:
++            ui = root / "UI"
++            project_ui.project(snapshot, ui)
++            helper = ui / "ImportHelper"
++        else:
++            helper = root / "ImportHelper"
++            project_import_helper.project_snapshot(snapshot, helper)
++        contract = json.loads((project_ui.REPO / "contracts/or6-native-fixtures.json").read_text())
++        proof = contract["files"]["known-values.or6"]
++        source = gzip.decompress(base64.b64decode(proof["gzip_base64"], validate=True))
++        assert len(source) == proof["bytes"] and hashlib.sha256(source).hexdigest() == proof["sha256"]
++        header = {"schema": 1, "format": "lotus", "name": "known-values.or6", "language": "en",
++                  "timeZone": "Europe/Berlin", "homeCountry": "DE", "byteLength": len(source), "sha256": proof["sha256"]}
++        completed = subprocess.run([args.helper_python, "-I", "-S", "-B", str(helper / "helper.py")],
++            input=json.dumps(header).encode() + b"\n" + source, stdout=subprocess.PIPE,
++            stderr=subprocess.PIPE, check=True, timeout=60, cwd=root,
++            env=dict(os.environ, PYTHONHOME="/not-the-runtime", PYTHONPATH="/not-an-import-grant"))
++        response = json.loads(completed.stdout)
++        assert response["ok"] and response["sourceSHA256"] == proof["sha256"] and not completed.stderr
++        assert response["parserManifestSHA256"] == hashlib.sha256((helper / "manifest.json").read_bytes()).hexdigest()
++        extension = json.loads((project_ui.REPO / "contracts/or6-native-extensions.json").read_text())
++        contact_proof = extension["files"]["contact-context-222.or6"]
++        contact_source = gzip.decompress(base64.b64decode(contact_proof["gzip_base64"], validate=True))
++        assert len(contact_source) == contact_proof["bytes"] and hashlib.sha256(contact_source).hexdigest() == contact_proof["sha256"]
++        contact_header = dict(header, name="contact-context-222.or6", byteLength=len(contact_source), sha256=contact_proof["sha256"])
++        contact_process = subprocess.run([args.helper_python, "-I", "-S", "-B", str(helper / "helper.py")],
++            input=json.dumps(contact_header).encode() + b"\n" + contact_source, stdout=subprocess.PIPE,
++            stderr=subprocess.PIPE, check=True, timeout=60, cwd=root)
++        contact_response = json.loads(contact_process.stdout)
++        assert contact_response["ok"] and contact_response["sourceSHA256"] == contact_proof["sha256"] and not contact_process.stderr
++        fixture = root / "fixture.json"
++        fixture.write_text(json.dumps({"response": response, "expected": contract["expected"],
++                                       "validContactResponse": contact_response}, ensure_ascii=False))
++        command = [args.js_runtime]
++        if Path(args.js_runtime).name == "deno":
++            command += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
++        command += [str(project_ui.BETA / "tests/file_import.mjs"), str(ui), str(fixture)]
++        subprocess.run(command, cwd=project_ui.BETA, check=True, timeout=120)
++        print(json.dumps({"or6SourceSHA256": response["sourceSHA256"],
++                          "parserManifestSHA256": response["parserManifestSHA256"],
++                          "uiApplicationSHA256": hashlib.sha256((ui / "web/anwendung.js").read_bytes()).hexdigest(),
++                          "nativePickerValidated": False, "nativePersistenceValidated": False}, sort_keys=True))
++    if project_ui.inventory(project_ui.inputs()) != project_ui.inventory(snapshot):
++        raise RuntimeError("Sources changed during the file-import UI check")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py b/Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..a691c0708bceb0a7b175e058d86122eb948c9a5c
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py
+@@ -0,0 +1,448 @@
++#!/usr/bin/env python3
++"""Project the reviewed, current desktop file codecs into an isolated Mac helper.
++
++The desktop application is parsed, never imported or executed. New global or
++local import dependencies require an explicit closure-policy review (#785).
++"""
++import argparse
++import ast
++import builtins
++import hashlib
++import io
++import json
++import os
++from pathlib import Path
++import re
++import struct
++import symtable
++import tempfile
++import urllib.parse
++import urllib.request
++import zipfile
++
++
++BETA = Path(__file__).resolve().parents[1]
++REPO = BETA.parent
++POLICY = "Magnolie-Organizer-macOS-Beta/ImportHelper/closure-policy.json"
++MONOLITH = "magnolie-organizer/bin/magnolie-organizer"
++RECURRENCE = "magnolie-organizer/bin/magnolie_recurrence.py"
++OR6 = "magnolie-organizer/bin/magnolie_or6.py"
++SOCIAL = "magnolie-organizer/bin/magnolie_social_profiles.py"
++PHONE = "magnolie-organizer/bin/magnolie_phone_region.py"
++PHONE_PIN = "magnolie-organizer/werkzeuge/appimage_bauen.sh"
++PHONE_SNAPSHOT = "macos-import-dependencies/phonenumbers.whl"
++TZ_PREFIX = "port-adapters/timezones/"
++TZ_HASHES = {
++    "tzdb-2026egtz.json": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c",
++    "provenance.json": "b6b926b73620b3ab9ba477195041e52925ee6b12376791e647f70beba6bcc2a0",
++    "LICENSE-tzdb.txt": "0613408568889f5739e5ae252b722a2659c02002839ad970a63dc5e9174b27cf",
++}
++FORBIDDEN_CALLS = {"eval", "exec", "compile", "__import__", "breakpoint", "input"}
++
++
++def sha256(data):
++    return hashlib.sha256(data).hexdigest()
++
++
++def json_bytes(value):
++    return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
++
++
++def safe_path(root, name):
++    if not name or Path(name).is_absolute() or any(part in {"", ".", ".."} for part in name.split("/")):
++        raise ValueError("Unsafe projection path")
++    path = root / name
++    for candidate in (root, path, *path.parents):
++        if candidate.is_symlink():
++            raise ValueError("Symlinked projection path refused")
++    return path
++
++
++class Inputs:
++    def __init__(self, snapshot):
++        self.available = snapshot
++        self.values = {}
++
++    def read(self, name):
++        if name not in self.values:
++            if name not in self.available or not isinstance(self.available[name], bytes):
++                raise ValueError("Import source snapshot is missing: " + name)
++            self.values[name] = self.available[name]
++        return self.values[name]
++
++
++def phone_pin(source):
++    values = {}
++    for key in ("URL", "SHA"):
++        matches = re.findall(r"^PHONENUMBERS_" + key + r"=(\S+)$", source.decode(), re.M)
++        if len(matches) != 1:
++            raise ValueError("Canonical phonenumbers pin changed")
++        values[key] = matches[0]
++    parsed = urllib.parse.urlsplit(values["URL"])
++    match = re.fullmatch(r"phonenumbers-([0-9]+\.[0-9]+\.[0-9]+)-py2\.py3-none-any\.whl", parsed.path.rsplit("/", 1)[-1])
++    if (parsed.scheme != "https" or parsed.netloc != "files.pythonhosted.org" or parsed.query or parsed.fragment
++            or not match or not re.fullmatch(r"[0-9a-f]{64}", values["SHA"])):
++        raise ValueError("Unsupported canonical phonenumbers pin")
++    return {"url": values["URL"], "sha256": values["SHA"], "version": match[1],
++            "filename": parsed.path.rsplit("/", 1)[-1]}
++
++
++def dependency_path(root, pin):
++    return safe_path(Path(root), "Magnolie-Organizer-macOS-Beta/.import-dependencies/" + pin["filename"])
++
++
++def prepare_dependencies(root=REPO, wheel=None):
++    """Explicit build-time acquisition; input capture and projection never fetch."""
++    root = Path(root)
++    pin = phone_pin(safe_path(root, PHONE_PIN).read_bytes())
++    target = dependency_path(root, pin)
++    if target.exists():
++        data = target.read_bytes()
++    elif wheel is not None:
++        data = Path(wheel).read_bytes()
++    else:
++        with urllib.request.urlopen(pin["url"], timeout=45) as response:
++            final = urllib.parse.urlsplit(response.geturl())
++            if final.scheme != "https" or final.netloc != "files.pythonhosted.org":
++                raise ValueError("Unexpected dependency download redirect")
++            data = response.read(8 * 1024 * 1024 + 1)
++    if len(data) > 8 * 1024 * 1024 or sha256(data) != pin["sha256"]:
++        raise ValueError("Prepared phonenumbers wheel differs from the desktop pin")
++    if not target.exists():
++        target.parent.mkdir(parents=True, exist_ok=True)
++        with tempfile.NamedTemporaryFile(dir=target.parent, prefix=".prepare-", delete=False) as temporary:
++            temporary.write(data)
++            pending = Path(temporary.name)
++        try:
++            os.replace(pending, target)
++        finally:
++            pending.unlink(missing_ok=True)
++    return pin
++
++
++def input_snapshot(root=REPO):
++    root = Path(root)
++    names = [POLICY, MONOLITH, RECURRENCE, OR6, SOCIAL, PHONE, PHONE_PIN,
++             "magnolie-organizer/werkzeuge/po_zu_js.py", "magnolie-organizer/po/LINGUAS",
++             "Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py",
++             "Magnolie-Organizer-macOS-Beta/ImportHelper/helper.py",
++             "Magnolie-Organizer-macOS-Beta/ImportHelper/import_context.py",
++             "Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py"]
++    names += [TZ_PREFIX + name for name in TZ_HASHES]
++    languages = safe_path(root, "magnolie-organizer/po/LINGUAS").read_text().split()
++    if any(not re.fullmatch(r"[A-Za-z_]+", language) for language in languages):
++        raise ValueError("Unexpected catalog language")
++    names += ["magnolie-organizer/po/" + language + ".po" for language in languages]
++    result = {name: safe_path(root, name).read_bytes() for name in names}
++    pin = phone_pin(result[PHONE_PIN])
++    try:
++        wheel = dependency_path(root, pin).read_bytes()
++    except FileNotFoundError as error:
++        raise ValueError("Run project_import_helper.py --prepare-dependencies before capturing sources") from error
++    if len(wheel) > 8 * 1024 * 1024 or sha256(wheel) != pin["sha256"]:
++        raise ValueError("Prepared phonenumbers wheel identity differs")
++    result[PHONE_SNAPSHOT] = wheel
++    return result
++
++
++def bound_names(node):
++    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
++        return [node.name]
++    if isinstance(node, (ast.Assign, ast.AnnAssign)):
++        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
++        return [item.id for target in targets for item in ast.walk(target) if isinstance(item, ast.Name)]
++    return []
++
++
++def import_bindings(node):
++    if isinstance(node, ast.Import):
++        return {item.asname or item.name.split(".")[0]: (item.name, None) for item in node.names}
++    if isinstance(node, ast.ImportFrom):
++        if node.level or any(item.name == "*" for item in node.names):
++            raise ValueError("Relative or wildcard codec import refused")
++        return {item.asname or item.name: (node.module, item.name) for item in node.names}
++    return {}
++
++
++def referenced_globals(node, source_name):
++    # Symbol tables include decorators, defaults, nested functions and class
++    # methods. Python 3.12 inlines comprehensions: their assigned temporary
++    # names must not be mistaken for unresolved module dependencies.
++    table = symtable.symtable(ast.unparse(node), source_name, "exec")
++    found = set()
++
++    def visit(scope):
++        found.update(symbol.get_name() for symbol in scope.get_symbols()
++                     if symbol.is_global() and symbol.is_referenced()
++                     and not (scope is table and symbol.is_assigned()))
++        for child in scope.get_children():
++            visit(child)
++    visit(table)
++    return found - set(dir(builtins))
++
++
++def local_imports(nodes):
++    result = set()
++    for node in nodes:
++        for item in ast.walk(node):
++            for module, member in import_bindings(item).values():
++                result.add(module + (":" + member if member else ""))
++            if isinstance(item, ast.Call) and isinstance(item.func, ast.Name) and item.func.id in FORBIDDEN_CALLS:
++                raise ValueError("Dynamic or interactive codec execution refused")
++    return sorted(result)
++
++
++def closure(source, source_name, roots, adapters):
++    tree = ast.parse(source, filename=source_name)
++    definitions, imports = {}, {}
++    for node in tree.body:
++        for name in bound_names(node):
++            if name in definitions:
++                raise ValueError("Duplicate top-level codec binding: " + name)
++            definitions[name] = node
++        for name, binding in import_bindings(node).items():
++            imports[name] = binding
++    pending, seen, selected, used_imports = list(roots), set(), {}, {}
++    while pending:
++        name = pending.pop()
++        if name in seen:
++            continue
++        seen.add(name)
++        if name in adapters:
++            continue
++        if name in definitions:
++            node = definitions[name]
++            selected[name] = node
++            pending.extend(referenced_globals(node, source_name))
++        elif name in imports:
++            used_imports[name] = imports[name]
++        else:
++            raise ValueError("Unreviewed codec global: " + name)
++    description = {
++        "definitions": sorted(selected),
++        "imports": {name: list(value) for name, value in sorted(used_imports.items())},
++        "localImports": local_imports(selected.values()),
++    }
++    return selected, used_imports, description
++
++
++def emit_module(source, source_name, selected, imports, adapters):
++    output = ["# Generated from the current desktop source; do not edit.\n"]
++    for name, (module, member) in sorted(imports.items()):
++        statement = (f"from {module} import {member}" if member else f"import {module}")
++        original = member or module.split(".")[0]
++        output.append(statement + (" as " + name if name != original else "") + "\n")
++    for name, adapter in sorted(adapters.items()):
++        output.append(f"from import_context import {adapter} as {name}\n")
++    lines = source.splitlines(keepends=True)
++    for node in sorted(set(selected.values()), key=lambda item: item.lineno):
++        begin = min([node.lineno, *[item.lineno for item in getattr(node, "decorator_list", [])]])
++        output.append(f"\n# {source_name}:{begin}-{node.end_lineno}\n")
++        output.extend(lines[begin - 1:node.end_lineno])
++        output.append("\n")
++    result = "".join(output).encode("utf-8")
++    ast.parse(result, filename=source_name + ".projected")
++    return result
++
++
++def encode_tzif(row):
++    """Serialize the existing normative model; no timezone arithmetic added."""
++    initial, types, history, tail = row
++    if initial != 0 or not 1 <= len(types) <= 256 or len(history) % 2:
++        raise ValueError("Unsupported normative TZif shape")
++    names, type_bytes = bytearray(), bytearray()
++    for offset, daylight, abbreviation, standard, universal in types:
++        label = abbreviation.encode("ascii") + b"\0"
++        if len(names) > 255 or daylight not in (0, 1) or standard not in (0, 1) or universal not in (0, 1):
++            raise ValueError("Unsupported normative TZif type")
++        type_bytes.extend(struct.pack(">lBB", offset, daylight, len(names)))
++        names.extend(label)
++    standards = bytes(item[3] for item in types)
++    universals = bytes(item[4] for item in types)
++
++    def block(times, size):
++        header = b"TZif3" + bytes(15) + struct.pack(">6l", len(types), len(types), 0, len(times), len(types), len(names))
++        stamps = b"".join(struct.pack(">q" if size == 8 else ">l", stamp) for stamp, _ in times)
++        indexes = bytes(index for _, index in times)
++        return header + stamps + indexes + bytes(type_bytes) + bytes(names) + standards + universals
++    times = list(zip(history[::2], history[1::2]))
++    if any(not 0 <= index < len(types) for _, index in times):
++        raise ValueError("Invalid normative TZif transition type")
++    # A valid compatibility block precedes the complete 64-bit transition set.
++    # Python 3.9+ reads the latter, including its unchanged POSIX future string.
++    return block([], 4) + block(times, 8) + b"\n" + tail[6].encode("ascii") + b"\n"
++
++
++def timezone_outputs(inputs):
++    for name, expected in TZ_HASHES.items():
++        if sha256(inputs.read(TZ_PREFIX + name)) != expected:
++            raise ValueError("Normative timezone input differs: " + name)
++    packet = json.loads(inputs.read(TZ_PREFIX + "tzdb-2026egtz.json"))
++    if packet.get("schema") != 2 or packet.get("tzdbVersion") != "2026egtz":
++        raise ValueError("Normative timezone schema differs")
++    rules = [encode_tzif(row) for row in packet["rules"]]
++    outputs = {}
++    for name, index in packet["zones"].items():
++        if not re.fullmatch(r"[A-Za-z0-9_+.-]+(?:/[A-Za-z0-9_+.-]+)*", name) or ".." in name:
++            raise ValueError("Unsafe normative timezone name")
++        outputs["zones/" + name] = rules[index]
++    outputs["LICENSE-tzdb.txt"] = inputs.read(TZ_PREFIX + "LICENSE-tzdb.txt")
++    outputs["timezone-provenance.json"] = inputs.read(TZ_PREFIX + "provenance.json")
++    return outputs, sorted(packet["zones"])
++
++
++def catalogs(inputs):
++    recipe_name = "magnolie-organizer/werkzeuge/po_zu_js.py"
++    # Reuse only the existing small build-time PO compiler from the captured
++    # snapshot. The desktop application and its module graph are never executed.
++    namespace = {"__name__": "mac_import_po_recipe"}
++    exec(compile(inputs.read(recipe_name), recipe_name, "exec"), namespace)
++    languages = inputs.read("magnolie-organizer/po/LINGUAS").decode().split()
++    result = {"en": {}}
++    with tempfile.TemporaryDirectory(prefix="magnolie-import-catalogs-") as temporary:
++        for language in languages:
++            if not re.fullmatch(r"[A-Za-z_]+", language):
++                raise ValueError("Unexpected catalog language")
++            name = "magnolie-organizer/po/" + language + ".po"
++            path = Path(temporary) / (language + ".po")
++            path.write_bytes(inputs.read(name))
++            values = namespace["katalog_lesen"](str(path))["messages"]
++            result[language.replace("_", "-").lower()] = {
++                key: value for key, value in values.items() if isinstance(value, str) and value
++            }
++    return json_bytes(result)
++
++
++def phone_outputs(inputs):
++    pin = phone_pin(inputs.read(PHONE_PIN))
++    data = inputs.read(PHONE_SNAPSHOT)
++    if len(data) > 8 * 1024 * 1024 or sha256(data) != pin["sha256"]:
++        raise ValueError("Phonenumbers snapshot differs from the desktop pin")
++    outputs, total = {}, 0
++    license_name = "phonenumbers-" + pin["version"] + ".dist-info/licenses/LICENSE"
++    with zipfile.ZipFile(io.BytesIO(data)) as archive:
++        if len(archive.infolist()) > 1024:
++            raise ValueError("Unexpected phonenumbers wheel file count")
++        for entry in archive.infolist():
++            if entry.filename == license_name:
++                name = "LICENSE-phonenumbers.txt"
++            elif entry.filename.startswith("phonenumbers/") and entry.filename.endswith(".py"):
++                name = "vendor/" + entry.filename
++            else:
++                continue
++            if entry.is_dir() or ((entry.external_attr >> 16) & 0o170000) == 0o120000:
++                raise ValueError("Unsafe phonenumbers wheel entry")
++            if entry.file_size > 8 * 1024 * 1024 or name in outputs:
++                raise ValueError("Unexpected phonenumbers wheel entry size or duplicate")
++            safe_path(Path("/projection"), name)
++            value = archive.read(entry)
++            total += len(value)
++            if total > 32 * 1024 * 1024:
++                raise ValueError("Phonenumbers wheel expands beyond its limit")
++            outputs[name] = value
++    if "vendor/phonenumbers/__init__.py" not in outputs or "LICENSE-phonenumbers.txt" not in outputs:
++        raise ValueError("Phonenumbers code or license is missing")
++    return outputs, pin
++
++
++def home_countries(source):
++    node = next(item for item in ast.parse(source).body if "ISO_ALPHA2" in bound_names(item))
++    value = node.value
++    if not (isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id == "frozenset"
++            and len(value.args) == 1 and isinstance(value.args[0], ast.Call)
++            and isinstance(value.args[0].func, ast.Attribute) and value.args[0].func.attr == "split"
++            and isinstance(value.args[0].func.value, ast.Constant)
++            and isinstance(value.args[0].func.value.value, str) and not value.args[0].args):
++        raise ValueError("Canonical country registry shape changed")
++    result = value.args[0].func.value.value.split()
++    if len(result) != len(set(result)) or any(not re.fullmatch("[A-Z]{2}", value) for value in result):
++        raise ValueError("Canonical country registry is invalid")
++    return sorted(result)
++
++
++def build(snapshot):
++    inputs = Inputs(snapshot)
++    policy = json.loads(inputs.read(POLICY))
++    if policy.get("schema") != 1:
++        raise ValueError("Unsupported import closure policy")
++    outputs, descriptions = {}, {}
++    for output_name, rule in policy["projections"].items():
++        source = inputs.read(rule["source"]).decode("utf-8")
++        selected, imports, description = closure(source, rule["source"], rule["roots"], rule["adapters"])
++        if description != rule["reviewed"]:
++            raise ValueError("Import parser dependency closure changed: " + output_name)
++        outputs[output_name] = emit_module(source, rule["source"], selected, imports, rule["adapters"])
++        descriptions[output_name] = description
++    for name, rule in policy["copiedModules"].items():
++        data = inputs.read(rule["source"])
++        if local_imports(ast.parse(data).body) != rule["imports"]:
++            raise ValueError("Copied codec dependency closure changed: " + name)
++        outputs[name] = data
++    for name in ("helper.py", "import_context.py", "calendar_evidence.py"):
++        outputs[name] = inputs.read("Magnolie-Organizer-macOS-Beta/ImportHelper/" + name)
++    outputs["catalogs.json"] = catalogs(inputs)
++    zones, registry = timezone_outputs(inputs)
++    outputs.update(zones)
++    package, dependency = phone_outputs(inputs)
++    outputs.update(package)
++    # The recipe itself and policy are part of the original-input proof.
++    inputs.read("Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py")
++    manifest = {
++        "schema": 1, "kind": "magnolie-macos-import-helper", "protocol": 1,
++        "sourcePolicy": "current-checkout-files", "nativeValidation": False,
++        "maximumInputBytes": 32 * 1024 * 1024, "maximumOutputBytes": 96 * 1024 * 1024,
++        "formats": ["ics", "lotus", "vcf", "claws", "ldif", "muell"],
++        "timezones": registry, "timezoneVersion": "2026egtz", "projections": descriptions,
++        "homeCountries": home_countries(inputs.read(PHONE)), "dependencies": {"phonenumbers": dependency},
++        "inputs": {name: {"sha256": sha256(data), "bytes": len(data)} for name, data in sorted(inputs.values.items())},
++        "generated": {name: {"sha256": sha256(data), "bytes": len(data)} for name, data in sorted(outputs.items())},
++    }
++    outputs["manifest.json"] = json_bytes(manifest)
++    return outputs, manifest
++
++
++def project_snapshot(snapshot, target, verify=False):
++    outputs, manifest = build(snapshot)
++    target = Path(target)
++    if verify:
++        actual = {str(path.relative_to(target)) for path in target.rglob("*") if path.is_file()}
++        if actual != set(outputs):
++            raise ValueError("Generated import helper file set differs")
++        for name, data in outputs.items():
++            if safe_path(target, name).read_bytes() != data:
++                raise ValueError("Generated import helper differs: " + name)
++    else:
++        if target.exists() and any(target.iterdir()):
++            raise ValueError("Import helper output must be empty")
++        for name, data in outputs.items():
++            path = safe_path(target, name)
++            path.parent.mkdir(parents=True, exist_ok=True)
++            path.write_bytes(data)
++    return manifest
++
++
++def project(root, target, verify=False):
++    return project_snapshot(input_snapshot(root), target, verify)
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--repo-root", type=Path, default=REPO)
++    parser.add_argument("--output", type=Path)
++    parser.add_argument("--verify", action="store_true")
++    parser.add_argument("--prepare-dependencies", action="store_true")
++    args = parser.parse_args()
++    if args.prepare_dependencies:
++        if args.output or args.verify:
++            parser.error("Dependency preparation is a separate step")
++        print(json.dumps(prepare_dependencies(args.repo_root), sort_keys=True))
++        return
++    if args.output is None:
++        parser.error("--output is required for projection or verification")
++    result = project(args.repo_root, args.output, args.verify)
++    print(json.dumps({"generated": len(result["generated"]), "formats": result["formats"],
++                      "timezones": len(result["timezones"]), "nativeValidation": False}, sort_keys=True))
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+index d35857f38afb31ed5b039b36c712e9a61b69d84a..e09a45832a88bc10af677ebc646d9786f2e37f5f 100644
+--- a/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
++++ b/Magnolie-Organizer-macOS-Beta/tools/project_ui.py
+@@ -8,6 +8,7 @@ import re
+ import shutil
+ import sys
+ import tempfile
++import project_import_helper
+ 
+ BETA = Path(__file__).resolve().parents[1]
+ REPO = BETA.parent
+@@ -39,8 +40,14 @@ def inputs():
+               REPO / "magnolie-organizer-windows/BridgeDispatcherContract.cs",
+               REPO / "magnolie-organizer-windows/EncryptionService.cs",
+               REPO / "magnolie-handbuch/web/mobile-downloads.json",
+-              BETA / "Package.swift", BETA / "tools/build_dev.py", BETA / "tools/airplay_bundle.py", Path(__file__).resolve()]
+-    return {str(file.relative_to(REPO)): file.read_bytes() for file in sorted(set(files))}
++              BETA / "Package.swift", BETA / "tools/build_dev.py", BETA / "tools/airplay_bundle.py",
++              BETA / "tools/import_python_bundle.py", Path(__file__).resolve()]
++    snapshot = {str(file.relative_to(REPO)): file.read_bytes() for file in sorted(set(files))}
++    imports = project_import_helper.input_snapshot(REPO)
++    if any(snapshot[name] != data for name, data in imports.items() if name in snapshot):
++        raise ValueError("Canonical sources changed while capturing the import helper")
++    snapshot.update(imports)
++    return snapshot
+ 
+ 
+ def inventory(snapshot):
+@@ -250,6 +257,7 @@ def project(snapshot, target):
+     if target.exists():
+         raise ValueError("Projection destination must not exist.")
+     target.mkdir(parents=True)
++    project_import_helper.project_snapshot(snapshot, target / "ImportHelper")
+     prefix = str(LINUX.relative_to(REPO)) + "/"
+     for name, data in snapshot.items():
+         if name.startswith(prefix + "web/") or name.startswith(prefix + "symbole/"):
+-- 
+2.56.1
+

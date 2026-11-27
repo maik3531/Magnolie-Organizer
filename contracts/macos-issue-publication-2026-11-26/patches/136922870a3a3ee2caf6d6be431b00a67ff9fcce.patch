@@ -1,0 +1,54 @@
+From 136922870a3a3ee2caf6d6be431b00a67ff9fcce Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 08:42:23 +0100
+Subject: [PATCH] Refs #785: exclude optional zstd-linked runtime modules
+
+---
+ Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md          | 9 +++++++++
+ .../tools/import_python_bundle.py                        | 3 ++-
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md b/Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md
+index e2084a3cee9614c92904ab5fc3176a26f9bba13b..4e2a4bb4b84891e21add57f02da47fcbbf2d1d50 100644
+--- a/Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md
++++ b/Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md
+@@ -17,6 +17,11 @@ the upstream installer statement does not prove our build works on Monterey.
+ `tools/import_python_bundle.py` builds the source on each matching Apple
+ architecture with the 12.7 deployment target, a static interpreter core and
+ JIT disabled. Optional SSL, GUI, database and FFI extensions are excluded.
++The optional `_zstd` and `_remote_debugging` extensions are excluded too:
++CPython's configure can discover and link zstd even with pkg-config disabled.
++Otherwise an unrelated installed zstd could make the strict system-library
++closure check fail. `zipfile` explicitly supports an absent zstd extension;
++the required classic-format compression modules remain in the relocation gate.
+ Required parsing, compression, hashing, XML and ZoneInfo modules are imported
+ by the actual relocated interpreter as a build gate. Compiled runtime images
+ must have the selected architecture, a minimum OS no newer than 12.7 and only
+@@ -71,6 +76,10 @@ Executed on the Linux source-review host:
+ - Complete extraction through the bounded production extractor: passed.
+ - Configure flags and the case-insensitive-Mac `python.exe` build-name rule
+   checked against the downloaded CPython source.
++- Independent review reproduced the optional zstd linkage with the real pinned
++  source's configure on Linux. Its actual `Modules/makesetup` then removed both
++  optional modules after the two explicit exclusions. This is configuration
++  evidence, not a native macOS compilation or a previously observed Mac failure.
+ 
+ Not executed here: native CPython compilation, Apple dynamic-loader tests,
+ codesigning, Swift/AppKit/WKWebView, Monterey runtime checks or real imports.
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py b/Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py
+index 7daa6088828a2750df68b883457869b6e6a1d5db..ee75600b27af596cdfea60b5f5cd6c6167f6a1bc 100644
+--- a/Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py
++++ b/Magnolie-Organizer-macOS-Beta/tools/import_python_bundle.py
+@@ -175,7 +175,8 @@ def build_runtime(archive, destination, architecture, minimum):
+         # (zlib/bz2/lzma/expat and builtin hashes) are checked after relocation.
+         (source / "Modules/Setup.local").write_text(
+             "*disabled*\n" + "\n".join(["_ssl", "_hashlib", "_tkinter", "_ctypes", "_sqlite3",
+-                                        "_gdbm", "_dbm", "readline", "_curses", "_curses_panel"]) + "\n")
++                                        "_gdbm", "_dbm", "readline", "_curses", "_curses_panel",
++                                        "_zstd", "_remote_debugging"]) + "\n")
+         environment = {
+             "PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "LANG": "C", "LC_ALL": "C",
+             "CC": shlex.quote(compiler), "MACOSX_DEPLOYMENT_TARGET": minimum,
+-- 
+2.56.1
+

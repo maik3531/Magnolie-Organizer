@@ -1,0 +1,125 @@
+test_failed_native_suite_still_runs_real_oracle_and_remains_failed (__main__.CalendarOracleGateTests.test_failed_native_suite_still_runs_real_oracle_and_remains_failed) ... ok
+test_missing_and_symlinked_prior_artifacts_never_satisfy_oracle (__main__.CalendarOracleGateTests.test_missing_and_symlinked_prior_artifacts_never_satisfy_oracle) ... ok
+test_canonical_decrypts_whole_json_and_rejects_tampering (__main__.CryptoContractTests.test_canonical_decrypts_whole_json_and_rejects_tampering) ... ok
+test_vectors_match_canonical_linux_codec (__main__.CryptoContractTests.test_vectors_match_canonical_linux_codec) ... ok
+test_actual_generated_ui_host_contract (__main__.ProjectionTests.test_actual_generated_ui_host_contract) ... ok
+test_additive_apple_notes_copy_contract (__main__.ProjectionTests.test_additive_apple_notes_copy_contract) ... ok
+test_additive_selected_note_files_contract (__main__.ProjectionTests.test_additive_selected_note_files_contract) ... ok
+test_additive_system_calendar_import_contract (__main__.ProjectionTests.test_additive_system_calendar_import_contract) ... ok
+test_additive_system_contact_copy_contract (__main__.ProjectionTests.test_additive_system_contact_copy_contract) ... ok
+test_additive_system_reminder_copy_contract (__main__.ProjectionTests.test_additive_system_reminder_copy_contract) ... ok
+test_anchor_drift_refuses_instead_of_shipping_old_payload (__main__.ProjectionTests.test_anchor_drift_refuses_instead_of_shipping_old_payload) ... ok
+test_bridge_inventory_distinguishes_partial_and_unavailable (__main__.ProjectionTests.test_bridge_inventory_distinguishes_partial_and_unavailable) ... ok
+test_canonical_calendar_export_contract (__main__.ProjectionTests.test_canonical_calendar_export_contract) ... ok
+test_canonical_manual_is_bundled_unchanged_and_hashed (__main__.ProjectionTests.test_canonical_manual_is_bundled_unchanged_and_hashed) ... ok
+test_communication_published_ui_payloads (__main__.ProjectionTests.test_communication_published_ui_payloads) ... ok
+test_current_editor_reminders_and_export (__main__.ProjectionTests.test_current_editor_reminders_and_export) ... ok
+test_device_page_existing_import_capabilities (__main__.ProjectionTests.test_device_page_existing_import_capabilities) ... ok
+test_drawing_finish_projection_and_exact_renderer_commands (__main__.ProjectionTests.test_drawing_finish_projection_and_exact_renderer_commands) ... PASS drawing release: 10 tools, owner/coalescing/current endpoint, tap/cancel/pressure/eraser, actual200000-point limit, Undo/Redo (synthetic events/mock canvas)
+PASS drawing completion: 10 tools, exact model/direct commands, erasure, Undo/Redo, idle-finish bounds (mock canvas; native pixels remain required)
+ok
+test_explicit_freeze_required (__main__.ProjectionTests.test_explicit_freeze_required) ... ok
+test_freeze_and_generated_tamper_detection (__main__.ProjectionTests.test_freeze_and_generated_tamper_detection) ... ok
+test_identity_and_no_stable_workflow (__main__.ProjectionTests.test_identity_and_no_stable_workflow) ... ok
+test_native_legacy_calendar_alias_evidence_contract (__main__.ProjectionTests.test_native_legacy_calendar_alias_evidence_contract) ... ok
+test_no_linux_native_build_claim (__main__.ProjectionTests.test_no_linux_native_build_claim) ... FAIL
+test_occurrence_identity_current_ui_and_published_adapter_preserve_distinct_instances (__main__.ProjectionTests.test_occurrence_identity_current_ui_and_published_adapter_preserve_distinct_instances) ... FAIL
+test_opaque_json_keys_reach_the_native_boundary_unchanged (__main__.ProjectionTests.test_opaque_json_keys_reach_the_native_boundary_unchanged) ... ok
+test_projection_is_reproducible_and_full_ui (__main__.ProjectionTests.test_projection_is_reproducible_and_full_ui) ... ok
+test_recovery_regional_keyboard_contract (__main__.ProjectionTests.test_recovery_regional_keyboard_contract) ... ok
+test_regional_form_drift_refuses_instead_of_guessing_native_contract (__main__.ProjectionTests.test_regional_form_drift_refuses_instead_of_guessing_native_contract) ... ok
+test_shared_display_alarm_actual_form (__main__.ProjectionTests.test_shared_display_alarm_actual_form) ... ok
+test_shared_display_alarm_adapter_binding_and_anchor_drift (__main__.ProjectionTests.test_shared_display_alarm_adapter_binding_and_anchor_drift) ... ok
+test_shared_legacy_css_fallbacks (__main__.ProjectionTests.test_shared_legacy_css_fallbacks) ... ok
+test_system_account_sync_transaction (__main__.ProjectionTests.test_system_account_sync_transaction) ... ok
+test_terminated_leader_does_not_leave_owned_group_grandchildren (__main__.SwiftChildLifecycleTests.test_terminated_leader_does_not_leave_owned_group_grandchildren) ... macOS Beta host UI: 109 assertions passed. jsdom/V8 only; NOT macOS or WKWebView validation.
+Mac Apple Notes plaintext copy: 195 projected UI checks; synthetic native records/transport, not AppleScript or macOS evidence.
+Mac additive note files: 41 host checks; synthetic transport, not native picker evidence.
+Mac native calendar import: 327 projected UI checks; synthetic EventKit payload/transport, not native access evidence.
+Mac system Contacts copy: 246 projected UI checks; full synthetic native records/transport, not Contacts.framework or macOS evidence.
+Mac system Reminders copy: 369 projected UI checks; shared synthetic reader/Core fixture and transport, not EventKit or macOS evidence.
+Canonical calendar vectors prepared: 19
+Swift calendar export NOT executed; pass --swift for native/portable validation.
+PASS 15 canonical communication payloads (host only; no external application opened)
+PASS 9 actual projected phone payloads (canonical country metadata; no external application opened)
+Actual current editor: {"appointments": 9, "tasks": 3, "checks": 96}
+Actual current editor: {"appointments": 9, "tasks": 3, "checks": 96}
+Actual current editor: {"appointments": 9, "tasks": 3, "checks": 96}
+Swift core execution NOT run in this host collection; use MACOS_BETA_SWIFT or tools/check_editor.py --swift.
+{"issue":784,"projectedDevicePageChecks":118,"locales":["en","de"],"existingImportActions":6,"syntheticNativeTransport":true,"nativeExecution":false}
+Mac legacy calendar aliases: 101 checks passed; synthetic native sidecar over actual Python codec, actual projected UI, synthetic Save ACK/frontend reopen; no native AppKit/disk evidence.
+Opaque JSON boundary: 20 actual projected UI assertions passed; Swift acceptance remains a separate test.
+macOS Beta recovery/regional/keyboard: 86 host checks. Fake native transport, NOT WKWebView validation.
+Shared DISPLAY alarm form: 11 macos checks; host JS only.
+Legacy CSS macos: 5 source/AST checks; no native layout claim.
+{"issue":786,"actualProjectedUIChecks":107,"locales":["en","de"],"sourceShapedFixture":"Manually source-shaped synthetic UI inputs derived from the existing contact/reminder/calendar copy fixtures; NOT generated by running Swift. Digests are synthetic and do not authorize any write.","syntheticProviderAndDiskReceipts":true,"nativeExecution":false}
+SWIFT_TEST_TIMEOUT_TECHNICAL
+
+ok
+test_timeout_kills_only_owned_group_and_preserves_failure (__main__.SwiftChildLifecycleTests.test_timeout_kills_only_owned_group_and_preserves_failure) ... SWIFT_TEST_TIMEOUT_TECHNICAL
+
+ok
+test_timeout_tail_keeps_only_fixed_technical_test_state (__main__.SwiftChildLifecycleTests.test_timeout_tail_keeps_only_fixed_technical_test_state) ... ok
+
+======================================================================
+FAIL: test_no_linux_native_build_claim (__main__.ProjectionTests.test_no_linux_native_build_claim)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/8bb9b7fcba7e/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tests/test_host.py", line 358, in test_no_linux_native_build_claim
+    self.assertIn("Apple macOS host required", result.stderr)
+AssertionError: 'Apple macOS host required' not found in 'usage: build_dev.py [-h] [--airplay-sdk AIRPLAY_SDK] --import-runtime\n                    IMPORT_RUNTIME\nbuild_dev.py: error: the following arguments are required: --import-runtime\n'
+
+======================================================================
+FAIL: test_occurrence_identity_current_ui_and_published_adapter_preserve_distinct_instances (__main__.ProjectionTests.test_occurrence_identity_current_ui_and_published_adapter_preserve_distinct_instances)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/8bb9b7fcba7e/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tests/test_host.py", line 285, in test_occurrence_identity_current_ui_and_published_adapter_preserve_distinct_instances
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<string>", line 2, in <module>
+  File "<frozen importlib._bootstrap_external>", line 999, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/workspace/scratch/8bb9b7fcba7e/Magnolie-Organizer/Magnolie-Organizer-macOS-Beta/tools/project_ui.py", line 11, in <module>
+    import project_import_helper
+ModuleNotFoundError: No module named 'project_import_helper'
+<ref *1> Error: spawnSync python3 EPIPE
+    at Object.spawnSync (node:internal/child_process:1191:20)
+    at spawnSync (node:child_process:929:24)
+    at Object.execFileSync (node:child_process:972:15)
+    at inverseChecks (/workspace/scratch/8bb9b7fcba7e/Magnolie-Organizer/port-adapters/tests/occurrence-identity.cjs:19:17)
+    at run (/workspace/scratch/8bb9b7fcba7e/Magnolie-Organizer/port-adapters/tests/occurrence-identity.cjs:49:3)
+    at Object.<anonymous> (/workspace/scratch/8bb9b7fcba7e/Magnolie-Organizer/port-adapters/tests/occurrence-identity.cjs:126:26)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12) {
+  errno: -32,
+  code: 'EPIPE',
+  syscall: 'spawnSync python3',
+  path: 'python3',
+  spawnargs: [
+    '-c',
+    'import importlib.util,pathlib,sys\n' +
+      "r=pathlib.Path(sys.argv[1]);s=importlib.util.spec_from_file_location('p',r/'Magnolie-Organizer-macOS-Beta/tools/project_ui.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)\n" +
+      "snap={'port-adapters/'+n:(r/'port-adapters'/n).read_bytes() for n in ['occurrence-identity-patch.json','occurrence-identity.js']}\n" +
+      'sys.stdout.write(m.apply_occurrence_identity(sys.stdin.read(),snap))',
+    '/workspace/scratch/8bb9b7fcba7e/Magnolie-Organizer'
+  ],
+  error: [Circular *1],
+  status: 1,
+  signal: null,
+  output: [
+    null,
+    <Buffer >,
+    <Buffer 54 72 61 63 65 62 61 63 6b 20 28 6d 6f 73 74 20 72 65 63 65 6e 74 20 63 61 6c 6c 20 6c 61 73 74 29 3a 0a 20 20 46 69 6c 65 20 22 3c 73 74 72 69 6e 67 ... 403 more bytes>
+  ],
+  pid: 615,
+  stdout: <Buffer >,
+  stderr: <Buffer 54 72 61 63 65 62 61 63 6b 20 28 6d 6f 73 74 20 72 65 63 65 6e 74 20 63 61 6c 6c 20 6c 61 73 74 29 3a 0a 20 20 46 69 6c 65 20 22 3c 73 74 72 69 6e 67 ... 403 more bytes>
+}
+
+
+----------------------------------------------------------------------
+Ran 35 tests in 112.360s
+
+FAILED (failures=2)

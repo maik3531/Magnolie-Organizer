@@ -1,0 +1,335 @@
+{
+  "schema": 1,
+  "repository": "maik3531/Magnolie-Organizer",
+  "branch": "work/macos-issue-fixes-20261126",
+  "originalHead": "0dfeb1b30a208480eb6901e3d3148a5efeaae5ff",
+  "testedCodeCommit": "7c9cf20394aef73d261a77f746ebca7340826d30",
+  "apiSourceCommit": "8efc6834abd16f18300f3d59a1897c81758b0c34",
+  "apiSourceTree": "d731a6bd56acd68e79aab83fbadb19ab94ad6547",
+  "documentationCommit": "cf7b3f2bf4e8afee662a4926f32fc989d7ff7df8",
+  "documentationTree": "84946fbf64b1c804072ae539680c221c04690247",
+  "expectedIssueCount": 31,
+  "status": "complete",
+  "comments": [
+    {
+      "issue": 121,
+      "commentId": 7186455888,
+      "marker": "macos-issue-audit-2026-11-26:121",
+      "bodySHA256": "4c031efdf321b1e07ef663c1cba8617e2da019de3e1a39f8235f33740bb53ca8",
+      "bodyBytes": 13803,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7186455888",
+      "verifiedAtUTC": "2026-11-26T08:20:10.030Z"
+    },
+    {
+      "issue": 451,
+      "commentId": 7186470128,
+      "marker": "macos-issue-audit-2026-11-26:451",
+      "bodySHA256": "694c3a4088c1dbf3a8e5cdf8aa1b2e19abafea78f700ec9e197d10d000180a7f",
+      "bodyBytes": 4835,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/451#issuecomment-7186470128",
+      "verifiedAtUTC": "2026-11-26T08:20:12.092Z"
+    },
+    {
+      "issue": 452,
+      "commentId": 7186470845,
+      "marker": "macos-issue-audit-2026-11-26:452",
+      "bodySHA256": "9610c0c0a5be60c1729c87e2ebe71003707c46636d7cd0a5894fe727e2bbc151",
+      "bodyBytes": 4801,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/452#issuecomment-7186470845",
+      "verifiedAtUTC": "2026-11-26T08:20:14.433Z"
+    },
+    {
+      "issue": 453,
+      "commentId": 7186471583,
+      "marker": "macos-issue-audit-2026-11-26:453",
+      "bodySHA256": "3abc31775c01bd4a646e6db83754fa0a97ef3bc7562342e6da67c4e62f804a38",
+      "bodyBytes": 4890,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/453#issuecomment-7186471583",
+      "verifiedAtUTC": "2026-11-26T08:20:16.713Z"
+    },
+    {
+      "issue": 454,
+      "commentId": 7186472352,
+      "marker": "macos-issue-audit-2026-11-26:454",
+      "bodySHA256": "3195725f3b24a22d3286376eb7a9e20707de826ad0a707125d63d1811b277ba6",
+      "bodyBytes": 5151,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/454#issuecomment-7186472352",
+      "verifiedAtUTC": "2026-11-26T08:20:19.099Z"
+    },
+    {
+      "issue": 458,
+      "commentId": 7186473069,
+      "marker": "macos-issue-audit-2026-11-26:458",
+      "bodySHA256": "503391ff3cfd5e32f7cbeaedbd01995854d3f91f1b9751e528088f9e781dcfe6",
+      "bodyBytes": 4833,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/458#issuecomment-7186473069",
+      "verifiedAtUTC": "2026-11-26T08:20:21.485Z"
+    },
+    {
+      "issue": 464,
+      "commentId": 7186473921,
+      "marker": "macos-issue-audit-2026-11-26:464",
+      "bodySHA256": "d57e6704a329d82d3e27393f3427cc07fe9ce5f9a99bccefde5da125573a6cc3",
+      "bodyBytes": 5088,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/464#issuecomment-7186473921",
+      "verifiedAtUTC": "2026-11-26T08:20:24.097Z"
+    },
+    {
+      "issue": 465,
+      "commentId": 7186474755,
+      "marker": "macos-issue-audit-2026-11-26:465",
+      "bodySHA256": "b6cb81b9e2703cbfad7aae6bb86ae0f3ac3165106344d988fd558e215b54aa9b",
+      "bodyBytes": 6639,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/465#issuecomment-7186474755",
+      "verifiedAtUTC": "2026-11-26T08:20:26.574Z"
+    },
+    {
+      "issue": 468,
+      "commentId": 7186475580,
+      "marker": "macos-issue-audit-2026-11-26:468",
+      "bodySHA256": "b195527b7450f6e481c763cd2503043aed7f9943d62c9eaeac383bbe017acc57",
+      "bodyBytes": 4753,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/468#issuecomment-7186475580",
+      "verifiedAtUTC": "2026-11-26T08:20:28.772Z"
+    },
+    {
+      "issue": 472,
+      "commentId": 7186476384,
+      "marker": "macos-issue-audit-2026-11-26:472",
+      "bodySHA256": "11901a712cb0174e92c3b082965c5f584e772b3e2a1701ebf2415aa19e961fe5",
+      "bodyBytes": 4606,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/472#issuecomment-7186476384",
+      "verifiedAtUTC": "2026-11-26T08:20:31.211Z"
+    },
+    {
+      "issue": 511,
+      "commentId": 7186477162,
+      "marker": "macos-issue-audit-2026-11-26:511",
+      "bodySHA256": "83aee7e6d6dfa1869f197eae0ddc86bcb533682ee5e606015cd840885b2d4b12",
+      "bodyBytes": 5602,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/511#issuecomment-7186477162",
+      "verifiedAtUTC": "2026-11-26T08:20:33.301Z"
+    },
+    {
+      "issue": 680,
+      "commentId": 7186477847,
+      "marker": "macos-issue-audit-2026-11-26:680",
+      "bodySHA256": "a9f686a622a99a88fef4e664acc265f0909a3b2e3db917c2e7e6b62dae7a247b",
+      "bodyBytes": 4957,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/680#issuecomment-7186477847",
+      "verifiedAtUTC": "2026-11-26T08:20:35.581Z"
+    },
+    {
+      "issue": 682,
+      "commentId": 7186478629,
+      "marker": "macos-issue-audit-2026-11-26:682",
+      "bodySHA256": "c97c78eed50b59488e23c46445ad1d58bbe809005fe9ac46b2ad42c3d8612d37",
+      "bodyBytes": 4667,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/682#issuecomment-7186478629",
+      "verifiedAtUTC": "2026-11-26T08:20:37.823Z"
+    },
+    {
+      "issue": 683,
+      "commentId": 7186479357,
+      "marker": "macos-issue-audit-2026-11-26:683",
+      "bodySHA256": "4242e22b212c4351077a235bb9e614862bf3530424f288eda5ffa05975e83043",
+      "bodyBytes": 5101,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/683#issuecomment-7186479357",
+      "verifiedAtUTC": "2026-11-26T08:20:39.941Z"
+    },
+    {
+      "issue": 721,
+      "commentId": 7186480066,
+      "marker": "macos-issue-audit-2026-11-26:721",
+      "bodySHA256": "f703e246f9d2c9f7c888c349ec4e782b2cc709a55dcd0b64784455792d1dce37",
+      "bodyBytes": 4927,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/721#issuecomment-7186480066",
+      "verifiedAtUTC": "2026-11-26T08:20:42.187Z"
+    },
+    {
+      "issue": 749,
+      "commentId": 7186480800,
+      "marker": "macos-issue-audit-2026-11-26:749",
+      "bodySHA256": "661fb8f13a03cbf6f4fa86f1b9e2c1b0144aea09ab656d92c688fd4e8894232e",
+      "bodyBytes": 4841,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/749#issuecomment-7186480800",
+      "verifiedAtUTC": "2026-11-26T08:20:44.485Z"
+    },
+    {
+      "issue": 770,
+      "commentId": 7186481565,
+      "marker": "macos-issue-audit-2026-11-26:770",
+      "bodySHA256": "0b9bab5b313611857f2cecbca9cd8472567cb0179952800c381d1c6d2bac7d28",
+      "bodyBytes": 6249,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/770#issuecomment-7186481565",
+      "verifiedAtUTC": "2026-11-26T08:20:46.746Z"
+    },
+    {
+      "issue": 771,
+      "commentId": 7186482270,
+      "marker": "macos-issue-audit-2026-11-26:771",
+      "bodySHA256": "709ddf217e9c088a4925ec235f7b806beaf649331a0a8af829aad11ebdfcdaad",
+      "bodyBytes": 5473,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/771#issuecomment-7186482270",
+      "verifiedAtUTC": "2026-11-26T08:20:49.007Z"
+    },
+    {
+      "issue": 772,
+      "commentId": 7186483138,
+      "marker": "macos-issue-audit-2026-11-26:772",
+      "bodySHA256": "7577493fe780462601684990e4a1eeb4b40336cbceb03d7a3cd0392821c74bbf",
+      "bodyBytes": 5774,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/772#issuecomment-7186483138",
+      "verifiedAtUTC": "2026-11-26T08:20:51.560Z"
+    },
+    {
+      "issue": 773,
+      "commentId": 7186483902,
+      "marker": "macos-issue-audit-2026-11-26:773",
+      "bodySHA256": "2dfa71a1f8378a974d796af59578d2442693042f76852f360fb8d4db9c533ea8",
+      "bodyBytes": 5198,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/773#issuecomment-7186483902",
+      "verifiedAtUTC": "2026-11-26T08:20:53.882Z"
+    },
+    {
+      "issue": 774,
+      "commentId": 7186484707,
+      "marker": "macos-issue-audit-2026-11-26:774",
+      "bodySHA256": "eb8f104432a14b0f6105c156be84dbdee391b6a1d301ad51e3922b2defd3f762",
+      "bodyBytes": 5203,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/774#issuecomment-7186484707",
+      "verifiedAtUTC": "2026-11-26T08:20:56.331Z"
+    },
+    {
+      "issue": 775,
+      "commentId": 7186485555,
+      "marker": "macos-issue-audit-2026-11-26:775",
+      "bodySHA256": "8bb694901d81610631b1a7323ec88627a4ad884ae94a41fa18a0be0b0bca5141",
+      "bodyBytes": 6007,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/775#issuecomment-7186485555",
+      "verifiedAtUTC": "2026-11-26T08:20:58.732Z"
+    },
+    {
+      "issue": 776,
+      "commentId": 7186486387,
+      "marker": "macos-issue-audit-2026-11-26:776",
+      "bodySHA256": "3fef31c2f201ab455df8b4f19ccbb8698c7d71e60e1f9d7b0fe1a4e1c653bde6",
+      "bodyBytes": 5651,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/776#issuecomment-7186486387",
+      "verifiedAtUTC": "2026-11-26T08:21:00.857Z"
+    },
+    {
+      "issue": 777,
+      "commentId": 7186487191,
+      "marker": "macos-issue-audit-2026-11-26:777",
+      "bodySHA256": "8e9e975a87e936b2ee25ac629cacad4cc5077c4038cbda92811066002f90ef14",
+      "bodyBytes": 5555,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/777#issuecomment-7186487191",
+      "verifiedAtUTC": "2026-11-26T08:21:03.331Z"
+    },
+    {
+      "issue": 778,
+      "commentId": 7186487948,
+      "marker": "macos-issue-audit-2026-11-26:778",
+      "bodySHA256": "ca982e6fb184ddad5afe0cdf0fe9e5c7b5c20aad0cdc3b4cbc0d80973a26bd08",
+      "bodyBytes": 5611,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/778#issuecomment-7186487948",
+      "verifiedAtUTC": "2026-11-26T08:21:05.828Z"
+    },
+    {
+      "issue": 779,
+      "commentId": 7186488763,
+      "marker": "macos-issue-audit-2026-11-26:779",
+      "bodySHA256": "e3265440a5207c765ec7518704bd83dd0165751399f6bc0f28d316cdba52e009",
+      "bodyBytes": 5573,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/779#issuecomment-7186488763",
+      "verifiedAtUTC": "2026-11-26T08:21:08.087Z"
+    },
+    {
+      "issue": 781,
+      "commentId": 7186489586,
+      "marker": "macos-issue-audit-2026-11-26:781",
+      "bodySHA256": "c13a14c6fa6ad8fa63ebbcb1c0dd90e9285eb867a467dcdb9ce8fe4a57a07948",
+      "bodyBytes": 5591,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/781#issuecomment-7186489586",
+      "verifiedAtUTC": "2026-11-26T08:21:10.487Z"
+    },
+    {
+      "issue": 783,
+      "commentId": 7186490335,
+      "marker": "macos-issue-audit-2026-11-26:783",
+      "bodySHA256": "296dafd4fa261f2f318219fda5a220c91f28e2288f2851599aa80c931f4129c6",
+      "bodyBytes": 8386,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/783#issuecomment-7186490335",
+      "verifiedAtUTC": "2026-11-26T08:21:13.153Z"
+    },
+    {
+      "issue": 784,
+      "commentId": 7186491235,
+      "marker": "macos-issue-audit-2026-11-26:784",
+      "bodySHA256": "9ee2e55fb7bd9b87d61a26f25dd0bbeb30a309032f137db7817a25e9cd44fb4f",
+      "bodyBytes": 6557,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/784#issuecomment-7186491235",
+      "verifiedAtUTC": "2026-11-26T08:21:15.589Z"
+    },
+    {
+      "issue": 785,
+      "commentId": 7186492012,
+      "marker": "macos-issue-audit-2026-11-26:785",
+      "bodySHA256": "0807e4938fa16250d983878b4df295850a5c2249350704b7abcae6d71a95227a",
+      "bodyBytes": 11892,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/785#issuecomment-7186492012",
+      "verifiedAtUTC": "2026-11-26T08:21:17.991Z"
+    },
+    {
+      "issue": 786,
+      "commentId": 7186492778,
+      "marker": "macos-issue-audit-2026-11-26:786",
+      "bodySHA256": "bfd91aa0e2ce970bef9971f2604715b77430c6f4fef085659cf8489e10c1a5c7",
+      "bodyBytes": 9077,
+      "readbackVerified": true,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/786#issuecomment-7186492778",
+      "verifiedAtUTC": "2026-11-26T08:21:20.359Z"
+    }
+  ],
+  "completedAtUTC": "2026-11-26T08:21:20.776Z",
+  "branchAndDocumentationReadbackVerified": true,
+  "sourceTreeMatchesOriginal": true,
+  "documentationCommitChangesOnlyContracts": true,
+  "originalSourceWorktreeUnmodified": true,
+  "nativeExecutionPerformed": false,
+  "artifactHashes": {
+    "manifest.json": "a06a18a0b6422b38e44ee50b4afd8fb21daa26663c7ddb7145c42c646126f94a",
+    "SHA256SUMS": "be22854f1962b8dae6d612d0bae0f218e41d324a1d5aa8047d14f3d4b8d68d6b"
+  }
+}

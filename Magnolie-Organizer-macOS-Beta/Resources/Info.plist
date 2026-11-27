@@ -12,8 +12,11 @@
   <key>LSMinimumSystemVersion</key><string>12.7</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSCalendarsUsageDescription</key><string>Access calendars that you select in macOS for reading and explicitly requested changes.</string>
-  <key>NSRemindersUsageDescription</key><string>Access reminder lists that you select in macOS for reading and explicitly requested changes.</string>
+  <key>NSRemindersUsageDescription</key><string>Access the reminder lists you select to review and save independent local task copies in Magnolie. Copying does not change originals; source changes require a separate explicit action. Account credentials remain with macOS.</string>
   <key>NSCalendarsFullAccessUsageDescription</key><string>Access calendars that you select in macOS for reading and explicitly requested changes.</string>
-  <key>NSRemindersFullAccessUsageDescription</key><string>Access reminder lists that you select in macOS for reading and explicitly requested changes.</string>
-  <key>NSContactsUsageDescription</key><string>Read contacts from address books that you select in macOS. Your account credentials remain with macOS.</string>
+  <key>NSRemindersFullAccessUsageDescription</key><string>Access the reminder lists you select to review and save independent local task copies in Magnolie. Copying does not change originals; source changes require a separate explicit action. Account credentials remain with macOS.</string>
+  <key>NSContactsUsageDescription</key><string>Read the contacts that you select in macOS to review and save local copies in Magnolie. Your original contacts are not changed and account credentials remain with macOS.</string>
+  <key>NSAppleEventsUsageDescription</key><string>Read Apple Notes folders and the notes you explicitly select to review and save local text copies in Magnolie. Your original notes are not changed.</string>
+  <key>NSLocalNetworkUsageDescription</key><string>Receive the iPhone screen and sound over AirPlay after you start mirroring in Magnolie.</string>
+  <key>NSBonjourServices</key><array><string>_airplay._tcp</string><string>_raop._tcp</string></array>
 </dict></plist>

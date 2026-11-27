@@ -1,0 +1,535 @@
+From 55a312701a259c9c91d11d3dfb95efdd9a73f0eb Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 06:37:41 +0100
+Subject: [PATCH] Refs #511: preserve lexical JSON identities in recovery
+ checks
+
+---
+ .../JSON-IDENTITY-511.md                      | 129 +++++++++++++++
+ .../Resources/native-extra-i18n.json          |   1 +
+ .../Sources/BetaCore/Contract.swift           |  37 ++++-
+ .../DocumentOpaqueIdentityTests.swift         | 156 ++++++++++++++++++
+ .../tests/opaque_json_keys.mjs                |  57 +++++++
+ .../tests/test_host.py                        |   7 +
+ .../tools/check_opaque_json.py                |  37 +++++
+ 7 files changed, 415 insertions(+), 9 deletions(-)
+ create mode 100644 Magnolie-Organizer-macOS-Beta/JSON-IDENTITY-511.md
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/DocumentOpaqueIdentityTests.swift
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tests/opaque_json_keys.mjs
+ create mode 100644 Magnolie-Organizer-macOS-Beta/tools/check_opaque_json.py
+
+diff --git a/Magnolie-Organizer-macOS-Beta/JSON-IDENTITY-511.md b/Magnolie-Organizer-macOS-Beta/JSON-IDENTITY-511.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf023389ede8ea311b60be403e7cf084e51572ad
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/JSON-IDENTITY-511.md
+@@ -0,0 +1,129 @@
++# #511: exakte JSON-Identitäten und verbleibende Darstellungsgrenze
++
++Geprüfte Ausgangsbasis: `616069f15fed21d8d8d05c8ef795f4ed21bd059c`.
++Dieser Patch ist eine begrenzte Sicherung des bestehenden Speichervertrags.
++Er ist **kein vollständiger Abschluss von #511** und gibt keine neuen
++JSON-Schlüsselpaare für die Swift-Dictionary-Brücke frei.
++
++## Konkret korrigierter Quellenbefund
++
++`Document.assertNoLoss` verglich bisher Feldnamen über `Set<String>` und ordnete
++Datensätze über `[String: Any]` nach `id` zu. Swift vergleicht die beiden
++Zeichenfolgen `caf\u00e9` und `cafe\u0301` kanonisch gleich. Ihre UTF-8-Bytes
++sind jedoch verschieden: `636166c3a9` und `63616665cc81`.
++
++Zwei **einzeln darstellbare** Dokumente konnten deshalb einen unterschiedlichen
++Feldnamen oder eine unterschiedliche Datensatz-ID enthalten, während die
++No-loss-Prüfung die neue Identität für die alte hielt. Der tatsächliche
++Speicherhandler in `Sources/MacBeta/main.swift` entscheidet anhand dieser
++Prüfung, ob vor dem Schreiben eine Wiederherstellungskopie erforderlich ist.
++Der Quellenbefund ist nicht als bereits beobachteter Nutzerdatenverlust zu
++verstehen; ein neuer nativer Lauf wurde hier nicht ausgeführt.
++
++Der Patch verwendet die vorhandene `OpaqueUTF8Identity` für beide Zuordnungen.
++Ein anderer dekodierter Feldname beziehungsweise eine andere ID verlangt damit
++den bestehenden Recovery-Pfad. Zwei unterschiedliche IDs dürfen zugleich im
++Array bleiben und ihre Position tauschen; ihre unbekannten Felder werden
++jeweils über die genaue ID geprüft. Echte doppelte IDs werden weiterhin
++abgewiesen. Anzeigenamen, Nutztexte, Kalender-UIDs und Dateninhalte werden
++nicht normalisiert oder umgeschrieben. Der atomare Speicher- und
++Recovery-Schreiber bleibt unverändert.
++
++## Bewusst unveränderte Brückengrenze
++
++Innerhalb **desselben JSON-Objekts** kann ein Swift-`[String: Any]` beide
++kanonisch äquivalenten Schlüssel weiterhin nicht sicher darstellen.
++`JSONKeys` prüft daher jetzt zwei getrennte Sachverhalte:
++
++1. Genau derselbe dekodierte UTF-8-Schlüssel, einschließlich anderer
++   JSON-Escapeschreibweise: weiterhin `Duplicate JSON key.`.
++2. Verschiedene dekodierte UTF-8-Schlüssel, die erst der Swift-Vergleich
++   zusammenlegen würde: ausdrücklicher Hinweis auf die noch bestehende
++   macOS-Darstellungsgrenze; die Originaldatei bleibt unangetastet.
++
++Der zweite Guard bleibt **vor** `JSONSerialization.jsonObject` bestehen.
++Nur den ersten Guard auf UTF-8 umzustellen und den zweiten zu entfernen wäre
++kein Fix: Die nachfolgende Foundation-/Swift-Brücke könnte Werte verlieren.
++Die neue Diagnose wird auch auf Deutsch bereitgestellt. Eine vollständige
++Übersetzungsabnahme aller nativen Meldungen wird nicht behauptet.
++
++## Konkrete Prüfungen
++
++`tests/opaque_json_keys.mjs` führt die tatsächlich erzeugte Mac-Oberfläche aus.
++Die Fixture enthält beide Schlüssel am Root, in einem unbekannten Objekt und
++in einem darin verschachtelten Array sowie zwei gleich aussehende, byteweise
++unterschiedliche Datensatz-IDs. Geprüft werden echte Initialisierung und
++Normalisierung, der tatsächliche `speichern`-Request sowie die tatsächliche
++Restore-Vorbereitung. Die 20 Assertions bestätigen den Erhalt an dieser
++JavaScript-Grenze. Der native Transport und sein Save-ACK sind synthetisch.
++Das belegt weder Swift-Akzeptanz noch einen nativen Dateischreibvorgang.
++
++`DocumentOpaqueIdentityTests.swift` enthält die getrennten nativen Regressionen:
++
++- echte Duplikate bleiben ungültig;
++- äquivalente, unterschiedliche Schlüssel werden an jeder Objekttiefe
++  ausdrücklich vor der unsicheren Brücke abgewiesen;
++- nicht kollidierende Unicode-Schlüssel behalten ihre UTF-8-Bytes;
++- Feld-/ID-Ersetzungen verlangen Recovery, unveränderte Identitäten nicht;
++- zwei unterschiedliche IDs dürfen umsortiert werden; unbekannte Felder
++  dürfen nicht zum anderen Datensatz wechseln;
++- die echte `OrdinarySaveEpochPolicy` und der echte `AtomicStore` erhalten
++  vor der Ersetzung die exakten ursprünglichen Datei-Bytes und öffnen den
++  neuen Stand anschließend wieder;
++- ein nicht darstellbares Schlüsselobjekt verändert den vorhandenen
++  Profilstand nicht;
++- der vom tatsächlichen JavaScript-Runner erzeugte Save-/Restore-Text wird
++  an der nativen Grenze weiterhin sicher abgewiesen.
++
++Die zehn Swift-Testmethoden sind vorbereitet. In der Entwicklungsumgebung
++dieses Patches ist kein Swift-Compiler vorhanden; sie sind hier **nicht
++kompiliert und nicht ausgeführt**. Historische native Kalender-/Restore-Tests
++anderer Commits ersetzen diesen neuen Nachweis nicht.
++
++### Wiederholbare Befehle
++
++Aus dem Repositoryroot, mit dem vorhandenen Node/JSDOM des Projekts:
++
++```sh
++python3 Magnolie-Organizer-macOS-Beta/tools/check_opaque_json.py --js-runtime node
++```
++
++Auf dem bestehenden Mac-Prüfweg jeweils für Intel und Apple Silicon:
++
++```sh
++python3 Magnolie-Organizer-macOS-Beta/tools/check_opaque_json.py --js-runtime node --swift /usr/bin/swift
++```
++
++Der zweite Befehl verwendet die originalen erzeugten UI-Eingaben und führt
++gezielt `DocumentOpaqueIdentityTests` aus. Der vorhandene begrenzte
++Swift-Prozesswächter wird wiederverwendet. Ohne `--swift` wird ausschließlich
++die JavaScript-Grenze geprüft. Temporäre Projektionen und Builddateien werden
++entfernt; die Eingangsdatei-Inventur muss vor/nach dem Lauf identisch bleiben.
++
++## Noch erforderlicher vollständiger #511-Fix
++
++Die dauerhafte Lösung braucht eine durchgehende verlustfreie JSON-Struktur:
++Objektmitglieder mit bytegenauen dekodierten Schlüsseln, Werte und Zahltypen
++ohne nachträgliches `String`-Dictionary als einzige Datenquelle. Ein
++temporäres Ersetzen unbekannter Schlüssel durch erfundene ASCII-Namen würde
++dynamische Metadaten-/ID-Maps verändern und ist kein sicherer Übergang.
++
++Vor Freigabe solcher Schlüsselpaare müssen mindestens diese tatsächlichen
++Wege dieselbe Repräsentation behalten:
++
++| Grenze | Erforderlicher Nachweis |
++| --- | --- |
++| `Document.object/plain/encode` | Beide ursprünglichen Schlüssel und Werte einschließlich verschachtelter Erweiterungen; echte Duplikate, Tiefen- und Bytegrenzen bleiben streng |
++| `Document.assertNoLoss` | Opaque Feld- und ID-Zuordnung auch nach dem Wechsel der Objektstruktur; keine vermischten unbekannten Felder |
++| `OrdinarySaveEpochPolicy.prepare` | Nur die festgelegten nativen Epochenslots ändern; das übrige Buch mit allen Zahlen und unbekannten Mitgliedern erhalten |
++| `DAVBookRestore.transform` und `NativeBookRestore` | Quarantäne/Recovery/Authentifizierung/atomare Publikation bleiben gebunden; kein archivierter Sync-Grant wird neu aktiviert |
++| Native Buch-Admission und tatsächliche Disk-Snapshots | Autorität aus genau den gespeicherten Bytes prüfen; kein verlustbehaftetes normalisiertes Shadow-Dictionary |
++| `RegionalSettings.merging`, Backup, Verschlüsselung und weitere Ganzbuch-Schreiber | Fremde Schlüsselpaare bleiben bei einer Änderung bekannter Felder unangetastet |
++| Swift ↔ WKWebView und echter Export | Transport als unveränderter JSON-Text beziehungsweise geeignete typisierte Struktur; Objektbrücken dürfen die Paare nicht vorab zusammenlegen |
++
++Abschlussfolge: parse → native validate → normaler Save → tatsächlicher
++Disk-Readback → getrenntes Neuöffnen → JSON-Export; zusätzlich verschlüsselter
++Restore und Fehlerfälle. Erst ein erfolgreicher End-to-End-Nachweis auf beiden
++Mac-Architekturen rechtfertigt das Entfernen des derzeitigen Brückenguards.
++Linux/Windows sind durch diesen Swift-Befund nicht als fehlerhaft oder
++korrigiert ausgewiesen.
+diff --git a/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json b/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
+index 41d80a7a1cb7ddeb62fbea3161d5871a4320bee3..ff6a17dd2eaacd14ea01a7c873a5bcac8fe9ed79 100644
+--- a/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
++++ b/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
+@@ -23,6 +23,7 @@
+     "Undo": "Rückgängig",
+     "Redo": "Wiederholen",
+     "Clipboard write failed.": "Schreiben in die Zwischenablage fehlgeschlagen.",
++    "This macOS version cannot safely preserve distinct Unicode JSON keys. The original file was not changed.": "Diese macOS-Ausgabe kann unterschiedliche Unicode-JSON-Schlüssel noch nicht sicher erhalten. Die Originaldatei wurde nicht geändert.",
+     "iPhone screen mirroring": "iPhone-Bildschirm anzeigen",
+     "iPhone pairing PIN": "PIN für die iPhone-Kopplung",
+     "Start receiver": "Empfang starten",
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift
+index c69c020921bd4ac039b3acf505cd461738e61236..53daed681595fc4f076556241982fe0ff91dbdec 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift
+@@ -148,7 +148,8 @@ public enum Document {
+         let data = Data(text.utf8)
+         guard !data.isEmpty, data.count <= maximumBytes else { throw BetaError("Invalid document size.") }
+         // JSONSerialization accepts duplicate keys. Scan decoded key tokens first,
+-        // including escaped spellings, to reject ambiguous envelopes and documents.
++        // including escaped spellings. Distinct Unicode keys which Swift dictionaries
++        // cannot represent together must still be rejected before that lossy bridge.
+         var scanner = JSONKeys(bytes: Array(data))
+         try scanner.scan()
+         guard let value = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+@@ -178,26 +179,37 @@ public enum Document {
+     public static func assertNoLoss(_ old: Any, _ new: Any, depth: Int = 0) throws {
+         guard depth < 64 else { throw BetaError("Document nesting limit exceeded.") }
+         if let a = old as? [String: Any] {
+-            guard let b = new as? [String: Any], Set(a.keys).isSubset(of: Set(b.keys)) else {
++            guard let b = new as? [String: Any] else {
+                 throw BetaError("Save would drop existing fields; a recovery checkpoint is required.")
+             }
+-            for (key, value) in a { try assertNoLoss(value, b[key]!, depth: depth + 1) }
++            // Refs #511: each document can be individually representable while a
++            // changed NFC/NFD field name still denotes a different opaque JSON key.
++            // Swift String lookup would wrongly let the new field stand in for the old.
++            var byKey: [OpaqueUTF8Identity: Any] = [:]
++            for (key, value) in b { byKey[OpaqueUTF8Identity(key)] = value }
++            for (key, value) in a {
++                guard let next = byKey[OpaqueUTF8Identity(key)] else {
++                    throw BetaError("Save would drop existing fields; a recovery checkpoint is required.")
++                }
++                try assertNoLoss(value, next, depth: depth + 1)
++            }
+         } else if let a = old as? [Any] {
+             guard let b = new as? [Any], b.count >= a.count else {
+                 throw BetaError("Save would shorten an existing array; a recovery checkpoint is required.")
+             }
+             let keyed = !a.isEmpty && a.allSatisfy { ($0 as? [String: Any])?["id"] is String }
+             if keyed {
+-                var byID: [String: Any] = [:]
++                var byID: [OpaqueUTF8Identity: Any] = [:]
+                 for value in b {
+-                    guard let id = (value as? [String: Any])?["id"] as? String, byID[id] == nil else {
++                    guard let id = (value as? [String: Any])?["id"] as? String,
++                          byID[OpaqueUTF8Identity(id)] == nil else {
+                         throw BetaError("Ambiguous record identifiers.")
+                     }
+-                    byID[id] = value
++                    byID[OpaqueUTF8Identity(id)] = value
+                 }
+                 for value in a {
+                     let id = (value as! [String: Any])["id"] as! String
+-                    guard let next = byID[id] else { throw BetaError("Save would delete a record; a recovery checkpoint is required.") }
++                    guard let next = byID[OpaqueUTF8Identity(id)] else { throw BetaError("Save would delete a record; a recovery checkpoint is required.") }
+                     try assertNoLoss(value, next, depth: depth + 1)
+                 }
+             } else {
+@@ -241,11 +253,18 @@ private struct JSONKeys {
+             index += 1; whitespace()
+             let end: UInt8 = first == 123 ? 125 : 93
+             if index < bytes.count, bytes[index] == end { index += 1; return }
+-            var keys: Set<String> = []
++            var decodedKeys: Set<OpaqueUTF8Identity> = []
++            var foundationKeys: Set<String> = []
+             while true {
+                 if first == 123 {
+                     whitespace(); let key = try string()
+-                    guard keys.insert(key).inserted else { throw BetaError("Duplicate JSON key.") }
++                    guard decodedKeys.insert(OpaqueUTF8Identity(key)).inserted else { throw BetaError("Duplicate JSON key.") }
++                    // Keep the existing rejection set until the complete native
++                    // parse/save/restore path has a lossless object representation.
++                    // This is a platform limitation, not an invalid duplicate key.
++                    guard foundationKeys.insert(key).inserted else {
++                        throw BetaError("This macOS version cannot safely preserve distinct Unicode JSON keys. The original file was not changed.")
++                    }
+                     whitespace()
+                     guard index < bytes.count, bytes[index] == 58 else { throw BetaError("Invalid JSON object.") }
+                     index += 1
+diff --git a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/DocumentOpaqueIdentityTests.swift b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/DocumentOpaqueIdentityTests.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..4ba1a108f6db7caf7d90d37059dd85a03bd74fe5
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/DocumentOpaqueIdentityTests.swift
+@@ -0,0 +1,156 @@
++import Foundation
++import XCTest
++@testable import BetaCore
++
++/// Refs #511. The guarded dictionary bridge is still intentionally limited.
++/// These tests do not claim that two equivalent-looking keys in one object load.
++final class DocumentOpaqueIdentityTests: XCTestCase {
++    private let nfc = "caf\u{e9}"
++    private let nfd = "cafe\u{301}"
++    private let bridgeLimitation = "This macOS version cannot safely preserve distinct Unicode JSON keys. The original file was not changed."
++
++    private func book(_ fields: String) -> String {
++        "{\"termine\":[],\"aufgaben\":[],\"kontakte\":[],\"notizen\":[]," + fields + "}"
++    }
++    private func noLoss(_ before: String, _ after: String) throws {
++        try Document.assertNoLoss(Document.object(before), Document.object(after))
++    }
++
++    func testFixtureHasDifferentUTF8DespiteSwiftCanonicalEquality() {
++        XCTAssertEqual(nfc, nfd, "Documents must not inherit this UI-text equivalence")
++        XCTAssertNotEqual(Data(nfc.utf8), Data(nfd.utf8))
++        XCTAssertNotEqual(OpaqueUTF8Identity(nfc), OpaqueUTF8Identity(nfd))
++    }
++
++    func testTrueDecodedDuplicateKeysRemainInvalid() {
++        for text in [#"{"a":1,"\u0061":2}"#,
++                     #"{"caf\u00e9":1,"café":2}"#,
++                     #"{"outer":[{"cafe\u0301":1,"cafe\u0301":2}]}"#] {
++            XCTAssertThrowsError(try Document.object(text)) {
++                XCTAssertEqual($0.localizedDescription, "Duplicate JSON key.")
++            }
++        }
++    }
++
++    func testDistinctEquivalentKeysRemainBlockedBeforeTheLossyBridge() {
++        let pair = "{\"" + nfc + "\":1,\"" + nfd + "\":2}"
++        for text in [pair, "{\"outer\":" + pair + "}", "{\"outer\":[" + pair + "]}",
++                     #"{"caf\u00e9":1,"cafe\u0301":2}"#] {
++            XCTAssertThrowsError(try Document.object(text)) {
++                XCTAssertEqual($0.localizedDescription, self.bridgeLimitation)
++            }
++        }
++    }
++
++    func testNoncollidingUnicodeKeysRoundtripWithOriginalUTF8() throws {
++        // Different objects can retain these keys without a dictionary collision.
++        let source = "{\"left\":{\"" + nfc + "\":1},\"right\":{\"" + nfd + "\":2}}"
++        let output = try Document.object(Document.encode(Document.object(source)))
++        for (name, expected) in [("left", nfc), ("right", nfd)] {
++            let object = try XCTUnwrap(output[name] as? [String: Any])
++            XCTAssertEqual(object.count, 1)
++            XCTAssertEqual(Data(try XCTUnwrap(object.keys.first).utf8), Data(expected.utf8))
++        }
++    }
++
++    func testNoLossDistinguishesFieldReplacementAtEveryDepth() throws {
++        let left = "{\"" + nfc + "\":{\"keep\":true}}"
++        let right = "{\"" + nfd + "\":{\"keep\":true}}"
++        XCTAssertThrowsError(try noLoss(left, right))
++        XCTAssertThrowsError(try noLoss(right, left))
++        XCTAssertThrowsError(try noLoss("{\"future\":[" + left + "]}", "{\"future\":[" + right + "]}"))
++        XCTAssertNoThrow(try noLoss(left, left))
++        XCTAssertNoThrow(try noLoss(right, right))
++        // Escaping does not change the decoded JSON key's identity.
++        XCTAssertNoThrow(try noLoss(#"{"caf\u00e9":{"keep":true}}"#, left))
++    }
++
++    func testNoLossDistinguishesRecordReplacement() throws {
++        let left = "{\"records\":[{\"id\":\"" + nfc + "\",\"unknown\":true}]}"
++        let right = "{\"records\":[{\"id\":\"" + nfd + "\",\"unknown\":true}]}"
++        XCTAssertThrowsError(try noLoss(left, right))
++        XCTAssertThrowsError(try noLoss(right, left))
++        XCTAssertNoThrow(try noLoss(left, left))
++        XCTAssertNoThrow(try noLoss(right, right))
++    }
++
++    func testDifferentOpaqueRecordIDsCanCoexistAndReorderWithoutFalseRecovery() throws {
++        let first = "{\"id\":\"" + nfc + "\",\"nfcOnly\":{\"keep\":1}}"
++        let second = "{\"id\":\"" + nfd + "\",\"nfdOnly\":{\"keep\":2}}"
++        let before = "{\"records\":[" + first + "," + second + "]}"
++        let after = "{\"records\":[" + second + "," + first + "]}"
++        XCTAssertNoThrow(try noLoss(before, after))
++        XCTAssertNoThrow(try noLoss("{\"records\":[" + first + "]}", after))
++        XCTAssertThrowsError(try noLoss(before, "{\"records\":[" + first + "," + first + "]}"))
++        let crossed = "{\"records\":[{\"id\":\"" + nfc + "\",\"nfdOnly\":{\"keep\":2}}," +
++            "{\"id\":\"" + nfd + "\",\"nfcOnly\":{\"keep\":1}}]}"
++        XCTAssertThrowsError(try noLoss(before, crossed), "Unknown fields must follow the exact original ID")
++    }
++
++    func testLexicalReplacementCreatesExactRecoveryBeforeDiskCommitAndReopen() throws {
++        for fieldChange in [true, false] {
++            let directory = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().appendingPathComponent(UUID().uuidString)
++            defer { try? FileManager.default.removeItem(at: directory) }
++            var store: AtomicStore? = try AtomicStore(directory: directory)
++            XCTAssertNil(try store!.load())
++            func fields(_ key: String) -> String {
++                fieldChange ? "\"future\":{\"" + key + "\":{\"preserved\":true}}" :
++                    "\"records\":[{\"id\":\"" + key + "\",\"preserved\":true}]"
++            }
++            let original = book(fields(nfc)) + "\n"
++            try store!.commit(original)
++            let policy = try OrdinarySaveEpochPolicy(loadedPlain: original)
++            let candidate = try policy.prepare(candidate: book(fields(nfd)))
++            // This is the production Host's exact recovery decision, not a stubbed ACK.
++            let needsRecovery = (try? Document.assertNoLoss(Document.object(original), Document.plain(candidate))) == nil
++            XCTAssertTrue(needsRecovery)
++            try store!.commit(candidate, preservingCurrent: needsRecovery)
++            let snapshots = try FileManager.default.contentsOfDirectory(
++                at: directory.appendingPathComponent("Recovery-macOS-Beta"), includingPropertiesForKeys: nil)
++            XCTAssertEqual(snapshots.count, 1)
++            XCTAssertEqual(try AtomicStore.read(try XCTUnwrap(snapshots.first)), Data(original.utf8))
++            let file = store!.file
++            XCTAssertEqual(try AtomicStore.read(file), Data(candidate.utf8))
++            store = nil
++            store = try AtomicStore(directory: directory)
++            XCTAssertEqual(Data(try XCTUnwrap(store!.load()).utf8), Data(candidate.utf8))
++            store = nil
++        }
++    }
++
++    func testUnsupportedUnicodePairCannotChangeAnExistingProfile() throws {
++        let directory = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().appendingPathComponent(UUID().uuidString)
++        defer { try? FileManager.default.removeItem(at: directory) }
++        let store = try AtomicStore(directory: directory)
++        XCTAssertNil(try store.load())
++        let original = book("\"future\":{\"unchanged\":true}") + "\n"
++        try store.commit(original)
++        let rejected = book("\"future\":{\"" + nfc + "\":1,\"" + nfd + "\":2}")
++        let policy = try OrdinarySaveEpochPolicy(loadedPlain: original)
++        XCTAssertThrowsError(try policy.prepare(candidate: rejected)) {
++            XCTAssertEqual($0.localizedDescription, self.bridgeLimitation)
++        }
++        XCTAssertThrowsError(try store.commit(rejected))
++        XCTAssertEqual(try AtomicStore.read(store.file), Data(original.utf8))
++        XCTAssertFalse(FileManager.default.fileExists(atPath: directory.appendingPathComponent("Recovery-macOS-Beta").path))
++    }
++
++    func testActualProjectedSaveRemainsGuardedAtNativeBoundary() throws {
++        guard let path = ProcessInfo.processInfo.environment["MACOS_BETA_OPAQUE_JSON_FIXTURE"] else {
++            throw XCTSkip("Run tools/check_opaque_json.py --js-runtime node --swift /path/to/swift for actual projected inputs.")
++        }
++        let fixture = try Document.object(String(contentsOfFile: path, encoding: .utf8))
++        XCTAssertEqual(fixture["schema"] as? Int, 1)
++        let save = try XCTUnwrap(fixture["saveRequest"] as? [String: Any])
++        let request = try Request(Document.encode(save))
++        XCTAssertEqual(request.command, .speichern)
++        let candidate = request.text("text")
++        XCTAssertThrowsError(try Document.plain(candidate)) {
++            XCTAssertEqual($0.localizedDescription, self.bridgeLimitation)
++        }
++        let restore = try XCTUnwrap(fixture["restoreSnapshot"] as? String)
++        XCTAssertThrowsError(try Document.plain(restore)) {
++            XCTAssertEqual($0.localizedDescription, self.bridgeLimitation)
++        }
++    }
++}
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/opaque_json_keys.mjs b/Magnolie-Organizer-macOS-Beta/tests/opaque_json_keys.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..420e22d4c90762199a6c07f80dee7bb31fe31dda
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tests/opaque_json_keys.mjs
+@@ -0,0 +1,57 @@
++import assert from "node:assert/strict";
++import fs from "node:fs";
++import { createHash } from "node:crypto";
++import { boot, tick } from "./ui_harness.mjs";
++
++// Actual generated UI, with synthetic native transport. This demonstrates the
++// input at the native boundary; it never emulates a Swift dictionary/parser.
++const nfc = "caf\u00e9", nfd = "cafe\u0301";
++const host = await boot(process.argv[2]);
++let checks = 0;
++const equal = (actual, expected, label) => {
++  assert.deepEqual(JSON.parse(JSON.stringify(actual)), JSON.parse(JSON.stringify(expected)), label);
++  checks++;
++};
++const input = {
++  termine: [], aufgaben: [], kontakte: [], notizen: [],
++  [nfc]: { meaning: "NFC root" }, [nfd]: { meaning: "NFD root" },
++  future: { [nfc]: { value: 1 }, [nfd]: { value: 2 },
++    array: [{ [nfc]: "NFC array", [nfd]: "NFD array" }] },
++  records: [{ id: nfc, exact: "NFC record" }, { id: nfd, exact: "NFD record" }],
++  einstellungen: { allgemein: { handbuchHinweisGezeigt: true } }
++};
++function verify(value, label) {
++  equal(value[nfc], input[nfc], label + " NFC root");
++  equal(value[nfd], input[nfd], label + " NFD root");
++  equal(value.future, input.future, label + " nested objects and array");
++  equal(value.records, input.records, label + " exact record identities");
++  equal(Object.keys(value.future).map(key => Buffer.from(key).toString("hex")),
++    Object.keys(input.future).map(key => Buffer.from(key).toString("hex")), label + " lexical UTF-8 key bytes");
++}
++try {
++  equal(nfc === nfd, false, "JavaScript opaque identity distinguishes the fixture");
++  equal(nfc.normalize("NFC"), nfd.normalize("NFC"), "The fixture is canonically equivalent");
++  host.w.MacBeta.receive("init", { daten: input, neu: false, regional: { language: "en", timeZone: "UTC" } });
++  verify(host.t.daten(), "real init/normalizer");
++  host.t.speichereJetzt();
++  const save = host.messages.filter(message => message.cmd === "speichern").at(-1);
++  assert.ok(save, "Actual shared save serializer must execute"); checks++;
++  verify(JSON.parse(save.text), "actual save request");
++  host.w.MacBeta.receive("gespeichert", { id: save.id, ok: true }); // explicitly synthetic
++  equal(host.w.MacBeta.validateRestore(save.text), true, "actual projected restore validator");
++  const operation = "51105110-5110-4511-8511-511051105110";
++  const prepared = host.w.MacBeta.prepareNativeRestore(save.text, operation);
++  equal(prepared.operationID, operation, "restore snapshot belongs to this operation");
++  verify(JSON.parse(prepared.snapshot), "actual prepared restore snapshot");
++  if (process.argv[3]) {
++    const sha = file => createHash("sha256").update(fs.readFileSync(new URL(file, import.meta.url))).digest("hex");
++    fs.writeFileSync(process.argv[3], JSON.stringify({
++      schema: 1, issue: 511, checks,
++      description: "Actual projected UI output with synthetic native transport. Native dictionary acceptance is deliberately not claimed.",
++      sharedSourceSHA256: sha("../../magnolie-organizer/web/anwendung.js"),
++      projectionSHA256: sha("../Projection/macos-beta.js"),
++      saveRequest: save, restoreSnapshot: prepared.snapshot
++    }, null, 2) + "\n");
++  }
++  console.log(`Opaque JSON boundary: ${checks} actual projected UI assertions passed; Swift acceptance remains a separate test.`);
++} finally { await tick(); host.close(); }
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/test_host.py b/Magnolie-Organizer-macOS-Beta/tests/test_host.py
+index f2a4dcff5798843083079372404a4ae24fad676f..6425fdf8127c38f746b4305a0c72b6159b86e5ba 100644
+--- a/Magnolie-Organizer-macOS-Beta/tests/test_host.py
++++ b/Magnolie-Organizer-macOS-Beta/tests/test_host.py
+@@ -470,6 +470,13 @@ class ProjectionTests(unittest.TestCase):
+             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+             print(result.stdout.strip())
+ 
++    def test_opaque_json_keys_reach_the_native_boundary_unchanged(self):
++        runtime = self.javascript()
++        result = subprocess.run([sys.executable, "tools/check_opaque_json.py", "--js-runtime", runtime],
++                                cwd=BETA, capture_output=True, text=True, timeout=120)
++        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
++        print(result.stdout.strip())
++
+     def test_communication_published_ui_payloads(self):
+         runtime = self.javascript()
+         args = [runtime]
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/check_opaque_json.py b/Magnolie-Organizer-macOS-Beta/tools/check_opaque_json.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..22738a6064a83d6a872ae65a53a364150a5e5424
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/tools/check_opaque_json.py
+@@ -0,0 +1,37 @@
++#!/usr/bin/env python3
++"""Extract actual projected Unicode JSON inputs; optionally execute the native guards."""
++import argparse
++import os
++from pathlib import Path
++import subprocess
++import tempfile
++
++from check_editor import run_swift
++from project_ui import BETA, inputs, inventory, project
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--js-runtime", required=True)
++    parser.add_argument("--swift", help="Run the actual native Swift tests; omission means UI-only evidence")
++    args = parser.parse_args()
++    snapshot = inputs()
++    with tempfile.TemporaryDirectory(prefix="macOS-Beta-opaque-json-") as temporary:
++        root = Path(temporary)
++        project(snapshot, root / "UI")
++        command = [args.js_runtime]
++        if Path(args.js_runtime).name == "deno":
++            command += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-write=" + str(root), "--allow-env", "--allow-sys"]
++        fixture = root / "projected-opaque-json.json"
++        subprocess.run(command + ["tests/opaque_json_keys.mjs", str(root / "UI"), str(fixture)],
++                       cwd=BETA, check=True, timeout=120)
++        if args.swift:
++            env = dict(os.environ, MACOS_BETA_OPAQUE_JSON_FIXTURE=str(fixture))
++            run_swift([args.swift, "test", "--scratch-path", str(root / "swift-build"), "--jobs", "2",
++                       "--filter", "DocumentOpaqueIdentityTests"], env)
++    if inventory(inputs()) != inventory(snapshot):
++        raise RuntimeError("Canonical/projection inputs changed during the Unicode JSON boundary check.")
++
++
++if __name__ == "__main__":
++    main()
+-- 
+2.56.1
+

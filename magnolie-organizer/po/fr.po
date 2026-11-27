@@ -10684,3 +10684,11 @@ msgstr "Voir l’écran de ce téléphone ?"
 
 msgid "Your phone must approve screen sharing."
 msgstr "Vous devez autoriser le partage d’écran sur le téléphone."
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Birthday stored with this contact; no calendar entry."
+msgstr "Date de naissance enregistrée dans ce contact ; aucune entrée de calendrier."
+
+#. Contact-only birthday copied from macOS (#776); no automatic annual entry.
+msgid "Please enter a valid birth date."
+msgstr "Veuillez saisir une date de naissance valide."

@@ -1,0 +1,2 @@
+Actual OR6 helper → projected Mac UI: 90 checks; explicit WebCrypto, real contact preview and shared Save-ACK path; synthetic transport, no native persistence claim.
+{"nativePersistenceValidated": false, "nativePickerValidated": false, "or6SourceSHA256": "1c12517b17c213b1c9a2c73e6168eadb00c2feebafb1ab2bd35d5a5a6b968a0e", "parserManifestSHA256": "deff3560615331e149e427add47f4f0b03e822947cc2192b736d2ff004c42b26", "uiApplicationSHA256": "e6359a618f458985b270a6372515493ffb6fb1aedb0d7efa5a099aa665818b70"}

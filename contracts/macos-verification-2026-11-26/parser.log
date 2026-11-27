@@ -1,0 +1,19 @@
+test_all_original_program_or6_fixtures_through_isolated_stdio (__main__.ImportHelperTests.test_all_original_program_or6_fixtures_through_isolated_stdio) ... ok
+test_corrupt_or6_zip_bombs_and_xml_entities_have_no_partial_result (__main__.ImportHelperTests.test_corrupt_or6_zip_bombs_and_xml_entities_have_no_partial_result) ... ok
+test_desktop_calendar_vcard_ldif_and_lotus_golden_files (__main__.ImportHelperTests.test_desktop_calendar_vcard_ldif_and_lotus_golden_files) ... ok
+test_file_and_network_photo_references_do_not_grant_access (__main__.ImportHelperTests.test_file_and_network_photo_references_do_not_grant_access) ... ok
+test_generated_bytes_manifest_and_copy_identity_are_verified (__main__.ImportHelperTests.test_generated_bytes_manifest_and_copy_identity_are_verified) ... ok
+test_legacy_android_sidecar_is_exact_and_transient (__main__.ImportHelperTests.test_legacy_android_sidecar_is_exact_and_transient) ... ok
+test_malformed_headers_lengths_hashes_and_extra_authority_fail_closed (__main__.ImportHelperTests.test_malformed_headers_lengths_hashes_and_extra_authority_fail_closed) ... ok
+test_normative_tzif_roundtrip_and_original_point_oracle (__main__.ImportHelperTests.test_normative_tzif_roundtrip_and_original_point_oracle) ... ok
+test_output_bound_is_applied_before_a_complete_response_is_written (__main__.ImportHelperTests.test_output_bound_is_applied_before_a_complete_response_is_written) ... ok
+test_selected_language_and_country_are_explicit_context (__main__.ImportHelperTests.test_selected_language_and_country_are_explicit_context) ... ok
+test_source_closure_and_dependency_tampering_are_rejected (__main__.ImportHelperTests.test_source_closure_and_dependency_tampering_are_rejected) ... ok
+test_vcs_lcs_csv_contact_alias_and_claws_routes (__main__.ImportHelperTests.test_vcs_lcs_csv_contact_alias_and_claws_routes) ... ok
+test_waste_preview_contract_and_limits (__main__.ImportHelperTests.test_waste_preview_contract_and_limits) ... ok
+test_zip_routes_use_the_same_bounded_desktop_dispatcher (__main__.ImportHelperTests.test_zip_routes_use_the_same_bounded_desktop_dispatcher) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 26.694s
+
+OK

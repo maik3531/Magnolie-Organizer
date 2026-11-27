@@ -1,0 +1,58 @@
+From dc8036514b54dc50e3c3a2bc69e343383ff7da79 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 08:28:04 +0100
+Subject: [PATCH] Refs #785: align helper bounds and finish German import
+ diagnostics
+
+---
+ .../Resources/native-extra-i18n.json                        | 6 +++++-
+ .../Sources/BetaCore/FileImportProtocol.swift               | 2 +-
+ .../Sources/MacBeta/FileImportProcess.swift                 | 2 +-
+ 3 files changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json b/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
+index bd0ab1de81d8d28b2ad6635a8e87405e4e6c52be..9de416b16b722e3a3c26bcb58d52498482a617f2 100644
+--- a/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
++++ b/Magnolie-Organizer-macOS-Beta/Resources/native-extra-i18n.json
+@@ -453,7 +453,11 @@
+     "The import helper returned an invalid error.": "Das Importprogramm hat eine ungültige Fehlermeldung zurückgegeben.",
+     "The import result does not belong to the selected file and parser.": "Das Importergebnis gehört nicht zur ausgewählten Datei und zum verwendeten Parser.",
+     "Invalid import collection.": "Eine importierte Datensammlung ist ungültig.",
+-    "The import exceeds the supported record limit.": "Der Import überschreitet die unterstützte Anzahl von Datensätzen."
++    "The import exceeds the supported record limit.": "Der Import überschreitet die unterstützte Anzahl von Datensätzen.",
++    "File import is not available while the document is locked or closing.": "Der Dateiimport ist bei gesperrtem oder schließendem Dokument nicht verfügbar.",
++    "Invalid home country for import.": "Das Heimatland für den Import ist ungültig.",
++    "Invalid file import response.": "Die Antwort zum Dateiimport ist ungültig.",
++    "Invalid file import format or operation token.": "Das Dateiimportformat oder der Vorgangstoken ist ungültig."
+   },
+   "es": {
+     "Undo": "Deshacer",
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/FileImportProtocol.swift b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/FileImportProtocol.swift
+index cc9b01fdd806d75e2fae5d38cbee18f9b4f2384c..7ee6892bdc01f6dd01aa4bf942d46c2437a7f1dd 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/FileImportProtocol.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/FileImportProtocol.swift
+@@ -19,7 +19,7 @@ public enum FileImportProtocol {
+                   !name.contains("/"), !name.contains("\\"),
+                   name.unicodeScalars.allSatisfy({ $0.value >= 32 && $0.value != 127 }),
+                   language.range(of: "^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$", options: .regularExpression) != nil,
+-                  language.utf8.count <= 64, !timeZone.isEmpty, timeZone.utf8.count <= 256,
++                  language.utf8.count <= 64, !timeZone.isEmpty, timeZone.utf8.count <= 128,
+                   homeCountry.range(of: "^[A-Z]{2}$", options: .regularExpression) != nil else {
+                 throw BetaError("Invalid file import request.")
+             }
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportProcess.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportProcess.swift
+index 57add63e4b07ffd30b9a99e2c6eebdb7dfa35a2d..29de874d5f16657b840df339595035b5bce14adf 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportProcess.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/FileImportProcess.swift
+@@ -70,7 +70,7 @@ enum FileImportProcess {
+         let helper = try fixedFile(contents, "Resources/ImportHelper/helper.py")
+         let manifest = try fixedFile(contents, "Resources/ImportHelper/manifest.json")
+         let manifestBytes = try Data(contentsOf: manifest, options: [.mappedIfSafe])
+-        guard manifestBytes.count <= 1024 * 1024 else { throw BetaError("Invalid import manifest size.") }
++        guard manifestBytes.count <= 512 * 1024 else { throw BetaError("Invalid import manifest size.") }
+         let manifestHash = FileImportProtocol.digest(manifestBytes)
+         var template = Array((NSTemporaryDirectory() + "magnolie-import-XXXXXX").utf8CString)
+         let descriptor = template.withUnsafeMutableBufferPointer { mkstemp($0.baseAddress!) }
+-- 
+2.56.1
+

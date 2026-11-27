@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "observedAtUTC": "2026-11-26T12:05:32.724716+00:00",
+  "sourceHead": "c8a7690d5eb4e002ebadb1d0aab03c8780af9e0b",
+  "targetCandidate": "main",
+  "targetHead": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+  "nativeTestedProductCommit": "215d89029df02df2dce78f35412785ec9f9b36d8",
+  "sourceRef": {
+    "exit": 0,
+    "stdout": "c8a7690d5eb4e002ebadb1d0aab03c8780af9e0b",
+    "stderr": ""
+  },
+  "targetRef": {
+    "exit": 0,
+    "stdout": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+    "stderr": ""
+  },
+  "mergeBase": {
+    "exit": 0,
+    "stdout": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+    "stderr": ""
+  },
+  "mainIsAncestor": {
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "sourceIsAncestor": {
+    "exit": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "mergeTree": {
+    "exit": 0,
+    "stdout": "05d0cda6c720c53d61ea699b79f168613f11c9ef",
+    "stderr": ""
+  },
+  "sourceTree": {
+    "exit": 0,
+    "stdout": "05d0cda6c720c53d61ea699b79f168613f11c9ef",
+    "stderr": ""
+  },
+  "aheadBehind": {
+    "exit": 0,
+    "stdout": "0\t18",
+    "stderr": ""
+  },
+  "commitsAfterNativeTest": {
+    "exit": 0,
+    "stdout": "c8a7690d5eb4e002ebadb1d0aab03c8780af9e0b 215d89029df02df2dce78f35412785ec9f9b36d8 docs(macos): record successful ARM64 and Intel native verification",
+    "stderr": ""
+  },
+  "filesAfterNativeTest": {
+    "exit": 0,
+    "stdout": "M\tARBEITSSTAND.md\nM\tMagnolie-Organizer-macOS-Beta/NATIVE-VERIFICATION-2026-11-26.md\nA\tMagnolie-Organizer-macOS-Beta/verification/native-run-95.json\nA\tMagnolie-Organizer-macOS-Beta/verification/native-run-97.json\nM\tcontracts/macos-next-chat-prompt-2026-11-26.md",
+    "stderr": ""
+  },
+  "firstParentCommits": {
+    "exit": 0,
+    "stdout": "25c5a849a89d8846b211ff98922a708dcc7e127d 00776ce70e155c7a607ed55a4502d6fcee5a860c Integrate bundled macOS AirPlay receiver and document iPhone data paths (Refs #721)\n2b3a7cea5093b80de1dd14bdf5afaf84231d66ad 25c5a849a89d8846b211ff98922a708dcc7e127d Add reviewed native macOS calendar copies (refs #770)\n6ffe768f382fbbca3e8f531c93f9ee197eba59a7 2b3a7cea5093b80de1dd14bdf5afaf84231d66ad Mac: copy selected Apple Notes as reviewed local text (Refs #772)\nfbb50c2c9146091a778fdb45608b315a67d64899 6ffe768f382fbbca3e8f531c93f9ee197eba59a7 Mac: preserve settings drafts when starting calendar copies (Refs #773)\nf32f4daa71acea7f76fb9f58ff0f8d4794f728ab fbb50c2c9146091a778fdb45608b315a67d64899 Mac: retain unsaved account fields before Apple Notes import (Refs #774)\na706c57132d3646139464d7d432abe3f860514d6 f32f4daa71acea7f76fb9f58ff0f8d4794f728ab Mac: copy selected system contacts as reviewed local records (Refs #775)\n616069f15fed21d8d8d05c8ef795f4ed21bd059c a706c57132d3646139464d7d432abe3f860514d6 feat(macos): copy selected Reminders as independent local tasks\n8efc6834abd16f18300f3d59a1897c81758b0c34 616069f15fed21d8d8d05c8ef795f4ed21bd059c d4da48a5eadd0bda22422b924bef4ee3b4324040 Refs #121 #783 #784 #785 #786: publish the verified Mac review candidate\ncf7b3f2bf4e8afee662a4926f32fc989d7ff7df8 8efc6834abd16f18300f3d59a1897c81758b0c34 Refs #121: preserve original Mac patches and evidence for all 31 issue handoffs\n97baf780fa3474eba54d03e41d0258c97ae8b1ca cf7b3f2bf4e8afee662a4926f32fc989d7ff7df8 Refs #121: record all 31 published issue comments and continuation state\nbdd1345d3bec68144dbcf627a3ca7bd03073c64b 97baf780fa3474eba54d03e41d0258c97ae8b1ca Refs #788: fix native Swift compilation of import and sync guards\n689266570cda17f463132a182c02d78ea732dfbd bdd1345d3bec68144dbcf627a3ca7bd03073c64b Refs #787: exclude published Mac proof trees from release contracts\ncc9dc29a606658b7937eb7261409564c96f93775 689266570cda17f463132a182c02d78ea732dfbd fix(macos): validate CPython build links and embed pinned static liblzma\n8c01f75b2ae6a9e753b9c23b0e3c65a7d7826c66 cc9dc29a606658b7937eb7261409564c96f93775 fix(macos): canonicalize owned temporary roots in projection checks\nd790d7fc40ddc9f9a0c6869a3378ef53b69f7daa 8c01f75b2ae6a9e753b9c23b0e3c65a7d7826c66 test(ports): load reviewed timezone bootstrap in communication harness\n3c0b4bb410a5ab514e3deae7fb665a692eb436c2 d790d7fc40ddc9f9a0c6869a3378ef53b69f7daa fix(macos): preserve native reminder text and correct byte-level test assertions\n215d89029df02df2dce78f35412785ec9f9b36d8 3c0b4bb410a5ab514e3deae7fb665a692eb436c2 fix(macos): package isolated CPython in a signed native helper app\nc8a7690d5eb4e002ebadb1d0aab03c8780af9e0b 215d89029df02df2dce78f35412785ec9f9b36d8 docs(macos): record successful ARM64 and Intel native verification",
+    "stderr": ""
+  },
+  "sourceWorktreeChangedByAudit": false,
+  "targetRefChangedByAudit": false,
+  "remoteWrites": false,
+  "nativeTestsExecuted": false,
+  "limits": [
+    "main is the current integration candidate; a separate stable branch, exact target release and merge method are not specified.",
+    "A clean merge result is not runtime or release acceptance.",
+    "Only scratch object storage was used for merge-tree output."
+  ],
+  "mergeConflictFree": true,
+  "mergeTreeEqualsSource": true,
+  "captureProvenance": {
+    "rawCaptureFilename": "main-merge-dry-run.json",
+    "rawBytes": 5045,
+    "rawSHA256": "d519b1055609345452bc28d799bff9724e6fd5bc0ea106eb9b2d44b991c8410e",
+    "normalization": "Only review-checkout and scratch absolute prefixes are replaced by explicit placeholders; result values, object IDs and test counts are unchanged."
+  }
+}

@@ -22,6 +22,23 @@ final class SystemSourceSnapshotTests: XCTestCase {
         XCTAssertThrowsError(try SystemSourceSnapshot(source: reminders, scope: .boundedWindow(start: start, end: end), records: []))
         XCTAssertThrowsError(try SystemSourceSnapshot(source: self.source(permission: "denied"), scope: .boundedWindow(start: start, end: end), records: []))
     }
+    func testSnapshotRetainsTailRecordAndExactScopeAt366DayBound() throws {
+        let source = try source(), formatter = ISO8601DateFormatter()
+        let start = try XCTUnwrap(formatter.date(from: "2028-01-01T00:00:00Z"))
+        let end = try XCTUnwrap(formatter.date(from: "2029-01-01T00:00:00Z"))
+        var tailFields = fields()
+        tailFields["start"] = end.addingTimeInterval(-60).timeIntervalSince1970
+        tailFields["end"] = end.timeIntervalSince1970
+        let tail = try SystemSourceSnapshot.Record(source: source, identifier: "last-minute", fields: tailFields)
+        let snapshot = try SystemSourceSnapshot(source: source, scope: .boundedWindow(start: start, end: end), records: [tail])
+        guard case .boundedWindow(let actualStart, let actualEnd) = snapshot.scope else { return XCTFail("Keep the exact requested scope") }
+        XCTAssertEqual(actualStart, start); XCTAssertEqual(actualEnd, end)
+        XCTAssertEqual(snapshot.records.map(\.identifier), ["last-minute"])
+        XCTAssertEqual(snapshot.records.first?.fields["start"] as? Double, end.addingTimeInterval(-60).timeIntervalSince1970)
+        XCTAssertFalse(snapshot.authorizesAbsenceDeletion)
+        XCTAssertThrowsError(try SystemSourceSnapshot(source: source,
+            scope: .boundedWindow(start: start, end: end.addingTimeInterval(1)), records: [tail]))
+    }
     func testSourceQualifiedOccurrenceKeysAndUnsupportedNativeIdentity() throws {
         let source = try source(), other = try self.source(id: "other"), date = Date(timeIntervalSince1970: 100)
         let first = try SystemSourceSnapshot.Record(source: source, identifier: "same", occurrenceDate: date, fields: fields())

@@ -1,0 +1,456 @@
+diff --git a/lib/raop_handlers.h b/lib/raop_handlers.h
+--- a/lib/raop_handlers.h
++++ b/lib/raop_handlers.h
+@@ -1,3 +1,4 @@
++#include "receiver_protocol.h" /* Magnolie host events, Refs #721. */
+ /**
+  *  Copyright (C) 2018  Juho Vähä-Herttua
+  *
+@@ -260,7 +261,8 @@
+     } else {
+         pin_4 = random_pin();
+         if (pin_4 < 0) {
+-            logger_log(raop->logger, LOGGER_ERR, "Failed to generate random pin");
++            magnolie_receiver_error("receiver_internal");
++            exit(70);
+         } else {
+             raop->pin = (unsigned short) pin_4 % 10000;
+         }
+@@ -270,7 +272,7 @@
+     if (raop->callbacks.display_pin) {
+          raop->callbacks.display_pin(raop->callbacks.cls, pin);
+     }
+-    logger_log(raop->logger, LOGGER_INFO, "*** CLIENT MUST NOW ENTER PIN = \"%s\" AS AIRPLAY PASSWORD", pin);
++    /* Magnolie displays the PIN over private IPC; never copy it to raw logs. */
+ }
+ 
+ static void
+@@ -668,8 +670,9 @@
+                 // get and store 4 random digits
+                 int pin_4  = random_pin();
+                 if (pin_4 < 0) {
+-                    logger_log(raop->logger, LOGGER_ERR, "Failed to generate random pin");
+-                    pin_4 = 1234;
++                    magnolie_receiver_error("receiver_internal");
++                    exit(70);
++                    /* No predictable fallback when the secure RNG fails. */
+                 }
+                 if ((raop->random_pw =  (char *) calloc(pin_len + 1 + 18, sizeof(char)))) {
+                     char *pin = raop->random_pw;
+@@ -685,7 +688,7 @@
+                 if (raop->callbacks.display_pin) {
+                     raop->callbacks.display_pin(raop->callbacks.cls, raop->random_pw);
+                 }
+-                logger_log(raop->logger, LOGGER_INFO, "*** CLIENT MUST NOW ENTER PIN = \"%s\" AS AIRPLAY PASSWORD", raop->random_pw);
++                /* PIN remains exclusively in the host's ephemeral IPC channel. */
+                 raop->auth_fail_count++;
+             }
+ 	    if (len && !conn->authenticated) {
+diff --git a/lib/raop_rtp.c b/lib/raop_rtp.c
+--- a/lib/raop_rtp.c
++++ b/lib/raop_rtp.c
+@@ -1,3 +1,4 @@
++#include "receiver_protocol.h" /* Magnolie host events, Refs #721. */
+ /**
+  *  Copyright (C) 2011-2012  Juho Vähä-Herttua
+  *
+@@ -645,6 +646,7 @@
+     raop_rtp->running = false;
+     MUTEX_UNLOCK(raop_rtp->run_mutex);
+ 
++    magnolie_receiver_stream_ended(0, raop_rtp->ntp);
+     logger_log(raop_rtp->logger, LOGGER_DEBUG, "raop_rtp exiting thread");
+ 
+     return 0;
+diff --git a/lib/raop_rtp_mirror.c b/lib/raop_rtp_mirror.c
+--- a/lib/raop_rtp_mirror.c
++++ b/lib/raop_rtp_mirror.c
+@@ -1,3 +1,4 @@
++#include "receiver_protocol.h" /* Magnolie host events, Refs #721. */
+ /*
+  * Copyright (c) 2019 dsafa22, All Rights Reserved.
+  *
+@@ -848,6 +849,7 @@
+         raop_rtp_mirror->callbacks.mirror_video_running(raop_rtp_mirror->callbacks.cls, false);
+     }
+ 
++    magnolie_receiver_stream_ended(1, raop_rtp_mirror->ntp);
+     logger_log(raop_rtp_mirror->logger, LOGGER_DEBUG, "raop_rtp_mirror exiting TCP thread");
+     if (conn_reset&& raop_rtp_mirror->callbacks.conn_reset) {
+         raop_rtp_mirror->callbacks.conn_reset(raop_rtp_mirror->callbacks.cls, 1);
+diff --git a/renderers/audio_renderer.c b/renderers/audio_renderer.c
+--- a/renderers/audio_renderer.c
++++ b/renderers/audio_renderer.c
+@@ -1,3 +1,4 @@
++#include "receiver_protocol.h" /* Magnolie host events, Refs #721. */
+ /**
+  * RPiPlay - An open-source AirPlay mirroring server for Raspberry Pi
+  * Copyright (C) 2019 Florian Draschbacher
+@@ -21,6 +22,7 @@
+  */
+ 
+ #include <math.h>
++#include <stdlib.h>
+ #include <gst/gst.h>
+ #include <gst/app/gstappsrc.h>
+ #include "audio_renderer.h"
+@@ -120,9 +122,55 @@
+     return ret;
+ }
+ 
++static gboolean load_required_factory(const gchar *name) {
++    GstElementFactory *factory = gst_element_factory_find(name);
++    if (!factory) return FALSE;
++    // A stale registry entry is not evidence that its dynamic plugin can load.
++    GstPluginFeature *loaded = gst_plugin_feature_load(GST_PLUGIN_FEATURE(factory));
++    gst_object_unref(factory);
++    if (!loaded) return FALSE;
++    gst_object_unref(loaded);
++    return TRUE;
++}
++
++static gboolean check_magnolie_receiver_features(void) {
++    // This is the app's fixed default profile. Keep automatic sink/decoder
++    // selection; do not impose a hardware-specific macOS renderer or decoder.
++    const gchar *required[] = {
++        "appsrc", "queue", "avdec_aac", "avdec_alac", "h264parse", "decodebin",
++        "videoconvert", "videoscale", "autovideosink", "audioconvert",
++        "audioresample", "volume", "level", "autoaudiosink", NULL
++    };
++    for (int i = 0; required[i]; ++i) {
++        if (!load_required_factory(required[i])) return FALSE;
++    }
++
++    // decodebin itself is not an H.264 decoder. Require at least one loadable,
++    // automatically eligible decoder whose sink caps accept video/x-h264.
++    // This checks capability availability, not successful native decoding.
++    GList *decoders = gst_element_factory_list_get_elements(
++        GST_ELEMENT_FACTORY_TYPE_DECODER | GST_ELEMENT_FACTORY_TYPE_MEDIA_VIDEO,
++        GST_RANK_MARGINAL);
++    GstCaps *h264 = gst_caps_from_string("video/x-h264");
++    GList *matching = gst_element_factory_list_filter(decoders, h264, GST_PAD_SINK, FALSE);
++    gboolean available = FALSE;
++    for (GList *item = matching; item; item = item->next) {
++        GstPluginFeature *loaded = gst_plugin_feature_load(GST_PLUGIN_FEATURE(item->data));
++        if (loaded) {
++            gst_object_unref(loaded);
++            available = TRUE;
++            break;
++        }
++    }
++    gst_plugin_feature_list_free(matching);
++    gst_plugin_feature_list_free(decoders);
++    gst_caps_unref(h264);
++    return available;
++}
++
+ bool gstreamer_init(){
+-    gst_init(NULL,NULL);    
+-    return (bool) check_plugins ();
++    gst_init(NULL,NULL);
++    return (bool) (check_plugins() && check_magnolie_receiver_features());
+ }
+ 
+ void audio_renderer_init(logger_t *render_logger, const char* audiosink, const bool* audio_sync, const bool* video_sync, const char *artp_pipeline) {
+@@ -140,6 +188,10 @@
+     
+     aac = check_plugin_feature (avdec_aac);
+     alac = check_plugin_feature (avdec_alac);
++    if (!aac || !alac) {
++        magnolie_receiver_error("media_runtime");
++        exit(70);
++    }
+ 
+     for (int i = 0; i < NFORMATS ; i++) {
+         renderer_type[i] = (audio_renderer_t *)  calloc(1,sizeof(audio_renderer_t));
+@@ -401,6 +453,7 @@
+ static gboolean gstreamer_audio_pipeline_bus_callback(GstBus *bus, GstMessage *message, void *loop) {
+     switch (GST_MESSAGE_TYPE(message)) {
+     case GST_MESSAGE_ERROR: {
++        magnolie_receiver_error("media_runtime");
+         GError *err = NULL;
+         gchar *debug = NULL;
+         gst_message_parse_error (message, &err, &debug);
+diff --git a/renderers/video_renderer.c b/renderers/video_renderer.c
+--- a/renderers/video_renderer.c
++++ b/renderers/video_renderer.c
+@@ -1,3 +1,4 @@
++#include "receiver_protocol.h" /* Magnolie host events, Refs #721. */
+ /**
+  * RPiPlay - An open-source AirPlay mirroring server for Raspberry Pi
+  * Copyright (C) 2019 Florian Draschbacher
+@@ -905,6 +906,7 @@
+         }
+ 	break;      
+     case GST_MESSAGE_ERROR: {
++        magnolie_receiver_error("media_runtime");
+         GError *err = NULL;
+         gchar *debug = NULL;
+         gboolean flushing = FALSE;
+diff --git a/uxplay.cpp b/uxplay.cpp
+--- a/uxplay.cpp
++++ b/uxplay.cpp
+@@ -44,6 +44,9 @@
+ #include <pthread.h>   //for pthreads in MSYS2 UCRT
+ #else
+ #include <csignal>
++#include "receiver_protocol.h"
++#include "receiver_registration.h"
++#include <mutex>
+ #include <glib-unix.h>
+ #include <sys/utsname.h>
+ #include <sys/socket.h>
+@@ -169,6 +172,7 @@
+ static bool registration_list = false;
+ static std::string pairing_register = "";
+ static std::vector <std::string> registered_keys;
++static std::mutex registration_mutex;
+ static double db_low = -30.0;
+ static double db_high = 0.0;
+ static bool taper_volume = false;
+@@ -2187,15 +2191,7 @@
+ }
+ 
+ extern "C" void display_pin(void *cls, char *pin) {
+-    int margin = 10;
+-    int spacing = 3;
+-    char *image = create_pin_display(pin, margin, spacing);
+-    if (!image) {
+-        LOGE("create_pin_display could not create pin image, pin = %s", pin);
+-    } else {
+-        LOGI("%s\n",image);     
+-        free (image);
+-    }
++    magnolie_receiver_pin(pin);
+ }
+ 
+ extern "C" const char *passwd(void *cls, int *len){
+@@ -2223,12 +2219,14 @@
+ }
+ 
+ extern "C" void conn_init (void *cls) {
++    magnolie_receiver_connection_opened();
+     open_connections++;
+     LOGD("Open connections: %i", open_connections);
+     //video_renderer_update_background(1);
+ }
+ 
+ extern "C" void conn_destroy (void *cls) {
++    magnolie_receiver_connection_closed();
+     //video_renderer_update_background(-1);
+     open_connections--;
+     LOGD("Open connections: %i", open_connections);
+@@ -2293,6 +2291,7 @@
+ }
+ 
+ extern "C" void audio_process (void *cls, raop_ntp_t *ntp, audio_decode_struct *data) {
++    if (data && data->data && data->data_len > 0) magnolie_receiver_media(0, ntp);
+     if (dump_audio) {
+         dump_audio_to_file(data->data, data->data_len, (data->data)[0] & 0xf0);
+     }
+@@ -2328,6 +2327,7 @@
+ }
+ 
+ extern "C" void video_process (void *cls, raop_ntp_t *ntp, video_decode_struct *data) {
++    if (data && data->data && data->data_len > 0) magnolie_receiver_media(1, ntp);
+     if (dump_video) {
+         dump_video_to_file(data->data, data->data_len);
+     }
+@@ -2556,35 +2556,28 @@
+ }
+ 
+ extern "C" void register_client(void *cls, const char *device_id, const char *client_pk, const char *client_name) {
+-    if (!registration_list) {
+-      /* we are not maintaining a list of registered clients */
+-        return;
+-    }
+-    LOGI("registered new client: %s DeviceID = %s PK = \n%s", client_name, device_id, client_pk);
+-    registered_keys.push_back(client_pk);
+-    if (strlen(pairing_register.c_str())) {
+-        FILE *fp = fopen(pairing_register.c_str(), "a");
+-        if (fp) {
+-            fprintf(fp, "%s,%s,%s\n", client_pk, device_id, client_name);
+-            fclose(fp);
+-        }
+-    }
++    std::lock_guard<std::mutex> lock(registration_mutex);
++    if (!registration_list || pairing_register.empty() || !client_pk ||
++        !magnolie_valid_registration_key(client_pk)) {
++        magnolie_receiver_error("registration_store");
++        exit(70);
++    }
++    const std::string key(client_pk);
++    if (std::find(registered_keys.begin(), registered_keys.end(), key) != registered_keys.end()) return;
++    if (registered_keys.size() >= 1024 || !magnolie_save_registration(pairing_register, key)) {
++        magnolie_receiver_error("registration_store");
++        exit(70);
++    }
++    // Grant persistent trust only after the private store was written and synced.
++    // Remote names and device IDs are unnecessary; never append them to this file.
++    registered_keys.push_back(key);
+ }
+ 
+ extern "C" bool check_register(void *cls, const char *client_pk) {
+-    if (!registration_list) {
+-        /* we are not maintaining a list of registered clients */
+-        return true;
+-    }
+-    LOGD("check returning client's pairing registration");
+-    std::string pk = client_pk;
+-    if (std::find(registered_keys.rbegin(), registered_keys.rend(), pk) != registered_keys.rend()) {
+-        LOGD("registration found: PK=%s", client_pk);
+-        return true;
+-    } else {
+-        LOGE("returning client's pairing registration not found: PK=%s", client_pk);
+-        return false;
+-    }
++    std::lock_guard<std::mutex> lock(registration_mutex);
++    if (!registration_list || !client_pk || !magnolie_valid_registration_key(client_pk)) return false;
++    const std::string key(client_pk);
++    return std::find(registered_keys.begin(), registered_keys.end(), key) != registered_keys.end();
+ }
+ /* control  callbacks for video player (unimplemented) */
+ 
+@@ -2754,7 +2747,10 @@
+     raop_set_udp_ports(raop, udp);
+ 
+     raop_port = raop_get_port(raop);
+-    raop_start_httpd(raop, &raop_port);
++    if (raop_start_httpd(raop, &raop_port) < 0 || !raop_is_running(raop)) {
++        magnolie_receiver_error("network_start");
++        return -3;
++    }
+     raop_set_port(raop, raop_port);
+ 
+     /* use raop_port for airplay_port (instead of tcp[2]) */
+@@ -2868,6 +2864,7 @@
+ void real_main (int argc, char *argv[]);
+ 
+ int main (int argc, char *argv[]) {
++    if (!magnolie_receiver_initialize()) return 70;
+     LOGI("*=== Using gst_macos_main wrapper for GStreamer >= 1.22 on macOS ===*");
+     return  gst_macos_main ((GstMainFunc) real_main, argc, argv , NULL);
+ }
+@@ -2875,6 +2872,7 @@
+ void real_main (int argc, char *argv[]) {
+ #else
+ int main (int argc, char *argv[]) {
++    if (!magnolie_receiver_initialize()) return 70;
+ #endif
+     std::vector<char> server_hw_addr;
+     std::string config_file = "";
+@@ -2917,21 +2915,25 @@
+         if (arg == "-rc") {
+             struct stat sb;
+             if (i+1 == argc) {
++                magnolie_receiver_error("invalid_config");
+                 LOGE ("option -rc requires a filename  (-rc <filename>)");
+                 exit(1);
+             }
+             rcfile = argv[i+1];
+-            if (stat(rcfile, &sb) == -1) {
+-                LOGE("startup file %s specified by option -rc was not found", rcfile);
+-                exit(0);
++            if (stat(rcfile, &sb) == -1 || !S_ISREG(sb.st_mode) || sb.st_size != 0) {
++                magnolie_receiver_error("invalid_config");
++                exit(70);
+             }
+             break;
+         }
+     }
+     if (rcfile) {
+         config_file = rcfile;
+-    } else {	
+-        config_file = find_uxplay_config_file();
++    } else {
++        // An app-owned empty file is mandatory; user rc files may enable dumps,
++        // weaken authentication or replace GStreamer pipelines.
++        magnolie_receiver_error("invalid_config");
++        exit(70);
+     }
+     if (config_file.length()) {
+         read_config_file(config_file.c_str(), argv[0]);
+@@ -3085,26 +3087,12 @@
+         }
+     }
+ 
+-    /* read in public keys that were previously registered with pair-setup-pin */
+-    if (pin_pw == 1 && registration_list && strlen(pairing_register.c_str())) {
+-        size_t len = 0;
+-        std::string  key;
+-        int clients = 0;
+-        std::ifstream file(pairing_register);
+-        if (file.is_open()) {
+-            std::string line;
+-            while (std::getline(file, line)) {
+-                /*32 bytes pk -> base64 -> strlen(pk64) = 44 chars = line[0:43]; add '\0' at line[44] */ 
+-                line[44] = '\0';
+-                std::string pk = line.c_str();
+-                registered_keys.push_back(key.assign(pk));
+-                clients ++;
+-            }
+-            if (clients) {
+-                LOGI("Register %s lists %d pin-registered clients", pairing_register.c_str(), clients);
+-            }
+-            file.close();
+-        }
++    // Unlike the upstream line[44] write, this parser rejects truncated or
++    // malformed records and bounds bytes, line length and number of keys.
++    if (pin_pw != 1 || !registration_list || pairing_register.empty() || keyfile.empty() ||
++        !magnolie_load_registration(pairing_register, registered_keys)) {
++        magnolie_receiver_error("registration_store");
++        exit(70);
+     }
+ 
+     if (pin_pw == 1 && keyfile == "0") {
+@@ -3127,6 +3115,7 @@
+     }
+ 
+     if (!gstreamer_init()) {
++        magnolie_receiver_error("media_runtime");
+         LOGE ("stopping");
+         exit (1);
+     }
+@@ -3198,9 +3187,11 @@
+     }
+ 
+     if (start_dnssd(server_hw_addr, server_name)) {
++        magnolie_receiver_error("service_discovery");
+         cleanup();
+     }
+     if (start_raop_server(display, tcp, udp, debug_log)) {
++        magnolie_receiver_error("network_start");
+         stop_dnssd();
+         cleanup();
+     }
+@@ -3224,10 +3215,18 @@
+     }
+     
+     if (register_dnssd()) {
++        magnolie_receiver_error("service_discovery");
+         stop_raop_server();
+         stop_dnssd();
+         cleanup();
+     }
++    if (!raop_is_running(raop)) {
++        magnolie_receiver_error("network_start");
++        stop_raop_server();
++        stop_dnssd();
++        cleanup();
++    }
++    magnolie_receiver_ready();
+     reconnect:
+     compression_type = 0;
+     close_window = new_window_closing_behavior;
+@@ -3255,7 +3254,10 @@
+         }
+         if (reset_httpd) {
+             unsigned short port = raop_get_port(raop);
+-            raop_start_httpd(raop, &port);
++            if (raop_start_httpd(raop, &port) < 0 || !raop_is_running(raop)) {
++                magnolie_receiver_error("network_start");
++                exit(70);
++            }
+             raop_set_port(raop, port);
+         }
+         if (mux_to_file) {

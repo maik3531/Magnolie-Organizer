@@ -1,0 +1,81 @@
+{
+  "apple": {
+    "frameworks": {
+      "AppKit": {
+        "bundleVersion": "2575.70.57",
+        "present": true,
+        "shortVersion": "6.9"
+      },
+      "Contacts": {
+        "bundleVersion": "3770.700.1.1.1",
+        "present": true,
+        "shortVersion": "1.0"
+      },
+      "EventKit": {
+        "bundleVersion": "1902.7.1",
+        "present": true,
+        "shortVersion": "3.0"
+      },
+      "Security": {
+        "bundleVersion": "61439.140.12.706.1",
+        "present": true,
+        "shortVersion": "7.0"
+      },
+      "WebKit": {
+        "bundleVersion": "20621.3.11.11.3",
+        "present": true,
+        "shortVersion": "20621"
+      }
+    },
+    "nativeBuildPrerequisitesObserved": true,
+    "productBuild": "24G830",
+    "productVersion": "15.7.9",
+    "sdkVersion": "15.5",
+    "swiftVersion": "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)\nTarget: x86_64-apple-macosx15.0"
+  },
+  "appleAccountsTested": false,
+  "architecture": "x86_64",
+  "environment": "GitHub macOS VM x86_64",
+  "installationOrPermissionChangeAttempted": false,
+  "kernelRelease": "24.6.0",
+  "linux": {
+    "cgroupMemoryLimitBytes": null,
+    "effectiveCapabilities": null,
+    "hasCAP_SYS_MODULE": null,
+    "kvmDevicePresent": false,
+    "kvmDeviceReadWrite": false,
+    "modulesDisabled": null,
+    "noNewPrivileges": null,
+    "seccompMode": null
+  },
+  "meaning": "Observed prerequisites only. A VM, tool or framework being present is not a successful application test.",
+  "nativeMagnolieTestsExecuted": false,
+  "observedAtUTC": "2026-11-26T13:15:58.970010+00:00",
+  "pageBytes": 4096,
+  "schema": 1,
+  "system": "Darwin",
+  "toolsAvailable": {
+    "codesign": true,
+    "docker": false,
+    "qemu-system-aarch64": false,
+    "qemu-system-x86_64": false,
+    "swift": true,
+    "tart": false,
+    "xcrun": true
+  },
+  "xnulinux": {
+    "bootAttempted": false,
+    "observedBlockers": [
+      "Linux host required",
+      "arm64 host required; this host is x86_64"
+    ],
+    "remainingPrerequisites": [
+      "Matching kernel headers and accepted module load policy",
+      "Reserved contiguous memory",
+      "Matching macOS system disk and kernel collection",
+      "Required build toolchain",
+      "Boot, GUI and API probes"
+    ],
+    "reviewedCommit": "d9b9bcba651c2da505f535524e02e2d9d309835e"
+  }
+}

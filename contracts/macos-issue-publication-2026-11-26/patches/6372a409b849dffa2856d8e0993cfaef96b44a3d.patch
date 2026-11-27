@@ -1,0 +1,25 @@
+From 6372a409b849dffa2856d8e0993cfaef96b44a3d Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 08:22:50 +0100
+Subject: [PATCH] Refs #785: keep the app open while the file import
+ transaction runs
+
+---
+ Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
+index 3bb4d9c2b5b618b4736a27a6f6ea826968a81682..176faa56b7c990643c4953d7182096ef1edb4ae5 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift
+@@ -926,6 +926,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
+     }
+     func windowShouldClose(_ sender: NSWindow) -> Bool { NSApp.terminate(nil); return false }
+     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
++        if fileImport?.active == true { return .terminateCancel }
+         if restoreState == .activeIO { return .terminateCancel }
+         if restoreState == .blockedRestartRequired { return .terminateNow }
+         if closeApproved || web == nil { return .terminateNow }
+-- 
+2.56.1
+

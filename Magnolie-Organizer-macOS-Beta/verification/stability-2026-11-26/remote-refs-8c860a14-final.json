@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "readStartedAtUTC": "2026-11-26T12:46:13.366463+00:00",
+  "readFinishedAtUTC": "2026-11-26T12:46:19.602751+00:00",
+  "exit": 0,
+  "refs": {
+    "refs/heads/main": "d4da48a5eadd0bda22422b924bef4ee3b4324040",
+    "refs/heads/work/android-tablet-20261126": "7a7d90b04796cf338b98f0fdbb87e8da1c967043",
+    "refs/heads/work/macos-issue-fixes-20261126": "625233067cd49e204786deb5706e6bc08ef85c4e"
+  },
+  "stderr": ""
+}

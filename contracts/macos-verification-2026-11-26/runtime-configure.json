@@ -1,0 +1,48 @@
+{
+  "environment": "Linux x86_64; configure/makesetup evidence only, no native Mac build",
+  "work": "/workspace/scratch/8bb9b7fcba7e/tooling/cpython-runtime-config-review-btfd2bk7",
+  "source": "/workspace/scratch/8bb9b7fcba7e/tooling/cpython-import-source/Python-3.15.2",
+  "command": [
+    "/workspace/scratch/8bb9b7fcba7e/tooling/cpython-import-source/Python-3.15.2/configure",
+    "--prefix=/workspace/scratch/8bb9b7fcba7e/tooling/cpython-runtime-config-review-btfd2bk7/not-installed",
+    "--disable-shared",
+    "--without-ensurepip",
+    "--disable-test-modules",
+    "--without-readline",
+    "--with-pkg-config=no",
+    "--enable-experimental-jit=no"
+  ],
+  "exit": 0,
+  "relevantMakefile": [
+    "MODDISABLED_NAMES=   _ssl  _hashlib  _tkinter  _ctypes  _sqlite3  _gdbm  _dbm  readline  _curses  _curses_panel",
+    "MODULE__REMOTE_DEBUGGING_LDFLAGS=-lzstd",
+    "MODULE__ZSTD_STATE=yes",
+    "MODULE__ZSTD_LDFLAGS=-lzstd",
+    "SHAREDMODS= Modules/array$(EXT_SUFFIX) Modules/_bisect$(EXT_SUFFIX) Modules/_csv$(EXT_SUFFIX) Modules/_heapq$(EXT_SUFFIX) Modules/_json$(EXT_SUFFIX) Modules/_lsprof$(EXT_SUFFIX) Modules/_math_integer$(EXT_SUFFIX) Modules/_pickle$(EXT_SUFFIX) Modules/_queue$(EXT_SUFFIX) Modules/_random$(EXT_SUFFIX) Modules/_remote_debugging$(EXT_SUFFIX) Modules/_struct$(EXT_SUFFIX) Modules/_interpreters$(EXT_SUFFIX) Modules/_interpchannels$(EXT_SUFFIX) Modules/_interpqueues$(EXT_SUFFIX) Modules/_zoneinfo$(EXT_SUFFIX) Modules/math$(EXT_SUFFIX) Modules/cmath$(EXT_SUFFIX) Modules/_statistics$(EXT_SUFFIX) Modules/binascii$(EXT_SUFFIX) Modules/_zstd$(EXT_SUFFIX) Modules/zlib$(EXT_SUFFIX) Modules/_md5$(EXT_SUFFIX) Modules/_sha1$(EXT_SUFFIX) Modules/_sha2$(EXT_SUFFIX) Modules/_sha3$(EXT_SUFFIX) Modules/_blake2$(EXT_SUFFIX) Modules/_hmac$(EXT_SUFFIX) Modules/pyexpat$(EXT_SUFFIX) Modules/_elementtree$(EXT_SUFFIX) Modules/_codecs_cn$(EXT_SUFFIX) Modules/_codecs_hk$(EXT_SUFFIX) Modules/_codecs_iso2022$(EXT_SUFFIX) Modules/_codecs_jp$(EXT_SUFFIX) Modules/_codecs_kr$(EXT_SUFFIX) Modules/_codecs_tw$(EXT_SUFFIX) Modules/_multibytecodec$(EXT_SUFFIX) Modules/unicodedata$(EXT_SUFFIX) Modules/fcntl$(EXT_SUFFIX) Modules/grp$(EXT_SUFFIX) Modules/mmap$(EXT_SUFFIX) Modules/_posixsubprocess$(EXT_SUFFIX) Modules/resource$(EXT_SUFFIX) Modules/select$(EXT_SUFFIX) Modules/_socket$(EXT_SUFFIX) Modules/syslog$(EXT_SUFFIX) Modules/termios$(EXT_SUFFIX) Modules/_posixshmem$(EXT_SUFFIX) Modules/_multiprocessing$(EXT_SUFFIX)",
+    "Modules/_remote_debugging$(EXT_SUFFIX):  Modules/_remote_debugging/module.o Modules/_remote_debugging/gc_stats.o Modules/_remote_debugging/object_reading.o Modules/_remote_debugging/code_objects.o Modules/_remote_debugging/frames.o Modules/_remote_debugging/frame_cache.o Modules/_remote_debugging/threads.o Modules/_remote_debugging/asyncio.o Modules/_remote_debugging/binary_io_writer.o Modules/_remote_debugging/binary_io_reader.o Modules/_remote_debugging/subprocess.o Modules/_remote_debugging/interpreters.o $(MODULE__REMOTE_DEBUGGING_LDEPS); $(BLDSHARED)  Modules/_remote_debugging/module.o Modules/_remote_debugging/gc_stats.o Modules/_remote_debugging/object_reading.o Modules/_remote_debugging/code_objects.o Modules/_remote_debugging/frames.o Modules/_remote_debugging/frame_cache.o Modules/_remote_debugging/threads.o Modules/_remote_debugging/asyncio.o Modules/_remote_debugging/binary_io_writer.o Modules/_remote_debugging/binary_io_reader.o Modules/_remote_debugging/subprocess.o Modules/_remote_debugging/interpreters.o $(MODULE__REMOTE_DEBUGGING_LDFLAGS) $(MODULE_LDFLAGS_SHARED) -o Modules/_remote_debugging$(EXT_SUFFIX)",
+    "Modules/_zstd$(EXT_SUFFIX):  Modules/_zstd/_zstdmodule.o Modules/_zstd/zstddict.o Modules/_zstd/compressor.o Modules/_zstd/decompressor.o $(MODULE__ZSTD_LDEPS); $(BLDSHARED)  Modules/_zstd/_zstdmodule.o Modules/_zstd/zstddict.o Modules/_zstd/compressor.o Modules/_zstd/decompressor.o $(MODULE__ZSTD_LDFLAGS) $(MODULE_LDFLAGS_SHARED) -o Modules/_zstd$(EXT_SUFFIX)"
+  ],
+  "minimalFixProbe": {
+    "productFilesModified": false,
+    "onlyIsolatedSetupChanged": [
+      "_zstd",
+      "_remote_debugging"
+    ],
+    "command": [
+      "/bin/sh",
+      "/workspace/scratch/8bb9b7fcba7e/tooling/cpython-import-source/Python-3.15.2/Modules/makesetup",
+      "-c",
+      "/workspace/scratch/8bb9b7fcba7e/tooling/cpython-import-source/Python-3.15.2/Modules/config.c.in",
+      "-s",
+      "Modules",
+      "Modules/Setup.local",
+      "Modules/Setup.stdlib",
+      "Modules/Setup.bootstrap",
+      "/workspace/scratch/8bb9b7fcba7e/tooling/cpython-import-source/Python-3.15.2/Modules/Setup"
+    ],
+    "exit": 0,
+    "MODDISABLED_NAMES": "MODDISABLED_NAMES=   _ssl  _hashlib  _tkinter  _ctypes  _sqlite3  _gdbm  _dbm  readline  _curses  _curses_panel  _zstd  _remote_debugging",
+    "unwantedSharedModulesAbsent": true,
+    "nativeBuildExecuted": false
+  }
+}

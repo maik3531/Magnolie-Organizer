@@ -1,0 +1,248 @@
+From e89d2eec099a933ddbad4bdc529eb7f7698af2ed Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 06:30:06 +0100
+Subject: [PATCH] fix(macos): reject EventKit windows beyond the complete read
+ bound (Refs #771)
+
+---
+ .../Sources/BetaCore/SystemSourcePolicy.swift | 10 ++-
+ .../SystemCalendarImportTests.swift           |  8 +-
+ .../SystemSourcePolicyTests.swift             | 48 +++++++++-
+ .../SystemSourceSnapshotTests.swift           | 17 ++++
+ contracts/macos-771-eventkit-window.md        | 90 +++++++++++++++++++
+ 5 files changed, 166 insertions(+), 7 deletions(-)
+ create mode 100644 contracts/macos-771-eventkit-window.md
+
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemSourcePolicy.swift b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemSourcePolicy.swift
+index 8bb07aebbdf06e70b8fc9679e1128d2fb517887b..e69ce6a76707b86af6e41bac03920dc276698a89 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemSourcePolicy.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemSourcePolicy.swift
+@@ -30,9 +30,15 @@ public enum SystemSourcePolicy {
+         }
+     }
+     public static func requireWindow(start: Date, end: Date) throws {
++        // Refs #771. EventKit silently shortens predicates longer than four
++        // calendar years. 4 * 366 days is not that limit (for example,
++        // 2026-01-01...2030-01-04). Use the existing calendar-copy bound for
++        // every single native read; reject wider requests instead of returning
++        // a snapshot whose declared scope exceeds the range EventKit read.
++        // These are elapsed seconds, independent of the default calendar/zone.
+         guard start.timeIntervalSince1970.isFinite, end.timeIntervalSince1970.isFinite,
+-              end > start, end.timeIntervalSince(start) <= 366 * 86400 * 4 else {
+-            throw BetaError("System calendar reads require a window of at most four years.")
++              end > start, end.timeIntervalSince(start) <= 366 * 86400 else {
++            throw BetaError("Select a calendar date range of at most 366 days.")
+         }
+     }
+ }
+diff --git a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemCalendarImportTests.swift b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemCalendarImportTests.swift
+index d07ff6e6219d50fe00af80946ee4084451974b55..470c6b961da020707d5d574792bdfe952912f5df 100644
+--- a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemCalendarImportTests.swift
++++ b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemCalendarImportTests.swift
+@@ -239,15 +239,15 @@ final class SystemCalendarImportTests: XCTestCase {
+         XCTAssertThrowsError(try prepare(SystemSourceSnapshot(source: reminders, scope: .fullSource, records: [])))
+     }
+ 
+-    func testCalendarCopyWindowHasItsOwnConservative366DayLimit() throws {
++    func testCalendarCopyAndNativeSnapshotShareConservative366DayLimit() throws {
+         let source = try source()
+         let allowed = try snapshot(source, [], end: "2027-01-02T00:00:00Z")
+         XCTAssertNoThrow(try prepare(allowed))
+-        let tooWide = try snapshot(source, [], end: "2027-01-03T00:00:00Z")
+-        XCTAssertThrowsError(try prepare(tooWide)) { error in
++        // Refs #771: oversized scope now fails while constructing the native
++        // snapshot, before a proposal or revision can be created from it.
++        XCTAssertThrowsError(try snapshot(source, [], end: "2027-01-03T00:00:00Z")) { error in
+             XCTAssertEqual(error.localizedDescription, "Select a calendar date range of at most 366 days.")
+         }
+-        XCTAssertThrowsError(try SystemCalendarImport.snapshotRevision(tooWide))
+     }
+ 
+     func testUTF8FoldingPreservesTheExactLogicalLine() throws {
+diff --git a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemSourcePolicyTests.swift b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemSourcePolicyTests.swift
+index 09b69a4e1207ceedd34d55d99efc6a6a8639b478..62ed8afe1222b04fe466f0a89fa2c82cf4909de2 100644
+--- a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemSourcePolicyTests.swift
++++ b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemSourcePolicyTests.swift
+@@ -56,8 +56,54 @@ final class SystemSourcePolicyTests: XCTestCase {
+     func testCalendarFetchCannotBeUnboundedOrReversed() throws {
+         let start = Date(timeIntervalSince1970: 0)
+         try SystemSourcePolicy.requireWindow(start: start, end: start.addingTimeInterval(86400))
+-        for end in [start, start.addingTimeInterval(-1), start.addingTimeInterval(366 * 86400 * 5)] {
++        for end in [start, start.addingTimeInterval(-1), start.addingTimeInterval(366 * 86400 * 5),
++                    Date(timeIntervalSince1970: .infinity), Date(timeIntervalSince1970: .nan)] {
+             XCTAssertThrowsError(try SystemSourcePolicy.requireWindow(start: start, end: end))
+         }
++        XCTAssertThrowsError(try SystemSourcePolicy.requireWindow(start: Date(timeIntervalSince1970: -.infinity), end: start))
++        XCTAssertThrowsError(try SystemSourcePolicy.requireWindow(start: Date(timeIntervalSince1970: .nan), end: start))
++    }
++    func testCalendarFetchRejectsPreviouslyAcceptedTruncatedFourYearWindow() throws {
++        let formatter = ISO8601DateFormatter()
++        let start = try XCTUnwrap(formatter.date(from: "2026-01-01T00:00:00Z"))
++        let end = try XCTUnwrap(formatter.date(from: "2030-01-04T00:00:00Z"))
++        XCTAssertEqual(end.timeIntervalSince(start), 1464 * 86400)
++        XCTAssertThrowsError(try SystemSourcePolicy.requireWindow(start: start, end: end)) { error in
++            XCTAssertEqual(error.localizedDescription, "Select a calendar date range of at most 366 days.")
++        }
++    }
++    func testCalendarFetchAcceptsNormalAndLeapYearButRejectsOneSecondPastBound() throws {
++        let formatter = ISO8601DateFormatter()
++        for (first, last, days) in [
++            ("2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z", 365),
++            ("2028-01-01T00:00:00Z", "2029-01-01T00:00:00Z", 366),
++            ("2027-03-01T00:00:00Z", "2028-03-01T00:00:00Z", 366)
++        ] {
++            let start = try XCTUnwrap(formatter.date(from: first))
++            let end = try XCTUnwrap(formatter.date(from: last))
++            XCTAssertEqual(end.timeIntervalSince(start), Double(days) * 86400)
++            try SystemSourcePolicy.requireWindow(start: start, end: end)
++        }
++        let start = try XCTUnwrap(formatter.date(from: "2026-01-01T00:00:00Z"))
++        let boundary = try XCTUnwrap(formatter.date(from: "2027-01-02T00:00:00Z"))
++        try SystemSourcePolicy.requireWindow(start: start, end: boundary)
++        XCTAssertThrowsError(try SystemSourcePolicy.requireWindow(start: start, end: boundary.addingTimeInterval(1)))
++    }
++    func testCalendarFetchUsesElapsedTimeAcrossTimezoneOffsetChanges() throws {
++        let formatter = ISO8601DateFormatter()
++        for (first, last, seconds) in [
++            ("2026-03-28T12:00:00+01:00", "2026-03-29T12:00:00+02:00", 23 * 3600),
++            ("2026-10-24T12:00:00+02:00", "2026-10-25T12:00:00+01:00", 25 * 3600),
++            ("2027-10-30T12:00:00+02:00", "2028-10-30T12:00:00+01:00", 366 * 86400 + 3600)
++        ] {
++            let start = try XCTUnwrap(formatter.date(from: first))
++            let end = try XCTUnwrap(formatter.date(from: last))
++            XCTAssertEqual(end.timeIntervalSince(start), Double(seconds))
++            if seconds <= 31_622_400 {
++                try SystemSourcePolicy.requireWindow(start: start, end: end)
++            } else {
++                XCTAssertThrowsError(try SystemSourcePolicy.requireWindow(start: start, end: end))
++            }
++        }
+     }
+ }
+diff --git a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemSourceSnapshotTests.swift b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemSourceSnapshotTests.swift
+index b638688772a41363bd8dfea9f2c29a81821b7fea..d5bcd05ad23703ca2430c552b86aa574a6528c8c 100644
+--- a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemSourceSnapshotTests.swift
++++ b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemSourceSnapshotTests.swift
+@@ -22,6 +22,23 @@ final class SystemSourceSnapshotTests: XCTestCase {
+         XCTAssertThrowsError(try SystemSourceSnapshot(source: reminders, scope: .boundedWindow(start: start, end: end), records: []))
+         XCTAssertThrowsError(try SystemSourceSnapshot(source: self.source(permission: "denied"), scope: .boundedWindow(start: start, end: end), records: []))
+     }
++    func testSnapshotRetainsTailRecordAndExactScopeAt366DayBound() throws {
++        let source = try source(), formatter = ISO8601DateFormatter()
++        let start = try XCTUnwrap(formatter.date(from: "2028-01-01T00:00:00Z"))
++        let end = try XCTUnwrap(formatter.date(from: "2029-01-01T00:00:00Z"))
++        var tailFields = fields()
++        tailFields["start"] = end.addingTimeInterval(-60).timeIntervalSince1970
++        tailFields["end"] = end.timeIntervalSince1970
++        let tail = try SystemSourceSnapshot.Record(source: source, identifier: "last-minute", fields: tailFields)
++        let snapshot = try SystemSourceSnapshot(source: source, scope: .boundedWindow(start: start, end: end), records: [tail])
++        guard case .boundedWindow(let actualStart, let actualEnd) = snapshot.scope else { return XCTFail("Keep the exact requested scope") }
++        XCTAssertEqual(actualStart, start); XCTAssertEqual(actualEnd, end)
++        XCTAssertEqual(snapshot.records.map(\.identifier), ["last-minute"])
++        XCTAssertEqual(snapshot.records.first?.fields["start"] as? Double, end.addingTimeInterval(-60).timeIntervalSince1970)
++        XCTAssertFalse(snapshot.authorizesAbsenceDeletion)
++        XCTAssertThrowsError(try SystemSourceSnapshot(source: source,
++            scope: .boundedWindow(start: start, end: end.addingTimeInterval(1)), records: [tail]))
++    }
+     func testSourceQualifiedOccurrenceKeysAndUnsupportedNativeIdentity() throws {
+         let source = try source(), other = try self.source(id: "other"), date = Date(timeIntervalSince1970: 100)
+         let first = try SystemSourceSnapshot.Record(source: source, identifier: "same", occurrenceDate: date, fields: fields())
+diff --git a/contracts/macos-771-eventkit-window.md b/contracts/macos-771-eventkit-window.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..1ef92414efd16c2fa759f820e12723d38d49ec4e
+--- /dev/null
++++ b/contracts/macos-771-eventkit-window.md
+@@ -0,0 +1,90 @@
++# Mac #771: vollständiger Geltungsbereich einzelner EventKit-Abfragen
++
++Stand: 26. November 2026. Ausgangscommit:
++`616069f15fed21d8d8d05c8ef795f4ed21bd059c`.
++Quellpatch zur späteren Codex-Prüfung und Übernahme, keine Paketfreigabe.
++
++## Ursache und Entscheidung
++
++Apples Dokumentation zu
++[`predicateForEvents(withStart:end:calendars:)`](https://developer.apple.com/documentation/eventkit/ekeventstore/predicateforevents%28withstart%3Aend%3Acalendars%3A%29)
++wurde am 26. November 2026 einschließlich der angebotenen Markdown-Fassung
++gelesen. Zeitfenster über vier Jahre werden auf den Anfang dieses Bereichs
++verkürzt. Die API arbeitet dabei mit der Standardzeitzone.
++
++Der bisherige Guard in `SystemSourcePolicy.requireWindow` ließ bis zu
++`4 * 366 * 86400` Sekunden zu. Beispielsweise passieren 1. Januar 2026 bis
++4. Januar 2030 diesen Guard, obwohl sie über vier Kalenderjahre hinausreichen.
++Sowohl `SystemAccountStore.readEvents` als auch `snapshotEvents` verwenden
++einen einzelnen EventKit-Predicate. Der typisierte Snapshot übernahm trotzdem
++den gesamten angeforderten Bereich als Scope. Dies ist ein bestätigter
++Quellenbefund, kein hier ausgeführter EventKit-Verlustnachweis.
++
++**Neuer Vertrag:** Ein allgemeiner nativer Kalenderabruf akzeptiert höchstens
++366 Tage als verstrichene Sekunden (`31_622_400`), entsprechend der schon
++vorhandenen Kalenderkopie. Größere, leere, umgekehrte oder nicht endliche
++Fenster scheitern ausdrücklich; es wird weder abgeschnitten noch ein
++Teilresultat als vollständig bezeichnet. Die Meldung verwendet die bereits
++vorhandene deutsche Übersetzung „Wählen Sie einen Zeitraum mit höchstens
++366 Tagen.“
++
++Das ist eine bewusste Einschränkung des früheren allgemeinen Vierjahresvertrags.
++Es gibt keine neue Segmentierung und keine neue Deduplikation von Serien.
++366 lokale Kalendertage mit einer zusätzlichen Herbstumstellungsstunde
++überschreiten die Sekundengrenze ebenfalls; das kleinere Fenster muss bewusst
++gewählt werden. Der Guard hängt weder von einem Kalenderjahr-Modell noch von
++der Systemzeitzone ab.
++
++## Konkrete Einbindung
++
++- Beide allgemeinen Reader prüfen denselben Guard bereits **vor** Erzeugung
++  des EventKit-Predicates; beide werden durch die gemeinsame Korrektur erfasst.
++- `SystemSourceSnapshot.init` verwendet ihn ebenfalls. Ein künstlich breiterer
++  Scope kann damit auch nachgelagert nicht als gültiger Snapshot entstehen.
++- Der einzige externe Swift-Aufrufer von `snapshotEvents` ist der vorhandene
++  `SystemCalendarImportHost`. Seine normale Auswahl bleibt von 30 Tagen vor
++  heute bis einschließlich 90 Tage danach; die eigene 366-Tage-Prüfung bleibt.
++  Für `readEvents` wurde außerhalb der Fassade kein aktueller Aufrufer gefunden.
++- `SystemCalendarImport` behält seinen eigenen 366-Tage-Guard. Die bisherige
++  Testvorbereitung eines 367-Tage-Snapshots wurde auf den jetzt früheren
++  Ablehnungspunkt umgestellt, ohne den Negativfall zu entfernen.
++- `authorizesAbsenceDeletion` bleibt `false`; keine Synchronisation,
++  Löschfreigabe oder Veränderung der Apple-Quelle wird daraus abgeleitet.
++
++## Prüfung und genaue Beweisgrenze
++
++Tatsächlich unter Linux mit Python und Node 24.22.3 / JSDOM 26.1.0 geprüft:
++
++1. Quellenpfad: Guard vor Predicate in beiden Readern, Aufrufer und unveränderte
++   Standardauswahl, vorhandene deutsche Übersetzung.
++2. Sieben unabhängige Datumsrechnungen mit Pythons `datetime`: 1464-Tage-Befund,
++   normale und Schaltjahre, 23-/25-Stunden-Tage und 366 Tage plus eine Stunde.
++   Dies prüft die erwarteten Fixture-Werte, **führt Swift nicht aus**.
++3. `python3 tools/check_system_calendar_import.py --js-runtime /path/to/node`
++   mit `MACOS_BETA_JSDOM=/path/to/jsdom/lib/api.js`: **307 Prüfungen bestanden**.
++   Echte erzeugte Oberfläche, synthetische EventKit-Nutzlasten und Transport;
++   kein nativer EventKit-/macOS-Nachweis.
++4. `git diff --check`: bestanden.
++
++Vier neue Swift-Testmethoden sowie zwei gezielte Anpassungen vorhandener Tests
++sind vorbereitet. Sie behandeln das konkrete 1464-Tage-Fenster, normale und
++Schaltjahre, exakt 366 Tage, eine Sekunde darüber, Zeitzonen-Offsetwechsel,
++NaN/Unendlich sowie einen Datensatz in der letzten Minute des erlaubten
++Fensters samt exaktem Snapshot-Scope und fehlender Löschautorität.
++
++**Swift ist in der Arbeitsumgebung nicht vorhanden. Diese Swift-Tests wurden
++weder kompiliert noch ausgeführt.** Der synthetische letzte Datensatz beweist
++keinen tatsächlichen EventKit-Abruf am Fensterende. Native Prüfung auf Intel
++und Apple Silicon bleibt erforderlich, insbesondere mit einem expliziten
++Testkalender und Termin am Ende eines zulässigen Fensters; in beiden Readern
++außerdem eine übergroße Anfrage vor dem Predicate ablehnen lassen.
++
++Für die gezielte Codex-Prüfung auf macOS im bestehenden Quell- und Werkzeugstand:
++
++```sh
++cd Magnolie-Organizer-macOS-Beta
++swift test --jobs 2 --filter 'SystemSourcePolicyTests|SystemSourceSnapshotTests|SystemCalendarImportTests'
++```
++
++Linux/Windows verwenden andere Kalenderadapter; dieser Patch behauptet dort
++weder einen entsprechenden Fehler noch eine native Korrektur.
+-- 
+2.56.1
+

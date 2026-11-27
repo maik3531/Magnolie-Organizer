@@ -1,0 +1,475 @@
+From c903f436fe7853d5f92b7d40b64ed9121bd5d6fa Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 08:29:20 +0100
+Subject: [PATCH] Refs #121 #783 #785 #786: reconcile import, sync and VM
+ review documentation
+
+---
+ .../BRIDGE-COVERAGE.md                        |  7 ++-
+ .../CLOUD-MAC-TESTING.md                      |  2 +-
+ .../CURRENT-SOURCE-CANDIDATE.md               | 34 ++++++++++++-
+ .../FEATURE-MATRIX.md                         |  8 +--
+ .../IMPORT-CODECS.md                          | 51 +++++++++++++++++++
+ .../IMPORT-RUNTIME.md                         |  2 +-
+ .../IPHONE-INTEROPERABILITY.md                | 42 +++++++++++++++
+ Magnolie-Organizer-macOS-Beta/README.md       | 45 +++++++++++-----
+ .../tools/bridge_coverage.py                  |  2 +-
+ ...acos-465-native-calendar-alias-adoption.md | 18 +++++--
+ ...acos-776-contact-only-birthday-exchange.md |  2 +-
+ 11 files changed, 186 insertions(+), 27 deletions(-)
+
+diff --git a/Magnolie-Organizer-macOS-Beta/BRIDGE-COVERAGE.md b/Magnolie-Organizer-macOS-Beta/BRIDGE-COVERAGE.md
+index 33b21f94ddcbe55adbe266ebed052d90af9d30ce..e1afa3f96a7f091f7ea3b36e226366e36b0ecb61 100644
+--- a/Magnolie-Organizer-macOS-Beta/BRIDGE-COVERAGE.md
++++ b/Magnolie-Organizer-macOS-Beta/BRIDGE-COVERAGE.md
+@@ -5,7 +5,7 @@ This is a command inventory, **not a passed-feature count or a native validation
+ Static literal calls are compared with the Windows typed contract. Computed command names
+ and native-only menu actions need the separate feature matrix; absence here is not support.
+ 
+-Frontend SHA-256: `bbb7341c9d3c69256ef0e2655382d71ab39191e2d72e59a6fc8fb9d5126ba3b6`
++Frontend SHA-256: `8166790025d0ba8bf4495b73346ba42cbb6eac8dd98c918eea40ec696ef69b63`
+ Windows contract SHA-256: `7d1245d48d7b378832cadf2291ee5eb23d59339d0a0fad87f77754ab97a07c51`
+ 
+ | Command | Shared frontend literal | Windows contract | macOS Beta scope |
+@@ -74,7 +74,7 @@ Windows contract SHA-256: `7d1245d48d7b378832cadf2291ee5eb23d59339d0a0fad87f7775
+ | `graph_mcp_status` | — | yes | UNSUPPORTED: negative Beta response |
+ | `handbuch_herunterladen` | yes | yes | UNSUPPORTED: negative Beta response |
+ | `handbuch_oeffnen` | yes | yes | source: bundled canonical 2.0.30 manual; isolated local WKWebView/search; native validation pending |
+-| `import` | yes | yes | partial: native selected UTF-8 ICS file; atomic codec and canonical merge; no vCard/CSV/archive import |
++| `import` | yes | yes | source: selected ICS/VCS/LCS, OR6/CSV, vCard/CSV, Claws/LDIF, ZIP and waste files through current private parser; canonical merge/Save-ACK; archive/local discovery open; native runtime untested |
+ | `import_lokal` | yes | yes | UNSUPPORTED: negative Beta response |
+ | `internet_konten_mcp` | — | yes | UNSUPPORTED: negative Beta response |
+ | `internet_konten_status` | — | yes | UNSUPPORTED: negative Beta response |
+@@ -123,7 +123,10 @@ Windows contract SHA-256: `7d1245d48d7b378832cadf2291ee5eb23d59339d0a0fad87f7775
+ | `kontakt_originalquellen_update` | yes | yes | UNSUPPORTED: negative Beta response |
+ | `kontakt_originalquellen_widerrufen` | yes | yes | UNSUPPORTED: negative Beta response |
+ | `lo_benutzer` | yes | yes | UNSUPPORTED: negative Beta response |
++| `macos_apple_notizen_importieren` | — | — | source: explicit Apple Notes folder/note selection, reviewed additive plaintext copies + re-read + recovery + save ACK; no source writes or sync; native execution unverified (#772) |
++| `macos_erinnerungen_importieren` | — | — | source: explicit EventKit reminder list/item selection, reviewed standalone local task copies + re-read + recovery + save ACK; hierarchy unavailable, no source writes or sync; native execution unverified (#777) |
+ | `macos_kalender_importieren` | — | — | source: explicit EventKit calendar/date picker, reviewed additive local copies + recovery + save ACK; no sync; native execution unverified (#770) |
++| `macos_kontakte_importieren` | — | — | source: explicit Contacts container/contact selection, reviewed additive public-field copies + re-read + recovery + save ACK; no source writes or sync; native execution unverified (#775) |
+ | `macos_systemzugriff` | — | — | partial: explicit OS access prompt and refreshed source status; no synchronization |
+ | `mail` | yes | yes | partial: bounded single-recipient mailto to resolved system app; open acceptance only; native handler unverified |
+ | `mcp_antwort` | yes | yes | UNSUPPORTED: negative Beta response |
+diff --git a/Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md b/Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md
+index 6848c3f4c78aec1a34317d10b8e51a01aa5a9c84..b6b5f2d9660577dcb8bcbf4fdd3244542838071a 100644
+--- a/Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md
++++ b/Magnolie-Organizer-macOS-Beta/CLOUD-MAC-TESTING.md
+@@ -88,7 +88,7 @@ abzuschalten ist kein Ersatz für einen passenden Testbenutzer und eine
+ funktionierende Sitzung.
+ 
+ **iCloud ist in geeigneten VMs tatsächlich möglich.** Apple verlangt für
+-seinen Apple-Silicon-Weg macOS 15+ und eine entsprechend neu erzeugte VM;
++seinen Apple-Silicon-Weg **Host und neu erzeugten Gast mit macOS 15+**;
+ das Upgrade eines älteren Gasts allein schafft diese Identität nicht.
+ Verschieben auf einen anderen Host oder gleichzeitige Klone können eine neue
+ Identität und erneute Anmeldung auslösen. Siehe
+diff --git a/Magnolie-Organizer-macOS-Beta/CURRENT-SOURCE-CANDIDATE.md b/Magnolie-Organizer-macOS-Beta/CURRENT-SOURCE-CANDIDATE.md
+index 7db1013b3f0885aa4968a76936a9e7fc80468c30..cbdab7ef4121e5d9039a0a809adea2988a82111f 100644
+--- a/Magnolie-Organizer-macOS-Beta/CURRENT-SOURCE-CANDIDATE.md
++++ b/Magnolie-Organizer-macOS-Beta/CURRENT-SOURCE-CANDIDATE.md
+@@ -67,7 +67,7 @@ facts. This patch adds no new sync transport, pairing, background service or
+ source-write grant.
+ 
+ `check_current_sources.py` boots the actual newly generated UI and compares its
+-traffic with the unchanged Swift `Command` allowlist. Every currently
++traffic with the actual Swift `Command` allowlist. Every currently
+ unimplemented desktop command is rejected before native delivery. Imported
+ provenance-shaped metadata and a saved automatic-sync preference do not widen
+ that list. A rejected legacy `sync` request may record its existing local error
+@@ -79,6 +79,15 @@ currently missing transports and unauthorized sync fields on ordinary saves.
+ These are current implementation checks, not a permanent exclusion of KDE
+ Connect or future explicitly implemented Mac integrations.
+ 
++The complete handoff now adds #785's current classic-file/OR6 parser path and
++#786's separate bounded native field-sync command. They have their own
++implementation, authorization and test contracts; #783 alone does not provide
++either capability. The legacy desktop `sync` command remains unavailable.
++Full archive import, local-program discovery, automatic/native create/delete
++sync and Apple Notes writeback remain explicitly open. The final combined
++test record supersedes earlier per-patch input hashes only for tests actually
++rerun on those combined inputs.
++
+ ## Evidence and limits
+ 
+ The historical green run
+@@ -107,3 +116,26 @@ tests. The two new Swift test methods are prepared for that workflow; no Swift/m
+ execution, updated native candidate, signing/notarization or release approval
+ is claimed by these host checks. Both existing macOS architecture jobs and the
+ real bundle lifecycle must pass again with the new recorded source policy.
++
++## Repeat the exact source record/verify steps
++
++Use a clean reviewed checkout. The workflow binds the selected commit to
++`GITHUB_SHA`; the local example below uses the commit that the reviewer has
++explicitly selected. Keep the proof outside the source tree and use a new path:
++
++```sh
++candidate_commit=$(git rev-parse HEAD)
++candidate_proof_dir=$(mktemp -d)
++python3 Magnolie-Organizer-macOS-Beta/tools/candidate_sources.py record \
++  --expected-commit "$candidate_commit" --proof "$candidate_proof_dir/sources.json"
++# Prepare catalogs, freeze/generate, run the checks and native build according
++# to .github/workflows/ports-2.0.30.yml. Do not change tracked source inputs.
++python3 Magnolie-Organizer-macOS-Beta/tools/candidate_sources.py verify \
++  --expected-commit "$candidate_commit" --proof "$candidate_proof_dir/sources.json"
++```
++
++The integrated #776 source was checked again: 27 capability/current-UI
++assertions, 30 original note-search assertions and 181 unavailable-command
++boundaries passed. Its canonical frontend SHA-256 is
++`8166790025d0ba8bf4495b73346ba42cbb6eac8dd98c918eea40ec696ef69b63`.
++This is a source/UI check, not native execution.
+diff --git a/Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md b/Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md
+index 59bfacd694b4f780acba319a917bc1871a6e613b..6446de0b320b39a8176b0f1809372979b04d2d85 100644
+--- a/Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md
++++ b/Magnolie-Organizer-macOS-Beta/FEATURE-MATRIX.md
+@@ -1,7 +1,7 @@
+ # macOS Beta Feature Matrix — 2.0.30-beta.1
+ 
+-Updated 2026-11-26 (#783 current-source candidate recipe; #775 contact and #777
+-reminder copies; #121 evidence correction). The shared Organizer UI and data
++Updated 2026-11-26 (#783 current-source candidates; #784 device page; #785 current
++file parsers; #786 bounded native field sync; #121 evidence/VM planning). The shared Organizer UI and data
+ behavior follow current Linux/Windows sources, with Mac-specific native
+ integrations. Mac does not require its own Magnolie Notes companion app.
+ Apple services and supported existing KDE Connect clients remain intended
+@@ -30,7 +30,8 @@ required; see [CURRENT-SOURCE-CANDIDATE.md](CURRENT-SOURCE-CANDIDATE.md).
+ | JSON backup/export | Whole document including unknown fields and embedded attachments; always encrypted; separate password prompt for plain profile | Native prompt/save panel/crypto interoperability run; no external backups rekeyed |
+ | Encryption | Desktop v1 read/v2 read-write CryptoKit/CommonCrypto implementation and public test vectors | Apple crypto execution; password change/removal; keychain/rekey transactions |
+ | ICS export | Source-preserving appointments/tasks/anniversaries, recurrence and exception/raw properties, historical/future VTIMEZONE; real shared editor → Swift tests | Eight independent published-codec roundtrips pass on both architectures; native picker/manual acceptance remains open; unsupported fields fail the whole export |
+-| ICS/vCard/CSV import/export | Selected-file ICS import, canonical merge and source-header metadata; eight published-codec import/reexport cases pass on both architectures | Native picker/manual import acceptance; vCard/CSV and other formats remain unsupported |
++| File import / #785 | Native picker and bounded private-parser path prepared for current ICS/VCS/LCS, OR6/CSV, vCard/CSV, Claws/LDIF, ZIP and waste formats; real original OR6 files exercised through projected UI and Save-ACK | Native private-runtime build, picker and durable reopen still require the exact candidate on macOS; full Magnolie archive and local-program discovery remain follow-up work. See IMPORT-CODECS.md and IMPORT-RUNTIME.md |
++| ICS/vCard/CSV export | Existing selected-file export routes and published-codec comparisons retain their exact earlier scope | Import parity does not by itself establish new export formats or native acceptance |
+ | `.magnolie` multi-file complete archive | Unsupported explicitly | Full format/attachments/settings/restore transaction and shared fixtures |
+ | System printing / PDF | Isolated ephemeral WKWebView, JavaScript disabled, no bridge/network/local-file access; AppKit print dialog includes Save as PDF. Native AppKit PDF generation passed at the historical `cbdc0876`/`067c3893` checkpoint | Current-source rerun and manual OS print-panel acceptance; physical paper output is never inferred |
+ | Clipboard/attachments | Native text clipboard; Save for supported PDF/image data URLs | Native AppKit validation; automatic attachment opening |
+@@ -50,6 +51,7 @@ required; see [CURRENT-SOURCE-CANDIDATE.md](CURRENT-SOURCE-CANDIDATE.md).
+ | Apple Notes text copies | #772: direct NSAppleScript reader, explicit account/folder/note selection, full plaintext preview, exact source identity, source reread, canonical local note transaction and durable-save acknowledgement; no additional application | New Swift/AppKit/Notes-Dictionary/TCC execution unverified; protected notes and notes reporting attachments excluded; only reviewed text is copied, no source writes or synchronization; see `APPLE-NOTES-IMPORT.md` |
+ | macOS reminders | #777: explicit EventKit list/item selection, public-field preview, source reread, independently editable local task copies, provenance and durable-save acknowledgement; existing source selections preserved | Current-source Swift/EventKit/AppKit/account/permission acceptance; complete component/hierarchy fidelity and synchronization remain separate |
+ | System contacts | #775: Contacts.framework container/contact selection, reviewed local public-field copies, source reread, exact provenance, contact-only birthdays and durable-save acknowledgement | Current-source native execution/permission acceptance and further mapping fidelity; source writes and complete synchronization remain separate |
++| Native system-account field sync / #786 | Separate explicit source/book binding, current EventKit/Contacts adapters, baseline comparison in both directions, supported-field updates, readback and encrypted transaction ledger prepared. Existing copy provenance grants no authority | Current Swift/API/Keychain/UI acceptance in a real macOS VM. No new native records, deletes, series, automatic/background sync, or Apple Notes writeback. See `../contracts/macos-786-native-system-sync.md` and `CLOUD-MAC-TESTING.md` |
+ | DAV/CalDAV/CardDAV/Nextcloud/Graph | Native DAV configuration/discovery GUI, bounded HTTPS protocol (20 tests), Keychain storage, 19 account/boundary/transaction cases, 15 typed calendar-snapshot tests and sibling-preserving resource-patch tests pass on both architectures | Real server/account GUI acceptance and complete conflict/deletion/local-commit synchronization coordinator; Graph unsupported |
+ | Magnolienbaum/personal sync | Unsupported | Pairing, consent, durable queues/receipts, contact/custom/attachment interop |
+ | Phone/SMS/Bluetooth/KDE Connect/audio | Existing KDE Connect clients remain an applicable external Mac/iPhone path. The current Organizer bridge does not implement the desktop phone/pairing/media commands; importing their shared UI does not activate them | Implement and validate concrete supported Mac-to-client capabilities; no separate Magnolie Notes app is required and no blanket KDE exclusion is intended |
+diff --git a/Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md b/Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md
+index 0a691c4f5694fa86b4b4802528980f8bc151f166..c665737368089992b6c53beae72d2fc251a4e517 100644
+--- a/Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md
++++ b/Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md
+@@ -154,6 +154,57 @@ Fehler-Envelope hat Exitcode 0; Prozessabbruch, Timeout, fehlendes EOF oder
+ fehlende/ungültige Ausgabe bleiben Hostfehler. Der native Host prüft Quellhash
+ und Manifesthash nochmals. Eine Parserantwort ist noch keine Speicherquittung.
+ 
++## Nativer Host, gemeinsamer Merge und tatsächliche Speichergrenze
++
++`FileImportHost` löst den vorhandenen `import`-Befehl ab. Die WebView sendet
++nur die Formatart und für Mülltermine den bestehenden Vorgangstoken; sie
++bestimmt keinen Quelldateipfad und kein auszuführendes Programm. Der Host
++wartet auf die aktuelle Buchspeicherung und einen bestätigten
++`pre-file-import`-Wiederherstellungspunkt, bevor der native Picker erscheint.
++Ein Abbruch löst die vorbereitete Operation wieder auf.
++
++`FileImportProcess.readSelected` öffnet die konkrete Auswahl mit `O_NOFOLLOW`,
++prüft eine reguläre Datei und maximal 32 MiB und vergleicht Größe, Identität
++sowie Änderungszeiten nach dem Lesen. Der aktuelle Bytehash gehört zur
++Operation; eine spätere erneute Dateiauswahl ist ein neuer Import. Sprache,
++Heimatland und konkrete normative Zeitzone werden nach dem vorbereitenden
++Save erfasst und vor Übergabe des Ergebnisses erneut verglichen.
++
++Der feste Interpreter erhält einen anonymen Standardinput-Deskriptor: Der
++temporäre Dateiname wird vor dem ersten Schreiben von Quelldaten entfernt.
++Damit kann der Elternprozess den vollständigen begrenzten Request übertragen,
++ohne bei einem früh beendeten Kindprozess in einer gefüllten Pipe zu blockieren.
++Der Deskriptor hat `FD_CLOEXEC`; nur die ausdrücklich verbundene Standardeingabe
++geht an den gestarteten Prozess. Stdout ist auf 96 MiB, Stderr auf 64 KiB
++begrenzt. Quellinhalt aus Stderr erscheint nicht in der Fehlermeldung. Nach
++60 Sekunden wird nur dieser eigene Prozess beendet; wenn nötig folgt SIGKILL.
++
++`FileImportProtocol` prüft die vollständige Antwort einschließlich
++Schema-/Boolean-Typen, Quell- und Parsermanifesthash, bytegenauem Dateinamen,
++Format und Sammlungstypen. Ein Fehler-Envelope enthält kein Teilresultat.
++Der AppKit-/Foundation-Prozesspfad und seine tatsächliche Deskriptor- und
++Zeitlimitwirkung sind ausdrücklich noch in der macOS-VM zu prüfen.
++
++Die echte gemeinsame UI übernimmt Normalisierung, Kontaktvorschau und Merge.
++Die Operation bindet das konkrete Buch, seinen vollständigen Ausgangsinhalt
++und eine begrenzte Vorschaufrist. Erfolgstexte warten auf die bestehende
++dauerhafte Save-ACK-Kette. Fehler nach einer Mutation lassen die vorhandenen
++Kopien für erneutes Speichern stehen und melden die fehlende Bestätigung;
++sie starten keinen zweiten Import. Der Patch korrigiert dafür auch die
++Fehlerweitergabe des asynchronen Kontakt-Snapshot-Callbacks.
++
++Mülltermine sind bewusst anders: Die neue Route übergibt an die bestehende
++Vorschau und meldet `handedToPreview: true, saveConfirmed: false`. Erst deren
++eigenes Anwenden/Speichern kann eine Übernahme bestätigen. Eine erfolgreiche
++Parserantwort oder geöffnete Vorschau gilt nie als gespeicherter Terminplan.
++
++Zehn zusätzliche `FileImportProtocolTests` prüfen die vorbereitete native
++Grenze, einschließlich Fremdhash, Unicode-Dateiname, kaputtem Envelope und
++unzulässigen Bridgefeldern. Sie sind hier **nicht kompiliert oder ausgeführt**.
++Der 90-Prüfungen-OR6-Lauf unten führt dagegen die tatsächlichen Python- und
++JavaScriptteile aus. Die gemeinsame native Abnahme ist in
++[CLOUD-MAC-TESTING.md](CLOUD-MAC-TESTING.md) beschrieben.
++
+ ## #465 bleibt im ICS-Anschluss erhalten
+ 
+ Für `ics` ergänzt `calendar_evidence.py` ausschließlich im Callback-Envelope
+diff --git a/Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md b/Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md
+index 533b6e025918337b9a89babbcf32623fad7cd753..e2084a3cee9614c92904ab5fc3176a26f9bba13b 100644
+--- a/Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md
++++ b/Magnolie-Organizer-macOS-Beta/IMPORT-RUNTIME.md
+@@ -30,7 +30,7 @@ Final paths:
+ - Parser projection and normative zone data: `Contents/Resources/ImportHelper`.
+ 
+ The helper is outside the WKWebView-readable UI directory. Native launch uses
+-`-I -S -B`, a fixed bundle script and bounded pipes. There is no shell command,
++`-I -S -B`, a fixed bundle script and bounded standard streams. There is no shell command,
+ renderer-specified executable, source-file path or installation operation.
+ 
+ ## Reproducible native development build
+diff --git a/Magnolie-Organizer-macOS-Beta/IPHONE-INTEROPERABILITY.md b/Magnolie-Organizer-macOS-Beta/IPHONE-INTEROPERABILITY.md
+index cc7ace61d6781e1c8d8dec8078b0040f4d892d92..5cd27c98f4e5ec406331328e7c3b2e01f454c33a 100644
+--- a/Magnolie-Organizer-macOS-Beta/IPHONE-INTEROPERABILITY.md
++++ b/Magnolie-Organizer-macOS-Beta/IPHONE-INTEROPERABILITY.md
+@@ -1,5 +1,47 @@
+ # iPhone-Anbindung: vorhandene Apps und Übertragungswege
+ 
++
++## Verbindliche Ergänzung vom 26. November 2026
++
++Die Mac-Ausgabe setzt **keine eigene Magnolie-Notes-Begleitapp** voraus.
++Vorhandenes **KDE Connect ist ausdrücklich ein vorgesehener Übertragungsweg**,
++neben Apple-Apps und den passenden nativen Schnittstellen. Das aktuelle
++[Mac-Angebot im App Store](https://apps.apple.com/de/app/kde-connect/id1580245991?platform=mac)
++nennt Dateiübertragung, Zwischenablage sowie Geräte-/Verbindungsstatus und
++macOS ab 13. Die [offizielle KDE-Downloadseite](https://kdeconnect.kde.org/download.html)
++führt zusätzlich den Mac-Desktopclient und die iOS-App auf. Die App-Store-App
++und der Qt-Desktopclient müssen bei einer direkten Magnolie-Anbindung getrennt
++auf ihre tatsächlichen Schnittstellen geprüft werden; eine Linux-CLI- oder
++D-Bus-Annahme gilt nicht automatisch für beide.
++
++Der überprüfte Magnolie-Quellstand enthält bislang keinen nativen
++`kde_*`-, `telefon_*`- oder `personal_sync_*`-Handler. Das beschreibt die
++noch fehlende **direkte Magnolie-Anbindung**, nicht die Nutzbarkeit der
++externen KDE-Connect-App. Bewusst damit empfangene unterstützte Dateien
++können über den vorhandenen Mac-Dateiimport übernommen werden. Ein realer
++KDE-Connect-/iPhone-Gerätelauf wurde in diesem Audit nicht ausgeführt.
++
++Der Workflow-Fix [#783](https://github.com/maik3531/Magnolie-Organizer/issues/783)
++aktualisiert gemeinsame UI-/Datenquellen, ohne native Syncbefehle freizuschalten.
++Der gezielte UI-Fix [#784](https://github.com/maik3531/Magnolie-Organizer/issues/784)
++beseitigt die unpassende Notes-Voraussetzung und endlose Statusanzeigen auf
++der Mac-Geräteseite. #785 ergänzt die aktuellen OR6-/Dateiparser einschließlich
++Vorschau und Speicherbindung. Die vorhandenen Apple-Kopieranschlüsse bleiben
++bewusste lokale Übernahmen. #786 ergänzt davon getrennt einen ausdrücklich
++gebundenen manuellen Feldabgleich für Kalender, Kontakte und Erinnerungen
++mit eigenen Konflikt-, Identitäts-, Readback- und Journalverträgen. Seine native
++Abnahme sowie Neuanlagen, Löschungen, Serien und Hintergrundautomatik bleiben
++offen. Apple-Notes-Rückabgleich ist damit noch nicht implementiert.
++
++Eine echte macOS-VM kann diese Wege prüfen; ein eigener physischer Mac des
++Nutzers ist nicht erforderlich. Voraussetzungen für eine geeignete iCloud-VM,
++App-Store-Grenzen, den direkten offiziellen KDE-Download und konkrete
++Netz-/Import-/Kontenproben stehen in [CLOUD-MAC-TESTING.md](CLOUD-MAC-TESTING.md).
++
++Die folgenden früheren Untersuchungen bleiben mit ihrem jeweiligen Datum
++und Quellstand als historische Nachweise erhalten.
++
++
+ Auftragsumfang präzisiert am 2026-11-10, Arbeit zu #121: Nutzbare
+ iPhone-Anbindungen über vorhandene Apps, insbesondere KDE Connect, bleiben
+ Teil des Auftrags. Eine eigene Notes-App für das iPhone wird nicht umgesetzt.
+diff --git a/Magnolie-Organizer-macOS-Beta/README.md b/Magnolie-Organizer-macOS-Beta/README.md
+index a1930af0dd113fbc5ffc96b79d685f495de94545..287962084a35a5d3825b74a8fbcd81559d8f1527 100644
+--- a/Magnolie-Organizer-macOS-Beta/README.md
++++ b/Magnolie-Organizer-macOS-Beta/README.md
+@@ -12,7 +12,8 @@ copy of important data with this Beta.
+ 
+ The canonical directory is `Magnolie-Organizer-macOS-Beta` beside the existing
+ Linux and Windows source directories. Shared product sources, dependency declarations and the Windows release workflow
+-remain unchanged. The dedicated candidate workflow builds this port separately.
++remain the canonical references; #776 intentionally fixes their shared contact
++contract. The dedicated candidate workflow builds this port separately.
+ 
+ ## Identity
+ 
+@@ -24,10 +25,12 @@ remain unchanged. The dedicated candidate workflow builds this port separately.
+ - Development output and exported filenames include `macOS Beta`.
+ - No stable Windows, Linux or Notes profile is discovered, imported or reused automatically.
+ 
+-The `2.0.30-beta.1` identity targets the published desktop 2.0.30 baseline.
+-It remains a partial macOS Beta, not a claim that every desktop native feature
+-is available. Projection/build manifests record the actual input hashes; host
+-checks against a moving development checkout do not establish release-tag parity.
++The existing `2.0.30-beta.1` display identity is retained for this review branch.
++#783 changes Mac candidate builds to the exact current checked-out source,
++instead of restoring the released 2.0.30 desktop tree. The version label is
++therefore not a source proof. This remains a partial macOS Beta; the projection
++and candidate manifests record the actual commit and input hashes. See
++[the complete issue handoff](../contracts/macos-issue-handoff-2026-11-26.md).
+ 
+ ## Target systems and validation
+ 
+@@ -51,7 +54,7 @@ toolchain is required to run the bundle. A current SDK/toolchain is required to
+ | Area | Current Scope |
+ | --- | --- |
+ | Desktop interface | Entire canonical Linux web tree, styles, fonts, symbols and catalogs projected by generator, not a separate hand-maintained organizer UI |
+-| Handbook | Canonical 2.0.30 handbook bundled unchanged, including languages, search and assets; separate nonpersistent local WKWebView, no Organizer bridge; user-clicked HTTPS links open in the system browser |
++| Handbook | Current canonical handbook bundled byte-for-byte, including languages, search and assets; separate nonpersistent local WKWebView, no Organizer bridge; user-clicked HTTPS links open in the system browser |
+ | Shell | AppKit window, WKWebView, application/edit menus, save-before-quit handshake |
+ | Bridge | Main-frame/local-document check, randomized handler name, typed native allowlist, explicit negative results |
+ | Local data | Whole JSON text, private profile lease, 0700 directory/0600 files, atomic same-directory replacement, file and directory synchronization, external-change detection |
+@@ -63,9 +66,11 @@ toolchain is required to run the bundle. A current SDK/toolchain is required to
+ | Recovery/deletion | Shared recycle-bin/contact-delete logic; token-correlated checkpoints; private exact-byte JSON files readable after restart |
+ | Language/keyboard | Shared regional page enabled and durably saved; generated native gettext catalogs; Command+digit sections, Command formatting, Undo/Redo menus |
+ | Export | Source-preserving appointment/task/anniversary ICS, recurrence/exceptions and historical/future timezone definitions; unsupported or contradictory records fail the whole export |
++| File imports | #785 projects the actual current OR6 and classic-format parsers, packages a private Python runtime and binds the native selection to the shared merge and durable Save-ACK. Original-file and projected-UI tests pass on the source host; native runtime/picker acceptance is pending. See [IMPORT-CODECS.md](IMPORT-CODECS.md) and [IMPORT-RUNTIME.md](IMPORT-RUNTIME.md) |
+ | Clipboard/attachments | Text clipboard; attachment Save for PDF/JPEG/PNG/GIF/WebP data URLs, not automatic attachment opening |
+ | Reminders | Open-app checker with independent one-off early/due task reminders, connected to permission-gated macOS notifications; no persistent scheduler |
+ | macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; #770 adds reviewed single calendar copies, #775 local contact copies and #777 selected reminders as independent local tasks. Each preserves existing records and requires a fresh source read plus durable save. Native validation, complete reminder fidelity and full synchronization remain unfinished; see [SYSTEM-CALENDAR-IMPORT.md](SYSTEM-CALENDAR-IMPORT.md), [SYSTEM-CONTACT-IMPORT.md](SYSTEM-CONTACT-IMPORT.md) and [SYSTEM-REMINDER-IMPORT.md](SYSTEM-REMINDER-IMPORT.md) |
++| System-account field sync | #786 separately prepares explicit source/book binding and manual updates in both directions for supported Calendar/Reminders/Contacts fields, with conflict handling and an encrypted recovery ledger. No automatic adoption of copies, new native entries, deletes, series or background sync. Native compilation/API tests remain open; see [the complete field contract](../contracts/macos-786-native-system-sync.md) |
+ | Apple Notes | #772 adds direct NSAppleScript source for selected local plaintext copies with full text review, exact native identities, source reread and durable save; no extra app or source writes. Native Dictionary/TCC/build/device validation remains pending; see [APPLE-NOTES-IMPORT.md](APPLE-NOTES-IMPORT.md) |
+ | DAV accounts | Canonical native configuration, Keychain credentials, revision-bound verified save/rollback and explicit collection discovery; 19 native account tests |
+ | DAV calendar foundations | Complete typed REPORT snapshot decoding and surgical component edits preserving resource siblings; native tests pass on both architectures; no record-sync coordinator yet |
+@@ -105,10 +110,13 @@ source checkpoint, not a completed native parity acceptance.
+ - Recovery files have no automatic expiry, pruning, index, or scheduled snapshots.
+   Restore them with the same JSON picker. They consume disk space until explicitly
+   managed by the user; disk-full/native APFS crash behavior still needs Mac testing.
+-- Selected UTF-8 ICS files are decoded off the UI thread and applied through the
+-  canonical importer; source headers are retained by file hash in the same saved
+-  profile transaction. Independent native import/reexport checks pass on both
+-  architectures. vCard/CSV/archive import remains unfinished.
++- #785 replaces the ICS-only selected-file route with the current parsers for
++  ICS/VCS/LCS, OR6/CSV, vCard/CSV, Claws/LDIF, ZIP and waste dates. Parsing runs
++  off the UI thread, with an app-owned interpreter, byte-bound protocol and
++  manifest identity. The canonical importer still owns conflict previews and
++  merging. Full `.magnolie` archive import and discovery of local programs remain
++  separate documented work. The earlier native ICS evidence does not establish
++  native validation of this new pipeline.
+ - The new EventKit calendar-copy path (#770) is a bounded local import with a
+   source/date picker, preview, re-read and durable save acknowledgement. It does
+   not enable automatic updates or writing back to Apple Calendar. Rich or
+@@ -161,7 +169,7 @@ source checkpoint, not a completed native parity acceptance.
+   PDF-engine test does not establish manual print-panel or physical-paper acceptance.
+ - No Graph sync, Magnolia tree, phone data sync/SMS/Bluetooth, weather download,
+   tray/background service, autostart, scheduled backup, office export,
+-  full ICS/vCard/CSV import, updater, manual downloader, contributor validation or
++  complete archive/local-program import, updater, manual downloader, contributor validation or
+   native protected-image rendering is implemented.
+ - The separately developed iPhone AirPlay receiver requires the explicit
+   [AirPlay bundle build](AIRPLAY-BUILD.md). Its source integration does not imply
+@@ -235,6 +243,7 @@ Only the thin adapter and deterministic projection rules are maintained here.
+ After the desktop source owner confirms the intended state is frozen:
+ 
+ ```sh
++python3 tools/project_import_helper.py --prepare-dependencies
+ python3 tools/project_ui.py freeze --confirm-desktop-frozen
+ python3 tools/project_ui.py generate
+ python3 tools/project_ui.py check
+@@ -248,19 +257,27 @@ generation or after the freeze block further use. Anchor changes require review,
+ not fallback to an old shipped payload. Generated output is disposable and ignored.
+ 
+ The freeze is a reproducibility record, not an authenticity signature or release
+-approval. Existing desktop sources and repository workflows remain untouched.
++approval. Candidate-source checks additionally bind the actual checkout.
+ 
+ ## macOS Development
+ 
+-Requires a legitimate Mac or an explicitly available Apple-hosted runner, Xcode
++Requires a suitable real macOS VM, Mac, or macOS CI runner, Xcode
+ 15+ or its Apple Command Line Tools with the macOS SDK, Python 3.10+, and a
+ macOS host supported by that Xcode version (Xcode 15 requires macOS 13.5+).
+ The generated application targets macOS 12.7+; the build host may be newer. There are no Swift package downloads. Build only after the freeze steps:
+ 
+ ```sh
+-python3 tools/build_dev.py
++python3 tools/import_python_bundle.py --download \
++  --source-archive /absolute/private/build/Python-3.15.2.tar.xz \
++  --output /absolute/private/build/import-python
++python3 tools/build_dev.py --import-runtime /absolute/private/build/import-python
+ ```
+ 
++[CLOUD-MAC-TESTING.md](CLOUD-MAC-TESTING.md) records the actual Linux cloud
++environment, investigated VM/xnulinux options and concrete native test steps.
++The user's own physical Mac is not required. A modern iCloud-capable test VM
++and a separate real 12.7 runtime test answer different compatibility questions.
++
+ This runs `swift test`, makes a **debug** bundle for the runner's architecture,
+ copies the verified UI/resources/licenses, and applies local ad-hoc signing.
+ It refuses to overwrite an existing output app. It does not launch the app,
+diff --git a/Magnolie-Organizer-macOS-Beta/tools/bridge_coverage.py b/Magnolie-Organizer-macOS-Beta/tools/bridge_coverage.py
+index 4b099c1672024f5eeb4086af97796bcba072dc12..9852485ffe067ae7dd446ac4e1229ae10f4decce 100644
+--- a/Magnolie-Organizer-macOS-Beta/tools/bridge_coverage.py
++++ b/Magnolie-Organizer-macOS-Beta/tools/bridge_coverage.py
+@@ -29,7 +29,7 @@ SCOPES = {
+     "sicherung_wiederherstellen": "partial: full JSON replacement + checkpoint + UI preflight; no additive/section restore",
+     "mutations_snapshot": "partial: durable exact file checkpoint; no desktop journal index/retention",
+     "regional_einstellungen": "source: validated durable preferences; native locale handling untested",
+-    "import": "partial: native selected UTF-8 ICS file; atomic codec and canonical merge; no vCard/CSV/archive import",
++    "import": "source: selected ICS/VCS/LCS, OR6/CSV, vCard/CSV, Claws/LDIF, ZIP and waste files through current private parser; canonical merge/Save-ACK; archive/local discovery open; native runtime untested",
+     "export": "partial: source-preserving appointment/task/anniversary ICS; eight native extended roundtrips passed",
+     "baum_briefkasten_status": "partial: native DAV configuration and Keychain availability; no sync",
+     "baum_briefkasten_speichern": "partial: revision-bound config/credential transaction; Nextcloud mailbox unsupported",
+diff --git a/contracts/macos-465-native-calendar-alias-adoption.md b/contracts/macos-465-native-calendar-alias-adoption.md
+index bd85f47c08f54cdf72d91021602f049721bd0518..638f00316086aab9878d907be41e9f0b5a665fab 100644
+--- a/contracts/macos-465-native-calendar-alias-adoption.md
++++ b/contracts/macos-465-native-calendar-alias-adoption.md
+@@ -1,7 +1,7 @@
+ # Mac #465: native Altkennungsbelege bis zur bestehenden Importlogik führen
+ 
+ Stand: 26. November 2026. Patchbasis:
+-`79a4b98d11425460c8990253c8b974969ce3c837`, auf dem vollständigen
++`e89d2eec099a933ddbad4bdc529eb7f7698af2ed`, auf dem vollständigen
+ Mac-Zweig `616069f15fed21d8d8d05c8ef795f4ed21bd059c`.
+ Der vorangehende #771-Fix ist unabhängig von der Aliaszuordnung.
+ 
+@@ -52,7 +52,7 @@ den neuen Wrapper als unveränderte Vorbereitung ausgegeben.
+ ## Reproduktion und tatsächlich ausgeführte Prüfungen
+ 
+ Die neue Regression wurde zunächst gegen die vorangehende, unveränderte
+-Projektion `79a4b98d` ausgeführt. Ohne eingespritztes WebCrypto ignoriert diese
++Projektion `e89d2eec` ausgeführt. Ohne eingespritztes WebCrypto ignoriert diese
+ den nativen Sidecar; der Titel der alten Zeile bleibt stehen. Die positive
+ Adoptionsassertion scheitert. **Das ist ein reproduzierter Host-/DOM-Befund,
+ keine Behauptung, dass ein bestimmtes installiertes WebKit WebCrypto vermisst.**
+@@ -90,7 +90,7 @@ MACOS_BETA_JSDOM=/path/to/jsdom/lib/api.js \
+ ```
+ 
+ Die alte Fehlerphase lässt sich mit demselben Runner und
+-`--baseline-ref 79a4b98d11425460c8990253c8b974969ce3c837` wiederholen;
++`--baseline-ref e89d2eec099a933ddbad4bdc529eb7f7698af2ed` wiederholen;
+ dieser gezielte Baseline-Lauf soll an der Adoptionsassertion scheitern.
+ 
+ Ein zusätzlicher Swift-Test prüft die native Antwort, die Quellbindung und
+@@ -121,3 +121,15 @@ Android-Pause aus #423 bleiben eigenständiger Restumfang.
+ 
+ Dies ist eine Quellstandsicherung für die spätere Prüfung/Anwendung,
+ keine native Gesamtabnahme, Installation oder Veröffentlichung.
++
++## Reproduzierbarkeit nach dem gemeinsamen Kontaktpatch
++
++Der Baseline-Modus erzeugt jetzt eine vollständige isolierte Git-Archivkopie
++des angegebenen historischen Commits. Dessen eigener Projektor liest dessen
++eigene Eingaben; die 19 ignorierten Sprachkataloge werden mit seinem Generator
++aus seinen PO-Dateien und echtem gettext neu erstellt. Die heutige Testfixture
++und der heutige Probe-Runner bleiben absichtlich konstant. Dadurch vermischt
++die Baseline keinen alten Mac-Projektor mit den neuen Kontaktankern aus #776.
++Der erneute Probe-Lauf gegen `e89d2eec` scheiterte an der erwarteten fachlichen
++Adoptionsassertion (alter Zeilentitel blieb unverändert), nicht an einem
++Projektionsanker. Der aktuelle Lauf bestand weiterhin 101 Prüfungen.
+diff --git a/contracts/macos-776-contact-only-birthday-exchange.md b/contracts/macos-776-contact-only-birthday-exchange.md
+index 6211661a77c643a1f5ab81773f97074ec8fd3f33..f13803e50977d4b5975c7f37fa9db48442bd54d7 100644
+--- a/contracts/macos-776-contact-only-birthday-exchange.md
++++ b/contracts/macos-776-contact-only-birthday-exchange.md
+@@ -2,7 +2,7 @@
+ 
+ ## Ausgangspunkt und reproduzierter Fehler
+ 
+-Basis: `931b5a44ca48de11766e76512e1a54ed6586460b` nach dem getrennten
++Basis: `a26bb1302f3f5b772b83c9530f3098df34262f20` (integrierter Stand) nach dem getrennten
+ Diagnosepatch #778; gemeinsame Produktquellen aus
+ `616069f15fed21d8d8d05c8ef795f4ed21bd059c`. Der Kontaktkopiervertrag stammt
+ aus #775. Dieser Stand ist ein Vorschlag zur Codex-Prüfung und Übernahme,
+-- 
+2.56.1
+

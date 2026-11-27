@@ -1,0 +1,2299 @@
+From d57ef304417695dea5f488842bc3b49432f7bbf2 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 26 Nov 2026 08:22:57 +0100
+Subject: [PATCH] Add bound native system account field synchronization core
+ (Refs #786)
+
+---
+ .../Sources/BetaCore/SystemAccountSync.swift  | 408 ++++++++++++++++++
+ .../SystemAccountSyncProjection.swift         | 383 ++++++++++++++++
+ .../MacBeta/SystemAccountSyncDates.swift      |  37 ++
+ .../Sources/MacBeta/SystemAccounts.swift      | 208 ++++++++-
+ .../Sources/MacBeta/SystemContactReader.swift |  83 +++-
+ .../MacBeta/SystemReminderReader.swift        |  57 ++-
+ .../Fixtures/system-account-sync-ui.json      | 398 +++++++++++++++++
+ .../SystemAccountSyncTests.swift              | 339 +++++++++++++++
+ contracts/macos-786-native-system-sync.md     | 244 +++++++++++
+ 9 files changed, 2151 insertions(+), 6 deletions(-)
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSync.swift
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncProjection.swift
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncDates.swift
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/Fixtures/system-account-sync-ui.json
+ create mode 100644 Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncTests.swift
+ create mode 100644 contracts/macos-786-native-system-sync.md
+
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSync.swift b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSync.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..0d80ca749ef6da12babf9ed6c862da5ea678f82a
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSync.swift
+@@ -0,0 +1,408 @@
++import Foundation
++import CoreFoundation
++
++/// Refs #786. Native account *field* synchronization. Authority and persistence
++/// belong to the host ledger, never to fields imported from an Organizer book.
++/// There are deliberately no native create/delete operations in this version.
++public enum SystemAccountSync {
++    public static let version = 1
++    public static let maximumRecords = 100
++    public static let maximumBytes = 32 * 1024 * 1024
++
++    /// Only this error proves that the adapter has not entered a native save.
++    /// Every other apply error has an uncertain outcome and must retain its journal.
++    public struct RejectedBeforeWrite: Error, LocalizedError {
++        public let reason: String
++        public init(_ reason: String) { self.reason = reason }
++        public var errorDescription: String? { reason }
++    }
++
++    public struct Source {
++        public let kind: SystemSourcePolicy.Kind, sourceUID: String, title: String
++        public let metadata: [String: Any], scope: [String: Any], displayTimeZone: String
++        public let fingerprint: String
++        public var collection: String {
++            switch kind { case .events: return "termine"; case .reminders: return "aufgaben"; case .contacts: return "kontakte" }
++        }
++        public var payload: [String: Any] {
++            ["version": version, "kind": kind.rawValue, "sourceUID": sourceUID, "title": title,
++             "metadata": metadata, "scope": scope, "displayTimeZone": displayTimeZone, "fingerprint": fingerprint]
++        }
++        public init(kind: SystemSourcePolicy.Kind, sourceUID: String, title: String,
++                    metadata: [String: Any], scope: [String: Any], displayTimeZone: String) throws {
++            _ = try SystemSourcePolicy.identifier(sourceUID, kind: kind)
++            guard title.utf8.count <= 4096, !displayTimeZone.isEmpty, displayTimeZone != "system",
++                  displayTimeZone.utf8.count <= 1024 else { throw failure("invalid source identity or display timezone") }
++            if kind == .events {
++                guard Set(scope.keys) == ["start", "end"], let start = number(scope["start"]), let end = number(scope["end"]) else {
++                    throw failure("event synchronization needs an explicit bounded window")
++                }
++                try SystemSourcePolicy.requireWindow(start: Date(timeIntervalSince1970: start), end: Date(timeIntervalSince1970: end))
++            } else {
++                guard scope["kind"] as? String == "full-source", scope.count == 1 else { throw failure("invalid source scope") }
++            }
++            self.kind = kind; self.sourceUID = sourceUID; self.title = title
++            self.metadata = try frozen(metadata); self.scope = try frozen(scope); self.displayTimeZone = displayTimeZone
++            // A moving event window is observation scope, not a new native source.
++            // The host additionally binds the explicitly approved scope and zone.
++            fingerprint = try SystemSourcePolicy.revision(["version": version, "kind": kind.rawValue,
++                "sourceUID": sourceUID, "title": title, "metadata": self.metadata, "displayTimeZone": displayTimeZone])
++        }
++        public init(payload: [String: Any]) throws {
++            try keys(payload, ["version", "kind", "sourceUID", "title", "metadata", "scope", "displayTimeZone", "fingerprint"])
++            guard integer(payload["version"]) == version, let kind = SystemSourcePolicy.Kind(rawValue: try text(payload, "kind")),
++                  let metadata = payload["metadata"] as? [String: Any], let scope = payload["scope"] as? [String: Any] else { throw failure("invalid persisted source") }
++            try self.init(kind: kind, sourceUID: text(payload, "sourceUID"), title: text(payload, "title"),
++                          metadata: metadata, scope: scope, displayTimeZone: text(payload, "displayTimeZone"))
++            guard same(fingerprint, try text(payload, "fingerprint")) else { throw failure("source fingerprint mismatch") }
++        }
++    }
++
++    public struct Record {
++        public let identifier: String, sourceFingerprint: String, canonicalRecord: [String: Any]
++        public let nativeFields: [String: Any], revision: String
++        public var payload: [String: Any] {
++            ["identifier": identifier, "sourceFingerprint": sourceFingerprint, "canonicalRecord": canonicalRecord,
++             "nativeFields": nativeFields, "revision": revision]
++        }
++        public init(identifier: String, source: Source, canonicalRecord: [String: Any], nativeFields: [String: Any]) throws {
++            guard !identifier.isEmpty, identifier.utf8.count <= 16_384 else { throw failure("invalid native record identity") }
++            self.identifier = identifier; sourceFingerprint = source.fingerprint
++            self.canonicalRecord = try frozen(canonicalRecord); self.nativeFields = try frozen(nativeFields)
++            revision = try SystemSourcePolicy.revision(["sourceFingerprint": source.fingerprint,
++                "identifier": identifier, "canonicalRecord": self.canonicalRecord, "nativeFields": self.nativeFields])
++        }
++        public init(payload: [String: Any]) throws {
++            try keys(payload, ["identifier", "sourceFingerprint", "canonicalRecord", "nativeFields", "revision"])
++            identifier = try text(payload, "identifier", empty: false, maximum: 16_384)
++            sourceFingerprint = try digest(payload, "sourceFingerprint")
++            guard let canonical = payload["canonicalRecord"] as? [String: Any], let native = payload["nativeFields"] as? [String: Any] else {
++                throw failure("invalid persisted native record")
++            }
++            canonicalRecord = try frozen(canonical); nativeFields = try frozen(native); revision = try digest(payload, "revision")
++            guard same(revision, try SystemSourcePolicy.revision(["sourceFingerprint": sourceFingerprint,
++                "identifier": identifier, "canonicalRecord": canonicalRecord, "nativeFields": nativeFields])) else { throw failure("native record revision mismatch") }
++        }
++    }
++
++    public struct Snapshot {
++        public let source: Source, records: [Record], excluded: [[String: Any]]
++        public var payload: [String: Any] { ["source": source.payload, "records": records.map(\.payload), "excluded": excluded] }
++        public init(source: Source, records: [Record], excluded: [[String: Any]] = []) throws {
++            guard records.count + excluded.count <= maximumRecords else { throw failure("select a source/window containing at most 100 entries") }
++            var seen = Set<OpaqueUTF8Identity>()
++            for record in records {
++                guard same(record.sourceFingerprint, source.fingerprint), seen.insert(OpaqueUTF8Identity(record.identifier)).inserted else {
++                    throw failure("ambiguous or mismatched native identity")
++                }
++            }
++            self.source = source; self.records = records; self.excluded = try excluded.map(frozen)
++            _ = try frozen(payload)
++        }
++    }
++
++    public struct Baseline {
++        public struct Entry {
++            public let identifier: String, localID: String, localFields: [String: Any], nativeRecord: Record
++            public var payload: [String: Any] {
++                ["identifier": identifier, "localID": localID, "localFields": localFields, "nativeRecord": nativeRecord.payload]
++            }
++            public init(identifier: String, localID: String, localFields: [String: Any], nativeRecord: Record) throws {
++                guard same(identifier, nativeRecord.identifier), !localID.isEmpty, localID.utf8.count <= 16_384 else { throw failure("invalid baseline binding") }
++                self.identifier = identifier; self.localID = localID; self.localFields = try frozen(localFields); self.nativeRecord = nativeRecord
++            }
++            public init(payload: [String: Any]) throws {
++                try keys(payload, ["identifier", "localID", "localFields", "nativeRecord"])
++                guard let local = payload["localFields"] as? [String: Any], let record = payload["nativeRecord"] as? [String: Any] else { throw failure("invalid persisted baseline entry") }
++                try self.init(identifier: text(payload, "identifier"), localID: text(payload, "localID"), localFields: local, nativeRecord: Record(payload: record))
++            }
++        }
++        public let sourceFingerprint: String, entries: [Entry]
++        public var payload: [String: Any] { ["version": version, "sourceFingerprint": sourceFingerprint, "entries": entries.map(\.payload)] }
++        public init(sourceFingerprint: String, entries: [Entry] = []) throws {
++            guard isDigest(sourceFingerprint), entries.count <= 10_000 else { throw failure("invalid baseline scope") }
++            var native = Set<OpaqueUTF8Identity>(), local = Set<OpaqueUTF8Identity>()
++            for entry in entries {
++                guard same(entry.nativeRecord.sourceFingerprint, sourceFingerprint), native.insert(OpaqueUTF8Identity(entry.identifier)).inserted,
++                      local.insert(OpaqueUTF8Identity(entry.localID)).inserted else { throw failure("ambiguous baseline identity") }
++            }
++            self.sourceFingerprint = sourceFingerprint; self.entries = entries
++            _ = try frozen(payload)
++        }
++        public init(payload: [String: Any]) throws {
++            try keys(payload, ["version", "sourceFingerprint", "entries"])
++            guard integer(payload["version"]) == version, let entries = payload["entries"] as? [[String: Any]] else { throw failure("invalid persisted baseline") }
++            try self.init(sourceFingerprint: digest(payload, "sourceFingerprint"), entries: entries.map { try Entry(payload: $0) })
++        }
++    }
++
++    public struct Operation {
++        public let id: String, localID: String, before: Record, nativePatch: [String: Any], desiredRecord: [String: Any]
++        public let changedGroups: [String]
++        public var identifier: String { before.identifier }
++        public var payload: [String: Any] { ["id": id, "localID": localID, "before": before.payload,
++            "nativePatch": nativePatch, "desiredRecord": desiredRecord, "changedGroups": changedGroups] }
++        init(id: String = UUID().uuidString, localID: String, before: Record, nativePatch: [String: Any], desiredRecord: [String: Any], changedGroups: [String]) throws {
++            guard UUID(uuidString: id) != nil, !localID.isEmpty, !nativePatch.isEmpty, !changedGroups.isEmpty,
++                  Set(changedGroups).count == changedGroups.count else { throw failure("invalid field update operation") }
++            self.id = id; self.localID = localID; self.before = before
++            self.nativePatch = try frozen(nativePatch); self.desiredRecord = try frozen(desiredRecord); self.changedGroups = changedGroups
++        }
++        public init(payload: [String: Any]) throws {
++            try keys(payload, ["id", "localID", "before", "nativePatch", "desiredRecord", "changedGroups"])
++            guard let before = payload["before"] as? [String: Any], let patch = payload["nativePatch"] as? [String: Any],
++                  let desired = payload["desiredRecord"] as? [String: Any], let groups = payload["changedGroups"] as? [String] else { throw failure("invalid persisted operation") }
++            try self.init(id: text(payload, "id"), localID: text(payload, "localID"), before: Record(payload: before),
++                          nativePatch: patch, desiredRecord: desired, changedGroups: groups)
++        }
++        /// A successful native API return alone is not an acknowledgement. The
++        /// identity, requested values and all other observed fields must survive.
++        public func validateReadback(_ record: Record) throws {
++            guard same(record.identifier, before.identifier), same(record.sourceFingerprint, before.sourceFingerprint) else {
++                throw failure("native identity changed after saving; retain the journal and review the source")
++            }
++            for (key, expected) in nativePatch {
++                guard let actual = record.nativeFields[key], try matchesNativeField(key, expected: expected, actual: actual) else { throw failure("native readback did not retain the requested field: " + key) }
++            }
++            var allowed = Set(nativePatch.keys)
++            allowed.insert("modified")
++            if nativePatch["notes"] != nil { allowed.insert("hasNotes") }
++            if nativePatch["completed"] != nil { allowed.insert("completionDate") }
++            for key in Set(before.nativeFields.keys).union(record.nativeFields.keys) where !allowed.contains(key) {
++                guard try equal(before.nativeFields[key] ?? NSNull(), record.nativeFields[key] ?? NSNull()) else {
++                    throw failure("another native field changed during saving: " + key + "; retain the journal")
++                }
++            }
++        }
++    }
++
++    public struct Finalized {
++        public let candidateBook: [String: Any], baseline: Baseline
++        fileprivate let normalizable: Set<OpaqueUTF8Identity>
++        /// Defaults from the actual shared normalizer are bound only after an
++        /// exact no-change/no-removal proof. Conflict/missing-record baselines
++        /// never advance merely because the local editor has a different value.
++        public func normalizedBaseline(in normalizedBook: [String: Any], source: Source) throws -> Baseline {
++            guard same(source.fingerprint, baseline.sourceFingerprint) else { throw failure("normalized baseline source mismatch") }
++            var nodes = 0
++            func check(_ expected: Any, _ actual: Any, depth: Int) throws {
++                nodes += 1
++                guard depth < 64, nodes <= 2_000_000 else { throw failure("normalized candidate structure limit") }
++                if let object = expected as? [String: Any] {
++                    guard let other = actual as? [String: Any] else { throw failure("normalization changed a planned value") }
++                    let indexed = Dictionary(uniqueKeysWithValues: other.map { (OpaqueUTF8Identity($0.key), $0.value) })
++                    for (key, value) in object {
++                        guard let next = indexed[OpaqueUTF8Identity(key)] else { throw failure("normalization removed a planned field") }
++                        try check(value, next, depth: depth + 1)
++                    }
++                } else if let array = expected as? [Any] {
++                    guard let other = actual as? [Any], array.count == other.count else { throw failure("normalization changed a planned collection") }
++                    for (left, right) in zip(array, other) { try check(left, right, depth: depth + 1) }
++                } else if try !equal(expected, actual) { throw failure("normalization changed a planned value") }
++            }
++            let book = try frozen(normalizedBook)
++            try check(candidateBook, book, depth: 0)
++            guard let rows = book[source.collection] as? [[String: Any]] else { throw failure("normalized collection is missing") }
++            var indexed: [OpaqueUTF8Identity: [String: Any]] = [:]
++            for row in rows {
++                guard let id = row["id"] as? String, indexed.updateValue(row, forKey: OpaqueUTF8Identity(id)) == nil else { throw failure("ambiguous normalized local identity") }
++            }
++            let entries = try baseline.entries.map { entry -> Baseline.Entry in
++                guard normalizable.contains(OpaqueUTF8Identity(entry.identifier)) else { return entry }
++                guard let row = indexed[OpaqueUTF8Identity(entry.localID)] else { throw failure("normalized local binding is missing") }
++                return try .init(identifier: entry.identifier, localID: entry.localID,
++                    localFields: SystemAccountSyncProjection.fields(row, kind: source.kind), nativeRecord: entry.nativeRecord)
++            }
++            return try Baseline(sourceFingerprint: baseline.sourceFingerprint, entries: entries)
++        }
++    }
++
++    public struct Plan {
++        public let source: Source, candidateBook: [String: Any], operations: [Operation]
++        public let conflicts: [[String: Any]], excluded: [[String: Any]], nextBaseline: Baseline
++        public var payload: [String: Any] { ["version": version, "source": source.payload, "candidateBook": candidateBook,
++            "operations": operations.map(\.payload), "conflicts": conflicts, "excluded": excluded, "nextBaseline": nextBaseline.payload] }
++        init(source: Source, candidateBook: [String: Any], operations: [Operation], conflicts: [[String: Any]], excluded: [[String: Any]], nextBaseline: Baseline) throws {
++            guard same(source.fingerprint, nextBaseline.sourceFingerprint), operations.count <= maximumRecords else { throw failure("plan source mismatch") }
++            var identifiers = Set<OpaqueUTF8Identity>(), ids = Set<String>()
++            for operation in operations {
++                guard same(operation.before.sourceFingerprint, source.fingerprint), identifiers.insert(OpaqueUTF8Identity(operation.identifier)).inserted,
++                      ids.insert(operation.id).inserted else { throw failure("ambiguous plan operation") }
++            }
++            self.source = source; self.candidateBook = try frozen(candidateBook); self.operations = operations
++            self.conflicts = try conflicts.map(frozen); self.excluded = try excluded.map(frozen); self.nextBaseline = nextBaseline
++            _ = try frozen(payload)
++        }
++        public init(payload: [String: Any]) throws {
++            try keys(payload, ["version", "source", "candidateBook", "operations", "conflicts", "excluded", "nextBaseline"])
++            guard integer(payload["version"]) == version, let source = payload["source"] as? [String: Any], let candidate = payload["candidateBook"] as? [String: Any],
++                  let operations = payload["operations"] as? [[String: Any]], let conflicts = payload["conflicts"] as? [[String: Any]],
++                  let excluded = payload["excluded"] as? [[String: Any]], let baseline = payload["nextBaseline"] as? [String: Any] else { throw failure("invalid persisted plan") }
++            try self.init(source: Source(payload: source), candidateBook: candidate, operations: operations.map { try Operation(payload: $0) },
++                          conflicts: conflicts, excluded: excluded, nextBaseline: Baseline(payload: baseline))
++        }
++        public func finalize(readbacks: [Record]) throws -> Finalized {
++            guard readbacks.count == operations.count else { throw failure("not all native operations have verified readbacks") }
++            var byIdentifier: [OpaqueUTF8Identity: Record] = [:]
++            for readback in readbacks {
++                guard byIdentifier.updateValue(readback, forKey: OpaqueUTF8Identity(readback.identifier)) == nil else { throw failure("duplicate native readback") }
++            }
++            var book = candidateBook
++            guard var rows = book[source.collection] as? [[String: Any]] else { throw failure("candidate collection is unavailable") }
++            var entries = nextBaseline.entries
++            for operation in operations {
++                guard let readback = byIdentifier[OpaqueUTF8Identity(operation.identifier)] else { throw failure("native readback is missing") }
++                try operation.validateReadback(readback)
++                guard let index = rows.firstIndex(where: { same($0["id"] as? String ?? "", operation.localID) }),
++                      let entry = entries.firstIndex(where: { same($0.identifier, operation.identifier) }) else { throw failure("candidate identity changed") }
++                // Reprojection is the authority for derived date/vCard/display
++                // fields. Unrelated local/unknown fields are never replaced.
++                for key in SystemAccountSyncProjection.managedKeys(source.kind) {
++                    if let value = readback.canonicalRecord[key] { rows[index][key] = value }
++                }
++                SystemAccountSyncProjection.copyEvidence(from: readback.canonicalRecord, to: &rows[index])
++                entries[entry] = try Baseline.Entry(identifier: readback.identifier, localID: operation.localID,
++                    localFields: SystemAccountSyncProjection.fields(rows[index], kind: source.kind), nativeRecord: readback)
++            }
++            book[source.collection] = rows
++            let disputed = Set(conflicts.compactMap { ($0["identifier"] as? String).map(OpaqueUTF8Identity.init) })
++            let allowed = Set(entries.map { OpaqueUTF8Identity($0.identifier) }).subtracting(disputed)
++            return Finalized(candidateBook: try frozen(book), baseline: try Baseline(sourceFingerprint: source.fingerprint, entries: entries), normalizable: allowed)
++        }
++    }
++
++    public static func prepare(snapshot: Snapshot, currentBook: [String: Any], baseline: Baseline?, context: CalendarTimeContext) throws -> Plan {
++        let source = snapshot.source
++        guard baseline == nil || same(baseline!.sourceFingerprint, source.fingerprint) else { throw failure("source binding changed; explicit authorization is required") }
++        var book = try frozen(currentBook)
++        guard var rows = book[source.collection] as? [[String: Any]] else { throw failure("Organizer collection is unavailable") }
++        var byID: [OpaqueUTF8Identity: Int] = [:]
++        for (index, row) in rows.enumerated() {
++            guard let id = row["id"] as? String, !id.isEmpty, byID.updateValue(index, forKey: OpaqueUTF8Identity(id)) == nil else { throw failure("ambiguous local identity") }
++        }
++        var entries = baseline?.entries ?? []
++        let original = Dictionary(uniqueKeysWithValues: entries.enumerated().map { (OpaqueUTF8Identity($0.element.identifier), $0.offset) })
++        let found = Set(snapshot.records.map { OpaqueUTF8Identity($0.identifier) })
++        var conflicts: [[String: Any]] = [], operations: [Operation] = []
++        func conflict(_ identifier: String, _ localID: String, _ reason: String, _ groups: [String] = []) {
++            conflicts.append(["identifier": identifier, "localID": localID, "reason": reason, "groups": groups])
++        }
++        for entry in entries where !found.contains(OpaqueUTF8Identity(entry.identifier)) {
++            conflict(entry.identifier, entry.localID, "native-record-unavailable-or-outside-window")
++        }
++        for record in snapshot.records {
++            let identity = OpaqueUTF8Identity(record.identifier)
++            guard let baselineIndex = original[identity] else {
++                // A previous copy's passive metadata does not authorize adoption.
++                var row = record.canonicalRecord
++                var id = UUID().uuidString
++                while byID[OpaqueUTF8Identity(id)] != nil { id = UUID().uuidString }
++                row["id"] = id; row["uid"] = UUID().uuidString
++                row["sync"] = false; row["syncQuellen"] = [String: Any]()
++                row["syncKalenderUid"] = ""; row["geaendert"] = (Date().timeIntervalSince1970 * 1000).rounded(.down)
++                if source.kind == .reminders {
++                    row["elternUid"] = ""
++                    row["reihenfolge"] = rows.filter { ($0["elternUid"] as? String ?? "").isEmpty }.count
++                }
++                byID[OpaqueUTF8Identity(id)] = rows.count; rows.append(row)
++                entries.append(try .init(identifier: record.identifier, localID: id,
++                    localFields: SystemAccountSyncProjection.fields(row, kind: source.kind), nativeRecord: record))
++                continue
++            }
++            let previous = entries[baselineIndex]
++            guard let index = byID[OpaqueUTF8Identity(previous.localID)] else {
++                conflict(record.identifier, previous.localID, "local-record-missing-or-in-trash"); continue
++            }
++            let current = rows[index]
++            do { try SystemAccountSyncProjection.validateLocal(current, record: previous.nativeRecord, source: source, context: context) }
++            catch { conflict(record.identifier, previous.localID, "local-calendar-representation-conflict: " + error.localizedDescription); continue }
++            var merged = current, outgoing: [String] = [], disputed: [String] = []
++            for group in SystemAccountSyncProjection.groups(source.kind) {
++                let local = SystemAccountSyncProjection.select(current, group.keys)
++                let oldLocal = SystemAccountSyncProjection.select(previous.localFields, group.keys)
++                let remote = SystemAccountSyncProjection.select(record.canonicalRecord, group.keys)
++                let oldRemote = SystemAccountSyncProjection.select(previous.nativeRecord.canonicalRecord, group.keys)
++                let localChanged = try !equal(local, oldLocal), remoteChanged = try !equal(remote, oldRemote)
++                if localChanged && remoteChanged && !(try equal(local, remote)) { disputed.append(group.name); continue }
++                if localChanged && !remoteChanged {
++                    if group.writable { outgoing.append(group.name) } else { disputed.append(group.name) }
++                } else if remoteChanged {
++                    for key in group.keys { if let value = record.canonicalRecord[key] { merged[key] = value } }
++                }
++            }
++            guard disputed.isEmpty else { conflict(record.identifier, previous.localID, "field-conflict-or-unsupported-local-edit", disputed); continue }
++            if !outgoing.isEmpty {
++                do {
++                    let patch = try SystemAccountSyncProjection.nativePatch(record: record, desired: merged, changedGroups: outgoing, source: source, context: context)
++                    operations.append(try Operation(localID: previous.localID, before: record, nativePatch: patch, desiredRecord: merged, changedGroups: outgoing))
++                } catch {
++                    conflict(record.identifier, previous.localID, "local-edit-not-representable: " + error.localizedDescription, outgoing); continue
++                }
++            }
++            SystemAccountSyncProjection.copyEvidence(from: record.canonicalRecord, to: &merged)
++            rows[index] = merged
++            entries[baselineIndex] = try .init(identifier: record.identifier, localID: previous.localID,
++                localFields: SystemAccountSyncProjection.fields(merged, kind: source.kind), nativeRecord: record)
++        }
++        book[source.collection] = rows
++        return try Plan(source: source, candidateBook: book, operations: operations, conflicts: conflicts, excluded: snapshot.excluded,
++                        nextBaseline: Baseline(sourceFingerprint: source.fingerprint, entries: entries))
++    }
++
++    static func failure(_ value: String) -> BetaError { BetaError("macOS system account synchronization: " + value + ".") }
++    static func matchesNativeField(_ key: String, expected: Any, actual: Any) throws -> Bool {
++        if try equal(expected, actual) { return true }
++        // EventKit can store a deliberately cleared optional text as nil.
++        if ["notes", "location"].contains(key), expected as? String == "", actual is NSNull { return true }
++        guard ["startComponents", "dueComponents", "birthday"].contains(key),
++              let requested = expected as? [String: Any], let returned = actual as? [String: Any] else { return false }
++        for (name, value) in requested {
++            guard let found = returned[name], try equal(value, found) else { return false }
++        }
++        // Framework-added calendar metadata is not a newly invented clock, year
++        // or DateComponents timezone. All requested metadata remains exact.
++        // In particular yearless birthdays never accept the sentinel year 1604,
++        // and floating times never accept a newly supplied timeZone.
++        for (name, value) in returned where requested[name] == nil {
++            switch name {
++            case "calendar": guard value as? String == "gregorian" else { return false }
++            case "calendarTimeZone", "calendarLocale": guard let text = value as? String, text.utf8.count <= 1024 else { return false }
++            case "calendarFirstWeekday", "calendarMinimumDaysInFirstWeek": guard let number = integer(value), (1...7).contains(number) else { return false }
++            case "era": guard integer(value) == 1 else { return false }
++            case "isLeapMonth": guard boolean(value) == false else { return false }
++            case "second", "nanosecond": guard requested["hour"] != nil, integer(value) == 0 else { return false }
++            default: return false
++            }
++        }
++        return true
++    }
++    static func same(_ left: String, _ right: String) -> Bool { left.utf8.elementsEqual(right.utf8) }
++    static func equal(_ left: Any, _ right: Any) throws -> Bool { try DAVSyncBaseline.canonicalJSON(left) == DAVSyncBaseline.canonicalJSON(right) }
++    static func frozen(_ value: [String: Any]) throws -> [String: Any] {
++        let text = try Document.encode(value)
++        guard text.utf8.count <= maximumBytes else { throw failure("payload exceeds 32 MiB") }
++        return try Document.object(text)
++    }
++    static func number(_ value: Any?) -> Double? {
++        guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(), number.doubleValue.isFinite else { return nil }
++        return number.doubleValue
++    }
++    static func integer(_ value: Any?) -> Int? {
++        guard let number = number(value), number.rounded(.towardZero) == number, abs(number) <= 9_007_199_254_740_991 else { return nil }
++        return Int(number)
++    }
++    static func boolean(_ value: Any?) -> Bool? {
++        guard let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() else { return nil }; return number.boolValue
++    }
++    static func text(_ object: [String: Any], _ key: String, empty: Bool = true, maximum: Int = 65_536) throws -> String {
++        guard let text = object[key] as? String, (empty || !text.isEmpty), text.utf8.count <= maximum else { throw failure("invalid text field: " + key) }
++        return text
++    }
++    static func keys(_ object: [String: Any], _ expected: Set<String>) throws {
++        guard Set(object.keys) == expected else { throw failure("unknown or missing serialized fields") }
++    }
++    static func isDigest(_ value: String) -> Bool { value.utf8.count == 64 && value.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) } }
++    static func digest(_ object: [String: Any], _ key: String) throws -> String {
++        let value = try text(object, key); guard isDigest(value) else { throw failure("invalid digest") }; return value
++    }
++}
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncProjection.swift b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncProjection.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..a66501414226b92f9284fccb8383f499d940d976
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemAccountSyncProjection.swift
+@@ -0,0 +1,383 @@
++import Foundation
++
++/// Refs #786. Reuse the already bounded, explicit native copy projections as a
++/// codec, not as write authorization. No name/phone/mail deduplication occurs.
++public enum SystemAccountSyncProjection {
++    public typealias Sync = SystemAccountSync
++    struct Group { let name: String, keys: [String], writable: Bool }
++    static func groups(_ kind: SystemSourcePolicy.Kind) -> [Group] {
++        switch kind {
++        case .events:
++            return [Group(name: "title", keys: ["titel"], writable: true), Group(name: "notes", keys: ["notiz"], writable: true),
++                Group(name: "location", keys: ["ort"], writable: true),
++                Group(name: "dates", keys: ["datum", "endDatum", "zeit", "endZeit", "ganztag", "icsAnzeigeZeitzone", "icsRoundtrip", "icsNullDauer", "icsEndeFehlt"], writable: true),
++                Group(name: "event-status", keys: ["vorlaeufig"], writable: false),
++                Group(name: "recurrence-and-alarms", keys: ["wiederholung", "alarme", "standardErinnerung", "individuelleErinnerungTage"], writable: false)]
++        case .reminders:
++            return [Group(name: "title", keys: ["titel"], writable: true), Group(name: "notes", keys: ["notiz"], writable: true),
++                Group(name: "completed", keys: ["erledigt"], writable: true), Group(name: "priority", keys: ["prio"], writable: true),
++                Group(name: "dates", keys: ["startDatum", "startZeit", "faellig", "faelligZeit", "icsRoundtrip", "icsAnzeigeZeitzone"], writable: true),
++                Group(name: "hierarchy-and-alarms", keys: ["elternUid", "erinnern", "individuelleErinnerungTage", "vorlaufTage", "erinnerungsMinute"], writable: false)]
++        case .contacts:
++            return [Group(name: "givenName", keys: ["vorname"], writable: true), Group(name: "familyName", keys: ["nachname"], writable: true),
++                Group(name: "organizationName", keys: ["firma"], writable: true), Group(name: "phones", keys: ["telefone"], writable: true),
++                Group(name: "emails", keys: ["emailEintraege"], writable: true), Group(name: "addresses", keys: ["anschriften"], writable: true),
++                Group(name: "birthday", keys: ["geburtstag", "geburtstagJahrUnbekannt"], writable: true),
++                Group(name: "formatted-name", keys: ["anzeigename"], writable: false), Group(name: "photo", keys: ["foto"], writable: false),
++                Group(name: "vcard-extra-fields", keys: ["vcardRoundtrip"], writable: false)]
++        }
++    }
++    static func managedKeys(_ kind: SystemSourcePolicy.Kind) -> [String] { groups(kind).flatMap(\.keys) }
++    static func select(_ object: [String: Any], _ keys: [String]) -> [String: Any] {
++        Dictionary(uniqueKeysWithValues: keys.map { key in
++            if key == "icsRoundtrip", let lines = object[key] as? [String] {
++                // LOCATION is already its own group. Property order is not a
++                // field change. Keep exact clock properties: the visible UI has
++                // minute precision, while the raw source may retain seconds.
++                let retained = lines.filter { line in
++                    let name = line.prefix { $0 != ";" && $0 != ":" }.uppercased()
++                    return name != "LOCATION"
++                }.sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
++                return (key, retained as Any)
++            }
++            return (key, object[key] ?? NSNull())
++        })
++    }
++    static func fields(_ object: [String: Any], kind: SystemSourcePolicy.Kind) -> [String: Any] { select(object, managedKeys(kind)) }
++    static func copyEvidence(from source: [String: Any], to target: inout [String: Any]) {
++        for key in ["nativeSourceReadOnly", "nativeSystemRecord", "nativeCalendarImport", "nativeContactImport", "nativeContactRecord", "nativeReminderImport", "nativeReminderRecord"] {
++            if let value = source[key] { target[key] = value }
++        }
++    }
++
++    public static func events(_ snapshot: SystemSourceSnapshot, context: CalendarTimeContext, displayTimeZone: String) throws -> Sync.Snapshot {
++        guard case .boundedWindow(let start, let end) = snapshot.scope, snapshot.source.kind == .events,
++              !snapshot.source.readOnly else { throw Sync.failure("select a writable calendar") }
++        let source = try eventSource(snapshot.source, start: start, end: end, displayTimeZone: displayTimeZone)
++        let plan = try SystemCalendarImport.prepare(snapshot, context: context, displayTimeZone: displayTimeZone)
++        var records: [Sync.Record] = []
++        for canonical in plan.appointments {
++            guard let evidence = canonical["nativeSystemRecord"] as? [String: Any], let identifier = evidence["identifier"] as? String,
++                  let fields = evidence["fields"] as? [String: Any] else { throw Sync.failure("native event evidence is missing") }
++            records.append(try Sync.Record(identifier: identifier, source: source, canonicalRecord: canonical, nativeFields: fields))
++        }
++        return try Sync.Snapshot(source: source, records: records, excluded: plan.excluded)
++    }
++    public static func eventSource(_ source: SystemSourceSnapshot.Source, start: Date, end: Date, displayTimeZone: String) throws -> Sync.Source {
++        guard source.kind == .events, !source.readOnly, source.permission == "authorized" else { throw Sync.failure("select a writable authorized calendar") }
++        return try Sync.Source(kind: .events, sourceUID: source.uid, title: source.title,
++            metadata: ["parentUID": source.parentUID.map { $0 as Any } ?? NSNull(), "parentTitle": source.parentTitle.map { $0 as Any } ?? NSNull(),
++                       "parentType": source.parentType.map { $0 as Any } ?? NSNull(), "nativeType": source.nativeType,
++                       "permission": source.permission, "readOnly": source.readOnly, "writePolicy": "existing-event-fields"],
++            scope: ["start": start.timeIntervalSince1970, "end": end.timeIntervalSince1970], displayTimeZone: displayTimeZone)
++    }
++    public static func reminders(_ snapshot: SystemReminderImport.Snapshot, context: CalendarTimeContext, displayTimeZone: String) throws -> Sync.Snapshot {
++        let native = snapshot.source
++        guard !native.readOnly, native.permission == "authorized" else { throw Sync.failure("select a writable reminder list") }
++        let source = try Sync.Source(kind: .reminders, sourceUID: native.sourceUID, title: native.title,
++            metadata: ["calendarID": native.calendarID, "parentUID": native.parentUID, "parentTitle": native.parentTitle,
++                       "parentType": native.parentType, "nativeType": native.nativeType, "readOnly": native.readOnly,
++                       "permission": native.permission, "writePolicy": "existing-reminder-fields"],
++            scope: ["kind": "full-source"], displayTimeZone: displayTimeZone)
++        let plan = try SystemReminderImport.prepare(snapshot, context: context, displayTimeZone: displayTimeZone)
++        guard let rows = plan.payload["tasks"] as? [[String: Any]], let excluded = plan.payload["excluded"] as? [[String: Any]] else { throw Sync.failure("invalid reminder projection") }
++        let records = try rows.map { row -> Sync.Record in
++            guard var canonical = row["task"] as? [String: Any], let raw = row["nativeRecord"] as? [String: Any],
++                  let fields = raw["fields"] as? [String: Any] else { throw Sync.failure("missing reminder evidence") }
++            let identifier = try Sync.text(row, "identifier")
++            canonical["nativeReminderRecord"] = raw
++            canonical["nativeReminderImport"] = ["version": 1, "identity": row["identity"]!, "sourceUID": native.sourceUID,
++                "calendarID": native.calendarID, "sourceTitle": native.title, "parentUID": native.parentUID,
++                "parentTitle": native.parentTitle, "parentType": native.parentType, "nativeType": native.nativeType,
++                "readOnly": native.readOnly, "permission": native.permission, "identifier": identifier, "revision": row["revision"]!,
++                "copyKind": "standalone-public-fields", "revisionCoverage": "serialized-fields-only"]
++            canonical["elternUid"] = ""; canonical["reihenfolge"] = 0
++            return try Sync.Record(identifier: identifier, source: source, canonicalRecord: canonical, nativeFields: fields)
++        }
++        return try Sync.Snapshot(source: source, records: records, excluded: excluded)
++    }
++    public static func contacts(_ snapshot: SystemContactImport.Snapshot, displayTimeZone: String) throws -> Sync.Snapshot {
++        let native = snapshot.source
++        // CNContainer exposes no per-container writability flag. This capability
++        // means a narrowly scoped CNSaveRequest is attempted after consent; it
++        // does not convert the old contacts discovery's readOnly flag to false.
++        let source = try Sync.Source(kind: .contacts, sourceUID: native.sourceUID, title: native.title,
++            metadata: ["containerID": native.containerID, "nativeType": native.nativeType, "permission": "authorized",
++                       "writePolicy": "existing-nonunified-contact-fields"],
++            scope: ["kind": "full-source"], displayTimeZone: displayTimeZone)
++        let plan = try SystemContactImport.prepare(snapshot)
++        guard let rows = plan.payload["contacts"] as? [[String: Any]], let excluded = plan.payload["excluded"] as? [[String: Any]] else { throw Sync.failure("invalid contact projection") }
++        let records = try rows.map { row -> Sync.Record in
++            guard var canonical = row["contact"] as? [String: Any], let raw = row["nativeRecord"] as? [String: Any],
++                  let fields = raw["fields"] as? [String: Any] else { throw Sync.failure("missing contact evidence") }
++            let identifier = try Sync.text(row, "identifier")
++            // Same explicit normalization as the established copy path. The raw
++            // native spelling remains in the baseline; an unchanged lowercase
++            // local email must never cause an outbound write.
++            for name in ["telefone", "emailEintraege", "anschriften"] {
++                guard var values = canonical[name] as? [[String: Any]] else { throw Sync.failure("invalid contact values") }
++                for index in values.indices {
++                    for key in ["label", "postfach", "zusatz"] where values[index][key] as? String == "" { values[index].removeValue(forKey: key) }
++                    if name == "emailEintraege", let value = values[index]["wert"] as? String { values[index]["wert"] = value.lowercased() }
++                }
++                canonical[name] = values
++            }
++            canonical["nativeContactRecord"] = raw
++            canonical["nativeContactImport"] = ["version": 1, "identity": row["identity"]!, "sourceUID": native.sourceUID,
++                "containerID": native.containerID, "sourceTitle": native.title, "nativeType": native.nativeType,
++                "identifier": identifier, "revision": row["revision"]!, "copyKind": "public-fields",
++                "revisionCoverage": "serialized-fields-only", "birthdayPolicy": "contact-only"]
++            return try Sync.Record(identifier: identifier, source: source, canonicalRecord: canonical, nativeFields: fields)
++        }
++        return try Sync.Snapshot(source: source, records: records, excluded: excluded)
++    }
++
++    public static func nativePatch(record: Sync.Record, desired: [String: Any], changedGroups: [String], source: Sync.Source,
++                                   context: CalendarTimeContext) throws -> [String: Any] {
++        guard Sync.same(record.sourceFingerprint, source.fingerprint), !changedGroups.isEmpty,
++              Set(changedGroups).isSubset(of: Set(groups(source.kind).filter(\.writable).map(\.name))) else { throw Sync.failure("unsupported field update") }
++        try validateLocal(desired, record: record, source: source, context: context)
++        var patch: [String: Any] = [:]
++        for group in changedGroups {
++            switch (source.kind, group) {
++            case (.events, "title"), (.reminders, "title"):
++                patch["title"] = try safeText(desired, "titel", maximum: source.kind == .events ? 65_536 : 4096, nonempty: true)
++            case (.events, "notes"), (.reminders, "notes"):
++                patch["notes"] = try safeText(desired, "notiz", maximum: 1_048_576, multiline: true)
++            case (.events, "location"):
++                patch["location"] = try safeText(desired, "ort", maximum: 65_536)
++            case (.events, "dates"):
++                patch.merge(try eventDates(desired, original: record.nativeFields, previous: record.canonicalRecord, source: source, context: context)) { _, value in value }
++            case (.reminders, "completed"):
++                guard let completed = Sync.boolean(desired["erledigt"]) else { throw Sync.failure("invalid completed state") }; patch["completed"] = completed
++            case (.reminders, "priority"):
++                guard let priority = Sync.integer(desired["prio"]), (1...3).contains(priority) else { throw Sync.failure("invalid reminder priority") }
++                patch["priority"] = [1: 1, 2: 5, 3: 9][priority]!
++            case (.reminders, "dates"):
++                guard try Sync.text(desired, "icsAnzeigeZeitzone") == source.displayTimeZone else { throw Sync.failure("display timezone changed") }
++                patch["startComponents"] = try reminderDate(day: Sync.text(desired, "startDatum"), clock: Sync.text(desired, "startZeit"),
++                    original: record.nativeFields["startComponents"], displayZone: source.displayTimeZone, context: context)
++                patch["dueComponents"] = try reminderDate(day: Sync.text(desired, "faellig"), clock: Sync.text(desired, "faelligZeit"),
++                    original: record.nativeFields["dueComponents"], displayZone: source.displayTimeZone, context: context)
++            case (.contacts, "givenName"): patch["givenName"] = try safeText(desired, "vorname")
++            case (.contacts, "familyName"): patch["familyName"] = try safeText(desired, "nachname")
++            case (.contacts, "organizationName"): patch["organizationName"] = try safeText(desired, "firma")
++            case (.contacts, "phones"):
++                patch["phoneNumbers"] = try contactValues(localKey: "telefone", nativeKey: "phoneNumbers", record: record, desired: desired)
++            case (.contacts, "emails"):
++                patch["emailAddresses"] = try contactValues(localKey: "emailEintraege", nativeKey: "emailAddresses", record: record, desired: desired)
++            case (.contacts, "addresses"):
++                patch["postalAddresses"] = try contactValues(localKey: "anschriften", nativeKey: "postalAddresses", record: record, desired: desired)
++            case (.contacts, "birthday"):
++                patch["birthday"] = try birthday(desired, original: record.nativeFields["birthday"])
++            default: throw Sync.failure("unsupported field update")
++            }
++        }
++        var native = record.nativeFields
++        native.merge(patch) { _, value in value }
++        if let notes = patch["notes"] as? String { native["hasNotes"] = !notes.isEmpty }
++        if source.kind == .events { native.removeValue(forKey: "hasNotes") }
++        if Sync.boolean(patch["completed"]) == false { native["completionDate"] = NSNull() }
++        let projected = try reproject(record: record, nativeFields: native, source: source, context: context)
++        // This catches trimmed text, unsupported list edits, duration/date
++        // ambiguity and changes to raw ICS properties outside the field codec.
++        for group in groups(source.kind) where changedGroups.contains(group.name) {
++            let comparedKeys = source.kind == .reminders && group.name == "dates" ? group.keys.filter { $0 != "icsRoundtrip" } : group.keys
++            guard try Sync.equal(select(projected.canonicalRecord, comparedKeys), select(desired, comparedKeys)) else {
++                throw Sync.failure("the native codec cannot retain the requested local field: " + group.name)
++            }
++            if source.kind == .reminders && group.name == "dates" {
++                func extras(_ row: [String: Any]) -> [String] {
++                    (row["icsRoundtrip"] as? [String] ?? []).filter {
++                        !["DTSTART", "DUE"].contains($0.prefix { $0 != ";" && $0 != ":" }.uppercased())
++                    }.sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
++                }
++                guard try Sync.equal(extras(projected.canonicalRecord), extras(desired)) else { throw Sync.failure("unsupported reminder source fields changed") }
++            }
++        }
++        return try Sync.frozen(patch)
++    }
++
++    static func validateLocal(_ row: [String: Any], record: Sync.Record, source: Sync.Source, context: CalendarTimeContext) throws {
++        guard source.kind != .contacts else { return }
++        if source.kind == .reminders {
++            // Generic calendar export resolves floating clocks through a display
++            // zone. Reminder DATE/floating fields instead retain civil values,
++            // including clocks inside a display-zone DST gap or fold.
++            var native = record.nativeFields
++            native["startComponents"] = try reminderDate(day: Sync.text(row, "startDatum"), clock: Sync.text(row, "startZeit"),
++                original: native["startComponents"], displayZone: source.displayTimeZone, context: context)
++            native["dueComponents"] = try reminderDate(day: Sync.text(row, "faellig"), clock: Sync.text(row, "faelligZeit"),
++                original: native["dueComponents"], displayZone: source.displayTimeZone, context: context)
++            let expected = try reproject(record: record, nativeFields: native, source: source, context: context)
++            func times(_ value: [String: Any]) throws -> [[String: Any]] {
++                try (value["icsRoundtrip"] as? [String] ?? []).filter {
++                    ["DTSTART", "DUE"].contains($0.prefix { $0 != ";" && $0 != ":" }.uppercased())
++                }.sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }.map { try reminderTimeEvidence($0, context: context) }
++            }
++            guard try Sync.equal(times(expected.canonicalRecord), times(row)) else { throw Sync.failure("reminder source times contradict the visible civil date fields") }
++            return
++        }
++        var fields = Dictionary(uniqueKeysWithValues: managedKeys(source.kind).compactMap { key in row[key].map { (key, $0) } })
++        fields["uid"] = row["uid"] as? String ?? "native-field-validation"
++        // These UI-only reminder options are intentionally outside ICS, while
++        // their changes are separately stopped by the readonly field group.
++        fields.removeValue(forKey: "vorlaufTage")
++        _ = try ICalendarExport.encode([fields], context: context, kind: source.kind == .events ? .appointments : .tasks,
++            defaultTimeZone: source.displayTimeZone, timestamp: Date(timeIntervalSince1970: 1_800_000_000))
++    }
++
++    public static func reproject(record: Sync.Record, nativeFields: [String: Any], source: Sync.Source, context: CalendarTimeContext) throws -> Sync.Record {
++        let result: Sync.Snapshot
++        switch source.kind {
++        case .events:
++            let typed = try eventSource(source)
++            let native = try SystemSourceSnapshot.Record(source: typed, identifier: record.identifier,
++                occurrenceDate: Sync.number(nativeFields["occurrenceDate"]).map { Date(timeIntervalSince1970: $0) }, fields: nativeFields)
++            result = try events(SystemSourceSnapshot(source: typed,
++                scope: .boundedWindow(start: Date(timeIntervalSince1970: Sync.number(source.scope["start"])!), end: Date(timeIntervalSince1970: Sync.number(source.scope["end"])!)),
++                records: [native]), context: context, displayTimeZone: source.displayTimeZone)
++        case .reminders:
++            result = try reminders(SystemReminderImport.Snapshot(source: reminderSource(source), records: [
++                .init(identifier: record.identifier, fields: nativeFields)]), context: context, displayTimeZone: source.displayTimeZone)
++        case .contacts:
++            result = try contacts(SystemContactImport.Snapshot(source: contactSource(source), records: [
++                .init(identifier: record.identifier, title: record.canonicalRecord["anzeigename"] as? String ?? "", fields: nativeFields)]), displayTimeZone: source.displayTimeZone)
++        }
++        guard result.records.count == 1, result.excluded.isEmpty, let projected = result.records.first else { throw Sync.failure("the changed native fields are not losslessly representable") }
++        return projected
++    }
++    public static func eventSource(_ source: Sync.Source) throws -> SystemSourceSnapshot.Source {
++        guard source.kind == .events else { throw Sync.failure("wrong source kind") }
++        return try .init(uid: source.sourceUID, kind: .events, title: source.title,
++            parentUID: source.metadata["parentUID"] as? String, parentTitle: source.metadata["parentTitle"] as? String,
++            parentType: source.metadata["parentType"] as? String, nativeType: Sync.text(source.metadata, "nativeType"),
++            permission: Sync.text(source.metadata, "permission"), readOnly: Sync.boolean(source.metadata["readOnly"]) ?? true)
++    }
++    public static func reminderSource(_ source: Sync.Source) throws -> SystemReminderImport.Source {
++        guard source.kind == .reminders else { throw Sync.failure("wrong source kind") }
++        return try .init(sourceUID: source.sourceUID, calendarID: Sync.text(source.metadata, "calendarID"), title: source.title,
++            parentUID: Sync.text(source.metadata, "parentUID"), parentTitle: Sync.text(source.metadata, "parentTitle"),
++            parentType: Sync.text(source.metadata, "parentType"), nativeType: Sync.text(source.metadata, "nativeType"),
++            readOnly: Sync.boolean(source.metadata["readOnly"]) ?? true, permission: Sync.text(source.metadata, "permission"))
++    }
++    public static func contactSource(_ source: Sync.Source) throws -> SystemContactImport.Source {
++        guard source.kind == .contacts else { throw Sync.failure("wrong source kind") }
++        return try .init(sourceUID: source.sourceUID, containerID: Sync.text(source.metadata, "containerID"), title: source.title,
++                         nativeType: Sync.text(source.metadata, "nativeType"))
++    }
++
++    private static func safeText(_ object: [String: Any], _ key: String, maximum: Int = 65_536, nonempty: Bool = false, multiline: Bool = false) throws -> String {
++        let value = try Sync.text(object, key, empty: !nonempty, maximum: maximum)
++        guard value.unicodeScalars.allSatisfy({ $0.value >= 32 && !(0x7F...0x9F).contains($0.value) || multiline && [9, 10, 13].contains($0.value) }),
++              !nonempty || !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw Sync.failure("unsupported text") }
++        return value
++    }
++    private static func civil(_ date: String, _ time: String) throws -> ProlepticGregorian.Civil {
++        let day = try CalendarCivil.day(date)
++        if time.isEmpty { return try ProlepticGregorian.civil(at: day.milliseconds) }
++        return try ProlepticGregorian.civil(at: CalendarCivil.wall(date, time, zone: .utc).milliseconds)
++    }
++    private static func resolve(_ civil: ProlepticGregorian.Civil, _ zone: String, _ context: CalendarTimeContext) throws -> Int64 {
++        guard let result = try context.database.resolve(civil, in: context.database.named(zone), fold: .reject, gap: .reject) else {
++            throw Sync.failure("ambiguous or nonexistent local time")
++        }
++        return result
++    }
++    private static func eventDates(_ desired: [String: Any], original: [String: Any], previous: [String: Any], source: Sync.Source, context: CalendarTimeContext) throws -> [String: Any] {
++        let day = try Sync.text(desired, "datum"), lastDay = try Sync.text(desired, "endDatum")
++        let clock = try Sync.text(desired, "zeit"), lastClock = try Sync.text(desired, "endZeit")
++        guard let allDay = Sync.boolean(desired["ganztag"]), allDay == clock.isEmpty,
++              try Sync.text(desired, "icsAnzeigeZeitzone") == (allDay ? (original["timeZone"] as? String ?? source.displayTimeZone) : source.displayTimeZone) else {
++            throw Sync.failure("calendar date mode or display zone changed ambiguously")
++        }
++        let zone = allDay ? original["timeZone"] as? String ?? source.displayTimeZone : source.displayTimeZone
++        let start = try civil(day, clock)
++        var end = try civil(lastDay.isEmpty ? day : lastDay, allDay ? "" : lastClock.isEmpty ? clock : lastClock)
++        if allDay { guard lastClock.isEmpty else { throw Sync.failure("all-day event has a clock") }; end = try end.addingDays(1) }
++        let sameMode = Sync.boolean(previous["ganztag"]) == allDay
++        let sameStart = sameMode && (previous["datum"] as? String ?? "") == day && (previous["zeit"] as? String ?? "") == clock
++        let oldEndDay = (previous["endDatum"] as? String ?? "").isEmpty ? previous["datum"] as? String ?? "" : previous["endDatum"] as? String ?? ""
++        let sameEnd = sameMode && oldEndDay == (lastDay.isEmpty ? day : lastDay) && (previous["endZeit"] as? String ?? "") == lastClock
++        let first = sameStart ? Int64((Sync.number(original["start"])! * 1000).rounded()) : try resolve(start, zone, context)
++        let last = sameEnd ? Int64((Sync.number(original["end"])! * 1000).rounded()) : try resolve(end, zone, context)
++        guard last >= first, !allDay || last > first else { throw Sync.failure("invalid event date range") }
++        return ["start": Double(first) / 1000, "end": Double(last) / 1000, "allDay": allDay,
++                "timeZone": original["timeZone"] ?? (allDay ? zone as Any : NSNull())]
++    }
++    private static func reminderTimeEvidence(_ line: String, context: CalendarTimeContext) throws -> [String: Any] {
++        let parts = line.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
++        guard parts.count == 2 else { throw Sync.failure("invalid reminder source time") }
++        let header = parts[0].split(separator: ";", omittingEmptySubsequences: false).map(String.init), value = parts[1]
++        guard let name = header.first, ["DTSTART", "DUE"].contains(name), header.count <= 2 else { throw Sync.failure("unsupported reminder source time") }
++        if header.count == 2 && header[1] == "VALUE=DATE" {
++            guard value.utf8.count == 8 else { throw Sync.failure("invalid reminder DATE") }
++            return ["name": name, "mode": "date", "value": try CalendarCivil.parse(value).milliseconds]
++        }
++        let utc = value.hasSuffix("Z"), digits = utc ? String(value.dropLast()) : value
++        guard digits.utf8.count == 15 else { throw Sync.failure("invalid reminder clock") }
++        let wall = try CalendarCivil.parse(digits)
++        if utc {
++            guard header.count == 1 else { throw Sync.failure("UTC reminder clock has a second timezone") }
++            return ["name": name, "mode": "instant", "value": wall.milliseconds]
++        }
++        if header.count == 1 { return ["name": name, "mode": "floating", "value": wall.milliseconds] }
++        guard header[1].hasPrefix("TZID=") else { throw Sync.failure("unsupported reminder source timezone") }
++        var zone = String(header[1].dropFirst(5))
++        if zone.hasPrefix("\""), zone.hasSuffix("\""), zone.count >= 2 { zone = String(zone.dropFirst().dropLast()) }
++        return ["name": name, "mode": "instant", "value": try resolve(ProlepticGregorian.civil(at: wall.milliseconds), zone, context)]
++    }
++    private static func reminderDate(day: String, clock: String, original: Any?, displayZone: String, context: CalendarTimeContext) throws -> Any {
++        if day.isEmpty { guard clock.isEmpty else { throw Sync.failure("reminder clock has no date") }; return NSNull() }
++        var value = original as? [String: Any] ?? ["calendar": "gregorian"]
++        var date = try civil(day, clock)
++        guard date.year >= 1000, date.second == 0 else { throw Sync.failure("reminder date is not editable") }
++        if !clock.isEmpty, let zone = value["timeZone"] as? String {
++            let instant = try resolve(date, displayZone, context)
++            date = try context.database.wall(at: instant, in: context.database.named(zone))
++            guard try resolve(date, zone, context) == instant else { throw Sync.failure("ambiguous reminder time") }
++        }
++        value["year"] = date.year; value["month"] = date.month; value["day"] = date.day
++        if clock.isEmpty { for key in ["hour", "minute", "second", "nanosecond"] { value.removeValue(forKey: key) } }
++        else { value["hour"] = date.hour; value["minute"] = date.minute; value["second"] = 0; value.removeValue(forKey: "nanosecond") }
++        return value
++    }
++    private static func birthday(_ desired: [String: Any], original: Any?) throws -> Any {
++        let text = try Sync.text(desired, "geburtstag")
++        guard let unknown = Sync.boolean(desired["geburtstagJahrUnbekannt"]) else { throw Sync.failure("missing birthday year semantics") }
++        if text.isEmpty { guard !unknown else { throw Sync.failure("empty birthday has an unknown year flag") }; return NSNull() }
++        let yearless = text.hasPrefix("--")
++        guard yearless == unknown else { throw Sync.failure("birthday year semantics changed") }
++        let date = try civil(yearless ? "2000" + text.dropFirst() : text, "")
++        guard date.year >= 1000 else { throw Sync.failure("birthday year is not editable") }
++        var value = original as? [String: Any] ?? ["calendar": "gregorian"]
++        value["month"] = date.month; value["day"] = date.day
++        if yearless { value.removeValue(forKey: "year") } else { value["year"] = date.year }
++        return value
++    }
++    private static func contactValues(localKey: String, nativeKey: String, record: Sync.Record, desired: [String: Any]) throws -> [[String: Any]] {
++        guard let current = record.canonicalRecord[localKey] as? [[String: Any]], let next = desired[localKey] as? [[String: Any]],
++              var native = record.nativeFields[nativeKey] as? [[String: Any]], current.count == next.count, native.count == next.count else {
++            throw Sync.failure("adding/removing contact values needs a separate identity-aware operation")
++        }
++        for index in next.indices {
++            guard try Sync.equal(current[index]["typen"] ?? NSNull(), next[index]["typen"] ?? NSNull()),
++                  try Sync.equal(current[index]["label"] ?? NSNull(), next[index]["label"] ?? NSNull()) else { throw Sync.failure("contact value labels or order changed") }
++            if localKey != "anschriften" {
++                guard Set(next[index].keys).isSubset(of: ["wert", "typen", "label"]) else { throw Sync.failure("unsupported contact value") }
++                native[index]["value"] = try safeText(next[index], "wert", nonempty: true)
++            } else {
++                guard var address = native[index]["value"] as? [String: Any] else { throw Sync.failure("invalid native postal address") }
++                guard (next[index]["postfach"] as? String ?? "").isEmpty, (next[index]["zusatz"] as? String ?? "").isEmpty,
++                      try Sync.equal(current[index]["land"] ?? NSNull(), next[index]["land"] ?? NSNull()) else {
++                    throw Sync.failure("postal additions or a country change need an explicit native mapping")
++                }
++                for (local, remote) in [("strasse", "street"), ("ort", "city"), ("region", "state"), ("plz", "postalCode")] {
++                    address[remote] = try safeText(next[index], local, multiline: local == "strasse")
++                }
++                native[index]["value"] = address
++            }
++        }
++        return native
++    }
++}
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncDates.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncDates.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..bfa6e7ea393d31cc8175d82276858cf6de9be7d4
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncDates.swift
+@@ -0,0 +1,37 @@
++import Foundation
++import BetaCore
++
++/// Value container reconstruction only. No system timezone may stand in for an
++/// absent DateComponents.timeZone; floating clocks remain floating clocks.
++enum SystemAccountSyncDates {
++    static func components(_ value: Any) throws -> DateComponents? {
++        if value is NSNull { return nil }
++        guard let fields = value as? [String: Any] else { throw BetaError("Invalid native date components.") }
++        var result = DateComponents()
++        let parts: [(String, Calendar.Component)] = [("era", .era), ("year", .year), ("month", .month), ("day", .day),
++            ("hour", .hour), ("minute", .minute), ("second", .second), ("nanosecond", .nanosecond)]
++        for (name, component) in parts where fields[name] != nil {
++            guard let number = fields[name] as? Int else { throw BetaError("Invalid native date component.") }
++            result.setValue(number, for: component)
++        }
++        if let leap = fields["isLeapMonth"] as? Bool { result.isLeapMonth = leap }
++        if let name = fields["calendar"] as? String {
++            guard name == "gregorian" else { throw BetaError("Unsupported native date calendar.") }
++            var calendar = Calendar(identifier: .gregorian)
++            calendar.locale = nil
++            if let zone = fields["calendarTimeZone"] as? String {
++                guard let resolved = TimeZone(identifier: zone) else { throw BetaError("Native date calendar timezone is unavailable.") }
++                calendar.timeZone = resolved
++            } else { calendar.timeZone = TimeZone(secondsFromGMT: 0)! }
++            if let weekday = fields["calendarFirstWeekday"] as? Int { calendar.firstWeekday = weekday }
++            if let minimum = fields["calendarMinimumDaysInFirstWeek"] as? Int { calendar.minimumDaysInFirstWeek = minimum }
++            if let locale = fields["calendarLocale"] as? String { calendar.locale = Locale(identifier: locale) }
++            result.calendar = calendar
++        }
++        if let zone = fields["timeZone"] as? String {
++            guard let resolved = TimeZone(identifier: zone) else { throw BetaError("Native date timezone is unavailable.") }
++            result.timeZone = resolved
++        }
++        return result
++    }
++}
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccounts.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccounts.swift
+index 377cb4610908fba6124c0fe9a1e32bf518efb936..a92d6d127e064a2ed09b09c3fa1b7cf809bee9dd 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccounts.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccounts.swift
+@@ -8,6 +8,55 @@ import BetaCore
+ final class SystemAccounts {
+     private let queue = DispatchQueue(label: "io.gitlab.maik3531.magnolie.system-sources", qos: .utility)
+     private var store: SystemAccountStore?
++    private let syncWriteLock = NSLock()
++    private var syncWrites = Set<String>()
++
++    private final class SyncResult<Value> {
++        private let lock = NSLock()
++        private var continuation: CheckedContinuation<Value, Error>?
++        init(_ value: CheckedContinuation<Value, Error>) { continuation = value }
++        @discardableResult func finish(_ value: Result<Value, Error>) -> Bool {
++            lock.lock(); let pending = continuation; continuation = nil; lock.unlock()
++            pending?.resume(with: value); return pending != nil
++        }
++    }
++    /// Unlike the legacy copy facade, the synchronization continuation has its
++    /// own deadline queue. This bounds the caller, not a blocking Apple API.
++    /// A late write remains protected by the native gate and the host journal.
++    private func performSyncAsync<T>(onNativeFinish: @escaping () -> Void = {},
++        _ action: @escaping (SystemAccountStore, SystemSourceReadControl, @escaping (Result<T, Error>) -> Void) -> Void) async throws -> T {
++        let control = SystemSourceReadControl(timeout: 20)
++        return try await withTaskCancellationHandler(operation: {
++            try await withCheckedThrowingContinuation { continuation in
++                let pending = SyncResult(continuation)
++                DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 20) {
++                    // A timeout says nothing about whether an entered save has
++                    // committed. Only the native callback releases its gate.
++                    if pending.finish(.failure(BetaError("The native synchronization operation exceeded 20 seconds. A started write may still finish; keep the recovery journal."))) {
++                        control.cancel()
++                    }
++                }
++                queue.async {
++                    do {
++                        try control.check()
++                        action(self.worker(), control) { value in onNativeFinish(); pending.finish(value) }
++                    } catch { onNativeFinish(); pending.finish(.failure(error)) }
++                }
++            }
++        }, onCancel: { control.cancel() })
++    }
++    private func performSync<T>(onNativeFinish: @escaping () -> Void = {},
++        _ action: @escaping (SystemAccountStore, SystemSourceReadControl) throws -> T) async throws -> T {
++        try await performSyncAsync(onNativeFinish: onNativeFinish) { store, control, completion in
++            do { completion(.success(try action(store, control))) } catch { completion(.failure(error)) }
++        }
++    }
++    private func beginSyncWrite(_ fingerprint: String) -> Bool {
++        syncWriteLock.lock(); defer { syncWriteLock.unlock() }; return syncWrites.insert(fingerprint).inserted
++    }
++    private func endSyncWrite(_ fingerprint: String) {
++        syncWriteLock.lock(); syncWrites.remove(fingerprint); syncWriteLock.unlock()
++    }
+ 
+     private func worker() -> SystemAccountStore {
+         dispatchPrecondition(condition: .onQueue(queue))
+@@ -137,6 +186,53 @@ final class SystemAccounts {
+         }, onCancel: { control.cancel() })
+     }
+ 
++    /// Refs #786. One explicitly bound source at a time; no copy metadata grants
++    /// write access. The caller owns durable authorization and the write journal.
++    func syncSnapshot(sourceUID: String, start: Date, end: Date,
++                      context: CalendarTimeContext, displayTimeZone: String) async throws -> SystemAccountSync.Snapshot {
++        if sourceUID.hasPrefix("macos-events:") {
++            return try await performSync { try $0.syncEventSnapshot(sourceUID: sourceUID, start: start, end: end,
++                context: context, displayTimeZone: displayTimeZone, control: $1) }
++        }
++        if sourceUID.hasPrefix("macos-contacts:") {
++            return try await performSync { store, control in
++                let found = try store.contactCopySources(control: control).filter { $0.sourceUID.utf8.elementsEqual(sourceUID.utf8) }
++                guard found.count == 1 else { throw BetaError("The selected Contacts source is missing or ambiguous.") }
++                let source = found[0], summaries = try store.contactCopySummaries(source: source, control: control)
++                guard summaries.count <= SystemAccountSync.maximumRecords else { throw BetaError("Select a source containing at most 100 contacts for this field synchronization.") }
++                let snapshot = summaries.isEmpty ? SystemContactImport.Snapshot(source: source, records: []) :
++                    try store.contactCopySnapshot(source: source, identifiers: summaries.map(\.identifier), control: control)
++                return try SystemAccountSyncProjection.contacts(snapshot, displayTimeZone: displayTimeZone)
++            }
++        }
++        guard sourceUID.hasPrefix("macos-reminders:") else { throw BetaError("Unsupported native synchronization source.") }
++        return try await performSyncAsync { store, control, completion in
++            do {
++                let found = try store.reminderCopySources(control: control).filter { $0.sourceUID.utf8.elementsEqual(sourceUID.utf8) }
++                guard found.count == 1 else { throw BetaError("The selected Reminders source is missing or ambiguous.") }
++                let source = found[0]
++                store.reminderCopySummaries(source: source, control: control) { value in
++                    do {
++                        let summaries = try value.get()
++                        guard summaries.count <= SystemAccountSync.maximumRecords else { throw BetaError("Select a list containing at most 100 reminders for this field synchronization.") }
++                        let snapshot = summaries.isEmpty ? SystemReminderImport.Snapshot(source: source, records: []) :
++                            try store.reminderCopySnapshot(source: source, identifiers: summaries.map(\.identifier), control: control)
++                        try control.check()
++                        completion(.success(try SystemAccountSyncProjection.reminders(snapshot, context: context, displayTimeZone: displayTimeZone)))
++                    } catch { completion(.failure(error)) }
++                }
++            } catch { completion(.failure(error)) }
++        }
++    }
++
++    func applySync(operation: SystemAccountSync.Operation, source: SystemAccountSync.Source,
++                   context: CalendarTimeContext) async throws -> SystemAccountSync.Record {
++        guard beginSyncWrite(source.sourceUID) else { throw SystemAccountSync.RejectedBeforeWrite("A previous native write for this source is still running.") }
++        return try await performSync(onNativeFinish: { self.endSyncWrite(source.sourceUID) }) { store, control in
++            try store.applySync(operation: operation, source: source, context: context, control: control)
++        }
++    }
++
+ }
+ 
+ /// Private queue-confined native objects; DTO conversion happens before returning.
+@@ -203,14 +299,16 @@ private final class SystemAccountStore {
+                 ["uid": SystemSourcePolicy.uid(kind, $0.calendarIdentifier),
+                  "name": $0.title + " (" + $0.source.title + ")", "quelle": "macos",
+                  "art": kind.rawValue, "supportsVtodo": kind == .reminders,
+-                 "supportsVevent": kind == .events, "readOnly": !$0.allowsContentModifications]
++                 "supportsVevent": kind == .events, "readOnly": !$0.allowsContentModifications,
++                 "systemSyncFields": $0.allowsContentModifications && $0.type != .birthday]
+             }
+         }
+         if authorization(.contacts) == "authorized" {
+             do {
+                 books = try contacts.containers(matching: nil).map {
+                     ["uid": SystemSourcePolicy.uid(.contacts, $0.identifier), "name": $0.name,
+-                     "quelle": "macos", "art": "contacts", "readOnly": true]
++                     "quelle": "macos", "art": "contacts", "readOnly": true,
++                     "systemSyncFields": true, "systemSyncWritePolicy": "existing-nonunified-contact-fields"]
+                 }
+             } catch { failures.append("macOS address books could not be read.") }
+         }
+@@ -222,7 +320,7 @@ private final class SystemAccountStore {
+             "buchOk": authorization(.contacts) == "authorized", "kalender": calendars,
+             "adressbuecher": books, "alleKalender": calendars, "alleAdressbuecher": books,
+             "fehler": failures.joined(separator: " "), "permissions": permissions,
+-            "systemAccountSyncImplemented": false]
++            "systemAccountSyncImplemented": true]
+         if let requestID { result["requestId"] = requestID }
+         return result
+     }
+@@ -518,4 +616,108 @@ private final class SystemAccountStore {
+         return try .init(source: source, scope: .fullSource, records: records)
+     }
+ 
++    private func syncCalendar(_ uid: String, kind: SystemSourcePolicy.Kind) throws -> EKCalendar {
++        try requireAccess(kind)
++        let identifier = try SystemSourcePolicy.identifier(uid, kind: kind)
++        let calendars = events.calendars(for: kind == .events ? .event : .reminder)
++        guard calendars.count <= 256 else { throw BetaError("Too many native calendars.") }
++        var seen = Set<OpaqueUTF8Identity>(), found: [EKCalendar] = []
++        for calendar in calendars {
++            guard seen.insert(OpaqueUTF8Identity(calendar.calendarIdentifier)).inserted else { throw BetaError("Native calendar identities are ambiguous.") }
++            if calendar.calendarIdentifier.utf8.elementsEqual(identifier.utf8) { found.append(calendar) }
++        }
++        guard found.count == 1, found[0].allowsContentModifications, found[0].type != .birthday,
++              found[0].refresh(), found[0].source?.refresh() == true else { throw BetaError("The selected native source is unavailable or read-only.") }
++        return found[0]
++    }
++
++    func syncEventSnapshot(sourceUID: String, start: Date, end: Date, context: CalendarTimeContext,
++                           displayTimeZone: String, control: SystemSourceReadControl) throws -> SystemAccountSync.Snapshot {
++        dispatchPrecondition(condition: .onQueue(queue))
++        try control.check(); try SystemSourcePolicy.requireWindow(start: start, end: end)
++        let calendar = try syncCalendar(sourceUID, kind: .events), source = try typedSource(calendar, kind: .events)
++        let binding = try SystemAccountSyncProjection.eventSource(source, start: start, end: end, displayTimeZone: displayTimeZone)
++        let found = events.events(matching: events.predicateForEvents(withStart: start, end: end, calendars: [calendar]))
++        guard found.count <= SystemAccountSync.maximumRecords else { throw BetaError("Select a date window containing at most 100 events for this field synchronization.") }
++        var records: [SystemSourceSnapshot.Record] = []
++        for event in found {
++            try control.check(); try syncMembership(event, source: source)
++            records.append(try NativeSystemRecordReader.event(event, source: source))
++        }
++        let fresh = try typedSource(syncCalendar(sourceUID, kind: .events), kind: .events)
++        let freshBinding = try SystemAccountSyncProjection.eventSource(fresh, start: start, end: end, displayTimeZone: displayTimeZone)
++        guard binding.fingerprint == freshBinding.fingerprint else { throw BetaError("The selected calendar/account changed while reading.") }
++        try control.check(); try requireAccess(.events)
++        return try SystemAccountSyncProjection.events(.init(source: fresh, scope: .boundedWindow(start: start, end: end), records: records),
++            context: context, displayTimeZone: displayTimeZone)
++    }
++
++    private func syncMembership(_ event: EKEvent, source: SystemSourceSnapshot.Source) throws {
++        guard let calendar = event.calendar, let parent = calendar.source,
++              SystemSourcePolicy.uid(.events, calendar.calendarIdentifier).utf8.elementsEqual(source.uid.utf8),
++              ("macos-account:" + Data(parent.sourceIdentifier.utf8).base64EncodedString()).utf8.elementsEqual((source.parentUID ?? "").utf8) else {
++            throw BetaError("The event moved or no longer belongs to the selected calendar/account.")
++        }
++    }
++
++    private func syncEventRecord(_ event: EKEvent, source: SystemAccountSync.Source,
++                                 context: CalendarTimeContext, control: SystemSourceReadControl) throws -> SystemAccountSync.Record {
++        try control.check()
++        let typed = try typedSource(syncCalendar(source.sourceUID, kind: .events), kind: .events)
++        try syncMembership(event, source: typed)
++        guard let start = source.scope["start"] as? Double, let end = source.scope["end"] as? Double else { throw BetaError("Missing synchronization window.") }
++        let raw = try NativeSystemRecordReader.event(event, source: typed)
++        let snapshot = try SystemAccountSyncProjection.events(.init(source: typed,
++            scope: .boundedWindow(start: Date(timeIntervalSince1970: start), end: Date(timeIntervalSince1970: end)), records: [raw]),
++            context: context, displayTimeZone: source.displayTimeZone)
++        guard snapshot.source.fingerprint == source.fingerprint, snapshot.records.count == 1,
++              snapshot.excluded.isEmpty, let record = snapshot.records.first else { throw BetaError("The event or source is no longer eligible for field synchronization.") }
++        return record
++    }
++
++    func applySync(operation: SystemAccountSync.Operation, source: SystemAccountSync.Source,
++                   context: CalendarTimeContext, control: SystemSourceReadControl) throws -> SystemAccountSync.Record {
++        dispatchPrecondition(condition: .onQueue(queue))
++        if source.kind == .contacts {
++            return try SystemContactReader.applySync(store: contacts, operation: operation, source: source,
++                context: context, control: control, requireAccess: { try self.requireAccess(.contacts) })
++        }
++        if source.kind == .reminders {
++            return try SystemReminderReader.applySync(store: events, queue: queue, operation: operation, source: source,
++                context: context, control: control, requireAccess: { try self.requireAccess(.reminders) })
++        }
++        var enteredSave = false
++        do {
++            try control.check(); try requireAccess(.events)
++            guard source.kind == .events, let event = events.event(withIdentifier: operation.identifier),
++                  event.eventIdentifier?.utf8.elementsEqual(operation.identifier.utf8) == true,
++                  !event.isNew, !event.hasChanges, event.refresh() else { throw BetaError("The selected event is missing or changed identity.") }
++            let current = try syncEventRecord(event, source: source, context: context, control: control)
++            guard current.revision == operation.before.revision else { throw BetaError("The event changed after planning; read it again.") }
++            let patch = try SystemAccountSyncProjection.nativePatch(record: current, desired: operation.desiredRecord,
++                changedGroups: operation.changedGroups, source: source, context: context)
++            guard try DAVSyncBaseline.canonicalJSON(patch) == DAVSyncBaseline.canonicalJSON(operation.nativePatch) else { throw BetaError("The journaled native field patch is inconsistent.") }
++            try control.check(); try requireAccess(.events)
++            if let title = patch["title"] as? String { event.title = title }
++            if let notes = patch["notes"] as? String { event.notes = notes }
++            if let location = patch["location"] as? String { event.location = location }
++            if let start = patch["start"] as? Double, let end = patch["end"] as? Double, let allDay = patch["allDay"] as? Bool {
++                event.isAllDay = allDay; event.timeZone = (patch["timeZone"] as? String).flatMap(TimeZone.init(identifier:))
++                event.startDate = Date(timeIntervalSince1970: start); event.endDate = Date(timeIntervalSince1970: end)
++            }
++            // Apple does not provide a CAS token. A deletion racing this call can
++            // recreate an event; even an API error is an uncertain write outcome.
++            enteredSave = true
++            try events.save(event, span: .thisEvent, commit: true)
++            guard event.eventIdentifier?.utf8.elementsEqual(operation.identifier.utf8) == true,
++                  let fresh = events.event(withIdentifier: operation.identifier), fresh.refresh() else { throw BetaError("Event identity changed or readback is unavailable after saving.") }
++            let readback = try syncEventRecord(fresh, source: source, context: context, control: control)
++            try operation.validateReadback(readback)
++            return readback
++        } catch {
++            if enteredSave { events.reset(); throw BetaError("The native event write has an uncertain outcome. Keep the journal and review the source. " + error.localizedDescription) }
++            throw SystemAccountSync.RejectedBeforeWrite(error.localizedDescription)
++        }
++    }
++
+ }
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemContactReader.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemContactReader.swift
+index 2c56a8436a40ba69bda1d92ce55d6d91533e597b..e6ad52e9413084bdd8a8fabece7aa466b0cfa2bf 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemContactReader.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemContactReader.swift
+@@ -5,7 +5,8 @@ import ImageIO
+ import UniformTypeIdentifiers
+ import BetaCore
+ 
+-/// Refs #775. Queue-confined, selected-contact reads for deliberate local copies.
++/// Refs #775/#786. Queue-confined contact reads and the separately authorized
++/// exact-record field-write adapter. Copy operations continue to be read-only.
+ /// Call only through SystemAccountStore, with its existing CNContactStore and
+ /// cooperative read control. No CN object leaves these functions. This selected
+ /// scope is separate from the older full-source snapshots and vCard reader.
+@@ -149,6 +150,86 @@ enum SystemContactReader {
+         return request
+     }
+ 
++    /// Refs #786. Update an exact non-unified record; do not construct a contact
++    /// from its displayed name and do not replace unfetched/private properties.
++    static func applySync(store: CNContactStore, operation: SystemAccountSync.Operation,
++                          source binding: SystemAccountSync.Source, context: CalendarTimeContext,
++                          control: SystemSourceReadControl, requireAccess: () throws -> Void) throws -> SystemAccountSync.Record {
++        var enteredSave = false
++        do {
++            try control.check(); try requireAccess()
++            let expected = try SystemAccountSyncProjection.contactSource(binding)
++            let current = try currentSource(store, expected: expected, control: control)
++            let selected = try selectedIdentities([operation.identifier])
++            try requireMembership(store, source: current, selected: selected, control: control)
++            let request = makeRequest(keys: detailKeys, predicate: CNContact.predicateForContacts(withIdentifiers: [operation.identifier]))
++            var objects: [CNContact] = []
++            try store.enumerateContacts(with: request) { contact, stop in
++                objects.append(contact); if objects.count > 1 { stop.pointee = true }
++            }
++            guard objects.count == 1, let contact = objects.first, contact.areKeysAvailable(detailKeys),
++                  same(contact.identifier, operation.identifier) else { throw failure("the selected contact is missing or ambiguous") }
++            var budget = Budget()
++            let raw = try record(contact, identifier: operation.identifier, control: control, budget: &budget)
++            let observed = try SystemAccountSyncProjection.contacts(.init(source: current, records: [raw]), displayTimeZone: binding.displayTimeZone)
++            guard observed.source.fingerprint == binding.fingerprint, observed.records.count == 1,
++                  observed.excluded.isEmpty, let before = observed.records.first, before.revision == operation.before.revision else {
++                throw failure("the selected contact or source changed after planning")
++            }
++            let patch = try SystemAccountSyncProjection.nativePatch(record: before, desired: operation.desiredRecord,
++                changedGroups: operation.changedGroups, source: binding, context: context)
++            guard try DAVSyncBaseline.canonicalJSON(patch) == DAVSyncBaseline.canonicalJSON(operation.nativePatch),
++                  let mutable = contact.mutableCopy() as? CNMutableContact else { throw failure("invalid contact field operation") }
++            if let value = patch["givenName"] as? String { mutable.givenName = value }
++            if let value = patch["familyName"] as? String { mutable.familyName = value }
++            if let value = patch["organizationName"] as? String { mutable.organizationName = value }
++            if let values = patch["phoneNumbers"] as? [[String: Any]] {
++                guard values.count == mutable.phoneNumbers.count else { throw failure("phone value identity changed") }
++                mutable.phoneNumbers = try mutable.phoneNumbers.enumerated().map { index, old in
++                    guard same(old.identifier, values[index]["identifier"] as? String ?? ""), let value = values[index]["value"] as? String else { throw failure("phone value identity changed") }
++                    return old.settingValue(CNPhoneNumber(stringValue: value))
++                }
++            }
++            if let values = patch["emailAddresses"] as? [[String: Any]] {
++                guard values.count == mutable.emailAddresses.count else { throw failure("email value identity changed") }
++                mutable.emailAddresses = try mutable.emailAddresses.enumerated().map { index, old in
++                    guard same(old.identifier, values[index]["identifier"] as? String ?? ""), let value = values[index]["value"] as? String else { throw failure("email value identity changed") }
++                    return old.settingValue(value as NSString)
++                }
++            }
++            if let values = patch["postalAddresses"] as? [[String: Any]] {
++                guard values.count == mutable.postalAddresses.count else { throw failure("postal value identity changed") }
++                mutable.postalAddresses = try mutable.postalAddresses.enumerated().map { index, old in
++                    guard same(old.identifier, values[index]["identifier"] as? String ?? ""), let fields = values[index]["value"] as? [String: Any],
++                          let address = old.value.mutableCopy() as? CNMutablePostalAddress,
++                          let street = fields["street"] as? String, let city = fields["city"] as? String,
++                          let state = fields["state"] as? String, let postal = fields["postalCode"] as? String else { throw failure("postal value identity changed") }
++                    address.street = street; address.city = city; address.state = state; address.postalCode = postal
++                    return old.settingValue(address)
++                }
++            }
++            if let value = patch["birthday"] { mutable.birthday = try SystemAccountSyncDates.components(value) }
++            try requireMembership(store, source: current, selected: selected, control: control)
++            _ = try currentSource(store, expected: current, control: control)
++            try control.check(); try requireAccess()
++            let save = CNSaveRequest(); save.update(mutable)
++            // CNSaveRequest has no compare-and-swap condition. No caller may
++            // clear its journal just because execute returned or threw.
++            enteredSave = true
++            try store.execute(save)
++            guard same(mutable.identifier, operation.identifier) else { throw failure("contact identity changed after saving") }
++            let fresh = try snapshot(store: store, source: current, identifiers: [operation.identifier], control: control, requireAccess: requireAccess)
++            let read = try SystemAccountSyncProjection.contacts(fresh, displayTimeZone: binding.displayTimeZone)
++            guard read.source.fingerprint == binding.fingerprint, read.records.count == 1, read.excluded.isEmpty,
++                  let readback = read.records.first else { throw failure("contact readback is unavailable after saving") }
++            try operation.validateReadback(readback)
++            return readback
++        } catch {
++            if enteredSave { throw BetaError("The native contact write has an uncertain outcome. Keep the journal and review the source. " + error.localizedDescription) }
++            throw SystemAccountSync.RejectedBeforeWrite(error.localizedDescription)
++        }
++    }
++
+     private static func selectedIdentities(_ identifiers: [String]) throws -> Set<OpaqueUTF8Identity> {
+         guard !identifiers.isEmpty, identifiers.count <= SystemContactImport.maximumRecords else {
+             throw failure("select between 1 and 100 contacts")
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemReminderReader.swift b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemReminderReader.swift
+index 13a2704bde4e1ad3b704f11aeaf7cbd7e0c32016..cddba18b63914343021c11b14ea148c1660bd58d 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemReminderReader.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemReminderReader.swift
+@@ -6,8 +6,9 @@ import BetaCore
+ 
+ /// Refs #777. Explicit selected Reminder copies, separate from full-source
+ /// snapshots. Store access and public-object conversion stay on the existing
+-/// SystemAccounts queue. This reader never assigns reminder fields or saves or
+-/// deletes a source object; refresh() only updates the fetched observations.
++/// SystemAccounts queue. Copy methods never assign or save reminder fields;
++/// applySync is a separate, explicitly authorized field-write adapter (#786).
++/// Neither path deletes records; refresh() only updates fetched observations.
+ enum SystemReminderReader {
+     struct Summary: Sendable {
+         let identifier: String
+@@ -158,6 +159,58 @@ enum SystemReminderReader {
+         }
+     }
+ 
++    /// Refs #786. Existing-list field updates use the exact component reader;
++    /// the older timestamp-flattening reminderSnapshot is never a sync codec.
++    static func applySync(store: EKEventStore, queue: DispatchQueue, operation: SystemAccountSync.Operation,
++                          source binding: SystemAccountSync.Source, context: CalendarTimeContext,
++                          control: SystemSourceReadControl, requireAccess: () throws -> Void) throws -> SystemAccountSync.Record {
++        dispatchPrecondition(condition: .onQueue(queue))
++        var enteredSave = false
++        do {
++            try control.check(); try requireAccess()
++            let expected = try SystemAccountSyncProjection.reminderSource(binding)
++            let (calendar, current) = try currentSource(store, expected: expected, control: control)
++            guard calendar.allowsContentModifications else { throw failure("the reminder list is read-only") }
++            let reminder = try selectedReminder(store, identifier: operation.identifier, source: current, control: control)
++            guard !reminder.isNew, !reminder.hasChanges else { throw failure("the reminder has uncommitted changes") }
++            var budget = Budget()
++            let raw = try record(reminder, identifier: operation.identifier, control: control, budget: &budget)
++            let observed = try SystemAccountSyncProjection.reminders(.init(source: current, records: [raw]), context: context, displayTimeZone: binding.displayTimeZone)
++            guard observed.source.fingerprint == binding.fingerprint, observed.records.count == 1,
++                  observed.excluded.isEmpty, let before = observed.records.first, before.revision == operation.before.revision else {
++                throw failure("the reminder or selected source changed after planning")
++            }
++            let patch = try SystemAccountSyncProjection.nativePatch(record: before, desired: operation.desiredRecord,
++                changedGroups: operation.changedGroups, source: binding, context: context)
++            guard try DAVSyncBaseline.canonicalJSON(patch) == DAVSyncBaseline.canonicalJSON(operation.nativePatch) else { throw failure("the journaled reminder patch is inconsistent") }
++            // Construct every potentially throwing value before mutating an EK
++            // object, so a typed rejection cannot leave pending native changes.
++            let start = try patch["startComponents"].map { try SystemAccountSyncDates.components($0) }
++            let due = try patch["dueComponents"].map { try SystemAccountSyncDates.components($0) }
++            _ = try currentSource(store, expected: current, control: control)
++            try requireMembership(reminder, identifier: operation.identifier, source: current, control: control)
++            try control.check(); try requireAccess()
++            if let title = patch["title"] as? String { reminder.title = title }
++            if let notes = patch["notes"] as? String { reminder.notes = notes }
++            if let completed = patch["completed"] as? Bool { reminder.isCompleted = completed }
++            if let priority = patch["priority"] as? Int { reminder.priority = priority }
++            if let start { reminder.startDateComponents = start }
++            if let due { reminder.dueDateComponents = due }
++            enteredSave = true
++            try store.save(reminder, commit: true)
++            guard same(reminder.calendarItemIdentifier, operation.identifier) else { throw failure("reminder identity changed after saving") }
++            let fresh = try snapshot(store: store, queue: queue, source: current, identifiers: [operation.identifier], control: control, requireAccess: requireAccess)
++            let result = try SystemAccountSyncProjection.reminders(fresh, context: context, displayTimeZone: binding.displayTimeZone)
++            guard result.source.fingerprint == binding.fingerprint, result.records.count == 1, result.excluded.isEmpty,
++                  let readback = result.records.first else { throw failure("reminder readback is unavailable after saving") }
++            try operation.validateReadback(readback)
++            return readback
++        } catch {
++            if enteredSave { store.reset(); throw BetaError("The native reminder write has an uncertain outcome. Keep the journal and review the source. " + error.localizedDescription) }
++            throw SystemAccountSync.RejectedBeforeWrite(error.localizedDescription)
++        }
++    }
++
+     private static func selectedIdentities(_ identifiers: [String]) throws -> Set<OpaqueUTF8Identity> {
+         guard !identifiers.isEmpty, identifiers.count <= SystemReminderImport.maximumRecords else {
+             throw failure("select between 1 and 100 reminders")
+diff --git a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/Fixtures/system-account-sync-ui.json b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/Fixtures/system-account-sync-ui.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..3e4498b81e9bbb2566eb104b4991233eeedf7040
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/Fixtures/system-account-sync-ui.json
+@@ -0,0 +1,398 @@
++{
++  "version": 1,
++  "provenance": "Manually source-shaped synthetic UI inputs derived from the existing contact/reminder/calendar copy fixtures; NOT generated by running Swift. Digests are synthetic and do not authorize any write.",
++  "rows": [
++    {
++      "kind": "contacts",
++      "canonicalRecord": {
++        "vorname": "Ada",
++        "nachname": "Lovelace",
++        "anzeigename": "Dr. Ada Byron Lovelace Fellow",
++        "firma": "Analytical Society",
++        "telefone": [
++          {
++            "wert": "+44 20 7946 0958",
++            "typen": [
++              "HOME",
++              "VOICE"
++            ]
++          },
++          {
++            "wert": "+44 7700 900123",
++            "typen": [
++              "CELL"
++            ]
++          },
++          {
++            "wert": "+44 20 7946 0959",
++            "typen": [
++              "VOICE"
++            ],
++            "label": "Studio"
++          }
++        ],
++        "emailEintraege": [
++          {
++            "wert": "ada@example.test",
++            "typen": [
++              "WORK",
++              "INTERNET"
++            ]
++          },
++          {
++            "wert": "research@example.test",
++            "typen": [
++              "INTERNET"
++            ],
++            "label": "Research desk"
++          }
++        ],
++        "anschriften": [
++          {
++            "strasse": "12 St James Square\nSecond floor",
++            "ort": "London",
++            "region": "Greater London",
++            "plz": "SW1Y 4LB",
++            "land": "United Kingdom",
++            "typen": [
++              "HOME"
++            ]
++          }
++        ],
++        "foto": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEUlEQVR4nGNoUFjwH4QZYAwATPQI/aJXiG4AAAAASUVORK5CYII=",
++        "geburtstag": "--02-29",
++        "geburtstagJahrUnbekannt": true,
++        "vcardRoundtrip": [
++          "N:Lovelace;Ada;Byron;Dr.;Fellow",
++          "FN:Dr. Ada Byron Lovelace Fellow",
++          "ORG:Analytical Society;Research",
++          "URL:https://example.test/ada?x=1&y=2"
++        ],
++        "nativeContactRecord": {
++          "identifier": "contact-one",
++          "title": "Dr. Ada Byron Lovelace Fellow",
++          "fields": {
++            "namePrefix": "Dr.",
++            "givenName": "Ada",
++            "middleName": "Byron",
++            "familyName": "Lovelace",
++            "previousFamilyName": "Byron",
++            "nameSuffix": "Fellow",
++            "nickname": "Enchantress",
++            "phoneticGivenName": "Ay-da",
++            "phoneticMiddleName": "",
++            "phoneticFamilyName": "",
++            "phoneticOrganizationName": "",
++            "organizationName": "Analytical Society",
++            "departmentName": "Research",
++            "jobTitle": "Writer",
++            "unification": "nonUnifiedContainer",
++            "unavailableKeys": [
++              "note"
++            ],
++            "contactType": 0,
++            "phoneNumbers": [
++              {
++                "identifier": "phone-home",
++                "label": "_$!<Home>!$_",
++                "labelKind": "home",
++                "value": "+44 20 7946 0958"
++              },
++              {
++                "identifier": "phone-mobile",
++                "label": "_$!<Mobile>!$_",
++                "labelKind": "mobile",
++                "value": "+44 7700 900123"
++              },
++              {
++                "identifier": "phone-custom",
++                "label": "Studio",
++                "labelKind": "custom",
++                "value": "+44 20 7946 0959"
++              }
++            ],
++            "emailAddresses": [
++              {
++                "identifier": "mail-work",
++                "label": "_$!<Work>!$_",
++                "labelKind": "work",
++                "value": "Ada@Example.Test"
++              },
++              {
++                "identifier": "mail-custom",
++                "label": "Research desk",
++                "labelKind": "custom",
++                "value": "Research@Example.Test"
++              }
++            ],
++            "postalAddresses": [
++              {
++                "identifier": "address-home",
++                "label": "_$!<Home>!$_",
++                "labelKind": "home",
++                "value": {
++                  "street": "12 St James Square\nSecond floor",
++                  "city": "London",
++                  "state": "Greater London",
++                  "postalCode": "SW1Y 4LB",
++                  "country": "United Kingdom",
++                  "isoCountryCode": "GB",
++                  "subAdministrativeArea": "Westminster",
++                  "subLocality": "St James"
++                }
++              }
++            ],
++            "urlAddresses": [
++              {
++                "identifier": "url-home",
++                "label": "_$!<HomePage>!$_",
++                "labelKind": "homePage",
++                "value": "https://example.test/ada?x=1&y=2"
++              }
++            ],
++            "contactRelations": [
++              {
++                "identifier": "relation-one",
++                "label": "Colleague",
++                "labelKind": "custom",
++                "value": "Charles Babbage"
++              }
++            ],
++            "socialProfiles": [
++              {
++                "identifier": "social-one",
++                "label": null,
++                "labelKind": "none",
++                "value": {
++                  "username": "ada",
++                  "service": "Example",
++                  "urlString": "https://social.example.test/ada",
++                  "userIdentifier": "native-social-id"
++                }
++              }
++            ],
++            "instantMessageAddresses": [
++              {
++                "identifier": "im-one",
++                "label": "Research chat",
++                "labelKind": "custom",
++                "value": {
++                  "username": "ada",
++                  "service": "Example messenger"
++                }
++              }
++            ],
++            "dates": [],
++            "birthday": {
++              "calendar": "gregorian",
++              "month": 2,
++              "day": 29
++            },
++            "nonGregorianBirthday": null,
++            "imageDataAvailable": true,
++            "imageData": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEUlEQVR4nGNoUFjwH4QZYAwATPQI/aJXiG4AAAAASUVORK5CYII=",
++            "imageMIME": "image/png"
++          },
++          "failure": null
++        },
++        "nativeContactImport": {
++          "version": 1,
++          "identity": "fd47215c53b33b21449f5403f6b09eb7520b778cc2c8c95ec92cd5c76b1856b9",
++          "sourceUID": "macos-contacts:Y29udGFpbmVyLW9uZQ==",
++          "containerID": "container-one",
++          "sourceTitle": "Selected address book",
++          "nativeType": "container:2",
++          "identifier": "contact-one",
++          "revision": "2c956974223a6446aafc054c235444a0cd1668532791a089083da86959eae185",
++          "copyKind": "public-fields",
++          "revisionCoverage": "serialized-fields-only",
++          "birthdayPolicy": "contact-only"
++        }
++      }
++    },
++    {
++      "kind": "reminders",
++      "canonicalRecord": {
++        "titel": "Review native reminder 🌼",
++        "notiz": "First line\nSecond line with é and literal <b>text</b>.",
++        "prio": 2,
++        "erledigt": false,
++        "startDatum": "2026-11-27",
++        "startZeit": "09:05",
++        "faellig": "2026-11-27",
++        "faelligZeit": "10:45",
++        "icsRoundtrip": [
++          "DTSTART:20261127T090500",
++          "DUE:20261127T104500"
++        ],
++        "icsAnzeigeZeitzone": "Europe/Berlin",
++        "erinnern": false,
++        "individuelleErinnerungTage": 0,
++        "vorlaufTage": 0,
++        "erinnerungsMinute": 480,
++        "elternUid": "",
++        "reihenfolge": 0,
++        "nativeReminderRecord": {
++          "identifier": "reminder-one",
++          "fields": {
++            "metadataIncomplete": [
++              "native-reminder-hierarchy",
++              "native-reminder-attachments",
++              "native-reminder-tags",
++              "native-reminder-flags",
++              "native-reminder-assignees",
++              "native-reminder-rich-text",
++              "provider-opaque-fields"
++            ],
++            "hierarchyAvailable": false,
++            "title": "Review native reminder 🌼",
++            "notes": "First line\nSecond line with é and literal <b>text</b>.",
++            "hasNotes": true,
++            "location": "Room 4",
++            "url": "https://example.test/review",
++            "externalIdentifier": "provider-original-id",
++            "itemTimeZone": null,
++            "created": 1780000000.125,
++            "modified": 1780000600.5,
++            "completed": false,
++            "completionDate": null,
++            "priority": 0,
++            "startComponents": {
++              "calendar": "gregorian",
++              "calendarTimeZone": "Pacific/Auckland",
++              "year": 2026,
++              "month": 11,
++              "day": 27,
++              "hour": 9,
++              "minute": 5,
++              "second": 0
++            },
++            "dueComponents": {
++              "calendar": "gregorian",
++              "calendarTimeZone": "Pacific/Auckland",
++              "year": 2026,
++              "month": 11,
++              "day": 27,
++              "hour": 10,
++              "minute": 45,
++              "second": 0
++            },
++            "hasAlarms": false,
++            "alarms": [],
++            "hasRecurrenceRules": false,
++            "recurrenceRules": []
++          },
++          "failure": null
++        },
++        "nativeReminderImport": {
++          "version": 1,
++          "identity": "fa4999421a0fd4503f43eb9baff01c7eed3e5034558b954a5e2791ae2565369b",
++          "sourceUID": "macos-reminders:cmVtaW5kZXItbGlzdC1vbmU=",
++          "calendarID": "reminder-list-one",
++          "sourceTitle": "Selected reminder list",
++          "parentUID": "macos-account:cmVtaW5kZXItYWNjb3VudC1vbmU=",
++          "parentTitle": "Selected account",
++          "parentType": "source:2",
++          "nativeType": "calendar:2",
++          "readOnly": false,
++          "permission": "authorized",
++          "identifier": "reminder-one",
++          "revision": "738a98f3a4ce995811e3257ecfb9b48da53e758c32acd78d688fcd877b90f35e",
++          "copyKind": "standalone-public-fields",
++          "revisionCoverage": "serialized-fields-only"
++        }
++      }
++    },
++    {
++      "kind": "events",
++      "canonicalRecord": {
++        "uid": "mac-native-copy:8c0e80c6459405dea7fad28a73303d81e5e65b2ae8d27a9d9ccb28b62543f7e0",
++        "titel": "Review native event",
++        "notiz": "Native note",
++        "ort": "Office",
++        "datum": "2026-11-27",
++        "endDatum": "",
++        "zeit": "10:00",
++        "endZeit": "11:00",
++        "icsAnzeigeZeitzone": "Europe/Berlin",
++        "wiederholung": {
++          "art": "none",
++          "bis": ""
++        },
++        "sync": false,
++        "syncKalenderUid": "",
++        "syncQuellen": {},
++        "icsQuelleId": "",
++        "icsQuelleName": "",
++        "nativeSourceReadOnly": false,
++        "standardErinnerung": false,
++        "individuelleErinnerungTage": 0,
++        "alarme": [],
++        "kategorien": "",
++        "akzentFarbe": "",
++        "vertraulich": false,
++        "vorlaeufig": false,
++        "kostenstelle": "",
++        "kunde": "",
++        "icsKomplex": false,
++        "icsSerienUid": "",
++        "icsZusatzDaten": [],
++        "icsZusatzTermine": [],
++        "icsEndeFehlt": false,
++        "icsNullDauer": false,
++        "icsSequence": 0,
++        "icsAenderungszeitFehlt": true,
++        "geaendert": 0,
++        "ganztag": false,
++        "icsRoundtrip": [
++          "DTSTART:20261127T090000Z",
++          "DTEND:20261127T100000Z",
++          "LOCATION:Office",
++          "TRANSP:OPAQUE"
++        ],
++        "nativeCalendarImport": {
++          "version": 1,
++          "identity": "8c0e80c6459405dea7fad28a73303d81e5e65b2ae8d27a9d9ccb28b62543f7e0",
++          "sourceUID": "macos-events:Y2FsZW5kYXItb25l",
++          "identifier": "event-one",
++          "sourceTitle": "Selected calendar",
++          "parentUID": "macos-account:YWNjb3VudC1vbmU=",
++          "revision": "ce79eebdc1653cbcb1833e7d61bffdaf60fdb47aca465fa64ecf2f90af5cbcb9"
++        },
++        "nativeSystemRecord": {
++          "kind": "events",
++          "sourceUID": "macos-events:Y2FsZW5kYXItb25l",
++          "identifier": "event-one",
++          "revision": "ce79eebdc1653cbcb1833e7d61bffdaf60fdb47aca465fa64ecf2f90af5cbcb9",
++          "revisionCoverage": "serialized-fields-only",
++          "fields": {
++            "title": "Review native event",
++            "notes": "Native note",
++            "location": "Office",
++            "start": 1795770000,
++            "end": 1795773600,
++            "allDay": false,
++            "timeZone": "Europe/Berlin",
++            "externalIdentifier": "provider-event-one",
++            "url": null,
++            "recurring": false,
++            "isDetached": false,
++            "occurrenceDate": null,
++            "modified": 1795000000,
++            "created": 1790000000,
++            "status": 1,
++            "availability": 0,
++            "recurrenceRules": [],
++            "alarms": [],
++            "attendeeCount": 0,
++            "hasOrganizer": false,
++            "metadataIncomplete": [
++              "provider-opaque-fields"
++            ]
++          },
++          "occurrenceDate": null
++        }
++      }
++    }
++  ]
++}
+diff --git a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncTests.swift b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncTests.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e9f31f585b8118b5b8a1d3dee5d5e1a9594f16d
+--- /dev/null
++++ b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/SystemAccountSyncTests.swift
+@@ -0,0 +1,339 @@
++import Foundation
++import XCTest
++@testable import BetaCore
++
++/// Refs #786. Synthetic native DTOs only. These tests neither request TCC access
++/// nor read or write a person's accounts. SDK/store acceptance is a separate gate.
++final class SystemAccountSyncTests: XCTestCase {
++    typealias Sync = SystemAccountSync
++    private func context() throws -> CalendarTimeContext { try CalendarTestContext.make(systemIdentifier: "UTC") }
++    private func book() -> [String: Any] {
++        ["termine": [[String: Any]](), "aufgaben": [[String: Any]](), "kontakte": [[String: Any]](), "notizen": [[String: Any]](),
++         "futureRoot": ["untouched": ["value": 42]], "einstellungen": ["allgemein": ["handbuchHinweisGezeigt": true]]]
++    }
++    private func fixture(_ name: String) throws -> [String: Any] {
++        let url = try XCTUnwrap(Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures"))
++        return try Document.object(String(contentsOf: url, encoding: .utf8))
++    }
++    private func contacts() throws -> Sync.Snapshot {
++        let value = try fixture("system-contact-copy"), source = try XCTUnwrap(value["source"] as? [String: Any])
++        let native = SystemContactImport.Source(sourceUID: try XCTUnwrap(source["sourceUID"] as? String),
++            containerID: try XCTUnwrap(source["containerID"] as? String), title: try XCTUnwrap(source["title"] as? String), nativeType: try XCTUnwrap(source["nativeType"] as? String))
++        let rows = try XCTUnwrap(value["records"] as? [[String: Any]])
++        let records = try rows.map { try SystemContactImport.Record(identifier: XCTUnwrap($0["identifier"] as? String), title: XCTUnwrap($0["title"] as? String),
++            fields: XCTUnwrap($0["fields"] as? [String: Any]), failure: $0["failure"] as? String) }
++        return try SystemAccountSyncProjection.contacts(.init(source: native, records: records), displayTimeZone: "Europe/Berlin")
++    }
++    private func reminders() throws -> Sync.Snapshot {
++        let value = try fixture("system-reminder-copy"), source = try XCTUnwrap(value["source"] as? [String: Any])
++        let native = SystemReminderImport.Source(sourceUID: try XCTUnwrap(source["sourceUID"] as? String), calendarID: try XCTUnwrap(source["calendarID"] as? String),
++            title: try XCTUnwrap(source["title"] as? String), parentUID: try XCTUnwrap(source["parentUID"] as? String), parentTitle: try XCTUnwrap(source["parentTitle"] as? String),
++            parentType: try XCTUnwrap(source["parentType"] as? String), nativeType: try XCTUnwrap(source["nativeType"] as? String), readOnly: false, permission: "authorized")
++        let rows = try XCTUnwrap(value["records"] as? [[String: Any]])
++        let records = try rows.map { try SystemReminderImport.Record(identifier: XCTUnwrap($0["identifier"] as? String), fields: XCTUnwrap($0["fields"] as? [String: Any]), failure: nil) }
++        return try SystemAccountSyncProjection.reminders(.init(source: native, records: records), context: context(), displayTimeZone: "Europe/Berlin")
++    }
++    private func events(identifier: String = "event-one") throws -> Sync.Snapshot {
++        let native = try SystemSourceSnapshot.Source(uid: SystemSourcePolicy.uid(.events, "calendar-one"), kind: .events, title: "Selected calendar",
++            parentUID: "macos-account:" + Data("account-one".utf8).base64EncodedString(), parentTitle: "Selected account", parentType: "source:2",
++            nativeType: "calendar:2", permission: "authorized", readOnly: false)
++        let fields: [String: Any] = ["title": "Review native event", "notes": "Native note", "location": "Office",
++            "start": 1_795_770_000.0, "end": 1_795_773_600.0, "allDay": false, "timeZone": "Europe/Berlin",
++            "externalIdentifier": "provider-event-one", "url": NSNull(), "recurring": false, "isDetached": false,
++            "occurrenceDate": NSNull(), "modified": 1_795_000_000.0, "created": 1_790_000_000.0,
++            "status": 1, "availability": 0, "recurrenceRules": [[String: Any]](), "alarms": [[String: Any]](),
++            "attendeeCount": 0, "hasOrganizer": false, "metadataIncomplete": ["provider-opaque-fields"]]
++        return try SystemAccountSyncProjection.events(.init(source: native,
++            scope: .boundedWindow(start: Date(timeIntervalSince1970: 1_767_225_600), end: Date(timeIntervalSince1970: 1_798_761_600)),
++            records: [.init(source: native, identifier: identifier, fields: fields)]), context: context(), displayTimeZone: "Europe/Berlin")
++    }
++    private func adopted(_ snapshot: Sync.Snapshot) throws -> Sync.Finalized {
++        try Sync.prepare(snapshot: snapshot, currentBook: book(), baseline: nil, context: context()).finalize(readbacks: [])
++    }
++    private func edit(_ book: [String: Any], source: Sync.Source, values: [String: Any]) throws -> [String: Any] {
++        var value = book, rows = try XCTUnwrap(value[source.collection] as? [[String: Any]])
++        rows[0].merge(values) { _, new in new }; value[source.collection] = rows; return value
++    }
++    private func remote(_ snapshot: Sync.Snapshot, values: [String: Any]) throws -> Sync.Snapshot {
++        let record = try XCTUnwrap(snapshot.records.first)
++        var fields = record.nativeFields; fields.merge(values) { _, new in new }
++        return try Sync.Snapshot(source: snapshot.source, records: [SystemAccountSyncProjection.reproject(record: record, nativeFields: fields, source: snapshot.source, context: context())])
++    }
++    private func plan(_ snapshot: Sync.Snapshot, _ state: Sync.Finalized, changes: [String: Any] = [:]) throws -> Sync.Plan {
++        try Sync.prepare(snapshot: snapshot, currentBook: edit(state.candidateBook, source: snapshot.source, values: changes), baseline: state.baseline, context: context())
++    }
++    private func row(_ book: [String: Any], source: Sync.Source) throws -> [String: Any] { try XCTUnwrap((book[source.collection] as? [[String: Any]])?.first) }
++    private func equal(_ left: Any, _ right: Any, file: StaticString = #filePath, line: UInt = #line) throws {
++        XCTAssertEqual(try DAVSyncBaseline.canonicalJSON(left), try DAVSyncBaseline.canonicalJSON(right), file: file, line: line)
++    }
++    private func acknowledgement(_ operation: Sync.Operation, source: Sync.Source) throws -> Sync.Record {
++        var fields = operation.before.nativeFields; fields.merge(operation.nativePatch) { _, new in new }
++        if source.kind != .contacts { fields["modified"] = 1_796_000_000.0 }
++        if let notes = operation.nativePatch["notes"] as? String, source.kind == .reminders { fields["hasNotes"] = !notes.isEmpty }
++        if let completed = operation.nativePatch["completed"] as? Bool { fields["completionDate"] = completed ? 1_796_000_000.0 as Any : NSNull() }
++        return try SystemAccountSyncProjection.reproject(record: operation.before, nativeFields: fields, source: source, context: context())
++    }
++
++    func testAllThreeProjectionsAreStableAndInitialBindingOnlyCreatesLocalUUIDs() throws {
++        for (first, second) in [(try events(), try events()), (try reminders(), try reminders()), (try contacts(), try contacts())] {
++            try equal(first.payload, second.payload)
++            let state = try adopted(first), item = try row(state.candidateBook, source: first.source)
++            XCTAssertNotNil(UUID(uuidString: try XCTUnwrap(item["id"] as? String)))
++            XCTAssertNotNil(UUID(uuidString: try XCTUnwrap(item["uid"] as? String)))
++            XCTAssertNotEqual(item["id"] as? String, first.records[0].identifier)
++            XCTAssertEqual(state.baseline.entries.count, 1)
++            let unchanged = try plan(second, state)
++            XCTAssertTrue(unchanged.operations.isEmpty); XCTAssertTrue(unchanged.conflicts.isEmpty)
++            try equal(unchanged.candidateBook["futureRoot"]!, book()["futureRoot"]!)
++        }
++    }
++    func testPassiveCopiesAndSameNamesNeverBecomeWriteAuthority() throws {
++        let source = try contacts()
++        var previous = book(), copy = source.records[0].canonicalRecord
++        copy["id"] = "old-independent-copy"; copy["uid"] = "old-independent-uid"; copy["notiz"] = "Keep my note"
++        previous["kontakte"] = [copy]
++        let plan = try Sync.prepare(snapshot: source, currentBook: previous, baseline: nil, context: context())
++        let rows = try XCTUnwrap(plan.candidateBook["kontakte"] as? [[String: Any]])
++        XCTAssertEqual(rows.count, 2); try equal(rows[0], copy)
++        XCTAssertTrue(plan.operations.isEmpty); XCTAssertNotEqual(plan.nextBaseline.entries[0].localID, "old-independent-copy")
++    }
++    func testEachProviderPullsAChangedSupportedField() throws {
++        for (source, native, local) in [(try events(), "title", "titel"), (try reminders(), "title", "titel"), (try contacts(), "givenName", "vorname")] {
++            let state = try adopted(source), changed = try remote(source, values: [native: "Changed remotely"])
++            let result = try plan(changed, state)
++            XCTAssertTrue(result.operations.isEmpty); XCTAssertTrue(result.conflicts.isEmpty)
++            XCTAssertEqual(try row(result.candidateBook, source: source.source)[local] as? String, "Changed remotely")
++        }
++    }
++    func testEachProviderPushesAChangedSupportedFieldAndNeedsReadback() throws {
++        for (source, native, local) in [(try events(), "title", "titel"), (try reminders(), "title", "titel"), (try contacts(), "givenName", "vorname")] {
++            let state = try adopted(source), changed = try plan(source, state, changes: [local: "Changed locally"])
++            XCTAssertEqual(changed.operations.count, 1); XCTAssertTrue(changed.conflicts.isEmpty)
++            let operation = try XCTUnwrap(changed.operations.first)
++            XCTAssertEqual(operation.nativePatch[native] as? String, "Changed locally")
++            XCTAssertThrowsError(try changed.finalize(readbacks: []))
++            let readback = try acknowledgement(operation, source: source.source), final = try changed.finalize(readbacks: [readback])
++            XCTAssertEqual(try row(final.candidateBook, source: source.source)[local] as? String, "Changed locally")
++            let after = try Sync.prepare(snapshot: .init(source: source.source, records: [readback]), currentBook: final.candidateBook, baseline: final.baseline, context: context())
++            XCTAssertTrue(after.operations.isEmpty); XCTAssertTrue(after.conflicts.isEmpty)
++        }
++    }
++    func testDisjointChangesMergeButSameFieldConflictLeavesBothAndBaselineUntouched() throws {
++        let source = try reminders(), state = try adopted(source)
++        let changed = try remote(source, values: ["notes": "Remote note", "hasNotes": true])
++        let merge = try plan(changed, state, changes: ["titel": "Local title"])
++        XCTAssertEqual(merge.operations.count, 1); XCTAssertTrue(merge.conflicts.isEmpty)
++        XCTAssertEqual(try row(merge.candidateBook, source: source.source)["notiz"] as? String, "Remote note")
++        let conflict = try plan(try remote(source, values: ["title": "Remote title"]), state, changes: ["titel": "Local title"])
++        XCTAssertTrue(conflict.operations.isEmpty); XCTAssertEqual(conflict.conflicts.count, 1)
++        XCTAssertEqual(try row(conflict.candidateBook, source: source.source)["titel"] as? String, "Local title")
++        try equal(conflict.nextBaseline.payload, state.baseline.payload)
++    }
++    func testEqualChangesConvergeWithoutWriting() throws {
++        let source = try reminders(), state = try adopted(source), remote = try remote(source, values: ["title": "Same new title"])
++        let result = try plan(remote, state, changes: ["titel": "Same new title"])
++        XCTAssertTrue(result.operations.isEmpty); XCTAssertTrue(result.conflicts.isEmpty)
++    }
++    func testMissingNativeAndLocalRowsNeverDeleteOrRecreate() throws {
++        let source = try events(), state = try adopted(source)
++        let empty = try Sync.Snapshot(source: source.source, records: [])
++        let missingRemote = try plan(empty, state)
++        XCTAssertTrue(missingRemote.operations.isEmpty); XCTAssertEqual(missingRemote.conflicts.count, 1)
++        try equal(missingRemote.candidateBook, state.candidateBook); try equal(missingRemote.nextBaseline.payload, state.baseline.payload)
++        var missing = state.candidateBook; missing["termine"] = [[String: Any]]()
++        let missingLocal = try Sync.prepare(snapshot: source, currentBook: missing, baseline: state.baseline, context: context())
++        XCTAssertTrue(missingLocal.operations.isEmpty); XCTAssertEqual(missingLocal.conflicts.count, 1)
++        XCTAssertTrue(try XCTUnwrap(missingLocal.candidateBook["termine"] as? [[String: Any]]).isEmpty)
++    }
++    func testSourceChangeAndAmbiguousLocalIdentityFailClosed() throws {
++        let source = try contacts(), state = try adopted(source)
++        let other = try Sync.Source(kind: .contacts, sourceUID: source.source.sourceUID, title: "Renamed container", metadata: source.source.metadata,
++            scope: source.source.scope, displayTimeZone: source.source.displayTimeZone)
++        XCTAssertThrowsError(try Sync.prepare(snapshot: .init(source: other, records: []), currentBook: state.candidateBook, baseline: state.baseline, context: context()))
++        var duplicate = state.candidateBook; let original = try row(duplicate, source: source.source); duplicate["kontakte"] = [original, original]
++        XCTAssertThrowsError(try Sync.prepare(snapshot: source, currentBook: duplicate, baseline: state.baseline, context: context()))
++    }
++    func testOpaqueNativeIdentifiersRemainByteDistinct() throws {
++        let first = try events(identifier: "caf\u{e9}"), second = try events(identifier: "cafe\u{301}")
++        let snapshot = try Sync.Snapshot(source: first.source, records: [first.records[0], second.records[0]])
++        let initial = try Sync.prepare(snapshot: snapshot, currentBook: book(), baseline: nil, context: context())
++        XCTAssertEqual(initial.nextBaseline.entries.count, 2)
++        XCTAssertNotEqual(initial.nextBaseline.entries[0].localID, initial.nextBaseline.entries[1].localID)
++    }
++    func testEventWindowBoundCannotClaimAbsenceOrOverFourYearCompleteness() throws {
++        let source = try events()
++        XCTAssertThrowsError(try Sync.Source(kind: .events, sourceUID: source.source.sourceUID, title: source.source.title,
++            metadata: source.source.metadata, scope: ["start": 1_767_225_600.0, "end": 1_767_225_600.0 + 367 * 86400], displayTimeZone: "Europe/Berlin"))
++        let narrower = try Sync.Source(kind: .events, sourceUID: source.source.sourceUID, title: source.source.title,
++            metadata: source.source.metadata, scope: ["start": 1_767_225_600.0, "end": 1_767_225_600.0 + 86400], displayTimeZone: "Europe/Berlin")
++        XCTAssertEqual(narrower.fingerprint, source.source.fingerprint)
++        let state = try adopted(source), result = try plan(.init(source: narrower, records: []), state)
++        XCTAssertEqual(result.conflicts.count, 1); XCTAssertTrue(result.operations.isEmpty)
++    }
++    func testContactValuesPreserveLabelsIdentifiersAndHiddenAddressFields() throws {
++        let source = try contacts(), record = source.records[0], state = try adopted(source)
++        var phones = try XCTUnwrap(record.canonicalRecord["telefone"] as? [[String: Any]])
++        phones[0]["wert"] = "+44 20 7946 0999"
++        let result = try plan(source, state, changes: ["telefone": phones]), operation = try XCTUnwrap(result.operations.first)
++        let changed = try XCTUnwrap(operation.nativePatch["phoneNumbers"] as? [[String: Any]]), original = try XCTUnwrap(record.nativeFields["phoneNumbers"] as? [[String: Any]])
++        XCTAssertEqual(changed[0]["identifier"] as? String, original[0]["identifier"] as? String)
++        XCTAssertEqual(changed[0]["label"] as? String, original[0]["label"] as? String)
++        try equal(Array(changed.dropFirst()), Array(original.dropFirst()))
++        var addresses = try XCTUnwrap(record.canonicalRecord["anschriften"] as? [[String: Any]])
++        addresses[0]["strasse"] = "Changed street"
++        let address = try XCTUnwrap(plan(source, state, changes: ["anschriften": addresses]).operations.first)
++        let actual = try XCTUnwrap((address.nativePatch["postalAddresses"] as? [[String: Any]])?[0]["value"] as? [String: Any])
++        XCTAssertEqual(actual["subLocality"] as? String, "St James"); XCTAssertEqual(actual["isoCountryCode"] as? String, "GB")
++        phones.append(phones[0])
++        let unsupported = try plan(source, state, changes: ["telefone": phones])
++        XCTAssertTrue(unsupported.operations.isEmpty); XCTAssertEqual(unsupported.conflicts.count, 1)
++    }
++    func testContactCaseOnlyProjectionDoesNotWriteAndYear1604IsExplicit() throws {
++        let source = try contacts(), state = try adopted(source)
++        let emails = try XCTUnwrap(source.records[0].canonicalRecord["emailEintraege"] as? [[String: Any]])
++        XCTAssertEqual(emails[0]["wert"] as? String, "ada@example.test")
++        XCTAssertTrue(try plan(source, state).operations.isEmpty)
++        let changed = try plan(source, state, changes: ["geburtstag": "1604-02-29", "geburtstagJahrUnbekannt": false])
++        let birthday = try XCTUnwrap(changed.operations.first?.nativePatch["birthday"] as? [String: Any])
++        XCTAssertEqual(birthday["year"] as? Int, 1604)
++        let invalid = try plan(source, state, changes: ["geburtstag": "1604-02-29", "geburtstagJahrUnbekannt": true])
++        XCTAssertTrue(invalid.operations.isEmpty); XCTAssertEqual(invalid.conflicts.count, 1)
++    }
++    func testReadbackAllowsOnlyHarmlessComponentDefaultsNeverTimezoneOrYearInvention() throws {
++        let expected: [String: Any] = ["calendar": "gregorian", "month": 2, "day": 29]
++        XCTAssertTrue(try Sync.matchesNativeField("birthday", expected: expected, actual: expected.merging(["calendarFirstWeekday": 1, "calendarMinimumDaysInFirstWeek": 1, "calendarTimeZone": "GMT"]) { _, new in new }))
++        XCTAssertFalse(try Sync.matchesNativeField("birthday", expected: expected, actual: expected.merging(["year": 1604]) { _, new in new }))
++        XCTAssertFalse(try Sync.matchesNativeField("dueComponents", expected: expected, actual: expected.merging(["timeZone": "UTC"]) { _, new in new }))
++    }
++    func testReminderCompletionAndPriorityAreActualFieldWrites() throws {
++        let source = try reminders(), state = try adopted(source), result = try plan(source, state, changes: ["erledigt": true, "prio": 1])
++        let operation = try XCTUnwrap(result.operations.first)
++        XCTAssertEqual(operation.nativePatch["completed"] as? Bool, true); XCTAssertEqual(operation.nativePatch["priority"] as? Int, 1)
++        XCTAssertNil(operation.nativePatch["dueComponents"])
++        XCTAssertNoThrow(try result.finalize(readbacks: [acknowledgement(operation, source: source.source)]))
++    }
++    func testFloatingReminderDSTGapAndDateOnlyStayCivil() throws {
++        let original = try reminders()
++        let fields: [String: Any] = ["calendar": "gregorian", "calendarTimeZone": "Pacific/Auckland", "year": 2026, "month": 3, "day": 29, "hour": 2, "minute": 30, "second": 0]
++        let source = try remote(original, values: ["startComponents": fields, "dueComponents": NSNull()]), state = try adopted(source)
++        let result = try plan(source, state, changes: ["titel": "A floating gap is not a UTC instant"])
++        XCTAssertEqual(result.operations.count, 1); XCTAssertNil(result.operations.first?.nativePatch["startComponents"])
++        let dateOnly = try remote(original, values: ["startComponents": NSNull(), "dueComponents": ["calendar": "gregorian", "year": 2028, "month": 2, "day": 29]])
++        let dateState = try adopted(dateOnly), changed = try plan(dateOnly, dateState, changes: ["notiz": "Leap date remains a date"])
++        XCTAssertEqual(changed.operations.count, 1); XCTAssertNil(changed.operations.first?.nativePatch["dueComponents"])
++    }
++    func testCalendarEditorEquivalentRawOrderDoesNotInventADateWrite() throws {
++        let source = try events(), state = try adopted(source)
++        var lines = try XCTUnwrap(source.records[0].canonicalRecord["icsRoundtrip"] as? [String])
++        let location = lines.filter { $0.hasPrefix("LOCATION:") }; lines.removeAll { $0.hasPrefix("LOCATION:") }; lines += location
++        let result = try plan(source, state, changes: ["titel": "Changed by real editor shape", "icsRoundtrip": lines])
++        XCTAssertEqual(result.operations.count, 1)
++        XCTAssertEqual(result.operations.first?.changedGroups, ["title"])
++    }
++    func testIncomingSecondsChangeIsNotHiddenByMinutePrecision() throws {
++        let source = try events(), state = try adopted(source)
++        let changed = try remote(source, values: ["start": 1_795_770_017.0, "end": 1_795_773_619.0])
++        let result = try plan(changed, state)
++        XCTAssertTrue(result.operations.isEmpty); XCTAssertTrue(result.conflicts.isEmpty)
++        let after = try row(result.candidateBook, source: source.source)
++        XCTAssertEqual(after["zeit"] as? String, "10:00")
++        XCTAssertTrue(try XCTUnwrap(after["icsRoundtrip"] as? [String]).contains("DTSTART:20261127T090017Z"))
++        XCTAssertTrue(try XCTUnwrap(after["icsRoundtrip"] as? [String]).contains("DTEND:20261127T100019Z"))
++    }
++    func testPartialEventTimeEditPreservesUntouchedNativeSeconds() throws {
++        let source = try remote(events(), values: ["start": 1_795_770_017.0, "end": 1_795_773_619.0]), state = try adopted(source)
++        var lines = try XCTUnwrap(source.records[0].canonicalRecord["icsRoundtrip"] as? [String])
++        lines = lines.map { $0.hasPrefix("DTEND:") ? "DTEND:20261127T110000Z" : $0 }
++        let result = try plan(source, state, changes: ["endZeit": "12:00", "icsRoundtrip": lines])
++        let operation = try XCTUnwrap(result.operations.first)
++        XCTAssertEqual(operation.nativePatch["start"] as? Double, 1_795_770_017)
++        XCTAssertEqual(operation.nativePatch["end"] as? Double, 1_795_777_200)
++        XCTAssertNoThrow(try result.finalize(readbacks: [acknowledgement(operation, source: source.source)]))
++    }
++    func testReminderEditorUTCRewriteRetainsExplicitNativeComponentZone() throws {
++        let base = try reminders()
++        var start = try XCTUnwrap(base.records[0].nativeFields["startComponents"] as? [String: Any])
++        var due = try XCTUnwrap(base.records[0].nativeFields["dueComponents"] as? [String: Any])
++        start["timeZone"] = "Europe/Berlin"; due["timeZone"] = "Europe/Berlin"
++        let source = try remote(base, values: ["startComponents": start, "dueComponents": due]), state = try adopted(source)
++        var lines = try XCTUnwrap(source.records[0].canonicalRecord["icsRoundtrip"] as? [String])
++        lines = lines.map { $0.hasPrefix("DTSTART") ? "DTSTART:20261127T090500Z" : $0 }
++        let result = try plan(source, state, changes: ["startZeit": "10:05", "icsRoundtrip": lines])
++        let component = try XCTUnwrap(result.operations.first?.nativePatch["startComponents"] as? [String: Any])
++        XCTAssertEqual(component["hour"] as? Int, 10); XCTAssertEqual(component["timeZone"] as? String, "Europe/Berlin")
++    }
++    func testNewReminderRootsAppendAfterExistingRootsWithoutMovingChildren() throws {
++        let source = try reminders(), first = source.records[0]
++        let second = try Sync.Record(identifier: "second-reminder", source: source.source, canonicalRecord: first.canonicalRecord, nativeFields: first.nativeFields)
++        var initial = book()
++        let original: [[String: Any]] = [["id": "root-id", "uid": "root-uid", "titel": "Existing root", "elternUid": "", "reihenfolge": 0],
++            ["id": "child-id", "uid": "child-uid", "titel": "Existing child", "elternUid": "root-uid", "reihenfolge": 0]]
++        initial["aufgaben"] = original
++        let result = try Sync.prepare(snapshot: .init(source: source.source, records: [first, second]), currentBook: initial, baseline: nil, context: context())
++        let rows = try XCTUnwrap(result.candidateBook["aufgaben"] as? [[String: Any]])
++        try equal(Array(rows.prefix(2)), original)
++        XCTAssertEqual(rows[2]["reihenfolge"] as? Int, 1); XCTAssertEqual(rows[3]["reihenfolge"] as? Int, 2)
++    }
++    func testUnexpectedReadbackOrRecreatedEventCannotAdvanceBaseline() throws {
++        let source = try events(), state = try adopted(source), result = try plan(source, state, changes: ["titel": "Local change"])
++        let operation = try XCTUnwrap(result.operations.first), accepted = try acknowledgement(operation, source: source.source)
++        var fields = accepted.nativeFields; fields["created"] = 1_796_000_000.0
++        let recreated = try SystemAccountSyncProjection.reproject(record: accepted, nativeFields: fields, source: source.source, context: context())
++        XCTAssertThrowsError(try result.finalize(readbacks: [recreated]))
++        let newIdentity = try Sync.Record(identifier: "recreated-event", source: source.source, canonicalRecord: accepted.canonicalRecord, nativeFields: accepted.nativeFields)
++        XCTAssertThrowsError(try operation.validateReadback(newIdentity))
++        fields = accepted.nativeFields; fields["notes"] = "Concurrent external edit"
++        let raced = try SystemAccountSyncProjection.reproject(record: accepted, nativeFields: fields, source: source.source, context: context())
++        XCTAssertThrowsError(try result.finalize(readbacks: [raced]))
++        XCTAssertThrowsError(try result.finalize(readbacks: [accepted, accepted]))
++    }
++    func testContactRaceOutcomeIsNotAnAcknowledgement() throws {
++        let source = try contacts(), state = try adopted(source), result = try plan(source, state, changes: ["vorname": "Local name"])
++        let operation = try XCTUnwrap(result.operations.first), accepted = try acknowledgement(operation, source: source.source)
++        var fields = accepted.nativeFields; fields["jobTitle"] = "External simultaneous change"
++        let raced = try SystemAccountSyncProjection.reproject(record: accepted, nativeFields: fields, source: source.source, context: context())
++        XCTAssertThrowsError(try result.finalize(readbacks: [raced]))
++    }
++    func testAuthenticatedJournalCanRecoverFrozenPlanAndAllAcknowledgementsWithoutWrites() throws {
++        let source = try reminders(), state = try adopted(source), result = try plan(source, state, changes: ["titel": "Journaled title"])
++        let frozen = try Sync.Plan(payload: Document.object(Document.encode(result.payload)))
++        let original = try XCTUnwrap(result.operations.first), read = try acknowledgement(original, source: source.source)
++        let decoded = try Sync.Record(payload: Document.object(Document.encode(read.payload)))
++        try equal(try frozen.finalize(readbacks: [decoded]).baseline.payload, try result.finalize(readbacks: [read]).baseline.payload)
++        var broken = read.payload; broken["revision"] = String(repeating: "0", count: 64)
++        XCTAssertThrowsError(try Sync.Record(payload: broken))
++        var malformed = result.payload; malformed["delete"] = true
++        XCTAssertThrowsError(try Sync.Plan(payload: malformed))
++    }
++    func testNormalizedObjectDefaultsBecomeLocalBaselineOnlyAfterExactSupersetProof() throws {
++        let source = try reminders(), original = source.records[0]
++        var canonical = original.canonicalRecord; canonical.removeValue(forKey: "erinnerungsMinute")
++        let sparse = try Sync.Snapshot(source: source.source, records: [Sync.Record(identifier: original.identifier, source: source.source,
++            canonicalRecord: canonical, nativeFields: original.nativeFields)])
++        let result = try adopted(sparse)
++        let normalized = try edit(result.candidateBook, source: source.source, values: ["erinnerungsMinute": 480])
++        let baseline = try result.normalizedBaseline(in: normalized, source: source.source)
++        XCTAssertEqual(baseline.entries[0].localFields["erinnerungsMinute"] as? Int, 480)
++        let next = try Sync.prepare(snapshot: sparse, currentBook: normalized, baseline: baseline, context: context())
++        XCTAssertTrue(next.operations.isEmpty); XCTAssertTrue(next.conflicts.isEmpty)
++        let changed = try edit(normalized, source: source.source, values: ["titel": "Unexpected normalization change"])
++        XCTAssertThrowsError(try result.normalizedBaseline(in: changed, source: source.source))
++    }
++    func testNormalizedCandidateCannotAdvanceAConflictBaseline() throws {
++        let source = try reminders(), state = try adopted(source)
++        let result = try plan(remote(source, values: ["title": "Remote edit"]), state, changes: ["titel": "Local edit"])
++        let finalized = try result.finalize(readbacks: [])
++        let normalized = try edit(finalized.candidateBook, source: source.source, values: ["ordinaryAddedDefault": ""])
++        let baseline = try finalized.normalizedBaseline(in: normalized, source: source.source)
++        try equal(baseline.payload, state.baseline.payload)
++        let next = try Sync.prepare(snapshot: remote(source, values: ["title": "Remote edit"]), currentBook: normalized, baseline: baseline, context: context())
++        XCTAssertEqual(next.conflicts.count, 1); XCTAssertTrue(next.operations.isEmpty)
++    }
++    func testOptionalFreshSwiftFixtureExport() throws {
++        guard let path = ProcessInfo.processInfo.environment["MACOS_BETA_SYSTEM_SYNC_FIXTURE_OUTPUT"], !path.isEmpty else { return }
++        let snapshots = try [events(), reminders(), contacts()]
++        let result: [String: Any] = ["version": 1, "provenance": "fresh-swift-core-synthetic-inputs",
++            "snapshots": snapshots.map(\.payload)]
++        try Data(Document.encode(result).utf8).write(to: URL(fileURLWithPath: path), options: .atomic)
++    }
++}
+diff --git a/contracts/macos-786-native-system-sync.md b/contracts/macos-786-native-system-sync.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..17bb2585f16a891ef1b2d273549bd7f6720b37da
+--- /dev/null
++++ b/contracts/macos-786-native-system-sync.md
+@@ -0,0 +1,244 @@
++# #786 – nativer Feldabgleich für macOS-Systemkonten
++
++## Zweck und Umfang
++
++Dieser Patch ergänzt die nativen Provider und den reinen Swift-Core für einen
++bewusst freigegebenen Zweiwege-Feldabgleich. Er wird gemeinsam mit dem getrennten
++Host-/UI-/Ledger-Patch für #786 übernommen. Ein Providerpatch allein ist keine
++freigegebene Synchronisationsoberfläche.
++
++Die erste Einrichtung bindet genau eine native Quelle an das gespeicherte Buch.
++Unterstützte native Einträge erhalten neue lokale UUIDs und eine private
++Baseline. Spätere Läufe erkennen Änderungen gegenüber dieser Baseline auf beiden
++Seiten, übernehmen einseitige Änderungen und behalten echte Konflikte. Die
++bekannten Import-/Kopiefelder bleiben passive Herkunft; sie erteilen keine
++Schreibberechtigung und werden nicht zum nachträglichen Zuordnen vorhandener
++Kopien verwendet. Gleichheit von Namen, Telefonnummern oder E-Mail-Adressen
++führt zu keiner Verknüpfung.
++
++**Dies ist keine vollständige Linux-Parität.** Es gibt keine native Neuanlage,
++keine native Löschung, keine automatische Übertragung beliebiger lokaler neuer
++Einträge und keinen Hintergrunddienst. Die Benutzeroberfläche muss die
++nachfolgenden Feldgrenzen sichtbar nennen. Manuelle Abgleiche nutzen die einmal
++erteilte native Berechtigung; neue Quellen-/Buchidentitäten benötigen eine neue
++Bindung. Widerruf und unverstandene Journalzustände liegen beim Host.
++
++| Quelle | Änderungen in beide Richtungen | Bewusste Grenzen |
++| --- | --- | --- |
++| EventKit-Kalender | Titel, Klartextnotiz, Ort, Beginn/Ende und Ganztagsdatum für verlustfrei darstellbare Einzeltermine | Keine Serien/Ausnahmen, Teilnehmer/Organisatoren oder Alarme; kein Status-Schreiben. Anzeigezone ist gebunden. Mehrdeutige bzw. nicht existierende explizite Ortszeiten werden zurückgestellt. |
++| EventKit-Erinnerungsliste | Titel, Klartextnotiz, Erledigtstatus, unterstützte Start-/Fälligkeitsdaten und drei sichtbare Prioritätsgruppen | Keine Serien oder Alarme; Unteraufgaben, Tags, Anhänge, Zuweisungen, Rich Text und Providerfelder fehlen in der öffentlichen Projektion. Native Priorität wird nur bei einer bewussten lokalen Prioritätsänderung auf 1/5/9 gesetzt; sonst bleibt z. B. 0 erhalten. |
++| Contacts-Container | Vorname, Nachname, Firma, Geburtstag sowie Werte bestehender Telefon-/E-Mail-Einträge und Straße/Ort/Region/PLZ bestehender Anschriften | Keine Änderung der Mehrfachwert-Anzahl, Labels oder Länderzuordnung. Native Mehrfachwertkennungen, versteckte Anschriftenteile, ursprüngliche Namensteile und sonstige nicht bearbeitete Felder bleiben erhalten. Formatierter Anzeigename, Fotos und zusätzliche vCard-Felder werden nur eingehend übernommen; lokale Änderungen daran führen zum Konflikt. Das entitlementgeschützte Notizfeld wird nicht angefordert. |
++
++Geburtstage behalten einen ausdrücklich vorhandenen Jahrgang 1604. Jahrfreie
++Geburtstage bleiben jahrfrei, auch beim nativen Readback. Die bestehende
++`contact-only`-Semantik verhindert automatische Jahrestage. Für E-Mail-Adressen
++wird dieselbe ausdrücklich definierte Kleinschreibung wie im etablierten
++Kontaktkopiepfad verwendet; die originale Schreibweise bleibt in der privaten
++Baseline. Eine unveränderte kleingeschriebene lokale Projektion löst keinen
++nativen Write aus.
++
++## Quellen, Fenster und Identitäten
++
++`SystemAccountSync.Source` bindet Art, opaque Source-UID, öffentliche
++Konto-/Containerdaten, Schreibvertrag und Anzeigezone in einen SHA-256-Beleg.
++Native Eintragskennungen werden mit `OpaqueUTF8Identity` bzw. bytegenau verglichen.
++Unicode-kanonische Gleichheit ist keine Identitätsgleichheit. Einträge aus anderen
++Kalendern, Listen oder Containern dürfen nicht an die Stelle der freigegebenen
++Quelle treten. Kontakte werden weiterhin nicht vereinheitlicht (`unifyResults =
++false`); der Writer speichert den frisch gelesenen einzelnen `CNMutableContact`.
++
++Ein Lauf enthält höchstens 100 Einträge einschließlich Ausschlüssen; die
++Kalenderabfrage ist auf höchstens 366 verstrichene Tage begrenzt. Der gesamte
++Core-Plan einschließlich eingefrorenem Buch ist auf 32 MiB begrenzt. Der Host
++muss zusätzlich die Kapazität seines verschlüsselten Journals einschließlich
++Readbacks und endgültigem Kandidaten vor Writes prüfen. Ein größeres Quellfenster
++oder eine größere Liste wird abgelehnt, nicht abgeschnitten.
++
++Ein kleineres Ereignisfenster ist weiterhin eine beschränkte Beobachtung.
++Fehlende, verschobene, ausgeschlossene oder außerhalb des Fensters liegende
++gebundene Datensätze erzeugen einen wartenden Konflikt. Sie werden weder gelöscht
++noch als neue native Einträge wieder angelegt. Dasselbe gilt für lokale Einträge,
++die nicht mehr im aktiven Array stehen, etwa nach Verschieben in den Papierkorb.
++Quellen-/Berechtigungsfehler verhindern den Lauf vollständig.
++
++## Transaktionsschnittstelle
++
++Der Core stellt folgende typisierte Bausteine für den Host zur Verfügung:
++
++1. `SystemAccounts.syncSnapshot(sourceUID:start:end:context:displayTimeZone:)`
++   liest genau eine Quelle über die bestehende serielle Native-Store-Warteschlange.
++2. `SystemAccountSync.prepare(snapshot:currentBook:baseline:context:)` erzeugt
++   einen eingefrorenen Kandidaten, einzelne Feldoperationen, Konflikte,
++   Ausschlüsse und eine mögliche nächste Baseline. Keine dieser Strukturen ist
++   selbst eine Freigabe.
++3. Der Host prüft vor einem Write die tatsächliche UI-Normalisierung und schreibt
++   einen dauerhaften Intent in sein separates, verschlüsseltes Journal.
++4. `SystemAccounts.applySync(operation:source:context:)` liest Quelle und Eintrag
++   unmittelbar neu, vergleicht die Revision der tatsächlich serialisierten
++   Felder, berechnet den gespeicherten Feldpatch unabhängig erneut und schreibt
++   nur die betreffenden Eigenschaften des vorhandenen nativen Objekts.
++5. Erst ein neu gelesener Datensatz mit derselben Identität und bestätigten
++   Werten ist ein Readback. `Operation.validateReadback` prüft auch die übrigen
++   gelesenen Felder. Fremde Änderungen werden nicht still als Erfolg behandelt.
++6. `Plan.finalize(readbacks:)` setzt bestätigte Reprojektionen in den Kandidaten
++   ein. Der Host prüft erneut die Normalisierung, journalisiert den exakten
++   Kandidaten, übernimmt ihn in die UI und bestätigt die Baseline erst mit
++   unabhängig gelesenem, tatsächlich gespeichertem Buchinhalt und passendem
++   Buch-Epoch. `Finalized.normalizedBaseline(in:source:)` bindet zulässige
++   Normalizer-Defaults erst nach erneuter strikter Supersetprüfung. Zurückgestellte
++   Konflikt-/Missing-Baselines werden dabei ausdrücklich nicht fortgeschrieben.
++   Eine WebView-Save-ACK allein genügt nicht.
++
++`Source`, `Record`, `Baseline`, `Operation` und `Plan` haben versionierte
++JSON-Payload-/Decoder-Verträge. Unbekannte Felder, beschädigte Hashes und
++mehrdeutige Kennungen werden abgewiesen. Vollständig bestätigte Writes können
++nach einem Absturz aus dem Journal finalisiert werden, ohne sie zu wiederholen.
++Die Baseline bleibt getrennt von importierbaren Buchdaten.
++
++### Frist und unsicherer Schreibausgang
++
++Eine eigene Deadline-Warteschlange begrenzt die Sync-Fortsetzung auf 20 Sekunden,
++auch wenn eine Apple-API synchron blockiert. Das bedeutet **keinen atomaren
++Abbruch der Apple-Operation**. Die lokale Sperre der tatsächlichen Source-UID
++bleibt bis zum tatsächlichen Ende der nativen Arbeit bestehen. Ein verspätetes
++Ergebnis wird nicht nachträglich an die bereits abgeschlossene Fortsetzung
++geliefert. Der Host behält das ungeklärte Journal und wiederholt keinen Write.
++
++Nur `RejectedBeforeWrite` beweist, dass der Adapter noch keine native Save-API
++aufgerufen hat. Fehler nach Eintritt in `save`/`execute`, eine verlorene Antwort,
++ein abweichender Readback oder ein Identitätswechsel sind ungeklärt. Ein natives
++`reset()` nach einem Fehler entfernt lediglich eventuell noch ungespeicherte
++Store-Änderungen; es ist kein Rollback eines bereits gespeicherten Datensatzes.
++
++Datums-Readbacks dürfen ausschließlich unschädliche zusätzliche
++Kalendermetadaten enthalten. Ein nachträglich eingefügtes Jahr bei einem
++jahrfreien Geburtstag, eine neu eingefügte `DateComponents.timeZone` bei einem
++floating-Datum oder ein neuer Uhrzeitteil bei einem DATE sind keine erlaubten
++Defaults. Bewusst geleerte optionale EventKit-Texte dürfen als `nil` zurückkommen.
++
++## Belegte Apple-API-Grenze
++
++Apple bietet hier keine atomare Compare-and-swap-Bedingung. Der frische Vergleich
++vor dem Write und der anschließende Readback begrenzen Risiken, schließen eine
++gleichzeitige externe Änderung aber nicht atomar aus.
++
++- [EventKit `save(_:span:commit:)`](https://developer.apple.com/documentation/eventkit/ekeventstore/save(_:span:commit:))
++  dokumentiert, dass ein inzwischen gelöschtes Ereignis beim Save als neues
++  Ereignis wieder angelegt werden kann. Identitätswechsel oder ein verändertes
++  Erstellungsdatum dürfen deshalb keinen Baselineabschluss auslösen.
++- [Contacts `CNSaveRequest`](https://developer.apple.com/documentation/contacts/cnsaverequest)
++  beschreibt bei überlappenden bzw. gleichzeitigen Save-Requests, dass die letzte
++  Änderung gewinnt. Ein nicht beobachtbarer Konflikt im Zeitraum zwischen
++  Vergleich und Save lässt sich mit diesem öffentlichen API nicht ausschließen.
++- [Contacts-Framework](https://developer.apple.com/documentation/contacts)
++  beschreibt `mutableCopy()`, `CNSaveRequest.update` und das erneute Lesen nach
++  Store-Änderungen. Der vorhandene nicht vereinheitlichte Originalkontakt wird
++  geändert; es wird kein Ersatzkontakt aus einer Namenssuche gebaut.
++- [CNMutableContact](https://developer.apple.com/documentation/contacts/cnmutablecontact)
++  erlaubt nur die Änderung tatsächlich gelesener Eigenschaften. Der Adapter
++  prüft die geladenen Keys vor Zugriff und fordert das Notizfeld nicht an.
++- [CNLabeledValue.settingValue](https://developer.apple.com/documentation/contacts/cnlabeledvalue/settingvalue(_:))
++  erhält Label und Kennung des vorhandenen Mehrfachwerts; diesen Weg verwendet
++  der neue Writer statt neuer Werte mit erfundenen Kennungen.
++- [EventKit-Änderungsbenachrichtigung](https://developer.apple.com/documentation/eventkit/ekeventstorechangednotification)
++  weist auf veraltete Objekte hin und verlangt erneutes Lesen. Gespeicherte
++  DTO-Revisionen sind keine vollständigen Provider-ETags.
++
++Diese Grenze muss sowohl im nativen Einrichtungsdialog als auch in der
++Codex-Abnahme sichtbar bleiben. Der Patch behauptet keinen atomaren
++Nullverlustschutz gegenüber fremden Apps oder Cloud-Servern.
++
++## Prüfnachweis und Codex-Abnahme
++
++Die hier verfügbare Arbeitsumgebung **„Magnolie-Organizer einrichten“** ist Linux
++x86_64. Swift, `xcrun`, Apple-SDKs, EventKit, Contacts, AppKit und TCC sind dort
++nicht vorhanden. Ein lokaler macOS-Emulator ist nicht nachgewiesen. JSDOM-Tests
++prüfen die echte erzeugte Organizer-UI, emulieren aber keinen Mac.
++
++`SystemAccountSyncTests.swift` bereitet 26 reine Swift-Testmethoden mit synthetischen
++Quellen vor: stabile Revisionen, alle drei Providerprojektionen,
++Erstadoption/Unabhängigkeit früherer Kopien, Updates beider Richtungen,
++gleichzeitige gleiche/verschiedene Änderungen, fehlende Datensätze, Quellwechsel,
++Unicode-Identitäten, Readback-/Recreate-/Kontakt-Race-Abweisung,
++Mehrfachwertidentitäten, Geburtstag 1604/jahrfrei, floating-DST/Schaltjahr,
++Sekundenänderungen trotz Minutenanzeige, partielle Zeitänderungen mit unveränderten
++Sekunden, UTC-Editorzeilen mit ausdrücklich gebundenen Reminder-Komponenten,
++angehängte Aufgabenwurzelränge ohne Veränderung bestehender Kinder,
++Journaldecoder und Wiederaufnahme ohne neue Writes. Diese Tests sind hier
++**weder kompiliert noch ausgeführt**.
++
++Tatsächlich bestand hier der vorhandene vollständige Projektions-/Importlauf
++mit **7/7 Testgruppen in 29,175 Sekunden** (Node 24.22.3 / JSDOM 26.1.0):
++Reproduzierbarkeit, Freeze-/Manipulationserkennung, 109 Host-UI-Assertions,
++118 Geräte-/Importseitenprüfungen, 327 Kalenderkopieprüfungen,
++246 Kontaktkopieprüfungen und 369 Erinnerungskopieprüfungen. Der Lauf verwendet
++die echte erzeugte UI und synthetischen nativen Transport. Er prüft bestehende
++Wege auf Regression, ersetzt aber keine Ausführung des neuen Swift-Cores.
++Der getrennte Host-/UI-Patch enthält den tatsächlichen neuen Transaktionsrunner.
++
++Das vollständige UI-Fixture `system-account-sync-ui.json` ist ausdrücklich
++synthetisch aus den bestehenden Kalender-/Kontakt-/Erinnerungskopie-Fixtures
++abgeleitet. Es ist kein vorgetäuschter Swift-Output. Der optionale XCTest-Export
++`MACOS_BETA_SYSTEM_SYNC_FIXTURE_OUTPUT` erzeugt später aus tatsächlich laufendem
++Swift frische vollständige Snapshots für denselben UI-Abgleich.
++
++Für Codex sind nach Übernahme beider #786-Patches folgende Schritte vorgesehen:
++
++1. Den aktuellen Checkout und den ergänzten manuellen macOS-CI-Quellenbeleg
++   verwenden; keine alten Desktop-Quellen in den aktuellen Mac-Stand restaurieren.
++   `swift test --filter SystemAccountSyncTests` und die neuen Ledger-/Bridge-Tests
++   mit dem tatsächlichen Apple-SDK kompilieren und ausführen. Als Umgebung die
++   tatsächlich vorhandene CI-/Mac-Ausführung angeben, keine private Hardware
++   voraussetzen.
++2. Optional `MACOS_BETA_SYSTEM_SYNC_FIXTURE_OUTPUT` auf eine temporäre Datei setzen,
++   `testOptionalFreshSwiftFixtureExport` ausführen und die frischen
++   `canonicalRecord`-Zeilen durch die echte projizierte UI-Normalisierung schicken.
++   Kein erwarteter Wert darf verändert oder entfernt werden; nur gewöhnliche
++   zusätzliche Objektdefaults sind zulässig.
++3. Für einen echten Providerlauf ausschließlich ausdrücklich eingerichtete
++   synthetische Testquellen verwenden. Voraussetzungen sind eine Umgebung mit
++   funktionsfähigem EventKit/Contacts/TCC und bewusst erteiltem Zugriff. Eine
++   nicht vorhandene Apple-Kontoanmeldung oder nicht verfügbare Testquelle als
++   konkrete fehlende Voraussetzung dokumentieren; keine persönlichen Konten
++   ersatzweise heranziehen.
++4. Je Quelle initial anbinden, extern ein unterstütztes Feld ändern und abgleichen,
++   dann lokal ein anderes unterstütztes Feld ändern und erneut abgleichen. Die
++   native Änderung muss sichtbar und mit gleichem Identifier zurückgelesen sein;
++   ein dritter unveränderter Lauf darf keinen Write erzeugen.
++5. Gleiches Feld auf beiden Seiten ändern: beide Werte und die alte Baseline
++   bleiben erhalten, der Konflikt ist sichtbar. Ein anderer konfliktfreier
++   Datensatz kann im selben Plan weiterlaufen. Ein fehlendes Ereignis außerhalb
++   des Fensters darf weder gelöscht noch wieder angelegt werden.
++6. Native Quelle verschieben/umbenennen, TCC-Zugriff entziehen, Read-only-Container
++   und Identifierwechsel prüfen. Vor-Write-Ablehnung, echte Save-Unsicherheit und
++   nachgelagerte Speicherfehler getrennt protokollieren.
++7. Mit einem kontrollierten Testadapter Save-Erfolg plus verlorene Antwort,
++   Deadline während blockiertem Save, Event-Recreate und Contacts-Race einspeisen.
++   Der Write-Intent muss vor Save dauerhaft sein, ungeklärte Ergebnisse müssen
++   erhalten bleiben, ein zweiter Write darf nicht beginnen. Nach vollständigen
++   Readbacks muss Recovery ohne neue Writes möglich sein. Einen solchen
++   kontrollierten Test nicht als Nachweis eines tatsächlich ausgelösten
++   Cloud-Race ausgeben.
++8. Kontakte: Labels und Mehrfachwertkennungen vor/nach Änderung vergleichen,
++   originale Fotos und nicht angefasste Name-/Adressdetails bytegenau behalten,
++   1604 und `--02-29` getrennt prüfen. Erinnerungen: DATE/floating/gebundene Zeit,
++   DST-Lücke und -Überlappung, erledigt/unerledigt sowie native Priorität 0/1/5/9
++   getrennt prüfen. Kalender: Ganztagsende ist exklusiv, Anzeigezone explizit,
++   normaler/Schaltjahr-/DST-Fall unverändert korrekt.
++
++## Offene Folgearbeit
++
++Native Create/Delete benötigen eigene explizite Intents, neue Identitätsbelege
++und eine Recovery-Strategie für verlorene Erstellungsantworten; die Abwesenheit
++eines gelesenen Datensatzes reicht weiterhin nicht. Serien, Teilnehmer, Alarme,
++zusätzliche Kontaktwerte/Labels, Bilder, komplexere Reminder-Strukturen und
++weitere Providerfelder benötigen eigene verlustfreie Mapper und native Abnahmen.
++Ein automatisch laufender Abgleich braucht zusätzlich einen an Widerruf,
++Verfügbarkeit und Journalzustand gebundenen Scheduler.
++
++Apple Notes ist kein EventKit-/Contacts-Datentyp. Der vorhandene öffentliche
++AppleScript-Anschluss liefert weiterhin ausdrücklich ausgewählte Textkopien.
++Dieser Patch greift nicht auf private Datenbanken zu und behauptet keinen
++bidirektionalen Rich-Text-/Anhangs-/Ordnerabgleich von Notes. Dafür wären ein
++gesonderter belegter öffentlicher Schreibvertrag und eigene Konflikt-/Recovery-
++Tests erforderlich.
+-- 
+2.56.1
+

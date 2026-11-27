@@ -11,6 +11,11 @@ public enum Command: String, CaseIterable {
     case drucken
     case mail, karte, sozial
     case notiz_dateien_importieren
+    case macos_kalender_importieren
+    case macos_apple_notizen_importieren
+    case macos_kontakte_importieren
+    case macos_erinnerungen_importieren
+    case macos_system_sync
     case handbuch_oeffnen
     case `import`
     case bereit, entsperren, speichern, kennwort_setzen
@@ -69,6 +74,9 @@ public struct Request {
             schema["requestId"] = "string"; optional = ["requestId"]
         case .macos_systemzugriff:
             schema.merge(["art": "string", "requestId": "string"]) { _, b in b }
+        case .macos_system_sync:
+            schema.merge(["requestId": "string", "sourceUID": "string", "kind": "string", "action": "string",
+                          "start": "string", "end": "string", "timeZone": "string"]) { _, b in b }
         case .regional_einstellungen: schema["regional"] = "object"
         case .mail:
             schema.merge(["email": "string", "name": "string"]) { _, b in b }
@@ -81,7 +89,9 @@ public struct Request {
         case .drucken:
             schema.merge(["html": "string", "requestId": "string"]) { _, b in b }
             optional = ["requestId"]
-        case .import: schema["art"] = "string"
+        case .import:
+            schema.merge(["art": "string", "muellToken": "string"]) { _, b in b }
+            optional = ["muellToken"]
         case .export: schema.merge(["art": "string", "daten": "array"]) { _, b in b }
         case .erinnerung_zeigen:
             for key in ["kopf", "rumpf", "art", "stil"] { schema[key] = "string" }
@@ -125,6 +135,22 @@ public struct Request {
         if command == .macos_systemzugriff {
             guard SystemSourcePolicy.Kind(rawValue: fields["art"] as? String ?? "") != nil else { throw BetaError("Invalid macOS source kind.") }
         }
+        if command == .import {
+            guard FileImportProtocol.formats.contains(self.text("art")),
+                  (self.text("art") == "muell" ? (!self.text("muellToken").isEmpty && self.text("muellToken").utf8.count <= 1024) : fields["muellToken"] == nil) else {
+                throw BetaError("Invalid file import format or operation token.")
+            }
+        }
+        if command == .macos_system_sync {
+            guard let kind = SystemSourcePolicy.Kind(rawValue: fields["kind"] as? String ?? ""),
+                  ["run", "revoke"].contains(fields["action"] as? String ?? ""),
+                  let sourceUID = fields["sourceUID"] as? String,
+                  !(fields["timeZone"] as? String ?? "").isEmpty,
+                  (fields["timeZone"] as? String ?? "").utf8.count <= 256,
+                  (fields["start"] as? String ?? "").utf8.count <= 10,
+                  (fields["end"] as? String ?? "").utf8.count <= 10 else { throw BetaError("Invalid system synchronization request.") }
+            _ = try SystemSourcePolicy.identifier(sourceUID, kind: kind)
+        }
         if let revision = fields["expectedRevision"] as? String {
             guard revision.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil else {
                 throw BetaError("Invalid account revision.")
@@ -144,7 +170,8 @@ public enum Document {
         let data = Data(text.utf8)
         guard !data.isEmpty, data.count <= maximumBytes else { throw BetaError("Invalid document size.") }
         // JSONSerialization accepts duplicate keys. Scan decoded key tokens first,
-        // including escaped spellings, to reject ambiguous envelopes and documents.
+        // including escaped spellings. Distinct Unicode keys which Swift dictionaries
+        // cannot represent together must still be rejected before that lossy bridge.
         var scanner = JSONKeys(bytes: Array(data))
         try scanner.scan()
         guard let value = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -174,26 +201,37 @@ public enum Document {
     public static func assertNoLoss(_ old: Any, _ new: Any, depth: Int = 0) throws {
         guard depth < 64 else { throw BetaError("Document nesting limit exceeded.") }
         if let a = old as? [String: Any] {
-            guard let b = new as? [String: Any], Set(a.keys).isSubset(of: Set(b.keys)) else {
+            guard let b = new as? [String: Any] else {
                 throw BetaError("Save would drop existing fields; a recovery checkpoint is required.")
             }
-            for (key, value) in a { try assertNoLoss(value, b[key]!, depth: depth + 1) }
+            // Refs #511: each document can be individually representable while a
+            // changed NFC/NFD field name still denotes a different opaque JSON key.
+            // Swift String lookup would wrongly let the new field stand in for the old.
+            var byKey: [OpaqueUTF8Identity: Any] = [:]
+            for (key, value) in b { byKey[OpaqueUTF8Identity(key)] = value }
+            for (key, value) in a {
+                guard let next = byKey[OpaqueUTF8Identity(key)] else {
+                    throw BetaError("Save would drop existing fields; a recovery checkpoint is required.")
+                }
+                try assertNoLoss(value, next, depth: depth + 1)
+            }
         } else if let a = old as? [Any] {
             guard let b = new as? [Any], b.count >= a.count else {
                 throw BetaError("Save would shorten an existing array; a recovery checkpoint is required.")
             }
             let keyed = !a.isEmpty && a.allSatisfy { ($0 as? [String: Any])?["id"] is String }
             if keyed {
-                var byID: [String: Any] = [:]
+                var byID: [OpaqueUTF8Identity: Any] = [:]
                 for value in b {
-                    guard let id = (value as? [String: Any])?["id"] as? String, byID[id] == nil else {
+                    guard let id = (value as? [String: Any])?["id"] as? String,
+                          byID[OpaqueUTF8Identity(id)] == nil else {
                         throw BetaError("Ambiguous record identifiers.")
                     }
-                    byID[id] = value
+                    byID[OpaqueUTF8Identity(id)] = value
                 }
                 for value in a {
                     let id = (value as! [String: Any])["id"] as! String
-                    guard let next = byID[id] else { throw BetaError("Save would delete a record; a recovery checkpoint is required.") }
+                    guard let next = byID[OpaqueUTF8Identity(id)] else { throw BetaError("Save would delete a record; a recovery checkpoint is required.") }
                     try assertNoLoss(value, next, depth: depth + 1)
                 }
             } else {
@@ -237,11 +275,18 @@ private struct JSONKeys {
             index += 1; whitespace()
             let end: UInt8 = first == 123 ? 125 : 93
             if index < bytes.count, bytes[index] == end { index += 1; return }
-            var keys: Set<String> = []
+            var decodedKeys: Set<OpaqueUTF8Identity> = []
+            var foundationKeys: Set<String> = []
             while true {
                 if first == 123 {
                     whitespace(); let key = try string()
-                    guard keys.insert(key).inserted else { throw BetaError("Duplicate JSON key.") }
+                    guard decodedKeys.insert(OpaqueUTF8Identity(key)).inserted else { throw BetaError("Duplicate JSON key.") }
+                    // Keep the existing rejection set until the complete native
+                    // parse/save/restore path has a lossless object representation.
+                    // This is a platform limitation, not an invalid duplicate key.
+                    guard foundationKeys.insert(key).inserted else {
+                        throw BetaError("This macOS version cannot safely preserve distinct Unicode JSON keys. The original file was not changed.")
+                    }
                     whitespace()
                     guard index < bytes.count, bytes[index] == 58 else { throw BetaError("Invalid JSON object.") }
                     index += 1
