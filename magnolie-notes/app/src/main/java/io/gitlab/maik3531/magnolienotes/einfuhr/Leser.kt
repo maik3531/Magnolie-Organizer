@@ -5,6 +5,14 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
+import java.time.format.ResolverStyle
+import java.time.temporal.ChronoField
 import java.util.Locale
 import java.util.TimeZone
 
@@ -271,26 +279,46 @@ object Leser {
         .replace(Regex("<[^>]*>"), "")
         .let { Rohnotiz.entwirreEntitaeten(it) }
 
-    private val ISO_FORMEN = listOf(
-        "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
-        "yyyy-MM-dd'T'HH:mm:ssXXX",
-        "yyyy-MM-dd'T'HH:mm:ss'Z'",
-        "yyyy-MM-dd HH:mm:ss",
-        "yyyy-MM-dd"
-    )
+    private val LOKALE_ZEIT = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss", Locale.ROOT)
+        .withResolverStyle(ResolverStyle.STRICT)
+    private val ISO_ZEIT_MIT_OFFSET = DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .append(DateTimeFormatter.ISO_LOCAL_DATE)
+        .appendLiteral('T')
+        .appendPattern("HH:mm")
+        .optionalStart()
+        .appendPattern(":ss")
+        .optionalStart()
+        .appendFraction(ChronoField.NANO_OF_SECOND, 1, 9, true)
+        .optionalEnd()
+        .optionalEnd()
+        .appendOffsetId()
+        .toFormatter(Locale.ROOT)
+        .withResolverStyle(ResolverStyle.STRICT)
 
     fun isoZeit(roh: String): Long {
         if (roh.isBlank()) return 0L
-        roh.toLongOrNull()?.let { return if (it > 100_000_000_000L) it else it * 1000 }
-        for (form in ISO_FORMEN) {
-            val ergebnis = runCatching {
-                val formen = SimpleDateFormat(form, Locale.ROOT)
-                if (form.endsWith("'Z'")) formen.timeZone = TimeZone.getTimeZone("UTC")
-                formen.parse(roh)?.time
-            }.getOrNull()
-            if (ergebnis != null && ergebnis > 0) return ergebnis
+        roh.toLongOrNull()?.let {
+            return runCatching { if (it > 100_000_000_000L) it else Math.multiplyExact(it, 1000L) }
+                .getOrDefault(0L)
         }
-        return 0L
+        return runCatching {
+            val zeit = when {
+                roh.contains('T', ignoreCase = true) -> OffsetDateTime.parse(roh, ISO_ZEIT_MIT_OFFSET).toInstant()
+                ' ' in roh -> {
+                    val lokal = LocalDateTime.parse(roh, LOKALE_ZEIT)
+                    // Wie bisher die spätere Uhrzeit einer doppelten Stunde verwenden.
+                    // In einer Zeitlücke existiert dagegen kein passender Offset.
+                    ZoneId.systemDefault().rules.getValidOffsets(lokal).lastOrNull()?.let(lokal::toInstant)
+                }
+                else -> {
+                    val datum = LocalDate.parse(roh, DateTimeFormatter.ISO_LOCAL_DATE)
+                    val anfang = datum.atStartOfDay(ZoneId.systemDefault())
+                    anfang.takeIf { it.toLocalDate() == datum }?.toInstant()
+                }
+            }
+            zeit?.toEpochMilli()?.takeIf { it > 0 } ?: 0L
+        }.getOrDefault(0L)
     }
 
     /** Deutsche und englische Datumszeilen, wie Keep sie ins HTML schreibt. */

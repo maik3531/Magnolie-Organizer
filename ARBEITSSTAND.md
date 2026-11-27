@@ -119,6 +119,11 @@ aufgeführt.
   Beliebige JSON- und HTML-Dateien behalten beim Notes-Import Inhalt,
   Herkunft und Dateizeit. Keep-Text, Checklisten und Titelnotizen
   werden weiter erkannt. Alle 37 Importprüfungen bestanden.
+- [#819](https://github.com/maik3531/Magnolie-Organizer/issues/819):
+  Notes übernimmt Sekundenbruchteile und UTC-Offsets korrekt.
+  Gültige lokale und numerische Altformate bleiben lesbar, ungültige
+  Zeitangaben bleiben ohne Importzeitpunkt. Alle 42 Zeit- und
+  Importprüfungen bestanden.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
