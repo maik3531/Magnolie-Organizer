@@ -65,6 +65,10 @@ function check(web) {
     load([birthday("import"), birthday("google"), birthday("microsoft")]);
     assert.equal(T.daten().jahrestage.length, 3);
     shown(1);
+    load([birthday("legacy"), birthday("new", { akzentFarbe: "", icsCalendarColor: "" })]); shown(1);
+    load([birthday("a", { akzentFarbe: "#40e0d0", icsCalendarColor: "COLOR:turquoise" }),
+      birthday("b", { akzentFarbe: "#40e0d0", icsCalendarColor: "X-APPLE-CALENDAR-COLOR:#40E0D0" })]); shown(1);
+    load([birthday("a", { akzentFarbe: "#40e0d0" }), birthday("b", { akzentFarbe: "#112233" })]); shown(2);
     load([birthday("import"), birthday("google"), birthday("microsoft")], [
       { id: "person", vorname: "Mia", nachname: "Muster", geburtstag: "1990-12-25" }
     ]);

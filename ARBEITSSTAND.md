@@ -93,6 +93,12 @@ aufgeführt.
   und gemischte Exporte behalten den jeweiligen Eintragsbezug.
   69 Linux-Prüfungen, vier native Windows-Gruppen und beide
   Oberflächenpfade bestanden.
+  Der Nachtrag übernimmt Farben auch für Jahrestage in Kalender,
+  Planer und Druck. Eine unveränderte parametrisierte Quellfarbe
+  bleibt beim Export erhalten. Unvollständige ICS-Dateien melden
+  den vorgesehenen übersetzten Fehler. 81 Linux-Prüfungen,
+  sieben native Windows-Gruppen und je 12 Farbfälle beider
+  Desktop-Oberflächen bestanden.
 - [#845](https://github.com/maik3531/Magnolie-Organizer/issues/845):
   Linux und Windows erkennen eindeutig markierte Nextcloud-Geburtstage.
   Fehlende Geburtsjahre bleiben unbekannt; der 29. Februar behält beim

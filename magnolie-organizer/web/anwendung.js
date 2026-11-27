@@ -8453,6 +8453,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     element.dataset.akzentFarbe = farbe;
     return element;
   }
+  function jahrestagLeiste(element, jahrestage, text, trenner) {
+    element.append("✱ ");
+    jahrestage.forEach((jahrestag, index) => {
+      if (index) element.append(trenner);
+      element.append(setzeKalenderAkzent(el("span", null, text(jahrestag)), jahrestag));
+    });
+    return element;
+  }
   function setzeKategorieFarbe(name, farbe, vorherigerName = "") {
     const sauber = saubereKategorieFarben([{ name, farbe }]);
     if (!sauber.length) return false;
@@ -8848,6 +8856,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         ? "--" + S(j.datum).slice(5) : S(j.datum), j.jahrUnbekannt || providerJahrUnbekannt);
       if (!datum) continue;
       const normalisierterJahrestag = { ...Q(j), id: S(j.id) || uid(), uid: S(j.uid), name: S(j.name), datum: datum,
+        akzentFarbe: kalenderAkzentFarbe(j.akzentFarbe === undefined ? kalenderRohFeld(j, "X-MAGNOLIE-ACCENT-COLOR") : j.akzentFarbe),
         jahrUnbekannt: gueltigesTeildatum(datum), kontaktId: S(j.kontaktId),
         typ: jahrestagTypId(typ) || typ || "other",
         icsSerienUid: S(j.icsSerienUid),
@@ -11456,12 +11465,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const inhalt = { ...jahrestag };
     for (const feld of ["id", "uid", "kontaktId", "geaendert", "jahrUnbekannt", "sync",
       "syncKalenderUid", "syncQuellen", "icsSerienUid", "icsQuelleId", "icsQuelleName",
-      "icsRoundtrip", "providerMetadaten", "icsReadOnly", "icsReadOnlyGrund",
+      "icsRoundtrip", "icsCalendarColor", "providerMetadaten", "icsReadOnly", "icsReadOnlyGrund",
       "icsAenderungszeitFehlt", "icsSequence", "_providerJahrUnbekannt"]) delete inhalt[feld];
     inhalt.name = terminIdentitaetsText(jahrestag.name).toLowerCase().replace(/\s+/g, " ");
     inhalt.datum = kanonischesJahresdatum(jahrestag.datum, jahrestag.jahrUnbekannt);
     inhalt.typ = "birthday";
     inhalt.notiz = terminIdentitaetsText(jahrestag.notiz);
+    inhalt.akzentFarbe = kalenderAkzentFarbe(jahrestag.akzentFarbe);
     return kanonischerEntwurf(inhalt);
   }
 
@@ -12773,12 +12783,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         name: (j) => j.name + " – " + jahrestagDatumText(j),
         karte: (j) => {
           const k = el("div", "druck-karte");
-          k.append(el("div", "dk-name", j.name));
+          k.append(setzeKalenderAkzent(el("div", "dk-name", j.name), j));
           k.append(el("div", "dk-zeile", jahrestagDatumText(j) + " · " +
             jahrestagTypText(j.typ)));
           return k;
         },
-        html: (j) => '<div class="karte"><div class="name">' + sicher(j.name) +
+        html: (j) => '<div class="karte"><div class="name"' + kalenderAkzentDruckStil(j) + '>' + sicher(j.name) +
           "</div><div>" + jahrestagDatumText(j) + " · " + sicher(jahrestagTypText(j.typ)) +
           "</div></div>",
         vorgewaehlt: liste.map((j) => j.id),
@@ -13350,7 +13360,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           wochentagText: wochentagName(datum.getDay(), true).replace(/\.$/, ""),
           feiertage: wahl.feiertage ? feiertage : [],
           ferien: wahl.ferien ? ferien : [], urlaube: wahl.urlaub ? urlaube : [],
-          akzente: planerAkzentEintraege(iso, serienZeitraum, aufgaben, hatFarbTermine) });
+          akzente: planerAkzentEintraege(iso, serienZeitraum, aufgaben, hatFarbTermine).concat(
+            jahrestageAm(iso, true, "print").filter(jt => kalenderEintragAkzent(jt))
+              .map(jt => ({ art: "jahrestag", text: "✱ " + jt.name, farbe: kalenderEintragAkzent(jt), akzent: true }))) });
       }
       modell.zeilen.push(zeile);
     }
@@ -13416,7 +13428,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           eintraege.push({ art: "muell", text: termin.name, farbe: termin.farbe });
         }
         if (wahl.jahrestage) for (const jt of jahrestage) {
-          eintraege.push({ art: "jahrestag", text: "✱ " + jt.name, farbe: "#a66d8a" });
+          eintraege.push({ art: "jahrestag", text: "✱ " + jt.name,
+            farbe: kalenderEintragAkzent(jt) || "#a66d8a", akzent: !!kalenderEintragAkzent(jt) });
         }
         if (wahl.termine) for (const termin of termine) {
           eintraege.push({ art: "termin", text: (termin.zeit
@@ -17012,9 +17025,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
       const jts = jahrestageAm(iso);
       if (jts.length) {
-        const stern = el("span", "jt-stern", "✱");
-        stern.title = jts.map((j) => j.name).join(", ");
-        tagKopf.append(stern);
+        const gruppen = jts.filter(jt => kalenderEintragAkzent(jt)).map(jt => [jt]);
+        const ohneFarbe = jts.filter(jt => !kalenderEintragAkzent(jt));
+        if (ohneFarbe.length) gruppen.push(ohneFarbe);
+        for (const gruppe of gruppen) {
+          const stern = setzeKalenderAkzent(el("span", "jt-stern", "✱"), gruppe[0]);
+          stern.title = gruppe.map(jt => jt.name).join(", ");
+          tagKopf.append(stern);
+        }
       }
       zelle.prepend(tagKopf);
 
@@ -17405,8 +17423,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           ft.name + (ft.art === "school-holiday" ? "" : _(" (public holiday)"))));
       }
       for (const jt of eintrag.jahrestage) {
-        block.append(el("div", "ue-jahrestag", "✱ " + jt.name + " – " +
-          jahrestagTypText(jt.typ)));
+        block.append(setzeKalenderAkzent(el("div", "ue-jahrestag", "✱ " + jt.name + " – " +
+          jahrestagTypText(jt.typ)), jt));
       }
 
       for (const termin of eintrag.termine) {
@@ -18886,7 +18904,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const jt = jahrestageAm(iso);
     if (jt.length) {
       const kasten = el("div", "jt-kasten");
-      kasten.textContent = "✱ " + jt.map((x) => {
+      jahrestagLeiste(kasten, jt, (x) => {
         const gj = hatBekanntesJahr(x.datum) ? Number(x.datum.slice(0, 4)) : null;
         const jahre = gj === null ? null : Number(iso.slice(0, 4)) - gj;
         const zusatz = (jahre !== null && jahre > 0)
@@ -18894,7 +18912,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const typ = jahrestagsArt(x.typ) === "death" && zusatz
           ? "" : " – " + jahrestagTypText(x.typ);
         return x.name + typ + zusatz;
-      }).join("  ·  ");
+      }, "  ·  ");
       spalte.append(kasten);
     }
 
@@ -19115,7 +19133,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
     const jts = jahrestageAm(iso);
     if (jts.length) {
-      kasten.append(el("div", "wo-jt", "✱ " + jts.map((x) => x.name).join(", ")));
+      kasten.append(jahrestagLeiste(el("div", "wo-jt"), jts, x => x.name, ", "));
     }
 
     for (const task of (farbAufgaben || kalenderFarbAufgaben(iso, iso)).get(iso) || []) {
@@ -23958,7 +23976,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         haupt.type = "button";
         fokusMarke(haupt, "jahrestag:" + jt.id);
         if (jt.id === z.bearbeiteId) haupt.setAttribute("aria-current", "true");
-        haupt.append(el("div", "obm", jt.name));
+        haupt.append(setzeKalenderAkzent(el("div", "obm", jt.name), jt));
         const zusatz = altersText(jt, n.anzahl);
         haupt.append(el("div", "unt", jahrestagDatumText(jt) +
           (zusatz ? " · " + zusatz : "")));
@@ -26045,12 +26063,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         for (let t = 1; t <= tage; t++) {
           const iso = z.jahr + "-" + pad2(m + 1) + "-" + pad2(t);
           const zelle = el("span", "mm-tag", String(t));
-          const farbEintraege = (hatFarbTermine ? termineAm(iso, false, farbZeitraum).filter(termin => !!kalenderEintragAkzent(termin)) : []).concat(farbAufgaben.get(iso) || []);
+          const jahrestage = jahrestageAm(iso);
+          const farbEintraege = (hatFarbTermine ? termineAm(iso, false, farbZeitraum).filter(termin => !!kalenderEintragAkzent(termin)) : [])
+            .concat(farbAufgaben.get(iso) || [], jahrestage.filter(jt => kalenderEintragAkzent(jt)));
           if (farbEintraege.length) {
             const streifen = el("span", "mm-kategoriefarben");
             for (const item of farbEintraege) {
               const balken = setzeKalenderAkzent(el("span", "mm-kategoriebalken"), item);
-              balken.title = item.titel; streifen.append(balken);
+              balken.title = item.titel || item.name; streifen.append(balken);
             }
             zelle.append(streifen);
           }
@@ -26062,7 +26082,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           const spalte = (versatz + t - 1) % 7;
           const wochentag = new Date(z.jahr, m, t).getDay();
           if (wochentag === 0 || wochentag === 6) zelle.classList.add("wochenende");
-          if (jahrestageAm(iso).length) zelle.classList.add("jt");
+          if (jahrestage.length) zelle.classList.add("jt");
           if (iso === heute) {
             zelle.classList.add("heute");
             zelle.setAttribute("aria-current", "date");

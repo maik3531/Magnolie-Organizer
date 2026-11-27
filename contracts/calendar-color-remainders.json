@@ -1,0 +1,110 @@
+[
+  {
+    "id": "birthday-standard",
+    "section": "jahrestage",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:birthday-standard\r\nSUMMARY:birthday-standard\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nCOLOR:turquoise\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_accent": "#40e0d0",
+    "expected_date": "2000-02-29",
+    "expected_type": "birthday",
+    "preserve_line": ""
+  },
+  {
+    "id": "birthday-own",
+    "section": "jahrestage",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:birthday-own\r\nSUMMARY:birthday-own\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_accent": "#112233",
+    "expected_date": "2000-02-29",
+    "expected_type": "birthday",
+    "preserve_line": ""
+  },
+  {
+    "id": "birthday-calendar",
+    "section": "jahrestage",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:turquoise\r\nBEGIN:VEVENT\r\nUID:birthday-calendar\r\nSUMMARY:birthday-calendar\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_accent": "#40e0d0",
+    "expected_date": "2000-02-29",
+    "expected_type": "birthday",
+    "preserve_line": ""
+  },
+  {
+    "id": "birthday-apple",
+    "section": "jahrestage",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-APPLE-CALENDAR-COLOR:#40E0D0FF\r\nBEGIN:VEVENT\r\nUID:birthday-apple\r\nSUMMARY:birthday-apple\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_accent": "#40e0d0",
+    "expected_date": "2000-02-29",
+    "expected_type": "birthday",
+    "preserve_line": ""
+  },
+  {
+    "id": "birthday-own-priority",
+    "section": "jahrestage",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:blue\r\nBEGIN:VEVENT\r\nUID:birthday-own-priority\r\nSUMMARY:birthday-own-priority\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nCOLOR:RED\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_accent": "#112233",
+    "expected_date": "2000-02-29",
+    "expected_type": "birthday",
+    "preserve_line": ""
+  },
+  {
+    "id": "birthday-component-priority",
+    "section": "jahrestage",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:blue\r\nBEGIN:VEVENT\r\nUID:birthday-component-priority\r\nSUMMARY:birthday-component-priority\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nCOLOR:RED\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_accent": "#ff0000",
+    "expected_date": "2000-02-29",
+    "expected_type": "birthday",
+    "preserve_line": ""
+  },
+  {
+    "id": "birthday-partial-leap",
+    "section": "jahrestage",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:turquoise\r\nBEGIN:VEVENT\r\nUID:birthday-partial-leap\r\nSUMMARY:birthday-partial-leap\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-DATE:--02-29\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_accent": "#40e0d0",
+    "expected_date": "--02-29",
+    "expected_type": "birthday",
+    "preserve_line": ""
+  },
+  {
+    "id": "anniversary-wedding",
+    "section": "jahrestage",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:anniversary-wedding\r\nSUMMARY:anniversary-wedding\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:wedding-anniversary\r\nCOLOR:turquoise\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_accent": "#40e0d0",
+    "expected_date": "2000-02-29",
+    "expected_type": "wedding-anniversary",
+    "preserve_line": ""
+  },
+  {
+    "id": "jahrestage-parameter-own",
+    "section": "jahrestage",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:jahrestage-parameter-own\r\nSUMMARY:jahrestage-parameter-own\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nCOLOR;X-SOURCE=owned-synthetic:red\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_accent": "#112233",
+    "expected_date": "2000-02-29",
+    "expected_type": "birthday",
+    "preserve_line": "COLOR;X-SOURCE=owned-synthetic:red"
+  },
+  {
+    "id": "termine-parameter-own",
+    "section": "termine",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:termine-parameter-own\r\nSUMMARY:termine-parameter-own\r\nDTSTART;VALUE=DATE:20000229\r\nCOLOR;X-SOURCE=owned-synthetic:red\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_accent": "#112233",
+    "expected_date": "2000-02-29",
+    "expected_type": "",
+    "preserve_line": "COLOR;X-SOURCE=owned-synthetic:red"
+  },
+  {
+    "id": "aufgaben-parameter-own",
+    "section": "aufgaben",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VTODO\r\nUID:aufgaben-parameter-own\r\nSUMMARY:aufgaben-parameter-own\r\nDUE;VALUE=DATE:20000229\r\nCOLOR;X-SOURCE=owned-synthetic:red\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nX-OWNED:keep\r\nEND:VTODO\r\nEND:VCALENDAR\r\n",
+    "expected_accent": "#112233",
+    "expected_date": "2000-02-29",
+    "expected_type": "",
+    "preserve_line": "COLOR;X-SOURCE=owned-synthetic:red"
+  },
+  {
+    "id": "birthday-unknown",
+    "section": "jahrestage",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:birthday-unknown\r\nSUMMARY:birthday-unknown\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nCOLOR:future-colour\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected_accent": "",
+    "expected_date": "2000-02-29",
+    "expected_type": "birthday",
+    "preserve_line": "COLOR:future-colour"
+  }
+]

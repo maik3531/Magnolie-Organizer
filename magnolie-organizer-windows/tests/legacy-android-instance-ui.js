@@ -62,11 +62,28 @@ const payload = nativePayload ? JSON.parse(fs.readFileSync(nativePayload, "utf8"
         const stored = JSON.parse(save.text);
         assert.equal(stored.termine.length, 2, "Reimport saved duplicate old-Android exception (expected 2 records)");
         const current = b.t.daten().termine.find(item => item.id === legacy.id);
+        assert(current.geaendert > 1, "Alias reimport did not apply the newer content");
         assert.equal(current.uid, legacy.uid); assert.equal(stored.aufgaben.find(item => item.id === "task-reference").terminId, legacy.id);
         for (const field of ["futureMetadata", "alarme", "teilnehmer", "kalenderAnhaenge", "providerMetadaten"])
           assert.deepEqual(plain(current[field]), preserved[field], "Alias import erased old local data: " + field);
         b.w.App.init({ daten: stored, neu: false, regional: { language: "en", timeZone: "UTC" } });
         assert.equal(b.t.daten().termine.length, 2, "Saved alias import changed count on frontend reopen");
+      }
+      // Payloads stored before #844 have no calendar-colour provenance field.
+      // A normalized undefined value must neither abort the UID alias update
+      // nor erase a current calendar header that the old payload cannot express.
+      for (const colour of [undefined, ""]) {
+        const olderPayload = plain(incoming), currentBook = plain(old);
+        for (const item of olderPayload.termine) {
+          delete item.icsCalendarColor;
+          if (colour !== undefined) item.icsCalendarColor = colour;
+        }
+        currentBook.termine.find(item => item.id === legacy.id).icsCalendarColor = "COLOR:turquoise";
+        b.w.App.init({ daten: currentBook, neu: false, regional: { language: "en", timeZone: "UTC" } });
+        await Promise.resolve(b.w.App.importErgebnis(olderPayload));
+        const updated = b.t.daten().termine.find(item => item.id === legacy.id);
+        assert(updated.geaendert > 1, "Missing optional colour aborted the actual alias import");
+        assert.equal(updated.icsCalendarColor, colour === undefined ? "COLOR:turquoise" : "");
       }
       for (const [name, variant] of Object.entries(codec.variants)) {
         b.w.App.init({ daten: plain(old), neu: false, regional: { language: "en", timeZone: "UTC" } });

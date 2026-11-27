@@ -998,13 +998,9 @@ internal static partial class ExchangeCodec
             }
             var item = new JsonObject { ["uid"] = IcsText(First(values, "UID")?.Value ?? ""), ["name"] = title,
                 ["datum"] = providerDate.Length > 0 ? providerDate : date, ["typ"] = providerDate.Length > 0 ? "birthday" : anniversaryType,
+                ["akzentFarbe"] = ImportedAccent(values), ["icsCalendarColor"] = "",
                 ["notiz"] = IcsText(First(values, "DESCRIPTION")?.Value ?? ""),
                 ["icsRoundtrip"] = IcsRoundtrip(roundtripValues, complex || providerDate.Length > 0), ["geaendert"] = IcsModified(values) };
-            if (providerDate.Length > 0)
-            {
-                item["akzentFarbe"] = ImportedAccent(values);
-                item["icsCalendarColor"] = "";
-            }
             return (item, true, providerDate.Length == 0 && complex);
         }
         var until = RRuleValue(recurrence, "UNTIL");
@@ -1691,6 +1687,9 @@ internal static partial class ExchangeCodec
         if (protectedColours.Length > 0) lines.RemoveAll(line => PropertyName(line) == "X-MAGNOLIE-ACCENT-COLOR");
         var accent = AccentColor(J(item, "akzentFarbe"));
         var colourDecision = accent.Length > 0 || item.TryGetProperty("icsCalendarColor", out _);
+        // A conflicting source COLOR is still unchanged when the effective
+        // imported owned override remains the same. Preserve its parameters.
+        var unchangedColour = accent.Length > 0 && accent == ImportedAccent(topLevel);
         var rawDepth = 0;
         foreach (var line in raw)
         {
@@ -1699,7 +1698,7 @@ internal static partial class ExchangeCodec
             var colour = name == "COLOR" ? StandardCalendarColour(ParseIcsProperty(line)?.Value) : "";
             if (rawDepth > 0 || name == "X-MAGNOLIE-ACCENT-COLOR" && protectedColours.Length > 0 ||
                 name is not ("SUMMARY" or "DESCRIPTION" or "CATEGORIES" or "PRIORITY" or "X-MAGNOLIE-ACCENT-COLOR") &&
-                (colour.Length == 0 || !colourDecision || colour == accent)) lines.Add(line);
+                (colour.Length == 0 || !colourDecision || colour == accent || unchangedColour)) lines.Add(line);
             if (name == "END") rawDepth = Math.Max(0, rawDepth - 1);
         }
         var duration = topLevel.Any(property => property.Name == "DURATION");

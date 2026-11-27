@@ -3404,7 +3404,7 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
             "uid": uid_wert, "icsSerienUid": serien_uid,
             "notiz": wert("DESCRIPTION"),
             "icsRoundtrip": _ics_roundtrip(roundtrip_props),
-            **({"akzentFarbe": akzent, "icsCalendarColor": kalenderfarbe[0]} if provider_datum else {}),
+            "akzentFarbe": akzent, "icsCalendarColor": kalenderfarbe[0],
             "geaendert": geaendert})
         return
     if nicht_abbildbar or (rrule and not wiederholung):
@@ -3679,7 +3679,7 @@ def ics_lesen(text, quellenname="", quellen_id="", jahrestage_als_termine=False)
     if art is not None or stapel:
         raise ValueError(_("The selected iCalendar file is incomplete."))
     komplexe_uids = set()
-    for komponenten_art, komponenten_props, _ in komponenten:
+    for komponenten_art, komponenten_props, _kalenderfarben in komponenten:
         if komponenten_art != "VEVENT" or not _hole(
                 komponenten_props, "RECURRENCE-ID")[1]:
             continue
@@ -4168,10 +4168,13 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
     # A parameterized colour property is not ours to rewrite. Preserve it
     # exactly when unchanged, or refuse an edit rather than dropping parameters.
     geschuetzte_farbe, tiefe = False, 0
+    urspruengliche_farben = []
     for zeile in rohzeilen:
         name, params, wert = _prop_zerlegen(zeile)
         if name == "BEGIN":
             tiefe += 1
+        if not tiefe and name in ("COLOR", "X-MAGNOLIE-ACCENT-COLOR"):
+            urspruengliche_farben.append((name, params, wert))
         if not tiefe and name == "X-MAGNOLIE-ACCENT-COLOR" and params:
             if eintrag is not None and (not jahrestag or "akzentFarbe" in eintrag) and _kalender_akzentfarbe(eintrag.get("akzentFarbe")) != _kalender_akzentfarbe(wert):
                 # Do not let the generic invalid-record skip path silently
@@ -4207,13 +4210,19 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
                 eigene.update(_NEXTCLOUD_GEBURTSTAG_FELDER)
     akzent = _kalender_akzentfarbe(eintrag.get("akzentFarbe")) if eintrag is not None else ""
     farbentscheidung = bool(akzent or eintrag is not None and "icsCalendarColor" in eintrag)
+    # An owned override may disagree with the preserved standard property even
+    # without an edit. Keep that source line (including parameters) until the
+    # effective imported component colour actually changes.
+    urspruenglicher_akzent = (_kalender_akzentfarbe(_hole(urspruengliche_farben, "X-MAGNOLIE-ACCENT-COLOR")[1]) or
+                             _ics_standard_farbe(_hole(urspruengliche_farben, "COLOR")[1] or ""))
+    farbe_unveraendert = bool(akzent and akzent == urspruenglicher_akzent)
     tiefe, gefiltert = 0, []
     for zeile in rohzeilen:
         name, _params, wert = _prop_zerlegen(zeile)
         if name == "BEGIN":
             tiefe += 1
         farbe = _ics_standard_farbe(wert) if name == "COLOR" else ""
-        if tiefe or name not in eigene and (not farbe or not farbentscheidung or farbe == akzent):
+        if tiefe or name not in eigene and (not farbe or not farbentscheidung or farbe == akzent or farbe_unveraendert):
             gefiltert.append(zeile)
         if name == "END":
             tiefe = max(0, tiefe - 1)
