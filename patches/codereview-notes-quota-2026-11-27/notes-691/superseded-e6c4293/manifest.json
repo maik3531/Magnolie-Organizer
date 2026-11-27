@@ -1,0 +1,18 @@
+{
+  "head_at_execution": "e6c429321c92fc424b5f211a0e57d65fba74a411",
+  "source_sha256": {
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt": "b495a10dd09a4b7bbfadc8605010d70921f2b3ba7e3c8b66a13bc3e8c5add1a1",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/daten/Modell.kt": "800a605797883b91557bbc07d27bacbb257665e4cc4f05162f3633ae3e0a1b4a",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Transport.kt": "d536fb865f841ba6b2c19bc959732147a3d9ef6f27e8f189a3ec1607678bc4a5",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/netz/LanRegel.java": "46e7485ccce7914debfd67c743e85dc438c81865ddee153b8390b29ed408afa6"
+  },
+  "extracted_methods_sha256": "ee4edf739b9acbd50e82fbead4e217b2677d3c22893207f065ef29d012bb34af",
+  "sendung_source_sha256": "782855741f2646592260000e3263e348dee14b23d3691d292b7a233f30a7a001",
+  "route_predicate_sha256": "ca5a1ed50b12d2aaabeb3a1d7502d4279a6b6fd60c66c75de746eb64c4530cf7",
+  "generated_harness_sha256": "553b88bb0eb634e4fecd3369de5ccf94b4f05d3ac6c6af46a6e6c4fbeb2e4d52",
+  "javac_exit": 0,
+  "compiler_exit": 0,
+  "runtime_exit": 1,
+  "results_sha256": "3b10f2e40e86abb16ed254d2ed97cee61179048bd3c581f391db9cb5db72bdfb",
+  "boundary": "Execute the exact Notes outbox method with controlled storage/transport state.\n\nProduction inputs: postfachAbarbeiten, fehlversuch, aufgeben, Sendung, the\nWlanTransport.wartetAufLan predicate and the complete pure Java LanRegel class.\nAndroid permission/network state, storage, payload parsing and delivery are\ncontrolled dependencies. No Android/Robolectric, real network or crypto claim.\n"
+}

@@ -1,0 +1,2829 @@
+diff --git a/ARBEITSSTAND.md b/ARBEITSSTAND.md
+index 4709311..4643a57 100644
+--- a/ARBEITSSTAND.md
++++ b/ARBEITSSTAND.md
+@@ -1,5 +1,31 @@
+ # Aktueller Arbeitsstand
+ 
++## Geprüfter Review-Nachtrag zu #844 auf 7a490dd8
++
++Der separate Patch erhält die Farbkorrektur aus `8c998343` und die Nextcloud-
++Geburtstagskorrektur aus `7a490dd8`. Deren Datums- und Serienregeln bleiben
++unverändert. Er ergänzt vier belegte Restfälle: Markierte Jahrestage behalten ihre Importfarbe einschließlich
++Kalendervorgabe beim Speichern, Wiederöffnen und Export; vorhandene Kalender-,
++Jahresplaner-, Listen- und Druckdarstellungen zeigen sie mit der bestehenden
++Kontrastberechnung. Typ, Geburtstagssymbol und jahrlose Daten bleiben erhalten.
++Unveränderte eigene Farbübersteuerungen erhalten eine abweichende ursprüngliche
++`COLOR`-Zeile samt Parametern. Alte Importdaten ohne das neue optionale Farbfeld
++brechen den UID-Aliasabgleich nicht mehr ab. Ungültige oder unvollständige ICS
++erzeugen wieder den vorgesehenen Fehler statt eines überschatteten gettext-Aufrufs.
++
++Geprüft: 47 fokussierte Pythonfälle, 15 bestehende Python-Geburtstagsfälle,
++drei C#-Farbgruppen, 24 neue DOM-Modellfälle sowie die bestehenden Farb-,
++Geburtstags- und Alias-DOMprüfungen beider Desktopquellen. Zusätzlich bestanden
++48 tatsächliche Codec→Frontend→Speicherdatei→Wiederöffnen→Export/Reimport-Pfade
++über Python/C# und beide Frontends. Die unverändert übernommenen Nextcloud-Tests
++bestanden zusätzlich mit zwölf Pythonfällen und einer C#-Gruppe.
++Ein ergänzender C#-Geburtstagsbereinigungslauf auf der vorherigen Basis konnte
++seinen Named-Pipe-Teil im Prüfhost wegen verweigerter Sockets nicht abschließen.
++DOM-Prüfungen sind keine native GTK-/WebView-Abnahme. Die Übertragung beliebiger
++unbekannter Kalenderkopf-Farbmetadaten, Provider-/Notes-Gerätepfade und
++installierbare Pakete werden damit nicht neu freigegeben. Keine neue Bestätigung
++und kein zusätzlicher Farbwähler wurden eingeführt.
++
+ Die geprüften Einzelissues sind abgeschlossen; die weiterhin benötigten
+ Paket- und Geräteprüfungen sind in [#113](https://github.com/maik3531/Magnolie-Organizer/issues/113#issuecomment-7215114176)
+ und [#121](https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7215113730)
+@@ -7,6 +33,17 @@ aufgeführt.
+ 
+ ## Weitere Abnahme für den Gesamtrelease
+ 
++- [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
++  Die Fernzielprüfung von Notes setzt nach dem zuletzt tatsächlich geprüften
++  Partner fort. Frühe Zeitüberschreitungen und mehr als 32 Partner verhindern
++  dadurch nicht dauerhaft die Prüfung späterer erreichbarer Gegenstellen.
++  Das Zeitbudget, die Höchstzahl pro Runde und die Bindung der kurzlebigen
++  Verbindungsnachweise an Identität, Schlüssel, Ziel und Freigabe bleiben erhalten.
++  Acht JUnit-Fälle des Prüfreihenfolge-Kerns und zwölf JVM-Fälle mit der unverändert
++  übernommenen Produktmethode bestanden; vorher scheiterten zwei dieser zwölf
++  Fälle. Diese kontrollierten Hostprüfungen ersetzen weder die Android-Oberfläche
++  noch eine echte Internet-/Geräteabnahme. Die übrigen Kriterien aus #148 und
++  der automatische Transportumfang aus #128 bleiben offen.
+ - [#330](https://github.com/maik3531/Magnolie-Organizer/issues/330) /
+   [#338](https://github.com/maik3531/Magnolie-Organizer/issues/338):
+   Die gemeinsame Medienmaske macht den noch nicht freigegebenen
+@@ -1642,3 +1679,30 @@ Vorhersage-Prüfaussagen, 113 Desktop- und 321 Kontaktgeburtstagsprüfungen.
+ Dazu kommen 95 Python-Fälle und auf dem vorhandenen Windows-Rechner 1.114
+ C#-Prüfaussagen. Beide Sprachkataloge enthalten die neuen Texte aus den
+ beiden Patchserien. Die installierte Benachrichtigungsprüfung bleibt offen.
++
++## Notes #691: wartende LAN-Sendungen blockieren andere Wege nicht
++
++Der Reviewpatch auf `9de81cc1` zählt ausschließlich auf eine fehlende
++LAN-Freigabe wartende Nachrichten nicht mehr als verbrauchten Zustellversuch
++des aktuellen Postfachlaufs. Erreichbare, bereits freigegebene öffentliche
++Fernziele und Bluetooth-Wege hinter solchen Nachrichten können weiterarbeiten.
++Der LAN-Wartefall löscht keine Nachricht und erhöht weder Retry-Zähler noch
++Backoff. Für bereits vorbereitete FS1-Fixtures bleiben sämtliche Felder
++unverändert. Die vorhandene Legacy-Vorbereitung kann weiterhin vor der
++LAN-Prüfung einen Umschlag, Quittungsmetadaten und Partnerzähler reservieren.
++
++20 kontrollierte JVM-Fälle mit der unverändert übernommenen Produktmethode,
++dem tatsächlichen Sendungsmodell und den tatsächlichen reinen LAN-Prüfungen
++bestanden; fünf dieser Fälle scheiterten vor der Korrektur. Enthalten ist der
++reguläre Höchstwert von 64 Zustellversuchen mit 70 davor wartenden LAN-Sendungen.
++Zeitbudget, Sendelimit, Legacy-Reihenfolge und unsichere Zustellbelege sowie
++Generations-/Wiederherstellungssperren bleiben geprüft erhalten. Gesonderte
++Fälle erhalten das bisherige Versuchslimit bei leerer oder fehlgeschlagener
++Sendungsvorbereitung und bei einem danach fehlenden Partner.
++
++Der Befund betrifft den Freigabeweg des ausdrücklich gebauten Target-37-
++Kandidaten aus #691. Der reguläre Quellbau zielt weiterhin auf API 35; eine
++Regression eines installierten Notes-Pakets wird daraus nicht abgeleitet.
++Die Android-/Paarprüfung, echte OS-Routen und signierte Internetzustellung
++wurden durch diese Hostprüfung nicht ausgeführt. Der automatische
++Gesamtabgleich über weitere Transportarten aus #128 bleibt davon getrennt.
+diff --git a/Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py b/Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py
+index 2996b13..714eb38 100644
+--- a/Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py
++++ b/Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py
+@@ -105,7 +105,7 @@ class CandidateSourceTests(unittest.TestCase):
+         source.verify(self.repo, self.current, proof)
+         self.assertNotIn("Magnolie-Organizer-macOS-Beta/Generated/anwendung.js", proof["sourceFiles"])
+ 
+-    def test_workflow_selects_current_mac_checkout_and_keeps_tablet_reference(self):
++    def test_workflow_selects_current_checkouts_and_keeps_codec_reference(self):
+         workflow = (BETA.parent / ".github/workflows/ports-2.0.30.yml").read_text()
+         mac, tablet = workflow.split("\n  macos:\n", 1)[1].split("\n  tablet:\n", 1)
+         self.assertNotIn("git restore", mac)
+@@ -114,7 +114,14 @@ class CandidateSourceTests(unittest.TestCase):
+         self.assertIn("tests/test_candidate_sources.py", mac)
+         self.assertLess(mac.index("candidate_sources.py record"), mac.index("project_ui.py freeze"))
+         self.assertLess(mac.index("candidate_sources.py verify"), mac.index("ditto -c -k"))
+-        self.assertIn('git restore --source="$DESKTOP_COMMIT"', tablet)
++        self.assertNotIn("git restore", tablet)
++        self.assertIn("tests/test_source_proof.py", tablet)
++        self.assertIn('source-proof.py capture', tablet)
++        self.assertIn('--expected-commit "$GITHUB_SHA"', tablet)
++        self.assertIn("source-proof.py bind", tablet)
++        self.assertLess(tablet.index("source-proof.py capture"), tablet.index("bash tools/build-beta.sh --online"))
++        self.assertLess(tablet.index("bash tools/build-beta.sh --online"), tablet.index("source-proof.py bind"))
++        self.assertIn('test "$(git rev-parse v2.0.30^{commit})" = "$DESKTOP_COMMIT"', tablet)
+         self.assertIn("DESKTOP_COMMIT: " + source.REFERENCE_DESKTOP_COMMIT, workflow)
+ 
+ 
+diff --git a/contracts/calendar-color-remainders.json b/contracts/calendar-color-remainders.json
+new file mode 100644
+index 0000000..8404a9f
+--- /dev/null
++++ b/contracts/calendar-color-remainders.json
+@@ -0,0 +1,110 @@
++[
++  {
++    "id": "birthday-standard",
++    "section": "jahrestage",
++    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:birthday-standard\r\nSUMMARY:birthday-standard\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nCOLOR:turquoise\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
++    "expected_accent": "#40e0d0",
++    "expected_date": "2000-02-29",
++    "expected_type": "birthday",
++    "preserve_line": ""
++  },
++  {
++    "id": "birthday-own",
++    "section": "jahrestage",
++    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:birthday-own\r\nSUMMARY:birthday-own\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
++    "expected_accent": "#112233",
++    "expected_date": "2000-02-29",
++    "expected_type": "birthday",
++    "preserve_line": ""
++  },
++  {
++    "id": "birthday-calendar",
++    "section": "jahrestage",
++    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:turquoise\r\nBEGIN:VEVENT\r\nUID:birthday-calendar\r\nSUMMARY:birthday-calendar\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
++    "expected_accent": "#40e0d0",
++    "expected_date": "2000-02-29",
++    "expected_type": "birthday",
++    "preserve_line": ""
++  },
++  {
++    "id": "birthday-apple",
++    "section": "jahrestage",
++    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-APPLE-CALENDAR-COLOR:#40E0D0FF\r\nBEGIN:VEVENT\r\nUID:birthday-apple\r\nSUMMARY:birthday-apple\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
++    "expected_accent": "#40e0d0",
++    "expected_date": "2000-02-29",
++    "expected_type": "birthday",
++    "preserve_line": ""
++  },
++  {
++    "id": "birthday-own-priority",
++    "section": "jahrestage",
++    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:blue\r\nBEGIN:VEVENT\r\nUID:birthday-own-priority\r\nSUMMARY:birthday-own-priority\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nCOLOR:RED\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
++    "expected_accent": "#112233",
++    "expected_date": "2000-02-29",
++    "expected_type": "birthday",
++    "preserve_line": ""
++  },
++  {
++    "id": "birthday-component-priority",
++    "section": "jahrestage",
++    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:blue\r\nBEGIN:VEVENT\r\nUID:birthday-component-priority\r\nSUMMARY:birthday-component-priority\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nCOLOR:RED\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
++    "expected_accent": "#ff0000",
++    "expected_date": "2000-02-29",
++    "expected_type": "birthday",
++    "preserve_line": ""
++  },
++  {
++    "id": "birthday-partial-leap",
++    "section": "jahrestage",
++    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:turquoise\r\nBEGIN:VEVENT\r\nUID:birthday-partial-leap\r\nSUMMARY:birthday-partial-leap\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-DATE:--02-29\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
++    "expected_accent": "#40e0d0",
++    "expected_date": "--02-29",
++    "expected_type": "birthday",
++    "preserve_line": ""
++  },
++  {
++    "id": "anniversary-wedding",
++    "section": "jahrestage",
++    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:anniversary-wedding\r\nSUMMARY:anniversary-wedding\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:wedding-anniversary\r\nCOLOR:turquoise\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
++    "expected_accent": "#40e0d0",
++    "expected_date": "2000-02-29",
++    "expected_type": "wedding-anniversary",
++    "preserve_line": ""
++  },
++  {
++    "id": "jahrestage-parameter-own",
++    "section": "jahrestage",
++    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:jahrestage-parameter-own\r\nSUMMARY:jahrestage-parameter-own\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nCOLOR;X-SOURCE=owned-synthetic:red\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
++    "expected_accent": "#112233",
++    "expected_date": "2000-02-29",
++    "expected_type": "birthday",
++    "preserve_line": "COLOR;X-SOURCE=owned-synthetic:red"
++  },
++  {
++    "id": "termine-parameter-own",
++    "section": "termine",
++    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:termine-parameter-own\r\nSUMMARY:termine-parameter-own\r\nDTSTART;VALUE=DATE:20000229\r\nCOLOR;X-SOURCE=owned-synthetic:red\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
++    "expected_accent": "#112233",
++    "expected_date": "2000-02-29",
++    "expected_type": "",
++    "preserve_line": "COLOR;X-SOURCE=owned-synthetic:red"
++  },
++  {
++    "id": "aufgaben-parameter-own",
++    "section": "aufgaben",
++    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VTODO\r\nUID:aufgaben-parameter-own\r\nSUMMARY:aufgaben-parameter-own\r\nDUE;VALUE=DATE:20000229\r\nCOLOR;X-SOURCE=owned-synthetic:red\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nX-OWNED:keep\r\nEND:VTODO\r\nEND:VCALENDAR\r\n",
++    "expected_accent": "#112233",
++    "expected_date": "2000-02-29",
++    "expected_type": "",
++    "preserve_line": "COLOR;X-SOURCE=owned-synthetic:red"
++  },
++  {
++    "id": "birthday-unknown",
++    "section": "jahrestage",
++    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:birthday-unknown\r\nSUMMARY:birthday-unknown\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nCOLOR:future-colour\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
++    "expected_accent": "",
++    "expected_date": "2000-02-29",
++    "expected_type": "birthday",
++    "preserve_line": "COLOR:future-colour"
++  }
++]
+diff --git a/contracts/lotus-csv-contact-fields.json b/contracts/lotus-csv-contact-fields.json
+new file mode 100644
+index 0000000..b7ec332
+--- /dev/null
++++ b/contracts/lotus-csv-contact-fields.json
+@@ -0,0 +1,443 @@
++{
++  "description": "Synthetic CSV contacts: independent HOME/WORK/general fields, no inferred hybrid address. Scoped file-import part of #566; not evidence for historical OR6/UI conflicts.",
++  "cases": [
++    {
++      "id": "home-and-work",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Telefon Privat",
++        "Telefon Geschäftlich",
++        "Straße Privat",
++        "PLZ Privat",
++        "Ort Privat",
++        "Land Privat",
++        "Straße Geschäftlich",
++        "PLZ Geschäftlich",
++        "Ort Geschäftlich",
++        "Land Geschäftlich"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "030123456",
++        "040654321",
++        "Privatweg 1",
++        "10115",
++        "Berlin",
++        "DE",
++        "Firmenweg 2",
++        "20095",
++        "Hamburg",
++        "DE"
++      ],
++      "phones": [
++        {
++          "wert": "030123456",
++          "typen": [
++            "HOME",
++            "VOICE"
++          ]
++        },
++        {
++          "wert": "040654321",
++          "typen": [
++            "WORK",
++            "VOICE"
++          ]
++        }
++      ],
++      "addresses": [
++        {
++          "strasse": "Privatweg 1",
++          "plz": "10115",
++          "ort": "Berlin",
++          "land": "DE",
++          "typen": [
++            "HOME"
++          ]
++        },
++        {
++          "strasse": "Firmenweg 2",
++          "plz": "20095",
++          "ort": "Hamburg",
++          "land": "DE",
++          "typen": [
++            "WORK"
++          ]
++        }
++      ]
++    },
++    {
++      "id": "work-only",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Telefon Geschäftlich",
++        "Straße Geschäftlich",
++        "PLZ Geschäftlich",
++        "Ort Geschäftlich",
++        "Land Geschäftlich"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "040654321",
++        "Firmenweg 2",
++        "20095",
++        "Hamburg",
++        "DE"
++      ],
++      "phones": [
++        {
++          "wert": "040654321",
++          "typen": [
++            "WORK",
++            "VOICE"
++          ]
++        }
++      ],
++      "addresses": [
++        {
++          "strasse": "Firmenweg 2",
++          "plz": "20095",
++          "ort": "Hamburg",
++          "land": "DE",
++          "typen": [
++            "WORK"
++          ]
++        }
++      ]
++    },
++    {
++      "id": "interleaved-fields",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Straße Privat",
++        "Ort Geschäftlich",
++        "PLZ Privat",
++        "Straße Geschäftlich",
++        "Ort Privat",
++        "PLZ Geschäftlich",
++        "Land Privat",
++        "Land Geschäftlich"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "Privatweg 1",
++        "Hamburg",
++        "10115",
++        "Firmenweg 2",
++        "Berlin",
++        "20095",
++        "DE",
++        "DE"
++      ],
++      "phones": [],
++      "addresses": [
++        {
++          "strasse": "Privatweg 1",
++          "plz": "10115",
++          "ort": "Berlin",
++          "land": "DE",
++          "typen": [
++            "HOME"
++          ]
++        },
++        {
++          "strasse": "Firmenweg 2",
++          "plz": "20095",
++          "ort": "Hamburg",
++          "land": "DE",
++          "typen": [
++            "WORK"
++          ]
++        }
++      ]
++    },
++    {
++      "id": "generic-and-explicit",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Straße",
++        "PLZ",
++        "Ort",
++        "Land",
++        "Telefon Geschäftlich",
++        "Mobiltelefon",
++        "Telefon Privat",
++        "Fax",
++        "Pager",
++        "Straße Privat",
++        "PLZ Privat",
++        "Ort Privat",
++        "Land Privat",
++        "Straße Geschäftlich",
++        "PLZ Geschäftlich",
++        "Ort Geschäftlich",
++        "Land Geschäftlich"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "Allgemeinweg 3",
++        "01067",
++        "Dresden",
++        "DE",
++        "040654321",
++        "0171234567",
++        "030123456",
++        "030234567",
++        "030345678",
++        "Privatweg 1",
++        "10115",
++        "Berlin",
++        "DE",
++        "Firmenweg 2",
++        "20095",
++        "Hamburg",
++        "DE"
++      ],
++      "phones": [
++        {
++          "wert": "040654321",
++          "typen": [
++            "WORK",
++            "VOICE"
++          ]
++        },
++        {
++          "wert": "0171234567",
++          "typen": [
++            "CELL"
++          ]
++        },
++        {
++          "wert": "030123456",
++          "typen": [
++            "HOME",
++            "VOICE"
++          ]
++        },
++        {
++          "wert": "030234567",
++          "typen": [
++            "FAX"
++          ]
++        },
++        {
++          "wert": "030345678",
++          "typen": [
++            "PAGER"
++          ]
++        }
++      ],
++      "addresses": [
++        {
++          "strasse": "Allgemeinweg 3",
++          "plz": "01067",
++          "ort": "Dresden",
++          "land": "DE",
++          "typen": []
++        },
++        {
++          "strasse": "Privatweg 1",
++          "plz": "10115",
++          "ort": "Berlin",
++          "land": "DE",
++          "typen": [
++            "HOME"
++          ]
++        },
++        {
++          "strasse": "Firmenweg 2",
++          "plz": "20095",
++          "ort": "Hamburg",
++          "land": "DE",
++          "typen": [
++            "WORK"
++          ]
++        }
++      ]
++    },
++    {
++      "id": "partial-work-does-not-borrow-home-fields",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Straße Geschäftlich",
++        "Straße Privat",
++        "PLZ Privat",
++        "Ort Privat",
++        "Land Privat"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "Firmenweg 2",
++        "Privatweg 1",
++        "10115",
++        "Berlin",
++        "DE"
++      ],
++      "phones": [],
++      "addresses": [
++        {
++          "strasse": "Privatweg 1",
++          "plz": "10115",
++          "ort": "Berlin",
++          "land": "DE",
++          "typen": [
++            "HOME"
++          ]
++        },
++        {
++          "strasse": "Firmenweg 2",
++          "plz": "",
++          "ort": "",
++          "land": "",
++          "typen": [
++            "WORK"
++          ]
++        }
++      ]
++    },
++    {
++      "id": "empty-role-columns",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Telefon Privat",
++        "Telefon Geschäftlich",
++        "Straße Privat",
++        "PLZ Privat",
++        "Ort Privat",
++        "Straße Geschäftlich",
++        "PLZ Geschäftlich",
++        "Ort Geschäftlich"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "",
++        "",
++        "",
++        "",
++        "",
++        "",
++        "",
++        ""
++      ],
++      "phones": [],
++      "addresses": []
++    },
++    {
++      "id": "generic-keeps-no-invented-role",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Telefon",
++        "Straße",
++        "PLZ",
++        "Ort",
++        "Land"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "035123456",
++        "Allgemeinweg 3",
++        "01067",
++        "Dresden",
++        "DE"
++      ],
++      "phones": [
++        {
++          "wert": "035123456",
++          "typen": [
++            "VOICE"
++          ]
++        }
++      ],
++      "addresses": [
++        {
++          "strasse": "Allgemeinweg 3",
++          "plz": "01067",
++          "ort": "Dresden",
++          "land": "DE",
++          "typen": []
++        }
++      ]
++    },
++    {
++      "id": "english-role-columns",
++      "headers": [
++        "Vorname",
++        "Nachname",
++        "Work Phone",
++        "Home Phone",
++        "Work Street",
++        "Work ZIP",
++        "Work City",
++        "Work Country",
++        "Home Street",
++        "Home ZIP",
++        "Home City",
++        "Home Country"
++      ],
++      "row": [
++        "Synthetic",
++        "CSV",
++        "040654321",
++        "030123456",
++        "Firmenweg 2",
++        "20095",
++        "Hamburg",
++        "DE",
++        "Privatweg 1",
++        "10115",
++        "Berlin",
++        "DE"
++      ],
++      "phones": [
++        {
++          "wert": "040654321",
++          "typen": [
++            "WORK",
++            "VOICE"
++          ]
++        },
++        {
++          "wert": "030123456",
++          "typen": [
++            "HOME",
++            "VOICE"
++          ]
++        }
++      ],
++      "addresses": [
++        {
++          "strasse": "Privatweg 1",
++          "plz": "10115",
++          "ort": "Berlin",
++          "land": "DE",
++          "typen": [
++            "HOME"
++          ]
++        },
++        {
++          "strasse": "Firmenweg 2",
++          "plz": "20095",
++          "ort": "Hamburg",
++          "land": "DE",
++          "typen": [
++            "WORK"
++          ]
++        }
++      ]
++    }
++  ]
++}
+diff --git a/contracts/mcp-coverage.md b/contracts/mcp-coverage.md
+index fa8f548..811dd30 100644
+--- a/contracts/mcp-coverage.md
++++ b/contracts/mcp-coverage.md
+@@ -51,6 +51,15 @@ The running-timer group from #191 is connected below.
+   retired nonces and late replies are scoped. Private GTK/stdio acceptance uses
+   a synthetic pinned phone context; C#/Python checks distinguish that from a
+   physical handset authentication/read.
++- Phone calls (#192): `organizer_phone_call_read` and the session-owned
++  `organizer_phone_call_command_start/status/cancel` tools are connected in both
++  desktop catalogs. Dial, answer and end use the existing native Linux/C# actors
++  with source/fingerprint checks, a private operation owner and correlated
++  command receipts. A retained authenticated call event is not a fresh phone OS
++  query; a local receipt or transport ACK is not a phone result or delivery
++  confirmation. Cancellation cannot recall a claimed dispatch. The exact
++  contracts are documented in [mcp.md](mcp.md#native-call-context-and-commands);
++  physical handset and combined installed acceptance remain separate.
+ - Native Notes timers (#191): fresh state reads and source/state/restore-bound
+   start/pause/resume/finish commands use the existing Notes timer handlers and
+   encrypted book writer. Strict correlated reports distinguish actual durable
+@@ -79,7 +88,7 @@ content synchronization and transfers remain in the group below.
+ | --- | --- | --- |
+ | Phone and KDE lifecycle | Remaining KDE receive preferences/routing and offered lifecycle utilities beyond the connected pinned basic controls | Existing device/attempt/source identity guards and native receipts |
+ | Own Notes synchronization | Own-device selection, note/shared-book direction and operating preferences, existing initial/manual sync, contact/photo/profile transfer | Existing confirmed-peer and transaction gates; actual result/readback |
+-| Communications | Routing/notification preferences, dial/accept/hang-up, SMS send/history/planning through existing supported adapters | Existing call/command references, source/fingerprint checks, receipt versus delivery distinction |
++| Communications | Routing/notification preferences and SMS send/history/planning through existing supported adapters; call context and dial/answer/end are connected above | Existing call/command references, source/fingerprint checks, receipt versus delivery distinction |
+ | Other offered KDE actions | Existing drawing/input/device actions not already covered by media/filesystem tools | Current capability/source validation, existing permission handlers, truthful unsupported results |
+ | Remaining utilities/preferences | Existing contact-duplicate assistant, weather/medication lookup, developer/preferences, Thunderbird extension setup and application-support actions not represented by current settings/export tools | Shared product handlers, bounded typed results and actual launch/write outcomes |
+ 
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt
+index ae3128a..0ed8d50 100644
+--- a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt
+@@ -65,6 +65,7 @@ class Baumwerk private constructor(
+     private var bluetooth: BluetoothHorcher? = null
+     @Volatile private var dienstLaeuft = false
+     private val versandSperre = java.util.concurrent.locks.ReentrantLock()
++    private val fernAbgleichReihenfolge = FernAbgleichReihenfolge()
+     private val kontaktImport by lazy {
+         KontaktImportAblauf { art, inhalt ->
+             val ziel = offenesKontaktImportZiel
+@@ -739,8 +740,12 @@ class Baumwerk private constructor(
+         val identitaet = eigen() ?: return emptyList()
+         val result = mutableListOf<FernAbgleichVerbindung>()
+         val ende = System.nanoTime() + 8_000_000_000L
+-        for (peer in vorher.partner.filter { it.bestaetigt && it.vertraut && it.fernAdresse.isNotBlank() }.take(32)) {
++        val partner = vorher.partner.filter { it.bestaetigt && it.vertraut && it.fernAdresse.isNotBlank() }
++            .associateBy { it.kennung }
++        for (kennung in fernAbgleichReihenfolge.naechste(partner.keys.toList())) {
+             if (Thread.currentThread().isInterrupted || System.nanoTime() >= ende || !fernInternet()) break
++            val peer = partner.getValue(kennung)
++            fernAbgleichReihenfolge.versucht(kennung)
+             FernAbgleich.pruefen(identitaet, peer, vorher.syncEpoch)?.let { proof ->
+                 if (proof.passt(ablage.baum.value)) result += proof
+             }
+@@ -941,7 +946,11 @@ class Baumwerk private constructor(
+             }
+             val bekannteTransporte = Versand.wegeZu(partner, ablage.baum.value.bluetoothAn)
+             val transporte = bekannteTransporte.filter { it !is WlanTransport || !it.wartetAufLan() }
+-            if (transporte.isEmpty() && bekannteTransporte.isNotEmpty()) continue // wait, no failed-attempt/deletion
++            if (transporte.isEmpty() && bekannteTransporte.isNotEmpty()) {
++                // Only a LAN wait refunds this run's attempt; preparation failures keep their bound.
++                versucht--
++                continue // wait, no failed-attempt/deletion
++            }
+             if (transporte.isEmpty()) {
+                 fehlversuch(sendung, "Für diesen Zweig ist kein Weg bekannt.")
+                 continue
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolge.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolge.kt
+new file mode 100644
+index 0000000..c31baa3
+--- /dev/null
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolge.kt
+@@ -0,0 +1,19 @@
++package io.gitlab.maik3531.magnolienotes.baum
++
++/** Continue after the last attempted peer, even when a slow route exhausts the probe budget. */
++internal class FernAbgleichReihenfolge {
++    private var zuletzt: String? = null
++
++    @Synchronized
++    fun naechste(kennungen: List<String>): List<String> {
++        if (kennungen.isEmpty()) return emptyList()
++        val start = (kennungen.indexOfFirst { it == zuletzt } + 1) % kennungen.size
++        return List(minOf(32, kennungen.size)) { kennungen[(start + it) % kennungen.size] }
++    }
++
++    /** Advance only when the caller actually starts a probe, never when merely planning a round. */
++    @Synchronized
++    fun versucht(kennung: String) {
++        zuletzt = kennung
++    }
++}
+diff --git a/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolgeTest.kt b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolgeTest.kt
+new file mode 100644
+index 0000000..f9371c6
+--- /dev/null
++++ b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolgeTest.kt
+@@ -0,0 +1,69 @@
++package io.gitlab.maik3531.magnolienotes.baum
++
++import org.junit.Assert.*
++import org.junit.Test
++
++class FernAbgleichReihenfolgeTest {
++    @Test fun reachablePeerAfterTimedOutPeersIsProbedOnTheNextRefresh() {
++        val order = FernAbgleichReihenfolge()
++        val peers = (1..6).map { "offline-$it" } + "reachable"
++        order.naechste(peers).take(6).forEach(order::versucht)
++        assertEquals("reachable", order.naechste(peers).first())
++    }
++
++    @Test fun moreThanThirtyTwoPeersDoNotPermanentlyHideTheTail() {
++        val order = FernAbgleichReihenfolge()
++        val peers = (1..70).map { "peer-$it" }
++        val seen = mutableSetOf<String>()
++        repeat(3) {
++            val round = order.naechste(peers)
++            assertEquals(32, round.size)
++            assertEquals(round.size, round.distinct().size)
++            round.forEach { seen += it; order.versucht(it) }
++        }
++        assertEquals(peers.toSet(), seen)
++    }
++
++    @Test fun aPlannedButCancelledRoundDoesNotSkipAnyPeer() {
++        val order = FernAbgleichReihenfolge()
++        val peers = listOf("a", "b", "c")
++        assertEquals(peers, order.naechste(peers))
++        assertEquals(peers, order.naechste(peers))
++        order.versucht("a")
++        assertEquals(listOf("b", "c", "a"), order.naechste(peers))
++        assertEquals(listOf("b", "c", "a"), order.naechste(peers))
++    }
++
++    @Test fun reorderingPeersKeepsTheCursorBoundToIdentity() {
++        val order = FernAbgleichReihenfolge()
++        order.versucht("b")
++        assertEquals(listOf("a", "d", "c", "b"), order.naechste(listOf("c", "b", "a", "d")))
++    }
++
++    @Test fun removedOrUntrustedLastPeerDoesNotHideCurrentCandidates() {
++        val order = FernAbgleichReihenfolge()
++        order.versucht("removed")
++        assertEquals(listOf("allowed-a", "allowed-b"), order.naechste(listOf("allowed-a", "allowed-b")))
++    }
++
++    @Test fun noCandidatesProducesNoAttemptAndKeepsTheCursor() {
++        val order = FernAbgleichReihenfolge()
++        order.versucht("a")
++        assertTrue(order.naechste(emptyList()).isEmpty())
++        assertEquals(listOf("b", "a"), order.naechste(listOf("a", "b")))
++    }
++
++    @Test fun onePeerIsProbedAtMostOnceInARoundAndCanBeRefreshed() {
++        val order = FernAbgleichReihenfolge()
++        assertEquals(listOf("only"), order.naechste(listOf("only")))
++        order.versucht("only")
++        assertEquals(listOf("only"), order.naechste(listOf("only")))
++    }
++
++    @Test fun aCompleteSmallRoundStartsAgainWithoutDuplicates() {
++        val order = FernAbgleichReihenfolge()
++        val peers = listOf("a", "b", "c")
++        order.naechste(peers).forEach(order::versucht)
++        assertEquals(peers, order.naechste(peers))
++    }
++}
+diff --git a/magnolie-organizer-windows/ExchangeCodec.cs b/magnolie-organizer-windows/ExchangeCodec.cs
+index c8648dc..220df63 100644
+--- a/magnolie-organizer-windows/ExchangeCodec.cs
++++ b/magnolie-organizer-windows/ExchangeCodec.cs
+@@ -223,7 +223,8 @@ internal static partial class ExchangeCodec
+         // A detached instance needs its VEVENT master, even when the master
+         // carries a provider birthday marker.
+         var detachedUids = new HashSet<string>(StringComparer.Ordinal);
+-        if (unfoldedText.Contains(NextcloudBirthdayType, StringComparison.OrdinalIgnoreCase) &&
++        if ((unfoldedText.Contains(NextcloudBirthdayType, StringComparison.OrdinalIgnoreCase) ||
++             unfoldedText.Contains("BYMONTHDAY=-1", StringComparison.OrdinalIgnoreCase)) &&
+             unfoldedText.Contains("RECURRENCE-ID", StringComparison.OrdinalIgnoreCase))
+         {
+             foreach (Match block in EventBlock().Matches(unfoldedText))
+@@ -819,13 +820,12 @@ internal static partial class ExchangeCodec
+                 string Cell(int index) => index >= 0 && index < row.Count ? row[index].Trim() : "";
+                 if (lastIndex >= 0 || firstIndex >= 0 || companyIndex >= 0)
+                 {
+-                    var phones = header.Select((name, index) => (name, index)).Where(pair => pair.name.Contains("TELEFON") || pair.name.Contains("PHONE") || pair.name.Contains("MOBIL") || pair.name.Contains("CELL") || pair.name.Contains("FAX")).Where(pair => Cell(pair.index).Length > 0)
+-                        .Select(pair => new JsonObject { ["wert"] = Cell(pair.index), ["typen"] = new JsonArray(pair.name.Contains("MOBIL") || pair.name.Contains("CELL") ? "CELL" : pair.name.Contains("FAX") ? "FAX" : "VOICE") }).ToArray();
++                    var phones = LotusContactPhones(header, Cell);
+                     var emails = header.Select((name, index) => (name, index)).Where(pair => pair.name.Contains("EMAIL") || pair.name.Contains("MAIL")).Select(pair => Cell(pair.index)).Where(ValidEmail).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+-                    var street = Cell(Find("STRASSE", "STREET", "ANSCHRIFT")); var city = Cell(Find("ORT", "CITY", "STADT")); var postal = Cell(Find("PLZ", "POSTLEITZAHL", "ZIP")); var country = Cell(Find("LAND", "COUNTRY"));
++                    var addresses = LotusContactAddresses(header, Cell); var firstAddress = addresses.FirstOrDefault();
+                     if (Cell(lastIndex).Length + Cell(firstIndex).Length + Cell(companyIndex).Length + emails.Sum(value => value.Length) == 0) { omitted++; continue; }
+-                    contacts.Add(new JsonObject { ["nachname"] = Cell(lastIndex), ["vorname"] = Cell(firstIndex), ["firma"] = Cell(companyIndex), ["strasse"] = street, ["plz"] = postal, ["ort"] = city,
+-                        ["anschriften"] = new JsonArray(new JsonObject { ["strasse"] = street, ["plz"] = postal, ["ort"] = city, ["land"] = country }), ["telefone"] = new JsonArray(phones), ["telefon"] = phones.FirstOrDefault()?["wert"]?.ToString() ?? "", ["mobil"] = phones.FirstOrDefault(phone => phone["typen"]?.AsArray().Any(type => type?.ToString() == "CELL") == true)?["wert"]?.ToString() ?? "",
++                    contacts.Add(new JsonObject { ["nachname"] = Cell(lastIndex), ["vorname"] = Cell(firstIndex), ["firma"] = Cell(companyIndex), ["strasse"] = firstAddress?["strasse"]?.ToString() ?? "", ["plz"] = firstAddress?["plz"]?.ToString() ?? "", ["ort"] = firstAddress?["ort"]?.ToString() ?? "",
++                        ["anschriften"] = new JsonArray(addresses), ["telefone"] = new JsonArray(phones), ["telefon"] = phones.FirstOrDefault()?["wert"]?.ToString() ?? "", ["mobil"] = phones.FirstOrDefault(phone => phone["typen"]?.AsArray().Any(type => type?.ToString() == "CELL") == true)?["wert"]?.ToString() ?? "",
+                         ["email"] = emails.FirstOrDefault() ?? "", ["emails"] = new JsonArray(emails.Select(email => JsonValue.Create(email)).ToArray()), ["notiz"] = Cell(Find("BEMERKUNG", "NOTIZ", "NOTES")), ["uid"] = "", ["geaendert"] = 0 });
+                 }
+                 else if (dueIndex >= 0)
+@@ -980,7 +980,9 @@ internal static partial class ExchangeCodec
+                                        First(values, "X-MAGNOLIE-JAHRESTAG-TYP")?.Value ?? "");
+         var providerDate = allowProviderBirthday && (anniversaryType.Length == 0 || IsBirthdayType(anniversaryType))
+             ? NextcloudBirthdayDate(values) : "";
+-        var anniversary = start.AllDay && (providerDate.Length > 0 || IsUnboundedAnnualRule(recurrence) && anniversaryType.Length > 0) &&
++        var anniversary = allowProviderBirthday && start.AllDay && (providerDate.Length > 0 || anniversaryType.Length > 0 &&
++            (IsUnboundedAnnualRule(recurrence) || allowProviderBirthday && values.Count(value => value.Name == "RRULE") == 1 &&
++             IsLastFebruaryAnnualRule(recurrence, start.DateTime.ToString("yyyy-MM-dd")))) &&
+             !values.Any(value => value.Name is "EXDATE" or "RDATE" or "EXRULE" or "RECURRENCE-ID") &&
+             (end is null || end.Value.DateTime.Date == start.DateTime.Date);
+         if (anniversary)
+@@ -998,13 +1000,9 @@ internal static partial class ExchangeCodec
+             }
+             var item = new JsonObject { ["uid"] = IcsText(First(values, "UID")?.Value ?? ""), ["name"] = title,
+                 ["datum"] = providerDate.Length > 0 ? providerDate : date, ["typ"] = providerDate.Length > 0 ? "birthday" : anniversaryType,
++                ["akzentFarbe"] = ImportedAccent(values), ["icsCalendarColor"] = "",
+                 ["notiz"] = IcsText(First(values, "DESCRIPTION")?.Value ?? ""),
+                 ["icsRoundtrip"] = IcsRoundtrip(roundtripValues, complex || providerDate.Length > 0), ["geaendert"] = IcsModified(values) };
+-            if (providerDate.Length > 0)
+-            {
+-                item["akzentFarbe"] = ImportedAccent(values);
+-                item["icsCalendarColor"] = "";
+-            }
+             return (item, true, providerDate.Length == 0 && complex);
+         }
+         var until = RRuleValue(recurrence, "UNTIL");
+@@ -1151,6 +1149,13 @@ internal static partial class ExchangeCodec
+     }
+ 
+     internal static bool IsUnboundedAnnualRule(string rule) => Regex.IsMatch(rule, @"^FREQ=YEARLY(?:;INTERVAL=1)?$|^INTERVAL=1;FREQ=YEARLY$", RegexOptions.IgnoreCase);
++
++    private static bool IsLastFebruaryAnnualRule(string rule, string date)
++    {
++        var parts = rule.ToUpperInvariant().Split(';');
++        return date.EndsWith("02-29", StringComparison.Ordinal) && parts.Length == 3 &&
++            parts.Order(StringComparer.Ordinal).SequenceEqual(new[] { "BYMONTH=2", "BYMONTHDAY=-1", "FREQ=YEARLY" });
++    }
+     // Keep shipped instance IDs stable; timezone-qualified identity remains in RECURRENCE-ID.
+     private static string InstanceUid(string uid, IcsProperty recurrenceId) => uid + "#" + recurrenceId.Value;
+ 
+@@ -1615,8 +1620,11 @@ internal static partial class ExchangeCodec
+         if (anniversary)
+         {
+             // Annual core fields are generated; nested VALARM data remains opaque.
+-            var providerDate = NextcloudBirthdayDate(TopLevelProperties(raw.Select(ParseIcsProperty).OfType<IcsProperty>()));
++            var anniversaryProperties = TopLevelProperties(raw.Select(ParseIcsProperty).OfType<IcsProperty>());
++            var providerDate = NextcloudBirthdayDate(anniversaryProperties);
+             var keepProviderAnchor = providerDate.Length > 0 && providerDate == J(item, "datum") && IsBirthdayType(J(item, "typ"));
++            var rules = anniversaryProperties.Where(property => property.Name == "RRULE").ToArray();
++            var keepFebruaryRule = rules.Length == 1 && IsLastFebruaryAnnualRule(rules[0].Value, J(item, "datum"));
+             var depth = 0;
+             raw = raw.Where(line =>
+             {
+@@ -1624,7 +1632,8 @@ internal static partial class ExchangeCodec
+                 if (name == "BEGIN") depth++;
+                 var keep = depth > 0 || (name switch
+                 {
+-                    "DTSTART" or "DTEND" or "RRULE" => keepProviderAnchor,
++                    "DTSTART" or "DTEND" => keepProviderAnchor,
++                    "RRULE" => keepProviderAnchor || keepFebruaryRule,
+                     NextcloudBirthdayType or NextcloudBirthdayUnknownYear or NextcloudBirthdayYear => providerDate.Length == 0 || keepProviderAnchor,
+                     _ => name is not ("DUE" or "DURATION" or
+                         "X-MAGNOLIE-DATE" or "X-MAGNOLIE-TYPE-ID" or "X-MAGNOLIE-TYP" or "X-MAGNOLIE-JAHRESTAG-TYP")
+@@ -1691,6 +1700,9 @@ internal static partial class ExchangeCodec
+         if (protectedColours.Length > 0) lines.RemoveAll(line => PropertyName(line) == "X-MAGNOLIE-ACCENT-COLOR");
+         var accent = AccentColor(J(item, "akzentFarbe"));
+         var colourDecision = accent.Length > 0 || item.TryGetProperty("icsCalendarColor", out _);
++        // A conflicting source COLOR is still unchanged when the effective
++        // imported owned override remains the same. Preserve its parameters.
++        var unchangedColour = accent.Length > 0 && accent == ImportedAccent(topLevel);
+         var rawDepth = 0;
+         foreach (var line in raw)
+         {
+@@ -1699,7 +1711,7 @@ internal static partial class ExchangeCodec
+             var colour = name == "COLOR" ? StandardCalendarColour(ParseIcsProperty(line)?.Value) : "";
+             if (rawDepth > 0 || name == "X-MAGNOLIE-ACCENT-COLOR" && protectedColours.Length > 0 ||
+                 name is not ("SUMMARY" or "DESCRIPTION" or "CATEGORIES" or "PRIORITY" or "X-MAGNOLIE-ACCENT-COLOR") &&
+-                (colour.Length == 0 || !colourDecision || colour == accent)) lines.Add(line);
++                (colour.Length == 0 || !colourDecision || colour == accent || unchangedColour)) lines.Add(line);
+             if (name == "END") rawDepth = Math.Max(0, rawDepth - 1);
+         }
+         var duration = topLevel.Any(property => property.Name == "DURATION");
+@@ -2327,6 +2339,48 @@ internal static partial class ExchangeCodec
+         return ("", "", false);
+     }
+ 
++    private static bool LotusHeaderContains(string header, params string[] names) =>
++        names.Any(name => header.Contains(name, StringComparison.Ordinal));
++
++    private static JsonObject[] LotusContactPhones(string[] headers, Func<int, string> cell)
++    {
++        var phones = new List<JsonObject>();
++        for (var index = 0; index < headers.Length; index++)
++        {
++            var header = headers[index]; var value = cell(index);
++            if (value.Length == 0 || !LotusHeaderContains(header, "TELEFON", "PHONE", "MOBIL", "HANDY", "CELL", "RUFNUMMER", "FESTNETZ", "FAX", "PAGER")) continue;
++            string[] types = LotusHeaderContains(header, "MOBIL", "HANDY", "CELL", "FUNK") ? ["CELL"] :
++                header.Contains("FAX", StringComparison.Ordinal) ? ["FAX"] : header.Contains("PAGER", StringComparison.Ordinal) ? ["PAGER"] :
++                LotusHeaderContains(header, "GESCHAEFT", "ARBEIT", "WORK", "BUERO") ? ["WORK", "VOICE"] :
++                LotusHeaderContains(header, "PRIVAT", "HOME") ? ["HOME", "VOICE"] : ["VOICE"];
++            phones.Add(new JsonObject { ["wert"] = value, ["typen"] = new JsonArray(types.Select(type => JsonValue.Create(type)).ToArray()) });
++        }
++        return phones.ToArray();
++    }
++
++    private static JsonObject[] LotusContactAddresses(string[] headers, Func<int, string> cell)
++    {
++        var fields = new (string Name, string[] Headers)[] {
++            ("strasse", ["STRASSE", "STREET", "ANSCHRIFT", "ADRESSE"]), ("plz", ["POSTLEITZAHL", "PLZ", "ZIP", "POSTALCODE"]),
++            ("ort", ["ORT", "STADT", "CITY"]), ("land", ["LAND", "COUNTRY"]) };
++        var groups = new[] { "", "HOME", "WORK" }.ToDictionary(role => role,
++            _ => new JsonObject(fields.Select(field => new KeyValuePair<string, JsonNode?>(field.Name, JsonValue.Create("")))));
++        for (var index = 0; index < headers.Length; index++)
++        {
++            var header = headers[index]; var value = cell(index); if (value.Length == 0) continue;
++            var field = fields.FirstOrDefault(candidate => LotusHeaderContains(header, candidate.Headers)).Name;
++            if (field is null) continue;
++            var role = LotusHeaderContains(header, "PRIVAT", "HOME") ? "HOME" :
++                LotusHeaderContains(header, "GESCHAEFT", "ARBEIT", "WORK", "FIRMA") ? "WORK" : "";
++            if (role.Length > 0 || groups[role][field]!.ToString().Length == 0) groups[role][field] = value;
++        }
++        return groups.Where(pair => fields.Any(field => pair.Value[field.Name]!.ToString().Length > 0)).Select(pair =>
++        {
++            pair.Value["typen"] = pair.Key.Length > 0 ? new JsonArray(pair.Key) : new JsonArray();
++            return pair.Value;
++        }).ToArray();
++    }
++
+     private static bool IsYes(string value) => new[] { "JA", "J", "YES", "Y", "TRUE", "WAHR", "1", "X" }.Contains(value.Trim().ToUpperInvariant());
+     private static string LotusDate(string date, string time) => DateOnly.TryParseExact(date, "yyyy-MM-dd", out var parsed) ? parsed.ToString("dd.MM.yyyy") + (time.Length > 0 ? " " + time : "") : "";
+     private static void WriteCsvRow(StringBuilder output, IEnumerable<string> values) => output.Append(string.Join(",",
+diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
+index 5122095..dec9112 100644
+--- a/magnolie-organizer-windows/app/web/anwendung.js
++++ b/magnolie-organizer-windows/app/web/anwendung.js
+@@ -8213,6 +8213,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
+     element.dataset.akzentFarbe = farbe;
+     return element;
+   }
++  function jahrestagLeiste(element, jahrestage, text, trenner) {
++    element.append("✱ ");
++    jahrestage.forEach((jahrestag, index) => {
++      if (index) element.append(trenner);
++      element.append(setzeKalenderAkzent(el("span", null, text(jahrestag)), jahrestag));
++    });
++    return element;
++  }
+   function setzeKategorieFarbe(name, farbe, vorherigerName = "") {
+     const sauber = saubereKategorieFarben([{ name, farbe }]);
+     if (!sauber.length) return false;
+@@ -8606,6 +8614,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
+         ? "--" + S(j.datum).slice(5) : S(j.datum), j.jahrUnbekannt || providerJahrUnbekannt);
+       if (!datum) continue;
+       const normalisierterJahrestag = { ...Q(j), id: S(j.id) || uid(), uid: S(j.uid), name: S(j.name), datum: datum,
++        akzentFarbe: kalenderAkzentFarbe(j.akzentFarbe === undefined ? kalenderRohFeld(j, "X-MAGNOLIE-ACCENT-COLOR") : j.akzentFarbe),
+         jahrUnbekannt: gueltigesTeildatum(datum), kontaktId: S(j.kontaktId),
+         typ: jahrestagTypId(typ) || typ || "other",
+         icsSerienUid: S(j.icsSerienUid),
+@@ -11168,12 +11177,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
+     const inhalt = { ...jahrestag };
+     for (const feld of ["id", "uid", "kontaktId", "geaendert", "jahrUnbekannt", "sync",
+       "syncKalenderUid", "syncQuellen", "icsSerienUid", "icsQuelleId", "icsQuelleName",
+-      "icsRoundtrip", "providerMetadaten", "icsReadOnly", "icsReadOnlyGrund",
++      "icsRoundtrip", "icsCalendarColor", "providerMetadaten", "icsReadOnly", "icsReadOnlyGrund",
+       "icsAenderungszeitFehlt", "icsSequence", "_providerJahrUnbekannt"]) delete inhalt[feld];
+     inhalt.name = terminIdentitaetsText(jahrestag.name).toLowerCase().replace(/\s+/g, " ");
+     inhalt.datum = kanonischesJahresdatum(jahrestag.datum, jahrestag.jahrUnbekannt);
+     inhalt.typ = "birthday";
+     inhalt.notiz = terminIdentitaetsText(jahrestag.notiz);
++    inhalt.akzentFarbe = kalenderAkzentFarbe(jahrestag.akzentFarbe);
+     return kanonischerEntwurf(inhalt);
+   }
+ 
+@@ -12486,12 +12496,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
+         name: (j) => j.name + " – " + jahrestagDatumText(j),
+         karte: (j) => {
+           const k = el("div", "druck-karte");
+-          k.append(el("div", "dk-name", j.name));
++          k.append(setzeKalenderAkzent(el("div", "dk-name", j.name), j));
+           k.append(el("div", "dk-zeile", jahrestagDatumText(j) + " · " +
+             jahrestagTypText(j.typ)));
+           return k;
+         },
+-        html: (j) => '<div class="karte"><div class="name">' + sicher(j.name) +
++        html: (j) => '<div class="karte"><div class="name"' + kalenderAkzentDruckStil(j) + '>' + sicher(j.name) +
+           "</div><div>" + jahrestagDatumText(j) + " · " + sicher(jahrestagTypText(j.typ)) +
+           "</div></div>",
+         vorgewaehlt: liste.map((j) => j.id),
+@@ -13063,7 +13073,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
+           wochentagText: wochentagName(datum.getDay(), true).replace(/\.$/, ""),
+           feiertage: wahl.feiertage ? feiertage : [],
+           ferien: wahl.ferien ? ferien : [], urlaube: wahl.urlaub ? urlaube : [],
+-          akzente: planerAkzentEintraege(iso, serienZeitraum, aufgaben, hatFarbTermine) });
++          akzente: planerAkzentEintraege(iso, serienZeitraum, aufgaben, hatFarbTermine).concat(
++            jahrestageAm(iso, true, "print").filter(jt => kalenderEintragAkzent(jt))
++              .map(jt => ({ art: "jahrestag", text: "✱ " + jt.name, farbe: kalenderEintragAkzent(jt), akzent: true }))) });
+       }
+       modell.zeilen.push(zeile);
+     }
+@@ -13129,7 +13141,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
+           eintraege.push({ art: "muell", text: termin.name, farbe: termin.farbe });
+         }
+         if (wahl.jahrestage) for (const jt of jahrestage) {
+-          eintraege.push({ art: "jahrestag", text: "✱ " + jt.name, farbe: "#a66d8a" });
++          eintraege.push({ art: "jahrestag", text: "✱ " + jt.name,
++            farbe: kalenderEintragAkzent(jt) || "#a66d8a", akzent: !!kalenderEintragAkzent(jt) });
+         }
+         if (wahl.termine) for (const termin of termine) {
+           eintraege.push({ art: "termin", text: (termin.zeit
+@@ -16725,9 +16738,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+ 
+       const jts = jahrestageAm(iso);
+       if (jts.length) {
+-        const stern = el("span", "jt-stern", "✱");
+-        stern.title = jts.map((j) => j.name).join(", ");
+-        tagKopf.append(stern);
++        const gruppen = jts.filter(jt => kalenderEintragAkzent(jt)).map(jt => [jt]);
++        const ohneFarbe = jts.filter(jt => !kalenderEintragAkzent(jt));
++        if (ohneFarbe.length) gruppen.push(ohneFarbe);
++        for (const gruppe of gruppen) {
++          const stern = setzeKalenderAkzent(el("span", "jt-stern", "✱"), gruppe[0]);
++          stern.title = gruppe.map(jt => jt.name).join(", ");
++          tagKopf.append(stern);
++        }
+       }
+       zelle.prepend(tagKopf);
+ 
+@@ -17118,8 +17136,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+           ft.name + (ft.art === "school-holiday" ? "" : _(" (public holiday)"))));
+       }
+       for (const jt of eintrag.jahrestage) {
+-        block.append(el("div", "ue-jahrestag", "✱ " + jt.name + " – " +
+-          jahrestagTypText(jt.typ)));
++        block.append(setzeKalenderAkzent(el("div", "ue-jahrestag", "✱ " + jt.name + " – " +
++          jahrestagTypText(jt.typ)), jt));
+       }
+ 
+       for (const termin of eintrag.termine) {
+@@ -17797,11 +17815,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     orgUri.id = "tb-organisator-uri";
+     orgName.setAttribute("list", "tb-organisator-namen");
+     orgEmail.setAttribute("list", "tb-organisator-emails");
+-    const kontaktVorschlaege = DATEN.kontakte.map((kontakt) => ({
+-      name: [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ").trim() ||
+-        String(kontakt.firma || "").trim(),
+-      kontakt: kontakt
+-    })).filter((kontakt) => kontakt.name);
++    const kontaktVorschlagName = kontakt => [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ").trim() ||
++      String(kontakt.firma || "").trim();
+     const eindeutigeTexte = (werte) => {
+       const gesehen = new Set();
+       return werte.filter((wert) => {
+@@ -17810,19 +17825,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         gesehen.add(schluessel); return true;
+       });
+     };
+-    const orgNamenListe = vorschlagsListe("tb-organisator-namen",
+-      eindeutigeTexte(kontaktVorschlaege.map((kontakt) => kontakt.name)));
++    const orgNamenListe = vorschlagsListe("tb-organisator-namen", []);
+     const orgEmailListe = vorschlagsListe("tb-organisator-emails", []);
++    const orgNamenVorschlaege = () => {
++      const suche = orgName.value.trim().toLocaleLowerCase(), gesehen = new Set(), werte = [];
++      let exakt = "";
++      // Search the whole book on demand, but create only one visible chunk.
++      // No full-book option tree or persistent contact cache for a closed field.
++      for (const kontakt of DATEN.kontakte) {
++        const name = kontaktVorschlagName(kontakt), schluessel = name.toLocaleLowerCase();
++        if (!name || !schluessel.includes(suche) || gesehen.has(schluessel)) continue;
++        if (suche && schluessel === suche) exakt ||= name;
++        if (werte.length < LISTEN_HAEPPCHEN) { gesehen.add(schluessel); werte.push(name); }
++        if (!suche && werte.length >= LISTEN_HAEPPCHEN) break;
++      }
++      // A short exact name must not disappear behind earlier partial matches.
++      if (exakt && !gesehen.has(suche)) { werte.pop(); werte.unshift(exakt); }
++      orgNamenListe.replaceChildren(...werte.map(wert => {
++        const option = document.createElement("option"); option.value = wert; return option;
++      }));
++    };
+     const orgEmailVorschlaege = () => {
+       const name = orgName.value.trim().toLocaleLowerCase();
+-      const passend = kontaktVorschlaege.filter((kontakt) =>
+-        kontakt.name.toLocaleLowerCase() === name);
+-      const emails = passend.flatMap((vorschlag) => emailEintragListe(vorschlag.kontakt).map((eintrag) => eintrag.wert));
++      const passend = name ? DATEN.kontakte.filter(kontakt =>
++        kontaktVorschlagName(kontakt).toLocaleLowerCase() === name) : [];
++      const emails = passend.flatMap(kontakt => emailEintragListe(kontakt).map(eintrag => eintrag.wert));
+       orgEmailListe.replaceChildren(...eindeutigeTexte(emails).map((wert) => {
+         const option = document.createElement("option"); option.value = wert; return option;
+       }));
+     };
+-    orgName.addEventListener("input", orgEmailVorschlaege);
++    orgName.addEventListener("focus", orgNamenVorschlaege);
++    orgName.addEventListener("input", () => { orgNamenVorschlaege(); orgEmailVorschlaege(); });
+     orgEmailVorschlaege();
+     weitere.append(el("h4", null, _("Organizer")), orgNamenListe, orgEmailListe,
+       formZeile(_("Name"), orgName),
+@@ -18592,7 +18625,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     const jt = jahrestageAm(iso);
+     if (jt.length) {
+       const kasten = el("div", "jt-kasten");
+-      kasten.textContent = "✱ " + jt.map((x) => {
++      jahrestagLeiste(kasten, jt, (x) => {
+         const gj = hatBekanntesJahr(x.datum) ? Number(x.datum.slice(0, 4)) : null;
+         const jahre = gj === null ? null : Number(iso.slice(0, 4)) - gj;
+         const zusatz = (jahre !== null && jahre > 0)
+@@ -18600,7 +18633,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         const typ = jahrestagsArt(x.typ) === "death" && zusatz
+           ? "" : " – " + jahrestagTypText(x.typ);
+         return x.name + typ + zusatz;
+-      }).join("  ·  ");
++      }, "  ·  ");
+       spalte.append(kasten);
+     }
+ 
+@@ -18821,7 +18854,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+ 
+     const jts = jahrestageAm(iso);
+     if (jts.length) {
+-      kasten.append(el("div", "wo-jt", "✱ " + jts.map((x) => x.name).join(", ")));
++      kasten.append(jahrestagLeiste(el("div", "wo-jt"), jts, x => x.name, ", "));
+     }
+ 
+     for (const task of (farbAufgaben || kalenderFarbAufgaben(iso, iso)).get(iso) || []) {
+@@ -23651,7 +23684,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         haupt.type = "button";
+         fokusMarke(haupt, "jahrestag:" + jt.id);
+         if (jt.id === z.bearbeiteId) haupt.setAttribute("aria-current", "true");
+-        haupt.append(el("div", "obm", jt.name));
++        haupt.append(setzeKalenderAkzent(el("div", "obm", jt.name), jt));
+         const zusatz = altersText(jt, n.anzahl);
+         haupt.append(el("div", "unt", jahrestagDatumText(jt) +
+           (zusatz ? " · " + zusatz : "")));
+@@ -25738,12 +25771,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         for (let t = 1; t <= tage; t++) {
+           const iso = z.jahr + "-" + pad2(m + 1) + "-" + pad2(t);
+           const zelle = el("span", "mm-tag", String(t));
+-          const farbEintraege = (hatFarbTermine ? termineAm(iso, false, farbZeitraum).filter(termin => !!kalenderEintragAkzent(termin)) : []).concat(farbAufgaben.get(iso) || []);
++          const jahrestage = jahrestageAm(iso);
++          const farbEintraege = (hatFarbTermine ? termineAm(iso, false, farbZeitraum).filter(termin => !!kalenderEintragAkzent(termin)) : [])
++            .concat(farbAufgaben.get(iso) || [], jahrestage.filter(jt => kalenderEintragAkzent(jt)));
+           if (farbEintraege.length) {
+             const streifen = el("span", "mm-kategoriefarben");
+             for (const item of farbEintraege) {
+               const balken = setzeKalenderAkzent(el("span", "mm-kategoriebalken"), item);
+-              balken.title = item.titel; streifen.append(balken);
++              balken.title = item.titel || item.name; streifen.append(balken);
+             }
+             zelle.append(streifen);
+           }
+@@ -25755,7 +25790,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+           const spalte = (versatz + t - 1) % 7;
+           const wochentag = new Date(z.jahr, m, t).getDay();
+           if (wochentag === 0 || wochentag === 6) zelle.classList.add("wochenende");
+-          if (jahrestageAm(iso).length) zelle.classList.add("jt");
++          if (jahrestage.length) zelle.classList.add("jt");
+           if (iso === heute) {
+             zelle.classList.add("heute");
+             zelle.setAttribute("aria-current", "date");
+@@ -33628,7 +33663,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+               "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "wiederholung", "icsKomplex", "icsSerienUid", "icsAusnahmen",
+               "icsZusatzDaten", "icsZusatzTermine", "icsRoundtrip", "icsRangeOverrides", "icsAusnahmeTermine", "icsTimezones", "icsCalendarColor",
+               "icsAnzeigeZeitzone", "icsSequence", "icsAenderungszeitFehlt", "icsEndeFehlt", "icsNullDauer", "geaendert"])
+-              if (Object.prototype.hasOwnProperty.call(t, feld)) uidTreffer[feld] = kopie(t[feld]);
++              if (Object.prototype.hasOwnProperty.call(t, feld) && t[feld] !== undefined) uidTreffer[feld] = kopie(t[feld]);
+             uidTreffer.icsReadOnly = !!(uidTreffer.icsReadOnly || t.icsReadOnly);
+             if (!uidTreffer.icsReadOnlyGrund && t.icsReadOnlyGrund) uidTreffer.icsReadOnlyGrund = String(t.icsReadOnlyGrund);
+             uidTreffer.sync = false; z.neu++; continue;
+diff --git a/magnolie-organizer-windows/app/web/phone-media.js b/magnolie-organizer-windows/app/web/phone-media.js
+index a590a42..bcbbded 100644
+--- a/magnolie-organizer-windows/app/web/phone-media.js
++++ b/magnolie-organizer-windows/app/web/phone-media.js
+@@ -3,6 +3,20 @@
+   "use strict";
+   const pending = new Map();
+   const panels = new Map();
++  let cleanupQueued = false;
++  function schedulePanelCleanup() {
++    if (cleanupQueued) return;
++    cleanupQueued = true;
++    // The application constructs recovery and live controls before appending
++    // their phone row. Disconnection during that turn does not mean disposal.
++    queueMicrotask(() => {
++      cleanupQueued = false;
++      for (const [id, item] of pending) if (!item.root.isConnected) {
++        clearTimeout(item.timer); pending.delete(id);
++      }
++      for (const root of panels.keys()) if (!root.isConnected) panels.delete(root);
++    });
++  }
+   function createPanel(peerId, translate, send, saveBefore, currentContext = () => true, { mountLive, recovery, trashPolicy } = {}) {
+     const t = translate, root = document.createElement("details");
+     root.className = "telefon-medien einst-gruppe"; root.hidden = true;
+@@ -82,12 +96,12 @@
+     status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite");
+     const note = node("p", "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet.");
+     note.className = "einst-hinweis";
+-    const rightsArea = node("section"), settingsArea = node("section");
++    const rightsArea = node("section"), settingsArea = node("section"), waitingControls = node("div");
+     for (const area of [rightsArea, settingsArea, manualArea]) area.className = "telefon-medien-gruppe";
+     rightsArea.append(node("h4", "Access rights"));
+     settingsArea.append(node("h4", "Synchronization settings"), note);
+     manualArea.append(node("h4", "Manual synchronization"));
+-    root.append(title, status, rightsArea, settingsArea, ...(!recovery ? [restoreArea] : []), manualArea);
++    root.append(title, status, waitingControls, rightsArea, settingsArea, ...(!recovery ? [restoreArea] : []), manualArea);
+     const masterRow = node("label"), master = node("input"); master.type = "checkbox"; master.dataset.media = "enabled";
+     masterRow.className = "telefon-medien-aktivierung"; masterRow.hidden = true;
+     master.setAttribute("aria-label", t("Enable photo and video synchronization"));
+@@ -207,15 +221,21 @@
+     };
+     const toggle = () => {
+       busy ||= sourceChoiceWaiting;
+-      const shared = !!native?.shared_settings, enabled = !shared || master.checked;
++      const shared = !!native?.shared_settings, enabled = shared && master.checked;
++      const waiting = !!native && !shared;
+       const sourceValues = native?.shared_settings?.values;
+       const twoWayHeld = sourceValues?.direction === "two_way" && sourceValues.collection_mode !== "import_only";
+-      const runtimeReady = !shared || !twoWayHeld && native.shared_runtime_ready === true;
++      const runtimeReady = shared && !twoWayHeld && native.shared_runtime_ready === true;
+       directionNotice.hidden = !twoWayHeld;
+       deletionNotice.hidden = !shared;
+-      masterRow.hidden = receiveRow.hidden = scope.parentElement.hidden = direction.parentElement.hidden = !shared;
++      masterRow.hidden = !native;
++      receiveRow.hidden = scope.parentElement.hidden = direction.parentElement.hidden = !shared;
++      rightsArea.hidden = settingsArea.hidden = manualArea.hidden = waiting;
++      waitingControls.hidden = !waiting;
++      const statusControls = waiting ? waitingControls : controls;
++      if (refresh && refresh.parentElement !== statusControls) statusControls.append(stop, refresh);
+       photosOnly.parentElement.hidden = !shared || typeof native.shared_settings.versions?.photos_only !== "string";
+-      master.disabled = !native;
++      master.disabled = !shared;
+       receiveConsent.disabled = !enabled || (busy && !receiveConsent.checked);
+       for (const entry of sendChoices.values()) {
+         entry.row.hidden = !shared || !native?.send_consent || native.metadata_ready?.[entry.mediaType] !== true;
+@@ -234,6 +254,7 @@
+       automatic.disabled = (busy && !transfer) || !native || !enabled || native.automatic_ready !== true;
+       for (const entry of actions) entry.button.disabled = busy || !enabled || !runtimeReady || native?.metadata_ready?.[entry.mediaType] !== true || !(entry.mediaType === "video" ? videos.checked : photos.checked) || !native?.[entry.key];
+       stop.disabled = !transfer;
++      stop.hidden = waiting && !transfer;
+       if (refresh) refresh.disabled = false;
+       albumChoice.disabled = busy || !catalog;
+       if (manualSync) manualSync.disabled = busy || !enabled || !runtimeReady || (shared
+@@ -266,6 +287,8 @@
+     };
+     const request = async (action, data = {}, save = true) => {
+       if (emptyRunning && action.startsWith("trash_")) return;
++      const requiresShared = !["status", "activate", "cancel"].includes(action) && !action.startsWith("trash_");
++      if (requiresShared && !native?.shared_settings) return;
+       const sourceChoice = action === "pick_collection_source";
+       const destinationChoice = action === "pick_destination" || action === "default_destination";
+       const folderChoice = sourceChoice || destinationChoice;
+@@ -281,12 +304,17 @@
+           restoreSharedInputs(); toggle(); status.textContent = t("The book could not be saved. Media synchronization was not started."); return;
+         }
+       }
++      if (requiresShared && !native?.shared_settings) {
++        if (folderChoice) { sourceChoiceWaiting = false; busy = false; }
++        toggle(); return;
++      }
+       if (folderChoice && (!root.isConnected || !currentContext() ||
+           (sourceChoice ? native?.collection_sources_version : native?.destination_choices?.[data.media_type]) !== data.version)) {
+         sourceChoiceWaiting = false; busy = false; toggle(); return;
+       }
+       const now = Date.now();
+-      for (const [id, item] of pending) if (item.until < now || !item.root.isConnected) pending.delete(id);
++      for (const [id, item] of pending) if (item.until < now) pending.delete(id);
++      schedulePanelCleanup();
+       if (pending.size >= 128) {
+         if (folderChoice) { sourceChoiceWaiting = false; busy = false; toggle(); }
+         status.textContent = t("Too many pending requests. Wait for the current operation."); return;
+@@ -311,14 +339,10 @@
+       toggle();
+       if (!send(message)) { clearTimeout(item.timer); pending.delete(requestId); busy = false; if (emptying) emptyRunning = false; if (folderChoice) sourceChoiceWaiting = false; if (["sync", "sync_shared"].includes(action)) transfer = false; restoreSharedInputs(); toggle(); status.textContent = t("Native media connection is unavailable."); }
+     };
+-    const settings = () => {
+-      if (skip.indeterminate) {
+-        photos.checked = !!native?.photos; videos.checked = !!native?.videos;
+-        status.textContent = t("Skip deletions") + "?"; skip.focus(); return;
+-      }
+-      return request("settings", { version: native.version ?? null, photos: photos.checked, videos: videos.checked, skip_deletions: skip.checked });
++    const sharedSetting = (field, value) => {
++      if (!native?.shared_settings) return;
++      return request("shared_setting", { field, value, version: native.shared_settings.versions[field] });
+     };
+-    const sharedSetting = (field, value) => request("shared_setting", { field, value, version: native.shared_settings.versions[field] });
+     const restoreSharedInputs = () => {
+       const values = native?.shared_settings?.values;
+       if (!values) return;
+@@ -335,13 +359,13 @@
+       photos: sendChoices.get("photos").input.checked, videos: sendChoices.get("videos").input.checked, version: native.send_consent.version
+     }));
+     for (const [input, field] of [[photos, "photos_enabled"], [videos, "videos_enabled"]])
+-      input.addEventListener("change", () => native?.shared_settings ? sharedSetting(field, input.checked) : settings());
+-    skip.addEventListener("change", () => native?.shared_settings ? restoreSharedInputs() : settings());
++      input.addEventListener("change", () => sharedSetting(field, input.checked));
++    skip.addEventListener("change", restoreSharedInputs);
+     photosOnly.addEventListener("change", () => {
+       if (typeof native?.shared_settings?.versions?.photos_only === "string") sharedSetting("photos_only", photosOnly.checked);
+       else restoreSharedInputs();
+     });
+-    automatic.addEventListener("change", () => native?.shared_settings ? sharedSetting("auto_mode", automatic.value) : request("mode", { version: native.version ?? null, automatic: automatic.value === "wifi" }));
++    automatic.addEventListener("change", () => sharedSetting("auto_mode", automatic.value));
+     scope.addEventListener("change", () => sharedSetting("collection_mode", scope.value));
+     direction.addEventListener("change", () => {
+       const wanted = direction.selectedOptions[0];
+@@ -461,6 +485,7 @@
+       if (reply.activation_required === true) {
+         // A compatible legacy pairing exposes only explicit activation, never
+         // transfers, paths or stored permission defaults before initialization.
++        native = null; master.checked = false; master.disabled = true; masterRow.hidden = true;
+         for (const child of root.children) if (child !== recovery) child.hidden = child !== title && child !== status && child !== activate;
+         activate.hidden = false; activate.disabled = false; busy = false;
+         status.textContent = t("Waiting for native media status"); return;
+@@ -524,6 +549,9 @@
+         native = reply; photos.checked = !!reply.photos; videos.checked = !!reply.videos;
+         photosOnly.checked = reply.shared_settings?.values?.photos_only === true;
+         const shared = reply.shared_settings?.values;
++        if (!shared) {
++          catalog = null; selectedAlbum = null; albumChoice.replaceChildren(); albumChoice.hidden = true;
++        }
+         master.checked = shared?.enabled === true;
+         receiveConsent.checked = reply.receive_consent?.granted === true;
+         for (const [key, entry] of sendChoices) entry.input.checked = reply.send_consent?.[key] === true;
+@@ -552,9 +580,10 @@
+         }
+         status.textContent = t(busy ? "A native media operation is still running." : reply.metadata_ready?.images !== true
+           ? "Media transfer is not available on this connection yet." : "Native settings loaded. No transfer has been started.");
++        if (!shared) status.textContent = t("Synchronization settings") + " · " + t("Waiting for native media status");
+         if (shared && reply.shared_runtime_ready !== true && shared.enabled)
+           status.textContent = t("Media transfer is not available on this connection yet.");
+-        if (!busy && reply.automatic) {
++        if (shared && !busy && reply.automatic) {
+           if (reply.automatic_phase === "paused") status.textContent = t("Automatic synchronization is paused. Switch to manual mode and enable it again to resume.");
+           else if (["review", "held", "partial"].includes(reply.automatic_phase)) status.textContent = t("Automatic content comparison needs attention. No deletion completion was confirmed.");
+           else if (reply.automatic_phase === "content_pass") status.textContent = t("Automatic pass checked one album per media type. Further albums follow; deletions remain pending.");
+@@ -591,7 +620,7 @@
+       }
+       toggle();
+     }
+-    for (const old of panels.keys()) if (!old.isConnected) panels.delete(old);
++    schedulePanelCleanup();
+     if (!offline) {
+       request("status", {}, false);
+       panels.set(root, { peerId, refresh: () => { if (busy) deferredStatus = true; else request("status", {}, false); } });
+diff --git a/magnolie-organizer-windows/tests/CalendarColourRemainderTests.cs b/magnolie-organizer-windows/tests/CalendarColourRemainderTests.cs
+new file mode 100644
+index 0000000..be633dc
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/CalendarColourRemainderTests.cs
+@@ -0,0 +1,75 @@
++using System.Text;
++using System.Text.Json;
++using System.Text.Json.Nodes;
++using MagnolieOrganizer.Windows;
++
++namespace MagnolieOrganizer.Windows.Tests;
++
++internal static class CalendarColourRemainderTests
++{
++    internal static Task RunAsync()
++    {
++        const string marker = "contracts/calendar-color-remainders.json";
++        var vectors = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root(marker), marker)))!.AsArray();
++        var directory = Path.Combine(Path.GetTempPath(), "magnolie-colour-remainder-" + Guid.NewGuid().ToString("N"));
++        Directory.CreateDirectory(directory);
++        try
++        {
++            var store = new AtomicStore();
++            foreach (var vector in vectors.OfType<JsonObject>())
++            {
++                var id = vector["id"]!.GetValue<string>();
++                var section = vector["section"]!.GetValue<string>();
++                var expected = vector["expected_accent"]!.GetValue<string>();
++                var preserve = vector["preserve_line"]!.GetValue<string>();
++                var imported = Read(vector["input"]!.GetValue<string>());
++                var path = Path.Combine(directory, id + ".json");
++                store.WriteRecoverableJson(path, imported.ToJsonString());
++                var reopened = JsonNode.Parse(store.ReadRecoverableJson(path)!)!.AsObject();
++                var item = reopened[section]![0]!.AsObject();
++                TestAssert.That(Colour(item) == expected, id + ": native book reopen lost its imported accent.");
++                if (section == "jahrestage")
++                    TestAssert.That(item["datum"]!.GetValue<string>() == vector["expected_date"]!.GetValue<string>() &&
++                        item["typ"]!.GetValue<string>() == vector["expected_type"]!.GetValue<string>() &&
++                        reopened["termine"]!.AsArray().Count == 0, id + ": annual type or date changed.");
++                var text = Write(section, new JsonArray(item.DeepClone()));
++                TestAssert.That(text.Contains("X-OWNED:keep", StringComparison.Ordinal) &&
++                    (preserve.Length == 0 || text.Split("\r\n").Contains(preserve)), id + ": unchanged foreign property was lost.");
++                var again = Read(text);
++                TestAssert.That(Colour(again[section]![0]!) == expected, id + ": export/reimport lost its accent.");
++                if (section == "jahrestage")
++                    TestAssert.That(again[section]![0]!["datum"]!.GetValue<string>() == vector["expected_date"]!.GetValue<string>() &&
++                        again[section]![0]!["typ"]!.GetValue<string>() == vector["expected_type"]!.GetValue<string>() &&
++                        again["termine"]!.AsArray().Count == 0, id + ": export/reimport changed its annual identity.");
++                foreach (var accent in new[] { "#123456", "" })
++                {
++                    item["akzentFarbe"] = accent;
++                    var changed = Write(section, new JsonArray(item.DeepClone()));
++                    TestAssert.That(Colour(Read(changed)[section]![0]!) == accent && changed.Contains("X-OWNED:keep", StringComparison.Ordinal),
++                        id + ": explicit edit/clear restored an old colour or removed unrelated data.");
++                    if (preserve.StartsWith("COLOR;X-SOURCE", StringComparison.Ordinal))
++                        TestAssert.That(!changed.Split("\r\n").Contains(preserve), id + ": an edited colour retained the old effective property.");
++                    if (preserve == "COLOR:future-colour")
++                        TestAssert.That(changed.Split("\r\n").Contains(preserve), id + ": unknown colour was reinterpreted.");
++                }
++            }
++            var coloured = vectors.OfType<JsonObject>().Single(value => value["id"]!.GetValue<string>() == "birthday-calendar")["input"]!.GetValue<string>();
++            var other = coloured.Replace("COLOR:turquoise\r\n", "", StringComparison.Ordinal).Replace("birthday-calendar", "uncoloured", StringComparison.Ordinal);
++            var mixed = Write("jahrestage", Read(coloured + other)["jahrestage"]!.AsArray());
++            var result = Read(mixed)["jahrestage"]!.AsArray();
++            TestAssert.That(!mixed[..mixed.IndexOf("BEGIN:VEVENT", StringComparison.Ordinal)].Contains("COLOR:turquoise", StringComparison.Ordinal) &&
++                Colour(result[0]!) == "#40e0d0" && Colour(result[1]!) == "", "Mixed anniversary calendars leaked a colour into another source.");
++            Console.WriteLine($"Calendar colour remainders: {vectors.Count} native store/reopen/export vectors, {vectors.Count} edit/clear vectors, one mixed-calendar case.");
++            return Task.CompletedTask;
++        }
++        finally { Directory.Delete(directory, true); }
++    }
++
++    private static string Colour(JsonNode value) => value["akzentFarbe"]?.GetValue<string>() ?? "";
++    private static JsonObject Read(string text) => ExchangeCodec.ParseImport(Encoding.UTF8.GetBytes(text), "ics", "colour-remainders.ics").ToPayload("ics", "colour-remainders.ics");
++    private static string Write(string section, JsonArray data)
++    {
++        using var document = JsonDocument.Parse(data.ToJsonString());
++        return ExchangeCodec.WriteIcs("ics-" + section, document.RootElement).Text;
++    }
++}
+diff --git a/magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs b/magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs
+new file mode 100644
+index 0000000..f85bf44
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs
+@@ -0,0 +1,50 @@
++using System.Text;
++using System.Text.Json;
++using System.Text.Json.Nodes;
++using MagnolieOrganizer.Windows;
++
++namespace MagnolieOrganizer.Windows.Tests;
++
++internal static class LotusCsvContactFieldTests
++{
++    private static string[] Rows(JsonArray values, params string[] fields) => values.OfType<JsonObject>()
++        .Select(value => JsonSerializer.Serialize(fields.Select(field => value[field]?.ToString() ?? "")
++            .Append(string.Join(',', (value["typen"] as JsonArray ?? []).Select(type => type!.ToString()).Order(StringComparer.Ordinal)))))
++        .Order(StringComparer.Ordinal).ToArray();
++
++    internal static Task RunAsync()
++    {
++        const string relative = "contracts/lotus-csv-contact-fields.json";
++        var vectors = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root(relative), relative)))!["cases"]!.AsArray();
++        var failures = new List<string>();
++        foreach (var vector in vectors.OfType<JsonObject>())
++        {
++            var id = vector["id"]!.ToString();
++            void Check(bool passed, string message) { if (!passed) failures.Add(id + ": " + message); }
++            string Csv(JsonNode? field) => "\"" + field!.ToString().Replace("\"", "\"\"") + "\"";
++            var raw = Encoding.UTF8.GetBytes(string.Join(';', vector["headers"]!.AsArray().Select(Csv)) + "\r\n" +
++                string.Join(';', vector["row"]!.AsArray().Select(Csv)) + "\r\n");
++            var result = ExchangeCodec.ParseImport(raw, "lotus", "owned-contacts.csv");
++            Check(result.Uebersprungen == 0 && result.Kontakte.Count == 1, "CSV record count changed");
++            if (result.Kontakte.Count != 1) continue;
++            Check(JsonNode.DeepEquals(result.Kontakte, ExchangeCodec.ParseImport(raw, "vcf", "owned-contacts.csv").Kontakte), "Contact-file import disagrees with Lotus import");
++            var contact = result.Kontakte[0]!.AsObject();
++            for (var cycle = 0; cycle < 3; cycle++)
++            {
++                Check(contact["vorname"]!.ToString() == "Synthetic" && contact["nachname"]!.ToString() == "CSV", "Contact name changed");
++                Check(Rows(contact["telefone"]!.AsArray(), "wert").SequenceEqual(Rows(vector["phones"]!.AsArray(), "wert")), "Phone values or roles changed");
++                var addresses = contact["anschriften"]!.AsArray();
++                Check(Rows(addresses, "strasse", "plz", "ort", "land").SequenceEqual(Rows(vector["addresses"]!.AsArray(), "strasse", "plz", "ort", "land")), "Address lost, fabricated or assigned to another role");
++                if (addresses.Count > 0)
++                    Check(new[] { "strasse", "plz", "ort" }.All(field => contact[field]!.ToString() == addresses[0]![field]!.ToString()), "Legacy address fields combine different locations");
++                var exported = RecordExportFile.Convert("vcf-adressen", JsonSerializer.SerializeToElement(new JsonArray(contact.DeepClone())));
++                Check(exported.Count == 1 && exported.Skipped == 0, "VCF export lost the contact");
++                var reread = ExchangeCodec.ParseImport(Encoding.UTF8.GetBytes(exported.Text), "vcf", "owned.vcf");
++                Check(reread.Kontakte.Count == 1 && reread.Uebersprungen == 0, "VCF import lost the contact");
++                contact = reread.Kontakte.Single()!.AsObject();
++            }
++        }
++        TestAssert.That(failures.Count == 0, string.Join("\n", failures));
++        return Task.CompletedTask;
++    }
++}
+diff --git a/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs b/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs
+index 7630c57..53c2a95 100644
+--- a/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs
++++ b/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs
+@@ -62,6 +62,58 @@ internal static class NextcloudIcsBirthdayTests
+             "DTSTART;VALUE=DATE:20260418\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+         var withException = ExchangeCodec.ParseIcs(series);
+         TestAssert.That(withException.Jahrestage.Count == 0 && withException.Termine.Count == 2, "The master was detached from its override.");
++        EditedLeapBirthdays();
++        ExportedBirthdayKeepsDetachedOverride();
+         return Task.CompletedTask;
+     }
++
++    private static void ExportedBirthdayKeepsDetachedOverride()
++    {
++        const string source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:exported-birthday\r\nSUMMARY:Synthetic birthday\r\n" +
++            "DTSTART;VALUE=DATE:19850417\r\nRRULE:FREQ=YEARLY\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\n" +
++            "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1985\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
++        var imported = ExchangeCodec.ParseIcs(source);
++        using var data = JsonDocument.Parse(imported.Jahrestage.ToJsonString());
++        var exported = ExchangeCodec.WriteIcs("ics-jahrestage", data.RootElement).Text;
++        TestAssert.That(exported.Contains("X-MAGNOLIE-TYPE-ID:birthday") && exported.Contains("X-NEXTCLOUD-BC-FIELD-TYPE:BDAY"),
++            "The fixture did not traverse the actual provider birthday export.");
++        var ordinary = ExchangeCodec.ParseIcs(exported);
++        TestAssert.That(ordinary.Termine.Count == 0 && ordinary.Jahrestage.Count == 1 &&
++            ordinary.Jahrestage[0]!["datum"]!.ToString() == "1985-04-17", "An ordinary exported birthday changed classification.");
++        const string exception = "BEGIN:VEVENT\r\nUID:exported-birthday\r\nRECURRENCE-ID;VALUE=DATE:20260417\r\n" +
++            "DTSTART;VALUE=DATE:20260418\r\nSUMMARY:Moved\r\nEND:VEVENT\r\n";
++        var withException = ExchangeCodec.ParseIcs(exported.Replace("END:VCALENDAR", exception + "END:VCALENDAR"));
++        TestAssert.That(withException.Jahrestage.Count == 0 && withException.Termine.Count == 2,
++            "The own type marker detached the exported birthday master from its override.");
++    }
++
++    private static void EditedLeapBirthdays()
++    {
++        foreach (var (start, years, date, type) in new[] {
++            ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "--02-29", "wedding-anniversary"),
++            ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "1988-02-29", "wedding-anniversary"),
++            ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "1988-02-29", "birthday"),
++            ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "--02-29", "birthday") })
++        {
++            var text = $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:edited-leap\r\nSUMMARY:Synthetic birthday\r\nDTSTART;VALUE=DATE:{start}\r\n" +
++                $"RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\n{years}\r\nX-SYNTHETIC-PRESERVE:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
++            var items = ExchangeCodec.ParseIcs(text).Jahrestage;
++            items[0]!["datum"] = date; items[0]!["typ"] = type;
++            var exported = "";
++            for (var round = 0; round < 2; round++)
++            {
++                using var data = JsonDocument.Parse(items.ToJsonString());
++                exported = ExchangeCodec.WriteIcs("ics-jahrestage", data.RootElement).Text;
++                TestAssert.That(!exported.Contains("X-NEXTCLOUD-BC-") && exported.Contains("X-SYNTHETIC-PRESERVE:keep"), "Edited type/year retained stale marker or lost foreign metadata.");
++                TestAssert.That(exported.Split("\r\n").Where(line => line.StartsWith("RRULE:")).SequenceEqual(new[] { "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1" }), "Edited type/year changed last-February recurrence.");
++                var parsed = ExchangeCodec.ParseIcs(exported);
++                TestAssert.That(parsed.Termine.Count == 0 && parsed.Jahrestage.Count == 1 &&
++                    parsed.Jahrestage[0]!["datum"]!.ToString() == date && parsed.Jahrestage[0]!["typ"]!.ToString() == type, "Edited last-February anniversary lost date/type on reimport.");
++                items = parsed.Jahrestage;
++            }
++            const string exception = "BEGIN:VEVENT\r\nUID:edited-leap\r\nRECURRENCE-ID;VALUE=DATE:20270228\r\nDTSTART;VALUE=DATE:20270301\r\nSUMMARY:Moved\r\nEND:VEVENT\r\n";
++            var withException = ExchangeCodec.ParseIcs(exported.Replace("END:VCALENDAR", exception + "END:VCALENDAR"));
++            TestAssert.That(withException.Jahrestage.Count == 0 && withException.Termine.Count == 2, "An edited anniversary lost its detached override.");
++        }
++    }
+ }
+diff --git a/magnolie-organizer-windows/tests/Program.cs b/magnolie-organizer-windows/tests/Program.cs
+index 45cb99a..b9ac031 100644
+--- a/magnolie-organizer-windows/tests/Program.cs
++++ b/magnolie-organizer-windows/tests/Program.cs
+@@ -319,6 +319,7 @@ runner.Add("Notes actor historical result membership / separate receipt union",
+ runner.Add("MCP KDE / existing integration / no implicit listener", McpKdeLifecycleTests.RunAsync);
+ runner.Add("Category colors / native categories and accent interchange", CategoryColorTests.RunAsync);
+ runner.Add("Category colors / foreign ICS component and calendar accent", CategoryColorTests.ExternalIcsColoursAsync);
++runner.Add("Category colors / anniversary native storage and unchanged parameters", CalendarColourRemainderTests.RunAsync);
+ runner.Add("Contact group exclusions / identity / reminder privacy", ContactGroupExclusionTests.RunAsync);
+ runner.Add("Note send / selected PDF / explicit adapter handoff", NoteSendTests.RunAsync);
+ runner.Add("Wiederherstellungsjournal / Manifest / Tamper / Retention / Scheduler", RecoveryJournalTests.RunAsync);
+@@ -346,6 +347,7 @@ runner.Add("Document export / actual ODS / readback / target guards", VerifiedDo
+ runner.Add(".magnolie Gesamtarchiv / Cross-Platform / Anhänge / Fehler", ContractGroupTests.ArchiveAsync);
+ runner.Add("Notizanhänge / Data-URL / Dateinamen", AttachmentFileTests.RunAsync);
+ runner.Add("ICS / VCF / LDIF / Claws / Lotus / Thunderbird", ContractGroupTests.ExchangeAsync);
++runner.Add("Lotus CSV contacts / explicit role fields / repeated VCF exchange", LotusCsvContactFieldTests.RunAsync);
+ runner.Add("Calendar source case / Windows mixed component and property names roundtrip", CalendarSourceTimezoneCaseTests.RunAsync);
+ runner.Add("Thunderbird local.sqlite Schema 23", ThunderbirdSchema23Tests.RunAsync);
+ runner.Add("ODS Paket / XML / Styles / Geometrie / Chart", ContractGroupTests.OdsAsync);
+diff --git a/magnolie-organizer-windows/tests/appointment-organizer-suggestions.js b/magnolie-organizer-windows/tests/appointment-organizer-suggestions.js
+new file mode 100644
+index 0000000..909a92c
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/appointment-organizer-suggestions.js
+@@ -0,0 +1,103 @@
++"use strict";
++
++const fs = require("node:fs"), path = require("node:path"), Module = require("node:module"), assert = require("node:assert/strict");
++const harnessPath = path.join(__dirname, "desktop-state-regressions.js");
++const harness = new Module(harnessPath, module);
++harness.filename = harnessPath; harness.paths = Module._nodeModulePaths(path.dirname(harnessPath));
++harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(web)")[0] +
++  "\nmodule.exports={boot,roots};", harnessPath);
++const plain = value => JSON.parse(JSON.stringify(value));
++const contacts = Array.from({ length: 2000 }, (_, index) => ({ id: "person-" + index,
++  uid: "person-" + index + "@test", vorname: "Person", nachname: String(index), email: "person-" + index + "@example.test" }));
++contacts.push(
++  { id: "anna-one", vorname: "Anna", nachname: "Beispiel", email: "anna@example.test",
++    emailEintraege: [{ wert: "anna@example.test" }, { wert: "privat@example.test" }] },
++  { id: "anna-two", vorname: "ANNA", nachname: "BEISPIEL", email: "weitere@example.test" },
++  { id: "company", firma: "Karton GmbH", email: "office@example.test" }
++);
++const selected = { id: "existing", datum: "2026-11-27", titel: "Existing appointment",
++  organisator: { name: "Anna Beispiel", email: "custom@example.test", uri: "urn:keep:organizer" } };
++const options = (b, id) => Array.from(b.w.document.getElementById(id).options, option => option.value);
++function open(b, existing = false) {
++  b.t.oeffneTerminBlatt(existing ? b.t.daten().termine[0] : null, "2026-11-27");
++  return b.w.document.getElementById("tb-organisator-name");
++}
++function close(b) {
++  b.w.document.querySelector("#termin-schleier header > button").click();
++  assert.equal(b.w.document.getElementById("termin-schleier"), null, "Regular close did not finish");
++  assert.equal(b.w.document.getElementById("aenderungen-schleier"), null);
++}
++const cases = [
++  ["five regular open/close cycles build no unused organizer options", b => {
++    const before = JSON.stringify(b.t.daten()), counts = [], durations = [];
++    for (let index = 0; index < 5; index++) {
++      const start = process.hrtime.bigint(); open(b);
++      assert.equal(b.w.document.getElementById("tb-weitere-felder").style.display, "none");
++      counts.push(options(b, "tb-organisator-namen").length);
++      close(b); durations.push(Number(process.hrtime.bigint() - start) / 1e6);
++    }
++    console.log("OBSERVATION " + JSON.stringify({ hidden_organizer_option_counts: counts, regular_open_close_ms: durations }));
++    assert.deepEqual(counts, [0, 0, 0, 0, 0], "Closed organizer fields eagerly built the whole contact list");
++    assert.equal(JSON.stringify(b.t.daten()), before, "Opening or closing changed the book");
++  }],
++  ["focus and each query stay bounded while the last contact and company remain reachable", b => {
++    const name = open(b);
++    b.w.document.querySelector(".tb-aufklapper").click(); name.focus();
++    assert.equal(options(b, "tb-organisator-namen").length, 250, "Empty lookup exceeded one existing list chunk");
++    b.input("#tb-organisator-name", "PERSON 1999");
++    assert.deepEqual(options(b, "tb-organisator-namen"), ["Person 1999"]);
++    assert.deepEqual(options(b, "tb-organisator-emails"), ["person-1999@example.test"]);
++    b.input("#tb-organisator-name", "gmbh");
++    assert.deepEqual(options(b, "tb-organisator-namen"), ["Karton GmbH"]);
++    b.input("#tb-organisator-name", "Karton GmbH");
++    assert.deepEqual(options(b, "tb-organisator-emails"), ["office@example.test"]);
++    b.input("#tb-organisator-name", "");
++    assert.equal(options(b, "tb-organisator-namen").length, 250);
++    assert.deepEqual(options(b, "tb-organisator-emails"), []);
++    close(b);
++  }],
++  ["duplicate names keep all exact-name email choices and free organizer input still saves", b => {
++    const records = JSON.stringify(b.t.daten().kontakte);
++    open(b); b.input("#tb-organisator-name", "aNNa BeISPIEL");
++    assert.deepEqual(options(b, "tb-organisator-namen"), ["Anna Beispiel"]);
++    assert.deepEqual(options(b, "tb-organisator-emails"),
++      ["anna@example.test", "privat@example.test", "weitere@example.test"]);
++    b.input("#tb-organisator-name", "External organizer");
++    assert.deepEqual(options(b, "tb-organisator-namen"), []);
++    assert.deepEqual(options(b, "tb-organisator-emails"), []);
++    b.input("#tb-organisator-email", "external@example.test"); b.input("#tb-titel", "New appointment");
++    b.w.document.getElementById("tb-fertig").click();
++    assert.deepEqual(plain(b.t.daten().termine[0].organisator),
++      { name: "External organizer", email: "external@example.test", uri: "" });
++    assert.equal(JSON.stringify(b.t.daten().kontakte), records);
++  }],
++  ["editing retains the selected organizer and exact-name email choices before focus", b => {
++    open(b, true);
++    assert.equal(options(b, "tb-organisator-namen").length, 0);
++    assert.deepEqual(options(b, "tb-organisator-emails"),
++      ["anna@example.test", "privat@example.test", "weitere@example.test"]);
++    assert.equal(b.w.document.getElementById("tb-organisator-email").value, "custom@example.test");
++    b.input("#tb-titel", "Updated appointment"); b.w.document.getElementById("tb-fertig").click();
++    assert.deepEqual(plain(b.t.daten().termine[0].organisator), selected.organisator);
++  }, { termine: [selected] }],
++  ["an exact name after more than one chunk of partial matches remains selectable", b => {
++    b.t.daten().kontakte.push({ id: "short-name-at-end", vorname: "Person", nachname: "", email: "exact@example.test" });
++    open(b); b.input("#tb-organisator-name", "PERSON");
++    const names = options(b, "tb-organisator-namen");
++    assert.equal(names.length, 250);
++    assert(names.includes("Person"), "An exact later name was hidden behind the first 250 partial matches");
++    assert.deepEqual(options(b, "tb-organisator-emails"), ["exact@example.test"]);
++  }]
++];
++(async () => {
++  let passed = 0, total = 0;
++  for (const web of harness.exports.roots) for (const [name, test, extra] of cases) {
++    total++;
++    const b = await harness.exports.boot(web, { kontakte: plain(contacts), ...extra });
++    try { await test(b); passed++; console.log("PASS " + web + " · " + name); }
++    catch (error) { console.error("FAIL " + web + " · " + name + "\n" + error.stack); }
++    finally { b.close(); }
++  }
++  console.log(`${passed}/${total} organizer suggestion cases passed (actual desktop JavaScript in JSDOM)`);
++  if (passed !== total) process.exitCode = 1;
++})();
+diff --git a/magnolie-organizer-windows/tests/birthday-display.js b/magnolie-organizer-windows/tests/birthday-display.js
+index bf7c5f3..79a4ba7 100644
+--- a/magnolie-organizer-windows/tests/birthday-display.js
++++ b/magnolie-organizer-windows/tests/birthday-display.js
+@@ -65,6 +65,10 @@ function check(web) {
+     load([birthday("import"), birthday("google"), birthday("microsoft")]);
+     assert.equal(T.daten().jahrestage.length, 3);
+     shown(1);
++    load([birthday("legacy"), birthday("new", { akzentFarbe: "", icsCalendarColor: "" })]); shown(1);
++    load([birthday("a", { akzentFarbe: "#40e0d0", icsCalendarColor: "COLOR:turquoise" }),
++      birthday("b", { akzentFarbe: "#40e0d0", icsCalendarColor: "X-APPLE-CALENDAR-COLOR:#40E0D0" })]); shown(1);
++    load([birthday("a", { akzentFarbe: "#40e0d0" }), birthday("b", { akzentFarbe: "#112233" })]); shown(2);
+     load([birthday("import"), birthday("google"), birthday("microsoft")], [
+       { id: "person", vorname: "Mia", nachname: "Muster", geburtstag: "1990-12-25" }
+     ]);
+diff --git a/magnolie-organizer-windows/tests/calendar-colour-remainders.js b/magnolie-organizer-windows/tests/calendar-colour-remainders.js
+new file mode 100644
+index 0000000..6765803
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/calendar-colour-remainders.js
+@@ -0,0 +1,84 @@
++"use strict";
++// Real import callback, normalization, save payload/ACK and desktop redraws in
++// JSDOM. Optional actual codec payloads extend this to a cross-runtime pipeline;
++// neither mode claims a native GTK/WebView render or device synchronization.
++const fs = require("node:fs"), path = require("node:path"), Module = require("node:module"), assert = require("node:assert/strict");
++const file = path.join(__dirname, "desktop-state-regressions.js");
++const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
++harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[0] + "\nmodule.exports={boot,roots};", file);
++const plain = value => JSON.parse(JSON.stringify(value));
++const vectors = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../contracts/calendar-color-remainders.json"), "utf8"));
++const native = process.env.MAGNOLIE_COLOR_NATIVE_INPUT && new Map(JSON.parse(fs.readFileSync(process.env.MAGNOLIE_COLOR_NATIVE_INPUT, "utf8")).map(value => [value.id, value.payload]));
++const watchdog = setTimeout(() => { console.error("Calendar colour remainder test timed out"); process.exit(1); }, 60000);
++(async () => {
++  let failed = 0;
++  for (const web of harness.exports.roots) {
++    const results = [];
++    for (const vector of vectors) {
++      let b;
++      try {
++        const payload = native ? plain(native.get(vector.id)) : {
++          art: "ics", abgebrochen: false, [vector.section]: [{ uid: vector.id,
++            name: vector.id, titel: vector.id, datum: vector.expected_date, faellig: vector.expected_date,
++            typ: vector.expected_type, akzentFarbe: vector.expected_accent, icsCalendarColor: "",
++            icsRoundtrip: vector.preserve_line ? [vector.preserve_line] : [] }]
++        };
++        b = await harness.exports.boot(web);
++        await b.w.App.importErgebnis(payload);
++        const item = b.t.daten()[vector.section][0];
++        assert.ok(item, "Import did not create the expected entry");
++        assert.equal(item.akzentFarbe, vector.expected_accent);
++        if (vector.section === "jahrestage") {
++          assert.equal(item.typ, vector.expected_type); assert.equal(item.datum, vector.expected_date);
++          assert.equal(b.t.daten().termine.length, 0, "Birthday was changed into an ordinary event");
++          const iso = "2028-02-29", colour = vector.expected_accent;
++          for (const view of ["month", "week", "day"]) {
++            Object.assign(b.t.zustand().kalender, { jahr: 2028, monat: 1, tag: iso, ansicht: view });
++            await b.t.wechsel("planer"); await b.t.wechsel("kalender");
++            const selector = view === "month" ? ".jt-stern" : view === "week" ? ".wo-jt" : ".jt-kasten";
++            const marker = [...b.w.document.querySelectorAll(selector)].find(value => value.textContent.includes("✱"));
++            assert.ok(marker, view + ": anniversary symbol missing");
++            const coloured = marker.dataset.akzentFarbe ? marker : marker.querySelector("[data-akzent-farbe]");
++            assert.equal(coloured?.dataset.akzentFarbe || "", colour, view + ": visible accent differs");
++            if (colour) assert.ok(coloured.style.color && coloured.style.backgroundColor, view + ": missing contrast pair");
++          }
++          const month = b.t.planerMonatsModell(2028, 1);
++          const day = month.wochen.flatMap(week => week.tage).find(value => value.iso === iso);
++          const annual = day.eintraege.find(value => value.art === "jahrestag");
++          assert.equal(annual.farbe, colour || "#a66d8a");
++          assert.equal(!!annual.akzent, !!colour);
++          const year = b.t.planerKalenderModell(2028);
++          assert.equal(year.zeilen[28][1].akzente.filter(value => value.art === "jahrestag").length, colour ? 1 : 0);
++          // The real year view schedules two cancellable halves after paint.
++          // The shared harness suppresses RAF/timers; execute those callbacks.
++          const firstTimer = b.timers.length;
++          b.w.requestAnimationFrame = callback => { callback(); return 0; };
++          b.t.zustand().planer.jahr = 2028; await b.t.wechsel("planer");
++          for (let index = firstTimer; index < b.timers.length; index++) {
++            const timer = b.timers[index];
++            if (!timer.cancelled && timer.delay === 0) timer.fn();
++          }
++          const bars = [...b.w.document.querySelectorAll(".mm-kategoriebalken")].filter(value => value.title === item.name);
++          assert.equal(bars.length, colour ? 1 : 0, "year planner visible bars");
++          await b.t.wechsel("jahrestage");
++          const title = b.w.document.querySelector(".jahrestage-liste .obm");
++          assert.equal(title?.dataset.akzentFarbe || "", colour);
++        }
++        b.t.speichereJetzt(); const save = b.saves().at(-1); assert.ok(save, "Actual save request missing");
++        const book = JSON.parse(save.text); b.ack(); b.close(); b = undefined;
++        b = await harness.exports.boot(web, book);
++        assert.equal(b.t.daten()[vector.section][0].akzentFarbe, vector.expected_accent, "Saved book reload lost its colour");
++        results.push({ id: vector.id, passed: true, book });
++      } catch (error) {
++        failed++; results.push({ id: vector.id, passed: false, error: error.message, stack: error.stack });
++        console.error("FAIL " + web + ": " + vector.id + ": " + error.message);
++      } finally { b?.close(); }
++    }
++    if (process.env.MAGNOLIE_COLOR_UI_OUTPUT) {
++      fs.mkdirSync(process.env.MAGNOLIE_COLOR_UI_OUTPUT, { recursive: true });
++      fs.writeFileSync(path.join(process.env.MAGNOLIE_COLOR_UI_OUTPUT, web.includes("magnolie-organizer-windows") ? "windows.json" : "linux.json"), JSON.stringify(results, null, 2) + "\n");
++    }
++    console.log("CALENDAR COLOUR REMAINDERS " + results.filter(value => value.passed).length + "/" + results.length + " " + web + (native ? " actual native codec payloads" : " UI model fixtures"));
++  }
++  if (failed) process.exitCode = 1;
++})().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => clearTimeout(watchdog));
+diff --git a/magnolie-organizer-windows/tests/legacy-android-instance-ui.js b/magnolie-organizer-windows/tests/legacy-android-instance-ui.js
+index 93e3757..60b47c3 100644
+--- a/magnolie-organizer-windows/tests/legacy-android-instance-ui.js
++++ b/magnolie-organizer-windows/tests/legacy-android-instance-ui.js
+@@ -62,12 +62,29 @@ const payload = nativePayload ? JSON.parse(fs.readFileSync(nativePayload, "utf8"
+         const stored = JSON.parse(save.text);
+         assert.equal(stored.termine.length, 2, "Reimport saved duplicate old-Android exception (expected 2 records)");
+         const current = b.t.daten().termine.find(item => item.id === legacy.id);
++        assert(current.geaendert > 1, "Alias reimport did not apply the newer content");
+         assert.equal(current.uid, legacy.uid); assert.equal(stored.aufgaben.find(item => item.id === "task-reference").terminId, legacy.id);
+         for (const field of ["futureMetadata", "alarme", "teilnehmer", "kalenderAnhaenge", "providerMetadaten"])
+           assert.deepEqual(plain(current[field]), preserved[field], "Alias import erased old local data: " + field);
+         b.w.App.init({ daten: stored, neu: false, regional: { language: "en", timeZone: "UTC" } });
+         assert.equal(b.t.daten().termine.length, 2, "Saved alias import changed count on frontend reopen");
+       }
++      // Payloads stored before #844 have no calendar-colour provenance field.
++      // A normalized undefined value must neither abort the UID alias update
++      // nor erase a current calendar header that the old payload cannot express.
++      for (const colour of [undefined, ""]) {
++        const olderPayload = plain(incoming), currentBook = plain(old);
++        for (const item of olderPayload.termine) {
++          delete item.icsCalendarColor;
++          if (colour !== undefined) item.icsCalendarColor = colour;
++        }
++        currentBook.termine.find(item => item.id === legacy.id).icsCalendarColor = "COLOR:turquoise";
++        b.w.App.init({ daten: currentBook, neu: false, regional: { language: "en", timeZone: "UTC" } });
++        await Promise.resolve(b.w.App.importErgebnis(olderPayload));
++        const updated = b.t.daten().termine.find(item => item.id === legacy.id);
++        assert(updated.geaendert > 1, "Missing optional colour aborted the actual alias import");
++        assert.equal(updated.icsCalendarColor, colour === undefined ? "COLOR:turquoise" : "");
++      }
+       for (const [name, variant] of Object.entries(codec.variants)) {
+         b.w.App.init({ daten: plain(old), neu: false, regional: { language: "en", timeZone: "UTC" } });
+         await Promise.resolve(b.w.App.importErgebnis(plain(variant)));
+diff --git a/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js b/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js
+new file mode 100644
+index 0000000..ba00dc7
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js
+@@ -0,0 +1,92 @@
++"use strict";
++const fs = require("node:fs"), path = require("node:path"), assert = require("node:assert/strict");
++const { JSDOM } = require("jsdom");
++const sourceRoot = process.env.MAGNOLIE_TEST_SOURCE_ROOT || path.resolve(__dirname, "../..");
++const source = fs.readFileSync(path.join(sourceRoot, "magnolie-organizer-windows/app/web/phone-media.js"), "utf8");
++const tick = () => new Promise(resolve => setImmediate(resolve));
++const peer1 = "11111111-1111-4111-8111-111111111111", peer2 = "22222222-2222-4222-8222-222222222222";
++function boot() {
++  const dom = new JSDOM("<!doctype html><body></body>", { runScripts: "outside-only", url: "https://media-mount.invalid" });
++  const w = dom.window, messages = []; let saves = 0;
++  w.eval(source);
++  const api = w.MagnolieMedia, send = message => { messages.push(JSON.parse(JSON.stringify(message))); return true; };
++  const b = { dom, w, api, messages, saves: () => saves,
++    create(peer, live = true) {
++      const recovery = api.createRecoveryPanel(peer, x => x, send, async () => { saves++; });
++      // This is the exact application order: create history, create its wrapper,
++      // append the enclosing phone list only after its children are ready.
++      const panel = api.createPanel(peer, x => x, send, async () => { saves++; }, () => true,
++        { recovery, mountLive: live ? parent => parent.append(w.document.createElement("aside")) : null });
++      return { peer, recovery, panel };
++    },
++    deliver(request, device = request.device_id) {
++      const value = request.action === "status" ? { supported: false } : {
++        backups: [{ backup_id: "a".repeat(64), version: "b".repeat(64), display_name: request.media_type + ".jpg", saved_ms: 1234 }],
++        next_cursor: null, location_id: "c".repeat(64), backup_location: { is_default: true, sources: [] }
++      };
++      api.receive({ requestId: request.requestId, device_id: device, ok: true, ...value });
++    }
++  };
++  return b;
++}
++function assertLoaded(item) {
++  assert.equal(item.recovery.querySelectorAll("li").length, 2, "Initial image/video history replies were discarded during construction");
++  assert(!item.recovery.closest("[hidden]"), "Existing local recovery was hidden after its readback");
++}
++const cases = [
++  ["initial live phone row receives both local history replies", async b => {
++    const item = b.create(peer1); b.w.document.body.append(item.panel); await tick();
++    for (const request of [...b.messages]) b.deliver(request);
++    assertLoaded(item); assert.equal(b.saves(), 0);
++    assert.deepEqual(b.messages.map(message => message.action), ["backup_list", "backup_list", "status"]);
++  }],
++  ["multiple initial rows retain history and automatic status refresh", async b => {
++    const first = b.create(peer1), second = b.create(peer2);
++    b.w.document.body.append(first.panel, second.panel); await tick();
++    for (const request of [...b.messages]) b.deliver(request);
++    assertLoaded(first); assertLoaded(second);
++    const before = b.messages.length;
++    b.api.changed({ device_id: peer1 }); b.api.changed({ device_id: peer2 });
++    assert.deepEqual(b.messages.slice(before).map(message => [message.device_id, message.action]),
++      [[peer1, "status"], [peer2, "status"]], "A later initial row discarded an earlier automatic refresh owner");
++    assert.equal(b.saves(), 0);
++  }],
++  ["offline local history remains independent of live media status", async b => {
++    const item = b.create(peer1, false); b.w.document.body.append(item.panel); await tick();
++    for (const request of [...b.messages]) b.deliver(request);
++    assertLoaded(item); assert(b.messages.every(message => message.action === "backup_list"));
++    assert.equal(b.saves(), 0);
++  }],
++  ["disposed history requests cannot populate a reattached old row", async b => {
++    const old = b.create(peer1); b.w.document.body.append(old.panel); await tick();
++    for (const request of [...b.messages]) b.deliver(request);
++    const refresh = [...old.recovery.querySelectorAll("button")].find(button => button.textContent === "Refresh"); refresh.click();
++    const stale = b.messages.at(-1); assert.equal(stale.action, "backup_list");
++    old.panel.remove();
++    const current = b.create(peer2); b.w.document.body.append(current.panel); await tick();
++    // A discarded owner stays discarded even if somebody later reattaches its
++    // old DOM; merely connected again must not revive its pending read request.
++    old.recovery.querySelector("ul").replaceChildren(); b.w.document.body.append(old.panel);
++    b.deliver(stale); assert.equal(old.recovery.querySelector("ul").children.length, 0);
++    const before = b.messages.length; b.api.changed({ device_id: peer1 });
++    assert.equal(b.messages.length, before);
++  }],
++  ["initial history replies remain bound to their actual peer", async b => {
++    const item = b.create(peer1); b.w.document.body.append(item.panel); await tick();
++    const reads = b.messages.filter(message => message.action === "backup_list");
++    b.deliver(reads[0], peer2); assert.equal(item.recovery.querySelectorAll("li").length, 0);
++    for (const request of [...b.messages]) b.deliver(request);
++    assertLoaded(item); assert.equal(b.saves(), 0);
++  }]
++];
++(async () => {
++  let failures = 0;
++  for (const [name, run] of cases) {
++    const b = boot();
++    try { await run(b); console.log("PASS " + name); }
++    catch (error) { failures++; console.error("FAIL " + name + "\n" + error.stack); }
++    finally { b.dom.window.close(); }
++  }
++  console.log(`${cases.length - failures}/${cases.length} Windows media recovery-mount cases passed (JSDOM)`);
++  if (failures) process.exitCode = 1;
++})();
+diff --git a/magnolie-organizer-windows/tests/phone-media-ui.js b/magnolie-organizer-windows/tests/phone-media-ui.js
+index 629ab75..89bfbeb 100644
+--- a/magnolie-organizer-windows/tests/phone-media-ui.js
++++ b/magnolie-organizer-windows/tests/phone-media-ui.js
+@@ -10,16 +10,21 @@ w.document.body.append(panel);
+ const last = () => messages.at(-1), tick = () => new Promise(resolve => setImmediate(resolve));
+ const buttons = title => [...panel.querySelectorAll("button")].filter(x => x.textContent === title);
+ function reply(value) { api.receive({ requestId: last().requestId, device_id: peer, ok: true, ...value }); }
+-const state = { supported: true, version: "a".repeat(64), destination_choices: { images: "7".repeat(64), video: "8".repeat(64) }, photos: false, videos: false, automatic: false, automatic_ready: true, automatic_phase: "idle", skip_deletions: true, pictures: null, video_destination: null, busy: false, metadata_ready: { images: true, video: true } };
++const sharedValues = { enabled: true, photos_enabled: false, videos_enabled: false, collection_mode: "phone_inventory",
++  auto_mode: "manual", skip_deletions: true, direction: "phone_to_pc", photos_only: false };
++const sharedVersions = Object.fromEntries(Object.keys(sharedValues).map((field, index) => [field, String(index + 1).repeat(64)]));
++const state = { supported: true, version: "a".repeat(64), destination_choices: { images: "7".repeat(64), video: "8".repeat(64) }, photos: false, videos: false, automatic: false, automatic_ready: true, automatic_phase: "idle", skip_deletions: true, pictures: null, video_destination: null, busy: false, metadata_ready: { images: true, video: true },
++  shared_settings: { values: sharedValues, versions: sharedVersions }, shared_runtime_ready: true, shared_matched: true,
++  receive_consent: { granted: true, version: "e".repeat(64) } };
+ (async () => {
+   assert.equal(last().action, "status"); assert.equal(saves, 0); assert(panel.hidden);
+   api.receive({ requestId: last().requestId, device_id: "foreign-peer", ok: true, ...state }); assert(panel.hidden);
+-  reply({ ...state, skip_deletions: null }); assert(!panel.hidden); assert(!panel.querySelector('[data-media="videos"]').checked);
++  reply(state); assert(!panel.hidden); assert(!panel.querySelector('[data-media="videos"]').checked);
+   const firstPhoto = panel.querySelector('[data-media="photos"]'), skipChoice = panel.querySelector('[data-media="skip_deletions"]');
+-  const mixedCount = messages.length; firstPhoto.checked = true; firstPhoto.dispatchEvent(new w.Event("change")); await tick();
+-  assert.equal(messages.length, mixedCount); assert(skipChoice.indeterminate); assert(!firstPhoto.checked);
+-  skipChoice.indeterminate = false; skipChoice.checked = true; skipChoice.dispatchEvent(new w.Event("change")); await tick();
+-  assert.equal(last().action, "settings"); reply(state);
++  assert(skipChoice.disabled && skipChoice.checked, "Stored deletion opt-out remains visible and read-only");
++  const initialCount = messages.length; firstPhoto.checked = true; firstPhoto.dispatchEvent(new w.Event("change")); await tick();
++  assert.equal(messages.length, initialCount + 1); assert.equal(last().action, "shared_setting");
++  assert.equal(last().field, "photos_enabled"); assert.equal(last().value, true); reply(state);
+    panel.querySelector('[data-destination="images"]').click(); await tick(); assert.equal(last().action, "pick_destination");
+    assert.equal(last().media_type, "images"); assert.equal(last().version, state.destination_choices.images); assert(!("pfad" in last()));
+   const withRoot = { ...state, pictures: { version: "d".repeat(64), display_path: "C:\\Pictures\\<img onerror=evil>" } };
+@@ -35,8 +40,10 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
+    reply({ ...withRoot, pictures: { ...withRoot.pictures, default: true } });
+    assert(folderButtons[1].disabled, "Already-default destination still offered a reset");
+   const photos = panel.querySelector('[data-media="photos"]'); photos.checked = true; photos.dispatchEvent(new w.Event("change")); await tick();
+-  assert.equal(last().action, "settings"); assert.equal(last().videos, false); assert.equal(last().skip_deletions, true);
+-  const enabled = { ...withRoot, photos: true, version: "b".repeat(64) }; reply(enabled);
++  assert.equal(last().action, "shared_setting"); assert.equal(last().field, "photos_enabled");
++  assert(!("videos" in last()) && !("skip_deletions" in last()), "A single field edit changed unrelated choices");
++  const enabled = { ...withRoot, photos: true, version: "b".repeat(64), shared_start_version: "9".repeat(64),
++    shared_settings: { ...state.shared_settings, values: { ...sharedValues, photos_enabled: true } } }; reply(enabled);
+   assert(buttons("Read video albums")[0].disabled); assert(!buttons("Read photo albums")[0].disabled);
+   const sections = [...panel.querySelectorAll(".telefon-medien-gruppe > h4")].map(title => title.textContent);
+   assert.deepEqual(sections, ["Access rights", "Synchronization settings", "Manual synchronization"]);
+@@ -56,13 +63,15 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
+   const automaticChoice = panel.querySelector('[data-media="automatic"]');
+   assert.equal(automaticChoice.value, "manual"); assert(automaticChoice.classList.contains("feld")); assert(!automaticChoice.disabled);
+   automaticChoice.value = "wifi"; automaticChoice.dispatchEvent(new w.Event("change")); await tick();
+-  assert.equal(last().action, "mode"); assert.equal(last().automatic, true); assert(!("skip_deletions" in last()));
+-  reply({ ...enabled, automatic: true, automatic_phase: "content_pass" });
++  assert.equal(last().action, "shared_setting"); assert.equal(last().field, "auto_mode"); assert.equal(last().value, "wifi"); assert(!("skip_deletions" in last()));
++  const automaticState = { ...enabled, automatic: true,
++    shared_settings: { ...enabled.shared_settings, values: { ...enabled.shared_settings.values, auto_mode: "wifi" } } };
++  reply({ ...automaticState, automatic_phase: "content_pass" });
+   assert(panel.textContent.includes("one album per media type")); assert(panel.textContent.includes("deletions remain pending"));
+-  buttons("Refresh")[0].click(); await tick(); reply({ ...enabled, automatic: true, automatic_busy: true, busy: true });
++  buttons("Refresh")[0].click(); await tick(); reply({ ...automaticState, automatic_busy: true, busy: true });
+   assert(!automaticChoice.disabled); assert(!buttons("Stop")[0].disabled);
+   automaticChoice.value = "manual"; automaticChoice.dispatchEvent(new w.Event("change")); await tick();
+-  assert.equal(last().action, "mode"); assert.equal(last().automatic, false);
++  assert.equal(last().action, "shared_setting"); assert.equal(last().field, "auto_mode"); assert.equal(last().value, "manual");
+   reply(enabled);
+   saveAllowed = false; const before = messages.length; buttons("Read photo albums")[0].click(); await tick();
+   assert.equal(messages.length, before); assert(panel.textContent.includes("could not be saved"));
+@@ -74,15 +83,15 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
+    assert(albumChoice.classList.contains("feld"));
+    albumChoice.value = album; albumChoice.dispatchEvent(new w.Event("change"));
+    assert.equal(last().action, "discover", "Selecting an album must not implicitly start synchronization");
+-   buttons("Synchronize now")[0].click(); await tick(); assert.equal(last().action, "sync"); assert.equal(last().album_id, album);
++   buttons("Synchronize now")[0].click(); await tick(); assert.equal(last().action, "sync_shared");
++   assert.equal(last().version, enabled.shared_start_version); assert(!("album_id" in last()));
+   const syncRequest = last().requestId;
+   reply({ state: "running" }); assert(panel.textContent.includes("total is not known")); assert(!buttons("Stop")[0].disabled);
+   buttons("Stop")[0].click(); await tick(); assert.equal(last().action, "cancel"); reply({ state: "stopping" });
+   api.receive({ requestId: syncRequest, device_id: peer, ok: false, state: "partial", error: "canceled" });
+   assert(panel.textContent.includes("Original files and recovery history are retained"));
+    buttons("Synchronize now")[0].click(); await tick(); reply({ state: "review", copied: 1, kept_edits: 1, coverage_uncertain: true, review: [{ name: "<script>user-file", reason: "conflict_edit_edit" }] });
+-  assert(panel.textContent.includes("Local edits kept: 1")); assert(panel.textContent.includes("Deletions are not synchronized yet")); assert.equal(panel.querySelector("script"), null);
+-  assert(panel.textContent.includes("Some source entries may not have been offered"));
++  assert(panel.textContent.includes("Content comparison needs review")); assert(panel.textContent.includes("Deletions are not synchronized yet")); assert.equal(panel.querySelector("script"), null);
+   const old = last().requestId; api.receive({ requestId: old, device_id: peer, ok: true, supported: false }); assert(!panel.hidden);
+   buttons("Read media recycle bin")[0].click(); await tick(); assert.equal(last().action, "trash_list"); assert.equal(last().after, 0);
+   const retained = { operation_id: "a".repeat(32), version: "b".repeat(64), state: "trashed", display_name: "<img>my-file.jpg", media_type: "images" };
+diff --git a/magnolie-organizer-windows/tests/phone-media-wait-ui.js b/magnolie-organizer-windows/tests/phone-media-wait-ui.js
+new file mode 100644
+index 0000000..594daff
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/phone-media-wait-ui.js
+@@ -0,0 +1,133 @@
++"use strict";
++const fs = require("node:fs"), path = require("node:path"), assert = require("node:assert/strict");
++const { JSDOM } = require("jsdom");
++const sourceRoot = process.env.MAGNOLIE_TEST_SOURCE_ROOT || path.resolve(__dirname, "../..");
++const source = fs.readFileSync(path.join(sourceRoot, "magnolie-organizer-windows/app/web/phone-media.js"), "utf8");
++const tick = () => new Promise(resolve => setImmediate(resolve));
++const peer = "11111111-1111-4111-8111-111111111111";
++const legacy = { supported: true, version: "a".repeat(64), photos: true, videos: false, automatic: false,
++  automatic_ready: true, automatic_phase: "idle", skip_deletions: true, busy: false,
++  metadata_ready: { images: true, video: true }, pictures: { version: "b".repeat(64), default: true },
++  video_destination: null, destination_choices: { images: "c".repeat(64), video: "d".repeat(64) } };
++const values = { enabled: true, photos_enabled: true, videos_enabled: false, collection_mode: "phone_inventory",
++  direction: "phone_to_pc", auto_mode: "manual", skip_deletions: true, photos_only: false };
++const versions = Object.fromEntries(Object.keys(values).map((field, i) => [field, String(i + 1).repeat(64)]));
++const shared = { ...legacy, shared_settings: { values, versions }, shared_matched: true,
++  shared_runtime_ready: true, shared_start_version: "e".repeat(64), receive_consent: { granted: true, version: "f".repeat(64) } };
++const backup = { backup_id: "1".repeat(64), version: "2".repeat(64), display_name: "saved.jpg", saved_ms: 1234 };
++function boot({ deferredSave = false, withRecovery = false } = {}) {
++  const dom = new JSDOM("<!doctype html><body></body>", { runScripts: "outside-only", url: "https://media-wait.invalid" });
++  const w = dom.window, messages = []; let saves = 0, finishSave;
++  w.eval(source);
++  const api = w.MagnolieMedia, send = message => { messages.push(JSON.parse(JSON.stringify(message))); return true; };
++  const save = () => { saves++; return deferredSave ? new Promise(resolve => { finishSave = resolve; }) : Promise.resolve(); };
++  const recovery = withRecovery ? api.createRecoveryPanel(peer, x => x, send, save) : null;
++  // This case checks preservation of already loaded local history. The initial
++  // application construction sequence has its own separate regression.
++  if (recovery) {
++    w.document.body.append(recovery);
++    for (const request of messages.filter(message => message.action === "backup_list"))
++      api.receive({ requestId: request.requestId, device_id: peer, ok: true, next_cursor: null,
++        backups: request.media_type === "images" ? [backup] : [], location_id: "3".repeat(64),
++        backup_location: request.media_type === "images" ? { is_default: true, sources: [] } : null });
++  }
++  const panel = api.createPanel(peer, x => x, send, save, () => true,
++    recovery ? { recovery, mountLive: () => {} } : {});
++  w.document.body.append(panel);
++  const b = { dom, w, api, messages, panel, recovery,
++    input: key => panel.querySelector(`[data-media="${key}"]`),
++    button: title => [...panel.querySelectorAll("button")].find(button => button.textContent === title),
++    last: () => messages.at(-1), saves: () => saves, finishSave: () => finishSave(),
++    reply: (request, value) => api.receive({ requestId: request.requestId, device_id: peer, ok: true, ...value }),
++    refresh: value => { api.changed({ device_id: peer }); b.reply(b.last(), value); } };
++  return b;
++}
++function assertWaiting(b) {
++  const master = b.input("enabled"), photos = b.input("photos"), automatic = b.input("automatic");
++  assert(!b.panel.hidden && !master.closest("[hidden]") && master.disabled && !master.checked,
++    "A supported peer without shared settings needs a visible unavailable master");
++  assert(photos.closest("[hidden]") && photos.disabled && automatic.closest("[hidden]") && automatic.disabled,
++    "Missing shared settings exposed legacy controls");
++  assert(b.panel.querySelector('[role="status"]').textContent.includes("Waiting for native media status"));
++  assert(!b.button("Refresh").closest("[hidden]") && !b.button("Refresh").disabled,
++    "Waiting must remain refreshable");
++}
++const cases = [
++  ["old peer waits without legacy edits or readiness claims", async b => {
++    b.reply(b.last(), { ...legacy, skip_deletions: null }); assertWaiting(b);
++    const before = b.messages.length;
++    b.input("photos").checked = false; b.input("photos").dispatchEvent(new b.w.Event("change"));
++    b.input("automatic").value = "wifi"; b.input("automatic").dispatchEvent(new b.w.Event("change"));
++    b.input("enabled").dispatchEvent(new b.w.Event("change"));
++    await tick();
++    assert.equal(b.messages.length, before); assert.equal(b.saves(), 0);
++    b.refresh({ supported: false }); assert(b.panel.hidden);
++  }],
++  ["confirmed shared values restore controls without enabling or starting", async b => {
++    b.reply(b.last(), legacy); assertWaiting(b);
++    const off = { ...shared, shared_matched: false,
++      shared_settings: { values: { ...values, enabled: false }, versions } };
++    const snapshot = JSON.stringify(off);
++    b.refresh(off);
++    assert(!b.input("enabled").disabled && !b.input("enabled").checked);
++    assert(!b.input("photos").closest("[hidden]") && b.input("photos").disabled);
++    assert.equal(b.saves(), 0); assert(b.messages.every(message => message.action === "status"));
++    assert.equal(JSON.stringify(off), snapshot);
++    const beforeEnable = b.messages.length;
++    b.input("enabled").click(); await tick();
++    assert.equal(b.messages.length, beforeEnable + 1, "One setting choice must not require an extra confirmation command");
++    assert.equal(b.panel.querySelector("dialog"), null);
++    assert.equal(b.last().action, "shared_setting"); assert.equal(b.last().field, "enabled");
++    assert.equal(b.last().value, true); assert.equal(b.last().version, versions.enabled);
++    b.reply(b.last(), shared);
++    assert(!b.input("photos").disabled);
++    assert(!b.messages.some(message => ["sync", "sync_shared", "request_read"].includes(message.action)));
++  }],
++  ["loss of shared settings removes old choices without rewriting them", async b => {
++    const snapshot = JSON.stringify(shared);
++    b.reply(b.last(), shared); assert(!b.input("photos").disabled);
++    b.refresh(legacy); assertWaiting(b);
++    const before = b.messages.length;
++    b.button("Synchronize now").click(); b.button("Photos · Destination folder").click();
++    b.input("photos").dispatchEvent(new b.w.Event("change")); await tick();
++    assert.equal(b.messages.length, before); assert.equal(b.saves(), 0);
++    assert.equal(JSON.stringify(shared), snapshot);
++    b.refresh(shared); assert(!b.input("photos").disabled && b.input("enabled").checked);
++  }],
++  ["shared settings lost during Save-ACK do not dispatch the old edit", async b => {
++    b.reply(b.last(), shared);
++    b.input("photos").checked = false; b.input("photos").dispatchEvent(new b.w.Event("change"));
++    assert.equal(b.saves(), 1);
++    b.refresh(legacy); assertWaiting(b);
++    b.finishSave(); await tick();
++    assert(b.messages.every(message => message.action === "status")); assertWaiting(b);
++  }, { deferredSave: true }],
++  ["waiting retains Stop for an already running native operation", async b => {
++    b.reply(b.last(), { ...legacy, busy: true, transfer_busy: true }); assertWaiting(b);
++    const stop = b.button("Stop"); assert(!stop.closest("[hidden]") && !stop.disabled);
++    stop.click(); await tick(); assert.equal(b.last().action, "cancel"); assert.equal(b.saves(), 0);
++    b.reply(b.last(), { state: "idle" });
++    assert(stop.hidden && stop.disabled); assert(b.input("photos").disabled);
++  }],
++  ["loaded local recovery remains reachable while shared media settings wait", async b => {
++    b.reply(b.messages.find(message => message.action === "status"), legacy); assertWaiting(b);
++    assert(!b.recovery.closest("[hidden]"));
++    const restore = [...b.recovery.querySelectorAll("button")].find(button => button.textContent === "Restore");
++    restore.click(); await tick();
++    assert.equal(b.last().action, "backup_restore"); assert.equal(b.last().backup_id, backup.backup_id);
++    assert(!b.messages.some(message => ["settings", "mode", "sync", "sync_shared"].includes(message.action)));
++    b.reply(b.last(), { canceled: true });
++    assert.equal(b.recovery.querySelectorAll("li").length, 1);
++  }, { withRecovery: true }]
++];
++(async () => {
++  let failures = 0;
++  for (const [name, run, options] of cases) {
++    const b = boot(options);
++    try { await run(b); console.log("PASS " + name); }
++    catch (error) { failures++; console.error("FAIL " + name + "\n" + error.stack); }
++    finally { b.dom.window.close(); }
++  }
++  console.log(`${cases.length - failures}/${cases.length} Windows media waiting-state cases passed (JSDOM)`);
++  if (failures) process.exitCode = 1;
++})();
+diff --git a/magnolie-organizer-windows/tests/run.js b/magnolie-organizer-windows/tests/run.js
+index 97f18f8..fc4c032 100644
+--- a/magnolie-organizer-windows/tests/run.js
++++ b/magnolie-organizer-windows/tests/run.js
+@@ -23,12 +23,13 @@ for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-sav
+   "handbook-source-diagnostics.js",
+   "calendar-attachment-actions.js", "calendar-attachment-native.js",
+   "calendar-accent-edits.js",
++  "appointment-organizer-suggestions.js",
+   "sync-calendar-identity.js",
+   "normative-timezones.js",
+   "contact-email-case.js", "contact-copy-birthday.js",
+   "oversized-note-safety.js", "desktop-state-regressions.js", "../../magnolie-organizer/pruefungen/phone-personal-status-ui.cjs", "../../magnolie-organizer/pruefungen/appointment-occurrence-delete.cjs", "mcp-ui.js", "mcp-import-review.js", "mcp-planner-export.js", "mcp-print.js", "mcp-waste-import.js", "mcp-sync-settings.js", "mcp-sync-run.js", "mcp-provider-conflicts.js", "mcp-dav-account.js", "mcp-microsoft-signin.js", "mcp-internet-accounts.js", "mcp-tree-actions.js", "save-custom-regressions.js", "custom-time-regressions.js", "regional-time-input.js", "planned-sms-save-regressions.js", "asr-sms-regressions.js", "desktop-data-regressions.js", "frontend-integrity.js", "recurrence-worker.js", "recurrence-golden.js",
+     "phone-contact-preview-batches.js", "kde-receive-ui.js", "realm-data-assert-test.js", "legacy-android-instance-ui.js", "drawing-pointerup.js",
+-    "phone-media-ui.js", "phone-media-source-choice-ui.js",
++    "phone-media-ui.js", "phone-media-source-choice-ui.js", "phone-media-wait-ui.js", "phone-media-recovery-mount-ui.js",
+    "../../magnolie-organizer/pruefungen/waste-holiday-authority.cjs",
+    "../../magnolie-organizer/pruefungen/appointment-replacement.cjs",
+     "../../magnolie-organizer/pruefungen/media-trash-ui.cjs",
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index d4d31f6..cf05335 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -3131,6 +3131,12 @@ _NEXTCLOUD_GEBURTSTAG_FELDER = (
+ _NEXTCLOUD_GEBURTSTAG_SERIE = ("DTSTART", "DTEND", "RRULE")
+ 
+ 
++def _ics_letzter_februartag(regel, datum):
++    teile = regel.upper().split(";")
++    return (str(datum).endswith("02-29") and len(teile) == 3 and
++            set(teile) == {"FREQ=YEARLY", "BYMONTH=2", "BYMONTHDAY=-1"})
++
++
+ def _nextcloud_geburtstagsdatum(props):
+     markiert, unbekannt, jahr = _NEXTCLOUD_GEBURTSTAG_FELDER
+     if not any(name == markiert and wert.upper() == "BDAY" for name, _, wert in props):
+@@ -3383,7 +3389,8 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
+                      if rrule and not nicht_abbildbar else None))
+     # Der einfache interne Serienparser lehnt den 29. Februar fuer normale
+     # Termine bewusst ab. Jahrestage koennen dieses Datum jedoch darstellen.
+-    einfache_jahresregel = (rrule in ("FREQ=YEARLY", "FREQ=YEARLY;INTERVAL=1") and
++    einfache_jahresregel = ((rrule in ("FREQ=YEARLY", "FREQ=YEARLY;INTERVAL=1") or
++                            _ics_letzter_februartag(rrule, datum)) and
+                             not komplexe_serie and
+                             wiederholungsteile == ["RRULE"])
+     jahrestag_regel = (not rrule or einfache_jahresregel or
+@@ -3404,7 +3411,7 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
+             "uid": uid_wert, "icsSerienUid": serien_uid,
+             "notiz": wert("DESCRIPTION"),
+             "icsRoundtrip": _ics_roundtrip(roundtrip_props),
+-            **({"akzentFarbe": akzent, "icsCalendarColor": kalenderfarbe[0]} if provider_datum else {}),
++            "akzentFarbe": akzent, "icsCalendarColor": kalenderfarbe[0],
+             "geaendert": geaendert})
+         return
+     if nicht_abbildbar or (rrule and not wiederholung):
+@@ -3679,7 +3686,7 @@ def ics_lesen(text, quellenname="", quellen_id="", jahrestage_als_termine=False)
+     if art is not None or stapel:
+         raise ValueError(_("The selected iCalendar file is incomplete."))
+     komplexe_uids = set()
+-    for komponenten_art, komponenten_props, _ in komponenten:
++    for komponenten_art, komponenten_props, _kalenderfarben in komponenten:
+         if komponenten_art != "VEVENT" or not _hole(
+                 komponenten_props, "RECURRENCE-ID")[1]:
+             continue
+@@ -4168,10 +4175,13 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
+     # A parameterized colour property is not ours to rewrite. Preserve it
+     # exactly when unchanged, or refuse an edit rather than dropping parameters.
+     geschuetzte_farbe, tiefe = False, 0
++    urspruengliche_farben = []
+     for zeile in rohzeilen:
+         name, params, wert = _prop_zerlegen(zeile)
+         if name == "BEGIN":
+             tiefe += 1
++        if not tiefe and name in ("COLOR", "X-MAGNOLIE-ACCENT-COLOR"):
++            urspruengliche_farben.append((name, params, wert))
+         if not tiefe and name == "X-MAGNOLIE-ACCENT-COLOR" and params:
+             if eintrag is not None and (not jahrestag or "akzentFarbe" in eintrag) and _kalender_akzentfarbe(eintrag.get("akzentFarbe")) != _kalender_akzentfarbe(wert):
+                 # Do not let the generic invalid-record skip path silently
+@@ -4199,6 +4209,9 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
+             elif not tiefe:
+                 haupt_props.append(prop)
+         provider_datum = _nextcloud_geburtstagsdatum(haupt_props)
++        regeln = [wert for name, _params, wert in haupt_props if name == "RRULE"]
++        if eintrag is not None and len(regeln) == 1 and _ics_letzter_februartag(regeln[0], eintrag.get("datum")):
++            eigene.discard("RRULE")
+         if provider_datum:
+             if (provider_datum == _maschinen_datum(eintrag.get("datum"))
+                     and jahrestag_typ_id(eintrag.get("typ")) == "birthday"):
+@@ -4207,13 +4220,19 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
+                 eigene.update(_NEXTCLOUD_GEBURTSTAG_FELDER)
+     akzent = _kalender_akzentfarbe(eintrag.get("akzentFarbe")) if eintrag is not None else ""
+     farbentscheidung = bool(akzent or eintrag is not None and "icsCalendarColor" in eintrag)
++    # An owned override may disagree with the preserved standard property even
++    # without an edit. Keep that source line (including parameters) until the
++    # effective imported component colour actually changes.
++    urspruenglicher_akzent = (_kalender_akzentfarbe(_hole(urspruengliche_farben, "X-MAGNOLIE-ACCENT-COLOR")[1]) or
++                             _ics_standard_farbe(_hole(urspruengliche_farben, "COLOR")[1] or ""))
++    farbe_unveraendert = bool(akzent and akzent == urspruenglicher_akzent)
+     tiefe, gefiltert = 0, []
+     for zeile in rohzeilen:
+         name, _params, wert = _prop_zerlegen(zeile)
+         if name == "BEGIN":
+             tiefe += 1
+         farbe = _ics_standard_farbe(wert) if name == "COLOR" else ""
+-        if tiefe or name not in eigene and (not farbe or not farbentscheidung or farbe == akzent):
++        if tiefe or name not in eigene and (not farbe or not farbentscheidung or farbe == akzent or farbe_unveraendert):
+             gefiltert.append(zeile)
+         if name == "END":
+             tiefe = max(0, tiefe - 1)
+@@ -6435,13 +6454,12 @@ def _lotus_kontakte(zeilen, kopf):
+             telefon_spalten.append((i, typen))
+         sitz = "HOME" if any(w in spalte for w in ("PRIVAT", "HOME")) else \
+             "WORK" if any(w in spalte for w in ("GESCHAEFT", "ARBEIT", "WORK", "FIRMA")) else ""
+-        if sitz:
+-            for feld, woerter in (("strasse", ("STRASSE", "STREET", "ANSCHRIFT", "ADRESSE")),
+-                                  ("plz", ("POSTLEITZAHL", "PLZ", "ZIP", "POSTALCODE")),
+-                                  ("ort", ("ORT", "STADT", "CITY")), ("land", ("LAND", "COUNTRY"))):
+-                if any(w in spalte for w in woerter):
+-                    anschrift_spalten.append((i, sitz, feld))
+-                    break
++        for feld, woerter in (("strasse", ("STRASSE", "STREET", "ANSCHRIFT", "ADRESSE")),
++                              ("plz", ("POSTLEITZAHL", "PLZ", "ZIP", "POSTALCODE")),
++                              ("ort", ("ORT", "STADT", "CITY")), ("land", ("LAND", "COUNTRY"))):
++            if any(w in spalte for w in woerter):
++                anschrift_spalten.append((i, sitz, feld))
++                break
+     kontakte, uebersprungen = [], 0
+     for zeile in zeilen:
+         def hol(feld, zeile=zeile):
+@@ -6460,16 +6478,20 @@ def _lotus_kontakte(zeilen, kopf):
+         for telefon in eintrag["telefone"]:
+             if not telefon.get("vcardParameter"):
+                 telefon.pop("vcardParameter", None)
+-        anschriften = _anschrift_liste(eintrag)
+-        nach_sitz = {"HOME": {"strasse": "", "plz": "", "ort": "", "land": ""},
++        # Group source columns before deriving scalar compatibility fields.
++        # First matches across HOME/WORK can otherwise invent a hybrid address.
++        anschriften = []
++        nach_sitz = {"": {"strasse": "", "plz": "", "ort": "", "land": ""},
++                     "HOME": {"strasse": "", "plz": "", "ort": "", "land": ""},
+                      "WORK": {"strasse": "", "plz": "", "ort": "", "land": ""}}
+         for i, sitz, feld in anschrift_spalten:
+             if i >= len(zeile) or not zeile[i].strip():
+                 continue
+-            nach_sitz[sitz][feld] = zeile[i].strip()
++            if sitz or not nach_sitz[sitz][feld]:
++                nach_sitz[sitz][feld] = zeile[i].strip()
+         for sitz, anschrift in nach_sitz.items():
+             if any(anschrift.values()):
+-                anschriften.append(dict(anschrift, typen=[sitz]))
++                anschriften.append(dict(anschrift, typen=[sitz] if sitz else []))
+         _anschriften_setzen(eintrag, anschriften)
+         kontakte.append(eintrag)
+     return kontakte, uebersprungen
+@@ -30191,13 +30213,28 @@ class Fenster(_FENSTER_BASIS):
+             # ordinary yearly appointments. Until their full DAV merge/write/
+             # deletion lifecycle is supported, fail BEFORE any selected calendar
+             # can write, run duplicate cleanup or advance its success cursor.
++            def nextcloud_jahrestag(item):
++                props, tiefe = [], 0
++                for line in item.get("icsRoundtrip", []):
++                    prop = _prop_zerlegen(line)
++                    if not prop:
++                        continue
++                    if prop[0] == "BEGIN":
++                        tiefe += 1
++                    elif prop[0] == "END":
++                        tiefe = max(0, tiefe - 1)
++                    elif not tiefe:
++                        props.append(prop)
++                return bool(_nextcloud_geburtstagsdatum(props))
++
+             def pruefe_jahrestagsbereich(gelesen, text):
+                 # Existing contact-derived legacy birthday resources have a
+                 # separate supported duplicate-cleanup/recovery lifecycle.
+                 # Fence the explicit marker from this confirmed missing scope,
+                 # without disabling that existing lifecycle.
+-                if gelesen.get("jahrestage") and any(line.split(":", 1)[0].split(";", 1)[0].upper() ==
+-                        "X-MAGNOLIE-JAHRESTAG-TYP" for line in _entfalte_zeilen(text)):
++                if gelesen.get("jahrestage") and (any(line.split(":", 1)[0].split(";", 1)[0].upper() ==
++                        "X-MAGNOLIE-JAHRESTAG-TYP" for line in _entfalte_zeilen(text)) or
++                        any(nextcloud_jahrestag(item) for item in gelesen["jahrestage"])):
+                     raise NextcloudError("Marked CalDAV anniversaries are not supported.",
+                                          "calendar_anniversaries_unsupported")
+             kalender_vorab = {}
+diff --git a/magnolie-organizer/pruefungen/test.js b/magnolie-organizer/pruefungen/test.js
+index d93d20e..56950ab 100644
+--- a/magnolie-organizer/pruefungen/test.js
++++ b/magnolie-organizer/pruefungen/test.js
+@@ -3779,6 +3779,7 @@ function knopfMit(text, wurzel) {
+   assert.strictEqual($(".tb-aufklapper").getAttribute("aria-expanded"), "true");
+   assert.deepStrictEqual(Array.from($("#tb-kategorien-vorschlaege").options,
+     (option) => option.value), ["Arbeit", "Privat"], "Kategorienvorschläge fehlen");
++  $("#tb-organisator-name").focus();
+   assert.ok(Array.from($("#tb-organisator-namen").options,
+     (option) => option.value).includes("Anna Beispiel"), "Organisatorvorschlag fehlt");
+   setze($("#tb-organisator-name"), "Anna Beispiel");
+diff --git a/magnolie-organizer/pruefungen/test_calendar_color_remainders.py b/magnolie-organizer/pruefungen/test_calendar_color_remainders.py
+new file mode 100644
+index 0000000..c47eb4f
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/test_calendar_color_remainders.py
+@@ -0,0 +1,70 @@
++"""Colour remainders after #844: annual entries, native storage and raw parameters."""
++import json
++import os
++from pathlib import Path
++
++import pytest
++from modul_laden import quellmodul_laden
++
++
++ROOT = Path(__file__).resolve().parents[2]
++CASES = json.loads((ROOT / "contracts/calendar-color-remainders.json").read_text())
++
++
++@pytest.fixture
++def codec(monkeypatch):
++    monkeypatch.setitem(__import__("sys").modules, "gi", None)
++    source = Path(os.environ.get("MAGNOLIE_TEST_SOURCE_ROOT", ROOT))
++    return quellmodul_laden("calendar_colour_remainders", source / "magnolie-organizer/bin/magnolie-organizer")
++
++
++@pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
++def test_colours_survive_native_book_reopen_and_export(codec, monkeypatch, tmp_path, case):
++    section = case["section"]
++    book = codec.ics_lesen(case["input"])
++    path = tmp_path / "book.json"
++    monkeypatch.setattr(codec, "daten_datei", lambda: str(path))
++    codec.speichere_daten(book)
++    codec._DATEN_ZWISCHENSPEICHER = {"stand": None, "daten": None}
++    reopened = codec.daten_lesen_gepuffert(str(path))
++    item = reopened[section][0]
++    assert item.get("akzentFarbe", "") == case["expected_accent"]
++    if section == "jahrestage":
++        assert item["datum"] == case["expected_date"] and item["typ"] == case["expected_type"]
++        assert not reopened["termine"]
++    write = getattr(codec, "ics_schreiben_" + section)
++    text = write([item])
++    assert "X-OWNED:keep" in text
++    if case["preserve_line"]:
++        assert case["preserve_line"] in text.splitlines()
++    again = codec.ics_lesen(text)
++    assert again[section][0].get("akzentFarbe", "") == case["expected_accent"]
++    if section == "jahrestage":
++        assert again[section][0]["datum"] == case["expected_date"]
++        assert again[section][0]["typ"] == case["expected_type"]
++        assert not again["termine"]
++
++
++@pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
++def test_actual_colour_edit_and_clear_do_not_restore_old_colour(codec, case):
++    section = case["section"]
++    item = codec.ics_lesen(case["input"])[section][0]
++    write = getattr(codec, "ics_schreiben_" + section)
++    for accent in ("#123456", ""):
++        item["akzentFarbe"] = accent
++        text = write([item])
++        assert codec.ics_lesen(text)[section][0].get("akzentFarbe", "") == accent
++        assert "X-OWNED:keep" in text
++        if case["preserve_line"].startswith("COLOR;X-SOURCE"):
++            assert case["preserve_line"] not in text.splitlines()
++        if case["preserve_line"] == "COLOR:future-colour":
++            assert case["preserve_line"] in text.splitlines()
++
++
++def test_mixed_anniversary_calendars_do_not_share_a_colour(codec):
++    coloured = next(case for case in CASES if case["id"] == "birthday-calendar")
++    other = coloured["input"].replace("COLOR:turquoise\r\n", "").replace("birthday-calendar", "uncoloured")
++    items = codec.ics_lesen(coloured["input"] + other)["jahrestage"]
++    text = codec.ics_schreiben_jahrestage(items)
++    assert "COLOR:turquoise" not in text.split("BEGIN:VEVENT", 1)[0]
++    assert [item.get("akzentFarbe", "") for item in codec.ics_lesen(text)["jahrestage"]] == ["#40e0d0", ""]
+diff --git a/magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py b/magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py
+new file mode 100644
+index 0000000..24155ab
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py
+@@ -0,0 +1,44 @@
++"""CSV role groups are preserved without fabricated addresses (part of #566)."""
++import copy
++import csv
++import io
++import json
++from pathlib import Path
++
++import pytest
++
++from test_startup_read_failure import native
++
++
++VECTORS = json.loads((Path(__file__).resolve().parents[2] /
++                     "contracts/lotus-csv-contact-fields.json").read_text())["cases"]
++
++
++def rows(values, fields):
++    return sorted(tuple(str(value.get(field, "")) for field in fields) +
++                  (tuple(sorted(value.get("typen", []))),) for value in values)
++
++
++@pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
++def test_csv_contact_roles_and_addresses_survive_vcard(native, vector):
++    text = io.StringIO()
++    writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
++    writer.writerow(vector["headers"])
++    writer.writerow(vector["row"])
++    raw = text.getvalue().encode("utf-8")
++    result = native.import_rohdaten_lesen("lotus", raw, "owned-contacts.csv")
++    assert result["uebersprungen"] == 0
++    contact, = result["kontakte"]
++    assert native.import_rohdaten_lesen("vcf", raw, "owned-contacts.csv")["kontakte"] == [contact]
++    for _ in range(3):
++        assert (contact["vorname"], contact["nachname"]) == ("Synthetic", "CSV")
++        assert rows(contact.get("telefone", []), ("wert",)) == rows(vector["phones"], ("wert",))
++        fields = ("strasse", "plz", "ort", "land")
++        assert rows(contact.get("anschriften", []), fields) == rows(vector["addresses"], fields)
++        if contact.get("anschriften"):
++            assert all(contact[field] == contact["anschriften"][0][field] for field in fields[:3])
++        before = copy.deepcopy(contact)
++        exported = native.vcard_text(contact)
++        assert contact == before
++        assert exported.count("BEGIN:VCARD") == 1
++        contact, = native.import_rohdaten_lesen("vcf", exported.encode("utf-8"), "owned.vcf")["kontakte"]
+diff --git a/magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py b/magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py
+index 219db9d..e0f31e5 100644
+--- a/magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py
++++ b/magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py
+@@ -58,3 +58,54 @@ def test_nextcloud_marker_cannot_detach_a_series_master_from_its_exception(codec
+         "END:VEVENT", "END:VCALENDAR", ""])
+     parsed = codec.ics_lesen(text)
+     assert not parsed["jahrestage"] and len(parsed["termine"]) == 2
++
++
++@pytest.mark.parametrize("start,years,date,kind", [
++    ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "--02-29", "wedding-anniversary"),
++    ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "1988-02-29", "wedding-anniversary"),
++    ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "1988-02-29", "birthday"),
++    ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "--02-29", "birthday"),
++])
++def test_type_or_year_edit_keeps_last_february_recurrence(codec, start, years, date, kind):
++    text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:edited-leap",
++        "SUMMARY:Synthetic birthday", f"DTSTART;VALUE=DATE:{start}",
++        "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1", "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY",
++        years, "X-SYNTHETIC-PRESERVE:keep", "END:VEVENT", "END:VCALENDAR", ""])
++    item = codec.ics_lesen(text)["jahrestage"][0]
++    item.update(datum=date, typ=kind)
++    for _round in range(2):
++        exported = codec.ics_schreiben_jahrestage([item])
++        assert "X-NEXTCLOUD-BC-" not in exported
++        assert "X-SYNTHETIC-PRESERVE:keep" in exported
++        assert [line for line in exported.splitlines() if line.startswith("RRULE:")] == [
++            "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1"]
++        parsed = codec.ics_lesen(exported)
++        assert not parsed["termine"] and len(parsed["jahrestage"]) == 1
++        item = parsed["jahrestage"][0]
++        assert (item["datum"], item["typ"]) == (date, kind)
++    exception = "\r\n".join(["BEGIN:VEVENT", "UID:edited-leap", "RECURRENCE-ID;VALUE=DATE:20270228",
++        "DTSTART;VALUE=DATE:20270301", "SUMMARY:Moved", "END:VEVENT", ""])
++    parsed = codec.ics_lesen(exported.replace("END:VCALENDAR", exception + "END:VCALENDAR"))
++    assert not parsed["jahrestage"] and len(parsed["termine"]) == 2
++
++
++@pytest.mark.parametrize("leap", [False, True])
++def test_nextcloud_birthday_scope_is_not_silently_omitted_by_linux_dav(monkeypatch, leap):
++    from test_nextcloud import m, nc, SyncDav, run_sync, empty_data
++    start = "19720229" if leap else "19700417"
++    rule = "FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1" if leap else "FREQ=YEARLY"
++    text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:provider-scope",
++        f"DTSTART;VALUE=DATE:{start}", f"RRULE:{rule}", "SUMMARY:Synthetic birthday",
++        "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1",
++        "BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER;VALUE=DURATION:PT9H", "END:VALARM",
++        "END:VEVENT", "END:VCALENDAR", ""])
++    assert len(m.ics_lesen(text)["jahrestage"]) == 1
++    dav = SyncDav({"calendar": [dict(href="https://cloud.example/calendar/birthday.ics",
++                                   etag='"fixture"', data=text)], "addressbook": []})
++    data = empty_data()
++    import copy
++    before = copy.deepcopy(data)
++    with pytest.raises(nc.NextcloudError) as failed:
++        run_sync(monkeypatch, dav, data)
++    assert failed.value.code == "calendar_anniversaries_unsupported"
++    assert not dav.puts and not dav.deletes and data == before
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+index f5e66b8..13f0ccb 100644
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -8453,6 +8453,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
+     element.dataset.akzentFarbe = farbe;
+     return element;
+   }
++  function jahrestagLeiste(element, jahrestage, text, trenner) {
++    element.append("✱ ");
++    jahrestage.forEach((jahrestag, index) => {
++      if (index) element.append(trenner);
++      element.append(setzeKalenderAkzent(el("span", null, text(jahrestag)), jahrestag));
++    });
++    return element;
++  }
+   function setzeKategorieFarbe(name, farbe, vorherigerName = "") {
+     const sauber = saubereKategorieFarben([{ name, farbe }]);
+     if (!sauber.length) return false;
+@@ -8848,6 +8856,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
+         ? "--" + S(j.datum).slice(5) : S(j.datum), j.jahrUnbekannt || providerJahrUnbekannt);
+       if (!datum) continue;
+       const normalisierterJahrestag = { ...Q(j), id: S(j.id) || uid(), uid: S(j.uid), name: S(j.name), datum: datum,
++        akzentFarbe: kalenderAkzentFarbe(j.akzentFarbe === undefined ? kalenderRohFeld(j, "X-MAGNOLIE-ACCENT-COLOR") : j.akzentFarbe),
+         jahrUnbekannt: gueltigesTeildatum(datum), kontaktId: S(j.kontaktId),
+         typ: jahrestagTypId(typ) || typ || "other",
+         icsSerienUid: S(j.icsSerienUid),
+@@ -11456,12 +11465,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
+     const inhalt = { ...jahrestag };
+     for (const feld of ["id", "uid", "kontaktId", "geaendert", "jahrUnbekannt", "sync",
+       "syncKalenderUid", "syncQuellen", "icsSerienUid", "icsQuelleId", "icsQuelleName",
+-      "icsRoundtrip", "providerMetadaten", "icsReadOnly", "icsReadOnlyGrund",
++      "icsRoundtrip", "icsCalendarColor", "providerMetadaten", "icsReadOnly", "icsReadOnlyGrund",
+       "icsAenderungszeitFehlt", "icsSequence", "_providerJahrUnbekannt"]) delete inhalt[feld];
+     inhalt.name = terminIdentitaetsText(jahrestag.name).toLowerCase().replace(/\s+/g, " ");
+     inhalt.datum = kanonischesJahresdatum(jahrestag.datum, jahrestag.jahrUnbekannt);
+     inhalt.typ = "birthday";
+     inhalt.notiz = terminIdentitaetsText(jahrestag.notiz);
++    inhalt.akzentFarbe = kalenderAkzentFarbe(jahrestag.akzentFarbe);
+     return kanonischerEntwurf(inhalt);
+   }
+ 
+@@ -12773,12 +12783,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
+         name: (j) => j.name + " – " + jahrestagDatumText(j),
+         karte: (j) => {
+           const k = el("div", "druck-karte");
+-          k.append(el("div", "dk-name", j.name));
++          k.append(setzeKalenderAkzent(el("div", "dk-name", j.name), j));
+           k.append(el("div", "dk-zeile", jahrestagDatumText(j) + " · " +
+             jahrestagTypText(j.typ)));
+           return k;
+         },
+-        html: (j) => '<div class="karte"><div class="name">' + sicher(j.name) +
++        html: (j) => '<div class="karte"><div class="name"' + kalenderAkzentDruckStil(j) + '>' + sicher(j.name) +
+           "</div><div>" + jahrestagDatumText(j) + " · " + sicher(jahrestagTypText(j.typ)) +
+           "</div></div>",
+         vorgewaehlt: liste.map((j) => j.id),
+@@ -13350,7 +13360,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
+           wochentagText: wochentagName(datum.getDay(), true).replace(/\.$/, ""),
+           feiertage: wahl.feiertage ? feiertage : [],
+           ferien: wahl.ferien ? ferien : [], urlaube: wahl.urlaub ? urlaube : [],
+-          akzente: planerAkzentEintraege(iso, serienZeitraum, aufgaben, hatFarbTermine) });
++          akzente: planerAkzentEintraege(iso, serienZeitraum, aufgaben, hatFarbTermine).concat(
++            jahrestageAm(iso, true, "print").filter(jt => kalenderEintragAkzent(jt))
++              .map(jt => ({ art: "jahrestag", text: "✱ " + jt.name, farbe: kalenderEintragAkzent(jt), akzent: true }))) });
+       }
+       modell.zeilen.push(zeile);
+     }
+@@ -13416,7 +13428,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
+           eintraege.push({ art: "muell", text: termin.name, farbe: termin.farbe });
+         }
+         if (wahl.jahrestage) for (const jt of jahrestage) {
+-          eintraege.push({ art: "jahrestag", text: "✱ " + jt.name, farbe: "#a66d8a" });
++          eintraege.push({ art: "jahrestag", text: "✱ " + jt.name,
++            farbe: kalenderEintragAkzent(jt) || "#a66d8a", akzent: !!kalenderEintragAkzent(jt) });
+         }
+         if (wahl.termine) for (const termin of termine) {
+           eintraege.push({ art: "termin", text: (termin.zeit
+@@ -17012,9 +17025,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+ 
+       const jts = jahrestageAm(iso);
+       if (jts.length) {
+-        const stern = el("span", "jt-stern", "✱");
+-        stern.title = jts.map((j) => j.name).join(", ");
+-        tagKopf.append(stern);
++        const gruppen = jts.filter(jt => kalenderEintragAkzent(jt)).map(jt => [jt]);
++        const ohneFarbe = jts.filter(jt => !kalenderEintragAkzent(jt));
++        if (ohneFarbe.length) gruppen.push(ohneFarbe);
++        for (const gruppe of gruppen) {
++          const stern = setzeKalenderAkzent(el("span", "jt-stern", "✱"), gruppe[0]);
++          stern.title = gruppe.map(jt => jt.name).join(", ");
++          tagKopf.append(stern);
++        }
+       }
+       zelle.prepend(tagKopf);
+ 
+@@ -17405,8 +17423,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+           ft.name + (ft.art === "school-holiday" ? "" : _(" (public holiday)"))));
+       }
+       for (const jt of eintrag.jahrestage) {
+-        block.append(el("div", "ue-jahrestag", "✱ " + jt.name + " – " +
+-          jahrestagTypText(jt.typ)));
++        block.append(setzeKalenderAkzent(el("div", "ue-jahrestag", "✱ " + jt.name + " – " +
++          jahrestagTypText(jt.typ)), jt));
+       }
+ 
+       for (const termin of eintrag.termine) {
+@@ -18089,11 +18107,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     orgUri.id = "tb-organisator-uri";
+     orgName.setAttribute("list", "tb-organisator-namen");
+     orgEmail.setAttribute("list", "tb-organisator-emails");
+-    const kontaktVorschlaege = DATEN.kontakte.map((kontakt) => ({
+-      name: [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ").trim() ||
+-        String(kontakt.firma || "").trim(),
+-      kontakt: kontakt
+-    })).filter((kontakt) => kontakt.name);
++    const kontaktVorschlagName = kontakt => [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ").trim() ||
++      String(kontakt.firma || "").trim();
+     const eindeutigeTexte = (werte) => {
+       const gesehen = new Set();
+       return werte.filter((wert) => {
+@@ -18102,19 +18117,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         gesehen.add(schluessel); return true;
+       });
+     };
+-    const orgNamenListe = vorschlagsListe("tb-organisator-namen",
+-      eindeutigeTexte(kontaktVorschlaege.map((kontakt) => kontakt.name)));
++    const orgNamenListe = vorschlagsListe("tb-organisator-namen", []);
+     const orgEmailListe = vorschlagsListe("tb-organisator-emails", []);
++    const orgNamenVorschlaege = () => {
++      const suche = orgName.value.trim().toLocaleLowerCase(), gesehen = new Set(), werte = [];
++      let exakt = "";
++      // Search the whole book on demand, but create only one visible chunk.
++      // No full-book option tree or persistent contact cache for a closed field.
++      for (const kontakt of DATEN.kontakte) {
++        const name = kontaktVorschlagName(kontakt), schluessel = name.toLocaleLowerCase();
++        if (!name || !schluessel.includes(suche) || gesehen.has(schluessel)) continue;
++        if (suche && schluessel === suche) exakt ||= name;
++        if (werte.length < LISTEN_HAEPPCHEN) { gesehen.add(schluessel); werte.push(name); }
++        if (!suche && werte.length >= LISTEN_HAEPPCHEN) break;
++      }
++      // A short exact name must not disappear behind earlier partial matches.
++      if (exakt && !gesehen.has(suche)) { werte.pop(); werte.unshift(exakt); }
++      orgNamenListe.replaceChildren(...werte.map(wert => {
++        const option = document.createElement("option"); option.value = wert; return option;
++      }));
++    };
+     const orgEmailVorschlaege = () => {
+       const name = orgName.value.trim().toLocaleLowerCase();
+-      const passend = kontaktVorschlaege.filter((kontakt) =>
+-        kontakt.name.toLocaleLowerCase() === name);
+-      const emails = passend.flatMap((vorschlag) => emailEintragListe(vorschlag.kontakt).map((eintrag) => eintrag.wert));
++      const passend = name ? DATEN.kontakte.filter(kontakt =>
++        kontaktVorschlagName(kontakt).toLocaleLowerCase() === name) : [];
++      const emails = passend.flatMap(kontakt => emailEintragListe(kontakt).map(eintrag => eintrag.wert));
+       orgEmailListe.replaceChildren(...eindeutigeTexte(emails).map((wert) => {
+         const option = document.createElement("option"); option.value = wert; return option;
+       }));
+     };
+-    orgName.addEventListener("input", orgEmailVorschlaege);
++    orgName.addEventListener("focus", orgNamenVorschlaege);
++    orgName.addEventListener("input", () => { orgNamenVorschlaege(); orgEmailVorschlaege(); });
+     orgEmailVorschlaege();
+     weitere.append(el("h4", null, _("Organizer")), orgNamenListe, orgEmailListe,
+       formZeile(_("Name"), orgName),
+@@ -18886,7 +18919,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     const jt = jahrestageAm(iso);
+     if (jt.length) {
+       const kasten = el("div", "jt-kasten");
+-      kasten.textContent = "✱ " + jt.map((x) => {
++      jahrestagLeiste(kasten, jt, (x) => {
+         const gj = hatBekanntesJahr(x.datum) ? Number(x.datum.slice(0, 4)) : null;
+         const jahre = gj === null ? null : Number(iso.slice(0, 4)) - gj;
+         const zusatz = (jahre !== null && jahre > 0)
+@@ -18894,7 +18927,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         const typ = jahrestagsArt(x.typ) === "death" && zusatz
+           ? "" : " – " + jahrestagTypText(x.typ);
+         return x.name + typ + zusatz;
+-      }).join("  ·  ");
++      }, "  ·  ");
+       spalte.append(kasten);
+     }
+ 
+@@ -19115,7 +19148,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+ 
+     const jts = jahrestageAm(iso);
+     if (jts.length) {
+-      kasten.append(el("div", "wo-jt", "✱ " + jts.map((x) => x.name).join(", ")));
++      kasten.append(jahrestagLeiste(el("div", "wo-jt"), jts, x => x.name, ", "));
+     }
+ 
+     for (const task of (farbAufgaben || kalenderFarbAufgaben(iso, iso)).get(iso) || []) {
+@@ -23958,7 +23991,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         haupt.type = "button";
+         fokusMarke(haupt, "jahrestag:" + jt.id);
+         if (jt.id === z.bearbeiteId) haupt.setAttribute("aria-current", "true");
+-        haupt.append(el("div", "obm", jt.name));
++        haupt.append(setzeKalenderAkzent(el("div", "obm", jt.name), jt));
+         const zusatz = altersText(jt, n.anzahl);
+         haupt.append(el("div", "unt", jahrestagDatumText(jt) +
+           (zusatz ? " · " + zusatz : "")));
+@@ -26045,12 +26078,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         for (let t = 1; t <= tage; t++) {
+           const iso = z.jahr + "-" + pad2(m + 1) + "-" + pad2(t);
+           const zelle = el("span", "mm-tag", String(t));
+-          const farbEintraege = (hatFarbTermine ? termineAm(iso, false, farbZeitraum).filter(termin => !!kalenderEintragAkzent(termin)) : []).concat(farbAufgaben.get(iso) || []);
++          const jahrestage = jahrestageAm(iso);
++          const farbEintraege = (hatFarbTermine ? termineAm(iso, false, farbZeitraum).filter(termin => !!kalenderEintragAkzent(termin)) : [])
++            .concat(farbAufgaben.get(iso) || [], jahrestage.filter(jt => kalenderEintragAkzent(jt)));
+           if (farbEintraege.length) {
+             const streifen = el("span", "mm-kategoriefarben");
+             for (const item of farbEintraege) {
+               const balken = setzeKalenderAkzent(el("span", "mm-kategoriebalken"), item);
+-              balken.title = item.titel; streifen.append(balken);
++              balken.title = item.titel || item.name; streifen.append(balken);
+             }
+             zelle.append(streifen);
+           }
+@@ -26062,7 +26097,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+           const spalte = (versatz + t - 1) % 7;
+           const wochentag = new Date(z.jahr, m, t).getDay();
+           if (wochentag === 0 || wochentag === 6) zelle.classList.add("wochenende");
+-          if (jahrestageAm(iso).length) zelle.classList.add("jt");
++          if (jahrestage.length) zelle.classList.add("jt");
+           if (iso === heute) {
+             zelle.classList.add("heute");
+             zelle.setAttribute("aria-current", "date");
+@@ -34776,7 +34811,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+               "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "wiederholung", "icsKomplex", "icsSerienUid", "icsAusnahmen",
+               "icsZusatzDaten", "icsZusatzTermine", "icsRoundtrip", "icsRangeOverrides", "icsAusnahmeTermine", "icsTimezones", "icsCalendarColor",
+               "icsAnzeigeZeitzone", "icsSequence", "icsAenderungszeitFehlt", "icsEndeFehlt", "icsNullDauer", "geaendert"])
+-              if (Object.prototype.hasOwnProperty.call(t, feld)) uidTreffer[feld] = kopie(t[feld]);
++              if (Object.prototype.hasOwnProperty.call(t, feld) && t[feld] !== undefined) uidTreffer[feld] = kopie(t[feld]);
+             uidTreffer.icsReadOnly = !!(uidTreffer.icsReadOnly || t.icsReadOnly);
+             if (!uidTreffer.icsReadOnlyGrund && t.icsReadOnlyGrund) uidTreffer.icsReadOnlyGrund = String(t.icsReadOnlyGrund);
+             uidTreffer.sync = false; z.neu++; continue;

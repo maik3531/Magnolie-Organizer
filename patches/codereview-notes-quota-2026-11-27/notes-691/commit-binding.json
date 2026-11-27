@@ -1,0 +1,44 @@
+{
+  "base": "9de81cc10d72ca7b176b5c501ff20689cdd53c31",
+  "tested_product_commit": "e9f4a41c87c2ef708e0c357fa76e64b339c5e313",
+  "tested_product_tree": "70d6da776a933118e598923509bf38617ef1bc78",
+  "superseded_do_not_apply": "e6c429321c92fc424b5f211a0e57d65fba74a411",
+  "after_execution_was_before_commit": true,
+  "all_tested_files_match_committed_result": true,
+  "patch": "notes-691-outbox-route-quota.patch",
+  "bytes": 3851,
+  "sha256": "dd760e07baaf64a43cfe12d2d1b05d559e39e0b3b29c3586021d839db067ff3b",
+  "serial_compatibility_with_148": {
+    "691_alone": {
+      "result_tree": "70d6da776a933118e598923509bf38617ef1bc78",
+      "reverse_restores_base": true,
+      "tested_outbox_methods_identical": true
+    },
+    "148_then_691": {
+      "result_tree": "1a21830e67a8de7d70b7c62b3c1400652e870bce",
+      "reverse_restores_base": true,
+      "tested_outbox_methods_identical": true
+    },
+    "691_then_148": {
+      "result_tree": "1a21830e67a8de7d70b7c62b3c1400652e870bce",
+      "reverse_restores_base": true,
+      "tested_outbox_methods_identical": true
+    }
+  },
+  "both_orders_identical": true,
+  "tests": {
+    "original_base": {
+      "passed": 15,
+      "failed": 5
+    },
+    "superseded_candidate": {
+      "passed": 17,
+      "failed": 3
+    },
+    "final": {
+      "passed": 20,
+      "failed": 0
+    }
+  },
+  "runner_sha256": "ac3604ee0e65f646fce69b66f203b4a517d0716101f6a4f53b44d6542009febb"
+}

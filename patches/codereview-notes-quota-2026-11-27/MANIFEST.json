@@ -1,0 +1,150 @@
+{
+  "description": "All files in this delivery except this manifest; runtime binaries and compiler caches are excluded.",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 5193,
+      "sha256": "1e599a883780177aa71b8d25ac34dda3a5711250a047c4716da92618a196bbe5"
+    },
+    {
+      "path": "integration/compatibility.json",
+      "bytes": 2920,
+      "sha256": "be405492a6f9bcb3feb919d19e59da6fa73106a96e4692eae33a8885944a16ff"
+    },
+    {
+      "path": "integration/complete-review-after-9de81cc.patch",
+      "bytes": 166983,
+      "sha256": "1a8007d8a07e90d63111107357702c47e23e3038cda5e55e9d3158b2a0b774e9"
+    },
+    {
+      "path": "integration/independent-review.json",
+      "bytes": 3651,
+      "sha256": "a0fd53ee211b515adbc8321092453c92979468011dc5a23502f4749b7ee4960c"
+    },
+    {
+      "path": "notes-691/README.md",
+      "bytes": 7783,
+      "sha256": "a7ebce1951034414afaa037a528232e18e7271ead55860bdd0fbb2a066cae559"
+    },
+    {
+      "path": "notes-691/after/JsonFixture.kt",
+      "bytes": 316,
+      "sha256": "bd1ef5b0f6a78181a54121a130b51a8965c2ebd90448e82fe9ba113cfce0ee00"
+    },
+    {
+      "path": "notes-691/after/QueueFairnessHarness.kt",
+      "bytes": 20631,
+      "sha256": "c40c8af707cf34318cad0fd93a771f6381f10085e7846cde1faff3bfe55a03ca"
+    },
+    {
+      "path": "notes-691/after/SendungFixture.kt",
+      "bytes": 743,
+      "sha256": "4644bb42cd03ba03006adf0caf804eb89a7616d449748d25f7ef5301e895c3f9"
+    },
+    {
+      "path": "notes-691/after/compile.log",
+      "bytes": 125,
+      "sha256": "4ed04358d83f0df3f2f663465e534b7761a7813dfb3571a3dac3241c69ccd1ef"
+    },
+    {
+      "path": "notes-691/after/javac.log",
+      "bytes": 212,
+      "sha256": "252c939b57b73312f90fffe1eadf4867a1ab0e72e3f8123d829acd4b8cbd86a3"
+    },
+    {
+      "path": "notes-691/after/manifest.json",
+      "bytes": 1680,
+      "sha256": "fa291c5d2062651854d9b5127a69df6ca2075c137e8647f4870b8f35b1ad0ef6"
+    },
+    {
+      "path": "notes-691/after/results.log",
+      "bytes": 1403,
+      "sha256": "4536fa6b45da1c67d0665d80f2a4b544809c85585ccacb113ba295a5fb4d5812"
+    },
+    {
+      "path": "notes-691/before/JsonFixture.kt",
+      "bytes": 316,
+      "sha256": "bd1ef5b0f6a78181a54121a130b51a8965c2ebd90448e82fe9ba113cfce0ee00"
+    },
+    {
+      "path": "notes-691/before/QueueFairnessHarness.kt",
+      "bytes": 20470,
+      "sha256": "b46aae45ff24f4233f085dc13b0b27f005622a05f7af54e1072c0d67bcd20758"
+    },
+    {
+      "path": "notes-691/before/SendungFixture.kt",
+      "bytes": 743,
+      "sha256": "4644bb42cd03ba03006adf0caf804eb89a7616d449748d25f7ef5301e895c3f9"
+    },
+    {
+      "path": "notes-691/before/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "notes-691/before/javac.log",
+      "bytes": 88,
+      "sha256": "e6719c4e7b4d72693fd71e32dd4c25cf4475c27a9e38f3ed822ef1a327375b1b"
+    },
+    {
+      "path": "notes-691/before/manifest.json",
+      "bytes": 1680,
+      "sha256": "dadae92203bcbe820be8a3b4b46d8a90888c0875bcba07a7c419a6b7b8310418"
+    },
+    {
+      "path": "notes-691/before/results.log",
+      "bytes": 1932,
+      "sha256": "496dcd9066a3fb52a7077d74e3b9db9f041ac734a6b65dbf8cbe392de2fccb46"
+    },
+    {
+      "path": "notes-691/commit-binding.json",
+      "bytes": 1421,
+      "sha256": "180f14937d8ad283bd0e3ea8aeae73fd93597b71d047b48f9523bad44a71d1d8"
+    },
+    {
+      "path": "notes-691/notes-691-outbox-route-quota.patch",
+      "bytes": 3851,
+      "sha256": "dd760e07baaf64a43cfe12d2d1b05d559e39e0b3b29c3586021d839db067ff3b"
+    },
+    {
+      "path": "notes-691/run_queue_fairness.py",
+      "bytes": 17706,
+      "sha256": "ac3604ee0e65f646fce69b66f203b4a517d0716101f6a4f53b44d6542009febb"
+    },
+    {
+      "path": "notes-691/superseded-e6c4293/JsonFixture.kt",
+      "bytes": 316,
+      "sha256": "bd1ef5b0f6a78181a54121a130b51a8965c2ebd90448e82fe9ba113cfce0ee00"
+    },
+    {
+      "path": "notes-691/superseded-e6c4293/QueueFairnessHarness.kt",
+      "bytes": 20573,
+      "sha256": "553b88bb0eb634e4fecd3369de5ccf94b4f05d3ac6c6af46a6e6c4fbeb2e4d52"
+    },
+    {
+      "path": "notes-691/superseded-e6c4293/SendungFixture.kt",
+      "bytes": 743,
+      "sha256": "4644bb42cd03ba03006adf0caf804eb89a7616d449748d25f7ef5301e895c3f9"
+    },
+    {
+      "path": "notes-691/superseded-e6c4293/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "notes-691/superseded-e6c4293/javac.log",
+      "bytes": 88,
+      "sha256": "e6719c4e7b4d72693fd71e32dd4c25cf4475c27a9e38f3ed822ef1a327375b1b"
+    },
+    {
+      "path": "notes-691/superseded-e6c4293/manifest.json",
+      "bytes": 1680,
+      "sha256": "c9ad03daaea9fb51c9d0e9f98fde51ce5a9ea08fe8f9672e980e2df74da16e6a"
+    },
+    {
+      "path": "notes-691/superseded-e6c4293/results.log",
+      "bytes": 1733,
+      "sha256": "3b10f2e40e86abb16ed254d2ed97cee61179048bd3c581f391db9cb5db72bdfb"
+    }
+  ]
+}

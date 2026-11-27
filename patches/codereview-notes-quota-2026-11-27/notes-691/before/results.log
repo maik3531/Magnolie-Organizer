@@ -1,0 +1,24 @@
+FAIL public remote note is delivered behind LAN waiters on repeated maintenance: permitted remote update was starved: []
+FAIL permitted Bluetooth note is delivered behind LAN waiters: permitted Bluetooth update was starved: []
+FAIL default sixty-four quota does not strand remote note behind seventy LAN waiters: default quota stranded permitted remote note
+PASS waiting alone preserves payload IDs epoch attempts and pending state
+PASS null preparation keeps the original attempt bound before a later eligible frame
+PASS preparation exception keeps the original attempt bound before a later eligible frame
+PASS missing partner after preparation keeps the original attempt bound
+FAIL actual send quota remains two and remaining delivery resumes: first bounded round failed to deliver two eligible notes
+PASS zero quota performs no attempts
+PASS thirty-second deadline remains enforced while scanning waiting routes
+PASS future retry and expired message remain unsent
+PASS legacy uncertain peer remains fenced while another peer can send
+FAIL permission revocation keeps local waiting but allows separately permitted public route: public route starved after independent LAN revocation
+PASS Bluetooth disabled is not silently enabled
+PASS restore before transport admission prevents any payload send
+PASS shutdown generation before transport admission prevents payload send
+PASS restore during delivery does not discard the changed queue
+PASS unknown route and malformed payload retain explicit failure behavior
+PASS missing identity leaves pending data unchanged
+PASS interruption stops before route or payload attempts
+RESULT passed=15 failures=5
+Exception in thread "main" java.lang.IllegalStateException: 5 regression assertions failed
+	at io.gitlab.maik3531.magnolienotes.baum.QueueFairnessHarnessKt.main(QueueFairnessHarness.kt:354)
+	at io.gitlab.maik3531.magnolienotes.baum.QueueFairnessHarnessKt.main(QueueFairnessHarness.kt)

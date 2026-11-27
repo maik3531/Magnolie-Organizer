@@ -1,0 +1,55 @@
+{
+  "before": {
+    "verified_source_commit": "9de81cc10d72ca7b176b5c501ff20689cdd53c31",
+    "head_at_execution": "9de81cc10d72ca7b176b5c501ff20689cdd53c31",
+    "source_sha256": {
+      "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt": "c3715079c5bef204bf8611ca40bb2991a1cffd24cf7787bbc94d142f1912ee24",
+      "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/daten/Modell.kt": "800a605797883b91557bbc07d27bacbb257665e4cc4f05162f3633ae3e0a1b4a",
+      "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Transport.kt": "d536fb865f841ba6b2c19bc959732147a3d9ef6f27e8f189a3ec1607678bc4a5",
+      "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/netz/LanRegel.java": "46e7485ccce7914debfd67c743e85dc438c81865ddee153b8390b29ed408afa6"
+    },
+    "verbatim_methods_exactly_once": true,
+    "harness_and_log_hashes_match": true,
+    "passed": 15,
+    "failed": 5
+  },
+  "superseded-e6c4293": {
+    "verified_source_commit": "e6c429321c92fc424b5f211a0e57d65fba74a411",
+    "head_at_execution": "e6c429321c92fc424b5f211a0e57d65fba74a411",
+    "source_sha256": {
+      "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt": "b495a10dd09a4b7bbfadc8605010d70921f2b3ba7e3c8b66a13bc3e8c5add1a1",
+      "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/daten/Modell.kt": "800a605797883b91557bbc07d27bacbb257665e4cc4f05162f3633ae3e0a1b4a",
+      "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Transport.kt": "d536fb865f841ba6b2c19bc959732147a3d9ef6f27e8f189a3ec1607678bc4a5",
+      "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/netz/LanRegel.java": "46e7485ccce7914debfd67c743e85dc438c81865ddee153b8390b29ed408afa6"
+    },
+    "verbatim_methods_exactly_once": true,
+    "harness_and_log_hashes_match": true,
+    "passed": 17,
+    "failed": 3
+  },
+  "after": {
+    "verified_source_commit": "e9f4a41c87c2ef708e0c357fa76e64b339c5e313",
+    "head_at_execution": "e6c429321c92fc424b5f211a0e57d65fba74a411",
+    "source_sha256": {
+      "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt": "0a900b087a1fbee6de686f0caa7224a1a9dfc9fe85a461d10f20447d5090689a",
+      "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/daten/Modell.kt": "800a605797883b91557bbc07d27bacbb257665e4cc4f05162f3633ae3e0a1b4a",
+      "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Transport.kt": "d536fb865f841ba6b2c19bc959732147a3d9ef6f27e8f189a3ec1607678bc4a5",
+      "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/netz/LanRegel.java": "46e7485ccce7914debfd67c743e85dc438c81865ddee153b8390b29ed408afa6"
+    },
+    "verbatim_methods_exactly_once": true,
+    "harness_and_log_hashes_match": true,
+    "passed": 20,
+    "failed": 0
+  },
+  "same_dependency_fixtures_and_assertions_in_all_three_runs": true,
+  "combined_tree_contains_exactly_tested_outbox_methods": true,
+  "independent_review": {
+    "scope": "Read-only source, harness, log and commit-hash review; not an additional runtime test.",
+    "first_candidate_rejected": [
+      "Moving the increment also removed null preparation, preparation failure and missing-peer work from the old bound.",
+      "Unchanged field claims needed to distinguish prepared FS1 fixtures from the existing legacy preparation."
+    ],
+    "final_review": "Both findings corrected; no remaining concrete blocker for a bounded patch handoff.",
+    "native_boundary": "No physical Android, real route, real FS1 delivery, installed package or Internet end-to-end acceptance."
+  }
+}
