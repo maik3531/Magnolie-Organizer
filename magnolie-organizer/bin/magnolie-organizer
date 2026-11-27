@@ -130,7 +130,7 @@ from magnolie_asset import read_asset
 from magnolie_kdeconnect import DEVICE_ID, SmsSubmissionJournal, create_backend, local_device_name
 from magnolie_hintergrund import (KDEConnectProxy, PhoneServiceProxy, daemon_available,
     ensure_automatic_services as background_services_ensure,
-    FileLease, AlreadyRunning,
+    FileLease, AlreadyRunning, IPCError,
     configure_autostart as background_autostart_configure,
     autostart_path as background_autostart_path,
     autostart_contents as background_autostart_contents,
@@ -22069,8 +22069,12 @@ class Fenster(_FENSTER_BASIS):
         eintrag = getattr(self, "_tray_telefone", None)
         if not eintrag:
             return
-        aktiv = bool(not self._gesperrt and self._telefon and self._telefon.enabled)
-        partner_liste = self._telefon.report().get("peers", []) if aktiv else []
+        try:
+            aktiv = bool(not self._gesperrt and self._telefon and self._telefon.enabled)
+            partner_liste = self._telefon.report().get("peers", []) if aktiv else []
+        except (IPCError, OSError):
+            debug_ausnahme("phone.tray.peers_unavailable")
+            aktiv, partner_liste = False, []
         untermenue = Gtk.Menu()
         for partner in sorted(partner_liste,
                               key=lambda p: str(p.get("display_name") or "").casefold()):
@@ -22254,7 +22258,11 @@ class Fenster(_FENSTER_BASIS):
 
     def _tray_medien_aktualisieren(self):
         # Read current native ownership, not the possibly delayed event payload.
-        bericht = self._telefon.report() if self._telefon else {}
+        try:
+            bericht = self._telefon.report() if self._telefon else {}
+        except (IPCError, OSError):
+            debug_ausnahme("phone.tray.media_unavailable")
+            bericht = {}
         aktiv = bericht.get("media_activity") or {}
         self._tray_medien = (aktiv.get("synchronizing") is True or getattr(self, '_sync_laeuft', False) is True,
                             aktiv.get("camera") is True)
@@ -26884,22 +26892,31 @@ class Fenster(_FENSTER_BASIS):
                 self.antwort("App.telefonMcpErgebnis", result)
 
     def _telefon_bericht(self):
-        self._telefon_dienst_pflegen()
-        if not self._telefon:
-            return {"possible": False, "enabled": False, "listening": False,
-                    "port": TELEFON_PORT, "peers": [],
-                    "kdeconnect": kdeconnect_sms_stand(),
-                    "error": getattr(self, "_telefon_fehler", "")}
-        bericht = self._telefon.report()
+        bericht, fehler = None, None
+        try:
+            self._telefon_dienst_pflegen()
+            if self._telefon:
+                bericht = self._telefon.report()
+        except (IPCError, OSError):
+            debug_ausnahme("phone.status.unavailable")
+            fehler = _("The phone connection is not available.")
+        if bericht is None:
+            # A failed read cannot retain peers or advertise their capabilities.
+            # This is a UI projection, not a change to saved phone settings.
+            bericht = {"possible": False, "enabled": False, "listening": False,
+                       "port": TELEFON_PORT, "peers": []}
         bericht["kdeconnect"] = kdeconnect_sms_stand()
-        bericht["error"] = getattr(self, "_telefon_fehler", "")
+        bericht["error"] = fehler if fehler is not None else getattr(self, "_telefon_fehler", "")
         return bericht
 
     def _telefon_stand_melden(self):
         self._kde_legacy_einstellungen_migrieren()
         _kdeconnect_backend(self._kde_ereignis)
         if self._telefon:
-            self._telefon.replay_personal_sync()
+            try:
+                self._telefon.replay_personal_sync()
+            except (IPCError, OSError):
+                debug_ausnahme("phone.status.replay_unavailable")
         self.antwort("App.telefonStand", self._telefon_bericht())
         current_call = getattr(self, "_aktueller_anruf_hinweis", None)
         if current_call and not self._gesperrt:
