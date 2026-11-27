@@ -1,0 +1,11 @@
+Auto-merging ARBEITSSTAND.md
+CONFLICT (content): Merge conflict in ARBEITSSTAND.md
+Auto-merging magnolie-organizer-windows/ExchangeCodec.cs
+CONFLICT (content): Merge conflict in magnolie-organizer-windows/ExchangeCodec.cs
+Auto-merging magnolie-organizer-windows/tests/Program.cs
+CONFLICT (content): Merge conflict in magnolie-organizer-windows/tests/Program.cs
+Auto-merging magnolie-organizer/bin/magnolie-organizer
+error: could not apply 73af5787... Refs #566: Preserve CSV contact addresses within their source roles
+hint: after resolving the conflicts, mark the corrected paths
+hint: with 'git add <paths>' or 'git rm <paths>'
+hint: Disable this message with "git config set advice.mergeConflict false"

@@ -1,0 +1,78 @@
+{
+  "baseCommit": "14bc2fa1330037120f98b6dc31c76f5690a29eb6",
+  "historicalFixCommit": "73af57871683d750a74fcd449cd5a5270109ab70",
+  "checks": [
+    {
+      "check": "Historical contact file unchanged: contracts/lotus-csv-contact-fields.json",
+      "equal": true,
+      "expected_sha256": "c480c3606eab613a6151ac4006d9d01a56f61abe2f4f3439434fb1e03b335bce",
+      "actual_sha256": "c480c3606eab613a6151ac4006d9d01a56f61abe2f4f3439434fb1e03b335bce"
+    },
+    {
+      "check": "Historical contact file unchanged: magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs",
+      "equal": true,
+      "expected_sha256": "6a06d91104979a5273a97a44e44d77c12180dd89aa18d02cb7e0331130ad4999",
+      "actual_sha256": "6a06d91104979a5273a97a44e44d77c12180dd89aa18d02cb7e0331130ad4999"
+    },
+    {
+      "check": "Historical contact file unchanged: magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py",
+      "equal": true,
+      "expected_sha256": "e5163d391c11a6d2b9dbc9f40ca6969639a39e389129a4ea6005367f7b600299",
+      "actual_sha256": "e5163d391c11a6d2b9dbc9f40ca6969639a39e389129a4ea6005367f7b600299"
+    },
+    {
+      "check": "Current task contract including H/N unchanged",
+      "equal": true,
+      "expected_sha256": "da87a04938d93fbd5ed8379126c87b82a4773010516096c4228e923a56f8efc3",
+      "actual_sha256": "da87a04938d93fbd5ed8379126c87b82a4773010516096c4228e923a56f8efc3"
+    },
+    {
+      "check": "Historical Linux contact function unchanged",
+      "equal": true,
+      "expected_sha256": "3e9d1905752fe746195b2a97a80cba5cbbc3bd1997763e744c203058d4b2ffa0",
+      "actual_sha256": "3e9d1905752fe746195b2a97a80cba5cbbc3bd1997763e744c203058d4b2ffa0"
+    },
+    {
+      "check": "Current Linux task function unchanged",
+      "equal": true,
+      "expected_sha256": "494f5d799b03d0e664cc76e9d8587281183cbd8fa854ccf09ff59f0e4ef8d275",
+      "actual_sha256": "494f5d799b03d0e664cc76e9d8587281183cbd8fa854ccf09ff59f0e4ef8d275"
+    },
+    {
+      "check": "Historical C# contact helpers unchanged",
+      "equal": true,
+      "expected_sha256": "e0030889e9392c3a86499ef5452b0395d0f9fbd6cd5b0b1ae4b3253e41d0554a",
+      "actual_sha256": "e0030889e9392c3a86499ef5452b0395d0f9fbd6cd5b0b1ae4b3253e41d0554a"
+    },
+    {
+      "check": "Historical C# contact branch unchanged",
+      "equal": true,
+      "expected_sha256": "bee4d9930a812265c662a5c135d386a26521fd1c0b4f8a32f7901a232f9b0171",
+      "actual_sha256": "bee4d9930a812265c662a5c135d386a26521fd1c0b4f8a32f7901a232f9b0171"
+    },
+    {
+      "check": "Current C# task branch unchanged",
+      "equal": true,
+      "expected_sha256": "df4d65d44f96d71352109f65b5e4dd4d645d61354146b1d5e5b94c292e2f2b59",
+      "actual_sha256": "df4d65d44f96d71352109f65b5e4dd4d645d61354146b1d5e5b94c292e2f2b59"
+    },
+    {
+      "check": "Current C# alias list unchanged: var taskPriorityIndex = ",
+      "equal": true,
+      "expected_sha256": "3a08c64cf85077f8634d7a7a09cced8d988c4e84f42f5c3c0310e4b8c35e0069",
+      "actual_sha256": "3a08c64cf85077f8634d7a7a09cced8d988c4e84f42f5c3c0310e4b8c35e0069"
+    },
+    {
+      "check": "Current C# alias list unchanged: var taskStatusIndex = ",
+      "equal": true,
+      "expected_sha256": "8edb40ee796f0408254d17a43c0730a53386b4877d7058b52a1f905d38e142c0",
+      "actual_sha256": "8edb40ee796f0408254d17a43c0730a53386b4877d7058b52a1f905d38e142c0"
+    },
+    {
+      "check": "Current registrations preserved; contact registration added once",
+      "equal": true,
+      "expected_sha256": "f6d138014da72445885b2e89e77a243eb30080cba0158c559354e1ab442599a4",
+      "actual_sha256": "f6d138014da72445885b2e89e77a243eb30080cba0158c559354e1ab442599a4"
+    }
+  ]
+}

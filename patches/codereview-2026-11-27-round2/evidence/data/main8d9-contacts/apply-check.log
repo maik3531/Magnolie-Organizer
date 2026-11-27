@@ -1,0 +1,4 @@
+base_commit=14bc2fa1330037120f98b6dc31c76f5690a29eb6
+command=git apply --cached --check 566-after-837-main8d9.patch
+index=isolated temporary index initialized from base_commit
+exit_code=0

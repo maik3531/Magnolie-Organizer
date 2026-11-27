@@ -111,6 +111,47 @@ zusätzlicher Anwendbarkeitsnachweis, kein erneuter Lauf aller Tests auf diesem
 fortgeschriebenen Hauptzweig. Die Dokumentation muss mit dessen weiterem
 Arbeitsstand zusammengeführt werden. [Prüfprotokoll](main-compatibility.json).
 
+### Weitere Übernahmen bis 8d9aec67
+
+Der spätere Hauptzweig `8d9aec671a4c63f999ed7fbe74f8752af6978250` enthält
+auch die parallelen Korrekturen für #836 und #837. Der gezielte Quellenvergleich
+bestätigt bei Notes alle hier belegten Schutzfunktionen. Dies ist ein
+Quellenabgleich der übernommenen Fassung, kein neuer Android-Testlauf.
+
+Bei #837 fehlten in dieser Übernahme weiterhin die bisherigen Prioritäts-
+Kurzwerte `H` und `N`: Beide tatsächlichen Reader ordneten sie als normal ein.
+Die [gezielte Ergänzung für 8d9aec67](evidence/data/main8d9-hn/837-main8d9-hn.patch)
+nimmt nur diese Werte in die exakten Mengen auf, ergänzt zwei vorhandene
+Vertragszeilen und präzisiert den Arbeitsstand. Neuere Spaltenaliase bleiben
+erhalten. Die direkte Probe besteht nachher in acht von acht Fällen;
+die vorhandenen Python- und C#-Aufgabenprüfungen bestehen ebenfalls.
+[Bericht und Vorher-/Nachher-Belege](evidence/data/main8d9-hn/README.md).
+
+Der historische Kontaktpatch #566 benötigt nach dieser parallelen Übernahme
+eine angepasste Einordnung seiner Helfer und Testregistrierung. Der
+[vollständige angepasste Kontaktpatch](evidence/data/main8d9-contacts/566-after-837-main8d9.patch)
+folgt unmittelbar auf den H/N-Nachtrag, also auf Quellstand
+`14bc2fa1330037120f98b6dc31c76f5690a29eb6`. Kontaktfunktionen und Kontaktvektoren
+bleiben zum zuvor geprüften Fix bytegleich; die neuere Aufgaben-/Aliaslogik
+bleibt erhalten. Elf Pythonfälle und beide C#-CSV-Gruppen bestehen gemeinsam.
+[Bericht und Quellvergleiche](evidence/data/main8d9-contacts/README.md).
+
+Die gezielten Ergänzungen sind für die jeweiligen neueren Hauptzweigstände
+bestimmt. Ihre Produktkorrekturen sind bereits in der vollständigen
+historischen Serie gegen 1543858e enthalten. Übernahmestand und noch offene
+Reste werden zusätzlich in den zugehörigen Issues dokumentiert.
+
+Für die feste neuere Basis `8d9aec67` ist zusätzlich folgende Reihenfolge in
+einem temporären Git-Index geprüft: H/N-Nachtrag, angepasster Kontaktpatch,
+JSON-Retry-Nachtrag, danach Alarmteilpatch 01 mit ausgenommener
+`ARBEITSSTAND.md`. Die beiden ersten Schritte erzeugen exakt die separat
+geprüften Quellbäume; alle vier Schritte sind konfliktfrei anwendbar.
+Die Dokumentation der Alarmkorrektur steht im Issue und muss beim Einpflegen
+mit dem fortgeschriebenen Arbeitsstand zusammengeführt werden. Dies ist eine
+Anwendbarkeitsprüfung; der Nachweis wird nicht als neuer vollständiger
+Laufzeittest dieser gesamten neueren Komposition ausgegeben.
+[Exakte Reihenfolge und Quellbäume](current-integration-replay.json).
+
 ## Prüfungen und Aussagegrenzen
 
 Die endgültigen Prüfkommandos, Exitcodes und Logs stehen in
@@ -165,3 +206,6 @@ Historische rote Logs bleiben mit ihrer Ursachenbeschreibung erhalten.
 Einzelberichte und ursprüngliche Einzelpatches unter `evidence` dokumentieren
 ihre damaligen isolierten Prüfstände. Für die vollständige zweite Lieferung
 sind der Gesamtpatch und die oben geordnete `series` maßgeblich.
+Die erste Veröffentlichung dieser Lieferung wurde anschließend vollständig
+zurückgelesen: 132 Dateien und 906.084 Bytes stimmen überein.
+[Rücklesenachweis](evidence/publication/initial-readback.json).

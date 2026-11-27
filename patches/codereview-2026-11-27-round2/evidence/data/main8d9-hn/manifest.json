@@ -1,0 +1,166 @@
+{
+  "issue": 837,
+  "baseCommit": "8d9aec671a4c63f999ed7fbe74f8752af6978250",
+  "sourceCommit": "14bc2fa1330037120f98b6dc31c76f5690a29eb6",
+  "sourceTree": "6d5cba6c875e024d55cb40cbc0278c9c5fe1a726",
+  "branch": "review/round2-837-hn-20261127",
+  "worktreeClean": true,
+  "beforeExitCode": 1,
+  "afterExitCode": 0,
+  "readerCasesPerRun": 8,
+  "sharedTaskRows": 14,
+  "environment": {
+    "host": "Linux",
+    "dotnet_sdk": "8.0.408",
+    "python": "3.13.5",
+    "TZ": "UTC",
+    "native_windows_acceptance": false
+  },
+  "scope": "Exact H/N priority values only; current column aliases and completion handling unchanged",
+  "sources": {
+    "magnolie-organizer/bin/magnolie-organizer": {
+      "base_sha256": "9fc7f932269ee2e88e94565d036ce69c3ef40f3a75b09f11a560aa2c9b2ba083",
+      "commit_sha256": "3cba76eb9bf7e37e61c717b686fcd3d64287766801050e4f803603039b167cc3"
+    },
+    "magnolie-organizer-windows/ExchangeCodec.cs": {
+      "base_sha256": "c8c379906770f6f65eb52db301ed0f60b295ac354b9ceee891711bf113de2e50",
+      "commit_sha256": "521fa0647331ba34cdcacd36a2f3e49920da14cf7df1db9a41a9b3a6f4582802"
+    },
+    "contracts/lotus-task-csv-vectors.json": {
+      "base_sha256": "0016513570360936ea8ecac6e5808ff9d0e069a0119c22ab9bb16ccec4c2a171",
+      "commit_sha256": "da87a04938d93fbd5ed8379126c87b82a4773010516096c4228e923a56f8efc3"
+    }
+  },
+  "checks": [
+    {
+      "log": "restore.log",
+      "exit_code": 0,
+      "result": "Locked restore from existing dependency cache"
+    },
+    {
+      "log": "build-before.log",
+      "exit_code": 0,
+      "result": "Actual-source host and native import probe: 0 warnings, 0 errors"
+    },
+    {
+      "log": "python-before.log",
+      "exit_code": 1,
+      "result": "1 failed, 2 passed; extended shared contract, unchanged product sources"
+    },
+    {
+      "log": "csharp-before.log",
+      "exit_code": 1,
+      "result": "0/1 groups passed; extended shared contract, unchanged product sources"
+    },
+    {
+      "log": "readers-before.log",
+      "exit_code": 1,
+      "result": "4/8 value/port cases passed; H and N fail in each actual reader"
+    },
+    {
+      "log": "build-after.log",
+      "exit_code": 0,
+      "result": "Actual-source host and native import probe: 0 warnings, 0 errors"
+    },
+    {
+      "log": "python-after.log",
+      "exit_code": 0,
+      "result": "3 passed; 14 CSV/VTODO task rows"
+    },
+    {
+      "log": "csharp-after.log",
+      "exit_code": 0,
+      "result": "1/1 group passed; 14 CSV/VTODO task rows"
+    },
+    {
+      "log": "readers-after.log",
+      "exit_code": 0,
+      "result": "8/8 value/port cases passed"
+    },
+    {
+      "log": "diff-check.log",
+      "exit_code": 0,
+      "result": "git diff --check: clean"
+    }
+  ],
+  "artifacts": {
+    "837-main8d9-hn.patch": {
+      "sha256": "5723797f6f40c49fbbc8cb727209402061ba25d18d302ed09c110c981e1468fa",
+      "bytes": 4203,
+      "original_sha256": "5723797f6f40c49fbbc8cb727209402061ba25d18d302ed09c110c981e1468fa",
+      "original_bytes": 4203
+    },
+    "README.md": {
+      "sha256": "b1618fc7e3b319bf538769ddd1639dd62f67244eae2ddaa2d8aeddd294d9e3cd",
+      "bytes": 4978,
+      "original_sha256": "b1618fc7e3b319bf538769ddd1639dd62f67244eae2ddaa2d8aeddd294d9e3cd",
+      "original_bytes": 4978
+    },
+    "build-after.log": {
+      "sha256": "949f4d7b1653f8a064af522f97f0152110736824a675685be2c444a283f53a05",
+      "bytes": 338,
+      "original_sha256": "2ccc0d4dcc1374b51897153df9df8b4a9b38c424d2fc200309dbc2d247616891",
+      "original_bytes": 366
+    },
+    "build-before.log": {
+      "sha256": "f54dd4ecb54e97bb8e354bed467faf0650c5d8d48abd92ea363c17d811dcef07",
+      "bytes": 338,
+      "original_sha256": "a7edfdb6265d1bc1ec246f38aed736202ad01d52e3717a31fe81cbe1f77749b4",
+      "original_bytes": 366
+    },
+    "check_csv_readers.py": {
+      "sha256": "b279c5fd8c54e6d4b1566ade1fc68fc5fc58cd4268ab2378327add157adb22f6",
+      "bytes": 2653,
+      "original_sha256": "b279c5fd8c54e6d4b1566ade1fc68fc5fc58cd4268ab2378327add157adb22f6",
+      "original_bytes": 2653
+    },
+    "csharp-after.log": {
+      "sha256": "fa9612fd3495f001e616a324c23f5e64edc53fc8348e1d22ef5f25f99d81d120",
+      "bytes": 129,
+      "original_sha256": "fa9612fd3495f001e616a324c23f5e64edc53fc8348e1d22ef5f25f99d81d120",
+      "original_bytes": 129
+    },
+    "csharp-before.log": {
+      "sha256": "19bddbfbfb545d91e85d9bc93ec5d7a4d98db6170f3f056b26a39a34f47958ba",
+      "bytes": 1137,
+      "original_sha256": "a16e9e9f84ff20bb4af880975d62a22012bb8d83e82dcb3fd74700ae2d1fd04c",
+      "original_bytes": 1193
+    },
+    "diff-check.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0
+    },
+    "python-after.log": {
+      "sha256": "bc3b389f2906ebf6404c7e3aa5a879a34e5e077d7f997e49110c9cde53d70864",
+      "bytes": 98,
+      "original_sha256": "bc3b389f2906ebf6404c7e3aa5a879a34e5e077d7f997e49110c9cde53d70864",
+      "original_bytes": 98
+    },
+    "python-before.log": {
+      "sha256": "b9b80bce09c66c919f8113cddf802cf1f2d002165deb7603f071360ebe6229b2",
+      "bytes": 1753,
+      "original_sha256": "b9b80bce09c66c919f8113cddf802cf1f2d002165deb7603f071360ebe6229b2",
+      "original_bytes": 1753
+    },
+    "readers-after.log": {
+      "sha256": "432edd7f13d62913ba9cfae80cf3450da0a25a88d9eea1c553cf51e2dc219ece",
+      "bytes": 971,
+      "original_sha256": "432edd7f13d62913ba9cfae80cf3450da0a25a88d9eea1c553cf51e2dc219ece",
+      "original_bytes": 971
+    },
+    "readers-before.log": {
+      "sha256": "7775832c24a2687b6d840b0eb5ae1fcf0a4b741d1b8346e28ddfe66b57b625c1",
+      "bytes": 971,
+      "original_sha256": "7775832c24a2687b6d840b0eb5ae1fcf0a4b741d1b8346e28ddfe66b57b625c1",
+      "original_bytes": 971
+    },
+    "restore.log": {
+      "sha256": "79bdd7f94bb3932930bf235a919897b3cc2bf6b8bbbeaf17daf6a9a6eebb8370",
+      "bytes": 281,
+      "original_sha256": "b73ed9b31eda6b50fe4c8ba150ff65fb8dbe50771bb71fac44a60b4028236c23",
+      "original_bytes": 309
+    }
+  }
+}

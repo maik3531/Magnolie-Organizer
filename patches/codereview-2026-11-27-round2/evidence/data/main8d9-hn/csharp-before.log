@@ -1,0 +1,16 @@
+Magnolie CoreTests: 1 Gruppen
+  FEHLER Lotus task CSV / status and priority roundtrip (0.04 s)
+         System.InvalidOperationException: CSV: status, priority, or date changed for High short value: {
+  "titel": "High short value",
+  "faellig": "2026-05-31",
+  "prio": 2,
+  "erledigt": false,
+  "notiz": "",
+  "uid": "",
+  "geaendert": 0
+}.
+   at MagnolieOrganizer.Windows.Tests.TestAssert.That(Boolean condition, String message) in $REVIEW_WORKSPACE/round2-hn-followup/magnolie-organizer-windows/tests/TestRunner.cs:line 41
+   at MagnolieOrganizer.Windows.Tests.LotusTaskCsvTests.<RunAsync>g__CheckFields|0_1(JsonArray tasks, String phase, <>c__DisplayClass0_0&) in $REVIEW_WORKSPACE/round2-hn-followup/magnolie-organizer-windows/tests/LotusTaskCsvTests.cs:line 34
+   at MagnolieOrganizer.Windows.Tests.LotusTaskCsvTests.RunAsync() in $REVIEW_WORKSPACE/round2-hn-followup/magnolie-organizer-windows/tests/LotusTaskCsvTests.cs:line 21
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in $REVIEW_WORKSPACE/round2-hn-followup/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/1 Gruppen bestanden.

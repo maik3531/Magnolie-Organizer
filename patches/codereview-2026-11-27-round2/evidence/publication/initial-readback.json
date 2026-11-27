@@ -1,0 +1,18 @@
+{
+  "artifact_commit": "7f229f53e9e11dde521047c22a0860e2914c01f3",
+  "artifact_tree": "099254965ba54f04355c8da91c49398d25828e95",
+  "verified_files": 132,
+  "verified_bytes": 906084,
+  "parent": "1543858e251d7e29ebeafb67d2605991c1d442d5",
+  "main_checkpoint": "8d9aec671a4c63f999ed7fbe74f8752af6978250",
+  "retry_status": [
+    {
+      "file": "magnolie-organizer/web/anwendung.js",
+      "old_retry_line_still_present": true
+    },
+    {
+      "file": "magnolie-organizer-windows/app/web/anwendung.js",
+      "old_retry_line_still_present": true
+    }
+  ]
+}

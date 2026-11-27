@@ -1,0 +1,16 @@
+{
+  "main_checkpoint": "8d9aec671a4c63f999ed7fbe74f8752af6978250",
+  "mode": "individual_source_patches_excluding_ARBEITSSTAND",
+  "checks": [
+    {
+      "patch": "series/01-refs-835-deliver-absolute-calendar-alarms-once-across-projections-and-restarts.patch",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "patch": "series/04-refs-566-preserve-csv-contact-addresses-within-their-source-roles.patch",
+      "exit": 1,
+      "stderr": "error: patch failed: magnolie-organizer-windows/ExchangeCodec.cs:2174\nerror: magnolie-organizer-windows/ExchangeCodec.cs: patch does not apply\nerror: patch failed: magnolie-organizer-windows/tests/Program.cs:345\nerror: magnolie-organizer-windows/tests/Program.cs: patch does not apply\n"
+    }
+  ]
+}

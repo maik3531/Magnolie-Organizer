@@ -1,0 +1,28 @@
+F..                                                                      [100%]
+=================================== FAILURES ===================================
+___ test_lotus_task_csv[BESCHREIBUNG;FAELLIGKEITSDATUM;PRIORITAET;ERLEDIGT] ____
+
+vector = {'header': 'BESCHREIBUNG;FAELLIGKEITSDATUM;PRIORITAET;ERLEDIGT', 'rows': [{'csv': 'English completed;31.05.2026;Hoch;C...', 'done': False, 'priority': 3}, {'csv': 'Deutsch normal;31.05.2026;Normal;Nein', 'done': False, 'priority': 2}, ...]}
+
+    @pytest.mark.parametrize("vector", VECTORS, ids=lambda vector: vector["header"])
+    def test_lotus_task_csv(vector):
+        rows = vector["rows"]
+        csv = "\r\n".join([vector["header"], *(row["csv"] for row in rows), ""])
+        imported = native.lotus_csv_lesen(csv.encode("utf-8-sig"))
+        assert imported["uebersprungen"] == 0
+        tasks = imported["aufgaben"]
+        expected = [(row["csv"].split(";")[0], "2026-05-31", row["done"], row["priority"]) for row in rows]
+    
+        def task_fields(items):
+            return [(item["titel"], item["faellig"], item["erledigt"], item["prio"]) for item in items]
+    
+>       assert task_fields(tasks) == expected
+E       AssertionError: assert [('English co...alse, 2), ...] == [('English co...alse, 2), ...]
+E         
+E         At index 3 diff: ('High short value', '2026-05-31', False, 2) != ('High short value', '2026-05-31', False, 1)
+E         Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_lotus_task_csv.py:31: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_lotus_task_csv.py::test_lotus_task_csv[BESCHREIBUNG;FAELLIGKEITSDATUM;PRIORITAET;ERLEDIGT]
+1 failed, 2 passed in 1.18s

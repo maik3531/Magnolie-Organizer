@@ -1,0 +1,15 @@
+source_commit=8d9aec671a4c63f999ed7fbe74f8752af6978250
+TZ=UTC
+sha256=3cba76eb9bf7e37e61c717b686fcd3d64287766801050e4f803603039b167cc3  magnolie-organizer/bin/magnolie-organizer
+sha256=521fa0647331ba34cdcacd36a2f3e49920da14cf7df1db9a41a9b3a6f4582802  magnolie-organizer-windows/ExchangeCodec.cs
+sha256=da87a04938d93fbd5ed8379126c87b82a4773010516096c4228e923a56f8efc3  contracts/lotus-task-csv-vectors.json
+sha256=42171d8c082ca301c629a20b6bdaf3f789176ead8c534aa8638c3ffe2334b98c  magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll
+Linux: value='H' expected=1 actual=1 PASS
+Linux: value='N' expected=3 actual=3 PASS
+Linux: value='Normal' expected=2 actual=2 PASS
+Linux: value='Not set' expected=2 actual=2 PASS
+Windows-source: value='H' expected=1 actual=1 PASS
+Windows-source: value='N' expected=3 actual=3 PASS
+Windows-source: value='Normal' expected=2 actual=2 PASS
+Windows-source: value='Not set' expected=2 actual=2 PASS
+RESULT: 8/8 cases passed; 0 failed

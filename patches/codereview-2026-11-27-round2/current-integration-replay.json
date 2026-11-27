@@ -1,0 +1,41 @@
+{
+  "baseline": "8d9aec671a4c63f999ed7fbe74f8752af6978250",
+  "kind": "source_patch_applicability_only_not_combined_runtime_test",
+  "steps": [
+    {
+      "name": "837 H/N",
+      "patch_filename": "837-main8d9-hn.patch",
+      "excluded_paths": [],
+      "result_tree": "6d5cba6c875e024d55cb40cbc0278c9c5fe1a726",
+      "source_tree_exactly_verified": true,
+      "apply_check": "passed"
+    },
+    {
+      "name": "566 adapted contacts",
+      "patch_filename": "566-after-837-main8d9.patch",
+      "excluded_paths": [],
+      "result_tree": "83d110de391fb62de52649118483775658ed2d8e",
+      "source_tree_exactly_verified": true,
+      "apply_check": "passed"
+    },
+    {
+      "name": "838 retry status",
+      "patch_filename": "838-retry-only-against-244b1d62.patch",
+      "excluded_paths": [],
+      "result_tree": "b300704f945f6240bc2ad79f327e0ab9cc85e8fa",
+      "source_tree_exactly_verified": false,
+      "apply_check": "passed"
+    },
+    {
+      "name": "835 absolute alarms",
+      "patch_filename": "01-refs-835-deliver-absolute-calendar-alarms-once-across-projections-and-restarts.patch",
+      "excluded_paths": [
+        "ARBEITSSTAND.md"
+      ],
+      "result_tree": "33cd0fad78ae5494392b95f423f81a2d1e642a54",
+      "source_tree_exactly_verified": false,
+      "apply_check": "passed"
+    }
+  ],
+  "result_tree": "33cd0fad78ae5494392b95f423f81a2d1e642a54"
+}

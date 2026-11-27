@@ -1,0 +1,121 @@
+{
+  "issue": 566,
+  "baseCommit": "14bc2fa1330037120f98b6dc31c76f5690a29eb6",
+  "sourceCommit": "e9742c759be41939e2905d6a59a1004d4a7a7bd2",
+  "sourceTree": "83d110de391fb62de52649118483775658ed2d8e",
+  "historicalFixCommit": "73af57871683d750a74fcd449cd5a5270109ab70",
+  "branch": "review/round2-837-hn-20261127",
+  "worktreeClean": true,
+  "prerequisite": {
+    "commit": "14bc2fa1330037120f98b6dc31c76f5690a29eb6",
+    "patch": "../main8d9-hn/837-main8d9-hn.patch",
+    "sha256": "5723797f6f40c49fbbc8cb727209402061ba25d18d302ed09c110c981e1468fa",
+    "deliveryUnchanged": true
+  },
+  "applicationOrder": [
+    "837-main8d9-hn.patch",
+    "566-after-837-main8d9.patch"
+  ],
+  "environment": {
+    "host": "Linux",
+    "python": "3.13.5",
+    "dotnetSdk": "8.0.408",
+    "TZ": "UTC",
+    "nativeWindowsAcceptance": false
+  },
+  "checks": [
+    {
+      "log": "python-combined.log",
+      "exitCode": 0,
+      "result": "11 passed: 3 task groups / 14 task rows and 8 contacts"
+    },
+    {
+      "log": "csharp-combined.log",
+      "exitCode": 0,
+      "result": "2/2 CSV groups passed: same 14 task rows and 8 contacts"
+    },
+    {
+      "log": "build.log",
+      "exitCode": 0,
+      "result": "0 warnings, 0 errors"
+    },
+    {
+      "log": "diff-check.log",
+      "exitCode": 0,
+      "result": "git diff --cached --check clean"
+    },
+    {
+      "log": "apply-check.log",
+      "exitCode": 0,
+      "result": "Full patch applies to direct parent in isolated temporary index"
+    },
+    {
+      "log": "source-comparison.json",
+      "result": "12/12 relevant byte comparisons equal"
+    }
+  ],
+  "sourceSha256": {
+    "magnolie-organizer/bin/magnolie-organizer": "5996e053903912bd562a7c3240e8d951ce32d233abfb715a1a6c7cfe1fc3dbf3",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "4773a5e0f76ff5a4f191e90399afd2ddab06397841f393e8b4522a9d1223ce67",
+    "magnolie-organizer-windows/tests/Program.cs": "99925b04120e45d97b489f73f34cc3c7324a5ed18b11a62b8d6afdd35011082c",
+    "contracts/lotus-task-csv-vectors.json": "da87a04938d93fbd5ed8379126c87b82a4773010516096c4228e923a56f8efc3",
+    "contracts/lotus-csv-contact-fields.json": "c480c3606eab613a6151ac4006d9d01a56f61abe2f4f3439434fb1e03b335bce"
+  },
+  "testedAssemblySha256": "587051dc2e9d35f00916a6626f9469849594046c5fc7bc8237e7c44d854bbf32",
+  "artifacts": {
+    "566-after-837-main8d9.patch": {
+      "sha256": "fb633e8bde06fceeb648c5cce563d9ce729c7866853c740152587e21ba6b5365",
+      "bytes": 28752,
+      "original_sha256": "fb633e8bde06fceeb648c5cce563d9ce729c7866853c740152587e21ba6b5365",
+      "original_bytes": 28752
+    },
+    "README.md": {
+      "sha256": "626727ad8581dc989fcd8643a124e95dde6e4140573d332dd64546d53fc242d0",
+      "bytes": 4068,
+      "original_sha256": "626727ad8581dc989fcd8643a124e95dde6e4140573d332dd64546d53fc242d0",
+      "original_bytes": 4068
+    },
+    "apply-check.log": {
+      "sha256": "ed4c3aafd9c691ee26c631cd8f80bf827ffaa3b8da4022410e828458fca27ef4",
+      "bytes": 188,
+      "original_sha256": "ed4c3aafd9c691ee26c631cd8f80bf827ffaa3b8da4022410e828458fca27ef4",
+      "original_bytes": 188
+    },
+    "build.log": {
+      "sha256": "106621f5b28efced9646bf8cd33ba2fa9d2fe88bc1da2f054372d0e391c35609",
+      "bytes": 192,
+      "original_sha256": "511c454988f2563e24e675d9330b2b26556529d097ebbc80917405d23a446d26",
+      "original_bytes": 206
+    },
+    "csharp-combined.log": {
+      "sha256": "3fcff2f7d0ebe9df80ad936748eef6160a985032d9f1a0d980a8ebd1b22078e7",
+      "bytes": 213,
+      "original_sha256": "3fcff2f7d0ebe9df80ad936748eef6160a985032d9f1a0d980a8ebd1b22078e7",
+      "original_bytes": 213
+    },
+    "diff-check.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0
+    },
+    "python-combined.log": {
+      "sha256": "95576e56160e1f2b60f814f5185097e4c5519570b448ba2823eafc44eb67ad13",
+      "bytes": 99,
+      "original_sha256": "95576e56160e1f2b60f814f5185097e4c5519570b448ba2823eafc44eb67ad13",
+      "original_bytes": 99
+    },
+    "source-comparison.json": {
+      "sha256": "02dbc93f6789494e3882f22c5840c198675caa25b6de43f0574060e421074eeb",
+      "bytes": 3659,
+      "original_sha256": "02dbc93f6789494e3882f22c5840c198675caa25b6de43f0574060e421074eeb",
+      "original_bytes": 3659
+    },
+    "three-way.log": {
+      "sha256": "6336eb718632af7c4b8a7de79305101dbec60bb0b7f33a339ce199f055c739c5",
+      "bytes": 706,
+      "original_sha256": "6336eb718632af7c4b8a7de79305101dbec60bb0b7f33a339ce199f055c739c5",
+      "original_bytes": 706
+    }
+  }
+}
