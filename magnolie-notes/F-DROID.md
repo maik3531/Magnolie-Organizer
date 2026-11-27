@@ -8,9 +8,15 @@ Die Android-App verwendet AndroidX/Compose, Kotlin Serialization,
 Bouncy Castle und libphonenumber. Sie benötigt weder Google Play Services
 noch Firebase und kann ohne Konto als lokales Notizbuch verwendet werden.
 
-Voraussetzungen: vollständiges OpenJDK 21 mit Compiler, Android SDK Platform 35 und die vom Android-
-Gradle-Plugin verwendeten Build Tools. Gradle 8.13 ist über den geprüften
-Wrapper festgelegt; Abhängigkeitsversionen und Prüfsummen sind eingecheckt.
+Voraussetzungen für den aktuellen Quellstand: vollständiges OpenJDK 21 mit
+Compiler, Android SDK Platform 37.2 und die vom Android-Gradle-Plugin
+verwendeten Build Tools. Gradle 9.6.0 ist über den geprüften
+[Wrapper](gradle/wrapper/gradle-wrapper.properties) festgelegt;
+Abhängigkeitsversionen und Prüfsummen sind eingecheckt. Maßgeblich ist die
+[Buildkonfiguration](app/build.gradle.kts): `compileSdk` 37.2, reguläres
+`targetSdk` 35 und unverändertes `minSdk` 26 (Android 8.0).
+Das Compile-SDK ist keine Freigabe der getrennten Ziel-API-37-Migration aus
+[Issue #691](https://github.com/maik3531/Magnolie-Organizer/issues/691).
 
 Aus dem Verzeichnis `magnolie-notes`:
 
