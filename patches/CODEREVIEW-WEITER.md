@@ -16,6 +16,10 @@ Zentrale Issue-Übergabe: https://github.com/maik3531/Magnolie-Organizer/issues/
 
 Stand dieses abgeschlossenen Arbeitspakets: 27. November 2026. Es läuft aus diesem Paket kein ungesicherter Produktänderungsschritt mehr. Bei jedem neuen Lauf tatsächlichen aktuellen main und jüngste Issuekommentare lesen; diese historische Basis ist kein Ersatz für den frischen Vergleich.
 
+## Neuester Arbeitsstand – atomare Laufregistrierung (28.11.2026)
+
+Main `ef10322fc14664d9bb879c0d56bfafa3afe02e7c`, acht neue Medien-/Tablet-/Arbeitsstand-Commits seit 9188ac17; drei vorherige Produktpatches weiterhin ausstehend (Notes TelefonWerk inzwischen Medienänderungen, alten Patch nicht blind anwenden). Neuer #128-Teilbefund: gewöhnliche Linux-Autoläufe vor Outbox-/Batch-Staging separat gespeichert; nach Queuefehler blockiert dauerhafter Phantom-Run weitere Automatik. Host mit exakten Storemethoden, realer SQLite, Test-AES-GCM: 4/9 → 9/9. [Einzelpatch und Prüfnachweis](codereview-auto-run-atomic-2026-11-28/README.md). **Nächster konkreter Schritt:** Vollmodul-/Service-Regression (zwei neue pytest-Fälle im Patch), Windows-/Notes-Quellverdachtsfälle (RememberRun vor Queue), dann durchgehender Marker-8-Vertrag. Kein Marker bewerben, keine Parserlockerung. Kein Vollmodul-/native Abnahme; Android-Completion offen. Historische Marker-8-Übergabe unten bleibt maßgeblich für den Vertragsrest.
+
 ## Neuester Arbeitsstand – Marker-8 (27.11.2026)
 
 Geprüfter main 886da45683e6b7fcd7d1006371b9d048b192c490; anschließend frischer Vergleich bis 9188ac17d893e59b6da9b9b0e82abfa5b094472e mit ausschließlich Kontakt-UI-/Arbeitsstandänderungen. Frühere zehn Patches übernommen, drei neuere Produktpatches (#691, Desktop #128, Notes-Completion #128) noch nicht. ARBEITSSTAND.md und Windows tests/Program.cs geändert: alte Gesamtpatches nicht blind einpflegen. Notes-Completion-Basis unverändert; echte Android-Lifecycle-Abnahme mangels Gradle/SDK/Robolectric blockiert. Vorhandene Integrationstestfixture und Abnahmekriterien im neuen Bericht. Kein erneuter identischer Hosttest.

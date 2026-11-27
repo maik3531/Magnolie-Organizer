@@ -1,0 +1,270 @@
+diff --git a/magnolie-organizer/bin/magnolie_telefon.py b/magnolie-organizer/bin/magnolie_telefon.py
+--- a/magnolie-organizer/bin/magnolie_telefon.py
++++ b/magnolie-organizer/bin/magnolie_telefon.py
+@@ -950,45 +950,51 @@
+-    def queue(self, peer_id, kind, body, ttl_ms, transport_policy="any", actor_run_id=None):
++    def queue(self, peer_id, kind, body, ttl_ms, transport_policy="any", actor_run_id=None, *, remember_request=False):
++        if remember_request and (kind != "personal_sync.request" or actor_run_id is not None):
++            raise ValueError("invalid ordinary run registration")
+         if is_reserved_ephemeral_phone_control({'kind': kind, 'body': body}):
+             raise ValueError('ephemeral phone controls cannot enter a persistent queue')
+         if kind.startswith("device_status.") and ("identifiers" in body or body.get("version") == 4):
+             raise ValueError("device identifiers cannot enter a persistent queue")
+         now = now_ms()
+         if not isinstance(ttl_ms, int) or not 0 < ttl_ms <= 30 * DAY_MS:
+             raise ValueError("invalid message lifetime")
+         if transport_policy not in {"any", "wifi_only"}:
+             raise ValueError("invalid transport policy")
+         if kind in {personal_sync_contract.NOTE_MODE_KIND, personal_sync_contract.DESKTOP_FEATURES_KIND}:
+             validate_personal_sync_body(kind, body)
+             if ttl_ms > DAY_MS:
+                 raise ValueError("invalid personal control lifetime")
+         if kind == shared_sync_contract.KIND:
+             shared_sync_contract.validate(body)
+             if ttl_ms > DAY_MS:
+                 raise ValueError("invalid shared settings lifetime")
+         if kind == shared_sync_contract.START_KIND:
+             shared_sync_contract.validate_start(body)
+             if ttl_ms > 60000:
+                 raise ValueError("invalid shared start lifetime")
+         if personal_actor_contract.is_reserved_kind(kind):
+             raise ValueError("Actor frames require an explicit semantic message and actor context")
+         message = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
+                    "kind": kind, "created_ms": now, "expires_ms": now + ttl_ms,
+                     "body": body}
+         if actor_run_id is not None:
+             message = personal_actor_contract.wire_message(message, actor_run_id)
+         if kind == "personal_sync.deletion_proposals":
+             validate_personal_sync_body(kind, body)
+         encrypted = self._encrypt(canonical(message), "outbox", message["message_id"])
+         with sqlite3.connect(self.database_path) as db:
++            if remember_request:
++                db.execute("BEGIN IMMEDIATE")
+             if kind == "personal_sync.deletion_proposals":
+                 db.execute("BEGIN IMMEDIATE")
+                 self._remember_personal_proposal_kinds(db,
+                     personal_actor_contract.storage_peer(actor_run_id) if actor_run_id is not None else peer_id, body, True, now)
+             if kind in {personal_sync_contract.NOTE_MODE_KIND, personal_sync_contract.DESKTOP_FEATURES_KIND, shared_sync_contract.KIND}:
+                 db.execute("DELETE FROM outbox WHERE peer_id=? AND kind=?", (peer_id, kind))
+             size = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM outbox").fetchone()[0]
+             if size + len(encrypted) > 50 * 1024 * 1024:
+                 raise RuntimeError("queue_full")
++            if remember_request:
++                self.remember_personal_run(peer_id, body, db=db)
+             db.execute("INSERT INTO outbox(message_id,peer_id,kind,created_ms,expires_ms,payload,attempts,next_attempt_ms,last_error,transport_policy) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                        (message["message_id"], peer_id, kind, now, now + ttl_ms,
+                          encrypted, 0, now, "", transport_policy))
+@@ -1172,46 +1178,51 @@
+-    def queue_format2_run(self, peer_id, messages, attachments, transport_policy, actor_run_id=None, storage_peer_id=None):
++    def queue_format2_run(self, peer_id, messages, attachments, transport_policy, actor_run_id=None, storage_peer_id=None, *, remember_request=False):
+         """Atomically encrypt-stage every source before record messages enter outbox."""
+         if transport_policy not in {"any", "wifi_only"} or not messages:
+             raise ValueError("invalid format 2 run")
++        if remember_request and (actor_run_id is not None or storage_peer_id is not None
++                or messages[0][0] != "personal_sync.request" or messages[-1][1].get("reply")):
++            raise ValueError("invalid ordinary run registration")
+         storage_peer = storage_peer_id or peer_id
+         if (storage_peer_id is not None and actor_run_id is None or
+                 actor_run_id is not None and storage_peer != personal_actor_contract.storage_peer(actor_run_id)):
+             raise ValueError("invalid actor attachment namespace")
+         now = now_ms()
+         prepared = []
+         for kind, body, ttl_ms in messages:
+             message = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
+                        "kind": kind, "created_ms": now, "expires_ms": now + ttl_ms, "body": body}
+             if actor_run_id is not None:
+                 message = personal_actor_contract.wire_message(message, actor_run_id)
+             prepared.append((message, self._encrypt(canonical(message), "outbox", message["message_id"]), kind))
+         run_id = messages[0][1]["run_id"]
+         reply = bool(messages[-1][1].get("reply", False))
+         aggregate_hash = messages[-1][1]["records_hash"]
+         staged = []
+         for descriptor, raw in attachments:
+             if (len(raw) != descriptor["size"] or hashlib.sha256(raw).hexdigest() != descriptor["sha256"]
+                     or mime_from_magic(raw) != descriptor["mime"]):
+                 raise ValueError("attachment source changed after snapshot")
+             for index, offset in enumerate(range(0, len(raw), CHUNK_RAW)):
+                 primary = self._attachment_primary(storage_peer, run_id, reply, aggregate_hash, descriptor["sha256"], index, "outgoing")
+                 staged.append((descriptor, index, self._encrypt(raw[offset:offset + CHUNK_RAW],
+                     "personal_attachment_chunk", primary)))
+         with sqlite3.connect(self.database_path) as db:
+             db.execute("BEGIN IMMEDIATE")
+             outbox_used = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM outbox").fetchone()[0]
+             used = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM personal_attachment_chunk").fetchone()[0]
+             run_used = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM personal_attachment_chunk WHERE peer_id=? AND run_id=?", (storage_peer, run_id)).fetchone()[0]
+             rows = db.execute("SELECT COUNT(*) FROM personal_attachment_chunk").fetchone()[0]
+             active = db.execute("SELECT COUNT(DISTINCT run_id||':'||reply||':'||direction) FROM personal_attachment_transfer WHERE peer_id=?", (storage_peer,)).fetchone()[0]
+             hashes = db.execute("SELECT COUNT(DISTINCT sha256) FROM personal_attachment_transfer WHERE peer_id=? AND run_id=?", (storage_peer, run_id)).fetchone()[0]
+             added = sum(len(item[2]) for item in staged)
+             unique = {item[0]["sha256"] for item in staged}
+             if (outbox_used + sum(len(item[1]) for item in prepared) > 50 * 1024 * 1024
+                     or staged and active >= 4 or hashes + len(unique) > 256
+                     or rows + len(staged) > 4096 or used + added > 100 * 1024 * 1024
+                     or run_used + added > 50 * 1024 * 1024):
+                 raise RuntimeError("attachment staging capacity")
++            if remember_request:
++                self.remember_personal_run(peer_id, messages[0][1], db=db)
+             for descriptor in {item["sha256"]: item for item, _raw in attachments}.values():
+                 metadata = self._attachment_metadata(storage_peer, run_id, reply, aggregate_hash, descriptor["sha256"],
+                     "outgoing", descriptor["size"], descriptor["mime"], transport_policy, now + DAY_MS, False,
+@@ -1858,7 +1869,7 @@
+-    def _personal_run_record(self, peer_id, run_id):
++    def _personal_run_record(self, peer_id, run_id, *, db=None):
+         key = "personal_run:%s:%s" % (peer_id, run_id)
+-        with sqlite3.connect(self.database_path) as db:
+-            row = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
++        with (sqlite3.connect(self.database_path) if db is None else contextlib.nullcontext(db)) as connection:
++            row = connection.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+         if not row:
+             return None
+         stored = strict_json(self._decrypt(row[0], "personal_run", key))
+@@ -1875,19 +1886,22 @@
+-    def remember_personal_run(self, peer_id, body, claimed_expires_ms=None):
++    def remember_personal_run(self, peer_id, body, claimed_expires_ms=None, *, db=None):
++        if db is None:
++            with sqlite3.connect(self.database_path) as connection:
++                connection.execute("BEGIN IMMEDIATE")
++                return self.remember_personal_run(peer_id, body, claimed_expires_ms, db=connection)
+         key = "personal_run:%s:%s" % (peer_id, body["run_id"])
+-        existing = self._personal_run_record(peer_id, body["run_id"])
++        existing = self._personal_run_record(peer_id, body["run_id"], db=db)
+         if existing:
+             if existing["body"] != body:
+                 raise ValueError("conflicting personal sync run")
+             if claimed_expires_ms is not None and claimed_expires_ms > existing["expires_ms"]:
+                 raise ValueError("personal sync run lifetime extension")
+             return
+         created = now_ms()
+         expires = created + DAY_MS
+         if claimed_expires_ms is not None:
+             if not valid_timestamp(claimed_expires_ms) or claimed_expires_ms <= created:
+                 raise ValueError("expired personal sync run")
+             expires = min(expires, claimed_expires_ms)
+         value = self._encrypt(canonical({"body": body, "created_ms": created,
+             "expires_ms": expires}), "personal_run", key)
+-        with sqlite3.connect(self.database_path) as db:
+-            db.execute("INSERT OR IGNORE INTO meta(key,value) VALUES(?,?)", (key, value))
++        db.execute("INSERT OR IGNORE INTO meta(key,value) VALUES(?,?)", (key, value))
+@@ -8105,50 +8119,50 @@
+             trigger = body["trigger"]
+             if trigger == "auto_wifi" and self.store.active_auto_run(peer_id):
+                 raise RuntimeError("Ein automatischer Personal-Sync-Lauf ist bereits aktiv.")
+-            self.store.remember_personal_run(peer_id, body)
+         else:
+             run = self.store.personal_run(peer_id, body["run_id"])
+             if kind in {"personal_sync.batch", "personal_sync.report"} and format != run.get("format", 1):
+                 raise ValueError("conflicting personal sync format")
+             if kind == "personal_sync.batch":
+                 personal_sync_contract.validate_selected_records(run, body["records"])
+             if run.get("trigger") not in {"manual", "auto_wifi"}:
+                 raise RuntimeError("Unbekannte Personal-Sync-Transportpolicy.")
+             trigger = run["trigger"]
+             if kind == "personal_sync.report" and body["trigger"] != trigger:
+                 raise RuntimeError("Widersprüchlicher Personal-Sync-Trigger.")
+         ttl = 60 * 60 * 1000 if kind == "personal_sync.request" else DAY_MS
+         policy = "wifi_only" if trigger == "auto_wifi" else "any"
+         if attachment_sources:
+             if kind != "personal_sync.batch" or body.get("format", 1) < 2:
+                 raise ValueError("attachment sources require format 2 batch")
+             descriptors = {item["sha256"]: item for record in body["records"]
+                            if record["kind"] == "note"
+                            for item in record["value"]["attachments"]}
+             if (not isinstance(attachment_sources, list) or len(attachment_sources) > MAX_ATTACHMENTS
+                     or any(not isinstance(item, dict) or set(item) != {"sha256", "data"}
+                            for item in attachment_sources)):
+                 raise ValueError("invalid attachment sources")
+             seen = set()
+             for source in attachment_sources:
+                 descriptor = descriptors.get(source["sha256"])
+                 if not descriptor or source["sha256"] in seen:
+                     raise ValueError("attachment source is not in batch manifest")
+                 mime, raw = decode_attachment_data_url(source["data"])
+                 if (mime != descriptor["mime"] or len(raw) != descriptor["size"]
+                         or hashlib.sha256(raw).hexdigest() != descriptor["sha256"]):
+                     raise ValueError("attachment source changed after snapshot")
+                 self.store.stage_outgoing_attachment(peer_id, body["run_id"], body["reply"],
+                     body["records_hash"], descriptor["sha256"], mime, raw, policy,
+                     now_ms() + DAY_MS, descriptor["attachment_id"])
+                 seen.add(source["sha256"])
+         if kind == "personal_sync.report" and body.get("format", 1) >= 2 and self.store.has_outgoing_attachments(
+                 peer_id, body["run_id"]):
+             self.store.hold_personal_report(peer_id, body)
+             return ""
+         message = (self.store.queue_deletion_decision(peer_id, body, ttl, policy)
+                    if kind == "personal_sync.deletion_decision" else
+-                   self.store.queue(peer_id, kind, body, ttl, policy))
++                   self.store.queue(peer_id, kind, body, ttl, policy,
++                                    remember_request=kind == "personal_sync.request"))
+         if kind == "personal_sync.request" and trigger == "auto_wifi":
+             self.store.set_active_auto_run(peer_id, body["run_id"])
+         if kind == "personal_sync.report" and body["state"] in {
+@@ -8217,14 +8231,12 @@
+         reply = batches[-1]["reply"]
+         if trigger == "auto_wifi" and not reply and self.store.active_auto_run(peer_id):
+             raise RuntimeError("Ein automatischer Personal-Sync-Lauf ist bereits aktiv.")
+-        if not reply:
+-            self.store.remember_personal_run(peer_id, request)
+-        elif self.store.personal_run(peer_id, request["run_id"]) != request:
++        if reply and self.store.personal_run(peer_id, request["run_id"]) != request:
+             raise ValueError("conflicting personal sync reply")
+         policy = "wifi_only" if trigger == "auto_wifi" else "any"
+         messages = ([] if reply else [("personal_sync.request", request, 60 * 60 * 1000)]) + [
+             ("personal_sync.batch", body, DAY_MS) for body in batches]
+-        queued = self.store.queue_format2_run(peer_id, messages, decoded, policy)
++        queued = self.store.queue_format2_run(peer_id, messages, decoded, policy, remember_request=not reply)
+         if report is not None:
+             if decoded:
+                 self.store.hold_personal_report(peer_id, report)
+diff --git a/magnolie-organizer/pruefungen/test_personal_run_atomic_queue.py b/magnolie-organizer/pruefungen/test_personal_run_atomic_queue.py
+new file mode 100644
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/test_personal_run_atomic_queue.py
+@@ -0,0 +1,48 @@
++"""Real PhoneService/PhoneStore regression: ordinary run/outbox atomicity."""
++import sqlite3
++import uuid
++import pytest
++from test_personal_sync import _personal_service, contract, phone, sync
++
++
++@pytest.mark.parametrize("grouped", [False, True])
++def test_failed_outbox_insert_does_not_leave_automatic_run(tmp_path, grouped):
++    service, peer = _personal_service(tmp_path, lambda *_: None)
++    remote = service.store.peer(peer)
++    remote["capabilities"] = phone.desktop_capabilities()
++    for name in ("grants", "local_grants"):
++        remote[name]["grants"]["personal_tasks_sync"] = True
++    service.store.save_peers()
++    request = {"format": 3 if grouped else 1, "run_id": str(uuid.uuid4()),
++               "trigger": "auto_wifi", "modules": ["tasks"] if grouped else ["notes"]}
++    value = {"title": "Child", "note": "", "due": "", "priority": 2, "completed": False,
++             "remind": False, "lead_days": 0, "reminder_minute": 0, "created_ms": 1,
++             "modified_ms": 2, "uid": "child", "parent_uid": "parent", "order": 7}
++    record = {"kind": "task", "id": "child", "state": "live", "clock": contract()["clock"]["left"],
++              "hash": sync.projection_hash(value), "modified_ms": 2, "value": value}
++    batch = {"format": 3, "run_id": request["run_id"], "batch_id": str(uuid.uuid4()),
++             "sequence": 0, "last": True, "reply": False, "records": [record],
++             "records_hash": sync.records_hash([record])}
++
++    def submit():
++        if grouped:
++            return service.send_personal_sync_run(peer, request, [batch], [])
++        return service.send_personal_sync(peer, "personal_sync.request", request)
++
++    fail_kind = "personal_sync.batch" if grouped else "personal_sync.request"
++    with sqlite3.connect(service.store.database_path) as db:
++        db.execute("CREATE TRIGGER fail_test_outbox BEFORE INSERT ON outbox "
++                   "WHEN NEW.kind='" + fail_kind + "' BEGIN SELECT RAISE(ABORT,'test failure'); END")
++    with pytest.raises(sqlite3.IntegrityError, match="test failure"):
++        submit()
++    reopened = phone.PhoneStore(str(tmp_path / "phone"), "Test")
++    assert reopened.personal_run(peer, request["run_id"]) == {}
++    assert reopened.active_auto_run(peer) == ""
++    assert reopened.pending(peer, "wifi") == []
++    with sqlite3.connect(service.store.database_path) as db:
++        db.execute("DROP TRIGGER fail_test_outbox")
++    submit()
++    assert reopened.personal_run(peer, request["run_id"]) == request
++    assert reopened.active_auto_run(peer) == request["run_id"]
++    assert len(reopened.pending(peer, "wifi")) == (2 if grouped else 1)
++    assert reopened.pending(peer, "bluetooth") == []
