@@ -1,0 +1,25 @@
+PASS bilateral marker
+PASS one missing marker
+PASS legacy wifi
+PASS legacy bluetooth
+PASS unnegotiated new trigger rejected by authorization helper
+PASS unknown trigger rejected by helper
+PASS wifi negotiated trigger
+  validator: invalid personal sync request
+FAIL wifi request wire compatibility
+  validator: invalid personal sync report state
+FAIL wifi report wire compatibility
+PASS bluetooth negotiated trigger
+  validator: invalid personal sync request
+FAIL bluetooth request wire compatibility
+  validator: invalid personal sync report state
+FAIL bluetooth report wire compatibility
+PASS manual request
+PASS manual report
+PASS auto_wifi request
+PASS auto_wifi report
+  validator: invalid personal sync request
+PASS unknown request rejected
+  validator: invalid personal sync report state
+PASS unknown report rejected
+14/18 passed

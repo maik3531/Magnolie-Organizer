@@ -16,6 +16,12 @@ Zentrale Issue-Übergabe: https://github.com/maik3531/Magnolie-Organizer/issues/
 
 Stand dieses abgeschlossenen Arbeitspakets: 27. November 2026. Es läuft aus diesem Paket kein ungesicherter Produktänderungsschritt mehr. Bei jedem neuen Lauf tatsächlichen aktuellen main und jüngste Issuekommentare lesen; diese historische Basis ist kein Ersatz für den frischen Vergleich.
 
+## Neuester Arbeitsstand – Marker-8 (27.11.2026)
+
+Geprüfter main 886da45683e6b7fcd7d1006371b9d048b192c490; anschließend frischer Vergleich bis 9188ac17d893e59b6da9b9b0e82abfa5b094472e mit ausschließlich Kontakt-UI-/Arbeitsstandänderungen. Frühere zehn Patches übernommen, drei neuere Produktpatches (#691, Desktop #128, Notes-Completion #128) noch nicht. ARBEITSSTAND.md und Windows tests/Program.cs geändert: alte Gesamtpatches nicht blind einpflegen. Notes-Completion-Basis unverändert; echte Android-Lifecycle-Abnahme mangels Gradle/SDK/Robolectric blockiert. Vorhandene Integrationstestfixture und Abnahmekriterien im neuen Bericht. Kein erneuter identischer Hosttest.
+
+Unabhängiger Marker-8-Wire-Nachweis: Python-Originalzweige 14/18, vier Request-/Report-Fälle WLAN/Bluetooth rot trotz synthetischer Marker-Aushandlung. Legacy und unbekannte Trigger grün. [Bericht, Probe, Quellenbindung](codereview-auto-connection-2026-11-27/README.md). Kein fertiger Produktfix. **Nächster konkreter Schritt:** Linux-Notes-/Tasks-Request-/Report-Vertrag samt Runpersistenz und Autorisierung zusammenhängend implementieren, Vollmodul und gesicherten Transport prüfen; Marker erst nach gleichwertigem Notes-/Windows-Nachweis bewerben. Legacy-/Widerruf-/Restore-/Revisionsfälle erhalten. Keine bloße Parserlockerung, Zeit/Custom getrennt. Sobald geeignete Android-Testumgebung verfügbar, vorherigen Completion-Kandidaten vollständig abnehmen. Historischer Rest dieses Dokuments bleibt Quellenhistorie.
+
 ## Zuletzt geprüfter Stand
 
 Die aktuelle Restserie wurde auf main 7c9f9395ac7fcac03b0ce229f9707643be4b06fa geprüft. Ihr Ergebnisbaum ist f4f9817658165bd84d434d34c7ddcce3f32486f4. Einzelserie und Gesamtpatch stellen rückwärts exakt die Basis wieder her.
