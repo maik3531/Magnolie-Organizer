@@ -29,7 +29,10 @@
   Die Linux-Korrekturen des Einstellungsabgleichs fehlten in dem
   privaten DEB. Auf `work/330-linux-settings-on-user-deb`
   (`f1ad42a6138671a4c2a5cda70c09eac3d562a34a`) sind 30 verschlüsselte
-  Linux-Prüffälle bestanden. Abnahme des daraus gebauten Paars offen.
+  Linux-Prüffälle bestanden. Der anschließende Quelltest mit dem
+  vorgesehenen Notes-Stand bestätigte Wiederverbindung und
+  verspätete Duplikate beider Leser ohne Transfer.
+  Die Abnahme der installierten Pakete bleibt offen.
   Fünf Notes-Tests für den getrennten lesenden Galerieentwurf
   bestanden. Alte Telefonreferenzen bleiben vom Neuimport getrennt.
   Rückschreiben in dieselbe Galeriezeile ist weiterhin offen.
