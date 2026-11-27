@@ -30,6 +30,9 @@
   privaten DEB. Auf `work/330-linux-settings-on-user-deb`
   (`f1ad42a6138671a4c2a5cda70c09eac3d562a34a`) sind 30 verschlüsselte
   Linux-Prüffälle bestanden. Abnahme des daraus gebauten Paars offen.
+  Fünf Notes-Tests für den getrennten lesenden Galerieentwurf
+  bestanden. Alte Telefonreferenzen bleiben vom Neuimport getrennt.
+  Rückschreiben in dieselbe Galeriezeile ist weiterhin offen.
 - [#753](https://github.com/maik3531/Magnolie-Organizer/issues/753):
   Die optionale Messung ist ausschließlich im Test aktiv. Elf
   Recorderprüfungen und die automatische Bildprobe bestanden.
