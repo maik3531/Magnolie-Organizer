@@ -1,0 +1,28 @@
+{
+  "basis": "9de81cc10d72ca7b176b5c501ff20689cdd53c31",
+  "runtime": ".NET 8 source host on Linux",
+  "observations": [
+    {
+      "cycle": 0,
+      "selected": 32,
+      "later_ordinary_selected": false,
+      "written_bytes": 0
+    },
+    {
+      "cycle": 1,
+      "selected": 32,
+      "later_ordinary_selected": false,
+      "written_bytes": 0
+    },
+    {
+      "cycle": 2,
+      "selected": 32,
+      "later_ordinary_selected": false,
+      "written_bytes": 430
+    }
+  ],
+  "progress_within_three_pumps": true,
+  "actor_attempts": 0,
+  "actors_retained": true,
+  "ordinary_still_retained_for_ack": true
+}

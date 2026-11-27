@@ -1,0 +1,135 @@
+{
+  "review": "Final targeted upstream-adoption delta for the prepared seven-part remainder",
+  "review_date": "2026-11-27",
+  "previous_main_commit": "da81f594a2709d2c0ba78696b3af4775f38313f8",
+  "current_main_commit": "7c9f9395ac7fcac03b0ce229f9707643be4b06fa",
+  "previous_prepared_integration_tree": "f356e23260b661a00b753b01519c46cba977ca0b",
+  "previous_prepared_integration_description": "da81 main plus seven prepared remainder patches in outbox-latest-current; comparison uses the specified immutable Git tree.",
+  "historical_review_preserved": [
+    "/workspace/scratch/69a9d769e56f/upstream-adoption-review.json",
+    "/workspace/scratch/69a9d769e56f/upstream-adoption-review.md"
+  ],
+  "conclusion": "Five of the seven da81 remainder patches are now adopted. Publish only the two remaining fixes on 7c9, retaining both additional upstream improvements and current upstream documentation.",
+  "new_upstream_commits": [
+    {
+      "commit": "37314cccba7d69ecb59de572a30f51dd47d62c3d",
+      "subject": "Refs #395: Build organizer suggestions only on demand",
+      "scope": "On-demand bounded organizer name suggestions, exact-name email options and their targeted regression coverage.",
+      "comparison": "Both frontend product files and the targeted suggestion test are identical to the prepared integration. Upstream additionally updates web-smoke.js to focus the organizer field before expecting suggestions."
+    },
+    {
+      "commit": "0ffd44bb116b9ff18b1421f43c378bf69952b0b5",
+      "subject": "Refs #330: Wait for shared media settings and retain first recovery replies",
+      "scope": "Both earlier #330/#759 follow-ups: wait for shared settings without legacy controls; retain initial recovery replies and refresh behavior.",
+      "comparison": "The affected product media module, targeted media tests and test-runner registrations are identical to the prepared integration."
+    },
+    {
+      "commit": "a7853a2899dbb3bcb78e74a8bbbd353f2e8be297",
+      "subject": "Refs #192: Document existing MCP phone call commands",
+      "scope": "Correct MCP coverage for the already connected phone-call tools while preserving the native/physical-handset evidence boundary.",
+      "comparison": "The same documentation correction is adopted. Upstream spells out all three command tool names instead of the earlier slash abbreviation."
+    },
+    {
+      "commit": "7c9f9395ac7fcac03b0ce229f9707643be4b06fa",
+      "subject": "Refs #148: Continue remote probes after the last attempted peer",
+      "scope": "Fair remote readiness probe progression after the last actually attempted peer, with the rotation helper and eight helper tests.",
+      "comparison": "The helper and test file are identical to the prepared integration. The only remaining Baumwerk.kt difference is the separate six-line #691 LAN-wait quota correction."
+    }
+  ],
+  "removed_da81_remainder_patches": [
+    {
+      "original_source_artifact": "02-192-correct-mcp-coverage.patch",
+      "issue": 192,
+      "adopted_by": "a7853a2899dbb3bcb78e74a8bbbd353f2e8be297",
+      "assessment": "Functionally adopted; retain upstream explicit tool names."
+    },
+    {
+      "original_source_artifact": "04-330-shared-media-wait.patch",
+      "issues": [330, 759],
+      "adopted_by": "0ffd44bb116b9ff18b1421f43c378bf69952b0b5",
+      "assessment": "Product/test scope identical to the prepared integration."
+    },
+    {
+      "original_source_artifact": "05-330-initial-recovery-and-refresh.patch",
+      "issues": [330, 759],
+      "adopted_by": "0ffd44bb116b9ff18b1421f43c378bf69952b0b5",
+      "assessment": "Product/test scope identical to the prepared integration."
+    },
+    {
+      "original_source_artifact": "06-395-organizer-suggestions.patch",
+      "issue": 395,
+      "adopted_by": "37314cccba7d69ecb59de572a30f51dd47d62c3d",
+      "assessment": "Product/targeted-test scope identical; retain the additional upstream smoke-test focus action."
+    },
+    {
+      "original_source_artifact": "notes-148-fair-remote-probes.patch",
+      "issue": 148,
+      "adopted_by": "7c9f9395ac7fcac03b0ce229f9707643be4b06fa",
+      "assessment": "Delivered readiness-probe correction and helper tests adopted."
+    }
+  ],
+  "artifact_naming_note": "Removed patches are identified by their original source-artifact names and scopes, not by any later renumbering of the da81 delivery directory.",
+  "identical_relevant_files": [
+    "magnolie-organizer-windows/app/web/anwendung.js",
+    "magnolie-organizer/web/anwendung.js",
+    "magnolie-organizer-windows/tests/appointment-organizer-suggestions.js",
+    "magnolie-organizer-windows/app/web/phone-media.js",
+    "magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js",
+    "magnolie-organizer-windows/tests/phone-media-ui.js",
+    "magnolie-organizer-windows/tests/phone-media-wait-ui.js",
+    "magnolie-organizer-windows/tests/run.js",
+    "magnolie-organizer/pruefungen/test.js",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolge.kt",
+    "magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleichReihenfolgeTest.kt"
+  ],
+  "upstream_additions_to_preserve": [
+    {
+      "file": "magnolie-organizer-windows/tests/web-smoke.js",
+      "commit": "37314cccba7d69ecb59de572a30f51dd47d62c3d",
+      "change": "Obtain organizerName and call organizerName.focus() before asserting the lazy organizer suggestions contain Anna Beispiel.",
+      "reason": "Matches the newly on-demand behavior. The old prepared tree would remove this focus action."
+    },
+    {
+      "file": "contracts/mcp-coverage.md",
+      "commit": "a7853a2899dbb3bcb78e74a8bbbd353f2e8be297",
+      "change": "Name organizer_phone_call_command_start, organizer_phone_call_command_status and organizer_phone_call_command_cancel separately in full.",
+      "reason": "Preserves the precise upstream catalog naming instead of restoring the old start/status/cancel abbreviation."
+    }
+  ],
+  "notes_diff_confirmation": {
+    "file": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt",
+    "comparison_direction": "current_main_commit to previous_prepared_integration_tree",
+    "only_remaining_change_is_issue_691": true,
+    "diff_shape": "Replace the one-line LAN-wait continue with a block that decrements versucht before the same continue; six changed diff lines in total.",
+    "preserved_bounds": "The earlier versucht++ remains in place, so preparation null/throw/missing-peer cases keep their original attempt budget. Only a LAN-wait skip refunds the attempt.",
+    "issue_148_remainder": "None in the delivered probe-rotation scope."
+  },
+  "remaining_patch_count": 2,
+  "remaining_patches": [
+    {
+      "scope": "Notes #691 LAN-wait outbox quota",
+      "product_files": [
+        "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt"
+      ]
+    },
+    {
+      "scope": "Desktop Actor outbox fairness",
+      "product_and_test_files": [
+        "magnolie-organizer-windows/TelefonCoordinator.cs",
+        "magnolie-organizer-windows/TelefonStore.cs",
+        "magnolie-organizer-windows/tests/Program.cs",
+        "magnolie-organizer-windows/tests/TelefonOutboxFairnessTests.cs",
+        "magnolie-organizer/bin/magnolie_telefon.py",
+        "magnolie-organizer/pruefungen/test_telefon_outbox_actor_fairness.py"
+      ]
+    }
+  ],
+  "integration_requirement": "Prepare the two remaining patches on current 7c9 main. A wholesale diff targeting the old f356 tree would also roll back the two documented upstream additions and current ARBEITSSTAND.md text; it is not the desired remainder.",
+  "verification": {
+    "method": "Read-only Git log, complete changed-file comparison and targeted source/test/documentation diffs between the stated immutable objects.",
+    "test_execution": "None. No runtime program or suite was executed for this final adoption check.",
+    "product_changes": "None.",
+    "external_mutations": "None.",
+    "scope_limit": "Adoption of the delivered source patches, not fresh device/package acceptance or closure of every broader issue criterion."
+  }
+}

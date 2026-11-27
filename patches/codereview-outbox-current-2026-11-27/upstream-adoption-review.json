@@ -1,0 +1,189 @@
+{
+  "review": "Targeted adoption review of former patches for #566, #790, #844 and #845",
+  "review_date": "2026-11-27",
+  "comparison_baseline_commit": "9de81cc10d72ca7b176b5c501ff20689cdd53c31",
+  "current_main_commit": "da81f594a2709d2c0ba78696b3af4775f38313f8",
+  "repository": "maik3531/Magnolie-Organizer",
+  "prior_integration": {
+    "path": "/workspace/scratch/69a9d769e56f/outbox-integration-current",
+    "base_commit": "9de81cc10d72ca7b176b5c501ff20689cdd53c31",
+    "description": "Applied/indexed previous nine-part series plus the Notes #148 and #691 patches; used as comparison input, not claimed as product main."
+  },
+  "original_patch_directory": "/workspace/scratch/7203da5bd564/open-audit/final-patches",
+  "original_patch_series_base_commit": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "conclusion": "Remove the following five old patches from the remainder on current main. Their delivered scopes are adopted exactly or functionally equivalently; this does not assert closure of every broader issue criterion.",
+  "removed_patches": [
+    {
+      "path": "01-566-preserve-csv-contact-fields.patch",
+      "issue": 566,
+      "upstream_commit": "4660ba780d87c04e428506b609dc1b004bd44336",
+      "scope": "Preserve generic/private/business addresses and telephone roles through CSV import and the VCF round trip.",
+      "assessment": "Fully adopted.",
+      "evidence": [
+        "The shared contract and both targeted test files are byte-identical to the prior integration.",
+        "The complete Linux product codec is byte-identical to the prior integration.",
+        "The complete Windows product codec differs only by the neutral #845 parameter rename and removal of an implied duplicate guard documented below."
+      ],
+      "relevant_files": [
+        "contracts/lotus-csv-contact-fields.json",
+        "magnolie-organizer/bin/magnolie-organizer",
+        "magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py",
+        "magnolie-organizer-windows/ExchangeCodec.cs",
+        "magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs",
+        "magnolie-organizer-windows/tests/Program.cs"
+      ],
+      "remaining_broader_scope": "Upstream ARBEITSSTAND.md still leaves the reported collective-decision behavior in the installed Windows Organizer open."
+    },
+    {
+      "path": "03-790-correct-current-source-test.patch",
+      "issue": 790,
+      "upstream_commit": "da81f594a2709d2c0ba78696b3af4775f38313f8",
+      "scope": "Align the Mac source gate with current Mac/Tablet checkouts while retaining the separate historical codec reference.",
+      "assessment": "Fully adopted, with an additional upstream Tablet assertion.",
+      "evidence": [
+        "The entire Mac test_candidate_sources.py is byte-identical to the prior integration.",
+        "Upstream additionally asserts the absolute-notifications suite in the Tablet source proof; retain that addition."
+      ],
+      "relevant_files": [
+        "Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py",
+        "Magnolie-Organizer-Android-Tablet-Beta/tests/test_source_proof.py"
+      ]
+    },
+    {
+      "path": "07-844-calendar-color-followup.patch",
+      "issue": 844,
+      "upstream_commit": "2bdb026fb130e66e5547007fc18aa7843e81c38d",
+      "scope": "Preserve anniversary colors across import, calendar/planner/print and export, including unchanged parameterized source colors and legacy alias-import coverage.",
+      "assessment": "Delivered functional scope adopted; the old extra undefined-value merge guard is superseded for the demonstrated case by the earlier #846 normalization fix.",
+      "evidence": [
+        "The shared color contract, C# color tests and the three affected JavaScript test files are byte-identical to the prior integration.",
+        "The Linux product codec is byte-identical; the Windows codec has only the neutral #845 differences documented below.",
+        "The Python color test contains all prior tests plus a new translated incomplete-ICS error regression test.",
+        "The complete frontend diffs against the prior integration contain only the separately outstanding #395 organizer-suggestion changes and the old extra undefined-value guard described below."
+      ],
+      "relevant_files": [
+        "contracts/calendar-color-remainders.json",
+        "magnolie-organizer/bin/magnolie-organizer",
+        "magnolie-organizer/web/anwendung.js",
+        "magnolie-organizer/pruefungen/test_calendar_color_remainders.py",
+        "magnolie-organizer-windows/ExchangeCodec.cs",
+        "magnolie-organizer-windows/app/web/anwendung.js",
+        "magnolie-organizer-windows/tests/CalendarColourRemainderTests.cs",
+        "magnolie-organizer-windows/tests/birthday-display.js",
+        "magnolie-organizer-windows/tests/calendar-colour-remainders.js",
+        "magnolie-organizer-windows/tests/legacy-android-instance-ui.js",
+        "magnolie-organizer-windows/tests/Program.cs"
+      ]
+    },
+    {
+      "path": "08-845-nextcloud-birthday-followup.patch",
+      "issue": 845,
+      "upstream_commit": "2f2f9f120df4d8dfd1b2d6067c3b410c688bcea1",
+      "scope": "Retain compatible last-February recurrence after type/year edits and report the unsupported Linux DAV anniversary scope.",
+      "assessment": "Functionally fully adopted; C# follow-up tests are now separately registered groups.",
+      "relevant_files": [
+        "magnolie-organizer/bin/magnolie-organizer",
+        "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py",
+        "magnolie-organizer-windows/ExchangeCodec.cs",
+        "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs",
+        "magnolie-organizer-windows/tests/Program.cs"
+      ],
+      "remaining_broader_scope": "Full DAV anniversary integration remains explicitly tracked in #441."
+    },
+    {
+      "path": "09-845-exported-birthday-exception-guard.patch",
+      "issue": 845,
+      "upstream_commit": "2f2f9f120df4d8dfd1b2d6067c3b410c688bcea1",
+      "scope": "Keep an exported birthday master attached to its detached override on reimport.",
+      "assessment": "Functionally fully adopted together with patch 08.",
+      "relevant_files": [
+        "magnolie-organizer-windows/ExchangeCodec.cs",
+        "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs",
+        "magnolie-organizer-windows/tests/Program.cs"
+      ]
+    }
+  ],
+  "equality_checks": {
+    "method": "Compared prior integration filesystem bytes with git-show bytes at current_main_commit; examined complete relevant diffs. The C# normalization check below compares UTF-8 text after only the stated substitutions.",
+    "byte_identical_files": [
+      "contracts/lotus-csv-contact-fields.json",
+      "contracts/calendar-color-remainders.json",
+      "Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py",
+      "magnolie-organizer/bin/magnolie-organizer",
+      "magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py",
+      "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py",
+      "magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs",
+      "magnolie-organizer-windows/tests/CalendarColourRemainderTests.cs",
+      "magnolie-organizer-windows/tests/birthday-display.js",
+      "magnolie-organizer-windows/tests/calendar-colour-remainders.js",
+      "magnolie-organizer-windows/tests/legacy-android-instance-ui.js"
+    ],
+    "windows_codec": {
+      "file": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "identical_after_only_these_text_changes": true,
+      "changes": [
+        "Rename allowProviderBirthday to allowAnniversary.",
+        "Replace IsUnboundedAnnualRule(recurrence) || allowAnniversary && values.Count with IsUnboundedAnnualRule(recurrence) || values.Count; the outer allowAnniversary condition already guards this branch."
+      ],
+      "assessment": "Equivalent condition and more accurate parameter naming; retain the upstream form."
+    },
+    "windows_runner": {
+      "file": "magnolie-organizer-windows/tests/Program.cs",
+      "identical_except_two_new_registered_groups": true,
+      "new_groups": [
+        "Nextcloud ICS birthdays / edited last-February recurrence",
+        "Nextcloud ICS birthdays / reimport with detached override"
+      ]
+    },
+    "birthday_test_refactor": {
+      "file": "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs",
+      "assessment": "The same assertions remain. Private void helpers called by RunAsync became internal Task-returning EditedLeapBirthdaysAsync and ExportedBirthdayKeepsDetachedOverrideAsync, each registered separately in Program.cs."
+    }
+  },
+  "legacy_js_guard": {
+    "old_extra_guard": "&& t[feld] !== undefined",
+    "location": "Legacy UID alias merge in both desktop anwendung.js files.",
+    "replacement_commit": "f8ad956",
+    "replacement_issue": 846,
+    "replacement": "Normalization removes a missing/non-string appointment icsCalendarColor property instead of creating an own undefined-valued property; task normalization likewise conditionally includes the string property.",
+    "preserved_behavior": "The demonstrated alias reimport with absent calendar-color provenance no longer aborts or erases existing provenance; an explicit empty string remains an intentional value.",
+    "test_evidence": "The corresponding absent-versus-explicit-empty cases in legacy-android-instance-ui.js are byte-identical to the prior series and present in 2bdb026.",
+    "classification": "Source/test-diff equivalence for the demonstrated case; no remaining #844 correction established and no new runtime execution claimed."
+  },
+  "upstream_additions_to_preserve": [
+    {
+      "file": "magnolie-organizer/pruefungen/test_calendar_color_remainders.py",
+      "addition": "test_incomplete_calendar_uses_localized_validation_error verifies use of the translation function for an incomplete ICS file."
+    },
+    {
+      "file": "Magnolie-Organizer-Android-Tablet-Beta/tests/test_source_proof.py",
+      "addition": "The native.SUITES expectation includes absolute-notifications mapped to [absolute-notifications]."
+    },
+    {
+      "files": [
+        "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs",
+        "magnolie-organizer-windows/tests/Program.cs"
+      ],
+      "addition": "The two #845 follow-up cases are explicit independently registered test groups."
+    },
+    {
+      "file": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "addition": "Retain the allowAnniversary name and removal of the implied duplicate guard."
+    },
+    {
+      "file": "ARBEITSSTAND.md",
+      "addition": "Retain the current upstream entries for all four adoptions, including their stated remaining limits."
+    }
+  ],
+  "verification_limits": {
+    "test_execution": "None. No targeted or complete runtime suite was rerun for this adoption review.",
+    "performed": "Targeted source/test diffs and programmatic equality checks only.",
+    "native_or_package_acceptance": "Not performed and not inferred from this comparison.",
+    "product_changes": "None.",
+    "external_mutations": "None.",
+    "report_artifacts": [
+      "/workspace/scratch/69a9d769e56f/upstream-adoption-review.json",
+      "/workspace/scratch/69a9d769e56f/upstream-adoption-review.md"
+    ]
+  }
+}

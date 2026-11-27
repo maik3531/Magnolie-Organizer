@@ -1,0 +1,106 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_new_actor_admission_resumes_at_head_not_behind_old_cursor[before_query] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-37/test_new_actor_admission_resum0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feb77519eb0>
+transition = 'before_query'
+
+    @pytest.mark.parametrize("transition", ["before_query", "after_query"])
+    def test_new_actor_admission_resumes_at_head_not_behind_old_cursor(tmp_path, monkeypatch, transition):
+        service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch)
+        frames = held_frames(service, peer, 65, handle.actor_id)
+        service._pump_pending(channel, peer["device_id"], "wifi")
+        assert channel.sent == [] and channel in service._outbox_actor_windows
+    
+        def admit():
+            service.start_personal_actor(registry, handle)
+            service.personal_actor_admissions[handle.actor_id]["outbound"].update(item["message_id"] for item in frames)
+            channel.sent.clear()
+    
+        original = service.store.pump_window
+        if transition == "before_query":
+            admit()
+        else:
+            def page_then_admit(*args, **kwargs):
+                page = original(*args, **kwargs)
+                admit()
+                return page
+            monkeypatch.setattr(service.store, "pump_window", page_then_admit)
+        service._pump_pending(channel, peer["device_id"], "wifi")
+        if transition == "after_query":
+            assert channel.sent == [], "A late admission sent an actor from an advanced data page."
+            monkeypatch.setattr(service.store, "pump_window", original)
+            service._pump_pending(channel, peer["device_id"], "wifi")
+>       assert channel.sent == frames[:32]
+E       AssertionError: assert [{'body': {'b...a', ...}, ...] == [{'body': {'b...a', ...}, ...]
+E         
+E         At index 0 diff: {'body': {'body': {'batch_id': '63e6eb6a-8339-4f6d-b1a9-69ea742a4d28', 'format': 3, 'last': False, 'records': [], 'records_hash': '4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945', 'reply': False, 'run_id': '2d606a61-690f-442e-8d0b-95aae5f48449', 'sequence': 32}, 'format': 12, 'kind': 'personal_sync.batch', 'run_id': '2d606a61-690f-442e-8d0b-95aae5f48449'}, 'created_ms': 1795814132266, 'expires_ms': 1795814192266, 'kind': 'personal_sync.actor_data', 'message_id': '98c6108d-d2a6-43d0-b9dc-473403f9d63a', 'type': 'message', 'v': 1} != {'ty...
+E         
+E         ...Full output truncated (2 lines hidden), use '-vv' to show
+
+magnolie-organizer/pruefungen/test_telefon_outbox_actor_fairness.py:169: AssertionError
+_ test_new_actor_admission_resumes_at_head_not_behind_old_cursor[after_query] __
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-37/test_new_actor_admission_resum1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feb771bfc20>
+transition = 'after_query'
+
+    @pytest.mark.parametrize("transition", ["before_query", "after_query"])
+    def test_new_actor_admission_resumes_at_head_not_behind_old_cursor(tmp_path, monkeypatch, transition):
+        service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch)
+        frames = held_frames(service, peer, 65, handle.actor_id)
+        service._pump_pending(channel, peer["device_id"], "wifi")
+        assert channel.sent == [] and channel in service._outbox_actor_windows
+    
+        def admit():
+            service.start_personal_actor(registry, handle)
+            service.personal_actor_admissions[handle.actor_id]["outbound"].update(item["message_id"] for item in frames)
+            channel.sent.clear()
+    
+        original = service.store.pump_window
+        if transition == "before_query":
+            admit()
+        else:
+            def page_then_admit(*args, **kwargs):
+                page = original(*args, **kwargs)
+                admit()
+                return page
+            monkeypatch.setattr(service.store, "pump_window", page_then_admit)
+        service._pump_pending(channel, peer["device_id"], "wifi")
+        if transition == "after_query":
+>           assert channel.sent == [], "A late admission sent an actor from an advanced data page."
+E           AssertionError: A late admission sent an actor from an advanced data page.
+E           assert [{'body': {'b...a', ...}, ...] == []
+E             
+E             Left contains 32 more items, first extra item: {'body': {'body': {'batch_id': '07c1056f-ea8d-457d-9f77-bc2788440bc0', 'format': 3, 'last': False, 'records': [], ...}...9132-c20eca8d4c08'}, 'created_ms': 1795814132475, 'expires_ms': 1795814192475, 'kind': 'personal_sync.actor_data', ...}
+E             Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_telefon_outbox_actor_fairness.py:166: AssertionError
+_______ test_current_actor_wait_does_not_build_an_ordinary_sender_cursor _______
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-37/test_current_actor_wait_does_n0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feb75d41dc0>
+
+    def test_current_actor_wait_does_not_build_an_ordinary_sender_cursor(tmp_path, monkeypatch):
+        service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch)
+        service.start_personal_actor(registry, handle)
+        channel.sent.clear()
+        frames = held_frames(service, peer, 65, handle.actor_id)
+        admission = service.personal_actor_admissions[handle.actor_id]
+        admission["outbound"].update(item["message_id"] for item in frames)
+        # The real actor send guard defers data while its native save is prepared.
+        admission["historical_save_claim"] = object()
+        service._pump_pending(channel, peer["device_id"], "wifi")
+>       assert channel.sent == [] and channel not in service._outbox_actor_windows
+E       assert ([] == []
+E         
+E         Use -v to get more diff and <test_shared_sync_transport.Channel object at 0x7feb75d16ab0> not in <WeakKeyDictionary at 0x7feb75d17410>)
+E        +  where <WeakKeyDictionary at 0x7feb75d17410> = <magnolie_telefon.PhoneService object at 0x7feb75d406e0>._outbox_actor_windows
+
+magnolie-organizer/pruefungen/test_telefon_outbox_actor_fairness.py:183: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_telefon_outbox_actor_fairness.py::test_new_actor_admission_resumes_at_head_not_behind_old_cursor[before_query]
+FAILED magnolie-organizer/pruefungen/test_telefon_outbox_actor_fairness.py::test_new_actor_admission_resumes_at_head_not_behind_old_cursor[after_query]
+FAILED magnolie-organizer/pruefungen/test_telefon_outbox_actor_fairness.py::test_current_actor_wait_does_not_build_an_ordinary_sender_cursor
+3 failed, 9 deselected in 0.65s

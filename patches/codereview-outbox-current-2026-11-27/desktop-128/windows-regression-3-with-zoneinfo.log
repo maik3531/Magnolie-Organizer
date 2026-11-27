@@ -1,0 +1,4 @@
+Magnolie CoreTests: 1 Gruppen
+Scoped outgoing C# host: lifecycle, pending result reorder, exact commands, revoke/unpair/key/expiry/restart, legacy passed.
+  OK     Telefonverbindung / Crypto / Pairingcode / Rahmen / Verträge (0.87 s)
+CoreTests: 1/1 Gruppen bestanden.

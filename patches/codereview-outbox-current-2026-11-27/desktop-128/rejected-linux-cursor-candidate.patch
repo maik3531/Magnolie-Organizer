@@ -1,0 +1,95 @@
+diff --git a/magnolie-organizer/bin/magnolie_telefon.py b/magnolie-organizer/bin/magnolie_telefon.py
+index 6954f03..c8515e7 100644
+--- a/magnolie-organizer/bin/magnolie_telefon.py
++++ b/magnolie-organizer/bin/magnolie_telefon.py
+@@ -65,6 +65,9 @@ CAPABILITY_REASONS = {"available", "not_implemented", "no_hardware", "disabled",
+                       "permission_missing", "os_restricted"}
+ ACK_ERRORS = phone_ack_contract.ERRORS
+ RETRY_MS = (1000, 2000, 5000, 10000, 30000, 60000)
++OUTBOX_PRIORITY_KINDS = ("capabilities.update", "grants.update", "personal_sync.settings",
++                        "personal_sync.note_settings", "personal_sync.desktop_features",
++                        "personal_sync.custom_settings")
+ BLUETOOTH_FALLBACK_SECONDS = 15
+ BLUETOOTH_RETRY_SECONDS = 60
+ PERSONAL_COMMIT_SECONDS = 30
+@@ -1246,6 +1249,40 @@ class PhoneStore:
+             result.append(message)
+         return result
+ 
++    def pump_window(self, peer_id, transport="wifi", after=None):
++        """One bounded page for the live sender; ordinary pending reads do not move it.
++
++        The caller may advance only past a full page of unsent actor frames.
++        Controls retain their existing precedence even behind a data cursor.
++        The SQLite ordering key never becomes part of a wire envelope.
++        """
++        if transport not in {"wifi", "bluetooth"}:
++            raise ValueError("invalid current transport")
++        now = now_ms()
++        priority = ",".join("?" for _ in OUTBOX_PRIORITY_KINDS)
++        query = ("SELECT rowid,message_id,payload,kind,created_ms FROM outbox WHERE peer_id=? "
++                 "AND expires_ms>? AND next_attempt_ms<=? AND (transport_policy='any' OR ?='wifi') ")
++        arguments = [peer_id, now, now, transport]
++        if after is not None:
++            query += "AND (kind IN (" + priority + ") OR (created_ms,rowid)>(?,?)) "
++            arguments.extend((*OUTBOX_PRIORITY_KINDS, *after))
++        query += "ORDER BY CASE WHEN kind IN (" + priority + ") THEN 0 ELSE 1 END,created_ms,rowid LIMIT 32"
++        arguments.extend(OUTBOX_PRIORITY_KINDS)
++        with sqlite3.connect(self.database_path) as db:
++            rows = db.execute(query, arguments).fetchall()
++        messages, last_data, actors_only = [], None, True
++        for row_id, message_id, payload, kind, created in rows:
++            message = strict_json(self._decrypt(payload, "outbox", message_id))
++            is_actor = message.get("kind") == personal_actor_contract.DATA_KIND
++            if is_actor and personal_actor_contract.unwrap(message["body"])[0] != kind:
++                raise ValueError("Actor wire/semantic outbox identity mismatch")
++            if kind not in OUTBOX_PRIORITY_KINDS:
++                last_data = (created, row_id)
++                actors_only = actors_only and is_actor
++            messages.append(message)
++        advance = last_data if len(rows) == 32 and actors_only else None
++        return messages, advance
++
+     def mark_attempt(self, peer_id, message_id):
+         with sqlite3.connect(self.database_path) as db:
+             row = db.execute("SELECT attempts,kind,expires_ms FROM outbox WHERE peer_id=? AND message_id=?",
+@@ -2925,6 +2962,7 @@ class PhoneService:
+         self.native_actor_producer_book = None
+         self._personal_actor_registry = None
+         self.personal_actor_admissions = {}
++        self._outbox_actor_windows = weakref.WeakKeyDictionary()
+         self.status_requests = {}
+         self.contact_requests = {}
+         self.contact_group_preparations = {}
+@@ -8476,6 +8514,21 @@ class PhoneService:
+                 self.request_end_call(peer_id, call_ref, revision, command_ref)
+             return True
+ 
++    def _pump_pending(self, channel, peer_id, transport):
++        # A new authenticated channel starts at the head. Merely inspecting
++        # pending messages or actor ACK candidates never advances this cursor.
++        old = self._outbox_actor_windows.get(channel)
++        after = old[2] if old is not None and old[:2] == (peer_id, transport) else None
++        messages, advance = self.store.pump_window(peer_id, transport, after)
++        for message in messages:
++            sent = self._send_message(channel, peer_id, message)
++            if sent and message.get("kind") == personal_actor_contract.DATA_KIND:
++                advance = None  # An authorized actor keeps the existing send order.
++        if advance is None:
++            self._outbox_actor_windows.pop(channel, None)
++        else:
++            self._outbox_actor_windows[channel] = (peer_id, transport, advance)
++
+     def _send_message(self, channel, peer_id, message):
+         if is_reserved_ephemeral_phone_control(message):
+             return False
+@@ -9252,8 +9305,7 @@ class PhoneService:
+                     if now - channel.last_send >= 25:
+                         channel.send({"type": "ping", "ping_id": str(uuid.uuid4()),
+                                       "sent_ms": now_ms()})
+-                    for message in self.store.pending(peer["device_id"], transport):
+-                        self._send_message(channel, peer["device_id"], message)
++                    self._pump_pending(channel, peer["device_id"], transport)
+         finally:
+             self._signal_native_webcam_retire(channel)
+             self._signal_native_screen_retire(channel)

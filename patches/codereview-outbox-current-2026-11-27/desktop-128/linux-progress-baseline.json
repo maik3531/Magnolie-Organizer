@@ -1,0 +1,23 @@
+{
+  "source": "/workspace/scratch/69a9d769e56f/desktop-queue-baseline",
+  "basis": "9de81cc10d72ca7b176b5c501ff20689cdd53c31",
+  "entry": "original pending/_send_message loop",
+  "observations": [
+    {
+      "cycle": 0,
+      "sent": 0
+    },
+    {
+      "cycle": 1,
+      "sent": 0
+    },
+    {
+      "cycle": 2,
+      "sent": 0
+    }
+  ],
+  "progress_within_three_pumps": false,
+  "actors_retained": true,
+  "actor_attempts": 0,
+  "server_started": false
+}

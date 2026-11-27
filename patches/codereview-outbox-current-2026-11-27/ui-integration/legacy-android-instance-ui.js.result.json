@@ -1,0 +1,24 @@
+{
+  "program": "legacy-android-instance-ui.js",
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "/workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/tests/legacy-android-instance-ui.js"
+  ],
+  "cwd": "/workspace/scratch/69a9d769e56f/outbox-latest-current",
+  "environment_overrides": {
+    "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "MAGNOLIE_PYTHON": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3"
+  },
+  "unset_inherited_environment": "All MAGNOLIE_* variables before explicit overrides",
+  "exit_code": 0,
+  "timed_out": false,
+  "seconds": 2.986,
+  "log": "legacy-android-instance-ui.js.log",
+  "log_sha256": "20e1beae7ccdbc8f83d6f8729a9e7898876cdfbb9fbab2e4d91ca47e74e045bc",
+  "summary_lines": [
+    "PASS magnolie-organizer/web: actual Python codec, old alias reimport/save/frontend reopen, full source/RID boundaries, ambiguous inputs and concurrent book edit",
+    "PASS magnolie-organizer-windows/app/web: actual Python codec, old alias reimport/save/frontend reopen, full source/RID boundaries, ambiguous inputs and concurrent book edit"
+  ],
+  "passed": true
+}

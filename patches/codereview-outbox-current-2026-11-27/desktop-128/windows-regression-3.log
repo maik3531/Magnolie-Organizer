@@ -1,0 +1,26 @@
+Magnolie CoreTests: 1 Gruppen
+Scoped outgoing C# host: lifecycle, pending result reorder, exact commands, revoke/unpair/key/expiry/restart, legacy passed.
+  FEHLER Telefonverbindung / Crypto / Pairingcode / Rahmen / Verträge (0.51 s)
+         System.InvalidOperationException: IANA alias rejected: US/Eastern
+ ---> System.IO.InvalidDataException: Invalid custom timezone.
+ ---> System.TimeZoneNotFoundException: The time zone ID 'US/Eastern' was not found on the local computer.
+ ---> System.IO.DirectoryNotFoundException: Could not find a part of the path '/usr/share/zoneinfo/US/Eastern'.
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64& fileLength, UnixFileMode& filePermissions, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.TimeZoneInfo.ReadAllBytesFromSeekableNonZeroSizeFile(String path, Int32 maxFileSize)
+   at System.TimeZoneInfo.TryGetTimeZoneFromLocalMachineCore(String id, TimeZoneInfo& value, Exception& e)
+   --- End of inner exception stack trace ---
+   at System.TimeZoneInfo.FindSystemTimeZoneById(String id)
+   at MagnolieOrganizer.Windows.PersonalSyncContract.ValidateCustomBody(String kind, JsonObject body) in /workspace/scratch/69a9d769e56f/desktop-queue-fairness/magnolie-organizer-windows/PersonalSyncContract.cs:line 287
+   --- End of inner exception stack trace ---
+   at MagnolieOrganizer.Windows.PersonalSyncContract.ValidateCustomBody(String kind, JsonObject body) in /workspace/scratch/69a9d769e56f/desktop-queue-fairness/magnolie-organizer-windows/PersonalSyncContract.cs:line 292
+   at MagnolieOrganizer.Windows.Tests.PersonalCustomConsentTests.Run() in /workspace/scratch/69a9d769e56f/desktop-queue-fairness/magnolie-organizer-windows/tests/PersonalCustomConsentTests.cs:line 68
+   --- End of inner exception stack trace ---
+   at MagnolieOrganizer.Windows.Tests.PersonalCustomConsentTests.Run() in /workspace/scratch/69a9d769e56f/desktop-queue-fairness/magnolie-organizer-windows/tests/PersonalCustomConsentTests.cs:line 69
+   at MagnolieOrganizer.Windows.Tests.PersonalSyncTests.RunAsync() in /workspace/scratch/69a9d769e56f/desktop-queue-fairness/magnolie-organizer-windows/tests/PersonalSyncTests.cs:line 11
+   at MagnolieOrganizer.Windows.Tests.TelefonProtocolTests.RunAsync() in /workspace/scratch/69a9d769e56f/desktop-queue-fairness/magnolie-organizer-windows/tests/TelefonProtocolTests.cs:line 267
+   at MagnolieOrganizer.Windows.Tests.TelefonProtocolTests.RunAsync() in /workspace/scratch/69a9d769e56f/desktop-queue-fairness/magnolie-organizer-windows/tests/TelefonProtocolTests.cs:line 267
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in /workspace/scratch/69a9d769e56f/desktop-queue-fairness/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/1 Gruppen bestanden.

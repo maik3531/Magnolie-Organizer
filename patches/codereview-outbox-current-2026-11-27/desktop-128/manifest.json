@@ -1,0 +1,110 @@
+{
+  "issue": 128,
+  "scope": "ordinary desktop sender progress past actor pages without current admission; no auto_connection activation",
+  "basis": "9de81cc10d72ca7b176b5c501ff20689cdd53c31",
+  "basis_tree": "f442d855aa6f00ff26eeffc3fe30380a507c470f",
+  "result_tree": "c98bb01ca6081dc8b80c1739aee3d1ae12f154da",
+  "patch": "desktop-128-actor-queue-fairness.patch",
+  "patch_sha256": "a13ffa0a5d96e92cf17292ae2e63a0bf403493b1b03c0ccf827b535fbb0ca28e",
+  "changed_files": [
+    {
+      "path": "ARBEITSSTAND.md",
+      "bytes": 112405,
+      "sha256": "8c2887fefa7c11d1b776574c00d8cfab554c949943d9795a3389b59051db0ac6",
+      "basis_sha256": "725a7f2c7048c67aab07effe7150cba1fe41e9cfdfd0efec6584376d5776a9dd"
+    },
+    {
+      "path": "magnolie-organizer-windows/TelefonCoordinator.cs",
+      "bytes": 189027,
+      "sha256": "2a7a50248cd788f1abe74eadd2c0280001824dea80de50f26805bfdda531de22",
+      "basis_sha256": "f89e71297c41acdcb30dd4b7400ef08675f496e11fc969396f9c50fe4b461574"
+    },
+    {
+      "path": "magnolie-organizer-windows/TelefonStore.cs",
+      "bytes": 99831,
+      "sha256": "323767a31037e5e3e0103fc192239dea3cb276898c468f296fd44f7734ae3090",
+      "basis_sha256": "421414680700e26f7e4c7ff9122edab815ab86e65fd19df1ad826798995bcfa8"
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/Program.cs",
+      "bytes": 91746,
+      "sha256": "af8f5e3013130a45e922bf72af5590114f525bcb9e769e251c4e60cdfbbf0827",
+      "basis_sha256": "b6bde754a0fe2891d9c7fc0fcb401cf170bdb181ef390b2a5d63b5b89c3d0b44"
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/TelefonOutboxFairnessTests.cs",
+      "bytes": 12632,
+      "sha256": "8770ba0fadcbcd0aa69487b6a6bfcbfc9ab395c8619472693d520e9957e8f969",
+      "basis_sha256": null
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_telefon.py",
+      "bytes": 684647,
+      "sha256": "278369dc96d0ac229d3e9c03c5b80a69cae40a60c4a1fea70893407c8abae61c",
+      "basis_sha256": "55d4512b3b3c6f6301d4fb8f7932fe20c93978680b40e26a1d62f32be7cac290"
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_telefon_outbox_actor_fairness.py",
+      "bytes": 9201,
+      "sha256": "dc5da51abb4d134befb62f808dfd6f5feb052791e67e1a2cf975f21f79ba081e",
+      "basis_sha256": null
+    }
+  ],
+  "runtime": {
+    "python": "3.12.14",
+    "dotnet_sdk": "8.0.408",
+    "dotnet_runtime": "8.0.15",
+    "platform": "Linux source host; no native Windows or physical phone"
+  },
+  "proofs": {
+    "python_new_cases": 12,
+    "python_existing_cases": 10,
+    "dotnet_new_group_scenarios": 11,
+    "dotnet_existing_groups": 5,
+    "baseline_progress_exit_codes": {
+      "linux": 1,
+      "windows": 1
+    },
+    "patched_progress_exit_codes": {
+      "linux": 0,
+      "windows": 0
+    },
+    "rejected_linux_candidate_cases_failed": 3,
+    "setup_failure": "Initial broader phone protocol group failed on host missing US/Eastern; same group passed with existing tzdata TZDIR. Both logs retained."
+  },
+  "limitations": [
+    "Linux baseline invokes original store/sender scheduling loop; final invokes actual receiver helper.",
+    "Windows same stable PumpOutboxNowAsync progress probe compiled from both source trees.",
+    "Producer waiting fixture has synthetic store context metadata, no protected native owner.",
+    "Actual physical restart/reconnect/native Windows not performed.",
+    "Actor expiry, cancellation, reap, unpair or restore may resolve queued waiting independently.",
+    "Existing admissions and ordinary time/shared waits retain their previous ordering.",
+    "Notes companion transport is not patched; no automatic Internet grant or new transport."
+  ],
+  "artifact_files": [
+    "README.md",
+    "desktop-128-actor-queue-fairness.patch",
+    "verify_replay.py",
+    "build_progress_probe.py",
+    "WindowsProgressProbe.cs",
+    "linux_progress_probe.py",
+    "linux-progress-baseline.json",
+    "linux-progress-fairness-final.json",
+    "windows-progress-baseline.json",
+    "windows-progress-fairness.json",
+    "linux-fairness-final.log",
+    "linux-regression.log",
+    "windows-fairness-final.log",
+    "windows-final-build.log",
+    "progress-baseline-build.log",
+    "progress-fairness-build.log",
+    "rejected-linux-cursor-candidate.patch",
+    "linux-admission-candidate-negative.log",
+    "windows-regression-3-with-zoneinfo.log",
+    "windows-regression-1.log",
+    "windows-regression-2.log",
+    "windows-regression-3.log",
+    "windows-regression-4.log",
+    "windows-regression-5.log"
+  ]
+}

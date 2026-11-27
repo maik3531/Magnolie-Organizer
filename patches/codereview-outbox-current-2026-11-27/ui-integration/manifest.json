@@ -1,0 +1,2134 @@
+{
+  "date_utc": "2026-11-27T21:22:17.712282+00:00",
+  "base_commit": "da81f594a2709d2c0ba78696b3af4775f38313f8",
+  "worktree": "/workspace/scratch/69a9d769e56f/outbox-latest-current",
+  "integration": "Current da81 main plus prepared remainder; product sources bound by per-file hashes.",
+  "scope": "#395 organizer suggestions with adopted #844 colors and #846 legacy alias normalization",
+  "runtime": {
+    "node": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "node_version": "v24.22.3",
+    "node_path": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+    "jsdom_version": "26.1.0",
+    "python": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "python_version": "Python 3.12.14",
+    "installed_dependencies": false
+  },
+  "timezone_generator_inputs": [
+    {
+      "path": "port-adapters/timezones/projection-assets.cjs",
+      "sha256": "43af5b9ef3b8cfd1b2e12825fef2f9709d3f09f6c52aca6fe95adf0921a19a4f",
+      "equal_to_asset_source": true
+    },
+    {
+      "path": "port-adapters/timezones/resolver.js",
+      "sha256": "052009fbe3fedeb3d59c937ddf6c8ac924f52d13c5992bc1b9d27fc355acf2da",
+      "equal_to_asset_source": true
+    },
+    {
+      "path": "port-adapters/timezones/port-runtime.js",
+      "sha256": "7fe5e5f5c44c0c601579fff1e91038402ff1cd7866b5963cb84372df74bd7ac6",
+      "equal_to_asset_source": true
+    },
+    {
+      "path": "port-adapters/timezones/bootstrap.template.js",
+      "sha256": "8600c43c7007aa701545c1145a30e54ac8da9bcf7805b47378abe5ad37131554",
+      "equal_to_asset_source": true
+    },
+    {
+      "path": "port-adapters/timezones/tzdb-2026egtz.json",
+      "sha256": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c",
+      "equal_to_asset_source": true
+    },
+    {
+      "path": "port-adapters/timezones/provenance.json",
+      "sha256": "b6b926b73620b3ab9ba477195041e52925ee6b12376791e647f70beba6bcc2a0",
+      "equal_to_asset_source": true
+    },
+    {
+      "path": "port-adapters/timezones/LICENSE-tzdb.txt",
+      "sha256": "0613408568889f5739e5ae252b722a2659c02002839ad970a63dc5e9174b27cf",
+      "equal_to_asset_source": true
+    }
+  ],
+  "reused_generated_assets": [
+    {
+      "path": "magnolie-organizer/web/normative-timezones.js",
+      "source": "/workspace/scratch/7203da5bd564/open-audit-final-source/magnolie-organizer/web/normative-timezones.js",
+      "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+      "temporary_added_by_runner": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/normative-timezones.js",
+      "source": "/workspace/scratch/7203da5bd564/open-audit-final-source/magnolie-organizer-windows/app/web/normative-timezones.js",
+      "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+      "temporary_added_by_runner": true
+    }
+  ],
+  "temporary_assets_removed": true,
+  "bound_inputs_before": [
+    {
+      "path": "contracts/calendar-color-remainders.json",
+      "sha256": "8fd2ccb729c77f406de99a4bd6a0faf3832837466275a4d35bd937f1c68dbbd8",
+      "bytes": 5943
+    },
+    {
+      "path": "contracts/personal-custom-consent-v4-vectors.json",
+      "sha256": "0b529fcbd2b0c971ecaf3a830b6e54411b3a9eed2cb1263e30b9471165600cea",
+      "bytes": 2230
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "sha256": "91f5578c2a8a5ba86ca7854f3fdcdea29c05e37a0385d75b7ac673eae67c28a3",
+      "bytes": 2822675
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/appearance.js",
+      "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+      "bytes": 19579
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n.js",
+      "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+      "bytes": 8326
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/index.html",
+      "sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+      "bytes": 8009
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/normative-timezones.js",
+      "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+      "bytes": 460397
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/zeichenblatt.js",
+      "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+      "bytes": 43898
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/appointment-organizer-suggestions.js",
+      "sha256": "f51c8de9fc2831e1fdd68ca30f59abab6de5238d3b5026b8c841dfb53220d325",
+      "bytes": 6482
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/calendar-colour-remainders.js",
+      "sha256": "63708d326ca7922b152fa2e440c3e7d6e7cfac2b553a7d9a66487e9e06416cef",
+      "bytes": 6098
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/desktop-state-regressions.js",
+      "sha256": "c27e77e00889fe7a23853256249128844868b23c5c5cffafed25b11584dbdb7d",
+      "bytes": 63001
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/legacy-android-instance-ui.js",
+      "sha256": "256869a6a715bacd7782215bb604b076fef479b7fe9cb5e9b1d20598f85e6f27",
+      "bytes": 11108
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/save-custom-regressions.js",
+      "sha256": "f969bae7b1a73ac316d8412dbc5885b8939d8f740c7d9eccf52cfd9d03e30bef",
+      "bytes": 13924
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "sha256": "c68e0373d5484e410fd2c2303c2ed617acf975fddd1767423f47ba866a372f78",
+      "bytes": 1611741
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_akonadi.py",
+      "sha256": "7de448ac5b51834b11bdfa16c451c7a990fcdae1503ff19232c1d850d8e768b1",
+      "bytes": 21398
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_anruf_audio.py",
+      "sha256": "48c5bb742f2a2df1c2696d66f8403b39263ef9f4fc1be175818ad00deb65aa4d",
+      "bytes": 44901
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_appimage_lifecycle.py",
+      "sha256": "6796f5e1262637e12093e4464304617c1f50b56f711426970b7a2b13d910f3d4",
+      "bytes": 7819
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_asset.py",
+      "sha256": "4f8509e0350fc63e24ff57bbbd589d788ada06b34d70b08343177bb05a4d9323",
+      "bytes": 1952
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_calendar_dedup.py",
+      "sha256": "5eefa22614a47b5198b46b0fecf51169f6f0fed3be7856f11359ecf4e37c02ba",
+      "bytes": 16992
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_call_actors.py",
+      "sha256": "b2f94c00022a16e4c472b79c6686833b154c059a90c51003d7867abea1198153",
+      "bytes": 11332
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_catalog_membership.py",
+      "sha256": "4489d373885ef51d8d3a8770cf31280b8dc0e30cf9bd14d49614fe76e979e90f",
+      "bytes": 13016
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_cloud_backup.py",
+      "sha256": "c5fe677d8ff5ecbba091d1c59fd87e8734b77a6d95c1b1c6af23ea587df17ebf",
+      "bytes": 5627
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_book_save_chain.py",
+      "sha256": "0082f86b53531f19fb6841fb0980a50e3c4538facf8df18c1b31ee8e62c0e705",
+      "bytes": 10261
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_consent.py",
+      "sha256": "9e0aa0c76db225a183b9ce3257909f7fa5e1ae9209a85b47ef8458cec03e4a4b",
+      "bytes": 31380
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_controller.py",
+      "sha256": "d1064bfee79c8cbbf6d3beb1f541b5d7ca6cac70cf1adf67dbad720e011e1fe0",
+      "bytes": 36148
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_key.py",
+      "sha256": "dab95252515f0f9a64f8b64224c34c314394488d73c17367368ad42646283045",
+      "bytes": 3898
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_requests.py",
+      "sha256": "5638a6e1cfd71f0211bb4eb80d1f3cbf4334c608c16af2f469e8f8d6e2491fd2",
+      "bytes": 32633
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_return.py",
+      "sha256": "ff3ea0653c1a89a7a06e2c998bbaa9cd81bd37795671676fd98ced9be1fc460d",
+      "bytes": 52501
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_session.py",
+      "sha256": "97e05e4f2fb27b83bf218685ccb0d83267b4ed6f3c5dc65b9b26917a096807fa",
+      "bytes": 4616
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_setup.py",
+      "sha256": "237208dda19a28eb3c83c2cf02bc2d86bce633bcdb43a2d7c594491c91c81652",
+      "bytes": 14224
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_setup_run.py",
+      "sha256": "2fc0d278af1bee25680c586cf46eceb91daae485a02f282966dcf87d9c14b6ae",
+      "bytes": 10612
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_ui.py",
+      "sha256": "1e6e6a6883053285f1bd98838ec1022e3ca11d1c39a943fa61b7df46427ebb78",
+      "bytes": 7024
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_source_authority.py",
+      "sha256": "78715ef1ca0b3ebb9d4cefea0334d69a07bfa126a7f7ad9cff7f183128d988b3",
+      "bytes": 16611
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_source_book.py",
+      "sha256": "9c3056e8cfe56cfc038a712648fb5f8787b6de6619a0a5a3c06ab6c211016adc",
+      "bytes": 11272
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_source_dav.py",
+      "sha256": "5279191670d96af89a8b36663763357dd58dd4dff0478ec0dc13d08ea708297c",
+      "bytes": 16763
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_content_scope.py",
+      "sha256": "468e39f8d85859ea211cc259a85cdd0b3b07c0228360f1bb311c305008021ece",
+      "bytes": 15017
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_country_flags.py",
+      "sha256": "bfeaa71afec7d82bbe16e6cbb321da4b4aa5a453f4f2a048bd20551152b5548c",
+      "bytes": 2235
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_crash.py",
+      "sha256": "4ff3b2a06888953f03375ad87277fadd223841aa17067a577c44492f40c4a10f",
+      "bytes": 12629
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_cycle.py",
+      "sha256": "fb9bf1d4a19e5e33d06ce1518b2a02746b3765f3ef2e551aff497f4b3ff1c110",
+      "bytes": 12131
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_admission.py",
+      "sha256": "04e6bb1298bf75996d8944c7f622b44925109203af6408e00690c5f40b290996",
+      "bytes": 8183
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_attempt.py",
+      "sha256": "c403e55c79f2dd03ea6909731f2a6d6db2cd9788c860295419fa09553d051ab5",
+      "bytes": 7843
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_capture.py",
+      "sha256": "65afe245669e88fc6b3c802e8dd67a4596e3610f289664e201bff4b6c77b4af0",
+      "bytes": 10157
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_cast.py",
+      "sha256": "fba5582f69d67a8c3676e811173cbba0c4e34c169c0fd23fb022051f4ddf6873",
+      "bytes": 17359
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_control.py",
+      "sha256": "ecfb8e3d9442bfc57b50fb8a81e14974154d47a5b95997b5c2e11e042b248338",
+      "bytes": 13030
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_dispatch.py",
+      "sha256": "7e0ef2c2f1a6087609727226a7e72c5a11a029bbcd9f6efff8b71f3f62e682d1",
+      "bytes": 5238
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_encode.py",
+      "sha256": "a0d0d8ea58300c7e11ae2401fdec37cb8d456b247de5dd5b9a86461f40f93742",
+      "bytes": 4229
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_observer.py",
+      "sha256": "8a5ad1f125a127c433708f7ae14c60dd0ff63c75ee7645202fe1af528a48bdf3",
+      "bytes": 4492
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_output.py",
+      "sha256": "6b700c8d46d9f033a865d2c134803b0591a8b109f7944510c9f38d141c772594",
+      "bytes": 7902
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_portal.py",
+      "sha256": "0238dd405b8255dca5dd4b6c537434e9af758085338899c7a566e3f89369d814",
+      "bytes": 3102
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_run.py",
+      "sha256": "54a22279aa61512069e73021fce2cae40527d521b39dd5d7a5ae9da314339771",
+      "bytes": 7655
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_send.py",
+      "sha256": "07e55fbf618259e9e2f9ccdb8e9947f6c8674aed80d03c5f2ee9e0b3462c1929",
+      "bytes": 9431
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_digitizer.py",
+      "sha256": "96058bebc7274784b9c96107a52182ddc66afc3c793985c79a92c1883053e888",
+      "bytes": 7268
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_drawing_svg.py",
+      "sha256": "d2f50fb089cabe6d29ba0556a22eae3ab1d04c8dc5290270112ea53e9bed2dda",
+      "bytes": 2462
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_accept_message.py",
+      "sha256": "58a3e377cb6962a59a38145730962ec1f84c9f6af6acb006adab47a238a3fdba",
+      "bytes": 2638
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_acceptance.py",
+      "sha256": "fdd8c2d8dcf3c40649fe0b2451bd0b0b0f7bfb0d733aabe8908db91ef6bd3587",
+      "bytes": 7332
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_chunk_message.py",
+      "sha256": "08cb5bb48f4a3340f70ff6019bf0a8a58a5d021caae3d9f06e303fbfa3c54b01",
+      "bytes": 4550
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_control.py",
+      "sha256": "fa2b07028126c17914113e8680724648e93ace63354f12dc64232a2efa53170a",
+      "bytes": 17180
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_desktop_connection.py",
+      "sha256": "2e37276fc1645b6c0510314ff066d0cdcf1f4a6e6def2a1739d7c3c4f32bae25",
+      "bytes": 287584
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_media.py",
+      "sha256": "7098af1c5ebe750c9df92f61c81aa5c645d2bf445a92663c2fdd9ffe43cc7b1f",
+      "bytes": 5908
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_media_history.py",
+      "sha256": "2bdc13695472172e403ce02ece90e63bf598a803d0bee057d2790d05e0a3e9a2",
+      "bytes": 6271
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_native_authority.py",
+      "sha256": "1440bf3745068fb50556aefbe3c77e2d26fcda9e1b5687815ebce73a74749411",
+      "bytes": 7411
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_offer.py",
+      "sha256": "e95cab9ca9a6c8d9229671c486c54eab583642479b00888f939851a127c06b4f",
+      "bytes": 2721
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_protection.py",
+      "sha256": "b0cb964705fcd874bc07e96e1c2a88e3281236569af031def41548485cbeb5fb",
+      "bytes": 13258
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_publish.py",
+      "sha256": "57374aeb8b0310eabbf3fdf467e17ee6187e264185a51481dd1a882a2543c262",
+      "bytes": 26155
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_published_readback.py",
+      "sha256": "5b7875ae3a37321cbcb7b9795fd1234caee345cebc87bf1dbe90121da518fbac",
+      "bytes": 4238
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_receipt.py",
+      "sha256": "a435c29183fe8da7acda9db8e6835f6f7364569d21179e66c3dfdc0d2414bd79",
+      "bytes": 3754
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_receive.py",
+      "sha256": "d924aa2ca5be5e5a19d7343f907db30d51d442c7c5fae8c1f43ea23d0b34ba54",
+      "bytes": 18934
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_saved_message.py",
+      "sha256": "83550943bd2097706b034e0a4292fc0c29c70d0affaab0a74a9a9e43c6bfd498",
+      "bytes": 4522
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_sources.py",
+      "sha256": "e3f9246d094ba8037d636e3e517bb03b936bddd48333c47628c12f8d1cb0a432",
+      "bytes": 33897
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_transfer.py",
+      "sha256": "0cc2e25669721dd5af947c9c3b41d84749a40e111c36630323d04ab14bdd91cf",
+      "bytes": 32796
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_hintergrund.py",
+      "sha256": "a2197b00f2165e2884bb0b03fd136d8d07ad8a3ed427edb8a3abfde020f41172",
+      "bytes": 224339
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_job_catalog_witness.py",
+      "sha256": "3288086dcb97187bd20e0f01785c2570baec266046bcb40a8f80676882cfbb39",
+      "bytes": 1866
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_filesystem.py",
+      "sha256": "a4217bc7665a885baadd6b6e6e547c05bf1de8d1ba00acfe7a6d7ef57b1add15",
+      "bytes": 9648
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_input.py",
+      "sha256": "d1127a0df9a533ef4f422ccee175bbf8e0b997f1de2cca897aecc34a2ca2897d",
+      "bytes": 5372
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_input_x11.py",
+      "sha256": "6317ae2850dbeb128d22106a60f499919f024f28eb2ab7d35bb7bd1ea9068f68",
+      "bytes": 9823
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_media.py",
+      "sha256": "55aa63874a29067f45090205ba77e121e639aa3e0869b089150bfb436050f1b4",
+      "bytes": 5013
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_mpris.py",
+      "sha256": "9ad32ddac01f8e37931e04b7b84b8d2297c4903ebc6f68ec6f4cdb2096e76108",
+      "bytes": 27085
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_transfer.py",
+      "sha256": "9e6a8ccbcd0aed26199814f22f6d60a9f440ac3a20ab3717f3a22b9513325802",
+      "bytes": 4848
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_volume.py",
+      "sha256": "54b0cbf40fefd0a3f0883fbcac1a31fb3b04ab068bdeaf06757a8862c34c4761",
+      "bytes": 6151
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kdeconnect.py",
+      "sha256": "644b69a3f6c84da27427c30090593e4de063b659fdf68ac54d41dc4a4ba78417",
+      "bytes": 226846
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_mcp.py",
+      "sha256": "bbc81d4122d315d190e43b0ed9a88d57016f395a788974711e0a296e1de9d096",
+      "bytes": 12367
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_backup_codec.py",
+      "sha256": "afbc3a0fef4645c03381829e85f8f55d60d03028988aee6c1f072d6b048f923b",
+      "bytes": 13957
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_backup_idle.py",
+      "sha256": "d4ed976d6a6259fad7ad960f071db72fa680f15d8abd4f8687e1769ff6547244",
+      "bytes": 7298
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_backups.py",
+      "sha256": "e3c8bbfe7c49f6987310434fef886d4df1258c84a15acabf5de2f96b737cd41d",
+      "bytes": 97930
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_mime.py",
+      "sha256": "9c403178c834fa2bc9885267548bed55ba1758b92dd395d87e10eb3083d72b6d",
+      "bytes": 15815
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_offer.py",
+      "sha256": "3b15686ddd2180a6715df0cfae585d696ba4e12aca6663abea5886475ea19276",
+      "bytes": 5689
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_preview.py",
+      "sha256": "ab2c46bdd6fbd2560e12f16a4c9129f8389ca90ae9c78860a543fb1d30e3f44a",
+      "bytes": 6623
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_relocation_anchor.py",
+      "sha256": "81a00668391239eaa0a3caa4331b023050271e528319bc0a2f3ccfc2568477c4",
+      "bytes": 6111
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_relocation_journal.py",
+      "sha256": "3f50abeec9d66c631e3a00045e0d37d828055531361c2ebd02e6fed979702fcf",
+      "bytes": 26969
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_relocation_owner.py",
+      "sha256": "dfd316b56a46c282c233ca67f1570ff45238f136f188db1cb19683973faeea32",
+      "bytes": 48260
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_relocation_record.py",
+      "sha256": "426d5c1f59eb6db7cdd8cbfca5028e9cab79addf8a968d74070fcf56a1aa0ce4",
+      "bytes": 36512
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_retention.py",
+      "sha256": "2ae948431f0cefdeba490c67a9faaa728d5f9617ca47a12cddc3290540b949de",
+      "bytes": 16520
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source.py",
+      "sha256": "9703456213cd92f7af884a1b06a1105dc16714a08c11693433fabeef58c12d6a",
+      "bytes": 20120
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_backup.py",
+      "sha256": "d8e39ebea85405e0b80ddb59a4520b5889738c23fa3ae3762af8a9a3bf314976",
+      "bytes": 11735
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_cache.py",
+      "sha256": "5ce1d7410425eb3889b0dc9e96fc39bc5e77e3b80f930ea9921c5e0b2b2316d2",
+      "bytes": 14513
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_catalog.py",
+      "sha256": "148183202d94b5c5458efa7df45d09e6e9ea6ed99c9c235d963d0cd1fc23623b",
+      "bytes": 13204
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_choice.py",
+      "sha256": "8de26a5e727d98e3f1fff360384f627fefadf6059c5e9bac6aeefe1392b3dc8f",
+      "bytes": 6613
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_collection.py",
+      "sha256": "d86e1a7beb2c08239c1f2e573c7997c8f3012d561bd7ca402948a049a3b5da16",
+      "bytes": 14116
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_collection_pass.py",
+      "sha256": "f17df6e79c9f8faf32c8e1f06cd3d484815a68f78978fcc7a2fc8d12825f764a",
+      "bytes": 6946
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_exchange.py",
+      "sha256": "e09e95791a6d738f12498a7d91599f816a2c3362e9ade77bde24e9f21d69244f",
+      "bytes": 8105
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_jobs.py",
+      "sha256": "bb14c45e7353d75681277b203091d8155e51714feff193f8b36ae7bd44234f9b",
+      "bytes": 14423
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_lineage.py",
+      "sha256": "5d636042bf6b3bdcc9a07f1b960fd470d8dfe249a315365222090629098aea60",
+      "bytes": 5366
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_pc.py",
+      "sha256": "ce2b2933fe53cbfbe94fda2cecf763a30a8e286fd5334765c1ddedf633d3ab01",
+      "bytes": 14372
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_pc_history.py",
+      "sha256": "94c8c14abd5cc0535f4c5e9442391b99895464bfde02e8df6f7aa369dea0dfa3",
+      "bytes": 4597
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_planning.py",
+      "sha256": "f88aef6aa0f3af825c3f6aeaab83a4aa319ce373ed6e0e8c0b7938adebfcb547",
+      "bytes": 4082
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_reader.py",
+      "sha256": "7abf593c7497bd05a23e0d57144c75babf1cee510a4cd1169b6b6f89873a103b",
+      "bytes": 13440
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_recovery.py",
+      "sha256": "e29fda509eb0456ade3643dbb58896e1150c33e297b796c82ad7ff5acf02bd81",
+      "bytes": 13668
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_reprepare.py",
+      "sha256": "3908dc657f9f2fd598e3defb07ef82394f617b5d514252589a2cd0c02e33775d",
+      "bytes": 7174
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_retirement.py",
+      "sha256": "49316f7d2b87644be4e1a824244e39e4c7914d0882bdc8fecdc1cf458570dbcf",
+      "bytes": 27552
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_retry.py",
+      "sha256": "da2301b5fe5da76a79cad177ddc8feaca054a3205bb911550d27100d6cdcb825",
+      "bytes": 13915
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_roots.py",
+      "sha256": "cda8f8f16754160d303e7997fa65890dbc508790f8ff7ff5d912a7185ff73a1e",
+      "bytes": 17810
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_sender.py",
+      "sha256": "e4c383b3a4e111abe4d31802d6831ed7f81eea6fa3f8b3efdf1eb630e9d9b433",
+      "bytes": 21494
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_worker.py",
+      "sha256": "9540d26ae599032f3864bf5d50710de9abcfe1fcdad488f6510242b0c7b63866",
+      "bytes": 14574
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_storage_bootstrap.py",
+      "sha256": "6b81a4fe8f46a5c9816fc5d608d5e23fb3987e1bc1804f569d45dbbee8d1da63",
+      "bytes": 7372
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_support.py",
+      "sha256": "0cae8270442feea78c5127b707e2c86240bded5cece16fe974ad02f7e48a09ce",
+      "bytes": 5117
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_sync.py",
+      "sha256": "7f2ffa38e01f753eeeeb04d10e6fb1047d5e19e55d727a0585739110369539a6",
+      "bytes": 12769
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_transport.py",
+      "sha256": "973bf1e550f0a972c91fc174a61d72fdad5f6c769cf76af853a530bf1338444d",
+      "bytes": 8926
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_trash.py",
+      "sha256": "db917a04db51a621b01500c2214b98038b59693d760d938e26fa019de76d995b",
+      "bytes": 46401
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_trash_ui.py",
+      "sha256": "ca891f868c0ad45010c8ae427a4a3e18e3844bc22adf695193a627561da7c62e",
+      "bytes": 9953
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_native_book_json.py",
+      "sha256": "27fc4f7b5d1710180785ed7a3ec13ca4a2c86516d01566df5edc21556138d520",
+      "bytes": 1464
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_nextcloud.py",
+      "sha256": "8c3cac6032aa30fba04dd2719cd296cf4ab1df6c69a6a7e403db0aebdf8df726",
+      "bytes": 54657
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_office_profile.py",
+      "sha256": "097a148dc2d967f1cf47652f125820b426895faff0724659c708ddd7cb9b3e43",
+      "bytes": 3272
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_optional_phone.py",
+      "sha256": "733de95dd785ad913096caed697296a264c71fe9a7a7b0aaa11de98af6d37a34",
+      "bytes": 3259
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_or6.py",
+      "sha256": "e4576a8b1df12d064e5645e43beadfac7c390e6fc7f68e0c9bea9ab1e4ab58ac",
+      "bytes": 48746
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_own_profile.py",
+      "sha256": "97cad4979232bf0e7f6fe8c93acca872a2b1310b2d13f7db12e4aaf084534817",
+      "bytes": 1712
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_pdf.py",
+      "sha256": "d36878571b3e178ed15b9f74599aab037b2551ab4bcdc8c60485a2d4ac1c8ee7",
+      "bytes": 1765
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor.py",
+      "sha256": "f91762ab7d887d17d0deb3ed602dfa1713bdf4dbdbefdf5cc22d34b4dd041d87",
+      "bytes": 15719
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_completion.py",
+      "sha256": "1855165ce98adcf3c195294bcf1bc38e09812fdae631d26518f550f3d3a67645",
+      "bytes": 9369
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_decision_review.py",
+      "sha256": "67e2fb06ef80d5c201f3e84faf8c225af2a76337c954e89cf732d9c35df0d6f8",
+      "bytes": 13629
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_producer.py",
+      "sha256": "2364169c6213bcb59b8b6c05abe83e40d0eeae1d901b0f171db67a8839bcc407",
+      "bytes": 6874
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_projection.py",
+      "sha256": "097555984de8501f11c375e3b2711eae4fed33b2ed4d58c425c7ee80243120bf",
+      "bytes": 10753
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_report_owner.py",
+      "sha256": "4497bf35e83a737040deb2089eda71d666fd7cec7eb09686cdcfee56f185c4a7",
+      "bytes": 9629
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_restore_candidate.py",
+      "sha256": "c3c0892c800e579a2beae853f6d71204febc3c77b1912151f7aee76b7568c901",
+      "bytes": 8126
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_restore_source.py",
+      "sha256": "3aec0d9896d1969d7a7178a086ba53e0be23f9d9a32c3e62315091dde5d122e8",
+      "bytes": 5815
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_store.py",
+      "sha256": "bab6d7e7fd133d44917d53e077f7de500950ecb21d618daf8f71105b619261d5",
+      "bytes": 42098
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_target_evidence.py",
+      "sha256": "a921a9706fc8c67b593475bf9a3a24d0fb0e7469252d1b6f6cc9ed242f59aefc",
+      "bytes": 11820
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_target_review.py",
+      "sha256": "aa6db880a9d0871cd2fc916b6e40029a0ef3b9a090bafb8b594177f4a7a55cc1",
+      "bytes": 9815
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_writer.py",
+      "sha256": "11b4efcd480111bd6aae1b32367c55cbda54a507a53975d1e25ca7a72c0fa996",
+      "bytes": 857
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_sync.py",
+      "sha256": "6fb4b1289112463375be214d2e8bed6b70c84fb5c73d1a16b31412db95da201f",
+      "bytes": 42281
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_ack.py",
+      "sha256": "574a1bf2fc8a3702ddc73e81d1d7cf4077f1e4c15b7b3ece4fd717bc7dab10ee",
+      "bytes": 965
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_control.py",
+      "sha256": "6abd6b38f8fe6bfb0e9ffeab5a9e8fac5effd6f2dd63ef7c8abf6a04c203198d",
+      "bytes": 2559
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_exchange.py",
+      "sha256": "3526a64d464f8ef582d2b03af8366be4a59b7fa74b8dc6fbf1a21c117d55f02b",
+      "bytes": 8040
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_install.py",
+      "sha256": "25ff6a3c315c8fb0b38be9c34212907ebfacfc3cdda9e80ed76d8e3d03cee703",
+      "bytes": 4381
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_install_root.py",
+      "sha256": "89283ca45c8fd45864a4b0ba57df20648a9d818cf9984e446089fa61c4a263c7",
+      "bytes": 7877
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_provider.py",
+      "sha256": "3116286a5bc279aa7f86442459870b8fad1f443ce7e364dcfa117835e52ec2b0",
+      "bytes": 4650
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_pulse.py",
+      "sha256": "df415a82706b2cf50355b51d2bc15ee0daf15a5edd20aa61ba186311f7985fdc",
+      "bytes": 12321
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_receiver.py",
+      "sha256": "5e8ffdcc716d45704c3e21551eb26f9f2ade9ffe41c61ca9a99d102e71f74e77",
+      "bytes": 4282
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_runtime.py",
+      "sha256": "aedffef6ebfd23320135f93df5a15ff162b3b5d089040fe339ceeda7d1a4200f",
+      "bytes": 11459
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_setup.py",
+      "sha256": "f1788d2d07ab0c3d8079264c2c326df28189f0786dc67ff2ef4d175616ab14e7",
+      "bytes": 8761
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_transport.py",
+      "sha256": "ddfa3d1e94bf091ffd582791430e955d1f5684d72bb68c2b36e92e41795befe4",
+      "bytes": 5982
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_ui.py",
+      "sha256": "61f5c91f4d06c3fea5c97f7689feb6d84f67f6ed7234ea241c5f11fdf6dccbeb",
+      "bytes": 13820
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_contacts.py",
+      "sha256": "172dd70917a74dbb71103860a1b1146f7962dfb86b52169791e126ead1944726",
+      "bytes": 19180
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_region.py",
+      "sha256": "b030f47e785295e199749e86bc42208eb709fceaa7ce4e59a3556d47fb289411",
+      "bytes": 6285
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_screen_control.py",
+      "sha256": "62deb2d040ce22fba58940f0d5b7168dfe5387665e8060a71e2d7d6ccbf3b184",
+      "bytes": 21295
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_screen_local.py",
+      "sha256": "10c0fb6733bad892af6f9f945fbea4ea09748844154095d130e257983d7a9461",
+      "bytes": 21979
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_screen_transport.py",
+      "sha256": "a332ba39bb2dccf475c69f34a84aeb054476d141ad48ba5b2be977c677cee20f",
+      "bytes": 12398
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_screen_window.py",
+      "sha256": "005ce1659b6bf66e579136a03c040e7d5dede6a494e8afea03f17f2c13e2abb5",
+      "bytes": 13833
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_webcam.py",
+      "sha256": "2f4369aa99c5de1b8cbd0513e300fa339f9dff4bc7f72fe0add46db7d02c14ab",
+      "bytes": 15248
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_destination.py",
+      "sha256": "55b5eb60edd89746247e751a816e0f387ecc26d36a6b10ccef1562f2766db5e0",
+      "bytes": 17569
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_destination_choice.py",
+      "sha256": "c7e51d38ed4cf3ca1fd73a1fc44c8bd914e30ff1a7e1f9477e78c174ccc08ba5",
+      "bytes": 13912
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_mapping_receipt.py",
+      "sha256": "85e35462592821b8ea3dc633ae3d6153922872d9841b5e56bd730cbad810889c",
+      "bytes": 6653
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_mapping_witness.py",
+      "sha256": "19c43bd334e37ffe5c9a5b4ca7dfa8d3599bbdf06ca5dd8944fec6647f37decc",
+      "bytes": 2359
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_mappings.py",
+      "sha256": "d4eaf18f4c3ec5a88490e53fd1cf8b3309ba2a120849437f95702f586594bc92",
+      "bytes": 42523
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_metadata.py",
+      "sha256": "8bb23e5150e0fffad79bb3e13eac3fb70a14cde2eb1a16f1f76fc013eaab3716",
+      "bytes": 4326
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_plan.py",
+      "sha256": "2c00db88c14c9672629fdb3fde07a0021b1951d38a1dd7bd0fd011c0254b4e2f",
+      "bytes": 7851
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_preferences.py",
+      "sha256": "75fa00e95b17d8accb52e8a4ad1086671a8eeadbeb1c3a5936fe8d6e9d93132c",
+      "bytes": 56579
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_relocation_dialog.py",
+      "sha256": "acdc6c0e2cd08176dcaf305f320fca0c6843d8bc5e7e3eed412e5355c85637f3",
+      "bytes": 5869
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_review.py",
+      "sha256": "bc452d83f9d69eee053dd7494193eefd845d04eb30e9891aa37e3daf83e2cf25",
+      "bytes": 712
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_schedule.py",
+      "sha256": "fe8111b280668a9193839698664e40e66eb86f55aabd97c5b648363c88c0a8e8",
+      "bytes": 5875
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_target.py",
+      "sha256": "120a6ce90b466517d8dcd86de953d6471f1cc3257ef41f6f4308521a0552a940",
+      "bytes": 5947
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_publication_journal.py",
+      "sha256": "02f722b527e9a088f8a0f762c26dc81806b85594180ddc9f1977528294329dc3",
+      "bytes": 16029
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_recurrence.py",
+      "sha256": "493908af65eb512fee92f312bbcb021d8fd3b4d46ae012a67cbd00d0026d5867",
+      "bytes": 49332
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_setup_state.py",
+      "sha256": "96400b61658647a544dba982ed20f6768d99346bec3b158605034970bcf86446",
+      "bytes": 56299
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_setup_ui.py",
+      "sha256": "d0e47e8f5fb88030f8bad38fdfe719f25304d1bc922ecd36a27c7e13eb86d867",
+      "bytes": 66228
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_shared_sync.py",
+      "sha256": "0ea3a67db2937cef462fec4fa59825b12905088658bbc1e33934cb5ab142ef4b",
+      "bytes": 7434
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_social_profiles.py",
+      "sha256": "ea965d543a4eb82ef097caf2d347213de498b62537ac4e5dc311909dc3ee2aa3",
+      "bytes": 4375
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_telefon.py",
+      "sha256": "278369dc96d0ac229d3e9c03c5b80a69cae40a60c4a1fea70893407c8abae61c",
+      "bytes": 684647
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_time_control.py",
+      "sha256": "06331dd860441f85a51bab1cc6adb2275cc923a7774c577900087a3b39cf4bf4",
+      "bytes": 4718
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_time_sync.py",
+      "sha256": "e16d03d6942b08b39c0a7bd2901d2c689d1fee6d9c5aeea671387b6c3e6d4ac9",
+      "bytes": 11847
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_timezone.py",
+      "sha256": "8d576074b6f65df49f67416ee391ddadbe8300f6b1f7f5418d0b1841fd4fc4bd",
+      "bytes": 8564
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_transfer_job_catalog.py",
+      "sha256": "f10ec08f48e3d9952823dfa5f9402b3a9184b1820c68307c180f0e6f4e407e48",
+      "bytes": 36855
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_transfer_job_index.py",
+      "sha256": "5ecc2df843c2278ad31a4d723f3c87815191e9e83b8f7e20c3c3afc017b57409",
+      "bytes": 33756
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_versand.py",
+      "sha256": "ef0b10ddcf796a2a5deca5019e11af335fd0162d72d34de66e25efb0d497d3c3",
+      "bytes": 17234
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/fixtures/caldav-series-resource.ics",
+      "sha256": "670de67684a9563555fe42837e2740572ff77f00375df4c213e329f41fdfccf5",
+      "bytes": 996
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "sha256": "5ae2e11bb57ce9c29bb4a7252907a7a27aca593ab7405a2ec0e017d3499cba3e",
+      "bytes": 2892419
+    },
+    {
+      "path": "magnolie-organizer/web/appearance.js",
+      "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+      "bytes": 19579
+    },
+    {
+      "path": "magnolie-organizer/web/i18n.js",
+      "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+      "bytes": 8326
+    },
+    {
+      "path": "magnolie-organizer/web/index.html",
+      "sha256": "24e3806b8a057693e289ac94ebb879f851c317a27064b0bc307db10da0829ea0",
+      "bytes": 7311
+    },
+    {
+      "path": "magnolie-organizer/web/normative-timezones.js",
+      "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+      "bytes": 460397
+    },
+    {
+      "path": "magnolie-organizer/web/zeichenblatt.js",
+      "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+      "bytes": 43898
+    },
+    {
+      "path": "port-adapters/timezones/LICENSE-tzdb.txt",
+      "sha256": "0613408568889f5739e5ae252b722a2659c02002839ad970a63dc5e9174b27cf",
+      "bytes": 252
+    },
+    {
+      "path": "port-adapters/timezones/bootstrap.template.js",
+      "sha256": "8600c43c7007aa701545c1145a30e54ac8da9bcf7805b47378abe5ad37131554",
+      "bytes": 640
+    },
+    {
+      "path": "port-adapters/timezones/port-runtime.js",
+      "sha256": "7fe5e5f5c44c0c601579fff1e91038402ff1cd7866b5963cb84372df74bd7ac6",
+      "bytes": 6970
+    },
+    {
+      "path": "port-adapters/timezones/projection-assets.cjs",
+      "sha256": "43af5b9ef3b8cfd1b2e12825fef2f9709d3f09f6c52aca6fe95adf0921a19a4f",
+      "bytes": 1321
+    },
+    {
+      "path": "port-adapters/timezones/provenance.json",
+      "sha256": "b6b926b73620b3ab9ba477195041e52925ee6b12376791e647f70beba6bcc2a0",
+      "bytes": 1585
+    },
+    {
+      "path": "port-adapters/timezones/resolver.js",
+      "sha256": "052009fbe3fedeb3d59c937ddf6c8ac924f52d13c5992bc1b9d27fc355acf2da",
+      "bytes": 14105
+    },
+    {
+      "path": "port-adapters/timezones/tzdb-2026egtz.json",
+      "sha256": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c",
+      "bytes": 428473
+    }
+  ],
+  "bound_inputs_after": [
+    {
+      "path": "contracts/calendar-color-remainders.json",
+      "sha256": "8fd2ccb729c77f406de99a4bd6a0faf3832837466275a4d35bd937f1c68dbbd8",
+      "bytes": 5943
+    },
+    {
+      "path": "contracts/personal-custom-consent-v4-vectors.json",
+      "sha256": "0b529fcbd2b0c971ecaf3a830b6e54411b3a9eed2cb1263e30b9471165600cea",
+      "bytes": 2230
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "sha256": "91f5578c2a8a5ba86ca7854f3fdcdea29c05e37a0385d75b7ac673eae67c28a3",
+      "bytes": 2822675
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/appearance.js",
+      "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+      "bytes": 19579
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n.js",
+      "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+      "bytes": 8326
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/index.html",
+      "sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+      "bytes": 8009
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/normative-timezones.js",
+      "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+      "bytes": 460397
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/zeichenblatt.js",
+      "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+      "bytes": 43898
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/appointment-organizer-suggestions.js",
+      "sha256": "f51c8de9fc2831e1fdd68ca30f59abab6de5238d3b5026b8c841dfb53220d325",
+      "bytes": 6482
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/calendar-colour-remainders.js",
+      "sha256": "63708d326ca7922b152fa2e440c3e7d6e7cfac2b553a7d9a66487e9e06416cef",
+      "bytes": 6098
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/desktop-state-regressions.js",
+      "sha256": "c27e77e00889fe7a23853256249128844868b23c5c5cffafed25b11584dbdb7d",
+      "bytes": 63001
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/legacy-android-instance-ui.js",
+      "sha256": "256869a6a715bacd7782215bb604b076fef479b7fe9cb5e9b1d20598f85e6f27",
+      "bytes": 11108
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/save-custom-regressions.js",
+      "sha256": "f969bae7b1a73ac316d8412dbc5885b8939d8f740c7d9eccf52cfd9d03e30bef",
+      "bytes": 13924
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "sha256": "c68e0373d5484e410fd2c2303c2ed617acf975fddd1767423f47ba866a372f78",
+      "bytes": 1611741
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_akonadi.py",
+      "sha256": "7de448ac5b51834b11bdfa16c451c7a990fcdae1503ff19232c1d850d8e768b1",
+      "bytes": 21398
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_anruf_audio.py",
+      "sha256": "48c5bb742f2a2df1c2696d66f8403b39263ef9f4fc1be175818ad00deb65aa4d",
+      "bytes": 44901
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_appimage_lifecycle.py",
+      "sha256": "6796f5e1262637e12093e4464304617c1f50b56f711426970b7a2b13d910f3d4",
+      "bytes": 7819
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_asset.py",
+      "sha256": "4f8509e0350fc63e24ff57bbbd589d788ada06b34d70b08343177bb05a4d9323",
+      "bytes": 1952
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_calendar_dedup.py",
+      "sha256": "5eefa22614a47b5198b46b0fecf51169f6f0fed3be7856f11359ecf4e37c02ba",
+      "bytes": 16992
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_call_actors.py",
+      "sha256": "b2f94c00022a16e4c472b79c6686833b154c059a90c51003d7867abea1198153",
+      "bytes": 11332
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_catalog_membership.py",
+      "sha256": "4489d373885ef51d8d3a8770cf31280b8dc0e30cf9bd14d49614fe76e979e90f",
+      "bytes": 13016
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_cloud_backup.py",
+      "sha256": "c5fe677d8ff5ecbba091d1c59fd87e8734b77a6d95c1b1c6af23ea587df17ebf",
+      "bytes": 5627
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_book_save_chain.py",
+      "sha256": "0082f86b53531f19fb6841fb0980a50e3c4538facf8df18c1b31ee8e62c0e705",
+      "bytes": 10261
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_consent.py",
+      "sha256": "9e0aa0c76db225a183b9ce3257909f7fa5e1ae9209a85b47ef8458cec03e4a4b",
+      "bytes": 31380
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_controller.py",
+      "sha256": "d1064bfee79c8cbbf6d3beb1f541b5d7ca6cac70cf1adf67dbad720e011e1fe0",
+      "bytes": 36148
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_key.py",
+      "sha256": "dab95252515f0f9a64f8b64224c34c314394488d73c17367368ad42646283045",
+      "bytes": 3898
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_requests.py",
+      "sha256": "5638a6e1cfd71f0211bb4eb80d1f3cbf4334c608c16af2f469e8f8d6e2491fd2",
+      "bytes": 32633
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_return.py",
+      "sha256": "ff3ea0653c1a89a7a06e2c998bbaa9cd81bd37795671676fd98ced9be1fc460d",
+      "bytes": 52501
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_session.py",
+      "sha256": "97e05e4f2fb27b83bf218685ccb0d83267b4ed6f3c5dc65b9b26917a096807fa",
+      "bytes": 4616
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_setup.py",
+      "sha256": "237208dda19a28eb3c83c2cf02bc2d86bce633bcdb43a2d7c594491c91c81652",
+      "bytes": 14224
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_setup_run.py",
+      "sha256": "2fc0d278af1bee25680c586cf46eceb91daae485a02f282966dcf87d9c14b6ae",
+      "bytes": 10612
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_notes_ui.py",
+      "sha256": "1e6e6a6883053285f1bd98838ec1022e3ca11d1c39a943fa61b7df46427ebb78",
+      "bytes": 7024
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_source_authority.py",
+      "sha256": "78715ef1ca0b3ebb9d4cefea0334d69a07bfa126a7f7ad9cff7f183128d988b3",
+      "bytes": 16611
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_source_book.py",
+      "sha256": "9c3056e8cfe56cfc038a712648fb5f8787b6de6619a0a5a3c06ab6c211016adc",
+      "bytes": 11272
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_contact_source_dav.py",
+      "sha256": "5279191670d96af89a8b36663763357dd58dd4dff0478ec0dc13d08ea708297c",
+      "bytes": 16763
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_content_scope.py",
+      "sha256": "468e39f8d85859ea211cc259a85cdd0b3b07c0228360f1bb311c305008021ece",
+      "bytes": 15017
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_country_flags.py",
+      "sha256": "bfeaa71afec7d82bbe16e6cbb321da4b4aa5a453f4f2a048bd20551152b5548c",
+      "bytes": 2235
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_crash.py",
+      "sha256": "4ff3b2a06888953f03375ad87277fadd223841aa17067a577c44492f40c4a10f",
+      "bytes": 12629
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_cycle.py",
+      "sha256": "fb9bf1d4a19e5e33d06ce1518b2a02746b3765f3ef2e551aff497f4b3ff1c110",
+      "bytes": 12131
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_admission.py",
+      "sha256": "04e6bb1298bf75996d8944c7f622b44925109203af6408e00690c5f40b290996",
+      "bytes": 8183
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_attempt.py",
+      "sha256": "c403e55c79f2dd03ea6909731f2a6d6db2cd9788c860295419fa09553d051ab5",
+      "bytes": 7843
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_capture.py",
+      "sha256": "65afe245669e88fc6b3c802e8dd67a4596e3610f289664e201bff4b6c77b4af0",
+      "bytes": 10157
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_cast.py",
+      "sha256": "fba5582f69d67a8c3676e811173cbba0c4e34c169c0fd23fb022051f4ddf6873",
+      "bytes": 17359
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_control.py",
+      "sha256": "ecfb8e3d9442bfc57b50fb8a81e14974154d47a5b95997b5c2e11e042b248338",
+      "bytes": 13030
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_dispatch.py",
+      "sha256": "7e0ef2c2f1a6087609727226a7e72c5a11a029bbcd9f6efff8b71f3f62e682d1",
+      "bytes": 5238
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_encode.py",
+      "sha256": "a0d0d8ea58300c7e11ae2401fdec37cb8d456b247de5dd5b9a86461f40f93742",
+      "bytes": 4229
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_observer.py",
+      "sha256": "8a5ad1f125a127c433708f7ae14c60dd0ff63c75ee7645202fe1af528a48bdf3",
+      "bytes": 4492
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_output.py",
+      "sha256": "6b700c8d46d9f033a865d2c134803b0591a8b109f7944510c9f38d141c772594",
+      "bytes": 7902
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_portal.py",
+      "sha256": "0238dd405b8255dca5dd4b6c537434e9af758085338899c7a566e3f89369d814",
+      "bytes": 3102
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_run.py",
+      "sha256": "54a22279aa61512069e73021fce2cae40527d521b39dd5d7a5ae9da314339771",
+      "bytes": 7655
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_desktop_screen_send.py",
+      "sha256": "07e55fbf618259e9e2f9ccdb8e9947f6c8674aed80d03c5f2ee9e0b3462c1929",
+      "bytes": 9431
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_digitizer.py",
+      "sha256": "96058bebc7274784b9c96107a52182ddc66afc3c793985c79a92c1883053e888",
+      "bytes": 7268
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_drawing_svg.py",
+      "sha256": "d2f50fb089cabe6d29ba0556a22eae3ab1d04c8dc5290270112ea53e9bed2dda",
+      "bytes": 2462
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_accept_message.py",
+      "sha256": "58a3e377cb6962a59a38145730962ec1f84c9f6af6acb006adab47a238a3fdba",
+      "bytes": 2638
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_acceptance.py",
+      "sha256": "fdd8c2d8dcf3c40649fe0b2451bd0b0b0f7bfb0d733aabe8908db91ef6bd3587",
+      "bytes": 7332
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_chunk_message.py",
+      "sha256": "08cb5bb48f4a3340f70ff6019bf0a8a58a5d021caae3d9f06e303fbfa3c54b01",
+      "bytes": 4550
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_control.py",
+      "sha256": "fa2b07028126c17914113e8680724648e93ace63354f12dc64232a2efa53170a",
+      "bytes": 17180
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_desktop_connection.py",
+      "sha256": "2e37276fc1645b6c0510314ff066d0cdcf1f4a6e6def2a1739d7c3c4f32bae25",
+      "bytes": 287584
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_media.py",
+      "sha256": "7098af1c5ebe750c9df92f61c81aa5c645d2bf445a92663c2fdd9ffe43cc7b1f",
+      "bytes": 5908
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_media_history.py",
+      "sha256": "2bdc13695472172e403ce02ece90e63bf598a803d0bee057d2790d05e0a3e9a2",
+      "bytes": 6271
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_native_authority.py",
+      "sha256": "1440bf3745068fb50556aefbe3c77e2d26fcda9e1b5687815ebce73a74749411",
+      "bytes": 7411
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_offer.py",
+      "sha256": "e95cab9ca9a6c8d9229671c486c54eab583642479b00888f939851a127c06b4f",
+      "bytes": 2721
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_protection.py",
+      "sha256": "b0cb964705fcd874bc07e96e1c2a88e3281236569af031def41548485cbeb5fb",
+      "bytes": 13258
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_publish.py",
+      "sha256": "57374aeb8b0310eabbf3fdf467e17ee6187e264185a51481dd1a882a2543c262",
+      "bytes": 26155
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_published_readback.py",
+      "sha256": "5b7875ae3a37321cbcb7b9795fd1234caee345cebc87bf1dbe90121da518fbac",
+      "bytes": 4238
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_receipt.py",
+      "sha256": "a435c29183fe8da7acda9db8e6835f6f7364569d21179e66c3dfdc0d2414bd79",
+      "bytes": 3754
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_receive.py",
+      "sha256": "d924aa2ca5be5e5a19d7343f907db30d51d442c7c5fae8c1f43ea23d0b34ba54",
+      "bytes": 18934
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_saved_message.py",
+      "sha256": "83550943bd2097706b034e0a4292fc0c29c70d0affaab0a74a9a9e43c6bfd498",
+      "bytes": 4522
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_sources.py",
+      "sha256": "e3f9246d094ba8037d636e3e517bb03b936bddd48333c47628c12f8d1cb0a432",
+      "bytes": 33897
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_transfer.py",
+      "sha256": "0cc2e25669721dd5af947c9c3b41d84749a40e111c36630323d04ab14bdd91cf",
+      "bytes": 32796
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_hintergrund.py",
+      "sha256": "a2197b00f2165e2884bb0b03fd136d8d07ad8a3ed427edb8a3abfde020f41172",
+      "bytes": 224339
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_job_catalog_witness.py",
+      "sha256": "3288086dcb97187bd20e0f01785c2570baec266046bcb40a8f80676882cfbb39",
+      "bytes": 1866
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_filesystem.py",
+      "sha256": "a4217bc7665a885baadd6b6e6e547c05bf1de8d1ba00acfe7a6d7ef57b1add15",
+      "bytes": 9648
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_input.py",
+      "sha256": "d1127a0df9a533ef4f422ccee175bbf8e0b997f1de2cca897aecc34a2ca2897d",
+      "bytes": 5372
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_input_x11.py",
+      "sha256": "6317ae2850dbeb128d22106a60f499919f024f28eb2ab7d35bb7bd1ea9068f68",
+      "bytes": 9823
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_media.py",
+      "sha256": "55aa63874a29067f45090205ba77e121e639aa3e0869b089150bfb436050f1b4",
+      "bytes": 5013
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_mpris.py",
+      "sha256": "9ad32ddac01f8e37931e04b7b84b8d2297c4903ebc6f68ec6f4cdb2096e76108",
+      "bytes": 27085
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_transfer.py",
+      "sha256": "9e6a8ccbcd0aed26199814f22f6d60a9f440ac3a20ab3717f3a22b9513325802",
+      "bytes": 4848
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kde_volume.py",
+      "sha256": "54b0cbf40fefd0a3f0883fbcac1a31fb3b04ab068bdeaf06757a8862c34c4761",
+      "bytes": 6151
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_kdeconnect.py",
+      "sha256": "644b69a3f6c84da27427c30090593e4de063b659fdf68ac54d41dc4a4ba78417",
+      "bytes": 226846
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_mcp.py",
+      "sha256": "bbc81d4122d315d190e43b0ed9a88d57016f395a788974711e0a296e1de9d096",
+      "bytes": 12367
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_backup_codec.py",
+      "sha256": "afbc3a0fef4645c03381829e85f8f55d60d03028988aee6c1f072d6b048f923b",
+      "bytes": 13957
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_backup_idle.py",
+      "sha256": "d4ed976d6a6259fad7ad960f071db72fa680f15d8abd4f8687e1769ff6547244",
+      "bytes": 7298
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_backups.py",
+      "sha256": "e3c8bbfe7c49f6987310434fef886d4df1258c84a15acabf5de2f96b737cd41d",
+      "bytes": 97930
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_mime.py",
+      "sha256": "9c403178c834fa2bc9885267548bed55ba1758b92dd395d87e10eb3083d72b6d",
+      "bytes": 15815
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_offer.py",
+      "sha256": "3b15686ddd2180a6715df0cfae585d696ba4e12aca6663abea5886475ea19276",
+      "bytes": 5689
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_preview.py",
+      "sha256": "ab2c46bdd6fbd2560e12f16a4c9129f8389ca90ae9c78860a543fb1d30e3f44a",
+      "bytes": 6623
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_relocation_anchor.py",
+      "sha256": "81a00668391239eaa0a3caa4331b023050271e528319bc0a2f3ccfc2568477c4",
+      "bytes": 6111
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_relocation_journal.py",
+      "sha256": "3f50abeec9d66c631e3a00045e0d37d828055531361c2ebd02e6fed979702fcf",
+      "bytes": 26969
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_relocation_owner.py",
+      "sha256": "dfd316b56a46c282c233ca67f1570ff45238f136f188db1cb19683973faeea32",
+      "bytes": 48260
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_relocation_record.py",
+      "sha256": "426d5c1f59eb6db7cdd8cbfca5028e9cab79addf8a968d74070fcf56a1aa0ce4",
+      "bytes": 36512
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_retention.py",
+      "sha256": "2ae948431f0cefdeba490c67a9faaa728d5f9617ca47a12cddc3290540b949de",
+      "bytes": 16520
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source.py",
+      "sha256": "9703456213cd92f7af884a1b06a1105dc16714a08c11693433fabeef58c12d6a",
+      "bytes": 20120
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_backup.py",
+      "sha256": "d8e39ebea85405e0b80ddb59a4520b5889738c23fa3ae3762af8a9a3bf314976",
+      "bytes": 11735
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_cache.py",
+      "sha256": "5ce1d7410425eb3889b0dc9e96fc39bc5e77e3b80f930ea9921c5e0b2b2316d2",
+      "bytes": 14513
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_catalog.py",
+      "sha256": "148183202d94b5c5458efa7df45d09e6e9ea6ed99c9c235d963d0cd1fc23623b",
+      "bytes": 13204
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_choice.py",
+      "sha256": "8de26a5e727d98e3f1fff360384f627fefadf6059c5e9bac6aeefe1392b3dc8f",
+      "bytes": 6613
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_collection.py",
+      "sha256": "d86e1a7beb2c08239c1f2e573c7997c8f3012d561bd7ca402948a049a3b5da16",
+      "bytes": 14116
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_collection_pass.py",
+      "sha256": "f17df6e79c9f8faf32c8e1f06cd3d484815a68f78978fcc7a2fc8d12825f764a",
+      "bytes": 6946
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_exchange.py",
+      "sha256": "e09e95791a6d738f12498a7d91599f816a2c3362e9ade77bde24e9f21d69244f",
+      "bytes": 8105
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_jobs.py",
+      "sha256": "bb14c45e7353d75681277b203091d8155e51714feff193f8b36ae7bd44234f9b",
+      "bytes": 14423
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_lineage.py",
+      "sha256": "5d636042bf6b3bdcc9a07f1b960fd470d8dfe249a315365222090629098aea60",
+      "bytes": 5366
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_pc.py",
+      "sha256": "ce2b2933fe53cbfbe94fda2cecf763a30a8e286fd5334765c1ddedf633d3ab01",
+      "bytes": 14372
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_pc_history.py",
+      "sha256": "94c8c14abd5cc0535f4c5e9442391b99895464bfde02e8df6f7aa369dea0dfa3",
+      "bytes": 4597
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_planning.py",
+      "sha256": "f88aef6aa0f3af825c3f6aeaab83a4aa319ce373ed6e0e8c0b7938adebfcb547",
+      "bytes": 4082
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_reader.py",
+      "sha256": "7abf593c7497bd05a23e0d57144c75babf1cee510a4cd1169b6b6f89873a103b",
+      "bytes": 13440
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_recovery.py",
+      "sha256": "e29fda509eb0456ade3643dbb58896e1150c33e297b796c82ad7ff5acf02bd81",
+      "bytes": 13668
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_reprepare.py",
+      "sha256": "3908dc657f9f2fd598e3defb07ef82394f617b5d514252589a2cd0c02e33775d",
+      "bytes": 7174
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_retirement.py",
+      "sha256": "49316f7d2b87644be4e1a824244e39e4c7914d0882bdc8fecdc1cf458570dbcf",
+      "bytes": 27552
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_retry.py",
+      "sha256": "da2301b5fe5da76a79cad177ddc8feaca054a3205bb911550d27100d6cdcb825",
+      "bytes": 13915
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_roots.py",
+      "sha256": "cda8f8f16754160d303e7997fa65890dbc508790f8ff7ff5d912a7185ff73a1e",
+      "bytes": 17810
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_sender.py",
+      "sha256": "e4c383b3a4e111abe4d31802d6831ed7f81eea6fa3f8b3efdf1eb630e9d9b433",
+      "bytes": 21494
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_source_worker.py",
+      "sha256": "9540d26ae599032f3864bf5d50710de9abcfe1fcdad488f6510242b0c7b63866",
+      "bytes": 14574
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_storage_bootstrap.py",
+      "sha256": "6b81a4fe8f46a5c9816fc5d608d5e23fb3987e1bc1804f569d45dbbee8d1da63",
+      "bytes": 7372
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_support.py",
+      "sha256": "0cae8270442feea78c5127b707e2c86240bded5cece16fe974ad02f7e48a09ce",
+      "bytes": 5117
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_sync.py",
+      "sha256": "7f2ffa38e01f753eeeeb04d10e6fb1047d5e19e55d727a0585739110369539a6",
+      "bytes": 12769
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_transport.py",
+      "sha256": "973bf1e550f0a972c91fc174a61d72fdad5f6c769cf76af853a530bf1338444d",
+      "bytes": 8926
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_trash.py",
+      "sha256": "db917a04db51a621b01500c2214b98038b59693d760d938e26fa019de76d995b",
+      "bytes": 46401
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_trash_ui.py",
+      "sha256": "ca891f868c0ad45010c8ae427a4a3e18e3844bc22adf695193a627561da7c62e",
+      "bytes": 9953
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_native_book_json.py",
+      "sha256": "27fc4f7b5d1710180785ed7a3ec13ca4a2c86516d01566df5edc21556138d520",
+      "bytes": 1464
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_nextcloud.py",
+      "sha256": "8c3cac6032aa30fba04dd2719cd296cf4ab1df6c69a6a7e403db0aebdf8df726",
+      "bytes": 54657
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_office_profile.py",
+      "sha256": "097a148dc2d967f1cf47652f125820b426895faff0724659c708ddd7cb9b3e43",
+      "bytes": 3272
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_optional_phone.py",
+      "sha256": "733de95dd785ad913096caed697296a264c71fe9a7a7b0aaa11de98af6d37a34",
+      "bytes": 3259
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_or6.py",
+      "sha256": "e4576a8b1df12d064e5645e43beadfac7c390e6fc7f68e0c9bea9ab1e4ab58ac",
+      "bytes": 48746
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_own_profile.py",
+      "sha256": "97cad4979232bf0e7f6fe8c93acca872a2b1310b2d13f7db12e4aaf084534817",
+      "bytes": 1712
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_pdf.py",
+      "sha256": "d36878571b3e178ed15b9f74599aab037b2551ab4bcdc8c60485a2d4ac1c8ee7",
+      "bytes": 1765
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor.py",
+      "sha256": "f91762ab7d887d17d0deb3ed602dfa1713bdf4dbdbefdf5cc22d34b4dd041d87",
+      "bytes": 15719
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_completion.py",
+      "sha256": "1855165ce98adcf3c195294bcf1bc38e09812fdae631d26518f550f3d3a67645",
+      "bytes": 9369
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_decision_review.py",
+      "sha256": "67e2fb06ef80d5c201f3e84faf8c225af2a76337c954e89cf732d9c35df0d6f8",
+      "bytes": 13629
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_producer.py",
+      "sha256": "2364169c6213bcb59b8b6c05abe83e40d0eeae1d901b0f171db67a8839bcc407",
+      "bytes": 6874
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_projection.py",
+      "sha256": "097555984de8501f11c375e3b2711eae4fed33b2ed4d58c425c7ee80243120bf",
+      "bytes": 10753
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_report_owner.py",
+      "sha256": "4497bf35e83a737040deb2089eda71d666fd7cec7eb09686cdcfee56f185c4a7",
+      "bytes": 9629
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_restore_candidate.py",
+      "sha256": "c3c0892c800e579a2beae853f6d71204febc3c77b1912151f7aee76b7568c901",
+      "bytes": 8126
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_restore_source.py",
+      "sha256": "3aec0d9896d1969d7a7178a086ba53e0be23f9d9a32c3e62315091dde5d122e8",
+      "bytes": 5815
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_store.py",
+      "sha256": "bab6d7e7fd133d44917d53e077f7de500950ecb21d618daf8f71105b619261d5",
+      "bytes": 42098
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_target_evidence.py",
+      "sha256": "a921a9706fc8c67b593475bf9a3a24d0fb0e7469252d1b6f6cc9ed242f59aefc",
+      "bytes": 11820
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_target_review.py",
+      "sha256": "aa6db880a9d0871cd2fc916b6e40029a0ef3b9a090bafb8b594177f4a7a55cc1",
+      "bytes": 9815
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_actor_writer.py",
+      "sha256": "11b4efcd480111bd6aae1b32367c55cbda54a507a53975d1e25ca7a72c0fa996",
+      "bytes": 857
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_personal_sync.py",
+      "sha256": "6fb4b1289112463375be214d2e8bed6b70c84fb5c73d1a16b31412db95da201f",
+      "bytes": 42281
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_ack.py",
+      "sha256": "574a1bf2fc8a3702ddc73e81d1d7cf4077f1e4c15b7b3ece4fd717bc7dab10ee",
+      "bytes": 965
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_control.py",
+      "sha256": "6abd6b38f8fe6bfb0e9ffeab5a9e8fac5effd6f2dd63ef7c8abf6a04c203198d",
+      "bytes": 2559
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_exchange.py",
+      "sha256": "3526a64d464f8ef582d2b03af8366be4a59b7fa74b8dc6fbf1a21c117d55f02b",
+      "bytes": 8040
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_install.py",
+      "sha256": "25ff6a3c315c8fb0b38be9c34212907ebfacfc3cdda9e80ed76d8e3d03cee703",
+      "bytes": 4381
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_install_root.py",
+      "sha256": "89283ca45c8fd45864a4b0ba57df20648a9d818cf9984e446089fa61c4a263c7",
+      "bytes": 7877
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_provider.py",
+      "sha256": "3116286a5bc279aa7f86442459870b8fad1f443ce7e364dcfa117835e52ec2b0",
+      "bytes": 4650
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_pulse.py",
+      "sha256": "df415a82706b2cf50355b51d2bc15ee0daf15a5edd20aa61ba186311f7985fdc",
+      "bytes": 12321
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_receiver.py",
+      "sha256": "5e8ffdcc716d45704c3e21551eb26f9f2ade9ffe41c61ca9a99d102e71f74e77",
+      "bytes": 4282
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_runtime.py",
+      "sha256": "aedffef6ebfd23320135f93df5a15ff162b3b5d089040fe339ceeda7d1a4200f",
+      "bytes": 11459
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_setup.py",
+      "sha256": "f1788d2d07ab0c3d8079264c2c326df28189f0786dc67ff2ef4d175616ab14e7",
+      "bytes": 8761
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_transport.py",
+      "sha256": "ddfa3d1e94bf091ffd582791430e955d1f5684d72bb68c2b36e92e41795befe4",
+      "bytes": 5982
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_ui.py",
+      "sha256": "61f5c91f4d06c3fea5c97f7689feb6d84f67f6ed7234ea241c5f11fdf6dccbeb",
+      "bytes": 13820
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_contacts.py",
+      "sha256": "172dd70917a74dbb71103860a1b1146f7962dfb86b52169791e126ead1944726",
+      "bytes": 19180
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_region.py",
+      "sha256": "b030f47e785295e199749e86bc42208eb709fceaa7ce4e59a3556d47fb289411",
+      "bytes": 6285
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_screen_control.py",
+      "sha256": "62deb2d040ce22fba58940f0d5b7168dfe5387665e8060a71e2d7d6ccbf3b184",
+      "bytes": 21295
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_screen_local.py",
+      "sha256": "10c0fb6733bad892af6f9f945fbea4ea09748844154095d130e257983d7a9461",
+      "bytes": 21979
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_screen_transport.py",
+      "sha256": "a332ba39bb2dccf475c69f34a84aeb054476d141ad48ba5b2be977c677cee20f",
+      "bytes": 12398
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_screen_window.py",
+      "sha256": "005ce1659b6bf66e579136a03c040e7d5dede6a494e8afea03f17f2c13e2abb5",
+      "bytes": 13833
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_phone_webcam.py",
+      "sha256": "2f4369aa99c5de1b8cbd0513e300fa339f9dff4bc7f72fe0add46db7d02c14ab",
+      "bytes": 15248
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_destination.py",
+      "sha256": "55b5eb60edd89746247e751a816e0f387ecc26d36a6b10ccef1562f2766db5e0",
+      "bytes": 17569
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_destination_choice.py",
+      "sha256": "c7e51d38ed4cf3ca1fd73a1fc44c8bd914e30ff1a7e1f9477e78c174ccc08ba5",
+      "bytes": 13912
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_mapping_receipt.py",
+      "sha256": "85e35462592821b8ea3dc633ae3d6153922872d9841b5e56bd730cbad810889c",
+      "bytes": 6653
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_mapping_witness.py",
+      "sha256": "19c43bd334e37ffe5c9a5b4ca7dfa8d3599bbdf06ca5dd8944fec6647f37decc",
+      "bytes": 2359
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_mappings.py",
+      "sha256": "d4eaf18f4c3ec5a88490e53fd1cf8b3309ba2a120849437f95702f586594bc92",
+      "bytes": 42523
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_metadata.py",
+      "sha256": "8bb23e5150e0fffad79bb3e13eac3fb70a14cde2eb1a16f1f76fc013eaab3716",
+      "bytes": 4326
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_plan.py",
+      "sha256": "2c00db88c14c9672629fdb3fde07a0021b1951d38a1dd7bd0fd011c0254b4e2f",
+      "bytes": 7851
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_preferences.py",
+      "sha256": "75fa00e95b17d8accb52e8a4ad1086671a8eeadbeb1c3a5936fe8d6e9d93132c",
+      "bytes": 56579
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_relocation_dialog.py",
+      "sha256": "acdc6c0e2cd08176dcaf305f320fca0c6843d8bc5e7e3eed412e5355c85637f3",
+      "bytes": 5869
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_review.py",
+      "sha256": "bc452d83f9d69eee053dd7494193eefd845d04eb30e9891aa37e3daf83e2cf25",
+      "bytes": 712
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_schedule.py",
+      "sha256": "fe8111b280668a9193839698664e40e66eb86f55aabd97c5b648363c88c0a8e8",
+      "bytes": 5875
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_target.py",
+      "sha256": "120a6ce90b466517d8dcd86de953d6471f1cc3257ef41f6f4308521a0552a940",
+      "bytes": 5947
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_publication_journal.py",
+      "sha256": "02f722b527e9a088f8a0f762c26dc81806b85594180ddc9f1977528294329dc3",
+      "bytes": 16029
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_recurrence.py",
+      "sha256": "493908af65eb512fee92f312bbcb021d8fd3b4d46ae012a67cbd00d0026d5867",
+      "bytes": 49332
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_setup_state.py",
+      "sha256": "96400b61658647a544dba982ed20f6768d99346bec3b158605034970bcf86446",
+      "bytes": 56299
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_setup_ui.py",
+      "sha256": "d0e47e8f5fb88030f8bad38fdfe719f25304d1bc922ecd36a27c7e13eb86d867",
+      "bytes": 66228
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_shared_sync.py",
+      "sha256": "0ea3a67db2937cef462fec4fa59825b12905088658bbc1e33934cb5ab142ef4b",
+      "bytes": 7434
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_social_profiles.py",
+      "sha256": "ea965d543a4eb82ef097caf2d347213de498b62537ac4e5dc311909dc3ee2aa3",
+      "bytes": 4375
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_telefon.py",
+      "sha256": "278369dc96d0ac229d3e9c03c5b80a69cae40a60c4a1fea70893407c8abae61c",
+      "bytes": 684647
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_time_control.py",
+      "sha256": "06331dd860441f85a51bab1cc6adb2275cc923a7774c577900087a3b39cf4bf4",
+      "bytes": 4718
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_time_sync.py",
+      "sha256": "e16d03d6942b08b39c0a7bd2901d2c689d1fee6d9c5aeea671387b6c3e6d4ac9",
+      "bytes": 11847
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_timezone.py",
+      "sha256": "8d576074b6f65df49f67416ee391ddadbe8300f6b1f7f5418d0b1841fd4fc4bd",
+      "bytes": 8564
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_transfer_job_catalog.py",
+      "sha256": "f10ec08f48e3d9952823dfa5f9402b3a9184b1820c68307c180f0e6f4e407e48",
+      "bytes": 36855
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_transfer_job_index.py",
+      "sha256": "5ecc2df843c2278ad31a4d723f3c87815191e9e83b8f7e20c3c3afc017b57409",
+      "bytes": 33756
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_versand.py",
+      "sha256": "ef0b10ddcf796a2a5deca5019e11af335fd0162d72d34de66e25efb0d497d3c3",
+      "bytes": 17234
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/fixtures/caldav-series-resource.ics",
+      "sha256": "670de67684a9563555fe42837e2740572ff77f00375df4c213e329f41fdfccf5",
+      "bytes": 996
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "sha256": "5ae2e11bb57ce9c29bb4a7252907a7a27aca593ab7405a2ec0e017d3499cba3e",
+      "bytes": 2892419
+    },
+    {
+      "path": "magnolie-organizer/web/appearance.js",
+      "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+      "bytes": 19579
+    },
+    {
+      "path": "magnolie-organizer/web/i18n.js",
+      "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+      "bytes": 8326
+    },
+    {
+      "path": "magnolie-organizer/web/index.html",
+      "sha256": "24e3806b8a057693e289ac94ebb879f851c317a27064b0bc307db10da0829ea0",
+      "bytes": 7311
+    },
+    {
+      "path": "magnolie-organizer/web/normative-timezones.js",
+      "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+      "bytes": 460397
+    },
+    {
+      "path": "magnolie-organizer/web/zeichenblatt.js",
+      "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+      "bytes": 43898
+    },
+    {
+      "path": "port-adapters/timezones/LICENSE-tzdb.txt",
+      "sha256": "0613408568889f5739e5ae252b722a2659c02002839ad970a63dc5e9174b27cf",
+      "bytes": 252
+    },
+    {
+      "path": "port-adapters/timezones/bootstrap.template.js",
+      "sha256": "8600c43c7007aa701545c1145a30e54ac8da9bcf7805b47378abe5ad37131554",
+      "bytes": 640
+    },
+    {
+      "path": "port-adapters/timezones/port-runtime.js",
+      "sha256": "7fe5e5f5c44c0c601579fff1e91038402ff1cd7866b5963cb84372df74bd7ac6",
+      "bytes": 6970
+    },
+    {
+      "path": "port-adapters/timezones/projection-assets.cjs",
+      "sha256": "43af5b9ef3b8cfd1b2e12825fef2f9709d3f09f6c52aca6fe95adf0921a19a4f",
+      "bytes": 1321
+    },
+    {
+      "path": "port-adapters/timezones/provenance.json",
+      "sha256": "b6b926b73620b3ab9ba477195041e52925ee6b12376791e647f70beba6bcc2a0",
+      "bytes": 1585
+    },
+    {
+      "path": "port-adapters/timezones/resolver.js",
+      "sha256": "052009fbe3fedeb3d59c937ddf6c8ac924f52d13c5992bc1b9d27fc355acf2da",
+      "bytes": 14105
+    },
+    {
+      "path": "port-adapters/timezones/tzdb-2026egtz.json",
+      "sha256": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c",
+      "bytes": 428473
+    }
+  ],
+  "inputs_unchanged_during_runs": true,
+  "head_after": "da81f594a2709d2c0ba78696b3af4775f38313f8",
+  "unstaged_product_changes_after": "",
+  "results": [
+    {
+      "program": "appointment-organizer-suggestions.js",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/tests/appointment-organizer-suggestions.js"
+      ],
+      "cwd": "/workspace/scratch/69a9d769e56f/outbox-latest-current",
+      "environment_overrides": {
+        "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "MAGNOLIE_PYTHON": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3"
+      },
+      "unset_inherited_environment": "All MAGNOLIE_* variables before explicit overrides",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 3.017,
+      "log": "appointment-organizer-suggestions.js.log",
+      "log_sha256": "2ea8c8de5aea2ef2109cdbfdebf4fc539941d4331fd2434893b48175eea6b9d8",
+      "summary_lines": [
+        "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web \u00b7 five regular open/close cycles build no unused organizer options",
+        "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web \u00b7 focus and each query stay bounded while the last contact and company remain reachable",
+        "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web \u00b7 duplicate names keep all exact-name email choices and free organizer input still saves",
+        "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web \u00b7 editing retains the selected organizer and exact-name email choices before focus",
+        "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web \u00b7 an exact name after more than one chunk of partial matches remains selectable",
+        "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web \u00b7 five regular open/close cycles build no unused organizer options",
+        "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web \u00b7 focus and each query stay bounded while the last contact and company remain reachable",
+        "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web \u00b7 duplicate names keep all exact-name email choices and free organizer input still saves",
+        "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web \u00b7 editing retains the selected organizer and exact-name email choices before focus",
+        "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web \u00b7 an exact name after more than one chunk of partial matches remains selectable",
+        "10/10 organizer suggestion cases passed (actual desktop JavaScript in JSDOM)"
+      ],
+      "passed": true
+    },
+    {
+      "program": "calendar-colour-remainders.js",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/tests/calendar-colour-remainders.js"
+      ],
+      "cwd": "/workspace/scratch/69a9d769e56f/outbox-latest-current",
+      "environment_overrides": {
+        "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "MAGNOLIE_PYTHON": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3"
+      },
+      "unset_inherited_environment": "All MAGNOLIE_* variables before explicit overrides",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 8.05,
+      "log": "calendar-colour-remainders.js.log",
+      "log_sha256": "802ec9397443f66d48f86d31f87aa0577732f2524d6491382e313e85b48a8707",
+      "summary_lines": [],
+      "passed": true
+    },
+    {
+      "program": "legacy-android-instance-ui.js",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/tests/legacy-android-instance-ui.js"
+      ],
+      "cwd": "/workspace/scratch/69a9d769e56f/outbox-latest-current",
+      "environment_overrides": {
+        "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "MAGNOLIE_PYTHON": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3"
+      },
+      "unset_inherited_environment": "All MAGNOLIE_* variables before explicit overrides",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 2.986,
+      "log": "legacy-android-instance-ui.js.log",
+      "log_sha256": "20e1beae7ccdbc8f83d6f8729a9e7898876cdfbb9fbab2e4d91ca47e74e045bc",
+      "summary_lines": [
+        "PASS magnolie-organizer/web: actual Python codec, old alias reimport/save/frontend reopen, full source/RID boundaries, ambiguous inputs and concurrent book edit",
+        "PASS magnolie-organizer-windows/app/web: actual Python codec, old alias reimport/save/frontend reopen, full source/RID boundaries, ambiguous inputs and concurrent book edit"
+      ],
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "limits": [
+    "Exactly the three requested programs ran; no full suite or additional product test was executed.",
+    "Both actual desktop frontend sources ran in JSDOM; no GTK/WebView native rendering or installed-package acceptance.",
+    "Calendar color tests used their built-in synthetic DTO inputs, not native Windows codec outputs.",
+    "Legacy alias tests used the actual current Python codec with the repository synthetic ICS fixture; no native Windows codec execution.",
+    "Save acknowledgments, timers and bridge behavior are synthetic test harness behavior.",
+    "No product source changes, dependency installation, external mutation or release."
+  ]
+}

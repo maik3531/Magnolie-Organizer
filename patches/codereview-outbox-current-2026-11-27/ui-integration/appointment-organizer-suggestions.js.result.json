@@ -1,0 +1,33 @@
+{
+  "program": "appointment-organizer-suggestions.js",
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "/workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/tests/appointment-organizer-suggestions.js"
+  ],
+  "cwd": "/workspace/scratch/69a9d769e56f/outbox-latest-current",
+  "environment_overrides": {
+    "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "MAGNOLIE_PYTHON": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3"
+  },
+  "unset_inherited_environment": "All MAGNOLIE_* variables before explicit overrides",
+  "exit_code": 0,
+  "timed_out": false,
+  "seconds": 3.017,
+  "log": "appointment-organizer-suggestions.js.log",
+  "log_sha256": "2ea8c8de5aea2ef2109cdbfdebf4fc539941d4331fd2434893b48175eea6b9d8",
+  "summary_lines": [
+    "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web \u00b7 five regular open/close cycles build no unused organizer options",
+    "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web \u00b7 focus and each query stay bounded while the last contact and company remain reachable",
+    "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web \u00b7 duplicate names keep all exact-name email choices and free organizer input still saves",
+    "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web \u00b7 editing retains the selected organizer and exact-name email choices before focus",
+    "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web \u00b7 an exact name after more than one chunk of partial matches remains selectable",
+    "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web \u00b7 five regular open/close cycles build no unused organizer options",
+    "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web \u00b7 focus and each query stay bounded while the last contact and company remain reachable",
+    "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web \u00b7 duplicate names keep all exact-name email choices and free organizer input still saves",
+    "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web \u00b7 editing retains the selected organizer and exact-name email choices before focus",
+    "PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web \u00b7 an exact name after more than one chunk of partial matches remains selectable",
+    "10/10 organizer suggestion cases passed (actual desktop JavaScript in JSDOM)"
+  ],
+  "passed": true
+}

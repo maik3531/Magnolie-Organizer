@@ -1,0 +1,21 @@
+{
+  "program": "calendar-colour-remainders.js",
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "/workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/tests/calendar-colour-remainders.js"
+  ],
+  "cwd": "/workspace/scratch/69a9d769e56f/outbox-latest-current",
+  "environment_overrides": {
+    "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "MAGNOLIE_PYTHON": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3"
+  },
+  "unset_inherited_environment": "All MAGNOLIE_* variables before explicit overrides",
+  "exit_code": 0,
+  "timed_out": false,
+  "seconds": 8.05,
+  "log": "calendar-colour-remainders.js.log",
+  "log_sha256": "802ec9397443f66d48f86d31f87aa0577732f2524d6491382e313e85b48a8707",
+  "summary_lines": [],
+  "passed": true
+}

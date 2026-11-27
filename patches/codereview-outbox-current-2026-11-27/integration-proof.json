@@ -1,0 +1,53 @@
+{
+  "base": "7c9f9395ac7fcac03b0ce229f9707643be4b06fa",
+  "base_tree": "1a7ee04e5564ed5ce902c74db9fe74931af85843",
+  "result_tree": "f4f9817658165bd84d434d34c7ddcce3f32486f4",
+  "series": [
+    {
+      "path": "series/01-691-outbox-route-quota.patch",
+      "bytes": 3851,
+      "sha256": "dd760e07baaf64a43cfe12d2d1b05d559e39e0b3b29c3586021d839db067ff3b",
+      "tree": "e0a78f648a8dbb1700a37c68d109eb2084b00e44"
+    },
+    {
+      "path": "series/02-128-actor-queue-fairness.patch",
+      "bytes": 42494,
+      "sha256": "a13ffa0a5d96e92cf17292ae2e63a0bf403493b1b03c0ccf827b535fbb0ca28e",
+      "tree": "f4f9817658165bd84d434d34c7ddcce3f32486f4"
+    }
+  ],
+  "combined_patch": "remaining-review-after-7c9f9395.patch",
+  "combined_bytes": 45797,
+  "combined_sha256": "7baaf9ede4c21fbaff3688e44ef3a82b689c53b93713abff316f91410a809945",
+  "series_forward_reverse": true,
+  "combined_forward_reverse": true,
+  "only_differences_from_previous_tested_integration": [
+    "ARBEITSSTAND.md",
+    "contracts/mcp-coverage.md",
+    "magnolie-organizer-windows/tests/web-smoke.js"
+  ],
+  "product_sources_identical_to_executed_tests": {
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt": "91717d718ee81e0f0ec7f369876c6e42c1c8ec6cf757467d4538b314f57accf3",
+    "magnolie-organizer/bin/magnolie_telefon.py": "278369dc96d0ac229d3e9c03c5b80a69cae40a60c4a1fea70893407c8abae61c",
+    "magnolie-organizer-windows/TelefonStore.cs": "323767a31037e5e3e0103fc192239dea3cb276898c468f296fd44f7734ae3090",
+    "magnolie-organizer-windows/TelefonCoordinator.cs": "2a7a50248cd788f1abe74eadd2c0280001824dea80de50f26805bfdda531de22",
+    "magnolie-organizer-windows/app/web/anwendung.js": "91f5578c2a8a5ba86ca7854f3fdcdea29c05e37a0385d75b7ac673eae67c28a3",
+    "magnolie-organizer/web/anwendung.js": "5ae2e11bb57ce9c29bb4a7252907a7a27aca593ab7405a2ec0e017d3499cba3e"
+  },
+  "upstream_additions_preserved": [
+    "MCP start/status/cancel described as full names",
+    "web-smoke organizer focus before reading lazy suggestions",
+    "all previous upstream additions from da81"
+  ],
+  "changed_paths": [
+    "ARBEITSSTAND.md",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt",
+    "magnolie-organizer-windows/TelefonCoordinator.cs",
+    "magnolie-organizer-windows/TelefonStore.cs",
+    "magnolie-organizer-windows/tests/Program.cs",
+    "magnolie-organizer-windows/tests/TelefonOutboxFairnessTests.cs",
+    "magnolie-organizer/bin/magnolie_telefon.py",
+    "magnolie-organizer/pruefungen/test_telefon_outbox_actor_fairness.py"
+  ],
+  "test_boundary": "Previously executed source-bound Notes/Python/.NET/JSDOM runs retained; current replay proves identical product inputs. No new native acceptance."
+}

@@ -1,0 +1,235 @@
+{
+  "description": "All delivery files except this manifest. The identical CONTINUE.md is additionally published at patches/CODEREVIEW-WEITER.md for later runs.",
+  "files": [
+    {
+      "path": "CONTINUE.md",
+      "bytes": 8445,
+      "sha256": "524b389d5a62d0e2fece612e833838d5ee7ba7244711d86843d8d32d58dd2787"
+    },
+    {
+      "path": "README.md",
+      "bytes": 7519,
+      "sha256": "2cc81b65e4f8414b47d01f551ae2c2ea33fd7ed48354627f40dc6b5076ba1a96"
+    },
+    {
+      "path": "desktop-128/README.md",
+      "bytes": 10199,
+      "sha256": "78b47a7fa8972c03acfb5ffc240d86bdc33c1c588ec64805a7664280cef45430"
+    },
+    {
+      "path": "desktop-128/SHA256SUMS",
+      "bytes": 2322,
+      "sha256": "d796353255e2ea16de55cf77d6fc08054a3e8cee0abbb350ad92d916874ece5c"
+    },
+    {
+      "path": "desktop-128/WindowsProgressProbe.cs",
+      "bytes": 4028,
+      "sha256": "069bedc8b56912c03e576045112c35d951f9e94b11b689bff1ea1d2140693d63"
+    },
+    {
+      "path": "desktop-128/build_progress_probe.py",
+      "bytes": 1711,
+      "sha256": "b71450726391cbf9434e7d4c6620b3ffafdb412bda23dcdb1ebfcd1cd8a43d20"
+    },
+    {
+      "path": "desktop-128/desktop-128-actor-queue-fairness.patch",
+      "bytes": 42494,
+      "sha256": "a13ffa0a5d96e92cf17292ae2e63a0bf403493b1b03c0ccf827b535fbb0ca28e"
+    },
+    {
+      "path": "desktop-128/linux-admission-candidate-negative.log",
+      "bytes": 6911,
+      "sha256": "eff19765aba7bd7001363ce2a3b07cede58e18e2afd9436849fcdb5de7d98623"
+    },
+    {
+      "path": "desktop-128/linux-fairness-final.log",
+      "bytes": 99,
+      "sha256": "2b024a082c303eb3d4449566d6963d52fe926fc7c3fb416c05a234215d0389bd"
+    },
+    {
+      "path": "desktop-128/linux-progress-baseline.json",
+      "bytes": 460,
+      "sha256": "ca755dc2af89cd1c4a9a88d7968775ed9c4bc27bba49761db31b121cbe44020e"
+    },
+    {
+      "path": "desktop-128/linux-progress-fairness-final.json",
+      "bytes": 465,
+      "sha256": "1ad0371e3bb5d8ae371bd3dfe90ae9220e11ac10f6721ca55014a2e2205086bb"
+    },
+    {
+      "path": "desktop-128/linux-regression.log",
+      "bytes": 99,
+      "sha256": "5af70ecbdcaa9c0bcc0be320a63723e61fbb359ae43fbb8c8b5350f547e91877"
+    },
+    {
+      "path": "desktop-128/linux_progress_probe.py",
+      "bytes": 3063,
+      "sha256": "1d8e00f81773335d23d4207efce255ba75283e0cbd5f5cd350c0c7a941ec8bdc"
+    },
+    {
+      "path": "desktop-128/manifest.json",
+      "bytes": 4491,
+      "sha256": "a61cfdf8ae524d4b6f732cf8142fb8b1f07c1452e6a4f5cc4471103926f112e3"
+    },
+    {
+      "path": "desktop-128/progress-baseline-build.log",
+      "bytes": 191,
+      "sha256": "4c063be01cb3f6329ca60455b301e5747e56fc8834d09d19af77ad147e048fc9"
+    },
+    {
+      "path": "desktop-128/progress-fairness-build.log",
+      "bytes": 191,
+      "sha256": "890d14bfd3f9ead775d6f2eb3c20d14d086ece33f4fc297b1780de8d73b1748f"
+    },
+    {
+      "path": "desktop-128/rejected-linux-cursor-candidate.patch",
+      "bytes": 5370,
+      "sha256": "96bdd3f063b2422bd7f2f856e2001cdbb719edd45c964f90336c92dd7bbaec6a"
+    },
+    {
+      "path": "desktop-128/verify_replay.py",
+      "bytes": 1556,
+      "sha256": "2e20bc86b992f7a2f812d6937db2f4fe55e3de65af8a53e31c5eb903c88ec3c9"
+    },
+    {
+      "path": "desktop-128/windows-fairness-final.log",
+      "bytes": 139,
+      "sha256": "84e3fc89595c99ada383b5878abd2fe3888e282986e5c67562dde50f2eb5432b"
+    },
+    {
+      "path": "desktop-128/windows-final-build.log",
+      "bytes": 187,
+      "sha256": "38d52c384018bcba3762e2e05751100fb341aa97aff501fc70fab6dda58b0e43"
+    },
+    {
+      "path": "desktop-128/windows-progress-baseline.json",
+      "bytes": 613,
+      "sha256": "664cabb6b1b8a49264ad7bcb19303e71e56dcea4252e332e4938bffb6f33175b"
+    },
+    {
+      "path": "desktop-128/windows-progress-fairness.json",
+      "bytes": 614,
+      "sha256": "a3f931828a939e4b2d29ac860bf2dfa68509326c6838ef5331f4321caf30e39c"
+    },
+    {
+      "path": "desktop-128/windows-regression-1.log",
+      "bytes": 128,
+      "sha256": "7af365fcdf2d1a9d70cc47b45e6e4d0c4e1591a4c2b6b83fe06654c2f4ca1ece"
+    },
+    {
+      "path": "desktop-128/windows-regression-2.log",
+      "bytes": 143,
+      "sha256": "8bf014db780df9ac20bbb187b8b7bbdc1a3ee1090fb8e7c63683995eb49128eb"
+    },
+    {
+      "path": "desktop-128/windows-regression-3-with-zoneinfo.log",
+      "bytes": 269,
+      "sha256": "0c45008df8ceba20f4da81a5795cf4447d1f66cb95d0b9e12cf86fe494036f18"
+    },
+    {
+      "path": "desktop-128/windows-regression-3.log",
+      "bytes": 3404,
+      "sha256": "f5f4ea182ec43a328158219a5b7dee334d91b2c7ce764bbc0eca418248c6a57c"
+    },
+    {
+      "path": "desktop-128/windows-regression-4.log",
+      "bytes": 148,
+      "sha256": "0490e03d1a0f2c71b54297518314e2aa376d68df15ffdd62c89708b13e352c25"
+    },
+    {
+      "path": "desktop-128/windows-regression-5.log",
+      "bytes": 133,
+      "sha256": "25fa6dea18848f507f5f0aef45b73e96e0337e550d0966745959dbe702189ae4"
+    },
+    {
+      "path": "integration-proof.json",
+      "bytes": 2751,
+      "sha256": "45b1a8939485fa1b89e88cd2b851a22fc4a9cc716ca0f45ba6b4999694c81af5"
+    },
+    {
+      "path": "remaining-review-after-7c9f9395.patch",
+      "bytes": 45797,
+      "sha256": "7baaf9ede4c21fbaff3688e44ef3a82b689c53b93713abff316f91410a809945"
+    },
+    {
+      "path": "series/01-691-outbox-route-quota.patch",
+      "bytes": 3851,
+      "sha256": "dd760e07baaf64a43cfe12d2d1b05d559e39e0b3b29c3586021d839db067ff3b"
+    },
+    {
+      "path": "series/02-128-actor-queue-fairness.patch",
+      "bytes": 42494,
+      "sha256": "a13ffa0a5d96e92cf17292ae2e63a0bf403493b1b03c0ccf827b535fbb0ca28e"
+    },
+    {
+      "path": "ui-integration/README.md",
+      "bytes": 4739,
+      "sha256": "f30b589c174622e490c6521851c5ddbb512011d8cc0fef6b3cb632471dcd837b"
+    },
+    {
+      "path": "ui-integration/SHA256SUMS",
+      "bytes": 882,
+      "sha256": "672fc69b9d44bf06e04f7fa8153dc2744d644be9ec904453e3d77080562792ca"
+    },
+    {
+      "path": "ui-integration/appointment-organizer-suggestions.js.log",
+      "bytes": 2045,
+      "sha256": "2ea8c8de5aea2ef2109cdbfdebf4fc539941d4331fd2434893b48175eea6b9d8"
+    },
+    {
+      "path": "ui-integration/appointment-organizer-suggestions.js.result.json",
+      "bytes": 2820,
+      "sha256": "fbd7a1cdf45779b3e903fddeb8c4b4d78e658aa967369dbe0c0df6139b5b1738"
+    },
+    {
+      "path": "ui-integration/calendar-colour-remainders.js.log",
+      "bytes": 268,
+      "sha256": "802ec9397443f66d48f86d31f87aa0577732f2524d6491382e313e85b48a8707"
+    },
+    {
+      "path": "ui-integration/calendar-colour-remainders.js.result.json",
+      "bytes": 898,
+      "sha256": "847faf06905244e83391a95d41032ecedd9e33799c17add36b1c0413a7f3d87f"
+    },
+    {
+      "path": "ui-integration/legacy-android-instance-ui.js.log",
+      "bytes": 334,
+      "sha256": "20e1beae7ccdbc8f83d6f8729a9e7898876cdfbb9fbab2e4d91ca47e74e045bc"
+    },
+    {
+      "path": "ui-integration/legacy-android-instance-ui.js.result.json",
+      "bytes": 1249,
+      "sha256": "953712016f1d8bd0f27b50b4fb7ddadae9da6624c9f9ec030b81108c96310c96"
+    },
+    {
+      "path": "ui-integration/manifest.json",
+      "bytes": 82613,
+      "sha256": "7743ed588a92888938335be257428ae1c1e070b2f1ab3fbde561dba86fb3ad14"
+    },
+    {
+      "path": "ui-integration/run_ui_integration.py",
+      "bytes": 8526,
+      "sha256": "4830b975acf0ff01d16931564ce53f7c133a154da0a7090cc2a4bec462252aa7"
+    },
+    {
+      "path": "upstream-adoption-current.json",
+      "bytes": 8148,
+      "sha256": "3c34c67fc2e2cadcb9a6f6b4ca81f16c5064f906702a987a8dd99aea750aaedb"
+    },
+    {
+      "path": "upstream-adoption-current.md",
+      "bytes": 5570,
+      "sha256": "f55f8772e9d529c8f5c3d7083f132952717a3abe52fb3fe26d0046971f09cc6f"
+    },
+    {
+      "path": "upstream-adoption-review.json",
+      "bytes": 11250,
+      "sha256": "dc286e11c492bc3cc030f2d186b5fcc6e0d5d9191b3989ad426e886f19621fae"
+    },
+    {
+      "path": "upstream-adoption-review.md",
+      "bytes": 6929,
+      "sha256": "44e75f724205b657fb4220543ecf192ae2737781320c5321f270903693cf5ec5"
+    }
+  ]
+}

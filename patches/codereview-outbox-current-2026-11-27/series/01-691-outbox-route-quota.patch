@@ -1,0 +1,63 @@
+From e9f4a41c87c2ef708e0c357fa76e64b339c5e313 Mon Sep 17 00:00:00 2001
+From: Codex <codex@users.noreply.github.com>
+Date: Fri, 27 Nov 2026 21:57:54 +0100
+Subject: [PATCH] Refs #691: Keep LAN-waiting outbox entries out of the
+ delivery quota
+
+---
+ ARBEITSSTAND.md                               | 27 +++++++++++++++++++
+ .../maik3531/magnolienotes/baum/Baumwerk.kt   |  6 ++++-
+ 2 files changed, 32 insertions(+), 1 deletion(-)
+
+diff --git a/ARBEITSSTAND.md b/ARBEITSSTAND.md
+index 4709311..da261a2 100644
+--- a/ARBEITSSTAND.md
++++ b/ARBEITSSTAND.md
+@@ -1642,3 +1642,30 @@ Vorhersage-Prüfaussagen, 113 Desktop- und 321 Kontaktgeburtstagsprüfungen.
+ Dazu kommen 95 Python-Fälle und auf dem vorhandenen Windows-Rechner 1.114
+ C#-Prüfaussagen. Beide Sprachkataloge enthalten die neuen Texte aus den
+ beiden Patchserien. Die installierte Benachrichtigungsprüfung bleibt offen.
++
++## Notes #691: wartende LAN-Sendungen blockieren andere Wege nicht
++
++Der Reviewpatch auf `9de81cc1` zählt ausschließlich auf eine fehlende
++LAN-Freigabe wartende Nachrichten nicht mehr als verbrauchten Zustellversuch
++des aktuellen Postfachlaufs. Erreichbare, bereits freigegebene öffentliche
++Fernziele und Bluetooth-Wege hinter solchen Nachrichten können weiterarbeiten.
++Der LAN-Wartefall löscht keine Nachricht und erhöht weder Retry-Zähler noch
++Backoff. Für bereits vorbereitete FS1-Fixtures bleiben sämtliche Felder
++unverändert. Die vorhandene Legacy-Vorbereitung kann weiterhin vor der
++LAN-Prüfung einen Umschlag, Quittungsmetadaten und Partnerzähler reservieren.
++
++20 kontrollierte JVM-Fälle mit der unverändert übernommenen Produktmethode,
++dem tatsächlichen Sendungsmodell und den tatsächlichen reinen LAN-Prüfungen
++bestanden; fünf dieser Fälle scheiterten vor der Korrektur. Enthalten ist der
++reguläre Höchstwert von 64 Zustellversuchen mit 70 davor wartenden LAN-Sendungen.
++Zeitbudget, Sendelimit, Legacy-Reihenfolge und unsichere Zustellbelege sowie
++Generations-/Wiederherstellungssperren bleiben geprüft erhalten. Gesonderte
++Fälle erhalten das bisherige Versuchslimit bei leerer oder fehlgeschlagener
++Sendungsvorbereitung und bei einem danach fehlenden Partner.
++
++Der Befund betrifft den Freigabeweg des ausdrücklich gebauten Target-37-
++Kandidaten aus #691. Der reguläre Quellbau zielt weiterhin auf API 35; eine
++Regression eines installierten Notes-Pakets wird daraus nicht abgeleitet.
++Die Android-/Paarprüfung, echte OS-Routen und signierte Internetzustellung
++wurden durch diese Hostprüfung nicht ausgeführt. Der automatische
++Gesamtabgleich über weitere Transportarten aus #128 bleibt davon getrennt.
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt
+index ae3128a..3f417a6 100644
+--- a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt
+@@ -941,7 +941,11 @@ class Baumwerk private constructor(
+             }
+             val bekannteTransporte = Versand.wegeZu(partner, ablage.baum.value.bluetoothAn)
+             val transporte = bekannteTransporte.filter { it !is WlanTransport || !it.wartetAufLan() }
+-            if (transporte.isEmpty() && bekannteTransporte.isNotEmpty()) continue // wait, no failed-attempt/deletion
++            if (transporte.isEmpty() && bekannteTransporte.isNotEmpty()) {
++                // Only a LAN wait refunds this run's attempt; preparation failures keep their bound.
++                versucht--
++                continue // wait, no failed-attempt/deletion
++            }
+             if (transporte.isEmpty()) {
+                 fehlversuch(sendung, "Für diesen Zweig ist kein Weg bekannt.")
+                 continue

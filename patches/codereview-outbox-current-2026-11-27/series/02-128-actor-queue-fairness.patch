@@ -1,0 +1,687 @@
+diff --git a/ARBEITSSTAND.md b/ARBEITSSTAND.md
+index 4709311..c0044cf 100644
+--- a/ARBEITSSTAND.md
++++ b/ARBEITSSTAND.md
+@@ -1,5 +1,46 @@
+ # Aktueller Arbeitsstand
+ 
++## Review-Teilpatch #128: begrenzter Fortschritt hinter wartenden Actor-Nachrichten
++
++- Basis dieses separaten Review-Patches ist `9de81cc10d72ca7b176b5c501ff20689cdd53c31`.
++  Die spätere Übernahme gehört zu [#128](https://github.com/maik3531/Magnolie-Organizer/issues/128).
++- Linux und Windows können im gewöhnlichen Telefon-Sender ein volles Fenster
++  aus 32 derzeit nicht sendbaren, reservierten Actor-Nachrichten schrittweise
++  übergehen. Pro Fenster werden höchstens 32 Rohzeilen geladen. Der Fortschritts-
++  schlüssel gehört zur aktuellen Verbindung; Steuerpakete behalten ihren
++  Vorrang. Gewöhnliche Queue-/Actor-Lesezugriffe verschieben keinen Cursor.
++  Linux verwendet den Fortschritt nur ohne aktuellen Actor-Owner am Kanal;
++  auch vorübergehend wartende vorhandene Owner behalten die Kopf-Auswahl.
++  Eine zwischenzeitlich neu verfügbare Admission kann aus einer vorgerückten
++  gewöhnlichen Seite keine Actor-Nachricht senden.
++- Vorher/nachher mit 65 geschützten Actor-Umschlägen und anschließendem
++  Statusauftrag: gleiche Fortschrittsanforderung auf der Basis fehlgeschlagen,
++  mit Patch nach drei Pump-Aufrufen erfüllt; Actor-Versuche bleiben null und
++  die Originalumschläge erhalten. Windows verwendet dabei den echten
++  `PumpOutboxNowAsync`-Einstieg im .NET-Quellhost unter Linux. Linux prüft den
++  ursprünglichen Store-/Sender-Ablauf und anschließend den echten neuen
++  Receiver-Pump nach Wiederöffnen des gespeicherten Test-Stores.
++- Zwölf neue und zehn bestehende gezielte Python-Fälle sowie sechs gezielte
++  .NET-Testgruppen bestanden. Geprüft sind unter anderem gleiche Zeitstempel,
++  mehr als 64 Actor-Nachrichten, spätere Steuerpakete, Cursor-Rücklauf,
++  Sitzungswechsel, tatsächlich erlaubte Linux-Actor-Sendungen, unverändertes
++  `wifi_only`, normale Time-/Shared-Wartezustände und Windows-Rohseiten mit
++  zurückgestellten Produzenten bzw. bereinigten ungültigen Zeilen. Die
++  Produzenten-Wartefixture prüft die Store-Auswahl mit synthetischen Metadaten,
++  keinen vollständigen nativen Produzenten-Lebenszyklus.
++- Der erste Linux-Cursor-Kandidat verletzte bei zwischenzeitlich verfügbarer
++  Admission die bisherige Actor-Reihenfolge. Drei gezielte Negativfälle waren
++  damit rot und bestanden nach der Beschränkung auf ownerlose Seiten,
++  einschließlich eines Admissionswechsels nach dem Lesen des Fensters.
++- Ein anfänglicher Protokoll-Gruppenlauf scheiterte am fehlenden Host-Eintrag
++  `US/Eastern`; mit dem vorhandenen vollständigen Zeitzonenbestand über `TZDIR`
++  bestand dieselbe Gruppe. Keine Produktänderung für dieses Host-Setup.
++- Keine Aktivierung von `auto_connection`, keine neuen Freigaben oder
++  Nachrichtenlebenszeiten, kein automatischer Internettransport. Andere
++  gewöhnliche Wartezustände werden durch diesen engen Teilpatch nicht umgangen.
++  Notes ist von diesem Desktop-Patch nicht verändert. Native Windows-/Geräte-
++  und Paketabnahme sind damit nicht nachgewiesen; #128 bleibt offen.
++
+ Die geprüften Einzelissues sind abgeschlossen; die weiterhin benötigten
+ Paket- und Geräteprüfungen sind in [#113](https://github.com/maik3531/Magnolie-Organizer/issues/113#issuecomment-7215114176)
+ und [#121](https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7215113730)
+diff --git a/magnolie-organizer-windows/TelefonCoordinator.cs b/magnolie-organizer-windows/TelefonCoordinator.cs
+index ab2a7b8..1909759 100644
+--- a/magnolie-organizer-windows/TelefonCoordinator.cs
++++ b/magnolie-organizer-windows/TelefonCoordinator.cs
+@@ -2595,9 +2595,12 @@ internal sealed partial class TelefonConnection : IDisposable
+         finally { store.NotePolicyGate.Release(); }
+     }
+ 
++    private TelefonOutboxCursor? outboxActorWindow;
++
+     private async Task PumpOutboxUnderNotePolicyAsync()
+     {
+-        var now = Now(); foreach (var item in store.Due(peer.Id, now, transport: transport))
++        var now = Now(); var window = store.PumpWindow(peer.Id, now, transport, outboxActorWindow);
++        foreach (var item in window.Messages)
+         {
+             var kind = item.Message["kind"]!.GetValue<string>(); var body = item.Message["body"]!.AsObject();
+             if (PhoneCameraControl.IsReserved(kind, body)) continue;
+@@ -2677,6 +2680,10 @@ internal sealed partial class TelefonConnection : IDisposable
+             else await SendScopedOrPlainAsync(item.Message);
+             store.MarkAttempt(item.Id, item.Attempts, now);
+         }
++        // ActorPump retains its own authorized due/ACK selection. This cursor
++        // belongs only to this connection's ordinary sender and moves only
++        // past full pages of reserved actor data, never ordinary policy waits.
++        outboxActorWindow = window.Advance;
+     }
+     private static void ValidateControlUuidAndTime(JsonObject value)
+     { if (!TelefonProtocolContract.IsUuidV4(value["ping_id"]?.GetValue<string>()) || !TelefonProtocolContract.TryInteger(value["sent_ms"], out var sent) || sent is < 0 or > 253402300799999) throw new InvalidDataException("Ungültiger Heartbeat."); }
+diff --git a/magnolie-organizer-windows/TelefonStore.cs b/magnolie-organizer-windows/TelefonStore.cs
+index f056294..e0d8fe6 100644
+--- a/magnolie-organizer-windows/TelefonStore.cs
++++ b/magnolie-organizer-windows/TelefonStore.cs
+@@ -800,22 +800,43 @@ internal sealed partial class TelefonStore
+     }
+ 
+     internal IReadOnlyList<TelefonQueuedMessage> Due(string peerId, long now, int maximum = 32, string transport = "wifi")
++        => ReadDue(peerId, now, maximum, transport, null, false).Messages;
++
++    internal TelefonOutboxWindow PumpWindow(string peerId, long now, string transport, TelefonOutboxCursor? after)
++        => ReadDue(peerId, now, 32, transport, after, true);
++
++    private TelefonOutboxWindow ReadDue(string peerId, long now, int maximum, string transport,
++        TelefonOutboxCursor? after, bool boundedWindow)
+     {
+-        if (RestoreFenced) return [];
++        if (RestoreFenced) return new([], null);
+         var result = new List<TelefonQueuedMessage>();
++        TelefonOutboxCursor? lastData = null;
++        var actorsOnly = true; var hasActor = false; var fullWindow = false;
+         lock (gate)
+         {
+-            if (RestoreFenced) return [];
++            if (RestoreFenced) return new([], null);
+             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction(); using var command = connection.CreateCommand();
+             if (transport is not ("wifi" or "bluetooth")) throw new ArgumentOutOfRangeException(nameof(transport));
+-            command.Transaction = transaction; command.CommandText = "SELECT message_id,kind,payload,attempts,transport_policy FROM outbox WHERE peer_id=$peer AND expires_ms>=$now AND next_attempt_ms<=$now AND (transport_policy='any' OR $transport='wifi') ORDER BY CASE kind WHEN 'capabilities.update' THEN 0 WHEN 'grants.update' THEN 1 WHEN 'personal_sync.settings' THEN 2 WHEN 'personal_sync.note_settings' THEN 3 WHEN 'personal_sync.desktop_features' THEN 4 WHEN 'personal_sync.custom_settings' THEN 5 ELSE 6 END,created_ms";
++            const string priorityKinds = "'capabilities.update','grants.update','personal_sync.settings','personal_sync.note_settings','personal_sync.desktop_features','personal_sync.custom_settings'";
++            command.Transaction = transaction; command.CommandText = "SELECT message_id,kind,payload,attempts,transport_policy,created_ms,rowid FROM outbox WHERE peer_id=$peer AND expires_ms>=$now AND next_attempt_ms<=$now AND (transport_policy='any' OR $transport='wifi')";
++            if (boundedWindow && after is not null)
++            {
++                command.CommandText += $" AND (kind IN ({priorityKinds}) OR (created_ms,rowid)>($afterCreated,$afterRow))";
++                command.Parameters.AddWithValue("$afterCreated", after.CreatedMs); command.Parameters.AddWithValue("$afterRow", after.RowId);
++            }
++            command.CommandText += " ORDER BY CASE kind WHEN 'capabilities.update' THEN 0 WHEN 'grants.update' THEN 1 WHEN 'personal_sync.settings' THEN 2 WHEN 'personal_sync.note_settings' THEN 3 WHEN 'personal_sync.desktop_features' THEN 4 WHEN 'personal_sync.custom_settings' THEN 5 ELSE 6 END,created_ms,rowid";
++            if (boundedWindow) command.CommandText += " LIMIT 32";
+             command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$now", now); command.Parameters.AddWithValue("$transport", transport);
+-            var queued = new List<(string Id, string Kind, byte[] Payload, int Attempts, string Policy)>();
+-            using (var reader = command.ExecuteReader()) while (reader.Read()) queued.Add((reader.GetString(0), reader.GetString(1), (byte[])reader[2], reader.GetInt32(3), reader.GetString(4)));
++            var queued = new List<(string Id, string Kind, byte[] Payload, int Attempts, string Policy, long CreatedMs, long RowId)>();
++            using (var reader = command.ExecuteReader()) while (reader.Read()) queued.Add((reader.GetString(0), reader.GetString(1), (byte[])reader[2], reader.GetInt32(3), reader.GetString(4), reader.GetInt64(5), reader.GetInt64(6)));
++            fullWindow = boundedWindow && queued.Count == 32;
+             var limit = Math.Clamp(maximum, 1, 32); var purgedRuns = new HashSet<string>(StringComparer.Ordinal);
+             foreach (var item in queued)
+             {
+                 if (result.Count == limit) break;
++                var priority = item.Kind is "capabilities.update" or "grants.update" or "personal_sync.settings" or
++                    "personal_sync.note_settings" or "personal_sync.desktop_features" or "personal_sync.custom_settings";
++                if (!priority) lastData = new(item.CreatedMs, item.RowId);
+                 JsonObject message;
+                 try
+                 {
+@@ -825,6 +846,8 @@ internal sealed partial class TelefonStore
+                         throw new InvalidDataException("Actor wire/semantic outbox identity mismatch.");
+                 }
+                 catch (Exception) when (TelefonProtocolContract.PersonalKinds.Contains(item.Kind)) { DeleteOutbox(connection, transaction, peerId, item.Id); continue; }
++                var actor = message["kind"]?.GetValue<string>() == PersonalSyncActorContract.DataKind;
++                if (!priority && actor) hasActor = true;
+                 if (item.Kind == "personal_sync.deletion_proposals" && ActorProducerWaitingForRun(connection, transaction, message, now)) continue;
+                 if (item.Kind != "personal_sync.settings" && TelefonProtocolContract.PersonalKinds.Contains(item.Kind) &&
+                     message["body"]?["run_id"]?.GetValue<string>() is string runId &&
+@@ -834,11 +857,15 @@ internal sealed partial class TelefonStore
+                     if (purgedRuns.Add(runId)) PurgePersonalRun(connection, transaction, peerId, runId);
+                     continue;
+                 }
++                if (!priority && !actor) actorsOnly = false;
+                 result.Add(new TelefonQueuedMessage(item.Id, message, item.Attempts, item.Policy));
+             }
+             transaction.Commit();
+         }
+-        return result;
++        // Raw rows count toward the inspection bound even if an actor producer
++        // is waiting for its run or an invalid row was removed above. Neither
++        // case may pin this connection to the same full actor-only page.
++        return new(result, fullWindow && hasActor && actorsOnly ? lastData : null);
+     }
+ 
+     internal void MarkAttempt(string messageId, int previousAttempts, long now, string error = "")
+@@ -1386,4 +1413,6 @@ internal sealed record TelefonPeer(string Id, string Name, byte[] PublicKey, str
+     internal JsonObject Grants { get; init; } = StoredGrants ?? TelefonProtocolContract.DesktopGrants();
+ }
+ internal sealed record TelefonQueuedMessage(string Id, JsonObject Message, int Attempts, string TransportPolicy = "any");
++internal sealed record TelefonOutboxCursor(long CreatedMs, long RowId);
++internal sealed record TelefonOutboxWindow(IReadOnlyList<TelefonQueuedMessage> Messages, TelefonOutboxCursor? Advance);
+ internal sealed record TelefonAck(string MessageId, string Status, string Error, bool Process = false);
+diff --git a/magnolie-organizer-windows/tests/Program.cs b/magnolie-organizer-windows/tests/Program.cs
+index 45cb99a..3d57236 100644
+--- a/magnolie-organizer-windows/tests/Program.cs
++++ b/magnolie-organizer-windows/tests/Program.cs
+@@ -309,6 +309,7 @@ runner.Add("Notes actor post-data review / separate SaveACK claim / native hando
+ runner.Add("Notes actor mixed late review / fixed choices / scope union", PersonalActorMixedLateReviewTests.RunAsync);
+ runner.Add("Notes actor fixed decision groups / atomic native claim / protected replay", PersonalActorFixedDecisionGroupTests.RunAsync);
+ runner.Add("Notes actor outbox / encrypted wire retention", PersonalSyncActorStoreTests.RunAsync);
++runner.Add("Phone outbox actor fairness / bounded connection windows", TelefonOutboxFairnessTests.RunAsync);
+ runner.Add("Notes actor registry / protected ownership / raw inbox", PersonalSyncActorRegistryTests.RunAsync);
+ runner.Add("Notes actor native source / fresh controls / book ownership", PersonalSyncActorSourceTests.RunAsync);
+ runner.Add("Notes actor native book / lifecycle ownership fence", NativeBookOwnerScopeTests.RunAsync);
+diff --git a/magnolie-organizer-windows/tests/TelefonOutboxFairnessTests.cs b/magnolie-organizer-windows/tests/TelefonOutboxFairnessTests.cs
+new file mode 100644
+index 0000000..6094ed6
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/TelefonOutboxFairnessTests.cs
+@@ -0,0 +1,203 @@
++using System.Text.Json.Nodes;
++using Microsoft.Data.Sqlite;
++using MagnolieOrganizer.Windows;
++
++namespace MagnolieOrganizer.Windows.Tests;
++
++internal static class TelefonOutboxFairnessTests
++{
++    internal static async Task RunAsync()
++    {
++        foreach (var transport in new[] { "wifi", "bluetooth" })
++            await HeldActorsAsync(65, transport);
++        await HeldActorsAsync(96, "wifi");
++        await ControlPriorityAsync();
++        await WaitingProducerRawPageAsync();
++        await RemovedRowsAsync(false);
++        await RemovedRowsAsync(true);
++        await NewSessionAndWrapAsync();
++        await OrdinaryWaitAsync(SharedSyncSettings.StartKind);
++        await OrdinaryWaitAsync(TimeSyncContract.Request);
++        await OrdinaryOrderAndTransportAsync();
++    }
++
++    private sealed class Fixture : IDisposable
++    {
++        private readonly string root = Path.Combine(Path.GetTempPath(), "magnolie-outbox-fairness-" + Guid.NewGuid().ToString("N"));
++        internal readonly TelefonStore Store;
++        internal readonly TelefonPeer Peer;
++        internal readonly long Now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - 1000;
++        internal readonly MemoryStream Stream = new();
++        internal readonly TelefonConnection Connection;
++
++        internal Fixture(string transport = "wifi")
++        {
++            Store = new TelefonStore(new WindowsPaths(root), testStorageKey: Enumerable.Repeat((byte)33, 32).ToArray());
++            Peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Owned fairness fixture", TelefonCrypto.GenerateX25519().Public);
++            Store.SavePeers([Peer]);
++            Connection = NewConnection(Stream, transport);
++        }
++
++        internal TelefonConnection NewConnection(Stream stream, string transport = "wifi") =>
++            new(Peer, stream, new byte[16], new byte[72], Store, (_, _) => Task.FromResult<TelefonAck?>(null), CancellationToken.None, transport);
++
++        internal List<string> Held(int count)
++        {
++            var run = Guid.NewGuid().ToString("D");
++            var request = new JsonObject { ["format"] = 3, ["run_id"] = run, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
++            new PersonalSyncStore(Store).RememberRun(PersonalSyncActorContract.StoragePeer(run), request, Now);
++            return Enumerable.Range(0, count).Select(sequence => Store.Enqueue(Peer.Id, "personal_sync.batch",
++                new JsonObject { ["format"] = 3, ["run_id"] = run, ["batch_id"] = Guid.NewGuid().ToString("D"),
++                    ["sequence"] = sequence, ["last"] = sequence == count - 1, ["reply"] = false,
++                    ["records_hash"] = "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945", ["records"] = new JsonArray() },
++                60000, Now, actorRunId: run)).ToList();
++        }
++
++        internal string Status(string policy = "any", long? created = null) => Store.Enqueue(Peer.Id, "device_status.request",
++            new JsonObject { ["request_id"] = Guid.NewGuid().ToString("D") }, 60000, created ?? Now, policy);
++
++        internal int Attempts(string id)
++        {
++            using var db = Store.OpenDatabase(); db.Open(); using var query = db.CreateCommand();
++            query.CommandText = "SELECT attempts FROM outbox WHERE message_id=$id"; query.Parameters.AddWithValue("$id", id);
++            return Convert.ToInt32(query.ExecuteScalar());
++        }
++
++        public void Dispose()
++        {
++            Connection.Dispose(); Stream.Dispose();
++            using (var pool = Store.OpenDatabase()) SqliteConnection.ClearPool(pool);
++            if (Directory.Exists(root)) Directory.Delete(root, true);
++        }
++    }
++
++    private static async Task HeldActorsAsync(int count, string transport)
++    {
++        using var fixture = new Fixture(transport);
++        var held = fixture.Held(count); var ordinary = fixture.Status();
++        var original = held.ToDictionary(id => id, id => fixture.Store.OutboxMessage(fixture.Peer.Id, id)!.DeepClone());
++        for (var cycle = 0; cycle < count / 32; cycle++)
++        {
++            await fixture.Connection.PumpOutboxNowAsync();
++            TestAssert.That(fixture.Stream.Length == 0, "Unadmitted actor data reached the ordinary transport.");
++            TestAssert.That(fixture.Store.Due(fixture.Peer.Id, fixture.Now + 1, transport: transport).Select(item => item.Id).SequenceEqual(held.Take(32)),
++                "A pump cursor changed the existing read/actor due selection.");
++        }
++        await fixture.Connection.PumpOutboxNowAsync();
++        TestAssert.That(fixture.Stream.Length > 0 && fixture.Attempts(ordinary) == 1, "Held actor pages starved ordinary traffic.");
++        TestAssert.That(held.All(id => fixture.Attempts(id) == 0 && JsonNode.DeepEquals(original[id], fixture.Store.OutboxMessage(fixture.Peer.Id, id))),
++            "Passing a held actor page sent, consumed or changed its sealed wire envelope.");
++    }
++
++    private static async Task ControlPriorityAsync()
++    {
++        using var fixture = new Fixture(); fixture.Held(64); var ordinary = fixture.Status();
++        await fixture.Connection.PumpOutboxNowAsync();
++        var control = fixture.Store.Enqueue(fixture.Peer.Id, "grants.update", new JsonObject {
++            ["revision"] = 1, ["grants"] = TelefonProtocolContract.DesktopGrants() }, 60000, fixture.Now);
++        await fixture.Connection.PumpOutboxNowAsync();
++        TestAssert.That(fixture.Attempts(control) == 1 && fixture.Attempts(ordinary) == 0, "A data cursor hid a newly queued priority control.");
++        await fixture.Connection.PumpOutboxNowAsync();
++        TestAssert.That(fixture.Attempts(ordinary) == 1, "A priority control prevented actor-page progress.");
++    }
++
++    private static async Task WaitingProducerRawPageAsync()
++    {
++        using var fixture = new Fixture(); var pending = new List<string>();
++        // Synthetic store metadata exercises the real waiting selector with
++        // four eight-frame ledgers. The context payload is deliberately not a
++        // protected native owner and is never used as a send grant here.
++        using (var db = fixture.Store.OpenDatabase())
++        {
++            db.Open(); using var create = db.CreateCommand();
++            create.CommandText = "CREATE TABLE personal_actor_context(actor_id TEXT PRIMARY KEY,expires_ms INTEGER NOT NULL,payload BLOB NOT NULL)"; create.ExecuteNonQuery();
++        }
++        for (var owner = 0; owner < 4; owner++)
++        {
++            var run = Guid.NewGuid().ToString("D"); var frames = new JsonArray();
++            for (var sequence = 0; sequence < 8; sequence++)
++            {
++                var body = new JsonObject { ["format"] = 1, ["run_id"] = run, ["proposal_batch_id"] = Guid.NewGuid().ToString("D"),
++                    ["sequence"] = sequence, ["last"] = sequence == 7, ["proposals"] = new JsonArray() };
++                var id = fixture.Store.Enqueue(fixture.Peer.Id, "personal_sync.deletion_proposals", body, 60000, fixture.Now, actorRunId: run);
++                pending.Add(id); frames.Add(fixture.Store.OutboxMessage(fixture.Peer.Id, id)!.DeepClone());
++            }
++            var key = $"personal_actor_producer:{PersonalSyncActorContract.StoragePeer(run)}:{run}";
++            var ledger = new JsonObject { ["expires_ms"] = fixture.Now + 60000, ["frames"] = frames };
++            using var db = fixture.Store.OpenDatabase(); db.Open(); using var insert = db.CreateCommand();
++            insert.CommandText = "INSERT INTO personal_actor_context VALUES($run,$expiry,$context); INSERT INTO meta(key,value) VALUES($key,$ledger)";
++            insert.Parameters.AddWithValue("$run", run); insert.Parameters.AddWithValue("$expiry", fixture.Now + 60000);
++            insert.Parameters.AddWithValue("$context", new byte[] { 0 }); insert.Parameters.AddWithValue("$key", key);
++            insert.Parameters.AddWithValue("$ledger", fixture.Store.Seal("personal_actor_producer", key, TelefonCrypto.Canonical(ledger)));
++            insert.ExecuteNonQuery();
++        }
++        var ordinary = fixture.Status();
++        var window = fixture.Store.PumpWindow(fixture.Peer.Id, fixture.Now + 1, "wifi", null);
++        TestAssert.That(window.Messages.Count == 0 && window.Advance is not null, "A filtered full raw actor page lost its progress key.");
++        await fixture.Connection.PumpOutboxNowAsync(); await fixture.Connection.PumpOutboxNowAsync();
++        TestAssert.That(fixture.Attempts(ordinary) == 1 && pending.All(id => fixture.Attempts(id) == 0 && fixture.Store.OutboxMessage(fixture.Peer.Id, id) is not null),
++            "Waiting producers either starved ordinary traffic or lost their retained frames.");
++    }
++
++    private static async Task RemovedRowsAsync(bool corrupt)
++    {
++        using var fixture = new Fixture(); fixture.Held(31);
++        var run = Guid.NewGuid().ToString("D");
++        var invalid = fixture.Store.Enqueue(fixture.Peer.Id, "personal_sync.request", new JsonObject {
++            ["format"] = 3, ["run_id"] = run, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") }, 60000, fixture.Now);
++        if (corrupt)
++        {
++            using var db = fixture.Store.OpenDatabase(); db.Open(); using var update = db.CreateCommand();
++            update.CommandText = "UPDATE outbox SET payload=$bad WHERE message_id=$id";
++            update.Parameters.AddWithValue("$bad", new byte[] { 1, 2, 3 }); update.Parameters.AddWithValue("$id", invalid); update.ExecuteNonQuery();
++        }
++        var ordinary = fixture.Status();
++        await fixture.Connection.PumpOutboxNowAsync(); await fixture.Connection.PumpOutboxNowAsync();
++        TestAssert.That(fixture.Store.OutboxMessage(fixture.Peer.Id, invalid) is null && fixture.Attempts(ordinary) == 1,
++            "A deleted invalid row pinned the actor window or escaped existing cleanup.");
++    }
++
++    private static async Task NewSessionAndWrapAsync()
++    {
++        using var fixture = new Fixture(); var held = fixture.Held(32); var ordinary = fixture.Status();
++        await fixture.Connection.PumpOutboxNowAsync();
++        using var stream = new MemoryStream(); using var second = fixture.NewConnection(stream);
++        await second.PumpOutboxNowAsync();
++        TestAssert.That(stream.Length == 0, "A fresh connection inherited another session's cursor.");
++        foreach (var id in held.Append(ordinary)) fixture.Store.CompleteOutbox(fixture.Peer.Id, id);
++        var replacement = fixture.Status(created: fixture.Now - 1000);
++        await fixture.Connection.PumpOutboxNowAsync();
++        TestAssert.That(fixture.Attempts(replacement) == 0, "The end-wrap fixture did not exercise an exhausted cursor.");
++        await fixture.Connection.PumpOutboxNowAsync();
++        TestAssert.That(fixture.Attempts(replacement) == 1, "A deleted page or earlier timestamp stranded the connection cursor.");
++    }
++
++    private static async Task OrdinaryWaitAsync(string kind)
++    {
++        using var fixture = new Fixture();
++        for (var index = 0; index < 32; index++)
++        {
++            var body = kind == SharedSyncSettings.StartKind
++                ? new JsonObject { ["format"] = 9, ["request_id"] = Guid.NewGuid().ToString("D"), ["trigger"] = "manual" }
++                : new JsonObject { ["format"] = 7, ["sender_epoch"] = Guid.NewGuid().ToString("D"), ["receiver_epoch"] = Guid.NewGuid().ToString("D"),
++                    ["sender_revision"] = 1, ["receiver_revision"] = 1, ["trigger"] = "manual" };
++            fixture.Store.Enqueue(fixture.Peer.Id, kind, body, 60000, fixture.Now);
++        }
++        var ordinary = fixture.Status();
++        for (var round = 0; round < 3; round++) await fixture.Connection.PumpOutboxNowAsync();
++        TestAssert.That(fixture.Stream.Length == 0 && fixture.Attempts(ordinary) == 0,
++            "The actor-only window silently widened an ordinary shared/time policy wait.");
++    }
++
++    private static async Task OrdinaryOrderAndTransportAsync()
++    {
++        using var fixture = new Fixture("bluetooth");
++        var wifi = fixture.Status("wifi_only"); var ordinary = Enumerable.Range(0, 40).Select(_ => fixture.Status()).ToList();
++        await fixture.Connection.PumpOutboxNowAsync();
++        TestAssert.That(ordinary.Take(32).All(id => fixture.Attempts(id) == 1) && ordinary.Skip(32).All(id => fixture.Attempts(id) == 0),
++            "The bounded sender changed ordinary same-timestamp FIFO or exceeded 32 attempts.");
++        await fixture.Connection.PumpOutboxNowAsync();
++        TestAssert.That(ordinary.All(id => fixture.Attempts(id) == 1) && fixture.Attempts(wifi) == 0,
++            "The sender changed ordinary progress or persistent wifi_only protection.");
++    }
++}
+diff --git a/magnolie-organizer/bin/magnolie_telefon.py b/magnolie-organizer/bin/magnolie_telefon.py
+index 6954f03..9e45d9c 100644
+--- a/magnolie-organizer/bin/magnolie_telefon.py
++++ b/magnolie-organizer/bin/magnolie_telefon.py
+@@ -65,6 +65,9 @@ CAPABILITY_REASONS = {"available", "not_implemented", "no_hardware", "disabled",
+                       "permission_missing", "os_restricted"}
+ ACK_ERRORS = phone_ack_contract.ERRORS
+ RETRY_MS = (1000, 2000, 5000, 10000, 30000, 60000)
++OUTBOX_PRIORITY_KINDS = ("capabilities.update", "grants.update", "personal_sync.settings",
++                        "personal_sync.note_settings", "personal_sync.desktop_features",
++                        "personal_sync.custom_settings")
+ BLUETOOTH_FALLBACK_SECONDS = 15
+ BLUETOOTH_RETRY_SECONDS = 60
+ PERSONAL_COMMIT_SECONDS = 30
+@@ -1246,6 +1249,40 @@ class PhoneStore:
+             result.append(message)
+         return result
+ 
++    def pump_window(self, peer_id, transport="wifi", after=None):
++        """One bounded page for the live sender; ordinary pending reads do not move it.
++
++        The caller may advance only past a full page of unsent actor frames.
++        Controls retain their existing precedence even behind a data cursor.
++        The SQLite ordering key never becomes part of a wire envelope.
++        """
++        if transport not in {"wifi", "bluetooth"}:
++            raise ValueError("invalid current transport")
++        now = now_ms()
++        priority = ",".join("?" for _ in OUTBOX_PRIORITY_KINDS)
++        query = ("SELECT rowid,message_id,payload,kind,created_ms FROM outbox WHERE peer_id=? "
++                 "AND expires_ms>? AND next_attempt_ms<=? AND (transport_policy='any' OR ?='wifi') ")
++        arguments = [peer_id, now, now, transport]
++        if after is not None:
++            query += "AND (kind IN (" + priority + ") OR (created_ms,rowid)>(?,?)) "
++            arguments.extend((*OUTBOX_PRIORITY_KINDS, *after))
++        query += "ORDER BY CASE WHEN kind IN (" + priority + ") THEN 0 ELSE 1 END,created_ms,rowid LIMIT 32"
++        arguments.extend(OUTBOX_PRIORITY_KINDS)
++        with sqlite3.connect(self.database_path) as db:
++            rows = db.execute(query, arguments).fetchall()
++        messages, last_data, actors_only = [], None, True
++        for row_id, message_id, payload, kind, created in rows:
++            message = strict_json(self._decrypt(payload, "outbox", message_id))
++            is_actor = message.get("kind") == personal_actor_contract.DATA_KIND
++            if is_actor and personal_actor_contract.unwrap(message["body"])[0] != kind:
++                raise ValueError("Actor wire/semantic outbox identity mismatch")
++            if kind not in OUTBOX_PRIORITY_KINDS:
++                last_data = (created, row_id)
++                actors_only = actors_only and is_actor
++            messages.append(message)
++        advance = last_data if len(rows) == 32 and actors_only else None
++        return messages, advance
++
+     def mark_attempt(self, peer_id, message_id):
+         with sqlite3.connect(self.database_path) as db:
+             row = db.execute("SELECT attempts,kind,expires_ms FROM outbox WHERE peer_id=? AND message_id=?",
+@@ -2925,6 +2962,7 @@ class PhoneService:
+         self.native_actor_producer_book = None
+         self._personal_actor_registry = None
+         self.personal_actor_admissions = {}
++        self._outbox_actor_windows = weakref.WeakKeyDictionary()
+         self.status_requests = {}
+         self.contact_requests = {}
+         self.contact_group_preparations = {}
+@@ -8476,6 +8514,34 @@ class PhoneService:
+                 self.request_end_call(peer_id, call_ref, revision, command_ref)
+             return True
+ 
++    def _pump_pending(self, channel, peer_id, transport):
++        # A new authenticated channel starts at the head. Merely inspecting
++        # pending messages or actor ACK candidates never advances this cursor.
++        def has_owner():
++            return any(value.get("peer") == peer_id and value.get("channel") is channel
++                       for value in self.personal_actor_admissions.values())
++        old = self._outbox_actor_windows.get(channel)
++        after = old[2] if old is not None and old[:2] == (peer_id, transport) else None
++        with self.lock:
++            if has_owner():
++                after = None  # Even a temporarily waiting current owner keeps FIFO.
++        messages, advance = self.store.pump_window(peer_id, transport, after)
++        for message in messages:
++            if after is not None and message.get("kind") == personal_actor_contract.DATA_KIND:
++                # An admission may appear after the page read. Never send an
++                # actor from an advanced ordinary page; resume at the head.
++                continue
++            sent = self._send_message(channel, peer_id, message)
++            if sent and message.get("kind") == personal_actor_contract.DATA_KIND:
++                advance = None  # An authorized actor keeps the existing send order.
++        with self.lock:
++            if has_owner():
++                advance = None
++        if advance is None:
++            self._outbox_actor_windows.pop(channel, None)
++        else:
++            self._outbox_actor_windows[channel] = (peer_id, transport, advance)
++
+     def _send_message(self, channel, peer_id, message):
+         if is_reserved_ephemeral_phone_control(message):
+             return False
+@@ -9252,8 +9318,7 @@ class PhoneService:
+                     if now - channel.last_send >= 25:
+                         channel.send({"type": "ping", "ping_id": str(uuid.uuid4()),
+                                       "sent_ms": now_ms()})
+-                    for message in self.store.pending(peer["device_id"], transport):
+-                        self._send_message(channel, peer["device_id"], message)
++                    self._pump_pending(channel, peer["device_id"], transport)
+         finally:
+             self._signal_native_webcam_retire(channel)
+             self._signal_native_screen_retire(channel)
+diff --git a/magnolie-organizer/pruefungen/test_telefon_outbox_actor_fairness.py b/magnolie-organizer/pruefungen/test_telefon_outbox_actor_fairness.py
+new file mode 100644
+index 0000000..cc3cca3
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/test_telefon_outbox_actor_fairness.py
+@@ -0,0 +1,186 @@
++"""Refs #128: a live sender may pass bounded pages of unadmitted actor frames."""
++import copy
++import sqlite3
++import uuid
++
++import pytest
++
++from test_mcp_phone import owned_service
++from test_personal_actor_transport import owned_transport
++import magnolie_personal_actor as actor
++import magnolie_telefon as phone
++
++
++class Channel:
++    def __init__(self):
++        self.sent = []
++
++    def send(self, message):
++        self.sent.append(copy.deepcopy(message))
++
++
++def held_frames(service, peer, count, run=None):
++    run = run or str(uuid.uuid4())
++    request = {"format": 3, "run_id": run, "trigger": "manual", "modules": ["notes", "tasks"]}
++    service.store.remember_personal_run(actor.storage_peer(run), request)
++    result = []
++    for sequence in range(count):
++        body = {"format": 3, "run_id": run, "batch_id": str(uuid.uuid4()), "sequence": sequence,
++                "last": sequence == count - 1, "reply": False, "records_hash": phone.records_hash([]), "records": []}
++        result.append(service.store.queue(peer["device_id"], "personal_sync.batch", body, 60000, actor_run_id=run))
++    return result
++
++
++def status_request(service, peer):
++    return service.store.queue(peer["device_id"], "device_status.request", {"request_id": str(uuid.uuid4())}, 60000)
++
++
++def attempts(service, message):
++    with sqlite3.connect(service.store.database_path) as db:
++        return db.execute("SELECT attempts FROM outbox WHERE message_id=?", (message["message_id"],)).fetchone()[0]
++
++
++@pytest.mark.parametrize("transport,count", [("wifi", 65), ("bluetooth", 65), ("wifi", 96)])
++def test_bounded_pages_pass_held_actors_without_grant_or_wire_changes(tmp_path, monkeypatch, transport, count):
++    service, peer, events = owned_service(tmp_path)
++    fixed = phone.now_ms()
++    monkeypatch.setattr(phone, "now_ms", lambda: fixed)  # Every row has the same created_ms.
++    held = held_frames(service, peer, count)
++    ordinary = status_request(service, peer)
++    channel = Channel()
++    for _ in range(count // 32):
++        service._pump_pending(channel, peer["device_id"], transport)
++        assert channel.sent == []
++        # The read/ACK API still starts at the head and cannot move the pump.
++        assert service.store.pending(peer["device_id"], transport) == held[:32]
++    service._pump_pending(channel, peer["device_id"], transport)
++    assert channel.sent == [ordinary] and attempts(service, ordinary) == 1
++    assert all(attempts(service, item) == 0 and service.store.outbox_message(peer["device_id"], item["message_id"]) == item for item in held)
++    assert not events and service.server is None
++
++
++def test_new_control_precedes_data_even_after_actor_cursor(tmp_path, monkeypatch):
++    service, peer, _ = owned_service(tmp_path)
++    fixed = phone.now_ms(); monkeypatch.setattr(phone, "now_ms", lambda: fixed)
++    held_frames(service, peer, 64)
++    ordinary = status_request(service, peer)
++    channel = Channel()
++    service._pump_pending(channel, peer["device_id"], "wifi")
++    control = service.store.queue(peer["device_id"], "grants.update", copy.deepcopy(peer["local_grants"]), 60000)
++    service._pump_pending(channel, peer["device_id"], "wifi")
++    assert channel.sent == [control]
++    service._pump_pending(channel, peer["device_id"], "wifi")
++    assert channel.sent == [control, ordinary]
++
++
++@pytest.mark.parametrize("kind", ["personal_sync.shared_start", "personal_sync.time_request"])
++def test_ordinary_policy_waits_are_not_skipped_by_actor_cursor(tmp_path, kind):
++    service, peer, _ = owned_service(tmp_path)
++    for _ in range(32):
++        body = ({"format": 9, "request_id": str(uuid.uuid4()), "trigger": "manual"}
++                if kind.endswith("shared_start") else
++                {"format": 7, "sender_epoch": str(uuid.uuid4()), "receiver_epoch": str(uuid.uuid4()),
++                 "sender_revision": 1, "receiver_revision": 1, "trigger": "manual"})
++        service.store.queue(peer["device_id"], kind, body, 60000)
++    ordinary = status_request(service, peer)
++    channel = Channel()
++    for _ in range(3):
++        service._pump_pending(channel, peer["device_id"], "wifi")
++        assert channel not in service._outbox_actor_windows
++    assert channel.sent == [] and attempts(service, ordinary) == 0
++
++
++def test_new_channel_and_transport_do_not_inherit_cursor_and_end_wraps(tmp_path, monkeypatch):
++    service, peer, _ = owned_service(tmp_path)
++    fixed = phone.now_ms(); monkeypatch.setattr(phone, "now_ms", lambda: fixed)
++    held = held_frames(service, peer, 32)
++    ordinary = status_request(service, peer)
++    first, second = Channel(), Channel()
++    service._pump_pending(first, peer["device_id"], "wifi")
++    service._pump_pending(second, peer["device_id"], "wifi")
++    assert first.sent == second.sent == []
++    service._pump_pending(second, peer["device_id"], "bluetooth")
++    assert second.sent == []
++    service._pump_pending(second, peer["device_id"], "bluetooth")
++    assert second.sent == [ordinary]
++    # Delete the inspected page and its successor, then add an earlier timestamp.
++    for item in [*held, ordinary]:
++        service.store.acknowledge(peer["device_id"], item["message_id"])
++    monkeypatch.setattr(phone, "now_ms", lambda: fixed - 1000)
++    replacement = status_request(service, peer)
++    service._pump_pending(first, peer["device_id"], "wifi")  # Exhausted cursor wraps.
++    assert first.sent == [] and first not in service._outbox_actor_windows
++    service._pump_pending(first, peer["device_id"], "wifi")
++    assert first.sent == [replacement]
++
++
++def test_wifi_only_remains_filtered_before_any_pump_window(tmp_path):
++    service, peer, _ = owned_service(tmp_path)
++    held_frames(service, peer, 64)
++    wifi = service.store.queue(peer["device_id"], "device_status.request", {"request_id": str(uuid.uuid4())}, 60000, "wifi_only")
++    ordinary = status_request(service, peer)
++    channel = Channel()
++    for _ in range(3):
++        service._pump_pending(channel, peer["device_id"], "bluetooth")
++    assert channel.sent == [ordinary] and attempts(service, wifi) == 0
++
++
++def test_genuinely_authorized_actor_send_does_not_advance_held_page_cursor(tmp_path, monkeypatch):
++    service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch)
++    service.start_personal_actor(registry, handle)
++    channel.sent.clear()
++    frames = held_frames(service, peer, 32, handle.actor_id)
++    admission = service.personal_actor_admissions[handle.actor_id]
++    # Transport fixture explicitly admits these exact retained IDs. The real
++    # registry/source/channel/expiry checks and encrypted send path still run.
++    admission["outbound"].update(item["message_id"] for item in frames)
++    service._pump_pending(channel, peer["device_id"], "wifi")
++    assert channel.sent == frames
++    assert all(attempts(service, item) == 1 for item in frames)
++    assert channel not in service._outbox_actor_windows and not events
++
++
++@pytest.mark.parametrize("transition", ["before_query", "after_query"])
++def test_new_actor_admission_resumes_at_head_not_behind_old_cursor(tmp_path, monkeypatch, transition):
++    service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch)
++    frames = held_frames(service, peer, 65, handle.actor_id)
++    service._pump_pending(channel, peer["device_id"], "wifi")
++    assert channel.sent == [] and channel in service._outbox_actor_windows
++
++    def admit():
++        service.start_personal_actor(registry, handle)
++        service.personal_actor_admissions[handle.actor_id]["outbound"].update(item["message_id"] for item in frames)
++        channel.sent.clear()
++
++    original = service.store.pump_window
++    if transition == "before_query":
++        admit()
++    else:
++        def page_then_admit(*args, **kwargs):
++            page = original(*args, **kwargs)
++            admit()
++            return page
++        monkeypatch.setattr(service.store, "pump_window", page_then_admit)
++    service._pump_pending(channel, peer["device_id"], "wifi")
++    if transition == "after_query":
++        assert channel.sent == [], "A late admission sent an actor from an advanced data page."
++        monkeypatch.setattr(service.store, "pump_window", original)
++        service._pump_pending(channel, peer["device_id"], "wifi")
++    assert channel.sent == frames[:32]
++    assert channel not in service._outbox_actor_windows and not events
++
++
++def test_current_actor_wait_does_not_build_an_ordinary_sender_cursor(tmp_path, monkeypatch):
++    service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch)
++    service.start_personal_actor(registry, handle)
++    channel.sent.clear()
++    frames = held_frames(service, peer, 65, handle.actor_id)
++    admission = service.personal_actor_admissions[handle.actor_id]
++    admission["outbound"].update(item["message_id"] for item in frames)
++    # The real actor send guard defers data while its native save is prepared.
++    admission["historical_save_claim"] = object()
++    service._pump_pending(channel, peer["device_id"], "wifi")
++    assert channel.sent == [] and channel not in service._outbox_actor_windows
++    admission.pop("historical_save_claim")
++    service._pump_pending(channel, peer["device_id"], "wifi")
++    assert channel.sent == frames[:32] and not events

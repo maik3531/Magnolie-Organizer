@@ -1,0 +1,13 @@
+OBSERVATION {"hidden_organizer_option_counts":[0,0,0,0,0],"regular_open_close_ms":[27.971956,12.169194,23.60385,25.029949,26.837724]}
+PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web · five regular open/close cycles build no unused organizer options
+PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web · focus and each query stay bounded while the last contact and company remain reachable
+PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web · duplicate names keep all exact-name email choices and free organizer input still saves
+PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web · editing retains the selected organizer and exact-name email choices before focus
+PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer-windows/app/web · an exact name after more than one chunk of partial matches remains selectable
+OBSERVATION {"hidden_organizer_option_counts":[0,0,0,0,0],"regular_open_close_ms":[13.661445,7.87995,7.542542,6.887266,7.603643]}
+PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web · five regular open/close cycles build no unused organizer options
+PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web · focus and each query stay bounded while the last contact and company remain reachable
+PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web · duplicate names keep all exact-name email choices and free organizer input still saves
+PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web · editing retains the selected organizer and exact-name email choices before focus
+PASS /workspace/scratch/69a9d769e56f/outbox-latest-current/magnolie-organizer/web · an exact name after more than one chunk of partial matches remains selectable
+10/10 organizer suggestion cases passed (actual desktop JavaScript in JSDOM)
