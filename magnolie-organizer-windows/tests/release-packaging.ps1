@@ -40,6 +40,7 @@ try {
     foreach ($language in 'de', 'tr') { Write-Fixture (Join-Path $root "shared/magnolie-organizer/po/$language.po") }
     Write-Fixture (Join-Path $root 'shared/magnolie-organizer/werkzeuge/po_zu_js.py') '# Synthetic recipe input; not executed by source-inventory tests.'
     Write-Fixture (Join-Path $root 'shared/magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py') '# Synthetic timezone recipe; not executed by inventory tests.'
+    Write-Fixture (Join-Path $root 'shared/magnolie-organizer/werkzeuge/magnolie_cycle.py') '# Synthetic Python forecast reference.'
     foreach ($name in 'resolver.js', 'port-runtime.js', 'bootstrap.template.js', 'provenance.json', 'tzdb-2026egtz.json', 'LICENSE-tzdb.txt') {
         Write-Fixture (Join-Path $root "shared/magnolie-organizer/werkzeuge/timezones/$name") 'Synthetic reviewed timezone input; inventory only.'
     }
@@ -60,7 +61,7 @@ try {
         Write-Fixture (Join-Path $root $name) '// Synthetic current feature source'
     }
     Write-Fixture (Join-Path $root 'tests/fixtures/recurrence-rfc-oracle.json') '{"synthetic":true}'
-    foreach ($name in 'kontakt-sync-contract.json', 'kontakt-import-contract.json', 'phone-region-vectors.json', 'thunderbird-addressbook-fixture.json', 'recurrence-integration.json', 'recurrence-timezones.json', 'baum-1-receipt-v1-vectors.json', 'new-reviewed-contract.json') {
+    foreach ($name in 'kontakt-sync-contract.json', 'kontakt-import-contract.json', 'phone-region-vectors.json', 'thunderbird-addressbook-fixture.json', 'cycle-forecast-vectors.json', 'recurrence-integration.json', 'recurrence-timezones.json', 'baum-1-receipt-v1-vectors.json', 'new-reviewed-contract.json') {
         Write-Fixture (Join-Path $root "contracts/$name") '{"synthetic":true}'
     }
     foreach ($name in 'baum-1-receipt-v1.md', 'phone-bluetooth-first-pair.md', 'phone-setup-daemon-lifecycle.md', 'phone-wlan-invitation.md',
@@ -100,7 +101,7 @@ try {
         try { Assert-Rejected { Get-ReleaseArchiveSources $root | Out-Null } }
         finally { Remove-Item -LiteralPath $unexpected }
     }
-    foreach ($required in 'kontakt-sync-contract.json', 'baum-1-receipt-v1.md') {
+    foreach ($required in 'kontakt-sync-contract.json', 'cycle-forecast-vectors.json', 'baum-1-receipt-v1.md') {
         $contract = Join-Path $root "contracts/$required"
         $originalContract = [IO.File]::ReadAllText($contract)
         try {
@@ -116,7 +117,7 @@ try {
         'WindowsCallNotifications.cs', 'TelefonCallActions.cs',
         'contracts/device-status-v4.md', 'contracts/native-call-audio.md', 'contracts/call-alert-actions-v2.md',
         'contracts/sms-plan-review-v1.md', 'contracts/media-recovery-preview.md',
-        'contracts/baum-1-receipt-v1-vectors.json', 'contracts/phone-setup-daemon-lifecycle.md',
+        'contracts/baum-1-receipt-v1-vectors.json', 'contracts/phone-setup-daemon-lifecycle.md', 'contracts/cycle-forecast-vectors.json',
         'shared/magnolie-handbuch/web/i18n/en.js',
         'tests/mcp-notes-historical-source-fixture.js',
         'shared/magnolie-organizer/web/index.html', 'shared/magnolie-organizer/web/anwendung.js',
@@ -124,7 +125,7 @@ try {
         'shared/magnolie-organizer/web/country-flags.png', 'shared/magnolie-organizer/web/country-flags-LICENSE.txt',
         'shared/magnolie-organizer/po/LINGUAS', 'shared/magnolie-organizer/po/de.po',
         'shared/magnolie-organizer/po/tr.po', 'shared/magnolie-organizer/werkzeuge/po_zu_js.py',
-        'shared/magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py',
+        'shared/magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py', 'shared/magnolie-organizer/werkzeuge/magnolie_cycle.py',
         'shared/magnolie-organizer/werkzeuge/timezones/resolver.js',
         'shared/magnolie-organizer/werkzeuge/timezones/port-runtime.js',
         'shared/magnolie-organizer/werkzeuge/timezones/bootstrap.template.js',

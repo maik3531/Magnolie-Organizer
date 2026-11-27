@@ -3,12 +3,19 @@
 const fs = require("node:fs"), path = require("node:path"), Module = require("node:module");
 const assert = require("node:assert/strict"), { spawnSync } = require("node:child_process");
 const root = path.resolve(__dirname, "../..");
+const windows = path.resolve(__dirname, "..");
+const embeddedVectors = path.join(windows, "contracts/cycle-forecast-vectors.json");
+const standalone = fs.existsSync(embeddedVectors);
+const vectorsPath = standalone ? embeddedVectors : path.join(root, "contracts/cycle-forecast-vectors.json");
+const pythonSource = standalone
+  ? path.join(windows, "shared/magnolie-organizer/werkzeuge/magnolie_cycle.py")
+  : path.join(root, "magnolie-organizer/bin/magnolie_cycle.py");
 const harnessFile = path.join(__dirname, "desktop-state-regressions.js");
 const harness = new Module(harnessFile, module);
 harness.filename = harnessFile; harness.paths = Module._nodeModulePaths(__dirname);
 harness._compile(fs.readFileSync(harnessFile, "utf8").split("async function run(web)")[0] + "\nmodule.exports={boot,roots};", harnessFile);
 const plain = value => JSON.parse(JSON.stringify(value));
-const vectors = JSON.parse(fs.readFileSync(path.join(root, "contracts/cycle-forecast-vectors.json"), "utf8")).cases;
+const vectors = JSON.parse(fs.readFileSync(vectorsPath, "utf8")).cases;
 const dates = ["2026-01-01", "2026-01-29", "2026-02-26"];
 const profile = (days = dates, options = {}) => ({
   zyklusmarker: [{ id: "light", art: "bleeding-light", name: "Renamed light", symbol: "💧" },
@@ -81,7 +88,7 @@ function syntheticCases() {
   }
   check(results[0], results[1], "Both JavaScript frontends must agree completely");
   const python = process.env.MAGNOLIE_PYTHON || "python3";
-  const py = spawnSync(python, ["-c", "import sys,json,importlib.util; s=importlib.util.spec_from_file_location('cycle',sys.argv[1]); m=importlib.util.module_from_spec(s);s.loader.exec_module(m);print(json.dumps([m.estimate_cycle(v['data'],v['asOf']) for v in json.load(sys.stdin)]))", path.join(root, "magnolie-organizer/bin/magnolie_cycle.py")],
+  const py = spawnSync(python, ["-B", "-c", "import sys,json,importlib.util; s=importlib.util.spec_from_file_location('cycle',sys.argv[1]); m=importlib.util.module_from_spec(s);s.loader.exec_module(m);print(json.dumps([m.estimate_cycle(v['data'],v['asOf']) for v in json.load(sys.stdin)]))", pythonSource],
     { input: JSON.stringify(all), encoding: "utf8", maxBuffer: 16 * 1024 * 1024, timeout: 30000 });
   assert.equal(py.status, 0, py.stderr);
   check(results[0], JSON.parse(py.stdout), "JavaScript/Python complete cross-engine parity");

@@ -163,8 +163,17 @@ function Get-ReleaseArchiveSources([string] $Root) {
         Assert-SourceFileSafe $file
         [pscustomobject]@{ Source = $file.FullName; Relative = "shared/magnolie-organizer/web/$relative" }
     }
-    Get-SharedLinuxLocaleInputs (Split-Path -Parent $linuxWeb)
-    Get-SharedLinuxTimezoneInputs (Split-Path -Parent $linuxWeb)
+    $linuxRoot = Split-Path -Parent $linuxWeb
+    Get-SharedLinuxLocaleInputs $linuxRoot
+    Get-SharedLinuxTimezoneInputs $linuxRoot
+    # The cross-engine forecast test needs this one Linux source, not Linux executables.
+    $cycleReference = Join-Path $linuxRoot 'bin/magnolie_cycle.py'
+    if (-not (Test-Path -LiteralPath $cycleReference -PathType Leaf)) {
+        $cycleReference = Join-Path $linuxRoot 'werkzeuge/magnolie_cycle.py'
+    }
+    $cycleFile = Get-Item -LiteralPath $cycleReference -ErrorAction Stop
+    Assert-SourceFileSafe $cycleFile
+    [pscustomobject]@{ Source = $cycleFile.FullName; Relative = 'shared/magnolie-organizer/werkzeuge/magnolie_cycle.py' }
     # These reviewed shared regressions are part of tests/run.js. Standalone
     # source archives must carry them instead of reaching outside the archive.
     $sharedTests = Join-Path (Split-Path -Parent $Root) 'magnolie-organizer/pruefungen'
@@ -184,7 +193,7 @@ function Get-ReleaseArchiveSources([string] $Root) {
     }
     $contracts = Join-Path (Split-Path -Parent $Root) 'contracts'
     if (-not (Test-Path -LiteralPath $contracts -PathType Container)) { $contracts = Join-Path $Root 'contracts' }
-    foreach ($required in 'kontakt-sync-contract.json', 'kontakt-import-contract.json', 'phone-region-vectors.json', 'thunderbird-addressbook-fixture.json', 'recurrence-integration.json', 'recurrence-timezones.json', 'baum-1-receipt-v1-vectors.json', 'baum-1-receipt-v1.md', 'phone-bluetooth-first-pair.md', 'phone-setup-daemon-lifecycle.md', 'phone-wlan-invitation.md') {
+    foreach ($required in 'kontakt-sync-contract.json', 'kontakt-import-contract.json', 'phone-region-vectors.json', 'thunderbird-addressbook-fixture.json', 'cycle-forecast-vectors.json', 'recurrence-integration.json', 'recurrence-timezones.json', 'baum-1-receipt-v1-vectors.json', 'baum-1-receipt-v1.md', 'phone-bluetooth-first-pair.md', 'phone-setup-daemon-lifecycle.md', 'phone-wlan-invitation.md') {
         if (-not (Test-Path -LiteralPath (Join-Path $contracts $required) -PathType Leaf)) { throw "Shared contract missing: $required" }
     }
     # Refs #787: these exact public handoff/proof trees are not release inputs.
@@ -403,6 +412,7 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         "app/symbole/128x128/magnolie-organizer.png",
         "app/symbole/256x256/magnolie-organizer.png",
         "contracts/kontakt-sync-contract.json",
+        "contracts/cycle-forecast-vectors.json",
         "contracts/recurrence-integration.json",
         "contracts/recurrence-timezones.json",
         "tests/fixtures/recurrence-rfc-oracle.json",
@@ -422,6 +432,7 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         "shared/magnolie-organizer/po/de.po",
         "shared/magnolie-organizer/po/tr.po",
         "shared/magnolie-organizer/werkzeuge/po_zu_js.py",
+        "shared/magnolie-organizer/werkzeuge/magnolie_cycle.py",
         "shared/magnolie-handbuch/web/index.html",
         "shared/magnolie-handbuch/web/inhalt.js",
         "shared/magnolie-handbuch/web/i18n/en.js",

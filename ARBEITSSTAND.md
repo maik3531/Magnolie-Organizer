@@ -42,6 +42,13 @@
   Die Bildprobe benötigte 11,862 Sekunden Ereigniswartezeit bei
   unverändertem 12-Sekunden-Limit. Das ist keine Beschleunigung
   und kein Nachweis am installierten Paket.
+- [#812](https://github.com/maik3531/Magnolie-Organizer/issues/812):
+  Der Regelkalender-Test findet seine Vektoren und die Python-Referenz
+  auch im eigenständigen Windows-Quellarchiv. Die Prüfung der 1.434
+  Archiveinträge und je 9.260 Assertions aus dem Checkout und dem
+  entpackten Archiv bestanden. [#813](https://github.com/maik3531/Magnolie-Organizer/issues/813)
+  und [#814](https://github.com/maik3531/Magnolie-Organizer/issues/814)
+  bleiben separate Windows-CI-Befunde.
 
 ## Linux-Telefonstatus und lokale Buchspeicherung – 27. November 2026
 
