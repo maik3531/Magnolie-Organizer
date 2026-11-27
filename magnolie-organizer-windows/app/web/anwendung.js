@@ -10719,17 +10719,29 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         };`;
       // WebKit's custom local scheme cannot load blob workers; data workers
       // retain the same isolated, fixed-code execution without a native bridge.
-      let url;
+      let blobUrl, worker;
       try {
-        url = location.protocol === "magnolie-organizer:" ? "data:text/javascript," + encodeURIComponent(source) : URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
-        state.worker = new Worker(url);
-      } catch (error) { return fail("recurrence-worker-unavailable"); }
-      finally { if (url) window.addEventListener("unload", () => URL.revokeObjectURL(url), { once: true }); }
-      state.worker.onmessage = ({ data }) => {
+        const url = location.protocol === "magnolie-organizer:" ? "data:text/javascript," + encodeURIComponent(source)
+          : (blobUrl = URL.createObjectURL(new Blob([source], { type: "text/javascript" })));
+        worker = new Worker(url);
+      } catch (error) {
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
+        return fail("recurrence-worker-unavailable");
+      }
+      state.worker = worker;
+      const releaseWorker = () => {
+        if (state.worker !== worker) return;
+        state.worker = null;
+        window.removeEventListener("unload", releaseWorker);
+        worker.terminate();
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
+      };
+      worker.onmessage = ({ data }) => {
+        if (state.worker !== worker) return;
 /*TZ_PORT:worker-response-identity:BEGIN*/        const job = state.jobs.get(data.key); if (!job) return;
         if (data.timeZoneIdentity !== MagnolieTime.identity.payloadSHA256) {
           for (const value of state.jobs.values()) if (value.status === "pending") Object.assign(value, { status: "error", error: "timezone-provider-identity", result: null });
-          state.worker.terminate(); state.worker = null; publish(); warn("timezone-provider-identity"); return;
+          releaseWorker(); publish(); warn("timezone-provider-identity"); return;
         }
 /*TZ_PORT:worker-response-identity:END*/        Object.assign(job, data.error ? { status: "error", error: data.error, result: data.result } : { status: "ready", result: data.result });
         if (job.index) terminIndexVeraltet = true;
@@ -10748,12 +10760,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             zustand.sektion === "planer" && planerPaint) && !editorIstGeaendert()) zeichneAlles();
         }, 0));
       };
-      state.worker.onerror = () => {
+      worker.onerror = () => {
+        if (state.worker !== worker) return;
         for (const job of state.jobs.values()) if (job.status === "pending") job.status = "error";
-        state.worker?.terminate(); state.worker = null;
+        releaseWorker();
         terminIndexVeraltet = true; publish(); warn("recurrence-worker-error");
       };
-      window.addEventListener("unload", () => state.worker?.terminate(), { once: true });
+      window.addEventListener("unload", releaseWorker, { once: true });
     }
     // Only the unbounded single-event expansion contributes to the base index.
     state.jobs.set(key, { status: "pending", planerFeiertag,

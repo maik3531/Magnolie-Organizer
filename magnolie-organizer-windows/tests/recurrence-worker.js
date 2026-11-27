@@ -1,12 +1,111 @@
 "use strict";
 const fs = require("node:fs"), path = require("node:path"), assert = require("node:assert/strict");
+const { Blob, resolveObjectURL } = require("node:buffer");
 const { WorkerFileFixture, linuxWeb } = require("./worker-file-fixture");
 const { JSDOM } = require("jsdom");
+
+async function workerLifetime(web) {
+  const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {
+    runScripts: "outside-only", url: "https://recurrence-lifetime.test/", pretendToBeVisual: true
+  });
+  const w = dom.window, urls = [], listeners = new Set(), workers = [];
+  try {
+    for (const filename of ["i18n.js", "normative-timezones.js", "anwendung.js"])
+      w.eval(fs.readFileSync(path.join(web, filename), "utf8"));
+    await new Promise(resolve => setImmediate(resolve));
+    w.App.init({ daten: {}, neu: true, regional: { language: "en", timeZone: "UTC" } });
+    w.Blob = Blob;
+    w.URL.createObjectURL = blob => {
+      const url = URL.createObjectURL(blob);
+      urls.push(url);
+      return url;
+    };
+    w.URL.revokeObjectURL = url => URL.revokeObjectURL(url);
+    const add = w.addEventListener.bind(w), remove = w.removeEventListener.bind(w);
+    w.addEventListener = (name, callback, options) => {
+      if (name === "unload") listeners.add(callback);
+      add(name, callback, options);
+    };
+    w.removeEventListener = (name, callback, options) => {
+      if (name === "unload") listeners.delete(callback);
+      remove(name, callback, options);
+    };
+    const T = w.OrganizerTest;
+    const item = { icsRoundtrip: ["DTSTART:20260907T090000Z", "RRULE:FREQ=DAILY;COUNT=2"] };
+    const run = i => T.icsRuntime("expand", item, [i, i + 1]);
+    const live = () => urls.map(resolveObjectURL).filter(Boolean);
+    let failure = "constructor";
+    w.Worker = class {
+      constructor(url) {
+        if (failure === "constructor") throw new Error("worker startup failed");
+        assert.ok(url.startsWith("data:") || resolveObjectURL(url), "The worker must receive a live URL");
+        this.terminated = 0;
+        workers.push(this);
+      }
+      postMessage(request) {
+        if (failure === "postMessage") throw new Error("structured clone failed");
+        this.request = request;
+      }
+      terminate() { this.terminated++; }
+    };
+    for (let i = 0; i < 32; i++) assert.equal(run(i), null);
+    assert.equal(T.icsRuntime.lastError, "recurrence-worker-unavailable");
+    assert.deepEqual([live().length, listeners.size, live().reduce((sum, blob) => sum + blob.size, 0)],
+      [0, 0, 0], `32 failed worker starts retained URLs, listeners or bytes in ${web}`);
+
+    failure = null;
+    run(32);
+    const first = workers.at(-1);
+    assert.deepEqual([live().length, listeners.size], [1, 1]);
+    const result = [{ datum: "2026-09-07" }];
+    first.onmessage({ data: { ...first.request, result } });
+    assert.equal(run(32), result);
+    first.onerror();
+    assert.deepEqual([first.terminated, live().length, listeners.size], [1, 0, 0]);
+
+    run(33);
+    const second = workers.at(-1);
+    first.onerror(); // A delayed event from the old worker cannot retire its replacement.
+    assert.equal(T.icsRuntime.state.worker, second);
+    second.onmessage({ data: { ...second.request, timeZoneIdentity: "wrong" } });
+    assert.equal(T.icsRuntime.lastError, "timezone-provider-identity");
+    assert.deepEqual([second.terminated, live().length, listeners.size], [1, 0, 0]);
+
+    failure = "postMessage";
+    run(34);
+    const third = workers.at(-1);
+    run(35);
+    assert.equal(T.icsRuntime.state.worker, third, "A bad input need not retire the worker");
+    assert.deepEqual([live().length, listeners.size], [1, 1]);
+    w.dispatchEvent(new w.Event("unload"));
+    assert.deepEqual([third.terminated, live().length, listeners.size], [1, 0, 0]);
+
+    dom.reconfigure({ url: "magnolie-organizer://app/index.html" });
+    failure = null;
+    const count = urls.length;
+    run(36);
+    assert.deepEqual([urls.length, listeners.size], [count, 1], "Native data workers must not allocate Blob URLs");
+    w.dispatchEvent(new w.Event("unload"));
+    assert.deepEqual([workers.at(-1).terminated, listeners.size], [1, 0]);
+  } finally {
+    for (const url of urls) URL.revokeObjectURL(url);
+    dom.window.close();
+  }
+}
 
 (async () => {
   const linuxRoot = linuxWeb();
   const webRoots = [path.resolve(__dirname, "../app/web")];
   if (process.env.MAGNOLIE_LINUX_SOURCE || fs.existsSync(linuxRoot)) webRoots.unshift(linuxRoot);
+  const failures = [];
+  for (const web of webRoots) {
+    try { await workerLifetime(web); }
+    catch (error) { failures.push(error); }
+  }
+  if (failures.length) {
+    for (const failure of failures) console.error(failure);
+    throw new Error(`${failures.length}/${webRoots.length} worker resource checks failed`);
+  }
   for (const web of webRoots) {
     const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), { runScripts: "outside-only", url: "https://recurrence.test/", pretendToBeVisual: true });
     const w = dom.window, blobs = new Map(), workers = [];

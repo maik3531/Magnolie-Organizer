@@ -60,6 +60,11 @@ aufgeführt.
   Der Windows-Dateiimport weist beschädigtes UTF‑16 mit der vorhandenen
   Fehlermeldung ab. Direkte Dateien, ZIP-Einträge und der Müllkalender
   wurden über den tatsächlichen Importcode geprüft.
+- [#843](https://github.com/maik3531/Magnolie-Organizer/issues/843):
+  Linux und Windows geben Blob-URLs für Serien-Worker nach Startfehlern
+  sofort frei. Absturz, falsche Zeitzonenidentität und Fensterende
+  räumen den jeweiligen Worker auf. Beide Webquellen und die
+  Portprojektion bestanden. Die native Langzeitprüfung bleibt in #395.
 - [#841](https://github.com/maik3531/Magnolie-Organizer/issues/841):
   Organizer übernimmt die Schreibrichtung auch bei regionalen arabischen
   Sprachcodes aus dem primären Sprachuntertag. 16 Startfälle mit den

@@ -236,7 +236,7 @@
     "end": "",
     "includeEnd": false,
     "sha256": "9ff4a4bf19a1e96a0dc5906679dd10674963a129442e88da229322acd1ec179d",
-    "replacement": "        const job = state.jobs.get(data.key); if (!job) return;\n        if (data.timeZoneIdentity !== MagnolieTime.identity.payloadSHA256) {\n          for (const value of state.jobs.values()) if (value.status === \"pending\") Object.assign(value, { status: \"error\", error: \"timezone-provider-identity\", result: null });\n          state.worker.terminate(); state.worker = null; publish(); warn(\"timezone-provider-identity\"); return;\n        }\n"
+    "replacement": "        const job = state.jobs.get(data.key); if (!job) return;\n        if (data.timeZoneIdentity !== MagnolieTime.identity.payloadSHA256) {\n          for (const value of state.jobs.values()) if (value.status === \"pending\") Object.assign(value, { status: \"error\", error: \"timezone-provider-identity\", result: null });\n          releaseWorker(); publish(); warn(\"timezone-provider-identity\"); return;\n        }\n"
   },
   {
     "id": "worker-send-identity",
