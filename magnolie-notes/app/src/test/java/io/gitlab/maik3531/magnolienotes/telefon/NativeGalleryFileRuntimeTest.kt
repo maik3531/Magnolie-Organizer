@@ -34,6 +34,7 @@ class NativeGalleryFileRuntimeTest {
     }
 
     private fun negotiatedRuntime(videoReady: () -> Boolean = { false }, peerVideo: () -> Boolean = { false },
+        mediaIntent: ((GalleryMediaType) -> Any?)? = null,
         action: (NativeGalleryFileRuntime, () -> Unit) -> Unit) {
         val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "file-source-command330-").toFile()
         val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
@@ -42,8 +43,8 @@ class NativeGalleryFileRuntimeTest {
         val desktopPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, "1".repeat(64))
         val state = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
         val desktop = NativeFileControlSession(remote, { desktopPeer }, { state })
-        val runtime = NativeGalleryFileRuntime.withVideoHandlers(org.robolectric.RuntimeEnvironment.getApplication(), root, identity, protection,
-            link.channel, { peer.copy(videoSupported = peerVideo()) }, { true }, videoReady)
+        val runtime = NativeGalleryFileRuntime.withSharedMediaIntent(org.robolectric.RuntimeEnvironment.getApplication(), root,
+            identity, protection, link.channel, { peer.copy(videoSupported = peerVideo()) }, { true }, videoReady, mediaIntent)
         try {
             fun echo() {
                 if (runtime.sendControls(now)) desktop.observeRemote(DeviceFileControlEnvelope.validate(link.sent(), now), desktopPeer)
@@ -63,6 +64,42 @@ class NativeGalleryFileRuntimeTest {
             put("kinds", JsonArray(listOf(JsonPrimitive("camera"))))
         }
     }, 60_000, now)
+
+    @Test fun typedFirstVideoSendNeedsNewEchoAndSeparateOsReadWithoutEnablingPhotos() {
+        val videoIntent = Any()
+        negotiatedRuntime(videoReady = { true }, peerVideo = { true },
+            mediaIntent = { if (it == GalleryMediaType.VIDEO) videoIntent else null }) { runtime, echo ->
+            fun command(operation: String, version: String, video: Boolean = false): JsonObject {
+                val request = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                    put("format", 1); put("operation", operation); put("expected_version", version)
+                    if (operation == "configure_videos") put("enabled", true)
+                    if (video) put("media_type", "video")
+                }, 60_000, now)
+                var reply: JsonObject? = null
+                runtime.receiveSourceCommand(request, { reply = it }, { now })
+                return checkNotNull(reply).getValue("body").jsonObject
+            }
+            val absent = runtime.savedPolicy()
+            assertNull(absent.policy)
+            val reply = command("configure_videos", absent.version)
+            assertEquals(JsonPrimitive(false), reply["enabled"])
+            assertEquals(JsonPrimitive(true), reply.getValue("videos").jsonObject["enabled"])
+            val saved = runtime.savedPolicy()
+            assertNull(runtime.currentRequest(GalleryMediaType.VIDEO))
+            echo()
+            assertNull("The stored policy alone must not arm the video owner", runtime.currentRequest(GalleryMediaType.VIDEO))
+            assertEquals(JsonPrimitive(saved.version), command("configure_videos", saved.version)["version"])
+            assertSame(videoIntent, runtime.currentRequest(GalleryMediaType.VIDEO)!!.mediaIntent)
+            assertNull(runtime.currentRequest())
+            val denied = command("discover", saved.version, video = true)
+            assertEquals(JsonPrimitive("video"), denied["media_type"])
+            assertEquals(JsonPrimitive("none"), denied.getValue("page").jsonObject["coverage"])
+            assertEquals("gallery_source_not_activated", assertThrows(PhotoFolderScopeError::class.java) {
+                command("discover", saved.version)
+            }.code)
+            assertEquals(saved, runtime.savedPolicy())
+        }
+    }
 
     @Test fun savedVideoPolicyRequiresFreshPositiveCommandInEachActualRuntime() {
         val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "video-owner377-").toFile()

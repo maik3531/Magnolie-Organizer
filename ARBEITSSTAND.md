@@ -41,8 +41,10 @@ aufgeführt.
   151 Prüfungen zu Erstempfang, Präferenzen und Ordnerwahl bestanden.
   Der manuelle gemischte Erstempfang prüft beide Ziele und beide
   Android-Lesefreigaben, bevor der erste Transfer beginnt. 82 Python-
-  und 12 DOM-Fälle bestanden. Reiner Video-Erstempfang, WLAN-Ersteinrichtung
-  und die installierte Paarprüfung bleiben offen.
+  und 12 DOM-Fälle bestanden. Notes kann erstmals nur Videos senden,
+  ohne Foto-SEND oder Android-READ freizugeben. 114 JVM-Fälle bestanden.
+  Der reine Video-Empfang am PC, WLAN-Ersteinrichtung und die
+  installierte Paarprüfung bleiben offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
   zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.

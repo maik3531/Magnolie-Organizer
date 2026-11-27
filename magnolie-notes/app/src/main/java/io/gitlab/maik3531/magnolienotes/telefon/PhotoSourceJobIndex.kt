@@ -587,6 +587,7 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
             if (next.fileGrantRevision < oldPolicy.fileGrantRevision) fail("gallery_policy_permission_revision_rollback")
             if (next.fileGrantRevision == oldPolicy.fileGrantRevision &&
                 (next.epoch != oldPolicy.epoch || next.enabled != oldPolicy.enabled || next.kinds != oldPolicy.kinds ||
+                    next.videoOnlySend != oldPolicy.videoOnlySend || next.anySendEnabled != oldPolicy.anySendEnabled ||
                     next.receiverId != oldPolicy.receiverId || next.receiverIdentitySha256 != oldPolicy.receiverIdentitySha256 ||
                     next.pairingEpoch != oldPolicy.pairingEpoch || next.receiving != oldPolicy.receiving))
                 fail("gallery_policy_permission_revision_conflict")

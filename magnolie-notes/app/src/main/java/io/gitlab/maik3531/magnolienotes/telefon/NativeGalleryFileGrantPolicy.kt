@@ -41,7 +41,7 @@ internal class NativeGalleryFileGrantPolicy(private val currentPeer: () -> Nativ
             }
             val associated = policy != null && policy.receiverId == peer.peerId && policy.receiverIdentitySha256 == peer.identitySha256 &&
                 policy.pairingEpoch == pairing
-            val next = if (associated) DeviceFileGrantState(policy!!.fileGrantRevision, policy.epoch, policy.enabled,
+            val next = if (associated) DeviceFileGrantState(policy!!.fileGrantRevision, policy.epoch, policy.anySendEnabled,
                 policy.receiving?.anyEnabled == true) else off
             val before = confirmed
             if (before != null && (next.revision < before.revision || next.revision == before.revision &&

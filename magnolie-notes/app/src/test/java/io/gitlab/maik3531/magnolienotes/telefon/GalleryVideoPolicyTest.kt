@@ -19,6 +19,52 @@ import javax.crypto.spec.SecretKeySpec
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = Application::class)
 class GalleryVideoPolicyTest {
+    @Test fun firstVideoOnlyCommandDoesNotCreatePhotoSendConsent() {
+        Fixture().use { f ->
+            var videoIntent: Any? = Any()
+            var imageIntent: Any? = Any()
+            val controller = GalleryPhotoPolicyController.forSharedMediaIntent(f.index, { f.receiver }, { f.configurer }, { true }) {
+                if (it == GalleryMediaType.VIDEO) videoIntent else imageIntent
+            }
+            val absent = f.index.galleryPolicy()
+            val before = f.grants.current()!!.grants
+            assertNull(absent.policy)
+            // Mixed or a disposable/stale video intent cannot bootstrap an independent policy.
+            assertThrows(PhotoFolderScopeError::class.java) { controller.configureVideos(absent, true) }
+            imageIntent = null
+            val originalVideoIntent = videoIntent
+            val saved = controller.configureVideos(absent, true)
+            assertEquals(saved, f.index.galleryPolicy())
+            assertFalse(saved.policy!!.enabled)
+            assertTrue(saved.policy!!.videoOnlySend)
+            assertEquals(saved.policy, GalleryPhotoPolicy.parse(saved.policy!!.wire()))
+            assertTrue(saved.policy!!.videos!!.enabled)
+            assertNull(saved.policy!!.receiving)
+            val grant = f.grants.current()!!.grants
+            assertTrue(grant.sendFiles)
+            assertTrue(grant.revision > before.revision)
+            assertFalse(grant.receiveFiles)
+            assertSame(originalVideoIntent, controller.currentRequest(GalleryMediaType.VIDEO)!!.mediaIntent)
+            assertEquals("gallery_photo_intent_required", assertThrows(PhotoFolderScopeError::class.java) {
+                controller.configure(saved, true, setOf(GallerySourceKind.CAMERA))
+            }.code)
+            assertEquals(saved, f.index.galleryPolicy())
+            imageIntent = Any()
+            assertNull("A later shared choice cannot manufacture photo SEND", controller.currentRequest(GalleryMediaType.IMAGES))
+            imageIntent = null
+            videoIntent = null
+            assertNull(controller.currentRequest(GalleryMediaType.VIDEO))
+            videoIntent = originalVideoIntent
+            val revoked = controller.disableLocally(saved)
+            assertFalse(revoked.policy!!.videos!!.enabled)
+            assertFalse(f.grants.current()!!.grants.sendFiles)
+            assertNull(controller.currentRequest(GalleryMediaType.VIDEO))
+            assertThrows(PhotoFolderScopeError::class.java) { controller.configureVideos(revoked, true) }
+            assertEquals(revoked, f.index.galleryPolicy())
+            assertTrue(f.index.jobs().isEmpty())
+        }
+    }
+
     @Test fun sharedVideoOnlyIntentUsesBaseTransportWithoutAuthorizingImageJobsOrRevivingOldCatalogs() {
         Fixture().use { f ->
             var videoIntent: Any? = Any()

@@ -38,7 +38,8 @@ internal class GalleryReceivePolicyController(private val index: PhotoSourceJobI
         val videos = old?.videos?.let { if (samePair) it else it.copy(enabled = false) }
             ?: GalleryVideoPolicy(false, epoch())
         val next = GalleryPhotoPolicy(peer.deviceId, peer.identitySha256, old?.epoch ?: epoch(),
-            samePair && old?.enabled == true, old?.kinds ?: emptySet(), revision, 5, pairing, videos, revision, receiving)
+            samePair && old?.enabled == true, old?.kinds ?: emptySet(), revision, 5, pairing, videos, revision, receiving,
+            samePair && old?.videoOnlySend == true)
         return commit(expected, next, ::current)
     }
 
@@ -58,7 +59,7 @@ internal class GalleryReceivePolicyController(private val index: PhotoSourceJobI
             videos = if (kind == GalleryMediaType.VIDEO) false else before.videos, epoch = epoch(), revision = before.revision + 1)
         val revision = old.revision + 1
         val next = GalleryPhotoPolicy(old.receiverId, old.receiverIdentitySha256, old.epoch, old.enabled, old.kinds,
-            revision, 5, old.pairingEpoch, old.videos, revision, receiving)
+            revision, 5, old.pairingEpoch, old.videos, revision, receiving, old.videoOnlySend)
         return commit(expected, next, ::current)
     }
 
