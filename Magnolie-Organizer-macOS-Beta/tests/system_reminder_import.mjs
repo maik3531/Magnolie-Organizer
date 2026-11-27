@@ -518,4 +518,33 @@ for (const kind of ["task", "note"]) {
   } finally { b.close(); }
 }
 
-console.log(`Mac system Reminders copy: ${checks} projected UI checks; shared synthetic reader/Core fixture and transport, not EventKit or macOS evidence.`);
+{
+  const b = await context(), { t, messages } = b;
+  try {
+    const raw = ["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER;VALUE=DATE-TIME:20261127T103017Z", "END:VALARM"];
+    const book = t.daten();
+    book.termine = t.normalisiere({ termine: [
+      { id: "event-absolute", titel: "Exact event", datum: "2027-06-10", zeit: "09:00",
+        icsRoundtrip: ["RRULE:FREQ=DAILY", ...raw, ...raw] },
+      { id: "event-cancelled", titel: "Cancelled event", datum: "2027-06-10", zeit: "09:00",
+        icsRoundtrip: ["STATUS:CANCELLED", ...raw] },
+    ] }).termine;
+    book.aufgaben = [
+      { id: "task-absolute", titel: "Exact task", icsRoundtrip: raw },
+      { id: "task-done", titel: "Done task", erledigt: true, icsRoundtrip: raw },
+      { id: "task-private", titel: "Confidential task", icsRoundtrip: ["CLASS:CONFIDENTIAL", ...raw] },
+    ];
+    const notifications = () => messages.filter(message => message.cmd === "erinnerung_zeigen");
+    book.einstellungen.erinnerung.an = true;
+    b.at("2026-11-27T10:30:16Z"); t.pruefeErinnerungen();
+    equal(notifications().length, 0, "Absolute reminders do not fire a second early");
+    b.at("2026-11-27T10:30:17Z"); book.einstellungen.erinnerung.an = false; t.pruefeErinnerungen();
+    equal(notifications().length, 0, "Absolute reminders respect the global opt-out");
+    book.einstellungen.erinnerung.an = true;
+    t.pruefeErinnerungen(); t.pruefeErinnerungen();
+    equal(notifications().map(message => message.rumpf), ["Exact event", "Exact task"],
+      "Actual polling sends one notification per absolute trigger via the existing bridge");
+  } finally { b.close(); }
+}
+
+console.log(`Mac reminder projection: ${checks} UI checks; shared synthetic reader/Core fixture and transport, not EventKit or macOS evidence.`);

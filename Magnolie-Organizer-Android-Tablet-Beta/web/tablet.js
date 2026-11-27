@@ -241,7 +241,9 @@
       ['icsZusatzDaten','icsZusatzTermine','icsAusnahmen','icsAusnahmeTermine','icsOverrides','icsRangeOverrides']
         .some(key => (x[key] || []).length) || x.rrule ||
       (x.wiederholung?.art && !['none','keine'].includes(x.wiederholung.art));
+    const absolute = window.MagnolieTabletActions.absoluteAlarmTimes;
     for (const item of data.termine.concat(T.customTermineFuerErinnerung())) {
+      for (const at of absolute(item, false)) add(item,at,'kalender',item.id.startsWith('custom:'),'absolute');
       if (recurring(item)) continue;
       const time = +T.terminZeitpunkt(item);
       const offsets = new Set();
@@ -255,6 +257,7 @@
       }
     }
     for (const item of data.aufgaben.concat(T.customAufgabenFuerErinnerung())) {
+      for (const at of absolute(item, true)) add(item,at,'aufgaben',item.id.startsWith('custom:'),'absolute');
       const days = Number(item.individuelleErinnerungTage || 0);
       if (item.erledigt || !item.faellig || !item.erinnern && !days) continue;
       if (recurring(item)) { status(beta(0)); continue; }

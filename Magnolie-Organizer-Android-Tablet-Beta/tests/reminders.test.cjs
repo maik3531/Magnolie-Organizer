@@ -10,11 +10,12 @@ const tick=()=>new Promise(r=>setTimeout(r,30));
     runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:console});
   const w=dom.window; w.TextEncoder=TextEncoder; w.TextDecoder=TextDecoder;
   Object.defineProperty(w,'crypto',{value:webcrypto}); w.Element.prototype.getAnimations=()=>[];
-  const session=webcrypto.randomUUID(); let revision=webcrypto.randomUUID();
+  const session=webcrypto.randomUUID(); let revision=webcrypto.randomUUID(), savedAlarms;
   w.TabletNative={postMessage(text){const m=JSON.parse(text); setTimeout(()=>{
     if(m.cmd==='bereit') w.Tablet.receive({callback:'init',payload:{daten:null,session,revision}});
     if(m.cmd==='tablet_loaded') w.Tablet.receive({callback:'ready',payload:{session,revision}});
     if(m.cmd==='speichern') {
+      savedAlarms=m.alarms;
       assert.equal(m.session,session); assert.equal(m.revision,revision); revision=webcrypto.randomUUID();
       w.Tablet.receive({callback:'gespeichert',payload:{id:m.id,ok:true,session,expectedRevision:m.revision,revision}});
     }
@@ -95,6 +96,41 @@ const tick=()=>new Promise(r=>setTimeout(r,30));
       ['date with timezone',{icsRoundtrip:['DUE;TZID=Europe/Berlin;VALUE=DATE:20300510']}],
       ['duplicate DTSTART',{icsRoundtrip:['DTSTART:20300509T100000Z','DTSTART:20300509T110000Z','DUE:20300510T100000Z']}]
     ]) project('explicit unsupported '+name,{...combined,...extra},'UTC',[]);
+    const block=(trigger,action='DISPLAY')=>['BEGIN:VALARM',`ACTION:${action}`,trigger,'END:VALARM'];
+    const trigger='TRIGGER;VALUE=DATE-TIME:20300510T103017Z';
+    const raw=[...block(trigger),...block(trigger),
+      ...block('TRIGGER;VALUE=DATE-TIME:20300230T103017Z'),
+      ...block('TRIGGER;VALUE=DATE-TIME:20300510T103019Z','EMAIL'),
+      ...block('TRIGGER;VALUE=DATE-TIME;TZID=Europe/Berlin:20300510T103020Z'),
+      ...block('TRIGGER;VALUE=DATE-TIME;RELATED=END:20300510T103021Z'),
+      ...block('TRIGGER;VALUE=DATE-TIME:20300510T103022')];
+    const data=T.daten();
+    data.termine=T.normalisiere({termine:[
+      {id:'absolute-event',titel:'Absolute event',datum:'2030-06-10',zeit:'09:00',
+        icsRoundtrip:['RRULE:FREQ=DAILY',...raw]},
+      {id:'cancelled-event',titel:'Cancelled event',datum:'2030-06-10',zeit:'09:00',
+        icsRoundtrip:['STATUS:CANCELLED','RRULE:FREQ=DAILY',...raw]},
+      {id:'disabled-event',titel:'Disabled event',datum:'2030-06-10',zeit:'09:00',
+        icsRoundtrip:['RRULE:FREQ=DAILY',...raw],alarme:[]},
+    ]}).termine;
+    const taskAlarm={id:'absolute-task',titel:'Absolute task',icsRoundtrip:raw};
+    data.aufgaben=[taskAlarm,{...taskAlarm,id:'done-task',erledigt:true},
+      {...taskAlarm,id:'cancelled-task',icsRoundtrip:['STATUS:CANCELLED',...raw]},
+      {...taskAlarm,id:'private-task',icsRoundtrip:['CLASS:PRIVATE',...raw]},
+      {...taskAlarm,id:'occurrence-task',folge:true}];
+    const exact=Date.parse('2030-05-10T10:30:17Z');
+    const projected=JSON.parse(JSON.stringify(w.Tablet.alarms()));
+    assert.deepEqual(projected.map(a=>[a.section,a.title,a.at,a.custom]),[
+      ['kalender','Absolute event',exact,false],['aufgaben','Absolute task',exact,false],
+    ],'single UTC trigger per item even outside recurrence and without task due');
+    savedAlarms=null;
+    await new Promise((resolve,reject)=>w.MagnolieTabletActions.persist(resolve,reject));
+    assert.deepEqual(savedAlarms,projected,'regular durable save passes exact alarms to native');
+    cases.push({name:'absolute ICS alarms through document save',alarms:savedAlarms});
+    data.einstellungen.erinnerung.an=false;
+    assert.equal(w.Tablet.alarms().length,0,'disabled global reminders');
+    data.einstellungen.erinnerung.an=true;
+    data.termine=[];
     T.daten().aufgaben=[];
     const module={id:'custom-a3',type:'tasks',title:'Custom',reminders:false,
       items:[{id:'custom-item',title:'Custom task',due:'2030-05-10',time:'10:00',remind:true,done:false}]};

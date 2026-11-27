@@ -84,6 +84,7 @@ class NativeTabletInstrumentation : Instrumentation() {
                 "fault" -> fault()
                 "print" -> printPdf()
                 "notifications" -> notifications(false)
+                "absolute-notifications" -> absoluteNotifications()
                 "seed-reboot" -> notifications(true)
                 "verify-reboot" -> verifyReboot()
                 else -> error("Unknown stage")
@@ -1039,13 +1040,62 @@ class NativeTabletInstrumentation : Instrumentation() {
         check(data().getJSONObject("customOrganizer").toString().contains("13:45"))
         pass("touchscreen native time picker plus real hardware key events; no wheel emulation")
     }
-    private fun notifications(reboot:Boolean) {
+    private fun enableTestNotifications() {
         launch(); shell("pm grant ${targetContext.packageName} android.permission.POST_NOTIFICATIONS")
         raw("Tablet.action('tablet_notifications')"); waitFor("native notification consent") {nodes().any {it.className?.toString()=="android.widget.CheckBox"}}
         val boxes=nodes().filter {it.className?.toString()=="android.widget.CheckBox"}
         if(!boxes[0].isChecked) boxes[0].performAction(AccessibilityNodeInfo.ACTION_CLICK)
         if(boxes[1].isChecked) boxes[1].performAction(AccessibilityNodeInfo.ACTION_CLICK)
         clickNode("android:id/button1"); SystemClock.sleep(300)
+    }
+    private fun absoluteNotifications() {
+        enableTestNotifications()
+        val seconds = System.currentTimeMillis() / 1000 + 60
+        val at = (if (seconds % 60 == 0L) seconds + 1 else seconds) * 1000
+        val instant = org.threeten.bp.Instant.ofEpochMilli(at)
+        val utc = org.threeten.bp.format.DateTimeFormatter.ofPattern("uuuuMMdd'T'HHmmss'Z'", java.util.Locale.ROOT)
+            .withZone(org.threeten.bp.ZoneOffset.UTC)
+        val event = "Synthetic absolute event"
+        val task = "Synthetic absolute task"
+        val titles = setOf(event, task)
+        val alarm = listOf("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:Reminder",
+            "TRIGGER;VALUE=DATE-TIME:${utc.format(instant)}", "END:VALARM")
+        val start = utc.format(instant.plusSeconds(86400L * 14))
+        val file = "absolute-reminders.ics"
+        val lines = listOf("BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Magnolie//Native test//EN",
+            "BEGIN:VEVENT", "UID:absolute-event@example.test", "DTSTART:$start", "RRULE:FREQ=DAILY;COUNT=2",
+            "SUMMARY:$event") + alarm + listOf("END:VEVENT",
+            "BEGIN:VTODO", "UID:absolute-task@example.test", "SUMMARY:$task") +
+            alarm + listOf("END:VTODO", "END:VCALENDAR")
+        seedDocument(file, lines.joinToString("\r\n", postfix = "\r\n"))
+        openCalendarPicker(); selectProvider(); clickNode(file)
+        waitFor("imported absolute event and task") {
+            value("OrganizerTest.daten().termine.some(x=>x.titel==='$event')&&OrganizerTest.daten().aufgaben.some(x=>x.titel==='$task')") == "true"
+        }
+        saved()
+        val state = vault().read()!!
+        val alarms = state.getJSONArray("alarms")
+        val selected = (0 until alarms.length()).map(alarms::getJSONObject)
+            .filter { it.getString("id").contains(":absolute:") }
+        check(state.getBoolean("enabled") && selected.size == 2 &&
+            selected.map { it.getString("title") }.toSet() == titles &&
+            selected.all { it.getLong("at") == at })
+        check(System.currentTimeMillis() < at)
+        pass("ICS picker and durable save retained both second-precise absolute triggers", JSONObject().put("at", at))
+        sendKeyDownUpSync(KeyEvent.KEYCODE_HOME)
+        val manager = targetContext.getSystemService(NotificationManager::class.java)
+        waitFor("absolute notifications while backgrounded", 85) {
+            val delivered = manager.activeNotifications.filter {
+                it.notification.extras.getCharSequence("android.text")?.toString() in titles
+            }
+            val receipts = vault().read()!!.getJSONObject("delivered")
+            delivered.size == 2 && delivered.all { it.postTime >= at } &&
+                selected.all { receipts.has(it.getString("id")) }
+        }
+        pass("native receiver posted both absolute reminders and stored both delivery receipts")
+    }
+    private fun notifications(reboot:Boolean) {
+        enableTestNotifications()
         val at=((System.currentTimeMillis()/60000)+2)*60000
         val due=org.threeten.bp.Instant.ofEpochMilli(at).atZone(org.threeten.bp.ZoneOffset.UTC)
         val date=due.toLocalDate().toString(); val time=due.toLocalTime().toString().take(5)

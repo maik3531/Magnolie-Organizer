@@ -22,6 +22,7 @@ SUITES = {
     'system-records': ['system-records'],
     'storage': ['basics', 'saf', 'fault', 'print'],
     'notifications': ['notifications'],
+    'absolute-notifications': ['absolute-notifications'],
 }
 
 

@@ -541,11 +541,24 @@ def project(snapshot, target):
     reminder = text[reminder_start:reminder_end]
     reminder = replace_once(reminder, "if (Bruecke.vorhanden) return;",
                             "if (!initialisiert || gesperrt) return;")
+    reminder = replace_once(reminder, "    const jetztWert = new Date();",
+                            '''    const jetztWert = new Date();
+    const absoluteMeldungen = (eintrag, aufgabe) => {
+      for (const at of festeKalenderAlarmzeiten(eintrag, aufgabe)) {
+        const id = JSON.stringify(["macOS-Beta-absolute", aufgabe, eintrag.id, at]);
+        if (gemeldeteTermine.has(id) || +jetztWert < at || +jetztWert > at + 5 * 60000) continue;
+        gemeldeteTermine.add(id);
+        meldeErinnerung(aufgabe ? _("Task reminder") : _("Appointment reminder"), eintrag.titel || _("Untitled"));
+      }
+    };''')
+    reminder = replace_once(reminder, "      const zeitpunkt = terminZeitpunkt(t);",
+                            "      absoluteMeldungen(t, false);\n      const zeitpunkt = terminZeitpunkt(t);")
     reminder = replace_once(reminder, "      if (!tage || t.standardErinnerung !== false) {",
                             "      if (t.nativeCalendarImport?.version === 1 ? t.standardErinnerung !== false : !tage || t.standardErinnerung !== false) {")
     task_start = reminder.index("    for (const aufgabe of DATEN.aufgaben.concat(customAufgabenFuerErinnerung())) {")
     task_end = reminder.index("\n    }\n  }", task_start) + len("\n    }")
     reminder = reminder[:task_start] + '''    for (const aufgabe of DATEN.aufgaben.concat(customAufgabenFuerErinnerung())) {
+      absoluteMeldungen(aufgabe, true);
       let alarms;
       try { alarms = window.MacBeta.taskAlarms(aufgabe, organizerZeitzone()); }
       catch (_) { window.MacBeta.reminderError(); continue; }

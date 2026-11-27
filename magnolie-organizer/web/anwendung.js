@@ -7822,6 +7822,49 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     return result;
   }
+  function festeKalenderAlarmzeiten(eintrag, aufgabe) {
+    const zeilen = eintrag.icsRoundtrip;
+    if (!Array.isArray(zeilen) || !zeilen.length || eintrag.folge ||
+        (aufgabe && eintrag.erledigt)) return [];
+    const gesperrterStatus = wert => wert === "CANCELLED" || (aufgabe && wert === "COMPLETED");
+    const vertraulich = !DATEN.einstellungen.sicherheit.vertraulicheErinnerungen;
+    if (gesperrterStatus(String(eintrag.icsStatus || "").toUpperCase()) ||
+        (vertraulich && eintrag.vertraulich) ||
+        kalenderKernEigenschaften(zeilen).some(({ name, wert }) =>
+          (name === "STATUS" && gesperrterStatus(wert.toUpperCase())) ||
+          (vertraulich && name === "CLASS" && /^(PRIVATE|CONFIDENTIAL)$/i.test(wert)))) return [];
+
+    const zeiten = new Set();
+    let block = null, anzahl = 0;
+    for (const zeile of zeilen) {
+      if (typeof zeile !== "string") continue;
+      if (/^BEGIN:VALARM$/i.test(zeile)) {
+        if (++anzahl > TERMIN_MAX_ALARME) break;
+        block = { aktionen: [], trigger: [], ungueltig: block !== null };
+      } else if (block && /^END:VALARM$/i.test(zeile)) {
+        const { aktionen, trigger, ungueltig } = block;
+        block = null;
+        if (ungueltig || aktionen.length !== 1 || trigger.length !== 1 ||
+            !/^ACTION:DISPLAY$/i.test(aktionen[0])) continue;
+        // An absolute trigger is UTC and has no TZID or RELATED parameter.
+        const zeit = /^TRIGGER;VALUE=(?:DATE-TIME|"DATE-TIME"):(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/i.exec(trigger[0]);
+        if (!zeit) continue;
+        const [, jahr, monat, tag, stunde, minute, sekunde] = zeit;
+        const roh = `${jahr}${monat}${tag}T${stunde}${minute}${sekunde}Z`;
+        if (Array.isArray(eintrag.alarme) && !eintrag.alarme.some(alarm =>
+          alarm?.bearbeitbar === false && alarm.aktiviert !== false && alarm.aktion === "display" &&
+          String(alarm.triggerRaw).toUpperCase() === roh)) continue;
+        const iso = `${jahr}-${monat}-${tag}T${stunde}:${minute}:${sekunde}.000Z`;
+        const instant = Date.parse(iso);
+        if (instant > 0 && new Date(instant).toISOString() === iso) zeiten.add(instant);
+      } else if (block) {
+        if (/^(?:BEGIN|END)[;:]/i.test(zeile)) block.ungueltig = true;
+        if (/^ACTION[;:]/i.test(zeile)) block.aktionen.push(zeile);
+        if (/^TRIGGER[;:]/i.test(zeile)) block.trigger.push(zeile);
+      }
+    }
+    return [...zeiten];
+  }
   function entferneKalenderKernfelder(lines, names) {
     let depth = 0;
     return (lines || []).filter(line => {
