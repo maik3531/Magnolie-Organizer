@@ -61,4 +61,57 @@ internal static class DevicePublishedReadbackTests
             "Video readback invented native completion authority.");
         return Task.CompletedTask;
     }
+
+    internal static Task BatchAsync()
+    {
+        const string path = "contracts/file-published-readback-batch-v2-vectors.json";
+        var vector = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root(path), path)))!.AsObject();
+        var message = vector["message"]!.AsObject();
+        var offer = vector["offer"]!.AsObject();
+        var wire = vector["binding"]!.AsObject();
+        var now = vector["now_ms"]!.GetValue<long>();
+        string Text(string key) => wire[key]!.GetValue<string>();
+        var binding = new DeviceTransferBinding(Text("sender_id"), Text("receiver_id"), Text("sender_identity_sha256"),
+            Text("receiver_identity_sha256"), Text("permission_epoch"), Text("destination_token"));
+        JsonObject Context() => new(message["body"]!.AsObject().Where(pair => pair.Key is not ("destination_token" or "binding_sha256" or "readback_sha256"))
+            .Select(pair => KeyValuePair.Create(pair.Key, pair.Value?.DeepClone())));
+        var result = DevicePublishedBatchReadbackEnvelope.Parse(message, offer, binding, "images", now);
+        TestAssert.That(JsonNode.DeepEquals(result.Body, message["body"]) &&
+            JsonNode.DeepEquals(DevicePublishedBatchReadbackEnvelope.EncodeBody(Context(), binding), result.Body),
+            "Whole-offer readback diverged from the common canonical bytes.");
+        var copy = result.Body;
+        copy["members"]!.AsObject().Clear();
+        TestAssert.That(result.Body["members"]!.AsObject().Count == 2, "A caller changed the original observed readback.");
+        TestAssert.Throws<InvalidDataException>(() => DevicePublishedReadbackEnvelope.Parse(message, offer, binding, "images", now),
+            "The single-file path accepted a whole-offer readback.");
+        var ids = Context()["members"]!.AsObject().Select(pair => pair.Key).ToArray();
+        void RejectRehashed(Action<JsonObject> change)
+        {
+            var context = Context();
+            change(context);
+            var rebound = binding with { DestinationToken = DevicePublishedBatchReadbackEnvelope.DestinationToken(context) };
+            var altered = message.DeepClone().AsObject();
+            altered["body"] = DevicePublishedBatchReadbackEnvelope.EncodeBody(context, rebound);
+            TestAssert.Throws<InvalidDataException>(() => DevicePublishedBatchReadbackEnvelope.Parse(altered, offer, rebound, "images", now),
+                "Rehashed metadata substituted for the original complete offer.");
+        }
+        RejectRehashed(value => value["members"]!.AsObject().Remove(ids[1]));
+        RejectRehashed(value => value["members"]![ids[1]]!["size"] = 457);
+        RejectRehashed(value => value["members"]![ids[1]]!["sha256"] = new string('0', 64));
+        RejectRehashed(value => value["offer_id"] = "99999999-9999-4999-8999-999999999999");
+        foreach (var key in new[] { "row_sha256", "publication_sha256" })
+        {
+            var aliased = Context();
+            aliased["members"]![ids[1]]![key] = aliased["members"]![ids[0]]![key]!.DeepClone();
+            TestAssert.Throws<InvalidDataException>(() => DevicePublishedBatchReadbackEnvelope.DestinationToken(aliased),
+                "A row or publication fingerprint was reused for another member.");
+        }
+        var extended = message.DeepClone().AsObject();
+        extended["expires_ms"] = offer["expires_ms"]!.GetValue<long>() + 1;
+        TestAssert.Throws<InvalidDataException>(() => DevicePublishedBatchReadbackEnvelope.Parse(extended, offer, binding, "images", now),
+            "A readback extended the original offer lifetime.");
+        TestAssert.Throws<InvalidDataException>(() => DevicePublishedBatchReadbackEnvelope.Parse(message, offer,
+            binding with { ReceiverIdentitySha256 = new string('0', 64) }, "images", now), "Foreign binding accepted the readback.");
+        return Task.CompletedTask;
+    }
 }

@@ -75,7 +75,7 @@ internal sealed partial class TelefonConnection
                 run = new(this, cache, owner, binding.PermissionEpoch, lifetime, expectReadback);
                 lock (fileRouteGate)
                 {
-                    if (nativeMediaSend is not null || nativeMediaSourceRun is not null || nativeEndedMediaBatch is not null || nativeMediaTransfer is not null || nativeSourceCommand is not null || nativeSourceStatus is not null)
+                    if (NativeMediaSendBusy || nativeMediaSourceRun is not null || nativeEndedMediaBatch is not null || nativeMediaTransfer is not null || nativeSourceCommand is not null || nativeSourceStatus is not null)
                         throw DeviceFileControl.Error("media_source_send_io_busy");
                     nativeMediaSend = run;
                 }
@@ -110,6 +110,13 @@ internal sealed partial class TelefonConnection
 
     private async Task ReceiveNativeMediaSendAsync(JsonObject message)
     {
+        bool batch;
+        lock (fileRouteGate) batch = nativeMediaBatchSend is not null;
+        if (batch)
+        {
+            await ReceiveNativeMediaBatchSendAsync(message);
+            return;
+        }
         await fileControlIo.WaitAsync(cancellation);
         NativeMediaSendRun? run = null;
         try
@@ -180,9 +187,21 @@ internal sealed partial class TelefonConnection
         }
         finally { fileControlIo.Release(); }
     }
-    private void CloseNativeMediaSend() { lock (fileRouteGate) nativeMediaSend?.Lifetime.Cancel(); }
+    // These owners share the original file route and are mutually exclusive.
+    // Only inspect this property while holding fileRouteGate.
+    private bool NativeMediaSendBusy => nativeMediaSend is not null || nativeMediaBatchSend is not null || nativeBatchRetirement is not null;
+
+    private void CloseNativeMediaSend()
+    {
+        lock (fileRouteGate)
+        {
+            nativeMediaSend?.Lifetime.Cancel();
+            nativeMediaBatchSend?.Lifetime.Cancel();
+        }
+    }
     private void CheckNativeMediaSendControl()
     {
+        CheckNativeMediaBatchSendControl();
         NativeMediaSendRun? run; lock (fileRouteGate) run = nativeMediaSend;
         if (run is null) return;
         try { run.Require(); } catch { CloseNativeMediaSend(); }

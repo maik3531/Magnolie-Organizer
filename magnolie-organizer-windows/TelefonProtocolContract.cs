@@ -43,13 +43,23 @@ internal static class TelefonProtocolContract
 
     internal static JsonObject DesktopCapabilities() => new() { ["revision"] = 1, ["items"] = new JsonObject
     {
-        ["answer_call"] = Capability(true, "available", 1), ["device_status"] = Capability(true, "available", 1, 2, 3, 4, 5, 7, TelefonTimeZoneContract.Version, PhoneContactRead.GroupWriteVersion, PhoneContactValueWrite.Version, PhoneContactGroupTitleWrite.Version),
+        ["answer_call"] = Capability(true, "available", 1), ["device_status"] = Capability(true, "available", DesktopDeviceStatusVersions()),
         ["dial_request"] = Capability(true, "available", 1, 2), ["end_call"] = Capability(true, "available", 1),
         ["incoming_call_number"] = Capability(true, "available", 1), ["incoming_call_state"] = Capability(true, "available", 2),
         ["personal_deletions_sync"] = Capability(true, "available", 1), ["personal_notes_sync"] = Capability(true, "available", 1, 2, 3, 5, 9, 10, 14),
         ["personal_tasks_sync"] = Capability(true, "available", 1, 2, 3, 4, 6, 7, 9, 10, 13, 14), ["selected_notifications_readonly"] = Capability(false, "not_implemented", 1),
         ["transport.bluetooth_rfcomm"] = Capability(TelefonBluetoothSupport.Available, TelefonBluetoothSupport.Reason, 1)
     }};
+
+    private static int[] DesktopDeviceStatusVersions()
+    {
+        int[] versions = [1, 2, 3, 4, 5, 7, TelefonTimeZoneContract.Version,
+            PhoneContactRead.GroupWriteVersion, PhoneContactValueWrite.Version, PhoneContactGroupTitleWrite.Version];
+#if MAGNOLIE_PRIVATE_MEDIA_SETTINGS
+        if (OperatingSystem.IsWindows()) return [.. versions, DeviceFileControl.DiscoveryVersion, DeviceFileControl.VideoDiscoveryVersion];
+#endif
+        return versions;
+    }
 
     internal static JsonObject DesktopGrants() => new()
     {

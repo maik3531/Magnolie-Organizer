@@ -79,9 +79,38 @@ internal static class SharedSyncTransportTests
         }
     }
 
-    internal static async Task NativeMediaSupportAsync()
+    internal static Task NativeMediaSupportAsync() => NativeMediaSupportAsync(firstReceive: null);
+    internal static Task NativeFirstReceiveEntryAsync() => NativeMediaSupportAsync(firstReceive: "images");
+    internal static Task NativeFirstVideoReceiveEntryAsync() => NativeMediaSupportAsync(firstReceive: "video");
+    internal static Task NativeFirstMixedReceiveEntryAsync() => NativeMediaSupportAsync(firstReceive: "mixed");
+    internal static Task NativeFirstMixedReceiveContentAsync() => NativeMediaSupportAsync(firstReceive: "mixed", transfer: true);
+    internal static Task NativeFirstMixedDefaultContentAsync() => NativeMediaSupportAsync(firstReceive: "mixed", transfer: true, useDefaults: true);
+    internal static Task NativeOriginalAutomaticSetupAsync() => NativeMediaSupportAsync(firstReceive: "mixed", automatic: "missing_read");
+    internal static Task NativeOriginalAutomaticContentAsync() => NativeMediaSupportAsync(firstReceive: "mixed", transfer: true, automatic: "content");
+    internal static Task NativeOriginalAutomaticReconnectAsync() =>
+        DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
+            ? NativeMediaSupportAsync(firstReceive: "mixed", transfer: true, automatic: "reconnect")
+            : Task.CompletedTask;
+    internal static Task NativeOriginalAutomaticStopAsync() => NativeMediaSupportAsync(firstReceive: "mixed", automatic: "stop");
+    internal static Task NativeOriginalSettingsEditAsync() => NativeMediaSupportAsync(firstReceive: "settings");
+    internal static Task NativeOriginalPcImageHelloAsync() =>
+        DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
+            ? NativeMediaSupportAsync(firstReceive: "pc_image_hello")
+            : Task.CompletedTask;
+    internal static Task NativeOriginalPcImageManualAsync() =>
+        DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
+            ? NativeMediaSupportAsync(firstReceive: "pc_image_manual", transfer: true, composed: true)
+            : Task.CompletedTask;
+    internal static Task NativeOriginalCompositionAsync() =>
+        DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
+            ? NativeMediaSupportAsync(firstReceive: null, composed: true)
+            : Task.CompletedTask;
+
+    private static async Task NativeMediaSupportAsync(string? firstReceive, bool transfer = false, bool composed = false,
+        bool useDefaults = false, string? automatic = null)
     {
-        using var fixture = new PhoneCameraParentTests.Fixture(filePairingEpoch: new string('a', 64), receive: (store, peer, message) =>
+        Func<Task>? beforeMetadataAck = null;
+        async Task<TelefonAck?> PublishMetadata(TelefonStore store, TelefonPeer peer, JsonObject message)
         {
             var body = message["body"]!.AsObject();
             switch (message["kind"]!.GetValue<string>())
@@ -91,14 +120,35 @@ internal static class SharedSyncTransportTests
                 case "personal_sync.settings": store.SetPersonalSettings(peer.Id, remoteOwnDevice: body["own_device"]!.GetValue<bool>()); break;
                 default: throw new InvalidOperationException("Unexpected ordinary dispatch");
             }
-            return Task.FromResult<TelefonAck?>(null);
-        });
+            if (beforeMetadataAck is not null) await beforeMetadataAck();
+            return null;
+        }
+        using var fixture = new PhoneCameraParentTests.Fixture(filePairingEpoch: new string('a', 64), receive: PublishMetadata,
+            lifetime: transfer ? TimeSpan.FromSeconds(firstReceive == "pc_image_manual" ? 240 : 50) : null,
+            peerName: useDefaults ? "Magnolie Test " + Guid.NewGuid().ToString("N") : "Controlled original parent");
         var connection = fixture.Connection;
         fixture.Store.SavePeers([fixture.Peer]);
         fixture.Store.Enabled = true;
         fixture.Store.SetPersonalSettings(fixture.Peer.Id, ownDevice: true, remoteOwnDevice: true);
-        connection.NativeMediaSupportChecked = true;
+        using var composition = composed ? new TelefonCoordinator(fixture.Paths, (_, _) => Task.CompletedTask, dataStore: fixture.Store, localOnly: true) : null;
+        if (composition is not null)
+        {
+            typeof(TelefonCoordinator).GetMethod("ConfigureNativeMediaConnection", System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.NonPublic)!.Invoke(composition, [fixture.Peer, connection]);
+            var versions = TelefonProtocolContract.DesktopCapabilities()["items"]!["device_status"]!["versions"]!.AsArray()
+                .Select(TelefonProtocolContract.Integer).ToArray();
+            TestAssert.That(connection.NativeMediaSupportChecked && versions.Contains((long)DeviceFileControl.DiscoveryVersion) &&
+                versions.Contains((long)DeviceFileControl.VideoDiscoveryVersion) && !versions.Contains((long)MediaSyncSettings.DiscoveryVersion),
+                "The actual connection composition did not advertise only the ordinary native media handlers.");
+        }
+        else connection.NativeMediaSupportChecked = true;
         long sent = 0, received = 0;
+        static JsonObject PhoneCapabilities()
+        {
+            var caps = TelefonProtocolContract.DesktopCapabilities();
+            caps["items"]!["device_status"]!["versions"] = new JsonArray(1, 2, 3, 4, 5, 7, 8, 11, 12, 13, 17, 18, 19, 20, 21, 22);
+            return caps;
+        }
         JsonObject Hello()
         {
             var hello = Message("media_support.hello", new JsonObject { ["format"] = 1, ["feature"] = "shared_settings" });
@@ -125,38 +175,160 @@ internal static class SharedSyncTransportTests
             TestAssert.That(JsonNode.DeepEquals(Ack(packet), response), $"Expected {kind} acknowledgement before discovery, got {response}.");
         }
         var run = connection.RunAsync();
+        async Task Reconnect(TelefonCoordinator coordinator, Dictionary<string, TelefonConnection> online,
+            Func<Func<Task<JsonObject>>, Func<JsonObject, Task>, TelefonConnection, Task> transferOriginals)
+        {
+            var peer = fixture.Peer;
+            var saved = fixture.Store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey);
+            var retired = connection.CapturePrivateMediaPhoneImport(saved!);
+            TestAssert.That(retired?.Invoke() == true && online.Remove(peer.Id), "Setup did not retain its original reader.");
+            await fixture.Send(new JsonObject { ["type"] = "close", ["reason"] = "normal" }, sent++);
+            await run;
+            connection.Dispose();
+            TestAssert.That(retired?.Invoke() != true, "The disconnected reader still authorizes media.");
+
+            using var fresh = new PhoneCameraParentTests.Fixture(receive: PublishMetadata, previous: fixture,
+                lifetime: TimeSpan.FromSeconds(50));
+            typeof(TelefonCoordinator).GetMethod("ConfigureNativeMediaConnection", System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.NonPublic)!.Invoke(coordinator, [peer, fresh.Connection]);
+            online.Add(peer.Id, fresh.Connection);
+            var reader = fresh.Connection.RunAsync();
+            long incoming = 0, outgoing = 0;
+            Task<JsonObject> Read() => fresh.Read(incoming++);
+            Task Send(JsonObject frame) => fresh.Send(frame, outgoing++);
+            async Task Metadata(string kind, JsonObject body)
+            {
+                var packet = Message(kind, body);
+                await Send(packet);
+                var response = await Read();
+                while (response["kind"]?.GetValue<string>() is SharedSyncSettings.Kind or PersonalSyncContract.DesktopFeaturesKind or TimeSyncContract.Settings)
+                {
+                    await Send(Ack(response));
+                    response = await Read();
+                }
+                TestAssert.That(JsonNode.DeepEquals(Ack(packet), response), $"Wrong fresh reader receipt for {kind}: {response}");
+            }
+            async Task Barrier()
+            {
+                var ping = new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"),
+                    ["sent_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() };
+                await Send(ping);
+                ping["type"] = "pong";
+                TestAssert.That(JsonNode.DeepEquals(ping, await Read()), "The fresh reader did not complete the receipt barrier.");
+            }
+            async Task AwaitingAgreement()
+            {
+                await Barrier();
+                await coordinator.RunNativeMediaAutomaticOnceAsync(peer.Id, CancellationToken.None);
+                TestAssert.That(!fresh.HasUnexpectedFrame && !fresh.Connection.PrivateMediaSettingsMatched &&
+                    fixture.Store.NativeMediaReceiveHistory(peer.Id).Count == 0,
+                    "A new reader inherited authority before fresh settings receipts.");
+            }
+            try
+            {
+                await AwaitingAgreement();
+                var current = fixture.Store.LoadPeers().Single(value => value.Id == peer.Id);
+                var caps = PhoneCapabilities();
+                caps["revision"] = current.CapabilityRevision + 1;
+                await Metadata("capabilities.update", caps);
+                await Metadata("grants.update", new JsonObject { ["revision"] = current.GrantRevision + 1, ["grants"] = TelefonProtocolContract.DesktopGrants() });
+                await Metadata("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true });
+                var probe = Hello();
+                await Send(probe);
+                var reply = await Read();
+                TestAssert.That(reply["kind"]?.GetValue<string>() == "media_support.hello" &&
+                    JsonNode.DeepEquals(Ack(probe), await Read()), "The new reader did not negotiate original support.");
+                await Send(Ack(reply));
+                var restored = await Read();
+                TestAssert.That(restored["kind"]?.GetValue<string>() == MediaSyncSettings.Kind &&
+                    JsonNode.DeepEquals(saved, restored["body"]), "The new reader did not propose the persisted WLAN settings.");
+                await Send(Ack(restored));
+                await AwaitingAgreement();
+                await Metadata(MediaSyncSettings.Kind, saved!);
+                await Barrier();
+                TestAssert.That(fresh.Connection.PrivateMediaSettingsMatched && retired?.Invoke() != true,
+                    "Fresh receipts failed to bind the new reader exclusively.");
+                await transferOriginals(Read, Send, fresh.Connection);
+                await Send(new JsonObject { ["type"] = "close", ["reason"] = "normal" });
+                await reader;
+            }
+            finally
+            {
+                online.Remove(peer.Id);
+                fresh.Connection.Dispose();
+                try { await reader; } catch (Exception error) when (error is IOException or OperationCanceledException or ObjectDisposedException) { }
+            }
+        }
         try
         {
             await fixture.Send(Hello(), sent++);
             await Ping(); // A saved paired peer does not by itself authorize discovery.
-            var caps = TelefonProtocolContract.DesktopCapabilities();
-            caps["items"]!["device_status"]!["versions"] = new JsonArray(1, 2, 3, 4, 5, 7, 8, 11, 12, 13, 17, 18, 19, 20, 21, 22);
+            var caps = PhoneCapabilities();
             await Control("capabilities.update", caps);
             await Control("grants.update", new JsonObject { ["revision"] = 1, ["grants"] = TelefonProtocolContract.DesktopGrants() });
-            await Control("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true });
-            var malformed = Hello(); malformed["body"]!["feature"] = "image_batch";
-            await fixture.Send(malformed, sent++);
-            await Ping();
             var probe = Hello();
-            await fixture.Send(probe, sent++);
+            var malformed = Hello(); malformed["body"]!["feature"] = "image_batch";
+            if (composed)
+            {
+                probe["created_ms"] = TelefonProtocolContract.Integer(probe["created_ms"]) + 150;
+                probe["expires_ms"] = TelefonProtocolContract.Integer(probe["created_ms"]) + 10_000;
+                await fixture.Send(probe, sent++);
+                await Ping(); // No hello reply before the final current native receipt.
+            }
+            await Control("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true });
+            if (!composed)
+            {
+                await fixture.Send(malformed, sent++);
+                await Ping();
+                await fixture.Send(probe, sent++);
+            }
             var reply = await fixture.Read(received++);
-            TestAssert.That(reply["kind"]!.GetValue<string>() == "media_support.hello" && !connection.NativeMediaSupportEstablished,
+            TestAssert.That(reply["kind"]!.GetValue<string>() == "media_support.hello" && !connection.NativeMediaSupportEstablished &&
+                TelefonProtocolContract.Integer(reply["expires_ms"]) <= TelefonProtocolContract.Integer(probe["expires_ms"]),
                 "A one-sided probe already authorized settings.");
             TestAssert.That(JsonNode.DeepEquals(Ack(probe), await fixture.Read(received++)), "Remote probe did not get its exact ACK.");
-            await fixture.Send(Ack(reply), sent++);
-            await Ping();
-            TestAssert.That(connection.NativeMediaSupportEstablished && !connection.MediaSharedControlsReady, "Support was missing or granted the media runtime.");
             var local = fixture.Store.LoadOrCreateIdentity();
             CryptographicOperations.ZeroMemory(local.PrivateKey);
             var remote = fixture.Peer.Id;
             var selected = MediaSyncSettings.Change(MediaSyncSettings.Create(remote), remote, local.Id, "enabled", JsonValue.Create(true)!);
-            var privateFrames = new List<JsonObject> { malformed, probe, reply };
-            if (OperatingSystem.IsWindows())
+            var pcImages = firstReceive is "pc_image_hello" or "pc_image_manual";
+            selected = MediaSyncSettings.Change(selected, remote, local.Id, "direction", JsonValue.Create(pcImages ? "pc_to_phone" : "phone_to_pc")!);
+            if (pcImages)
+                selected = MediaSyncSettings.Change(selected, remote, local.Id, "collection_mode", JsonValue.Create("entire_collection")!);
+            if (firstReceive == "video")
+                selected = MediaSyncSettings.Change(selected, remote, local.Id, "photos_enabled", JsonValue.Create(false)!);
+            if (firstReceive is "video" or "mixed")
+                selected = MediaSyncSettings.Change(selected, remote, local.Id, "videos_enabled", JsonValue.Create(true)!);
+            if (automatic is not null)
+                selected = MediaSyncSettings.Change(selected, remote, local.Id, "auto_mode", JsonValue.Create("wifi")!);
+            if (composed && OperatingSystem.IsWindows())
             {
                 File.WriteAllText(fixture.Paths.TelefonStorageKey, Convert.ToBase64String(ProtectedData.Protect(
                     new byte[32], "magnolie-phone-storage-v1"u8.ToArray(), DataProtectionScope.CurrentUser)));
-                await Control(MediaSyncSettings.Kind, selected);
-                var echo = await fixture.Read(received++);
+                fixture.Store.MergeNativeMediaSharedSettings(remote, fixture.Peer.PublicKey, selected);
+            }
+            await fixture.Send(Ack(reply), sent++);
+            var privateFrames = new List<JsonObject> { malformed, probe, reply };
+            JsonObject? restored = null;
+            if (composed)
+            {
+                restored = await fixture.Read(received++);
+                TestAssert.That(restored["kind"]?.GetValue<string>() == MediaSyncSettings.Kind &&
+                    JsonNode.DeepEquals(restored["body"], fixture.Store.ReadNativeMediaSharedSettings(remote, fixture.Peer.PublicKey)) &&
+                    !connection.PrivateMediaSettingsMatched, "A fresh original WLAN reader did not propose the saved setting, or inherited authority without receipts.");
+            }
+            await Ping();
+            TestAssert.That(connection.NativeMediaSupportEstablished && !connection.MediaSharedControlsReady, "Support was missing or granted the media runtime.");
+            Func<bool>? originalImport = null;
+            if (OperatingSystem.IsWindows())
+            {
+                if (!composed)
+                {
+                    File.WriteAllText(fixture.Paths.TelefonStorageKey, Convert.ToBase64String(ProtectedData.Protect(
+                        new byte[32], "magnolie-phone-storage-v1"u8.ToArray(), DataProtectionScope.CurrentUser)));
+                    await Control(MediaSyncSettings.Kind, selected);
+                }
+                var echo = restored ?? await fixture.Read(received++);
                 privateFrames.Add(echo);
                 TestAssert.That(echo["kind"]!.GetValue<string>() == MediaSyncSettings.Kind, "Missing protected shared settings echo.");
                 await fixture.Send(Ack(echo), sent++);
@@ -166,6 +338,51 @@ internal static class SharedSyncTransportTests
                 await Ping();
                 TestAssert.That(connection.PrivateMediaSettingsMatched && !connection.MediaSharedSettingsReady,
                     "Private settings failed to converge or created a legacy file intent.");
+                var body = echo["body"]!.AsObject();
+                if (pcImages)
+                {
+                    await VerifyPcImageHello(fixture, body, () => fixture.Read(received++), frame => fixture.Send(frame, sent++),
+                        manual: firstReceive == "pc_image_manual");
+                    return;
+                }
+                originalImport = connection.CapturePrivateMediaPhoneImport(body);
+                var foreign = MediaSyncSettings.Change(body, remote, local.Id, "direction", JsonValue.Create("two_way")!);
+                TestAssert.That(originalImport?.Invoke() == true && connection.CapturePrivateMediaPhoneImport(foreign) is null,
+                    "Original read witness was absent or admitted a different direction.");
+                if (composed)
+                {
+                    async Task ObserveRefresh(string kind, JsonObject metadata, bool staysCurrent)
+                    {
+                        var applied = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                        beforeMetadataAck = async () =>
+                        {
+                            applied.TrySetResult();
+                            await release.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                        };
+                        var exchanging = Control(kind, metadata);
+                        try
+                        {
+                            await applied.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                            TestAssert.That(connection.PrivateMediaSettingsMatched == staysCurrent && (originalImport?.Invoke() == true) == staysCurrent,
+                                "The original Windows WLAN agreement changed incorrectly before metadata ACK.");
+                        }
+                        finally { beforeMetadataAck = null; release.TrySetResult(); }
+                        await exchanging;
+                    }
+                    caps["revision"] = 2;
+                    await ObserveRefresh("capabilities.update", caps, staysCurrent: true);
+                    await ObserveRefresh("grants.update", new JsonObject { ["revision"] = 2, ["grants"] = TelefonProtocolContract.DesktopGrants() }, staysCurrent: true);
+                    await Ping();
+                    TestAssert.That(connection.PrivateMediaSettingsMatched && originalImport?.Invoke() == true,
+                        "An equivalent metadata refresh retired the same original Windows WLAN agreement.");
+                    var withdrawn = TelefonProtocolContract.DesktopGrants(); withdrawn["device_status"] = false;
+                    await ObserveRefresh("grants.update", new JsonObject { ["revision"] = 3, ["grants"] = withdrawn }, staysCurrent: false);
+                }
+                if (firstReceive is not null) await VerifyFirstReceiveEntry(fixture, connection, remote, firstReceive, transfer, useDefaults, automatic,
+                    () => fixture.Read(received++), frame => fixture.Send(frame, sent++),
+                    automatic == "reconnect" ? Reconnect : null);
+                if (automatic == "reconnect") return;
             }
             else
             {
@@ -182,10 +399,12 @@ internal static class SharedSyncTransportTests
             await fixture.Send(Ack(reply), sent++);
             await fixture.Send(Hello(), sent++);
             await Ping();
-            TestAssert.That(!connection.NativeMediaSupportEstablished && fixture.LegacyReceives == 5, "Withdrawal was reversed or discovery entered the ordinary dispatcher.");
+            TestAssert.That(!connection.NativeMediaSupportEstablished && fixture.LegacyReceives == (composed ? 8 : 5),
+                "Withdrawal was reversed or discovery entered the ordinary dispatcher.");
             TestAssert.That(!connection.PrivateMediaSettingsMatched &&
                 (OperatingSystem.IsWindows() == fixture.Store.HasNativeMediaSharedSettings(remote)),
                 "Withdrawal erased saved choices, stored choices without DPAPI or kept the old agreement current.");
+            TestAssert.That(originalImport?.Invoke() != true, "A captured reader witness revived after withdrawal.");
             foreach (var frame in privateFrames)
             {
                 var id = frame["message_id"]!.GetValue<string>();
@@ -200,6 +419,462 @@ internal static class SharedSyncTransportTests
             connection.Dispose();
             try { await run; } catch (Exception error) when (error is IOException or OperationCanceledException or ObjectDisposedException) { }
         }
+    }
+
+    private static async Task VerifyPcImageHello(PhoneCameraParentTests.Fixture fixture, JsonObject settings,
+        Func<Task<JsonObject>> read, Func<JsonObject, Task> send, bool manual)
+    {
+        var remote = fixture.Peer.Id;
+        using var coordinator = new TelefonCoordinator(fixture.Paths, (_, _) => Task.CompletedTask, dataStore: fixture.Store, localOnly: true);
+        var book = new PersonalActorNativeSaveHost(Path.Combine(fixture.Paths.Root, "pc-image-book"),
+            "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}");
+        coordinator.NativeProducerBook = book.Snapshot;
+        coordinator.NativeSavedBook = book.Saved;
+        var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+        online.Add(remote, fixture.Connection);
+        try
+        {
+            var initial = coordinator.NativeMediaUiStatus(remote);
+            TestAssert.That(initial["shared_matched"]?.GetValue<bool>() == true &&
+                initial["send_consent"] is null && initial["shared_start_version"] is null &&
+                fixture.Connection.CapturePrivateMediaPhoneImport(settings) is null,
+                "Settings agreement alone projected a transfer or local SEND.");
+            var probe = Message("media_support.hello", new JsonObject { ["format"] = 1, ["feature"] = "pc_image_batch_v3" });
+            probe["expires_ms"] = TelefonProtocolContract.Integer(probe["created_ms"]) + 10_000;
+            var ping = new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"),
+                ["sent_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() };
+            async Task AssertIgnored(JsonObject frame)
+            {
+                var pong = ping.DeepClone().AsObject();
+                pong["type"] = "pong";
+                await send(frame);
+                await send(ping);
+                TestAssert.That(JsonNode.DeepEquals(pong, await read()) && fixture.Connection.CapturePrivatePcImageDiscovery() is null,
+                    "An unavailable or invalid image probe altered the reader.");
+            }
+            if (!manual)
+            {
+                await AssertIgnored(probe);
+                fixture.Connection.NativePcImageBatchChecked = true;
+            }
+            var expired = probe.DeepClone().AsObject();
+            expired["created_ms"] = TelefonProtocolContract.Integer(probe["created_ms"]) - 11_000;
+            expired["expires_ms"] = TelefonProtocolContract.Integer(probe["created_ms"]) - 1_000;
+            await AssertIgnored(expired);
+            await send(probe);
+            await send(ping);
+            var reply = await read();
+            TestAssert.That(reply["kind"]?.GetValue<string>() == "media_support.hello" &&
+                reply["body"]?["feature"]?.GetValue<string>() == "pc_image_batch_v3" &&
+                TelefonProtocolContract.Integer(reply["expires_ms"]) <= TelefonProtocolContract.Integer(probe["expires_ms"]),
+                $"The original Windows reader did not negotiate Format 3 photo output; first reply: {reply["type"]}.");
+            var ack = await read();
+            TestAssert.That(JsonNode.DeepEquals(ack["message_id"], probe["message_id"]) &&
+                ack["status"]?.GetValue<string>() == "accepted", "The image probe did not receive its own ACK.");
+            ping["type"] = "pong";
+            TestAssert.That(JsonNode.DeepEquals(ping, await read()) &&
+                fixture.Connection.CapturePrivatePcImageDiscovery() is null &&
+                coordinator.NativeMediaUiStatus(remote)["send_consent"] is null,
+                "The image lane projected SEND before both support receipts.");
+            await send(new JsonObject { ["type"] = "ack", ["message_id"] = reply["message_id"]!.DeepClone(),
+                ["status"] = "accepted", ["error"] = "none" });
+            ping["type"] = "ping";
+            await send(ping);
+            ping["type"] = "pong";
+            TestAssert.That(JsonNode.DeepEquals(ping, await read()), "The image lane did not remain on the original reader.");
+            var witness = fixture.Connection.CapturePrivatePcImageDiscovery();
+            TestAssert.That(witness?.Invoke() == true && fixture.Connection.PrivateMediaSettingsMatched &&
+                !fixture.Store.ReadNativeMediaSendConsent(remote).Explicit,
+                "The distinct image ACK was not scoped to discovery on this original session.");
+            ping["type"] = "ping";
+            await send(probe);
+            await send(ping);
+            ping["type"] = "pong";
+            TestAssert.That(JsonNode.DeepEquals(ping, await read()) && witness?.Invoke() == true,
+                "A repeated image probe renewed or retired the original witness.");
+            TestAssert.That(fixture.Store.OutboxMessage(remote, reply["message_id"]!.GetValue<string>()) is null &&
+                !fixture.Store.ReceivedMatches(remote, probe), "An image support handshake entered durable storage.");
+            if (manual) await DeviceFileOriginalImagesTests.VerifyManualAsync(fixture, coordinator, read, send);
+            fixture.Connection.Dispose();
+            TestAssert.That(witness?.Invoke() != true, "A disconnected reader retained image discovery.");
+        }
+        finally { online.Remove(remote); }
+    }
+
+    private static async Task VerifyFirstReceiveEntry(PhoneCameraParentTests.Fixture fixture, TelefonConnection connection,
+        string remote, string mediaType, bool transfer, bool useDefaults, string? automaticScenario, Func<Task<JsonObject>> read, Func<JsonObject, Task> send,
+        Func<TelefonCoordinator, Dictionary<string, TelefonConnection>,
+            Func<Func<Task<JsonObject>>, Func<JsonObject, Task>, TelefonConnection, Task>, Task>? reconnect)
+    {
+        var automatic = automaticScenario is not null;
+        using var coordinator = new TelefonCoordinator(fixture.Paths, (_, _) => Task.CompletedTask, dataStore: fixture.Store, localOnly: true);
+        var book = new PersonalActorNativeSaveHost(Path.Combine(fixture.Paths.Root, "first-receive-book"),
+            "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}");
+        coordinator.NativeProducerBook = book.Snapshot;
+        coordinator.NativeSavedBook = book.Saved;
+        var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+        online.Add(remote, connection);
+        var generated = new Dictionary<string, NativeMediaDestination>();
+        try
+        {
+            var videoOnly = mediaType == "video";
+            var mixed = mediaType == "mixed";
+            var readType = mixed ? "video" : mediaType;
+            var before = fixture.Store.ReadNativeMediaReceiveConsent(remote);
+            var state = coordinator.NativeMediaUiStatus(remote);
+            TestAssert.That(state[automatic ? "automatic_receive_setup" : "manual_receive_setup"]?.GetValue<bool>() == true &&
+                state["shared_start_version"] is not null,
+                $"The original encrypted WLAN reader agreed but did not expose a first-receive UI action for {mediaType}.");
+            TestAssert.That(!before.Granted && fixture.Store.ReadNativeMediaReceiveConsent(remote) == before &&
+                fixture.Store.ReadNativeMediaPreferences(remote).Version is null &&
+                fixture.Store.ReadNativeMediaDestination(remote, "images") is null &&
+                fixture.Store.ReadNativeMediaDestination(remote, "video") is null,
+                "Viewing agreed settings granted RECEIVE or opened a destination.");
+            if (automatic)
+            {
+                await coordinator.RunNativeMediaAutomaticOnceAsync(remote, CancellationToken.None);
+                TestAssert.That(!fixture.HasUnexpectedFrame && fixture.Store.ReadNativeMediaReceiveConsent(remote) == before &&
+                    fixture.Store.ReadNativeMediaPreferences(remote).Version is null, "A shared Wi-Fi choice started background work before explicit setup.");
+            }
+            if (mediaType == "settings")
+            {
+                var version = state["shared_settings"]!["versions"]!["enabled"]!.GetValue<string>();
+                TestAssert.That(state["original_settings_editable"]?.GetValue<bool>() == true, "Original shared settings are read-only.");
+                var changed = await coordinator.ChangeNativeMediaUiSharedSettingAsync(remote, "enabled", JsonValue.Create(false)!, version);
+                var frame = await read();
+                TestAssert.That(frame["kind"]?.GetValue<string>() == MediaSyncSettings.Kind &&
+                    !MediaSyncSettings.Configured(frame["body"]!.AsObject())["enabled"]!.GetValue<bool>() &&
+                    changed["shared_start_version"] is null && !connection.PrivateMediaSettingsMatched,
+                    "Switching OFF did not send only the shared choice or left the previous agreement usable.");
+                await DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(
+                    coordinator.ChangeNativeMediaUiSharedSettingAsync(remote, "enabled", JsonValue.Create(true)!, version),
+                    "A stale field version overwrote the OFF decision.");
+                await send(new JsonObject { ["type"] = "ack", ["message_id"] = frame["message_id"]!.DeepClone(),
+                    ["status"] = "accepted", ["error"] = "none" });
+                var echo = Message(MediaSyncSettings.Kind, frame["body"]!.AsObject());
+                await send(echo);
+                var reply = await read();
+                TestAssert.That(JsonNode.DeepEquals(reply["message_id"], echo["message_id"]) && reply["status"]?.GetValue<string>() == "accepted",
+                    "The original reader did not acknowledge the matching echo.");
+                var ping = new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() };
+                await send(ping);
+                TestAssert.That((await read())["type"]?.GetValue<string>() == "pong" &&
+                    connection.PrivateMediaSettingsMatched && coordinator.NativeMediaUiStatus(remote)["shared_start_version"] is null &&
+                    fixture.Store.ReadNativeMediaReceiveConsent(remote) == before && fixture.Store.OutboxMessage(remote, frame["message_id"]!.GetValue<string>()) is null &&
+                    fixture.Store.NativeMediaReceiveHistory(remote).Count == 0,
+                    "Converged OFF changed local RECEIVE, queued legacy traffic or started a native worker.");
+                return;
+            }
+            var targets = new Dictionary<string, NativeMediaDestination>();
+            var expectedPaths = new Dictionary<string, string>();
+            foreach (var kind in mixed ? new[] { "images", "video" } : new[] { mediaType })
+            {
+                if (useDefaults)
+                {
+                    var parent = Environment.GetFolderPath(kind == "images" ? Environment.SpecialFolder.MyPictures : Environment.SpecialFolder.MyVideos);
+                    var expected = Path.Combine(parent, fixture.Peer.Name + (kind == "images" ? "-Fotos" : "-Videos"));
+                    var shown = state[kind == "images" ? "pictures" : "video_destination"];
+                    TestAssert.That(Path.IsPathFullyQualified(parent) && Directory.Exists(parent) &&
+                        shown?["display_path"]?.GetValue<string>() == expected && shown?["default"]?.GetValue<bool>() == true &&
+                        !Directory.Exists(expected), "Viewing settings created or misreported the native reserved test default.");
+                    expectedPaths.Add(kind, expected);
+                    continue;
+                }
+                var target = Path.Combine(fixture.Paths.Root, "native-first-" + kind);
+                Directory.CreateDirectory(target);
+                using var root = DeviceFileNativeDirectory.OpenExistingForReceive(target);
+                targets.Add(kind, fixture.Store.SetNativeMediaDestination(remote, kind, null, root));
+            }
+            var request = new JsonObject { ["cmd"] = "telefon_medien", ["device_id"] = remote,
+                ["requestId"] = Guid.NewGuid().ToString("D"), ["action"] = "sync_shared", ["version"] = state["shared_start_version"]!.DeepClone() };
+            var unbound = request.DeepClone().AsObject(); unbound["version"] = new string('0', 64);
+            TestAssert.Throws<InvalidDataException>(() => coordinator.RunNativeMediaUiSharedAsync(
+                NativeMediaUiRequest.Parse(unbound), CancellationToken.None), "A forged start version wrote an initial RECEIVE grant.");
+            using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(transfer ? 45 : 8));
+            var pass = coordinator.RunNativeMediaUiSharedAsync(NativeMediaUiRequest.Parse(request), stop.Token);
+            var localIdentity = fixture.Store.ReadFileIdentity();
+            var phoneIdentity = new NativeFileControlIdentity(remote, Convert.ToHexString(SHA256.HashData(fixture.Peer.PublicKey)).ToLowerInvariant());
+            var desktop = new NativeFileControlPeer(localIdentity.DeviceId, localIdentity.IdentitySha256, new object(),
+                true, true, true, true, true, fixture.Peer.FilePairingEpoch);
+            var phoneGrant = new NativeLocalFileGrant(new(1, new string('a', 64), false, false), new object(), true);
+            using var phoneControls = new NativeFileControlSession(phoneIdentity, () => desktop, () => phoneGrant);
+            var first = DeviceFileControlEnvelope.Validate(await read(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            TestAssert.That(first.Grants.ReceiveFiles && !first.Grants.SendFiles && !pass.IsCompleted,
+                "First local action did not send the positive RECEIVE choice and wait for the reader.");
+            foreach (var (kind, path) in expectedPaths)
+            {
+                var actual = fixture.Store.ReadNativeMediaDestination(remote, kind);
+                TestAssert.That(actual is not null && string.Equals(actual.NativePath, path, StringComparison.OrdinalIgnoreCase),
+                    "The first native action did not bind the displayed OS default directory.");
+                targets.Add(kind, actual!);
+                generated.Add(kind, actual!);
+            }
+            phoneControls.ObserveRemote(first, desktop);
+            async Task Echo(bool expectReply = true)
+            {
+                var packet = phoneControls.Packet(); phoneControls.MarkSent(packet);
+                await send(DeviceFileControlEnvelope.Create(packet, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+                if (expectReply)
+                    phoneControls.ObserveRemote(DeviceFileControlEnvelope.Validate(await read(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), desktop);
+            }
+            await Echo();
+            var status = await read();
+            TestAssert.That(status["body"]?["operation"]?.GetValue<string>() == "status", "First start did not check the real phone policy.");
+            await send(Message(DeviceFileSources.ResultKind, new JsonObject { ["format"] = 1,
+                ["request_id"] = status["message_id"]!.DeepClone(), ["operation"] = "status", ["version"] = new string('c', 64),
+                ["revision"] = 0, ["enabled"] = false, ["associated"] = false, ["repair_pending"] = false,
+                ["kinds"] = new JsonArray(), ["videos"] = new JsonObject { ["enabled"] = false, ["revision"] = 0 } }));
+            var configure = await read();
+            TestAssert.That(configure["body"]?["operation"]?.GetValue<string>() == (videoOnly ? "configure_videos" : "configure"),
+                "Absent phone policy did not yield the explicitly selected SEND.");
+            var configured = DeviceFileConnectionCommandsTests.Configuration(configure, videoOnly);
+            if (videoOnly) configured["body"]!["enabled"] = false;
+            await send(configured);
+            phoneGrant = new(new(2, new string('b', 64), true, false), phoneGrant.Owner, true);
+            await Echo();
+            if (videoOnly || mixed)
+            {
+                var rearm = await read();
+                TestAssert.That(rearm["body"]?["operation"]?.GetValue<string>() == "configure_videos" &&
+                    rearm["body"]?["expected_version"]?.GetValue<string>() == configured["body"]!["version"]!.GetValue<string>(),
+                    "A newly echoed video grant did not rearm the original phone owner.");
+                var confirmation = DeviceFileConnectionCommandsTests.Configuration(rearm, video: true);
+                if (videoOnly) confirmation["body"]!["enabled"] = false;
+                else
+                {
+                    confirmation["body"]!["version"] = new string('e', 64);
+                    confirmation["body"]!["revision"] = 3;
+                }
+                await send(confirmation);
+                configured = confirmation;
+            }
+            var sourceVersion = configured["body"]!["version"]!.GetValue<string>();
+            async Task<JsonObject> Discover(string kind, bool canRead)
+            {
+                var discover = await read();
+                TestAssert.That(discover["body"]?["operation"]?.GetValue<string>() == "discover" &&
+                    (discover["body"]?["media_type"]?.GetValue<string>() ?? "images") == kind,
+                    "A transfer or wrong discovery came before the next typed READ check: " + discover);
+                var catalog = DeviceFileConnectionCommandsTests.Catalog(discover, kind == "video");
+                var page = catalog["body"]!["page"]!.AsObject();
+                catalog["body"]!["version"] = sourceVersion;
+                if (!canRead) { page["coverage"] = "none"; page["albums"] = new JsonArray(); }
+                await send(catalog);
+                return page;
+            }
+            async Task RecheckExistingSources()
+            {
+                var freshStatus = await read();
+                TestAssert.That(freshStatus["body"]?["operation"]?.GetValue<string>() == "status", "A new pass did not recheck SEND.");
+                var reported = configured.DeepClone().AsObject();
+                reported["message_id"] = Guid.NewGuid().ToString("D");
+                reported["body"]!["request_id"] = freshStatus["message_id"]!.DeepClone();
+                reported["body"]!["operation"] = "status";
+                await send(reported);
+                var rearm = await read();
+                TestAssert.That(rearm["body"]?["operation"]?.GetValue<string>() == "configure_videos" &&
+                    rearm["body"]?["expected_version"]?.GetValue<string>() == sourceVersion,
+                    "A new pass did not rearm the already-positive video grant.");
+                var confirmed = configured.DeepClone().AsObject();
+                confirmed["message_id"] = Guid.NewGuid().ToString("D");
+                confirmed["body"]!["request_id"] = rearm["message_id"]!.DeepClone();
+                await send(confirmed);
+            }
+            async Task TransferMixed(JsonObject images)
+            {
+                await TransferFirstOriginal(images, "images", "first.png", DeviceFileSourceSendTests.PaddedPng(),
+                    targets["images"], remote, localIdentity.DeviceId, sourceVersion, read, send);
+                var video = await Discover("video", canRead: true);
+                await TransferFirstOriginal(video, "video", "first.mp4", DeviceFileVideoPreviewTests.Fixture(),
+                    targets["video"], remote, localIdentity.DeviceId, sourceVersion, read, send);
+            }
+            bool BothOriginalsFinished(TelefonConnection active) =>
+                fixture.Store.NativeMediaReceiveHistory(remote).Count == 2 &&
+                fixture.Store.NativeMediaReceiveBudget(remote) == (2, 0, 0L) && active.CurrentNativeMediaSourceRun is null;
+            var photoCatalog = mixed ? await Discover("images", canRead: true) : null;
+            await Discover(readType, canRead: transfer);
+            if (transfer)
+            {
+                Task completion = pass;
+                if (automatic)
+                {
+                    TestAssert.That(await pass == "waiting" && !fixture.HasUnexpectedFrame &&
+                        fixture.Store.ReadNativeMediaPreferences(remote) is { AutomaticWifi: true, OriginalAutomaticKey: not null } &&
+                        fixture.Store.NativeMediaReceiveHistory(remote).Count == 0 &&
+                        coordinator.NativeMediaUiStatus(remote)["shared_start_version"] is null,
+                        "Wi-Fi setup started a content run before arming or failed to store the completed native choice.");
+                    if (reconnect is not null)
+                    {
+                        await reconnect(coordinator, online, async (freshRead, freshSend, freshConnection) =>
+                        {
+                            read = freshRead;
+                            send = freshSend;
+                            var freshDesktop = desktop with { Owner = new object() };
+                            var freshGrant = new NativeLocalFileGrant(phoneGrant.Grants, new object(), true);
+                            using var freshControls = new NativeFileControlSession(phoneIdentity, () => freshDesktop, () => freshGrant);
+                            using var freshDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+                            var background = coordinator.RunNativeMediaAutomaticOnceAsync(remote, freshDeadline.Token);
+                            try
+                            {
+                                var firstFresh = DeviceFileControlEnvelope.Validate(await read(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                                TestAssert.That(firstFresh.Grants.ReceiveFiles, "The new reader did not publish its current protected RECEIVE choice.");
+                                freshControls.ObserveRemote(firstFresh, freshDesktop);
+                                var packet = freshControls.Packet(); freshControls.MarkSent(packet);
+                                await send(DeviceFileControlEnvelope.Create(packet, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+                                freshControls.ObserveRemote(DeviceFileControlEnvelope.Validate(await read(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), freshDesktop);
+                                await RecheckExistingSources();
+                                var images = await Discover("images", canRead: true);
+                                await Discover("video", canRead: true);
+                                await TransferMixed(images);
+                                await background;
+                                TestAssert.That(BothOriginalsFinished(freshConnection),
+                                    "The reconnected background pass did not finish both original transfers.");
+                            }
+                            finally
+                            {
+                                freshDeadline.Cancel();
+                                try { await background; } catch (OperationCanceledException) { }
+                            }
+                        });
+                        return;
+                    }
+                    completion = coordinator.RunNativeMediaAutomaticOnceAsync(remote, stop.Token);
+                    var freshControl = DeviceFileControlEnvelope.Validate(await read(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                    phoneControls.ObserveRemote(freshControl, desktop);
+                    await Echo(expectReply: false); // Phone SEND was already echoed; only desktop RECEIVE changed.
+                    await RecheckExistingSources();
+                    photoCatalog = await Discover("images", canRead: true);
+                    await Discover("video", canRead: true);
+                }
+                await TransferMixed(photoCatalog!);
+                await completion;
+                TestAssert.That((automatic || await pass == "content_pass") && BothOriginalsFinished(connection),
+                    "Mixed first receive did not close both source runs and finalize the original receipts.");
+                return;
+            }
+            var readRequest = await read();
+            TestAssert.That(readRequest["body"]?["operation"]?.GetValue<string>() == "request_read" &&
+                (readRequest["body"]?["media_type"]?.GetValue<string>() ?? "images") == readType,
+                "Missing OS READ was not surfaced for the selected type.");
+            var permission = new JsonObject { ["format"] = 1,
+                ["request_id"] = readRequest["message_id"]!.DeepClone(), ["operation"] = "request_read",
+                ["version"] = configured["body"]!["version"]!.DeepClone(), ["state"] = "notification_posted" };
+            if (readType == "video") permission["media_type"] = "video";
+            var stopped = automaticScenario == "stop";
+            if (stopped)
+            {
+                TestAssert.That(coordinator.StopNativeMediaAutomatic(remote), "Stop did not address the original Wi-Fi setup owner.");
+                await DeviceFileConnectionSourcesTests.FailsAsync<OperationCanceledException>(pass, "Stopped Wi-Fi setup returned success.");
+            }
+            var permissionFrame = Message(DeviceFileSources.PermissionResultKind, permission);
+            permissionFrame["expires_ms"] = readRequest["expires_ms"]!.DeepClone();
+            await send(permissionFrame);
+            TestAssert.That((stopped || await pass == "review") &&
+                new[] { "images", "video" }.All(kind => fixture.Store.ReadNativeMediaDestination(remote, kind) == targets.GetValueOrDefault(kind)) &&
+                fixture.Store.NativeMediaReceiveHistory(remote).Count == 0 &&
+                targets.Keys.All(kind => !Directory.EnumerateFileSystemEntries(Path.Combine(fixture.Paths.Root, "native-first-" + kind)).Any()),
+                "A missing READ decision yielded data I/O or altered a protected destination.");
+            if (automatic)
+            {
+                await coordinator.RunNativeMediaAutomaticOnceAsync(remote, CancellationToken.None);
+                TestAssert.That(!fixture.HasUnexpectedFrame &&
+                    fixture.Store.ReadNativeMediaPreferences(remote) is { AutomaticWifi: false, OriginalAutomaticKey: null } &&
+                    coordinator.NativeMediaUiStatus(remote)["automatic_receive_setup"]?.GetValue<bool>() == true,
+                    "A missing typed READ permission armed a subsequent background run.");
+            }
+            if (stopped)
+            {
+                var ping = new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"),
+                    ["sent_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() };
+                await send(ping);
+                TestAssert.That((await read())["type"]?.GetValue<string>() == "pong", "A stopped READ reply closed or reused the original reader.");
+                var retry = request.DeepClone().AsObject();
+                retry["requestId"] = Guid.NewGuid().ToString("D");
+                retry["version"] = coordinator.NativeMediaUiStatus(remote)["shared_start_version"]!.DeepClone();
+                var retryPass = coordinator.RunNativeMediaUiSharedAsync(NativeMediaUiRequest.Parse(retry), stop.Token);
+                await RecheckExistingSources();
+                await Discover("images", canRead: true);
+                await Discover("video", canRead: true);
+                TestAssert.That(await retryPass == "waiting" && fixture.Store.NativeMediaReceiveHistory(remote).Count == 0,
+                    "Retry did not independently recheck both OS scopes before arming.");
+            }
+            var accepted = fixture.Store.ReadNativeMediaReceiveConsent(remote);
+            coordinator.ChangeNativeMediaUiReceiveConsent(remote, accepted.Version, false);
+            TestAssert.That(coordinator.NativeMediaUiStatus(remote)["shared_start_version"] is null &&
+                !fixture.Store.ReadNativeMediaReceiveConsent(remote).Granted, "Local revocation left an enabled first-start path.");
+        }
+        finally
+        {
+            online.Remove(remote);
+            foreach (var target in generated.Values)
+            {
+                using (var root = target.OpenNative()) _ = root.CurrentIdentity();
+                Directory.Delete(target.NativePath, recursive: true);
+            }
+        }
+    }
+
+    private static async Task TransferFirstOriginal(JsonObject catalog, string kind, string name, byte[] data, NativeMediaDestination destination,
+        string sender, string receiver, string version, Func<Task<JsonObject>> read, Func<JsonObject, Task> send)
+    {
+        async Task<JsonObject> Request(string operation)
+        {
+            var request = await read();
+            TestAssert.That(request["body"]?["operation"]?.GetValue<string>() == operation &&
+                (request["body"]?["media_type"]?.GetValue<string>() ?? "images") == kind,
+                $"Expected {kind} {operation} but got {request}.");
+            return request;
+        }
+        var run = Guid.NewGuid().ToString("D");
+        JsonObject Reply(JsonObject request, string phase)
+        {
+            var reply = DeviceFileConnectionRunsTests.Reply(request, run, phase, batchEnd: true);
+            reply["body"]!["version"] = version;
+            return reply;
+        }
+        var batch = await Request("batch_run");
+        var album = catalog["albums"]![0]!;
+        TestAssert.That(JsonNode.DeepEquals(batch["body"]!["catalog_id"], catalog["catalog_id"]) &&
+            JsonNode.DeepEquals(batch["body"]!["album_id"], album["album_id"]), "The source used a stale or wrong-kind catalog.");
+        await send(Reply(batch, "snapshot_ready"));
+        var hash = Convert.ToHexString(SHA256.HashData(data)).ToLowerInvariant();
+        var file = new DeviceManifestFile(new string('1', 32), name, data.Length, hash);
+        var manifest = new DeviceFileManifest(Guid.NewGuid().ToString("N"), Guid.NewGuid().ToString("N"), sender, receiver, [file], data.Length);
+        var epoch = new string(kind == "video" ? 'c' : 'b', 64);
+        var page = DeviceFileConnectionRunsTests.Media(await Request("media_page"), run, epoch: epoch);
+        page["body"]!["version"] = version;
+        page["body"]!["page"]!["total_files"] = 1;
+        page["body"]!["page"]!["manifest_sha256"] = manifest.Fingerprint;
+        page["body"]!["page"]!["entries"]![0]!["file_id"] = file.Id;
+        await send(page);
+        var offerRequest = await Request("offer_run");
+        var offer = DeviceFileOfferEnvelope.Create(manifest, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        offer["expires_ms"] = offerRequest["expires_ms"]!.DeepClone();
+        await send(offer);
+        var offered = Reply(offerRequest, "snapshot_ready");
+        offered["body"]!["offer_id"] = offer["message_id"]!.DeepClone();
+        offered["body"]!["manifest_sha256"] = manifest.Fingerprint;
+        await send(offered);
+        var acceptance = DeviceFileAcceptanceEnvelope.Parse(await read(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        TestAssert.That(acceptance.DestinationToken == destination.DestinationToken &&
+            acceptance.ManifestSha256 == manifest.Fingerprint, "Acceptance did not bind the selected kind's protected root and original manifest.");
+        for (var offset = 0; offset < data.Length; offset += DeviceFileManifest.ChunkBytes)
+        {
+            var chunk = await read();
+            var parsed = DeviceFileChunkEnvelope.ParseRequest(chunk, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            TestAssert.That(parsed.FileId == file.Id && parsed.ChunkIndex == offset / DeviceFileManifest.ChunkBytes, "Unexpected original chunk request.");
+            await send(DeviceFileConnectionReceiveTests.Chunk(chunk, data.AsSpan(offset, Math.Min(data.Length - offset, DeviceFileManifest.ChunkBytes)).ToArray()));
+        }
+        var saved = await read();
+        TestAssert.That(saved["kind"]?.GetValue<string>() == DeviceFileSavedEnvelope.Kind, $"Expected {kind} Saved but got {saved}.");
+        _ = DeviceFileSavedEnvelope.Parse(saved, manifest, acceptance, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        foreach (var operation in new[] { "cancel_run", "end_run", "end_album" })
+            await send(Reply(await Request(operation), "canceled_held"));
+        var folder = new NativeMediaAlbumContext(epoch, album["display_name"]!.GetValue<string>()).Folder;
+        TestAssert.That(File.ReadAllBytes(Path.Combine(destination.NativePath, folder, name)).SequenceEqual(data),
+            $"Published {kind} bytes differed from the original.");
     }
 
     internal static async Task RunAsync()

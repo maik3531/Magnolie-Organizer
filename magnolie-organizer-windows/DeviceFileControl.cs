@@ -10,6 +10,7 @@ internal static class DeviceFileControl
 {
     internal const string Kind = "file_transfer.control";
     internal const int DiscoveryVersion = 21;
+    internal const int VideoDiscoveryVersion = 22;
     internal const long MaximumRevision = 9007199254740991;
     internal const int MaximumWireBytes = 8192;
     internal const long MaximumTtlMs = 60000;

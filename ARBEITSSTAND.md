@@ -75,13 +75,18 @@ aufgeführt.
   Alle 23 nativen Ordnerdialogfälle bestehen mit einem ausdrücklich
   gebundenen Test-Standardordner, einschließlich beider Altpfade nach
   einer abgelehnten Aktivierung.
-  Eine private Windows-Quellprüfung mit synthetischer Gegenstelle
+  Eine native Windows-Quellprüfung mit synthetischer Gegenstelle
   bestätigt den WLAN-Wiederanlauf nach bewusster Einrichtung. Die
   neue Verbindung wartet auf ihre eigene Bestätigung und prüft den
   Zugriff auf Fotos und Videos erneut. Danach sind PNG und MP4 mit
   unveränderten Bytes und Abschlussquittungen angekommen, ohne die
-  Einstellungen wieder zu öffnen. Die Quellintegration und die
-  Paarprüfung mit installierten Windows- und Notes-Paketen bleiben offen.
+  Einstellungen wieder zu öffnen. Der reguläre manuelle Windows-Start
+  sendet aus dem ausgewählten Fotoquellordner nach eigener SEND-Freigabe.
+  Zwei Original-PNGs waren bytegleich; Saved und vollständiges v2-Rücklesen
+  führten zum lokalen Abschluss. Fehlt ein Rücklesemitglied, bleibt der
+  Abschluss aus. Windows-Videoausgabe, gemischte Ausgabe, automatische
+  Ausgabe und die Abnahme mit installierten Windows- und Notes-Paketen
+  bleiben offen.
   Windows zeigt bei noch fehlenden gemeinsamen Einstellungen den
   Wartezustand. Lesen und gegebenenfalls Stop bleiben verfügbar;
   neue Medienaktionen werden bis zur bestätigten Projektion gehalten.

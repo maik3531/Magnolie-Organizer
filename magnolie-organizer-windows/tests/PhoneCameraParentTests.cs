@@ -25,11 +25,13 @@ internal static class PhoneCameraParentTests
 
     internal sealed class Fixture : IDisposable
     {
-        private readonly string root = Path.Combine(Path.GetTempPath(), "magnolie-camera-parent-" + Guid.NewGuid().ToString("N"));
+        private readonly string? root;
+        private readonly byte[] sessionId;
+        private readonly byte[] keys;
         private readonly TcpClient desktop;
         private readonly TcpClient phone;
-        private readonly CancellationTokenSource deadline = new(TimeSpan.FromSeconds(10));
-        private readonly OwnedTelefonPool pools;
+        private readonly CancellationTokenSource deadline;
+        private readonly OwnedTelefonPool? pools;
         internal readonly TelefonStore Store;
         internal WindowsPaths Paths { get; }
         internal readonly TelefonPeer Peer;
@@ -38,11 +40,28 @@ internal static class PhoneCameraParentTests
         internal SemaphoreSlim Writer => (SemaphoreSlim)typeof(TelefonConnection).GetField("writer", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Connection)!;
         internal bool HasUnexpectedFrame => phone.GetStream().DataAvailable;
         internal Fixture(string transport = "wifi", string? filePairingEpoch = null,
-            Func<TelefonStore, TelefonPeer, JsonObject, Task<TelefonAck?>>? receive = null)
+            Func<TelefonStore, TelefonPeer, JsonObject, Task<TelefonAck?>>? receive = null, TimeSpan? lifetime = null,
+            string peerName = "Controlled original parent", Fixture? previous = null)
         {
-            Peer = new(Guid.NewGuid().ToString("D"), "Controlled original parent", new byte[32]) { FilePairingEpoch = filePairingEpoch };
-            Paths = new WindowsPaths(root); Store = new TelefonStore(Paths, new byte[32]);
-            pools = new OwnedTelefonPool(Store);
+            deadline = new(lifetime ?? TimeSpan.FromSeconds(10));
+            if (previous is null)
+            {
+                root = Path.Combine(Path.GetTempPath(), "magnolie-camera-parent-" + Guid.NewGuid().ToString("N"));
+                Peer = new(Guid.NewGuid().ToString("D"), peerName, new byte[32]) { FilePairingEpoch = filePairingEpoch };
+                Paths = new WindowsPaths(root);
+                Store = new TelefonStore(Paths, new byte[32]);
+                pools = new OwnedTelefonPool(Store);
+                sessionId = new byte[16];
+                keys = Enumerable.Range(0, 72).Select(value => (byte)value).ToArray();
+            }
+            else
+            {
+                Peer = previous.Peer;
+                Paths = previous.Paths;
+                Store = previous.Store;
+                sessionId = RandomNumberGenerator.GetBytes(16);
+                keys = RandomNumberGenerator.GetBytes(72);
+            }
             var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
             try
             {
@@ -50,17 +69,16 @@ internal static class PhoneCameraParentTests
                 desktop = listener.AcceptTcpClient();
             }
             finally { listener.Stop(); }
-            Connection = new TelefonConnection(Peer, desktop.GetStream(), new byte[16],
-                Enumerable.Range(0, 72).Select(value => (byte)value).ToArray(), Store,
+            Connection = new TelefonConnection(Peer, desktop.GetStream(), sessionId, keys.ToArray(), Store,
                 (peer, payload) => { LegacyReceives++; return receive?.Invoke(Store, peer, payload) ?? Task.FromResult<TelefonAck?>(null); }, deadline.Token, transport);
         }
         internal async Task Send(JsonObject message, long sequence)
         {
-            var header = new JsonObject { ["p"] = TelefonCrypto.Protocol, ["sid"] = Convert.ToBase64String(new byte[16]), ["seq"] = sequence, ["dir"] = "phone_to_desktop" };
+            var header = new JsonObject { ["p"] = TelefonCrypto.Protocol, ["sid"] = Convert.ToBase64String(sessionId), ["seq"] = sequence, ["dir"] = "phone_to_desktop" };
             var clear = TelefonCrypto.Canonical(message); var encrypted = new byte[clear.Length]; var tag = new byte[16];
-            var nonce = Enumerable.Range(32, 4).Select(value => (byte)value).Concat(new byte[8]).ToArray();
+            var nonce = new byte[12]; keys.AsSpan(32, 4).CopyTo(nonce);
             System.Buffers.Binary.BinaryPrimitives.WriteInt64BigEndian(nonce.AsSpan(4), sequence);
-            using var aes = new AesGcm(Enumerable.Range(0, 32).Select(value => (byte)value).ToArray(), 16);
+            using var aes = new AesGcm(keys.AsSpan(0, 32), 16);
             aes.Encrypt(nonce, clear, encrypted, tag, TelefonCrypto.Canonical(header));
             header["ciphertext"] = Convert.ToBase64String(encrypted.Concat(tag).ToArray());
             await TelefonCoordinator.WriteFrameAsync(phone.GetStream(), header, deadline.Token);
@@ -75,22 +93,23 @@ internal static class PhoneCameraParentTests
         {
             var frame = await TelefonCoordinator.ReadFrameAsync(phone.GetStream(), 8192, deadline.Token);
             TestAssert.That(frame["seq"]!.GetValue<long>() == expectedSequence &&
-                frame["sid"]!.GetValue<string>() == Convert.ToBase64String(new byte[16]) &&
+                frame["sid"]!.GetValue<string>() == Convert.ToBase64String(sessionId) &&
                 frame["dir"]!.GetValue<string>() == "desktop_to_phone", "Wrong original crypto envelope");
             var header = frame.DeepClone().AsObject(); header.Remove("ciphertext");
             var ciphertext = Convert.FromBase64String(frame["ciphertext"]!.GetValue<string>());
             var clear = new byte[ciphertext.Length - 16];
-            var nonce = Enumerable.Range(68, 4).Select(value => (byte)value).Concat(new byte[8]).ToArray();
+            var nonce = new byte[12]; keys.AsSpan(68, 4).CopyTo(nonce);
             System.Buffers.Binary.BinaryPrimitives.WriteInt64BigEndian(nonce.AsSpan(4), expectedSequence);
-            using var aes = new AesGcm(Enumerable.Range(36, 32).Select(value => (byte)value).ToArray(), 16);
+            using var aes = new AesGcm(keys.AsSpan(36, 32), 16);
             aes.Decrypt(nonce, ciphertext.AsSpan(0, clear.Length), ciphertext.AsSpan(clear.Length), clear, TelefonCrypto.Canonical(header));
             return JsonNode.Parse(clear)!.AsObject();
         }
         public void Dispose()
         {
             Connection.Dispose(); desktop.Dispose(); phone.Dispose(); deadline.Dispose();
-            pools.Dispose();
-            if (Directory.Exists(root)) Directory.Delete(root, true);
+            pools?.Dispose();
+            CryptographicOperations.ZeroMemory(keys);
+            if (root is not null && Directory.Exists(root)) Directory.Delete(root, true);
         }
     }
 

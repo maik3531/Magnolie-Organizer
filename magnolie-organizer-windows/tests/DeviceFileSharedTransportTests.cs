@@ -52,6 +52,79 @@ internal static class DeviceFileSharedTransportTests
         TestAssert.That(f.Connection.MediaSharedSettingsReady, "Current media fixture failed actual secure matching.");
     }
 
+    internal static async Task LegacyManualReceivePreviewAsync()
+    {
+        foreach (var videoOnly in new[] { false, true })
+        {
+            using var f = new DeviceFileConnectionMetadataTests.Fixture();
+            await Seed(f);
+            void Set(string field, JsonNode value) => f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey,
+                field, value, f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, field));
+            Set("enabled", JsonValue.Create(true)!);
+            Set("direction", JsonValue.Create("phone_to_pc")!);
+            if (videoOnly)
+            {
+                Set("photos_enabled", JsonValue.Create(false)!);
+                Set("videos_enabled", JsonValue.Create(true)!);
+            }
+            await MatchAsync(f);
+            using var coordinator = new TelefonCoordinator(f.Paths, (_, _) => Task.CompletedTask, dataStore: f.Store, localOnly: true);
+            var book = new PersonalActorNativeSaveHost(Path.Combine(f.Paths.Root, "manual-first-book"), "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}");
+            coordinator.NativeProducerBook = book.Snapshot;
+            coordinator.NativeSavedBook = book.Saved;
+            var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+            online.Add(f.Peer.Id, f.Connection);
+            var before = f.Stream.Length;
+            var status = coordinator.NativeMediaUiStatus(f.Peer.Id);
+            TestAssert.That(status["shared_matched"]!.GetValue<bool>() && !f.Store.ReadNativeMediaReceiveConsent(f.Peer.Id).Granted &&
+                f.Store.ReadNativeMediaPreferences(f.Peer.Id).Version is null && f.Stream.Length == before,
+                "Viewing an agreed choice changed the local RECEIVE policy or emitted data.");
+            TestAssert.That(status["shared_start_version"] is null,
+                "Legacy agreement exposed a first grant reserved for the original reader.");
+        }
+    }
+
+    internal static async Task FirstReceiveConsentAsync()
+    {
+        using var f = new DeviceFileConnectionMetadataTests.Fixture();
+        await Seed(f);
+        var peer = f.Peer.Id;
+        var absent = f.Store.ReadNativeMediaReceiveConsent(peer);
+        var before = f.Store.ReadNativeMediaPreferences(peer);
+        TestAssert.That(absent.CanInitializeFirstReceive(before), "A genuinely absent receive policy was not eligible.");
+        var validations = 0;
+        TestAssert.Throws<OperationCanceledException>(() => f.Store.InitializeNativeMediaFirstReceive(peer, absent.Version, () =>
+        {
+            if (++validations == 2) throw new OperationCanceledException("synthetic book change before commit");
+        }), "A changed book did not abort the first receive commit.");
+        TestAssert.That(f.Store.ReadNativeMediaReceiveConsent(peer) == absent, "A concurrent change left a receive grant behind.");
+        validations = 0;
+        var accepted = f.Store.InitializeNativeMediaFirstReceive(peer, absent.Version, () => validations++);
+        TestAssert.That(accepted.Granted && accepted.Explicit && accepted.Version != absent.Version && validations == 2 &&
+            f.Store.ReadNativeMediaReceiveConsent(peer) == accepted && f.Store.ReadNativeMediaPreferences(peer) == before &&
+            f.Store.ReadNativeMediaDestination(peer, "images") is null && f.Store.ReadNativeMediaDestination(peer, "video") is null &&
+            f.Store.NativeMediaReceiveHistory(peer).Count == 0, "The first CAS failed readback or created targets or a media job.");
+        TestAssert.Throws<InvalidDataException>(() => f.Store.InitializeNativeMediaFirstReceive(peer, absent.Version, () => { }),
+            "A stale native choice was accepted.");
+        var off = f.Store.ChangeNativeMediaReceiveConsent(peer, accepted.Version, false);
+        TestAssert.Throws<InvalidDataException>(() => f.Store.InitializeNativeMediaFirstReceive(peer, off.Version, () => { }),
+            "Explicit OFF was treated as absence.");
+        TestAssert.That(f.Store.ReadNativeMediaReceiveConsent(peer) == off, "A rejected retry altered the OFF policy.");
+
+        using var legacy = new DeviceFileConnectionMetadataTests.Fixture();
+        await Seed(legacy);
+        var legacyPeer = legacy.Peer.Id;
+        var enabled = legacy.Store.SetNativeMediaPreferences(legacyPeer, null, true, false, false);
+        var priorOff = legacy.Store.SetNativeMediaPreferences(legacyPeer, enabled.Version, false, false, false);
+        var priorChoice = legacy.Store.ReadNativeMediaReceiveConsent(legacyPeer);
+        TestAssert.That(!priorChoice.Explicit && !priorChoice.Granted && !priorChoice.CanInitializeFirstReceive(priorOff),
+            "A persisted legacy OFF looked like an absent policy.");
+        TestAssert.Throws<InvalidDataException>(() => legacy.Store.InitializeNativeMediaFirstReceive(legacyPeer, priorChoice.Version, () => { }),
+            "A persisted legacy OFF re-enabled receiving.");
+        TestAssert.That(legacy.Store.ReadNativeMediaReceiveConsent(legacyPeer) == priorChoice, "The legacy OFF policy changed.");
+    }
+
     internal static async Task MatchedAsync()
     {
         using var f = new DeviceFileConnectionMetadataTests.Fixture(); await Seed(f);

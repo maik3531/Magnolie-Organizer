@@ -13,31 +13,44 @@ internal static class NativeMediaBackupBytes
     {
         private readonly DeviceFileNativeDirectory.DeviceFileNativeStagedFile? staged;
         private readonly TelefonStore.NativePreparedMediaSource? prepared;
+        private readonly TelefonStore.NativePreparedMediaBatch? batch;
+        private readonly DeviceManifestFile? batchFile;
         private readonly string? version, nonce;
         private Input(DeviceFileNativeDirectory.DeviceFileNativeStagedFile value) { staged = value; }
         private Input(TelefonStore.NativePreparedMediaSource value)
         { prepared = value; version = value.Version; nonce = value.Nonce; }
+        private Input(TelefonStore.NativePreparedMediaBatch value, string fileId)
+        {
+            batch = value; (version, nonce) = value.CaptureBackupIdentity();
+            batchFile = value.Manifest.Files.SingleOrDefault(file => file.Id == fileId)
+                ?? throw DeviceFileControl.Error("media_backup_batch_original_file_required");
+        }
         internal static Input FromStaged(DeviceFileNativeDirectory.DeviceFileNativeStagedFile value) => new(value);
         internal static Input FromPrepared(TelefonStore.NativePreparedMediaSource value) => new(value);
+        internal static Input FromPreparedBatch(TelefonStore.NativePreparedMediaBatch value, string fileId) => new(value, fileId);
         private void Current()
         {
-            if (prepared is null) return;
-            prepared.RequireBackupIdentity(version!, nonce!);
+            if (batch is not null) batch.RequireBackupIdentity(version!, nonce!);
+            else prepared?.RequireBackupIdentity(version!, nonce!);
         }
         internal DeviceFileNativeDirectory.Identity? Identity => staged?.Observe().Identity;
         internal byte[] ReadExact(long offset, int count)
         {
             if (staged is not null) return staged.ReadExact(offset, count);
             Current();
-            if (offset < 0 || count < 1 || count > DeviceFileManifest.ChunkBytes || offset > prepared!.Manifest.TotalBytes - count)
+            var length = batchFile?.Size ?? prepared!.Manifest.TotalBytes;
+            if (offset < 0 || count < 1 || count > DeviceFileManifest.ChunkBytes || offset > length - count)
                 throw DeviceFileControl.Error("media_backup_source_range_invalid");
             var result = new byte[count];
             try
             {
                 for (var at = 0; at < count;)
                 {
-                    Current(); var position = offset + at;
-                    var chunk = prepared.ReadChunk(checked((int)(position / DeviceFileManifest.ChunkBytes)));
+                    var position = offset + at;
+                    var index = checked((int)(position / DeviceFileManifest.ChunkBytes));
+                    byte[] chunk;
+                    if (batch is not null) chunk = batch.ReadBackupChunk(batchFile!.Id, index, version!, nonce!);
+                    else { Current(); chunk = prepared!.ReadChunk(index); }
                     try
                     {
                         var start = (int)(position % DeviceFileManifest.ChunkBytes); var size = Math.Min(count - at, chunk.Length - start);
@@ -54,7 +67,7 @@ internal static class NativeMediaBackupBytes
         {
             if (staged is not null) { _ = NativeMediaBackupBytes.Verify(staged, size, hash, native); return; }
             native(); Current(); _ = NativeMediaBackupPolicy.ContentKey(size, hash);
-            var file = prepared!.Manifest.Files.Single();
+            var file = batchFile ?? prepared!.Manifest.Files.Single();
             if (file.Size != size || file.Sha256 != hash) throw DeviceFileControl.Error("media_backup_original_content_changed");
             using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             for (long offset = 0; offset < size;)

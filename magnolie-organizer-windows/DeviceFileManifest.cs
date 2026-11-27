@@ -51,7 +51,7 @@ internal sealed class DeviceFileManifest
         Fingerprint = ComputeFingerprint();
     }
 
-    private static bool PortablePath(string path)
+    internal static bool PortablePath(string path)
     {
         if (string.IsNullOrEmpty(path) || path.Length > 2048) return false;
         try
@@ -64,7 +64,7 @@ internal sealed class DeviceFileManifest
         catch (ArgumentException) { return false; }
     }
 
-    private static bool CollidingPaths(string first, string second)
+    internal static bool CollidingPaths(string first, string second)
     {
         var a = first.Split('/'); var b = second.Split('/');
         // Conservative receiver preflight: case/diacritic-equivalent aliases

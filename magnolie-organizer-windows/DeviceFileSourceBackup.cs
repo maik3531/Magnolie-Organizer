@@ -9,6 +9,11 @@ internal sealed partial class TelefonStore
     // owner; the selected collection remains read-only.
     private static void ValidatePreparedPcBackup(JsonObject version, JsonObject raw)
     {
+        if (raw["kind"]?.GetValue<string>() == "prepared_pc_batch_source")
+        {
+            ValidatePreparedBatchPcBackup(version, raw);
+            return;
+        }
         var value = TelefonProtocolContract.ExactObject(raw, "kind", "format", "job_id", "job_version", "nonce", "scope",
             "manifest", "source_provenance", "local_origin", "previous");
         var scope = TelefonProtocolContract.ExactObject(value["scope"]!, "peer_id", "peer_key", "pairing_epoch", "local_id", "local_key");

@@ -46,6 +46,75 @@ function boot() {
     assert.equal(b.sourceMessages().length, 1);
     assert(!b.messages.some(m => ["sync", "sync_shared", "trash_preview", "trash_thumbnail"].includes(m.action)));
   });
+  await test("original WLAN photos expose only their SEND choice and require a manual start", async b => {
+    const state = { ...b.state, original_receive_settings: true, original_settings_editable: true, shared_runtime_ready: false,
+      send_choice_kinds: ["images"], collection_sources: [], send_consent: { ...b.state.send_consent, videos: false },
+      shared_settings: { ...b.state.shared_settings, values: { ...b.state.shared_settings.values, videos_enabled: false } } };
+    b.refresh(); b.reply(b.messages.at(-1), state);
+    const photos = b.panel.querySelector('[data-media="send_photos"]');
+    const video = b.panel.querySelector('[data-media="send_videos"]');
+    const sync = [...b.panel.querySelectorAll("button")].find(button => button.textContent === "Synchronize now");
+    assert(!photos.closest("label").hidden && !photos.closest("label").parentElement.hidden);
+    assert(video.closest("label").hidden && b.add("video").disabled);
+    assert(!b.add("images").disabled && sync.disabled);
+    b.add("images").click(); b.save(); await tick();
+    const pick = b.sourceMessages()[0];
+    b.reply(pick, { ...state, collection_sources: b.state.collection_sources, private_pc_image_manual_start: true,
+      shared_start_version: "e".repeat(64) });
+    assert(!sync.disabled);
+    assert(!b.messages.some(m => m.action === "sync_shared"));
+    sync.click(); b.save(); await tick();
+    assert.equal(b.messages.at(-1).action, "sync_shared");
+    assert.equal(b.messages.at(-1).version, "e".repeat(64));
+  });
+  for (const scenario of ["start", "changed-version", "changed-book", "revoked"]) {
+    await test("original WLAN photo start " + scenario, async b => {
+      const receive = { granted: scenario === "revoked", version: "b".repeat(64) };
+      const state = { ...b.state, original_receive_settings: true, original_manual_receive: true, manual_receive_setup: !receive.granted,
+        shared_runtime_ready: false, shared_start_version: "e".repeat(64), receive_consent: receive, send_consent: null,
+        shared_settings: { ...b.state.shared_settings, values: { ...b.state.shared_settings.values, direction: "phone_to_pc", videos_enabled: false } } };
+      b.refresh(); b.reply(b.messages.at(-1), state);
+      const sync = [...b.panel.querySelectorAll("button")].find(button => button.textContent === "Synchronize now");
+      const revoke = [...b.panel.querySelectorAll("button")].find(button => button.textContent === "Revoke");
+      const requests = () => b.messages.filter(message => message.action === "sync_shared");
+      assert(b.panel.querySelector('[data-media="receive_consent"]').closest("label").hidden);
+      assert(!sync.disabled);
+      assert.equal(revoke.hidden, !receive.granted);
+      if (scenario === "revoked") {
+        revoke.click();
+        assert.equal(b.messages.at(-1).action, "receive_consent");
+        assert.equal(b.messages.at(-1).granted, false);
+        assert.equal(requests().length, 0);
+        return;
+      }
+      b.refresh();
+      const refresh = b.messages.at(-1);
+      sync.click(); sync.click();
+      assert.equal(requests().length, 0);
+      if (scenario === "changed-version") b.reply(refresh, { ...state, shared_start_version: "c".repeat(64) });
+      if (scenario === "changed-book") b.changeBook();
+      b.save(); await tick();
+      assert.equal(requests().length, scenario === "start" ? 1 : 0);
+      if (scenario === "start") assert.equal(requests()[0].version, state.shared_start_version);
+    });
+  }
+  await test("original WLAN setup requires the explicit versioned button after a real save", async b => {
+    const state = { ...b.state, original_receive_settings: true, original_settings_editable: true,
+      automatic_receive_setup: true, shared_runtime_ready: false, shared_start_version: "e".repeat(64),
+      receive_consent: { granted: false, version: "b".repeat(64) }, send_consent: null,
+      shared_settings: { ...b.state.shared_settings, values: { ...b.state.shared_settings.values,
+        direction: "phone_to_pc", auto_mode: "wifi" } } };
+    b.refresh(); b.reply(b.messages.at(-1), state);
+    const setup = [...b.panel.querySelectorAll("button")].find(button => button.textContent === "Automatically synchronize over Wi-Fi");
+    const requests = () => b.messages.filter(message => message.action === "sync_shared");
+    assert(!setup.disabled);
+    assert.equal(requests().length, 0);
+    setup.click(); setup.click();
+    assert.equal(requests().length, 0);
+    b.save(); await tick();
+    assert.equal(requests().length, 1);
+    assert.equal(requests()[0].version, state.shared_start_version);
+  });
   for (const [name, changes] of [["import-only", { collection_mode: "import_only" }], ["receive-only", { direction: "phone_to_pc" }],
     ["OFF", { enabled: false }], ["images disabled", { photos_enabled: false }]]) {
     await test(name + " cannot dispatch export selection", async b => {

@@ -4,7 +4,12 @@ using Microsoft.Data.Sqlite;
 
 namespace MagnolieOrganizer.Windows;
 
-internal sealed record NativeMediaReceiveConsent(bool Granted, string Version, bool Explicit = false);
+internal sealed record NativeMediaReceiveConsent(bool Granted, string Version, bool Explicit = false)
+{
+    internal bool CanInitializeFirstReceive(NativeMediaPreferences preferences) =>
+        !Explicit && !Granted && preferences is { Revision: 0, Version: null, PhotosEnabled: false,
+            VideosEnabled: false, AutomaticWifi: false, DeleteFromPhone: false, DeleteFromDesktop: false };
+}
 
 internal sealed partial class TelefonStore
 {
@@ -61,15 +66,27 @@ internal sealed partial class TelefonStore
     }
 
     // Native local action only. Deliberately absent from paired-message codecs.
-    internal NativeMediaReceiveConsent ChangeNativeMediaReceiveConsent(string peerId, string expectedVersion, bool granted)
+    internal NativeMediaReceiveConsent ChangeNativeMediaReceiveConsent(string peerId, string expectedVersion, bool granted) =>
+        WriteNativeMediaReceiveConsent(peerId, expectedVersion, granted, requireFirstReceive: null);
+
+    internal NativeMediaReceiveConsent InitializeNativeMediaFirstReceive(string peerId, string expectedVersion, Action requireOriginal)
+    {
+        ArgumentNullException.ThrowIfNull(requireOriginal);
+        return WriteNativeMediaReceiveConsent(peerId, expectedVersion, granted: true, requireFirstReceive: requireOriginal);
+    }
+
+    private NativeMediaReceiveConsent WriteNativeMediaReceiveConsent(string peerId, string expectedVersion, bool granted, Action? requireFirstReceive)
     {
         lock (gate)
         {
             RequireNativeMediaStorageKey(); var scope = MediaPreferenceScope(peerId);
             using var db = OpenNativeMediaDatabase(); db.Open(); using var transaction = db.BeginTransaction();
+            requireFirstReceive?.Invoke();
             var before = ReadMediaReceiveConsent(db, transaction, scope);
             if (!DeviceFileControl.Hash(expectedVersion) || before.Version != expectedVersion)
                 throw DeviceFileControl.Error("media_receive_consent_stale_choice");
+            if (requireFirstReceive is not null && !before.CanInitializeFirstReceive(ReadNativeMediaPreferences(db, transaction, scope)))
+                throw DeviceFileControl.Error("media_receive_first_setup_not_available");
             if (before.Explicit && before.Granted == granted) return before;
             var next = new NativeMediaReceiveConsent(granted, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(), Explicit: true);
             var plain = TelefonCrypto.Canonical(new JsonObject { ["format"] = 1, ["scope"] = MediaReceiveConsentScope(scope),
@@ -81,6 +98,7 @@ internal sealed partial class TelefonStore
             try { write.Parameters.AddWithValue("$value", Seal("native_media_receive_consent", peerId, plain)); }
             finally { CryptographicOperations.ZeroMemory(plain); }
             write.ExecuteNonQuery();
+            requireFirstReceive?.Invoke();
             if (MediaPreferenceScope(peerId) != scope) throw DeviceFileControl.Error("media_receive_consent_scope_changed");
             transaction.Commit();
             if (ReadMediaReceiveConsent(db, null, scope) != next || MediaPreferenceScope(peerId) != scope)

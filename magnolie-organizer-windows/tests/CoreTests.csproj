@@ -32,6 +32,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <DefaultItemExcludes>$(DefaultItemExcludes);**/bin/**;**/obj/**</DefaultItemExcludes>
+    <DefineConstants Condition="'$(MagnoliePrivateMediaSettings)' == 'true'">$(DefineConstants);MAGNOLIE_PRIVATE_MEDIA_SETTINGS</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.5.1" />
@@ -41,6 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\AtomicStore.cs" Link="AtomicStore.cs" />
+    <Compile Include="..\DesktopPhoneBuild.cs" Link="DesktopPhoneBuild.cs" />
     <Compile Include="..\TrayAppearanceState.cs" Link="TrayAppearanceState.cs" />
     <Compile Include="..\PhoneCameraMediaChannel.cs" Link="PhoneCameraMediaChannel.cs" />
     <Compile Include="..\PhoneCameraParent.cs" Link="PhoneCameraParent.cs" />
@@ -121,6 +123,7 @@
     <Compile Include="..\TelefonTrayActivity.cs" Link="TelefonTrayActivity.cs" />
     <Compile Include="..\DeviceFileOfferEnvelope.cs" Link="DeviceFileOfferEnvelope.cs" />
     <Compile Include="..\DeviceFilePublishedReadback.cs" Link="DeviceFilePublishedReadback.cs" />
+    <Compile Include="..\DeviceFilePublishedBatchReadback.cs" Link="DeviceFilePublishedBatchReadback.cs" />
     <Compile Include="..\DeviceFileMediaPreview.cs" Link="DeviceFileMediaPreview.cs" />
     <Compile Include="..\DeviceFileMediaPreview.Video.cs" Link="DeviceFileMediaPreview.Video.cs" />
     <Compile Include="..\DeviceFileMediaMime.cs" Link="DeviceFileMediaMime.cs" />
@@ -145,6 +148,13 @@
     <Compile Include="..\DeviceFileNativeDirectory.Collection.cs" Link="DeviceFileNativeDirectory.Collection.cs" />
     <Compile Include="..\DeviceFileCollectionRoots.cs" Link="DeviceFileCollectionRoots.cs" />
     <Compile Include="..\DeviceFileCollectionSource.cs" Link="DeviceFileCollectionSource.cs" />
+    <Compile Include="..\DeviceFileCollectionBatch.cs" Link="DeviceFileCollectionBatch.cs" />
+    <Compile Include="..\DeviceFileConnectionBatchSend.cs" Link="DeviceFileConnectionBatchSend.cs" />
+    <Compile Include="..\DeviceFileSourceBatchBackup.cs" Link="DeviceFileSourceBatchBackup.cs" />
+    <Compile Include="..\DeviceFileSourceBatchCache.cs" Link="DeviceFileSourceBatchCache.cs" />
+    <Compile Include="..\DeviceFileSourceBatchExchange.cs" Link="DeviceFileSourceBatchExchange.cs" />
+    <Compile Include="..\DeviceFileSourceBatchHistory.cs" Link="DeviceFileSourceBatchHistory.cs" />
+    <Compile Include="..\DeviceFileSourceBatchRetirement.cs" Link="DeviceFileSourceBatchRetirement.cs" />
     <Compile Include="..\DeviceFileMappedSource.cs" Link="DeviceFileMappedSource.cs" />
     <Compile Include="..\DeviceFileSourceCache.cs" Link="DeviceFileSourceCache.cs" />
     <Compile Include="..\DeviceFileSourceBackup.cs" Link="DeviceFileSourceBackup.cs" />

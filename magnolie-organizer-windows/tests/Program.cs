@@ -420,6 +420,7 @@ runner.Add("Media backup maintenance / saved book stop and memory ownership", De
 runner.Add("Device file controls / dedicated own-peer / fresh echo / persistent grants", DeviceFileControlTests.RunAsync);
 runner.Add("Media offer envelope / strict context and shared canonical vector", MediaOfferEnvelopeTests.RunAsync);
 runner.Add("Published readback / shared vector and metadata-only authority", DevicePublishedReadbackTests.RunAsync);
+runner.Add("Published readback / complete offer vector and original binding", DevicePublishedReadbackTests.BatchAsync);
 runner.Add("Media source MIME / bounded actual bytes and unknown formats", DeviceFileMediaMimeTests.ByteDerivedMimeAsync);
 runner.Add("Media source MIME / finite WebM probe leaves the sender unchanged", DeviceFileMediaMimeTests.WebmProbeAsync);
 runner.Add("Media source MIME / bounded TIFF probe leaves the sender unchanged", DeviceFileMediaMimeTests.TiffProbeAsync);
@@ -511,6 +512,8 @@ if (OperatingSystem.IsWindows())
     runner.Add("Destination generation backups / Windows immutable legacy and admitted generation parent choices stay separate", DeviceFileDestinationAdmissionTests.WindowsGenerationBackupParentsAsync);
     runner.Add("Destination admitted source / Windows original mapping independent of current selection PC receive and phone read", DeviceFileDestinationAdmissionTests.WindowsAdmittedMappedSourceIndependentAsync);
     runner.Add("Collection producer / Windows two original offers actual END and fresh unchanged pass", DeviceFileCollectionSourceTests.WindowsCollectionProducerAsync);
+    runner.Add("Collection producer / Windows complete image batch Saved readback and END", DeviceFileCollectionSourceTests.WindowsWholeImageSenderAsync);
+    runner.Add("Collection producer / Windows incomplete batch readback holds original END", DeviceFileCollectionSourceTests.WindowsWholeImageSenderSubsetAsync);
     runner.Add("Collection producer / Windows automatic gate original catalog and content guards", DeviceFileCollectionSourceTests.WindowsCollectionProducerGuardsAsync);
     runner.Add("Collection producer / Windows actual changed successor exact previous publication and END", DeviceFileCollectionSourceTests.WindowsCollectionProducerSuccessorAsync);
     runner.Add("Collection producer / Windows late edits and additions after genuine individual END hold whole pass", DeviceFileCollectionSourceTests.WindowsCollectionProducerLateInventoryAsync);
@@ -542,6 +545,23 @@ if (OperatingSystem.IsWindows())
     runner.Add("Media shared storage / Windows preserve legacy choices and ambiguous deletions", DeviceFileSharedPreferencesTests.LegacyAsync);
     runner.Add("Media shared storage / Windows corruption pairing identity and restore HOLD", DeviceFileSharedPreferencesTests.BindingAsync);
     runner.Add("Media shared transport / Windows actual bilateral ACK exact snapshot and no grants", DeviceFileSharedTransportTests.MatchedAsync);
+    runner.Add("Media shared transport / Windows legacy receive preview remains passive", DeviceFileSharedTransportTests.LegacyManualReceivePreviewAsync);
+    runner.Add("Media shared transport / Windows first receive protected CAS", DeviceFileSharedTransportTests.FirstReceiveConsentAsync);
+    runner.Add("Media shared transport / Windows original WLAN first receive UI", SharedSyncTransportTests.NativeFirstReceiveEntryAsync);
+    runner.Add("Media shared transport / Windows original WLAN first video receive UI", SharedSyncTransportTests.NativeFirstVideoReceiveEntryAsync);
+    runner.Add("Media shared transport / Windows original WLAN first mixed receive UI", SharedSyncTransportTests.NativeFirstMixedReceiveEntryAsync);
+    runner.Add("Media shared transport / Windows original WLAN first mixed content and Saved END", SharedSyncTransportTests.NativeFirstMixedReceiveContentAsync);
+    runner.Add("Media shared transport / Windows original WLAN edit and OFF convergence", SharedSyncTransportTests.NativeOriginalSettingsEditAsync);
+    runner.Add("Media shared transport / Windows original WLAN automatic holds missing video READ", SharedSyncTransportTests.NativeOriginalAutomaticSetupAsync);
+    runner.Add("Media shared transport / Windows original WLAN automatic explicit setup and background sync", SharedSyncTransportTests.NativeOriginalAutomaticContentAsync);
+    runner.Add("Media shared transport / Windows original WLAN automatic fresh reader", SharedSyncTransportTests.NativeOriginalAutomaticReconnectAsync);
+    runner.Add("Media shared transport / Windows original WLAN photo batch Hello", SharedSyncTransportTests.NativeOriginalPcImageHelloAsync);
+    runner.Add("Media shared transport / Windows original WLAN manual photo batch", SharedSyncTransportTests.NativeOriginalPcImageManualAsync);
+    runner.Add("Media shared transport / Windows original WLAN automatic Stop and late READ", SharedSyncTransportTests.NativeOriginalAutomaticStopAsync);
+#if MAGNOLIE_PRIVATE_MEDIA_SETTINGS
+    runner.Add("Media shared transport / Windows opt-in coordinator replays early original hello", SharedSyncTransportTests.NativeOriginalCompositionAsync);
+    runner.Add("Media shared transport / Windows opt-in native default targets original bytes", SharedSyncTransportTests.NativeFirstMixedDefaultContentAsync);
+#endif
     runner.Add("Media shared transport / Windows old capability and failed secure ACK HOLD", DeviceFileSharedTransportTests.GuardsAsync);
     runner.Add("Media local receiving consent / Windows remote intent cannot grant and protected persistence", DeviceFileReceiveConsentTests.DefaultsAndPersistenceAsync);
     runner.Add("Media local sending consent / Windows independent defaults persistence and pairing", DeviceFileSendConsentTests.DefaultsAndPersistenceAsync);

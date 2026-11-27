@@ -14,7 +14,7 @@ internal sealed partial class TelefonStore
     // Payload AND authenticated catalog snapshots live in the destination's
     // Backup folder. The existing protected local DB holds only the exact latest
     // snapshot/folder witness: no foreign folder or old snapshot can bootstrap it.
-    private sealed class MediaBackupCatalog : IDisposable
+    private sealed partial class MediaBackupCatalog : IDisposable
     {
         private const int MaxRecords = 4096, MaxSnapshotBytes = 2 * 1024 * 1024;
         private readonly TelefonStore store;
@@ -327,7 +327,7 @@ internal sealed partial class TelefonStore
         {
             _ = SelectedObject(selected);
             var version = state["versions"]!.AsArray().Concat(Pending(state)).OfType<JsonObject>().Single(item => Text(item, "id") == selected.Id);
-            return version["provenance"]!["kind"]?.GetValue<string>() == "prepared_pc_source";
+            return version["provenance"]!["kind"]?.GetValue<string>() is "prepared_pc_source" or "prepared_pc_batch_source";
         }
         internal void RequireIncomingRestoreOwner(NativeMediaBackupVersion selected)
         {

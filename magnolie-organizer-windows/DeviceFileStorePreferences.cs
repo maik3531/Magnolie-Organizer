@@ -8,7 +8,7 @@ namespace MagnolieOrganizer.Windows;
 // still required; loading a positive choice never constructs a NativeLocalFileGrant.
 internal sealed record NativeMediaPreferences(long Revision, string? Version,
     bool PhotosEnabled, bool VideosEnabled, bool AutomaticWifi,
-    bool DeleteFromPhone = false, bool DeleteFromDesktop = false)
+    bool DeleteFromPhone = false, bool DeleteFromDesktop = false, string? OriginalAutomaticKey = null)
 {
     internal bool GrantsReceiveAuthority => false;
     // Same single UI choice as Notes. A historical mixed native policy needs an
@@ -78,22 +78,27 @@ internal sealed partial class TelefonStore
         try
         {
             var value = JsonNode.Parse(plain) as JsonObject ?? throw DeviceFileControl.Error("file_preferences_invalid");
-            TelefonProtocolContract.ExactObject(value, "format", "peer_id", "peer_key", "pairing_epoch", "local_id", "local_key",
-                "revision", "version", "photos_enabled", "videos_enabled", "automatic_wifi", "direction", "delete_phone", "delete_desktop");
+            var format = TelefonProtocolContract.Integer(value["format"]);
+            string[] fields = ["format", "peer_id", "peer_key", "pairing_epoch", "local_id", "local_key",
+                "revision", "version", "photos_enabled", "videos_enabled", "automatic_wifi", "direction", "delete_phone", "delete_desktop"];
+            TelefonProtocolContract.ExactObject(value, format == 2 ? [.. fields, "original_automatic_key"] : fields);
             string Text(string key) => value[key] is JsonValue item && item.TryGetValue<string>(out var text) && text is not null
                 ? text : throw DeviceFileControl.Error("file_preferences_invalid");
             bool Flag(string key) => value[key] is JsonValue item && item.TryGetValue<bool>(out var flag)
                 ? flag : throw DeviceFileControl.Error("file_preferences_invalid");
             var revision = TelefonProtocolContract.Integer(value["revision"]);
             var version = Text("version");
-            if (TelefonProtocolContract.Integer(value["format"]) != 1 || revision is < 1 or > DeviceFileControl.MaximumRevision ||
+            var automatic = Flag("automatic_wifi");
+            var originalKey = format == 2 ? Text("original_automatic_key") : null;
+            if (format is not (1 or 2) || revision is < 1 or > DeviceFileControl.MaximumRevision ||
+                originalKey is not null && (!automatic || !DeviceFileControl.Hash(originalKey)) ||
                 !DeviceFileControl.Hash(version) || Text("direction") != NativeMediaPreferences.Direction)
                 throw DeviceFileControl.Error("file_preferences_invalid");
             if (Text("peer_id") != scope.PeerId || Text("peer_key") != scope.PeerKey || Text("pairing_epoch") != scope.PairingEpoch ||
                 Text("local_id") != scope.LocalId || Text("local_key") != scope.LocalKey)
                 throw DeviceFileControl.Error("file_preferences_reassociation_required");
-            return new(revision, version, Flag("photos_enabled"), Flag("videos_enabled"), Flag("automatic_wifi"),
-                Flag("delete_phone"), Flag("delete_desktop"));
+            return new(revision, version, Flag("photos_enabled"), Flag("videos_enabled"), automatic,
+                Flag("delete_phone"), Flag("delete_desktop"), originalKey);
         }
         finally { CryptographicOperations.ZeroMemory(plain); }
     }
@@ -102,8 +107,10 @@ internal sealed partial class TelefonStore
     // call. Compare-and-set prevents another window/process from losing a choice.
     internal NativeMediaPreferences SetNativeMediaPreferences(string peerId, string? expectedVersion,
         bool photosEnabled, bool videosEnabled, bool automaticWifi,
-        bool? deleteFromPhone = null, bool? deleteFromDesktop = null, Action? nativeGuard = null)
+        bool? deleteFromPhone = null, bool? deleteFromDesktop = null, Action? nativeGuard = null, string? originalAutomaticKey = null)
     {
+        if (originalAutomaticKey is not null && (!automaticWifi || !DeviceFileControl.Hash(originalAutomaticKey) || nativeGuard is null))
+            throw DeviceFileControl.Error("file_preferences_invalid_automatic_binding");
         lock (gate)
         {
             var scope = MediaPreferenceScope(peerId);
@@ -115,7 +122,8 @@ internal sealed partial class TelefonStore
             var phoneDeletion = deleteFromPhone ?? previous.DeleteFromPhone;
             var desktopDeletion = deleteFromDesktop ?? previous.DeleteFromDesktop;
             if (previous.PhotosEnabled == photosEnabled && previous.VideosEnabled == videosEnabled && previous.AutomaticWifi == automaticWifi &&
-                previous.DeleteFromPhone == phoneDeletion && previous.DeleteFromDesktop == desktopDeletion)
+                previous.DeleteFromPhone == phoneDeletion && previous.DeleteFromDesktop == desktopDeletion &&
+                previous.OriginalAutomaticKey == originalAutomaticKey)
             {
                 if (MediaPreferenceScope(peerId) != scope) throw DeviceFileControl.Error("file_preferences_scope_changed");
                 nativeGuard?.Invoke();
@@ -123,12 +131,13 @@ internal sealed partial class TelefonStore
             }
             if (previous.Revision >= DeviceFileControl.MaximumRevision) throw DeviceFileControl.Error("file_preferences_revision_exhausted");
             var next = new NativeMediaPreferences(previous.Revision + 1, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(),
-                photosEnabled, videosEnabled, automaticWifi, phoneDeletion, desktopDeletion);
-            var value = new JsonObject { ["format"] = 1, ["peer_id"] = scope.PeerId, ["peer_key"] = scope.PeerKey,
+                photosEnabled, videosEnabled, automaticWifi, phoneDeletion, desktopDeletion, originalAutomaticKey);
+            var value = new JsonObject { ["format"] = originalAutomaticKey is null ? 1 : 2, ["peer_id"] = scope.PeerId, ["peer_key"] = scope.PeerKey,
                 ["pairing_epoch"] = scope.PairingEpoch, ["local_id"] = scope.LocalId, ["local_key"] = scope.LocalKey,
                 ["revision"] = next.Revision, ["version"] = next.Version, ["photos_enabled"] = next.PhotosEnabled,
                 ["videos_enabled"] = next.VideosEnabled, ["automatic_wifi"] = next.AutomaticWifi,
                 ["direction"] = NativeMediaPreferences.Direction, ["delete_phone"] = next.DeleteFromPhone, ["delete_desktop"] = next.DeleteFromDesktop };
+            if (originalAutomaticKey is not null) value["original_automatic_key"] = originalAutomaticKey;
             using var write = connection.CreateCommand(); write.Transaction = transaction;
             // A dedicated table survives generic Notes/meta cleanup and profile
             // restore. Binding mismatches HOLD instead of resetting old intent.

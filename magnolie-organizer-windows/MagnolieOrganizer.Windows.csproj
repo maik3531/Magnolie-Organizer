@@ -23,7 +23,9 @@
     <MagnoliePhoneCamera Condition="'$(MagnoliePhoneCamera)' == '' and $([System.Text.RegularExpressions.Regex]::IsMatch('$(MAGNOLIE_CONTRIBUTOR_HASH)', '^[0-9a-fA-F]{64}$'))">true</MagnoliePhoneCamera>
     <MagnoliePhotoSync Condition="'$(MagnoliePhotoSync)' == ''">false</MagnoliePhotoSync>
     <MagnoliePhoneCamera Condition="'$(MagnoliePhoneCamera)' == ''">false</MagnoliePhoneCamera>
+    <MagnoliePrivateMediaSettings Condition="'$(MagnoliePrivateMediaSettings)' == ''">false</MagnoliePrivateMediaSettings>
     <DefineConstants Condition="'$(MagnoliePhotoSync)' == 'true'">$(DefineConstants);MAGNOLIE_PHOTO_SYNC</DefineConstants>
+    <DefineConstants Condition="'$(MagnoliePhotoSync)' == 'true' and '$(MagnoliePrivateMediaSettings)' == 'true'">$(DefineConstants);MAGNOLIE_PRIVATE_MEDIA_SETTINGS</DefineConstants>
     <DefineConstants Condition="'$(MagnoliePhoneCamera)' == 'true'">$(DefineConstants);MAGNOLIE_PHONE_CAMERA</DefineConstants>
     <MagnolieHandbookWeb Condition="'$(MagnolieHandbookWeb)' == '' and Exists('..\magnolie-handbuch\web\index.html')">..\magnolie-handbuch\web</MagnolieHandbookWeb>
     <MagnolieHandbookWeb Condition="'$(MagnolieHandbookWeb)' == '' and Exists('shared\magnolie-handbuch\web\index.html')">shared\magnolie-handbuch\web</MagnolieHandbookWeb>
@@ -53,6 +55,7 @@
   <Target Name="ValidateDesktopPhoneComposition" BeforeTargets="PrepareForBuild">
     <Error Condition="'$(MagnoliePhotoSync)' != 'true' and '$(MagnoliePhotoSync)' != 'false'" Text="Invalid desktop phone composition." />
     <Error Condition="'$(MagnoliePhoneCamera)' != 'true' and '$(MagnoliePhoneCamera)' != 'false'" Text="Invalid desktop phone composition." />
+    <Error Condition="('$(MagnoliePrivateMediaSettings)' != 'true' and '$(MagnoliePrivateMediaSettings)' != 'false') or ('$(MagnoliePrivateMediaSettings)' == 'true' and '$(MagnoliePhotoSync)' != 'true')" Text="Original WLAN media requires the native media composition." />
   </Target>
 
   <ItemGroup>

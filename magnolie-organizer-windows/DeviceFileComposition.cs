@@ -9,6 +9,8 @@ internal sealed partial class TelefonCoordinator
 {
     partial void ConfigureNativeMediaConnection(TelefonPeer peer, TelefonConnection connection)
     {
+        connection.NativeMediaSupportChecked = DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows();
+        connection.NativePcImageBatchChecked = connection.NativeMediaSupportChecked;
         connection.MediaPreferencesChanged = () => NativeMediaSharedPreferencesChangedAsync(peer.Id, connection);
         connection.MediaManualRequested = (settings, requestId, deadline, token) =>
             StartNativeMediaManualRequest(peer.Id, connection, settings, requestId, deadline, token);
@@ -29,7 +31,13 @@ internal sealed partial class TelefonConnection
             handling = MediaPreferencesChanged();
     }
 
-    partial void SendNativeMediaSettings(ref Task? handling) => handling = SendMediaSharedSettingsAsync();
+    partial void SendNativeMediaSettings(ref Task? handling) => handling = SendNativeMediaAfterMetadataAsync();
+
+    private async Task SendNativeMediaAfterMetadataAsync()
+    {
+        await ReplayEarlyNativeMediaHelloAsync();
+        await SendMediaSharedSettingsAsync();
+    }
     partial void SendNativeMediaQueuedSettings(TelefonQueuedMessage item, JsonObject body, long now, ref Task? handling)
         => handling = SendQueuedMediaSettingsAsync(item, body, now);
 }

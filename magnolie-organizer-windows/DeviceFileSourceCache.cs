@@ -29,13 +29,15 @@ internal sealed partial class TelefonStore
 
     private JsonObject ReadSourceRecord(byte[] cipher, string peerId, string jobId, NativeMediaPreferenceScope scope)
     {
-        if (cipher.Length is < 29 or > NativeSourceRecordLimit + 28 || !SourceId(jobId))
+        if (cipher.Length is < 29 or > NativeBatchSourceRecordLimit + 28 || !SourceId(jobId))
             throw DeviceFileControl.Error("media_source_cache_record_invalid");
         var plain = Open("native_media_source_job", peerId + "/" + jobId, cipher);
         try
         {
             var raw = JsonNode.Parse(plain)!.AsObject();
             var format = TelefonProtocolContract.Integer(raw["format"]);
+            if (format == 5) return ReadBatchSourceRecord(raw, jobId, scope);
+            if (cipher.Length > NativeSourceRecordLimit + 28) throw DeviceFileControl.Error("media_source_cache_record_invalid");
             var local = format is 3 or 4;
             var successor = format is 2 or 4;
             var fields = new[] { "format", "scope", "nonce", "provenance", "manifest", "manifest_sha256", "originals", "phase", "chunks" };
@@ -117,17 +119,39 @@ internal sealed partial class TelefonStore
         }
     }
 
-    private static JsonObject SourceCorrelation(JsonObject body) => body["local_origin"] is JsonObject local
+    private static JsonObject SourceCorrelation(JsonObject body) => TelefonProtocolContract.Integer(body["format"]) == 5
+        ? new JsonObject { ["kind"] = "collection_batch", ["origins"] = body["origins"]!.DeepClone() }
+        : body["local_origin"] is JsonObject local
         ? new JsonObject { ["kind"] = "local_collection", ["origin"] = local.DeepClone() }
         : new JsonObject { ["kind"] = "phone_mapping", ["origin"] = body["originals"]!.AsObject().Single().Value!.DeepClone() };
 
     private static string PcOriginDigest(JsonObject origin) => DeviceFileControl.Digest("magnolie-pc-media-origin-v1\0", origin);
 
-    private static void RequireLocalSourceGenerationHistory(IEnumerable<(string JobId, byte[] Cipher, JsonObject Body)> records, JsonObject next)
+    private static void RequireLocalSourceGenerationHistory(IEnumerable<(string JobId, byte[] Cipher, JsonObject Body)> records, JsonObject next, bool allowExactBatch = false)
     {
+        if (TelefonProtocolContract.Integer(next["format"]) == 5)
+        {
+            foreach (var memberOrigin in next["origins"]!.AsObject().Select(pair => pair.Value!.AsObject()))
+                RequireLocalSourceGenerationHistory(records, new JsonObject { ["format"] = 3, ["local_origin"] = memberOrigin.DeepClone() }, allowExactBatch: true);
+            return;
+        }
         if (next["local_origin"] is not JsonObject origin) return;
         foreach (var item in records)
         {
+            if (TelefonProtocolContract.Integer(item.Body["format"]) == 5)
+            {
+                // Until the whole END/history verifier is composed, no legacy
+                // single source may bypass a pending original batch member.
+                foreach (var oldMember in item.Body["origins"]!.AsObject().Select(pair => pair.Value!.AsObject()))
+                    if (JsonNode.DeepEquals(oldMember["file_identity"], origin["file_identity"]) ||
+                        JsonNode.DeepEquals(oldMember["root_id"], origin["root_id"]) && string.Equals(
+                            oldMember["relative_path"]!.GetValue<string>(), origin["relative_path"]?.GetValue<string>(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!allowExactBatch) throw DeviceFileControl.Error("media_source_batch_existing_original_held");
+                        if (!JsonNode.DeepEquals(oldMember, origin)) throw DeviceFileControl.Error("media_collection_original_generation_required");
+                    }
+                continue;
+            }
             // A selected-root change cannot mint a second source for a known
             // native file. Reassociation needs its own explicit owner, not a
             // root-local history lookup or a name/content heuristic.
@@ -169,7 +193,7 @@ internal sealed partial class TelefonStore
         while (rows.Read())
         {
             if (result.Count >= NativeSourceHistoryLimit) throw DeviceFileControl.Error("media_source_cache_history_bound");
-            if (rows.GetInt64(1) is < 29 or > NativeSourceRecordLimit + 28) throw DeviceFileControl.Error("media_source_cache_record_invalid");
+            if (rows.GetInt64(1) is < 29 or > NativeBatchSourceRecordLimit + 28) throw DeviceFileControl.Error("media_source_cache_record_invalid");
             var id = rows.GetString(0); var cipher = (byte[])rows[2];
             result.Add((id, cipher, ReadSourceRecord(cipher, scope.PeerId, id, scope)));
         }
@@ -186,8 +210,10 @@ internal sealed partial class TelefonStore
             using var chunks = read.ExecuteReader();
             var count = body["chunks"]!.AsArray().Count;
             var size = TelefonProtocolContract.Integer(body["manifest"]!["total_bytes"]);
+            var copied = TelefonProtocolContract.Integer(body["format"]) == 5
+                ? BatchCopiedBytes(body) : Math.Min((long)count * DeviceFileManifest.ChunkBytes, size);
             if (!chunks.Read() || chunks.GetInt64(0) != count || chunks.GetInt64(1) != 0 || chunks.GetInt64(2) != count - 1 ||
-                chunks.GetInt64(3) != Math.Min((long)count * DeviceFileManifest.ChunkBytes, size) + 28L * count)
+                chunks.GetInt64(3) != copied + 28L * count)
                 throw DeviceFileControl.Error("media_source_cache_chunk_membership_changed");
         }
         return result;
@@ -196,7 +222,8 @@ internal sealed partial class TelefonStore
     // Scheduling/preparation lineage only. Historical END never substitutes for
     // the new source's own original-book/current-control/held-file authority.
     private JsonObject? CompletedSourcePredecessor(SqliteConnection db, SqliteTransaction transaction, NativeMediaPreferenceScope scope,
-        List<(string JobId, byte[] Cipher, JsonObject Body)> records, JsonObject nextRecord, DeviceFileManifest nextManifest)
+        List<(string JobId, byte[] Cipher, JsonObject Body)> records, JsonObject nextRecord, DeviceFileManifest nextManifest,
+        bool allowUnchanged = false)
     {
         static string Text(JsonObject value, string name) => TelefonMessagingContract.String(value, name);
         static InvalidDataException Error() => DeviceFileControl.Error("media_source_cache_completed_previous_required");
@@ -293,7 +320,7 @@ internal sealed partial class TelefonStore
         }
         if (visited.Count != matching.Length) throw Error();
         var latest = leaf.Body["manifest"]!["files"]!.AsArray().Single()!.AsObject(); var next = nextManifest.Files.Single();
-        if (Text(latest, "sha256") == next.Sha256 && TelefonProtocolContract.Integer(latest["size"]) == next.Size)
+        if (!allowUnchanged && Text(latest, "sha256") == next.Sha256 && TelefonProtocolContract.Integer(latest["size"]) == next.Size)
             throw DeviceFileControl.Error("media_source_cache_latest_payload_already_sent");
         return new JsonObject { ["job_id"] = leaf.JobId, ["job_version"] = SourceDigest(leaf.Cipher), ["exchange_version"] = endVersions[leaf.JobId] };
     }

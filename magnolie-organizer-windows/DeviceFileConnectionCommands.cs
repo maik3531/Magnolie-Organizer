@@ -30,6 +30,7 @@ internal sealed partial class TelefonConnection
     }
     private NativeSourceCommandPending? nativeSourceCommand;
     private NativeSourceCommandPending? nativeRetiredAlbumStatus;
+    private readonly Dictionary<string, NativeSourceCommandPending> nativeRetiredReadRequests = new(StringComparer.Ordinal);
     private sealed class NativeKnownCatalog(NativeFileControlSession owner, string version, string catalogId)
     {
         internal readonly NativeFileControlSession Owner = owner;
@@ -67,7 +68,7 @@ internal sealed partial class TelefonConnection
     private void RequireNativeSourceChoice(NativeSourceChoice choice)
     {
         lock (fileRouteGate)
-            if (nativeMediaSend is not null) throw DeviceFileControl.Error("media_source_send_io_busy");
+            if (NativeMediaSendBusy) throw DeviceFileControl.Error("media_source_send_io_busy");
         RequireNativeFileControls(choice.Owner);
         try { store.RequireNativeMediaStorageKey(); }
         catch { CloseNativeSourceCommands("file_sources_native_storage_key_changed"); throw; }
@@ -82,7 +83,7 @@ internal sealed partial class TelefonConnection
             var intent = store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey);
             if (intent is not null || choice.SharedIntent is not null || MediaSharedControlsReady)
             {
-                if (intent is null || !JsonNode.DeepEquals(intent, choice.SharedIntent) || !MediaSharedSettingsReady ||
+                if (intent is null || !JsonNode.DeepEquals(intent, choice.SharedIntent) || !NativeMediaReceiveSettingsReady ||
                     !MediaSyncSettings.TransferRequestedFor(intent, choice.MediaType, toPhone: false))
                     throw DeviceFileControl.Error("file_sources_shared_media_intent_changed");
             }
@@ -95,12 +96,27 @@ internal sealed partial class TelefonConnection
     }
 
     internal async Task<DeviceFileSourceStatus> ConfigureNativeMediaSourceAsync(string expectedVersion, string mediaType,
-        bool enabled, CancellationToken token = default)
+        bool enabled, CancellationToken token = default) =>
+        await ConfigureNativeMediaSourceAsync(expectedVersion, mediaType, enabled, bootstrapVideo: false, token);
+
+    internal Task<DeviceFileSourceStatus> BootstrapNativeVideoSourceAsync(DeviceFileSourceStatus status, CancellationToken token)
+    {
+        if (!OriginalMediaReceiveSelected || status is not { Operation: "status", Revision: 0, Enabled: false,
+                Associated: false, RepairPending: false, Videos: { Enabled: false, Revision: 0 } } || status.Kinds.Count != 0)
+            throw DeviceFileControl.Error("file_sources_native_configuration_unconfirmed");
+        return ConfigureNativeMediaSourceAsync(status.Version, "video", enabled: true, bootstrapVideo: true, token);
+    }
+
+    private async Task<DeviceFileSourceStatus> ConfigureNativeMediaSourceAsync(string expectedVersion, string mediaType,
+        bool enabled, bool bootstrapVideo, CancellationToken token)
     {
         object? attempt = null;
         if (mediaType == "video") lock (fileRouteGate)
         { attempt = new object(); nativeVideoConfigurationAttempt = attempt; nativeVideoSourceActivation = null; }
-        var choice = CaptureNativeSourceChoice(mediaType, enabled, mediaType == "video" && enabled);
+        var choice = CaptureNativeSourceChoice(mediaType, enabled, mediaType == "video" && enabled && !bootstrapVideo);
+        if (bootstrapVideo && (choice.SharedIntent is null ||
+            MediaSyncSettings.TransferRequestedFor(choice.SharedIntent, "images", toPhone: false)))
+            throw DeviceFileControl.Error("file_sources_native_configuration_unconfirmed");
         void Require()
         {
             RequireNativeSourceChoice(choice);
@@ -116,12 +132,14 @@ internal sealed partial class TelefonConnection
             var status = DeviceFileSources.ParseResult(raw, message["message_id"]!.GetValue<string>(), operation, Now(), expectVideos);
             if (status.RepairPending || (mediaType == "video" ? status.Videos?.Enabled : status.Enabled) != enabled || enabled && !status.Associated)
                 throw DeviceFileControl.Error("file_sources_native_configuration_unconfirmed");
+            if (bootstrapVideo && (status.Enabled || status.Revision == 0 || status.Videos?.Revision == 0))
+                throw DeviceFileControl.Error("file_sources_native_configuration_unconfirmed");
             if (mediaType == "images" && enabled && !status.Kinds.SequenceEqual(new[] { "camera", "downloads", "screenshots", "whatsapp_received" }))
                 throw DeviceFileControl.Error("file_sources_native_configuration_unconfirmed");
             return status;
         }, Require, token);
         Require();
-        if (mediaType == "video" && enabled)
+        if (mediaType == "video" && enabled && !bootstrapVideo)
         {
             var witness = choice.Owner.RemoteControlWitness() ?? throw DeviceFileControl.Error("file_sources_native_control_changed");
             lock (fileRouteGate)
@@ -305,15 +323,29 @@ internal sealed partial class TelefonConnection
         { throw new TimeoutException("file_sources_native_command_timeout", error); }
         finally
         {
-            lock (fileRouteGate)
+            // A sent OS prompt can reply after Stop. Serialize its retirement
+            // with the reader, so the exact reply cannot invalidate a retry.
+            var retireRead = pending?.ResultKind == DeviceFileSources.PermissionResultKind &&
+                !cancellation.IsCancellationRequested && callerCancellation.IsCancellationRequested;
+            if (retireRead) await fileControlIo.WaitAsync(CancellationToken.None);
+            try
             {
-                var run = nativeMediaSourceRun;
-                if (pending is not null && !pending.Completion.Task.IsCompletedSuccessfully && run?.AlbumOperation is not null &&
-                    (pending.Message["body"]?["operation"]?.GetValue<string>() is "run_status" or "resume_status") &&
-                    pending.Message["body"]?["run_id"]?.GetValue<string>() == run.Lease.RunId)
-                    nativeRetiredAlbumStatus = pending;
-                if (ReferenceEquals(nativeSourceCommand, pending)) nativeSourceCommand = null;
+                lock (fileRouteGate)
+                {
+                    var run = nativeMediaSourceRun;
+                    if (pending is not null && !pending.Completion.Task.IsCompletedSuccessfully && run?.AlbumOperation is not null &&
+                        (pending.Message["body"]?["operation"]?.GetValue<string>() is "run_status" or "resume_status") &&
+                        pending.Message["body"]?["run_id"]?.GetValue<string>() == run.Lease.RunId)
+                        nativeRetiredAlbumStatus = pending;
+                    if (ReferenceEquals(nativeSourceCommand, pending))
+                    {
+                        if (retireRead && pending is { OutputConfirmed: true } && !pending.Completion.Task.IsCompleted)
+                            RetainCanceledRead(pending);
+                        nativeSourceCommand = null;
+                    }
+                }
             }
+            finally { if (retireRead) fileControlIo.Release(); }
             if (pending is not null)
             {
                 pending.Completion.TrySetCanceled();
@@ -321,6 +353,18 @@ internal sealed partial class TelefonConnection
             }
             choice.Owner.FinishReceiverCommand(ticket);
         }
+    }
+
+    private void RetainCanceledRead(NativeSourceCommandPending pending)
+    {
+        var now = Now();
+        foreach (var item in nativeRetiredReadRequests.Where(item =>
+            now >= TelefonProtocolContract.Integer(item.Value.Message["expires_ms"])).ToArray())
+            nativeRetiredReadRequests.Remove(item.Key);
+        const int limit = 32;
+        if (nativeRetiredReadRequests.Count == limit)
+            nativeRetiredReadRequests.Remove(nativeRetiredReadRequests.MinBy(item => item.Value.Issued).Key);
+        nativeRetiredReadRequests[pending.Message["message_id"]!.GetValue<string>()] = pending;
     }
 
     private void RequireNativeSourceCommand(NativeSourceCommandPending pending)
@@ -359,9 +403,15 @@ internal sealed partial class TelefonConnection
         try
         {
             NativeSourceCommandPending? retired;
-            lock (fileRouteGate) retired = nativeRetiredAlbumStatus;
-            if (retired is not null && message["kind"]?.GetValue<string>() == DeviceFileSources.RunResultKind &&
-                message["body"]?["request_id"]?.GetValue<string>() == retired.Message["message_id"]!.GetValue<string>())
+            var requestId = message["body"]?["request_id"] as JsonValue;
+            lock (fileRouteGate)
+            {
+                retired = nativeRetiredAlbumStatus;
+                if (retired is null || requestId?.GetValue<string>() != retired.Message["message_id"]!.GetValue<string>())
+                    retired = requestId is not null && requestId.TryGetValue<string>(out var id) &&
+                        nativeRetiredReadRequests.TryGetValue(id, out var read) ? read : null;
+            }
+            if (retired is not null && message["kind"]?.GetValue<string>() == retired.ResultKind)
             {
                 RequireNativeFileControls(retired.Choice.Owner);
                 var witness = retired.Choice.Owner.RemoteControlWitness(); var tick = Environment.TickCount64;
@@ -369,7 +419,11 @@ internal sealed partial class TelefonConnection
                     Now() >= TelefonProtocolContract.Integer(retired.Message["expires_ms"]) || TelefonProtocolContract.Integer(message["expires_ms"]) > TelefonProtocolContract.Integer(retired.Message["expires_ms"]))
                     throw DeviceFileControl.Error("file_sources_native_retired_status_changed");
                 _ = retired.Parse(message); // Pure exact correlation; no Accept callback, state update, lease or READ.
-                lock (fileRouteGate) if (ReferenceEquals(nativeRetiredAlbumStatus, retired)) nativeRetiredAlbumStatus = null;
+                lock (fileRouteGate)
+                {
+                    if (ReferenceEquals(nativeRetiredAlbumStatus, retired)) nativeRetiredAlbumStatus = null;
+                    else nativeRetiredReadRequests.Remove(retired.Message["message_id"]!.GetValue<string>());
+                }
                 return;
             }
             NativeSourceCommandPending pending;
@@ -454,6 +508,7 @@ internal sealed partial class TelefonConnection
             pending = nativeSourceCommand; nativeSourceCommand = null; nativeVideoSourceActivation = null; nativeVideoConfigurationAttempt = null;
             nativeKnownCatalogs.Clear();
             nativeRetiredAlbumStatus = null;
+            nativeRetiredReadRequests.Clear();
         }
         pending?.Completion.TrySetException(DeviceFileControl.Error(reason));
     }

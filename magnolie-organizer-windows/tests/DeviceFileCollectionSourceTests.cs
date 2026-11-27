@@ -201,6 +201,114 @@ internal static class DeviceFileCollectionSourceTests
         finally { stop.Cancel(); if (production is null) try { await send; } catch { } }
     }
 
+    internal static Task WindowsWholeImageSenderAsync() => WindowsWholeImageSenderAsync(omitReadbackMember: false);
+    internal static Task WindowsWholeImageSenderSubsetAsync() => WindowsWholeImageSenderAsync(omitReadbackMember: true);
+
+    private static async Task WindowsWholeImageSenderAsync(bool omitReadbackMember)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var f = await Fixture();
+        var first = DeviceFileSourceSendTests.PaddedPng(length: 128);
+        var second = DeviceFileSourceSendTests.PaddedPng(length: 256);
+        var selected = Select(f, first);
+        File.WriteAllBytes(Path.Combine(selected.NativePath, "second.png"), second);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "image-batch-book"), Book);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        using var root = selected.OpenNative();
+        var files = root.InventoryCollection(book.Require, CancellationToken.None).Members;
+        var connection = f.Native.Connection;
+        var token = new string('f', 64);
+        using var original = connection.OpenNativeCollectionMediaBatch("images", selected.Id, selected.Version, files, token, book);
+        using var prepared = original.FreezeCache();
+        Console.WriteLine("Original batch cache frozen.");
+        var outputPath = Path.Combine(f.Native.Paths.Root, "image-batch-backup");
+        Directory.CreateDirectory(outputPath);
+        using var output = DeviceFileNativeDirectory.OpenExistingForReceive(outputPath);
+        var backupClock = System.Diagnostics.Stopwatch.StartNew();
+        var backups = f.Native.Store.SaveNativePreparedPcBatchBackups(prepared, output, () => true, createBackup: true,
+            boundary: name => Console.WriteLine($"Batch backup {name}: {backupClock.ElapsedMilliseconds} ms."));
+        Console.WriteLine("Original batch backups saved.");
+        var boundaries = new List<string>();
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(65));
+        DeviceFileConnectionRunsTests.Clear(f);
+        var send = connection.SendConnectedMediaBatchToSourceEndAsync(prepared, output, backups, () => true, () => true,
+            deadline.Token, name => { boundaries.Add(name); Console.WriteLine($"Batch END {name}: {backupClock.ElapsedMilliseconds} ms."); });
+        try
+        {
+            var offerFrame = await DeviceFileConnectionReceiveTests.Outbound(f, MediaOfferEnvelope.Kind);
+            var binding = f.Owner.Binding(token, true)!;
+            var offer = MediaOfferEnvelope.Validate(offerFrame, binding.SenderId, binding.ReceiverId, Now(), allowPcBatch: true);
+            TestAssert.That(offer.PcBatch && offer.Manifest.Files.Count == 2 && offer.PcOrigins.Count == 2 &&
+                offer.Originals.Count == 0 && offer.MimeTypes.All(item => item.Value?.GetValue<string>() == "image/png"),
+                "The sender did not offer both independent PNG originals together.");
+            var acceptanceBody = new JsonObject {
+                ["format"] = 1, ["offer_id"] = offerFrame["message_id"]!.DeepClone(), ["transfer_id"] = offer.Manifest.TransferId,
+                ["manifest_sha256"] = offer.Manifest.Fingerprint, ["permission_epoch"] = binding.PermissionEpoch,
+                ["destination_token"] = token, ["acceptance_sha256"] = new string('a', 64) };
+            var acceptance = DeviceFileSourceSendTests.Message(DeviceFileAcceptanceEnvelope.Kind, acceptanceBody, offerFrame);
+            await connection.HandlePlainAsync(acceptance);
+            Console.WriteLine("Original batch offer accepted.");
+            var accepted = DeviceFileAcceptanceEnvelope.Parse(acceptance, Now());
+            var members = new JsonObject();
+            var receipts = new JsonArray();
+            var occurrence = 0;
+            foreach (var file in offer.Manifest.Files)
+            {
+                var requestBody = acceptanceBody.DeepClone().AsObject();
+                requestBody.Remove("offer_id");
+                requestBody["file_id"] = file.Id;
+                requestBody["chunk_index"] = 0;
+                var request = DeviceFileSourceSendTests.Message(DeviceFileChunkEnvelope.RequestKind, requestBody, offerFrame);
+                await connection.HandlePlainAsync(request);
+                var frame = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileChunkEnvelope.ResultKind, occurrence++);
+                var bytes = DeviceFileChunkEnvelope.ParseResponse(frame, request, offer.Manifest, accepted, Now());
+                try { TestAssert.That(bytes.SequenceEqual(file.Path == "new-pc.png" ? first : second), "A PNG original changed on the secure writer."); }
+                finally { CryptographicOperations.ZeroMemory(bytes); }
+                var publication = new string(occurrence == 1 ? 'b' : 'c', 64);
+                receipts.Add(new JsonObject { ["file_id"] = file.Id, ["size"] = file.Size, ["sha256"] = file.Sha256, ["receipt_sha256"] = publication });
+                members[file.Id] = new JsonObject { ["size"] = file.Size, ["sha256"] = file.Sha256, ["mime_type"] = "image/png",
+                    ["publication_sha256"] = publication, ["row_sha256"] = new string(occurrence == 1 ? 'd' : 'e', 64) };
+            }
+            var savedBody = acceptanceBody.DeepClone().AsObject();
+            savedBody.Remove("offer_id");
+            savedBody["receipts"] = receipts;
+            await connection.HandlePlainAsync(DeviceFileSourceSendTests.Message(DeviceFileSavedEnvelope.Kind, savedBody, offerFrame));
+            Console.WriteLine("Original batch Saved processed.");
+            TestAssert.That(!send.IsCompleted, "Saved alone completed the original batch.");
+            TestAssert.Throws<InvalidDataException>(prepared.RequireIoEnded, "Saved alone released the native owner.");
+            if (omitReadbackMember) members.Remove(offer.Manifest.Files[1].Id);
+            var context = new JsonObject {
+                ["format"] = 2, ["offer_id"] = offerFrame["message_id"]!.DeepClone(), ["manifest_sha256"] = offer.Manifest.Fingerprint,
+                ["transfer_id"] = offer.Manifest.TransferId, ["source_id"] = offer.Manifest.SourceId,
+                ["media_type"] = "images", ["members"] = members, ["permission_epoch"] = binding.PermissionEpoch, ["readback_nonce"] = new string('b', 64) };
+            var readbackBinding = f.Owner.Binding(DevicePublishedBatchReadbackEnvelope.DestinationToken(context), true)!;
+            var readback = DeviceFileSourceSendTests.Message(DevicePublishedBatchReadbackEnvelope.Kind,
+                DevicePublishedBatchReadbackEnvelope.EncodeBody(context, readbackBinding), offerFrame);
+            if (omitReadbackMember)
+            {
+                await DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(connection.HandlePlainAsync(readback),
+                    "A properly hashed subset was accepted as the original complete batch.");
+                await DeviceFileConnectionSourcesTests.FailsAsync<Exception>(send.WaitAsync(deadline.Token), "A subset retired the original batch.");
+                TestAssert.That(boundaries.Count == 0, "A subset reached native source retirement.");
+                return;
+            }
+            await connection.HandlePlainAsync(readback);
+            Console.WriteLine("Original batch complete readback processed.");
+            var result = await send.WaitAsync(deadline.Token);
+            prepared.RequireIoEnded();
+            TestAssert.That(result.Saved.Members.Count == 2 && boundaries.SequenceEqual(new[] {
+                "source_batch_end_planned", "source_batch_end_backups_held", "source_batch_end_originals_drained", "source_batch_end_committed" }),
+                "The complete receipt missed native output, backup, and original END.");
+            TestAssert.That(File.ReadAllBytes(Path.Combine(selected.NativePath, "new-pc.png")).SequenceEqual(first) &&
+                File.ReadAllBytes(Path.Combine(selected.NativePath, "second.png")).SequenceEqual(second), "Source originals were rewritten.");
+        }
+        finally
+        {
+            deadline.Cancel();
+            try { await send.WaitAsync(TimeSpan.FromSeconds(10)); } catch { }
+        }
+    }
+
     internal static async Task WindowsCollectionProducerAsync()
     {
         using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: 256); var selection = Select(f, data);

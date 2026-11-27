@@ -9,6 +9,11 @@ internal static class DesktopPhoneBuild
 #else
     internal const bool PhotoSync = false;
 #endif
+#if MAGNOLIE_PRIVATE_MEDIA_SETTINGS
+    internal const bool PrivateMediaSettings = true;
+#else
+    internal const bool PrivateMediaSettings = false;
+#endif
 #if MAGNOLIE_PHONE_CAMERA
     internal const bool PhoneCamera = true;
 #else
