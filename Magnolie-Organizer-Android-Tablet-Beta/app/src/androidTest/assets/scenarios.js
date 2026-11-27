@@ -85,10 +85,12 @@ window.NativeScenario = (() => {
     const projected=rows.filter(x=>x.datum==='2030-05-10' && x.zeit==='10:00' &&
       x.icsOccurrence && Number.isFinite(x.icsStartUtc) && Number.isFinite(x.icsEndUtc) && x.icsEndUtc>x.icsStartUtc);
     const state=T.icsRuntime.state, workerAvailable=typeof Worker==='function';
+    const seriesIds=new Set(series.map(item=>item.id));
     const readySeries=new Set();
     for(const [key,job] of state?.jobs || []) {
-      const query=JSON.parse(key);
-      if(query[0]==='expand' && String(query[1]?.id).startsWith('old-series-') && job.status==='ready') readySeries.add(query[1].id);
+      const [timezoneIdentity,mode,item]=JSON.parse(key);
+      if(timezoneIdentity===window.MagnolieTime.identity.payloadSHA256 && mode==='expand' &&
+          seriesIds.has(item?.id) && job.status==='ready') readySeries.add(item.id);
     }
     return {series:series.length,validMetadata:metadata,occurrences:rows.length,
       uniqueOccurrences:new Set(rows.map(x=>x.id)).size,datedOccurrences:projected.length,
