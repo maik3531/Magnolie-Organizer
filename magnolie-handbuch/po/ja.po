@@ -15150,3 +15150,7 @@ msgstr "このプロジェクトについて"
 #, no-javascript-format
 #~ msgid "What the colors of a reading mean"
 #~ msgstr "測定値の色が示す意味"
+
+#. Complete versus partial snapshot restoration, Refs #824.
+msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
+msgstr "<p class='achtung'><b>「すべて」は常に置き換え方式を使用します。</b>選択したスナップショットより後の変更は上書きされ、後から追加した項目は削除されます。追加方式は個別の領域でのみ利用できます。</p>"

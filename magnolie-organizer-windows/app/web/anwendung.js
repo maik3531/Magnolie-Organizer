@@ -27209,20 +27209,35 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const verfahren = auswahlFeld([
         ["additive", _("Deleted and missing data is restored; newer existing data is retained.")],
         ["replace", _("The selected areas are reset exactly; data added later is removed.")]], "additive");
+      const allesFeld = bereichFelder.find(([wert]) => wert === "all")[1];
+      let einzelVerfahren = verfahren.value;
+      allesFeld.addEventListener("change", () => {
+        if (allesFeld.checked) {
+          einzelVerfahren = verfahren.value;
+          verfahren.value = "replace";
+        } else {
+          verfahren.value = einzelVerfahren;
+        }
+        verfahren.disabled = allesFeld.checked;
+        for (const [wert, feld] of bereichFelder) {
+          if (wert !== "all") feld.disabled = allesFeld.checked;
+        }
+      });
         const verfahrenZeile = formZeile(_("Restore"), verfahren);
         verfahrenZeile.classList.add("journal-verfahren");
         eintrag.append(bereichReihe, verfahrenZeile);
       const restore = knopf(_("Restore"), "klein", () => {
-        const alles = bereichFelder.find(([wert]) => wert === "all")[1].checked;
+        const alles = allesFeld.checked;
         const bereiche = alles ? ["all"] : bereichFelder.filter(([wert, feld]) =>
           wert !== "all" && feld.checked).map(([wert]) => wert);
+        const modus = alles ? "replace" : verfahren.value;
         if (!bereiche.length) { zettel(_("Select something first.")); return; }
-        frage(alles ? _("Restore this snapshot completely? A mandatory pre-restore snapshot is created first.") :
-          (verfahren.value === "additive" ?
-            _("Deleted and missing data is restored; newer existing data is retained.") :
-            _("The selected areas are reset exactly; data added later is removed.")),
+        const hinweis = modus === "additive" ?
+          _("Deleted and missing data is restored; newer existing data is retained.") :
+          _("The selected areas are reset exactly; data added later is removed.");
+        frage(alles ? _("Restore this snapshot completely? A mandatory pre-restore snapshot is created first.") + "\n\n" + hinweis : hinweis,
           _("Restore")).then((ja) => { if (ja) Bruecke.sende({ cmd: "journal_wiederherstellen",
-            snapshotId: stand.snapshotId, bereiche: bereiche, modus: verfahren.value }); });
+            snapshotId: stand.snapshotId, bereiche: bereiche, modus: modus }); });
       });
       restore.disabled = journalLoeschenLaeuft || stand.integrity !== "ok";
       const loeschen = knopf(_("Delete"), "klein rot", () => frage(

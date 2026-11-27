@@ -4,7 +4,7 @@ const fs = require("node:fs"), path = require("node:path");
 const { webcrypto } = require("node:crypto");
 const { JSDOM } = require("jsdom");
 
-async function check(web) {
+async function check(web, locale) {
   const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {
     runScripts: "outside-only", url: "https://app.magnolie.invalid/index.html", pretendToBeVisual: true
   });
@@ -14,7 +14,9 @@ async function check(web) {
   w.__MAGNOLIE_BRUECKE__="test";
   w.webkit={messageHandlers:{test:{postMessage:raw=>messages.push(JSON.parse(raw))}}};
   w.eval(fs.readFileSync(path.join(web,"i18n.js"),"utf8"));
-  w.MagnolieI18n.setLocale("en");
+  if (locale !== "en") w.eval(fs.readFileSync(path.join(web,"i18n",locale+".js"),"utf8"));
+  w.MagnolieI18n.setLocale(locale);
+  const tr = value => w.MagnolieI18n.gettext(value);
   w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(web,"anwendung.js"),"utf8"));
   d.dispatchEvent(new w.Event("DOMContentLoaded"));
@@ -25,10 +27,41 @@ async function check(web) {
   const points=[1,2,3].map(n=>({snapshotId:`00000000-0000-4000-8000-${String(n).padStart(12,"0")}`,
     createdAt:`2026-09-${n===3?"24":"23"}T10:00:00Z`,reason:"manual",integrity:"ok",summary:{notizen:n},payload:{size:1024}}));
   try {
-    w.App.init({daten:{},neu:false,regional:{language:"en"}});
+    w.App.init({daten:{},neu:false,regional:{language:locale}});
     click("#knopf-einstellungen"); click("#einst-tab-sicherheit");
     w.App.journalStand({snapshots:points,intervall:"off",status:"off"});
     assert.equal(d.querySelectorAll(".journal-auswahl").length,3);
+    const first = d.querySelector(".journal-eintrag");
+    const scopes = [...first.querySelectorAll(".journal-bereiche input")];
+    const mode = first.querySelector(".journal-verfahren select");
+    const restore = [...first.querySelectorAll(".journal-aktionen button")].find(button => button.textContent === tr("Restore"));
+    const restoreRequests = () => messages.filter(message => message.cmd === "journal_wiederherstellen");
+    const exact = tr("The selected areas are reset exactly; data added later is removed.");
+    if (locale !== "en") assert.notEqual(exact,"The selected areas are reset exactly; data added later is removed.");
+    scopes[3].click(); // Preserve a real partial selection when All is cleared again.
+    const partialSelection = scopes.slice(1).map(field => field.checked);
+    for (const partialMode of ["additive", "replace"]) {
+      mode.value = partialMode; mode.dispatchEvent(new w.Event("change", {bubbles:true}));
+      scopes[0].click();
+      assert.equal(mode.value,"replace","All must display its actual destructive restore method.");
+      assert.equal(mode.disabled,true,"All does not support additive restore.");
+      assert.ok(scopes.slice(1).every(field=>field.disabled),"Ignored partial scopes must be visibly unavailable under All.");
+      assert.deepEqual(scopes.slice(1).map(field=>field.checked),partialSelection);
+      const before = restoreRequests().length;
+      restore.click();
+      assert.ok(d.querySelector("#dialog-text").textContent.includes(exact),"Complete restore must disclose removal of later data.");
+      click("#dialog-nein"); await tick();
+      assert.equal(restoreRequests().length,before,"Cancel must not restore anything.");
+      restore.click(); click("#dialog-ja"); await tick();
+      assert.deepEqual(restoreRequests().at(-1),{cmd:"journal_wiederherstellen",snapshotId:points[0].snapshotId,bereiche:["all"],modus:"replace"});
+      scopes[0].click();
+      assert.equal(mode.disabled,false);
+      assert.equal(mode.value,partialMode,"Clearing All must restore the user's partial method.");
+      assert.ok(scopes.slice(1).every(field=>!field.disabled));
+      assert.deepEqual(scopes.slice(1).map(field=>field.checked),partialSelection);
+      restore.click(); click("#dialog-ja"); await tick();
+      assert.deepEqual(restoreRequests().at(-1),{cmd:"journal_wiederherstellen",snapshotId:points[0].snapshotId,bereiche:["contacts","calendar"],modus:partialMode});
+    }
     const restoreChecked=d.querySelectorAll(".journal-bereiche input:checked").length;
     click("#journal-alle"); assert.equal(selected().length,3);
     click("#journal-keine"); assert.equal(selected().length,0);
@@ -57,10 +90,10 @@ async function check(web) {
     assert.equal(selected().length,0);
     assert.ok(d.querySelector("#journal-auswahl-loeschen").disabled);
     assert.ok(d.querySelector("#zettel").textContent.includes("1"));
-    console.log("JOURNAL SELECTION PASSED: "+web);
+    console.log("JOURNAL SELECTION PASSED: "+locale+" "+web);
   } finally {w.close();}
 }
 (async()=>{
   for(const web of [path.resolve(__dirname,"../app/web"),path.resolve(__dirname,"../../magnolie-organizer/web")])
-    if(fs.existsSync(web))await check(web);
+    if(fs.existsSync(web)) for(const locale of ["en","de","fr","pl","hsb","ar"]) await check(web,locale);
 })().catch(error=>{console.error(error);process.exitCode=1;});

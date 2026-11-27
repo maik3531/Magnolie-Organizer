@@ -6875,3 +6875,7 @@ msgstr ""
 #, no-javascript-format
 msgid "Über dieses Projekt"
 msgstr ""
+
+#. Complete versus partial snapshot restoration, Refs #824.
+msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
+msgstr ""

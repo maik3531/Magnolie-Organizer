@@ -16169,3 +16169,7 @@ msgstr "O tym projekcie"
 #, no-javascript-format
 #~ msgid "What the colors of a reading mean"
 #~ msgstr "Znaczenie kolorów pomiaru"
+
+#. Complete versus partial snapshot restoration, Refs #824.
+msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
+msgstr "<p class='achtung'><b>Wszystko zawsze używa metody zastępowania.</b> Zmiany wprowadzone po wybranej migawce zostają nadpisane, a wpisy dodane później usunięte. Metoda uzupełniająca jest dostępna tylko dla poszczególnych obszarów.</p>"

@@ -439,3 +439,4 @@ gettext("and");
 gettext("of");
 gettext("Über den Programmierer und Autor dieses Buches");
 gettext("Über dieses Projekt");
+gettext("<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>");

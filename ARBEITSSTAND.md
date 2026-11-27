@@ -51,6 +51,12 @@ aufgeführt.
   Eine veraltete Handbuchkopie wird nach vollständigem Bytevergleich
   mit Dateiname und kurzer Fehlermeldung abgelehnt. Drei Prüffälle sowie
   der Test der kanonischen Quelle über 170 Seiten bestanden.
+- [#824](https://github.com/maik3531/Magnolie-Organizer/issues/824):
+  „Alles“ zeigt und bestätigt beim Wiederherstellen das vollständige
+  Ersetzen. Nach dem Abwählen gilt wieder das zuvor gewählte Verfahren
+  für Teilbereiche. Zwölf Dialogprüfungen auf Linux-/Windows-Quellen
+  sowie der Handbuchhinweis in 20 Sprachen und auf beiden Plattformen
+  bestanden. Der native Wiederherstellungsablauf bleibt unverändert.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal

@@ -14878,3 +14878,7 @@ msgstr "इस परियोजना के बारे में"
 #, no-javascript-format
 #~ msgid "What the colors of a reading mean"
 #~ msgstr "रीडिंग के रंगों का अर्थ"
+
+#. Complete versus partial snapshot restoration, Refs #824.
+msgid "<p class='achtung'><b>All always uses the replace method.</b> Changes made after the selected snapshot are overwritten and entries added later are removed. The additive method is available only for individual areas.</p>"
+msgstr "<p class='achtung'><b>सभी हमेशा बदलने की विधि का उपयोग करता है।</b> चुने हुए स्नैपशॉट के बाद किए गए बदलाव अधिलेखित हो जाते हैं और बाद में जोड़ी गई प्रविष्टियाँ हटा दी जाती हैं। जोड़ने की विधि केवल अलग-अलग क्षेत्रों के लिए उपलब्ध है।</p>"

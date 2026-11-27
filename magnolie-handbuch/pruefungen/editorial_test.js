@@ -80,6 +80,16 @@ for (const platform of ["linux", "windows"]) {
       assert.ok(item.inhalt);
       if (language !== "en") assert.notEqual(item.inhalt, item._source.inhalt, `${language}/${id}`);
     }
+    const recoveryWarning = page("wiederherstellungspunkte-was").inhaltAnhang.en;
+    const localizedRecoveryWarning = win.MagnolieI18n.gettext(recoveryWarning);
+    assert.ok(page("wiederherstellungspunkte-was").inhalt.includes(localizedRecoveryWarning),
+      `${language}/${platform}: complete restore warning missing from the actual chapter`);
+    if (language !== "en") assert.notEqual(localizedRecoveryWarning, recoveryWarning,
+      `${language}: complete restore warning is untranslated`);
+    const recoveryNote = win.document.createElement("div");
+    recoveryNote.innerHTML = localizedRecoveryWarning;
+    assert.equal(recoveryNote.querySelectorAll("p.achtung > b").length, 1,
+      `${language}: complete restore warning must remain visibly marked`);
     assert.ok(page("android-notes-navigation").inhaltAnhangErsetzt,
       "Current navigation must replace the historical five-tab instructions.");
     for (const id of ["android-notes-edit-save-delete", "android-tasks-reminders"]) {
