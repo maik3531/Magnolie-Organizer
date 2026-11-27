@@ -32,7 +32,7 @@ function selectHandbookWeb(root, requiredFiles) {
     for (const relative of sourceFiles(canonical)) {
       const bundledFile = path.join(bundled, relative);
       assert.ok(fs.existsSync(bundledFile), `Gebündelte Handbuchquelle ist unvollständig: ${relative}`);
-      assert.deepStrictEqual(fs.readFileSync(bundledFile), fs.readFileSync(path.join(canonical, relative)),
+      assert.ok(fs.readFileSync(bundledFile).equals(fs.readFileSync(path.join(canonical, relative))),
         `Gebündelte Handbuchquelle ist gegenüber der kanonischen Quelle veraltet: ${relative}`);
     }
     return { directory: canonical, label: `canonical and bundled sync ${canonical}` };

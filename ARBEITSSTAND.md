@@ -47,6 +47,10 @@ aufgeführt.
   Die Linux-Quellordnerprüfung meldet für ihre Testgegenstelle den
   erforderlichen WLAN-Status. Zehn Quellordner- und 20 benachbarte
   Medien-Wiederherstellungsprüfungen bestanden.
+- [#832](https://github.com/maik3531/Magnolie-Organizer/issues/832):
+  Eine veraltete Handbuchkopie wird nach vollständigem Bytevergleich
+  mit Dateiname und kurzer Fehlermeldung abgelehnt. Drei Prüffälle sowie
+  der Test der kanonischen Quelle über 170 Seiten bestanden.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
