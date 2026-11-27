@@ -24,13 +24,12 @@ aufgeführt.
   Layout erfolgreich. Die vollständige native Abnahme ist offen.
 - [#811](https://github.com/maik3531/Magnolie-Organizer/issues/811):
   `c363dc01` aktualisiert den Prüfer für die Zeitzonenidentität
-  der Serien-Worker-Jobs. Die Quellbindung und der gezielte
-  Schlüsseltest sind bestanden. Ein nativer Folgelauf wurde
-  vor der Serienprüfung durch einen Pixel-Launcher-Systemdialog
-  blockiert ([#792](https://github.com/maik3531/Magnolie-Organizer/issues/792)).
-  Beim darauf gezielt gestarteten Navigationslauf stoppte der
-  Temperaturschutz schon den Emulatorstart. Der native Nachweis
-  der Serien-Jobs und Touch-Navigation bleibt offen.
+  der Serien-Worker-Jobs. Im quellgebundenen API-34-Lauf wurden
+  17/17 fertige echte Worker-Jobs und 17 eindeutige datierte
+  Vorkommen bestätigt. Zwei echte Registerwechsel bestanden.
+  Die dritte Zielvorbereitung erreichte ihr Zeitlimit;
+  der weitere Touch-Nachweis steht in
+  [#816](https://github.com/maik3531/Magnolie-Organizer/issues/816).
 - [#330](https://github.com/maik3531/Magnolie-Organizer/issues/330):
   Die Linux-Korrekturen des Einstellungsabgleichs fehlten in dem
   privaten DEB. Auf `work/330-linux-settings-on-user-deb`
