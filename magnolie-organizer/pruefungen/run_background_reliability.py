@@ -12,7 +12,7 @@ DEFAULT_TESTS = [
     'test_background_reliability.py', 'test_baum_receipts.py',
     'test_automatic_service_provisioning.py',
     'test_hintergrunddienst.py', 'test_phone_setup_sessions.py',
-    'test_automatic_cloud_backup.py', 'test_journal_periodisch.py',
+    'test_automatic_cloud_backup.py', 'test_cloud_backup_capacity.py', 'test_journal_periodisch.py',
     'test_wiederherstellungsjournal.py', 'test_setup_services.py',
     'test_naechster_weckzeitpunkt.py', 'test_native_recurrence_regressions.py',
     'test_phone_bluetooth_setup.py',

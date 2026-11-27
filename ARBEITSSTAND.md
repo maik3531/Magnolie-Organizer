@@ -125,6 +125,11 @@ aufgeführt.
   Gültige lokale und numerische Altformate bleiben lesbar, ungültige
   Zeitangaben bleiben ohne Importzeitpunkt. Alle 42 Zeit- und
   Importprüfungen bestanden.
+- [#818](https://github.com/maik3531/Magnolie-Organizer/issues/818):
+  Automatische Sicherungen prüfen die Zielordnergrenze vor der
+  Archiverzeugung. Abgewiesene Wiederholungen lassen vorhandene
+  Dateien unverändert. Elf Linux-Prüfungen und der native
+  Windows-DPAPI-Rundlauf aus dem Quellarchiv bestanden.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal

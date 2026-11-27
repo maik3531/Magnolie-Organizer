@@ -151,6 +151,7 @@ from magnolie_nextcloud import (
 from magnolie_cloud_backup import (
     ArchiveSecretStore, PREFIX as CLOUD_BACKUP_PREFIX,
     apply_retention as cloud_backup_retention, due as cloud_backup_due,
+    check_capacity as cloud_backup_check_capacity,
     retention_count as cloud_backup_retention_count)
 from magnolie_akonadi import (AkonadiClient, AkonadiError, AkonadiUnavailable,
     akonadi_status as akonadi_helper_status, find_helper as akonadi_helper_finden)
@@ -2497,6 +2498,7 @@ def automatische_sicherung_anlegen(daten, ordner, kennwort, aufbewahrung,
         raise RuntimeError("automatic_backup_not_configured")
     zielordner = sicherungs_verzeichnis(ordner)
     os.makedirs(zielordner, exist_ok=True)
+    cloud_backup_check_capacity(zielordner)
     zeit = (jetzt or datetime.now(timezone.utc)).astimezone(timezone.utc)
     name = "%s%s-%s%s" % (
         CLOUD_BACKUP_PREFIX, zeit.strftime("%Y%m%d-%H%M%S-%f"),

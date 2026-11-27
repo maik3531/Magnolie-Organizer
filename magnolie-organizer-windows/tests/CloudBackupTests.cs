@@ -9,8 +9,30 @@ internal static class CloudBackupTests
     {
         DuePolicy();
         RetentionOwnership();
+        CapacityPreflight();
+        NativeCapacityRetries();
         SourceRoutingAndSecretSafety();
         await WorkerCorrelationAsync();
+    }
+
+    private static void CapacityPreflight()
+    {
+        var root = Directory.CreateTempSubdirectory("magnolie-cloud-capacity-");
+        try
+        {
+            for (var index = 0; index < CloudBackupService.ListingLimit - 1; index++)
+                File.WriteAllText(Path.Combine(root.FullName, $"unrelated-{index:D4}.txt"), "keep");
+            CloudBackupService.EnsureCapacity(root.FullName);
+            Directory.CreateDirectory(Path.Combine(root.FullName, "unrelated-directory"));
+            var before = Directory.GetFileSystemEntries(root.FullName).Order(StringComparer.Ordinal).ToArray();
+            for (var attempt = 0; attempt < 3; attempt++)
+                TestAssert.Throws<IOException>(() => CloudBackupService.EnsureCapacity(root.FullName),
+                    "Auch Ordner zählen zur Auflistungsgrenze.");
+            TestAssert.That(before.SequenceEqual(Directory.GetFileSystemEntries(root.FullName).Order(StringComparer.Ordinal)) &&
+                Directory.GetFiles(root.FullName).All(path => File.ReadAllText(path) == "keep"),
+                "Wiederholte Kapazitätsprüfungen dürfen fremde Inhalte nicht verändern.");
+        }
+        finally { root.Delete(recursive: true); }
     }
 
     private static void DuePolicy()
@@ -43,6 +65,39 @@ internal static class CloudBackupTests
         finally { Directory.Delete(root, true); }
     }
 
+    private static void NativeCapacityRetries()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Console.WriteLine("  SKIP CloudBackup CreateVerified / DPAPI: requires native Windows; capacity policy ran.");
+            return;
+        }
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-cloud-native-capacity-" + Guid.NewGuid().ToString("N"));
+        var folder = Path.Combine(root, "backups");
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var service = new CloudBackupService(Path.Combine(root, "owned-secret"));
+            service.StorePassword("owned-capacity-regression-password");
+            var data = System.Text.Json.Nodes.JsonNode.Parse("{\"version\":7,\"notizen\":[],\"einstellungen\":{}}")!.AsObject();
+            var settings = new CloudBackupSettings(true, "daily", 2, "", folder);
+            for (var index = 0; index < CloudBackupService.ListingLimit - 1; index++)
+                File.WriteAllText(Path.Combine(folder, $"unrelated-{index:D4}.txt"), "keep");
+            var verified = service.CreateVerified(data, settings, "owned-version");
+            TestAssert.That(File.Exists(verified), "999 Einträge müssen eine verifizierte neue Sicherung zulassen.");
+            var verifiedBytes = File.ReadAllBytes(verified);
+            var before = Directory.GetFileSystemEntries(folder).Order(StringComparer.Ordinal).ToArray();
+            for (var attempt = 0; attempt < 3; attempt++)
+                TestAssert.Throws<IOException>(() => service.CreateVerified(data, settings, "owned-version"),
+                    "Volle Sicherungsordner müssen vor einer weiteren Archiverzeugung abgewiesen werden.");
+            TestAssert.That(before.SequenceEqual(Directory.GetFileSystemEntries(folder).Order(StringComparer.Ordinal)),
+                "Fehlgeschlagene Wiederholungen dürfen keine weiteren Archive hinterlassen.");
+            TestAssert.That(File.Exists(verified) && File.ReadAllBytes(verified).SequenceEqual(verifiedBytes),
+                "Die zuvor verifizierte Sicherung muss bytegleich erhalten bleiben.");
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     private static void SourceRoutingAndSecretSafety()
     {
         var root = TestSource.Root("MagnolieOrganizer.Windows.csproj");
@@ -54,6 +109,9 @@ internal static class CloudBackupTests
             "Testlauf muss den bestehenden Mutations-Gate verwenden.");
         TestAssert.That(service.Contains("DataProtectionScope.CurrentUser") && service.Contains("Entropy") &&
                         !service.Contains("WriteAllText"), "Kennwort muss nur per DPAPI und atomarem Store geschrieben werden.");
+        var preflight = service.IndexOf("EnsureCapacity(settings.Folder)", StringComparison.Ordinal);
+        TestAssert.That(preflight >= 0 && preflight < service.IndexOf("GesamtarchivService.Create", StringComparison.Ordinal),
+            "Ein voller Zielordner muss vor der Archiverzeugung abgewiesen werden.");
         TestAssert.That(service.IndexOf("GesamtarchivService.Read", StringComparison.Ordinal) <
                         service.IndexOf("ApplyRetention(settings.Folder", StringComparison.Ordinal),
             "Readback muss vor Erfolg und Retention erfolgen.");

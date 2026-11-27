@@ -55,6 +55,18 @@ def retention_count(value):
         return 7
 
 
+def check_capacity(directory):
+    """Check for one free listing slot before encrypting or writing an archive.
+
+    This cannot reserve space against outside writers. Retention still re-reads
+    the directory after verification.
+    """
+    with os.scandir(directory) as listing:
+        for index, _entry in enumerate(listing):
+            if index >= LIST_LIMIT - 1:
+                raise OSError("The backup folder contains too many entries.")
+
+
 def owned_regular_files(directory):
     entries = []
     with os.scandir(directory) as listing:

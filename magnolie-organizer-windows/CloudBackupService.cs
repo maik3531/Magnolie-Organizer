@@ -110,6 +110,7 @@ internal sealed partial class CloudBackupService
         var password = secrets.Lookup() ?? throw new InvalidOperationException("secret_unavailable");
         var instant = (now ?? DateTimeOffset.UtcNow).ToUniversalTime();
         Directory.CreateDirectory(settings.Folder);
+        EnsureCapacity(settings.Folder);
         var target = Path.Combine(settings.Folder,
             $"magnolie-auto-{instant:yyyyMMdd-HHmmss-ffffff}-{Guid.NewGuid():N}.magnolie");
         try
@@ -134,6 +135,14 @@ internal sealed partial class CloudBackupService
         }
         ApplyRetention(settings.Folder, settings.Retention, target);
         return target;
+    }
+
+    internal static void EnsureCapacity(string directory)
+    {
+        // The verified archive must still fit inside the bounded retention scan.
+        // Check before encryption/writing; a rejected retry must not grow the folder.
+        if (Directory.EnumerateFileSystemEntries(directory).Take(ListingLimit).Count() >= ListingLimit)
+            throw new IOException("backup_listing_limit");
     }
 
     internal static IReadOnlyList<string> ApplyRetention(string directory, int keep,
