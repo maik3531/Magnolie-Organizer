@@ -70,7 +70,9 @@ object Einfuhr {
             )
         return try {
             val gesammelt = mutableListOf<Rohnotiz>()
-            sammle(zusammenhang, wurzel, gesammelt, 0)
+            sammle(wurzel, gesammelt, 0, OrdnerImportBudget(),
+                { datei, grenze -> lies(zusammenhang, datei.uri, grenze) },
+                { roh, datei -> ausInhalt(roh, datei.name.orEmpty(), datei.lastModified(), zusammenhang) })
             uebernehmen(zusammenhang, gesammelt, wurzel.name.orEmpty())
         } catch (_: GesamtarchivNichtUnterstuetzt) {
             Einfuhrergebnis(
@@ -85,23 +87,31 @@ object Einfuhr {
         }
     }
 
-    private fun sammle(
-        zusammenhang: Context,
+    internal fun sammle(
         ordner: DocumentFile,
         ziel: MutableList<Rohnotiz>,
-        tiefe: Int
+        tiefe: Int,
+        budget: OrdnerImportBudget,
+        lesen: (DocumentFile, Long) -> ByteArray?,
+        parsen: (ByteArray, DocumentFile) -> List<Rohnotiz>
     ) {
-        if (tiefe > 6 || ziel.size > 5000) return
+        if (tiefe > 6) throw IOException("Ordner zu tief verschachtelt")
         for (kind in ordner.listFiles()) {
+            budget.besuchen()
             if (kind.isDirectory) {
-                sammle(zusammenhang, kind, ziel, tiefe + 1)
+                sammle(kind, ziel, tiefe + 1, budget, lesen, parsen)
                 continue
             }
-            if (kind.length() > DATEI_MAX) continue
             val name = kind.name.orEmpty()
             if (!kommtInFrage(name)) continue
-            val roh = lies(zusammenhang, kind.uri) ?: continue
-            ziel += ausInhalt(roh, name, kind.lastModified(), zusammenhang)
+            val grenze = minOf(DATEI_MAX, budget.verbleibendeRohbytes)
+            if (kind.length() > grenze) throw IOException("Ordnerimport zu gross")
+            val roh = lesen(kind, grenze) ?: throw IOException("Importdatei nicht vollstaendig lesbar")
+            budget.gelesen(roh.size.toLong())
+            for (notiz in parsen(roh, kind)) {
+                budget.aufnehmen(notiz)
+                ziel += notiz
+            }
         }
     }
 
@@ -328,7 +338,7 @@ object Einfuhr {
 
     // ------------------------------------------------------------ Dateizugriff
 
-    private fun lies(zusammenhang: Context, quelle: Uri): ByteArray? = try {
+    private fun lies(zusammenhang: Context, quelle: Uri, grenze: Long = DATEI_MAX): ByteArray? = try {
         zusammenhang.contentResolver.openInputStream(quelle)?.use { strom ->
             val puffer = ByteArrayOutputStream()
             val brocken = ByteArray(64 * 1024)
@@ -337,7 +347,7 @@ object Einfuhr {
                 val gelesen = strom.read(brocken)
                 if (gelesen < 0) break
                 gesamt += gelesen
-                if (gesamt > DATEI_MAX) return null
+                if (gesamt > grenze) return null
                 puffer.write(brocken, 0, gelesen)
             }
             puffer.toByteArray()

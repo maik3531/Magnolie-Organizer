@@ -57,6 +57,11 @@ aufgeführt.
   für Teilbereiche. Zwölf Dialogprüfungen auf Linux-/Windows-Quellen
   sowie der Handbuchhinweis in 20 Sprachen und auf beiden Plattformen
   bestanden. Der native Wiederherstellungsablauf bleibt unverändert.
+- [#821](https://github.com/maik3531/Magnolie-Organizer/issues/821):
+  Notes begrenzt den gesamten Ordnerimport und speichert erst nach
+  vollständig erfolgreicher Vorbereitung. 28 JVM-Prüfungen und die
+  Handbuchprüfung in 20 Sprachen auf beiden Plattformen bestanden.
+  Die Prüfung echter Android-Dokumentanbieter bleibt offen.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
