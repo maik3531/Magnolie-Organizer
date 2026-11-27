@@ -25,6 +25,14 @@ async function check(web, mode) {
     ] } });
     const T = w.OrganizerTest, parent = T.daten().kontakte.find(k => k.id === "parent");
     const original = JSON.stringify(T.daten().kontakte);
+    if (mode === "manual") {
+      w.eval(fs.readFileSync(path.join(web, "i18n/de.js"), "utf8"));
+      w.MagnolieI18n.setLocale("de");
+      const germanForm = T.kontaktFormular(parent);
+      const roles = [...germanForm.querySelectorAll("#kontaktperson-status-vorschlaege option")].map(option => option.value);
+      assert.ok(roles.includes("Betreuer") && roles.includes("Betreuerin"));
+      w.MagnolieI18n.setLocale("en");
+    }
     let form = T.kontaktFormular(parent); w.document.body.append(form);
     let row = form.querySelector(".kontaktperson-zeile"), details = row.querySelector(".kontaktperson-erweitert");
     assert.equal(details.open, false); assert.equal(details.querySelectorAll("input").length, 0, "collapsed details eagerly mutate the draft");
@@ -48,6 +56,7 @@ async function check(web, mode) {
       }
     } else {
       details.open = true; details.dispatchEvent(new w.Event("toggle"));
+      if (mode === "manual") set(row, ".kontaktperson-status", "Betreuer");
       set(details, '[data-person-feld="vorname"]', "Elena"); set(details, '[data-person-feld="nachname"]', "Care");
       set(details, '[data-person-feld="firma"]', "Care company"); set(details, '[data-person-feld="notiz"]', "Extra notes");
       set(details, '[data-person-feld="geburtstag"]', "06.07.");
@@ -69,7 +78,7 @@ async function check(web, mode) {
     if (mode === "cancel") { assert.equal(JSON.stringify(T.daten().kontakte), original); return; }
     const saved = T.daten().kontakte.find(k => k.id === "parent").kontaktpersonen;
     assert.equal(saved.length, 1);
-    assert.equal(saved[0].status, "Son");
+    assert.equal(saved[0].status, mode === "manual" ? "Betreuer" : "Son");
     if (mode === "linked") {
       assert.equal(saved[0].kontaktId, "child");
       const child = T.daten().kontakte.find(k => k.id === "child"); child.telefon = "0999"; child.telefone = [];

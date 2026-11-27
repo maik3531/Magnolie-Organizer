@@ -120,7 +120,7 @@ internal static class RestoreSelection
                 "telefon", "mobil", "telefone", "email", "emails", "emailEintraege", "anschriften",
                 "geburtstag", "geburtstagJahrUnbekannt", "jubilaeum", "jubilaeumJahrUnbekannt",
                 "notiz", "foto", "kontaktpersonName", "kontaktpersonTelefon", "kontaktpersonStatus",
-                "sozialeMedien", "gruppen"
+                "kontaktpersonen", "sozialeMedien", "gruppen"
             };
         }
         var preferLocalId = sourceScoped || contacts;

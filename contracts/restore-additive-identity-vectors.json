@@ -280,6 +280,150 @@
       "current": [{"id": "contact-local", "uid": "import-uid"}],
       "snapshot": [{"id": "contact-local", "notiz": "First"}, {"id": "contact-local", "notiz": "Second"}],
       "error": "ambiguous-local-id"
+    },
+    {
+      "id": "contact-import-assigned-uid-keeps-stable-local-id",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "contact-local", "uid": "import-uid", "vorname": "Keep", "email": "same@example.test", "notiz": "", "firma": "Current company"}],
+      "snapshot": [{"id": "contact-local", "uid": "", "vorname": "Old", "email": "same@example.test", "notiz": "Restore detail", "firma": "Old company"}],
+      "expected": [{"id": "contact-local", "uid": "import-uid", "vorname": "Keep", "email": "same@example.test", "notiz": "Restore detail", "firma": "Current company"}]
+    },
+    {
+      "id": "contact-missing-uid-in-old-snapshot-keeps-assigned-uid",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "contact-local", "uid": "import-uid", "notiz": ""}],
+      "snapshot": [{"id": "contact-local", "notiz": "Legacy detail"}],
+      "expected": [{"id": "contact-local", "uid": "import-uid", "notiz": "Legacy detail"}]
+    },
+    {
+      "id": "contact-changed-uid-keeps-current-provider-binding",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "contact-local", "uid": "new-uid", "vorname": "Keep", "notiz": "", "syncQuellen": {"live-source": {"id": "live.vcf"}}, "davHref": "", "kontaktAliase": {"uids": ["old-uid"]}}],
+      "snapshot": [{"id": "contact-local", "uid": "old-uid", "vorname": "Old", "notiz": "Restore detail", "telefon": "+4930123456", "anschriften": [{"art": "WORK", "ort": "Berlin"}], "gruppen": ["Work"], "syncQuellen": {"old-source": {"id": "old.vcf"}}, "davHref": "/old.vcf", "sync": true, "baumKontakt": {"freigabeId": "old-grant"}, "importBindungen": ["old-import"], "unknownProviderWitness": {"old": true}, "vcardRoundtrip": ["UID:old-uid"], "vcardParameter": {"UID": {"old": true}}}],
+      "expected": [{"id": "contact-local", "uid": "new-uid", "vorname": "Keep", "notiz": "Restore detail", "telefon": "+4930123456", "anschriften": [{"art": "WORK", "ort": "Berlin"}], "gruppen": ["Work"], "syncQuellen": {"live-source": {"id": "live.vcf"}}, "davHref": "", "kontaktAliase": {"uids": ["old-uid"]}}]
+    },
+    {
+      "id": "contact-cleared-uid-does-not-reinstate-archived-binding",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "contact-local", "uid": "", "sync": false, "syncQuellen": {}, "notiz": ""}],
+      "snapshot": [{"id": "contact-local", "uid": "old-uid", "sync": true, "syncQuellen": {"old-source": {"id": "old.vcf"}}, "notiz": "Restore detail"}],
+      "expected": [{"id": "contact-local", "uid": "", "sync": false, "syncQuellen": {}, "notiz": "Restore detail"}]
+    },
+    {
+      "id": "contact-stable-local-id-beats-unrelated-old-uid",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "other-contact", "uid": "old-uid", "notiz": ""}, {"id": "contact-local", "uid": "new-uid", "notiz": ""}],
+      "snapshot": [{"id": "contact-local", "uid": "old-uid", "notiz": "Only for stable local contact"}],
+      "expected": [{"id": "other-contact", "uid": "old-uid", "notiz": ""}, {"id": "contact-local", "uid": "new-uid", "notiz": "Only for stable local contact"}]
+    },
+    {
+      "id": "contact-unique-uid-fallback-retains-current-local-id",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "current-contact", "uid": "shared", "notiz": ""}],
+      "snapshot": [{"id": "old-contact", "uid": "shared", "notiz": "Restore detail"}],
+      "expected": [{"id": "current-contact", "uid": "shared", "notiz": "Restore detail"}]
+    },
+    {
+      "id": "contact-ambiguous-current-local-id-holds-restore",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "ambiguous", "uid": "new-a", "notiz": ""}, {"id": "ambiguous", "uid": "new-b", "notiz": ""}],
+      "snapshot": [{"id": "ambiguous", "uid": "old", "notiz": "Do not guess"}],
+      "error": "ambiguous-local-id"
+    },
+    {
+      "id": "contact-ambiguous-snapshot-local-id-cannot-create-duplicates",
+      "area": "contacts", "collection": "kontakte",
+      "current": [],
+      "snapshot": [{"id": "ambiguous", "uid": "old-a", "notiz": "A"}, {"id": "ambiguous", "uid": "old-b", "notiz": "B"}],
+      "error": "ambiguous-local-id"
+    },
+    {
+      "id": "contact-ambiguous-snapshot-local-id-cannot-pick-current-contact",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "ambiguous", "uid": "current", "notiz": ""}],
+      "snapshot": [{"id": "ambiguous", "uid": "old-a", "notiz": "A"}, {"id": "ambiguous", "uid": "old-b", "notiz": "B"}],
+      "error": "ambiguous-local-id"
+    },
+    {
+      "id": "contact-exact-existing-ambiguous-local-id-remains-idempotent",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "ambiguous", "uid": "a", "notiz": "A"}, {"id": "ambiguous", "uid": "b", "notiz": "B"}],
+      "snapshot": [{"id": "ambiguous", "uid": "a", "notiz": "A"}],
+      "expected": [{"id": "ambiguous", "uid": "a", "notiz": "A"}, {"id": "ambiguous", "uid": "b", "notiz": "B"}]
+    },
+    {
+      "id": "contact-exact-uid-disambiguates-preexisting-local-id-collision",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "ambiguous", "uid": "a", "notiz": ""}, {"id": "ambiguous", "uid": "b", "notiz": ""}],
+      "snapshot": [{"id": "ambiguous", "uid": "b", "notiz": "For B"}],
+      "expected": [{"id": "ambiguous", "uid": "a", "notiz": ""}, {"id": "ambiguous", "uid": "b", "notiz": "For B"}]
+    },
+    {
+      "id": "contact-uid-change-does-not-invent-empty-content",
+      "area": "contacts", "collection": "kontakte",
+      "current": [{"id": "contact-local", "uid": "new"}],
+      "snapshot": [{"id": "contact-local", "uid": "old", "notiz": "", "telefon": null, "anschriften": [], "unknownProviderWitness": {"old": true}}],
+      "expected": [{"id": "contact-local", "uid": "new"}]
+    },
+    {
+      "id": "contact-uid-change-restores-multiple-emergency-contacts",
+      "area": "contacts",
+      "collection": "kontakte",
+      "current": [
+        {
+          "id": "contact-local",
+          "uid": "new-uid",
+          "vorname": "Current",
+          "kontaktpersonen": [],
+          "kontaktpersonName": "",
+          "kontaktpersonTelefon": "",
+          "kontaktpersonStatus": ""
+        }
+      ],
+      "snapshot": [
+        {
+          "id": "contact-local",
+          "uid": "old-uid",
+          "vorname": "Old",
+          "kontaktpersonen": [
+            {
+              "name": "Alex Example",
+              "telefon": "+12025550101",
+              "status": "Family"
+            },
+            {
+              "name": "Berta Example",
+              "telefon": "+12025550102",
+              "status": "Betreuerin"
+            }
+          ],
+          "kontaktpersonName": "Alex Example",
+          "kontaktpersonTelefon": "+12025550101",
+          "kontaktpersonStatus": "Family"
+        }
+      ],
+      "expected": [
+        {
+          "id": "contact-local",
+          "uid": "new-uid",
+          "vorname": "Current",
+          "kontaktpersonen": [
+            {
+              "name": "Alex Example",
+              "telefon": "+12025550101",
+              "status": "Family"
+            },
+            {
+              "name": "Berta Example",
+              "telefon": "+12025550102",
+              "status": "Betreuerin"
+            }
+          ],
+          "kontaktpersonName": "Alex Example",
+          "kontaktpersonTelefon": "+12025550101",
+          "kontaktpersonStatus": "Family"
+        }
+      ]
     }
   ]
 }

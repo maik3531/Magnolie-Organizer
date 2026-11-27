@@ -1964,7 +1964,7 @@ def _journal_liste_ergaenzen(aktuell, alt, quellenbezogen=False, kontakte=False)
                          "telefon", "mobil", "telefone", "email", "emails", "emailEintraege", "anschriften",
                          "geburtstag", "geburtstagJahrUnbekannt", "jubilaeum", "jubilaeumJahrUnbekannt",
                          "notiz", "foto", "kontaktpersonName", "kontaktpersonTelefon", "kontaktpersonStatus",
-                         "sozialeMedien", "gruppen"}
+                         "kontaktpersonen", "sozialeMedien", "gruppen"}
     lokale_identitaet = quellenbezogen or kontakte
 
     for objekt in aus:

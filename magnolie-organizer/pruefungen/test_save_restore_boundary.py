@@ -57,6 +57,62 @@ class Probe:
         return next(value for name, value in reversed(self.responses) if name == "App.gespeichert")
 
 
+def test_contact_uid_assignment_restore_keeps_one_durable_contact_and_protection(native):
+    m = native
+    snapshot_data = fixture_data("snapshot content")
+    notfallkontakte = [
+        {"name": "Alex Example", "telefon": "+12025550101", "status": "Sohn"},
+        {"name": "Robin Example", "telefon": "+12025550102", "status": "Betreuer"},
+    ]
+    snapshot_data["kontakte"] = [{"id": "contact-local", "uid": "", "email": "same@example.test",
+                                  "notiz": "Recovered detail", "firma": "Old company",
+                                  "kontaktpersonen": notfallkontakte}]
+    current = fixture_data("current unrelated content")
+    current["kontakte"] = [{"id": "contact-local", "uid": "import-uid", "email": "same@example.test",
+                            "notiz": "", "firma": "Current company", "syncQuellen": {"live": {"id": "live.vcf"}}}]
+    expected = copy.deepcopy(current["kontakte"])
+    expected[0]["notiz"] = "Recovered detail"
+    expected[0]["kontaktpersonen"] = copy.deepcopy(notfallkontakte)
+    m.speichere_text(json.dumps(current))
+    snapshot = m.journal_snapshot_erzeugen(snapshot_data, "manual", basis=m.daten_verzeichnis())
+    probe = Probe(m, current)
+
+    for _ in range(2):
+        m.Fenster._journal_wiederherstellen(probe, snapshot["snapshotId"], ["contacts"], "additive")
+        response = next(value for name, value in reversed(probe.responses) if name == "App.journalWiederhergestellt")
+        assert response["ok"] and response["committed"] and not response["repairPending"]
+        durable = json.loads(Path(m.daten_datei()).read_text())
+        assert durable["kontakte"] == expected
+        assert durable["notizen"] == current["notizen"]
+        assert durable["syncEpoch"] != current["syncEpoch"]
+        protected = m.journal_snapshot_lesen(response["vorher"], basis=m.daten_verzeichnis())[1]["daten"]
+        assert protected["kontakte"] in (current["kontakte"], expected)
+        restarted = Probe(m, durable)
+        assert not restarted.save(90, current)["ok"], "A pre-restore save must not replace the restored contact"
+        assert json.loads(Path(m.daten_datei()).read_text())["kontakte"] == expected
+        probe = restarted
+    # The native restore also migrates legacy profile-local snapshots to the
+    # isolated canonical XDG journal; read the original through that same path.
+    assert m.journal_snapshot_lesen(snapshot["snapshotId"])[1]["daten"]["kontakte"] == snapshot_data["kontakte"]
+
+
+def test_ambiguous_contact_restore_rejects_before_primary_write(native):
+    m = native
+    snapshot_data = fixture_data("snapshot content")
+    snapshot_data["kontakte"] = [{"id": "ambiguous", "uid": "old", "notiz": "Do not guess"}]
+    current = fixture_data("current unrelated content")
+    current["kontakte"] = [{"id": "ambiguous", "uid": "new-a"}, {"id": "ambiguous", "uid": "new-b"}]
+    m.speichere_text(json.dumps(current))
+    original = Path(m.daten_datei()).read_bytes()
+    snapshot = m.journal_snapshot_erzeugen(snapshot_data, "manual", basis=m.daten_verzeichnis())
+    probe = Probe(m, current)
+    m.Fenster._journal_wiederherstellen(probe, snapshot["snapshotId"], ["contacts"], "additive")
+    response = next(value for name, value in reversed(probe.responses) if name == "App.journalWiederhergestellt")
+    assert not response["ok"] and response["committed"] is False
+    assert Path(m.daten_datei()).read_bytes() == original
+    assert probe._aktuelle_daten == current
+
+
 def test_native_failed_save_restore_late_old_save_and_restart(native, monkeypatch):
     m = native
     old = fixture_data("old failed content")
