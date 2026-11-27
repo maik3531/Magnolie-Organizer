@@ -212,7 +212,10 @@ class NativeDestinationFolderChoice:
             action = preferences.issue_action(_native_current=writer_current)
             if self.kind == 'images':
                 if policy is None:
-                    saved = preferences.configure(action, self.expected, enabled=False, mode='manual', destination_choice=choice)
+                    support=connection._media_support
+                    staged=support is not None and support.supports(connection._channel)
+                    saved = preferences.configure(action, self.expected, enabled=False, mode='manual',
+                        destination_choice=choice,staged_receive_targets=staged)
                 else:
                     saved = preferences.set_photo_destination(action, self.expected, choice, historical_choice='keep_existing')
             else:

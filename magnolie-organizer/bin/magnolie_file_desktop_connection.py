@@ -3367,9 +3367,10 @@ class NativePhotoDesktopSession:
     @staticmethod
     def _allows_first_image_receive(snapshot):
         policy=snapshot.policy
-        return policy is None or (policy.enabled and snapshot.associated and snapshot.destination_available
-            and snapshot.direction=='phone_to_desktop' and not policy.phone_to_pc_delete and not policy.pc_to_phone_delete
-            and policy.mapping_store is not None and policy.job_catalog is not None)
+        return policy is None or (snapshot.associated and snapshot.destination_available and
+            (policy.staged_receive_targets or policy.enabled and snapshot.direction=='phone_to_desktop'
+                and not policy.phone_to_pc_delete and not policy.pc_to_phone_delete
+                and policy.mapping_store is not None and policy.job_catalog is not None))
 
     def _first_image_receive_choice(self):
         connection=self.connection
@@ -3769,7 +3770,7 @@ class NativePhotoDesktopSession:
             if connection._preferences.read()!=before:
                 raise TransferError('photo_preferences_cas_conflict')
             saved=before
-            if before.policy is None:
+            if before.policy is None or before.policy.staged_receive_targets:
                 bootstrap=NativeMediaStorageBootstrap(connection._authority)
                 try:saved=bootstrap.prepare_first_images(bootstrap.issue_action(_native_current=current),before)
                 finally:bootstrap.close()

@@ -42,7 +42,9 @@ class NativeMediaStorageBootstrap:
     def prepare_first_images(self,action,expected):
         """Bind the first photo target on an explicit, guarded native Start."""
         if (type(action) is not NativePhotoDestinationAction or action._native_current is None
-                or type(expected) is not PhotoPreferencesSnapshot or expected.policy is not None):
+                or type(expected) is not PhotoPreferencesSnapshot
+                or expected.policy is not None and (not expected.policy.staged_receive_targets
+                    or not expected.associated or not expected.destination_available)):
             raise TransferError('media_first_receive_original_action_required')
         return self._prepare(action,expected,first_images=True)
 
@@ -65,7 +67,7 @@ class NativeMediaStorageBootstrap:
                 if policy is not None and not current.associated:
                     raise TransferError('media_storage_bootstrap_reassociation_required')
                 destination=None
-                if first_images:
+                if first_images and policy is None:
                     photos=NativePhotoDestinationController(self._authority,monotonic_ms=self._guarded_clock)
                     owned.callback(photos.close)
                     destination=photos.choose_default(photos.issue_action())

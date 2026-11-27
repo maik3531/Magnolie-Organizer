@@ -11,6 +11,8 @@ import magnolie_telefon as phone
 import magnolie_file_sources as sources
 from magnolie_file_control import FileControlPacket, FileGrantState, NativeFileControlSession, NativeFilePeer, NativeLocalFileGrant
 from magnolie_media_retention import NativeMediaRetention
+from magnolie_media_source_choice import native_folder_witness
+from magnolie_media_source_collection import NativeCollectionRoot
 from magnolie_photo_destination import NativePhotoDestinationController, photo_folder_component
 from magnolie_transfer_job_catalog import NativeJobCatalogIdentity
 from magnolie_file_transfer import TransferError
@@ -19,10 +21,12 @@ from test_file_desktop_sources import response
 from test_file_video_authority import ack_all
 from test_media_support_draft import capture_authenticated_binding, legacy_state, offer, ack, wire_pair
 from test_media_transport import incoming
+from test_video_destination_ui import saved_book_inputs
 
 
 @pytest.mark.parametrize('outcome', ['stop_before_echo', 'stop_during_status', 'remote_off', 'local_off',
-                                      'read_missing', 'read_allowed', 'worker', 'book_changed'])
+                                      'read_missing', 'read_allowed', 'worker', 'book_changed', 'custom_target',
+                                      'changed_custom_target'])
 def test_manual_first_receive_waits_for_explicit_start_and_original_file_controls(native, tmp_path, monkeypatch, outcome):
     service, peer, _ = native
     peer['capabilities'] = legacy_state()
@@ -83,8 +87,13 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
             quiet()
             if outcome == 'local_off':
                 with connection._operation():
+                    original_dir=tmp_path/'Previously used photos'
+                    original_dir.mkdir(mode=0o700)
+                    chooser=connection._destination
+                    old_target=chooser.choose_custom(chooser.issue_action(),original_dir)
                     prefs=connection._preferences
-                    opted_out=prefs.configure(prefs.issue_action(), prefs.read(), enabled=False, mode='manual')
+                    opted_out=prefs.configure(prefs.issue_action(), prefs.read(), enabled=False, mode='manual',
+                        destination_choice=old_target)
                     connection._local()
                 assert not service.photo_sync_state(peer['device_id'])['manual_image_receive']
                 with pytest.raises(TransferError, match='photo_schedule_not_ready'):
@@ -94,6 +103,32 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                 quiet()
                 return
 
+            chosen=None
+            if outcome in ('custom_target','changed_custom_target'):
+                chosen=tmp_path/'Owned photo folder'
+                chosen.mkdir(mode=0o700)
+                (chosen/'existing.jpg').write_bytes(b'leave untouched')
+                prepared=service.photo_sync_destination_choice(peer['device_id'],finger,'prepare','images',
+                    **saved_book_inputs(connection))
+                with NativeCollectionRoot(str(chosen),lambda:True) as root:
+                    service.photo_sync_destination_choice(peer['device_id'],finger,'commit','images',
+                        selection=prepared['selection'],path=str(chosen),witness=native_folder_witness(root))
+                original=connection._preferences.read()
+                staged=original.policy
+                assert staged.staged_receive_targets and not staged.enabled and staged.mapping_store is None and staged.job_catalog is None
+                assert Path(staged.destination.path)==chosen
+                assert not list(pictures.iterdir())
+                quiet()
+                if outcome=='changed_custom_target':
+                    moved=chosen.rename(chosen.with_name('Original folder'))
+                    chosen.mkdir(mode=0o700)
+                    with pytest.raises(TransferError,match='photo_schedule_not_ready'):
+                        start('sync_shared')
+                    assert connection._preferences.read().version==original.version
+                    assert (moved/'existing.jpg').read_bytes()==b'leave untouched'
+                    assert not list(chosen.iterdir()) and not list(pictures.iterdir())
+                    quiet()
+                    return
             start('sync_shared')
             control = wire.receive()
             assert control['kind'] == 'file_transfer.control'
@@ -104,11 +139,14 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
             with connection._operation(incoming=True):
                 saved = connection._preferences.read().policy
             assert saved.enabled and saved.sending is None and saved.videos is None
-            assert Path(saved.destination.path) == pictures / photo_folder_component(peer['display_name'])
+            assert Path(saved.destination.path) == (chosen or pictures / photo_folder_component(peer['display_name']))
+            if chosen is not None:
+                assert saved.destination_token==staged.destination_token and not saved.staged_receive_targets
+                assert (chosen/'existing.jpg').read_bytes()==b'leave untouched' and not list(pictures.iterdir())
             assert session._schedule.active is None and not session._sync_active
             assert connection._album_worker is None and connection._mapped_worker is None
             quiet()
-            if outcome == 'stop_before_echo':
+            if outcome in ('stop_before_echo','custom_target'):
                 start('stop')
                 assert session.join(3)
                 quiet()

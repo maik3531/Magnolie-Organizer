@@ -36,6 +36,10 @@ aufgeführt.
   und die getrennte Android-Leseberechtigung. Gespeicherte Ablehnungen
   bleiben erhalten. 91 Python- und 12 DOM-Fälle bestanden. Erstempfang
   für Video, gemischte Läufe und die WLAN-Automatik folgen getrennt.
+  Ein vor dem ersten Fotoempfang nativ gewählter Ordner bleibt beim
+  Start erhalten. Wurde der Ordner am selben Pfad ausgetauscht oder
+  war der Empfang schon ausdrücklich aus, bleibt der Start gesperrt.
+  151 Prüfungen zu Erstempfang, Präferenzen und Ordnerwahl bestanden.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
   zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.

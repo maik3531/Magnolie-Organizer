@@ -87,6 +87,7 @@ class PhotoPreferences:
     permission_revision: int | None = None
     sending: MediaSendingConsent | None = None
     collection_roots: 'NativeMediaCollectionRootsWitness | None' = None
+    staged_receive_targets: bool = False
 
     def wire(self):
         value=dict(format=1,revision=self.revision,permission_epoch=self.permission_epoch,pairing_epoch=self.pairing_epoch,
@@ -101,13 +102,14 @@ class PhotoPreferences:
         if self.permission_revision is not None:value['permission_revision']=self.permission_revision
         if self.sending is not None:value['sending']=self.sending.wire()
         if self.collection_roots is not None:value['collection_roots']=self.collection_roots.wire()
+        if self.staged_receive_targets:value['staged_receive_targets']=True
         return value # Unchanged legacy policies keep exactly their original shape.
 
     @classmethod
     def parse(cls,value):
         required={'format','revision','permission_epoch','pairing_epoch','enabled','mode',
                 'phone_to_pc_delete','pc_to_phone_delete','destination','destination_token'}
-        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store','job_catalog','permission_revision','sending','collection_roots'}
+        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store','job_catalog','permission_revision','sending','collection_roots','staged_receive_targets'}
                 or 'separate_animations' in value and type(value['separate_animations']) is not bool
                 or 'separate_own_recordings' in value and type(value['separate_own_recordings']) is not bool
                 or 'direction' in value and (type(value['direction']) is not str or value['direction'] not in ('phone_to_desktop','bidirectional'))
@@ -128,6 +130,12 @@ class PhotoPreferences:
         videos=VideoPreferences.parse(value['videos']) if 'videos' in value else None
         if videos is not None and videos.destination_token is not None and videos.destination_token==value['destination_token']:
             raise TransferError('video_preferences_distinct_destination_token_required')
+        staged='staged_receive_targets' in value
+        if staged and (value['staged_receive_targets'] is not True or value['enabled'] or value['phone_to_pc_delete']
+                or value['mode']!='manual' or value.get('direction','phone_to_desktop')!='phone_to_desktop'
+                or {'mapping_store','job_catalog'} & set(value) or videos is not None and videos.enabled
+                or destination is None and (videos is None or videos.destination is None)):
+            raise TransferError('photo_preferences_invalid_staged_receive_targets')
         roots=None
         if 'collection_roots' in value:
             from magnolie_media_source_roots import NativeMediaCollectionRootsWitness
@@ -137,7 +145,7 @@ class PhotoPreferences:
             value.get('separate_animations'),value.get('separate_own_recordings'),value.get('direction'),
             PhotoMappingStoreWitness.parse(value['mapping_store']) if 'mapping_store' in value else None,
             JobCatalogWitness.parse(value['job_catalog']) if 'job_catalog' in value else None,value.get('permission_revision'),
-            MediaSendingConsent.parse(value['sending']) if 'sending' in value else None,roots)
+            MediaSendingConsent.parse(value['sending']) if 'sending' in value else None,roots,staged)
 
 @dataclass(frozen=True)
 class PhotoPreferencesSnapshot:
@@ -365,12 +373,17 @@ class ProtectedPhotoPreferences:
 
     def configure(self,action,expected,*,enabled,mode,phone_to_pc_delete=False,pc_to_phone_delete=False,destination_choice=None,
             include_videos=None,video_destination_choice=None,separate_animations=None,separate_own_recordings=None,direction=None,mapping_store_choice=None,
-            job_catalog_choice=None):
+             job_catalog_choice=None,staged_receive_targets=False):
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
         if (type(expected) is not PhotoPreferencesSnapshot or any(type(value) is not bool for value in (enabled,phone_to_pc_delete,pc_to_phone_delete))
                 or mode not in ('manual','automatic')):raise TransferError('photo_preferences_invalid_settings')
         if pc_to_phone_delete:raise TransferError('photo_preferences_reverse_delete_unavailable')
+        if (type(staged_receive_targets) is not bool or staged_receive_targets and (
+                expected.policy is not None or action._native_current is None or enabled or phone_to_pc_delete
+                or mode!='manual' or direction not in (None,'phone_to_desktop') or destination_choice is None
+                or include_videos is True or mapping_store_choice is not None or job_catalog_choice is not None)):
+            raise TransferError('photo_preferences_invalid_staged_receive_targets')
         if include_videos is not None and type(include_videos) is not bool:raise TransferError('video_preferences_invalid_settings')
         if separate_animations is not None and type(separate_animations) is not bool:raise TransferError('animation_preferences_invalid_settings')
         if separate_own_recordings is not None and type(separate_own_recordings) is not bool:raise TransferError('capture_preferences_invalid_settings')
@@ -447,8 +460,9 @@ class ProtectedPhotoPreferences:
                 if revision>MAX_REVISION:raise TransferError('photo_preferences_revision_limit')
                 policy=PhotoPreferences(revision,secrets.token_hex(32),self._peer().pairing_epoch,enabled,mode,phone_to_pc_delete,False,
                     destination,token,videos,animations,recordings,selected_direction,mapping_store,job_catalog,
-                    sending=current.policy.sending if current.policy is not None else None,
-                    collection_roots=current.policy.collection_roots if current.policy is not None else None)
+                     sending=current.policy.sending if current.policy is not None else None,
+                     collection_roots=current.policy.collection_roots if current.policy is not None else None,
+                     staged_receive_targets=staged_receive_targets)
                 blob=self._protect(policy.wire(),'policy');head=self._protect(dict(revision=revision,policy_sha256=sha256(blob).hexdigest()),'owner')
                 action.validate(self);self._peer();mutated=False
                 try:
