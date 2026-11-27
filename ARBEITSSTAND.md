@@ -7,6 +7,10 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#842](https://github.com/maik3531/Magnolie-Organizer/issues/842):
+  Der Windows-Dateiimport weist beschädigtes UTF‑16 mit der vorhandenen
+  Fehlermeldung ab. Direkte Dateien, ZIP-Einträge und der Müllkalender
+  wurden über den tatsächlichen Importcode geprüft.
 - [#841](https://github.com/maik3531/Magnolie-Organizer/issues/841):
   Organizer übernimmt die Schreibrichtung auch bei regionalen arabischen
   Sprachcodes aus dem primären Sprachuntertag. 16 Startfälle mit den

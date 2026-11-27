@@ -603,8 +603,73 @@ internal static class ContractGroupTests
         return Task.CompletedTask;
     }
 
+    private static void NativeImportEncodings()
+    {
+        const string name = "Müller \U0001F33C";
+        const string marker = "MARKER";
+        var inputs = new[]
+        {
+            ("vcf", "contacts.csv", $"First Name,Last Name,E-mail Address\r\n{marker},Example,example@example.test\r\n"),
+            ("vcf", "contacts.vcf", $"BEGIN:VCARD\r\nVERSION:3.0\r\nFN:{marker}\r\nEND:VCARD\r\n"),
+            ("ics", "calendar.ics", $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:encoding-test\r\nDTSTART:20261127T120000Z\r\nSUMMARY:{marker}\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+        };
+        static byte[] Archive(string fileName, byte[] first, byte[] second)
+        {
+            using var buffer = new MemoryStream();
+            using (var zip = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
+            {
+                using (var entry = zip.CreateEntry("first/" + fileName).Open()) entry.Write(first);
+                using (var entry = zip.CreateEntry("second/" + fileName).Open()) entry.Write(second);
+            }
+            return buffer.ToArray();
+        }
+        static void Reject(Action import)
+        {
+            try { import(); }
+            catch (InvalidDataException error)
+            {
+                TestAssert.That(error.Message == NativeLocalization.Gettext("The content is unreadable."),
+                    "Malformed UTF-16 did not use the localized import error.");
+                return;
+            }
+            throw new InvalidOperationException("Malformed UTF-16 was accepted as a successful import.");
+        }
+        foreach (var encoding in new[] { Encoding.Unicode, Encoding.BigEndianUnicode })
+        {
+            foreach (var (art, fileName, text) in inputs)
+            {
+                byte[] WithBom(string value) => [.. encoding.GetPreamble(), .. encoding.GetBytes(value)];
+                var valid = WithBom(text.Replace(marker, name, StringComparison.Ordinal));
+                var import = ExchangeCodec.ParseImport(valid, art, fileName);
+                var entries = art == "ics" ? import.Termine : import.Kontakte;
+                TestAssert.That(entries.Count == 1 && JsonSerializer.Serialize(entries).Contains(
+                    JsonSerializer.Serialize(name)[1..^1], StringComparison.Ordinal), $"Valid UTF-16 changed: {fileName}.");
+                var zipped = ExchangeCodec.ParseImport(Archive(fileName, valid, valid), art, "input.zip");
+                TestAssert.That((art == "ics" ? zipped.Termine : zipped.Kontakte).Count == 2, "Valid UTF-16 archive entries were lost.");
+                var encodedUnits = new[]
+                {
+                    encoding.GetBytes("\ud800\udc00")[..2],
+                    encoding.GetBytes("\ud800\udc00")[2..]
+                };
+                var parts = text.Split(marker, StringSplitOptions.None);
+                foreach (var invalidUnit in encodedUnits)
+                {
+                    byte[] invalid = [.. WithBom(parts[0]), .. invalidUnit, .. encoding.GetBytes(parts[1])];
+                    Reject(() => ExchangeCodec.ParseImport(invalid, art, fileName));
+                    Reject(() => ExchangeCodec.ParseImport(Archive(fileName, valid, invalid), art, "input.zip"));
+                    if (art == "ics") Reject(() => ExchangeCodec.ParseWasteImport(invalid, fileName));
+                }
+                Reject(() => ExchangeCodec.ParseImport(valid[..^1], art, fileName));
+            }
+        }
+        TestAssert.That(ExchangeCodec.DecodeText(Encoding.UTF8.GetBytes(name)) == name &&
+            ExchangeCodec.DecodeText([0x4d, 0xfc, 0x6c, 0x6c, 0x65, 0x72]) == "Müller",
+            "UTF-8 or the Windows-1252 fallback changed.");
+    }
+
     private static void NativeExchangeRegressions()
     {
+        NativeImportEncodings();
         using var wasteFixture = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(TestSource.Root("contracts/waste-calendar-v1.json"), "contracts", "waste-calendar-v1.json")));
         var wasteBytes = Encoding.UTF8.GetBytes(wasteFixture.RootElement.GetProperty("ics").GetString()!);
         var waste = ExchangeCodec.ParseWasteImport(wasteBytes, "waste.ics");

@@ -124,8 +124,19 @@ internal static partial class ExchangeCodec
     internal static string DecodeText(byte[] bytes)
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        if (bytes.AsSpan().StartsWith(new byte[] { 0xff, 0xfe })) return Encoding.Unicode.GetString(bytes, 2, bytes.Length - 2);
-        if (bytes.AsSpan().StartsWith(new byte[] { 0xfe, 0xff })) return Encoding.BigEndianUnicode.GetString(bytes, 2, bytes.Length - 2);
+        var littleEndian = bytes.AsSpan().StartsWith(new byte[] { 0xff, 0xfe });
+        if (littleEndian || bytes.AsSpan().StartsWith(new byte[] { 0xfe, 0xff }))
+        {
+            try
+            {
+                return new UnicodeEncoding(bigEndian: !littleEndian, byteOrderMark: false, throwOnInvalidBytes: true)
+                    .GetString(bytes, 2, bytes.Length - 2);
+            }
+            catch (DecoderFallbackException error)
+            {
+                throw new InvalidDataException(NativeLocalization.Gettext("The content is unreadable."), error);
+            }
+        }
         try { return new UTF8Encoding(false, true).GetString(bytes).TrimStart('\ufeff'); }
         catch (DecoderFallbackException) { return Encoding.GetEncoding(1252).GetString(bytes); }
     }
