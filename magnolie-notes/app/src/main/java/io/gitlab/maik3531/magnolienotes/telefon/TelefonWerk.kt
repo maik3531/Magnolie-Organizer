@@ -691,6 +691,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private class MediaSupportReader(val pipe: TelefonTcpRoehre, val generation: Long, val peerId: String,
         val publicKey: String) {
         val controls = mutableMapOf<String, JsonObject>() // Werk monitor; only successfully written ACKs.
+        val equivalentPending = mutableMapOf<String, JsonObject>() // Validated, but ACK output is not confirmed.
         var epoch: String? = null
         var attempt: NativeMediaSupportAttempt? = null
         var settings: NativeMediaSettingsLane? = null
@@ -723,11 +724,24 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 (reply["status"] != JsonPrimitive("duplicate") || previous == null || previous == message)
         }
         if (!current) return // A replay of a superseded control is not a new witness.
-        if (previous != message) {
+        val previousBody = previous?.get("body") as? JsonObject
+        val equivalentRefresh = (kind == "capabilities.update" || kind == "grants.update") && previousBody != null &&
+            previousBody.long("revision") < body.long("revision") && (previousBody - "revision") == (body - "revision")
+        if (!written && equivalentRefresh) reader.equivalentPending[kind] = message
+        else if (written || previous != message) reader.equivalentPending.remove(kind)
+        if (previous != message && !equivalentRefresh) {
             reader.controls.remove(kind)
             reader.attempt?.close() // Sticky, before the acknowledgement can fail or block.
         }
         if (written) reader.controls[kind] = message
+    }
+
+    private fun MediaSupportReader.hasAcknowledgedMediaControl(kind: String, revision: Long): Boolean {
+        val acknowledged = controls[kind]?.get("body")?.jsonObject?.long("revision") ?: return false
+        if (acknowledged == revision) return true
+        val pending = equivalentPending[kind] ?: return false
+        return acknowledged < revision && pending["body"]?.jsonObject?.long("revision") == revision &&
+            System.currentTimeMillis() < pending.long("expires_ms")
     }
 
     @Synchronized private fun mediaSupportReaderCurrent(reader: MediaSupportReader, channel: TelefonSecureChannel,
@@ -736,8 +750,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
         activeTransport?.second === reader.pipe && fileChannelIdentities.containsKey(channel) &&
         peer.device_id == reader.peerId && peer.static_public == reader.publicKey && storage.personalOwnDevice() &&
         peer.remote_device_status_available && DeviceFileControl.DISCOVERY_VERSION in peer.remote_device_status_versions &&
-        reader.controls["capabilities.update"]?.get("body")?.jsonObject?.long("revision") == peer.remote_capabilities_revision &&
-        reader.controls["grants.update"]?.get("body")?.jsonObject?.long("revision") == peer.remote_grants_revision &&
+        reader.hasAcknowledgedMediaControl("capabilities.update", peer.remote_capabilities_revision) &&
+        reader.hasAcknowledgedMediaControl("grants.update", peer.remote_grants_revision) &&
         reader.controls["personal_sync.settings"]?.get("body")?.jsonObject?.get("own_device") == JsonPrimitive(true) &&
         NativeFilePairingAuthority.currentEpoch(peer)?.let { reader.epoch == null || it == reader.epoch } == true
 
@@ -3158,9 +3172,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val replies = mutableListOf<JsonObject>()
         val epoch = identifierEpoch
         val permissions = identifierPermissionMask()
-        peerEffect(sessionPeer, generation) { receiveMessage(it, message, replies::add, noteSessions[channel]) }
+        peerEffect(sessionPeer, generation) {
+            receiveMessage(it, message, replies::add, noteSessions[channel])
+            // Publish equivalent pending metadata atomically with peer persistence.
+            replies.forEach { reply -> observeMediaSupportControl(sessionPeer, message, reply, channel, generation, false) }
+        }
         replies.forEach { reply ->
-            observeMediaSupportControl(sessionPeer, message, reply, channel, generation, false)
             observeNativeFileOwnDecision(sessionPeer, message, reply, channel, generation, false)
             if ((reply["body"] as? JsonObject)?.containsKey("identifiers") == true) {
                 peerEffect(sessionPeer, generation) { current ->

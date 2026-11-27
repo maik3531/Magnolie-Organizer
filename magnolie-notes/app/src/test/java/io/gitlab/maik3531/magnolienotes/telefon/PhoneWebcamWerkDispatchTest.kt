@@ -17,6 +17,9 @@ import java.net.SocketTimeoutException
 import java.security.Provider
 import java.security.Security
 import java.util.UUID
+import java.util.concurrent.FutureTask
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReentrantLock
 import javax.crypto.spec.SecretKeySpec
 
 /** Actual Werk routing with an admitted encrypted TCP parent. Admission is a
@@ -158,6 +161,14 @@ class PhoneWebcamWerkDispatchTest {
     }
 
     @Test fun mediaDiscoveryRequiresFreshWrittenControlsAndRetiresWithoutReplay() {
+        verifyMediaDiscoveryRefresh(withdrawGrants = false)
+    }
+
+    @Test fun changedGrantRetiresMediaEvenWhileItsAckOutputIsWaiting() {
+        verifyMediaDiscoveryRefresh(withdrawGrants = true)
+    }
+
+    private fun verifyMediaDiscoveryRefresh(withdrawGrants: Boolean) {
         Fixture().use { f ->
             f.enablePrivateMediaSupport()
             fun remoteProbe() = NativeMediaSupportAttempt.offer(System.currentTimeMillis())
@@ -168,15 +179,36 @@ class PhoneWebcamWerkDispatchTest {
                 f.deliver(message)
                 assertEquals(TelefonNachrichten.ack(message.string("message_id"), "accepted", "none"), f.receive())
             }
+            fun controlWithWaitingAck(message: JsonObject, verifyBeforeWrite: () -> Unit) {
+                val writer = field(TelefonSecureChannel::class.java, "writer").get(f.parent) as ReentrantLock
+                val delivery = FutureTask { f.deliver(message) }
+                val reader = Thread(delivery, "test-original-wlan-reader")
+                writer.lock()
+                try {
+                    reader.start()
+                    f.idleUntil { writer.hasQueuedThread(reader) }
+                    verifyBeforeWrite()
+                } finally {
+                    writer.unlock()
+                    delivery.get(3, TimeUnit.SECONDS)
+                }
+                assertEquals(TelefonNachrichten.ack(message.string("message_id"), "accepted", "none"), f.receive())
+            }
             f.session.capabilitiesReceived = true
             f.session.grantsReceived = true // Pre-write flags or saved state alone are insufficient.
             f.desktop.soTimeout = 150
             f.deliver(remoteProbe())
             assertThrows(SocketTimeoutException::class.java) { f.receive() }
             f.desktop.soTimeout = 3_000
-            control(TelefonNachrichten.message("capabilities.update",
-                TelefonNachrichten.capabilities(6, TelefonCapabilities.phase1(fileHandlersReady = true, videoHandlersReady = true)), 60_000))
-            control(TelefonNachrichten.message("grants.update", TelefonNachrichten.grants(6), 60_000))
+            val capabilities = TelefonCapabilities.phase1(fileHandlersReady = true, videoHandlersReady = true)
+            fun capabilityRevision(revision: Long) = TelefonNachrichten.message("capabilities.update",
+                TelefonNachrichten.capabilities(revision, capabilities), 60_000)
+            fun grantRevision(revision: Long) =
+                TelefonNachrichten.message("grants.update", TelefonNachrichten.grants(revision), 60_000)
+            val firstCapabilities = capabilityRevision(6)
+            val firstGrants = grantRevision(6)
+            control(firstCapabilities)
+            control(firstGrants)
             assertFalse(f.supportedMedia())
             val ownOn = own(true)
             control(ownOn)
@@ -207,6 +239,20 @@ class PhoneWebcamWerkDispatchTest {
             val confirmation = settings(echo.getValue("body").jsonObject)
             control(confirmation)
             assertTrue(lane.matched())
+            val originalIntent = checkNotNull(lane.incomingIntentFor(GalleryMediaType.IMAGES))
+            for ((previous, refresh) in listOf(firstCapabilities to capabilityRevision(7), firstGrants to grantRevision(7))) {
+                controlWithWaitingAck(refresh) {
+                    assertTrue(f.supportedMedia())
+                    assertTrue(lane.matched())
+                    assertSame(originalIntent, lane.incomingIntentFor(GalleryMediaType.IMAGES))
+                }
+                assertTrue("Unchanged ${refresh.string("kind")} must retain the acknowledged lane", f.supportedMedia())
+                f.deliver(previous)
+                assertEquals(TelefonNachrichten.ack(previous.string("message_id"), "duplicate", "none"), f.receive())
+                assertSame(lane, f.privateMediaSettings())
+                assertTrue(lane.matched())
+                assertSame(originalIntent, lane.incomingIntentFor(GalleryMediaType.IMAGES))
+            }
             assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(f.work))
             f.work.openNativeGalleryFileConnection(f.peer.device_id, f.peer.static_public, f.parent, 0) { true }.use { file ->
                 val token = checkNotNull(lane.incomingIntentFor(GalleryMediaType.IMAGES))
@@ -215,7 +261,13 @@ class PhoneWebcamWerkDispatchTest {
                 assertNull(lane.intentFor(GalleryMediaType.IMAGES))
                 assertNull(lane.incomingIntentFor(GalleryMediaType.VIDEO))
                 assertNull(file.runtime.currentRequest()) // No file-control grant or actual transfer.
-                control(own(false))
+                if (withdrawGrants) {
+                    val changed = TelefonNachrichten.message("grants.update", TelefonNachrichten.grants(8, dialRequest = true), 60_000)
+                    controlWithWaitingAck(changed) {
+                        assertFalse(f.supportedMedia())
+                        assertNull(lane.incomingIntentFor(GalleryMediaType.IMAGES))
+                    }
+                } else control(own(false))
                 assertFalse(f.supportedMedia())
                 assertFalse(lane.matched())
                 assertNull(lane.incomingIntentFor(GalleryMediaType.IMAGES))

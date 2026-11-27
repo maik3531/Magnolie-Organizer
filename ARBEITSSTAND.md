@@ -24,6 +24,9 @@ aufgeführt.
   Linux behält bei unveränderten WLAN-Fähigkeiten oder -Rechten den
   bereits bestätigten Stand bis zur neuen Quittung; tatsächliche
   Änderungen sperren ihn. 58 gezielte Prüfungen bestanden.
+  Notes behält dieselbe Vereinbarung ebenfalls während der erneuten
+  Quittung und sperrt bei tatsächlich geänderten Rechten. 75 JVM-Fälle
+  bestanden, einschließlich der Prüfungen am verschlüsselten WLAN-Leser.
   Die Linux-Standardziele für Fotos und Videos lassen sich unter
   einem verifiziert privaten Gruppen-Elternordner anlegen. Modus
   und vorhandene Dateien bleiben erhalten; unsichere Ziele bleiben
