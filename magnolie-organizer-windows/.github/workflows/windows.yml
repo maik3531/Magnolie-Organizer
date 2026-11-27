@@ -62,10 +62,10 @@ jobs:
           $env:PATH = "C:\Program Files (x86)\NSIS;$env:PATH"
           ./build/Build.ps1 -BuildInstaller
       - name: Artefakte dieses Laufs isolieren
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.official_release }}
         shell: pwsh
         env:
           ARTIFACT_DIR: ${{ runner.temp }}\magnolie-artifacts
-          OFFICIAL_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.official_release }}
         run: |
           $version = [regex]::Match([IO.File]::ReadAllText("Directory.Build.props"), '<Version>([^<]+)</Version>').Groups[1].Value
           if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Kanonische Version fehlt." }
@@ -74,12 +74,11 @@ jobs:
           $source = "Magnolie-Organizer-Windows-$version-Source.zip"
           if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Erwartetes Laufartefakt fehlt: $source" }
           Copy-Item -LiteralPath $source -Destination $env:ARTIFACT_DIR
-          $files = @("Magnolie-Organizer-Windows-$version-x64.zip", "Magnolie-Organizer-Windows-$version-PRUEFSUMMEN.sha256")
-          if ($env:OFFICIAL_RELEASE -eq 'true') {
-            $files += "Magnolie-Organizer-Windows-$version-Setup-x64.exe",
-              "Magnolie-Organizer-Windows-$version-Setup-x64.exe.build.json",
-              "Magnolie-Organizer-Windows-$version-provenance.json"
-          }
+          $files = @("Magnolie-Organizer-Windows-$version-x64.zip",
+            "Magnolie-Organizer-Windows-$version-PRUEFSUMMEN.sha256",
+            "Magnolie-Organizer-Windows-$version-Setup-x64.exe",
+            "Magnolie-Organizer-Windows-$version-Setup-x64.exe.build.json",
+            "Magnolie-Organizer-Windows-$version-provenance.json")
           foreach ($file in $files) {
             if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Erwartetes Laufartefakt fehlt: $file" }
             Copy-Item -LiteralPath $file -Destination $projectArtifacts
@@ -90,6 +89,7 @@ jobs:
             if ((Get-FileHash -LiteralPath (Join-Path $projectArtifacts $name)).Hash.ToLowerInvariant() -cne $expected) { throw 'Uploaded candidate checksum mismatch.' }
           }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.official_release }}
         with:
           name: Magnolie-Organizer-Windows-release-candidate
           path: ${{ runner.temp }}\magnolie-artifacts\*
