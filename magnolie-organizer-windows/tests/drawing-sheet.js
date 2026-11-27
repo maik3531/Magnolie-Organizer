@@ -61,9 +61,9 @@ async function drawingErrors(web, language, expected) {
       }
     };
     const input = sheet.querySelector('input[type="file"]');
-    async function open(contents) {
+    async function open(contents, filename) {
       button(sheet, "Open").click();
-      Object.defineProperty(input, "files", { configurable: true, value: [new w.File([contents], "drawing.json")] });
+      Object.defineProperty(input, "files", { configurable: true, value: [new w.File([contents], filename)] });
       input.dispatchEvent(new w.Event("change", { bubbles: true }));
       assert.ok(readDone, "Open must use the real FileReader");
       await readDone;
@@ -72,13 +72,14 @@ async function drawingErrors(web, language, expected) {
 
     const before = plain(module.drawing);
     const saves = b.saves().length;
-    await open('{"version":');
+    await open('{"version":', "broken-drawing.json");
     const importMessage = status.textContent;
     assert.deepEqual(plain(module.drawing), before);
     assert.equal(b.saves().length, saves);
     const valid = { ...before, width: 1234, autoSize: false };
-    await open(JSON.stringify(valid));
+    await open(JSON.stringify(valid), "loaded-drawing.json");
     assert.deepEqual(plain(module.drawing), valid, "A valid retry must replace the sheet");
+    assert.equal(status.textContent, "loaded-drawing.json", "A valid retry must replace the earlier error status");
 
     // A PNG header can pass sheet validation even if the browser cannot decode it.
     w.Image = class extends w.EventTarget {

@@ -16491,7 +16491,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     openFile.addEventListener("change", () => {
       const sequence = ++openSequence;
       const file = openFile.files?.[0]; if (!file || file.size > 16 * 1024 * 1024) { status.textContent = _("The file is larger than 8 megabytes."); return; }
-      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) canvas.focus(); }
+      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) { status.textContent = file.name; canvas.focus(); } }
         catch { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
       else if (/\.svg$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => {
         const requestId = anrufClientRef(), apply = () => { if (canvas.isConnected && !gesperrt) loadImage("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(reader.result))), file.name); };

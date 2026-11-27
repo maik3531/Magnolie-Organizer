@@ -91,7 +91,9 @@ aufgeführt.
   Zeichenblattimport, Export, Gesamtblattrotation und Einbetten in eine
   Notiz zeigen wieder die vorgesehenen Fehlermeldungen. 16 Fehlerfälle
   in Deutsch und Englisch und beide Zeichenblatt-Integrationstests auf
-  den Linux-/Windows-Webquellen bestanden.
+  den Linux-/Windows-Webquellen bestanden. Ein erfolgreicher
+  Wiederholungsimport ersetzt die alte Meldung durch den Dateinamen;
+  alle vier Plattform-/Sprachfälle bestanden.
 - [#837](https://github.com/maik3531/Magnolie-Organizer/issues/837):
   Der Aufgaben-CSV-Import erhält Erledigtstatus und die drei
   Prioritätsstufen. Leere und unbekannte Prioritäten bleiben normal.
