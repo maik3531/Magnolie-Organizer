@@ -54,6 +54,7 @@ internal static class PhoneCameraSessionTests
     }
     private sealed class Fixture : IAsyncDisposable
     {
+        private readonly long startedAt = Stopwatch.GetTimestamp();
         internal readonly PhoneCameraParentTests.Fixture Parent = new();
         internal readonly Outputs Output = new();
         internal readonly CancellationTokenSource Deadline = new(TimeSpan.FromSeconds(9));
@@ -113,7 +114,41 @@ internal static class PhoneCameraSessionTests
                 at += await Sender!.SendAsync(data.AsMemory(at), SocketFlags.None, Deadline.Token);
         }
         internal async Task WaitWrites(int count)
-        { for (int i = 0; i < count; ++i) await Output.Writes.WaitAsync(Deadline.Token); }
+        {
+            for (int i = 0; i < count; ++i)
+            {
+                using var waiting = CancellationTokenSource.CreateLinkedTokenSource(Deadline.Token);
+                var written = Output.Writes.WaitAsync(waiting.Token);
+                try
+                {
+                    await Task.WhenAny(written, Run, ParentRun);
+                    if (!written.IsCompletedSuccessfully && (Run.IsCompleted || ParentRun.IsCompleted))
+                        throw new InvalidOperationException(WriteFailure(count - i),
+                            Session.Error ?? Session.CleanupError ?? Run.Exception ?? ParentRun.Exception);
+                    try { await written; }
+                    catch (OperationCanceledException failure) when (Deadline.IsCancellationRequested)
+                    { throw new TimeoutException(WriteFailure(count - i), failure); }
+                }
+                finally
+                {
+                    // A stopped owner cannot produce another write. Retire and
+                    // observe this waiter so it cannot consume a later signal.
+                    if (!written.IsCompleted)
+                    {
+                        waiting.Cancel();
+                        try { await written; }
+                        catch (OperationCanceledException) when (waiting.IsCancellationRequested) { }
+                    }
+                }
+            }
+        }
+        private string WriteFailure(int pending) =>
+            $"Controlled media output did not arrive: pending={pending}; written={Output.Written.Count}; " +
+            $"elapsedMs={Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds:F0}; sawSend={SawSend}; " +
+            $"sending={Session.IsSending}; stopping={Session.IsStopping}; stopped={Session.IsCompletelyStopped}; " +
+            $"sessionRun={Run.Status}; parentRun={ParentRun.Status}; deadline={Deadline.IsCancellationRequested}; " +
+            $"sessionError={Session.Error}; cleanupError={Session.CleanupError}; " +
+            $"sessionTaskError={Run.Exception}; parentTaskError={ParentRun.Exception}";
         public async ValueTask DisposeAsync()
         {
             Session.Stop(); Sender?.Dispose();
@@ -349,16 +384,28 @@ internal static class PhoneCameraSessionTests
     }
     internal static async Task AuthorityCannotBeReplacedAsync()
     {
-        await using var f = new Fixture(); await f.OfferAsync(); await f.PreparedAsync(); await f.ReadSendOrStopAsync();
+        // Construct and prepare both original owners before either SEND. A slow
+        // second fixture must not leave the first live media channel idle while
+        // its unchanged two-second receive/initial-track watchdogs are running.
+        await using var f = new Fixture(); f.Output.HoldPreparation = true;
+        await using var other = new Fixture(muted:true); other.Output.HoldPreparation = true;
+        await f.OfferAsync(); await other.OfferAsync();
+        await f.PreparedAsync(); await other.PreparedAsync();
+        await Task.WhenAll(f.Output.Preparing.Task.WaitAsync(f.Deadline.Token),
+            other.Output.Preparing.Task.WaitAsync(other.Deadline.Token));
         var original = f.Output.Authority!; var forged = new PhoneCameraSession.OutputAuthority(f.Session);
         TestAssert.Throws<InvalidOperationException>(forged.RequireCurrent, "Reconstructed object granted original identity");
         TestAssert.Throws<InvalidOperationException>(() => forged.ReportFailure(new IOException("not original")), "Forged object retired an unrelated original owner");
         original.RequireCurrent(); TestAssert.That(f.Session.Error is null, "Forgery rejection damaged genuine current owner");
-        await using var other = new Fixture(muted:true); await other.OfferAsync(); await other.PreparedAsync(); await other.ReadSendOrStopAsync();
         var second = other.Output.Authority!;
         TestAssert.That(!ReferenceEquals(original, second) && original.Scope != second.Scope && second.Muted, "Distinct joined native scopes were substituted");
-        await f.SendFrame(false, 0, 0); await f.WaitWrites(1); original.RequireSending();
-        await other.SendFrame(true, 0, 0); await other.WaitWrites(1);
+        f.Output.ContinuePreparation.TrySetResult(); other.Output.ContinuePreparation.TrySetResult();
+        await Task.WhenAll(f.ReadSendOrStopAsync(), other.ReadSendOrStopAsync());
+        await Task.WhenAll(f.SendFrame(false, 0, 0), other.SendFrame(true, 0, 0));
+        await Task.WhenAll(f.WaitWrites(1), other.WaitWrites(1));
+        TestAssert.Throws<InvalidOperationException>(forged.RequireCurrent, "Reconstructed object granted original identity after SEND");
+        TestAssert.Throws<InvalidOperationException>(() => forged.ReportFailure(new IOException("not original")), "Forged object retired an unrelated original owner after SEND");
+        original.RequireSending(); TestAssert.That(f.Session.Error is null, "Forgery rejection damaged genuine sending owner");
         f.Session.Stop(); await f.Run.WaitAsync(f.Deadline.Token);
         TestAssert.Throws<ObjectDisposedException>(original.RequireSending, "Old context adopted replacement SEND");
         second.RequireSending(); TestAssert.That(other.Session.Error is null, "Old stop affected another original joined context");

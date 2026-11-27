@@ -24,6 +24,10 @@ aufgeführt.
   konkurrieren. Das Rennen wurde vor dem Fix reproduziert;
   danach bestanden vier Prüfungen einschließlich beider
   GLib-Neustartvarianten und des Weckerdienstfalls.
+- [#748](https://github.com/maik3531/Magnolie-Organizer/issues/748):
+  Der Windows-Webcam-Test bereitet beide Test-Gegenstellen vor
+  dem Medienstart vor. Der betroffene Fall und insgesamt
+  19 gezielte Testgruppen bestanden nativ unter Windows.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
