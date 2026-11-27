@@ -45,7 +45,8 @@ class MediaOfferEnvelopeTest {
             val original = originals.getValue(fileId).jsonObject
             invalid += body(message, "originals", JsonObject(mapOf(fileId to JsonObject(original + ("original_size" to value)))))
         }
-        for ((field, value) in listOf("enabled" to JsonPrimitive(false), "direction" to JsonPrimitive("phone_to_pc"), "collection_mode" to JsonPrimitive("import_only")))
+        for ((field, value) in listOf("enabled" to JsonPrimitive(false), "direction" to JsonPrimitive("phone_to_pc"),
+            "direction" to JsonPrimitive("two_way"), "collection_mode" to JsonPrimitive("import_only")))
             invalid += body(message, "settings", MediaSyncSettings.change(raw.getValue("settings").jsonObject, a, b, field, value))
         invalid.forEach { reject { MediaOfferEnvelope.validate(it, a, b, now) } }
         reject { MediaOfferEnvelope.validate(message, b, b, now) }

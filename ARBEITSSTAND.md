@@ -21,6 +21,9 @@ aufgeführt.
   getrennter PC-Ausgabe. 94 gezielte Notes-JVM-Prüfungen bestanden,
   darunter fünf gekoppelte Python-/Kotlin-Prüfungen. Der sichere
   Rückweg, die Löschweitergabe und die Paket-Paarprüfung bleiben offen.
+  Die gemeinsamen kanonischen Angebotsvektoren prüfen PC→Telefon.
+  Windows und Notes weisen ein Zwei-Wege-Angebot ausdrücklich ab:
+  42 Linux-, vier native Windows-Gruppen und 22 Notes-JVM-Fälle bestanden.
   Linux behält bei unveränderten WLAN-Fähigkeiten oder -Rechten den
   bereits bestätigten Stand bis zur neuen Quittung; tatsächliche
   Änderungen sperren ihn. 58 gezielte Prüfungen bestanden.

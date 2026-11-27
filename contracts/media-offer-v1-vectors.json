@@ -1,8 +1,8 @@
 {
   "format": 1,
   "now": 1800000000000,
-  "canonical_bytes": 2071,
-  "canonical_sha256": "6b58e2ecff94aef535bcbd6fc4bc9643c5865c22d151d5689496830bb8895d7b",
+  "canonical_bytes": 2075,
+  "canonical_sha256": "8779badc6afeec415d523ee994dfe99a0238c06787cb8d5a00ca190bc8f2ab64",
   "message": {
     "type": "message", "v": 1,
     "message_id": "00000000-0000-4000-8000-000000000001",
@@ -31,7 +31,7 @@
         "collection_mode": {"11111111-1111-4111-8111-111111111111": {"counter": 0, "value": "phone_inventory"}},
         "auto_mode": {"11111111-1111-4111-8111-111111111111": {"counter": 0, "value": "manual"}},
         "skip_deletions": {"11111111-1111-4111-8111-111111111111": {"counter": 0, "value": false}},
-        "direction": {"11111111-1111-4111-8111-111111111111": {"counter": 1, "value": "two_way"}},
+        "direction": {"11111111-1111-4111-8111-111111111111": {"counter": 1, "value": "pc_to_phone"}},
         "photos_only": {"11111111-1111-4111-8111-111111111111": {"counter": 0, "value": false}}
       }},
       "media_type": "images",

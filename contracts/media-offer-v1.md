@@ -31,8 +31,10 @@ prüfen, dessen Identität bis zur Workeraufnahme erhalten und alle bestehenden
 Buch-, Empfangs-, Originalreferenz-, Inhalts- und Veröffentlichungsprüfungen
 unverändert durchführen.
 
-Python, C# und Kotlin prüfen denselben kanonischen Testvektor in
-`media-offer-v1-vectors.json`. Der explizite Android-Laufzeitanschluss ist mit
+Python, C# und Kotlin prüfen denselben kanonischen PC→Telefon-Testvektor in
+`media-offer-v1-vectors.json` und die daraus abgeleiteten Formate 2 und 3.
+Der gespeicherte Zwei-Wege-Modus bleibt bis zum sicheren Rückweg in #338 ohne
+Transferabsicht. Der explizite Android-Laufzeitanschluss ist mit
 wirklich verschlüsselter Eingabe, nativer PNG-Veröffentlichung und Saved geprüft;
 fehlende aktuelle Absicht, Inventarreferenz oder native Empfangszustimmung
 bewirken keine Provideränderung. Das ist noch keine Freigabe des normalen

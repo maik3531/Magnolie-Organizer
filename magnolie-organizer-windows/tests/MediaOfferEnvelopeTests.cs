@@ -37,7 +37,9 @@ internal static class MediaOfferEnvelopeTests
         Reject(value => value["body"]!["originals"]![FileId]!["original_size"] = JsonNode.Parse("123.0"));
         Reject(value => value["body"]!["originals"]![FileId]!["confirmed"] = true);
         Reject(value => value["body"]!["settings"]!["settings"]!.AsObject().Remove("photos_only"));
-        foreach (var (field, setting) in new (string, JsonNode)[] { ("enabled", JsonValue.Create(false)!), ("direction", JsonValue.Create("phone_to_pc")!), ("collection_mode", JsonValue.Create("import_only")!) })
+        foreach (var (field, setting) in new (string, JsonNode)[] { ("enabled", JsonValue.Create(false)!),
+            ("direction", JsonValue.Create("phone_to_pc")!), ("direction", JsonValue.Create("two_way")!),
+            ("collection_mode", JsonValue.Create("import_only")!) })
             Reject(value => value["body"]!["settings"] = MediaSyncSettings.Change(decoded.Settings, A, B, field, setting));
         TestAssert.Throws<InvalidDataException>(() => MediaOfferEnvelope.Validate(message, B, B, now), "Wire sender supplied its own native peer identity.");
         var entire = message.DeepClone().AsObject(); entire["body"]!["settings"] = MediaSyncSettings.Change(decoded.Settings, A, B, "collection_mode", JsonValue.Create("entire_collection")!);
