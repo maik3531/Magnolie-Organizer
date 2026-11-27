@@ -7111,6 +7111,9 @@ msgstr "Синхронизировать контакты"
 msgid "Synchronize now"
 msgstr "Синхронизировать сейчас"
 
+msgid "Set up automatic receiving"
+msgstr "Настроить автоматическое получение"
+
 msgid "Synchronize only the phone's collection"
 msgstr "Синхронизировать только коллекцию на телефоне"
 

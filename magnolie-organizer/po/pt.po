@@ -7132,6 +7132,9 @@ msgstr "Sincronizar contactos"
 msgid "Synchronize now"
 msgstr "Sincronizar agora"
 
+msgid "Set up automatic receiving"
+msgstr "Configurar o recebimento automático"
+
 msgid "Synchronize only the phone's collection"
 msgstr "Sincronizar apenas a coleção do telefone"
 

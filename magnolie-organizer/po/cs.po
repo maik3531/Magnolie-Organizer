@@ -7055,6 +7055,9 @@ msgstr "Synchronizovat kontakty"
 msgid "Synchronize now"
 msgstr "Synchronizovat nyní"
 
+msgid "Set up automatic receiving"
+msgstr "Nastavit automatický příjem"
+
 msgid "Synchronize only the phone's collection"
 msgstr "Synchronizovat pouze sbírku v telefonu"
 

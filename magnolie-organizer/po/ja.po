@@ -6966,6 +6966,9 @@ msgstr "連絡先を同期"
 msgid "Synchronize now"
 msgstr "今すぐ同期"
 
+msgid "Set up automatic receiving"
+msgstr "自動受信を設定"
+
 msgid "Synchronize only the phone's collection"
 msgstr "スマートフォン内のコレクションのみ同期"
 

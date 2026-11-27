@@ -7078,6 +7078,9 @@ msgstr "Сінхранізаваць кантакты"
 msgid "Synchronize now"
 msgstr "Сінхранізаваць зараз"
 
+msgid "Set up automatic receiving"
+msgstr "Наладзіць аўтаматычнае атрыманне"
+
 msgid "Synchronize only the phone's collection"
 msgstr "Сінхранізаваць толькі калекцыю на тэлефоне"
 

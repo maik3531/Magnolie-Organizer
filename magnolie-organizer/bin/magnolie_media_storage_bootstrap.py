@@ -8,7 +8,7 @@ from magnolie_file_native_authority import NativeDesktopFileAuthority
 from magnolie_file_transfer import TransferError
 from magnolie_photo_destination import NativePhotoDestinationAction, NativePhotoDestinationController, NativeVideoDestinationController
 from magnolie_photo_mappings import ProtectedPhotoMappings
-from magnolie_photo_preferences import ProtectedPhotoPreferences,PhotoPreferencesSnapshot
+from magnolie_photo_preferences import PendingAutomaticReceive,ProtectedPhotoPreferences,PhotoPreferencesSnapshot
 from magnolie_transfer_job_catalog import ProtectedTransferJobCatalog
 
 
@@ -39,7 +39,7 @@ class NativeMediaStorageBootstrap:
     def prepare(self,action,expected):
         return self._prepare(action,expected)
 
-    def prepare_first_receive(self,action,expected,kinds):
+    def prepare_first_receive(self,action,expected,kinds,*,automatic_book=None):
         """Bind selected targets and storage together on an explicit native Start."""
         if (type(action) is not NativePhotoDestinationAction or action._native_current is None
                 or type(expected) is not PhotoPreferencesSnapshot
@@ -47,9 +47,10 @@ class NativeMediaStorageBootstrap:
                 or expected.policy is not None and (not expected.policy.staged_receive_targets
                     or 'images' not in kinds or not expected.associated or not expected.destination_available)):
             raise TransferError('media_first_receive_original_action_required')
-        return self._prepare(action,expected,kinds=kinds)
+        pending=PendingAutomaticReceive(automatic_book,kinds) if automatic_book is not None else None
+        return self._prepare(action,expected,kinds=kinds,pending=pending)
 
-    def _prepare(self,action,expected,*,kinds=()):
+    def _prepare(self,action,expected,*,kinds=(),pending=None):
         self._open()
         if type(action) is not NativePhotoDestinationAction:raise TransferError('media_storage_native_action_required')
         action.consume(self)
@@ -98,11 +99,11 @@ class NativeMediaStorageBootstrap:
                 self._validate(peer)
                 action_guard=(lambda:self._validate(peer)) if kinds else None
                 result=prefs.configure(prefs.issue_action(_native_current=action_guard),current,
-                     enabled='images' in kinds or (policy is not None and policy.enabled),
+                      enabled='images' in kinds or (policy is not None and policy.enabled),
                      mode=policy.mode if policy is not None else 'manual',
                      phone_to_pc_delete=policy.phone_to_pc_delete if policy is not None else False,
                      pc_to_phone_delete=policy.pc_to_phone_delete if policy is not None else False,
-                     mapping_store_choice=mapping_choice,job_catalog_choice=catalog_choice,**options)
+                      mapping_store_choice=mapping_choice,job_catalog_choice=catalog_choice,pending_automatic_receive=pending,**options)
                 self._validate(peer)
                 if result.policy.mapping_store!=mapping_choice.witness or result.policy.job_catalog!=catalog_choice.witness:
                     raise TransferError('media_storage_bootstrap_joint_readback_failed')

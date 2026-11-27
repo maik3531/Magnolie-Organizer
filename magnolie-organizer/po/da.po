@@ -7029,6 +7029,9 @@ msgstr "Synkronisér kontakter"
 msgid "Synchronize now"
 msgstr "Synkroniser nu"
 
+msgid "Set up automatic receiving"
+msgstr "Konfigurer automatisk modtagelse"
+
 msgid "Synchronize only the phone's collection"
 msgstr "Synkroniser kun samlingen på telefonen"
 

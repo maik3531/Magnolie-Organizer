@@ -68,6 +68,24 @@ class MediaSendingConsent:
 
 
 @dataclass(frozen=True)
+class PendingAutomaticReceive:
+    book_version: str
+    kinds: tuple[str, ...]
+
+    def __post_init__(self):
+        if not _hex(self.book_version) or self.kinds not in (('images',),('video',),('images','video')):
+            raise TransferError('media_automatic_receive_invalid_setup')
+
+    def wire(self):return dict(book_version=self.book_version,kinds=list(self.kinds))
+
+    @classmethod
+    def parse(cls,value):
+        if type(value) is not dict or set(value)!={'book_version','kinds'} or type(value['kinds']) is not list:
+            raise TransferError('media_automatic_receive_invalid_setup')
+        return cls(value['book_version'],tuple(value['kinds']))
+
+
+@dataclass(frozen=True)
 class PhotoPreferences:
     revision: int
     permission_epoch: str
@@ -89,6 +107,7 @@ class PhotoPreferences:
     collection_roots: 'NativeMediaCollectionRootsWitness | None' = None
     staged_receive_targets: bool = False
     video_only_receive: bool = False
+    pending_automatic_receive: PendingAutomaticReceive | None = None
 
     def wire(self):
         value=dict(format=1,revision=self.revision,permission_epoch=self.permission_epoch,pairing_epoch=self.pairing_epoch,
@@ -105,13 +124,14 @@ class PhotoPreferences:
         if self.collection_roots is not None:value['collection_roots']=self.collection_roots.wire()
         if self.staged_receive_targets:value['staged_receive_targets']=True
         if self.video_only_receive:value['video_only_receive']=True
+        if self.pending_automatic_receive is not None:value['pending_automatic_receive']=self.pending_automatic_receive.wire()
         return value # Unchanged legacy policies keep exactly their original shape.
 
     @classmethod
     def parse(cls,value):
         required={'format','revision','permission_epoch','pairing_epoch','enabled','mode',
                 'phone_to_pc_delete','pc_to_phone_delete','destination','destination_token'}
-        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store','job_catalog','permission_revision','sending','collection_roots','staged_receive_targets','video_only_receive'}
+        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store','job_catalog','permission_revision','sending','collection_roots','staged_receive_targets','video_only_receive','pending_automatic_receive'}
                 or 'separate_animations' in value and type(value['separate_animations']) is not bool
                 or 'separate_own_recordings' in value and type(value['separate_own_recordings']) is not bool
                 or 'direction' in value and (type(value['direction']) is not str or value['direction'] not in ('phone_to_desktop','bidirectional'))
@@ -152,7 +172,8 @@ class PhotoPreferences:
             value.get('separate_animations'),value.get('separate_own_recordings'),value.get('direction'),
             PhotoMappingStoreWitness.parse(value['mapping_store']) if 'mapping_store' in value else None,
             JobCatalogWitness.parse(value['job_catalog']) if 'job_catalog' in value else None,value.get('permission_revision'),
-            MediaSendingConsent.parse(value['sending']) if 'sending' in value else None,roots,staged,independent_video)
+            MediaSendingConsent.parse(value['sending']) if 'sending' in value else None,roots,staged,independent_video,
+            PendingAutomaticReceive.parse(value['pending_automatic_receive']) if 'pending_automatic_receive' in value else None)
 
 @dataclass(frozen=True)
 class PhotoPreferencesSnapshot:
@@ -386,12 +407,21 @@ class ProtectedPhotoPreferences:
 
     def configure(self,action,expected,*,enabled,mode,phone_to_pc_delete=False,pc_to_phone_delete=False,destination_choice=None,
             include_videos=None,video_destination_choice=None,separate_animations=None,separate_own_recordings=None,direction=None,mapping_store_choice=None,
-             job_catalog_choice=None,staged_receive_targets=False,video_only_receive=False):
+             job_catalog_choice=None,staged_receive_targets=False,video_only_receive=False,pending_automatic_receive=None):
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
         if (type(expected) is not PhotoPreferencesSnapshot or any(type(value) is not bool for value in (enabled,phone_to_pc_delete,pc_to_phone_delete))
                 or mode not in ('manual','automatic')):raise TransferError('photo_preferences_invalid_settings')
         if pc_to_phone_delete:raise TransferError('photo_preferences_reverse_delete_unavailable')
+        if pending_automatic_receive is not None and (
+                type(pending_automatic_receive) is not PendingAutomaticReceive or action._native_current is None
+                or expected.policy is not None and not expected.policy.staged_receive_targets
+                or enabled!=('images' in pending_automatic_receive.kinds)
+                or video_only_receive!=('images' not in pending_automatic_receive.kinds)
+                or (include_videos is True)!=('video' in pending_automatic_receive.kinds)
+                or phone_to_pc_delete or direction not in (None,'phone_to_desktop')
+                or mapping_store_choice is None or job_catalog_choice is None):
+            raise TransferError('media_automatic_receive_invalid_setup')
         if type(video_only_receive) is not bool or video_only_receive and (enabled or expected.policy is not None
                 or action._native_current is None or include_videos is not True or destination_choice is not None
                 or video_destination_choice is None or mapping_store_choice is None or job_catalog_choice is None
@@ -481,7 +511,9 @@ class ProtectedPhotoPreferences:
                      sending=current.policy.sending if current.policy is not None else None,
                      collection_roots=current.policy.collection_roots if current.policy is not None else None,
                      staged_receive_targets=staged_receive_targets,
-                     video_only_receive=video_only_receive or bool(current.associated and current.policy.video_only_receive and not enabled))
+                     video_only_receive=video_only_receive or bool(current.associated and current.policy.video_only_receive and not enabled),
+                     pending_automatic_receive=(current.policy.pending_automatic_receive
+                         if current.policy is not None and not current.policy.staged_receive_targets else pending_automatic_receive))
                 blob=self._protect(policy.wire(),'policy');head=self._protect(dict(revision=revision,policy_sha256=sha256(blob).hexdigest()),'owner')
                 action.validate(self);self._peer();mutated=False
                 try:
@@ -611,6 +643,9 @@ class ProtectedPhotoPreferences:
         """UI scheduling only: retain exact grants, destinations and baselines."""
         return self._set_behavior(action,expected,dict(mode=mode))
 
+    def complete_automatic_receive(self,action,expected):
+        return self._set_behavior(action,expected,{'pending_automatic_receive':None})
+
     def set_animation_layout(self,action,expected,*,separate,historical_choice):
         """Explicit future-only layout; historical mappings always win.
 
@@ -637,7 +672,10 @@ class ProtectedPhotoPreferences:
     def _set_behavior(self,action,expected,changes,*,historical_choice=None,video_settings=None,photo_destination_choice=None):
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
-        if photo_destination_choice is not None:
+        completing=changes=={'pending_automatic_receive':None}
+        if completing:
+            if action._native_current is None:raise TransferError('media_automatic_receive_invalid_setup')
+        elif photo_destination_choice is not None:
             if changes or video_settings is not None or type(photo_destination_choice) is not NativePhotoDestinationChoice or historical_choice!='keep_existing':
                 raise TransferError('photo_preferences_historical_destination_choice_required')
         elif video_settings is not None:
@@ -659,8 +697,16 @@ class ProtectedPhotoPreferences:
                 if current.version!=expected.version:raise TransferError('photo_preferences_cas_conflict')
                 if (policy is None or not current.associated
                         or photo_destination_choice is not None and policy.enabled
-                        or not policy.enabled and not (video_settings is not None and video_settings[0] is False or photo_destination_choice is not None)):
+                        or not policy.enabled and not (video_settings is not None and video_settings[0] is False
+                            or photo_destination_choice is not None or completing and current.independent_video_available)):
                     raise TransferError('photo_preferences_authority_changed')
+                if completing:
+                    pending=policy.pending_automatic_receive
+                    if (pending is None or current.direction!='phone_to_desktop' or policy.phone_to_pc_delete
+                            or policy.pc_to_phone_delete or policy.mapping_store is None or policy.job_catalog is None
+                            or ('images' in pending.kinds)!=(policy.enabled and current.destination_available)
+                            or ('video' in pending.kinds)!=current.include_videos):
+                        raise TransferError('media_automatic_receive_setup_changed')
                 if photo_destination_choice is not None:
                     choice=photo_destination_choice
                     if (type(choice.owner) is not NativePhotoDestinationController or choice.owner._authority is not self._authority):

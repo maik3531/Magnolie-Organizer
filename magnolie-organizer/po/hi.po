@@ -6915,6 +6915,9 @@ msgstr "संपर्क सिंक्रनाइज़ करें"
 msgid "Synchronize now"
 msgstr "अभी सिंक्रोनाइज़ करें"
 
+msgid "Set up automatic receiving"
+msgstr "फ़ाइलें अपने-आप प्राप्त करने की सुविधा सेट करें"
+
 msgid "Synchronize only the phone's collection"
 msgstr "केवल फ़ोन के संग्रह को सिंक्रनाइज़ करें"
 

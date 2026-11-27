@@ -6744,6 +6744,9 @@ msgstr "同步联系人"
 msgid "Synchronize now"
 msgstr "立即同步"
 
+msgid "Set up automatic receiving"
+msgstr "设置自动接收"
+
 msgid "Synchronize only the phone's collection"
 msgstr "仅同步手机上的照片集"
 

@@ -7099,6 +7099,9 @@ msgstr "Contacten synchroniseren"
 msgid "Synchronize now"
 msgstr "Nu synchroniseren"
 
+msgid "Set up automatic receiving"
+msgstr "Automatische ontvangst instellen"
+
 msgid "Synchronize only the phone's collection"
 msgstr "Alleen de verzameling op de telefoon synchroniseren"
 

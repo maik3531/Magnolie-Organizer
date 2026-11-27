@@ -30,11 +30,14 @@ from test_video_destination_ui import saved_book_inputs
                                       'read_missing', 'read_allowed', 'worker', 'book_changed', 'custom_target',
                                       'changed_custom_target', 'mixed_video_read_missing', 'mixed_existing_video_off',
                                       'mixed_both_read', 'mixed_both_workers', 'video_only_read_missing',
-                                      'video_only_worker', 'video_only_remote_off'])
+                                      'video_only_worker', 'video_only_remote_off',
+                                      'automatic_ready', 'automatic_read_missing', 'automatic_stopped',
+                                      'automatic_mixed_video_read_missing', 'automatic_video_ready'])
 def test_manual_first_receive_waits_for_explicit_start_and_original_file_controls(native, tmp_path, monkeypatch, outcome):
     service, peer, _ = native
-    mixed=outcome.startswith('mixed_')
-    video_only=outcome.startswith('video_only_')
+    mixed=outcome.startswith('mixed_') or outcome=='automatic_mixed_video_read_missing'
+    video_only=outcome.startswith('video_only_') or outcome=='automatic_video_ready'
+    automatic=outcome.startswith('automatic_')
     peer['capabilities'] = legacy_state()
     service.store.save_peers()
     monkeypatch.setattr(service, '_native_media_support_checked', True)
@@ -81,6 +84,7 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
             dispatch(ack(submitted))
             connection = service.open_native_file_connection(peer['device_id'], peer['static_public'], channel, binding.generation)
             connection._media_transport.change('enabled', True)
+            if automatic:connection._media_transport.change('auto_mode','wifi')
             if mixed or video_only:connection._media_transport.change('videos_enabled',True)
             if video_only:connection._media_transport.change('photos_enabled',False)
             settings = connection._media_transport.send_settings()
@@ -97,7 +101,7 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
 
             state = service.photo_sync_state(peer['device_id'])
             assert state['shared_media']['agreed']
-            assert state['manual_receive']
+            assert state['manual_receive'] is not automatic
             assert connection._preferences.read().policy is None
             assert not list(pictures.iterdir())
             assert not list(videos.iterdir())
@@ -147,7 +151,10 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                     assert not list(chosen.iterdir()) and not list(pictures.iterdir())
                     quiet()
                     return
-            start('sync_shared')
+            if automatic:
+                session=connection.desktop_session()
+                monkeypatch.setattr(session,'_ensure_timer',lambda:None)
+            start('setup_automatic_receive' if automatic else 'sync_shared')
             control = wire.receive()
             assert control['kind'] == 'file_transfer.control'
             packet = FileControlPacket.parse(control['body'])
@@ -163,7 +170,7 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                 assert saved.destination_token!=saved.videos.destination_token
             else:assert saved.videos is None
             if video_only:
-                assert saved.video_only_receive and saved.destination is None and connection.desktop_snapshot()['manual_receive']
+                assert saved.video_only_receive and saved.destination is None
                 assert not list(pictures.iterdir())
                 with connection._operation():
                     with pytest.raises(TransferError,match='file_desktop_receive_consent_unavailable'):
@@ -262,10 +269,24 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
                 album=str(uuid4())
                 coverage=response(observe,sources.CATALOG,version=version,media_type='video',page=dict(
                     format=1,catalog_id=str(uuid4()),after=0,next_cursor=None,
-                    coverage='full_videos' if worker_ready else 'none',proves_deletion=False,
+                    coverage='full_videos' if worker_ready or automatic else 'none',proves_deletion=False,
                     albums=[dict(album_id=album,kind='camera',display_name='Camera',visible_images=1,
                         needs_choice=False)] if worker_ready else []))
                 video_root=Path(saved.videos.destination.path)
+                if automatic:
+                    with connection._operation(incoming=True):pending=connection._preferences.read()
+                    assert pending.policy.pending_automatic_receive.kinds==('video',)
+                    assert session._schedule_scope() is None
+                    dispatch(coverage)
+                    assert session.join(3) and session.snapshot()['state']=='waiting',session.snapshot()['error']
+                    assert connection._preferences.read().policy.pending_automatic_receive is None
+                    assert session._schedule_scope() is not None and session._schedule.active is None
+                    assert connection._album_worker is None and not list(video_root.iterdir()) and not list(pictures.iterdir())
+                    quiet()
+                    service._end_native_file_connection(channel)
+                    from test_media_support_draft import exercise_private_reconnect
+                    exercise_private_reconnect(service,peer,video_only=True)
+                    return
                 if worker_ready:
                     from base64 import b64decode
                     from dataclasses import replace
@@ -309,7 +330,7 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
             discover = wire.receive()
             assert discover['body']['operation'] == 'discover' and discover['expires_ms'] <= status['expires_ms'] + 2
             assert session._schedule.active is None and not session._sync_active
-            coverage = 'none' if outcome == 'read_missing' else 'full_images'
+            coverage = 'none' if outcome in ('read_missing','automatic_read_missing') else 'full_images'
             album_id = str(uuid4())
             albums = [dict(album_id=album_id, kind='camera', display_name='Camera',
                            visible_images=1, needs_choice=False)] if outcome in ('worker','mixed_video_read_missing','mixed_both_workers') else []
@@ -319,6 +340,58 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
             catalog = response(discover, sources.CATALOG, version=version,
                                page=dict(format=1, catalog_id=str(uuid4()), after=0, next_cursor=None,
                                          coverage=coverage, proves_deletion=False, albums=albums))
+            if automatic:
+                with connection._operation(incoming=True):pending=connection._preferences.read()
+                assert pending.policy.pending_automatic_receive.kinds==(('images','video') if mixed else ('images',))
+                assert session._schedule_scope() is None and not session._sync_active
+                if outcome=='automatic_stopped':
+                    start('stop')
+                    assert session.join(3)
+                    dispatch(catalog)
+                    assert connection._source_catalog is None
+                else:
+                    dispatch(catalog)
+                    if mixed:
+                        video_catalog=wire.receive()
+                        assert video_catalog['body']['operation']=='discover' and video_catalog['body']['media_type']=='video'
+                        dispatch(response(video_catalog,sources.CATALOG,version=version,media_type='video',page=dict(
+                            format=1,catalog_id=str(uuid4()),after=0,next_cursor=None,coverage='none',proves_deletion=False,albums=[])))
+                    if outcome=='automatic_read_missing' or mixed:
+                        request=wire.receive()
+                        assert request['body']['operation']=='request_read'
+                        assert request['body'].get('media_type','images')==('video' if mixed else 'images')
+                        dispatch(response(request,sources.PERMISSION_RESULT,version=version,state='notification_posted',
+                            **({'media_type':'video'} if mixed else {})))
+                    assert session.join(3)
+                    assert session.snapshot()['state']==('waiting' if outcome=='automatic_ready' else 'permission_required'),session.snapshot()['error']
+                after=connection._preferences.read()
+                if outcome=='automatic_ready':
+                    assert after.policy.pending_automatic_receive is None
+                    assert after.policy.destination==pending.policy.destination
+                    assert after.policy.permission_epoch==pending.policy.permission_epoch
+                    assert session._schedule_scope() is not None
+                else:
+                    assert after==pending and session._schedule_scope() is None
+                assert session._schedule.active is None and not session._sync_active
+                assert connection._album_worker is None and connection._source_pending is None
+                assert not list(Path(saved.destination.path).iterdir())
+                quiet()
+                if outcome=='automatic_read_missing':
+                    start('setup_automatic_receive')
+                    status=wire.receive()
+                    assert status['body']['operation']=='status'
+                    dispatch(response(status,sources.RESULT,version=version,revision=2,enabled=True,
+                        associated=True,repair_pending=False,kinds=sorted(sources.KINDS)))
+                    discover=wire.receive()
+                    assert discover['body']['operation']=='discover'
+                    dispatch(response(discover,sources.CATALOG,version=version,page=dict(
+                        format=1,catalog_id=str(uuid4()),after=0,next_cursor=None,coverage='full_images',
+                        proves_deletion=False,albums=[])))
+                    assert session.join(3) and session.snapshot()['state']=='waiting',session.snapshot()['error']
+                    assert connection._preferences.read().policy.pending_automatic_receive is None
+                    assert session._schedule_scope() is not None and session._schedule.active is None
+                    quiet()
+                return
             if outcome == 'book_changed':
                 changed = {'einstellungen': {'papierkorb': {'an': True, 'tage': 7}}}
                 with NativeMediaRetention(service.store.root) as retention:

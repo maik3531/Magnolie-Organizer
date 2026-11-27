@@ -535,7 +535,7 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
             exercise_private_reconnect(service,peer)
 
 
-def exercise_private_reconnect(service,peer):
+def exercise_private_reconnect(service,peer,*,video_only=False):
     with wire_pair() as (channel,wire):
         binding=capture_authenticated_binding(dict(service.store.identity),dict(peer),service._generation,service.store)
         service._activate_connection(peer['device_id'],channel,'wifi',file_binding=binding)
@@ -551,7 +551,8 @@ def exercise_private_reconnect(service,peer):
             deliver(ack(local))
             connection=service._native_file_connections[channel]
             settings=wire.receive();assert settings['kind']==media.KIND and media.effective(settings['body'])['auto_mode']=='wifi'
-            assert wire.receive()['kind']=='file_transfer.control'
+            controls=wire.receive()
+            assert controls['kind']=='file_transfer.control'
             assert not connection.desktop_snapshot()['shared_media']['agreed'] and connection._desktop_session is None
             deliver(ack(settings))
             assert not connection.desktop_snapshot()['shared_media']['agreed'] and connection._desktop_session is None
@@ -559,7 +560,52 @@ def exercise_private_reconnect(service,peer):
             deliver(echo);assert wire.receive()==ack(echo)
             assert connection.desktop_snapshot()['shared_media']['agreed']
             assert connection._desktop_session is None  # No current phone SEND or file-control echo.
-            assert connection._preferences.read().policy.enabled
+            policy=connection._preferences.read().policy
+            assert policy.enabled is not video_only
+            if video_only:
+                from hashlib import sha256
+                from magnolie_file_control import FileControlPacket,FileGrantState,NativeFilePeer,NativeLocalFileGrant,NativeFileControlSession
+                import magnolie_file_sources as sources
+                from magnolie_transfer_job_catalog import NativeJobCatalogIdentity
+                from test_file_desktop_sources import response
+
+                assert policy.destination is None and policy.video_only_receive and policy.videos.enabled
+                identity=connection._authority.identity
+                desktop=NativeFilePeer(identity.receiver_id,identity.receiver_identity_sha256,object(),True,True,True,True,True)
+                origin=NativeJobCatalogIdentity(peer['device_id'],sha256(phone.unb64(peer['static_public'],32)).hexdigest())
+                grant=NativeLocalFileGrant(FileGrantState(2,'c'*64,True,False),object(),True)
+                phone_controls=NativeFileControlSession(origin,lambda:desktop,lambda:grant)
+                try:
+                    phone_controls.observe_remote(FileControlPacket.parse(controls['body']),desktop)
+                    for echo_round in range(2):
+                        packet=phone_controls.packet()
+                        at=phone.now_ms()
+                        deliver(dict(type='message',v=1,message_id=str(uuid.uuid4()),kind='file_transfer.control',
+                            created_ms=at,expires_ms=at+60_000,body=packet.wire()))
+                        phone_controls.mark_sent(packet)
+                        if echo_round==0:
+                            phone_controls.observe_remote(FileControlPacket.parse(wire.receive()['body']),desktop)
+                    wire.sock.settimeout(10)
+                    try:status=wire.receive()
+                    except TimeoutError:
+                        session=connection._desktop_session
+                        pytest.fail(f"No automatic start after reconnect: {None if session is None else session.snapshot()}")
+                    assert status['body']['operation']=='status'
+                    typed=dict(version='b'*64,revision=2,enabled=False,associated=True,repair_pending=False,
+                               kinds=sorted(sources.KINDS),videos=dict(enabled=True,revision=1))
+                    deliver(response(status,sources.RESULT,**typed))
+                    arm=wire.receive()
+                    assert arm['body']['operation']=='configure_videos' and arm['body']['enabled'] is True
+                    deliver(response(arm,sources.RESULT,**typed))
+                    discover=wire.receive()
+                    assert discover['body']['operation']=='discover' and discover['body']['media_type']=='video'
+                    deliver(response(discover,sources.CATALOG,version='b'*64,media_type='video',page=dict(
+                        format=1,catalog_id=str(uuid.uuid4()),after=0,next_cursor=None,coverage='full_videos',
+                        proves_deletion=False,albums=[])))
+                    session=connection._desktop_session
+                    assert session.join(5) and session.snapshot()['state']=='complete',session.snapshot()['error']
+                    assert connection._preferences.read().policy==policy
+                finally:phone_controls.close()
         finally:service._end_native_file_connection(channel)
 
 

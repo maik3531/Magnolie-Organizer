@@ -30150,10 +30150,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const twoWayHeld = sharedValues
         ? sharedValues.direction === "two_way" && sharedValues.collection_mode !== "import_only"
         : stand.mapped_direction === "two_way";
-      const manualReceive = stand.manual_receive === true && stand.shared_media?.agreed === true &&
-        sharedValues?.enabled === true && sharedValues.auto_mode === "manual" &&
+      const sharedReceive = stand.shared_media?.agreed === true && sharedValues?.enabled === true &&
         (sharedValues.photos_enabled === true || sharedValues.videos_enabled === true) &&
         (sharedValues.direction === "phone_to_pc" || sharedValues.collection_mode === "import_only");
+      const manualReceive = sharedReceive && stand.manual_receive === true && sharedValues.auto_mode === "manual";
+      const automaticReceive = sharedReceive && sharedValues.auto_mode === "wifi";
+      const automaticSetup = automaticReceive && stand.automatic_receive_setup === true;
       const sende = (action, album_id, job_owner, historical_choice) => {
         telefonFotoFehler.delete(peer.device_id);
         const request = { action }; if (album_id !== undefined) request.album_id = album_id;
@@ -30170,11 +30172,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       label.addEventListener("click", event => event.stopPropagation());
       label.addEventListener("keydown", event => event.stopPropagation());
       const revokeVideo = stand.shared_media && stand.enabled !== true && stand.video_enabled === true;
-      if (revokeVideo || manualReceive && stand.enabled === true) {
+      if (revokeVideo || (manualReceive || automaticReceive) && stand.enabled === true) {
         const revoke = knopf(_("Revoke") + " · " + (revokeVideo ? _("Videos") : _("Photos")), "", () => sende(revokeVideo ? "videos_disable" : "disable"));
         revoke.title = revokeVideo ? (stand.video_destination || "") : label.title;
         gruppe.append(revoke);
-      } else if (stand.shared_media && !manualReceive && sharedValues?.photos_enabled === true) {
+      } else if (stand.shared_media && !manualReceive && !automaticReceive && sharedValues?.photos_enabled === true) {
         const row = el("label", "hak"); row.append(an, document.createTextNode(" " + label.title));
         gruppe.append(row);
       } else if (!stand.shared_media) titel.append(label);
@@ -30449,7 +30451,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
       if (twoWayHeld) gruppe.append(el("p", "einst-hinweis", _("Two-way synchronization") + " · " + _("Unavailable")));
       const backupRecovery = baueMedienBackupWiederherstellung(); gruppe.append(backupRecovery);
-      if (manualReceive || stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
+      if (manualReceive || automaticSetup || stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
         const manuell = el("div", "knopfreihe notes-medien-manuell");
         const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => {
           telefonFotoFehler.delete(peer.device_id);
@@ -30460,7 +30462,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         jetzt.dataset.photoManualSync = "true";
         jetzt.disabled = twoWayHeld || stand.busy === true || !(manualReceive || stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length) ||
           !!(stand.shared_media && stand.shared_media.configured !== false && (!stand.shared_media.values.enabled || !stand.shared_media.agreed));
-        manuell.append(jetzt);
+        if (automaticSetup) {
+          const einrichten = knopf(_("Set up automatic receiving"), "hauptknopf", () => sende("setup_automatic_receive"));
+          einrichten.dataset.photoAutomaticSetup = "true";
+          einrichten.disabled = stand.busy === true;
+          manuell.append(einrichten);
+        } else manuell.append(jetzt);
         if (stand.busy) {
           const stop = knopf(_("Stop"), "", () => sende("stop")); stop.dataset.photoStop = "true"; manuell.append(stop);
         }

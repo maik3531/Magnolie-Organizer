@@ -129,6 +129,30 @@ async function boot() {
     stopVideo.click();
     assert.deepEqual(outgoing().at(-1).request, { action: "videos_disable" });
   });
+  await test("Wi-Fi setup starts only from the explicit receive action", async b => {
+    const shared = { ...b.state.shared_media, values: { ...b.state.shared_media.values,
+      collection_mode: "phone_inventory", direction: "phone_to_pc", auto_mode: "wifi" } };
+    const show = (media, state = {}) => b.show({ automatic_receive_setup: true, sending_consent: null, shared_media: media, ...state });
+    const setup = () => b.w.document.querySelector("[data-photo-automatic-setup]");
+    const actions = () => b.messages.filter(m => m.cmd === "telefon_foto_aktion");
+    show({ ...shared, agreed: false }); assert.equal(setup(), null);
+    show({ ...shared, values: { ...shared.values, enabled: false } }); assert.equal(setup(), null);
+    show(shared);
+    const fold = b.w.document.querySelector("details.notes-foto-sync");
+    assert.equal(fold.open, false);
+    fold.querySelector("summary").click(); await tick();
+    assert.equal(actions().length, 0);
+    assert.ok(setup() && !setup().disabled);
+    assert.equal(fold.querySelector("[data-photo-manual-sync], [data-media-receive]"), null);
+    setup().click();
+    assert.deepEqual(actions().at(-1).request, { action: "setup_automatic_receive" });
+    show(shared, { busy: true }); assert.ok(setup().disabled);
+    show(shared, { automatic_receive_setup: false, enabled: true });
+    assert.equal(setup(), null);
+    assert.equal(b.w.document.querySelector("[data-media-receive]"), null);
+    assert.ok([...b.w.document.querySelectorAll("details.notes-foto-sync button")]
+      .some(button => button.textContent === "Revoke · Photos"));
+  });
   await test("unsupported two-way mode cannot be selected or start a partial run", async b => {
     const direction = () => b.w.document.querySelector('[data-media-setting="direction"]');
     assert.ok(direction().querySelector('[value="two_way"]').disabled, "Two-way must not be selectable without safe return");

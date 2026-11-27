@@ -7135,6 +7135,9 @@ msgstr "Notizen und Notizbücher synchronisieren"
 msgid "Synchronize now"
 msgstr "Jetzt synchronisieren"
 
+msgid "Set up automatic receiving"
+msgstr "Automatischen Empfang einrichten"
+
 msgid "Synchronize only the phone's collection"
 msgstr "Nur den Bestand auf dem Handy abgleichen"
 

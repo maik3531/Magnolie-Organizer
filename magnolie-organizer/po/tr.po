@@ -7033,6 +7033,9 @@ msgstr "Kişileri eşzamanla"
 msgid "Synchronize now"
 msgstr "Şimdi eşitle"
 
+msgid "Set up automatic receiving"
+msgstr "Otomatik almayı ayarla"
+
 msgid "Synchronize only the phone's collection"
 msgstr "Yalnızca telefondaki koleksiyonu eşitle"
 

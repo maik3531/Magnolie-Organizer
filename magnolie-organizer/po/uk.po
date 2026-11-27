@@ -7083,6 +7083,9 @@ msgstr "Синхронізувати контакти"
 msgid "Synchronize now"
 msgstr "Синхронізувати зараз"
 
+msgid "Set up automatic receiving"
+msgstr "Налаштувати автоматичне отримання"
+
 msgid "Synchronize only the phone's collection"
 msgstr "Синхронізувати лише колекцію на телефоні"
 

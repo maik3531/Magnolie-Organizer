@@ -7105,6 +7105,9 @@ msgstr "Synchronizuj kontakty"
 msgid "Synchronize now"
 msgstr "Synchronizuj teraz"
 
+msgid "Set up automatic receiving"
+msgstr "Skonfiguruj automatyczne odbieranie"
+
 msgid "Synchronize only the phone's collection"
 msgstr "Synchronizuj tylko kolekcję na telefonie"
 

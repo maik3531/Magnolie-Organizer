@@ -7143,6 +7143,9 @@ msgstr "مزامنة جهات الاتصال"
 msgid "Synchronize now"
 msgstr "المزامنة الآن"
 
+msgid "Set up automatic receiving"
+msgstr "إعداد الاستلام التلقائي"
+
 msgid "Synchronize only the phone's collection"
 msgstr "مزامنة المجموعة الموجودة على الهاتف فقط"
 

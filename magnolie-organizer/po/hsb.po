@@ -7163,6 +7163,9 @@ msgstr "Kontakty synchronizować"
 msgid "Synchronize now"
 msgstr "Nětko synchronizować"
 
+msgid "Set up automatic receiving"
+msgstr "Awtomatiske přijimanje zarjadować"
+
 msgid "Synchronize only the phone's collection"
 msgstr "Jeno zběrku na telefonje synchronizować"
 

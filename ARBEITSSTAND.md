@@ -50,8 +50,12 @@ aufgeführt.
   WLAN-Kanal wurde ein MP4 bytegleich im Videoziel gespeichert, ohne Fotoziel
   oder Fotoempfangsrecht. Getrenntes Video-READ, bestehendes AUS und lokaler
   Widerruf sind geprüft. 147 Python- und 12 DOM-Fälle bestanden.
-  Video-Empfang unter Windows, WLAN-Ersteinrichtung und installierte
-  Paarprüfung bleiben offen.
+  Die Linux-WLAN-Ersteinrichtung startet erst nach einer bewussten Aktion
+  und plant erst nach bestätigtem Android-Lesezugriff für alle ausgewählten
+  Typen. Reiner Videoempfang wartet nach einem WLAN-Wechsel auf die frische
+  Vereinbarung und läuft dann auch bei geschlossenen Einstellungen an.
+  154 Python- und 13 DOM-Fälle sowie die 19 Sprachkataloge bestanden.
+  Windows-Erstempfang und installierte Paarprüfung bleiben offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
   zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.
