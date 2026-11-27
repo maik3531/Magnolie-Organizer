@@ -748,5 +748,6 @@ runner.Add("Telefonnummern / Herkunft / gemeinsame Vektoren", PhoneRegionInfoTes
 runner.Add("Ersteinrichtung / Zustand / Atomik / Startreihenfolge", FirstRunSetupTests.RunAsync);
 runner.Add("Vertiefte portable Cross-Platform-Regression", PortableRegressionTests.RunAsync);
 runner.Add("Lotus task CSV / status and priority roundtrip", LotusTaskCsvTests.RunAsync);
+runner.Add("UTF-16 import / malformed bytes and valid roundtrip", UnicodeImportTests.RunAsync);
 runner.Add("Größen, Grenzen und Last", StressTests.RunAsync);
 return await runner.RunAsync(args.Length == 0 ? null : string.Join(' ', args));
