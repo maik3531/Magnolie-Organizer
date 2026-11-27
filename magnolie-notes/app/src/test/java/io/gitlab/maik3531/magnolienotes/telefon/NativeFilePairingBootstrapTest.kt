@@ -982,6 +982,16 @@ class NativeFilePairingBootstrapTest {
                     val originalOutput = outputField.get(channel) as java.io.OutputStream
                     val writeEntered = java.util.concurrent.CountDownLatch(1); val releaseWrite = java.util.concurrent.CountDownLatch(1)
                     val uiReturned = java.util.concurrent.CountDownLatch(1); val uiBlocked = java.util.concurrent.atomic.AtomicBoolean(false)
+                    val socketReadReturned = java.util.concurrent.CountDownLatch(1)
+                    val socketReturnedDuringReply = java.util.concurrent.atomic.AtomicBoolean(false)
+                    val socketFailure = java.util.concurrent.atomic.AtomicReference<Throwable>()
+                    val socket = Thread {
+                        try {
+                            work.receiveMessage(peer, command("request_read", saved.version), channel, generation)
+                            socketReadReturned.countDown()
+                            work.receiveMessage(peer, command("discover", saved.version), channel, generation)
+                        } catch (error: Throwable) { socketFailure.set(error) }
+                    }.apply { isDaemon = true }
                     val delayed = object : java.io.OutputStream() {
                         override fun write(value: Int) {
                             writeEntered.countDown(); check(releaseWrite.await(5, java.util.concurrent.TimeUnit.SECONDS)); originalOutput.write(value)
@@ -993,20 +1003,31 @@ class NativeFilePairingBootstrapTest {
                         try {
                             check(writeEntered.await(5, java.util.concurrent.TimeUnit.SECONDS))
                             uiBlocked.set(!uiReturned.await(500, java.util.concurrent.TimeUnit.MILLISECONDS))
+                            socketReturnedDuringReply.set(socketReadReturned.await(200, java.util.concurrent.TimeUnit.MILLISECONDS))
                         } finally { releaseWrite.countDown() }
                     }
                     try {
-                        guard.start()
-                        work.receiveMessage(peer, command("request_read", saved.version), channel, generation)
-                        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle(); uiReturned.countDown()
                         @Suppress("UNCHECKED_CAST")
                         val completion = field(NativeGalleryFileConnection::class.java, "permissionIoEnd").get(reopened) as
                             java.util.concurrent.atomic.AtomicReference<java.util.concurrent.CountDownLatch>
+                        val previous = completion.get()
+                        guard.start(); socket.start()
+                        val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(3)
+                        val ui = org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())
+                        while (writeEntered.count != 0L && System.nanoTime() < deadline) { ui.idle(); Thread.yield() }
+                        assertNotSame(previous, completion.get())
+                        assertEquals(0L, writeEntered.count)
+                        uiReturned.countDown()
                         assertTrue(completion.get().await(5, java.util.concurrent.TimeUnit.SECONDS)); guard.join(5000)
+                        socket.join(5000)
+                        assertFalse(socket.isAlive)
+                        assertNull(socketFailure.get())
                         assertFalse("Permission UI waited for native response frame output", uiBlocked.get())
-                        assertEquals(DeviceFileSourceCommand.PERMISSION_RESULT, sent().single().string("kind"))
+                        assertFalse("Socket dispatched the next catalog command before reply completion", socketReturnedDuringReply.get())
+                        assertEquals(listOf(DeviceFileSourceCommand.PERMISSION_RESULT, DeviceFileSourceCommand.CATALOG),
+                            sent().map { it.string("kind") })
                     } finally {
-                        uiReturned.countDown(); releaseWrite.countDown(); guard.join(5000)
+                        uiReturned.countDown(); releaseWrite.countDown(); guard.join(5000); socket.join(5000)
                         outputField.set(channel, originalOutput)
                     }
                 }
@@ -1051,6 +1072,23 @@ class NativeFilePairingBootstrapTest {
                 release.countDown(); awaitPermissionIo(connection)
                 org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle(); connection.close()
             }
+        }
+    }
+
+    @Test fun expiredPermissionReplyDoesNotKeepTheSocketReaderWaiting() {
+        withNativeTransport { _, channel, _ ->
+            val connection = NativeGalleryFileConnection(channel) { }
+            val pending = java.util.concurrent.CountDownLatch(1)
+            val result = java.util.concurrent.FutureTask {
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    connection.awaitPermissionReplyOnSocket(pending, System.currentTimeMillis() - 1)
+                }.message
+            }
+            try {
+                Thread(result, "expired-gallery-permission-reply").apply { isDaemon = true; start() }
+                assertEquals("gallery_permission_response_timeout", result.get(3, java.util.concurrent.TimeUnit.SECONDS))
+                assertEquals(1L, pending.count)
+            } finally { connection.close() }
         }
     }
 

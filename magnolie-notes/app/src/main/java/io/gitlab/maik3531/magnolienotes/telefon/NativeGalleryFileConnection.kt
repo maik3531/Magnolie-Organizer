@@ -3,6 +3,8 @@ package io.gitlab.maik3531.magnolienotes.telefon
 import android.os.Handler
 import android.os.Looper
 import kotlinx.serialization.json.JsonObject
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** Native transport ownership, retained until actual UI cleanup. No worker-END
@@ -20,7 +22,7 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
     private val cleanupReported = AtomicBoolean(false)
     private val pcUiQueued = AtomicBoolean(false)
     private val pcUiJob = java.util.concurrent.atomic.AtomicReference<kotlinx.coroutines.Job?>()
-    private val permissionIoEnd = java.util.concurrent.atomic.AtomicReference(java.util.concurrent.CountDownLatch(0))
+    private val permissionIoEnd = java.util.concurrent.atomic.AtomicReference(CountDownLatch(0))
     @Volatile private var bound: NativeGalleryFileRuntime? = null
     val runtime: NativeGalleryFileRuntime get() = bound?.takeUnless { ended.get() }
         ?: DeviceFileControl.fail("gallery_file_connection_ended")
@@ -116,16 +118,18 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
     }
 
     internal fun enqueuePermissionCommand(prepare: (NativeGalleryFileRuntime) -> Unit,
-        background: ((NativeGalleryFileRuntime) -> Unit)?) {
+        background: ((NativeGalleryFileRuntime) -> Unit)?): CountDownLatch {
         if (ended.get() || !permissionQueued.compareAndSet(false, true)) DeviceFileControl.fail("gallery_permission_command_busy")
-        val completed = java.util.concurrent.CountDownLatch(1)
+        val completed = CountDownLatch(1)
         permissionIoEnd.set(completed)
         fun finish(failed: Boolean) {
-            if (failed) { ended.set(true); bound?.revokeControl() }
-            permissionQueued.set(false)
             try {
-                if (ended.get()) Handler(Looper.getMainLooper()).post { close() }
-            } finally { completed.countDown() }
+                if (failed) { ended.set(true); bound?.revokeControl() }
+            } finally {
+                permissionQueued.set(false)
+                try { if (ended.get()) Handler(Looper.getMainLooper()).post { close() } }
+                finally { completed.countDown() }
+            }
         }
         val posted = Handler(Looper.getMainLooper()).post {
             try {
@@ -139,6 +143,18 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
             } catch (_: Exception) { finish(true) }
         }
         if (!posted) { permissionQueued.set(false); completed.countDown(); DeviceFileControl.fail("gallery_permission_foreground_required") }
+        return completed
+    }
+
+    /** Keep the next file command behind actual reply output. The permission
+     * dialog stays asynchronous; the reader never waits for the OS decision. */
+    internal fun awaitPermissionReplyOnSocket(completion: CountDownLatch, expires: Long) {
+        check(Looper.myLooper() != Looper.getMainLooper())
+        val remaining = minOf(5_000L, expires - System.currentTimeMillis())
+        val finished = try { remaining > 0 && completion.await(remaining, TimeUnit.MILLISECONDS) }
+            catch (error: InterruptedException) { Thread.currentThread().interrupt(); throw error }
+        if (!finished) DeviceFileControl.fail("gallery_permission_response_timeout")
+        if (ended.get()) DeviceFileControl.fail("gallery_file_connection_ended")
     }
 
     override fun close() {

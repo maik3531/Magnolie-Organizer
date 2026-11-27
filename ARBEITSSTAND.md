@@ -98,6 +98,11 @@ aufgeführt.
   das Lesen der Android-Zugriffsbeobachtung wartet nicht auf die
   Dialogsperre. 148 Notes-Release-JVM-Tests bestanden, einschließlich des
   Konkurrenzfalls sowie getrennten Video-SEND- und Empfangsfreigaben.
+  Bei einer Android-Leseanfrage wartet der WLAN-Leser vor der nächsten
+  Dateianfrage auf die tatsächliche Berechtigungsantwort, höchstens fünf
+  Sekunden und innerhalb der ursprünglichen Frist. Der Android-Dialog
+  bleibt bedienbar und seine Entscheidung erfolgt weiterhin getrennt.
+  60 gezielte Notes-Release-JVM-Tests bestanden.
   Die Prüfung mit installierten Paketen bleibt offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte

@@ -3101,14 +3101,20 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val connection = nativeGalleryConnectionForMessage(sessionPeer, message, channel, generation)
             // Runtime/session callbacks acquire Werk: never dispatch under its monitor.
             val runtime = connection.runtime
-            if (message["kind"] == JsonPrimitive(DeviceFileSourceCommand.REQUEST) && DeviceFileSourceCommand.parse(message).operation == "request_read") {
+            val sourceCommand = if (message["kind"] == JsonPrimitive(DeviceFileSourceCommand.REQUEST))
+                DeviceFileSourceCommand.parse(message) else null
+            if (sourceCommand?.operation == "request_read") {
                 var prepared: JsonObject? = null
-                connection.enqueuePermissionCommand({ active ->
+                val replyCompleted = connection.enqueuePermissionCommand({ active ->
                     prepared = active.preparePermissionReply(message, galleryPermissionCommands)
                 }, { active ->
                     active.sendPreparedPermissionReply(message, prepared ?: DeviceFileControl.fail("file_sources_invalid_command"), channel::send)
                     active.sendControls()
                 })
+                // Actual receive loops run off the UI. The UI dispatch entry
+                // itself stays nonblocking, even while the socket cannot write.
+                if (android.os.Looper.myLooper() != android.os.Looper.getMainLooper())
+                    connection.awaitPermissionReplyOnSocket(replyCompleted, sourceCommand.expires)
                 return
             }
             if (message["kind"] in setOf(JsonPrimitive(MediaOfferEnvelope.KIND), JsonPrimitive(DeviceFileChunkEnvelope.RESULT))) {
