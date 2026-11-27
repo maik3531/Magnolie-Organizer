@@ -85,6 +85,14 @@ nicht in öffentlichen Release-Hinweisen. Der lokale Ablauf ist in
    Fehler durch Wiederöffnen oder einen verknüpften neuen Befund verfolgen.
 5. Im Issue knapp festhalten, was umgesetzt wurde, was tatsächlich geprüft wurde
    und was noch fehlt. Eine Quellstandsicherung ist keine Veröffentlichung.
+6. Wenn ein Review-Befund oder ein vorgeschlagener Patch ganz oder teilweise
+   nicht übernommen wird, die Entscheidung im ursprünglichen Issue festhalten:
+   geprüfter Commit und Umfang, konkreter Grund und Beleg, gegebenenfalls Link
+   zur bereits übernommenen Lösung oder zum offenen Folge-Issue. Bei einer
+   Zurückstellung zusätzlich Voraussetzung und Wiedereinstieg nennen. Im
+   nächsten Review auch diese Entscheidungen und geschlossene Issues auf
+   Dubletten prüfen. Dieselbe Aussage nur mit neuem prüfbarem Befund erneut
+   aufnehmen; offene Restarbeit im bestehenden Issue weiterverfolgen.
 
 ## Befunde zuerst bestätigen
 
