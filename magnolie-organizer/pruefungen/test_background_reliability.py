@@ -178,6 +178,59 @@ def daemon_process(fail):
                                    notifications_factory=Notifications, phone_factory=phone_factory))
 
 
+def gated_owner_start(path, entered, release, acquired):
+    # Isolate the real kernel-lease acquisition from socket/GLib startup.
+    server = bg.IPCServer(None, path)
+    server._start_owned = lambda: server
+    entered.set()
+    if not release.wait(PROCESS_START_TIMEOUT):
+        raise AssertionError('parent did not release owner start')
+    try:
+        server.start()
+    except bg.AlreadyRunning:
+        return
+    else:
+        acquired.set()
+    finally:
+        if server._lease is not None:
+            server._lease.close()
+
+
+def test_readiness_poll_cannot_displace_starting_daemon(private, monkeypatch):
+    path = bg.socket_path()
+    # A killed owner leaves the persistent lease inode behind. A failed ping
+    # is simulated; ownership still uses the actual FileLease and flock.
+    bg.FileLease(path + '.lock').close()
+    def unavailable(*args, **kwargs):
+        raise ConnectionRefusedError('synthetic stopped daemon')
+    monkeypatch.setattr(bg, 'ipc_request', unavailable)
+    ctx = multiprocessing.get_context('spawn')
+    entered, release, acquired = ctx.Event(), ctx.Event(), ctx.Event()
+    child = ctx.Process(target=gated_owner_start,
+                        args=(path, entered, release, acquired))
+    child.start()
+    lease_type = bg.FileLease
+    class ObservedLease(lease_type):
+        def __init__(self, lease_path):
+            super().__init__(lease_path)
+            # Schedule the competing start while a readiness observer holds
+            # the lease. Passive ping must never acquire that lease.
+            release.set()
+            child.join(PROCESS_START_TIMEOUT)
+    try:
+        assert entered.wait(PROCESS_START_TIMEOUT), 'child import readiness timed out'
+        monkeypatch.setattr(bg, 'FileLease', ObservedLease)
+        assert not bg.daemon_available(path)
+        release.set()
+        child.join(PROCESS_START_TIMEOUT)
+        assert child.exitcode == 0
+        assert acquired.is_set(), 'readiness observer displaced daemon ownership'
+    finally:
+        release.set()
+        if child.is_alive(): child.kill()
+        child.join(5)
+
+
 @pytest.mark.parametrize('kde_failure', [False, True])
 def test_private_glib_duplicate_stop_crash_restart(private, kde_failure):
     write_state('complete')
@@ -186,13 +239,24 @@ def test_private_glib_duplicate_stop_crash_restart(private, kde_failure):
     # Collection can initialize GLib/zeroconf threads; never fork that state.
     ctx = multiprocessing.get_context('spawn')
     children = []
-    def start():
+    def start(phase):
         process = ctx.Process(target=daemon_process, args=(kde_failure,))
         process.start(); children.append(process)
-        wait(bg.daemon_available, seconds=PROCESS_START_TIMEOUT)
+        def ready():
+            if process.exitcode is not None:
+                raise AssertionError(
+                    f'{phase}: daemon exited before readiness; '
+                    f'pid={process.pid}, exitcode={process.exitcode}, kde_failure={kde_failure}')
+            return bg.daemon_available()
+        try:
+            wait(ready, seconds=PROCESS_START_TIMEOUT)
+        except AssertionError as error:
+            raise AssertionError(
+                f'{phase}: daemon readiness failed; '
+                f'pid={process.pid}, exitcode={process.exitcode}, kde_failure={kde_failure}: {error}') from error
         return process
     try:
-        first = start()
+        first = start('initial start')
         settings = bg.ipc_request('get_settings')
         assert bool(settings['kde_transport_error']) == kde_failure
         assert bg.ipc_request('phone_report')['listening']
@@ -201,9 +265,9 @@ def test_private_glib_duplicate_stop_crash_restart(private, kde_failure):
         assert duplicate.exitcode == 0 and first.is_alive()
         first.terminate(); first.join(5)
         assert first.exitcode == 0 and not Path(bg.socket_path()).exists()
-        second = start(); second.kill(); second.join(5)
+        second = start('restart after SIGTERM'); second.kill(); second.join(5)
         assert second.exitcode == -signal.SIGKILL
-        third = start()
+        third = start('restart after SIGKILL')
         bg.ipc_request('set_settings', {'settings': {'enabled': False}})
         third.join(5)
         assert third.exitcode == 0 and not Path(bg.socket_path()).exists()

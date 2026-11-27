@@ -2292,7 +2292,14 @@ def daemon_status(path=None):
 
 
 def daemon_available(path=None):
-    return daemon_status(path) == "ready"
+    # Readiness is a protocol reply, not a lease-ownership probe. A status
+    # probe briefly acquires the exclusive lease when no daemon is ready;
+    # racing a new owner would then make its non-blocking start fail.
+    try:
+        result = ipc_request("ping", path=path, timeout=0.3)
+        return result.get("running") is True and result.get("lifecycle") == "ready"
+    except Exception:
+        return False
 
 
 def wait_for_daemon_release(path=None, timeout=6):

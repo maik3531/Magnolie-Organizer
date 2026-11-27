@@ -18,6 +18,12 @@ aufgeführt.
   Telefon-Stopp keine unerwartete Ausnahme mehr. Vier gezielte
   Dienstfälle, ein echter GLib-Lebenszyklustest und die strikte
   Kompilierung mit Python 3.14 sind bestanden.
+- [#747](https://github.com/maik3531/Magnolie-Organizer/issues/747):
+  Die Bereitschaftsabfrage des Linux-Hintergrunddiensts liest
+  den IPC-Status, ohne mit dem Dienst um dessen Start-Sperre zu
+  konkurrieren. Das Rennen wurde vor dem Fix reproduziert;
+  danach bestanden vier Prüfungen einschließlich beider
+  GLib-Neustartvarianten und des Weckerdienstfalls.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
