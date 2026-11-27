@@ -19,9 +19,12 @@
 - [#811](https://github.com/maik3531/Magnolie-Organizer/issues/811):
   `c363dc01` aktualisiert den Prüfer für die Zeitzonenidentität
   der Serien-Worker-Jobs. Die Quellbindung und der gezielte
-  Schlüsseltest sind bestanden. Der native Folgelauf stoppte
-  vorher beim Touch-Fokus des Notiztitels (siehe [#792](https://github.com/maik3531/Magnolie-Organizer/issues/792));
-  erneute Bestätigung der Serien-Jobs und Touch-Navigation offen.
+  Schlüsseltest sind bestanden. Ein nativer Folgelauf wurde
+  vor der Serienprüfung durch einen Pixel-Launcher-Systemdialog
+  blockiert ([#792](https://github.com/maik3531/Magnolie-Organizer/issues/792)).
+  Beim darauf gezielt gestarteten Navigationslauf stoppte der
+  Temperaturschutz schon den Emulatorstart. Der native Nachweis
+  der Serien-Jobs und Touch-Navigation bleibt offen.
 - [#330](https://github.com/maik3531/Magnolie-Organizer/issues/330):
   Die Linux-Korrekturen des Einstellungsabgleichs fehlten in dem
   privaten DEB. Auf `work/330-linux-settings-on-user-deb`
