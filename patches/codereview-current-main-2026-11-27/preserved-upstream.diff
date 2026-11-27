@@ -1,0 +1,301 @@
+--- f8-plus-review/ARBEITSSTAND.md
++++ 1a-plus-review/ARBEITSSTAND.md
+@@ -92,6 +92,11 @@
+   Typen. Reiner Videoempfang wartet nach einem WLAN-Wechsel auf die frische
+   Vereinbarung und läuft dann auch bei geschlossenen Einstellungen an.
+   154 Python- und 13 DOM-Fälle sowie die 19 Sprachkataloge bestanden.
++  Vor dem ersten reinen Videoempfang kann Linux einen bestehenden
++  Ordner separat wählen. Die Wahl erteilt noch kein Empfangsrecht.
++  Beim Start bleibt das gewählte Ziel erhalten; ein am selben Pfad
++  ausgetauschter Ordner hält den Lauf an. Die Original-MP4-Übertragung
++  in das gewählte Ziel und 14 DOM-Fälle sind geprüft.
+   Windows-Erstempfang und installierte Paarprüfung bleiben offen.
+ - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
+   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
+@@ -127,8 +132,8 @@
+   Ältere ICS-Serienausnahmen lassen sich wieder über die MCP-Importvorschau
+   übernehmen. Eine fehlende Kalenderfarbe bleibt fehlend; der Import
+   behält die vorhandene Farbzuordnung. Beide Desktop-Oberflächen
+-  bestanden unter Node und Bun. Das vollständige Windows-Archiv-Gate
+-  läuft separat.
++  bestanden unter Node und Bun. Die native Standalone-Quellarchivprüfung
++  unter Windows ist auf dem korrigierten Stand `f8ad956e` bestanden.
+ - [#841](https://github.com/maik3531/Magnolie-Organizer/issues/841):
+   Organizer übernimmt die Schreibrichtung auch bei regionalen arabischen
+   Sprachcodes aus dem primären Sprachuntertag. 16 Startfälle mit den
+--- f8-plus-review/magnolie-organizer/bin/magnolie_file_desktop_connection.py
++++ 1a-plus-review/magnolie-organizer/bin/magnolie_file_desktop_connection.py
+@@ -613,6 +613,7 @@
+                     receiving=getattr(self,'_media_receiving_state',{})
+                     value['manual_receive']=mode=='manual' and supported and kinds in receiving.get('manual_receive',())
+                     value['automatic_receive_setup']=mode=='wifi' and supported and kinds in receiving.get('automatic_setup',())
++                    value['video_destination_setup']='video' in kinds and supported and not value.get('enabled') and not value.get('video_enabled')
+         if self._media_collection_roots_state is not None:
+             value['collection_sources']=dict(version=self._media_collection_roots_state['version'],
+                 roots=[dict(root) for root in self._media_collection_roots_state['roots']])
+@@ -3403,14 +3404,15 @@
+     @staticmethod
+     def _manual_receive_kinds(snapshot):
+         policy=snapshot.policy
+-        if policy is None:return (('images',),('video',),('images','video'))
++        kinds=(('images',),('video',),('images','video'))
++        if policy is None:return kinds
++        if policy.staged_receive_targets:return tuple(scope for scope in kinds if snapshot.staged_receive_available(scope))
+         if snapshot.associated and snapshot.independent_video_available:return (('video',),)
+         if not snapshot.associated or not snapshot.destination_available:return ()
+-        if policy.staged_receive_targets:return (('images',),('images','video'))
+         if (not policy.enabled or snapshot.direction!='phone_to_desktop' or policy.phone_to_pc_delete
+                 or policy.pc_to_phone_delete or policy.mapping_store is None or policy.job_catalog is None):
+             return ()
+-        return (('images',),('video',),('images','video')) if snapshot.include_videos else (('images',),)
++        return kinds if snapshot.include_videos else (('images',),)
+ 
+     @classmethod
+     def _automatic_setup_kinds(cls,snapshot):
+--- f8-plus-review/magnolie-organizer/bin/magnolie_media_storage_bootstrap.py
++++ 1a-plus-review/magnolie-organizer/bin/magnolie_media_storage_bootstrap.py
+@@ -44,8 +44,7 @@
+         if (type(action) is not NativePhotoDestinationAction or action._native_current is None
+                 or type(expected) is not PhotoPreferencesSnapshot
+                 or kinds not in (('images',),('video',),('images','video'))
+-                or expected.policy is not None and (not expected.policy.staged_receive_targets
+-                    or 'images' not in kinds or not expected.associated or not expected.destination_available)):
++                or expected.policy is not None and not expected.staged_receive_available(kinds)):
+             raise TransferError('media_first_receive_original_action_required')
+         pending=PendingAutomaticReceive(automatic_book,kinds) if automatic_book is not None else None
+         return self._prepare(action,expected,kinds=kinds,pending=pending)
+@@ -72,11 +71,13 @@
+                 if 'video' in kinds:
+                     if not self._authority.video_available():
+                         raise TransferError('file_desktop_video_data_join_unavailable')
+-                    video=NativeVideoDestinationController(self._authority,monotonic_ms=self._guarded_clock)
+-                    owned.callback(video.close)
+-                    options.update(include_videos=True,video_destination_choice=video.choose_default(video.issue_action()))
++                    options['include_videos']=True
++                    if policy is None or policy.videos is None or policy.videos.destination is None:
++                        video=NativeVideoDestinationController(self._authority,monotonic_ms=self._guarded_clock)
++                        owned.callback(video.close)
++                        options['video_destination_choice']=video.choose_default(video.issue_action())
+                     if 'images' not in kinds:options['video_only_receive']=True
+-                if 'images' in kinds and policy is None:
++                if 'images' in kinds and (policy is None or policy.destination is None):
+                     photos=NativePhotoDestinationController(self._authority,monotonic_ms=self._guarded_clock)
+                     owned.callback(photos.close)
+                     options['destination_choice']=photos.choose_default(photos.issue_action())
+--- f8-plus-review/magnolie-organizer/bin/magnolie_photo_destination_choice.py
++++ 1a-plus-review/magnolie-organizer/bin/magnolie_photo_destination_choice.py
+@@ -71,12 +71,17 @@
+             self.intent = self._intent_position()
+             self.expected = connection._preferences.read()
+             policy = self.expected.policy
+-            if (policy is None and kind != 'images') or (policy is not None and not self.expected.associated):
++            support=connection._media_support
++            self.staged_video=(kind=='video' and (policy is None or policy.staged_receive_targets)
++                and support is not None and support.supports(connection._channel)
++                and 'video' in connection._private_receive_kinds())
++            if (policy is None and kind != 'images' and not self.staged_video) or (policy is not None and not self.expected.associated):
+                 raise TransferError('media_destination_existing_preferences_required')
+             if policy is not None and (kind == 'images' and policy.enabled or
+                     kind == 'video' and policy.videos is not None and policy.videos.enabled):
+                 raise TransferError('media_destination_disable_first')
+-            if kind == 'video' and (not policy.enabled or not connection._video_data_handlers_ready or not connection._authority.video_available()):
++            if kind == 'video' and (not connection._manual_receive_kinds_supported(('video',)) or
++                    (not self.staged_video and (policy is None or not policy.enabled))):
+                 raise TransferError('video_preferences_destination_choice_requires_off')
+             root = Path(connection._authority.binding.native_directory)
+             self.book_fd = os.open(root.parent / 'daten.json', os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK)
+@@ -201,7 +206,7 @@
+             session = connection.desktop_session()
+             policy = self.expected.policy
+             previous = policy.destination if self.kind == 'images' and policy is not None else None
+-            if self.kind == 'video' and policy.videos is not None:
++            if self.kind == 'video' and policy is not None and policy.videos is not None:
+                 previous = policy.videos.destination
+             session._retain_backup_destination(self.expected, self.kind, previous, choice.destination, _native_current=self.context_current)
+             self.current()
+@@ -218,6 +223,9 @@
+                         destination_choice=choice,staged_receive_targets=staged)
+                 else:
+                     saved = preferences.set_photo_destination(action, self.expected, choice, historical_choice='keep_existing')
++            elif policy is None:
++                saved = preferences.configure(action, self.expected, enabled=False, mode='manual', include_videos=False,
++                    video_destination_choice=choice, staged_receive_targets=True)
+             else:
+                 saved = preferences.set_video_scope(action, self.expected, enabled=False, destination_choice=choice, historical_choice='keep_existing')
+             writer_current()
+--- f8-plus-review/magnolie-organizer/bin/magnolie_photo_preferences.py
++++ 1a-plus-review/magnolie-organizer/bin/magnolie_photo_preferences.py
+@@ -182,6 +182,14 @@
+     associated: bool
+     destination_available: bool
+     independent_video_available: bool = False
++    video_destination_available: bool = False
++
++    def staged_receive_available(self,kinds):
++        policy=self.policy
++        return bool(self.associated and policy is not None and policy.staged_receive_targets
++            and ('images' not in kinds or policy.destination is None or self.destination_available)
++            and ('video' not in kinds or policy.videos is None or policy.videos.destination is None or self.video_destination_available))
++
+     @property
+     def mode(self):return self.policy.mode if self.policy is not None else 'manual'
+     @property
+@@ -384,12 +392,14 @@
+             try:
+                 policy.destination.verify();available=os.access(policy.destination.path,os.W_OK|os.X_OK,effective_ids=True)
+             except (OSError,TransferError):available=False
+-        if policy is not None and policy.video_only_receive and policy.videos.enabled:
++        if policy is not None and policy.videos is not None and policy.videos.destination is not None:
+             try:
+                 policy.videos.destination.verify()
+                 video_available=os.access(policy.videos.destination.path,os.W_OK|os.X_OK,effective_ids=True)
+             except (OSError,TransferError):pass
+-        return PhotoPreferencesSnapshot(version,policy,policy is not None and policy.pairing_epoch==peer.pairing_epoch,available,video_available)
++        independent=bool(video_available and policy.video_only_receive and policy.videos.enabled)
++        return PhotoPreferencesSnapshot(version,policy,policy is not None and policy.pairing_epoch==peer.pairing_epoch,
++            available,independent,video_available)
+ 
+     def _sync(self):
+         os.fsync(self._db_fd);os.fsync(self._root_fd);os.fsync(self._parent_fd);self._fresh()
+@@ -422,14 +432,17 @@
+                 or phone_to_pc_delete or direction not in (None,'phone_to_desktop')
+                 or mapping_store_choice is None or job_catalog_choice is None):
+             raise TransferError('media_automatic_receive_invalid_setup')
+-        if type(video_only_receive) is not bool or video_only_receive and (enabled or expected.policy is not None
++        if type(video_only_receive) is not bool or video_only_receive and (enabled
++                or expected.policy is not None and not expected.staged_receive_available(('video',))
+                 or action._native_current is None or include_videos is not True or destination_choice is not None
+-                or video_destination_choice is None or mapping_store_choice is None or job_catalog_choice is None
++                or video_destination_choice is None and not expected.video_destination_available
++                or mapping_store_choice is None or job_catalog_choice is None
+                 or phone_to_pc_delete or direction not in (None,'phone_to_desktop')):
+             raise TransferError('video_preferences_invalid_independent_consent')
+         if (type(staged_receive_targets) is not bool or staged_receive_targets and (
+                 expected.policy is not None or action._native_current is None or enabled or phone_to_pc_delete
+-                or mode!='manual' or direction not in (None,'phone_to_desktop') or destination_choice is None
++                 or mode!='manual' or direction not in (None,'phone_to_desktop')
++                 or destination_choice is None and video_destination_choice is None
+                 or include_videos is True or mapping_store_choice is not None or job_catalog_choice is not None)):
+             raise TransferError('photo_preferences_invalid_staged_receive_targets')
+         if include_videos is not None and type(include_videos) is not bool:raise TransferError('video_preferences_invalid_settings')
+--- f8-plus-review/magnolie-organizer/pruefungen/media-source-choice-ui.cjs
++++ 1a-plus-review/magnolie-organizer/pruefungen/media-source-choice-ui.cjs
+@@ -153,6 +153,23 @@
+     assert.ok([...b.w.document.querySelectorAll("details.notes-foto-sync button")]
+       .some(button => button.textContent === "Revoke · Photos"));
+   });
++  await test("a staged first video target uses the native picker without starting sync", async b => {
++    const shared = { ...b.state.shared_media, values: { ...b.state.shared_media.values,
++      direction: "phone_to_pc", photos_enabled: false, videos_enabled: true } };
++    const state = { enabled: false, manual_receive: true, video_destination_setup: true,
++      video_supported: true, sending_consent: null, shared_media: shared };
++    b.show(state);
++    const target = () => b.w.document.querySelector("[data-video-destination]");
++    assert(target() && !target().disabled && !target().title);
++    assert.equal(b.messages.filter(message => message.cmd === "telefon_foto_aktion").length, 0);
++    target().click();
++    assert.equal(b.messages.at(-1).cmd, "telefon_videoziel_waehlen");
++    assert.deepEqual(Object.keys(b.messages.at(-1)).sort(), ["cmd", "fingerprint", "kennung"]);
++    b.show({ ...state, video_destination: "/Owned private target", busy: true });
++    assert.equal(target().title, "/Owned private target");
++    assert(target().disabled && !b.w.document.body.textContent.includes("/Owned private target"));
++    assert.equal(b.messages.filter(message => message.cmd === "telefon_foto_aktion").length, 0);
++  });
+   await test("unsupported two-way mode cannot be selected or start a partial run", async b => {
+     const direction = () => b.w.document.querySelector('[data-media-setting="direction"]');
+     assert.ok(direction().querySelector('[value="two_way"]').disabled, "Two-way must not be selectable without safe return");
+--- f8-plus-review/magnolie-organizer/pruefungen/test_media_first_receive.py
++++ 1a-plus-review/magnolie-organizer/pruefungen/test_media_first_receive.py
+@@ -31,6 +31,7 @@
+                                       'changed_custom_target', 'mixed_video_read_missing', 'mixed_existing_video_off',
+                                       'mixed_both_read', 'mixed_both_workers', 'video_only_read_missing',
+                                       'video_only_worker', 'video_only_remote_off',
++                                      'video_only_custom_target', 'video_only_changed_target',
+                                       'automatic_ready', 'automatic_read_missing', 'automatic_stopped',
+                                       'automatic_mixed_video_read_missing', 'automatic_video_ready'])
+ def test_manual_first_receive_waits_for_explicit_start_and_original_file_controls(native, tmp_path, monkeypatch, outcome):
+@@ -125,7 +126,34 @@
+                 quiet()
+                 return
+ 
+-            chosen=None
++            chosen=None; chosen_video=None
++            if outcome in ('video_only_custom_target','video_only_changed_target'):
++                chosen_video=tmp_path/'Owned video folder'
++                chosen_video.mkdir(mode=0o700)
++                (chosen_video/'existing.mp4').write_bytes(b'leave untouched')
++                prepared=service.photo_sync_destination_choice(peer['device_id'],finger,'prepare','video',
++                    **saved_book_inputs(connection))
++                with NativeCollectionRoot(str(chosen_video),lambda:True) as root:
++                    service.photo_sync_destination_choice(peer['device_id'],finger,'commit','video',
++                        selection=prepared['selection'],path=str(chosen_video),witness=native_folder_witness(root))
++                original=connection._preferences.read()
++                staged=original.policy
++                assert staged.staged_receive_targets and not staged.enabled and staged.destination is None
++                assert not staged.videos.enabled and Path(staged.videos.destination.path)==chosen_video
++                assert staged.mapping_store is None and staged.job_catalog is None
++                assert service.photo_sync_state(peer['device_id'])['video_destination']==str(chosen_video)
++                assert not list(pictures.iterdir()) and not list(videos.iterdir())
++                quiet()
++                if outcome=='video_only_changed_target':
++                    moved=chosen_video.rename(chosen_video.with_name('Original video folder'))
++                    chosen_video.mkdir(mode=0o700)
++                    with pytest.raises(TransferError,match='photo_schedule_not_ready'):
++                        start('sync_shared')
++                    assert connection._preferences.read().version==original.version
++                    assert (moved/'existing.mp4').read_bytes()==b'leave untouched'
++                    assert not list(chosen_video.iterdir()) and not list(videos.iterdir())
++                    quiet()
++                    return
+             if outcome in ('custom_target','changed_custom_target'):
+                 chosen=tmp_path/'Owned photo folder'
+                 chosen.mkdir(mode=0o700)
+@@ -166,8 +194,10 @@
+             assert saved.enabled is not video_only and saved.sending is None
+             if mixed or video_only:
+                 assert saved.videos.enabled
+-                assert Path(saved.videos.destination.path)==videos/video_folder_component(peer['display_name'])
++                assert Path(saved.videos.destination.path)==(chosen_video or videos/video_folder_component(peer['display_name']))
+                 assert saved.destination_token!=saved.videos.destination_token
++                if chosen_video is not None:
++                    assert saved.videos.destination_token==staged.videos.destination_token and not saved.staged_receive_targets
+             else:assert saved.videos is None
+             if video_only:
+                 assert saved.video_only_receive and saved.destination is None
+@@ -265,7 +295,7 @@
+                     associated=True,repair_pending=False,kinds=sorted(sources.KINDS),videos=dict(enabled=True,revision=1)))
+                 observe=wire.receive()
+                 assert observe['body']['operation']=='discover' and observe['body']['media_type']=='video'
+-                worker_ready=outcome=='video_only_worker'
++                worker_ready=outcome in ('video_only_worker','video_only_custom_target')
+                 album=str(uuid4())
+                 coverage=response(observe,sources.CATALOG,version=version,media_type='video',page=dict(
+                     format=1,catalog_id=str(uuid4()),after=0,next_cursor=None,
+@@ -304,6 +334,8 @@
+                             session.snapshot()['state'],session.snapshot()['error'],errors,len(chunks),len(receipts))
+                         assert not errors and len(chunks)==len(receipts)==1
+                     assert (video_root/file.path).read_bytes()==original
++                    if chosen_video is not None:
++                        assert (chosen_video/'existing.mp4').read_bytes()==b'leave untouched' and not list(videos.iterdir())
+                 else:
+                     dispatch(coverage)
+                     request=wire.receive()
+--- f8-plus-review/magnolie-organizer/web/anwendung.js
++++ 1a-plus-review/magnolie-organizer/web/anwendung.js
+@@ -30462,6 +30462,16 @@
+         gruppe.append(fotoOrdner);
+         if (stand.destination) gruppe.append(el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
+       }
++      if (stand.enabled !== true && (stand.video_destination_setup === true || stand.video_destination)) {
++        const videoOrdner = el("div", "kde-empfangsordner");
++        const videoZiel = knopf(_("Videos") + " · " + _("Destination folder"), "", () => Bruecke.sende({
++          cmd: "telefon_videoziel_waehlen", kennung: peer.device_id, fingerprint: peer.fingerprint }));
++        videoZiel.dataset.videoDestination = "true";
++        videoZiel.title = stand.video_destination || "";
++        videoZiel.disabled = stand.busy === true || stand.video_enabled === true || stand.video_destination_setup !== true;
++        videoOrdner.append(videoZiel);
++        gruppe.append(videoOrdner);
++      }
+       const sharedSources = stand.shared_media;
+       if (stand.collection_sources_supported === true && sharedSources?.values.collection_mode === "entire_collection" &&
+           sharedSources.values.direction === "pc_to_phone") {
