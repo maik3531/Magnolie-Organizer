@@ -7810,10 +7810,19 @@ def _alarm_normalisieren(alarm):
              "aktion": aktion.lower()}
     if alarm.get("bearbeitbar") is False:
         trigger = str(alarm.get("triggerRaw") or "").strip()
+        typ = str(alarm.get("triggerValue") or "").upper()
+        tzid = str(alarm.get("triggerTzid") or "")
+        if typ in ("", "DATE-TIME") and not tzid and re.fullmatch(r"[0-9]{8}T[0-9]{6}Z", trigger):
+            try:
+                zeitpunkt = _kalender_strptime(trigger, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+            except ValueError:
+                return None
+            basis["absolut"] = zeitpunkt.isoformat(timespec="seconds")
+            return basis
         dauer = re.fullmatch(
             r"([+-]?)P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?",
             trigger, re.I)
-        if dauer and any(wert is not None for wert in dauer.groups()[1:]):
+        if typ in ("", "DURATION") and dauer and any(wert is not None for wert in dauer.groups()[1:]):
             minuten = (int(dauer.group(2) or 0) * 10080 +
                        int(dauer.group(3) or 0) * 1440 +
                        int(dauer.group(4) or 0) * 60 +
@@ -7822,13 +7831,22 @@ def _alarm_normalisieren(alarm):
             if minuten <= 525600:
                 basis["offsetMinuten"] = minuten if dauer.group(1) == "-" else -minuten
                 return basis
-        datum, zeit = _ics_datumzeit(
-            trigger, {"TZID": str(alarm.get("triggerTzid") or "")})
+        if typ:
+            return None
+        datum, zeit = _ics_datumzeit(trigger, {"TZID": tzid})
         if datum and zeit:
             basis["absolut"] = datum + " " + zeit
             return basis
         return None
     wert = alarm.get("offsetMinuten")
+    absolut = alarm.get("absolut")
+    if wert is None and isinstance(absolut, str) and re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2}(?:\+00:00)?)?", absolut):
+        try:
+            basis["absolut"] = datetime.fromisoformat(absolut).isoformat(timespec="seconds")
+        except ValueError:
+            return None
+        return basis
     if isinstance(wert, bool):
         return None
     try:
@@ -8033,9 +8051,11 @@ def erinnerungsdaten_auswaehlen(daten):
         if planung:
             ausgewaehlt["icsRoundtrip"] = planung
         for feld in ("icsAusnahmen", "icsZusatzDaten", "icsZusatzTermine", "icsSerienUid",
-                     "icsQuelleId", "syncKalenderUid", "icsAusnahmeTermine", "icsTimezones"):
+                      "icsQuelleId", "syncKalenderUid", "icsAusnahmeTermine", "icsTimezones"):
             if feld in original:
                 ausgewaehlt[feld] = original[feld]
+        if str(original.get("icsStatus") or "").upper() == "CANCELLED":
+            ausgewaehlt["icsStatus"] = "CANCELLED"
         if original.get("icsRangeOverrides"):
             ausgewaehlt["icsRangeOverrides"] = [[_ics_prop_roh(name, params, value)
                 for name, params, value in ics_properties(block) if name in {
@@ -8246,7 +8266,7 @@ def _termin_endzeitpunkt(termin, ganztags_stunde=8):
 
 
 def _strukturierte_alarme(termin):
-    """Aktive Display-Alarme als (Minuten, Bezug, absolute Wandzeit)."""
+    """Aktive Display-Alarme als (Minuten, Bezug, absoluter Zeitpunkt)."""
     ergebnis = []
     gesehen = set()
     rohe_alarme = termin.get("alarme")
@@ -8265,7 +8285,10 @@ def _strukturierte_alarme(termin):
             elif block is not None and name == "ACTION":
                 block["aktion"] = value.lower()
             elif block is not None and name == "TRIGGER":
-                block.update(triggerRaw=value, triggerTzid=params.get("TZID", ""), related=params.get("RELATED", "START"))
+                block.update(triggerRaw=value, triggerTzid=params.get("TZID", ""),
+                             triggerValue=params.get("VALUE", ""), related=params.get("RELATED", "START"))
+                if str(params.get("VALUE", "")).upper() == "DATE-TIME" and "RELATED" in params:
+                    block["triggerValue"] = "invalid"
     for roh in rohe_alarme[:32]:
         alarm = _alarm_normalisieren(roh)
         if alarm is None or not alarm["aktiviert"]:
@@ -8289,20 +8312,55 @@ def _erinnerungs_instant(wandzeit, eintrag=None, feld=None):
     return (wandzeit.replace(tzinfo=_organizer_zeitzone()) if wandzeit.tzinfo is None else wandzeit).astimezone(timezone.utc)
 
 
-def _termin_meldungen(termin, kennung, beginn, vorlauf, absolut_rechnen=False, legacy=True):
+def _feste_alarmzeiten(termin):
+    if not isinstance(termin, dict) or termin.get("folge"):
+        return []
+    zeiten = [datetime.fromisoformat(absolut) for _, _, absolut in
+              _strukturierte_alarme(termin) if absolut]
+    if not zeiten or str(termin.get("icsStatus") or "").upper() == "CANCELLED" or any(
+            name == "STATUS" and value.upper() == "CANCELLED"
+            for name, _, value in ics_properties(termin.get("icsRoundtrip"))):
+        return []
+    return sorted(set(map(_erinnerungs_instant, zeiten)))
+
+
+def _alte_alarmminute(instant):
+    """Alte Meldemarken konnten weder Sekunden noch die zweite Herbststunde belegen."""
+    lokal = instant.astimezone(_organizer_zeitzone())
+    if instant.second or lokal.replace(fold=0).utcoffset() != lokal.replace(fold=1).utcoffset():
+        return None
+    return lokal
+
+
+def _feste_terminmeldungen(termin, kennung, als_utc=True, legacy=False):
+    for instant in _feste_alarmzeiten(termin):
+        alte_marken = set()
+        lokal = _alte_alarmminute(instant) if legacy else None
+        if lokal is not None:
+            minute = lokal.strftime("%Y%m%d%H%M")
+            alte_marken.add("%s@%s:alarm-absolut" % (kennung, minute))
+            for basis in (_termin_zeitpunkt(termin), _termin_endzeitpunkt(termin)):
+                if basis is not None:
+                    marke = "%s@%s:v2:alarm-absolut-%s" % (kennung, basis.strftime("%Y%m%d%H%M"), minute)
+                    alte_marken.add(marke + (":second-%02d" % basis.second if basis.second else ""))
+        zeit = instant if als_utc else instant.astimezone(_organizer_zeitzone()).replace(tzinfo=None)
+        yield ("%s@%s:v2:alarm-absolut" % (kennung, instant.isoformat(timespec="seconds")),
+               zeit, 0, zeit, alte_marken)
+
+
+def _termin_meldungen(termin, kennung, beginn, vorlauf, absolut_rechnen=False, legacy=True,
+                      feste_alarme=True):
     """Deduplizierte Meldungen aus Standard-, Legacy- und Webalarmen."""
     meldungen = {}
 
-    def aufnehmen(art, minuten, related="START", tage=0, feste_zeit=None):
+    def aufnehmen(art, minuten, related="START", tage=0):
         basis = _termin_endzeitpunkt(termin) if related == "END" else beginn
         if basis is None:
             return
-        erinnerungszeit = feste_zeit or (basis - timedelta(minutes=minuten))
+        erinnerungszeit = basis - timedelta(minutes=minuten)
         meldebasis = max(basis, erinnerungszeit)
-        kennzeichen = art if feste_zeit is None else "%s-%s" % (
-            art, feste_zeit.strftime("%Y%m%d%H%M"))
         basis_text = basis.strftime("%Y%m%d%H%M")
-        marke = "%s@%s:v2:%s" % (kennung, basis_text, kennzeichen)
+        marke = "%s@%s:v2:%s" % (kennung, basis_text, art)
         alte_marken = {kennung, "%s@%s" % (kennung, basis_text)} if legacy else set()
         if art == "standard" and legacy:
             for alter_vorlauf in (0, 5, 10, 15, 30, 60, 120):
@@ -8314,7 +8372,7 @@ def _termin_meldungen(termin, kennung, beginn, vorlauf, absolut_rechnen=False, l
                 kennung, erinnerungszeit.strftime("%Y%m%d%H%M"), art))
         if absolut_rechnen:
             basis_utc = _erinnerungs_instant(basis, termin, "icsEndUtc" if related == "END" else "icsStartUtc")
-            erinnerungszeit = (_erinnerungs_instant(feste_zeit) if feste_zeit is not None else
+            erinnerungszeit = (
                 _erinnerungs_instant(basis - timedelta(days=tage)) if art.startswith("individuell") else
                 basis_utc - timedelta(minutes=minuten))
             meldebasis = max(basis_utc, erinnerungszeit)
@@ -8325,7 +8383,7 @@ def _termin_meldungen(termin, kennung, beginn, vorlauf, absolut_rechnen=False, l
                 marke += ":utc-" + basis_utc.strftime("%Y%m%d%H%M%S")
                 # A legacy wall-only mark cannot acknowledge the other fold.
                 alte_marken = set()
-        meldungen.setdefault((minuten, related, feste_zeit), (
+        meldungen.setdefault((minuten, related), (
             marke, erinnerungszeit, tage, meldebasis, alte_marken))
 
     tage = _erinnerung_tage(termin.get("individuelleErinnerungTage"))
@@ -8336,18 +8394,13 @@ def _termin_meldungen(termin, kennung, beginn, vorlauf, absolut_rechnen=False, l
                   tage=tage)
     for minuten, related, absolut in _strukturierte_alarme(termin):
         if absolut:
-            if termin.get("folge"):
-                continue
-            try:
-                feste_zeit = datetime.strptime(absolut, "%Y-%m-%d %H:%M")
-            except ValueError:
-                continue
-            aufnehmen("alarm-absolut", 0, related, feste_zeit=feste_zeit)
             continue
         alarm_tage = minuten // 1440 if minuten and minuten > 0 and minuten % 1440 == 0 else 0
         aufnehmen("alarm-%s-%d" % (related, minuten),
                   minuten, related, alarm_tage)
-    return list(meldungen.values())
+    return list(meldungen.values()) + (
+        list(_feste_terminmeldungen(termin, kennung, als_utc=absolut_rechnen, legacy=legacy))
+        if feste_alarme else [])
 
 
 def _letzter_tag(jahr, monat):
@@ -8718,20 +8771,27 @@ def faellige_erinnerungen(daten, jetzt, zustand, vorlauf=15, verpasste=True,
                           if 1 <= tage <= 7] +
                    [(groesster_vorlauf + 1439) // 1440 + 1])
 
-    for termin in termine_mit_wiederholungen(daten, jetzt,
-            tage_zurueck=max(4, (max(1, rueckblick_stunden) + 23) // 24 + 1),
-            tage_vor=tage_vor, fehler=fehler, alarm_nachlauf=True):
-        if not isinstance(termin, dict) or ausgeschlossen(termin):
-            continue
-        kennung = _termin_erinnerungskennung(termin) if termin.get("id") or termin.get("uid") else ""
-        if not kennung:
-            continue
-        beginn = _termin_zeitpunkt(termin)
-        if beginn is None:
-            continue
-        for marke, erinnerungszeit, tage, basis, alte_marken in _termin_meldungen(
-                termin, kennung, beginn, vorlauf, absolut_rechnen=True,
-                legacy=bool((zustand or {}).get("gemeldet"))):
+    def kandidaten():
+        for termin in (daten or {}).get("termine") or []:
+            if not isinstance(termin, dict) or ausgeschlossen(termin) or not (termin.get("id") or termin.get("uid")):
+                continue
+            beginn = _termin_zeitpunkt(termin)
+            if beginn is not None:
+                yield termin, beginn, _feste_terminmeldungen(
+                    termin, _termin_erinnerungskennung(termin), legacy=bool(gemeldet))
+        for termin in termine_mit_wiederholungen(daten, jetzt,
+                tage_zurueck=max(4, (max(1, rueckblick_stunden) + 23) // 24 + 1),
+                tage_vor=tage_vor, fehler=fehler, alarm_nachlauf=True):
+            if not isinstance(termin, dict) or ausgeschlossen(termin) or not (termin.get("id") or termin.get("uid")):
+                continue
+            beginn = _termin_zeitpunkt(termin)
+            if beginn is not None:
+                yield termin, beginn, _termin_meldungen(
+                    termin, _termin_erinnerungskennung(termin), beginn, vorlauf, absolut_rechnen=True,
+                    legacy=bool((zustand or {}).get("gemeldet")), feste_alarme=False)
+
+    for termin, beginn, meldungen in kandidaten():
+        for marke, erinnerungszeit, tage, basis, alte_marken in meldungen:
             if basis < jetzt_utc - timedelta(hours=max(1, rueckblick_stunden)):
                 continue
             if marke in gemeldet:
@@ -8780,13 +8840,23 @@ def faellige_erinnerungen(daten, jetzt, zustand, vorlauf=15, verpasste=True,
 
 
 @_mit_lauf_zeitzone
-def naechster_weckzeitpunkt(daten, jetzt, vorlauf=15, fehler=None):
+def naechster_weckzeitpunkt(daten, jetzt, vorlauf=15, fehler=None, als_instant=False):
     """Wann wäre die nächste Erinnerung fällig?"""
-    bester = None
     fehler = [] if fehler is None else fehler
     jetzt_utc = _erinnerungs_instant(jetzt)
     if jetzt.tzinfo is not None:
         jetzt = jetzt.astimezone(_organizer_zeitzone()).replace(tzinfo=None)
+    daten = daten or {}
+    ausgeschlossen = gruppen_ausschluss_pruefer(daten, art="appointment")
+    original = [termin for termin in daten.get("termine") or []
+                if isinstance(termin, dict) and not ausgeschlossen(termin) and _termin_zeitpunkt(termin)]
+    einstellungen = _erinnerungsfelder_auswaehlen(daten.get("einstellungen"), ("erinnerung",))
+    aufgaben_erlaubt = _erinnerungsfelder_auswaehlen(einstellungen.get("erinnerung"), ("aufgaben",))
+    if aufgaben_erlaubt.get("aufgaben") is not False:
+        original.extend(aufgabe for aufgabe in daten.get("aufgaben") or []
+                        if isinstance(aufgabe, dict) and not aufgabe.get("erledigt"))
+    bester = min((zeitpunkt for termin in original for zeitpunkt in _feste_alarmzeiten(termin)
+                  if zeitpunkt > jetzt_utc), default=None)
     alarm_minuten = [minuten for termin in (daten or {}).get("termine") or []
                      if isinstance(termin, dict)
                      for minuten, _related, _absolut in _strukturierte_alarme(termin)
@@ -8807,7 +8877,7 @@ def naechster_weckzeitpunkt(daten, jetzt, vorlauf=15, fehler=None):
             return
         kennung = _termin_erinnerungskennung(termin)
         for _marke, weckzeit, _tage, _basis, _alte_marken in _termin_meldungen(
-                termin, kennung, beginn, vorlauf, absolut_rechnen=True, legacy=False):
+                termin, kennung, beginn, vorlauf, absolut_rechnen=True, legacy=False, feste_alarme=False):
             if weckzeit <= jetzt_utc:
                 continue
             if bester is None or weckzeit < bester:
@@ -8878,7 +8948,9 @@ def naechster_weckzeitpunkt(daten, jetzt, vorlauf=15, fehler=None):
                 tage.add(tag)
         for tag in tage:
             pruefen(_serieninstanz(termin, tag))
-    return bester.astimezone(_organizer_zeitzone()).replace(tzinfo=None) if bester is not None else None
+    if bester is None or als_instant:
+        return bester
+    return bester.astimezone(_organizer_zeitzone()).replace(tzinfo=None)
 
 
 def _jahrestag_im_jahr(jahrestag, jahr):
@@ -8979,6 +9051,20 @@ def faellige_jahrestage(daten, jetzt, ergebnis=None, tage_vorher=0,
     return ergebnis
 
 
+def _alter_fester_aufgabenalarm(aufgabe, instant, gemeldet):
+    lokal = _alte_alarmminute(instant) if gemeldet else None
+    if lokal is None:
+        return None
+    lokaltext = lokal.strftime("%Y-%m-%d %H:%M")
+    direkt = re.escape(str(aufgabe.get("id") or "?"))
+    serie = re.escape(_termin_erinnerungskennung(aufgabe))
+    vorkommen = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:[+-]\d{2}:\d{2})?"
+    alter_schluessel = re.compile(
+        rf"af-(?:{direkt}|{serie}@{vorkommen})-\d{{4}}-\d{{2}}-\d{{2}}-\d{{4}}"
+        rf"(?:-second-\d{{2}})?(?:-utc-\d{{14}})?-alarm-(?:START|END)-{re.escape(lokaltext)}")
+    return next((marke for marke in gemeldet if alter_schluessel.fullmatch(marke)), None)
+
+
 def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
     """Sucht Aufgaben, an die am Fälligkeitstag oder vorher zu erinnern ist.
 
@@ -8992,12 +9078,49 @@ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
                             "zustand": {"gemeldet": {}, "letzter_lauf": ""}}
     gemeldet = ergebnis["zustand"].setdefault("gemeldet", {})
 
+    def melden(aufgabe, datum, faelligkeit, meldungen):
+        for marke, zeitpunkt, tage_vorher, alte_marke in meldungen:
+            if marke not in gemeldet and alte_marke in gemeldet:
+                gemeldet[marke] = gemeldet[alte_marke]
+            if marke in gemeldet or jetzt_utc < zeitpunkt:
+                continue
+            if jetzt_utc > zeitpunkt + timedelta(hours=72):
+                gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
+                continue
+            wer = ", ".join(n for n in (aufgabe.get("personenNamen") or []) if n)
+            verpasst = jetzt_utc > zeitpunkt + timedelta(hours=14)
+            if verpasst and not verpasste:
+                gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
+                continue
+            eintrag = {
+                "id": marke, "aufgabe": True,
+                "kopf": _("Task reminder") if tage_vorher else _("Task is due"),
+                "titel": aufgabe.get("titel") or _("Task"),
+                "wer": wer, "individuelleTage": tage_vorher,
+                "datum": datum, "zeit": faelligkeit.strftime("%H:%M:%S" if faelligkeit.second else "%H:%M"),
+                "verpasst": verpasst,
+                "beginn": zeitpunkt.astimezone(_organizer_zeitzone()).strftime("%Y-%m-%d %H:%M")}
+            ergebnis["verpasst" if verpasst else "faellig"].append(eintrag)
+            gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
+
     aufgaben = []
     for aufgabe in _ics_serien_abstimmen((daten or {}).get("aufgaben") or []):
         if not isinstance(aufgabe, dict) or aufgabe.get("erledigt"):
             continue
         try:
-            alarms = _strukturierte_alarme(aufgabe)
+            for instant in _feste_alarmzeiten(aufgabe):
+                if not timedelta(0) <= jetzt_utc - instant <= timedelta(hours=72):
+                    continue
+                faelligkeit = _termin_zeitpunkt({"datum": aufgabe.get("faellig"),
+                                                "zeit": aufgabe.get("faelligZeit")}, stunde)
+                faelligkeit = faelligkeit or instant.astimezone(_organizer_zeitzone())
+                marke = "af-%s-alarm-absolut-%s" % (
+                    _termin_erinnerungskennung(aufgabe), instant.isoformat(timespec="seconds"))
+                if marke in gemeldet:
+                    continue
+                alte_marke = _alter_fester_aufgabenalarm(aufgabe, instant, gemeldet)
+                melden(aufgabe, faelligkeit.date().isoformat(), faelligkeit, [(marke, instant, 0, alte_marke)])
+            alarms = [alarm for alarm in _strukturierte_alarme(aufgabe) if alarm[0] is not None]
             if not aufgabe.get("erinnern") and not _erinnerung_tage(aufgabe.get("individuelleErinnerungTage")) and not alarms:
                 continue
             start = aufgabe.get("startDatum") or aufgabe.get("faellig")
@@ -9015,7 +9138,7 @@ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
         if not isinstance(aufgabe, dict):
             continue
         tage = _erinnerung_tage(aufgabe.get("individuelleErinnerungTage"))
-        alarms = _strukturierte_alarme(aufgabe)
+        alarms = [alarm for alarm in _strukturierte_alarme(aufgabe) if alarm[0] is not None]
         if not aufgabe.get("erinnern") and not 1 <= tage <= 7 and not alarms:
             continue
         if aufgabe.get("erledigt"):
@@ -9050,41 +9173,16 @@ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
             meldungen.append((basis_marke + "-vorher-%d" % tage,
                               _erinnerungs_instant(faelligkeit - timedelta(days=tage)), tage,
                               alte_basis_marke + "-vorher-%d" % tage))
-        for minutes, related, absolute in alarms:
+        for minutes, related, _absolute in alarms:
             basis = faelligkeit if related == "END" else _termin_zeitpunkt({
                 "datum": aufgabe.get("startDatum") or datum, "zeit": aufgabe.get("startZeit") or ""}, stunde)
-            if absolute:
-                trigger = _erinnerungs_instant(datetime.fromisoformat(absolute.replace(" ", "T")))
-            elif basis is not None and minutes is not None:
-                trigger = _erinnerungs_instant(basis, aufgabe, "icsEndUtc" if related == "END" else "icsStartUtc") - timedelta(minutes=minutes)
-            else:
+            if basis is None:
                 continue
+            trigger = _erinnerungs_instant(basis, aufgabe, "icsEndUtc" if related == "END" else "icsStartUtc") - timedelta(minutes=minutes)
             if not any(value[1] == trigger for value in meldungen):
-                mark = basis_marke + "-alarm-%s-%s" % (related, minutes if minutes is not None else absolute)
+                mark = basis_marke + "-alarm-%s-%s" % (related, minutes)
                 meldungen.append((mark, trigger, 0, mark))
-        for marke, zeitpunkt, tage_vorher, alte_marke in meldungen:
-            if marke not in gemeldet and alte_marke in gemeldet:
-                gemeldet[marke] = gemeldet[alte_marke]
-            if marke in gemeldet or jetzt_utc < zeitpunkt:
-                continue
-            if jetzt_utc > zeitpunkt + timedelta(hours=72):
-                gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
-                continue
-            wer = ", ".join(n for n in (aufgabe.get("personenNamen") or []) if n)
-            verpasst = jetzt_utc > zeitpunkt + timedelta(hours=14)
-            if verpasst and not verpasste:
-                gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
-                continue
-            eintrag = {
-                "id": marke, "aufgabe": True,
-                "kopf": _("Task reminder") if tage_vorher else _("Task is due"),
-                "titel": aufgabe.get("titel") or _("Task"),
-                "wer": wer, "individuelleTage": tage_vorher,
-                "datum": datum, "zeit": faelligkeit.strftime("%H:%M:%S" if faelligkeit.second else "%H:%M"),
-                "verpasst": verpasst,
-                "beginn": zeitpunkt.astimezone(_organizer_zeitzone()).strftime("%Y-%m-%d %H:%M")}
-            ergebnis["verpasst" if verpasst else "faellig"].append(eintrag)
-            gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
+        melden(aufgabe, datum, faelligkeit, meldungen)
     return ergebnis
 
 
@@ -9496,18 +9594,19 @@ def erinnerungsdienst_einrichten(an, ordner=None, laufer=None,
 
 def weckruf_befehl(zeitpunkt, programm=None):
     """Baut den Befehl, der den Rechner zur genannten Zeit aufwecken soll."""
-    # Eine Wandzeit in der Frühlingslücke wird auf den ersten realen Zeitpunkt
-    # danach verschoben. Bei der doppelten Herbststunde gilt bewusst fold=0;
-    # die persistente Meldemarke verhindert eine zweite Zustellung.
-    try:
-        zone_objekt = _organizer_zeitzone()
-        eindeutig = zeitpunkt.replace(tzinfo=zone_objekt, fold=0)
-        zeitpunkt = eindeutig.astimezone(timezone.utc).astimezone(
-            zone_objekt).replace(tzinfo=None)
-    except (AttributeError, OverflowError, ValueError):
-        pass
+    if zeitpunkt.tzinfo is not None:
+        zeitpunkt, zone = zeitpunkt.astimezone(timezone.utc), "UTC"
+    else:
+        # Eine vom Aufrufer gelieferte Wandzeit behält die bisherigen Regeln.
+        try:
+            zone_objekt = _organizer_zeitzone()
+            eindeutig = zeitpunkt.replace(tzinfo=zone_objekt, fold=0)
+            zeitpunkt = eindeutig.astimezone(timezone.utc).astimezone(
+                zone_objekt).replace(tzinfo=None)
+        except (AttributeError, OverflowError, ValueError):
+            pass
+        zone = _zeitzonenname()
     kalenderzeit = zeitpunkt.strftime("%Y-%m-%d %H:%M:%S")
-    zone = _zeitzonenname()
     if zone:
         kalenderzeit += " " + zone
     return ["systemd-run", "--user",
@@ -10656,7 +10755,7 @@ def erinnerungslauf(jetzt=None, als_wecker=False):
         try:
             weckruf_stellen(naechster_weckzeitpunkt(
                 daten, jetzt, _erinnerung_vorlauf(wecker.get("vorlauf")),
-                fehler=ergebnis.setdefault("recurrenceErrors", [])))
+                fehler=ergebnis.setdefault("recurrenceErrors", []), als_instant=True))
         except (ValueError, KeyError, TypeError, OverflowError, RuntimeError, StopIteration) as error:
             ergebnis.setdefault("recurrenceErrors", []).append({"id": "wake", "error": str(error), "retryable": bool(getattr(error, "retryable", False))})
     errors = ergebnis.get("recurrenceErrors", [])
@@ -24362,7 +24461,7 @@ class Fenster(_FENSTER_BASIS):
             if an and nachricht.get("wecken"):
                 ergebnis["weckruf"] = weckruf_stellen(naechster_weckzeitpunkt(
                     {"termine": nachricht.get("termine") or []}, _organizer_jetzt(),
-                    _erinnerung_vorlauf(nachricht.get("vorlauf"))))
+                    _erinnerung_vorlauf(nachricht.get("vorlauf")), als_instant=True))
         except Exception:
             if not request_id:
                 raise

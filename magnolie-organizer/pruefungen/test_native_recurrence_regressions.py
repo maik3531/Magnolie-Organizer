@@ -1,5 +1,6 @@
 """Positive regressions for the independently reviewed native scheduling paths."""
-from datetime import datetime, timezone
+import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -19,6 +20,117 @@ def imported(lines, task=False):
     for item in data['aufgaben' if task else 'termine']:
         item['id'] = item['uid']
     return data
+
+
+@pytest.mark.parametrize("background", [False, True])
+@pytest.mark.parametrize("task", [False, True])
+@pytest.mark.parametrize("mode", ["absolute", "series-outside-window", "relative-start", "relative-end"])
+def test_ics_display_trigger_time_and_replay(mode, task, background):
+    trigger = {
+        "absolute": "TRIGGER;VALUE=DATE-TIME:20261127T103017Z",
+        "series-outside-window": "TRIGGER;VALUE=DATE-TIME:20261127T103017Z",
+        "relative-start": "TRIGGER:-PT2H",
+        "relative-end": "TRIGGER;RELATED=END:-PT3H",
+    }[mode]
+    day = "20260801" if mode == "series-outside-window" else (
+        "20261127" if mode.startswith("relative") else "20261129")
+    recurrence = "\nRRULE:FREQ=DAILY;COUNT=4" if mode == "series-outside-window" else ""
+    data = imported(f"DTSTART:{day}T123017Z\nDURATION:PT1H{recurrence}\n"
+                    f"BEGIN:VALARM\nACTION:DISPLAY\n{trigger}\nEND:VALARM", task=task)
+    data["einstellungen"] = {"sicherheit": {"erinnernTrotzKennwort": True}}
+    if background:
+        data = m.erinnerungsdaten_auswaehlen(data)
+
+    def run(when, state=None):
+        if task:
+            return m.faellige_aufgaben(data, when, {"faellig": [], "verpasst": [],
+                                                    "zustand": state or {"gemeldet": {}}})
+        return m.faellige_erinnerungen(data, when, state or {}, vorlauf=0)
+
+    now = datetime(2026, 11, 27, 10, 30, 17, tzinfo=timezone.utc)
+    early = run(now - timedelta(seconds=1))
+    assert not early["faellig"] and not early["verpasst"]
+    due = run(now)
+    assert len(due["faellig"]) == 1 and not due.get("recurrenceErrors")
+    restored = json.loads(json.dumps(due["zustand"]))
+    again = run(now + timedelta(minutes=1), restored)
+    assert not again["faellig"] and not again["verpasst"]
+    if not task:
+        assert m.naechster_weckzeitpunkt(data, now - timedelta(seconds=1), vorlauf=0) == now.replace(tzinfo=None)
+
+
+@pytest.mark.parametrize("task", [False, True])
+def test_absolute_alarm_identity_survives_projection_and_zone_change(task, monkeypatch):
+    start = datetime(2026, 10, 25, 0, 15, 7, tzinfo=timezone.utc)
+    end = start.replace(second=41)
+    alarms = "".join(
+        "\nBEGIN:VALARM\nACTION:DISPLAY\nTRIGGER;VALUE=DATE-TIME:" +
+        instant.strftime("%Y%m%dT%H%M%SZ") + "\nEND:VALARM"
+        for instant in (start, start, end))
+    data = imported("DTSTART:20261201T100000Z\nDURATION:PT1H" + alarms, task=task)
+    data["einstellungen"] = {"sicherheit": {"erinnernTrotzKennwort": True}}
+    monkeypatch.setitem(m._REGIONAL, "timeZone", "Europe/Berlin")
+    projected = m.erinnerungsdaten_auswaehlen(data)
+
+    def run(source, now, state=None):
+        if task:
+            return m.faellige_aufgaben(source, now, {"faellig": [], "verpasst": [],
+                                                      "zustand": state or {"gemeldet": {}}})
+        return m.faellige_erinnerungen(source, now, state or {}, vorlauf=0)
+
+    first = run(projected, start)
+    assert len(first["faellig"]) == 1
+    monkeypatch.setitem(m._REGIONAL, "timeZone", "UTC")
+    second = run(data, end, first["zustand"])
+    assert len(second["faellig"]) == 1
+    assert second["faellig"][0]["id"] != first["faellig"][0]["id"]
+
+
+@pytest.mark.parametrize("task,kind", [
+    (False, "cancelled"), (False, "confidential"), (False, "invalid"), (False, "email"),
+    (True, "cancelled"), (True, "completed"), (True, "confidential"), (True, "invalid"), (True, "email"),
+])
+def test_absolute_alarm_respects_exclusions(task, kind):
+    status = {"cancelled": "\nSTATUS:CANCELLED", "completed": "\nSTATUS:COMPLETED"}.get(kind, "")
+    trigger = "20261127T103017" + ("" if kind == "invalid" else "Z")
+    action = "EMAIL" if kind == "email" else "DISPLAY"
+    data = imported(f"DTSTART:20261129T120000Z\nDURATION:PT1H{status}\n"
+                    f"BEGIN:VALARM\nACTION:{action}\nTRIGGER;VALUE=DATE-TIME:{trigger}\nEND:VALARM", task=task)
+    data["einstellungen"] = {"sicherheit": {"erinnernTrotzKennwort": True}}
+    if kind == "confidential":
+        data["aufgaben" if task else "termine"][0]["vertraulich"] = True
+    selected = m.erinnerungsdaten_auswaehlen(data)
+    now = datetime(2026, 11, 27, 10, 30, 17, tzinfo=timezone.utc)
+    for source in (selected,) if kind == "confidential" else (data, selected):
+        result = m.faellige_aufgaben(source, now) if task else m.faellige_erinnerungen(source, now, {}, vorlauf=0)
+        assert not result["faellig"] and not result["verpasst"]
+
+
+def test_absolute_alarm_on_undated_task_schedules_a_wakeup():
+    data = imported("BEGIN:VALARM\nACTION:DISPLAY\nTRIGGER;VALUE=DATE-TIME:20261127T103017Z\nEND:VALARM",
+                    task=True)
+    now = datetime(2026, 11, 27, 10, 30, 17, tzinfo=timezone.utc)
+    assert len(m.faellige_aufgaben(data, now)["faellig"]) == 1
+    assert m.naechster_weckzeitpunkt(data, now - timedelta(seconds=1), als_instant=True) == now
+    data["einstellungen"] = {"erinnerung": {"aufgaben": False}}
+    assert m.naechster_weckzeitpunkt(data, now - timedelta(seconds=1), als_instant=True) is None
+
+
+@pytest.mark.parametrize("task", [False, True])
+def test_absolute_alarm_upgrades_legacy_minute_without_consuming_new_seconds(task):
+    alarms = "\n".join(
+        f"BEGIN:VALARM\nACTION:DISPLAY\nTRIGGER;VALUE=DATE-TIME:20261127T1030{second}Z\nEND:VALARM"
+        for second in ("00", "17"))
+    data = imported("DTSTART:20261129T123000Z\nDURATION:PT1H\n" + alarms, task=task)
+    old_key = ("af-fixture@2026-11-29T12:30:00+00:00-2026-11-29-1330-alarm-START-2026-11-27 10:30" if task
+               else "fixture@202611291230:v2:alarm-absolut-202611271030")
+    state = {"gemeldet": {old_key: "2026-11-27 10:30"}}
+    now = datetime(2026, 11, 27, 10, 30, 17, tzinfo=timezone.utc)
+    result = (m.faellige_aufgaben(data, now, {"faellig": [], "verpasst": [], "zustand": state}) if task
+              else m.faellige_erinnerungen(data, now, state, vorlauf=0))
+    assert len(result["faellig"]) == 1
+    assert "10:30:17+00:00" in result["faellig"][0]["id"]
+    assert any("10:30:00+00:00" in key for key in result["zustand"]["gemeldet"])
 
 
 def test_fold_and_gap_reminder_instants(monkeypatch):

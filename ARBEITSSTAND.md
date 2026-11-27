@@ -103,6 +103,12 @@ aufgeführt.
   Provider- oder Startfehlern die vorhandene Meldung. Fünf gezielte
   Robolectric-Fälle und 24 benachbarte Tests bestanden; die native
   Geräteabnahme gehört zum Gesamtrelease.
+- [#835](https://github.com/maik3531/Magnolie-Organizer/issues/835):
+  Linux und Windows planen absolute ICS-Erinnerungen einmal pro
+  UTC-Auslösezeitpunkt, auch außerhalb des Serienfensters. Sekunden,
+  Neustart und geschützte Projektion sind geprüft. 209 Linux-Fälle,
+  der vollständige Parserlauf und vier Gruppen aus dem nativen
+  Windows-Quellarchiv bestanden. Die Port-Fortsetzung steht in #839.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal

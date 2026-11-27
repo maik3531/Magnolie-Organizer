@@ -217,11 +217,12 @@ internal sealed class ReminderScheduler : IDisposable
             if (appointmentExcluded(item)) continue;
             if (!TryStart(item, out var first)) continue;
             var duration = TryEnd(item, first, out var firstEnd) && firstEnd >= first ? firstEnd - first : TimeSpan.Zero;
-            var alarms = AppointmentAlarms(item);
+            var (alarms, absolute) = AppointmentAlarms(item);
             var maximumLead = alarms.Count == 0 ? 0 : alarms.Max(alarm => alarm.OffsetMinutes);
             var maximumLag = alarms.Count == 0 ? 0 : Math.Max(0, -alarms.Min(alarm => alarm.OffsetMinutes));
             var id = Identity(item);
             if (id.Length == 0) id = $"{Text(item, "datum")}|{Text(item, "zeit")}|{Text(item, "titel")}";
+            AddAbsoluteDue(result, item, id, first, absolute, nowUtc, includeMissed, zone, allDay, Text(item, "zeit").Length == 0);
             var lookback = duration + TimeSpan.FromDays(5) + TimeSpan.FromMinutes(maximumLag);
             var lower = lookback.Ticks <= nowUtc.Ticks ? nowUtc.Subtract(lookback) : DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc);
             var occurrences = ExpandForReminders(item, lower, nowUtc.AddMinutes(Math.Max(8 * 1440, maximumLead)), zone, false, alarms.Any(alarm => alarm.Related == "END"), errors);
@@ -382,10 +383,18 @@ internal sealed class ReminderScheduler : IDisposable
         foreach (var task in tasks.EnumerateArray())
         {
             if (True(task, "erledigt")) continue;
-            var alarms = AppointmentAlarms(task);
+            var (alarms, absolute) = AppointmentAlarms(task);
             var days = Math.Clamp(Number(task, "individuelleErinnerungTage", 0), 0, 7);
-            if (!True(task, "erinnern") && days == 0 && alarms.Count == 0) continue;
             var id = Identity(task); if (id.Length == 0) id = Text(task, "titel") + "|" + Text(task, "faellig");
+            var taskId = "aufgabe:" + id;
+            if (absolute.Count > 0)
+            {
+                var dueTime = Text(task, "faelligZeit");
+                DateTime? taskDue = DateTime.TryParseExact(Text(task, "faellig") + " " + dueTime, ["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-dd "],
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out var dueDate) ? dueDate : null;
+                AddAbsoluteDue(result, task, taskId, taskDue, absolute, nowUtc, includeMissed, zone, allDay, dueTime.Length == 0 && taskDue.HasValue);
+            }
+            if (!True(task, "erinnern") && days == 0 && alarms.Count == 0) continue;
             var span = DateTime.TryParseExact(Text(task, "startDatum"), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDay) &&
                 DateTime.TryParseExact(Text(task, "faellig"), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dueDay) ? Math.Max(0, (dueDay - startDay).TotalDays) : 0;
             var lead = Math.Max(8 * 1440, alarms.Count == 0 ? 0 : alarms.Max(alarm => alarm.OffsetMinutes));
@@ -399,13 +408,13 @@ internal sealed class ReminderScheduler : IDisposable
                 var due = Text(task, "faelligZeit").Length == 0 && occurrence.AllDay ? occurrence.End.Date.AddHours(8) : occurrence.End;
                 var scheduledDue = occurrence.AllDay ? CalendarRecurrence.ToUtc(due, zone) : occurrence.EndUtc;
                 if (True(task, "erinnern") || days > 0)
-                    AddDue(result, "aufgabe:" + id, days > 0 ? "individuell" : "faellig", due, due.AddDays(-days), now, includeMissed, zone: zone,
+                    AddDue(result, taskId, days > 0 ? "individuell" : "faellig", due, due.AddDays(-days), now, includeMissed, zone: zone,
                         dueUtc: days == 0 ? scheduledDue : CalendarRecurrence.ToUtc(due.AddDays(-days), zone), endUtc: scheduledDue, occurrenceUtc: scheduledDue);
                 foreach (var alarm in alarms)
                 {
                     var basis = alarm.Related == "END" ? occurrence.EndUtc : occurrence.StartUtc;
                     var trigger = basis.AddMinutes(-alarm.OffsetMinutes);
-                    AddDue(result, "aufgabe:" + id, $"alarm-{alarm.Related.ToLowerInvariant()}-{alarm.OffsetMinutes}", due,
+                    AddDue(result, taskId, $"alarm-{alarm.Related.ToLowerInvariant()}-{alarm.OffsetMinutes}", due,
                         CalendarRecurrence.FromUtc(trigger, zone), now, includeMissed, zone: zone, dueUtc: trigger,
                         endUtc: basis > trigger ? basis : trigger, occurrenceUtc: occurrence.EndUtc);
                 }
@@ -504,6 +513,25 @@ internal sealed class ReminderScheduler : IDisposable
         result.Add(($"{id}@{stamp}:{mode}", start, due));
     }
 
+    private static void AddAbsoluteDue(List<(string Key, DateTime Start, DateTime Due)> result, JsonElement item,
+        string id, DateTime? calendarTime, IReadOnlyList<DateTime> triggers, DateTime nowUtc, bool includeMissed,
+        CalendarRecurrence.SourceZone zone, Dictionary<string, bool>? allDay, bool isAllDay)
+    {
+        if (triggers.Count == 0 || Text(item, "icsStatus").Equals("CANCELLED", StringComparison.OrdinalIgnoreCase) ||
+            CalendarRecurrence.Properties(item).Any(property => property.Name == "STATUS" &&
+                property.Value.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase))) return;
+        foreach (var trigger in triggers)
+        {
+            var age = nowUtc - trigger;
+            if (age < TimeSpan.Zero || age > TimeSpan.FromHours(72) || !includeMissed && age > TimeSpan.FromMinutes(5))
+                continue;
+            var due = CalendarRecurrence.FromUtc(trigger, zone);
+            var key = $"{id}@{trigger.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture)}:alarm-absolute";
+            result.Add((key, calendarTime ?? due, due));
+            if (allDay is not null) allDay[key] = isAllDay;
+        }
+    }
+
     private static bool TryStart(JsonElement item, out DateTime start)
     {
         start = default;
@@ -530,9 +558,11 @@ internal sealed class ReminderScheduler : IDisposable
         return true;
     }
 
-    private static IReadOnlyList<(int OffsetMinutes, string Related)> AppointmentAlarms(JsonElement item)
+    private static (IReadOnlyList<(int OffsetMinutes, string Related)> Relative, IReadOnlyList<DateTime> Absolute)
+        AppointmentAlarms(JsonElement item)
     {
         var result = new List<(int, string)>();
+        var absolute = new HashSet<DateTime>();
         if (item.TryGetProperty("alarme", out var values) && values.ValueKind == JsonValueKind.Array)
         foreach (var alarm in values.EnumerateArray().Take(32))
         {
@@ -556,13 +586,23 @@ internal sealed class ReminderScheduler : IDisposable
                 else if (inAlarm && property.Name == "TRIGGER") trigger = property;
                 else if (inAlarm && property.Name == "END" && property.Value == "VALARM")
                 {
-                    if (display && trigger is { } alarmTrigger && TryAlarmOffset(alarmTrigger.Value, out var offset))
-                        result.Add((offset, alarmTrigger.Parameter("RELATED") == "END" ? "END" : "START"));
+                    if (display && trigger is { } alarmTrigger)
+                    {
+                        if (alarmTrigger.Parameter("VALUE").Equals("DATE-TIME", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (alarmTrigger.Parameter("TZID").Length == 0 && alarmTrigger.Parameter("RELATED").Length == 0 &&
+                                DateTime.TryParseExact(alarmTrigger.Value, "yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture,
+                                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var instant))
+                                absolute.Add(instant);
+                        }
+                        else if (TryAlarmOffset(alarmTrigger.Value, out var offset))
+                            result.Add((offset, alarmTrigger.Parameter("RELATED") == "END" ? "END" : "START"));
+                    }
                     inAlarm = false;
                 }
             }
         }
-        return result.Distinct().ToArray();
+        return (result.Distinct().ToArray(), absolute.Order().ToArray());
     }
 
     private static bool TryAlarmOffset(string value, out int minutes)

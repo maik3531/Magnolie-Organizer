@@ -1,7 +1,7 @@
 import importlib.machinery
 import importlib.util
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -94,7 +94,8 @@ def test_direktsuche_gleicht_vollmaterialisierte_referenz(jetzt, vorlauf):
         vollmaterialisierte_referenz(daten, jetzt, vorlauf)
 
 
-def test_zeitzone_rdate_exdate_und_absolute_alarme_bleiben_erhalten():
+def test_zeitzone_rdate_exdate_und_absolute_alarme_bleiben_erhalten(monkeypatch):
+    monkeypatch.setitem(m._REGIONAL, "timeZone", "Europe/Berlin")
     ics = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
            "UID:tz-serie\r\nDTSTART;TZID=Europe/Berlin:20261024T093000\r\n"
            "DTEND;TZID=Europe/Berlin:20261024T103000\r\n"
@@ -107,8 +108,13 @@ def test_zeitzone_rdate_exdate_und_absolute_alarme_bleiben_erhalten():
            "END:VEVENT\r\nEND:VCALENDAR\r\n")
     daten = m.ics_lesen(ics)
     jetzt = datetime(2026, 10, 25, 1, 0)
-    assert m.naechster_weckzeitpunkt(daten, jetzt) == \
-        vollmaterialisierte_referenz(daten, jetzt)
+    ohne_absolut = {"termine": daten["termine"][:1]}
+    assert m.naechster_weckzeitpunkt(ohne_absolut, jetzt) == \
+        vollmaterialisierte_referenz(ohne_absolut, jetzt)
+    instant = m.naechster_weckzeitpunkt(daten, jetzt, als_instant=True)
+    assert instant == datetime(2026, 10, 25, 1, 15, tzinfo=timezone.utc)
+    assert m.naechster_weckzeitpunkt(daten, jetzt).fold == 1
+    assert "--on-calendar=2026-10-25 01:15:00 UTC" in m.weckruf_befehl(instant)
 
 
 def test_strikte_jetzt_und_seriengrenzen_stimmen_mit_referenz_ueberein():

@@ -360,6 +360,7 @@ runner.Add("Microsoft device-code sign-in / persistence / cancellation", GraphDe
 runner.Add("Reminder / Serien", ContractGroupTests.RemindersAsync);
 runner.Add("Cycle calendar / explicit markers and optional forecasts", CycleCalendarTests.RunAsync);
 runner.Add("Reminder / Neustart / Kennwort / DST", ReminderPersistenceTests.RunAsync);
+runner.Add("Reminder / exact absolute calendar triggers", AbsoluteCalendarAlarmTests.RunAsync);
 runner.Add("Anniversary reminder / text / independent dismissal", AnniversaryReminderTests.RunAsync);
 runner.Add("Tray-Persistenz / Autostart", ContractGroupTests.TrayAsync);
 runner.Add("Wetterstandort / LibreOffice / Datenschutz", WeatherLocationTests.RunAsync);
