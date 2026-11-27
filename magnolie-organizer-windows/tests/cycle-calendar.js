@@ -5,6 +5,11 @@ for (const web of require("./web-test-roots")) {
   const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {
     url: "https://app.magnolie.invalid/", runScripts: "outside-only", pretendToBeVisual: true });
   const w = dom.window;
+  const RealDate = w.Date;
+  w.Date = class extends RealDate {
+    constructor(...args) { super(...(args.length ? args : ["2026-04-10T12:00:00Z"])); }
+    static now() { return +new RealDate("2026-04-10T12:00:00Z"); }
+  };
   w.setTimeout = w.setInterval = () => 0;
   w.__MAGNOLIE_BRUECKE__ = "test"; w.webkit = { messageHandlers: { test: { postMessage() {} } } };
   try {

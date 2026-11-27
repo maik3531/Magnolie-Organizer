@@ -9903,3 +9903,273 @@ msgstr "出生日期保存在此联系人中；不会创建日历条目。"
 #. Contact-only birthday copied from macOS (#776); no automatic annual entry.
 msgid "Please enter a valid birth date."
 msgstr "请输入有效的出生日期。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Show period forecast in calendar"
+msgstr "在日历中显示月经预测"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Notify before the estimated period"
+msgstr "在预计月经来临前提醒"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Period forecast (estimate)"
+msgstr "月经预测（估计）"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Estimated start: %(date)s"
+msgstr "预计开始日期：%(date)s"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Estimated window: %(from)s – %(to)s"
+msgstr "预计日期范围：%(from)s – %(to)s"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Basis: %(count)s recorded intervals; typical interval %(days)s days."
+msgstr "依据：%(count)s 个已记录的间隔；通常间隔为 %(days)s 天。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Not enough recent data for a personal estimate."
+msgstr "近期数据不足，无法进行个人化估计。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "An interval outside 14–60 days interrupts the estimate. Check the entries."
+msgstr "间隔超出14–60天，导致估计中断。请检查记录。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Future bleeding entries are not used: %(count)s."
+msgstr "不使用未来日期的出血记录：%(count)s 条。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The estimated window ended %(days)s days ago. No new start is recorded; check for missing entries."
+msgstr "预计日期范围已于 %(days)s 天前结束。尚未记录新的开始日期，请检查是否有遗漏的记录。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The latest recorded interval is %(days)s days; the earlier typical interval was %(baseline)s days."
+msgstr "最近记录的间隔为 %(days)s 天；此前通常的间隔为 %(baseline)s 天。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The recorded intervals vary by %(days)s days. The estimate is uncertain."
+msgstr "记录的间隔相差 %(days)s 天，估计存在不确定性。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The records are too old for current planning. Check or add entries."
+msgstr "记录过旧，无法用于当前规划。请检查或补充记录。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Bleeding is recorded on %(days)s consecutive days in the latest episode. If it actually lasts this long, seek medical advice."
+msgstr "最近一次出血期间连续 %(days)s 天有出血记录。如果实际持续了这么久，请咨询医生。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Recorded bleeding overlaps the estimated window. Check the entries."
+msgstr "已记录的出血与预计日期范围重叠。请检查记录。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "No estimate is possible at the edge of the supported calendar range."
+msgstr "在受支持的日历日期范围边界处，无法进行估计。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Estimate from your entries, not a diagnosis or contraception method. Seek medical advice for new, persistent or distressing changes."
+msgstr "这是基于您的记录作出的估计，不是诊断，也不能作为避孕方法。如有新出现、持续或令人困扰的变化，请咨询医生。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Calculated from at least three starts. Bleeding entries up to three days apart form one episode. After an interval outside 14–60 days, two new intervals are needed. The window spans the shortest and longest of up to twelve recent intervals, plus two days on either side."
+msgstr "计算需要至少三次月经开始日期。日期相隔不超过三天的出血记录会合并为同一次出血。间隔超出14–60天后，需要两个新的间隔才能继续估计。预计范围涵盖最近最多十二个间隔中的最短值和最长值，并在两端各增加两天。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Details and limitations"
+msgstr "详情与局限"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Estimated start window"
+msgstr "预计开始日期范围"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Earlier estimate: %(date)s"
+msgstr "此前的估计：%(date)s"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Calendar display and reminders can be enabled separately. Existing entries are preserved."
+msgstr "日历显示和提醒可以分别启用。现有记录将保留。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Record actual bleeding on %(date)s?"
+msgstr "记录 %(date)s 的实际出血情况？"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Choose the observed bleeding intensity, then confirm this day only."
+msgstr "选择观察到的出血量，然后仅确认这一天。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Confirm bleeding"
+msgstr "确认出血"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "This is a future estimate. Only today or a past day can be confirmed."
+msgstr "这是未来的估计。只能确认今天或过去的日期。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pale drops mark possible start days, not a predicted bleeding duration. Active predictions disappear after the estimated window if unconfirmed. Only days you confirm as actual bleeding enter future calculations."
+msgstr "浅色水滴标记可能的开始日期，并非预测出血持续时间。若未确认，当前有效的预测会在预计日期范围结束后消失。只有您确认为实际出血的日期才会用于后续计算。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Bleeding intensity"
+msgstr "出血量"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Confirm bleeding on %(date)s"
+msgstr "确认 %(date)s 的出血"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pause period predictions"
+msgstr "暂停经期预测"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Reason for the pause"
+msgstr "暂停原因"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pregnancy"
+msgstr "怀孕"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Breastfeeding"
+msgstr "哺乳"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Medication or hormonal treatment"
+msgstr "用药或激素治疗"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Perimenopause or menopause"
+msgstr "围绝经期或绝经"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Other known reason"
+msgstr "其他已知原因"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pause until (inclusive)"
+msgstr "暂停至（包含当天）"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "No fixed end date"
+msgstr "不设固定结束日期"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Nine calendar months is only an editable planning pause, not a due date."
+msgstr "九个日历月仅是可修改的计划暂停时长，不是预产期。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The reason is self-reported. During the pause, estimates and cycle-deviation reminders are suppressed. Existing entries are retained."
+msgstr "原因由您自行填写。暂停期间不显示估计结果，也不发出月经周期偏差提醒。现有记录会保留。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Save pause"
+msgstr "保存暂停设置"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "End pause"
+msgstr "结束暂停"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Period predictions paused: %(reason)s; until %(date)s."
+msgstr "经期预测已暂停：%(reason)s；至 %(date)s（包含当天）。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Period predictions paused: %(reason)s; no fixed end date."
+msgstr "经期预测已暂停：%(reason)s；不设固定结束日期。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The pause has ended. A new estimate needs three newly recorded starts; earlier intervals are not reused."
+msgstr "暂停已结束。重新估计需要新记录的三次开始日期，不会重复使用之前的间隔。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Change pause"
+msgstr "修改暂停设置"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Add a reason or pause predictions"
+msgstr "添加原因或暂停预测"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Enter an end date on or after the start of the pause."
+msgstr "请输入不早于暂停开始日期的结束日期。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Bleeding during pregnancy or after menopause should be medically assessed. Record it as a new period only if that is how it has been identified."
+msgstr "怀孕期间或绝经后的出血应由医务人员评估。只有在被确定为一次新月经时，才将其记录为新月经。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "A newly recorded period ends this planning pause. This does not determine whether pregnancy or menopause has ended."
+msgstr "记录一次新月经将结束此计划暂停。这并不能判断怀孕或绝经是否已经结束。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pause started: %(date)s."
+msgstr "暂停开始日期：%(date)s。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Bleeding recorded. Is this a new period that should end the planning pause?"
+msgstr "已记录出血。这是否是一次新的月经，需要结束计划暂停？"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Confirm new period"
+msgstr "确认新月经"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Keep pause"
+msgstr "保持暂停"

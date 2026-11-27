@@ -179,6 +179,7 @@
     <Compile Include="..\DeviceFileSavedEnvelope.cs" Link="DeviceFileSavedEnvelope.cs" />
     <Compile Include="..\PhotoDestinationPaths.cs" Link="PhotoDestinationPaths.cs" />
     <Compile Remove="callstate\**\*.cs" />
+    <Compile Remove="cycle-forecast\**\*.cs" />
     <Compile Remove="notification-uninstall\**\*.cs" />
     <Compile Remove="kde-media-native\**\*.cs" />
     <Compile Include="..\TelefonCallActions.cs" Link="TelefonCallActions.cs" />

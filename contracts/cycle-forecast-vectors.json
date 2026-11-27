@@ -1,0 +1,3918 @@
+{
+  "version": 1,
+  "description": "Synthetic calendar-day cases; expected values specify independent behavioral checks, not clinical validation.",
+  "cases": [
+    {
+      "name": "empty",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": []
+      },
+      "expected": {
+        "predicted": null,
+        "starts": [],
+        "length": null,
+        "reason": "insufficient",
+        "recordedRun": 0
+      }
+    },
+    {
+      "name": "one_start",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "predicted": null,
+        "reason": "insufficient"
+      }
+    },
+    {
+      "name": "two_starts",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "predicted": null,
+        "reason": "insufficient",
+        "usedIntervals": [
+          28
+        ]
+      }
+    },
+    {
+      "name": "regular",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "starts": [
+          "2026-01-01",
+          "2026-01-29",
+          "2026-02-26"
+        ],
+        "intervals": [
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2026-03-26",
+        "windowStart": "2026-03-24",
+        "windowEnd": "2026-03-28",
+        "reason": "ready",
+        "usedIntervals": [
+          28,
+          28
+        ],
+        "recordedRun": 1,
+        "overdueDays": 0,
+        "stale": false
+      }
+    },
+    {
+      "name": "episode_gap_three",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-04",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "starts": [
+          "2026-01-01",
+          "2026-01-29",
+          "2026-02-26"
+        ],
+        "intervals": [
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2026-03-26",
+        "windowStart": "2026-03-24",
+        "windowEnd": "2026-03-28",
+        "reason": "ready",
+        "usedIntervals": [
+          28,
+          28
+        ],
+        "recordedRun": 1,
+        "overdueDays": 0,
+        "stale": false
+      }
+    },
+    {
+      "name": "episode_gap_four",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-05",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "starts": [
+          "2026-01-01",
+          "2026-01-05",
+          "2026-01-29",
+          "2026-02-26"
+        ],
+        "usedIntervals": [
+          24,
+          28
+        ],
+        "length": 26,
+        "predicted": "2026-03-24",
+        "windowStart": "2026-03-20",
+        "windowEnd": "2026-03-28",
+        "excludedIntervals": 1
+      }
+    },
+    {
+      "name": "duplicates_and_order",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "starts": [
+          "2026-01-01",
+          "2026-01-29",
+          "2026-02-26"
+        ],
+        "intervals": [
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2026-03-26",
+        "windowStart": "2026-03-24",
+        "windowEnd": "2026-03-28",
+        "reason": "ready",
+        "usedIntervals": [
+          28,
+          28
+        ],
+        "recordedRun": 1,
+        "overdueDays": 0,
+        "stale": false
+      }
+    },
+    {
+      "name": "half_up",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-27",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "length": 29,
+        "predicted": "2026-03-28",
+        "windowStart": "2026-03-25",
+        "windowEnd": "2026-03-30"
+      }
+    },
+    {
+      "name": "leap_2028",
+      "asOf": "2028-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2028-01-04",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2028-02-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2028-02-29",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "length": 28,
+        "predicted": "2028-03-28",
+        "windowStart": "2028-03-26",
+        "windowEnd": "2028-03-30"
+      }
+    },
+    {
+      "name": "century_not_leap",
+      "asOf": "2100-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2100-01-03",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2100-01-31",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2100-02-28",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2100-02-29",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "starts": [
+          "2100-01-03",
+          "2100-01-31",
+          "2100-02-28"
+        ],
+        "length": 28,
+        "predicted": "2100-03-28"
+      }
+    },
+    {
+      "name": "year_one",
+      "asOf": "0001-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "0001-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "0001-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "0001-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "length": 28,
+        "predicted": "0001-03-26",
+        "windowStart": "0001-03-24",
+        "windowEnd": "0001-03-28"
+      }
+    },
+    {
+      "name": "year_boundary",
+      "asOf": "2026-01-16",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2025-11-20",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2025-12-18",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-15",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "predicted": "2026-02-12",
+        "length": 28
+      }
+    },
+    {
+      "name": "minimum_14",
+      "asOf": "2026-01-30",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-15",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "length": 14,
+        "windowStart": "2026-02-10",
+        "predicted": "2026-02-12",
+        "windowEnd": "2026-02-14"
+      }
+    },
+    {
+      "name": "maximum_60",
+      "asOf": "2026-05-02",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-02",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-05-01",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "length": 60,
+        "windowStart": "2026-06-28",
+        "predicted": "2026-06-30",
+        "windowEnd": "2026-07-02"
+      }
+    },
+    {
+      "name": "new_short_interval",
+      "asOf": "2026-03-12",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-11",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "latest": 13,
+        "baseline": 28,
+        "length": null,
+        "predicted": null,
+        "usedIntervals": [],
+        "reason": "gap",
+        "excludedIntervals": 1
+      }
+    },
+    {
+      "name": "new_long_interval",
+      "asOf": "2026-04-29",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-28",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "latest": 61,
+        "baseline": 28,
+        "length": null,
+        "predicted": null,
+        "usedIntervals": [],
+        "reason": "gap",
+        "excludedIntervals": 1
+      }
+    },
+    {
+      "name": "one_interval_after_gap",
+      "asOf": "2026-05-27",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-28",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-05-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "usedIntervals": [
+          28
+        ],
+        "predicted": null,
+        "reason": "gap",
+        "baseline": null
+      }
+    },
+    {
+      "name": "two_intervals_after_gap",
+      "asOf": "2026-06-24",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-28",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-05-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-06-23",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "usedIntervals": [
+          28,
+          28
+        ],
+        "predicted": "2026-07-21",
+        "windowStart": "2026-07-19",
+        "windowEnd": "2026-07-23",
+        "reason": "ready",
+        "baseline": null,
+        "excludedIntervals": 1
+      }
+    },
+    {
+      "name": "latest_change_kept",
+      "asOf": "2026-04-10",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-09",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "latest": 42,
+        "baseline": 28,
+        "usedIntervals": [
+          28,
+          28,
+          42
+        ],
+        "length": 28,
+        "predicted": "2026-05-07",
+        "windowStart": "2026-05-05",
+        "windowEnd": "2026-05-23"
+      }
+    },
+    {
+      "name": "window_first",
+      "asOf": "2026-03-24",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "overdueDays": 0,
+        "predicted": "2026-03-26"
+      }
+    },
+    {
+      "name": "window_last",
+      "asOf": "2026-03-28",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "overdueDays": 0,
+        "predicted": "2026-03-26"
+      }
+    },
+    {
+      "name": "window_elapsed",
+      "asOf": "2026-03-29",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "overdueDays": 1,
+        "predicted": "2026-03-26",
+        "stale": false
+      }
+    },
+    {
+      "name": "stale_boundary",
+      "asOf": "2026-06-26",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "stale": false,
+        "predicted": "2026-03-26",
+        "overdueDays": 90
+      }
+    },
+    {
+      "name": "stale_no_roll",
+      "asOf": "2026-06-27",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "stale": true,
+        "predicted": "2026-03-26",
+        "overdueDays": 91
+      }
+    },
+    {
+      "name": "old_no_roll",
+      "asOf": "2028-11-26",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "stale": true,
+        "predicted": "2026-03-26"
+      }
+    },
+    {
+      "name": "future_ignored",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-09",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-09",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "starts": [
+          "2026-01-01",
+          "2026-01-29",
+          "2026-02-26"
+        ],
+        "intervals": [
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2026-03-26",
+        "windowStart": "2026-03-24",
+        "windowEnd": "2026-03-28",
+        "reason": "ready",
+        "usedIntervals": [
+          28,
+          28
+        ],
+        "recordedRun": 1,
+        "overdueDays": 0,
+        "stale": false,
+        "futureIgnored": 1
+      }
+    },
+    {
+      "name": "only_future",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-04-09",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "starts": [],
+        "reason": "insufficient",
+        "futureIgnored": 1
+      }
+    },
+    {
+      "name": "bad_dates",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-30",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-13-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-01T00:00:00Z",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "20260101",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "0000-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-1-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-1",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": null,
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": 42,
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": {},
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "٢٠٢٦-٠١-٠١",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "starts": [
+          "2026-01-01",
+          "2026-01-29",
+          "2026-02-26"
+        ],
+        "intervals": [
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2026-03-26",
+        "windowStart": "2026-03-24",
+        "windowEnd": "2026-03-28",
+        "reason": "ready",
+        "usedIntervals": [
+          28,
+          28
+        ],
+        "recordedRun": 1,
+        "overdueDays": 0,
+        "stale": false
+      }
+    },
+    {
+      "name": "non_bleeding",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "fertile",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "starts": [],
+        "predicted": null
+      }
+    },
+    {
+      "name": "empty_id",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "",
+            "art": "bleeding-light"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              ""
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              ""
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              ""
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "starts": [],
+        "predicted": null
+      }
+    },
+    {
+      "name": "wrong_containers",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": {},
+        "tagmarken": "bad"
+      },
+      "expected": {
+        "starts": [],
+        "predicted": null
+      }
+    },
+    {
+      "name": "wrong_entries",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          null,
+          1,
+          "bad",
+          {
+            "id": {},
+            "art": []
+          },
+          {
+            "id": "b",
+            "art": {}
+          }
+        ],
+        "tagmarken": [
+          null,
+          true,
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": {}
+          }
+        ]
+      },
+      "expected": {
+        "starts": [],
+        "predicted": null
+      }
+    },
+    {
+      "name": "recorded_run_7",
+      "asOf": "2026-03-08",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-27",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-28",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-02",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-03",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-04",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "recordedRun": 7,
+        "length": 28,
+        "predicted": "2026-03-26"
+      }
+    },
+    {
+      "name": "recorded_run_8",
+      "asOf": "2026-03-08",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-27",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-28",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-02",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-03",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-04",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-05",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "recordedRun": 8,
+        "length": 28,
+        "predicted": "2026-03-26"
+      }
+    },
+    {
+      "name": "recorded_gap_not_counted",
+      "asOf": "2026-03-08",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-27",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-28",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-03",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-04",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-05",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "recordedRun": 4,
+        "length": 28,
+        "predicted": "2026-03-26"
+      }
+    },
+    {
+      "name": "old_long_run_reset",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-02",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-03",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-04",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-05",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-06",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-07",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-08",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "recordedRun": 1,
+        "predicted": "2026-03-26"
+      }
+    },
+    {
+      "name": "ongoing_overlap",
+      "asOf": "2026-03-24",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-27",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-28",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-02",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-03",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-04",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-05",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-06",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-07",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-08",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-09",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-10",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-11",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-12",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-13",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-14",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-15",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-16",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-17",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-18",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-19",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-20",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-21",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-22",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-23",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-24",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "reason": "ongoing",
+        "length": 28,
+        "predicted": null,
+        "windowStart": null,
+        "windowEnd": null,
+        "recordedRun": 27,
+        "overdueDays": 0
+      }
+    },
+    {
+      "name": "calendar_overflow",
+      "asOf": "9999-12-31",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "9999-11-02",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "9999-11-30",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "9999-12-28",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "reason": "range",
+        "length": 28,
+        "predicted": null,
+        "windowStart": null,
+        "windowEnd": null
+      }
+    },
+    {
+      "name": "only_window_overflow",
+      "asOf": "9999-12-03",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "9999-10-07",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "9999-11-04",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "9999-12-02",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "reason": "range",
+        "length": 28,
+        "predicted": null,
+        "windowStart": null,
+        "windowEnd": null
+      }
+    },
+    {
+      "name": "recent_twelve",
+      "asOf": "2025-02-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2024-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2024-03-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2024-03-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2024-04-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2024-05-24",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2024-06-21",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2024-07-19",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2024-08-16",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2024-09-13",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2024-10-11",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2024-11-08",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2024-12-06",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2025-01-03",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2025-01-31",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "usedIntervals": [
+          28,
+          28,
+          28,
+          28,
+          28,
+          28,
+          28,
+          28,
+          28,
+          28,
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2025-02-28"
+      }
+    },
+    {
+      "name": "spring_dst",
+      "asOf": "2026-04-26",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-02-28",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-03-28",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-25",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "intervals": [
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2026-05-23"
+      }
+    },
+    {
+      "name": "autumn_dst",
+      "asOf": "2026-11-23",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-09-27",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-10-25",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-11-22",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "intervals": [
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2026-12-20"
+      }
+    },
+    {
+      "name": "apia_skipped_day",
+      "asOf": "2011-12-31",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2011-11-04",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2011-12-02",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2011-12-30",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "intervals": [
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2012-01-27"
+      }
+    },
+    {
+      "name": "pause_pregnancy_active",
+      "asOf": "2026-06-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-05-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2027-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "pregnancy",
+                "startedOn": "2026-03-01",
+                "until": "2026-12-01"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": true,
+        "pauseReason": "pregnancy",
+        "pauseStart": "2026-03-01",
+        "pauseUntil": "2026-12-01",
+        "resumedOn": null,
+        "restartFrom": "2026-12-02",
+        "starts": [],
+        "length": null,
+        "predicted": null,
+        "baseline": null,
+        "latest": null,
+        "usedIntervals": [],
+        "recordedRun": 0,
+        "overdueDays": 0,
+        "stale": false,
+        "reason": "paused",
+        "futureIgnored": 1
+      }
+    },
+    {
+      "name": "pause_end_is_inclusive",
+      "asOf": "2026-12-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-12-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-12-02",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "pregnancy",
+                "startedOn": "2026-03-01",
+                "until": "2026-12-01"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": true,
+        "pauseReason": "pregnancy",
+        "pauseStart": "2026-03-01",
+        "pauseUntil": "2026-12-01",
+        "resumedOn": null,
+        "restartFrom": "2026-12-02",
+        "starts": [],
+        "length": null,
+        "predicted": null,
+        "baseline": null,
+        "latest": null,
+        "usedIntervals": [],
+        "recordedRun": 0,
+        "overdueDays": 0,
+        "stale": false,
+        "reason": "paused",
+        "futureIgnored": 1
+      }
+    },
+    {
+      "name": "pause_expired_without_new_history",
+      "asOf": "2026-12-02",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-12-01",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "pregnancy",
+                "startedOn": "2026-03-01",
+                "until": "2026-12-01"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": false,
+        "pauseReason": "pregnancy",
+        "pauseStart": "2026-03-01",
+        "pauseUntil": "2026-12-01",
+        "resumedOn": null,
+        "restartFrom": "2026-12-02",
+        "starts": [],
+        "length": null,
+        "predicted": null,
+        "baseline": null,
+        "latest": null,
+        "usedIntervals": [],
+        "recordedRun": 0,
+        "overdueDays": 0,
+        "stale": false,
+        "reason": "restart",
+        "futureIgnored": 0
+      }
+    },
+    {
+      "name": "pause_expired_three_new_starts",
+      "asOf": "2027-01-27",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-12-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-12-02",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-12-30",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2027-01-27",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "pregnancy",
+                "startedOn": "2026-03-01",
+                "until": "2026-12-01"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": false,
+        "pauseReason": "pregnancy",
+        "pauseStart": "2026-03-01",
+        "pauseUntil": "2026-12-01",
+        "resumedOn": null,
+        "restartFrom": "2026-12-02",
+        "reason": "ready",
+        "starts": [
+          "2026-12-02",
+          "2026-12-30",
+          "2027-01-27"
+        ],
+        "intervals": [
+          28,
+          28
+        ],
+        "usedIntervals": [
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2027-02-24",
+        "windowStart": "2027-02-22",
+        "windowEnd": "2027-02-26",
+        "baseline": null,
+        "excludedIntervals": 0,
+        "futureIgnored": 0,
+        "stale": false
+      }
+    },
+    {
+      "name": "pause_medication_indefinite_null",
+      "asOf": "2026-06-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-05-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "9999-12-31",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "medication",
+                "startedOn": "2026-03-01",
+                "until": null
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": true,
+        "pauseReason": "medication",
+        "pauseStart": "2026-03-01",
+        "pauseUntil": null,
+        "resumedOn": null,
+        "restartFrom": null,
+        "starts": [],
+        "length": null,
+        "predicted": null,
+        "baseline": null,
+        "latest": null,
+        "usedIntervals": [],
+        "recordedRun": 0,
+        "overdueDays": 0,
+        "stale": false,
+        "reason": "paused",
+        "futureIgnored": 0
+      }
+    },
+    {
+      "name": "pause_menopause_indefinite_missing_until",
+      "asOf": "2027-01-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-05-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "9999-12-31",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "menopause",
+                "startedOn": "2026-03-01"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": true,
+        "pauseReason": "menopause",
+        "pauseStart": "2026-03-01",
+        "pauseUntil": null,
+        "resumedOn": null,
+        "restartFrom": null,
+        "starts": [],
+        "length": null,
+        "predicted": null,
+        "baseline": null,
+        "latest": null,
+        "usedIntervals": [],
+        "recordedRun": 0,
+        "overdueDays": 0,
+        "stale": false,
+        "reason": "paused",
+        "futureIgnored": 0
+      }
+    },
+    {
+      "name": "pause_future_start_ignored",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "pregnancy",
+                "startedOn": "2026-04-01",
+                "until": "2026-12-01"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": false,
+        "pauseReason": null,
+        "pauseStart": null,
+        "pauseUntil": null,
+        "resumedOn": null,
+        "restartFrom": null,
+        "starts": [
+          "2026-01-01",
+          "2026-01-29",
+          "2026-02-26"
+        ],
+        "intervals": [
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2026-03-26",
+        "windowStart": "2026-03-24",
+        "windowEnd": "2026-03-28",
+        "reason": "ready"
+      }
+    },
+    {
+      "name": "pause_recorded_bleeding_does_not_implicitly_resume",
+      "asOf": "2026-06-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-10",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-05-08",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-06-05",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "pregnancy",
+                "startedOn": "2026-03-01",
+                "until": "2026-12-01"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": true,
+        "pauseReason": "pregnancy",
+        "pauseStart": "2026-03-01",
+        "pauseUntil": "2026-12-01",
+        "resumedOn": null,
+        "restartFrom": "2026-12-02",
+        "starts": [],
+        "length": null,
+        "predicted": null,
+        "baseline": null,
+        "latest": null,
+        "usedIntervals": [],
+        "recordedRun": 0,
+        "overdueDays": 0,
+        "stale": false,
+        "reason": "paused",
+        "futureIgnored": 0
+      }
+    },
+    {
+      "name": "pause_explicit_resume_first_start",
+      "asOf": "2026-04-10",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-09",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-10",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-05-08",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-06-05",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "pregnancy",
+                "startedOn": "2026-03-01",
+                "until": "2026-12-01",
+                "resumedOn": "2026-04-10"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": false,
+        "pauseReason": "pregnancy",
+        "pauseStart": "2026-03-01",
+        "pauseUntil": "2026-12-01",
+        "resumedOn": "2026-04-10",
+        "restartFrom": "2026-04-10",
+        "reason": "restart",
+        "starts": [
+          "2026-04-10"
+        ],
+        "intervals": [],
+        "predicted": null,
+        "baseline": null,
+        "futureIgnored": 2,
+        "recordedRun": 1,
+        "lastBleeding": "2026-04-10"
+      }
+    },
+    {
+      "name": "pause_explicit_resume_three_starts",
+      "asOf": "2026-06-05",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-09",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-10",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-05-08",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-06-05",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "pregnancy",
+                "startedOn": "2026-03-01",
+                "until": "2026-12-01",
+                "resumedOn": "2026-04-10"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": false,
+        "pauseReason": "pregnancy",
+        "pauseStart": "2026-03-01",
+        "pauseUntil": "2026-12-01",
+        "resumedOn": "2026-04-10",
+        "restartFrom": "2026-04-10",
+        "reason": "ready",
+        "starts": [
+          "2026-04-10",
+          "2026-05-08",
+          "2026-06-05"
+        ],
+        "intervals": [
+          28,
+          28
+        ],
+        "usedIntervals": [
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2026-07-03",
+        "windowStart": "2026-07-01",
+        "windowEnd": "2026-07-05",
+        "baseline": null,
+        "futureIgnored": 0,
+        "excludedIntervals": 0
+      }
+    },
+    {
+      "name": "pause_future_resume_ignored",
+      "asOf": "2026-04-10",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-09",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-10",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-05-08",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-06-05",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "pregnancy",
+                "startedOn": "2026-03-01",
+                "until": "2026-12-01",
+                "resumedOn": "2026-05-01"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": true,
+        "pauseReason": "pregnancy",
+        "pauseStart": "2026-03-01",
+        "pauseUntil": "2026-12-01",
+        "resumedOn": null,
+        "restartFrom": "2026-12-02",
+        "starts": [],
+        "length": null,
+        "predicted": null,
+        "baseline": null,
+        "latest": null,
+        "usedIntervals": [],
+        "recordedRun": 0,
+        "overdueDays": 0,
+        "stale": false,
+        "reason": "paused",
+        "futureIgnored": 0
+      }
+    },
+    {
+      "name": "pause_resume_before_start_ignored",
+      "asOf": "2026-04-10",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-09",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-10",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-05-08",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-06-05",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "pregnancy",
+                "startedOn": "2026-03-01",
+                "until": "2026-12-01",
+                "resumedOn": "2026-02-28"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": true,
+        "pauseReason": "pregnancy",
+        "pauseStart": "2026-03-01",
+        "pauseUntil": "2026-12-01",
+        "resumedOn": null,
+        "restartFrom": "2026-12-02",
+        "starts": [],
+        "length": null,
+        "predicted": null,
+        "baseline": null,
+        "latest": null,
+        "usedIntervals": [],
+        "recordedRun": 0,
+        "overdueDays": 0,
+        "stale": false,
+        "reason": "paused",
+        "futureIgnored": 0
+      }
+    },
+    {
+      "name": "pause_invalid_until_ignored",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "pregnancy",
+                "startedOn": "2026-01-01",
+                "until": ""
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": false,
+        "pauseReason": null,
+        "pauseStart": null,
+        "pauseUntil": null,
+        "resumedOn": null,
+        "restartFrom": null,
+        "starts": [
+          "2026-01-01",
+          "2026-01-29",
+          "2026-02-26"
+        ],
+        "intervals": [
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2026-03-26",
+        "windowStart": "2026-03-24",
+        "windowEnd": "2026-03-28",
+        "reason": "ready"
+      }
+    },
+    {
+      "name": "pause_reversed_until_ignored",
+      "asOf": "2026-03-01",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "pregnancy",
+                "startedOn": "2026-03-01",
+                "until": "2026-02-28"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": false,
+        "pauseReason": null,
+        "pauseStart": null,
+        "pauseUntil": null,
+        "resumedOn": null,
+        "restartFrom": null,
+        "starts": [
+          "2026-01-01",
+          "2026-01-29",
+          "2026-02-26"
+        ],
+        "intervals": [
+          28,
+          28
+        ],
+        "length": 28,
+        "predicted": "2026-03-26",
+        "windowStart": "2026-03-24",
+        "windowEnd": "2026-03-28",
+        "reason": "ready"
+      }
+    },
+    {
+      "name": "pause_year_9999_inclusive_end",
+      "asOf": "9999-12-31",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "9999-11-02",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "9999-11-30",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "9999-12-28",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "other",
+                "startedOn": "9999-12-01",
+                "until": "9999-12-31"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": true,
+        "pauseReason": "other",
+        "pauseStart": "9999-12-01",
+        "pauseUntil": "9999-12-31",
+        "resumedOn": null,
+        "restartFrom": null,
+        "starts": [],
+        "length": null,
+        "predicted": null,
+        "baseline": null,
+        "latest": null,
+        "usedIntervals": [],
+        "recordedRun": 0,
+        "overdueDays": 0,
+        "stale": false,
+        "reason": "paused",
+        "futureIgnored": 0
+      }
+    },
+    {
+      "name": "pause_year_9999_explicit_resume",
+      "asOf": "9999-12-31",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "9999-11-02",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "9999-11-30",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "9999-12-28",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "other",
+                "startedOn": "9999-12-01",
+                "until": "9999-12-31",
+                "resumedOn": "9999-12-28"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": false,
+        "pauseReason": "other",
+        "pauseStart": "9999-12-01",
+        "pauseUntil": "9999-12-31",
+        "resumedOn": "9999-12-28",
+        "restartFrom": "9999-12-28",
+        "reason": "restart",
+        "starts": [
+          "9999-12-28"
+        ],
+        "predicted": null,
+        "baseline": null,
+        "futureIgnored": 0,
+        "stale": false
+      }
+    },
+    {
+      "name": "pause_indefinite_breastfeeding_resumed",
+      "asOf": "2026-06-05",
+      "data": {
+        "zyklusmarker": [
+          {
+            "id": "b",
+            "art": "bleeding-light",
+            "name": "Renamed"
+          },
+          {
+            "id": "other",
+            "art": "ovulation",
+            "name": "Bleeding"
+          }
+        ],
+        "tagmarken": [
+          {
+            "datum": "2026-01-01",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-01-29",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-02-26",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-09",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-04-10",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-05-08",
+            "zyklusIds": [
+              "b"
+            ]
+          },
+          {
+            "datum": "2026-06-05",
+            "zyklusIds": [
+              "b"
+            ]
+          }
+        ],
+        "einstellungen": {
+          "kalender": {
+            "zykluskalenderAn": true,
+            "zyklusErinnerungen": {
+              "prognose": true,
+              "abweichung": true,
+              "pause": {
+                "reason": "breastfeeding",
+                "startedOn": "2026-03-01",
+                "until": null,
+                "resumedOn": "2026-04-10"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "paused": false,
+        "pauseReason": "breastfeeding",
+        "pauseStart": "2026-03-01",
+        "pauseUntil": null,
+        "resumedOn": "2026-04-10",
+        "restartFrom": "2026-04-10",
+        "reason": "ready",
+        "starts": [
+          "2026-04-10",
+          "2026-05-08",
+          "2026-06-05"
+        ],
+        "intervals": [
+          28,
+          28
+        ],
+        "predicted": "2026-07-03",
+        "baseline": null,
+        "futureIgnored": 0
+      }
+    }
+  ]
+}

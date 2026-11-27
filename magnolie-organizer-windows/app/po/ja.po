@@ -8714,3 +8714,273 @@ msgstr "生年月日はこの連絡先に保存されます。カレンダーの
 #. Contact-only birthday copied from macOS (#776); no automatic annual entry.
 msgid "Please enter a valid birth date."
 msgstr "有効な生年月日を入力してください。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Show period forecast in calendar"
+msgstr "月経の予測をカレンダーに表示"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Notify before the estimated period"
+msgstr "予測される月経の前に通知"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Period forecast (estimate)"
+msgstr "月経予測（目安）"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Estimated start: %(date)s"
+msgstr "予測開始日：%(date)s"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Estimated window: %(from)s – %(to)s"
+msgstr "予測期間：%(from)s ～ %(to)s"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Basis: %(count)s recorded intervals; typical interval %(days)s days."
+msgstr "計算の根拠：記録された間隔 %(count)s 件、通常の間隔 %(days)s 日。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Not enough recent data for a personal estimate."
+msgstr "個人の予測に必要な最近のデータが足りません。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "An interval outside 14–60 days interrupts the estimate. Check the entries."
+msgstr "間隔が14～60日の範囲を外れたため、予測を中断しています。記録を確認してください。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Future bleeding entries are not used: %(count)s."
+msgstr "未来の日付の出血記録は計算に使用しません：%(count)s 件。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The estimated window ended %(days)s days ago. No new start is recorded; check for missing entries."
+msgstr "予測期間の終了から %(days)s 日が経過しています。新たな開始日は記録されていません。記録漏れがないか確認してください。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The latest recorded interval is %(days)s days; the earlier typical interval was %(baseline)s days."
+msgstr "直近に記録された間隔は %(days)s 日、それ以前の通常の間隔は %(baseline)s 日でした。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The recorded intervals vary by %(days)s days. The estimate is uncertain."
+msgstr "記録された間隔には %(days)s 日の差があります。予測には不確実性があります。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The records are too old for current planning. Check or add entries."
+msgstr "記録が古すぎるため、現在の予定を立てる目安にはできません。記録を確認するか追加してください。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Bleeding is recorded on %(days)s consecutive days in the latest episode. If it actually lasts this long, seek medical advice."
+msgstr "直近の出血期間には、%(days)s 日連続で出血が記録されています。実際にこれほど長く続いている場合は、医療機関に相談してください。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Recorded bleeding overlaps the estimated window. Check the entries."
+msgstr "記録された出血が予測期間と重なっています。記録を確認してください。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "No estimate is possible at the edge of the supported calendar range."
+msgstr "対応するカレンダーの日付範囲の端では、予測できません。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Estimate from your entries, not a diagnosis or contraception method. Seek medical advice for new, persistent or distressing changes."
+msgstr "記録に基づく目安であり、診断や避妊方法ではありません。新たな変化、長引く変化、つらい変化がある場合は、医療機関に相談してください。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Calculated from at least three starts. Bleeding entries up to three days apart form one episode. After an interval outside 14–60 days, two new intervals are needed. The window spans the shortest and longest of up to twelve recent intervals, plus two days on either side."
+msgstr "少なくとも3回の月経開始日の記録から計算します。出血の記録の日付が3日以内の間隔で続く場合は、同じ出血期間として扱います。間隔が14～60日の範囲を外れた後は、新たに2つの間隔の記録が必要です。予測期間は、直近の最大12個の間隔の最短値から最長値までに、前後2日ずつを加えた範囲です。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Details and limitations"
+msgstr "詳細と制約"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Estimated start window"
+msgstr "開始日の予測範囲"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Earlier estimate: %(date)s"
+msgstr "以前の予測：%(date)s"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Calendar display and reminders can be enabled separately. Existing entries are preserved."
+msgstr "カレンダーへの表示と通知は個別に有効にできます。既存の記録は保持されます。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Record actual bleeding on %(date)s?"
+msgstr "%(date)s の実際の出血を記録しますか？"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Choose the observed bleeding intensity, then confirm this day only."
+msgstr "観察した出血量を選び、この日だけを確認してください。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Confirm bleeding"
+msgstr "出血を確認"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "This is a future estimate. Only today or a past day can be confirmed."
+msgstr "これは未来の予測です。確認できるのは今日または過去の日だけです。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pale drops mark possible start days, not a predicted bleeding duration. Active predictions disappear after the estimated window if unconfirmed. Only days you confirm as actual bleeding enter future calculations."
+msgstr "薄いしずくは開始の可能性がある日を表し、出血が続く期間の予測ではありません。未確認の有効な予測は、予測期間が過ぎると消えます。今後の計算には、実際の出血として確認した日だけが使われます。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Bleeding intensity"
+msgstr "出血量"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Confirm bleeding on %(date)s"
+msgstr "%(date)s の出血を確認"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pause period predictions"
+msgstr "月経予測を一時停止"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Reason for the pause"
+msgstr "一時停止の理由"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pregnancy"
+msgstr "妊娠"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Breastfeeding"
+msgstr "授乳"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Medication or hormonal treatment"
+msgstr "薬の服用またはホルモン治療"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Perimenopause or menopause"
+msgstr "更年期または閉経"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Other known reason"
+msgstr "その他の分かっている理由"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pause until (inclusive)"
+msgstr "この日まで一時停止（当日を含む）"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "No fixed end date"
+msgstr "終了日を指定しない"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Nine calendar months is only an editable planning pause, not a due date."
+msgstr "暦上の9か月は変更可能な計画上の休止期間にすぎず、出産予定日を示すものではありません。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The reason is self-reported. During the pause, estimates and cycle-deviation reminders are suppressed. Existing entries are retained."
+msgstr "理由はご自身で申告するものです。一時停止中は、予測と周期の変化に関するリマインダーを停止します。既存の記録は保持されます。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Save pause"
+msgstr "一時停止を保存"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "End pause"
+msgstr "一時停止を終了"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Period predictions paused: %(reason)s; until %(date)s."
+msgstr "月経予測を一時停止中：%(reason)s。%(date)s まで（当日を含む）。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Period predictions paused: %(reason)s; no fixed end date."
+msgstr "月経予測を一時停止中：%(reason)s。終了日の指定なし。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The pause has ended. A new estimate needs three newly recorded starts; earlier intervals are not reused."
+msgstr "一時停止が終了しました。新しい予測には、新たに記録した3回の開始日が必要です。以前の間隔は再利用しません。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Change pause"
+msgstr "一時停止を変更"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Add a reason or pause predictions"
+msgstr "理由を追加するか、予測を一時停止"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Enter an end date on or after the start of the pause."
+msgstr "一時停止の開始日以降の終了日を入力してください。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Bleeding during pregnancy or after menopause should be medically assessed. Record it as a new period only if that is how it has been identified."
+msgstr "妊娠中または閉経後の出血は、医療機関で評価を受けてください。新たな月経と判断された場合にのみ、そのように記録してください。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "A newly recorded period ends this planning pause. This does not determine whether pregnancy or menopause has ended."
+msgstr "新たな月経を記録すると、この計画上の一時停止は終了します。妊娠や閉経が終了したかどうかを判定するものではありません。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pause started: %(date)s."
+msgstr "一時停止の開始日：%(date)s。"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Bleeding recorded. Is this a new period that should end the planning pause?"
+msgstr "出血を記録しました。これは、計画上の一時停止を終了する新たな月経ですか？"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Confirm new period"
+msgstr "新たな月経として確認"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Keep pause"
+msgstr "一時停止を続ける"

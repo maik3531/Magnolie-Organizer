@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Offline source acceptance: no GUI, installer, NuGet package or OS notification.
+       Dates, locale resolution and timezone resources are the actual product files. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RestoreSources>$(MSBuildThisFileDirectory)</RestoreSources><NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../CycleCalendar.cs" Link="CycleCalendar.cs" />
+    <Compile Include="../../NormativeTimezones.cs" Link="NormativeTimezones.cs" />
+    <Compile Include="../../NativeLocalization.cs" Link="NativeLocalization.cs" />
+    <Compile Include="../CycleForecastTests.cs" Link="CycleForecastTests.cs" />
+    <Compile Include="../TestRunner.cs" Link="TestRunner.cs" />
+    <EmbeddedResource Include="../../../port-adapters/timezones/tzdb-2026egtz.json" LogicalName="Magnolie.Timezones.tzdb-2026egtz.json" />
+    <EmbeddedResource Include="../../../port-adapters/timezones/provenance.json" LogicalName="Magnolie.Timezones.provenance.json" />
+    <EmbeddedResource Include="../../../port-adapters/timezones/LICENSE-tzdb.txt" LogicalName="Magnolie.Timezones.LICENSE-tzdb.txt" />
+  </ItemGroup>
+</Project>

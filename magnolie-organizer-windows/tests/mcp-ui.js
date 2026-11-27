@@ -1199,10 +1199,10 @@ let declaredContracts;
       {
         const records = JSON.stringify([b.t.daten().termine, b.t.daten().tagmarken, b.t.daten().schichten, b.t.daten().zyklusmarker, b.t.daten().urlaube, b.t.daten().muelltermine]);
         const calendar = (await call(request(700, "tools/call", { name: "organizer_calendar_settings_read" }))).result.structuredContent;
-        assert.equal(calendar.settings.cycle_options.prediction, false); assert.equal(calendar.settings.cycle_options.report_deviations, false);
+        assert.equal(calendar.settings.cycle_options.show_forecast, false); assert.equal(calendar.settings.cycle_options.prediction, false); assert.equal(calendar.settings.cycle_options.report_deviations, false);
         await persisted(701, "organizer_calendar_settings_update", { expected_revision: calendar.revision, click_creates_entry: false, week_numbers: true, planner_week_numbers: true,
           show_past_appointments: true, show_past_anniversaries: true, show_past_holidays: true, shift_planner: true, cycle_calendar: true, vacation_planner: true, waste_calendar: true,
-          cycle_options: { lead_days: 4, difference_days: 9 } });
+          cycle_options: { show_forecast: true, lead_days: 4, difference_days: 9 } });
         const k = b.t.daten().einstellungen.kalender;
         assert.equal(k.klickLegtAn, false); assert.equal(k.schichtplanerAn, true); assert.equal(k.zyklusErinnerungen.prognose, false);
         assert.equal(k.zyklusErinnerungen.abweichung, false); assert.equal(k.zyklusErinnerungen.vorlauf, 4);

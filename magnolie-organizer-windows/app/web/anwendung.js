@@ -6715,6 +6715,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function verwerfeSpeichernNachRestore() {
+    verwerfeZyklusAnzeige();
     notesOriginalGeladenText = null;
     originalKontaktDauerNachweis = originalKontaktLetzterAck = null;
     originalKontaktWlanWartet = false;
@@ -9096,10 +9097,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     d.einstellungen.kalender.schichtplanerAn = !!kal.schichtplanerAn;
     const zyklusErinnerungen = kal.zyklusErinnerungen || {};
     d.einstellungen.kalender.zyklusErinnerungen = {
-      prognose: zyklusErinnerungen.prognose === true, abweichung: zyklusErinnerungen.abweichung === true,
+      anzeige: zyklusErinnerungen.anzeige === true, prognose: zyklusErinnerungen.prognose === true, abweichung: zyklusErinnerungen.abweichung === true,
       vorlauf: Number.isInteger(zyklusErinnerungen.vorlauf) && zyklusErinnerungen.vorlauf >= 0 && zyklusErinnerungen.vorlauf <= 30 ? zyklusErinnerungen.vorlauf : 1,
       abweichungTage: Number.isInteger(zyklusErinnerungen.abweichungTage) && zyklusErinnerungen.abweichungTage >= 1 && zyklusErinnerungen.abweichungTage <= 30 ? zyklusErinnerungen.abweichungTage : 7
     };
+    const cyclePause = saubereZyklusPause(zyklusErinnerungen.pause);
+    if (cyclePause) d.einstellungen.kalender.zyklusErinnerungen.pause = cyclePause;
     d.einstellungen.kalender.zykluskalenderAn = !!kal.zykluskalenderAn;
     d.einstellungen.kalender.urlaubsplanerAn = !!kal.urlaubsplanerAn;
     d.einstellungen.kalender.muellkalenderAn = !!kal.muellkalenderAn;
@@ -11685,6 +11688,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (!gueltigesISO(von)) return;
     if (!gueltigesISO(bis) || bis < von) bis = von;
     const ende = ausISO(bis);
+    let newPeriodDay = null;
     for (let tag = ausISO(von); tag <= ende; tag.setDate(tag.getDate() + 1)) {
       const iso = isoVon(tag);
       const bisher = tagmarkeRohAm(iso) || { schichtId: "", zyklusIds: [] };
@@ -11695,6 +11699,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         schichtId: DATEN.schichten.some((eintrag) => eintrag.id === schicht) ? schicht : "",
         zyklusIds: Array.from(new Set((marker || []).filter((id) =>
           DATEN.zyklusmarker.some((eintrag) => eintrag.id === id)))) };
+      if (zyklusNeuerBlutungstag(iso, bisher.zyklusIds, wert.zyklusIds) && !newPeriodDay) newPeriodDay = iso;
       if (!wert.schichtId && !wert.zyklusIds.length) {
         if (index >= 0) DATEN.tagmarken.splice(index, 1);
       } else if (index >= 0) DATEN.tagmarken[index] = wert;
@@ -11702,18 +11707,21 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
     planeSpeichern();
     zeichneAlles();
+    if (newPeriodDay) frageZyklusWiederaufnahme(newPeriodDay);
   }
 
   function schalteZyklusBereich(von, bis, markerId, einschalten) {
     if (!gueltigesISO(von) || !DATEN.zyklusmarker.some((marker) => marker.id === markerId)) return;
     if (!gueltigesISO(bis) || bis < von) bis = von;
     const ende = ausISO(bis);
+    let newPeriodDay = null;
     for (let tag = ausISO(von); tag <= ende; tag.setDate(tag.getDate() + 1)) {
       const iso = isoVon(tag);
       const bisher = tagmarkeRohAm(iso) || { schichtId: "", zyklusIds: [] };
       const ids = einschalten
         ? Array.from(new Set(bisher.zyklusIds.concat(markerId)))
         : bisher.zyklusIds.filter((id) => id !== markerId);
+      if (zyklusNeuerBlutungstag(iso, bisher.zyklusIds, ids) && !newPeriodDay) newPeriodDay = iso;
       const index = DATEN.tagmarken.findIndex((eintrag) => eintrag.datum === iso);
       if (!bisher.schichtId && !ids.length) {
         if (index >= 0) DATEN.tagmarken.splice(index, 1);
@@ -11725,6 +11733,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
     planeSpeichern();
     zeichneAlles();
+    if (newPeriodDay) frageZyklusWiederaufnahme(newPeriodDay);
   }
 
   function schichtZeitText(schicht, iso) {
@@ -11971,12 +11980,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function tagmarkenStreifen(iso, kompakt) {
     const inhalt = tagmarkenAm(iso);
+    const prognose = zyklusPrognoseAm(iso);
+    const zyklusHinweise = zyklusHinweiseAm(iso);
     const urlaube = urlaubeAm(iso);
     const muelltermine = muelltermineAm(iso);
     const gesundheit = gesundheitsMarkenAm(iso);
     const zeiten = zeitErfassungenAm(iso);
     if (!inhalt.schicht && !inhalt.zyklus.length && !urlaube.length && !muelltermine.length &&
-      !gesundheit.length && !zeiten.length) return null;
+      !gesundheit.length && !zeiten.length && !prognose && !zyklusHinweise.length) return null;
     const streifen = el("div", "tagmarken-streifen" + (kompakt ? " kompakt" : ""));
     if (inhalt.schicht) {
       const schicht = el("span", "schicht-marke");
@@ -12004,6 +12015,29 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       span.title = marker.name;
       span.setAttribute("aria-label", marker.name);
       streifen.append(span);
+    }
+    if (prognose || zyklusHinweise.length) {
+      const confirmable = !!prognose && iso <= isoHeute();
+      const explainable = zyklusHinweise.length > 0 && !confirmable;
+      const mark = el(confirmable || explainable ? "button" : "span", "zyklus-prognose-marke" +
+        (zyklusHinweise.length ? " zyklus-prognose-auffaellig" : ""));
+      if (confirmable) { mark.type = "button"; mark.dataset.cycleConfirm = iso; }
+      else if (explainable) mark.type = "button";
+      else mark.tabIndex = 0;
+      const lines = [];
+      if (prognose) lines.push(_("Estimated start window") + ": " + fmtPunkt(prognose.windowStart) + " – " + fmtPunkt(prognose.windowEnd));
+      lines.push(...zyklusHinweise);
+      if (confirmable) lines.push(uebersetzt("Confirm bleeding on %(date)s", { date: fmtPunkt(iso) }));
+      else if (prognose) lines.push(_("This is a future estimate. Only today or a past day can be confirmed."));
+      if (explainable) lines.push(_("Add a reason or pause predictions"));
+      mark.title = lines.join("\n"); mark.setAttribute("aria-label", mark.title);
+      if (prognose) mark.dataset.cycleEstimate = iso;
+      if (zyklusHinweise.length) mark.dataset.cycleHint = iso;
+      mark.append(zyklusTropfen(zyklusHinweise.length > 0), document.createTextNode(prognose ? "≈" : "!"));
+      if (!kompakt && prognose) mark.append(document.createTextNode(" " + _("Estimated start window")));
+      if (confirmable) mark.addEventListener("click", event => { event.preventDefault(); event.stopPropagation(); bestaetigeZyklusTag(iso); });
+      else mark.addEventListener("click", event => { event.preventDefault(); event.stopPropagation(); if (explainable) oeffneZyklusPauseDialog(); });
+      streifen.append(mark);
     }
     for (const urlaub of urlaube) {
       const text = urlaubsSymbol(urlaub.symbol) +
@@ -15297,6 +15331,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function zeichneAlles() {
     sichereNotizSnapshot();
+    aktualisiereZyklusPausenstatus();
     if (aktiverEditor && aktiverEditor.element && editorIstGeaendert()) return;
     window.MagnolieAppearance?.update({ today: isoHeute(), developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
     stabilisiereAktiveOrtszeiten();
@@ -15307,6 +15342,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (zustand.sektion === "planer" && vorher.startsWith("planer-tag:") && !naechsterFokus) naechsterFokus = vorher;
     zeichneRegister();
     leereSeiten();
+    zyklusZeichenStatistik = zyklusAnzeigeAktiv() ? zyklusStatistik() : null;
     const zeichner = {
       kalender: zeichneKalender,
       aufgaben: zeichneAufgaben,
@@ -15317,7 +15353,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       gesundheit: zeichneGesundheit,
       custom: zeichneCustomOrganizer
     };
-    (zeichner[zustand.sektion] || zeichneKalender)();
+    try {
+      (zeichner[zustand.sektion] || zeichneKalender)();
+      if (zustand.sektion === "kalender") {
+        const forecast = zyklusPrognoseKasten();
+        if (forecast) $("#inhalt-rechts").prepend(forecast);
+      }
+    } finally { zyklusZeichenStatistik = null; }
     if (aktivesZeichenziel && !aktivesZeichenziel.canvas.isConnected) beendeTabletEingabe();
     const druckKnopf = $("#knopf-drucken");
     if (druckKnopf) {
@@ -15372,28 +15414,391 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     planeSpeichern();
   }
 
-  function zyklusStatistik(daten = DATEN) {
-    const ids = new Set((daten.zyklusmarker || []).filter(marker => ["bleeding-light", "bleeding-medium", "bleeding-heavy"].includes(marker.art)).map(marker => marker.id));
-    const dates = [...new Set((daten.tagmarken || []).filter(mark => gueltigesISO(mark.datum) && (mark.zyklusIds || []).some(id => ids.has(id))).map(mark => mark.datum))].sort();
-    const days = iso => Date.parse(iso + "T12:00:00Z") / 86400000;
-    const starts = []; let previous = null;
-    for (const day of dates) { if (previous === null || days(day) - days(previous) > 3) starts.push(day); previous = day; }
-    const intervals = starts.slice(1).map((day, index) => days(day) - days(starts[index]));
-    const valid = values => values.filter(value => value >= 14 && value <= 60).slice(-12).sort((a, b) => a - b);
-    const median = values => values.length >= 2 ? Math.round((values[Math.floor((values.length - 1) / 2)] + values[Math.floor(values.length / 2)]) / 2) : null;
-    const length = median(valid(intervals)), baseline = median(valid(intervals.slice(0, -1)));
-    const prediction = length === null ? "" : new Date(Date.parse(starts.at(-1) + "T12:00:00Z") + length * 86400000).toISOString().slice(0, 10);
-    return { starts, intervals, length, predicted: gueltigesISO(prediction) ? prediction : null, baseline, latest: intervals.at(-1) ?? null };
+  // Calendar-day arithmetic is independent of local clocks and DST.
+  function zyklusTag(iso) {
+    if (typeof iso !== "string" || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(iso) || iso.slice(0, 4) === "0000") return null;
+    const stamp = Date.parse(iso + "T00:00:00Z");
+    return Number.isFinite(stamp) && new Date(stamp).toISOString().slice(0, 10) === iso ? stamp / 86400000 : null;
+  }
+
+  function saubereZyklusPause(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value) ||
+        !["pregnancy", "breastfeeding", "medication", "menopause", "other"].includes(value.reason) ||
+        zyklusTag(value.startedOn) === null ||
+        (value.until != null && (zyklusTag(value.until) === null || value.until < value.startedOn))) return null;
+    return { reason: value.reason, startedOn: value.startedOn, until: value.until == null ? null : value.until,
+      resumedOn: zyklusTag(value.resumedOn) !== null && value.resumedOn >= value.startedOn ? value.resumedOn : null };
+  }
+
+  function zyklusPauseKontext(daten, asOf) {
+    const empty = { paused: false, pauseReason: null, pauseStart: null, pauseUntil: null, resumedOn: null, restartFrom: null };
+    const pause = saubereZyklusPause(daten?.einstellungen?.kalender?.zyklusErinnerungen?.pause);
+    if (!pause || asOf < pause.startedOn) return empty;
+    const resumedOn = pause.resumedOn && pause.resumedOn <= asOf ? pause.resumedOn : null;
+    const next = pause.until ? new Date((zyklusTag(pause.until) + 1) * 86400000).toISOString().slice(0, 10) : null;
+    return { paused: !resumedOn && (!pause.until || asOf <= pause.until), pauseReason: pause.reason,
+      pauseStart: pause.startedOn, pauseUntil: pause.until, resumedOn,
+      restartFrom: resumedOn || (zyklusTag(next) === null ? null : next) };
+  }
+
+  function zyklusPausenGrund(reason) {
+    return { pregnancy: _("Pregnancy"), breastfeeding: _("Breastfeeding"),
+      medication: _("Medication or hormonal treatment"), menopause: _("Perimenopause or menopause"),
+      other: _("Other known reason") }[reason] || "";
+  }
+
+  function zyklusPauseText(stats) {
+    return uebersetzt(stats.pauseUntil ? "Period predictions paused: %(reason)s; until %(date)s." :
+      "Period predictions paused: %(reason)s; no fixed end date.",
+      { reason: zyklusPausenGrund(stats.pauseReason), date: stats.pauseUntil ? fmtPunkt(stats.pauseUntil) : "" });
+  }
+
+  function zyklusNeunMonate(iso) {
+    if (zyklusTag(iso) === null) return null;
+    const [year, month, day] = iso.split("-").map(Number), serial = year * 12 + month - 1 + 9;
+    const newYear = Math.floor(serial / 12), newMonth = serial % 12 + 1;
+    if (newYear > 9999) return null;
+    const prefix = String(newYear).padStart(4, "0") + "-" + String(newMonth).padStart(2, "0") + "-";
+    for (let last = day; last >= 28; last--) {
+      const value = prefix + String(last).padStart(2, "0");
+      if (zyklusTag(value) !== null) return value;
+    }
+    return prefix + String(day).padStart(2, "0");
+  }
+
+  function aktualisiereZyklusPausenstatus() {
+    const status = document.getElementById("kalender-zyklus-pause-status");
+    if (!status) return;
+    const pause = zyklusPauseKontext(DATEN, isoHeute());
+    status.hidden = !pause.paused;
+    status.textContent = pause.paused ? zyklusPauseText(pause) : "";
+  }
+
+  function oeffneZyklusPauseDialog() {
+    if (gesperrt || DATEN.einstellungen.kalender.zykluskalenderAn !== true) return;
+    const book = DATEN, options = DATEN.einstellungen.kalender.zyklusErinnerungen;
+    const signature = JSON.stringify(options.pause || null), current = zyklusPauseKontext(DATEN, isoHeute());
+    const startedOn = current.paused ? current.pauseStart : isoHeute();
+    const saved = current.paused ? saubereZyklusPause(options.pause) : null;
+    schliesseVorhandenesModal("zyklus-pause");
+    const veil = el("div", "zyklus-bestaetigung-schleier"), dialog = el("div", "zyklus-bestaetigung-dialog");
+    veil.id = "zyklus-pause"; dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-labelledby", "zyklus-pause-titel");
+    const title = el("h2", null, _("Pause period predictions")); title.id = "zyklus-pause-titel";
+    const reasons = ["pregnancy", "breastfeeding", "medication", "menopause", "other"];
+    const choice = auswahlFeld([["", "—"]].concat(reasons.map(reason => [reason, zyklusPausenGrund(reason)])), saved?.reason || "");
+    choice.id = "zyklus-pause-grund";
+    const end = eingabe("date", saved?.until || ""); end.id = "zyklus-pause-bis";
+    const indefinite = eingabe("checkbox", ""); indefinite.id = "zyklus-pause-unbefristet";
+    indefinite.checked = !saved?.until;
+    const indefiniteLabel = el("label", "hak"); indefiniteLabel.append(indefinite, document.createTextNode(" " + _("No fixed end date")));
+    const error = el("p", "zyklus-prognose-hinweis"); error.setAttribute("role", "alert"); error.hidden = true;
+    const close = () => { beendeModal(veil); veil.remove(); };
+    const validBook = () => veil.isConnected && !gesperrt && DATEN === book && DATEN.einstellungen.kalender.zykluskalenderAn === true &&
+      JSON.stringify(DATEN.einstellungen.kalender.zyklusErinnerungen.pause || null) === signature;
+    const save = knopf(_("Save pause"), "", () => {
+      if (!validBook()) { close(); zeichneAlles(); return; }
+      const until = indefinite.checked ? null : datumswert(end);
+      const pause = saubereZyklusPause({ reason: choice.value, startedOn, until });
+      if (!pause) { error.textContent = _("Enter an end date on or after the start of the pause."); error.hidden = false; return; }
+      DATEN.einstellungen.kalender.zyklusErinnerungen.pause = pause;
+      close(); planeSpeichern(); zeichneAlles();
+    });
+    save.id = "zyklus-pause-speichern";
+    const sync = () => { end.disabled = indefinite.checked; save.disabled = !reasons.includes(choice.value); error.hidden = true; };
+    choice.addEventListener("change", () => {
+      const date = choice.value === "pregnancy" ? zyklusNeunMonate(startedOn) : null;
+      indefinite.checked = !date; setzeDatumswert(end, date || ""); sync();
+    });
+    indefinite.addEventListener("change", sync); end.addEventListener("change", () => { error.hidden = true; }); sync();
+    const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close));
+    if (saved) {
+      const resume = knopf(_("End pause"), "", () => {
+        if (validBook()) { DATEN.einstellungen.kalender.zyklusErinnerungen.pause.resumedOn = isoHeute(); planeSpeichern(); }
+        close(); zeichneAlles();
+      });
+      resume.id = "zyklus-pause-beenden"; buttons.append(resume);
+    }
+    buttons.append(save);
+    dialog.append(title, formZeile(_("Reason for the pause"), choice),
+      el("p", null, uebersetzt("Pause started: %(date)s.", { date: fmtPunkt(startedOn) })),
+      formZeile(_("Pause until (inclusive)"), end), indefiniteLabel,
+      el("p", null, _("Nine calendar months is only an editable planning pause, not a due date.")),
+      el("p", null, _("The reason is self-reported. During the pause, estimates and cycle-deviation reminders are suppressed. Existing entries are retained.")),
+      el("p", null, _("A newly recorded period ends this planning pause. This does not determine whether pregnancy or menopause has ended.")),
+      error, buttons);
+    veil.append(dialog); document.body.append(veil);
+    veil.addEventListener("click", event => { if (event.target === veil) close(); });
+    registriereModal(veil, dialog, { anfang: choice, schliessen: close });
+  }
+
+  function zyklusNeuerBlutungstag(iso, before, after) {
+    const pause = zyklusPauseKontext(DATEN, isoHeute());
+    if (!pause.paused || iso < pause.pauseStart || iso > isoHeute()) return false;
+    const ids = new Set(DATEN.zyklusmarker.filter(marker =>
+      ["bleeding-light", "bleeding-medium", "bleeding-heavy"].includes(marker.art)).map(marker => marker.id));
+    return !before.some(id => ids.has(id)) && after.some(id => ids.has(id));
+  }
+
+  function frageZyklusWiederaufnahme(iso) {
+    if (gesperrt || !zyklusPauseKontext(DATEN, isoHeute()).paused) return;
+    const book = DATEN, signature = JSON.stringify(DATEN.einstellungen.kalender.zyklusErinnerungen.pause);
+    schliesseVorhandenesModal("zyklus-wiederaufnahme");
+    const veil = el("div", "zyklus-bestaetigung-schleier"), dialog = el("div", "zyklus-bestaetigung-dialog");
+    veil.id = "zyklus-wiederaufnahme"; dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-labelledby", "zyklus-wiederaufnahme-titel");
+    const title = el("h2", null, _("Bleeding recorded. Is this a new period that should end the planning pause?"));
+    title.id = "zyklus-wiederaufnahme-titel";
+    const close = () => { beendeModal(veil); veil.remove(); };
+    const keep = knopf(_("Keep pause"), "", close); keep.id = "zyklus-wiederaufnahme-behalten";
+    const confirm = knopf(_("Confirm new period"), "", () => {
+      const current = zyklusPauseKontext(DATEN, isoHeute());
+      const ids = new Set(DATEN.zyklusmarker.filter(marker => ["bleeding-light", "bleeding-medium", "bleeding-heavy"].includes(marker.art)).map(marker => marker.id));
+      const recorded = (tagmarkeRohAm(iso)?.zyklusIds || []).some(id => ids.has(id));
+      if (veil.isConnected && !gesperrt && DATEN === book && current.paused && iso <= isoHeute() && iso >= current.pauseStart && recorded &&
+          JSON.stringify(DATEN.einstellungen.kalender.zyklusErinnerungen.pause) === signature) {
+        DATEN.einstellungen.kalender.zyklusErinnerungen.pause.resumedOn = iso; planeSpeichern();
+      }
+      close(); zeichneAlles();
+    });
+    confirm.id = "zyklus-wiederaufnahme-bestaetigen";
+    const buttons = el("div", "dialog-knoepfe"); buttons.append(keep, confirm);
+    dialog.append(title, el("p", null, fmtLang(iso)),
+      el("p", null, _("Bleeding during pregnancy or after menopause should be medically assessed. Record it as a new period only if that is how it has been identified.")),
+      el("p", null, _("A newly recorded period ends this planning pause. This does not determine whether pregnancy or menopause has ended.")), buttons);
+    veil.append(dialog); document.body.append(veil);
+    veil.addEventListener("click", event => { if (event.target === veil) close(); });
+    registriereModal(veil, dialog, { anfang: keep, schliessen: close });
+  }
+
+  function zyklusStatistik(daten = DATEN, asOf = isoHeute()) {
+    const today = zyklusTag(asOf);
+    if (today === null) throw new TypeError("Invalid cycle reference date");
+    const root = daten && typeof daten === "object" ? daten : {};
+    const pause = zyklusPauseKontext(root, asOf);
+    const markers = Array.isArray(root.zyklusmarker) ? root.zyklusmarker : [];
+    const ids = new Set(markers.filter(marker => marker && typeof marker.id === "string" && marker.id &&
+      ["bleeding-light", "bleeding-medium", "bleeding-heavy"].includes(marker.art)).map(marker => marker.id));
+    const marks = Array.isArray(root.tagmarken) ? root.tagmarken : [];
+    const dates = new Set(), future = new Set();
+    for (const mark of marks) {
+      if (!mark || !Array.isArray(mark.zyklusIds) || !mark.zyklusIds.some(id => typeof id === "string" && ids.has(id))) continue;
+      const day = zyklusTag(mark.datum);
+      if (day === null || pause.pauseReason && (!pause.restartFrom || mark.datum < pause.restartFrom)) continue;
+      (day > today ? future : dates).add(mark.datum);
+    }
+    const ordered = [...dates].sort(), starts = [];
+    let previous = null, run = 0, recordedRun = 0;
+    for (const iso of ordered) {
+      const day = zyklusTag(iso), gap = previous === null ? null : day - previous;
+      if (gap === null || gap > 3) { starts.push(iso); run = 0; recordedRun = 0; }
+      run = gap === 1 ? run + 1 : 1;
+      recordedRun = Math.max(recordedRun, run);
+      previous = day;
+    }
+    const intervals = starts.slice(1).map((day, index) => zyklusTag(day) - zyklusTag(starts[index]));
+    const usable = value => value >= 14 && value <= 60;
+    const suffix = values => {
+      const result = [];
+      for (let index = values.length - 1; index >= 0 && result.length < 12; index--) {
+        if (!usable(values[index])) break;
+        result.unshift(values[index]);
+      }
+      return result;
+    };
+    const median = values => {
+      const sorted = values.slice().sort((a, b) => a - b);
+      return sorted.length < 2 ? null : Math.round((sorted[Math.floor((sorted.length - 1) / 2)] + sorted[Math.floor(sorted.length / 2)]) / 2);
+    };
+    const usedIntervals = suffix(intervals), excludedIntervals = intervals.filter(value => !usable(value)).length;
+    const length = median(usedIntervals), baseline = median(suffix(intervals.slice(0, -1)));
+    const lastStart = starts.length ? starts[starts.length - 1] : null;
+    const lastBleeding = ordered.length ? ordered[ordered.length - 1] : null;
+    let predicted = null, windowStart = null, windowEnd = null;
+    let reason = pause.paused ? "paused" : excludedIntervals ? "gap" : pause.pauseReason ? "restart" : "insufficient";
+    const add = days => {
+      const result = new Date((zyklusTag(lastStart) + days) * 86400000).toISOString().slice(0, 10);
+      return zyklusTag(result) === null ? null : result;
+    };
+    if (length !== null) {
+      predicted = add(length);
+      windowStart = add(Math.max(1, Math.min(...usedIntervals) - 2));
+      windowEnd = add(Math.max(...usedIntervals) + 2);
+      if (!predicted || !windowStart || !windowEnd) {
+        predicted = windowStart = windowEnd = null; reason = "range";
+      } else if (lastBleeding >= windowStart) {
+        predicted = windowStart = windowEnd = null; reason = "ongoing";
+      } else reason = "ready";
+    }
+    const stale = lastStart !== null && today - zyklusTag(lastStart) >
+      Math.max(120, 2 * (usedIntervals.length ? Math.max(...usedIntervals) + 2 : 60));
+    return { asOf, starts, intervals, length, predicted, baseline, latest: intervals.length ? intervals[intervals.length - 1] : null,
+      usedIntervals, excludedIntervals, futureIgnored: future.size, lastBleeding, recordedRun, windowStart, windowEnd,
+      overdueDays: windowEnd ? Math.max(0, today - zyklusTag(windowEnd)) : 0, stale, reason, ...pause };
+  }
+
+  // This cache belongs to one redraw only; every data/settings/day change redraws.
+  let zyklusZeichenStatistik = null;
+  function zyklusAnzeigeAktiv() {
+    const k = DATEN.einstellungen.kalender;
+    return k.zykluskalenderAn === true && k.zyklusErinnerungen.anzeige === true;
+  }
+
+  function zyklusPrognoseAm(iso) {
+    if (!zyklusAnzeigeAktiv()) return null;
+    const stats = zyklusZeichenStatistik || zyklusStatistik();
+    return stats.reason === "ready" && !stats.stale && stats.asOf <= stats.windowEnd && iso >= stats.windowStart && iso <= stats.windowEnd ? stats : null;
+  }
+
+  function zyklusTropfen(gestrichelt = false) {
+    const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 16 20"); svg.setAttribute("aria-hidden", "true");
+    svg.classList.add("zyklus-prognose-tropfen");
+    const path = document.createElementNS(ns, "path");
+    path.setAttribute("d", "M8 1C6 5 2 9 2 13a6 6 0 0 0 12 0C14 9 10 5 8 1Z");
+    path.setAttribute("fill", "currentColor"); path.setAttribute("fill-opacity", gestrichelt ? ".08" : ".32");
+    path.setAttribute("stroke", "currentColor"); path.setAttribute("stroke-opacity", ".65");
+    if (gestrichelt) path.setAttribute("stroke-dasharray", "2 2");
+    svg.append(path); return svg;
+  }
+
+  function zyklusHinweiseAm(iso) {
+    if (!zyklusAnzeigeAktiv() || DATEN.einstellungen.kalender.zyklusErinnerungen.abweichung !== true) return [];
+    const stats = zyklusZeichenStatistik || zyklusStatistik(), hints = [];
+    if (stats.paused) return [];
+    const threshold = DATEN.einstellungen.kalender.zyklusErinnerungen.abweichungTage;
+    const lastStart = stats.starts[stats.starts.length - 1];
+    if (iso === stats.predicted && stats.overdueDays) hints.push(uebersetzt(
+      "The estimated window ended %(days)s days ago. No new start is recorded; check for missing entries.", { days: stats.overdueDays }));
+    if (iso === lastStart && stats.baseline !== null && Math.abs(stats.latest - stats.baseline) >= threshold)
+      hints.push(uebersetzt("The latest recorded interval is %(days)s days; the earlier typical interval was %(baseline)s days.",
+        { days: stats.latest, baseline: stats.baseline }));
+    if (iso === lastStart && stats.reason === "gap") hints.push(_("An interval outside 14–60 days interrupts the estimate. Check the entries."));
+    if (iso === stats.lastBleeding && stats.reason === "ongoing") hints.push(_("Recorded bleeding overlaps the estimated window. Check the entries."));
+    if (iso === stats.lastBleeding && stats.recordedRun > 7) hints.push(uebersetzt(
+      "Bleeding is recorded on %(days)s consecutive days in the latest episode. If it actually lasts this long, seek medical advice.", { days: stats.recordedRun }));
+    if (iso === stats.predicted && stats.usedIntervals.length >= 2) {
+      const spread = Math.max(...stats.usedIntervals) - Math.min(...stats.usedIntervals);
+      if (spread >= threshold) hints.push(uebersetzt("The recorded intervals vary by %(days)s days. The estimate is uncertain.", { days: spread }));
+    }
+    return hints;
+  }
+
+  function verwerfeZyklusAnzeige() {
+    schliesseVorhandenesModal("zyklus-bestaetigung");
+    schliesseVorhandenesModal("zyklus-pause");
+    schliesseVorhandenesModal("zyklus-wiederaufnahme");
+    zyklusZeichenStatistik = null;
+    document.querySelectorAll(".zyklus-prognose-kasten, .zyklus-prognose-marke, #kalender-zyklus-pause-status").forEach(node => node.remove());
+  }
+
+  function bestaetigeZyklusTag(iso) {
+    const stats = zyklusPrognoseAm(iso);
+    if (!stats || iso > isoHeute() || gesperrt) return;
+    const book = DATEN, signature = JSON.stringify([stats.starts, stats.windowStart, stats.windowEnd]);
+    const markers = DATEN.zyklusmarker.filter(marker => ["bleeding-light", "bleeding-medium", "bleeding-heavy"].includes(marker.art));
+    if (!markers.length) return;
+    schliesseVorhandenesModal("zyklus-bestaetigung");
+    const veil = el("div", "zyklus-bestaetigung-schleier"), dialog = el("div", "zyklus-bestaetigung-dialog");
+    veil.id = "zyklus-bestaetigung";
+    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-labelledby", "zyklus-bestaetigung-titel");
+    const title = el("h2", null, uebersetzt("Record actual bleeding on %(date)s?", { date: fmtPunkt(iso) }));
+    title.id = "zyklus-bestaetigung-titel";
+    const explanation = el("p", null, _("Choose the observed bleeding intensity, then confirm this day only."));
+    const choice = auswahlFeld([["", "—"]].concat(markers.map(marker => [marker.id, marker.name])), "");
+    choice.id = "zyklus-bestaetigung-intensitaet";
+    choice.setAttribute("aria-label", _("Bleeding intensity"));
+    const close = () => { beendeModal(veil); veil.remove(); };
+    const cancel = knopf(_("Cancel"), "", close);
+    const confirm = knopf(_("Confirm bleeding"), "", () => {
+      const current = zyklusStatistik(), marker = DATEN.zyklusmarker.find(value => value.id === choice.value &&
+        ["bleeding-light", "bleeding-medium", "bleeding-heavy"].includes(value.art));
+      if (!veil.isConnected || gesperrt || DATEN !== book || !zyklusAnzeigeAktiv() || iso > isoHeute() || !marker || current.reason !== "ready" ||
+          current.asOf > current.windowEnd || JSON.stringify([current.starts, current.windowStart, current.windowEnd]) !== signature) {
+        close(); zeichneAlles(); return;
+      }
+      const existing = tagmarkeRohAm(iso) || { zyklusIds: [] };
+      const ids = Array.from(new Set(existing.zyklusIds.concat(marker.id)));
+      close();
+      aendereTagmarkenBereich(iso, iso, null, ids);
+    });
+    confirm.id = "zyklus-bestaetigung-speichern"; confirm.disabled = true;
+    choice.addEventListener("change", () => { confirm.disabled = !markers.some(marker => marker.id === choice.value); });
+    const buttons = el("div", "dialog-knoepfe"); buttons.append(cancel, confirm);
+    dialog.append(title, explanation, formZeile(_("Bleeding intensity"), choice), buttons);
+    veil.append(dialog); document.body.append(veil);
+    veil.addEventListener("click", event => { if (event.target === veil) close(); });
+    registriereModal(veil, dialog, { anfang: choice, schliessen: close });
+  }
+
+  function zyklusPrognoseKasten() {
+    if (!zyklusAnzeigeAktiv()) return null;
+    const stats = zyklusZeichenStatistik || zyklusStatistik(), options = DATEN.einstellungen.kalender.zyklusErinnerungen;
+    const box = el("section", "zyklus-prognose-kasten");
+    box.setAttribute("aria-label", _("Period forecast (estimate)"));
+    box.append(el("h3", null, _("Period forecast (estimate)")));
+    const pauseButton = knopf(stats.paused ? _("Change pause") : _("Add a reason or pause predictions"), "klein", oeffneZyklusPauseDialog);
+    pauseButton.id = "zyklus-pause-oeffnen";
+    if (stats.paused) {
+      box.append(el("p", "zyklus-prognose-datum", zyklusPauseText(stats)), pauseButton,
+        el("p", null, _("The reason is self-reported. During the pause, estimates and cycle-deviation reminders are suppressed. Existing entries are retained.")));
+      return box;
+    }
+    if (stats.predicted) {
+      box.append(el("p", "zyklus-prognose-datum", uebersetzt(stats.stale || stats.overdueDays ?
+        "Earlier estimate: %(date)s" : "Estimated start: %(date)s", { date: fmtPunkt(stats.predicted) })));
+      box.append(el("p", null, uebersetzt("Estimated window: %(from)s – %(to)s",
+        { from: fmtPunkt(stats.windowStart), to: fmtPunkt(stats.windowEnd) })));
+    } else {
+      const reason = stats.reason === "gap" ? _("An interval outside 14–60 days interrupts the estimate. Check the entries.") :
+        stats.reason === "ongoing" ? _("Recorded bleeding overlaps the estimated window. Check the entries.") :
+        stats.reason === "range" ? _("No estimate is possible at the edge of the supported calendar range.") :
+        stats.reason === "restart" ? _("The pause has ended. A new estimate needs three newly recorded starts; earlier intervals are not reused.") :
+        _("Not enough recent data for a personal estimate.");
+      box.append(el("p", null, reason));
+    }
+    if (stats.stale) box.append(el("p", "zyklus-prognose-hinweis",
+      _("The records are too old for current planning. Check or add entries.")));
+    if (options.abweichung === true) {
+      const hints = [];
+      if (stats.overdueDays) hints.push(uebersetzt(
+        "The estimated window ended %(days)s days ago. No new start is recorded; check for missing entries.", { days: stats.overdueDays }));
+      if (stats.baseline !== null && Math.abs(stats.latest - stats.baseline) >= options.abweichungTage)
+        hints.push(uebersetzt("The latest recorded interval is %(days)s days; the earlier typical interval was %(baseline)s days.",
+          { days: stats.latest, baseline: stats.baseline }));
+      if (stats.usedIntervals.length >= 2) {
+        const spread = Math.max(...stats.usedIntervals) - Math.min(...stats.usedIntervals);
+        if (spread >= options.abweichungTage) hints.push(uebersetzt("The recorded intervals vary by %(days)s days. The estimate is uncertain.", { days: spread }));
+      }
+      if (stats.recordedRun > 7) hints.push(uebersetzt(
+        "Bleeding is recorded on %(days)s consecutive days in the latest episode. If it actually lasts this long, seek medical advice.", { days: stats.recordedRun }));
+      for (const hint of hints) box.append(el("p", "zyklus-prognose-hinweis", hint));
+    }
+    const details = el("details", "zyklus-prognose-details");
+    details.append(el("summary", null, _("Details and limitations")));
+    if (stats.length !== null) details.append(el("p", null,
+      uebersetzt("Basis: %(count)s recorded intervals; typical interval %(days)s days.", { count: stats.usedIntervals.length, days: stats.length })));
+    if (stats.futureIgnored) details.append(el("p", null,
+      uebersetzt("Future bleeding entries are not used: %(count)s.", { count: stats.futureIgnored })));
+    details.append(el("p", null, _("Calculated from at least three starts. Bleeding entries up to three days apart form one episode. After an interval outside 14–60 days, two new intervals are needed. The window spans the shortest and longest of up to twelve recent intervals, plus two days on either side.")),
+      el("p", null, _("Estimate from your entries, not a diagnosis or contraception method. Seek medical advice for new, persistent or distressing changes.")));
+    details.append(el("p", null, _("Pale drops mark possible start days, not a predicted bleeding duration. Active predictions disappear after the estimated window if unconfirmed. Only days you confirm as actual bleeding enter future calculations.")));
+    box.append(pauseButton, details);
+    return box;
   }
 
   function zyklusTermineFuerErinnerung() {
-    const k = DATEN.einstellungen.kalender, options = k.zyklusErinnerungen || {}, stats = zyklusStatistik();
-    if (!k.zykluskalenderAn) return [];
-    const result = [];
-    if (options.prognose && stats.predicted) result.push({ id: "cycle-estimate:" + stats.starts.at(-1) + ":" + stats.predicted,
-      datum: stats.predicted, zeit: "08:00", titel: _("Estimated next period"), standardErinnerung: false, individuelleErinnerungTage: options.vorlauf ?? 1 });
-    if (options.abweichung && stats.baseline !== null && Math.abs(stats.latest - stats.baseline) >= (options.abweichungTage ?? 7))
-      result.push({ id: "cycle-deviation:" + stats.starts.at(-1) + ":" + stats.latest, datum: stats.starts.at(-1), zeit: "08:00",
+    const k = DATEN.einstellungen.kalender, options = k.zyklusErinnerungen || {};
+    if (k.zykluskalenderAn !== true || !(options.prognose === true || options.abweichung === true)) return [];
+    const stats = zyklusStatistik(), result = [];
+    if (stats.paused) return result;
+    const lead = Number.isInteger(options.vorlauf) && options.vorlauf >= 0 && options.vorlauf <= 30 ? options.vorlauf : 1;
+    const threshold = Number.isInteger(options.abweichungTage) && options.abweichungTage >= 1 && options.abweichungTage <= 30 ? options.abweichungTage : 7;
+    if (options.prognose === true && stats.predicted && !stats.stale) result.push({ id: "cycle-estimate:" + stats.starts[stats.starts.length - 1] + ":" + stats.predicted,
+      datum: stats.predicted, zeit: "08:00", titel: _("Estimated next period"), standardErinnerung: false, individuelleErinnerungTage: lead });
+    if (options.abweichung === true && stats.baseline !== null && Math.abs(stats.latest - stats.baseline) >= threshold)
+      result.push({ id: "cycle-deviation:" + stats.starts[stats.starts.length - 1] + ":" + stats.latest, datum: stats.starts[stats.starts.length - 1], zeit: "08:00",
         titel: _("Cycle interval changed"), standardErinnerung: false, individuelleErinnerungTage: 0 });
     return result;
   }
@@ -30601,6 +31006,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           wendeKalenderDefinitionAn("zyklusmarker", null, { name, symbol, farbe, art });
           planeSpeichern();
           zeichneZyklusmarker();
+          zeichneAlles();
         });
         button.type = "button";
         auswahl.append(button);
@@ -30614,6 +31020,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const eigenerMarker = knopf(_("Custom"), "klein", () => {
         wendeKalenderDefinitionAn("zyklusmarker", null, {});
         zeichneZyklusmarker();
+        zeichneAlles();
       });
       eigenerMarker.type = "button";
       auswahl.append(eigenerMarker);
@@ -30631,6 +31038,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           entferneKalenderDefinition("zyklusmarker", marker);
           planeSpeichern();
           zeichneZyklusmarker();
+          zeichneAlles();
         });
         weg.title = _("Delete cycle marker");
         const speichern = () => {
@@ -30645,6 +31053,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         wendeKalenderDefinitionAn("zyklusmarker", null, {});
         planeSpeichern();
         zeichneZyklusmarker();
+        zeichneAlles();
       });
       zyklusGruppe.inhalt.append(el("p", "einst-hinweis",
         _("Choose a phase or bleeding intensity. Assign it to the complete date range " +
@@ -30652,25 +31061,46 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         el("p", "einst-hinweis",
           _("Notifications are off unless enabled below.")));
       const options = k.zyklusErinnerungen;
-      const prediction = document.createElement("input"), deviation = document.createElement("input");
-      prediction.type = deviation.type = "checkbox";
-      prediction.checked = options.prognose; deviation.checked = options.abweichung;
-      const lead = eingabe("number", String(options.vorlauf)); lead.min = "0"; lead.max = "30";
-      const threshold = eingabe("number", String(options.abweichungTage)); threshold.min = "1"; threshold.max = "30";
-      const predictionLabel = el("label", "hak"), deviationLabel = el("label", "hak");
-      predictionLabel.style.display = deviationLabel.style.display = "block";
-      predictionLabel.append(prediction, document.createTextNode(" " + _("Estimate the next period")));
+      const pauseButton = knopf(_("Pause period predictions"), "klein", oeffneZyklusPauseDialog);
+      pauseButton.id = "kalender-zyklus-pause";
+      zyklusGruppe.inhalt.append(pauseButton);
+      const pause = zyklusPauseKontext(DATEN, isoHeute());
+      const pauseStatus = el("p", "einst-hinweis", pause.paused ? zyklusPauseText(pause) : "");
+      pauseStatus.id = "kalender-zyklus-pause-status"; pauseStatus.hidden = !pause.paused;
+      zyklusGruppe.inhalt.append(pauseStatus);
+      const display = document.createElement("input"), prediction = document.createElement("input"), deviation = document.createElement("input");
+      display.type = prediction.type = deviation.type = "checkbox";
+      display.id = "kalender-zyklus-prognose-anzeige";
+      prediction.id = "kalender-zyklus-prognose-erinnerung";
+      deviation.id = "kalender-zyklus-abweichung";
+      display.checked = options.anzeige; prediction.checked = options.prognose; deviation.checked = options.abweichung;
+      const lead = eingabe("number", String(options.vorlauf)); lead.min = "0"; lead.max = "30"; lead.required = true; lead.step = "1";
+      const threshold = eingabe("number", String(options.abweichungTage)); threshold.min = "1"; threshold.max = "30"; threshold.required = true; threshold.step = "1";
+      const displayLabel = el("label", "hak"), predictionLabel = el("label", "hak"), deviationLabel = el("label", "hak");
+      displayLabel.style.display = predictionLabel.style.display = deviationLabel.style.display = "block";
+      displayLabel.append(display, document.createTextNode(" " + _("Show period forecast in calendar")));
+      predictionLabel.append(prediction, document.createTextNode(" " + _("Notify before the estimated period")));
       deviationLabel.append(deviation, document.createTextNode(" " + _("Report unusual cycle intervals")));
-      const change = () => {
-        if (!lead.reportValidity() || !threshold.reportValidity()) return;
-        wendeKalenderAnzeigeDatenAn({}, { prognose: prediction.checked, abweichung: deviation.checked,
-          vorlauf: Number(lead.value), abweichungTage: Number(threshold.value) });
+      const change = event => {
+        const input = event.target;
+        // Opt-outs must work even while an unrelated numeric field is invalid.
+        const patch = input === display ? { anzeige: display.checked } : input === prediction ? { prognose: prediction.checked } :
+          input === deviation ? { abweichung: deviation.checked } :
+          input === lead ? { vorlauf: Number(lead.value) } : { abweichungTage: Number(threshold.value) };
+        if (input.type === "number") {
+          if (!input.reportValidity()) return;
+          if (lead.checkValidity() && threshold.checkValidity()) Object.assign(patch,
+            { vorlauf: Number(lead.value), abweichungTage: Number(threshold.value) });
+        }
+        if (!wendeKalenderAnzeigeDatenAn({}, patch)) return;
         planeSpeichern();
+        zeichneAlles();
       };
-      [prediction, deviation, lead, threshold].forEach(input => input.addEventListener("change", change));
-      zyklusGruppe.inhalt.append(predictionLabel, formZeile(_("Lead time"), lead), deviationLabel,
+      [display, prediction, deviation, lead, threshold].forEach(input => input.addEventListener("change", change));
+      zyklusGruppe.inhalt.append(displayLabel, predictionLabel, formZeile(_("Lead time"), lead), deviationLabel,
         formZeile(_("Difference (days)"), threshold), el("p", "einst-hinweis",
-          _("At least three recorded starts are needed. Bleeding days up to three days apart form one episode; only intervals of 14–60 days enter the median.")));
+          _("Calendar display and reminders can be enabled separately. Existing entries are preserved.")),
+        el("p", "einst-hinweis", _("Calculated from at least three starts. Bleeding entries up to three days apart form one episode. After an interval outside 14–60 days, two new intervals are needed. The window spans the shortest and longest of up to twelve recent intervals, plus two days on either side.")));
     };
     zyklusGruppe.hak.id = "kalender-zykluskalender";
     zyklusGruppe.hak.addEventListener("change", () => {
@@ -33935,6 +34365,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   let sperrZustand = { eingabe: "", wartet: 0, uhr: null, art: "pin" };
 
   function zeigeSperrbildschirm(wartet) {
+    verwerfeZyklusAnzeige();
     originalKontaktWlanWartet = false;
     if (originalKontaktFreigaben || originalKontaktLauf || originalKontaktSpeicher || originalKontaktDauerNachweis) originalKontaktUpdatesWiderrufen();
     originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
@@ -34558,6 +34989,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     backgroundSettings(nutzlast) { mcpNativeAntwort(nutzlast || {}, "backgroundSettings"); },
     trayDarstellungTestStand(value) { window.MagnolieAppearance?.nativeResult(value); },
     init(nutzlast) {
+      verwerfeZyklusAnzeige();
       notesOriginalGeladenText = null;
       if (originalKontaktFreigaben || originalKontaktLauf || originalKontaktSpeicher || originalKontaktDauerNachweis) originalKontaktUpdatesWiderrufen();
       originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
@@ -41209,7 +41641,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function wendeKalenderAnzeigeDatenAn(values, cycle = null) {
     if (Object.entries(values).some(([key, value]) => !Object.values(KALENDER_ANZEIGE_FELDER).includes(key) || typeof value !== "boolean")) return false;
     if (cycle) {
-      if (["prognose", "abweichung"].some(key => cycle[key] !== undefined && typeof cycle[key] !== "boolean")) return false;
+      if (["anzeige", "prognose", "abweichung"].some(key => cycle[key] !== undefined && typeof cycle[key] !== "boolean")) return false;
       if (cycle.vorlauf !== undefined && (!Number.isInteger(cycle.vorlauf) || cycle.vorlauf < 0 || cycle.vorlauf > 30)) return false;
       if (cycle.abweichungTage !== undefined && (!Number.isInteger(cycle.abweichungTage) || cycle.abweichungTage < 1 || cycle.abweichungTage > 30)) return false;
     }
@@ -41312,8 +41744,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }) }];
   }
   function mcpKalenderAnzeigeWerkzeuge() {
-    const fields = Object.fromEntries(Object.keys(KALENDER_ANZEIGE_FELDER).map(key => [key, { type: "boolean" }])), cycleMap = { prediction: "prognose", report_deviations: "abweichung", lead_days: "vorlauf", difference_days: "abweichungTage" };
-    const cycleFields = { prediction: { type: "boolean" }, report_deviations: { type: "boolean" }, lead_days: { type: "integer", minimum: 0, maximum: 30 }, difference_days: { type: "integer", minimum: 1, maximum: 30 } };
+    const fields = Object.fromEntries(Object.keys(KALENDER_ANZEIGE_FELDER).map(key => [key, { type: "boolean" }])), cycleMap = { show_forecast: "anzeige", prediction: "prognose", report_deviations: "abweichung", lead_days: "vorlauf", difference_days: "abweichungTage" };
+    const cycleFields = { show_forecast: { type: "boolean" }, prediction: { type: "boolean" }, report_deviations: { type: "boolean" }, lead_days: { type: "integer", minimum: 0, maximum: 30 }, difference_days: { type: "integer", minimum: 1, maximum: 30 } };
     const snapshot = () => { const calendar = DATEN.einstellungen.kalender; return JSON.stringify({ flags: Object.fromEntries(Object.entries(KALENDER_ANZEIGE_FELDER).map(([key, field]) => [key, calendar[field]])), cycle: calendar.zyklusErinnerungen }); };
     return [
       { name: "organizer_calendar_settings_read", description: "Read calendar/planner display, past-entry and local-definition visibility preferences plus cycle-estimation notification options, with a full preference revision.",
@@ -42439,6 +42871,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     oeffneZeiterfassungVerlauf: oeffneZeiterfassungVerlauf,
     zeitKalenderProjektion: zeitKalenderProjektion,
     zyklusStatistik: zyklusStatistik,
+    zyklusPrognoseAm: zyklusPrognoseAm,
+    zyklusHinweiseAm: zyklusHinweiseAm,
+    zyklusNeunMonate: zyklusNeunMonate,
+    oeffneZyklusPauseDialog: oeffneZyklusPauseDialog,
+    bestaetigeZyklusTag: bestaetigeZyklusTag,
+    zyklusPrognoseKasten: zyklusPrognoseKasten,
     zyklusTermineFuerErinnerung: zyklusTermineFuerErinnerung,
     zeitOdsNutzlast: zeitOdsNutzlast,
     zeitDruckSeite: zeitDruckSeite,

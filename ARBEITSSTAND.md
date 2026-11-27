@@ -1274,3 +1274,39 @@ Teilnachweise und heutige Reste werden im Audit getrennt geführt. Für die
 unterschiedlichen Befunde in #458, #463 und #471 bleiben die jeweiligen Ursachen-
 und Restprüfungen offen. Geschlossene Quell-/Native-Teilfixes werden nicht ohne
 neue Regression wieder geöffnet.
+
+## Periodenvorhersage – Integration zu #803, 27. November 2026
+
+[Issue #803](https://github.com/maik3531/Magnolie-Organizer/issues/803)
+enthält den geprüften Patch auf Basis von
+`d4da48a5eadd0bda22422b924bef4ee3b4324040`. Er ist mit den
+zwischenzeitlichen Mac-/Tablet-Änderungen zusammengeführt.
+Die dauerhaften Dateien liegen im Artefaktzweig
+`work/issue-803-period-forecast-patch` unter `patches/issue-803/`.
+Es ist eine Erweiterung der bestehenden Funktion aus #79: optionales
+Schätzfenster mit blassen Tropfen, getrennte gestrichelte Hinweissymbole mit
+Tooltip, ausdrückliche Bestätigung einzelner tatsächlich beobachteter Tage
+und Verfall unbestätigter Vorhersagen ohne erfundene Blutungseinträge.
+
+Bekannte, selbst angegebene Gründe wie Schwangerschaft, Stillzeit,
+Medikamente/hormonelle Behandlung und Wechseljahre können die Planung
+pausieren. Schwangerschaft schlägt neun anpassbare Kalendermonate vor;
+unbefristete Pausen sind ebenfalls möglich. Neu erfasste Blutung beendet
+eine Pause erst nach separater Bestätigung als neue Periode. Danach beginnt
+die Berechnung mit neuen bestätigten Anfängen. Vertrag und Handbuch erklären
+diese Regeln einschließlich der medizinischen Grenzen in allen 20 Sprachen.
+
+Geprüft: 60 unabhängige Datums-/Kontextfälle, 1.000 erzeugte Verläufe je
+JavaScript-Frontend, vollständiger JS-/Python-Abgleich, 9.260 JS-Prüfaussagen,
+16 Python-Testgruppen, 1.114 portable C#-Prüfaussagen einschließlich
+250 erzeugter Verläufe, 60 vollständige Python-/C#-Vergleiche, 113 bestehende
+Desktop-Regressionsfälle, MCP-Prüfung beider Oberflächen und zehn reale
+Chromium-Szenarien. Dazu kommen die geprüften Sprachkataloge und eine
+unabhängige Bedienungsprüfung. Die Prüfprotokolle nennen die genauen Grenzen.
+Keine klinische Genauigkeitsprüfung, keine Abnahme installierter Windows-
+oder Linux-Pakete und keine native Zustellungsprüfung von Benachrichtigungen.
+Auf der zusammengeführten Quelle bestanden beide Oberflächen mit 9.260
+Vorhersage-Prüfaussagen, 113 Desktop- und 321 Kontaktgeburtstagsprüfungen.
+Dazu kommen 95 Python-Fälle und auf dem vorhandenen Windows-Rechner 1.114
+C#-Prüfaussagen. Beide Sprachkataloge enthalten die neuen Texte aus den
+beiden Patchserien. Die installierte Benachrichtigungsprüfung bleibt offen.

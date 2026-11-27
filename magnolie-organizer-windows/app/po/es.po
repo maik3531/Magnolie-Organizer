@@ -8929,3 +8929,273 @@ msgstr "Fecha de nacimiento guardada en este contacto; sin entrada en el calenda
 #. Contact-only birthday copied from macOS (#776); no automatic annual entry.
 msgid "Please enter a valid birth date."
 msgstr "Introduzca una fecha de nacimiento válida."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Show period forecast in calendar"
+msgstr "Mostrar la predicción de la menstruación en el calendario"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Notify before the estimated period"
+msgstr "Avisar antes del inicio estimado de la menstruación"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Period forecast (estimate)"
+msgstr "Predicción de la menstruación (estimación)"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Estimated start: %(date)s"
+msgstr "Inicio estimado: %(date)s"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Estimated window: %(from)s – %(to)s"
+msgstr "Intervalo estimado: %(from)s – %(to)s"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Basis: %(count)s recorded intervals; typical interval %(days)s days."
+msgstr "Base: %(count)s intervalos registrados; intervalo habitual de %(days)s días."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Not enough recent data for a personal estimate."
+msgstr "No hay suficientes datos recientes para una estimación personal."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "An interval outside 14–60 days interrupts the estimate. Check the entries."
+msgstr "Un intervalo fuera de 14–60 días interrumpe la estimación. Revisa los registros."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Future bleeding entries are not used: %(count)s."
+msgstr "No se utilizan los registros de sangrado con fecha futura: %(count)s."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The estimated window ended %(days)s days ago. No new start is recorded; check for missing entries."
+msgstr "El intervalo estimado terminó hace %(days)s días. No hay un nuevo inicio registrado; comprueba si faltan registros."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The latest recorded interval is %(days)s days; the earlier typical interval was %(baseline)s days."
+msgstr "El último intervalo registrado es de %(days)s días; el intervalo habitual anterior era de %(baseline)s días."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The recorded intervals vary by %(days)s days. The estimate is uncertain."
+msgstr "Los intervalos registrados difieren en %(days)s días. La estimación es incierta."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The records are too old for current planning. Check or add entries."
+msgstr "Los registros son demasiado antiguos para la planificación actual. Revísalos o añade nuevos registros."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Bleeding is recorded on %(days)s consecutive days in the latest episode. If it actually lasts this long, seek medical advice."
+msgstr "Hay sangrado registrado durante %(days)s días consecutivos en el último episodio. Si realmente dura tanto, consulta con un profesional sanitario."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Recorded bleeding overlaps the estimated window. Check the entries."
+msgstr "Un sangrado registrado coincide con parte del intervalo estimado. Revisa los registros."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "No estimate is possible at the edge of the supported calendar range."
+msgstr "No es posible realizar una estimación en el límite del rango de fechas admitido."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Estimate from your entries, not a diagnosis or contraception method. Seek medical advice for new, persistent or distressing changes."
+msgstr "Estimación basada en tus registros, no un diagnóstico ni un método anticonceptivo. Consulta con un profesional sanitario ante cambios nuevos, persistentes o molestos."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Calculated from at least three starts. Bleeding entries up to three days apart form one episode. After an interval outside 14–60 days, two new intervals are needed. The window spans the shortest and longest of up to twelve recent intervals, plus two days on either side."
+msgstr "Se calcula a partir de al menos tres inicios. Los registros de sangrado separados por un máximo de tres días forman un episodio. Tras un intervalo fuera de 14–60 días, se necesitan dos nuevos intervalos. El rango abarca desde el más corto hasta el más largo de un máximo de doce intervalos recientes, más dos días a cada lado."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Details and limitations"
+msgstr "Detalles y limitaciones"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Estimated start window"
+msgstr "Intervalo estimado para el inicio"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Earlier estimate: %(date)s"
+msgstr "Estimación anterior: %(date)s"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Calendar display and reminders can be enabled separately. Existing entries are preserved."
+msgstr "La visualización en el calendario y los recordatorios se pueden activar por separado. Se conservan los registros existentes."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Record actual bleeding on %(date)s?"
+msgstr "¿Registrar un sangrado real el %(date)s?"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Choose the observed bleeding intensity, then confirm this day only."
+msgstr "Selecciona la intensidad del sangrado observado y confirma solo este día."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Confirm bleeding"
+msgstr "Confirmar sangrado"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "This is a future estimate. Only today or a past day can be confirmed."
+msgstr "Esta es una estimación futura. Solo se puede confirmar hoy o un día anterior."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pale drops mark possible start days, not a predicted bleeding duration. Active predictions disappear after the estimated window if unconfirmed. Only days you confirm as actual bleeding enter future calculations."
+msgstr "Las gotas tenues marcan posibles días de inicio, no una duración de sangrado prevista. Las predicciones activas desaparecen después del intervalo estimado si no se confirman. Solo los días que confirmes como sangrado real se incluyen en los cálculos futuros."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Bleeding intensity"
+msgstr "Intensidad del sangrado"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Confirm bleeding on %(date)s"
+msgstr "Confirmar sangrado el %(date)s"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pause period predictions"
+msgstr "Pausar las predicciones de la menstruación"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Reason for the pause"
+msgstr "Motivo de la pausa"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pregnancy"
+msgstr "Embarazo"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Breastfeeding"
+msgstr "Lactancia"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Medication or hormonal treatment"
+msgstr "Medicamentos o tratamiento hormonal"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Perimenopause or menopause"
+msgstr "Perimenopausia o menopausia"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Other known reason"
+msgstr "Otro motivo conocido"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pause until (inclusive)"
+msgstr "Pausa hasta (inclusive)"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "No fixed end date"
+msgstr "Sin fecha de finalización fija"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Nine calendar months is only an editable planning pause, not a due date."
+msgstr "Nueve meses naturales son solo una pausa de planificación que puedes modificar, no una fecha prevista de parto."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The reason is self-reported. During the pause, estimates and cycle-deviation reminders are suppressed. Existing entries are retained."
+msgstr "Tú indicas el motivo. Durante la pausa se suspenden las estimaciones y los recordatorios de desviaciones del ciclo. Se conservan los registros existentes."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Save pause"
+msgstr "Guardar pausa"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "End pause"
+msgstr "Finalizar pausa"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Period predictions paused: %(reason)s; until %(date)s."
+msgstr "Predicciones de la menstruación pausadas: %(reason)s; hasta el %(date)s inclusive."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Period predictions paused: %(reason)s; no fixed end date."
+msgstr "Predicciones de la menstruación pausadas: %(reason)s; sin fecha de finalización fija."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "The pause has ended. A new estimate needs three newly recorded starts; earlier intervals are not reused."
+msgstr "La pausa ha terminado. Una nueva estimación requiere tres nuevos inicios registrados; no se reutilizan los intervalos anteriores."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Change pause"
+msgstr "Cambiar pausa"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Add a reason or pause predictions"
+msgstr "Añadir un motivo o pausar las predicciones"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Enter an end date on or after the start of the pause."
+msgstr "Introduce una fecha de finalización igual o posterior al inicio de la pausa."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Bleeding during pregnancy or after menopause should be medically assessed. Record it as a new period only if that is how it has been identified."
+msgstr "El sangrado durante el embarazo o después de la menopausia debe ser evaluado por un profesional sanitario. Regístralo como una nueva menstruación solo si se ha identificado como tal."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "A newly recorded period ends this planning pause. This does not determine whether pregnancy or menopause has ended."
+msgstr "Una nueva menstruación registrada finaliza esta pausa de planificación. Esto no determina si el embarazo o la menopausia han terminado."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Pause started: %(date)s."
+msgstr "Inicio de la pausa: %(date)s."
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Bleeding recorded. Is this a new period that should end the planning pause?"
+msgstr "Sangrado registrado. ¿Es una nueva menstruación que debe finalizar la pausa de planificación?"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Confirm new period"
+msgstr "Confirmar nueva menstruación"
+
+
+#. Optional period forecast improvements (Refs #803).
+msgid "Keep pause"
+msgstr "Mantener la pausa"

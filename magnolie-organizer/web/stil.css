@@ -6451,3 +6451,33 @@ body[data-linien="aus"] #tb-notiz {
 .kontakt-quelle-gespeichert { border-color: #b86600; background: rgba(230, 126, 0, .12); }
 .kontakt-quelle-eingang { border-color: #23834a; background: rgba(35, 131, 74, .12); }
 @media (max-width: 620px) { .kontakt-quellenspalten { grid-template-columns: 1fr; } }
+
+/* Optional cycle estimates are derived display, never recorded bleeding. */
+.zyklus-prognose-kasten {
+  flex: 0 0 auto;
+  max-height: 24vh;
+  overflow-y: auto;
+  margin: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--linie-stark);
+  border-radius: 6px;
+  color: inherit;
+  background: var(--papier);
+  overflow-wrap: anywhere;
+  font-size: .9em;
+}
+.zyklus-prognose-kasten h3 { margin: 0 0 6px; font-size: 1.05em; }
+.zyklus-prognose-kasten p { margin: 5px 0; line-height: 1.35; }
+.zyklus-prognose-datum { font-weight: 700; }
+.zyklus-prognose-hinweis { border-inline-start: 3px solid currentColor; padding-inline-start: 8px; }
+.zyklus-prognose-details summary { cursor: pointer; padding-block: 4px; }
+.zyklus-prognose-details summary:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+.zyklus-prognose-marke { display: inline-flex; align-items: center; gap: 3px; border: 1px solid transparent; background: transparent; color: #983851; border-radius: 3px; padding: 1px 3px; font: inherit; font-weight: 700; }
+button.zyklus-prognose-marke { cursor: pointer; }
+.zyklus-prognose-marke:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+.zyklus-prognose-tropfen { width: 14px; height: 18px; flex: 0 0 auto; }
+.zyklus-bestaetigung-schleier { position: fixed; inset: 0; z-index: 180; display: grid; place-items: center; padding: 16px; background: #0007; }
+.zyklus-bestaetigung-dialog { width: min(480px, 100%); max-height: 85vh; overflow: auto; padding: 18px; border: 1px solid var(--linie-stark); border-radius: 8px; color: var(--tinte); background: var(--papier); }
+.zyklus-bestaetigung-dialog h2 { margin-block-start: 0; font-size: 1.2em; }
+.zyklus-bestaetigung-dialog .dialog-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; }
