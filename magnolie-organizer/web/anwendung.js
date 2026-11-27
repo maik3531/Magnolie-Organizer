@@ -30131,6 +30131,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const ansicht = telefonFotoAnsichten.get(peer.device_id) || { offen: false, album: "" };
       const { erweitert, gruppe, titel } = baueTelefonErweiterteMedien(wurzel, ansicht, livePeer);
       erweitert.hidden = false; delete erweitert.dataset.localMediaOnly;
+      const sharedValues = stand.shared_media?.values;
+      const twoWayHeld = sharedValues
+        ? sharedValues.direction === "two_way" && sharedValues.collection_mode !== "import_only"
+        : stand.mapped_direction === "two_way";
       const sende = (action, album_id, job_owner, historical_choice) => {
         telefonFotoFehler.delete(peer.device_id);
         const request = { action }; if (album_id !== undefined) request.album_id = album_id;
@@ -30177,6 +30181,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           input.checked = shared.values[field] === true; input.disabled = waiting || stand.busy === true || unsupported;
           input.addEventListener("change", () => {
             const wanted = input.checked; input.checked = shared.values[field] === true;
+            if (input.disabled) return;
             telefonMedienEinstellung(peer, stand, field, wanted);
           });
           const row = el("label", "hak"); row.append(input, document.createTextNode(" " + title)); settings.append(row);
@@ -30190,8 +30195,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           }
           input.value = shared.values[field]; input.disabled = waiting || stand.busy === true;
           input.addEventListener("change", () => {
-            const wanted = input.value; input.value = shared.values[field];
-            telefonMedienEinstellung(peer, stand, field, wanted);
+            const wanted = input.selectedOptions[0]; input.value = shared.values[field];
+            if (input.disabled || !wanted || wanted.disabled) return;
+            telefonMedienEinstellung(peer, stand, field, wanted.value);
           });
           settings.append(formZeile(title, input));
         };
@@ -30212,7 +30218,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         select("auto_mode", _("Mode"), [["manual", pgettext("photo synchronization", "Manual")],
           ["wifi", _("Automatically synchronize over Wi-Fi")]]);
         select("direction", _("Direction"), [["phone_to_pc", _("Phone → PC")],
-          ["two_way", _("Two-way synchronization")], ["pc_to_phone", _("PC → phone")]]);
+          ["two_way", _("Two-way synchronization"), true], ["pc_to_phone", _("PC → phone")]]);
         check("photos_enabled", _("Synchronize photos"));
         if (stand.video_supported === true) check("videos_enabled", _("Synchronize videos"));
         check("photos_only", _("Photos only"));
@@ -30396,7 +30402,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       const sharedSources = stand.shared_media;
       if (stand.collection_sources_supported === true && sharedSources?.values.collection_mode === "entire_collection" &&
-          ["pc_to_phone", "two_way"].includes(sharedSources.values.direction)) {
+          sharedSources.values.direction === "pc_to_phone") {
         const sources = el("section", "notes-pc-sammlungsordner"); sources.append(el("h4", null, _("Selected PC source folders")));
         sources.append(el("p", "einst-hinweis", _("PC source folders are separate from receive destinations.")));
         for (const [kind, label, consent] of [["images", _("Photos"), "photos"], ["video", _("Videos"), "videos"]]) {
@@ -30416,6 +30422,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         gruppe.append(sources);
       }
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
+      if (twoWayHeld) gruppe.append(el("p", "einst-hinweis", _("Two-way synchronization") + " · " + _("Unavailable")));
       const backupRecovery = baueMedienBackupWiederherstellung(); gruppe.append(backupRecovery);
       if (stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
         const manuell = el("div", "knopfreihe notes-medien-manuell");
@@ -30426,7 +30433,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               { action: "sync_selected", album_id: fotoAlbumWahl?.value || null, video_album_id: videoAlbumWahl?.value || null } });
         });
         jetzt.dataset.photoManualSync = "true";
-        jetzt.disabled = stand.busy === true || !(stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length) ||
+        jetzt.disabled = twoWayHeld || stand.busy === true || !(stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length) ||
           !!(stand.shared_media && stand.shared_media.configured !== false && (!stand.shared_media.values.enabled || !stand.shared_media.agreed));
         manuell.append(jetzt);
         if (stand.busy) {

@@ -135,8 +135,11 @@ class MedienSyncEinstellungenUiTest {
         assertEquals(0, permissions)
         assertEquals(ToggleableState.Off, checkbox(R.string.medien_sync_aktivieren).config[SemanticsProperties.ToggleableState])
         state.value = state.value.copy(mediaPreferencesValues = JsonObject(values + ("enabled" to JsonPrimitive(true)))); frames()
-        click(checkbox(R.string.personal_sync_skip_deletions))
-        assertEquals(Triple("skip_deletions", JsonPrimitive(true), versions.getValue("skip_deletions")), changes.last())
+        assertNotNull("Deletion propagation has no verified path", checkbox(R.string.personal_sync_skip_deletions)
+            .config.getOrNull(SemanticsProperties.Disabled))
+        assertEquals(ToggleableState.Off, checkbox(R.string.personal_sync_skip_deletions).config[SemanticsProperties.ToggleableState])
+        assertTrue(nodes().any { text(it) == label(R.string.personal_sync_keine_loeschung) })
+        assertEquals(1, changes.size)
         val permissionButton = nodes().single { text(it) == "Android · " + label(R.string.medien_sync_zugriff) }
         click(permissionButton); assertEquals(1, permissions)
         assertEquals(0, runs)
@@ -161,10 +164,11 @@ class MedienSyncEinstellungenUiTest {
         assertNull(direction.config.getOrNull(SemanticsProperties.Disabled))
         assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
         click(direction)
-        val choice = android.view.inspector.WindowInspector.getGlobalWindowViews().flatMap { nodes(it) }
-            .single { text(it) == label(R.string.personal_note_two_way) }
+        val menu = android.view.inspector.WindowInspector.getGlobalWindowViews().flatMap { nodes(it) }
+        assertNotNull(menu.single { text(it) == label(R.string.personal_note_two_way) }.config.getOrNull(SemanticsProperties.Disabled))
+        val choice = menu.single { text(it) == label(R.string.medien_sync_direction_import) }
         click(choice)
-        assertEquals(Triple("direction", JsonPrimitive("two_way"), versions.getValue("direction")), changes.single())
+        assertEquals(Triple("direction", JsonPrimitive("phone_to_pc"), versions.getValue("direction")), changes.single())
         body = MediaSyncSettings.change(body, pc, phone, "direction", JsonPrimitive("two_way"))
         state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.configured(body)); frames()
         assertFalse(MediaSyncSettings.transferRequestedFor(body, "images", true))
@@ -176,6 +180,7 @@ class MedienSyncEinstellungenUiTest {
         body = MediaSyncSettings.change(body, pc, phone, "collection_mode", JsonPrimitive("phone_inventory"))
         state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.configured(body)); frames()
         assertNull(nodes().single { text(it) == label(R.string.personal_note_two_way) }.config.getOrNull(SemanticsProperties.Disabled))
+        assertNotNull(nodes().single { text(it) == label(R.string.personal_sync_jetzt) }.config.getOrNull(SemanticsProperties.Disabled))
         assertEquals(directionRegister, body["settings"]!!.jsonObject["direction"])
         assertEquals(1, changes.size); assertTrue(receiving.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
     }

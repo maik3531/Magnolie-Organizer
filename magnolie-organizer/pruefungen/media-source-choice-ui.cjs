@@ -86,5 +86,20 @@ async function boot() {
     b.show({ shared_media: { ...b.state.shared_media, values: { ...b.state.shared_media.values, enabled: false } } });
     assert.ok(b.add().disabled); assert.equal(b.sent().length, 0);
   });
+  await test("unsupported two-way mode cannot be selected or start a partial run", async b => {
+    const direction = () => b.w.document.querySelector('[data-media-setting="direction"]');
+    assert.ok(direction().querySelector('[value="two_way"]').disabled, "Two-way must not be selectable without safe return");
+    direction().value = "two_way";
+    direction().dispatchEvent(new b.w.Event("change"));
+    await b.ack();
+    assert.equal(direction().value, "pc_to_phone");
+    assert.ok(!b.messages.some(m => m.request?.action === "shared_setting"));
+    b.show({ mapped_outgoing: true, shared_media: { ...b.state.shared_media,
+      values: { ...b.state.shared_media.values, direction: "two_way" } } });
+    assert.equal(direction().value, "two_way", "Keep the saved direction visible");
+    assert.ok(b.w.document.querySelector("[data-photo-manual-sync]").disabled);
+    assert.equal(b.add(), null);
+    assert.ok(b.w.document.querySelector('[data-media-setting="skip_deletions"]').disabled);
+  });
   console.log(cases + " Linux source-folder UI cases passed");
 })().catch(error => { console.error(error); process.exitCode = 1; });

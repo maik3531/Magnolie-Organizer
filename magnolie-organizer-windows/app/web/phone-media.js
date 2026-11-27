@@ -127,7 +127,13 @@
     };
     const scope = select("collection_mode", "Scope", [["phone_inventory", "Only the phone inventory"], ["entire_collection", "Entire collection"], ["import_only", "Import phone → PC only"]]);
     const direction = select("direction", "Direction", [["phone_to_pc", "Phone → PC"], ["two_way", "Two-way synchronization"], ["pc_to_phone", "PC → phone"]]);
+    direction.querySelector('[value="two_way"]').disabled = true;
+    const directionNotice = node("p"), deletionNotice = node("p", "Deletions are not synchronized yet.");
+    directionNotice.textContent = t("Two-way synchronization") + " · " + t("Unavailable");
+    directionNotice.hidden = deletionNotice.hidden = true;
     settingsArea.append(scope.parentElement, modeRow, direction.parentElement, photos.parentElement, videos.parentElement, photosOnly.parentElement, skip.parentElement);
+    direction.parentElement.after(directionNotice);
+    skip.parentElement.after(deletionNotice);
     const mode = node("p", "Manual synchronization"), destinations = node("div"), controls = node("div"), albumList = node("div"), review = node("ul");
     const sourceArea = node("section"), sourceRows = new Map(); sourceArea.hidden = true;
     sourceArea.append(node("h4", "Selected PC source folders"), node("p", "PC source folders are separate from receive destinations."));
@@ -202,7 +208,11 @@
     const toggle = () => {
       busy ||= sourceChoiceWaiting;
       const shared = !!native?.shared_settings, enabled = !shared || master.checked;
-      const runtimeReady = !shared || native.shared_runtime_ready === true;
+      const sourceValues = native?.shared_settings?.values;
+      const twoWayHeld = sourceValues?.direction === "two_way" && sourceValues.collection_mode !== "import_only";
+      const runtimeReady = !shared || !twoWayHeld && native.shared_runtime_ready === true;
+      directionNotice.hidden = !twoWayHeld;
+      deletionNotice.hidden = !shared;
       masterRow.hidden = receiveRow.hidden = scope.parentElement.hidden = direction.parentElement.hidden = !shared;
       photosOnly.parentElement.hidden = !shared || typeof native.shared_settings.versions?.photos_only !== "string";
       master.disabled = !native;
@@ -216,7 +226,8 @@
       for (const b of allButtons) b.disabled = busy;
       emptyTrash.disabled = busy || emptyWaiting || emptyRunning;
       if (emptyRunning) for (const button of trashArea.querySelectorAll("button")) button.disabled = true;
-      photos.disabled = videos.disabled = skip.disabled = busy || !native || !enabled;
+      photos.disabled = videos.disabled = busy || !native || !enabled;
+      skip.disabled = shared || photos.disabled;
       photosOnly.disabled = busy || !native || !enabled || photosOnly.parentElement.hidden;
       // Keep switching a live transfer back to manual possible, but don't
       // overlap an unacknowledged settings edit with another mode request.
@@ -235,9 +246,8 @@
       for (const b of destinations.querySelectorAll("button")) b.disabled = busy || !enabled || (shared && !receiveConsent.checked) ||
         !/^[a-f0-9]{64}$/.test(native?.destination_choices?.[b.dataset.destination] || "");
       for (const [key, b] of defaultDestinations) b.disabled ||= !native || native[key]?.default === true;
-      const sourceValues = native?.shared_settings?.values;
       sourceArea.hidden = native?.collection_sources_supported !== true || sourceValues?.collection_mode !== "entire_collection" ||
-        !["pc_to_phone", "two_way"].includes(sourceValues?.direction);
+        sourceValues?.direction !== "pc_to_phone";
       for (const [mediaType, entry] of sourceRows) {
         entry.row.hidden = native?.metadata_ready?.[mediaType] !== true;
         entry.button.disabled = busy || sourceChoiceWaiting || sourceArea.hidden || !enabled || !runtimeReady || native?.shared_matched !== true ||
@@ -324,15 +334,20 @@
     for (const entry of sendChoices.values()) entry.input.addEventListener("change", () => request("send_consent", {
       photos: sendChoices.get("photos").input.checked, videos: sendChoices.get("videos").input.checked, version: native.send_consent.version
     }));
-    for (const [input, field] of [[photos, "photos_enabled"], [videos, "videos_enabled"], [skip, "skip_deletions"]])
+    for (const [input, field] of [[photos, "photos_enabled"], [videos, "videos_enabled"]])
       input.addEventListener("change", () => native?.shared_settings ? sharedSetting(field, input.checked) : settings());
+    skip.addEventListener("change", () => native?.shared_settings ? restoreSharedInputs() : settings());
     photosOnly.addEventListener("change", () => {
       if (typeof native?.shared_settings?.versions?.photos_only === "string") sharedSetting("photos_only", photosOnly.checked);
       else restoreSharedInputs();
     });
     automatic.addEventListener("change", () => native?.shared_settings ? sharedSetting("auto_mode", automatic.value) : request("mode", { version: native.version ?? null, automatic: automatic.value === "wifi" }));
     scope.addEventListener("change", () => sharedSetting("collection_mode", scope.value));
-    direction.addEventListener("change", () => sharedSetting("direction", direction.value));
+    direction.addEventListener("change", () => {
+      const wanted = direction.selectedOptions[0];
+      if (direction.disabled || !wanted || wanted.disabled) { restoreSharedInputs(); return; }
+      sharedSetting("direction", wanted.value);
+    });
     const kinds = [["images", "Photos", "pictures"], ["video", "Videos", "video_destination"]];
     for (const [mediaType, label, key] of kinds) {
       const sourceRow = node("div"), hints = node("span"); sourceRow.dataset.collectionSourceKind = mediaType; sourceArea.append(sourceRow);

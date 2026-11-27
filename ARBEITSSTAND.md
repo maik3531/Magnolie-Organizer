@@ -7,6 +7,15 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#330](https://github.com/maik3531/Magnolie-Organizer/issues/330) /
+  [#338](https://github.com/maik3531/Magnolie-Organizer/issues/338):
+  Die gemeinsame Medienmaske macht den noch nicht freigegebenen
+  beidseitigen Abgleich nicht neu wählbar. Gespeicherte Werte bleiben
+  sichtbar; reine Importbereiche bleiben unabhängig. Die gemeinsame
+  Löscheinstellung ist in Linux, Windows und Notes nur lesbar.
+  Linux- und Windows-Brückentests sowie 19 Notes-JVM-Prüfungen bestanden.
+  Native Automatik mit Altwerten, sicherer Rückweg und Löschweitergabe
+  bleiben getrennt zu prüfen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
   zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.

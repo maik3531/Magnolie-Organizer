@@ -64,16 +64,18 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
     if (!offen) return
     @Composable fun checkbox(field: String, label: String, active: Boolean = enabled) =
         MedienCheckbox(label, flag(field), active && field in telefon.mediaPreferencesVersions) { change(field, JsonPrimitive(it)) }
-    @Composable fun choice(field: String, label: String, options: List<Pair<String, String>>, available: Boolean = true) {
+    @Composable fun choice(field: String, label: String, options: List<Pair<String, String>>, unavailableValue: String? = null) {
         var menu by remember(field) { mutableStateOf(false) }
         Text(label, fontWeight = FontWeight.Bold, color = Magnolie.braun)
         Box {
             Papierknopf(options.firstOrNull { values[field] == JsonPrimitive(it.first) }?.second ?: label,
-                Modifier.fillMaxWidth(), aktiv = enabled && available && field in telefon.mediaPreferencesVersions) { menu = true }
-            DropdownMenu(menu && enabled && available, onDismissRequest = { menu = false }) {
-                options.forEach { (value, text) -> DropdownMenuItem(text = { Text(text) }, onClick = {
-                    menu = false; change(field, JsonPrimitive(value))
-                }) }
+                 Modifier.fillMaxWidth(), aktiv = enabled && field in telefon.mediaPreferencesVersions) { menu = true }
+             DropdownMenu(menu && enabled, onDismissRequest = { menu = false }) {
+                 options.forEach { (value, text) ->
+                     DropdownMenuItem(text = { Text(text) }, enabled = value != unavailableValue, onClick = {
+                         menu = false; change(field, JsonPrimitive(value))
+                     })
+                 }
             }
         }
     }
@@ -89,14 +91,17 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
             "manual" to stringResource(R.string.shared_sync_manual), "wifi" to stringResource(R.string.personal_sync_auto_wlan)))
         choice("direction", stringResource(R.string.medien_sync_richtung), listOf(
             "phone_to_pc" to stringResource(R.string.medien_sync_direction_import), "two_way" to stringResource(R.string.personal_note_two_way),
-            "pc_to_phone" to stringResource(R.string.medien_sync_direction_export)))
+             "pc_to_phone" to stringResource(R.string.medien_sync_direction_export)), unavailableValue = "two_way")
         checkbox("photos_enabled", stringResource(R.string.medien_sync_fotos))
         checkbox("videos_enabled", stringResource(R.string.medien_sync_videos))
         checkbox("photos_only", stringResource(R.string.medien_sync_nur_fotos))
-         checkbox("skip_deletions", stringResource(R.string.personal_sync_skip_deletions))
+         MedienCheckbox(stringResource(R.string.personal_sync_skip_deletions), flag("skip_deletions"), enabled = false) {}
+         Text(stringResource(R.string.personal_sync_keine_loeschung), color = Magnolie.braunHell)
+         val twoWayHeld = values["direction"] == JsonPrimitive("two_way") && values["collection_mode"] != JsonPrimitive("import_only")
+         if (twoWayHeld) Text(stringResource(R.string.media_recovery_uncertain), color = Magnolie.braunHell)
          val receiving = enabled && telefon.mediaPreferencesReady && !telefon.mediaManualBusy && android.os.Build.VERSION.SDK_INT >= 30 &&
             values["collection_mode"] != JsonPrimitive("import_only") &&
-            values["direction"] in setOf(JsonPrimitive("two_way"), JsonPrimitive("pc_to_phone"))
+             values["direction"] == JsonPrimitive("pc_to_phone")
         for ((kind, key, label) in listOf(Triple(GalleryMediaType.IMAGES, "photos_enabled", R.string.medien_sync_fotos),
             Triple(GalleryMediaType.VIDEO, "videos_enabled", R.string.medien_sync_videos))) {
             Papierknopf(stringResource(label) + " · " + stringResource(R.string.medien_empfang_erlauben), Modifier.fillMaxWidth(),
@@ -110,7 +115,7 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
         if (telefon.mediaManualBusy) Text(stringResource(R.string.baum_wartet), color = Magnolie.braunHell)
         if (telefon.mediaManualState in setOf("held", "review")) Text(stringResource(R.string.media_recovery_uncertain), color = Magnolie.braunHell)
         Papierknopf(stringResource(R.string.personal_sync_jetzt), Modifier.fillMaxWidth(),
-            aktiv = enabled && (flag("photos_enabled") || flag("videos_enabled")) && telefon.mediaPreferencesReady && !telefon.mediaManualBusy,
+             aktiv = enabled && !twoWayHeld && (flag("photos_enabled") || flag("videos_enabled")) && telefon.mediaPreferencesReady && !telefon.mediaManualBusy,
             beiKlick = beiSynchronisieren)
     }
 }
