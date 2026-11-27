@@ -51,6 +51,59 @@ def test_event_categories_and_accent_native_roundtrip_and_clear(codec):
     assert "CATEGORIES:" not in exported and "X-MAGNOLIE-ACCENT-COLOR:" not in exported
 
 
+@pytest.mark.parametrize("calendar_colour,component_colour,expected", [
+    ("", "COLOR:turquoise", "#40e0d0"),
+    ("", "COLOR:RED", "#ff0000"),
+    ("COLOR:turquoise", "", "#40e0d0"),
+    ("X-APPLE-CALENDAR-COLOR:#40E0D0", "", "#40e0d0"),
+    ("X-APPLE-CALENDAR-COLOR:#40E0D0FF", "", "#40e0d0"),
+    ("COLOR:turquoise", "COLOR:RED", "#ff0000"),
+    ("COLOR:turquoise", "COLOR:RED\r\nX-MAGNOLIE-ACCENT-COLOR:#112233", "#112233"),
+    ("", "COLOR:not-a-css-colour", ""),
+])
+@pytest.mark.parametrize("kind", ["VEVENT", "VTODO"])
+def test_external_ics_colour_respects_component_and_calendar_scope(codec, kind, calendar_colour, component_colour, expected):
+    date = "DTSTART" if kind == "VEVENT" else "DUE"
+    section = "termine" if kind == "VEVENT" else "aufgaben"
+    export = codec.ics_schreiben_termine if kind == "VEVENT" else codec.ics_schreiben_aufgaben
+    raw = "\r\n".join(filter(None, (
+        "BEGIN:VCALENDAR", "VERSION:2.0", calendar_colour, "BEGIN:" + kind, "UID:external-colour",
+        "SUMMARY:External colour", date + ";VALUE=DATE:20261018", component_colour,
+        "CATEGORIES:Provider", "X-OWNED:preserved", "END:" + kind, "END:VCALENDAR",
+    )))
+    item = codec.ics_lesen(raw)[section][0]
+    assert item["akzentFarbe"] == expected
+    assert item["kategorien"] == "Provider"
+    saved = export([item])
+    assert codec.ics_lesen(saved)[section][0]["akzentFarbe"] == expected
+    if calendar_colour:
+        assert calendar_colour in saved.split("BEGIN:" + kind, 1)[0]
+    if component_colour == "COLOR:not-a-css-colour":
+        assert component_colour in export([item])
+    item["akzentFarbe"] = "#123456"
+    assert codec.ics_lesen(export([item]))[section][0]["akzentFarbe"] == "#123456"
+    item["akzentFarbe"] = ""
+    cleared = export([item])
+    assert "X-OWNED:preserved" in cleared
+    assert codec.ics_lesen(cleared)[section][0]["akzentFarbe"] == ""
+
+
+def test_calendar_colours_do_not_bleed_between_sources_on_export(codec):
+    def calendar(uid, colour):
+        return "\r\n".join(("BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:" + uid,
+            "SUMMARY:" + uid, "DTSTART;VALUE=DATE:20261018", "END:VEVENT",
+            *([colour] if colour else []), "END:VCALENDAR", ""))
+    raw = calendar("first", "COLOR:DarkGrey") + calendar("second", "")
+    imported = codec.ics_lesen(raw)["termine"]
+    assert [(item["uid"], item["akzentFarbe"]) for item in imported] == [("first", "#a9a9a9"), ("second", "")]
+    saved = codec.ics_schreiben_termine(imported)
+    assert "COLOR:DarkGrey" not in saved
+    assert [item["akzentFarbe"] for item in codec.ics_lesen(saved)["termine"]] == ["#a9a9a9", ""]
+    legacy = dict(imported[1], icsRoundtrip=["COLOR:turquoise"])
+    legacy.pop("icsCalendarColor")
+    assert "COLOR:turquoise" in codec.ics_schreiben_termine([legacy])
+
+
 def test_planner_accepts_task_accent_and_uses_contrasting_text(codec):
     columns = [str(index) for index in range(8)]
     rows = [[""] * 8]

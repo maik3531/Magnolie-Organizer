@@ -213,6 +213,8 @@ internal static partial class ExchangeCodec
         var componentDepth = 0;
         var components = new List<string>();
         var properties = new List<IcsProperty>();
+        var calendarColours = new List<IcsProperty>();
+        var calendarItems = new List<JsonObject>();
         var timezoneBlocks = Regex.Matches(string.Join("\n", Unfold(text)), @"(?ims)^BEGIN:VTIMEZONE\s*\n.*?^END:VTIMEZONE\s*$")
             .Select(match => match.Value.TrimEnd().Split('\n')).ToArray();
         var zones = CalendarRecurrence.CalendarZones(timezoneBlocks);
@@ -224,6 +226,11 @@ internal static partial class ExchangeCodec
                 var value = property.Value.Trim().ToUpperInvariant();
                 var parent = components.Count > 0 ? components[^1] : null;
                 components.Add(value);
+                if (value == "VCALENDAR" && parent is null)
+                {
+                    calendarColours.Clear();
+                    calendarItems.Clear();
+                }
                 if (component is null && (value is "VEVENT" or "VTODO") &&
                     (parent is null or "VCALENDAR"))
                 {
@@ -249,10 +256,19 @@ internal static partial class ExchangeCodec
                         {
                             var result = ParseEvent(properties, timeZone, zones, birthdayRepairs);
                             if (result.Anniversary) anniversaries.Add(result.Value);
-                            else appointments.Add(result.Value);
+                            else
+                            {
+                                appointments.Add(result.Value);
+                                if (parent == "VCALENDAR") calendarItems.Add(result.Value);
+                            }
                             if (result.Complex && !CalendarRecurrence.SupportsRules(properties.Select(value => value.Raw))) complex++;
                         }
-                        else tasks.Add(ParseTask(properties, timeZone, zones));
+                        else
+                        {
+                            var task = ParseTask(properties, timeZone, zones);
+                            tasks.Add(task);
+                            if (parent == "VCALENDAR") calendarItems.Add(task);
+                        }
                     }
                     catch (TimeZoneNotFoundException)
                     {
@@ -266,10 +282,12 @@ internal static partial class ExchangeCodec
                             start.Parameters.Where(value => !value.StartsWith("TZID=", StringComparison.OrdinalIgnoreCase)).ToArray()));
                         var id = First(top, "RECURRENCE-ID"); var uid = IcsText(First(top, "UID")?.Value ?? "");
                         var deferred = new JsonObject { ["uid"] = id is null ? uid : InstanceUid(uid, id), ["icsSerienUid"] = id is null ? "" : uid,
-                            ["titel"] = IcsText(First(top, "SUMMARY")?.Value ?? ""), ["icsKomplex"] = true, ["icsReadOnly"] = true,
+                             ["titel"] = IcsText(First(top, "SUMMARY")?.Value ?? ""), ["icsKomplex"] = true, ["icsReadOnly"] = true,
+                             ["akzentFarbe"] = ImportedAccent(top), ["icsCalendarColor"] = "",
                             ["icsRoundtrip"] = IcsRoundtrip(properties, true), [component == "VEVENT" ? "datum" : "startDatum"] = wall.Wall.ToString("yyyy-MM-dd"),
                             [component == "VEVENT" ? "zeit" : "startZeit"] = wall.AllDay ? "" : wall.Wall.ToString("HH:mm") };
                         if (component == "VEVENT") appointments.Add(deferred); else tasks.Add(deferred);
+                        if (parent == "VCALENDAR") calendarItems.Add(deferred);
                         complex++;
                     }
                     catch (Exception)
@@ -282,10 +300,20 @@ internal static partial class ExchangeCodec
                     componentDepth = 0;
                 }
                 else if (parent == "VCALENDAR" && value != "VTIMEZONE") skipped++;
+                else if (value == "VCALENDAR" && parent is null && CalendarColour(calendarColours) is { Colour.Length: > 0 } colour)
+                {
+                    foreach (var item in calendarItems)
+                    {
+                        if (TextField(item, "akzentFarbe").Length == 0) item["akzentFarbe"] = colour.Colour;
+                        item["icsCalendarColor"] = colour.Line;
+                    }
+                }
                 components.RemoveAt(components.Count - 1);
                 continue;
             }
             if (component is not null && property is not null) properties.Add(property);
+            else if (components.Count == 1 && components[0] == "VCALENDAR" && property?.Name is "COLOR" or "X-APPLE-CALENDAR-COLOR")
+                calendarColours.Add(property);
         }
         if (component is not null || components.Count > 0)
             throw new InvalidDataException("Die iCalendar-Datei ist unvollständig.");
@@ -328,6 +356,7 @@ internal static partial class ExchangeCodec
         var skipped = 0;
         var rawOmitted = 0;
         var calendarComponents = new List<(string[] Component, string[][] Zones)>();
+        var calendarColours = new HashSet<string>(StringComparer.Ordinal);
         foreach (var item in data.EnumerateArray())
         {
             try
@@ -344,10 +373,15 @@ internal static partial class ExchangeCodec
                     zones.EnumerateArray().Where(value => value.ValueKind == JsonValueKind.Array).Select(block => block.EnumerateArray().Select(value => value.GetString() ?? "").ToArray())
                         .Where(raw => raw.Length > 1 && raw[0].Equals("BEGIN:VTIMEZONE", StringComparison.OrdinalIgnoreCase) && raw[^1].Equals("END:VTIMEZONE", StringComparison.OrdinalIgnoreCase)).ToArray() : [];
                 calendarComponents.Add((generated.ToArray(), definitions));
+                var colourProperty = ParseIcsProperty(J(item, "icsCalendarColor"));
+                calendarColours.Add(AccentColor(J(item, "akzentFarbe")).Length > 0 && colourProperty is not null
+                    ? CalendarColour(new[] { colourProperty }).Line : "");
                 count++;
             }
             catch (Exception error) when (error is not ProtectedCalendarPropertyException) { skipped++; }
         }
+        // Never apply another source's calendar colour to a mixed or cleared selection.
+        if (calendarColours.Count == 1 && !calendarColours.Contains("")) lines.Add(calendarColours.Single());
         lines.AddRange(CalendarRecurrence.ExportCalendar(calendarComponents));
         lines.Add("END:VCALENDAR");
         var report = rawOmitted > 0
@@ -980,7 +1014,7 @@ internal static partial class ExchangeCodec
             ["endZeit"] = end is null || end.Value.AllDay ? "" : end.Value.DateTime.ToString("HH:mm"), ["titel"] = title,
             ["notiz"] = IcsText(First(values, "DESCRIPTION")?.Value ?? ""), ["kategorien"] = category,
             ["ort"] = IcsText(First(values, "LOCATION")?.Value ?? "").Trim(),
-            ["akzentFarbe"] = AccentColor(First(values, "X-MAGNOLIE-ACCENT-COLOR")?.Value),
+            ["akzentFarbe"] = ImportedAccent(values), ["icsCalendarColor"] = "",
             ["vertraulich"] = new[] { "PRIVATE", "CONFIDENTIAL" }.Contains((First(values, "CLASS")?.Value ?? "").ToUpperInvariant()),
             ["vorlaeufig"] = (First(values, "STATUS")?.Value ?? "").Equals("TENTATIVE", StringComparison.OrdinalIgnoreCase),
             ["kostenstelle"] = IcsText(First(values, "X-MAGNOLIE-KOSTENSTELLE")?.Value ?? ""), ["kunde"] = IcsText(First(values, "X-MAGNOLIE-KUNDE")?.Value ?? ""),
@@ -1048,7 +1082,7 @@ internal static partial class ExchangeCodec
             ["erledigt"] = (First(values, "STATUS")?.Value ?? "").Equals("COMPLETED", StringComparison.OrdinalIgnoreCase) || First(values, "PERCENT-COMPLETE")?.Value == "100",
             ["notiz"] = IcsText(First(values, "DESCRIPTION")?.Value ?? ""),
             ["kategorien"] = IcsText(First(values, "CATEGORIES")?.Value ?? ""),
-            ["akzentFarbe"] = AccentColor(First(values, "X-MAGNOLIE-ACCENT-COLOR")?.Value),
+            ["akzentFarbe"] = ImportedAccent(values), ["icsCalendarColor"] = "",
             ["erinnern"] = First(values, "X-MAGNOLIE-ERINNERUNG-AM-TAG")?.Value == "1",
             ["individuelleErinnerungTage"] = int.TryParse(First(values, "X-MAGNOLIE-ERINNERUNG-TAGE")?.Value, out var reminderDays) ? Math.Clamp(reminderDays, 0, 7) : 0,
             ["icsRoundtrip"] = IcsRoundtrip(original.Where(property => property.Name != "X-MAGNOLIE-TASK-IDENTITY"), true), ["geaendert"] = IcsModified(values)
@@ -1330,6 +1364,37 @@ internal static partial class ExchangeCodec
 
     private static string AccentColor(string? value) => value is not null && Regex.IsMatch(value, "^#[0-9a-fA-F]{6}$") ? value.ToLowerInvariant() : "";
 
+    private static string StandardCalendarColour(string? value)
+    {
+        // KnownColor's named, non-system RGB range corresponds to CSS Color 3.
+        var name = value?.Trim();
+        if (name is null || !Regex.IsMatch(name, "^[A-Za-z]+$") ||
+            !Enum.TryParse<System.Drawing.KnownColor>(name.Replace("grey", "gray", StringComparison.OrdinalIgnoreCase), true, out var known) ||
+            known < System.Drawing.KnownColor.AliceBlue || known > System.Drawing.KnownColor.YellowGreen) return "";
+        var rgb = System.Drawing.Color.FromKnownColor(known);
+        return $"#{rgb.R:x2}{rgb.G:x2}{rgb.B:x2}";
+    }
+
+    private static string ImportedAccent(IEnumerable<IcsProperty> properties) =>
+        AccentColor(First(properties, "X-MAGNOLIE-ACCENT-COLOR")?.Value) is { Length: > 0 } owned
+            ? owned : StandardCalendarColour(First(properties, "COLOR")?.Value);
+
+    private static (string Line, string Colour) CalendarColour(IEnumerable<IcsProperty> properties)
+    {
+        var apple = (Line: "", Colour: "");
+        foreach (var property in properties)
+        {
+            if (property.Parameters.Length != 0 || property.Value.Contains('\r') || property.Value.Contains('\n')) continue;
+            if (property.Name == "COLOR" && StandardCalendarColour(property.Value) is { Length: > 0 } named)
+                return (property.Raw, named);
+            if (property.Name != "X-APPLE-CALENDAR-COLOR" || apple.Line.Length > 0) continue;
+            var raw = property.Value.Trim();
+            var hex = raw.Length == 9 && raw.EndsWith("ff", StringComparison.OrdinalIgnoreCase) ? raw[..7] : raw;
+            if (AccentColor(hex) is { Length: > 0 } colour) apple = (property.Raw, colour);
+        }
+        return apple;
+    }
+
     private static IEnumerable<string> Unfold(string text)
     {
         var result = new List<string>();
@@ -1561,13 +1626,17 @@ internal static partial class ExchangeCodec
         if (protectedColours.Any(property => AccentColor(property.Value) != AccentColor(J(item, "akzentFarbe"))))
             throw new ProtectedCalendarPropertyException();
         if (protectedColours.Length > 0) lines.RemoveAll(line => PropertyName(line) == "X-MAGNOLIE-ACCENT-COLOR");
+        var accent = AccentColor(J(item, "akzentFarbe"));
+        var colourDecision = accent.Length > 0 || item.TryGetProperty("icsCalendarColor", out _);
         var rawDepth = 0;
         foreach (var line in raw)
         {
             var name = PropertyName(line);
             if (name == "BEGIN") rawDepth++;
+            var colour = name == "COLOR" ? StandardCalendarColour(ParseIcsProperty(line)?.Value) : "";
             if (rawDepth > 0 || name == "X-MAGNOLIE-ACCENT-COLOR" && protectedColours.Length > 0 ||
-                name is not ("SUMMARY" or "DESCRIPTION" or "CATEGORIES" or "PRIORITY" or "X-MAGNOLIE-ACCENT-COLOR")) lines.Add(line);
+                name is not ("SUMMARY" or "DESCRIPTION" or "CATEGORIES" or "PRIORITY" or "X-MAGNOLIE-ACCENT-COLOR") &&
+                (colour.Length == 0 || !colourDecision || colour == accent)) lines.Add(line);
             if (name == "END") rawDepth = Math.Max(0, rawDepth - 1);
         }
         var duration = topLevel.Any(property => property.Name == "DURATION");

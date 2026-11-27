@@ -8584,6 +8584,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       icsRangeOverrides: kopie(t.icsRangeOverrides || []),
       icsAusnahmeTermine: kopie(t.icsAusnahmeTermine || []),
       icsTimezones: kopie(t.icsTimezones || []),
+      icsCalendarColor: typeof t.icsCalendarColor === "string" ? t.icsCalendarColor : undefined,
       icsAnzeigeZeitzone: S(t.icsAnzeigeZeitzone),
       icsSequence: Math.floor(N(t.icsSequence)),
       icsAenderungszeitFehlt: !!t.icsAenderungszeitFehlt,
@@ -8676,6 +8677,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         icsSerienUid: S(a.icsSerienUid), icsRangeOverrides: kopie(a.icsRangeOverrides || []), icsAnzeigeZeitzone: S(a.icsAnzeigeZeitzone),
         icsAusnahmeTermine: kopie(a.icsAusnahmeTermine || []), icsAusnahmen: kopie(a.icsAusnahmen || []),
         icsZusatzTermine: kopie(a.icsZusatzTermine || []), icsTimezones: kopie(a.icsTimezones || []),
+        icsCalendarColor: typeof a.icsCalendarColor === "string" ? a.icsCalendarColor : undefined,
         icsQuelleName: S(a.icsQuelleName), icsQuelleId: S(a.icsQuelleId),
         sync: !!a.sync, syncQuellen: Q(a.syncQuellen), syncKalenderUid: S(a.syncKalenderUid),
         personen: Array.isArray(a.personen) ? a.personen.map(S).filter(Boolean) : [],
@@ -34752,7 +34754,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             // local/provider lists. Normalized incoming defaults are not edits.
             for (const feld of ["datum", "endDatum", "zeit", "endZeit", "titel", "notiz", "kategorien", "ort", "akzentFarbe",
               "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "wiederholung", "icsKomplex", "icsSerienUid", "icsAusnahmen",
-              "icsZusatzDaten", "icsZusatzTermine", "icsRoundtrip", "icsRangeOverrides", "icsAusnahmeTermine", "icsTimezones",
+              "icsZusatzDaten", "icsZusatzTermine", "icsRoundtrip", "icsRangeOverrides", "icsAusnahmeTermine", "icsTimezones", "icsCalendarColor",
               "icsAnzeigeZeitzone", "icsSequence", "icsAenderungszeitFehlt", "icsEndeFehlt", "icsNullDauer", "geaendert"])
               if (Object.prototype.hasOwnProperty.call(t, feld)) uidTreffer[feld] = kopie(t[feld]);
             uidTreffer.icsReadOnly = !!(uidTreffer.icsReadOnly || t.icsReadOnly);

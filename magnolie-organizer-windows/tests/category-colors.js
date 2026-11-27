@@ -17,8 +17,8 @@ const watchdog = setTimeout(() => { console.error("Category colors timed out"); 
       vm.runInNewContext(fs.readFileSync(path.join(web, "i18n", file), "utf8"), { window: { MagnolieI18n: { registerCatalog: (_locale, value) => { catalog = value.messages; } } } });
       for (const label of labels) assert.ok(catalog[label] && catalog[label] !== label, file + ": missing category-color translation " + label);
     }
-    const b = await harness.exports.boot(web, { termine: [{ id: "owned-appointment", datum: "2026-10-18", titel: "Owned appointment", kategorien: "Arzt,Provider", providerMetadaten: { fremd: { label: "preserved" } }, icsRoundtrip: ["X-OWNED:preserved"] }],
-      aufgaben: [{ id: "owned-task", titel: "Owned task", faellig: "2026-10-18", kategorien: "Arzt", icsRoundtrip: ["CATEGORIES:Arzt", "X-OWNED:task"] }] });
+    const b = await harness.exports.boot(web, { termine: [{ id: "owned-appointment", datum: "2026-10-18", titel: "Owned appointment", kategorien: "Arzt,Provider", providerMetadaten: { fremd: { label: "preserved" } }, icsRoundtrip: ["X-OWNED:preserved"], icsCalendarColor: "COLOR:turquoise" }],
+      aufgaben: [{ id: "owned-task", titel: "Owned task", faellig: "2026-10-18", kategorien: "Arzt", icsRoundtrip: ["CATEGORIES:Arzt", "X-OWNED:task"], icsCalendarColor: "X-APPLE-CALENDAR-COLOR:#40E0D0" }] });
     try {
       if (b.saves().length) b.ack(); await tick();
       b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
@@ -84,6 +84,8 @@ const watchdog = setTimeout(() => { console.error("Category colors timed out"); 
       }
       const persisted = JSON.parse(b.saves().at(-1).text);
       assert.equal(persisted.einstellungen.kalender.kategorieFarben[0].farbe, "#3366aa");
+      assert.equal(persisted.termine[0].icsCalendarColor, "COLOR:turquoise");
+      assert.equal(persisted.aufgaben[0].icsCalendarColor, "X-APPLE-CALENDAR-COLOR:#40E0D0");
       const recordsBeforeRemoval = JSON.stringify([b.t.daten().termine, b.t.daten().aufgaben]);
       ok(await call("organizer_category_colors_update", { expected_revision: palette.revision, colors: [] }));
       assert.equal(JSON.stringify([b.t.daten().termine, b.t.daten().aufgaben]), recordsBeforeRemoval, "removing color definitions must retain saved categories and provider data");

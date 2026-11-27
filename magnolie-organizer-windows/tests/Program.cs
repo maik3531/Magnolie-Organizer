@@ -318,6 +318,7 @@ runner.Add("Notes actor explicit historical target choice draft / no action righ
 runner.Add("Notes actor historical result membership / separate receipt union", PersonalActorHistoricalResultScopeTests.RunAsync);
 runner.Add("MCP KDE / existing integration / no implicit listener", McpKdeLifecycleTests.RunAsync);
 runner.Add("Category colors / native categories and accent interchange", CategoryColorTests.RunAsync);
+runner.Add("Category colors / foreign ICS component and calendar accent", CategoryColorTests.ExternalIcsColoursAsync);
 runner.Add("Contact group exclusions / identity / reminder privacy", ContactGroupExclusionTests.RunAsync);
 runner.Add("Note send / selected PDF / explicit adapter handoff", NoteSendTests.RunAsync);
 runner.Add("Wiederherstellungsjournal / Manifest / Tamper / Retention / Scheduler", RecoveryJournalTests.RunAsync);

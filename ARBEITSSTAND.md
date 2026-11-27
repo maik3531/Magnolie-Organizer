@@ -65,6 +65,12 @@ aufgeführt.
   sofort frei. Absturz, falsche Zeitzonenidentität und Fensterende
   räumen den jeweiligen Worker auf. Beide Webquellen und die
   Portprojektion bestanden. Die native Langzeitprüfung bleibt in #395.
+- [#844](https://github.com/maik3531/Magnolie-Organizer/issues/844):
+  Linux und Windows übernehmen ICS-Eintragsfarben und gültige
+  Kalendervorgaben. Eigene Farben haben Vorrang; Bearbeiten, Löschen
+  und gemischte Exporte behalten den jeweiligen Eintragsbezug.
+  69 Linux-Prüfungen, vier native Windows-Gruppen und beide
+  Oberflächenpfade bestanden.
 - [#841](https://github.com/maik3531/Magnolie-Organizer/issues/841):
   Organizer übernimmt die Schreibrichtung auch bei regionalen arabischen
   Sprachcodes aus dem primären Sprachuntertag. 16 Startfälle mit den
