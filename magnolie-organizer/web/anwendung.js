@@ -8584,7 +8584,6 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       icsRangeOverrides: kopie(t.icsRangeOverrides || []),
       icsAusnahmeTermine: kopie(t.icsAusnahmeTermine || []),
       icsTimezones: kopie(t.icsTimezones || []),
-      icsCalendarColor: typeof t.icsCalendarColor === "string" ? t.icsCalendarColor : undefined,
       icsAnzeigeZeitzone: S(t.icsAnzeigeZeitzone),
       icsSequence: Math.floor(N(t.icsSequence)),
       icsAenderungszeitFehlt: !!t.icsAenderungszeitFehlt,
@@ -8596,6 +8595,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       aufgaben: Array.isArray(t.aufgaben) ? t.aufgaben.map(S).filter(Boolean) : [],
         kontaktId: S(t.kontaktId), syncKalenderUid: S(t.syncKalenderUid),
         geaendert: N(t.geaendert), sync: !!t.sync, syncQuellen: Q(t.syncQuellen) };
+      if (typeof normalisierterTermin.icsCalendarColor !== "string") delete normalisierterTermin.icsCalendarColor;
       normalisierterTermin.providerMetadaten = providerMetadaten;
       if (!zusammenfassen) { d.termine.push(normalisierterTermin); continue; }
       const identitaet = terminIdentitaet(normalisierterTermin);
@@ -8677,7 +8677,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         icsSerienUid: S(a.icsSerienUid), icsRangeOverrides: kopie(a.icsRangeOverrides || []), icsAnzeigeZeitzone: S(a.icsAnzeigeZeitzone),
         icsAusnahmeTermine: kopie(a.icsAusnahmeTermine || []), icsAusnahmen: kopie(a.icsAusnahmen || []),
         icsZusatzTermine: kopie(a.icsZusatzTermine || []), icsTimezones: kopie(a.icsTimezones || []),
-        icsCalendarColor: typeof a.icsCalendarColor === "string" ? a.icsCalendarColor : undefined,
+        ...(typeof a.icsCalendarColor === "string" ? { icsCalendarColor: a.icsCalendarColor } : {}),
         icsQuelleName: S(a.icsQuelleName), icsQuelleId: S(a.icsQuelleId),
         sync: !!a.sync, syncQuellen: Q(a.syncQuellen), syncKalenderUid: S(a.syncKalenderUid),
         personen: Array.isArray(a.personen) ? a.personen.map(S).filter(Boolean) : [],

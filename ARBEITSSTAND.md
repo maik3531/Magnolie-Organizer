@@ -86,6 +86,12 @@ aufgeführt.
   andere Markertypen und Serienausnahmen bleiben Kalendertermine.
   102 Linux-Prüfungen, sechs native Windows-Gruppen, beide
   Oberflächenpfade und 44 Projektionsprüfungen bestanden.
+- [#846](https://github.com/maik3531/Magnolie-Organizer/issues/846):
+  Ältere ICS-Serienausnahmen lassen sich wieder über die MCP-Importvorschau
+  übernehmen. Eine fehlende Kalenderfarbe bleibt fehlend; der Import
+  behält die vorhandene Farbzuordnung. Beide Desktop-Oberflächen
+  bestanden unter Node und Bun. Das vollständige Windows-Archiv-Gate
+  läuft separat.
 - [#841](https://github.com/maik3531/Magnolie-Organizer/issues/841):
   Organizer übernimmt die Schreibrichtung auch bei regionalen arabischen
   Sprachcodes aus dem primären Sprachuntertag. 16 Startfälle mit den
