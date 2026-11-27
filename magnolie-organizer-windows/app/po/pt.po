@@ -3914,7 +3914,7 @@ msgid "Night shift"
 msgstr "Turno da noite"
 
 msgid "No"
-msgstr "No"
+msgstr "Não"
 
 msgid "No Bluetooth address was selected."
 msgstr "Nenhum endereço Bluetooth foi selecionado."

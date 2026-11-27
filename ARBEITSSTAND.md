@@ -72,6 +72,9 @@ aufgeführt.
   und je 170 englischen und deutschen Seiten. Der Lauf dauerte lokal
   8 Minuten 38 Sekunden; die frühere manuelle Frist von 315 Sekunden
   lag mitten in den regulären Prüfungen.
+- [#828](https://github.com/maik3531/Magnolie-Organizer/issues/828):
+  Die portugiesischen Desktop-Kataloge zeigen „Não“. Beide Generatoren
+  und beide Statusanzeigen bestanden den Vorher-/Nachher-Vergleich.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
