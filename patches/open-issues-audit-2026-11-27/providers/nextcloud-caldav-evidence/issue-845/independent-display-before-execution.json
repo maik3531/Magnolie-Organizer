@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "node",
+    "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/independent-birthday-display.cjs",
+    "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+    "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+    "/workspace/scratch/7203da5bd564/open-audit-845/contracts/nextcloud-birthday-vectors.json",
+    "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/independent-display-before.json"
+  ],
+  "cwd": "/workspace/scratch/7203da5bd564",
+  "env_overrides": {
+    "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "exit_code": 1,
+  "seconds": 1.6387730869992083,
+  "log": "logs/independent-display-before.log",
+  "log_sha256": "adc7e13fb1b9a9b6a890002d73707c75435a2b32b1316ba3ac2189d5ee821ae3"
+}

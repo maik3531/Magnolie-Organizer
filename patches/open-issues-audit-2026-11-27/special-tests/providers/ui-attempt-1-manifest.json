@@ -1,0 +1,367 @@
+{
+  "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "stage": "ui",
+  "scope": "Existing focused host regressions only; no native OS/installed/device acceptance.",
+  "source_files": {
+    "port-adapters/tests/occurrence-identity.cjs": "3f72a383047c0a5eecee5942a0a8fce7732542f143cd049430d2dc2369b41733",
+    "port-adapters/tests/fixtures/distinct-rid-same-slot.json": "9a36461014b4a4f1c909ca98c1c174b7231527bb3e4185f5ed19596a84c5ad38",
+    "port-adapters/occurrence-identity.js": "08f51f03c3c158017e7df7222807c042ec79c1e8caa81c2d628d40a9a06bbd32",
+    "port-adapters/occurrence-identity-patch.json": "71ed501a3fdcab8dd108141889910fc32abce976e785d5db7ce09f12363b6a49",
+    "port-adapters/occurrence-identity-projection.cjs": "a313a300b467ed33b1b56d75e31401e918e41824b942dd7e9a53dbd08e8a247f",
+    "magnolie-organizer/web/anwendung.js": "573b2b457689c9d3e7a71be4aca60630144b892e0fd53ce21c778d8806259440",
+    "Magnolie-Organizer-Android-Tablet-Beta/tools/project-web.cjs": "6d4ad1d5ae692ba16618763ae07f12fbc4fb4b0a24a90a96e7829789f4af2fdd",
+    "Magnolie-Organizer-macOS-Beta/tools/project_ui.py": "3a0983b04c1eb77037a3787b45f5f8fc38548f62088791477ec733925935cd33"
+  },
+  "runs": [
+    {
+      "name": "catalog-de",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "de",
+        "magnolie-organizer/po/de.po",
+        "magnolie-organizer/web/i18n/de.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.067,
+      "log": "catalog-de.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-fr",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "fr",
+        "magnolie-organizer/po/fr.po",
+        "magnolie-organizer/web/i18n/fr.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.066,
+      "log": "catalog-fr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-es",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "es",
+        "magnolie-organizer/po/es.po",
+        "magnolie-organizer/web/i18n/es.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.071,
+      "log": "catalog-es.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-it",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "it",
+        "magnolie-organizer/po/it.po",
+        "magnolie-organizer/web/i18n/it.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.051,
+      "log": "catalog-it.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-nl",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "nl",
+        "magnolie-organizer/po/nl.po",
+        "magnolie-organizer/web/i18n/nl.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.059,
+      "log": "catalog-nl.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-pt",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "pt",
+        "magnolie-organizer/po/pt.po",
+        "magnolie-organizer/web/i18n/pt.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.055,
+      "log": "catalog-pt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-ru",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "ru",
+        "magnolie-organizer/po/ru.po",
+        "magnolie-organizer/web/i18n/ru.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.058,
+      "log": "catalog-ru.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-cs",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "cs",
+        "magnolie-organizer/po/cs.po",
+        "magnolie-organizer/web/i18n/cs.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.051,
+      "log": "catalog-cs.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-pl",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "pl",
+        "magnolie-organizer/po/pl.po",
+        "magnolie-organizer/web/i18n/pl.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.054,
+      "log": "catalog-pl.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-hsb",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "hsb",
+        "magnolie-organizer/po/hsb.po",
+        "magnolie-organizer/web/i18n/hsb.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.059,
+      "log": "catalog-hsb.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-da",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "da",
+        "magnolie-organizer/po/da.po",
+        "magnolie-organizer/web/i18n/da.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.053,
+      "log": "catalog-da.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-nb",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "nb",
+        "magnolie-organizer/po/nb.po",
+        "magnolie-organizer/web/i18n/nb.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.048,
+      "log": "catalog-nb.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-hi",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "hi",
+        "magnolie-organizer/po/hi.po",
+        "magnolie-organizer/web/i18n/hi.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.059,
+      "log": "catalog-hi.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-zh_CN",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "zh_CN",
+        "magnolie-organizer/po/zh_CN.po",
+        "magnolie-organizer/web/i18n/zh_CN.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.056,
+      "log": "catalog-zh_CN.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-ja",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "ja",
+        "magnolie-organizer/po/ja.po",
+        "magnolie-organizer/web/i18n/ja.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.053,
+      "log": "catalog-ja.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-ar",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "ar",
+        "magnolie-organizer/po/ar.po",
+        "magnolie-organizer/web/i18n/ar.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.072,
+      "log": "catalog-ar.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-uk",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "uk",
+        "magnolie-organizer/po/uk.po",
+        "magnolie-organizer/web/i18n/uk.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.062,
+      "log": "catalog-uk.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-be",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "be",
+        "magnolie-organizer/po/be.po",
+        "magnolie-organizer/web/i18n/be.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.056,
+      "log": "catalog-be.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "catalog-tr",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "magnolie-organizer/werkzeuge/po_zu_js.py",
+        "tr",
+        "magnolie-organizer/po/tr.po",
+        "magnolie-organizer/web/i18n/tr.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.05,
+      "log": "catalog-tr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "mac-freeze",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-macOS-Beta/tools/project_ui.py",
+        "freeze",
+        "--confirm-desktop-frozen"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.411,
+      "log": "mac-freeze.log",
+      "sha256": "152bec0f97a51b208aa053c57c345863b3e946340b5917df4617187504125e1b"
+    },
+    {
+      "name": "mac-project",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-macOS-Beta/tools/project_ui.py",
+        "generate"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 2.767,
+      "log": "mac-project.log",
+      "sha256": "5a9a9ca29c3ced7ebdf185b33edd04ae8e57f15c8580df6012190fd7e32d1910"
+    },
+    {
+      "name": "tablet-project",
+      "command": [
+        "node",
+        "/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-Android-Tablet-Beta/tools/project-web.cjs"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 0.552,
+      "log": "tablet-project.log",
+      "sha256": "d0ae1152373919f3590f3c58a3d64033d42cd886e019985979e46953933e0337"
+    },
+    {
+      "name": "occurrence-identity-macos",
+      "command": [
+        "node",
+        "port-adapters/tests/occurrence-identity.cjs",
+        "macos",
+        "/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-macOS-Beta/Generated"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 1,
+      "seconds": 14.072,
+      "log": "occurrence-identity-macos.log",
+      "sha256": "950ea5203683ab3b12e7a17989e84ab8854789d7c2d33575d228215f327d6746"
+    }
+  ],
+  "environment": {
+    "PATH": "/workspace/scratch/7203da5bd564/round3-tools/gettext/usr/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+    "LD_LIBRARY_PATH": "/workspace/scratch/7203da5bd564/round3-tools/gettext/usr/lib/x86_64-linux-gnu",
+    "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+    "MACOS_BETA_JSDOM": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules/jsdom/lib/api.js",
+    "PYTHONPATH": "/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-macOS-Beta/ImportHelper",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "reused_import_dependency": {
+    "filename": "phonenumbers-9.0.38-py2.py3-none-any.whl",
+    "sha256": "f3cbeb1a42bf226060c60fc6277f5431755d325eddc23fbf2c72ef7e156113c6"
+  }
+}

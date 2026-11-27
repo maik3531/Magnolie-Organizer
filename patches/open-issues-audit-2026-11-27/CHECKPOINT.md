@@ -1,23 +1,17 @@
-# Gesicherter Audit-Zwischenstand — 27. November 2026
+# Gesicherter Auditstand und aktuelle Lieferung
 
-Dieser Zweig sichert die abgeschlossene Sichtung aller **106 ursprünglich offenen Issues**, die verifizierte Bereinigung und sieben bereits geprüfte Patchteile. Die abschließende Import-/Export-Nachprüfung auf ausdrücklichen zusätzlichen Nutzerauftrag läuft noch; der neu bestätigte Farbrest **#844** wird gerade separat korrigiert und geprüft.
+Die vollständige Sichtung der ursprünglich **106 offenen Issues**, die ausgeführte Bereinigung und die vorbereiteten Patches sind auf diesem eigenen Artefaktzweig abgelegt. Der Einstieg in den abschließenden Stand ist [README.md](README.md); die aktuellen anwendbaren Patches stehen ausschließlich unter [final-patches](final-patches).
 
-## Bereits abgeschlossen
+## Bereits vor der Schlusslieferung gesichert
 
-- 29 doppelte oder zusammengehörige Issues samt einzigartigen offenen Kriterien in13 Leitissues übernommen und geschlossen.
-- #389 als zurückgenommene Zusatzanforderung und #731 als abgeschlossenen begrenzten Diagnose-/Testauftrag geschlossen.
-- #823 wurde während der Sichtung tatsächlich in `main` übernommen; sein Patch ist aus der verbleibenden Serie entfernt.
-- Vorbereitete Patchteile: #566 Kontakt-CSV, #192 MCP-Dokumentation, #790 Quellprüftest, zwei Teile #759→#330 Medienoberfläche, #395 Organisatorvorschläge und #843 Worker-Ressourcenfreigabe.
-- Grundsätze zur einfachen Bedienung, automatischen gemeinsamen Organizer-/Notes-Einstellung, großen Datenbeständen, Monats-Traybetrieb und bedeutungstreuem Import/Export sind in den bestehenden Leitissues festgehalten.
+Der frühere Zwischenstand wurde als Commit [`2baf32b3d28079933acc6a366ae17f3f4499edeb`](https://github.com/maik3531/Magnolie-Organizer/commit/2baf32b3d28079933acc6a366ae17f3f4499edeb) veröffentlicht und mit den tatsächlichen Remote-Dateiinhalten zurückgeprüft. Er enthielt 20 Dateien mit 741.395 Bytes, darunter die vollständige 106-Issue-Matrix, die 31 verifizierten Schließungen und die damalige Serie auf `24927cf9`. Dieser Commit bleibt als eigener historischer Stand erhalten.
 
-## Lesen und prüfen
+Die damaligen Patchdateien sind ergänzend unter [checkpoint-patches-24927cf9](checkpoint-patches-24927cf9) archiviert. Sie sind **keine zweite aktuelle Anwendungsempfehlung**. Insbesondere wurde der dortige #843-Alternativpatch später durch eine tatsächlich geprüfte Upstreamkorrektur überholt.
 
-- [Alle106 Einzelbewertungen](ISSUE-MATRIX.md)
-- [Ausgeführte Bereinigung](CONSOLIDATION.md)
-- [Verifizierte GitHub-Aktionen](consolidation-final-execution.json)
-- [Sieben Patchteile und Gesamtdiff](final-patches/manifest.json)
-- [Gesamtdiff auf24927cf9](final-patches/all-after-24927cf9.patch)
+## Abschließende Quellenbasis
 
-Die vollständigen Logs, abschließenden Quellenbindungen und der zusätzliche Farbpatch werden mit dem Abschluss dieses Zweigs ergänzt. Der Quellstand des vorliegenden Gesamtdiffs ist `aed96df09d0d536832e5e1ad0d2ffa00b7ef9b1e`, Ergebnisbaum `900b7bbfad110eb394ea1ddbf99c4e0eea836179`. Gesamtpatch und Einzelserie ergeben unabhängig exakt diesen Baum.
+Die aktuelle Serie setzt auf dem endgültig eingefrorenen Stand **`7a490dd87e94eec08d7f09cb95a04b34bf4621c2`** auf. #823, #843 und die ursprünglichen #844-/#845-Übernahmen sind darin bereits vorhanden. Die beiden letzten Nachträge behandeln ausschließlich unabhängig bestätigte Reste.
 
-**Übergabegrenze:** Hier liegen Review-Artefakte; die Produktdateien dieses Zweigs entsprechen weiterhin der eingefrorenen Basis `24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b`. Die Patchserie ist nicht nach `main` übernommen. Keine neue installierte Paket-, Geräte- oder Monatsabnahme und keine Paketveröffentlichung werden behauptet.
+Auch die vorherige vollständige Serie auf `1f1f3225` hatte alle gezielten Integrationsprüfungen bestanden. Sie liegt unverändert unter [checkpoint-patches-1f1f3225](checkpoint-patches-1f1f3225), nachdem #845 inzwischen upstream umgesetzt worden war. Diese ältere Serie ist Historie und wird nicht zusätzlich auf den aktuellen Stand angewandt. [source-followups.json](source-followups.json) dokumentiert die begrenzten Nachprüfungen zwischen den Quellenständen.
+
+Die Produktdateien dieses Artefaktzweigs werden durch die Lieferung nicht verändert. Maßgeblich für eine Patchanwendung ist die im [Patchmanifest](final-patches/manifest.json) genannte Basis, nicht der historische Produktstand des Artefaktzweigs. Übernahme nach `main`, installierte Abnahme und öffentliche Pakete sind eigenständige Schritte.

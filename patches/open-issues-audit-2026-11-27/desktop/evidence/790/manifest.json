@@ -1,0 +1,38 @@
+{
+  "base": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "commit": "09a5cd7a90ca98ef1663e6755cc9a05bf80553fe",
+  "tree": "e2fef954f0328fe61bd430f4671c66f20600692a",
+  "original_artifact_commit": "16ee8cd380f147c88a44f4af38b178fb0900ec72",
+  "original_patch_sha256": "44a693a2f93aa42196aa3d42cbffd5f8f77bc11bbb1877b2f081150801667818",
+  "patch_adapted": false,
+  "changed_files": [
+    "Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py"
+  ],
+  "baseline": {
+    "tests": 1,
+    "failures": 1,
+    "exit_code": 1,
+    "log": "baseline.log"
+  },
+  "after": {
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "exit_code": 0,
+    "command": [
+      "python",
+      "Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py",
+      "-v"
+    ],
+    "log": "after.log"
+  },
+  "native_or_build_execution": false,
+  "files": {
+    "original-reviewed.patch": "44a693a2f93aa42196aa3d42cbffd5f8f77bc11bbb1877b2f081150801667818",
+    "current-base.patch": "9184e2c24cb6244898b9e3f498974a8b209ed2eb5018b387da8fb80fdbfa5730",
+    "baseline.json": "86b1a27d9a7817864d87c0a6974e75a9088cd7945319538c9a028b6443b5ef87",
+    "after.log": "c572d9e18a54945d46c6db3de0a6ddb0471259e3be296f5cdab791a028c24214",
+    "baseline.log": "6a982ece2543333c8df0895b4f1ad4bdfbc4a7584ca7f397352d350e38d556c2"
+  }
+}

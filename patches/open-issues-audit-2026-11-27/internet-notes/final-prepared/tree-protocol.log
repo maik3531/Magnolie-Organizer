@@ -1,0 +1,49 @@
+Magnolie CoreTests: 1 Gruppen
+FS1 NATIVE IDENTITY PASS normal
+FS1 NATIVE IDENTITY PASS cosmetic
+FS1 NATIVE IDENTITY PASS peer-key
+FS1 NATIVE IDENTITY PASS own-key
+FS1 NATIVE IDENTITY PASS unconfirmed
+Notes native FS1 origin: 22 synthetic scenarios passed (no installed counterpart acceptance).
+Notes native protocol negotiation: 15 actual-FS1 synthetic scenarios passed (no source grant).
+Notes native export/result/writer: 21 synthetic scenarios plus projection guards passed (actual generated SaveAsync, no durable ACK history).
+Notes durable private consent core: 22 synthetic scenarios passed (stable-book only; no native save-chain activation).
+Notes actual known-book save chain: 15 synthetic native-writer/recovery scenarios passed (no primary-read saved witness).
+Notes private save-chain interruption: 5 signed-intent/content/readback/delete boundary scenarios passed.
+Notes independent journal primitives: crypto isolation/tamper/canonical/key clearing and narrow private layout passed (no send authority).
+Notes existing independent journal key: 12 synthetic read-only/DPAPI-or-controlled cases passed (no key/store/database creation).
+Notes physical-first request intentions: 20 synthetic cases passed (loaded history never restores send rights).
+Notes independent genuine saved-ACK history: 35 actual-writer synthetic cases passed (loaded history is not ACK authority).
+Notes unconfirmed query-only restart: 10 synthetic cases passed (no replay, pending writer, saved witness or ACK).
+Notes durable terminal retirement: 15 native-writer synthetic cases passed (settled history and matching installed mapping before physical reuse).
+Notes fresh VERIFIED local recovery: 20 synthetic actual-writer cases passed (real bootstrap then metadata save, no provider replay).
+Notes reserved native FS1 transport: 17 synthetic authenticated-handler cases passed (no generic fallback or receipt settlement).
+Notes regular export bootstrap/private discovery: 15 synthetic native-writer cases passed (no fake recovered request or primary-read saved scope).
+Notes bounded native controller: 28 synthetic receive/deferred/actual-writer cases passed (no registered pump or UI dispatch).
+Notes controller multi-source: 2 fairness/conflict/stale-whole-book actual-writer cases passed.
+Notes native readiness/worker: 8 cached-restriction and 3 coalesced/event/Stop synthetic cases passed (no listener or startup factory).
+6 fresh Windows DOM cases passed; no SaveACK/native saved witness fabricated.
+Notes actual DOM/native worker wire PASS normal
+Notes actual DOM/native worker wire PASS restart
+Notes actual DOM/native worker wire PASS late-edit
+Notes actual DOM/native worker wire PASS fresh-restart
+Notes explicit native composition: 10 synthetic admission/existing-key/actual-writer/owned-detach cases passed (no startup call).
+Notes monotone source addition: saved history/terminal/idempotence, full-replacement boundary and 14 admission/CAS/intent cases passed.
+Notes native setup acquisition: 18 bounded real-FS1/choice/coexistence/cancel plus 1 result/terminal isolation case passed (no grant/dialog/startup).
+Notes native setup decision flow: 19 synthetic dialog-boundary/CAS/initial-addition cases passed (no actual modal/startup).
+Notes before-peer native decision: 13 acquisition/owner/CAS/cancel cases passed (no modal/peer UI registration).
+Notes native peer/acquisition: 25 actual FS1/pins/before-dialog/opt-out/cancel cases passed (no modal/startup).
+Notes native setup dispatcher: 25 real FS1/worker/nested UI/cancel/replay cases passed (no modal/startup).
+Notes setup preparation native guard: 9 saved/load/token/expiry/owner/cancel cases passed.
+Notes actual DOM/native setup preparation PASS fresh
+Notes actual DOM/native setup preparation PASS pending
+Notes actual DOM/native setup preparation PASS note-snapshot
+Notes actual DOM/native setup preparation PASS string-ack
+Notes actual DOM/native setup preparation PASS replay
+Notes actual DOM/native setup preparation PASS failed-writer
+Notes actual DOM/native setup preparation PASS locked
+Notes actual DOM/native setup preparation PASS editor
+Notes actual DOM/native setup preparation PASS modal
+Notes application setup host: 16 actual FS1/owned scheduling/lifecycle/quiescence cases passed (no modal/startup).
+  OK     Magnolienbaum Crypto / Pairing / FS1 / Replay / Queues / Netzwerk (80.38 s)
+CoreTests: 1/1 Gruppen bestanden.

@@ -1,0 +1,4 @@
+Issue #843 ist bereits upstream in 66b50c44482f279d7c3566fe2959f66ebcc20cd5 behoben.
+Auf 1f1f3225ab50fe38902bc8e790454fd944f8b693 wurden die relevanten Ownership-Kontextfälle erneut bestanden.
+refs-843-worker-url-lifecycle.patch und Commit 9c003363 sind ausschließlich historische Alternativnachweise. NICHT ERNEUT ANWENDEN.
+Details: upstream-adoption.json und README.md.

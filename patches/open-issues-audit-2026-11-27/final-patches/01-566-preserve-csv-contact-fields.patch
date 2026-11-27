@@ -1,4 +1,4 @@
-From b500c855f055fb40120efe732dadac1346928f04 Mon Sep 17 00:00:00 2001
+From 7831cd68b0207527b6ac28e6900ddfae5ad1f4a1 Mon Sep 17 00:00:00 2001
 From: Codex <codex@openai.com>
 Date: Fri, 27 Nov 2026 18:28:57 +0100
 Subject: [PATCH] Refs #566: Rebase reviewed CSV contact preservation onto
@@ -466,10 +466,10 @@ index 0000000000000000000000000000000000000000..b7ec33237045fa2f35b5183564fb5b50
 +  ]
 +}
 diff --git a/magnolie-organizer-windows/ExchangeCodec.cs b/magnolie-organizer-windows/ExchangeCodec.cs
-index 5807a21007ad065111a4c02946225bec5d051b42..2c6c8755414f89303abbc5428f5264921e4d6044 100644
+index c8648dc1b4842b3a320472f04a0334204c30b260..7585171e68af047123307567248517dde9b90174 100644
 --- a/magnolie-organizer-windows/ExchangeCodec.cs
 +++ b/magnolie-organizer-windows/ExchangeCodec.cs
-@@ -772,13 +772,12 @@ internal static partial class ExchangeCodec
+@@ -819,13 +819,12 @@ internal static partial class ExchangeCodec
                  string Cell(int index) => index >= 0 && index < row.Count ? row[index].Trim() : "";
                  if (lastIndex >= 0 || firstIndex >= 0 || companyIndex >= 0)
                  {
@@ -487,7 +487,7 @@ index 5807a21007ad065111a4c02946225bec5d051b42..2c6c8755414f89303abbc5428f526492
                          ["email"] = emails.FirstOrDefault() ?? "", ["emails"] = new JsonArray(emails.Select(email => JsonValue.Create(email)).ToArray()), ["notiz"] = Cell(Find("BEMERKUNG", "NOTIZ", "NOTES")), ["uid"] = "", ["geaendert"] = 0 });
                  }
                  else if (dueIndex >= 0)
-@@ -2195,6 +2194,48 @@ internal static partial class ExchangeCodec
+@@ -2327,6 +2326,48 @@ internal static partial class ExchangeCodec
          return ("", "", false);
      }
  
@@ -593,10 +593,10 @@ index 0000000000000000000000000000000000000000..f85bf44b9c50b24e002b1c60464ca281
 +    }
 +}
 diff --git a/magnolie-organizer-windows/tests/Program.cs b/magnolie-organizer-windows/tests/Program.cs
-index 872e3b1871cdfb879a50f8a14fcc4798c5e97792..039bcb1ddec860a980ab63fb9cf6c753e93d9150 100644
+index 45cb99a39b05feea20f85cf80dc49d1a0196200e..9ebdf6f1a29da0411a4d655b800ad9cd9dac8332 100644
 --- a/magnolie-organizer-windows/tests/Program.cs
 +++ b/magnolie-organizer-windows/tests/Program.cs
-@@ -345,6 +345,7 @@ runner.Add("Document export / actual ODS / readback / target guards", VerifiedDo
+@@ -346,6 +346,7 @@ runner.Add("Document export / actual ODS / readback / target guards", VerifiedDo
  runner.Add(".magnolie Gesamtarchiv / Cross-Platform / Anhänge / Fehler", ContractGroupTests.ArchiveAsync);
  runner.Add("Notizanhänge / Data-URL / Dateinamen", AttachmentFileTests.RunAsync);
  runner.Add("ICS / VCF / LDIF / Claws / Lotus / Thunderbird", ContractGroupTests.ExchangeAsync);
@@ -605,10 +605,10 @@ index 872e3b1871cdfb879a50f8a14fcc4798c5e97792..039bcb1ddec860a980ab63fb9cf6c753
  runner.Add("Thunderbird local.sqlite Schema 23", ThunderbirdSchema23Tests.RunAsync);
  runner.Add("ODS Paket / XML / Styles / Geometrie / Chart", ContractGroupTests.OdsAsync);
 diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
-index 46836c5d748bfb878e3bd3c9f5760ddb8981da92..79245964666c2816deb8db84b3488c0c1c7566a3 100755
+index d4d31f6da83f2c737d0ce7689591a51b53f3eb78..a7a18fd7001906925065ff802019aba404e3a284 100755
 --- a/magnolie-organizer/bin/magnolie-organizer
 +++ b/magnolie-organizer/bin/magnolie-organizer
-@@ -6291,13 +6291,12 @@ def _lotus_kontakte(zeilen, kopf):
+@@ -6435,13 +6435,12 @@ def _lotus_kontakte(zeilen, kopf):
              telefon_spalten.append((i, typen))
          sitz = "HOME" if any(w in spalte for w in ("PRIVAT", "HOME")) else \
              "WORK" if any(w in spalte for w in ("GESCHAEFT", "ARBEIT", "WORK", "FIRMA")) else ""
@@ -628,7 +628,7 @@ index 46836c5d748bfb878e3bd3c9f5760ddb8981da92..79245964666c2816deb8db84b3488c0c
      kontakte, uebersprungen = [], 0
      for zeile in zeilen:
          def hol(feld, zeile=zeile):
-@@ -6316,16 +6315,20 @@ def _lotus_kontakte(zeilen, kopf):
+@@ -6460,16 +6459,20 @@ def _lotus_kontakte(zeilen, kopf):
          for telefon in eintrag["telefone"]:
              if not telefon.get("vcardParameter"):
                  telefon.pop("vcardParameter", None)

@@ -1,0 +1,97 @@
+{
+  "issue": 395,
+  "base_commit": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "source_commit": "38edd46ef18259e232c786bf2e8e88903f96b655",
+  "source_files": [
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "base_sha256": "a6a34206aed0b92c294607a8155593d1d9ef2a712321f1d5e1c54b18fd72f18a",
+      "final_sha256": "0a9e1db12e4b32c32170e7548ad3ebd8b10b1e45444f47a568ca2dd2a1e90701"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "base_sha256": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+      "final_sha256": "e04962afaea1b02c2b2a4aa8af9d26a03ad522ce00b93ca38e7aec18e6ea648a"
+    }
+  ],
+  "new_test": "magnolie-organizer-windows/tests/appointment-organizer-suggestions.js",
+  "final_test_sha256": "f51c8de9fc2831e1fdd68ca30f59abab6de5238d3b5026b8c841dfb53220d325",
+  "baseline_test_snapshot": "baseline-tests-8-cases.source.txt",
+  "baseline_test_sha256": "3e4466203d37a7b843ab65aa32a91319ff17a96608cd8b42b9b4b1bb1e79725f",
+  "environment": {
+    "node": "v24.22.3",
+    "jsdom": "26.1.0",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "tooling": "existing round3-tools/js/node_modules",
+    "synthetic_contacts_per_environment": 2003,
+    "native_gui": false,
+    "timer_boundary": "Existing desktop-state-regressions harness uses controlled timers and synthetic bridge messages."
+  },
+  "runs": [
+    {
+      "log": "before.log",
+      "source": "base_commit",
+      "test": "baseline_test_snapshot",
+      "exit_code": 1,
+      "passed": 0,
+      "total": 8,
+      "detail_de": "Rote Ressourcen-/Suchzustandsfälle auf unveränderten Produktquellen; fünf reguläre Öffnen/Schließen-Zyklen je Plattform zeigen jeweils 2.002 unbenutzte Namensoptionen."
+    },
+    {
+      "log": "after.log",
+      "source_binding": "intermediate-8-cases-binding.json",
+      "exit_code": 0,
+      "passed": 8,
+      "total": 8,
+      "detail_de": "Erster enger Patch, noch vor dem zusätzlich abgesicherten exakten Kurznamen."
+    },
+    {
+      "log": "exact-name-before.log",
+      "source_binding": "intermediate-8-cases-binding.json",
+      "test": "new_test",
+      "exit_code": 1,
+      "passed": 8,
+      "total": 10,
+      "detail_de": "Der zusätzliche exakte Kurzname hinter über 250 Teiltreffern fehlt im Zwischenstand; beide Plattformen rot."
+    },
+    {
+      "log": "final.log",
+      "source": "source_commit",
+      "test": "new_test",
+      "exit_code": 0,
+      "passed": 10,
+      "total": 10,
+      "detail_de": "Finale Produktbytes; alle fünf Fälle auf beiden Desktopquellen bestanden."
+    },
+    {
+      "log": "structured-appointment-parity-final.log",
+      "source": "source_commit",
+      "test": "magnolie-organizer-windows/tests/structured-appointment-parity.js",
+      "exit_code": 0,
+      "detail_de": "Bestehende gezielte Prüfung strukturierter Termine auf beiden Desktopquellen bestanden. Assertions werden nicht als zusätzliche Fallzahl ausgegeben."
+    }
+  ],
+  "claims_de": {
+    "structural": "2.002 versteckte Namensoptionen pro Öffnen auf 0 reduziert; Fokus und jede Eingabe erzeugen höchstens 250 Namensoptionen; exakte späte Treffer bleiben zugänglich.",
+    "timing": "Die Logs enthalten einzelne Hostzeiten aus kontrolliertem JSDOM. Hauptnachweis ist die DOM-Arbeit, keine universelle Beschleunigungsquote.",
+    "not_proven": "Keine neue vollständige 250.000-Datensatz-Suite, kein nativer Datalist-/N100-Test, kein Heap-Profil und kein Monats-Traylauf."
+  },
+  "build_executed": false,
+  "build_exit_code": null,
+  "tree": "14bceb0da8d668f64b882a729201c7c23c65dab9",
+  "independent_review": "independent-review.json",
+  "final_sources_verified_byte_equal_to_commit": true,
+  "test_commands": [
+    [
+      "node",
+      "magnolie-organizer-windows/tests/appointment-organizer-suggestions.js"
+    ],
+    [
+      "node",
+      "magnolie-organizer-windows/tests/structured-appointment-parity.js"
+    ]
+  ],
+  "test_environment_de": "NODE_PATH auf vorhandenes node_modules mit jsdom 26.1.0 setzen; Arbeitsverzeichnis ist das angewendete Repository. Normative Zeitzonenassets über vorhandenes zeitzonen_erzeugen.py für beide Webordner erzeugen. Kein Paketbau oder Installationsvorgang.",
+  "baseline_fixture_actual_names": 2002,
+  "final_names_option_limit": 250
+}

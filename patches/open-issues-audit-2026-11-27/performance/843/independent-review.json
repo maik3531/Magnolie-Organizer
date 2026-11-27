@@ -1,0 +1,70 @@
+{
+  "issue": 843,
+  "base": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "commit": "9c00336342f736f541cf14e006de1248b22b8850",
+  "worktree_clean": true,
+  "findings": [],
+  "decision_de": "Freigabe des eng begrenzten Worker-Ressourcenpatches. Keine materielle Regression in den geprüften Lebensdauer- und Ownership-Grenzen gefunden.",
+  "marker_checks": [
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "tz_port_blocks": 51,
+      "all_byte_equal_to_base": true,
+      "source_sha256": "2c7a5a59f6cc0334dbc52065bc5ad611add546c096686b0daad5077c4f56e4f3"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "tz_port_blocks": 51,
+      "all_byte_equal_to_base": true,
+      "source_sha256": "9ff3b77ba62503c62c209cca49f72285373b5c2f6102f7b59947da862bfd3914"
+    }
+  ],
+  "review_de": [
+    "releaseWorker ist an die lokal erzeugte Workerinstanz und deren URL gebunden. Es beendet/nullt nur den aktuell noch zugehörigen Worker; URL und Listener werden unabhängig davon freigegeben.",
+    "Konstruktorfehler räumen die bereits angelegte URL unmittelbar auf, bevor der vorhandene Fehlerstatus veröffentlicht wird.",
+    "Alte onmessage/onerror-Callbacks prüfen ihre Workeridentität vor jeder Zustandsmutation. Ein synchron während publish erzeugter Ersatzworker bleibt erhalten; das finally der alten Antwort gibt ausschließlich die alte URL/Listener-Referenz frei.",
+    "Provider-Identitätsabweichungen behalten den vorhandenen TZ_PORT-Guard bytegleich. Dieser beendet den alten Worker; finally entfernt dessen verbleibende Ressourcen.",
+    "Wiederholte Freigabe oder spätere alte Fehler beendet keine weitere Instanz. Nach regulärem Erfolg bleibt eine URL/ein Listener bis zum Fehler oder unload erhalten.",
+    "Linux-Custom-Scheme verwendet unverändert data: und erzeugt keine Blob-URL. Die gemeinsame Freigabe ist auch dort ein sicherer No-op für die Object-URL-Registry.",
+    "Der 30-s/4096-Schritte-Wiederholungsabbruch im Worker und der separate 25-s-MCP-Warteabbruch bleiben unverändert. Ein einzelner Job-/postMessage-Datenfehler behält den Worker für weitere Jobs; das ist ein begrenzter lebender Besitzer und keine wachsende Sammlung."
+  ],
+  "independent_executed": {
+    "script": "independent-ownership-review.cjs",
+    "result": "independent-ownership-result.json",
+    "log": "logs/independent-ownership-review.log",
+    "cases": 3,
+    "passed": 3,
+    "protocols": [
+      "Windows-Quell-JS unter https:",
+      "Linux-Quell-JS unter https:",
+      "Linux-Quell-JS unter magnolie-organizer:"
+    ],
+    "checks_de": "Je Protokoll drei Konstruktorfehler, synchroner Ersatzworker im Provider-Fehler-Publish, verspätete alte Antwort-/Fehlercallbacks, normaler Erfolg, einzelner Jobfehler mit weiterlebendem Worker, wiederholte Freigabe und zweimal unload.",
+    "cwd": "/workspace/scratch/7203da5bd564",
+    "argv": [
+      "node",
+      "/workspace/scratch/7203da5bd564/open-audit/performance/843/independent-ownership-review.cjs",
+      "/workspace/scratch/7203da5bd564/open-audit-395-worker-url",
+      "/workspace/scratch/7203da5bd564/open-audit/performance/843/independent-ownership-result.json"
+    ],
+    "env": {
+      "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules"
+    },
+    "stdout_and_stderr": "logs/independent-ownership-review.log",
+    "exit_code": 0,
+    "duration_seconds": 1.082737749,
+    "rerun_for_metadata_update": false
+  },
+  "existing_evidence_reviewed": {
+    "manifest": "after-manifest.json",
+    "actual_urls": "after-actual-urls.json",
+    "recurrence_log": "logs/after-recurrence-worker.log",
+    "projection_log": "logs/after-projection-adapters.log",
+    "execution_de": "Vorhandene Läufe des Patchautors geprüft, nicht erneut als eigene Suite ausgeführt."
+  },
+  "limitations_de": [
+    "JSDOM und kontrollierte Worker-Ereignisse sind keine native WebKit-/WebView2-Abnahme.",
+    "Die data:-Probe prüft Protokollwahl und Eigentümerschaft, keine echte data:-Worker-Ausführung.",
+    "Keine native Heapmessung, keine Monats-Tray-Abnahme; andere langlebige Caches/Jobs werden dadurch nicht allgemein bewertet."
+  ]
+}

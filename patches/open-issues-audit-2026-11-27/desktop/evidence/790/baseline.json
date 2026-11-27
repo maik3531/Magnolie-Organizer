@@ -1,0 +1,13 @@
+{
+  "base": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "command": [
+    "python",
+    "Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py",
+    "CandidateSourceTests.test_workflow_selects_current_mac_checkout_and_keeps_tablet_reference",
+    "-v"
+  ],
+  "exit_code": 1,
+  "new_execution": true,
+  "scope": "one actual workflow contract test; no build/native run",
+  "log_sha256": "6a982ece2543333c8df0895b4f1ad4bdfbc4a7584ca7f397352d350e38d556c2"
+}

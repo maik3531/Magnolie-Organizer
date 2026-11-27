@@ -1,0 +1,1867 @@
+[
+  {
+    "id": "event-standard-color",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "event-standard-color.ics",
+      "termine": [
+        {
+          "uid": "event-standard-color",
+          "datum": "2026-12-05",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Owned event-standard-color",
+          "notiz": "",
+          "kategorien": "",
+          "ort": "",
+          "akzentFarbe": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "none",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20261205",
+            "COLOR:turquoise"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:6e5e591fb29f3824b427c42ec4793a4e7bb83f0a7a3a8afa71c88b20c773ae66"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:event-standard-color\r\nDTSTAMP:20261127T182641Z\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Owned event-standard-color\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR:turquoise\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "event-standard-color.ics",
+          "termine": [
+            {
+              "uid": "event-standard-color",
+              "datum": "2026-12-05",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Owned event-standard-color",
+              "notiz": "",
+              "kategorien": "",
+              "ort": "",
+              "akzentFarbe": "",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "none",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": false,
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20261206",
+                "DTSTART;VALUE=DATE:20261205",
+                "COLOR:turquoise"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:6e5e591fb29f3824b427c42ec4793a4e7bb83f0a7a3a8afa71c88b20c773ae66"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "task-standard-color",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "task-standard-color.ics",
+      "termine": [],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [
+        {
+          "uid": "task-standard-color",
+          "elternUid": "",
+          "icsElternUid": "",
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "reihenfolge": 0,
+          "titel": "Owned task-standard-color",
+          "faellig": "2026-12-05",
+          "faelligZeit": "",
+          "startDatum": "",
+          "startZeit": "",
+          "prio": 2,
+          "erledigt": false,
+          "notiz": "",
+          "kategorien": "",
+          "akzentFarbe": "",
+          "erinnern": false,
+          "individuelleErinnerungTage": 0,
+          "icsRoundtrip": [
+            "DUE;VALUE=DATE:20261205",
+            "COLOR:RED"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:c819f3481f2e7d926f10bed5efa2d5527737971a766a8765b8d5784844d73b59",
+          "icsElternQuelleId": "ics:c819f3481f2e7d926f10bed5efa2d5527737971a766a8765b8d5784844d73b59"
+        }
+      ],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "aufgaben": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTODO\r\nUID:task-standard-color\r\nDTSTAMP:20261127T182641Z\r\nSUMMARY:Owned task-standard-color\r\nPRIORITY:5\r\nX-MAGNOLIE-REIHENFOLGE:0\r\nDUE;VALUE=DATE:20261205\r\nCOLOR:RED\r\nX-MAGNOLIE-TASK-IDENTITY:{\u0022v\u0022:1\\,\u0022source\u0022:\u0022ics:c819f3481f2e7d926f10bed5efa2\r\n d5527737971a766a8765b8d5784844d73b59\u0022\\,\u0022uid\u0022:\u0022task-standard-color\u0022\\,\u0022paren\r\n t\u0022:\u0022\u0022\\,\u0022parentSource\u0022:\u0022ics:c819f3481f2e7d926f10bed5efa2d5527737971a766a876\r\n 5b8d5784844d73b59\u0022}\r\nEND:VTODO\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "task-standard-color.ics",
+          "termine": [],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [
+            {
+              "uid": "task-standard-color",
+              "elternUid": "",
+              "icsElternUid": "",
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "reihenfolge": 0,
+              "titel": "Owned task-standard-color",
+              "faellig": "2026-12-05",
+              "faelligZeit": "",
+              "startDatum": "",
+              "startZeit": "",
+              "prio": 2,
+              "erledigt": false,
+              "notiz": "",
+              "kategorien": "",
+              "akzentFarbe": "",
+              "erinnern": false,
+              "individuelleErinnerungTage": 0,
+              "icsRoundtrip": [
+                "DUE;VALUE=DATE:20261205",
+                "COLOR:RED"
+              ],
+              "geaendert": 1795804001000,
+              "icsElternQuelleId": "ics:c819f3481f2e7d926f10bed5efa2d5527737971a766a8765b8d5784844d73b59",
+              "icsQuelleId": "ics:c819f3481f2e7d926f10bed5efa2d5527737971a766a8765b8d5784844d73b59"
+            }
+          ],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "event-own-color",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "event-own-color.ics",
+      "termine": [
+        {
+          "uid": "event-own-color",
+          "datum": "2026-12-05",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Owned event-own-color",
+          "notiz": "",
+          "kategorien": "",
+          "ort": "",
+          "akzentFarbe": "#112233",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "none",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20261205",
+            "X-MAGNOLIE-ACCENT-COLOR:#112233"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:5aa634e347eb9d501b7a80216bb2eef6b2f0c0f093e4b8b8da16ddf8259f366e"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:event-own-color\r\nDTSTAMP:20261127T182641Z\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Owned event-own-color\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nDTSTART;VALUE=DATE:20261205\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "event-own-color.ics",
+          "termine": [
+            {
+              "uid": "event-own-color",
+              "datum": "2026-12-05",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Owned event-own-color",
+              "notiz": "",
+              "kategorien": "",
+              "ort": "",
+              "akzentFarbe": "#112233",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "none",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": false,
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20261206",
+                "X-MAGNOLIE-ACCENT-COLOR:#112233",
+                "DTSTART;VALUE=DATE:20261205"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:5aa634e347eb9d501b7a80216bb2eef6b2f0c0f093e4b8b8da16ddf8259f366e"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "own-over-standard",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "own-over-standard.ics",
+      "termine": [
+        {
+          "uid": "own-over-standard",
+          "datum": "2026-12-05",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Owned own-over-standard",
+          "notiz": "",
+          "kategorien": "",
+          "ort": "",
+          "akzentFarbe": "#112233",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "none",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20261205",
+            "COLOR:turquoise",
+            "X-MAGNOLIE-ACCENT-COLOR:#112233"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:b499e9624d8b878aef7bd9e69f25b26491d6509e9990d61b3ac719e7c5b79847"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:own-over-standard\r\nDTSTAMP:20261127T182641Z\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Owned own-over-standard\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR:turquoise\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "own-over-standard.ics",
+          "termine": [
+            {
+              "uid": "own-over-standard",
+              "datum": "2026-12-05",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Owned own-over-standard",
+              "notiz": "",
+              "kategorien": "",
+              "ort": "",
+              "akzentFarbe": "#112233",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "none",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": false,
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20261206",
+                "X-MAGNOLIE-ACCENT-COLOR:#112233",
+                "DTSTART;VALUE=DATE:20261205",
+                "COLOR:turquoise"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:b499e9624d8b878aef7bd9e69f25b26491d6509e9990d61b3ac719e7c5b79847"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "calendar-standard-color",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "calendar-standard-color.ics",
+      "termine": [
+        {
+          "uid": "calendar-standard-color",
+          "datum": "2026-12-05",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Owned calendar-standard-color",
+          "notiz": "",
+          "kategorien": "",
+          "ort": "",
+          "akzentFarbe": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "none",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20261205"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:65719a740aa4229add5236ca0d9e8100a615fdf5b9bd439764ed374dce6600a0"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:calendar-standard-color\r\nDTSTAMP:20261127T182641Z\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Owned calendar-standard-color\r\nDTSTART;VALUE=DATE:20261205\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "calendar-standard-color.ics",
+          "termine": [
+            {
+              "uid": "calendar-standard-color",
+              "datum": "2026-12-05",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Owned calendar-standard-color",
+              "notiz": "",
+              "kategorien": "",
+              "ort": "",
+              "akzentFarbe": "",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "none",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": false,
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20261206",
+                "DTSTART;VALUE=DATE:20261205"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:65719a740aa4229add5236ca0d9e8100a615fdf5b9bd439764ed374dce6600a0"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "calendar-apple-color",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "calendar-apple-color.ics",
+      "termine": [
+        {
+          "uid": "calendar-apple-color",
+          "datum": "2026-12-05",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Owned calendar-apple-color",
+          "notiz": "",
+          "kategorien": "",
+          "ort": "",
+          "akzentFarbe": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "none",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20261205"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:17c202b9642eec605fdcb4d362aa03dad70ef8696b908bb23a7cc0c8685470a4"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:calendar-apple-color\r\nDTSTAMP:20261127T182641Z\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Owned calendar-apple-color\r\nDTSTART;VALUE=DATE:20261205\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "calendar-apple-color.ics",
+          "termine": [
+            {
+              "uid": "calendar-apple-color",
+              "datum": "2026-12-05",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Owned calendar-apple-color",
+              "notiz": "",
+              "kategorien": "",
+              "ort": "",
+              "akzentFarbe": "",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "none",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": false,
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20261206",
+                "DTSTART;VALUE=DATE:20261205"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:17c202b9642eec605fdcb4d362aa03dad70ef8696b908bb23a7cc0c8685470a4"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "event-over-calendar",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "event-over-calendar.ics",
+      "termine": [
+        {
+          "uid": "event-over-calendar",
+          "datum": "2026-12-05",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Owned event-over-calendar",
+          "notiz": "",
+          "kategorien": "",
+          "ort": "",
+          "akzentFarbe": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "none",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20261205",
+            "COLOR:red"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:b79ef390352d90762d5d5a00c70638566e859187cd0e123c03bab8d071d23091"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:event-over-calendar\r\nDTSTAMP:20261127T182641Z\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Owned event-over-calendar\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR:red\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "event-over-calendar.ics",
+          "termine": [
+            {
+              "uid": "event-over-calendar",
+              "datum": "2026-12-05",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Owned event-over-calendar",
+              "notiz": "",
+              "kategorien": "",
+              "ort": "",
+              "akzentFarbe": "",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "none",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": false,
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20261206",
+                "DTSTART;VALUE=DATE:20261205",
+                "COLOR:red"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:b79ef390352d90762d5d5a00c70638566e859187cd0e123c03bab8d071d23091"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "unknown-color-opaque",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "unknown-color-opaque.ics",
+      "termine": [
+        {
+          "uid": "unknown-color-opaque",
+          "datum": "2026-12-05",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Owned unknown-color-opaque",
+          "notiz": "",
+          "kategorien": "",
+          "ort": "",
+          "akzentFarbe": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "none",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20261205",
+            "COLOR:not-a-css3-color",
+            "X-OTHER-COLOR:keep"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:702502b57c80cf69883941237ddf9bf995e8ef8f2470319cc923ded676a2131c"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:unknown-color-opaque\r\nDTSTAMP:20261127T182641Z\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Owned unknown-color-opaque\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR:not-a-css3-color\r\nX-OTHER-COLOR:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "unknown-color-opaque.ics",
+          "termine": [
+            {
+              "uid": "unknown-color-opaque",
+              "datum": "2026-12-05",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Owned unknown-color-opaque",
+              "notiz": "",
+              "kategorien": "",
+              "ort": "",
+              "akzentFarbe": "",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "none",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": false,
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20261206",
+                "DTSTART;VALUE=DATE:20261205",
+                "COLOR:not-a-css3-color",
+                "X-OTHER-COLOR:keep"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:702502b57c80cf69883941237ddf9bf995e8ef8f2470319cc923ded676a2131c"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "nested-color-opaque",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "nested-color-opaque.ics",
+      "termine": [
+        {
+          "uid": "nested-color-opaque",
+          "datum": "2026-12-05",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Owned nested-color-opaque",
+          "notiz": "",
+          "kategorien": "",
+          "ort": "",
+          "akzentFarbe": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "none",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20261205",
+            "BEGIN:VALARM",
+            "ACTION:DISPLAY",
+            "TRIGGER:-PT5M",
+            "COLOR:red",
+            "DESCRIPTION:Owned alarm",
+            "END:VALARM"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:46ff507c1baf29595e8b6a6625d0164a1cdafb39d39ec4b5e36e292387d9cf05"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:nested-color-opaque\r\nDTSTAMP:20261127T182641Z\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Owned nested-color-opaque\r\nDTSTART;VALUE=DATE:20261205\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-PT5M\r\nCOLOR:red\r\nDESCRIPTION:Owned alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "nested-color-opaque.ics",
+          "termine": [
+            {
+              "uid": "nested-color-opaque",
+              "datum": "2026-12-05",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Owned nested-color-opaque",
+              "notiz": "",
+              "kategorien": "",
+              "ort": "",
+              "akzentFarbe": "",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "none",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": false,
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20261206",
+                "DTSTART;VALUE=DATE:20261205",
+                "BEGIN:VALARM",
+                "ACTION:DISPLAY",
+                "TRIGGER:-PT5M",
+                "COLOR:red",
+                "DESCRIPTION:Owned alarm",
+                "END:VALARM"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:46ff507c1baf29595e8b6a6625d0164a1cdafb39d39ec4b5e36e292387d9cf05"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "marked-birthday",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "marked-birthday.ics",
+      "termine": [],
+      "jahrestage": [
+        {
+          "uid": "marked-birthday",
+          "name": "Owned marked-birthday",
+          "datum": "1990-02-03",
+          "typ": "birthday",
+          "notiz": "",
+          "icsRoundtrip": [
+            "RRULE:FREQ=YEARLY"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:d951feb020e13ea2d98664fc2e4bf333ccda71d0a8a59567263884c2a4be7853"
+        }
+      ],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "jahrestage": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:marked-birthday\r\nDTSTAMP:20261127T182641Z\r\nDTSTART;VALUE=DATE:19900203\r\nSUMMARY:Owned marked-birthday\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:birthday\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nRRULE:FREQ=YEARLY\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "marked-birthday.ics",
+          "termine": [],
+          "jahrestage": [
+            {
+              "uid": "marked-birthday",
+              "name": "Owned marked-birthday",
+              "datum": "1990-02-03",
+              "typ": "birthday",
+              "notiz": "",
+              "icsRoundtrip": [
+                "RRULE:FREQ=YEARLY"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:d951feb020e13ea2d98664fc2e4bf333ccda71d0a8a59567263884c2a4be7853"
+            }
+          ],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "marked-partial-leap-birthday",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "marked-partial-leap-birthday.ics",
+      "termine": [],
+      "jahrestage": [
+        {
+          "uid": "marked-partial-leap-birthday",
+          "name": "Owned marked-partial-leap-birthday",
+          "datum": "--02-29",
+          "typ": "birthday",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:bd0264ca44d35ae26316484df09b7d519ca0c453df22d2d001a2d5103627be62"
+        }
+      ],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "jahrestage": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:marked-partial-leap-birthday\r\nDTSTAMP:20261127T182641Z\r\nDTSTART;VALUE=DATE:20000229\r\nSUMMARY:Owned marked-partial-leap-birthday\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:birthday\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-DATE:--02-29\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "marked-partial-leap-birthday.ics",
+          "termine": [],
+          "jahrestage": [
+            {
+              "uid": "marked-partial-leap-birthday",
+              "name": "Owned marked-partial-leap-birthday",
+              "datum": "--02-29",
+              "typ": "birthday",
+              "notiz": "",
+              "icsRoundtrip": [
+                "DTSTART;VALUE=DATE:20000229",
+                "RRULE:FREQ=YEARLY"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:bd0264ca44d35ae26316484df09b7d519ca0c453df22d2d001a2d5103627be62"
+            }
+          ],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "ordinary-annual-event",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "ordinary-annual-event.ics",
+      "termine": [
+        {
+          "uid": "ordinary-annual-event",
+          "datum": "2026-12-05",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Owned ordinary-annual-event",
+          "notiz": "",
+          "kategorien": "",
+          "ort": "",
+          "akzentFarbe": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "yearly",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20261205",
+            "RRULE:FREQ=YEARLY"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:1ab2806ecb13d2d2ab67cdb848797ef25417659607719952d456aa6e41f28fb5"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:ordinary-annual-event\r\nDTSTAMP:20261127T182641Z\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Owned ordinary-annual-event\r\nDTSTART;VALUE=DATE:20261205\r\nRRULE:FREQ=YEARLY\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "ordinary-annual-event.ics",
+          "termine": [
+            {
+              "uid": "ordinary-annual-event",
+              "datum": "2026-12-05",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Owned ordinary-annual-event",
+              "notiz": "",
+              "kategorien": "",
+              "ort": "",
+              "akzentFarbe": "",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "yearly",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": false,
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20261206",
+                "DTSTART;VALUE=DATE:20261205",
+                "RRULE:FREQ=YEARLY"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:1ab2806ecb13d2d2ab67cdb848797ef25417659607719952d456aa6e41f28fb5"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "lotus-anniversary-no-rule",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "lotus-anniversary-no-rule.ics",
+      "termine": [
+        {
+          "uid": "lotus-anniversary-no-rule",
+          "datum": "2026-12-05",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Owned lotus-anniversary-no-rule",
+          "notiz": "",
+          "kategorien": "ANNIVERSARY",
+          "ort": "",
+          "akzentFarbe": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "none",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20261205"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:6a0473db703527059434537341d72f62d37669e6590b8aa2df3e9a30315e0456"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:lotus-anniversary-no-rule\r\nDTSTAMP:20261127T182641Z\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Owned lotus-anniversary-no-rule\r\nCATEGORIES:ANNIVERSARY\r\nDTSTART;VALUE=DATE:20261205\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "lotus-anniversary-no-rule.ics",
+          "termine": [
+            {
+              "uid": "lotus-anniversary-no-rule",
+              "datum": "2026-12-05",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Owned lotus-anniversary-no-rule",
+              "notiz": "",
+              "kategorien": "ANNIVERSARY",
+              "ort": "",
+              "akzentFarbe": "",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "none",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": false,
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20261206",
+                "DTSTART;VALUE=DATE:20261205"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:6a0473db703527059434537341d72f62d37669e6590b8aa2df3e9a30315e0456"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "lotus-anniversary-annual",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "lotus-anniversary-annual.ics",
+      "termine": [
+        {
+          "uid": "lotus-anniversary-annual",
+          "datum": "2026-12-05",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Owned lotus-anniversary-annual",
+          "notiz": "",
+          "kategorien": "ANNIVERSARY",
+          "ort": "",
+          "akzentFarbe": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "yearly",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20261205",
+            "RRULE:FREQ=YEARLY"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:b43c61a7ccce538015fe46a207e12dfad63da6c1d91838324b0fdcfbb6ecde81"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:lotus-anniversary-annual\r\nDTSTAMP:20261127T182641Z\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Owned lotus-anniversary-annual\r\nCATEGORIES:ANNIVERSARY\r\nDTSTART;VALUE=DATE:20261205\r\nRRULE:FREQ=YEARLY\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "lotus-anniversary-annual.ics",
+          "termine": [
+            {
+              "uid": "lotus-anniversary-annual",
+              "datum": "2026-12-05",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Owned lotus-anniversary-annual",
+              "notiz": "",
+              "kategorien": "ANNIVERSARY",
+              "ort": "",
+              "akzentFarbe": "",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "yearly",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": false,
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20261206",
+                "DTSTART;VALUE=DATE:20261205",
+                "RRULE:FREQ=YEARLY"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:b43c61a7ccce538015fe46a207e12dfad63da6c1d91838324b0fdcfbb6ecde81"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "weekly-exception",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "weekly-exception.ics",
+      "termine": [
+        {
+          "uid": "weekly-exception",
+          "datum": "2026-12-05",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Owned weekly-exception",
+          "notiz": "",
+          "kategorien": "",
+          "ort": "",
+          "akzentFarbe": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [
+            "2026-12-12"
+          ],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "none",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": true,
+          "icsSerienUid": "weekly-exception",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20261205",
+            "RRULE:FREQ=WEEKLY;COUNT=4",
+            "EXDATE;VALUE=DATE:20261212"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:0d251efbdf93a801549c988f471cf1027a5424906ce8d808a1db25cb40536442"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:weekly-exception\r\nDTSTAMP:20261127T182641Z\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Owned weekly-exception\r\nDTSTART;VALUE=DATE:20261205\r\nRRULE:FREQ=WEEKLY;COUNT=4\r\nEXDATE;VALUE=DATE:20261212\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "weekly-exception.ics",
+          "termine": [
+            {
+              "uid": "weekly-exception",
+              "datum": "2026-12-05",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Owned weekly-exception",
+              "notiz": "",
+              "kategorien": "",
+              "ort": "",
+              "akzentFarbe": "",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [
+                "2026-12-12"
+              ],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "none",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": true,
+              "icsSerienUid": "weekly-exception",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20261206",
+                "DTSTART;VALUE=DATE:20261205",
+                "RRULE:FREQ=WEEKLY;COUNT=4",
+                "EXDATE;VALUE=DATE:20261212"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:0d251efbdf93a801549c988f471cf1027a5424906ce8d808a1db25cb40536442"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "rdate-exact",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "rdate-exact.ics",
+      "termine": [
+        {
+          "uid": "rdate-exact",
+          "datum": "2026-12-05",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Owned rdate-exact",
+          "notiz": "",
+          "kategorien": "",
+          "ort": "",
+          "akzentFarbe": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [
+            "2026-12-10",
+            "2026-12-13"
+          ],
+          "icsZusatzTermine": [
+            {
+              "datum": "2026-12-10",
+              "zeit": ""
+            },
+            {
+              "datum": "2026-12-13",
+              "zeit": ""
+            }
+          ],
+          "wiederholung": {
+            "art": "custom",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": "",
+            "daten": [
+              "2026-12-10",
+              "2026-12-13"
+            ]
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20261205",
+            "RDATE;VALUE=DATE:20261210,20261213"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:6817c520e13992e6bb457c2c3ba3d735b20fa1f3a4c7c189ab4ebce6a313313a"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:rdate-exact\r\nDTSTAMP:20261127T182641Z\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Owned rdate-exact\r\nDTSTART;VALUE=DATE:20261205\r\nRDATE;VALUE=DATE:20261210,20261213\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "rdate-exact.ics",
+          "termine": [
+            {
+              "uid": "rdate-exact",
+              "datum": "2026-12-05",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Owned rdate-exact",
+              "notiz": "",
+              "kategorien": "",
+              "ort": "",
+              "akzentFarbe": "",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [
+                "2026-12-10",
+                "2026-12-13"
+              ],
+              "icsZusatzTermine": [
+                {
+                  "datum": "2026-12-10",
+                  "zeit": ""
+                },
+                {
+                  "datum": "2026-12-13",
+                  "zeit": ""
+                }
+              ],
+              "wiederholung": {
+                "art": "custom",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": "",
+                "daten": [
+                  "2026-12-10",
+                  "2026-12-13"
+                ]
+              },
+              "icsKomplex": false,
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20261206",
+                "DTSTART;VALUE=DATE:20261205",
+                "RDATE;VALUE=DATE:20261210,20261213"
+              ],
+              "geaendert": 1795804001000,
+              "icsQuelleId": "ics:6817c520e13992e6bb457c2c3ba3d735b20fa1f3a4c7c189ab4ebce6a313313a"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  }
+]

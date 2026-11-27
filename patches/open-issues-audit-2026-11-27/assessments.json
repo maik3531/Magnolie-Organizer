@@ -1708,6 +1708,12 @@
       ],
       "evidence_file": "desktop/media-latest-delta.json"
     },
+    "bounded_followup_7a490dd8": {
+      "source_commit": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+      "reviewed_delta_commit": "bc9b4db57d2ee6577ee9314a858f8be6fea4c757",
+      "evidence_file": "upstream-bc9b4db5-review.json",
+      "summary_de": "Private Linux-WLAN-Ersteinrichtung sowie reiner Video-Wiederanlauf sind jetzt implementiert; lokale bewusste Einrichtung/READ-Abschluss erforderlich. Produktgates, Windows-Erstempfang, Originalrückweg und installierte Abnahmen bleiben offen. Keine neuen Tests; alte Audit-/Testbasen unverändert."
+    },
     "domain": "media",
     "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/330",
     "executed_action": {
@@ -1948,6 +1954,12 @@
         "Windows/Linux-Parität, sicherer Android-Originalrückweg, Löschweitergabe und reale Paket-Paarabnahme bleiben eigenständige #330/#338-Restkriterien."
       ],
       "evidence_file": "desktop/media-latest-delta.json"
+    },
+    "bounded_followup_7a490dd8": {
+      "source_commit": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+      "reviewed_delta_commit": "bc9b4db57d2ee6577ee9314a858f8be6fea4c757",
+      "evidence_file": "upstream-bc9b4db5-review.json",
+      "summary_de": "Private Linux-WLAN-Ersteinrichtung sowie reiner Video-Wiederanlauf sind jetzt implementiert; lokale bewusste Einrichtung/READ-Abschluss erforderlich. Produktgates, Windows-Erstempfang, Originalrückweg und installierte Abnahmen bleiben offen. Keine neuen Tests; alte Audit-/Testbasen unverändert."
     },
     "domain": "media",
     "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/338",

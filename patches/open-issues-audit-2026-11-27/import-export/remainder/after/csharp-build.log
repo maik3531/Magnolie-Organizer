@@ -1,0 +1,9 @@
+/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/tests/CalendarColourRemainderTests.cs(69,140): error CS7036: There is no argument given that corresponds to the required parameter 'art' of 'ExchangeImportResult.ToPayload(string, string)' [/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/tests/CoreTests.csproj]
+
+Build FAILED.
+
+/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/tests/CalendarColourRemainderTests.cs(69,140): error CS7036: There is no argument given that corresponds to the required parameter 'art' of 'ExchangeImportResult.ToPayload(string, string)' [/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/tests/CoreTests.csproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:12.40

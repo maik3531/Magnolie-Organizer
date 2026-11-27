@@ -1,0 +1,6 @@
+[
+  {
+    "id": "independent-normal-birthday",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:independent-normal-birthday\r\nSUMMARY:Synthetic birthday\r\nDTSTART;VALUE=DATE:19850417\r\nRRULE:FREQ=YEARLY\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\nX-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1985\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+  }
+]

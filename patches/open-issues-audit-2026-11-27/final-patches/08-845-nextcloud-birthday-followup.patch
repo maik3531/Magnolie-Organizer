@@ -1,0 +1,247 @@
+From 32ff7d88af51c7e52275b3a0be348dae913c8598 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 20:47:45 +0100
+Subject: [PATCH] Refs #845: Retain edited February recurrence and guard
+ unsupported DAV scope
+
+---
+ magnolie-organizer-windows/ExchangeCodec.cs   | 22 ++++++--
+ .../tests/NextcloudIcsBirthdayTests.cs        | 31 +++++++++++
+ magnolie-organizer/bin/magnolie-organizer     | 31 +++++++++--
+ .../test_nextcloud_ics_birthdays.py           | 51 +++++++++++++++++++
+ 4 files changed, 128 insertions(+), 7 deletions(-)
+
+diff --git a/magnolie-organizer-windows/ExchangeCodec.cs b/magnolie-organizer-windows/ExchangeCodec.cs
+index 922c10b6321bebb6185d85fa7e1ab3f527c601aa..08c3b68559d74f1fd718d2b7bf4a2283debe2a60 100644
+--- a/magnolie-organizer-windows/ExchangeCodec.cs
++++ b/magnolie-organizer-windows/ExchangeCodec.cs
+@@ -223,7 +223,8 @@ internal static partial class ExchangeCodec
+         // A detached instance needs its VEVENT master, even when the master
+         // carries a provider birthday marker.
+         var detachedUids = new HashSet<string>(StringComparer.Ordinal);
+-        if (unfoldedText.Contains(NextcloudBirthdayType, StringComparison.OrdinalIgnoreCase) &&
++        if ((unfoldedText.Contains(NextcloudBirthdayType, StringComparison.OrdinalIgnoreCase) ||
++             unfoldedText.Contains("BYMONTHDAY=-1", StringComparison.OrdinalIgnoreCase)) &&
+             unfoldedText.Contains("RECURRENCE-ID", StringComparison.OrdinalIgnoreCase))
+         {
+             foreach (Match block in EventBlock().Matches(unfoldedText))
+@@ -979,7 +980,9 @@ internal static partial class ExchangeCodec
+                                        First(values, "X-MAGNOLIE-JAHRESTAG-TYP")?.Value ?? "");
+         var providerDate = allowProviderBirthday && (anniversaryType.Length == 0 || IsBirthdayType(anniversaryType))
+             ? NextcloudBirthdayDate(values) : "";
+-        var anniversary = start.AllDay && (providerDate.Length > 0 || IsUnboundedAnnualRule(recurrence) && anniversaryType.Length > 0) &&
++        var anniversary = start.AllDay && (providerDate.Length > 0 || anniversaryType.Length > 0 &&
++            (IsUnboundedAnnualRule(recurrence) || allowProviderBirthday && values.Count(value => value.Name == "RRULE") == 1 &&
++             IsLastFebruaryAnnualRule(recurrence, start.DateTime.ToString("yyyy-MM-dd")))) &&
+             !values.Any(value => value.Name is "EXDATE" or "RDATE" or "EXRULE" or "RECURRENCE-ID") &&
+             (end is null || end.Value.DateTime.Date == start.DateTime.Date);
+         if (anniversary)
+@@ -1146,6 +1149,13 @@ internal static partial class ExchangeCodec
+     }
+ 
+     internal static bool IsUnboundedAnnualRule(string rule) => Regex.IsMatch(rule, @"^FREQ=YEARLY(?:;INTERVAL=1)?$|^INTERVAL=1;FREQ=YEARLY$", RegexOptions.IgnoreCase);
++
++    private static bool IsLastFebruaryAnnualRule(string rule, string date)
++    {
++        var parts = rule.ToUpperInvariant().Split(';');
++        return date.EndsWith("02-29", StringComparison.Ordinal) && parts.Length == 3 &&
++            parts.Order(StringComparer.Ordinal).SequenceEqual(new[] { "BYMONTH=2", "BYMONTHDAY=-1", "FREQ=YEARLY" });
++    }
+     // Keep shipped instance IDs stable; timezone-qualified identity remains in RECURRENCE-ID.
+     private static string InstanceUid(string uid, IcsProperty recurrenceId) => uid + "#" + recurrenceId.Value;
+ 
+@@ -1610,8 +1620,11 @@ internal static partial class ExchangeCodec
+         if (anniversary)
+         {
+             // Annual core fields are generated; nested VALARM data remains opaque.
+-            var providerDate = NextcloudBirthdayDate(TopLevelProperties(raw.Select(ParseIcsProperty).OfType<IcsProperty>()));
++            var anniversaryProperties = TopLevelProperties(raw.Select(ParseIcsProperty).OfType<IcsProperty>());
++            var providerDate = NextcloudBirthdayDate(anniversaryProperties);
+             var keepProviderAnchor = providerDate.Length > 0 && providerDate == J(item, "datum") && IsBirthdayType(J(item, "typ"));
++            var rules = anniversaryProperties.Where(property => property.Name == "RRULE").ToArray();
++            var keepFebruaryRule = rules.Length == 1 && IsLastFebruaryAnnualRule(rules[0].Value, J(item, "datum"));
+             var depth = 0;
+             raw = raw.Where(line =>
+             {
+@@ -1619,7 +1632,8 @@ internal static partial class ExchangeCodec
+                 if (name == "BEGIN") depth++;
+                 var keep = depth > 0 || (name switch
+                 {
+-                    "DTSTART" or "DTEND" or "RRULE" => keepProviderAnchor,
++                    "DTSTART" or "DTEND" => keepProviderAnchor,
++                    "RRULE" => keepProviderAnchor || keepFebruaryRule,
+                     NextcloudBirthdayType or NextcloudBirthdayUnknownYear or NextcloudBirthdayYear => providerDate.Length == 0 || keepProviderAnchor,
+                     _ => name is not ("DUE" or "DURATION" or
+                         "X-MAGNOLIE-DATE" or "X-MAGNOLIE-TYPE-ID" or "X-MAGNOLIE-TYP" or "X-MAGNOLIE-JAHRESTAG-TYP")
+diff --git a/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs b/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs
+index 7630c5751762e6af5a8d16f976df1004eec9e798..22d0b4df5b5b703e8eb63d6b19fa5c7a43e84b54 100644
+--- a/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs
++++ b/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs
+@@ -62,6 +62,37 @@ internal static class NextcloudIcsBirthdayTests
+             "DTSTART;VALUE=DATE:20260418\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+         var withException = ExchangeCodec.ParseIcs(series);
+         TestAssert.That(withException.Jahrestage.Count == 0 && withException.Termine.Count == 2, "The master was detached from its override.");
++        EditedLeapBirthdays();
+         return Task.CompletedTask;
+     }
++
++    private static void EditedLeapBirthdays()
++    {
++        foreach (var (start, years, date, type) in new[] {
++            ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "--02-29", "wedding-anniversary"),
++            ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "1988-02-29", "wedding-anniversary"),
++            ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "1988-02-29", "birthday"),
++            ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "--02-29", "birthday") })
++        {
++            var text = $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:edited-leap\r\nSUMMARY:Synthetic birthday\r\nDTSTART;VALUE=DATE:{start}\r\n" +
++                $"RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\n{years}\r\nX-SYNTHETIC-PRESERVE:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
++            var items = ExchangeCodec.ParseIcs(text).Jahrestage;
++            items[0]!["datum"] = date; items[0]!["typ"] = type;
++            var exported = "";
++            for (var round = 0; round < 2; round++)
++            {
++                using var data = JsonDocument.Parse(items.ToJsonString());
++                exported = ExchangeCodec.WriteIcs("ics-jahrestage", data.RootElement).Text;
++                TestAssert.That(!exported.Contains("X-NEXTCLOUD-BC-") && exported.Contains("X-SYNTHETIC-PRESERVE:keep"), "Edited type/year retained stale marker or lost foreign metadata.");
++                TestAssert.That(exported.Split("\r\n").Where(line => line.StartsWith("RRULE:")).SequenceEqual(new[] { "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1" }), "Edited type/year changed last-February recurrence.");
++                var parsed = ExchangeCodec.ParseIcs(exported);
++                TestAssert.That(parsed.Termine.Count == 0 && parsed.Jahrestage.Count == 1 &&
++                    parsed.Jahrestage[0]!["datum"]!.ToString() == date && parsed.Jahrestage[0]!["typ"]!.ToString() == type, "Edited last-February anniversary lost date/type on reimport.");
++                items = parsed.Jahrestage;
++            }
++            const string exception = "BEGIN:VEVENT\r\nUID:edited-leap\r\nRECURRENCE-ID;VALUE=DATE:20270228\r\nDTSTART;VALUE=DATE:20270301\r\nSUMMARY:Moved\r\nEND:VEVENT\r\n";
++            var withException = ExchangeCodec.ParseIcs(exported.Replace("END:VCALENDAR", exception + "END:VCALENDAR"));
++            TestAssert.That(withException.Jahrestage.Count == 0 && withException.Termine.Count == 2, "An edited anniversary lost its detached override.");
++        }
++    }
+ }
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index 8d47a74a2c29b49bd98f7cee8f0d4ab9845ea422..cf05335334a4254f6d7f58e815eb6512cd0a9665 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -3131,6 +3131,12 @@ _NEXTCLOUD_GEBURTSTAG_FELDER = (
+ _NEXTCLOUD_GEBURTSTAG_SERIE = ("DTSTART", "DTEND", "RRULE")
+ 
+ 
++def _ics_letzter_februartag(regel, datum):
++    teile = regel.upper().split(";")
++    return (str(datum).endswith("02-29") and len(teile) == 3 and
++            set(teile) == {"FREQ=YEARLY", "BYMONTH=2", "BYMONTHDAY=-1"})
++
++
+ def _nextcloud_geburtstagsdatum(props):
+     markiert, unbekannt, jahr = _NEXTCLOUD_GEBURTSTAG_FELDER
+     if not any(name == markiert and wert.upper() == "BDAY" for name, _, wert in props):
+@@ -3383,7 +3389,8 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
+                      if rrule and not nicht_abbildbar else None))
+     # Der einfache interne Serienparser lehnt den 29. Februar fuer normale
+     # Termine bewusst ab. Jahrestage koennen dieses Datum jedoch darstellen.
+-    einfache_jahresregel = (rrule in ("FREQ=YEARLY", "FREQ=YEARLY;INTERVAL=1") and
++    einfache_jahresregel = ((rrule in ("FREQ=YEARLY", "FREQ=YEARLY;INTERVAL=1") or
++                            _ics_letzter_februartag(rrule, datum)) and
+                             not komplexe_serie and
+                             wiederholungsteile == ["RRULE"])
+     jahrestag_regel = (not rrule or einfache_jahresregel or
+@@ -4202,6 +4209,9 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
+             elif not tiefe:
+                 haupt_props.append(prop)
+         provider_datum = _nextcloud_geburtstagsdatum(haupt_props)
++        regeln = [wert for name, _params, wert in haupt_props if name == "RRULE"]
++        if eintrag is not None and len(regeln) == 1 and _ics_letzter_februartag(regeln[0], eintrag.get("datum")):
++            eigene.discard("RRULE")
+         if provider_datum:
+             if (provider_datum == _maschinen_datum(eintrag.get("datum"))
+                     and jahrestag_typ_id(eintrag.get("typ")) == "birthday"):
+@@ -30203,13 +30213,28 @@ class Fenster(_FENSTER_BASIS):
+             # ordinary yearly appointments. Until their full DAV merge/write/
+             # deletion lifecycle is supported, fail BEFORE any selected calendar
+             # can write, run duplicate cleanup or advance its success cursor.
++            def nextcloud_jahrestag(item):
++                props, tiefe = [], 0
++                for line in item.get("icsRoundtrip", []):
++                    prop = _prop_zerlegen(line)
++                    if not prop:
++                        continue
++                    if prop[0] == "BEGIN":
++                        tiefe += 1
++                    elif prop[0] == "END":
++                        tiefe = max(0, tiefe - 1)
++                    elif not tiefe:
++                        props.append(prop)
++                return bool(_nextcloud_geburtstagsdatum(props))
++
+             def pruefe_jahrestagsbereich(gelesen, text):
+                 # Existing contact-derived legacy birthday resources have a
+                 # separate supported duplicate-cleanup/recovery lifecycle.
+                 # Fence the explicit marker from this confirmed missing scope,
+                 # without disabling that existing lifecycle.
+-                if gelesen.get("jahrestage") and any(line.split(":", 1)[0].split(";", 1)[0].upper() ==
+-                        "X-MAGNOLIE-JAHRESTAG-TYP" for line in _entfalte_zeilen(text)):
++                if gelesen.get("jahrestage") and (any(line.split(":", 1)[0].split(";", 1)[0].upper() ==
++                        "X-MAGNOLIE-JAHRESTAG-TYP" for line in _entfalte_zeilen(text)) or
++                        any(nextcloud_jahrestag(item) for item in gelesen["jahrestage"])):
+                     raise NextcloudError("Marked CalDAV anniversaries are not supported.",
+                                          "calendar_anniversaries_unsupported")
+             kalender_vorab = {}
+diff --git a/magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py b/magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py
+index 219db9d36dc670480f0129e177a623dca72ee1dc..e0f31e5cc9672cb2e2207dd6299aef696a7c9538 100644
+--- a/magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py
++++ b/magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py
+@@ -58,3 +58,54 @@ def test_nextcloud_marker_cannot_detach_a_series_master_from_its_exception(codec
+         "END:VEVENT", "END:VCALENDAR", ""])
+     parsed = codec.ics_lesen(text)
+     assert not parsed["jahrestage"] and len(parsed["termine"]) == 2
++
++
++@pytest.mark.parametrize("start,years,date,kind", [
++    ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "--02-29", "wedding-anniversary"),
++    ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "1988-02-29", "wedding-anniversary"),
++    ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "1988-02-29", "birthday"),
++    ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "--02-29", "birthday"),
++])
++def test_type_or_year_edit_keeps_last_february_recurrence(codec, start, years, date, kind):
++    text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:edited-leap",
++        "SUMMARY:Synthetic birthday", f"DTSTART;VALUE=DATE:{start}",
++        "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1", "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY",
++        years, "X-SYNTHETIC-PRESERVE:keep", "END:VEVENT", "END:VCALENDAR", ""])
++    item = codec.ics_lesen(text)["jahrestage"][0]
++    item.update(datum=date, typ=kind)
++    for _round in range(2):
++        exported = codec.ics_schreiben_jahrestage([item])
++        assert "X-NEXTCLOUD-BC-" not in exported
++        assert "X-SYNTHETIC-PRESERVE:keep" in exported
++        assert [line for line in exported.splitlines() if line.startswith("RRULE:")] == [
++            "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1"]
++        parsed = codec.ics_lesen(exported)
++        assert not parsed["termine"] and len(parsed["jahrestage"]) == 1
++        item = parsed["jahrestage"][0]
++        assert (item["datum"], item["typ"]) == (date, kind)
++    exception = "\r\n".join(["BEGIN:VEVENT", "UID:edited-leap", "RECURRENCE-ID;VALUE=DATE:20270228",
++        "DTSTART;VALUE=DATE:20270301", "SUMMARY:Moved", "END:VEVENT", ""])
++    parsed = codec.ics_lesen(exported.replace("END:VCALENDAR", exception + "END:VCALENDAR"))
++    assert not parsed["jahrestage"] and len(parsed["termine"]) == 2
++
++
++@pytest.mark.parametrize("leap", [False, True])
++def test_nextcloud_birthday_scope_is_not_silently_omitted_by_linux_dav(monkeypatch, leap):
++    from test_nextcloud import m, nc, SyncDav, run_sync, empty_data
++    start = "19720229" if leap else "19700417"
++    rule = "FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1" if leap else "FREQ=YEARLY"
++    text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:provider-scope",
++        f"DTSTART;VALUE=DATE:{start}", f"RRULE:{rule}", "SUMMARY:Synthetic birthday",
++        "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1",
++        "BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER;VALUE=DURATION:PT9H", "END:VALARM",
++        "END:VEVENT", "END:VCALENDAR", ""])
++    assert len(m.ics_lesen(text)["jahrestage"]) == 1
++    dav = SyncDav({"calendar": [dict(href="https://cloud.example/calendar/birthday.ics",
++                                   etag='"fixture"', data=text)], "addressbook": []})
++    data = empty_data()
++    import copy
++    before = copy.deepcopy(data)
++    with pytest.raises(nc.NextcloudError) as failed:
++        run_sync(monkeypatch, dav, data)
++    assert failed.value.code == "calendar_anniversaries_unsupported"
++    assert not dav.puts and not dav.deletes and data == before
+-- 
+2.56.1
+

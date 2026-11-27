@@ -1,0 +1,13 @@
+AssertionError [ERR_ASSERTION]: {"content":[{"type":"text","text":"{\"code\":\"operation_failed\",\"message\":\"Operation failed\"}"}],"structuredContent":{"code":"operation_failed","message":"Operation failed"},"isError":true}
+
+true !== false
+
+    at success (/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer-windows/tests/mcp-import-review.js:60:42)
+    at /workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer-windows/tests/mcp-import-review.js:221:29 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: true,
+  expected: false,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

@@ -1,4 +1,4 @@
-From 2365a88411dfe4afa36fb8e03b1b6ecfb4862aee Mon Sep 17 00:00:00 2001
+From 2d35d34cf97c52ee4ec8d0bbcadf7a2a8bd1bcec Mon Sep 17 00:00:00 2001
 From: Codex <codex@openai.com>
 Date: Fri, 27 Nov 2026 19:05:13 +0100
 Subject: [PATCH] Refs #759 #330: retain media recovery requests until initial

@@ -1,0 +1,781 @@
+diff --git a/magnolie-organizer-windows/ExchangeCodec.cs b/magnolie-organizer-windows/ExchangeCodec.cs
+index 5807a21007ad065111a4c02946225bec5d051b42..912e6845d757d260a2d4ed0d991157771553d66c 100644
+--- a/magnolie-organizer-windows/ExchangeCodec.cs
++++ b/magnolie-organizer-windows/ExchangeCodec.cs
+@@ -213,6 +213,7 @@ internal static partial class ExchangeCodec
+         var componentDepth = 0;
+         var components = new List<string>();
+         var properties = new List<IcsProperty>();
++        var calendarStandardColor = ""; var calendarAppleColor = ""; var componentColor = "";
+         var timezoneBlocks = Regex.Matches(string.Join("\n", Unfold(text)), @"(?ims)^BEGIN:VTIMEZONE\s*\n.*?^END:VTIMEZONE\s*$")
+             .Select(match => match.Value.TrimEnd().Split('\n')).ToArray();
+         var zones = CalendarRecurrence.CalendarZones(timezoneBlocks);
+@@ -224,12 +225,15 @@ internal static partial class ExchangeCodec
+                 var value = property.Value.Trim().ToUpperInvariant();
+                 var parent = components.Count > 0 ? components[^1] : null;
+                 components.Add(value);
++                if (value == "VCALENDAR" && parent is null) calendarStandardColor = calendarAppleColor = "";
+                 if (component is null && (value is "VEVENT" or "VTODO") &&
+                     (parent is null or "VCALENDAR"))
+                 {
+                     component = value;
+                     componentDepth = components.Count;
+                     properties.Clear();
++                    componentColor = parent == "VCALENDAR" ?
++                        (calendarStandardColor.Length > 0 ? calendarStandardColor : calendarAppleColor) : "";
+                 }
+                 else if (component is not null) properties.Add(property);
+                 continue;
+@@ -248,11 +252,17 @@ internal static partial class ExchangeCodec
+                         if (component == "VEVENT")
+                         {
+                             var result = ParseEvent(properties, timeZone, zones, birthdayRepairs);
++                            if (TextField(result.Value, "akzentFarbe").Length == 0) result.Value["akzentFarbe"] = componentColor;
+                             if (result.Anniversary) anniversaries.Add(result.Value);
+                             else appointments.Add(result.Value);
+                             if (result.Complex && !CalendarRecurrence.SupportsRules(properties.Select(value => value.Raw))) complex++;
+                         }
+-                        else tasks.Add(ParseTask(properties, timeZone, zones));
++                        else
++                        {
++                            var task = ParseTask(properties, timeZone, zones);
++                            if (TextField(task, "akzentFarbe").Length == 0) task["akzentFarbe"] = componentColor;
++                            tasks.Add(task);
++                        }
+                     }
+                     catch (TimeZoneNotFoundException)
+                     {
+@@ -267,6 +277,7 @@ internal static partial class ExchangeCodec
+                         var id = First(top, "RECURRENCE-ID"); var uid = IcsText(First(top, "UID")?.Value ?? "");
+                         var deferred = new JsonObject { ["uid"] = id is null ? uid : InstanceUid(uid, id), ["icsSerienUid"] = id is null ? "" : uid,
+                             ["titel"] = IcsText(First(top, "SUMMARY")?.Value ?? ""), ["icsKomplex"] = true, ["icsReadOnly"] = true,
++                            ["akzentFarbe"] = ImportedAccent(top) is { Length: > 0 } accent ? accent : componentColor,
+                             ["icsRoundtrip"] = IcsRoundtrip(properties, true), [component == "VEVENT" ? "datum" : "startDatum"] = wall.Wall.ToString("yyyy-MM-dd"),
+                             [component == "VEVENT" ? "zeit" : "startZeit"] = wall.AllDay ? "" : wall.Wall.ToString("HH:mm") };
+                         if (component == "VEVENT") appointments.Add(deferred); else tasks.Add(deferred);
+@@ -286,11 +297,19 @@ internal static partial class ExchangeCodec
+                 continue;
+             }
+             if (component is not null && property is not null) properties.Add(property);
++            else if (components.Count == 1 && components[0] == "VCALENDAR")
++            {
++                if (property?.Name == "COLOR") calendarStandardColor = StandardColor(property.Value);
++                else if (property?.Name == "X-APPLE-CALENDAR-COLOR") calendarAppleColor = AccentColor(property.Value);
++            }
+         }
+         if (component is not null || components.Count > 0)
+             throw new InvalidDataException("Die iCalendar-Datei ist unvollständig.");
+         foreach (var item in appointments.Concat(anniversaries).Concat(tasks).OfType<JsonObject>())
++        {
++            item["icsAkzentFarbeBasis"] = TextField(item, "akzentFarbe");
+             if (sourceId.Length > 0) item["icsQuelleId"] = sourceId;
++        }
+         foreach (var task in tasks.OfType<JsonObject>())
+         {
+             if (task.Remove("_icsTaskSource", out var source)) task["icsQuelleId"] = source;
+@@ -951,6 +970,7 @@ internal static partial class ExchangeCodec
+             }
+             return (new JsonObject { ["uid"] = IcsText(First(values, "UID")?.Value ?? ""), ["name"] = title,
+                 ["datum"] = date, ["typ"] = anniversaryType,
++                ["akzentFarbe"] = ImportedAccent(values),
+                 ["notiz"] = IcsText(First(values, "DESCRIPTION")?.Value ?? ""),
+                 ["icsRoundtrip"] = IcsRoundtrip(roundtripValues, complex), ["geaendert"] = IcsModified(values) }, true, complex);
+         }
+@@ -980,7 +1000,7 @@ internal static partial class ExchangeCodec
+             ["endZeit"] = end is null || end.Value.AllDay ? "" : end.Value.DateTime.ToString("HH:mm"), ["titel"] = title,
+             ["notiz"] = IcsText(First(values, "DESCRIPTION")?.Value ?? ""), ["kategorien"] = category,
+             ["ort"] = IcsText(First(values, "LOCATION")?.Value ?? "").Trim(),
+-            ["akzentFarbe"] = AccentColor(First(values, "X-MAGNOLIE-ACCENT-COLOR")?.Value),
++            ["akzentFarbe"] = ImportedAccent(values),
+             ["vertraulich"] = new[] { "PRIVATE", "CONFIDENTIAL" }.Contains((First(values, "CLASS")?.Value ?? "").ToUpperInvariant()),
+             ["vorlaeufig"] = (First(values, "STATUS")?.Value ?? "").Equals("TENTATIVE", StringComparison.OrdinalIgnoreCase),
+             ["kostenstelle"] = IcsText(First(values, "X-MAGNOLIE-KOSTENSTELLE")?.Value ?? ""), ["kunde"] = IcsText(First(values, "X-MAGNOLIE-KUNDE")?.Value ?? ""),
+@@ -1048,7 +1068,7 @@ internal static partial class ExchangeCodec
+             ["erledigt"] = (First(values, "STATUS")?.Value ?? "").Equals("COMPLETED", StringComparison.OrdinalIgnoreCase) || First(values, "PERCENT-COMPLETE")?.Value == "100",
+             ["notiz"] = IcsText(First(values, "DESCRIPTION")?.Value ?? ""),
+             ["kategorien"] = IcsText(First(values, "CATEGORIES")?.Value ?? ""),
+-            ["akzentFarbe"] = AccentColor(First(values, "X-MAGNOLIE-ACCENT-COLOR")?.Value),
++            ["akzentFarbe"] = ImportedAccent(values),
+             ["erinnern"] = First(values, "X-MAGNOLIE-ERINNERUNG-AM-TAG")?.Value == "1",
+             ["individuelleErinnerungTage"] = int.TryParse(First(values, "X-MAGNOLIE-ERINNERUNG-TAGE")?.Value, out var reminderDays) ? Math.Clamp(reminderDays, 0, 7) : 0,
+             ["icsRoundtrip"] = IcsRoundtrip(original.Where(property => property.Name != "X-MAGNOLIE-TASK-IDENTITY"), true), ["geaendert"] = IcsModified(values)
+@@ -1196,6 +1216,7 @@ internal static partial class ExchangeCodec
+             $"X-MAGNOLIE-JAHRESTAG-TYP:{V(J(item, "typ"))}", "RRULE:FREQ=YEARLY" };
+         if (fullDate is null) lines.Add($"X-MAGNOLIE-DATE:{value}");
+         if (J(item, "notiz") is { Length: > 0 } note) lines.Add("DESCRIPTION:" + V(note));
++        AppendAccent(lines, item);
+         ApplyIcsRoundtrip(lines, item, anniversary: true);
+         lines.Add("END:VEVENT");
+         return lines;
+@@ -1303,7 +1324,7 @@ internal static partial class ExchangeCodec
+         if (JBool(item, "erledigt")) lines.AddRange(new[] { "STATUS:COMPLETED", "PERCENT-COMPLETE:100" });
+         if (J(item, "notiz") is { Length: > 0 } note) lines.Add($"DESCRIPTION:{V(note)}");
+         if (J(item, "kategorien") is { Length: > 0 } category) lines.Add($"CATEGORIES:{V(category)}");
+-        if (AccentColor(J(item, "akzentFarbe")) is { Length: > 0 } accent) lines.Add($"X-MAGNOLIE-ACCENT-COLOR:{accent}");
++        AppendAccent(lines, item);
+         if (J(item, "_icsExportParent") is { Length: > 0 } parent) lines.Add($"RELATED-TO;RELTYPE=PARENT:{V(parent)}");
+         lines.Add($"X-MAGNOLIE-REIHENFOLGE:{Math.Max(0, JInt(item, "reihenfolge"))}");
+         if (JBool(item, "erinnern")) lines.Add("X-MAGNOLIE-ERINNERUNG-AM-TAG:1");
+@@ -1320,7 +1341,7 @@ internal static partial class ExchangeCodec
+         if (J(item, "notiz") is { Length: > 0 } note) lines.Add($"DESCRIPTION:{V(note)}");
+         if (J(item, "kategorien") is { Length: > 0 } category) lines.Add($"CATEGORIES:{V(category)}");
+         if (J(item, "ort") is { Length: > 0 } location) lines.Add($"LOCATION:{V(location)}");
+-        if (AccentColor(J(item, "akzentFarbe")) is { Length: > 0 } accent) lines.Add($"X-MAGNOLIE-ACCENT-COLOR:{accent}");
++        AppendAccent(lines, item);
+         if (JBool(item, "vertraulich")) lines.Add("CLASS:PRIVATE");
+         var status = J(item, "icsStatus").ToUpperInvariant();
+         if (status == "CANCELLED") lines.Add("STATUS:CANCELLED");
+@@ -1330,6 +1351,65 @@ internal static partial class ExchangeCodec
+ 
+     private static string AccentColor(string? value) => value is not null && Regex.IsMatch(value, "^#[0-9a-fA-F]{6}$") ? value.ToLowerInvariant() : "";
+ 
++    // RFC 7986 5.9 -> CSS Color 3 4.3. RGB values are exact, not nearest colours.
++    private static readonly Dictionary<string, string> StandardColors = """
++        aliceblue:f0f8ff antiquewhite:faebd7 aqua:00ffff aquamarine:7fffd4 azure:f0ffff beige:f5f5dc
++        bisque:ffe4c4 black:000000 blanchedalmond:ffebcd blue:0000ff blueviolet:8a2be2 brown:a52a2a
++        burlywood:deb887 cadetblue:5f9ea0 chartreuse:7fff00 chocolate:d2691e coral:ff7f50
++        cornflowerblue:6495ed cornsilk:fff8dc crimson:dc143c cyan:00ffff darkblue:00008b darkcyan:008b8b
++        darkgoldenrod:b8860b darkgray:a9a9a9 darkgreen:006400 darkgrey:a9a9a9 darkkhaki:bdb76b
++        darkmagenta:8b008b darkolivegreen:556b2f darkorange:ff8c00 darkorchid:9932cc darkred:8b0000
++        darksalmon:e9967a darkseagreen:8fbc8f darkslateblue:483d8b darkslategray:2f4f4f darkslategrey:2f4f4f
++        darkturquoise:00ced1 darkviolet:9400d3 deeppink:ff1493 deepskyblue:00bfff dimgray:696969
++        dimgrey:696969 dodgerblue:1e90ff firebrick:b22222 floralwhite:fffaf0 forestgreen:228b22
++        fuchsia:ff00ff gainsboro:dcdcdc ghostwhite:f8f8ff gold:ffd700 goldenrod:daa520 gray:808080
++        green:008000 greenyellow:adff2f grey:808080 honeydew:f0fff0 hotpink:ff69b4 indianred:cd5c5c
++        indigo:4b0082 ivory:fffff0 khaki:f0e68c lavender:e6e6fa lavenderblush:fff0f5 lawngreen:7cfc00
++        lemonchiffon:fffacd lightblue:add8e6 lightcoral:f08080 lightcyan:e0ffff lightgoldenrodyellow:fafad2
++        lightgray:d3d3d3 lightgreen:90ee90 lightgrey:d3d3d3 lightpink:ffb6c1 lightsalmon:ffa07a
++        lightseagreen:20b2aa lightskyblue:87cefa lightslategray:778899 lightslategrey:778899
++        lightsteelblue:b0c4de lightyellow:ffffe0 lime:00ff00 limegreen:32cd32 linen:faf0e6 magenta:ff00ff
++        maroon:800000 mediumaquamarine:66cdaa mediumblue:0000cd mediumorchid:ba55d3 mediumpurple:9370db
++        mediumseagreen:3cb371 mediumslateblue:7b68ee mediumspringgreen:00fa9a mediumturquoise:48d1cc
++        mediumvioletred:c71585 midnightblue:191970 mintcream:f5fffa mistyrose:ffe4e1 moccasin:ffe4b5
++        navajowhite:ffdead navy:000080 oldlace:fdf5e6 olive:808000 olivedrab:6b8e23 orange:ffa500
++        orangered:ff4500 orchid:da70d6 palegoldenrod:eee8aa palegreen:98fb98 paleturquoise:afeeee
++        palevioletred:db7093 papayawhip:ffefd5 peachpuff:ffdab9 peru:cd853f pink:ffc0cb plum:dda0dd
++        powderblue:b0e0e6 purple:800080 red:ff0000 rosybrown:bc8f8f royalblue:4169e1 saddlebrown:8b4513
++        salmon:fa8072 sandybrown:f4a460 seagreen:2e8b57 seashell:fff5ee sienna:a0522d silver:c0c0c0
++        skyblue:87ceeb slateblue:6a5acd slategray:708090 slategrey:708090 snow:fffafa springgreen:00ff7f
++        steelblue:4682b4 tan:d2b48c teal:008080 thistle:d8bfd8 tomato:ff6347 turquoise:40e0d0 violet:ee82ee
++        wheat:f5deb3 white:ffffff whitesmoke:f5f5f5 yellow:ffff00 yellowgreen:9acd32
++        """.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
++        .Select(token => token.Split(':')).ToDictionary(parts => parts[0], parts => "#" + parts[1], StringComparer.OrdinalIgnoreCase);
++    private static readonly Dictionary<string, string> StandardColorNames = StandardColors
++        .GroupBy(pair => pair.Value).ToDictionary(group => group.Key, group => group.First().Key);
++    private static string StandardColor(string? value) => value is not null && StandardColors.TryGetValue(value, out var color) ? color : "";
++    private static string ImportedAccent(IEnumerable<IcsProperty> properties)
++    {
++        var values = TopLevelProperties(properties);
++        var own = AccentColor(First(values, "X-MAGNOLIE-ACCENT-COLOR")?.Value);
++        return own.Length > 0 ? own : StandardColor(First(values, "COLOR")?.Value);
++    }
++    private static void AppendAccent(List<string> lines, JsonElement item)
++    {
++        var accent = AccentColor(J(item, "akzentFarbe"));
++        if (accent.Length == 0) return;
++        lines.Add("X-MAGNOLIE-ACCENT-COLOR:" + accent);
++        if (item.TryGetProperty("icsRoundtrip", out var raw) && raw.ValueKind == JsonValueKind.Array &&
++            TopLevelProperties(raw.EnumerateArray().Select(value => ParseIcsProperty(value.ToString())).OfType<IcsProperty>())
++                .Any(property => property.Name == "COLOR")) return;
++        if (StandardColorNames.TryGetValue(accent, out var name)) lines.Add("COLOR:" + name);
++    }
++
++    private static bool AccentWasEdited(JsonElement item, IEnumerable<IcsProperty> properties)
++    {
++        var accent = AccentColor(J(item, "akzentFarbe"));
++        if (item.TryGetProperty("icsAkzentFarbeBasis", out _)) return accent != AccentColor(J(item, "icsAkzentFarbeBasis"));
++        // Legacy books have an empty accent and an opaque, not cleared, COLOR.
++        return accent.Length > 0 && accent != ImportedAccent(properties);
++    }
++
+     private static IEnumerable<string> Unfold(string text)
+     {
+         var result = new List<string>();
+@@ -1558,7 +1638,8 @@ internal static partial class ExchangeCodec
+         var replace = topLevel.Select(property => property.Name).Where(name => name is "DTSTART" or "DTEND" or "DUE" or "DURATION" or "RRULE" or "EXRULE" or "RECURRENCE-ID" or "STATUS").ToHashSet();
+         lines.RemoveAll(line => replace.Contains(PropertyName(line)));
+         var protectedColours = topLevel.Where(property => property.Name == "X-MAGNOLIE-ACCENT-COLOR" && property.Parameters.Length > 0).ToArray();
+-        if (protectedColours.Any(property => AccentColor(property.Value) != AccentColor(J(item, "akzentFarbe"))))
++        if ((!anniversary || item.TryGetProperty("akzentFarbe", out _)) &&
++            protectedColours.Any(property => AccentColor(property.Value) != AccentColor(J(item, "akzentFarbe"))))
+             throw new ProtectedCalendarPropertyException();
+         if (protectedColours.Length > 0) lines.RemoveAll(line => PropertyName(line) == "X-MAGNOLIE-ACCENT-COLOR");
+         var rawDepth = 0;
+@@ -1566,7 +1647,16 @@ internal static partial class ExchangeCodec
+         {
+             var name = PropertyName(line);
+             if (name == "BEGIN") rawDepth++;
++            var property = ParseIcsProperty(line)!;
++            if (rawDepth == 0 && name == "COLOR" && AccentWasEdited(item, topLevel) &&
++                StandardColor(property.Value) is { Length: > 0 } original && original != AccentColor(J(item, "akzentFarbe")))
++            {
++                if (property.Parameters.Length > 0) throw new ProtectedCalendarPropertyException();
++                if (StandardColorNames.TryGetValue(AccentColor(J(item, "akzentFarbe")), out var colorName)) lines.Add("COLOR:" + colorName);
++                continue;
++            }
+             if (rawDepth > 0 || name == "X-MAGNOLIE-ACCENT-COLOR" && protectedColours.Length > 0 ||
++                anniversary && name == "X-MAGNOLIE-ACCENT-COLOR" && !item.TryGetProperty("akzentFarbe", out _) ||
+                 name is not ("SUMMARY" or "DESCRIPTION" or "CATEGORIES" or "PRIORITY" or "X-MAGNOLIE-ACCENT-COLOR")) lines.Add(line);
+             if (name == "END") rawDepth = Math.Max(0, rawDepth - 1);
+         }
+diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
+index 8264d96f76f6d8f051a2ab2a6be1c62ed1f44018..d8c1e24b34b3288852177b336865bdd807f59b54 100644
+--- a/magnolie-organizer-windows/app/web/anwendung.js
++++ b/magnolie-organizer-windows/app/web/anwendung.js
+@@ -8213,6 +8213,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
+     element.dataset.akzentFarbe = farbe;
+     return element;
+   }
++  function jahrestagFarbLeiste(element, liste, text, trennzeichen = ", ") {
++    element.append(document.createTextNode("✱ "));
++    liste.forEach((eintrag, index) => {
++      if (index) element.append(document.createTextNode(trennzeichen));
++      element.append(setzeKalenderAkzent(el("span", null, text(eintrag)), eintrag));
++    });
++    return element;
++  }
+   function setzeKategorieFarbe(name, farbe, vorherigerName = "") {
+     const sauber = saubereKategorieFarben([{ name, farbe }]);
+     if (!sauber.length) return false;
+@@ -8432,6 +8440,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
+         startZeit: Z(a.startZeit), faelligZeit: Z(a.faelligZeit),
+         erledigt: !!a.erledigt, notiz: S(a.notiz), kategorien: a.kategorien === undefined ? kalenderRohFeld(a, "CATEGORIES") : S(a.kategorien),
+         akzentFarbe: kalenderAkzentFarbe(a.akzentFarbe === undefined ? kalenderRohFeld(a, "X-MAGNOLIE-ACCENT-COLOR") : a.akzentFarbe),
++        ...(typeof a.icsAkzentFarbeBasis === "string" ? { icsAkzentFarbeBasis: kalenderAkzentFarbe(a.icsAkzentFarbeBasis) } : {}),
+         personen: Array.isArray(a.personen) ? a.personen.map(S).filter(Boolean) : [],
+         erinnern: !!a.erinnern, angelegt: taskAngelegt,
+         vorlaufTage: Math.min(365, Math.max(0, N(a.vorlaufTage))),
+@@ -13048,7 +13057,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
+           wochentagText: wochentagName(datum.getDay(), true).replace(/\.$/, ""),
+           feiertage: wahl.feiertage ? feiertage : [],
+           ferien: wahl.ferien ? ferien : [], urlaube: wahl.urlaub ? urlaube : [],
+-          akzente: planerAkzentEintraege(iso, serienZeitraum, aufgaben, hatFarbTermine) });
++          akzente: planerAkzentEintraege(iso, serienZeitraum, aufgaben, hatFarbTermine)
++            .concat(jahrestageAm(iso, true, "print").filter(j => kalenderEintragAkzent(j))
++              .map(j => ({ art: "jahrestag", text: "✱ " + j.name, farbe: kalenderEintragAkzent(j), akzent: true }))) });
+       }
+       modell.zeilen.push(zeile);
+     }
+@@ -13114,7 +13125,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
+           eintraege.push({ art: "muell", text: termin.name, farbe: termin.farbe });
+         }
+         if (wahl.jahrestage) for (const jt of jahrestage) {
+-          eintraege.push({ art: "jahrestag", text: "✱ " + jt.name, farbe: "#a66d8a" });
++          eintraege.push({ art: "jahrestag", text: "✱ " + jt.name,
++            farbe: kalenderEintragAkzent(jt) || "#a66d8a", akzent: !!kalenderEintragAkzent(jt) });
+         }
+         if (wahl.termine) for (const termin of termine) {
+           eintraege.push({ art: "termin", text: (termin.zeit
+@@ -16710,9 +16722,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+ 
+       const jts = jahrestageAm(iso);
+       if (jts.length) {
+-        const stern = el("span", "jt-stern", "✱");
+-        stern.title = jts.map((j) => j.name).join(", ");
+-        tagKopf.append(stern);
++        const ohneFarbe = jts.filter(j => !kalenderEintragAkzent(j));
++        if (ohneFarbe.length) {
++          const stern = el("span", "jt-stern", "✱");
++          stern.title = ohneFarbe.map(j => j.name).join(", "); tagKopf.append(stern);
++        }
++        for (const j of jts.filter(j => kalenderEintragAkzent(j))) {
++          const stern = setzeKalenderAkzent(el("span", "jt-stern", "✱"), j);
++          stern.title = j.name; tagKopf.append(stern);
++        }
+       }
+       zelle.prepend(tagKopf);
+ 
+@@ -17103,8 +17121,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+           ft.name + (ft.art === "school-holiday" ? "" : _(" (public holiday)"))));
+       }
+       for (const jt of eintrag.jahrestage) {
+-        block.append(el("div", "ue-jahrestag", "✱ " + jt.name + " – " +
+-          jahrestagTypText(jt.typ)));
++        block.append(setzeKalenderAkzent(el("div", "ue-jahrestag", "✱ " + jt.name + " – " +
++          jahrestagTypText(jt.typ)), jt));
+       }
+ 
+       for (const termin of eintrag.termine) {
+@@ -18577,7 +18595,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     const jt = jahrestageAm(iso);
+     if (jt.length) {
+       const kasten = el("div", "jt-kasten");
+-      kasten.textContent = "✱ " + jt.map((x) => {
++      jahrestagFarbLeiste(kasten, jt, (x) => {
+         const gj = hatBekanntesJahr(x.datum) ? Number(x.datum.slice(0, 4)) : null;
+         const jahre = gj === null ? null : Number(iso.slice(0, 4)) - gj;
+         const zusatz = (jahre !== null && jahre > 0)
+@@ -18585,7 +18603,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         const typ = jahrestagsArt(x.typ) === "death" && zusatz
+           ? "" : " – " + jahrestagTypText(x.typ);
+         return x.name + typ + zusatz;
+-      }).join("  ·  ");
++      }, "  ·  ");
+       spalte.append(kasten);
+     }
+ 
+@@ -18806,7 +18824,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+ 
+     const jts = jahrestageAm(iso);
+     if (jts.length) {
+-      kasten.append(el("div", "wo-jt", "✱ " + jts.map((x) => x.name).join(", ")));
++      kasten.append(jahrestagFarbLeiste(el("div", "wo-jt"), jts, x => x.name));
+     }
+ 
+     for (const task of (farbAufgaben || kalenderFarbAufgaben(iso, iso)).get(iso) || []) {
+@@ -23636,7 +23654,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         haupt.type = "button";
+         fokusMarke(haupt, "jahrestag:" + jt.id);
+         if (jt.id === z.bearbeiteId) haupt.setAttribute("aria-current", "true");
+-        haupt.append(el("div", "obm", jt.name));
++        haupt.append(setzeKalenderAkzent(el("div", "obm", jt.name), jt));
+         const zusatz = altersText(jt, n.anzahl);
+         haupt.append(el("div", "unt", jahrestagDatumText(jt) +
+           (zusatz ? " · " + zusatz : "")));
+@@ -25723,12 +25741,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         for (let t = 1; t <= tage; t++) {
+           const iso = z.jahr + "-" + pad2(m + 1) + "-" + pad2(t);
+           const zelle = el("span", "mm-tag", String(t));
+-          const farbEintraege = (hatFarbTermine ? termineAm(iso, false, farbZeitraum).filter(termin => !!kalenderEintragAkzent(termin)) : []).concat(farbAufgaben.get(iso) || []);
++          const farbEintraege = (hatFarbTermine ? termineAm(iso, false, farbZeitraum).filter(termin => !!kalenderEintragAkzent(termin)) : []).concat(farbAufgaben.get(iso) || [],
++            jahrestageAm(iso).filter(j => kalenderEintragAkzent(j)));
+           if (farbEintraege.length) {
+             const streifen = el("span", "mm-kategoriefarben");
+             for (const item of farbEintraege) {
+               const balken = setzeKalenderAkzent(el("span", "mm-kategoriebalken"), item);
+-              balken.title = item.titel; streifen.append(balken);
++              balken.title = item.titel || item.name; streifen.append(balken);
+             }
+             zelle.append(streifen);
+           }
+@@ -25760,7 +25779,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+               urlaube.map((urlaub) => urlaubsSymbol(urlaub.symbol)).join("")));
+           }
+           zelle.title = fmtPunkt(iso) +
+-            (farbEintraege.length ? " – " + farbEintraege.map(item => item.titel).join(", ") : "") +
++            (farbEintraege.length ? " – " + farbEintraege.map(item => item.titel || item.name).join(", ") : "") +
+             (fts.length ? " – " + fts.map((f) => f.name).join(", ") : "") +
+             (marken.schicht ? " – " + schichtZeitText(marken.schicht, iso) : "") +
+             (marken.zyklus.length ? " – " + marken.zyklus.map((m) => m.name).join(", ") : "") +
+diff --git a/magnolie-organizer-windows/tests/Program.cs b/magnolie-organizer-windows/tests/Program.cs
+index 872e3b1871cdfb879a50f8a14fcc4798c5e97792..cc8992c1b3888746223c635448c8512109b4bedf 100644
+--- a/magnolie-organizer-windows/tests/Program.cs
++++ b/magnolie-organizer-windows/tests/Program.cs
+@@ -318,6 +318,7 @@ runner.Add("Notes actor explicit historical target choice draft / no action righ
+ runner.Add("Notes actor historical result membership / separate receipt union", PersonalActorHistoricalResultScopeTests.RunAsync);
+ runner.Add("MCP KDE / existing integration / no implicit listener", McpKdeLifecycleTests.RunAsync);
+ runner.Add("Category colors / native categories and accent interchange", CategoryColorTests.RunAsync);
++runner.Add("External calendar colors / RFC7986 / source defaults / durable edits", ExternalCalendarColorTests.RunAsync);
+ runner.Add("Contact group exclusions / identity / reminder privacy", ContactGroupExclusionTests.RunAsync);
+ runner.Add("Note send / selected PDF / explicit adapter handoff", NoteSendTests.RunAsync);
+ runner.Add("Wiederherstellungsjournal / Manifest / Tamper / Retention / Scheduler", RecoveryJournalTests.RunAsync);
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index 46836c5d748bfb878e3bd3c9f5760ddb8981da92..5c7295f9d1c437800efbf7dc7f0936e256601cde 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -423,7 +423,7 @@ ICS_BEGLEITFELDER = ("icsRoundtrip", "icsKomplex", "icsSerienUid",
+                        "icsReadOnly", "icsReadOnlyGrund", "icsQuelleName",
+                        "icsQuelleId", "icsSequence", "icsAenderungszeitFehlt",
+                        "icsEndeFehlt", "icsNullDauer", "icsTimezones",
+-                       "icsAnzeigeZeitzone", "icsOriginalDatum", "icsOriginalZeit",
++                       "icsAnzeigeZeitzone", "icsAkzentFarbeBasis", "icsOriginalDatum", "icsOriginalZeit",
+                        "icsAusnahmeTermine", "icsRangeOverrides", "icsStatus",
+                        "ort", "organisator", "teilnehmer", "alarme", "kalenderAnhaenge")
+ KONTAKT_FELDER = ["nachname", "vorname", "firma", "strasse", "plz", "ort",
+@@ -3127,7 +3127,7 @@ def _erinnerung_vorlauf(wert):
+ 
+ 
+ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
+-                    jahrestage_als_termine=False, zone_resolver=None):
++                    jahrestage_als_termine=False, zone_resolver=None, kalender_farbe=""):
+     roundtrip_props = props
+     haupt_props, tiefe = [], 0
+     for prop in props:
+@@ -3150,6 +3150,8 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
+             return 0
+         return zahl if 1 <= zahl <= 7 else 0
+ 
++    akzent_farbe = (_kalender_akzentfarbe(wert("X-MAGNOLIE-ACCENT-COLOR")) or
++                   _ics_standard_farbe(wert("COLOR")) or kalender_farbe)
+     uid_wert = wert("UID")
+     task_identity = None
+     if art == "VTODO" and wert("X-MAGNOLIE-TASK-IDENTITY"):
+@@ -3230,7 +3232,8 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
+             "erledigt": (wert("STATUS").strip().upper() == "COMPLETED" or
+                           wert("PERCENT-COMPLETE").strip() == "100"),
+             "notiz": wert("DESCRIPTION"), "kategorien": wert("CATEGORIES"),
+-            "akzentFarbe": _kalender_akzentfarbe(wert("X-MAGNOLIE-ACCENT-COLOR")),
++            "akzentFarbe": akzent_farbe,
++            "icsAkzentFarbeBasis": akzent_farbe,
+             "erinnern": wert("X-MAGNOLIE-ERINNERUNG-AM-TAG") == "1",
+             "individuelleErinnerungTage": ganzzahl("X-MAGNOLIE-ERINNERUNG-TAGE"),
+             "uid": uid_wert, "icsSerienUid": serien_uid if recurrence_id else "", "elternUid": eltern,
+@@ -3353,6 +3356,8 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
+             datum = jahrlose_erweiterung
+         ergebnis["jahrestage"].append({
+             "name": titel, "datum": datum, "typ": typ_kategorie,
++            "akzentFarbe": akzent_farbe,
++            "icsAkzentFarbeBasis": akzent_farbe,
+             "uid": uid_wert, "icsSerienUid": serien_uid,
+             "notiz": wert("DESCRIPTION"),
+             "icsRoundtrip": _ics_roundtrip(roundtrip_props),
+@@ -3368,7 +3373,8 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
+         "zeit": zeit, "endZeit": end_zeit,
+         "titel": titel, "notiz": wert("DESCRIPTION"),
+         "kategorien": kategorien,
+-        "akzentFarbe": _kalender_akzentfarbe(wert("X-MAGNOLIE-ACCENT-COLOR")),
++        "akzentFarbe": akzent_farbe,
++        "icsAkzentFarbeBasis": akzent_farbe,
+         "vertraulich": wert("CLASS").strip().upper() in ("CONFIDENTIAL", "PRIVATE"),
+         "vorlaeufig": wert("STATUS").strip().upper() == "TENTATIVE",
+         "kostenstelle": wert("X-MAGNOLIE-KOSTENSTELLE"),
+@@ -3592,6 +3598,7 @@ def ics_lesen(text, quellenname="", quellen_id="", jahrestage_als_termine=False)
+     art = None
+     stapel = []
+     props = []
++    kalender_standard_farbe = kalender_apple_farbe = komponenten_farbe = ""
+     for zeile in _entfalte_zeilen(text):
+         zerlegt = _prop_zerlegen(zeile)
+         if not zerlegt:
+@@ -3601,10 +3608,14 @@ def ics_lesen(text, quellenname="", quellen_id="", jahrestage_als_termine=False)
+             w = wert.strip().upper()
+             elternart = stapel[-1] if stapel else None
+             stapel.append(w)
++            if w == "VCALENDAR" and elternart is None:
++                kalender_standard_farbe = kalender_apple_farbe = ""
+             if art is None and w in ("VEVENT", "VTODO") and elternart in (
+                     None, "VCALENDAR"):
+                 art = w
+                 props = []
++                komponenten_farbe = (kalender_standard_farbe or kalender_apple_farbe
++                                     if elternart == "VCALENDAR" else "")
+             elif art is None and elternart == "VCALENDAR" and w != "VTIMEZONE":
+                 ergebnis["uebersprungen"] += 1
+             elif art is not None:
+@@ -3617,28 +3628,34 @@ def ics_lesen(text, quellenname="", quellen_id="", jahrestage_als_termine=False)
+             if art is not None and w != art:
+                 props.append((name, params, wert))
+             elif art == w:
+-                komponenten.append((art, props))
++                komponenten.append((art, props, komponenten_farbe))
+                 art = None
+             stapel.pop()
+         elif art is not None:
+             props.append((name, params, wert))
++        elif stapel == ["VCALENDAR"]:
++            if name == "COLOR":
++                kalender_standard_farbe = _ics_standard_farbe(wert)
++            elif name == "X-APPLE-CALENDAR-COLOR":
++                kalender_apple_farbe = _kalender_akzentfarbe(wert)
+     if art is not None or stapel:
+         raise ValueError(_("The selected iCalendar file is incomplete."))
+     komplexe_uids = set()
+-    for komponenten_art, komponenten_props in komponenten:
++    for komponenten_art, komponenten_props, _farbe in komponenten:
+         if komponenten_art != "VEVENT" or not _hole(
+                 komponenten_props, "RECURRENCE-ID")[1]:
+             continue
+         _params_uid, uid = _hole(komponenten_props, "UID")
+         if uid:
+             komplexe_uids.add(_ical_unescape(uid))
+-    for komponenten_art, komponenten_props in komponenten:
++    for komponenten_art, komponenten_props, farbe in komponenten:
+         _params_uid, uid = _hole(komponenten_props, "UID")
+         _ics_komponente(
+             komponenten_art, komponenten_props, ergebnis,
+             komponenten_art == "VEVENT" and
+             bool(uid and _ical_unescape(uid) in komplexe_uids),
+-            jahrestage_als_termine=jahrestage_als_termine, zone_resolver=resolver)
++            jahrestage_als_termine=jahrestage_als_termine, zone_resolver=resolver,
++            kalender_farbe=farbe)
+     komplexe_uids.update(
+         t.get("icsSerienUid") or t.get("uid")
+         for t in ergebnis["termine"] if t.get("icsKomplex"))
+@@ -3784,8 +3801,7 @@ def _vevent_zeilen(t):
+         z.append("DESCRIPTION:" + _ical_escape(t["notiz"]))
+     if t.get("kategorien"):
+         z.append("CATEGORIES:" + _ical_escape(t["kategorien"]))
+-    if _kalender_akzentfarbe(t.get("akzentFarbe")):
+-        z.append("X-MAGNOLIE-ACCENT-COLOR:" + _kalender_akzentfarbe(t["akzentFarbe"]))
++    _ics_farbe_schreiben(z, t)
+     if t.get("vertraulich"):
+         z.append("CLASS:CONFIDENTIAL")
+     if t.get("vorlaeufig"):
+@@ -3829,7 +3845,8 @@ def _jahrestag_zeilen(jt):
+             "X-MAGNOLIE-JAHRESTAG-TYP:" + _ical_escape(typ_id or legacy)]
+     if jt.get("notiz"):
+         zeilen.append("DESCRIPTION:" + _ical_escape(jt["notiz"]))
+-    _ics_roundtrip_anwenden(zeilen, jt.get("icsRoundtrip"), jahrestag=True)
++    _ics_farbe_schreiben(zeilen, jt)
++    _ics_roundtrip_anwenden(zeilen, jt.get("icsRoundtrip"), jahrestag=True, eintrag=jt)
+     zeilen.append("END:VEVENT")
+     return zeilen
+ 
+@@ -3929,6 +3946,75 @@ def _kalender_akzentfarbe(wert):
+     return wert.lower() if isinstance(wert, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", wert) else ""
+ 
+ 
++# RFC 7986 5.9 uses the 147 CSS Color 3 names, never an approximate RGB name.
++_ICS_FARBEN = dict(token.split(":") for token in """
++aliceblue:f0f8ff antiquewhite:faebd7 aqua:00ffff aquamarine:7fffd4 azure:f0ffff beige:f5f5dc
++bisque:ffe4c4 black:000000 blanchedalmond:ffebcd blue:0000ff blueviolet:8a2be2 brown:a52a2a
++burlywood:deb887 cadetblue:5f9ea0 chartreuse:7fff00 chocolate:d2691e coral:ff7f50
++cornflowerblue:6495ed cornsilk:fff8dc crimson:dc143c cyan:00ffff darkblue:00008b darkcyan:008b8b
++darkgoldenrod:b8860b darkgray:a9a9a9 darkgreen:006400 darkgrey:a9a9a9 darkkhaki:bdb76b
++darkmagenta:8b008b darkolivegreen:556b2f darkorange:ff8c00 darkorchid:9932cc darkred:8b0000
++darksalmon:e9967a darkseagreen:8fbc8f darkslateblue:483d8b darkslategray:2f4f4f darkslategrey:2f4f4f
++darkturquoise:00ced1 darkviolet:9400d3 deeppink:ff1493 deepskyblue:00bfff dimgray:696969
++dimgrey:696969 dodgerblue:1e90ff firebrick:b22222 floralwhite:fffaf0 forestgreen:228b22
++fuchsia:ff00ff gainsboro:dcdcdc ghostwhite:f8f8ff gold:ffd700 goldenrod:daa520 gray:808080
++green:008000 greenyellow:adff2f grey:808080 honeydew:f0fff0 hotpink:ff69b4 indianred:cd5c5c
++indigo:4b0082 ivory:fffff0 khaki:f0e68c lavender:e6e6fa lavenderblush:fff0f5 lawngreen:7cfc00
++lemonchiffon:fffacd lightblue:add8e6 lightcoral:f08080 lightcyan:e0ffff lightgoldenrodyellow:fafad2
++lightgray:d3d3d3 lightgreen:90ee90 lightgrey:d3d3d3 lightpink:ffb6c1 lightsalmon:ffa07a
++lightseagreen:20b2aa lightskyblue:87cefa lightslategray:778899 lightslategrey:778899
++lightsteelblue:b0c4de lightyellow:ffffe0 lime:00ff00 limegreen:32cd32 linen:faf0e6 magenta:ff00ff
++maroon:800000 mediumaquamarine:66cdaa mediumblue:0000cd mediumorchid:ba55d3 mediumpurple:9370db
++mediumseagreen:3cb371 mediumslateblue:7b68ee mediumspringgreen:00fa9a mediumturquoise:48d1cc
++mediumvioletred:c71585 midnightblue:191970 mintcream:f5fffa mistyrose:ffe4e1 moccasin:ffe4b5
++navajowhite:ffdead navy:000080 oldlace:fdf5e6 olive:808000 olivedrab:6b8e23 orange:ffa500
++orangered:ff4500 orchid:da70d6 palegoldenrod:eee8aa palegreen:98fb98 paleturquoise:afeeee
++palevioletred:db7093 papayawhip:ffefd5 peachpuff:ffdab9 peru:cd853f pink:ffc0cb plum:dda0dd
++powderblue:b0e0e6 purple:800080 red:ff0000 rosybrown:bc8f8f royalblue:4169e1 saddlebrown:8b4513
++salmon:fa8072 sandybrown:f4a460 seagreen:2e8b57 seashell:fff5ee sienna:a0522d silver:c0c0c0
++skyblue:87ceeb slateblue:6a5acd slategray:708090 slategrey:708090 snow:fffafa springgreen:00ff7f
++steelblue:4682b4 tan:d2b48c teal:008080 thistle:d8bfd8 tomato:ff6347 turquoise:40e0d0 violet:ee82ee
++wheat:f5deb3 white:ffffff whitesmoke:f5f5f5 yellow:ffff00 yellowgreen:9acd32
++""".split())
++_ICS_FARBEN = {name: "#" + wert for name, wert in _ICS_FARBEN.items()}
++_ICS_FARB_NAMEN = {}
++for _name, _wert in _ICS_FARBEN.items():
++    _ICS_FARB_NAMEN.setdefault(_wert, _name)
++
++
++def _ics_standard_farbe(wert):
++    return _ICS_FARBEN.get(wert.lower(), "") if isinstance(wert, str) else ""
++
++
++def _ics_farbe_bearbeitet(eintrag, props):
++    farbe = _kalender_akzentfarbe(eintrag.get("akzentFarbe"))
++    if "icsAkzentFarbeBasis" in eintrag:
++        return farbe != _kalender_akzentfarbe(eintrag.get("icsAkzentFarbeBasis"))
++    # Old books stored an empty accent even for a valid opaque COLOR. Keep that
++    # source metadata unless a nonempty new colour proves an actual edit.
++    basis = (_kalender_akzentfarbe(_hole(props, "X-MAGNOLIE-ACCENT-COLOR")[1]) or
++             _ics_standard_farbe(_hole(props, "COLOR")[1]))
++    return bool(farbe and farbe != basis)
++
++
++def _ics_farbe_schreiben(zeilen, eintrag):
++    farbe = _kalender_akzentfarbe(eintrag.get("akzentFarbe"))
++    if not farbe:
++        return
++    zeilen.append("X-MAGNOLIE-ACCENT-COLOR:" + farbe)
++    tiefe = 0
++    for roh in eintrag.get("icsRoundtrip") or []:
++        prop = _prop_zerlegen(roh) if isinstance(roh, str) else None
++        if not prop:
++            continue
++        if prop[0] == "BEGIN": tiefe += 1
++        if not tiefe and prop[0] == "COLOR":
++            return  # Keep original parameters/spelling or an opaque unknown value.
++        if prop[0] == "END": tiefe = max(0, tiefe - 1)
++    if farbe in _ICS_FARB_NAMEN:
++        zeilen.append("COLOR:" + _ICS_FARB_NAMEN[farbe])
++
++
+ def _vtodo_zeilen(a):
+     external = _aufgaben_externe_uid(a) or _neue_uid()
+     parent = str(a.get("icsElternUid", a.get("elternUid")) or "")
+@@ -3957,8 +4043,7 @@ def _vtodo_zeilen(a):
+         z.append("DESCRIPTION:" + _ical_escape(a["notiz"]))
+     if a.get("kategorien"):
+         z.append("CATEGORIES:" + _ical_escape(a["kategorien"]))
+-    if _kalender_akzentfarbe(a.get("akzentFarbe")):
+-        z.append("X-MAGNOLIE-ACCENT-COLOR:" + _kalender_akzentfarbe(a["akzentFarbe"]))
++    _ics_farbe_schreiben(z, a)
+     if a.get("erinnern"):
+         z.append("X-MAGNOLIE-ERINNERUNG-AM-TAG:1")
+     tage = _erinnerung_tage(a.get("individuelleErinnerungTage"))
+@@ -4045,7 +4130,33 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
+                 name, params, value = _prop_zerlegen(line)
+                 if name in ("DTSTART", "DTEND", "DUE") and "T" in value and getattr(zone, "key", None):
+                     zeilen[index] = _ics_prop_roh(name, dict(params, TZID=zone.key), value.rstrip("Z"))
++    # A recognized standard colour is editable. Unknown values and nested
++    # properties remain opaque; an explicitly cleared accent cannot revive it.
++    farb_props, tiefe = [], 0
++    for zeile in rohzeilen:
++        prop = _prop_zerlegen(zeile)
++        if prop[0] == "BEGIN": tiefe += 1
++        if not tiefe: farb_props.append(prop)
++        if prop[0] == "END": tiefe = max(0, tiefe - 1)
++    if eintrag is not None and _ics_farbe_bearbeitet(eintrag, farb_props):
++        farbe = _kalender_akzentfarbe(eintrag.get("akzentFarbe"))
++        tiefe, farbzeilen = 0, []
++        for zeile in rohzeilen:
++            name, params, wert = _prop_zerlegen(zeile)
++            if name == "BEGIN": tiefe += 1
++            original = _ics_standard_farbe(wert) if not tiefe and name == "COLOR" else ""
++            if original and original != farbe:
++                if params:
++                    raise RuntimeError(_("The content is unreadable."))
++                if farbe in _ICS_FARB_NAMEN:
++                    farbzeilen.append("COLOR:" + _ICS_FARB_NAMEN[farbe])
++            else:
++                farbzeilen.append(zeile)
++            if name == "END": tiefe = max(0, tiefe - 1)
++        rohzeilen = farbzeilen
+     eigene = {"SUMMARY", "DESCRIPTION", "CATEGORIES", "PRIORITY", "X-MAGNOLIE-ACCENT-COLOR"}
++    if jahrestag and (eintrag is None or "akzentFarbe" not in eintrag):
++        eigene.discard("X-MAGNOLIE-ACCENT-COLOR")
+     # A parameterized colour property is not ours to rewrite. Preserve it
+     # exactly when unchanged, or refuse an edit rather than dropping parameters.
+     geschuetzte_farbe, tiefe = False, 0
+@@ -4054,7 +4165,7 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
+         if name == "BEGIN":
+             tiefe += 1
+         if not tiefe and name == "X-MAGNOLIE-ACCENT-COLOR" and params:
+-            if eintrag is not None and _kalender_akzentfarbe(eintrag.get("akzentFarbe")) != _kalender_akzentfarbe(wert):
++            if eintrag is not None and (not jahrestag or "akzentFarbe" in eintrag) and _kalender_akzentfarbe(eintrag.get("akzentFarbe")) != _kalender_akzentfarbe(wert):
+                 # Do not let the generic invalid-record skip path silently
+                 # turn this protected edit into a partial calendar export.
+                 raise RuntimeError(_("The content is unreadable."))
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+index 77eece4f2d9199dd414674af7d2f566f3e35e633..b7e33d8b89df5266f63dbf2566bbd9e90ba13785 100644
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -8453,6 +8453,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
+     element.dataset.akzentFarbe = farbe;
+     return element;
+   }
++  function jahrestagFarbLeiste(element, liste, text, trennzeichen = ", ") {
++    element.append(document.createTextNode("✱ "));
++    liste.forEach((eintrag, index) => {
++      if (index) element.append(document.createTextNode(trennzeichen));
++      element.append(setzeKalenderAkzent(el("span", null, text(eintrag)), eintrag));
++    });
++    return element;
++  }
+   function setzeKategorieFarbe(name, farbe, vorherigerName = "") {
+     const sauber = saubereKategorieFarben([{ name, farbe }]);
+     if (!sauber.length) return false;
+@@ -8672,6 +8680,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
+         startZeit: Z(a.startZeit), faelligZeit: Z(a.faelligZeit),
+         erledigt: !!a.erledigt, notiz: S(a.notiz), kategorien: a.kategorien === undefined ? kalenderRohFeld(a, "CATEGORIES") : S(a.kategorien),
+         akzentFarbe: kalenderAkzentFarbe(a.akzentFarbe === undefined ? kalenderRohFeld(a, "X-MAGNOLIE-ACCENT-COLOR") : a.akzentFarbe),
++        ...(typeof a.icsAkzentFarbeBasis === "string" ? { icsAkzentFarbeBasis: kalenderAkzentFarbe(a.icsAkzentFarbeBasis) } : {}),
+         icsRoundtrip: Array.isArray(a.icsRoundtrip) ? a.icsRoundtrip.map(S) : [],
+         icsSerienUid: S(a.icsSerienUid), icsRangeOverrides: kopie(a.icsRangeOverrides || []), icsAnzeigeZeitzone: S(a.icsAnzeigeZeitzone),
+         icsAusnahmeTermine: kopie(a.icsAusnahmeTermine || []), icsAusnahmen: kopie(a.icsAusnahmen || []),
+@@ -13335,7 +13344,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
+           wochentagText: wochentagName(datum.getDay(), true).replace(/\.$/, ""),
+           feiertage: wahl.feiertage ? feiertage : [],
+           ferien: wahl.ferien ? ferien : [], urlaube: wahl.urlaub ? urlaube : [],
+-          akzente: planerAkzentEintraege(iso, serienZeitraum, aufgaben, hatFarbTermine) });
++          akzente: planerAkzentEintraege(iso, serienZeitraum, aufgaben, hatFarbTermine)
++            .concat(jahrestageAm(iso, true, "print").filter(j => kalenderEintragAkzent(j))
++              .map(j => ({ art: "jahrestag", text: "✱ " + j.name, farbe: kalenderEintragAkzent(j), akzent: true }))) });
+       }
+       modell.zeilen.push(zeile);
+     }
+@@ -13401,7 +13412,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
+           eintraege.push({ art: "muell", text: termin.name, farbe: termin.farbe });
+         }
+         if (wahl.jahrestage) for (const jt of jahrestage) {
+-          eintraege.push({ art: "jahrestag", text: "✱ " + jt.name, farbe: "#a66d8a" });
++          eintraege.push({ art: "jahrestag", text: "✱ " + jt.name,
++            farbe: kalenderEintragAkzent(jt) || "#a66d8a", akzent: !!kalenderEintragAkzent(jt) });
+         }
+         if (wahl.termine) for (const termin of termine) {
+           eintraege.push({ art: "termin", text: (termin.zeit
+@@ -16997,9 +17009,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+ 
+       const jts = jahrestageAm(iso);
+       if (jts.length) {
+-        const stern = el("span", "jt-stern", "✱");
+-        stern.title = jts.map((j) => j.name).join(", ");
+-        tagKopf.append(stern);
++        const ohneFarbe = jts.filter(j => !kalenderEintragAkzent(j));
++        if (ohneFarbe.length) {
++          const stern = el("span", "jt-stern", "✱");
++          stern.title = ohneFarbe.map(j => j.name).join(", "); tagKopf.append(stern);
++        }
++        for (const j of jts.filter(j => kalenderEintragAkzent(j))) {
++          const stern = setzeKalenderAkzent(el("span", "jt-stern", "✱"), j);
++          stern.title = j.name; tagKopf.append(stern);
++        }
+       }
+       zelle.prepend(tagKopf);
+ 
+@@ -17390,8 +17408,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+           ft.name + (ft.art === "school-holiday" ? "" : _(" (public holiday)"))));
+       }
+       for (const jt of eintrag.jahrestage) {
+-        block.append(el("div", "ue-jahrestag", "✱ " + jt.name + " – " +
+-          jahrestagTypText(jt.typ)));
++        block.append(setzeKalenderAkzent(el("div", "ue-jahrestag", "✱ " + jt.name + " – " +
++          jahrestagTypText(jt.typ)), jt));
+       }
+ 
+       for (const termin of eintrag.termine) {
+@@ -18871,7 +18889,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     const jt = jahrestageAm(iso);
+     if (jt.length) {
+       const kasten = el("div", "jt-kasten");
+-      kasten.textContent = "✱ " + jt.map((x) => {
++      jahrestagFarbLeiste(kasten, jt, (x) => {
+         const gj = hatBekanntesJahr(x.datum) ? Number(x.datum.slice(0, 4)) : null;
+         const jahre = gj === null ? null : Number(iso.slice(0, 4)) - gj;
+         const zusatz = (jahre !== null && jahre > 0)
+@@ -18879,7 +18897,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         const typ = jahrestagsArt(x.typ) === "death" && zusatz
+           ? "" : " – " + jahrestagTypText(x.typ);
+         return x.name + typ + zusatz;
+-      }).join("  ·  ");
++      }, "  ·  ");
+       spalte.append(kasten);
+     }
+ 
+@@ -19100,7 +19118,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+ 
+     const jts = jahrestageAm(iso);
+     if (jts.length) {
+-      kasten.append(el("div", "wo-jt", "✱ " + jts.map((x) => x.name).join(", ")));
++      kasten.append(jahrestagFarbLeiste(el("div", "wo-jt"), jts, x => x.name));
+     }
+ 
+     for (const task of (farbAufgaben || kalenderFarbAufgaben(iso, iso)).get(iso) || []) {
+@@ -23943,7 +23961,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         haupt.type = "button";
+         fokusMarke(haupt, "jahrestag:" + jt.id);
+         if (jt.id === z.bearbeiteId) haupt.setAttribute("aria-current", "true");
+-        haupt.append(el("div", "obm", jt.name));
++        haupt.append(setzeKalenderAkzent(el("div", "obm", jt.name), jt));
+         const zusatz = altersText(jt, n.anzahl);
+         haupt.append(el("div", "unt", jahrestagDatumText(jt) +
+           (zusatz ? " · " + zusatz : "")));
+@@ -26030,12 +26048,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         for (let t = 1; t <= tage; t++) {
+           const iso = z.jahr + "-" + pad2(m + 1) + "-" + pad2(t);
+           const zelle = el("span", "mm-tag", String(t));
+-          const farbEintraege = (hatFarbTermine ? termineAm(iso, false, farbZeitraum).filter(termin => !!kalenderEintragAkzent(termin)) : []).concat(farbAufgaben.get(iso) || []);
++          const farbEintraege = (hatFarbTermine ? termineAm(iso, false, farbZeitraum).filter(termin => !!kalenderEintragAkzent(termin)) : []).concat(farbAufgaben.get(iso) || [],
++            jahrestageAm(iso).filter(j => kalenderEintragAkzent(j)));
+           if (farbEintraege.length) {
+             const streifen = el("span", "mm-kategoriefarben");
+             for (const item of farbEintraege) {
+               const balken = setzeKalenderAkzent(el("span", "mm-kategoriebalken"), item);
+-              balken.title = item.titel; streifen.append(balken);
++              balken.title = item.titel || item.name; streifen.append(balken);
+             }
+             zelle.append(streifen);
+           }
+@@ -26067,7 +26086,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+               urlaube.map((urlaub) => urlaubsSymbol(urlaub.symbol)).join("")));
+           }
+           zelle.title = fmtPunkt(iso) +
+-            (farbEintraege.length ? " – " + farbEintraege.map(item => item.titel).join(", ") : "") +
++            (farbEintraege.length ? " – " + farbEintraege.map(item => item.titel || item.name).join(", ") : "") +
+             (fts.length ? " – " + fts.map((f) => f.name).join(", ") : "") +
+             (marken.schicht ? " – " + schichtZeitText(marken.schicht, iso) : "") +
+             (marken.zyklus.length ? " – " + marken.zyklus.map((m) => m.name).join(", ") : "") +

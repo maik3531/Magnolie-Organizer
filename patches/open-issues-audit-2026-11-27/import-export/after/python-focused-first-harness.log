@@ -1,0 +1,85 @@
+........................................................................ [ 39%]
+........................................................................ [ 79%]
+......................FFF.............                                   [100%]
+=================================== FAILURES ===================================
+___ test_edit_or_clear_does_not_restore_the_original_color[#123456-termine] ____
+
+codec = <module 'external_calendar_colors' from '/workspace/scratch/7203da5bd564/open-audit-import-export/magnolie-organizer/bin/magnolie-organizer'>
+kind = 'termine', value = '#123456'
+
+    @pytest.mark.parametrize("kind", ["termine", "aufgaben", "jahrestage"])
+    @pytest.mark.parametrize("value", ["#123456", ""])
+    def test_edit_or_clear_does_not_restore_the_original_color(codec, kind, value):
+        item = read(codec, wire(kind, ["COLOR:turquoise"]))[kind][0]
+        item["akzentFarbe"] = value
+        text = export(codec, kind, [item])
+        assert "COLOR:turquoise" not in text
+        assert read(codec, text)[kind][0].get("akzentFarbe", "") == value
+>       assert "COLOR:#" not in text, "Arbitrary hex is not an RFC7986 color name"
+E       AssertionError: Arbitrary hex is not an RFC7986 color name
+E       assert 'COLOR:#' not in 'BEGIN:VCALE...CALENDAR\r\n'
+E         
+E         'COLOR:#' is contained here:
+E           IE-ACCENT-COLOR:#123456
+E         ?           +++++++
+E           DTSTART;VALUE=DATE:20261205
+E           END:VEVENT
+E           END:VCALENDAR
+
+magnolie-organizer/pruefungen/test_external_calendar_colors.py:72: AssertionError
+___ test_edit_or_clear_does_not_restore_the_original_color[#123456-aufgaben] ___
+
+codec = <module 'external_calendar_colors' from '/workspace/scratch/7203da5bd564/open-audit-import-export/magnolie-organizer/bin/magnolie-organizer'>
+kind = 'aufgaben', value = '#123456'
+
+    @pytest.mark.parametrize("kind", ["termine", "aufgaben", "jahrestage"])
+    @pytest.mark.parametrize("value", ["#123456", ""])
+    def test_edit_or_clear_does_not_restore_the_original_color(codec, kind, value):
+        item = read(codec, wire(kind, ["COLOR:turquoise"]))[kind][0]
+        item["akzentFarbe"] = value
+        text = export(codec, kind, [item])
+        assert "COLOR:turquoise" not in text
+        assert read(codec, text)[kind][0].get("akzentFarbe", "") == value
+>       assert "COLOR:#" not in text, "Arbitrary hex is not an RFC7986 color name"
+E       AssertionError: Arbitrary hex is not an RFC7986 color name
+E       assert 'COLOR:#' not in 'BEGIN:VCALE...CALENDAR\r\n'
+E         
+E         'COLOR:#' is contained here:
+E           IE-ACCENT-COLOR:#123456
+E         ?           +++++++
+E           X-MAGNOLIE-REIHENFOLGE:0
+E           DUE;VALUE=DATE:20261205
+E           X-MAGNOLIE-TASK-IDENTITY:{"parent":""\,"parentSource":"ics:1d35d0598dd8fab4...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
+
+magnolie-organizer/pruefungen/test_external_calendar_colors.py:72: AssertionError
+__ test_edit_or_clear_does_not_restore_the_original_color[#123456-jahrestage] __
+
+codec = <module 'external_calendar_colors' from '/workspace/scratch/7203da5bd564/open-audit-import-export/magnolie-organizer/bin/magnolie-organizer'>
+kind = 'jahrestage', value = '#123456'
+
+    @pytest.mark.parametrize("kind", ["termine", "aufgaben", "jahrestage"])
+    @pytest.mark.parametrize("value", ["#123456", ""])
+    def test_edit_or_clear_does_not_restore_the_original_color(codec, kind, value):
+        item = read(codec, wire(kind, ["COLOR:turquoise"]))[kind][0]
+        item["akzentFarbe"] = value
+        text = export(codec, kind, [item])
+        assert "COLOR:turquoise" not in text
+        assert read(codec, text)[kind][0].get("akzentFarbe", "") == value
+>       assert "COLOR:#" not in text, "Arbitrary hex is not an RFC7986 color name"
+E       AssertionError: Arbitrary hex is not an RFC7986 color name
+E       assert 'COLOR:#' not in 'BEGIN:VCALE...CALENDAR\r\n'
+E         
+E         'COLOR:#' is contained here:
+E           IE-ACCENT-COLOR:#123456
+E         ?           +++++++
+E           END:VEVENT
+E           END:VCALENDAR
+
+magnolie-organizer/pruefungen/test_external_calendar_colors.py:72: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_external_calendar_colors.py::test_edit_or_clear_does_not_restore_the_original_color[#123456-termine]
+FAILED magnolie-organizer/pruefungen/test_external_calendar_colors.py::test_edit_or_clear_does_not_restore_the_original_color[#123456-aufgaben]
+FAILED magnolie-organizer/pruefungen/test_external_calendar_colors.py::test_edit_or_clear_does_not_restore_the_original_color[#123456-jahrestage]
+3 failed, 179 passed in 0.38s

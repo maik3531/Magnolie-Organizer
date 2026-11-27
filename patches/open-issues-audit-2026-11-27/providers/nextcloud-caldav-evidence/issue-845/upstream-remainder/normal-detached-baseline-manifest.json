@@ -1,0 +1,52 @@
+{
+  "base": "559c5c1f103caf0be09d381e0ca59f2e07b9e608",
+  "results": [
+    {
+      "name": "normal-detached-build-before",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "build",
+        "tests/CoreTests.csproj",
+        "--no-restore",
+        "--configuration",
+        "Debug"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_s": 17.204,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/logs/normal-detached-build-before.log"
+    },
+    {
+      "name": "normal-detached-before",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "run",
+        "--project",
+        "tests/CoreTests.csproj",
+        "--no-build",
+        "--configuration",
+        "Debug",
+        "--",
+        "Nextcloud ICS birthdays"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows",
+      "exit_code": 1,
+      "elapsed_s": 0.592,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/logs/normal-detached-before.log"
+    }
+  ],
+  "inputs": {
+    "magnolie-organizer-windows/ExchangeCodec.cs": "a59cef826e140590ffd652056a53d8a5683f2a053d400c287554995b09ef2ba6",
+    "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs": "45d368fc2917ef552e7e3624b8f897af0f2a8b180e6f7f8866f44f4cb01bcf50"
+  },
+  "env": {
+    "DOTNET_CLI_HOME": "/workspace/scratch/7203da5bd564/round3-tools/dotnet-state",
+    "NUGET_PACKAGES": "/workspace/scratch/7203da5bd564/round3-tools/nuget",
+    "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+  },
+  "unchanged_after": {
+    "magnolie-organizer-windows/ExchangeCodec.cs": true,
+    "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs": true
+  }
+}

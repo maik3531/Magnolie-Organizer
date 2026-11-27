@@ -2,7 +2,7 @@
   "date": "2026-11-27",
   "initial_snapshot": 106,
   "audit_base": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
-  "patch_base": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "patch_base": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
   "classifications": {
     "unconfirmed_report": 9,
     "feature_or_integration_remaining": 47,
@@ -34,7 +34,21 @@
       "title": "Linux/Windows: fremde ICS-Farben fehlen in der Anzeige und Kalenderfarben gehen verloren",
       "verified": true,
       "reason": "New synthetic cross-platform external calendar color loss"
+    },
+    {
+      "number": 845,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/845",
+      "title": "ICS-Import: ausdrücklich markierte Nextcloud-Geburtstage bleiben normale Termine mit falschem Ersatzjahr",
+      "state": "open",
+      "body_verified": true,
+      "scope": "Supplementary Nextcloud birthday semantic finding outside original106"
     }
   ],
+  "current_open_inventory": {
+    "path": "final-open-issues.json",
+    "open_issue_count": 75,
+    "fetched_at_utc": "2026-11-27T20:03:18.949Z",
+    "phase": "before_followup_reopening"
+  },
   "scope": "All 106 original issues individually assessed. Supplementary user-requested performance/import-export findings recorded separately. Patch publication is not main integration or package acceptance."
 }

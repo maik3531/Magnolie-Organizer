@@ -748,6 +748,14 @@
       "title": "Linux/Windows: fremde ICS-Farben fehlen in der Anzeige und Kalenderfarben gehen verloren",
       "verified": true,
       "reason": "New synthetic cross-platform external calendar color loss"
+    },
+    {
+      "number": 845,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/845",
+      "title": "ICS-Import: ausdrücklich markierte Nextcloud-Geburtstage bleiben normale Termine mit falschem Ersatzjahr",
+      "state": "open",
+      "body_verified": true,
+      "scope": "Supplementary Nextcloud birthday semantic finding outside original106"
     }
   ]
 }

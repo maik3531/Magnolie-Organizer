@@ -1,0 +1,52 @@
+{
+  "issue_numbers": [
+    759,
+    330
+  ],
+  "review_outcome": "approved_for_scoped_lifecycle_patch",
+  "reviewed_commit": "d242f95c38d9c2c5ce42159318e3c7831b1aa80c",
+  "parent_commit": "7453838a78895e31f1103b2065692b6fabfae1fb",
+  "tree": "fe9242fc30a014fd850ca3b9e8c66b15747783be",
+  "series_base": "50b1512234a765635f82af4537f277594fbf9878",
+  "source_path": "magnolie-organizer-windows/app/web/phone-media.js",
+  "source_sha256": "5295c10d3a1e955c84984bc983598062ab2b5fabb4b5a2c60485bb06d362dde5",
+  "material_regressions_found": [],
+  "independent_tests_executed_on_final_bytes": [
+    {
+      "path": "review-759-final-result.json",
+      "sha256": "083cf00de6ae720f138f9ec880348ea7bfb0ff2cc1a438f7a3e02ba35a3ba29b",
+      "passed": 2,
+      "total": 2
+    },
+    {
+      "path": "review-759-lifecycle-result.json",
+      "sha256": "484b902cb98fd8575b796f4a53325a2481aba801ab6bd72683da821ced103ad0",
+      "passed": 2,
+      "total": 2
+    }
+  ],
+  "independent_test_case_total": 4,
+  "independent_test_case_passed": 4,
+  "test_count_scope_de": "Zwei vorhandene unabhängige Übergangsfälle wegen geänderter Pending-Verwaltung erneut ausgeführt, plus zwei neue Lifecycle-Fälle. Die 128 Wiederaufbauten sind Iterationen innerhalb eines Testfalls, keine zusätzlichen 128 Tests.",
+  "review_findings_de": [
+    "Der synchrone Aufbau der tatsächlichen Anwendung erzeugt Recovery vor Medienpanel und hängt die Telefonliste erst danach an. Die Microtask verschiebt die Bereinigung genau hinter diesen Aufbau.",
+    "cleanupQueued bündelt die neue Bereinigung pro Turn. Es entsteht kein Intervalltimer, zusätzlicher MutationObserver oder rekursiver Cleanup-Loop. Zwei bestehende Vorschau-Observer-Microtasks pro Zweizeilen-Aufbau bleiben unverändert.",
+    "Weiterhin getrennte Pending-Owner werden entfernt und ihre vorhandenen Timeout-Handles gelöscht. Das wurde an einer echten 65-Sekunden-Ordneranfrage beobachtet, ohne die Zeit abzuwarten.",
+    "128 Zweitelefon-Neuaufbauten behalten nach Bereinigung genau zwei aktuelle Panel-Owner und maximal sechs anfängliche Anfragen; nach Antworten bleiben null Pending-Anfragen und null Timer. Beide aktuellen Telefone erhalten weiterhin automatische Statusrefreshs.",
+    "Die unveränderte Receive-Grenze prüft requestId, Peer, angehängten Root und Ablaufzeit. Ein bereits entsorgter Owner wird durch späteres Reattach oder alte Antwort nicht wieder registriert.",
+    "Der zweite Commit ändert weder Einstellungsübertragung noch ACK-Anforderungen oder Nativeberechtigungen. Die Quellenprüfung zum automatischen Weg aus review-759-automatic-path.json bleibt sachlich gültig; diese Datei ist ausdrücklich an den ersten Teilcommit gebunden."
+  ],
+  "additional_read_only_reviewer": {
+    "agent": "review_calendar",
+    "tests_executed": false,
+    "finding_de": "Kein durch den Diff eingeführter Lifecycle-/Timer-/Peer-/Mehrtelefonfehler gefunden; keine neue Poll- oder Observerkette. Bestehende Auslöser- und Langzeitgrenzen bleiben bestehen."
+  },
+  "test_harness_note_de": "Ein erster Lauf des neuen Harness erwartete versehentlich nur eine gesamte Microtask und übersah zwei unveränderte Vorschau-Observer-Microtasks. Die korrigierte Erwartung ist drei Gesamt-Microtasks. review-759-lifecycle-harness-assumption.json kennzeichnet diesen Harnessfehler ausdrücklich und darf nicht als rote Produktbaseline verwendet werden.",
+  "limits_de": [
+    "JSDOM-Prüfung tatsächlicher unveränderter Produkt-JavaScriptbytes mit synthetischen nativen Antworten und beobachteten Maps/Timers. Kein nativer Windows-/Notes-/WLAN-/Dateitransferlauf.",
+    "Keine Monats-RAM-Abnahme und kein Heap-Profil. Bereinigung wird weiterhin durch request/createPanel ausgelöst; reine Zeitpassage oder das letzte Entfernen einer Ansicht führen dadurch nicht zu einer neuen globalen periodischen Bereinigung. Das Verhalten und die Ablaufprüfung sind unverändert.",
+    "Die produktive gemeinsame Medienanbindung und tatsächliche automatische Organizer-zu-Notes-Übernahme bleiben getrennte offene Integrationskriterien. Keine neue manuelle Notes-Bestätigung eingeführt."
+  ],
+  "product_changes_by_reviewer": false,
+  "github_mutations_by_reviewer": false
+}

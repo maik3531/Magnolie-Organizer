@@ -1,0 +1,5211 @@
+[
+  {
+    "id": "birthday-standard",
+    "passed": true,
+    "book": {
+      "version": 6,
+      "termine": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": [],
+      "customOrganizer": {
+        "version": 3,
+        "modules": []
+      },
+      "zeiterfassung": {
+        "enabled": false,
+        "actor": "",
+        "counter": 0,
+        "entries": [],
+        "conflicts": {},
+        "reportName": ""
+      },
+      "notizgruppen": [
+        {
+          "id": "notizgruppe-allgemein",
+          "name": "General"
+        }
+      ],
+      "notizbuecher": [
+        {
+          "id": "notizbuch-lose-notizen",
+          "gruppeId": "notizgruppe-allgemein",
+          "name": "Loose Notes"
+        }
+      ],
+      "jahrestage": [
+        {
+          "name": "birthday-standard",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#40e0d0",
+          "icsCalendarColor": "",
+          "uid": "birthday-standard",
+          "icsSerienUid": "birthday-standard",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-MAGNOLIE-TYPE-ID:birthday",
+            "COLOR:turquoise",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 1795808161022,
+          "icsQuelleName": "birthday-standard.ics",
+          "icsQuelleId": "ics:1380b148f309ed099e9b3f588d1a32befecd40cfcf50262965d17027e2cadb04",
+          "id": "mwzdt98e1w8y1z",
+          "jahrUnbekannt": false,
+          "syncKalenderUid": "",
+          "syncQuellen": {}
+        }
+      ],
+      "feiertage": [],
+      "urlaube": [],
+      "muelltermine": [],
+      "papierkorb": [],
+      "personen": [],
+      "schichten": [],
+      "smsVerlauf": [],
+      "smsPlanung": [],
+      "zyklusmarker": [],
+      "tagmarken": [],
+      "gesundheit": {
+        "vitalwerte": [],
+        "blutzucker": [],
+        "medikamente": [],
+        "insulinschema": {
+          "basisAn": false,
+          "basisEinheiten": 0,
+          "festEinheiten": 0,
+          "langzeitInsulin": "",
+          "langzeitModus": "fixed",
+          "langzeitFestEinheiten": 0,
+          "langzeitRegeln": [],
+          "kurzzeitInsulin": "",
+          "kurzzeitModus": "fixed",
+          "kurzzeitFestEinheiten": 0,
+          "kurzzeitRegeln": [],
+          "hinweis": ""
+        }
+      },
+      "einstellungen": {
+        "sync": {
+          "kalenderUid": "",
+          "kalenderUids": [],
+          "adressbuchUid": "",
+          "beimStart": false,
+          "kontaktNeuereBevorzugen": false,
+          "kdeEmpfang": {
+            "dateien": false,
+            "zwischenablage": false,
+            "zwischenablageAutomatisch": false,
+            "ordnerBeiAnnahme": false,
+            "geraetId": "",
+            "ordner": ""
+          },
+          "erfolgsmeldungen": false,
+          "timeDirections": {}
+        },
+        "ort": {
+          "land": "",
+          "landName": "",
+          "region": "",
+          "regionName": "",
+          "alleRegionen": false,
+          "feiertage": true,
+          "ferien": true,
+          "abgerufen": 0,
+          "jahre": [],
+          "setupFerienAbruf": false
+        },
+        "allgemein": {
+          "drucken": true,
+          "hilfsrahmen": false,
+          "kalenderAuswahl": false,
+          "wetter": false,
+          "wetterDarstellung": "temperature",
+          "wetterIntervall": 180,
+          "wetterOhneOrtAbrufen": true,
+          "sicherungsordner": "",
+          "wiederherstellungsintervall": "weekly",
+          "cloudSicherung": {
+            "aktiv": false,
+            "intervall": "daily",
+            "aufbewahrung": 7,
+            "letzterErfolg": "",
+            "status": ""
+          },
+          "wiederherstellungsaufbewahrung": "days",
+          "wiederherstellungsanzahl": 20,
+          "wiederherstellungstage": 3650,
+          "wiederherstellungsstatus": "",
+          "handbuchHinweisGezeigt": false,
+          "kontaktErsteinrichtungVersion": 1,
+          "notizAnhangHoehe": 200,
+          "contributorFreigeschaltet": false,
+          "customTab": {
+            "enabled": false,
+            "name": "",
+            "designRequested": false
+          },
+          "registerkarten": {
+            "aufgaben": true,
+            "adressen": true,
+            "notizen": true,
+            "jahrestage": true,
+            "planer": true,
+            "gesundheit": true
+          },
+          "tray": {
+            "aktiv": false,
+            "minimierenInTray": true,
+            "schliessenInTray": true,
+            "startMinimiert": false,
+            "autostart": false,
+            "zaehler": false,
+            "telefonWlanVerbinden": true,
+            "oeffnen": "previous"
+          },
+          "wiederherstellungsmodus": "weekly",
+          "wiederherstellungsminuten": 30,
+          "entwicklermodus": false
+        },
+        "update": {
+          "automatisch": true,
+          "letztePruefung": 0,
+          "letzteVersion": "",
+          "letzteUrl": "",
+          "letztePruefsumme": "",
+          "letzterFehler": ""
+        },
+        "regional": {
+          "language": "en",
+          "formatLocale": "de-DE",
+          "hourCycle": "h23",
+          "firstDayOfWeek": "monday",
+          "weekRule": "iso",
+          "temperatureUnit": "celsius",
+          "timeZone": "UTC",
+          "homeCountry": "DE",
+          "timeZoneManagement": "off",
+          "timeZoneDetection": "auto",
+          "timeZoneManual": "system",
+          "timeZoneDetectedSource": "manual",
+          "timeZoneDetectedAt": "0",
+          "timeZoneCalendarDisplay": "own",
+          "timeZoneTaskDisplay": "own"
+        },
+        "schrift": {
+          "art": "regular",
+          "farbe": "black",
+          "groesse": "normal",
+          "rechtschreibung": true,
+          "linien": true,
+          "radRichtung": "up-earlier"
+        },
+        "ansicht": "week",
+        "erinnerung": {
+          "an": true,
+          "vorlauf": 15,
+          "art": "both",
+          "verpasste": true,
+          "wecken": false,
+          "stil": "magnolie",
+          "jahrestage": {
+            "an": true,
+            "tage": 1,
+            "amTag": true,
+            "stunde": 8,
+            "autoAusblenden": false
+          },
+          "protokoll": false,
+          "protokollVoreinstellung": 1
+        },
+        "adressen": {
+          "absender": "",
+          "karten": "auto",
+          "land": "Deutschland",
+          "landCode": "DE",
+          "sortierung": "last-name",
+          "brief": true,
+          "karte": true,
+          "route": false,
+          "foto": true,
+          "fotoVoreinstellung": 1,
+          "briefLayout": "din5008-b",
+          "briefLayoutVoreinstellung": 3,
+          "sozialeSymbole": true,
+          "smsBenachrichtigungDauer": 60,
+          "smsSchedulingEnabled": false,
+          "gruppenAusschluss": {
+            "enabled": false,
+            "notifications": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "anniversaries": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "overview": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": [],
+              "calendar": false
+            },
+            "print": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            }
+          },
+          "kommunikation": {
+            "sms": {
+              "art": "kde",
+              "programm": ""
+            },
+            "anruf": {
+              "art": "magnolie",
+              "programm": "",
+              "eingehendBenachrichtigen": true,
+              "computerTelefonie": true,
+              "klingeltonLeiser": false,
+              "echoCancel": false,
+              "hfpAdresse": "",
+              "preferPcAudio": true
+            }
+          },
+          "personengruppenAn": false,
+          "eigenesProfilAn": true,
+          "routeFestgelegt": false
+        },
+        "versand": {
+          "enabled": false,
+          "faxServer": ""
+        },
+        "sicherheit": {
+          "erinnernTrotzKennwort": false,
+          "vertraulicheErinnerungen": false,
+          "hintergrund": {
+            "enabled": false,
+            "autostart": false,
+            "encryptionPolicy": "notify_then_unlock",
+            "permissions": {
+              "kde_pairing": false,
+              "kde_incoming_files": false,
+              "sms_phone_notifications": false,
+              "magnolienbaum_change_offers": false,
+              "phone_monitor": false,
+              "phone_sms_notifications": false,
+              "phone_selected_notifications": false,
+              "phone_call_notifications": false,
+              "phone_personal_sync_offers": false,
+              "phone_pairing_decisions": false
+            }
+          }
+        },
+        "papierkorb": {
+          "an": true,
+          "tage": 30
+        },
+        "kalender": {
+          "klickLegtAn": true,
+          "jahrestagsartenFrei": false,
+          "kategorieFarben": [],
+          "wochenNummern": false,
+          "planerWochenNummern": false,
+          "vergangeneTermine": false,
+          "vergangeneJahrestage": false,
+          "vergangeneFerien": false,
+          "schichtplanerAn": false,
+          "zykluskalenderAn": false,
+          "urlaubsplanerAn": false,
+          "muellkalenderAn": false,
+          "gesundheitAn": true,
+          "gesundheitBereiche": {
+            "vital": true,
+            "medikamente": true,
+            "blutzucker": true,
+            "verlauf": true
+          },
+          "gesundheitEinheiten": {
+            "temperatur": "auto",
+            "gewicht": "auto",
+            "groesse": "auto",
+            "blutzucker": "auto"
+          },
+          "gesundheitPlanung": {
+            "vital": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "medikamente": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "blutzucker": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            }
+          },
+          "zyklusErinnerungen": {
+            "anzeige": false,
+            "prognose": false,
+            "abweichung": false,
+            "vorlauf": 1,
+            "abweichungTage": 7
+          }
+        }
+      },
+      "letzterSync": 0,
+      "letzteSyncs": {
+        "kalender": {},
+        "adressbuecher": {}
+      },
+      "syncStatus": {
+        "letzterVersuch": 0,
+        "letzterFehler": ""
+      },
+      "baumKontaktGeloescht": [],
+      "baumKontaktBestand": {},
+      "baumKontaktLoeschStaende": [],
+      "baumKontaktErfolgreich": {},
+      "baumKontaktAblehnungen": [],
+      "kontaktImportAblehnungen": [],
+      "personalSync": {
+        "format": 1,
+        "actor_id": "",
+        "counter": 0,
+        "custom_revision": 0,
+        "custom_entities": {},
+        "custom_auto_hash": "",
+        "entities": {},
+        "note_ids": {},
+        "note_aliases": {},
+        "notebook_ids": {},
+        "notebook_aliases": {},
+        "attachment_aliases": {},
+        "last_reports": [],
+        "applied_batches": [],
+        "last_auto_ms": 0,
+        "last_auto_hash": "",
+        "peer_device_id": "",
+        "restoration_requests": [],
+        "pending_proposals": [],
+        "applied_decisions": [],
+        "pending_decisions": []
+      },
+      "geloescht": {
+        "termine": [],
+        "kontakte": [],
+        "aufgaben": []
+      },
+      "syncEpoch": "",
+      "syncMetadaten": {
+        "syncEpoch": "",
+        "ersteSyncLoeschungsfrei": false,
+        "quarantinedDeletes": {},
+        "nextcloud": {
+          "kalender": {},
+          "adressbuecher": {},
+          "quarantinedDeletes": {},
+          "transaktionen": {}
+        },
+        "eds": {
+          "adressbuecher": {}
+        },
+        "akonadi": {
+          "bindungen": {}
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-own",
+    "passed": true,
+    "book": {
+      "version": 6,
+      "termine": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": [],
+      "customOrganizer": {
+        "version": 3,
+        "modules": []
+      },
+      "zeiterfassung": {
+        "enabled": false,
+        "actor": "",
+        "counter": 0,
+        "entries": [],
+        "conflicts": {},
+        "reportName": ""
+      },
+      "notizgruppen": [
+        {
+          "id": "notizgruppe-allgemein",
+          "name": "General"
+        }
+      ],
+      "notizbuecher": [
+        {
+          "id": "notizbuch-lose-notizen",
+          "gruppeId": "notizgruppe-allgemein",
+          "name": "Loose Notes"
+        }
+      ],
+      "jahrestage": [
+        {
+          "name": "birthday-own",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#112233",
+          "icsCalendarColor": "",
+          "uid": "birthday-own",
+          "icsSerienUid": "birthday-own",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-MAGNOLIE-TYPE-ID:birthday",
+            "X-MAGNOLIE-ACCENT-COLOR:#112233",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 1795808161315,
+          "icsQuelleName": "birthday-own.ics",
+          "icsQuelleId": "ics:c81e506200ed2f4768f01f79365e9f1a575b70a694091061a8aa75d01059b71d",
+          "id": "mwzdt9gjdcs203",
+          "jahrUnbekannt": false,
+          "syncKalenderUid": "",
+          "syncQuellen": {}
+        }
+      ],
+      "feiertage": [],
+      "urlaube": [],
+      "muelltermine": [],
+      "papierkorb": [],
+      "personen": [],
+      "schichten": [],
+      "smsVerlauf": [],
+      "smsPlanung": [],
+      "zyklusmarker": [],
+      "tagmarken": [],
+      "gesundheit": {
+        "vitalwerte": [],
+        "blutzucker": [],
+        "medikamente": [],
+        "insulinschema": {
+          "basisAn": false,
+          "basisEinheiten": 0,
+          "festEinheiten": 0,
+          "langzeitInsulin": "",
+          "langzeitModus": "fixed",
+          "langzeitFestEinheiten": 0,
+          "langzeitRegeln": [],
+          "kurzzeitInsulin": "",
+          "kurzzeitModus": "fixed",
+          "kurzzeitFestEinheiten": 0,
+          "kurzzeitRegeln": [],
+          "hinweis": ""
+        }
+      },
+      "einstellungen": {
+        "sync": {
+          "kalenderUid": "",
+          "kalenderUids": [],
+          "adressbuchUid": "",
+          "beimStart": false,
+          "kontaktNeuereBevorzugen": false,
+          "kdeEmpfang": {
+            "dateien": false,
+            "zwischenablage": false,
+            "zwischenablageAutomatisch": false,
+            "ordnerBeiAnnahme": false,
+            "geraetId": "",
+            "ordner": ""
+          },
+          "erfolgsmeldungen": false,
+          "timeDirections": {}
+        },
+        "ort": {
+          "land": "",
+          "landName": "",
+          "region": "",
+          "regionName": "",
+          "alleRegionen": false,
+          "feiertage": true,
+          "ferien": true,
+          "abgerufen": 0,
+          "jahre": [],
+          "setupFerienAbruf": false
+        },
+        "allgemein": {
+          "drucken": true,
+          "hilfsrahmen": false,
+          "kalenderAuswahl": false,
+          "wetter": false,
+          "wetterDarstellung": "temperature",
+          "wetterIntervall": 180,
+          "wetterOhneOrtAbrufen": true,
+          "sicherungsordner": "",
+          "wiederherstellungsintervall": "weekly",
+          "cloudSicherung": {
+            "aktiv": false,
+            "intervall": "daily",
+            "aufbewahrung": 7,
+            "letzterErfolg": "",
+            "status": ""
+          },
+          "wiederherstellungsaufbewahrung": "days",
+          "wiederherstellungsanzahl": 20,
+          "wiederherstellungstage": 3650,
+          "wiederherstellungsstatus": "",
+          "handbuchHinweisGezeigt": false,
+          "kontaktErsteinrichtungVersion": 1,
+          "notizAnhangHoehe": 200,
+          "contributorFreigeschaltet": false,
+          "customTab": {
+            "enabled": false,
+            "name": "",
+            "designRequested": false
+          },
+          "registerkarten": {
+            "aufgaben": true,
+            "adressen": true,
+            "notizen": true,
+            "jahrestage": true,
+            "planer": true,
+            "gesundheit": true
+          },
+          "tray": {
+            "aktiv": false,
+            "minimierenInTray": true,
+            "schliessenInTray": true,
+            "startMinimiert": false,
+            "autostart": false,
+            "zaehler": false,
+            "telefonWlanVerbinden": true,
+            "oeffnen": "previous"
+          },
+          "wiederherstellungsmodus": "weekly",
+          "wiederherstellungsminuten": 30,
+          "entwicklermodus": false
+        },
+        "update": {
+          "automatisch": true,
+          "letztePruefung": 0,
+          "letzteVersion": "",
+          "letzteUrl": "",
+          "letztePruefsumme": "",
+          "letzterFehler": ""
+        },
+        "regional": {
+          "language": "en",
+          "formatLocale": "de-DE",
+          "hourCycle": "h23",
+          "firstDayOfWeek": "monday",
+          "weekRule": "iso",
+          "temperatureUnit": "celsius",
+          "timeZone": "UTC",
+          "homeCountry": "DE",
+          "timeZoneManagement": "off",
+          "timeZoneDetection": "auto",
+          "timeZoneManual": "system",
+          "timeZoneDetectedSource": "manual",
+          "timeZoneDetectedAt": "0",
+          "timeZoneCalendarDisplay": "own",
+          "timeZoneTaskDisplay": "own"
+        },
+        "schrift": {
+          "art": "regular",
+          "farbe": "black",
+          "groesse": "normal",
+          "rechtschreibung": true,
+          "linien": true,
+          "radRichtung": "up-earlier"
+        },
+        "ansicht": "week",
+        "erinnerung": {
+          "an": true,
+          "vorlauf": 15,
+          "art": "both",
+          "verpasste": true,
+          "wecken": false,
+          "stil": "magnolie",
+          "jahrestage": {
+            "an": true,
+            "tage": 1,
+            "amTag": true,
+            "stunde": 8,
+            "autoAusblenden": false
+          },
+          "protokoll": false,
+          "protokollVoreinstellung": 1
+        },
+        "adressen": {
+          "absender": "",
+          "karten": "auto",
+          "land": "Deutschland",
+          "landCode": "DE",
+          "sortierung": "last-name",
+          "brief": true,
+          "karte": true,
+          "route": false,
+          "foto": true,
+          "fotoVoreinstellung": 1,
+          "briefLayout": "din5008-b",
+          "briefLayoutVoreinstellung": 3,
+          "sozialeSymbole": true,
+          "smsBenachrichtigungDauer": 60,
+          "smsSchedulingEnabled": false,
+          "gruppenAusschluss": {
+            "enabled": false,
+            "notifications": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "anniversaries": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "overview": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": [],
+              "calendar": false
+            },
+            "print": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            }
+          },
+          "kommunikation": {
+            "sms": {
+              "art": "kde",
+              "programm": ""
+            },
+            "anruf": {
+              "art": "magnolie",
+              "programm": "",
+              "eingehendBenachrichtigen": true,
+              "computerTelefonie": true,
+              "klingeltonLeiser": false,
+              "echoCancel": false,
+              "hfpAdresse": "",
+              "preferPcAudio": true
+            }
+          },
+          "personengruppenAn": false,
+          "eigenesProfilAn": true,
+          "routeFestgelegt": false
+        },
+        "versand": {
+          "enabled": false,
+          "faxServer": ""
+        },
+        "sicherheit": {
+          "erinnernTrotzKennwort": false,
+          "vertraulicheErinnerungen": false,
+          "hintergrund": {
+            "enabled": false,
+            "autostart": false,
+            "encryptionPolicy": "notify_then_unlock",
+            "permissions": {
+              "kde_pairing": false,
+              "kde_incoming_files": false,
+              "sms_phone_notifications": false,
+              "magnolienbaum_change_offers": false,
+              "phone_monitor": false,
+              "phone_sms_notifications": false,
+              "phone_selected_notifications": false,
+              "phone_call_notifications": false,
+              "phone_personal_sync_offers": false,
+              "phone_pairing_decisions": false
+            }
+          }
+        },
+        "papierkorb": {
+          "an": true,
+          "tage": 30
+        },
+        "kalender": {
+          "klickLegtAn": true,
+          "jahrestagsartenFrei": false,
+          "kategorieFarben": [],
+          "wochenNummern": false,
+          "planerWochenNummern": false,
+          "vergangeneTermine": false,
+          "vergangeneJahrestage": false,
+          "vergangeneFerien": false,
+          "schichtplanerAn": false,
+          "zykluskalenderAn": false,
+          "urlaubsplanerAn": false,
+          "muellkalenderAn": false,
+          "gesundheitAn": true,
+          "gesundheitBereiche": {
+            "vital": true,
+            "medikamente": true,
+            "blutzucker": true,
+            "verlauf": true
+          },
+          "gesundheitEinheiten": {
+            "temperatur": "auto",
+            "gewicht": "auto",
+            "groesse": "auto",
+            "blutzucker": "auto"
+          },
+          "gesundheitPlanung": {
+            "vital": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "medikamente": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "blutzucker": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            }
+          },
+          "zyklusErinnerungen": {
+            "anzeige": false,
+            "prognose": false,
+            "abweichung": false,
+            "vorlauf": 1,
+            "abweichungTage": 7
+          }
+        }
+      },
+      "letzterSync": 0,
+      "letzteSyncs": {
+        "kalender": {},
+        "adressbuecher": {}
+      },
+      "syncStatus": {
+        "letzterVersuch": 0,
+        "letzterFehler": ""
+      },
+      "baumKontaktGeloescht": [],
+      "baumKontaktBestand": {},
+      "baumKontaktLoeschStaende": [],
+      "baumKontaktErfolgreich": {},
+      "baumKontaktAblehnungen": [],
+      "kontaktImportAblehnungen": [],
+      "personalSync": {
+        "format": 1,
+        "actor_id": "",
+        "counter": 0,
+        "custom_revision": 0,
+        "custom_entities": {},
+        "custom_auto_hash": "",
+        "entities": {},
+        "note_ids": {},
+        "note_aliases": {},
+        "notebook_ids": {},
+        "notebook_aliases": {},
+        "attachment_aliases": {},
+        "last_reports": [],
+        "applied_batches": [],
+        "last_auto_ms": 0,
+        "last_auto_hash": "",
+        "peer_device_id": "",
+        "restoration_requests": [],
+        "pending_proposals": [],
+        "applied_decisions": [],
+        "pending_decisions": []
+      },
+      "geloescht": {
+        "termine": [],
+        "kontakte": [],
+        "aufgaben": []
+      },
+      "syncEpoch": "",
+      "syncMetadaten": {
+        "syncEpoch": "",
+        "ersteSyncLoeschungsfrei": false,
+        "quarantinedDeletes": {},
+        "nextcloud": {
+          "kalender": {},
+          "adressbuecher": {},
+          "quarantinedDeletes": {},
+          "transaktionen": {}
+        },
+        "eds": {
+          "adressbuecher": {}
+        },
+        "akonadi": {
+          "bindungen": {}
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-calendar",
+    "passed": true,
+    "book": {
+      "version": 6,
+      "termine": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": [],
+      "customOrganizer": {
+        "version": 3,
+        "modules": []
+      },
+      "zeiterfassung": {
+        "enabled": false,
+        "actor": "",
+        "counter": 0,
+        "entries": [],
+        "conflicts": {},
+        "reportName": ""
+      },
+      "notizgruppen": [
+        {
+          "id": "notizgruppe-allgemein",
+          "name": "General"
+        }
+      ],
+      "notizbuecher": [
+        {
+          "id": "notizbuch-lose-notizen",
+          "gruppeId": "notizgruppe-allgemein",
+          "name": "Loose Notes"
+        }
+      ],
+      "jahrestage": [
+        {
+          "name": "birthday-calendar",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#40e0d0",
+          "icsCalendarColor": "COLOR:turquoise",
+          "uid": "birthday-calendar",
+          "icsSerienUid": "birthday-calendar",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-MAGNOLIE-TYPE-ID:birthday",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 1795808161606,
+          "icsQuelleName": "birthday-calendar.ics",
+          "icsQuelleId": "ics:dc26880d5a6182549aa3054a2d41a98550fe3829021c3a0959ead1529eb8ea1a",
+          "id": "mwzdt9omg6a6xa",
+          "jahrUnbekannt": false,
+          "syncKalenderUid": "",
+          "syncQuellen": {}
+        }
+      ],
+      "feiertage": [],
+      "urlaube": [],
+      "muelltermine": [],
+      "papierkorb": [],
+      "personen": [],
+      "schichten": [],
+      "smsVerlauf": [],
+      "smsPlanung": [],
+      "zyklusmarker": [],
+      "tagmarken": [],
+      "gesundheit": {
+        "vitalwerte": [],
+        "blutzucker": [],
+        "medikamente": [],
+        "insulinschema": {
+          "basisAn": false,
+          "basisEinheiten": 0,
+          "festEinheiten": 0,
+          "langzeitInsulin": "",
+          "langzeitModus": "fixed",
+          "langzeitFestEinheiten": 0,
+          "langzeitRegeln": [],
+          "kurzzeitInsulin": "",
+          "kurzzeitModus": "fixed",
+          "kurzzeitFestEinheiten": 0,
+          "kurzzeitRegeln": [],
+          "hinweis": ""
+        }
+      },
+      "einstellungen": {
+        "sync": {
+          "kalenderUid": "",
+          "kalenderUids": [],
+          "adressbuchUid": "",
+          "beimStart": false,
+          "kontaktNeuereBevorzugen": false,
+          "kdeEmpfang": {
+            "dateien": false,
+            "zwischenablage": false,
+            "zwischenablageAutomatisch": false,
+            "ordnerBeiAnnahme": false,
+            "geraetId": "",
+            "ordner": ""
+          },
+          "erfolgsmeldungen": false,
+          "timeDirections": {}
+        },
+        "ort": {
+          "land": "",
+          "landName": "",
+          "region": "",
+          "regionName": "",
+          "alleRegionen": false,
+          "feiertage": true,
+          "ferien": true,
+          "abgerufen": 0,
+          "jahre": [],
+          "setupFerienAbruf": false
+        },
+        "allgemein": {
+          "drucken": true,
+          "hilfsrahmen": false,
+          "kalenderAuswahl": false,
+          "wetter": false,
+          "wetterDarstellung": "temperature",
+          "wetterIntervall": 180,
+          "wetterOhneOrtAbrufen": true,
+          "sicherungsordner": "",
+          "wiederherstellungsintervall": "weekly",
+          "cloudSicherung": {
+            "aktiv": false,
+            "intervall": "daily",
+            "aufbewahrung": 7,
+            "letzterErfolg": "",
+            "status": ""
+          },
+          "wiederherstellungsaufbewahrung": "days",
+          "wiederherstellungsanzahl": 20,
+          "wiederherstellungstage": 3650,
+          "wiederherstellungsstatus": "",
+          "handbuchHinweisGezeigt": false,
+          "kontaktErsteinrichtungVersion": 1,
+          "notizAnhangHoehe": 200,
+          "contributorFreigeschaltet": false,
+          "customTab": {
+            "enabled": false,
+            "name": "",
+            "designRequested": false
+          },
+          "registerkarten": {
+            "aufgaben": true,
+            "adressen": true,
+            "notizen": true,
+            "jahrestage": true,
+            "planer": true,
+            "gesundheit": true
+          },
+          "tray": {
+            "aktiv": false,
+            "minimierenInTray": true,
+            "schliessenInTray": true,
+            "startMinimiert": false,
+            "autostart": false,
+            "zaehler": false,
+            "telefonWlanVerbinden": true,
+            "oeffnen": "previous"
+          },
+          "wiederherstellungsmodus": "weekly",
+          "wiederherstellungsminuten": 30,
+          "entwicklermodus": false
+        },
+        "update": {
+          "automatisch": true,
+          "letztePruefung": 0,
+          "letzteVersion": "",
+          "letzteUrl": "",
+          "letztePruefsumme": "",
+          "letzterFehler": ""
+        },
+        "regional": {
+          "language": "en",
+          "formatLocale": "de-DE",
+          "hourCycle": "h23",
+          "firstDayOfWeek": "monday",
+          "weekRule": "iso",
+          "temperatureUnit": "celsius",
+          "timeZone": "UTC",
+          "homeCountry": "DE",
+          "timeZoneManagement": "off",
+          "timeZoneDetection": "auto",
+          "timeZoneManual": "system",
+          "timeZoneDetectedSource": "manual",
+          "timeZoneDetectedAt": "0",
+          "timeZoneCalendarDisplay": "own",
+          "timeZoneTaskDisplay": "own"
+        },
+        "schrift": {
+          "art": "regular",
+          "farbe": "black",
+          "groesse": "normal",
+          "rechtschreibung": true,
+          "linien": true,
+          "radRichtung": "up-earlier"
+        },
+        "ansicht": "week",
+        "erinnerung": {
+          "an": true,
+          "vorlauf": 15,
+          "art": "both",
+          "verpasste": true,
+          "wecken": false,
+          "stil": "magnolie",
+          "jahrestage": {
+            "an": true,
+            "tage": 1,
+            "amTag": true,
+            "stunde": 8,
+            "autoAusblenden": false
+          },
+          "protokoll": false,
+          "protokollVoreinstellung": 1
+        },
+        "adressen": {
+          "absender": "",
+          "karten": "auto",
+          "land": "Deutschland",
+          "landCode": "DE",
+          "sortierung": "last-name",
+          "brief": true,
+          "karte": true,
+          "route": false,
+          "foto": true,
+          "fotoVoreinstellung": 1,
+          "briefLayout": "din5008-b",
+          "briefLayoutVoreinstellung": 3,
+          "sozialeSymbole": true,
+          "smsBenachrichtigungDauer": 60,
+          "smsSchedulingEnabled": false,
+          "gruppenAusschluss": {
+            "enabled": false,
+            "notifications": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "anniversaries": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "overview": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": [],
+              "calendar": false
+            },
+            "print": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            }
+          },
+          "kommunikation": {
+            "sms": {
+              "art": "kde",
+              "programm": ""
+            },
+            "anruf": {
+              "art": "magnolie",
+              "programm": "",
+              "eingehendBenachrichtigen": true,
+              "computerTelefonie": true,
+              "klingeltonLeiser": false,
+              "echoCancel": false,
+              "hfpAdresse": "",
+              "preferPcAudio": true
+            }
+          },
+          "personengruppenAn": false,
+          "eigenesProfilAn": true,
+          "routeFestgelegt": false
+        },
+        "versand": {
+          "enabled": false,
+          "faxServer": ""
+        },
+        "sicherheit": {
+          "erinnernTrotzKennwort": false,
+          "vertraulicheErinnerungen": false,
+          "hintergrund": {
+            "enabled": false,
+            "autostart": false,
+            "encryptionPolicy": "notify_then_unlock",
+            "permissions": {
+              "kde_pairing": false,
+              "kde_incoming_files": false,
+              "sms_phone_notifications": false,
+              "magnolienbaum_change_offers": false,
+              "phone_monitor": false,
+              "phone_sms_notifications": false,
+              "phone_selected_notifications": false,
+              "phone_call_notifications": false,
+              "phone_personal_sync_offers": false,
+              "phone_pairing_decisions": false
+            }
+          }
+        },
+        "papierkorb": {
+          "an": true,
+          "tage": 30
+        },
+        "kalender": {
+          "klickLegtAn": true,
+          "jahrestagsartenFrei": false,
+          "kategorieFarben": [],
+          "wochenNummern": false,
+          "planerWochenNummern": false,
+          "vergangeneTermine": false,
+          "vergangeneJahrestage": false,
+          "vergangeneFerien": false,
+          "schichtplanerAn": false,
+          "zykluskalenderAn": false,
+          "urlaubsplanerAn": false,
+          "muellkalenderAn": false,
+          "gesundheitAn": true,
+          "gesundheitBereiche": {
+            "vital": true,
+            "medikamente": true,
+            "blutzucker": true,
+            "verlauf": true
+          },
+          "gesundheitEinheiten": {
+            "temperatur": "auto",
+            "gewicht": "auto",
+            "groesse": "auto",
+            "blutzucker": "auto"
+          },
+          "gesundheitPlanung": {
+            "vital": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "medikamente": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "blutzucker": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            }
+          },
+          "zyklusErinnerungen": {
+            "anzeige": false,
+            "prognose": false,
+            "abweichung": false,
+            "vorlauf": 1,
+            "abweichungTage": 7
+          }
+        }
+      },
+      "letzterSync": 0,
+      "letzteSyncs": {
+        "kalender": {},
+        "adressbuecher": {}
+      },
+      "syncStatus": {
+        "letzterVersuch": 0,
+        "letzterFehler": ""
+      },
+      "baumKontaktGeloescht": [],
+      "baumKontaktBestand": {},
+      "baumKontaktLoeschStaende": [],
+      "baumKontaktErfolgreich": {},
+      "baumKontaktAblehnungen": [],
+      "kontaktImportAblehnungen": [],
+      "personalSync": {
+        "format": 1,
+        "actor_id": "",
+        "counter": 0,
+        "custom_revision": 0,
+        "custom_entities": {},
+        "custom_auto_hash": "",
+        "entities": {},
+        "note_ids": {},
+        "note_aliases": {},
+        "notebook_ids": {},
+        "notebook_aliases": {},
+        "attachment_aliases": {},
+        "last_reports": [],
+        "applied_batches": [],
+        "last_auto_ms": 0,
+        "last_auto_hash": "",
+        "peer_device_id": "",
+        "restoration_requests": [],
+        "pending_proposals": [],
+        "applied_decisions": [],
+        "pending_decisions": []
+      },
+      "geloescht": {
+        "termine": [],
+        "kontakte": [],
+        "aufgaben": []
+      },
+      "syncEpoch": "",
+      "syncMetadaten": {
+        "syncEpoch": "",
+        "ersteSyncLoeschungsfrei": false,
+        "quarantinedDeletes": {},
+        "nextcloud": {
+          "kalender": {},
+          "adressbuecher": {},
+          "quarantinedDeletes": {},
+          "transaktionen": {}
+        },
+        "eds": {
+          "adressbuecher": {}
+        },
+        "akonadi": {
+          "bindungen": {}
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-apple",
+    "passed": true,
+    "book": {
+      "version": 6,
+      "termine": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": [],
+      "customOrganizer": {
+        "version": 3,
+        "modules": []
+      },
+      "zeiterfassung": {
+        "enabled": false,
+        "actor": "",
+        "counter": 0,
+        "entries": [],
+        "conflicts": {},
+        "reportName": ""
+      },
+      "notizgruppen": [
+        {
+          "id": "notizgruppe-allgemein",
+          "name": "General"
+        }
+      ],
+      "notizbuecher": [
+        {
+          "id": "notizbuch-lose-notizen",
+          "gruppeId": "notizgruppe-allgemein",
+          "name": "Loose Notes"
+        }
+      ],
+      "jahrestage": [
+        {
+          "name": "birthday-apple",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#40e0d0",
+          "icsCalendarColor": "X-APPLE-CALENDAR-COLOR:#40E0D0FF",
+          "uid": "birthday-apple",
+          "icsSerienUid": "birthday-apple",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-MAGNOLIE-TYPE-ID:birthday",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 1795808161909,
+          "icsQuelleName": "birthday-apple.ics",
+          "icsQuelleId": "ics:98be20c477852a44ff3f494e75638974a5823472b479d960725312914a2109a3",
+          "id": "mwzdt9x1z0axkd",
+          "jahrUnbekannt": false,
+          "syncKalenderUid": "",
+          "syncQuellen": {}
+        }
+      ],
+      "feiertage": [],
+      "urlaube": [],
+      "muelltermine": [],
+      "papierkorb": [],
+      "personen": [],
+      "schichten": [],
+      "smsVerlauf": [],
+      "smsPlanung": [],
+      "zyklusmarker": [],
+      "tagmarken": [],
+      "gesundheit": {
+        "vitalwerte": [],
+        "blutzucker": [],
+        "medikamente": [],
+        "insulinschema": {
+          "basisAn": false,
+          "basisEinheiten": 0,
+          "festEinheiten": 0,
+          "langzeitInsulin": "",
+          "langzeitModus": "fixed",
+          "langzeitFestEinheiten": 0,
+          "langzeitRegeln": [],
+          "kurzzeitInsulin": "",
+          "kurzzeitModus": "fixed",
+          "kurzzeitFestEinheiten": 0,
+          "kurzzeitRegeln": [],
+          "hinweis": ""
+        }
+      },
+      "einstellungen": {
+        "sync": {
+          "kalenderUid": "",
+          "kalenderUids": [],
+          "adressbuchUid": "",
+          "beimStart": false,
+          "kontaktNeuereBevorzugen": false,
+          "kdeEmpfang": {
+            "dateien": false,
+            "zwischenablage": false,
+            "zwischenablageAutomatisch": false,
+            "ordnerBeiAnnahme": false,
+            "geraetId": "",
+            "ordner": ""
+          },
+          "erfolgsmeldungen": false,
+          "timeDirections": {}
+        },
+        "ort": {
+          "land": "",
+          "landName": "",
+          "region": "",
+          "regionName": "",
+          "alleRegionen": false,
+          "feiertage": true,
+          "ferien": true,
+          "abgerufen": 0,
+          "jahre": [],
+          "setupFerienAbruf": false
+        },
+        "allgemein": {
+          "drucken": true,
+          "hilfsrahmen": false,
+          "kalenderAuswahl": false,
+          "wetter": false,
+          "wetterDarstellung": "temperature",
+          "wetterIntervall": 180,
+          "wetterOhneOrtAbrufen": true,
+          "sicherungsordner": "",
+          "wiederherstellungsintervall": "weekly",
+          "cloudSicherung": {
+            "aktiv": false,
+            "intervall": "daily",
+            "aufbewahrung": 7,
+            "letzterErfolg": "",
+            "status": ""
+          },
+          "wiederherstellungsaufbewahrung": "days",
+          "wiederherstellungsanzahl": 20,
+          "wiederherstellungstage": 3650,
+          "wiederherstellungsstatus": "",
+          "handbuchHinweisGezeigt": false,
+          "kontaktErsteinrichtungVersion": 1,
+          "notizAnhangHoehe": 200,
+          "contributorFreigeschaltet": false,
+          "customTab": {
+            "enabled": false,
+            "name": "",
+            "designRequested": false
+          },
+          "registerkarten": {
+            "aufgaben": true,
+            "adressen": true,
+            "notizen": true,
+            "jahrestage": true,
+            "planer": true,
+            "gesundheit": true
+          },
+          "tray": {
+            "aktiv": false,
+            "minimierenInTray": true,
+            "schliessenInTray": true,
+            "startMinimiert": false,
+            "autostart": false,
+            "zaehler": false,
+            "telefonWlanVerbinden": true,
+            "oeffnen": "previous"
+          },
+          "wiederherstellungsmodus": "weekly",
+          "wiederherstellungsminuten": 30,
+          "entwicklermodus": false
+        },
+        "update": {
+          "automatisch": true,
+          "letztePruefung": 0,
+          "letzteVersion": "",
+          "letzteUrl": "",
+          "letztePruefsumme": "",
+          "letzterFehler": ""
+        },
+        "regional": {
+          "language": "en",
+          "formatLocale": "de-DE",
+          "hourCycle": "h23",
+          "firstDayOfWeek": "monday",
+          "weekRule": "iso",
+          "temperatureUnit": "celsius",
+          "timeZone": "UTC",
+          "homeCountry": "DE",
+          "timeZoneManagement": "off",
+          "timeZoneDetection": "auto",
+          "timeZoneManual": "system",
+          "timeZoneDetectedSource": "manual",
+          "timeZoneDetectedAt": "0",
+          "timeZoneCalendarDisplay": "own",
+          "timeZoneTaskDisplay": "own"
+        },
+        "schrift": {
+          "art": "regular",
+          "farbe": "black",
+          "groesse": "normal",
+          "rechtschreibung": true,
+          "linien": true,
+          "radRichtung": "up-earlier"
+        },
+        "ansicht": "week",
+        "erinnerung": {
+          "an": true,
+          "vorlauf": 15,
+          "art": "both",
+          "verpasste": true,
+          "wecken": false,
+          "stil": "magnolie",
+          "jahrestage": {
+            "an": true,
+            "tage": 1,
+            "amTag": true,
+            "stunde": 8,
+            "autoAusblenden": false
+          },
+          "protokoll": false,
+          "protokollVoreinstellung": 1
+        },
+        "adressen": {
+          "absender": "",
+          "karten": "auto",
+          "land": "Deutschland",
+          "landCode": "DE",
+          "sortierung": "last-name",
+          "brief": true,
+          "karte": true,
+          "route": false,
+          "foto": true,
+          "fotoVoreinstellung": 1,
+          "briefLayout": "din5008-b",
+          "briefLayoutVoreinstellung": 3,
+          "sozialeSymbole": true,
+          "smsBenachrichtigungDauer": 60,
+          "smsSchedulingEnabled": false,
+          "gruppenAusschluss": {
+            "enabled": false,
+            "notifications": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "anniversaries": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "overview": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": [],
+              "calendar": false
+            },
+            "print": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            }
+          },
+          "kommunikation": {
+            "sms": {
+              "art": "kde",
+              "programm": ""
+            },
+            "anruf": {
+              "art": "magnolie",
+              "programm": "",
+              "eingehendBenachrichtigen": true,
+              "computerTelefonie": true,
+              "klingeltonLeiser": false,
+              "echoCancel": false,
+              "hfpAdresse": "",
+              "preferPcAudio": true
+            }
+          },
+          "personengruppenAn": false,
+          "eigenesProfilAn": true,
+          "routeFestgelegt": false
+        },
+        "versand": {
+          "enabled": false,
+          "faxServer": ""
+        },
+        "sicherheit": {
+          "erinnernTrotzKennwort": false,
+          "vertraulicheErinnerungen": false,
+          "hintergrund": {
+            "enabled": false,
+            "autostart": false,
+            "encryptionPolicy": "notify_then_unlock",
+            "permissions": {
+              "kde_pairing": false,
+              "kde_incoming_files": false,
+              "sms_phone_notifications": false,
+              "magnolienbaum_change_offers": false,
+              "phone_monitor": false,
+              "phone_sms_notifications": false,
+              "phone_selected_notifications": false,
+              "phone_call_notifications": false,
+              "phone_personal_sync_offers": false,
+              "phone_pairing_decisions": false
+            }
+          }
+        },
+        "papierkorb": {
+          "an": true,
+          "tage": 30
+        },
+        "kalender": {
+          "klickLegtAn": true,
+          "jahrestagsartenFrei": false,
+          "kategorieFarben": [],
+          "wochenNummern": false,
+          "planerWochenNummern": false,
+          "vergangeneTermine": false,
+          "vergangeneJahrestage": false,
+          "vergangeneFerien": false,
+          "schichtplanerAn": false,
+          "zykluskalenderAn": false,
+          "urlaubsplanerAn": false,
+          "muellkalenderAn": false,
+          "gesundheitAn": true,
+          "gesundheitBereiche": {
+            "vital": true,
+            "medikamente": true,
+            "blutzucker": true,
+            "verlauf": true
+          },
+          "gesundheitEinheiten": {
+            "temperatur": "auto",
+            "gewicht": "auto",
+            "groesse": "auto",
+            "blutzucker": "auto"
+          },
+          "gesundheitPlanung": {
+            "vital": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "medikamente": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "blutzucker": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            }
+          },
+          "zyklusErinnerungen": {
+            "anzeige": false,
+            "prognose": false,
+            "abweichung": false,
+            "vorlauf": 1,
+            "abweichungTage": 7
+          }
+        }
+      },
+      "letzterSync": 0,
+      "letzteSyncs": {
+        "kalender": {},
+        "adressbuecher": {}
+      },
+      "syncStatus": {
+        "letzterVersuch": 0,
+        "letzterFehler": ""
+      },
+      "baumKontaktGeloescht": [],
+      "baumKontaktBestand": {},
+      "baumKontaktLoeschStaende": [],
+      "baumKontaktErfolgreich": {},
+      "baumKontaktAblehnungen": [],
+      "kontaktImportAblehnungen": [],
+      "personalSync": {
+        "format": 1,
+        "actor_id": "",
+        "counter": 0,
+        "custom_revision": 0,
+        "custom_entities": {},
+        "custom_auto_hash": "",
+        "entities": {},
+        "note_ids": {},
+        "note_aliases": {},
+        "notebook_ids": {},
+        "notebook_aliases": {},
+        "attachment_aliases": {},
+        "last_reports": [],
+        "applied_batches": [],
+        "last_auto_ms": 0,
+        "last_auto_hash": "",
+        "peer_device_id": "",
+        "restoration_requests": [],
+        "pending_proposals": [],
+        "applied_decisions": [],
+        "pending_decisions": []
+      },
+      "geloescht": {
+        "termine": [],
+        "kontakte": [],
+        "aufgaben": []
+      },
+      "syncEpoch": "",
+      "syncMetadaten": {
+        "syncEpoch": "",
+        "ersteSyncLoeschungsfrei": false,
+        "quarantinedDeletes": {},
+        "nextcloud": {
+          "kalender": {},
+          "adressbuecher": {},
+          "quarantinedDeletes": {},
+          "transaktionen": {}
+        },
+        "eds": {
+          "adressbuecher": {}
+        },
+        "akonadi": {
+          "bindungen": {}
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-own-priority",
+    "passed": true,
+    "book": {
+      "version": 6,
+      "termine": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": [],
+      "customOrganizer": {
+        "version": 3,
+        "modules": []
+      },
+      "zeiterfassung": {
+        "enabled": false,
+        "actor": "",
+        "counter": 0,
+        "entries": [],
+        "conflicts": {},
+        "reportName": ""
+      },
+      "notizgruppen": [
+        {
+          "id": "notizgruppe-allgemein",
+          "name": "General"
+        }
+      ],
+      "notizbuecher": [
+        {
+          "id": "notizbuch-lose-notizen",
+          "gruppeId": "notizgruppe-allgemein",
+          "name": "Loose Notes"
+        }
+      ],
+      "jahrestage": [
+        {
+          "name": "birthday-own-priority",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#112233",
+          "icsCalendarColor": "COLOR:blue",
+          "uid": "birthday-own-priority",
+          "icsSerienUid": "birthday-own-priority",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-MAGNOLIE-TYPE-ID:birthday",
+            "COLOR:RED",
+            "X-MAGNOLIE-ACCENT-COLOR:#112233",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 1795808162249,
+          "icsQuelleName": "birthday-own-priority.ics",
+          "icsQuelleId": "ics:0f13b3426f82b3d9881f42da23d02c9d65a7c69d6edfe0e0bb563f2d396fc8ef",
+          "id": "mwzdta6hssfbti",
+          "jahrUnbekannt": false,
+          "syncKalenderUid": "",
+          "syncQuellen": {}
+        }
+      ],
+      "feiertage": [],
+      "urlaube": [],
+      "muelltermine": [],
+      "papierkorb": [],
+      "personen": [],
+      "schichten": [],
+      "smsVerlauf": [],
+      "smsPlanung": [],
+      "zyklusmarker": [],
+      "tagmarken": [],
+      "gesundheit": {
+        "vitalwerte": [],
+        "blutzucker": [],
+        "medikamente": [],
+        "insulinschema": {
+          "basisAn": false,
+          "basisEinheiten": 0,
+          "festEinheiten": 0,
+          "langzeitInsulin": "",
+          "langzeitModus": "fixed",
+          "langzeitFestEinheiten": 0,
+          "langzeitRegeln": [],
+          "kurzzeitInsulin": "",
+          "kurzzeitModus": "fixed",
+          "kurzzeitFestEinheiten": 0,
+          "kurzzeitRegeln": [],
+          "hinweis": ""
+        }
+      },
+      "einstellungen": {
+        "sync": {
+          "kalenderUid": "",
+          "kalenderUids": [],
+          "adressbuchUid": "",
+          "beimStart": false,
+          "kontaktNeuereBevorzugen": false,
+          "kdeEmpfang": {
+            "dateien": false,
+            "zwischenablage": false,
+            "zwischenablageAutomatisch": false,
+            "ordnerBeiAnnahme": false,
+            "geraetId": "",
+            "ordner": ""
+          },
+          "erfolgsmeldungen": false,
+          "timeDirections": {}
+        },
+        "ort": {
+          "land": "",
+          "landName": "",
+          "region": "",
+          "regionName": "",
+          "alleRegionen": false,
+          "feiertage": true,
+          "ferien": true,
+          "abgerufen": 0,
+          "jahre": [],
+          "setupFerienAbruf": false
+        },
+        "allgemein": {
+          "drucken": true,
+          "hilfsrahmen": false,
+          "kalenderAuswahl": false,
+          "wetter": false,
+          "wetterDarstellung": "temperature",
+          "wetterIntervall": 180,
+          "wetterOhneOrtAbrufen": true,
+          "sicherungsordner": "",
+          "wiederherstellungsintervall": "weekly",
+          "cloudSicherung": {
+            "aktiv": false,
+            "intervall": "daily",
+            "aufbewahrung": 7,
+            "letzterErfolg": "",
+            "status": ""
+          },
+          "wiederherstellungsaufbewahrung": "days",
+          "wiederherstellungsanzahl": 20,
+          "wiederherstellungstage": 3650,
+          "wiederherstellungsstatus": "",
+          "handbuchHinweisGezeigt": false,
+          "kontaktErsteinrichtungVersion": 1,
+          "notizAnhangHoehe": 200,
+          "contributorFreigeschaltet": false,
+          "customTab": {
+            "enabled": false,
+            "name": "",
+            "designRequested": false
+          },
+          "registerkarten": {
+            "aufgaben": true,
+            "adressen": true,
+            "notizen": true,
+            "jahrestage": true,
+            "planer": true,
+            "gesundheit": true
+          },
+          "tray": {
+            "aktiv": false,
+            "minimierenInTray": true,
+            "schliessenInTray": true,
+            "startMinimiert": false,
+            "autostart": false,
+            "zaehler": false,
+            "telefonWlanVerbinden": true,
+            "oeffnen": "previous"
+          },
+          "wiederherstellungsmodus": "weekly",
+          "wiederherstellungsminuten": 30,
+          "entwicklermodus": false
+        },
+        "update": {
+          "automatisch": true,
+          "letztePruefung": 0,
+          "letzteVersion": "",
+          "letzteUrl": "",
+          "letztePruefsumme": "",
+          "letzterFehler": ""
+        },
+        "regional": {
+          "language": "en",
+          "formatLocale": "de-DE",
+          "hourCycle": "h23",
+          "firstDayOfWeek": "monday",
+          "weekRule": "iso",
+          "temperatureUnit": "celsius",
+          "timeZone": "UTC",
+          "homeCountry": "DE",
+          "timeZoneManagement": "off",
+          "timeZoneDetection": "auto",
+          "timeZoneManual": "system",
+          "timeZoneDetectedSource": "manual",
+          "timeZoneDetectedAt": "0",
+          "timeZoneCalendarDisplay": "own",
+          "timeZoneTaskDisplay": "own"
+        },
+        "schrift": {
+          "art": "regular",
+          "farbe": "black",
+          "groesse": "normal",
+          "rechtschreibung": true,
+          "linien": true,
+          "radRichtung": "up-earlier"
+        },
+        "ansicht": "week",
+        "erinnerung": {
+          "an": true,
+          "vorlauf": 15,
+          "art": "both",
+          "verpasste": true,
+          "wecken": false,
+          "stil": "magnolie",
+          "jahrestage": {
+            "an": true,
+            "tage": 1,
+            "amTag": true,
+            "stunde": 8,
+            "autoAusblenden": false
+          },
+          "protokoll": false,
+          "protokollVoreinstellung": 1
+        },
+        "adressen": {
+          "absender": "",
+          "karten": "auto",
+          "land": "Deutschland",
+          "landCode": "DE",
+          "sortierung": "last-name",
+          "brief": true,
+          "karte": true,
+          "route": false,
+          "foto": true,
+          "fotoVoreinstellung": 1,
+          "briefLayout": "din5008-b",
+          "briefLayoutVoreinstellung": 3,
+          "sozialeSymbole": true,
+          "smsBenachrichtigungDauer": 60,
+          "smsSchedulingEnabled": false,
+          "gruppenAusschluss": {
+            "enabled": false,
+            "notifications": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "anniversaries": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "overview": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": [],
+              "calendar": false
+            },
+            "print": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            }
+          },
+          "kommunikation": {
+            "sms": {
+              "art": "kde",
+              "programm": ""
+            },
+            "anruf": {
+              "art": "magnolie",
+              "programm": "",
+              "eingehendBenachrichtigen": true,
+              "computerTelefonie": true,
+              "klingeltonLeiser": false,
+              "echoCancel": false,
+              "hfpAdresse": "",
+              "preferPcAudio": true
+            }
+          },
+          "personengruppenAn": false,
+          "eigenesProfilAn": true,
+          "routeFestgelegt": false
+        },
+        "versand": {
+          "enabled": false,
+          "faxServer": ""
+        },
+        "sicherheit": {
+          "erinnernTrotzKennwort": false,
+          "vertraulicheErinnerungen": false,
+          "hintergrund": {
+            "enabled": false,
+            "autostart": false,
+            "encryptionPolicy": "notify_then_unlock",
+            "permissions": {
+              "kde_pairing": false,
+              "kde_incoming_files": false,
+              "sms_phone_notifications": false,
+              "magnolienbaum_change_offers": false,
+              "phone_monitor": false,
+              "phone_sms_notifications": false,
+              "phone_selected_notifications": false,
+              "phone_call_notifications": false,
+              "phone_personal_sync_offers": false,
+              "phone_pairing_decisions": false
+            }
+          }
+        },
+        "papierkorb": {
+          "an": true,
+          "tage": 30
+        },
+        "kalender": {
+          "klickLegtAn": true,
+          "jahrestagsartenFrei": false,
+          "kategorieFarben": [],
+          "wochenNummern": false,
+          "planerWochenNummern": false,
+          "vergangeneTermine": false,
+          "vergangeneJahrestage": false,
+          "vergangeneFerien": false,
+          "schichtplanerAn": false,
+          "zykluskalenderAn": false,
+          "urlaubsplanerAn": false,
+          "muellkalenderAn": false,
+          "gesundheitAn": true,
+          "gesundheitBereiche": {
+            "vital": true,
+            "medikamente": true,
+            "blutzucker": true,
+            "verlauf": true
+          },
+          "gesundheitEinheiten": {
+            "temperatur": "auto",
+            "gewicht": "auto",
+            "groesse": "auto",
+            "blutzucker": "auto"
+          },
+          "gesundheitPlanung": {
+            "vital": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "medikamente": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "blutzucker": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            }
+          },
+          "zyklusErinnerungen": {
+            "anzeige": false,
+            "prognose": false,
+            "abweichung": false,
+            "vorlauf": 1,
+            "abweichungTage": 7
+          }
+        }
+      },
+      "letzterSync": 0,
+      "letzteSyncs": {
+        "kalender": {},
+        "adressbuecher": {}
+      },
+      "syncStatus": {
+        "letzterVersuch": 0,
+        "letzterFehler": ""
+      },
+      "baumKontaktGeloescht": [],
+      "baumKontaktBestand": {},
+      "baumKontaktLoeschStaende": [],
+      "baumKontaktErfolgreich": {},
+      "baumKontaktAblehnungen": [],
+      "kontaktImportAblehnungen": [],
+      "personalSync": {
+        "format": 1,
+        "actor_id": "",
+        "counter": 0,
+        "custom_revision": 0,
+        "custom_entities": {},
+        "custom_auto_hash": "",
+        "entities": {},
+        "note_ids": {},
+        "note_aliases": {},
+        "notebook_ids": {},
+        "notebook_aliases": {},
+        "attachment_aliases": {},
+        "last_reports": [],
+        "applied_batches": [],
+        "last_auto_ms": 0,
+        "last_auto_hash": "",
+        "peer_device_id": "",
+        "restoration_requests": [],
+        "pending_proposals": [],
+        "applied_decisions": [],
+        "pending_decisions": []
+      },
+      "geloescht": {
+        "termine": [],
+        "kontakte": [],
+        "aufgaben": []
+      },
+      "syncEpoch": "",
+      "syncMetadaten": {
+        "syncEpoch": "",
+        "ersteSyncLoeschungsfrei": false,
+        "quarantinedDeletes": {},
+        "nextcloud": {
+          "kalender": {},
+          "adressbuecher": {},
+          "quarantinedDeletes": {},
+          "transaktionen": {}
+        },
+        "eds": {
+          "adressbuecher": {}
+        },
+        "akonadi": {
+          "bindungen": {}
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-component-priority",
+    "passed": true,
+    "book": {
+      "version": 6,
+      "termine": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": [],
+      "customOrganizer": {
+        "version": 3,
+        "modules": []
+      },
+      "zeiterfassung": {
+        "enabled": false,
+        "actor": "",
+        "counter": 0,
+        "entries": [],
+        "conflicts": {},
+        "reportName": ""
+      },
+      "notizgruppen": [
+        {
+          "id": "notizgruppe-allgemein",
+          "name": "General"
+        }
+      ],
+      "notizbuecher": [
+        {
+          "id": "notizbuch-lose-notizen",
+          "gruppeId": "notizgruppe-allgemein",
+          "name": "Loose Notes"
+        }
+      ],
+      "jahrestage": [
+        {
+          "name": "birthday-component-priority",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#ff0000",
+          "icsCalendarColor": "COLOR:blue",
+          "uid": "birthday-component-priority",
+          "icsSerienUid": "birthday-component-priority",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-MAGNOLIE-TYPE-ID:birthday",
+            "COLOR:RED",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 1795808162588,
+          "icsQuelleName": "birthday-component-priority.ics",
+          "icsQuelleId": "ics:349899635e95670821dec219aa0b84d4db80e796ee36e2819f1140a25b2529ef",
+          "id": "mwzdtafw2h3kbh",
+          "jahrUnbekannt": false,
+          "syncKalenderUid": "",
+          "syncQuellen": {}
+        }
+      ],
+      "feiertage": [],
+      "urlaube": [],
+      "muelltermine": [],
+      "papierkorb": [],
+      "personen": [],
+      "schichten": [],
+      "smsVerlauf": [],
+      "smsPlanung": [],
+      "zyklusmarker": [],
+      "tagmarken": [],
+      "gesundheit": {
+        "vitalwerte": [],
+        "blutzucker": [],
+        "medikamente": [],
+        "insulinschema": {
+          "basisAn": false,
+          "basisEinheiten": 0,
+          "festEinheiten": 0,
+          "langzeitInsulin": "",
+          "langzeitModus": "fixed",
+          "langzeitFestEinheiten": 0,
+          "langzeitRegeln": [],
+          "kurzzeitInsulin": "",
+          "kurzzeitModus": "fixed",
+          "kurzzeitFestEinheiten": 0,
+          "kurzzeitRegeln": [],
+          "hinweis": ""
+        }
+      },
+      "einstellungen": {
+        "sync": {
+          "kalenderUid": "",
+          "kalenderUids": [],
+          "adressbuchUid": "",
+          "beimStart": false,
+          "kontaktNeuereBevorzugen": false,
+          "kdeEmpfang": {
+            "dateien": false,
+            "zwischenablage": false,
+            "zwischenablageAutomatisch": false,
+            "ordnerBeiAnnahme": false,
+            "geraetId": "",
+            "ordner": ""
+          },
+          "erfolgsmeldungen": false,
+          "timeDirections": {}
+        },
+        "ort": {
+          "land": "",
+          "landName": "",
+          "region": "",
+          "regionName": "",
+          "alleRegionen": false,
+          "feiertage": true,
+          "ferien": true,
+          "abgerufen": 0,
+          "jahre": [],
+          "setupFerienAbruf": false
+        },
+        "allgemein": {
+          "drucken": true,
+          "hilfsrahmen": false,
+          "kalenderAuswahl": false,
+          "wetter": false,
+          "wetterDarstellung": "temperature",
+          "wetterIntervall": 180,
+          "wetterOhneOrtAbrufen": true,
+          "sicherungsordner": "",
+          "wiederherstellungsintervall": "weekly",
+          "cloudSicherung": {
+            "aktiv": false,
+            "intervall": "daily",
+            "aufbewahrung": 7,
+            "letzterErfolg": "",
+            "status": ""
+          },
+          "wiederherstellungsaufbewahrung": "days",
+          "wiederherstellungsanzahl": 20,
+          "wiederherstellungstage": 3650,
+          "wiederherstellungsstatus": "",
+          "handbuchHinweisGezeigt": false,
+          "kontaktErsteinrichtungVersion": 1,
+          "notizAnhangHoehe": 200,
+          "contributorFreigeschaltet": false,
+          "customTab": {
+            "enabled": false,
+            "name": "",
+            "designRequested": false
+          },
+          "registerkarten": {
+            "aufgaben": true,
+            "adressen": true,
+            "notizen": true,
+            "jahrestage": true,
+            "planer": true,
+            "gesundheit": true
+          },
+          "tray": {
+            "aktiv": false,
+            "minimierenInTray": true,
+            "schliessenInTray": true,
+            "startMinimiert": false,
+            "autostart": false,
+            "zaehler": false,
+            "telefonWlanVerbinden": true,
+            "oeffnen": "previous"
+          },
+          "wiederherstellungsmodus": "weekly",
+          "wiederherstellungsminuten": 30,
+          "entwicklermodus": false
+        },
+        "update": {
+          "automatisch": true,
+          "letztePruefung": 0,
+          "letzteVersion": "",
+          "letzteUrl": "",
+          "letztePruefsumme": "",
+          "letzterFehler": ""
+        },
+        "regional": {
+          "language": "en",
+          "formatLocale": "de-DE",
+          "hourCycle": "h23",
+          "firstDayOfWeek": "monday",
+          "weekRule": "iso",
+          "temperatureUnit": "celsius",
+          "timeZone": "UTC",
+          "homeCountry": "DE",
+          "timeZoneManagement": "off",
+          "timeZoneDetection": "auto",
+          "timeZoneManual": "system",
+          "timeZoneDetectedSource": "manual",
+          "timeZoneDetectedAt": "0",
+          "timeZoneCalendarDisplay": "own",
+          "timeZoneTaskDisplay": "own"
+        },
+        "schrift": {
+          "art": "regular",
+          "farbe": "black",
+          "groesse": "normal",
+          "rechtschreibung": true,
+          "linien": true,
+          "radRichtung": "up-earlier"
+        },
+        "ansicht": "week",
+        "erinnerung": {
+          "an": true,
+          "vorlauf": 15,
+          "art": "both",
+          "verpasste": true,
+          "wecken": false,
+          "stil": "magnolie",
+          "jahrestage": {
+            "an": true,
+            "tage": 1,
+            "amTag": true,
+            "stunde": 8,
+            "autoAusblenden": false
+          },
+          "protokoll": false,
+          "protokollVoreinstellung": 1
+        },
+        "adressen": {
+          "absender": "",
+          "karten": "auto",
+          "land": "Deutschland",
+          "landCode": "DE",
+          "sortierung": "last-name",
+          "brief": true,
+          "karte": true,
+          "route": false,
+          "foto": true,
+          "fotoVoreinstellung": 1,
+          "briefLayout": "din5008-b",
+          "briefLayoutVoreinstellung": 3,
+          "sozialeSymbole": true,
+          "smsBenachrichtigungDauer": 60,
+          "smsSchedulingEnabled": false,
+          "gruppenAusschluss": {
+            "enabled": false,
+            "notifications": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "anniversaries": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "overview": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": [],
+              "calendar": false
+            },
+            "print": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            }
+          },
+          "kommunikation": {
+            "sms": {
+              "art": "kde",
+              "programm": ""
+            },
+            "anruf": {
+              "art": "magnolie",
+              "programm": "",
+              "eingehendBenachrichtigen": true,
+              "computerTelefonie": true,
+              "klingeltonLeiser": false,
+              "echoCancel": false,
+              "hfpAdresse": "",
+              "preferPcAudio": true
+            }
+          },
+          "personengruppenAn": false,
+          "eigenesProfilAn": true,
+          "routeFestgelegt": false
+        },
+        "versand": {
+          "enabled": false,
+          "faxServer": ""
+        },
+        "sicherheit": {
+          "erinnernTrotzKennwort": false,
+          "vertraulicheErinnerungen": false,
+          "hintergrund": {
+            "enabled": false,
+            "autostart": false,
+            "encryptionPolicy": "notify_then_unlock",
+            "permissions": {
+              "kde_pairing": false,
+              "kde_incoming_files": false,
+              "sms_phone_notifications": false,
+              "magnolienbaum_change_offers": false,
+              "phone_monitor": false,
+              "phone_sms_notifications": false,
+              "phone_selected_notifications": false,
+              "phone_call_notifications": false,
+              "phone_personal_sync_offers": false,
+              "phone_pairing_decisions": false
+            }
+          }
+        },
+        "papierkorb": {
+          "an": true,
+          "tage": 30
+        },
+        "kalender": {
+          "klickLegtAn": true,
+          "jahrestagsartenFrei": false,
+          "kategorieFarben": [],
+          "wochenNummern": false,
+          "planerWochenNummern": false,
+          "vergangeneTermine": false,
+          "vergangeneJahrestage": false,
+          "vergangeneFerien": false,
+          "schichtplanerAn": false,
+          "zykluskalenderAn": false,
+          "urlaubsplanerAn": false,
+          "muellkalenderAn": false,
+          "gesundheitAn": true,
+          "gesundheitBereiche": {
+            "vital": true,
+            "medikamente": true,
+            "blutzucker": true,
+            "verlauf": true
+          },
+          "gesundheitEinheiten": {
+            "temperatur": "auto",
+            "gewicht": "auto",
+            "groesse": "auto",
+            "blutzucker": "auto"
+          },
+          "gesundheitPlanung": {
+            "vital": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "medikamente": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "blutzucker": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            }
+          },
+          "zyklusErinnerungen": {
+            "anzeige": false,
+            "prognose": false,
+            "abweichung": false,
+            "vorlauf": 1,
+            "abweichungTage": 7
+          }
+        }
+      },
+      "letzterSync": 0,
+      "letzteSyncs": {
+        "kalender": {},
+        "adressbuecher": {}
+      },
+      "syncStatus": {
+        "letzterVersuch": 0,
+        "letzterFehler": ""
+      },
+      "baumKontaktGeloescht": [],
+      "baumKontaktBestand": {},
+      "baumKontaktLoeschStaende": [],
+      "baumKontaktErfolgreich": {},
+      "baumKontaktAblehnungen": [],
+      "kontaktImportAblehnungen": [],
+      "personalSync": {
+        "format": 1,
+        "actor_id": "",
+        "counter": 0,
+        "custom_revision": 0,
+        "custom_entities": {},
+        "custom_auto_hash": "",
+        "entities": {},
+        "note_ids": {},
+        "note_aliases": {},
+        "notebook_ids": {},
+        "notebook_aliases": {},
+        "attachment_aliases": {},
+        "last_reports": [],
+        "applied_batches": [],
+        "last_auto_ms": 0,
+        "last_auto_hash": "",
+        "peer_device_id": "",
+        "restoration_requests": [],
+        "pending_proposals": [],
+        "applied_decisions": [],
+        "pending_decisions": []
+      },
+      "geloescht": {
+        "termine": [],
+        "kontakte": [],
+        "aufgaben": []
+      },
+      "syncEpoch": "",
+      "syncMetadaten": {
+        "syncEpoch": "",
+        "ersteSyncLoeschungsfrei": false,
+        "quarantinedDeletes": {},
+        "nextcloud": {
+          "kalender": {},
+          "adressbuecher": {},
+          "quarantinedDeletes": {},
+          "transaktionen": {}
+        },
+        "eds": {
+          "adressbuecher": {}
+        },
+        "akonadi": {
+          "bindungen": {}
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-partial-leap",
+    "passed": true,
+    "book": {
+      "version": 6,
+      "termine": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": [],
+      "customOrganizer": {
+        "version": 3,
+        "modules": []
+      },
+      "zeiterfassung": {
+        "enabled": false,
+        "actor": "",
+        "counter": 0,
+        "entries": [],
+        "conflicts": {},
+        "reportName": ""
+      },
+      "notizgruppen": [
+        {
+          "id": "notizgruppe-allgemein",
+          "name": "General"
+        }
+      ],
+      "notizbuecher": [
+        {
+          "id": "notizbuch-lose-notizen",
+          "gruppeId": "notizgruppe-allgemein",
+          "name": "Loose Notes"
+        }
+      ],
+      "jahrestage": [
+        {
+          "name": "birthday-partial-leap",
+          "datum": "--02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#40e0d0",
+          "icsCalendarColor": "COLOR:turquoise",
+          "uid": "birthday-partial-leap",
+          "icsSerienUid": "birthday-partial-leap",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-MAGNOLIE-TYPE-ID:birthday",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 1795808162911,
+          "icsQuelleName": "birthday-partial-leap.ics",
+          "icsQuelleId": "ics:676424b1f3765f7acb4fd8cc2a40d8ab901bf914c3b7bd4bb1237723121eec1d",
+          "id": "mwzdtaoveuhxan",
+          "jahrUnbekannt": true,
+          "syncKalenderUid": "",
+          "syncQuellen": {}
+        }
+      ],
+      "feiertage": [],
+      "urlaube": [],
+      "muelltermine": [],
+      "papierkorb": [],
+      "personen": [],
+      "schichten": [],
+      "smsVerlauf": [],
+      "smsPlanung": [],
+      "zyklusmarker": [],
+      "tagmarken": [],
+      "gesundheit": {
+        "vitalwerte": [],
+        "blutzucker": [],
+        "medikamente": [],
+        "insulinschema": {
+          "basisAn": false,
+          "basisEinheiten": 0,
+          "festEinheiten": 0,
+          "langzeitInsulin": "",
+          "langzeitModus": "fixed",
+          "langzeitFestEinheiten": 0,
+          "langzeitRegeln": [],
+          "kurzzeitInsulin": "",
+          "kurzzeitModus": "fixed",
+          "kurzzeitFestEinheiten": 0,
+          "kurzzeitRegeln": [],
+          "hinweis": ""
+        }
+      },
+      "einstellungen": {
+        "sync": {
+          "kalenderUid": "",
+          "kalenderUids": [],
+          "adressbuchUid": "",
+          "beimStart": false,
+          "kontaktNeuereBevorzugen": false,
+          "kdeEmpfang": {
+            "dateien": false,
+            "zwischenablage": false,
+            "zwischenablageAutomatisch": false,
+            "ordnerBeiAnnahme": false,
+            "geraetId": "",
+            "ordner": ""
+          },
+          "erfolgsmeldungen": false,
+          "timeDirections": {}
+        },
+        "ort": {
+          "land": "",
+          "landName": "",
+          "region": "",
+          "regionName": "",
+          "alleRegionen": false,
+          "feiertage": true,
+          "ferien": true,
+          "abgerufen": 0,
+          "jahre": [],
+          "setupFerienAbruf": false
+        },
+        "allgemein": {
+          "drucken": true,
+          "hilfsrahmen": false,
+          "kalenderAuswahl": false,
+          "wetter": false,
+          "wetterDarstellung": "temperature",
+          "wetterIntervall": 180,
+          "wetterOhneOrtAbrufen": true,
+          "sicherungsordner": "",
+          "wiederherstellungsintervall": "weekly",
+          "cloudSicherung": {
+            "aktiv": false,
+            "intervall": "daily",
+            "aufbewahrung": 7,
+            "letzterErfolg": "",
+            "status": ""
+          },
+          "wiederherstellungsaufbewahrung": "days",
+          "wiederherstellungsanzahl": 20,
+          "wiederherstellungstage": 3650,
+          "wiederherstellungsstatus": "",
+          "handbuchHinweisGezeigt": false,
+          "kontaktErsteinrichtungVersion": 1,
+          "notizAnhangHoehe": 200,
+          "contributorFreigeschaltet": false,
+          "customTab": {
+            "enabled": false,
+            "name": "",
+            "designRequested": false
+          },
+          "registerkarten": {
+            "aufgaben": true,
+            "adressen": true,
+            "notizen": true,
+            "jahrestage": true,
+            "planer": true,
+            "gesundheit": true
+          },
+          "tray": {
+            "aktiv": false,
+            "minimierenInTray": true,
+            "schliessenInTray": true,
+            "startMinimiert": false,
+            "autostart": false,
+            "zaehler": false,
+            "telefonWlanVerbinden": true,
+            "oeffnen": "previous"
+          },
+          "wiederherstellungsmodus": "weekly",
+          "wiederherstellungsminuten": 30,
+          "entwicklermodus": false
+        },
+        "update": {
+          "automatisch": true,
+          "letztePruefung": 0,
+          "letzteVersion": "",
+          "letzteUrl": "",
+          "letztePruefsumme": "",
+          "letzterFehler": ""
+        },
+        "regional": {
+          "language": "en",
+          "formatLocale": "de-DE",
+          "hourCycle": "h23",
+          "firstDayOfWeek": "monday",
+          "weekRule": "iso",
+          "temperatureUnit": "celsius",
+          "timeZone": "UTC",
+          "homeCountry": "DE",
+          "timeZoneManagement": "off",
+          "timeZoneDetection": "auto",
+          "timeZoneManual": "system",
+          "timeZoneDetectedSource": "manual",
+          "timeZoneDetectedAt": "0",
+          "timeZoneCalendarDisplay": "own",
+          "timeZoneTaskDisplay": "own"
+        },
+        "schrift": {
+          "art": "regular",
+          "farbe": "black",
+          "groesse": "normal",
+          "rechtschreibung": true,
+          "linien": true,
+          "radRichtung": "up-earlier"
+        },
+        "ansicht": "week",
+        "erinnerung": {
+          "an": true,
+          "vorlauf": 15,
+          "art": "both",
+          "verpasste": true,
+          "wecken": false,
+          "stil": "magnolie",
+          "jahrestage": {
+            "an": true,
+            "tage": 1,
+            "amTag": true,
+            "stunde": 8,
+            "autoAusblenden": false
+          },
+          "protokoll": false,
+          "protokollVoreinstellung": 1
+        },
+        "adressen": {
+          "absender": "",
+          "karten": "auto",
+          "land": "Deutschland",
+          "landCode": "DE",
+          "sortierung": "last-name",
+          "brief": true,
+          "karte": true,
+          "route": false,
+          "foto": true,
+          "fotoVoreinstellung": 1,
+          "briefLayout": "din5008-b",
+          "briefLayoutVoreinstellung": 3,
+          "sozialeSymbole": true,
+          "smsBenachrichtigungDauer": 60,
+          "smsSchedulingEnabled": false,
+          "gruppenAusschluss": {
+            "enabled": false,
+            "notifications": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "anniversaries": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "overview": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": [],
+              "calendar": false
+            },
+            "print": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            }
+          },
+          "kommunikation": {
+            "sms": {
+              "art": "kde",
+              "programm": ""
+            },
+            "anruf": {
+              "art": "magnolie",
+              "programm": "",
+              "eingehendBenachrichtigen": true,
+              "computerTelefonie": true,
+              "klingeltonLeiser": false,
+              "echoCancel": false,
+              "hfpAdresse": "",
+              "preferPcAudio": true
+            }
+          },
+          "personengruppenAn": false,
+          "eigenesProfilAn": true,
+          "routeFestgelegt": false
+        },
+        "versand": {
+          "enabled": false,
+          "faxServer": ""
+        },
+        "sicherheit": {
+          "erinnernTrotzKennwort": false,
+          "vertraulicheErinnerungen": false,
+          "hintergrund": {
+            "enabled": false,
+            "autostart": false,
+            "encryptionPolicy": "notify_then_unlock",
+            "permissions": {
+              "kde_pairing": false,
+              "kde_incoming_files": false,
+              "sms_phone_notifications": false,
+              "magnolienbaum_change_offers": false,
+              "phone_monitor": false,
+              "phone_sms_notifications": false,
+              "phone_selected_notifications": false,
+              "phone_call_notifications": false,
+              "phone_personal_sync_offers": false,
+              "phone_pairing_decisions": false
+            }
+          }
+        },
+        "papierkorb": {
+          "an": true,
+          "tage": 30
+        },
+        "kalender": {
+          "klickLegtAn": true,
+          "jahrestagsartenFrei": false,
+          "kategorieFarben": [],
+          "wochenNummern": false,
+          "planerWochenNummern": false,
+          "vergangeneTermine": false,
+          "vergangeneJahrestage": false,
+          "vergangeneFerien": false,
+          "schichtplanerAn": false,
+          "zykluskalenderAn": false,
+          "urlaubsplanerAn": false,
+          "muellkalenderAn": false,
+          "gesundheitAn": true,
+          "gesundheitBereiche": {
+            "vital": true,
+            "medikamente": true,
+            "blutzucker": true,
+            "verlauf": true
+          },
+          "gesundheitEinheiten": {
+            "temperatur": "auto",
+            "gewicht": "auto",
+            "groesse": "auto",
+            "blutzucker": "auto"
+          },
+          "gesundheitPlanung": {
+            "vital": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "medikamente": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "blutzucker": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            }
+          },
+          "zyklusErinnerungen": {
+            "anzeige": false,
+            "prognose": false,
+            "abweichung": false,
+            "vorlauf": 1,
+            "abweichungTage": 7
+          }
+        }
+      },
+      "letzterSync": 0,
+      "letzteSyncs": {
+        "kalender": {},
+        "adressbuecher": {}
+      },
+      "syncStatus": {
+        "letzterVersuch": 0,
+        "letzterFehler": ""
+      },
+      "baumKontaktGeloescht": [],
+      "baumKontaktBestand": {},
+      "baumKontaktLoeschStaende": [],
+      "baumKontaktErfolgreich": {},
+      "baumKontaktAblehnungen": [],
+      "kontaktImportAblehnungen": [],
+      "personalSync": {
+        "format": 1,
+        "actor_id": "",
+        "counter": 0,
+        "custom_revision": 0,
+        "custom_entities": {},
+        "custom_auto_hash": "",
+        "entities": {},
+        "note_ids": {},
+        "note_aliases": {},
+        "notebook_ids": {},
+        "notebook_aliases": {},
+        "attachment_aliases": {},
+        "last_reports": [],
+        "applied_batches": [],
+        "last_auto_ms": 0,
+        "last_auto_hash": "",
+        "peer_device_id": "",
+        "restoration_requests": [],
+        "pending_proposals": [],
+        "applied_decisions": [],
+        "pending_decisions": []
+      },
+      "geloescht": {
+        "termine": [],
+        "kontakte": [],
+        "aufgaben": []
+      },
+      "syncEpoch": "",
+      "syncMetadaten": {
+        "syncEpoch": "",
+        "ersteSyncLoeschungsfrei": false,
+        "quarantinedDeletes": {},
+        "nextcloud": {
+          "kalender": {},
+          "adressbuecher": {},
+          "quarantinedDeletes": {},
+          "transaktionen": {}
+        },
+        "eds": {
+          "adressbuecher": {}
+        },
+        "akonadi": {
+          "bindungen": {}
+        }
+      }
+    }
+  },
+  {
+    "id": "anniversary-wedding",
+    "passed": true,
+    "book": {
+      "version": 6,
+      "termine": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": [],
+      "customOrganizer": {
+        "version": 3,
+        "modules": []
+      },
+      "zeiterfassung": {
+        "enabled": false,
+        "actor": "",
+        "counter": 0,
+        "entries": [],
+        "conflicts": {},
+        "reportName": ""
+      },
+      "notizgruppen": [
+        {
+          "id": "notizgruppe-allgemein",
+          "name": "General"
+        }
+      ],
+      "notizbuecher": [
+        {
+          "id": "notizbuch-lose-notizen",
+          "gruppeId": "notizgruppe-allgemein",
+          "name": "Loose Notes"
+        }
+      ],
+      "jahrestage": [
+        {
+          "name": "anniversary-wedding",
+          "datum": "2000-02-29",
+          "typ": "wedding-anniversary",
+          "akzentFarbe": "#40e0d0",
+          "icsCalendarColor": "",
+          "uid": "anniversary-wedding",
+          "icsSerienUid": "anniversary-wedding",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-MAGNOLIE-TYPE-ID:wedding-anniversary",
+            "COLOR:turquoise",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 1795808163221,
+          "icsQuelleName": "anniversary-wedding.ics",
+          "icsQuelleId": "ics:79cc117e06653e86a9e45706cfc69002758391a9e8d3ac9a957ae7722368a9ad",
+          "id": "mwzdtaxhsg805f",
+          "jahrUnbekannt": false,
+          "syncKalenderUid": "",
+          "syncQuellen": {}
+        }
+      ],
+      "feiertage": [],
+      "urlaube": [],
+      "muelltermine": [],
+      "papierkorb": [],
+      "personen": [],
+      "schichten": [],
+      "smsVerlauf": [],
+      "smsPlanung": [],
+      "zyklusmarker": [],
+      "tagmarken": [],
+      "gesundheit": {
+        "vitalwerte": [],
+        "blutzucker": [],
+        "medikamente": [],
+        "insulinschema": {
+          "basisAn": false,
+          "basisEinheiten": 0,
+          "festEinheiten": 0,
+          "langzeitInsulin": "",
+          "langzeitModus": "fixed",
+          "langzeitFestEinheiten": 0,
+          "langzeitRegeln": [],
+          "kurzzeitInsulin": "",
+          "kurzzeitModus": "fixed",
+          "kurzzeitFestEinheiten": 0,
+          "kurzzeitRegeln": [],
+          "hinweis": ""
+        }
+      },
+      "einstellungen": {
+        "sync": {
+          "kalenderUid": "",
+          "kalenderUids": [],
+          "adressbuchUid": "",
+          "beimStart": false,
+          "kontaktNeuereBevorzugen": false,
+          "kdeEmpfang": {
+            "dateien": false,
+            "zwischenablage": false,
+            "zwischenablageAutomatisch": false,
+            "ordnerBeiAnnahme": false,
+            "geraetId": "",
+            "ordner": ""
+          },
+          "erfolgsmeldungen": false,
+          "timeDirections": {}
+        },
+        "ort": {
+          "land": "",
+          "landName": "",
+          "region": "",
+          "regionName": "",
+          "alleRegionen": false,
+          "feiertage": true,
+          "ferien": true,
+          "abgerufen": 0,
+          "jahre": [],
+          "setupFerienAbruf": false
+        },
+        "allgemein": {
+          "drucken": true,
+          "hilfsrahmen": false,
+          "kalenderAuswahl": false,
+          "wetter": false,
+          "wetterDarstellung": "temperature",
+          "wetterIntervall": 180,
+          "wetterOhneOrtAbrufen": true,
+          "sicherungsordner": "",
+          "wiederherstellungsintervall": "weekly",
+          "cloudSicherung": {
+            "aktiv": false,
+            "intervall": "daily",
+            "aufbewahrung": 7,
+            "letzterErfolg": "",
+            "status": ""
+          },
+          "wiederherstellungsaufbewahrung": "days",
+          "wiederherstellungsanzahl": 20,
+          "wiederherstellungstage": 3650,
+          "wiederherstellungsstatus": "",
+          "handbuchHinweisGezeigt": false,
+          "kontaktErsteinrichtungVersion": 1,
+          "notizAnhangHoehe": 200,
+          "contributorFreigeschaltet": false,
+          "customTab": {
+            "enabled": false,
+            "name": "",
+            "designRequested": false
+          },
+          "registerkarten": {
+            "aufgaben": true,
+            "adressen": true,
+            "notizen": true,
+            "jahrestage": true,
+            "planer": true,
+            "gesundheit": true
+          },
+          "tray": {
+            "aktiv": false,
+            "minimierenInTray": true,
+            "schliessenInTray": true,
+            "startMinimiert": false,
+            "autostart": false,
+            "zaehler": false,
+            "telefonWlanVerbinden": true,
+            "oeffnen": "previous"
+          },
+          "wiederherstellungsmodus": "weekly",
+          "wiederherstellungsminuten": 30,
+          "entwicklermodus": false
+        },
+        "update": {
+          "automatisch": true,
+          "letztePruefung": 0,
+          "letzteVersion": "",
+          "letzteUrl": "",
+          "letztePruefsumme": "",
+          "letzterFehler": ""
+        },
+        "regional": {
+          "language": "en",
+          "formatLocale": "de-DE",
+          "hourCycle": "h23",
+          "firstDayOfWeek": "monday",
+          "weekRule": "iso",
+          "temperatureUnit": "celsius",
+          "timeZone": "UTC",
+          "homeCountry": "DE",
+          "timeZoneManagement": "off",
+          "timeZoneDetection": "auto",
+          "timeZoneManual": "system",
+          "timeZoneDetectedSource": "manual",
+          "timeZoneDetectedAt": "0",
+          "timeZoneCalendarDisplay": "own",
+          "timeZoneTaskDisplay": "own"
+        },
+        "schrift": {
+          "art": "regular",
+          "farbe": "black",
+          "groesse": "normal",
+          "rechtschreibung": true,
+          "linien": true,
+          "radRichtung": "up-earlier"
+        },
+        "ansicht": "week",
+        "erinnerung": {
+          "an": true,
+          "vorlauf": 15,
+          "art": "both",
+          "verpasste": true,
+          "wecken": false,
+          "stil": "magnolie",
+          "jahrestage": {
+            "an": true,
+            "tage": 1,
+            "amTag": true,
+            "stunde": 8,
+            "autoAusblenden": false
+          },
+          "protokoll": false,
+          "protokollVoreinstellung": 1
+        },
+        "adressen": {
+          "absender": "",
+          "karten": "auto",
+          "land": "Deutschland",
+          "landCode": "DE",
+          "sortierung": "last-name",
+          "brief": true,
+          "karte": true,
+          "route": false,
+          "foto": true,
+          "fotoVoreinstellung": 1,
+          "briefLayout": "din5008-b",
+          "briefLayoutVoreinstellung": 3,
+          "sozialeSymbole": true,
+          "smsBenachrichtigungDauer": 60,
+          "smsSchedulingEnabled": false,
+          "gruppenAusschluss": {
+            "enabled": false,
+            "notifications": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "anniversaries": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "overview": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": [],
+              "calendar": false
+            },
+            "print": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            }
+          },
+          "kommunikation": {
+            "sms": {
+              "art": "kde",
+              "programm": ""
+            },
+            "anruf": {
+              "art": "magnolie",
+              "programm": "",
+              "eingehendBenachrichtigen": true,
+              "computerTelefonie": true,
+              "klingeltonLeiser": false,
+              "echoCancel": false,
+              "hfpAdresse": "",
+              "preferPcAudio": true
+            }
+          },
+          "personengruppenAn": false,
+          "eigenesProfilAn": true,
+          "routeFestgelegt": false
+        },
+        "versand": {
+          "enabled": false,
+          "faxServer": ""
+        },
+        "sicherheit": {
+          "erinnernTrotzKennwort": false,
+          "vertraulicheErinnerungen": false,
+          "hintergrund": {
+            "enabled": false,
+            "autostart": false,
+            "encryptionPolicy": "notify_then_unlock",
+            "permissions": {
+              "kde_pairing": false,
+              "kde_incoming_files": false,
+              "sms_phone_notifications": false,
+              "magnolienbaum_change_offers": false,
+              "phone_monitor": false,
+              "phone_sms_notifications": false,
+              "phone_selected_notifications": false,
+              "phone_call_notifications": false,
+              "phone_personal_sync_offers": false,
+              "phone_pairing_decisions": false
+            }
+          }
+        },
+        "papierkorb": {
+          "an": true,
+          "tage": 30
+        },
+        "kalender": {
+          "klickLegtAn": true,
+          "jahrestagsartenFrei": false,
+          "kategorieFarben": [],
+          "wochenNummern": false,
+          "planerWochenNummern": false,
+          "vergangeneTermine": false,
+          "vergangeneJahrestage": false,
+          "vergangeneFerien": false,
+          "schichtplanerAn": false,
+          "zykluskalenderAn": false,
+          "urlaubsplanerAn": false,
+          "muellkalenderAn": false,
+          "gesundheitAn": true,
+          "gesundheitBereiche": {
+            "vital": true,
+            "medikamente": true,
+            "blutzucker": true,
+            "verlauf": true
+          },
+          "gesundheitEinheiten": {
+            "temperatur": "auto",
+            "gewicht": "auto",
+            "groesse": "auto",
+            "blutzucker": "auto"
+          },
+          "gesundheitPlanung": {
+            "vital": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "medikamente": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "blutzucker": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            }
+          },
+          "zyklusErinnerungen": {
+            "anzeige": false,
+            "prognose": false,
+            "abweichung": false,
+            "vorlauf": 1,
+            "abweichungTage": 7
+          }
+        }
+      },
+      "letzterSync": 0,
+      "letzteSyncs": {
+        "kalender": {},
+        "adressbuecher": {}
+      },
+      "syncStatus": {
+        "letzterVersuch": 0,
+        "letzterFehler": ""
+      },
+      "baumKontaktGeloescht": [],
+      "baumKontaktBestand": {},
+      "baumKontaktLoeschStaende": [],
+      "baumKontaktErfolgreich": {},
+      "baumKontaktAblehnungen": [],
+      "kontaktImportAblehnungen": [],
+      "personalSync": {
+        "format": 1,
+        "actor_id": "",
+        "counter": 0,
+        "custom_revision": 0,
+        "custom_entities": {},
+        "custom_auto_hash": "",
+        "entities": {},
+        "note_ids": {},
+        "note_aliases": {},
+        "notebook_ids": {},
+        "notebook_aliases": {},
+        "attachment_aliases": {},
+        "last_reports": [],
+        "applied_batches": [],
+        "last_auto_ms": 0,
+        "last_auto_hash": "",
+        "peer_device_id": "",
+        "restoration_requests": [],
+        "pending_proposals": [],
+        "applied_decisions": [],
+        "pending_decisions": []
+      },
+      "geloescht": {
+        "termine": [],
+        "kontakte": [],
+        "aufgaben": []
+      },
+      "syncEpoch": "",
+      "syncMetadaten": {
+        "syncEpoch": "",
+        "ersteSyncLoeschungsfrei": false,
+        "quarantinedDeletes": {},
+        "nextcloud": {
+          "kalender": {},
+          "adressbuecher": {},
+          "quarantinedDeletes": {},
+          "transaktionen": {}
+        },
+        "eds": {
+          "adressbuecher": {}
+        },
+        "akonadi": {
+          "bindungen": {}
+        }
+      }
+    }
+  },
+  {
+    "id": "jahrestage-parameter-own",
+    "passed": true,
+    "book": {
+      "version": 6,
+      "termine": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": [],
+      "customOrganizer": {
+        "version": 3,
+        "modules": []
+      },
+      "zeiterfassung": {
+        "enabled": false,
+        "actor": "",
+        "counter": 0,
+        "entries": [],
+        "conflicts": {},
+        "reportName": ""
+      },
+      "notizgruppen": [
+        {
+          "id": "notizgruppe-allgemein",
+          "name": "General"
+        }
+      ],
+      "notizbuecher": [
+        {
+          "id": "notizbuch-lose-notizen",
+          "gruppeId": "notizgruppe-allgemein",
+          "name": "Loose Notes"
+        }
+      ],
+      "jahrestage": [
+        {
+          "name": "jahrestage-parameter-own",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#112233",
+          "icsCalendarColor": "",
+          "uid": "jahrestage-parameter-own",
+          "icsSerienUid": "jahrestage-parameter-own",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-MAGNOLIE-TYPE-ID:birthday",
+            "COLOR;X-SOURCE=owned-synthetic:red",
+            "X-MAGNOLIE-ACCENT-COLOR:#112233",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 1795808163533,
+          "icsQuelleName": "jahrestage-parameter-own.ics",
+          "icsQuelleId": "ics:374f69c05d005cc987fd13eb7202979aef4e1bd0526679e85725ce99c5497531",
+          "id": "mwzdtb657ca04s",
+          "jahrUnbekannt": false,
+          "syncKalenderUid": "",
+          "syncQuellen": {}
+        }
+      ],
+      "feiertage": [],
+      "urlaube": [],
+      "muelltermine": [],
+      "papierkorb": [],
+      "personen": [],
+      "schichten": [],
+      "smsVerlauf": [],
+      "smsPlanung": [],
+      "zyklusmarker": [],
+      "tagmarken": [],
+      "gesundheit": {
+        "vitalwerte": [],
+        "blutzucker": [],
+        "medikamente": [],
+        "insulinschema": {
+          "basisAn": false,
+          "basisEinheiten": 0,
+          "festEinheiten": 0,
+          "langzeitInsulin": "",
+          "langzeitModus": "fixed",
+          "langzeitFestEinheiten": 0,
+          "langzeitRegeln": [],
+          "kurzzeitInsulin": "",
+          "kurzzeitModus": "fixed",
+          "kurzzeitFestEinheiten": 0,
+          "kurzzeitRegeln": [],
+          "hinweis": ""
+        }
+      },
+      "einstellungen": {
+        "sync": {
+          "kalenderUid": "",
+          "kalenderUids": [],
+          "adressbuchUid": "",
+          "beimStart": false,
+          "kontaktNeuereBevorzugen": false,
+          "kdeEmpfang": {
+            "dateien": false,
+            "zwischenablage": false,
+            "zwischenablageAutomatisch": false,
+            "ordnerBeiAnnahme": false,
+            "geraetId": "",
+            "ordner": ""
+          },
+          "erfolgsmeldungen": false,
+          "timeDirections": {}
+        },
+        "ort": {
+          "land": "",
+          "landName": "",
+          "region": "",
+          "regionName": "",
+          "alleRegionen": false,
+          "feiertage": true,
+          "ferien": true,
+          "abgerufen": 0,
+          "jahre": [],
+          "setupFerienAbruf": false
+        },
+        "allgemein": {
+          "drucken": true,
+          "hilfsrahmen": false,
+          "kalenderAuswahl": false,
+          "wetter": false,
+          "wetterDarstellung": "temperature",
+          "wetterIntervall": 180,
+          "wetterOhneOrtAbrufen": true,
+          "sicherungsordner": "",
+          "wiederherstellungsintervall": "weekly",
+          "cloudSicherung": {
+            "aktiv": false,
+            "intervall": "daily",
+            "aufbewahrung": 7,
+            "letzterErfolg": "",
+            "status": ""
+          },
+          "wiederherstellungsaufbewahrung": "days",
+          "wiederherstellungsanzahl": 20,
+          "wiederherstellungstage": 3650,
+          "wiederherstellungsstatus": "",
+          "handbuchHinweisGezeigt": false,
+          "kontaktErsteinrichtungVersion": 1,
+          "notizAnhangHoehe": 200,
+          "contributorFreigeschaltet": false,
+          "customTab": {
+            "enabled": false,
+            "name": "",
+            "designRequested": false
+          },
+          "registerkarten": {
+            "aufgaben": true,
+            "adressen": true,
+            "notizen": true,
+            "jahrestage": true,
+            "planer": true,
+            "gesundheit": true
+          },
+          "tray": {
+            "aktiv": false,
+            "minimierenInTray": true,
+            "schliessenInTray": true,
+            "startMinimiert": false,
+            "autostart": false,
+            "zaehler": false,
+            "telefonWlanVerbinden": true,
+            "oeffnen": "previous"
+          },
+          "wiederherstellungsmodus": "weekly",
+          "wiederherstellungsminuten": 30,
+          "entwicklermodus": false
+        },
+        "update": {
+          "automatisch": true,
+          "letztePruefung": 0,
+          "letzteVersion": "",
+          "letzteUrl": "",
+          "letztePruefsumme": "",
+          "letzterFehler": ""
+        },
+        "regional": {
+          "language": "en",
+          "formatLocale": "de-DE",
+          "hourCycle": "h23",
+          "firstDayOfWeek": "monday",
+          "weekRule": "iso",
+          "temperatureUnit": "celsius",
+          "timeZone": "UTC",
+          "homeCountry": "DE",
+          "timeZoneManagement": "off",
+          "timeZoneDetection": "auto",
+          "timeZoneManual": "system",
+          "timeZoneDetectedSource": "manual",
+          "timeZoneDetectedAt": "0",
+          "timeZoneCalendarDisplay": "own",
+          "timeZoneTaskDisplay": "own"
+        },
+        "schrift": {
+          "art": "regular",
+          "farbe": "black",
+          "groesse": "normal",
+          "rechtschreibung": true,
+          "linien": true,
+          "radRichtung": "up-earlier"
+        },
+        "ansicht": "week",
+        "erinnerung": {
+          "an": true,
+          "vorlauf": 15,
+          "art": "both",
+          "verpasste": true,
+          "wecken": false,
+          "stil": "magnolie",
+          "jahrestage": {
+            "an": true,
+            "tage": 1,
+            "amTag": true,
+            "stunde": 8,
+            "autoAusblenden": false
+          },
+          "protokoll": false,
+          "protokollVoreinstellung": 1
+        },
+        "adressen": {
+          "absender": "",
+          "karten": "auto",
+          "land": "Deutschland",
+          "landCode": "DE",
+          "sortierung": "last-name",
+          "brief": true,
+          "karte": true,
+          "route": false,
+          "foto": true,
+          "fotoVoreinstellung": 1,
+          "briefLayout": "din5008-b",
+          "briefLayoutVoreinstellung": 3,
+          "sozialeSymbole": true,
+          "smsBenachrichtigungDauer": 60,
+          "smsSchedulingEnabled": false,
+          "gruppenAusschluss": {
+            "enabled": false,
+            "notifications": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "anniversaries": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "overview": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": [],
+              "calendar": false
+            },
+            "print": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            }
+          },
+          "kommunikation": {
+            "sms": {
+              "art": "kde",
+              "programm": ""
+            },
+            "anruf": {
+              "art": "magnolie",
+              "programm": "",
+              "eingehendBenachrichtigen": true,
+              "computerTelefonie": true,
+              "klingeltonLeiser": false,
+              "echoCancel": false,
+              "hfpAdresse": "",
+              "preferPcAudio": true
+            }
+          },
+          "personengruppenAn": false,
+          "eigenesProfilAn": true,
+          "routeFestgelegt": false
+        },
+        "versand": {
+          "enabled": false,
+          "faxServer": ""
+        },
+        "sicherheit": {
+          "erinnernTrotzKennwort": false,
+          "vertraulicheErinnerungen": false,
+          "hintergrund": {
+            "enabled": false,
+            "autostart": false,
+            "encryptionPolicy": "notify_then_unlock",
+            "permissions": {
+              "kde_pairing": false,
+              "kde_incoming_files": false,
+              "sms_phone_notifications": false,
+              "magnolienbaum_change_offers": false,
+              "phone_monitor": false,
+              "phone_sms_notifications": false,
+              "phone_selected_notifications": false,
+              "phone_call_notifications": false,
+              "phone_personal_sync_offers": false,
+              "phone_pairing_decisions": false
+            }
+          }
+        },
+        "papierkorb": {
+          "an": true,
+          "tage": 30
+        },
+        "kalender": {
+          "klickLegtAn": true,
+          "jahrestagsartenFrei": false,
+          "kategorieFarben": [],
+          "wochenNummern": false,
+          "planerWochenNummern": false,
+          "vergangeneTermine": false,
+          "vergangeneJahrestage": false,
+          "vergangeneFerien": false,
+          "schichtplanerAn": false,
+          "zykluskalenderAn": false,
+          "urlaubsplanerAn": false,
+          "muellkalenderAn": false,
+          "gesundheitAn": true,
+          "gesundheitBereiche": {
+            "vital": true,
+            "medikamente": true,
+            "blutzucker": true,
+            "verlauf": true
+          },
+          "gesundheitEinheiten": {
+            "temperatur": "auto",
+            "gewicht": "auto",
+            "groesse": "auto",
+            "blutzucker": "auto"
+          },
+          "gesundheitPlanung": {
+            "vital": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "medikamente": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "blutzucker": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            }
+          },
+          "zyklusErinnerungen": {
+            "anzeige": false,
+            "prognose": false,
+            "abweichung": false,
+            "vorlauf": 1,
+            "abweichungTage": 7
+          }
+        }
+      },
+      "letzterSync": 0,
+      "letzteSyncs": {
+        "kalender": {},
+        "adressbuecher": {}
+      },
+      "syncStatus": {
+        "letzterVersuch": 0,
+        "letzterFehler": ""
+      },
+      "baumKontaktGeloescht": [],
+      "baumKontaktBestand": {},
+      "baumKontaktLoeschStaende": [],
+      "baumKontaktErfolgreich": {},
+      "baumKontaktAblehnungen": [],
+      "kontaktImportAblehnungen": [],
+      "personalSync": {
+        "format": 1,
+        "actor_id": "",
+        "counter": 0,
+        "custom_revision": 0,
+        "custom_entities": {},
+        "custom_auto_hash": "",
+        "entities": {},
+        "note_ids": {},
+        "note_aliases": {},
+        "notebook_ids": {},
+        "notebook_aliases": {},
+        "attachment_aliases": {},
+        "last_reports": [],
+        "applied_batches": [],
+        "last_auto_ms": 0,
+        "last_auto_hash": "",
+        "peer_device_id": "",
+        "restoration_requests": [],
+        "pending_proposals": [],
+        "applied_decisions": [],
+        "pending_decisions": []
+      },
+      "geloescht": {
+        "termine": [],
+        "kontakte": [],
+        "aufgaben": []
+      },
+      "syncEpoch": "",
+      "syncMetadaten": {
+        "syncEpoch": "",
+        "ersteSyncLoeschungsfrei": false,
+        "quarantinedDeletes": {},
+        "nextcloud": {
+          "kalender": {},
+          "adressbuecher": {},
+          "quarantinedDeletes": {},
+          "transaktionen": {}
+        },
+        "eds": {
+          "adressbuecher": {}
+        },
+        "akonadi": {
+          "bindungen": {}
+        }
+      }
+    }
+  },
+  {
+    "id": "termine-parameter-own",
+    "passed": true,
+    "book": {
+      "version": 6,
+      "termine": [
+        {
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "datum": "2000-02-29",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "termine-parameter-own",
+          "notiz": "",
+          "kategorien": "",
+          "akzentFarbe": "#112233",
+          "icsCalendarColor": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "individuelleErinnerungTage": 0,
+          "standardErinnerung": true,
+          "wiederholung": {
+            "art": "none",
+            "bis": ""
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "COLOR;X-SOURCE=owned-synthetic:red",
+            "X-MAGNOLIE-ACCENT-COLOR:#112233",
+            "X-OWNED:keep"
+          ],
+          "icsSequence": 0,
+          "icsAenderungszeitFehlt": true,
+          "uid": "termine-parameter-own",
+          "geaendert": 1795808163830,
+          "icsQuelleName": "termine-parameter-own.ics",
+          "icsQuelleId": "ics:49ec8880433cca162d7ec9820a8ca5508b3641977379aa340456079462f6ce53",
+          "id": "mwzdtbeeyihe30",
+          "ort": "",
+          "alarme": [],
+          "kalenderQuelle": {
+            "id": "ics:49ec8880433cca162d7ec9820a8ca5508b3641977379aa340456079462f6ce53",
+            "name": "termine-parameter-own.ics",
+            "gruppe": "",
+            "farbe": "",
+            "anbieter": "ICS"
+          },
+          "organisator": {
+            "uri": "",
+            "name": "",
+            "email": ""
+          },
+          "teilnehmer": [],
+          "kalenderAnhaenge": [],
+          "providerMetadaten": {},
+          "icsAusnahmen": [],
+          "icsRangeOverrides": [],
+          "icsAusnahmeTermine": [],
+          "icsTimezones": [],
+          "syncKonflikte": [],
+          "icsReadOnly": false,
+          "icsReadOnlyGrund": "",
+          "aufgaben": [],
+          "kontaktId": "",
+          "syncKalenderUid": "",
+          "sync": false,
+          "syncQuellen": {}
+        }
+      ],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": [],
+      "customOrganizer": {
+        "version": 3,
+        "modules": []
+      },
+      "zeiterfassung": {
+        "enabled": false,
+        "actor": "",
+        "counter": 0,
+        "entries": [],
+        "conflicts": {},
+        "reportName": ""
+      },
+      "notizgruppen": [
+        {
+          "id": "notizgruppe-allgemein",
+          "name": "General"
+        }
+      ],
+      "notizbuecher": [
+        {
+          "id": "notizbuch-lose-notizen",
+          "gruppeId": "notizgruppe-allgemein",
+          "name": "Loose Notes"
+        }
+      ],
+      "jahrestage": [],
+      "feiertage": [],
+      "urlaube": [],
+      "muelltermine": [],
+      "papierkorb": [],
+      "personen": [],
+      "schichten": [],
+      "smsVerlauf": [],
+      "smsPlanung": [],
+      "zyklusmarker": [],
+      "tagmarken": [],
+      "gesundheit": {
+        "vitalwerte": [],
+        "blutzucker": [],
+        "medikamente": [],
+        "insulinschema": {
+          "basisAn": false,
+          "basisEinheiten": 0,
+          "festEinheiten": 0,
+          "langzeitInsulin": "",
+          "langzeitModus": "fixed",
+          "langzeitFestEinheiten": 0,
+          "langzeitRegeln": [],
+          "kurzzeitInsulin": "",
+          "kurzzeitModus": "fixed",
+          "kurzzeitFestEinheiten": 0,
+          "kurzzeitRegeln": [],
+          "hinweis": ""
+        }
+      },
+      "einstellungen": {
+        "sync": {
+          "kalenderUid": "",
+          "kalenderUids": [],
+          "adressbuchUid": "",
+          "beimStart": false,
+          "kontaktNeuereBevorzugen": false,
+          "kdeEmpfang": {
+            "dateien": false,
+            "zwischenablage": false,
+            "zwischenablageAutomatisch": false,
+            "ordnerBeiAnnahme": false,
+            "geraetId": "",
+            "ordner": ""
+          },
+          "erfolgsmeldungen": false,
+          "timeDirections": {}
+        },
+        "ort": {
+          "land": "",
+          "landName": "",
+          "region": "",
+          "regionName": "",
+          "alleRegionen": false,
+          "feiertage": true,
+          "ferien": true,
+          "abgerufen": 0,
+          "jahre": [],
+          "setupFerienAbruf": false
+        },
+        "allgemein": {
+          "drucken": true,
+          "hilfsrahmen": false,
+          "kalenderAuswahl": false,
+          "wetter": false,
+          "wetterDarstellung": "temperature",
+          "wetterIntervall": 180,
+          "wetterOhneOrtAbrufen": true,
+          "sicherungsordner": "",
+          "wiederherstellungsintervall": "weekly",
+          "cloudSicherung": {
+            "aktiv": false,
+            "intervall": "daily",
+            "aufbewahrung": 7,
+            "letzterErfolg": "",
+            "status": ""
+          },
+          "wiederherstellungsaufbewahrung": "days",
+          "wiederherstellungsanzahl": 20,
+          "wiederherstellungstage": 3650,
+          "wiederherstellungsstatus": "",
+          "handbuchHinweisGezeigt": false,
+          "kontaktErsteinrichtungVersion": 1,
+          "notizAnhangHoehe": 200,
+          "contributorFreigeschaltet": false,
+          "customTab": {
+            "enabled": false,
+            "name": "",
+            "designRequested": false
+          },
+          "registerkarten": {
+            "aufgaben": true,
+            "adressen": true,
+            "notizen": true,
+            "jahrestage": true,
+            "planer": true,
+            "gesundheit": true
+          },
+          "tray": {
+            "aktiv": false,
+            "minimierenInTray": true,
+            "schliessenInTray": true,
+            "startMinimiert": false,
+            "autostart": false,
+            "zaehler": false,
+            "telefonWlanVerbinden": true,
+            "oeffnen": "previous"
+          },
+          "wiederherstellungsmodus": "weekly",
+          "wiederherstellungsminuten": 30,
+          "entwicklermodus": false
+        },
+        "update": {
+          "automatisch": true,
+          "letztePruefung": 0,
+          "letzteVersion": "",
+          "letzteUrl": "",
+          "letztePruefsumme": "",
+          "letzterFehler": ""
+        },
+        "regional": {
+          "language": "en",
+          "formatLocale": "de-DE",
+          "hourCycle": "h23",
+          "firstDayOfWeek": "monday",
+          "weekRule": "iso",
+          "temperatureUnit": "celsius",
+          "timeZone": "UTC",
+          "homeCountry": "DE",
+          "timeZoneManagement": "off",
+          "timeZoneDetection": "auto",
+          "timeZoneManual": "system",
+          "timeZoneDetectedSource": "manual",
+          "timeZoneDetectedAt": "0",
+          "timeZoneCalendarDisplay": "own",
+          "timeZoneTaskDisplay": "own"
+        },
+        "schrift": {
+          "art": "regular",
+          "farbe": "black",
+          "groesse": "normal",
+          "rechtschreibung": true,
+          "linien": true,
+          "radRichtung": "up-earlier"
+        },
+        "ansicht": "week",
+        "erinnerung": {
+          "an": true,
+          "vorlauf": 15,
+          "art": "both",
+          "verpasste": true,
+          "wecken": false,
+          "stil": "magnolie",
+          "jahrestage": {
+            "an": true,
+            "tage": 1,
+            "amTag": true,
+            "stunde": 8,
+            "autoAusblenden": false
+          },
+          "protokoll": false,
+          "protokollVoreinstellung": 1
+        },
+        "adressen": {
+          "absender": "",
+          "karten": "auto",
+          "land": "Deutschland",
+          "landCode": "DE",
+          "sortierung": "last-name",
+          "brief": true,
+          "karte": true,
+          "route": false,
+          "foto": true,
+          "fotoVoreinstellung": 1,
+          "briefLayout": "din5008-b",
+          "briefLayoutVoreinstellung": 3,
+          "sozialeSymbole": true,
+          "smsBenachrichtigungDauer": 60,
+          "smsSchedulingEnabled": false,
+          "gruppenAusschluss": {
+            "enabled": false,
+            "notifications": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "anniversaries": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "overview": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": [],
+              "calendar": false
+            },
+            "print": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            }
+          },
+          "kommunikation": {
+            "sms": {
+              "art": "kde",
+              "programm": ""
+            },
+            "anruf": {
+              "art": "magnolie",
+              "programm": "",
+              "eingehendBenachrichtigen": true,
+              "computerTelefonie": true,
+              "klingeltonLeiser": false,
+              "echoCancel": false,
+              "hfpAdresse": "",
+              "preferPcAudio": true
+            }
+          },
+          "personengruppenAn": false,
+          "eigenesProfilAn": true,
+          "routeFestgelegt": false
+        },
+        "versand": {
+          "enabled": false,
+          "faxServer": ""
+        },
+        "sicherheit": {
+          "erinnernTrotzKennwort": false,
+          "vertraulicheErinnerungen": false,
+          "hintergrund": {
+            "enabled": false,
+            "autostart": false,
+            "encryptionPolicy": "notify_then_unlock",
+            "permissions": {
+              "kde_pairing": false,
+              "kde_incoming_files": false,
+              "sms_phone_notifications": false,
+              "magnolienbaum_change_offers": false,
+              "phone_monitor": false,
+              "phone_sms_notifications": false,
+              "phone_selected_notifications": false,
+              "phone_call_notifications": false,
+              "phone_personal_sync_offers": false,
+              "phone_pairing_decisions": false
+            }
+          }
+        },
+        "papierkorb": {
+          "an": true,
+          "tage": 30
+        },
+        "kalender": {
+          "klickLegtAn": true,
+          "jahrestagsartenFrei": false,
+          "kategorieFarben": [],
+          "wochenNummern": false,
+          "planerWochenNummern": false,
+          "vergangeneTermine": false,
+          "vergangeneJahrestage": false,
+          "vergangeneFerien": false,
+          "schichtplanerAn": false,
+          "zykluskalenderAn": false,
+          "urlaubsplanerAn": false,
+          "muellkalenderAn": false,
+          "gesundheitAn": true,
+          "gesundheitBereiche": {
+            "vital": true,
+            "medikamente": true,
+            "blutzucker": true,
+            "verlauf": true
+          },
+          "gesundheitEinheiten": {
+            "temperatur": "auto",
+            "gewicht": "auto",
+            "groesse": "auto",
+            "blutzucker": "auto"
+          },
+          "gesundheitPlanung": {
+            "vital": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "medikamente": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "blutzucker": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            }
+          },
+          "zyklusErinnerungen": {
+            "anzeige": false,
+            "prognose": false,
+            "abweichung": false,
+            "vorlauf": 1,
+            "abweichungTage": 7
+          }
+        }
+      },
+      "letzterSync": 0,
+      "letzteSyncs": {
+        "kalender": {},
+        "adressbuecher": {}
+      },
+      "syncStatus": {
+        "letzterVersuch": 0,
+        "letzterFehler": ""
+      },
+      "baumKontaktGeloescht": [],
+      "baumKontaktBestand": {},
+      "baumKontaktLoeschStaende": [],
+      "baumKontaktErfolgreich": {},
+      "baumKontaktAblehnungen": [],
+      "kontaktImportAblehnungen": [],
+      "personalSync": {
+        "format": 1,
+        "actor_id": "",
+        "counter": 0,
+        "custom_revision": 0,
+        "custom_entities": {},
+        "custom_auto_hash": "",
+        "entities": {},
+        "note_ids": {},
+        "note_aliases": {},
+        "notebook_ids": {},
+        "notebook_aliases": {},
+        "attachment_aliases": {},
+        "last_reports": [],
+        "applied_batches": [],
+        "last_auto_ms": 0,
+        "last_auto_hash": "",
+        "peer_device_id": "",
+        "restoration_requests": [],
+        "pending_proposals": [],
+        "applied_decisions": [],
+        "pending_decisions": []
+      },
+      "geloescht": {
+        "termine": [],
+        "kontakte": [],
+        "aufgaben": []
+      },
+      "syncEpoch": "",
+      "syncMetadaten": {
+        "syncEpoch": "",
+        "ersteSyncLoeschungsfrei": false,
+        "quarantinedDeletes": {},
+        "nextcloud": {
+          "kalender": {},
+          "adressbuecher": {},
+          "quarantinedDeletes": {},
+          "transaktionen": {}
+        },
+        "eds": {
+          "adressbuecher": {}
+        },
+        "akonadi": {
+          "bindungen": {}
+        }
+      }
+    }
+  },
+  {
+    "id": "aufgaben-parameter-own",
+    "passed": true,
+    "book": {
+      "version": 6,
+      "termine": [],
+      "aufgaben": [
+        {
+          "titel": "aufgaben-parameter-own",
+          "faellig": "2000-02-29",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "startDatum": "",
+          "startZeit": "",
+          "faelligZeit": "",
+          "prio": 2,
+          "erledigt": false,
+          "notiz": "",
+          "kategorien": "",
+          "akzentFarbe": "#112233",
+          "icsCalendarColor": "",
+          "erinnern": false,
+          "individuelleErinnerungTage": 0,
+          "uid": "mag-task-c3318c58b9bf1c94@magnolie-organizer",
+          "icsSerienUid": "",
+          "elternUid": "",
+          "icsElternUid": "",
+          "reihenfolge": 0,
+          "geaendert": 1795808164062,
+          "icsRoundtrip": [
+            "DUE;VALUE=DATE:20000229",
+            "COLOR;X-SOURCE=owned-synthetic:red",
+            "X-MAGNOLIE-ACCENT-COLOR:#112233",
+            "X-OWNED:keep"
+          ],
+          "icsQuelleName": "aufgaben-parameter-own.ics",
+          "icsQuelleId": "ics:11077f1f524b5e368c5db209da344fe188e2b05e9408c8a9933b43c3dfe2c133",
+          "icsElternQuelleId": "ics:11077f1f524b5e368c5db209da344fe188e2b05e9408c8a9933b43c3dfe2c133",
+          "id": "mwzdtbkujp12fn",
+          "icsImportUid": "aufgaben-parameter-own",
+          "syncKalenderUid": "",
+          "syncQuellen": {},
+          "sync": false,
+          "icsRangeOverrides": [],
+          "icsAusnahmeTermine": [],
+          "icsAusnahmen": [],
+          "icsTimezones": []
+        }
+      ],
+      "kontakte": [],
+      "notizen": [],
+      "customOrganizer": {
+        "version": 3,
+        "modules": []
+      },
+      "zeiterfassung": {
+        "enabled": false,
+        "actor": "",
+        "counter": 0,
+        "entries": [],
+        "conflicts": {},
+        "reportName": ""
+      },
+      "notizgruppen": [
+        {
+          "id": "notizgruppe-allgemein",
+          "name": "General"
+        }
+      ],
+      "notizbuecher": [
+        {
+          "id": "notizbuch-lose-notizen",
+          "gruppeId": "notizgruppe-allgemein",
+          "name": "Loose Notes"
+        }
+      ],
+      "jahrestage": [],
+      "feiertage": [],
+      "urlaube": [],
+      "muelltermine": [],
+      "papierkorb": [],
+      "personen": [],
+      "schichten": [],
+      "smsVerlauf": [],
+      "smsPlanung": [],
+      "zyklusmarker": [],
+      "tagmarken": [],
+      "gesundheit": {
+        "vitalwerte": [],
+        "blutzucker": [],
+        "medikamente": [],
+        "insulinschema": {
+          "basisAn": false,
+          "basisEinheiten": 0,
+          "festEinheiten": 0,
+          "langzeitInsulin": "",
+          "langzeitModus": "fixed",
+          "langzeitFestEinheiten": 0,
+          "langzeitRegeln": [],
+          "kurzzeitInsulin": "",
+          "kurzzeitModus": "fixed",
+          "kurzzeitFestEinheiten": 0,
+          "kurzzeitRegeln": [],
+          "hinweis": ""
+        }
+      },
+      "einstellungen": {
+        "sync": {
+          "kalenderUid": "",
+          "kalenderUids": [],
+          "adressbuchUid": "",
+          "beimStart": false,
+          "kontaktNeuereBevorzugen": false,
+          "kdeEmpfang": {
+            "dateien": false,
+            "zwischenablage": false,
+            "zwischenablageAutomatisch": false,
+            "ordnerBeiAnnahme": false,
+            "geraetId": "",
+            "ordner": ""
+          },
+          "erfolgsmeldungen": false,
+          "timeDirections": {}
+        },
+        "ort": {
+          "land": "",
+          "landName": "",
+          "region": "",
+          "regionName": "",
+          "alleRegionen": false,
+          "feiertage": true,
+          "ferien": true,
+          "abgerufen": 0,
+          "jahre": [],
+          "setupFerienAbruf": false
+        },
+        "allgemein": {
+          "drucken": true,
+          "hilfsrahmen": false,
+          "kalenderAuswahl": false,
+          "wetter": false,
+          "wetterDarstellung": "temperature",
+          "wetterIntervall": 180,
+          "wetterOhneOrtAbrufen": true,
+          "sicherungsordner": "",
+          "wiederherstellungsintervall": "weekly",
+          "cloudSicherung": {
+            "aktiv": false,
+            "intervall": "daily",
+            "aufbewahrung": 7,
+            "letzterErfolg": "",
+            "status": ""
+          },
+          "wiederherstellungsaufbewahrung": "days",
+          "wiederherstellungsanzahl": 20,
+          "wiederherstellungstage": 3650,
+          "wiederherstellungsstatus": "",
+          "handbuchHinweisGezeigt": false,
+          "kontaktErsteinrichtungVersion": 1,
+          "notizAnhangHoehe": 200,
+          "contributorFreigeschaltet": false,
+          "customTab": {
+            "enabled": false,
+            "name": "",
+            "designRequested": false
+          },
+          "registerkarten": {
+            "aufgaben": true,
+            "adressen": true,
+            "notizen": true,
+            "jahrestage": true,
+            "planer": true,
+            "gesundheit": true
+          },
+          "tray": {
+            "aktiv": false,
+            "minimierenInTray": true,
+            "schliessenInTray": true,
+            "startMinimiert": false,
+            "autostart": false,
+            "zaehler": false,
+            "telefonWlanVerbinden": true,
+            "oeffnen": "previous"
+          },
+          "wiederherstellungsmodus": "weekly",
+          "wiederherstellungsminuten": 30,
+          "entwicklermodus": false
+        },
+        "update": {
+          "automatisch": true,
+          "letztePruefung": 0,
+          "letzteVersion": "",
+          "letzteUrl": "",
+          "letztePruefsumme": "",
+          "letzterFehler": ""
+        },
+        "regional": {
+          "language": "en",
+          "formatLocale": "de-DE",
+          "hourCycle": "h23",
+          "firstDayOfWeek": "monday",
+          "weekRule": "iso",
+          "temperatureUnit": "celsius",
+          "timeZone": "UTC",
+          "homeCountry": "DE",
+          "timeZoneManagement": "off",
+          "timeZoneDetection": "auto",
+          "timeZoneManual": "system",
+          "timeZoneDetectedSource": "manual",
+          "timeZoneDetectedAt": "0",
+          "timeZoneCalendarDisplay": "own",
+          "timeZoneTaskDisplay": "own"
+        },
+        "schrift": {
+          "art": "regular",
+          "farbe": "black",
+          "groesse": "normal",
+          "rechtschreibung": true,
+          "linien": true,
+          "radRichtung": "up-earlier"
+        },
+        "ansicht": "week",
+        "erinnerung": {
+          "an": true,
+          "vorlauf": 15,
+          "art": "both",
+          "verpasste": true,
+          "wecken": false,
+          "stil": "magnolie",
+          "jahrestage": {
+            "an": true,
+            "tage": 1,
+            "amTag": true,
+            "stunde": 8,
+            "autoAusblenden": false
+          },
+          "protokoll": false,
+          "protokollVoreinstellung": 1
+        },
+        "adressen": {
+          "absender": "",
+          "karten": "auto",
+          "land": "Deutschland",
+          "landCode": "DE",
+          "sortierung": "last-name",
+          "brief": true,
+          "karte": true,
+          "route": false,
+          "foto": true,
+          "fotoVoreinstellung": 1,
+          "briefLayout": "din5008-b",
+          "briefLayoutVoreinstellung": 3,
+          "sozialeSymbole": true,
+          "smsBenachrichtigungDauer": 60,
+          "smsSchedulingEnabled": false,
+          "gruppenAusschluss": {
+            "enabled": false,
+            "notifications": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "anniversaries": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "overview": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": [],
+              "calendar": false
+            },
+            "print": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            }
+          },
+          "kommunikation": {
+            "sms": {
+              "art": "kde",
+              "programm": ""
+            },
+            "anruf": {
+              "art": "magnolie",
+              "programm": "",
+              "eingehendBenachrichtigen": true,
+              "computerTelefonie": true,
+              "klingeltonLeiser": false,
+              "echoCancel": false,
+              "hfpAdresse": "",
+              "preferPcAudio": true
+            }
+          },
+          "personengruppenAn": false,
+          "eigenesProfilAn": true,
+          "routeFestgelegt": false
+        },
+        "versand": {
+          "enabled": false,
+          "faxServer": ""
+        },
+        "sicherheit": {
+          "erinnernTrotzKennwort": false,
+          "vertraulicheErinnerungen": false,
+          "hintergrund": {
+            "enabled": false,
+            "autostart": false,
+            "encryptionPolicy": "notify_then_unlock",
+            "permissions": {
+              "kde_pairing": false,
+              "kde_incoming_files": false,
+              "sms_phone_notifications": false,
+              "magnolienbaum_change_offers": false,
+              "phone_monitor": false,
+              "phone_sms_notifications": false,
+              "phone_selected_notifications": false,
+              "phone_call_notifications": false,
+              "phone_personal_sync_offers": false,
+              "phone_pairing_decisions": false
+            }
+          }
+        },
+        "papierkorb": {
+          "an": true,
+          "tage": 30
+        },
+        "kalender": {
+          "klickLegtAn": true,
+          "jahrestagsartenFrei": false,
+          "kategorieFarben": [],
+          "wochenNummern": false,
+          "planerWochenNummern": false,
+          "vergangeneTermine": false,
+          "vergangeneJahrestage": false,
+          "vergangeneFerien": false,
+          "schichtplanerAn": false,
+          "zykluskalenderAn": false,
+          "urlaubsplanerAn": false,
+          "muellkalenderAn": false,
+          "gesundheitAn": true,
+          "gesundheitBereiche": {
+            "vital": true,
+            "medikamente": true,
+            "blutzucker": true,
+            "verlauf": true
+          },
+          "gesundheitEinheiten": {
+            "temperatur": "auto",
+            "gewicht": "auto",
+            "groesse": "auto",
+            "blutzucker": "auto"
+          },
+          "gesundheitPlanung": {
+            "vital": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "medikamente": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "blutzucker": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            }
+          },
+          "zyklusErinnerungen": {
+            "anzeige": false,
+            "prognose": false,
+            "abweichung": false,
+            "vorlauf": 1,
+            "abweichungTage": 7
+          }
+        }
+      },
+      "letzterSync": 0,
+      "letzteSyncs": {
+        "kalender": {},
+        "adressbuecher": {}
+      },
+      "syncStatus": {
+        "letzterVersuch": 0,
+        "letzterFehler": ""
+      },
+      "baumKontaktGeloescht": [],
+      "baumKontaktBestand": {},
+      "baumKontaktLoeschStaende": [],
+      "baumKontaktErfolgreich": {},
+      "baumKontaktAblehnungen": [],
+      "kontaktImportAblehnungen": [],
+      "personalSync": {
+        "format": 1,
+        "actor_id": "",
+        "counter": 0,
+        "custom_revision": 0,
+        "custom_entities": {},
+        "custom_auto_hash": "",
+        "entities": {},
+        "note_ids": {},
+        "note_aliases": {},
+        "notebook_ids": {},
+        "notebook_aliases": {},
+        "attachment_aliases": {},
+        "last_reports": [],
+        "applied_batches": [],
+        "last_auto_ms": 0,
+        "last_auto_hash": "",
+        "peer_device_id": "",
+        "restoration_requests": [],
+        "pending_proposals": [],
+        "applied_decisions": [],
+        "pending_decisions": []
+      },
+      "geloescht": {
+        "termine": [],
+        "kontakte": [],
+        "aufgaben": []
+      },
+      "syncEpoch": "",
+      "syncMetadaten": {
+        "syncEpoch": "",
+        "ersteSyncLoeschungsfrei": false,
+        "quarantinedDeletes": {},
+        "nextcloud": {
+          "kalender": {},
+          "adressbuecher": {},
+          "quarantinedDeletes": {},
+          "transaktionen": {}
+        },
+        "eds": {
+          "adressbuecher": {}
+        },
+        "akonadi": {
+          "bindungen": {}
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-unknown",
+    "passed": true,
+    "book": {
+      "version": 6,
+      "termine": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": [],
+      "customOrganizer": {
+        "version": 3,
+        "modules": []
+      },
+      "zeiterfassung": {
+        "enabled": false,
+        "actor": "",
+        "counter": 0,
+        "entries": [],
+        "conflicts": {},
+        "reportName": ""
+      },
+      "notizgruppen": [
+        {
+          "id": "notizgruppe-allgemein",
+          "name": "General"
+        }
+      ],
+      "notizbuecher": [
+        {
+          "id": "notizbuch-lose-notizen",
+          "gruppeId": "notizgruppe-allgemein",
+          "name": "Loose Notes"
+        }
+      ],
+      "jahrestage": [
+        {
+          "name": "birthday-unknown",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "",
+          "icsCalendarColor": "",
+          "uid": "birthday-unknown",
+          "icsSerienUid": "birthday-unknown",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-MAGNOLIE-TYPE-ID:birthday",
+            "COLOR:future-colour",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 1795808164278,
+          "icsQuelleName": "birthday-unknown.ics",
+          "icsQuelleId": "ics:fd94be3c0bca338a8b46f1cc28aaa389c87ac65226bba6f6907a6a9ef19daf79",
+          "id": "mwzdtbqun0pdo3",
+          "jahrUnbekannt": false,
+          "syncKalenderUid": "",
+          "syncQuellen": {}
+        }
+      ],
+      "feiertage": [],
+      "urlaube": [],
+      "muelltermine": [],
+      "papierkorb": [],
+      "personen": [],
+      "schichten": [],
+      "smsVerlauf": [],
+      "smsPlanung": [],
+      "zyklusmarker": [],
+      "tagmarken": [],
+      "gesundheit": {
+        "vitalwerte": [],
+        "blutzucker": [],
+        "medikamente": [],
+        "insulinschema": {
+          "basisAn": false,
+          "basisEinheiten": 0,
+          "festEinheiten": 0,
+          "langzeitInsulin": "",
+          "langzeitModus": "fixed",
+          "langzeitFestEinheiten": 0,
+          "langzeitRegeln": [],
+          "kurzzeitInsulin": "",
+          "kurzzeitModus": "fixed",
+          "kurzzeitFestEinheiten": 0,
+          "kurzzeitRegeln": [],
+          "hinweis": ""
+        }
+      },
+      "einstellungen": {
+        "sync": {
+          "kalenderUid": "",
+          "kalenderUids": [],
+          "adressbuchUid": "",
+          "beimStart": false,
+          "kontaktNeuereBevorzugen": false,
+          "kdeEmpfang": {
+            "dateien": false,
+            "zwischenablage": false,
+            "zwischenablageAutomatisch": false,
+            "ordnerBeiAnnahme": false,
+            "geraetId": "",
+            "ordner": ""
+          },
+          "erfolgsmeldungen": false,
+          "timeDirections": {}
+        },
+        "ort": {
+          "land": "",
+          "landName": "",
+          "region": "",
+          "regionName": "",
+          "alleRegionen": false,
+          "feiertage": true,
+          "ferien": true,
+          "abgerufen": 0,
+          "jahre": [],
+          "setupFerienAbruf": false
+        },
+        "allgemein": {
+          "drucken": true,
+          "hilfsrahmen": false,
+          "kalenderAuswahl": false,
+          "wetter": false,
+          "wetterDarstellung": "temperature",
+          "wetterIntervall": 180,
+          "wetterOhneOrtAbrufen": true,
+          "sicherungsordner": "",
+          "wiederherstellungsintervall": "weekly",
+          "cloudSicherung": {
+            "aktiv": false,
+            "intervall": "daily",
+            "aufbewahrung": 7,
+            "letzterErfolg": "",
+            "status": ""
+          },
+          "wiederherstellungsaufbewahrung": "days",
+          "wiederherstellungsanzahl": 20,
+          "wiederherstellungstage": 3650,
+          "wiederherstellungsstatus": "",
+          "handbuchHinweisGezeigt": false,
+          "kontaktErsteinrichtungVersion": 1,
+          "notizAnhangHoehe": 200,
+          "contributorFreigeschaltet": false,
+          "customTab": {
+            "enabled": false,
+            "name": "",
+            "designRequested": false
+          },
+          "registerkarten": {
+            "aufgaben": true,
+            "adressen": true,
+            "notizen": true,
+            "jahrestage": true,
+            "planer": true,
+            "gesundheit": true
+          },
+          "tray": {
+            "aktiv": false,
+            "minimierenInTray": true,
+            "schliessenInTray": true,
+            "startMinimiert": false,
+            "autostart": false,
+            "zaehler": false,
+            "telefonWlanVerbinden": true,
+            "oeffnen": "previous"
+          },
+          "wiederherstellungsmodus": "weekly",
+          "wiederherstellungsminuten": 30,
+          "entwicklermodus": false
+        },
+        "update": {
+          "automatisch": true,
+          "letztePruefung": 0,
+          "letzteVersion": "",
+          "letzteUrl": "",
+          "letztePruefsumme": "",
+          "letzterFehler": ""
+        },
+        "regional": {
+          "language": "en",
+          "formatLocale": "de-DE",
+          "hourCycle": "h23",
+          "firstDayOfWeek": "monday",
+          "weekRule": "iso",
+          "temperatureUnit": "celsius",
+          "timeZone": "UTC",
+          "homeCountry": "DE",
+          "timeZoneManagement": "off",
+          "timeZoneDetection": "auto",
+          "timeZoneManual": "system",
+          "timeZoneDetectedSource": "manual",
+          "timeZoneDetectedAt": "0",
+          "timeZoneCalendarDisplay": "own",
+          "timeZoneTaskDisplay": "own"
+        },
+        "schrift": {
+          "art": "regular",
+          "farbe": "black",
+          "groesse": "normal",
+          "rechtschreibung": true,
+          "linien": true,
+          "radRichtung": "up-earlier"
+        },
+        "ansicht": "week",
+        "erinnerung": {
+          "an": true,
+          "vorlauf": 15,
+          "art": "both",
+          "verpasste": true,
+          "wecken": false,
+          "stil": "magnolie",
+          "jahrestage": {
+            "an": true,
+            "tage": 1,
+            "amTag": true,
+            "stunde": 8,
+            "autoAusblenden": false
+          },
+          "protokoll": false,
+          "protokollVoreinstellung": 1
+        },
+        "adressen": {
+          "absender": "",
+          "karten": "auto",
+          "land": "Deutschland",
+          "landCode": "DE",
+          "sortierung": "last-name",
+          "brief": true,
+          "karte": true,
+          "route": false,
+          "foto": true,
+          "fotoVoreinstellung": 1,
+          "briefLayout": "din5008-b",
+          "briefLayoutVoreinstellung": 3,
+          "sozialeSymbole": true,
+          "smsBenachrichtigungDauer": 60,
+          "smsSchedulingEnabled": false,
+          "gruppenAusschluss": {
+            "enabled": false,
+            "notifications": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "anniversaries": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            },
+            "overview": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": [],
+              "calendar": false
+            },
+            "print": {
+              "scope": "birthdays",
+              "groups": [],
+              "calendars": []
+            }
+          },
+          "kommunikation": {
+            "sms": {
+              "art": "kde",
+              "programm": ""
+            },
+            "anruf": {
+              "art": "magnolie",
+              "programm": "",
+              "eingehendBenachrichtigen": true,
+              "computerTelefonie": true,
+              "klingeltonLeiser": false,
+              "echoCancel": false,
+              "hfpAdresse": "",
+              "preferPcAudio": true
+            }
+          },
+          "personengruppenAn": false,
+          "eigenesProfilAn": true,
+          "routeFestgelegt": false
+        },
+        "versand": {
+          "enabled": false,
+          "faxServer": ""
+        },
+        "sicherheit": {
+          "erinnernTrotzKennwort": false,
+          "vertraulicheErinnerungen": false,
+          "hintergrund": {
+            "enabled": false,
+            "autostart": false,
+            "encryptionPolicy": "notify_then_unlock",
+            "permissions": {
+              "kde_pairing": false,
+              "kde_incoming_files": false,
+              "sms_phone_notifications": false,
+              "magnolienbaum_change_offers": false,
+              "phone_monitor": false,
+              "phone_sms_notifications": false,
+              "phone_selected_notifications": false,
+              "phone_call_notifications": false,
+              "phone_personal_sync_offers": false,
+              "phone_pairing_decisions": false
+            }
+          }
+        },
+        "papierkorb": {
+          "an": true,
+          "tage": 30
+        },
+        "kalender": {
+          "klickLegtAn": true,
+          "jahrestagsartenFrei": false,
+          "kategorieFarben": [],
+          "wochenNummern": false,
+          "planerWochenNummern": false,
+          "vergangeneTermine": false,
+          "vergangeneJahrestage": false,
+          "vergangeneFerien": false,
+          "schichtplanerAn": false,
+          "zykluskalenderAn": false,
+          "urlaubsplanerAn": false,
+          "muellkalenderAn": false,
+          "gesundheitAn": true,
+          "gesundheitBereiche": {
+            "vital": true,
+            "medikamente": true,
+            "blutzucker": true,
+            "verlauf": true
+          },
+          "gesundheitEinheiten": {
+            "temperatur": "auto",
+            "gewicht": "auto",
+            "groesse": "auto",
+            "blutzucker": "auto"
+          },
+          "gesundheitPlanung": {
+            "vital": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "medikamente": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            },
+            "blutzucker": {
+              "an": false,
+              "von": "",
+              "zeit": "",
+              "intervallTage": 1
+            }
+          },
+          "zyklusErinnerungen": {
+            "anzeige": false,
+            "prognose": false,
+            "abweichung": false,
+            "vorlauf": 1,
+            "abweichungTage": 7
+          }
+        }
+      },
+      "letzterSync": 0,
+      "letzteSyncs": {
+        "kalender": {},
+        "adressbuecher": {}
+      },
+      "syncStatus": {
+        "letzterVersuch": 0,
+        "letzterFehler": ""
+      },
+      "baumKontaktGeloescht": [],
+      "baumKontaktBestand": {},
+      "baumKontaktLoeschStaende": [],
+      "baumKontaktErfolgreich": {},
+      "baumKontaktAblehnungen": [],
+      "kontaktImportAblehnungen": [],
+      "personalSync": {
+        "format": 1,
+        "actor_id": "",
+        "counter": 0,
+        "custom_revision": 0,
+        "custom_entities": {},
+        "custom_auto_hash": "",
+        "entities": {},
+        "note_ids": {},
+        "note_aliases": {},
+        "notebook_ids": {},
+        "notebook_aliases": {},
+        "attachment_aliases": {},
+        "last_reports": [],
+        "applied_batches": [],
+        "last_auto_ms": 0,
+        "last_auto_hash": "",
+        "peer_device_id": "",
+        "restoration_requests": [],
+        "pending_proposals": [],
+        "applied_decisions": [],
+        "pending_decisions": []
+      },
+      "geloescht": {
+        "termine": [],
+        "kontakte": [],
+        "aufgaben": []
+      },
+      "syncEpoch": "",
+      "syncMetadaten": {
+        "syncEpoch": "",
+        "ersteSyncLoeschungsfrei": false,
+        "quarantinedDeletes": {},
+        "nextcloud": {
+          "kalender": {},
+          "adressbuecher": {},
+          "quarantinedDeletes": {},
+          "transaktionen": {}
+        },
+        "eds": {
+          "adressbuecher": {}
+        },
+        "akonadi": {
+          "bindungen": {}
+        }
+      }
+    }
+  }
+]

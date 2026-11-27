@@ -1,0 +1,10 @@
+{
+  "base": "50b1512234a765635f82af4537f277594fbf9878",
+  "command": [
+    "node",
+    "/workspace/scratch/7203da5bd564/open-audit/desktop/evidence/759/reproduce-no-shared.cjs",
+    "/workspace/scratch/7203da5bd564/open-audit-759"
+  ],
+  "exit_code": 1,
+  "log_sha256": "c3ee16e4a0123efe58225ca28c20f519667aada6463e7f1a4b45474a4920f20c"
+}

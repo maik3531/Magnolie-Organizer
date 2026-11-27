@@ -1,0 +1,2677 @@
+{
+  "base_commit": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "base_tree": "4369b79a0f4096e94d37c4d6949d2f363e5d82a3",
+  "head": "cae1baef60488686577ab74bb964ed980de7114b",
+  "result_tree": "d2f419362991c3a581622fb5b62690d30af9e60d",
+  "product_merged_to_main": false,
+  "series": [
+    {
+      "path": "01-566-preserve-csv-contact-fields.patch",
+      "commit": "ed67e9925c04ff28e05276e3544f7aba561f5dea",
+      "sha256": "10b1a1dac81349d5468f28fb4b67bca0309f7f90c46574482bed001f3b675bb9",
+      "bytes": 27224,
+      "subject": "Refs #566: Rebase reviewed CSV contact preservation onto audited main"
+    },
+    {
+      "path": "02-192-correct-mcp-coverage.patch",
+      "commit": "7b6f8caaf2af75817f1c4d27f68920d3b8ea374e",
+      "sha256": "a169f8e10eb3af79b15bc1035a9ab419390abf39dbffb91366c1519c1da1ef3d",
+      "bytes": 3369,
+      "subject": "Docs #192: Reflect connected public phone call tools"
+    },
+    {
+      "path": "03-790-correct-current-source-test.patch",
+      "commit": "01f8c3d6e10edbd9b538352e42e43b3120611ea8",
+      "sha256": "12c1efe3b5fa794083960c59b93bf1d3b92db5a917a82b4dbc4ce2e99a4d6bb5",
+      "bytes": 2447,
+      "subject": "Refs #790: align Mac source gate with current Tablet checkout"
+    },
+    {
+      "path": "04-330-shared-media-wait.patch",
+      "commit": "37d04b6d42e1bc22f2898dafef59c284591c65f7",
+      "sha256": "c91596518fabe1b65347464ac6f2cff138f2d16d1a6db0bee6361197e9351cd4",
+      "bytes": 31191,
+      "subject": "Refs #759: wait for shared media settings without legacy controls"
+    },
+    {
+      "path": "05-330-initial-recovery-and-refresh.patch",
+      "commit": "108b0deaad973db9c6456ad9de503ada907bc414",
+      "sha256": "5c1127197d669aabb46a42720c4d42206ce404fa02d0652667268b25a161019c",
+      "bytes": 10548,
+      "subject": "Refs #759 #330: retain media recovery requests until initial UI mount"
+    },
+    {
+      "path": "06-395-organizer-suggestions.patch",
+      "commit": "bfac85982ed16b877e0c4f06e4fcb4fcda341125",
+      "sha256": "150352b736ca08ad14f458f34cb684c8a5ef4dd5f0836363548e7ac5cbf81c76",
+      "bytes": 16758,
+      "subject": "Refs #395: bound organizer suggestions to active input"
+    },
+    {
+      "path": "07-844-calendar-color-followup.patch",
+      "commit": "15fb38eeb55d063f0473e9618be8c53cacc1844f",
+      "sha256": "d8f631e77c030443701704055387c5d322fbc17fee15ed08a032a83d11e1e1b1",
+      "bytes": 59813,
+      "subject": "Refs #844: Preserve anniversary colours and legacy import metadata"
+    },
+    {
+      "path": "08-845-nextcloud-birthday-semantics.patch",
+      "commit": "cae1baef60488686577ab74bb964ed980de7114b",
+      "sha256": "feb5961db07508183bf9c772f56cc373682eae11211d28bc3536625a3d4fa664",
+      "bytes": 54642,
+      "subject": "Refs #845: Preserve explicit Nextcloud birthday semantics"
+    }
+  ],
+  "combined_patch": {
+    "path": "all-after-1f1f3225.patch",
+    "sha256": "dead9e9a465213f4644057504a6dde3ed4c1de0e72cfeabafb985c1142f82e51",
+    "bytes": 193220
+  },
+  "apply_checks": [
+    {
+      "kind": "combined",
+      "result_tree": "d2f419362991c3a581622fb5b62690d30af9e60d",
+      "equal": true
+    },
+    {
+      "kind": "series",
+      "result_tree": "d2f419362991c3a581622fb5b62690d30af9e60d",
+      "equal": true
+    }
+  ],
+  "changed_files": [
+    "ARBEITSSTAND.md",
+    "Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py",
+    "contracts/calendar-color-remainders.json",
+    "contracts/lotus-csv-contact-fields.json",
+    "contracts/mcp-coverage.md",
+    "contracts/nextcloud-birthday-vectors.json",
+    "magnolie-organizer-windows/ExchangeCodec.cs",
+    "magnolie-organizer-windows/app/web/anwendung.js",
+    "magnolie-organizer-windows/app/web/phone-media.js",
+    "magnolie-organizer-windows/tests/CalendarColourRemainderTests.cs",
+    "magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs",
+    "magnolie-organizer-windows/tests/NextcloudBirthdayMarkerTests.cs",
+    "magnolie-organizer-windows/tests/Program.cs",
+    "magnolie-organizer-windows/tests/appointment-organizer-suggestions.js",
+    "magnolie-organizer-windows/tests/birthday-display.js",
+    "magnolie-organizer-windows/tests/calendar-colour-remainders.js",
+    "magnolie-organizer-windows/tests/legacy-android-instance-ui.js",
+    "magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js",
+    "magnolie-organizer-windows/tests/phone-media-ui.js",
+    "magnolie-organizer-windows/tests/phone-media-wait-ui.js",
+    "magnolie-organizer-windows/tests/run.js",
+    "magnolie-organizer/bin/magnolie-organizer",
+    "magnolie-organizer/pruefungen/test.js",
+    "magnolie-organizer/pruefungen/test_calendar_color_remainders.py",
+    "magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py",
+    "magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py",
+    "magnolie-organizer/web/anwendung.js"
+  ],
+  "evidence_bindings": [
+    {
+      "proof": "Earlier 155 Python tests: compare to final inputs; changed sources require final focused results",
+      "inputs": [
+        {
+          "path": "magnolie-organizer/pruefungen/test_lotus_task_csv.py",
+          "tested_sha256": "70c1ac4d50e54fc4286a9cd1b29fa2ac4cc56f438403395139c4f866ab2f54a2",
+          "final_sha256": "70c1ac4d50e54fc4286a9cd1b29fa2ac4cc56f438403395139c4f866ab2f54a2",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py",
+          "tested_sha256": "e5163d391c11a6d2b9dbc9f40ca6969639a39e389129a4ea6005367f7b600299",
+          "final_sha256": "e5163d391c11a6d2b9dbc9f40ca6969639a39e389129a4ea6005367f7b600299",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_restore_identity.py",
+          "tested_sha256": "530b06ee21ee47f17d306c9c8ad3a69cf5217b272f18ce0a2d20026a6010a03b",
+          "final_sha256": "530b06ee21ee47f17d306c9c8ad3a69cf5217b272f18ce0a2d20026a6010a03b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_save_restore_boundary.py",
+          "tested_sha256": "c8177dba0e58ab49796e155e147cde295e44184d1e8adea3012e3cf13d985e68",
+          "final_sha256": "c8177dba0e58ab49796e155e147cde295e44184d1e8adea3012e3cf13d985e68",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_restore_commit_result.py",
+          "tested_sha256": "1f89953524ddf5eb2bfe5266546fc9f6d1882015ced3e285fb039d3e0a11886e",
+          "final_sha256": "1f89953524ddf5eb2bfe5266546fc9f6d1882015ced3e285fb039d3e0a11886e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_backup_profile_validation.py",
+          "tested_sha256": "aafa627f8e6aef096b23d29f0238cbf646390d77a7ce9c266dc36fd1daf35181",
+          "final_sha256": "aafa627f8e6aef096b23d29f0238cbf646390d77a7ce9c266dc36fd1daf35181",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie-organizer",
+          "tested_sha256": "1374eb1faf231c6d00dfe6f540f16bc77f93025f7be0bc1bf25f898d0422d47e",
+          "final_sha256": "57954b0e3f58080b156651f748f021990af995308f218731e90db08cfea31192",
+          "equal": false
+        },
+        {
+          "path": "contracts/lotus-csv-contact-fields.json",
+          "tested_sha256": "c480c3606eab613a6151ac4006d9d01a56f61abe2f4f3439434fb1e03b335bce",
+          "final_sha256": "c480c3606eab613a6151ac4006d9d01a56f61abe2f4f3439434fb1e03b335bce",
+          "equal": true
+        },
+        {
+          "path": "contracts/restore-additive-identity-vectors.json",
+          "tested_sha256": "8023b85d18bd30c009f4579f53d7cf58f3666439cd9b589d49b743a61a20930e",
+          "final_sha256": "8023b85d18bd30c009f4579f53d7cf58f3666439cd9b589d49b743a61a20930e",
+          "equal": true
+        }
+      ],
+      "all_equal": false
+    },
+    {
+      "proof": "6 wait + 5 recovery + 29 source-choice cases and existing media program",
+      "inputs": [
+        {
+          "path": "magnolie-organizer-windows/app/web/phone-media.js",
+          "tested_sha256": "5295c10d3a1e955c84984bc983598062ab2b5fabb4b5a2c60485bb06d362dde5",
+          "final_sha256": "5295c10d3a1e955c84984bc983598062ab2b5fabb4b5a2c60485bb06d362dde5",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/index.html",
+          "tested_sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+          "final_sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/anwendung.js",
+          "tested_sha256": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+          "final_sha256": "eba45644c432793e892d61b9e73055526ae9a8e1cc6be0d7939a735cb5f7bd07",
+          "equal": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n.js",
+          "tested_sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "final_sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/de.js",
+          "tested_sha256": "8e91d625884344f1a65ae3b316bb09456420c8bea505f2ea52ba70d020120535",
+          "final_sha256": "8e91d625884344f1a65ae3b316bb09456420c8bea505f2ea52ba70d020120535",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-media-wait-ui.js",
+          "tested_sha256": "b23caa774a97f599bf53d39a4cca1693ce6ba40f140f0a81e51548bc0995ab35",
+          "final_sha256": "b23caa774a97f599bf53d39a4cca1693ce6ba40f140f0a81e51548bc0995ab35",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js",
+          "tested_sha256": "168fb7450104ef2302dd1849adc9b8db652cbdee035db99e9028ba2efbcedece",
+          "final_sha256": "168fb7450104ef2302dd1849adc9b8db652cbdee035db99e9028ba2efbcedece",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-media-ui.js",
+          "tested_sha256": "872a45d6a785618da680530abf6d794c7e2350f7485a49bd444c625acc1ccb29",
+          "final_sha256": "872a45d6a785618da680530abf6d794c7e2350f7485a49bd444c625acc1ccb29",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-media-source-choice-ui.js",
+          "tested_sha256": "b8ae2cbeed405b2746e86ae3ab5531f63577f18e4d81cd8ece9009012b19f1f3",
+          "final_sha256": "b8ae2cbeed405b2746e86ae3ab5531f63577f18e4d81cd8ece9009012b19f1f3",
+          "equal": true
+        }
+      ],
+      "all_equal": false
+    },
+    {
+      "proof": "Automatic settings transport: earlier source review; changed TelefonWerk reviewed in bounded delta",
+      "inputs": [
+        {
+          "path": "magnolie-organizer-windows/DeviceFileUiCoordinator.cs",
+          "tested_sha256": "8ae1190c422b07f1c4964189d166d0072b4385bd7e3c51bd3b377f7e6e332739",
+          "final_sha256": "8ae1190c422b07f1c4964189d166d0072b4385bd7e3c51bd3b377f7e6e332739",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/DeviceFileConnectionSharedSettings.cs",
+          "tested_sha256": "cf090c23aeb89628fdf8837982f7028b104ccf11d32e98adc61be35d147b31e6",
+          "final_sha256": "cf090c23aeb89628fdf8837982f7028b104ccf11d32e98adc61be35d147b31e6",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/DeviceFileSharedPreferences.cs",
+          "tested_sha256": "5c283dc6bbad93ddd6acdb4d78ace2ae01bad69d4512235d1b57f29d03e9cf90",
+          "final_sha256": "5c283dc6bbad93ddd6acdb4d78ace2ae01bad69d4512235d1b57f29d03e9cf90",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/DeviceFileComposition.cs",
+          "tested_sha256": "0a98fa845f8720d396a77ce7c4b207474ae6d0751b6a3fd700584a65c4d859a1",
+          "final_sha256": "0a98fa845f8720d396a77ce7c4b207474ae6d0751b6a3fd700584a65c4d859a1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/DeviceFileAutomatic.cs",
+          "tested_sha256": "eb5c3b75a6e51ccaee6a3b320728919f76a25aebb516ab41036630640cd80994",
+          "final_sha256": "eb5c3b75a6e51ccaee6a3b320728919f76a25aebb516ab41036630640cd80994",
+          "equal": true
+        },
+        {
+          "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/MediaSyncTransport.kt",
+          "tested_sha256": "dd36c80d41d42bf6bee3dcf2a5fd1d6ea3156c2877f04443063fa3545fc88a65",
+          "final_sha256": "dd36c80d41d42bf6bee3dcf2a5fd1d6ea3156c2877f04443063fa3545fc88a65",
+          "equal": true
+        },
+        {
+          "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/NativeMediaSettingsLane.kt",
+          "tested_sha256": "5c11711a33ea67a932c5946861ab93215e7ec2515652c0833d1b9545ce4ec07f",
+          "final_sha256": "5c11711a33ea67a932c5946861ab93215e7ec2515652c0833d1b9545ce4ec07f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/MediaSyncStorage.kt",
+          "tested_sha256": "52b5c1e67f52632df6fe672dca0da654c97ba76b31412f0a67e9c5f99cc9fade",
+          "final_sha256": "52b5c1e67f52632df6fe672dca0da654c97ba76b31412f0a67e9c5f99cc9fade",
+          "equal": true
+        },
+        {
+          "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt",
+          "tested_sha256": "b1046188783708bed450010f4fb7227cf11f98884d2239a25adc43bca1cfc202",
+          "final_sha256": "4dd66077ad5067841e0cf7e6d01bad712f465fba0d42d3a4c2e88d506a1e36a3",
+          "equal": false
+        }
+      ],
+      "all_equal": false
+    },
+    {
+      "proof": "Provider jvm proof on original audit base; inspect any recorded source differences",
+      "inputs": [
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ProviderZone.kt",
+          "tested_sha256": "df732f386818efb7c0d09368d087704971956fdb753536334f60c27430c6ad23",
+          "final_sha256": "df732f386818efb7c0d09368d087704971956fdb753536334f60c27430c6ad23",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/TimeZoneExport.kt",
+          "tested_sha256": "7475d43f54caded4f8e4a721127d43882423e05c591a814e2ad2a82b766da75e",
+          "final_sha256": "7475d43f54caded4f8e4a721127d43882423e05c591a814e2ad2a82b766da75e",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/CalendarIdentity.kt",
+          "tested_sha256": "0a9e8fefb733069b68d0dc259fee2997da6786ac67fc9a539ed173fe8e6f7932",
+          "final_sha256": "0a9e8fefb733069b68d0dc259fee2997da6786ac67fc9a539ed173fe8e6f7932",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarImport.kt",
+          "tested_sha256": "56e9cce3866701d034b5b4dc9276ac90adbcb2fca3640f063bc01321b5d7f93a",
+          "final_sha256": "56e9cce3866701d034b5b4dc9276ac90adbcb2fca3640f063bc01321b5d7f93a",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarExport.kt",
+          "tested_sha256": "2f04cc2859a96f35181e8c2e481da55a1f3cda63a0bb156411b4f9e7781286c8",
+          "final_sha256": "2f04cc2859a96f35181e8c2e481da55a1f3cda63a0bb156411b4f9e7781286c8",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/ProviderCodecMigrationTest.kt",
+          "tested_sha256": "8a2d3b3f5394b4a59da8faebe66905b086e4c7622b05408609774c5453dd3cd5",
+          "final_sha256": "8a2d3b3f5394b4a59da8faebe66905b086e4c7622b05408609774c5453dd3cd5",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/tzdb-2026egtz.json",
+          "tested_sha256": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c",
+          "final_sha256": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/LICENSE-tzdb.txt",
+          "tested_sha256": "0613408568889f5739e5ae252b722a2659c02002839ad970a63dc5e9174b27cf",
+          "final_sha256": "0613408568889f5739e5ae252b722a2659c02002839ad970a63dc5e9174b27cf",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/resources/calendar-export-system-zone-ui.json",
+          "tested_sha256": "7c0cb3c83dd27feb10266d332223cb1ba20867482e42694934a8aac95392dc27",
+          "final_sha256": "7c0cb3c83dd27feb10266d332223cb1ba20867482e42694934a8aac95392dc27",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/build.gradle.kts",
+          "tested_sha256": "dbf657e3fe7c56b50588d8320496b3a300ac199bac0ce0d1566d613d76218a7f",
+          "final_sha256": "dbf657e3fe7c56b50588d8320496b3a300ac199bac0ce0d1566d613d76218a7f",
+          "equal": true
+        }
+      ],
+      "all_equal": true
+    },
+    {
+      "proof": "Provider ui proof on original audit base; inspect any recorded source differences",
+      "inputs": [
+        {
+          "path": "port-adapters/tests/occurrence-identity.cjs",
+          "tested_sha256": "3f72a383047c0a5eecee5942a0a8fce7732542f143cd049430d2dc2369b41733",
+          "final_sha256": "3f72a383047c0a5eecee5942a0a8fce7732542f143cd049430d2dc2369b41733",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/tests/fixtures/distinct-rid-same-slot.json",
+          "tested_sha256": "9a36461014b4a4f1c909ca98c1c174b7231527bb3e4185f5ed19596a84c5ad38",
+          "final_sha256": "9a36461014b4a4f1c909ca98c1c174b7231527bb3e4185f5ed19596a84c5ad38",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/occurrence-identity.js",
+          "tested_sha256": "08f51f03c3c158017e7df7222807c042ec79c1e8caa81c2d628d40a9a06bbd32",
+          "final_sha256": "08f51f03c3c158017e7df7222807c042ec79c1e8caa81c2d628d40a9a06bbd32",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/occurrence-identity-patch.json",
+          "tested_sha256": "71ed501a3fdcab8dd108141889910fc32abce976e785d5db7ce09f12363b6a49",
+          "final_sha256": "71ed501a3fdcab8dd108141889910fc32abce976e785d5db7ce09f12363b6a49",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/occurrence-identity-projection.cjs",
+          "tested_sha256": "a313a300b467ed33b1b56d75e31401e918e41824b942dd7e9a53dbd08e8a247f",
+          "final_sha256": "a313a300b467ed33b1b56d75e31401e918e41824b942dd7e9a53dbd08e8a247f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/anwendung.js",
+          "tested_sha256": "573b2b457689c9d3e7a71be4aca60630144b892e0fd53ce21c778d8806259440",
+          "final_sha256": "2c4be5692ba5c5b8863600e1ad698f2b29d233d778d3f29d0fe701018eee4293",
+          "equal": false
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/tools/project-web.cjs",
+          "tested_sha256": "6d4ad1d5ae692ba16618763ae07f12fbc4fb4b0a24a90a96e7829789f4af2fdd",
+          "final_sha256": "6d4ad1d5ae692ba16618763ae07f12fbc4fb4b0a24a90a96e7829789f4af2fdd",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/tools/project_ui.py",
+          "tested_sha256": "3a0983b04c1eb77037a3787b45f5f8fc38548f62088791477ec733925935cd33",
+          "final_sha256": "3a0983b04c1eb77037a3787b45f5f8fc38548f62088791477ec733925935cd33",
+          "equal": true
+        }
+      ],
+      "all_equal": false
+    },
+    {
+      "proof": "Provider helper proof on original audit base; inspect any recorded source differences",
+      "inputs": [
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py",
+          "tested_sha256": "13d808524cc329d72688e82612c38606a9d20d96d73dfa3f0a070dbcd3946119",
+          "final_sha256": "13d808524cc329d72688e82612c38606a9d20d96d73dfa3f0a070dbcd3946119",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/ImportHelper/helper.py",
+          "tested_sha256": "52de85c855a3b86dd47f2cc4681ed0cbb278e08e6b25d7e328a5dee1c21bb990",
+          "final_sha256": "52de85c855a3b86dd47f2cc4681ed0cbb278e08e6b25d7e328a5dee1c21bb990",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py",
+          "tested_sha256": "f9c6530a83c834599f9d7bf98ed13f9445e02e060068aa9da46fb9b0a1612792",
+          "final_sha256": "f9c6530a83c834599f9d7bf98ed13f9445e02e060068aa9da46fb9b0a1612792",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py",
+          "tested_sha256": "94733b99acbca60b855ae5d260ee9b2ad678130a5d07326a0d695f5878c7ab58",
+          "final_sha256": "94733b99acbca60b855ae5d260ee9b2ad678130a5d07326a0d695f5878c7ab58",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/fixtures/caldav-series-resource.ics",
+          "tested_sha256": "670de67684a9563555fe42837e2740572ff77f00375df4c213e329f41fdfccf5",
+          "final_sha256": "670de67684a9563555fe42837e2740572ff77f00375df4c213e329f41fdfccf5",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie-organizer",
+          "tested_sha256": "7dc6b588d62c1df6e0da9550995fd2f6761cff694a1026c47b8dc645ef704ee9",
+          "final_sha256": "57954b0e3f58080b156651f748f021990af995308f218731e90db08cfea31192",
+          "equal": false
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie_or6.py",
+          "tested_sha256": "e4576a8b1df12d064e5645e43beadfac7c390e6fc7f68e0c9bea9ab1e4ab58ac",
+          "final_sha256": "e4576a8b1df12d064e5645e43beadfac7c390e6fc7f68e0c9bea9ab1e4ab58ac",
+          "equal": true
+        }
+      ],
+      "all_equal": false
+    },
+    {
+      "proof": "7 CandidateSourceTests, same source and workflow",
+      "inputs": [
+        {
+          "path": ".github/workflows/ports-2.0.30.yml",
+          "tested_sha256": "009ffd1a786c11d8e46785e96b48f9f48ac2821095251693eedd90ba07a78b93",
+          "final_sha256": "009ffd1a786c11d8e46785e96b48f9f48ac2821095251693eedd90ba07a78b93",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py",
+          "tested_sha256": "a70bc081260b5f47f9c63db9111e5009846ba9f4ecd5ea574db51c74bd772f52",
+          "final_sha256": "a70bc081260b5f47f9c63db9111e5009846ba9f4ecd5ea574db51c74bd772f52",
+          "equal": true
+        }
+      ],
+      "all_equal": true
+    },
+    {
+      "proof": "Final integrated proof: validation/final/manifest.json",
+      "inputs": [
+        {
+          "path": "magnolie-organizer/pruefungen/test_lotus_task_csv.py",
+          "tested_sha256": "70c1ac4d50e54fc4286a9cd1b29fa2ac4cc56f438403395139c4f866ab2f54a2",
+          "final_sha256": "70c1ac4d50e54fc4286a9cd1b29fa2ac4cc56f438403395139c4f866ab2f54a2",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py",
+          "tested_sha256": "e5163d391c11a6d2b9dbc9f40ca6969639a39e389129a4ea6005367f7b600299",
+          "final_sha256": "e5163d391c11a6d2b9dbc9f40ca6969639a39e389129a4ea6005367f7b600299",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_restore_identity.py",
+          "tested_sha256": "530b06ee21ee47f17d306c9c8ad3a69cf5217b272f18ce0a2d20026a6010a03b",
+          "final_sha256": "530b06ee21ee47f17d306c9c8ad3a69cf5217b272f18ce0a2d20026a6010a03b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_save_restore_boundary.py",
+          "tested_sha256": "c8177dba0e58ab49796e155e147cde295e44184d1e8adea3012e3cf13d985e68",
+          "final_sha256": "c8177dba0e58ab49796e155e147cde295e44184d1e8adea3012e3cf13d985e68",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_restore_commit_result.py",
+          "tested_sha256": "1f89953524ddf5eb2bfe5266546fc9f6d1882015ced3e285fb039d3e0a11886e",
+          "final_sha256": "1f89953524ddf5eb2bfe5266546fc9f6d1882015ced3e285fb039d3e0a11886e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_backup_profile_validation.py",
+          "tested_sha256": "aafa627f8e6aef096b23d29f0238cbf646390d77a7ce9c266dc36fd1daf35181",
+          "final_sha256": "aafa627f8e6aef096b23d29f0238cbf646390d77a7ce9c266dc36fd1daf35181",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie-organizer",
+          "tested_sha256": "57954b0e3f58080b156651f748f021990af995308f218731e90db08cfea31192",
+          "final_sha256": "57954b0e3f58080b156651f748f021990af995308f218731e90db08cfea31192",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+          "tested_sha256": "3495cc8fa91b8f2d3f9c4cafd14fafa5b179b8aede876a2219d93e13ec4cc35a",
+          "final_sha256": "3495cc8fa91b8f2d3f9c4cafd14fafa5b179b8aede876a2219d93e13ec4cc35a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/RestoreSelection.cs",
+          "tested_sha256": "182a8538fa3355a08301796050bc43d61022800299300e635d2c2a0e021530c9",
+          "final_sha256": "182a8538fa3355a08301796050bc43d61022800299300e635d2c2a0e021530c9",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/Program.cs",
+          "tested_sha256": "1be01dcedb6569e2f9a2c1768e80e01c9d5f37d4e063c1d8ff6a9d41548234d7",
+          "final_sha256": "1be01dcedb6569e2f9a2c1768e80e01c9d5f37d4e063c1d8ff6a9d41548234d7",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs",
+          "tested_sha256": "6a06d91104979a5273a97a44e44d77c12180dd89aa18d02cb7e0331130ad4999",
+          "final_sha256": "6a06d91104979a5273a97a44e44d77c12180dd89aa18d02cb7e0331130ad4999",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/RestoreSelectionIdentityTests.cs",
+          "tested_sha256": "95bb4d815246274fc2e2030504fcced98869d9db3b292f3b7ba768c68116cad0",
+          "final_sha256": "95bb4d815246274fc2e2030504fcced98869d9db3b292f3b7ba768c68116cad0",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/CoreTests.csproj",
+          "tested_sha256": "7996051654fa7c22281854561ab25c34e437187400d84b1eb085fdb0585b8d72",
+          "final_sha256": "7996051654fa7c22281854561ab25c34e437187400d84b1eb085fdb0585b8d72",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/packages.lock.json",
+          "tested_sha256": "4699091bda905eb2d8d12e0c7e9a84ccf3b19c6bbd8c664cb13058625de29b6c",
+          "final_sha256": "4699091bda905eb2d8d12e0c7e9a84ccf3b19c6bbd8c664cb13058625de29b6c",
+          "equal": true
+        },
+        {
+          "path": "contracts/lotus-csv-contact-fields.json",
+          "tested_sha256": "c480c3606eab613a6151ac4006d9d01a56f61abe2f4f3439434fb1e03b335bce",
+          "final_sha256": "c480c3606eab613a6151ac4006d9d01a56f61abe2f4f3439434fb1e03b335bce",
+          "equal": true
+        },
+        {
+          "path": "contracts/restore-additive-identity-vectors.json",
+          "tested_sha256": "8023b85d18bd30c009f4579f53d7cf58f3666439cd9b589d49b743a61a20930e",
+          "final_sha256": "8023b85d18bd30c009f4579f53d7cf58f3666439cd9b589d49b743a61a20930e",
+          "equal": true
+        }
+      ],
+      "all_equal": true
+    },
+    {
+      "proof": "Final integrated proof: import-export/final/manifest.json",
+      "inputs": [
+        {
+          "path": "magnolie-organizer/pruefungen/test_native_import_regressions.py",
+          "tested_sha256": "1927f5bbcf2b172d3c82bc18341f5d1ed5d235d8830eaef5f288d3c5afc5f3a7",
+          "final_sha256": "1927f5bbcf2b172d3c82bc18341f5d1ed5d235d8830eaef5f288d3c5afc5f3a7",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_csv_unicode_import.py",
+          "tested_sha256": "a017bf12d2adb4c77016ce14c9354c3854c40d8f07c79bf88f6ed285c69330d2",
+          "final_sha256": "a017bf12d2adb4c77016ce14c9354c3854c40d8f07c79bf88f6ed285c69330d2",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_contact_type_category_separation.py",
+          "tested_sha256": "802ce8ca7bb3e4218ca4afd7b31db4bd41bcbb0ee26ec56269a7e015646742df",
+          "final_sha256": "802ce8ca7bb3e4218ca4afd7b31db4bd41bcbb0ee26ec56269a7e015646742df",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_contact_person_details.py",
+          "tested_sha256": "ea5303ec986ddd8963ee8414cc5ac762e63323c2720ba0ecbb3a2a6eec47bdad",
+          "final_sha256": "ea5303ec986ddd8963ee8414cc5ac762e63323c2720ba0ecbb3a2a6eec47bdad",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_thunderbird_contacts.py",
+          "tested_sha256": "a7808bdc1a4efd3939d653a950fe19786020005be0be47c0f93b934305cbc1fb",
+          "final_sha256": "a7808bdc1a4efd3939d653a950fe19786020005be0be47c0f93b934305cbc1fb",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_kde_contact_export.py",
+          "tested_sha256": "6780c2a286ca430149a22ba6e789dd6f4806e64c8c32fb1334ed14cf811ff80a",
+          "final_sha256": "6780c2a286ca430149a22ba6e789dd6f4806e64c8c32fb1334ed14cf811ff80a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_mcp_records_export.py",
+          "tested_sha256": "936b838f779eb1c22f53a8b62af244a314b6e8a2e3e4a99ba7375cb6166fbf01",
+          "final_sha256": "936b838f779eb1c22f53a8b62af244a314b6e8a2e3e4a99ba7375cb6166fbf01",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_mcp_local_import.py",
+          "tested_sha256": "9950ebc167bb2d2156f66bb8c88ec6bb6388c1fce46289385b2ea9549b321ab1",
+          "final_sha256": "9950ebc167bb2d2156f66bb8c88ec6bb6388c1fce46289385b2ea9549b321ab1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_category_colors.py",
+          "tested_sha256": "557074c8076c9a86e49ecd6cf323114949173b4e123cfe6ef7f1ac42dab81eb9",
+          "final_sha256": "557074c8076c9a86e49ecd6cf323114949173b4e123cfe6ef7f1ac42dab81eb9",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_or6_import.py",
+          "tested_sha256": "1e5ba5a930ebe2449718135f3f7738d1a20a684394abac5f6889ff22f089c486",
+          "final_sha256": "1e5ba5a930ebe2449718135f3f7738d1a20a684394abac5f6889ff22f089c486",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_or6_contact_region.py",
+          "tested_sha256": "6ca8239a682d921622596b583ae916a32800b537ced745828c514cccd3fd93c9",
+          "final_sha256": "6ca8239a682d921622596b583ae916a32800b537ced745828c514cccd3fd93c9",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_or6_contact_source_text.py",
+          "tested_sha256": "207f3183527b645ecbf2f4b4914786528f290b7ecdcb853a95129ce5fb3bc0a6",
+          "final_sha256": "207f3183527b645ecbf2f4b4914786528f290b7ecdcb853a95129ce5fb3bc0a6",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_waste_import.py",
+          "tested_sha256": "1d6a25cc5d587d3f7cc7bbf38036401cc4e5f5532470da554eba1877f45a046f",
+          "final_sha256": "1d6a25cc5d587d3f7cc7bbf38036401cc4e5f5532470da554eba1877f45a046f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_contact_time_contract.py",
+          "tested_sha256": "eb342b4c6b97d1a2f175d7a874bd02d55a2d3feaf877cefb23598c40f58f46d3",
+          "final_sha256": "eb342b4c6b97d1a2f175d7a874bd02d55a2d3feaf877cefb23598c40f58f46d3",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_calendar_color_remainders.py",
+          "tested_sha256": "b5696494bbc508f03a72d00c00e5c2a55e58cd3a876e3825b744ed9b2457131f",
+          "final_sha256": "b5696494bbc508f03a72d00c00e5c2a55e58cd3a876e3825b744ed9b2457131f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_calendar_birthday_dedup.py",
+          "tested_sha256": "0bd26eafc06ebfc24e4cb442389a92c4d6955d51e70908825ba84ba4a9e4180f",
+          "final_sha256": "0bd26eafc06ebfc24e4cb442389a92c4d6955d51e70908825ba84ba4a9e4180f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_calendar_birthday_cleanup.py",
+          "tested_sha256": "4835021cd9c6b46c8433e7a5f7c587f0f05928d838a1c356142c168614b35ec8",
+          "final_sha256": "4835021cd9c6b46c8433e7a5f7c587f0f05928d838a1c356142c168614b35ec8",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_nextcloud.py",
+          "tested_sha256": "1de86537553eb8d3f005b08205fed74aa94979ed672107a846a033d4f2a06263",
+          "final_sha256": "1de86537553eb8d3f005b08205fed74aa94979ed672107a846a033d4f2a06263",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py",
+          "tested_sha256": "ab7ad293284b1d1322688c4d9dd4424dc921b8b43d01a883758ee98509f07711",
+          "final_sha256": "ab7ad293284b1d1322688c4d9dd4424dc921b8b43d01a883758ee98509f07711",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_nextcloud_anniversary_scope.py",
+          "tested_sha256": "20ddb2f1f3469eeb2655fd526fe66b98ee56c90a7a762f49fe3fc0844f1fc5a9",
+          "final_sha256": "20ddb2f1f3469eeb2655fd526fe66b98ee56c90a7a762f49fe3fc0844f1fc5a9",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_import_export_vertrag.py",
+          "tested_sha256": "5d46c8328f0c673998282e71fefd41de596b9fa0141407f7868f91b1e8e3e967",
+          "final_sha256": "5d46c8328f0c673998282e71fefd41de596b9fa0141407f7868f91b1e8e3e967",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie-organizer",
+          "tested_sha256": "57954b0e3f58080b156651f748f021990af995308f218731e90db08cfea31192",
+          "final_sha256": "57954b0e3f58080b156651f748f021990af995308f218731e90db08cfea31192",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie_or6.py",
+          "tested_sha256": "e4576a8b1df12d064e5645e43beadfac7c390e6fc7f68e0c9bea9ab1e4ab58ac",
+          "final_sha256": "e4576a8b1df12d064e5645e43beadfac7c390e6fc7f68e0c9bea9ab1e4ab58ac",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+          "tested_sha256": "3495cc8fa91b8f2d3f9c4cafd14fafa5b179b8aede876a2219d93e13ec4cc35a",
+          "final_sha256": "3495cc8fa91b8f2d3f9c4cafd14fafa5b179b8aede876a2219d93e13ec4cc35a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/RecordExportFile.cs",
+          "tested_sha256": "0be7416748887b166da56c1021ccc986a6fe15a23016ae47498ed22cde18c1be",
+          "final_sha256": "0be7416748887b166da56c1021ccc986a6fe15a23016ae47498ed22cde18c1be",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/RecordExportFileTests.cs",
+          "tested_sha256": "f3f5c6a88a11d6d81571105d6e86f7aef910abee90f06e66de324b1907d2a191",
+          "final_sha256": "f3f5c6a88a11d6d81571105d6e86f7aef910abee90f06e66de324b1907d2a191",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/CategoryColorTests.cs",
+          "tested_sha256": "723a39a2e721f39e2e766d03b013ed43e46ab978bba1a7b114396499526f98ee",
+          "final_sha256": "723a39a2e721f39e2e766d03b013ed43e46ab978bba1a7b114396499526f98ee",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/UnicodeImportTests.cs",
+          "tested_sha256": "d3512af3953760b26d85c8c58eabce55e4e0ce8989d7db8f5f205f0981439389",
+          "final_sha256": "d3512af3953760b26d85c8c58eabce55e4e0ce8989d7db8f5f205f0981439389",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/Program.cs",
+          "tested_sha256": "1be01dcedb6569e2f9a2c1768e80e01c9d5f37d4e063c1d8ff6a9d41548234d7",
+          "final_sha256": "1be01dcedb6569e2f9a2c1768e80e01c9d5f37d4e063c1d8ff6a9d41548234d7",
+          "equal": true
+        }
+      ],
+      "all_equal": true
+    },
+    {
+      "proof": "Final integrated proof: desktop/evidence/final-integration/manifest.json",
+      "inputs": [
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/tools/project_ui.py",
+          "tested_sha256": "3a0983b04c1eb77037a3787b45f5f8fc38548f62088791477ec733925935cd33",
+          "final_sha256": "3a0983b04c1eb77037a3787b45f5f8fc38548f62088791477ec733925935cd33",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/anwendung.js",
+          "tested_sha256": "eba45644c432793e892d61b9e73055526ae9a8e1cc6be0d7939a735cb5f7bd07",
+          "final_sha256": "eba45644c432793e892d61b9e73055526ae9a8e1cc6be0d7939a735cb5f7bd07",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/appearance.js",
+          "tested_sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "final_sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/contact-group-aliases.js",
+          "tested_sha256": "5705c6530819766533e3ad92b7cbb9b75253068023a6259c511ba03f8a4202a5",
+          "final_sha256": "5705c6530819766533e3ad92b7cbb9b75253068023a6259c511ba03f8a4202a5",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n-markers.js",
+          "tested_sha256": "e895b832101d97a2c2a729fdb2516a9dd0cae7a2045f218aad1837aaf4e0392d",
+          "final_sha256": "e895b832101d97a2c2a729fdb2516a9dd0cae7a2045f218aad1837aaf4e0392d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n-start.js",
+          "tested_sha256": "29e904c052904fcbf499694237ed0d7cd953a677a61fecfed5de6a0009109f02",
+          "final_sha256": "29e904c052904fcbf499694237ed0d7cd953a677a61fecfed5de6a0009109f02",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n.js",
+          "tested_sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "final_sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/ar.js",
+          "tested_sha256": "a02f29164729e91914a22b3da35ce3a69bc1184915c195253d95d78ea7aec402",
+          "final_sha256": "a02f29164729e91914a22b3da35ce3a69bc1184915c195253d95d78ea7aec402",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/be.js",
+          "tested_sha256": "5f8051a22441426f80eb23ba72454d0fc221795cc3a8cefb87f11bd6eae65ca7",
+          "final_sha256": "5f8051a22441426f80eb23ba72454d0fc221795cc3a8cefb87f11bd6eae65ca7",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/cs.js",
+          "tested_sha256": "7b5c1d85efa3ad23a75e1a2ceef2925c7f8229af4408ad10b2476fd26924f3ad",
+          "final_sha256": "7b5c1d85efa3ad23a75e1a2ceef2925c7f8229af4408ad10b2476fd26924f3ad",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/da.js",
+          "tested_sha256": "7a7adc16ed46763da244db4d99a00e53984e6ed02e56d3632a6a1ba7ef478a38",
+          "final_sha256": "7a7adc16ed46763da244db4d99a00e53984e6ed02e56d3632a6a1ba7ef478a38",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/de.js",
+          "tested_sha256": "8e91d625884344f1a65ae3b316bb09456420c8bea505f2ea52ba70d020120535",
+          "final_sha256": "8e91d625884344f1a65ae3b316bb09456420c8bea505f2ea52ba70d020120535",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/es.js",
+          "tested_sha256": "371a47ad1427be8091f066fcafa8df40c8e4eb4d7f42d36920f0f3153466e0e1",
+          "final_sha256": "371a47ad1427be8091f066fcafa8df40c8e4eb4d7f42d36920f0f3153466e0e1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/fr.js",
+          "tested_sha256": "91d1ce9114152631c26be1e221397d7e9503be8c4504b3e3e50dfdebeb5a248d",
+          "final_sha256": "91d1ce9114152631c26be1e221397d7e9503be8c4504b3e3e50dfdebeb5a248d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/hi.js",
+          "tested_sha256": "19f083bf1e790c776676ad90ee013d7e76a871f45ee991d21f58b015587ea781",
+          "final_sha256": "19f083bf1e790c776676ad90ee013d7e76a871f45ee991d21f58b015587ea781",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/hsb.js",
+          "tested_sha256": "20602834e488de8cf0228afca9b19ddd53dae0fc51a8293dc2f803d6d6f84004",
+          "final_sha256": "20602834e488de8cf0228afca9b19ddd53dae0fc51a8293dc2f803d6d6f84004",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/it.js",
+          "tested_sha256": "d1a79862767e9d9e2105d7fefc355fe970c43babe66041816840b09f96203ba0",
+          "final_sha256": "d1a79862767e9d9e2105d7fefc355fe970c43babe66041816840b09f96203ba0",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/ja.js",
+          "tested_sha256": "3bbd10cecb27d513f8e1f0817b013fcadc0984ae3c703d5b4444eb2e146d60c9",
+          "final_sha256": "3bbd10cecb27d513f8e1f0817b013fcadc0984ae3c703d5b4444eb2e146d60c9",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/nb.js",
+          "tested_sha256": "dd8ab602ed684bed4d73edc51a5a7b70c8cd2bdb8ff5ed7a3d5e252fe1dae5c4",
+          "final_sha256": "dd8ab602ed684bed4d73edc51a5a7b70c8cd2bdb8ff5ed7a3d5e252fe1dae5c4",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/nl.js",
+          "tested_sha256": "3f809c567556b10f4f38ded7a5a46f142b3b805bf7cecd54cd0d16b17d00102f",
+          "final_sha256": "3f809c567556b10f4f38ded7a5a46f142b3b805bf7cecd54cd0d16b17d00102f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/pl.js",
+          "tested_sha256": "14b0910e737df56f321148fd442a81220265c121b5ad02ae1386bdc63281ef13",
+          "final_sha256": "14b0910e737df56f321148fd442a81220265c121b5ad02ae1386bdc63281ef13",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/pt.js",
+          "tested_sha256": "174df570bdef68eafec1e4ec70c333f3864669e0bc2f457dfbb2cbd29f45abc1",
+          "final_sha256": "174df570bdef68eafec1e4ec70c333f3864669e0bc2f457dfbb2cbd29f45abc1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/ru.js",
+          "tested_sha256": "4a9b92b7c608a9bd2b27e567b05c3e00fc88224b7d8f16c64e7bcc90fa84566f",
+          "final_sha256": "4a9b92b7c608a9bd2b27e567b05c3e00fc88224b7d8f16c64e7bcc90fa84566f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/tr.js",
+          "tested_sha256": "23994c6ab475c934b86195260c9ea30ce081760a0547b6a681bb20c91ccf7a52",
+          "final_sha256": "23994c6ab475c934b86195260c9ea30ce081760a0547b6a681bb20c91ccf7a52",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/uk.js",
+          "tested_sha256": "a1d3b33945ae2d1a0369cd7c98c6fad354478ad209af1ccc573a2434a3faa596",
+          "final_sha256": "a1d3b33945ae2d1a0369cd7c98c6fad354478ad209af1ccc573a2434a3faa596",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/zh_CN.js",
+          "tested_sha256": "b90701bec3792a547d71303b13d4c2151e6f97dbff63a69271f5ee310aa2d869",
+          "final_sha256": "b90701bec3792a547d71303b13d4c2151e6f97dbff63a69271f5ee310aa2d869",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/index.html",
+          "tested_sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+          "final_sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/mcp-protocol.js",
+          "tested_sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "final_sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/phone-media.js",
+          "tested_sha256": "5295c10d3a1e955c84984bc983598062ab2b5fabb4b5a2c60485bb06d362dde5",
+          "final_sha256": "5295c10d3a1e955c84984bc983598062ab2b5fabb4b5a2c60485bb06d362dde5",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/qr-decoder.js",
+          "tested_sha256": "bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859",
+          "final_sha256": "bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/qr-dialog.js",
+          "tested_sha256": "b885d1238bb01989bf35f16f19f35ebc0b968b6c707d525b11e02a24cc267628",
+          "final_sha256": "b885d1238bb01989bf35f16f19f35ebc0b968b6c707d525b11e02a24cc267628",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/zeichenblatt.js",
+          "tested_sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "final_sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/account-management-ui.js",
+          "tested_sha256": "8bea51a3a9d344c24d9094772f1a5606879394608df3e86be1be89a322224d8b",
+          "final_sha256": "8bea51a3a9d344c24d9094772f1a5606879394608df3e86be1be89a322224d8b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/appointment-organizer-suggestions.js",
+          "tested_sha256": "f51c8de9fc2831e1fdd68ca30f59abab6de5238d3b5026b8c841dfb53220d325",
+          "final_sha256": "f51c8de9fc2831e1fdd68ca30f59abab6de5238d3b5026b8c841dfb53220d325",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/asr-sms-regressions.js",
+          "tested_sha256": "7173676c2a5359212852041e53e8fb89b56a18589e36af9423c59438c43a0956",
+          "final_sha256": "7173676c2a5359212852041e53e8fb89b56a18589e36af9423c59438c43a0956",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/aur-phone-vectors.js",
+          "tested_sha256": "58aceda140e0d9a574ac840cfd53c8d21b73f38bf8824f5e5a6b1f86f2d45b2d",
+          "final_sha256": "58aceda140e0d9a574ac840cfd53c8d21b73f38bf8824f5e5a6b1f86f2d45b2d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/aur-sms-regressions.js",
+          "tested_sha256": "5aae7e4c1991783beab29964c1eb0ad85934d5b188d7122fe8378b96deb1a773",
+          "final_sha256": "5aae7e4c1991783beab29964c1eb0ad85934d5b188d7122fe8378b96deb1a773",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/background-receipt-vectors.js",
+          "tested_sha256": "b7ff9dbd0fe43ff694b9d4c6137d6dd5fb59eb492a3da27e1593615ee80b79e3",
+          "final_sha256": "b7ff9dbd0fe43ff694b9d4c6137d6dd5fb59eb492a3da27e1593615ee80b79e3",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/background-sms-paths.js",
+          "tested_sha256": "df5fa33b715eb2dfe2255f00b9be6c9319b4c13368d723dc0bdb5ed4a768a222",
+          "final_sha256": "df5fa33b715eb2dfe2255f00b9be6c9319b4c13368d723dc0bdb5ed4a768a222",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/background-sms.js",
+          "tested_sha256": "9c0643486bbb9aa4e3fef1ce7fb86bdcf9f67e5871bedb5a66335ab900e85729",
+          "final_sha256": "9c0643486bbb9aa4e3fef1ce7fb86bdcf9f67e5871bedb5a66335ab900e85729",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/baum-contact-batch.js",
+          "tested_sha256": "d4e90b53057cc607a5861f0aa549c923c97f1f48bbc13fec9cfe3f127624fa8e",
+          "final_sha256": "d4e90b53057cc607a5861f0aa549c923c97f1f48bbc13fec9cfe3f127624fa8e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/baum-contact-groups.js",
+          "tested_sha256": "16f47d5dd9f309f2ccb5d2f2562c9ebba4c6ee6285e5ce66502a21923883d1b7",
+          "final_sha256": "16f47d5dd9f309f2ccb5d2f2562c9ebba4c6ee6285e5ce66502a21923883d1b7",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/baum-contact-review.js",
+          "tested_sha256": "a00b861a50c923cf849df2c608464e22c21ca671116345c3eafb3013bbc16fc3",
+          "final_sha256": "a00b861a50c923cf849df2c608464e22c21ca671116345c3eafb3013bbc16fc3",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/baum-contact-time.js",
+          "tested_sha256": "25e0a17156437da52bbedd6e05db4467466cc1273ae0811a08f9fff9f5ea8267",
+          "final_sha256": "25e0a17156437da52bbedd6e05db4467466cc1273ae0811a08f9fff9f5ea8267",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/baum-note-identity.js",
+          "tested_sha256": "f74d44793ff406e809e80f845541a64659a8c1da928eb39c901cfe4408307404",
+          "final_sha256": "f74d44793ff406e809e80f845541a64659a8c1da928eb39c901cfe4408307404",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/birthday-display.js",
+          "tested_sha256": "38470601109a4a920212e289353aeb1f49ad091c73f720ce557500756d7909a3",
+          "final_sha256": "38470601109a4a920212e289353aeb1f49ad091c73f720ce557500756d7909a3",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/bundled-handbook-update.js",
+          "tested_sha256": "5b4bfd403752125923fa0f490587f74159b8e3f5f3bce0625be85a7cee293d38",
+          "final_sha256": "5b4bfd403752125923fa0f490587f74159b8e3f5f3bce0625be85a7cee293d38",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/calendar-accent-edits.js",
+          "tested_sha256": "79e858cc7b3c00021e88e65b4bedcd31b4417dfe60eb0223a8547eae7b765714",
+          "final_sha256": "79e858cc7b3c00021e88e65b4bedcd31b4417dfe60eb0223a8547eae7b765714",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/calendar-attachment-actions.js",
+          "tested_sha256": "c2460c0709a4795bbe90969a51465f12567c39fc28cb3a2806d9b26d3777a444",
+          "final_sha256": "c2460c0709a4795bbe90969a51465f12567c39fc28cb3a2806d9b26d3777a444",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/calendar-attachment-native.js",
+          "tested_sha256": "5f2a728a212852f1d9f43aa95f620e5767a5b8a9944ffb1db99a300e6cc2bf14",
+          "final_sha256": "5f2a728a212852f1d9f43aa95f620e5767a5b8a9944ffb1db99a300e6cc2bf14",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/calendar-colour-remainders.js",
+          "tested_sha256": "63708d326ca7922b152fa2e440c3e7d6e7cfac2b553a7d9a66487e9e06416cef",
+          "final_sha256": "63708d326ca7922b152fa2e440c3e7d6e7cfac2b553a7d9a66487e9e06416cef",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/call-audio-regressions.js",
+          "tested_sha256": "9ce2f456d64b63a9b56e8431f04b92d2f710dbb932d87df49b43f07d3912ea68",
+          "final_sha256": "9ce2f456d64b63a9b56e8431f04b92d2f710dbb932d87df49b43f07d3912ea68",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/callstate/DelayedCallbacks.py",
+          "tested_sha256": "2787ca0bb3530881127c0d1325a355451c2b299367cac0e5690f738327ae9a18",
+          "final_sha256": "2787ca0bb3530881127c0d1325a355451c2b299367cac0e5690f738327ae9a18",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/callstate/frontend.js",
+          "tested_sha256": "fcc023306c34214542a1f379db8ae3fbb103ba3e4a212704755667c9174783c8",
+          "final_sha256": "fcc023306c34214542a1f379db8ae3fbb103ba3e4a212704755667c9174783c8",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/callstate/outgoing.js",
+          "tested_sha256": "510475c8bc442d48f7a968684a55e534fac9e856682b779c407370faf511f88a",
+          "final_sha256": "510475c8bc442d48f7a968684a55e534fac9e856682b779c407370faf511f88a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/callstate/outgoing.py",
+          "tested_sha256": "f133f609f4b6b5559bbf5195577a1a2ffd5ac189d8de6d995762b4f054cbc745",
+          "final_sha256": "f133f609f4b6b5559bbf5195577a1a2ffd5ac189d8de6d995762b4f054cbc745",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/category-colors.js",
+          "tested_sha256": "1b8fd731d866eb8c13fbb3bb4e9c17199cbf503802467aec6058bf79733823cd",
+          "final_sha256": "1b8fd731d866eb8c13fbb3bb4e9c17199cbf503802467aec6058bf79733823cd",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-address-choice.js",
+          "tested_sha256": "9f4e03d2d697521f997b93b1924123a5565eaf54ef9cca210e9eba0fc320a8cf",
+          "final_sha256": "9f4e03d2d697521f997b93b1924123a5565eaf54ef9cca210e9eba0fc320a8cf",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-content-conflicts.js",
+          "tested_sha256": "3db6e4f899d61ffa834aaf29c16f6e350be5242dc000459eee389d5f3e225f73",
+          "final_sha256": "3db6e4f899d61ffa834aaf29c16f6e350be5242dc000459eee389d5f3e225f73",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-copy-birthday.js",
+          "tested_sha256": "794935032f535fc663ba218d161e9759f561df140001074baa30866f300881ea",
+          "final_sha256": "794935032f535fc663ba218d161e9759f561df140001074baa30866f300881ea",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-duplicate-review.js",
+          "tested_sha256": "2eb6b3388d1672ecf941b2f50cabb0610e7036188db9628d4e90d602e5ab9ca7",
+          "final_sha256": "2eb6b3388d1672ecf941b2f50cabb0610e7036188db9628d4e90d602e5ab9ca7",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-email-case.js",
+          "tested_sha256": "8742c38b9b85563d021c785bce7de4bc608be6d24c0e847bb7984c3aacd0b33c",
+          "final_sha256": "8742c38b9b85563d021c785bce7de4bc608be6d24c0e847bb7984c3aacd0b33c",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-field-review.js",
+          "tested_sha256": "9154a0e50c8b918fea0681bde249972178e09d8cb240fb0a492b94b8a35243bd",
+          "final_sha256": "9154a0e50c8b918fea0681bde249972178e09d8cb240fb0a492b94b8a35243bd",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-file-batch.js",
+          "tested_sha256": "b8afc6b28df0b3ebc95adfea86ac9898f10ab6cbd48fce0b5be587112a9856c9",
+          "final_sha256": "b8afc6b28df0b3ebc95adfea86ac9898f10ab6cbd48fce0b5be587112a9856c9",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-file-review.js",
+          "tested_sha256": "c7ec81ddf03e4a288c0f4195bcea3d1a56498ec983b710b0b865e403751df4a5",
+          "final_sha256": "c7ec81ddf03e4a288c0f4195bcea3d1a56498ec983b710b0b865e403751df4a5",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-file-time.js",
+          "tested_sha256": "4ae7cdb3541425ea43210fa929774193aa7581801cf56fed1ad2ebfd1da07597",
+          "final_sha256": "4ae7cdb3541425ea43210fa929774193aa7581801cf56fed1ad2ebfd1da07597",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-group-exclusions.js",
+          "tested_sha256": "4b04e7fdce24963946acbfc4ebf80fcc7c97885c42e0b83bc6cdddc0603c8188",
+          "final_sha256": "4b04e7fdce24963946acbfc4ebf80fcc7c97885c42e0b83bc6cdddc0603c8188",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-group-filter.js",
+          "tested_sha256": "c366de4a712dc52b13b5968e78e298e0dabbfc81de2623540b493d3dc2286131",
+          "final_sha256": "c366de4a712dc52b13b5968e78e298e0dabbfc81de2623540b493d3dc2286131",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-group-title-write.js",
+          "tested_sha256": "afd2fc84dd1faa423b2570435ac45a5aad4a4c5ec71f1d7c959008dfae75cbc4",
+          "final_sha256": "afd2fc84dd1faa423b2570435ac45a5aad4a4c5ec71f1d7c959008dfae75cbc4",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-group-write.js",
+          "tested_sha256": "dab2c130ddeeba751adecfe43c69173ed7e3760dcc7281b4c1bc4b0a4d5a4a17",
+          "final_sha256": "dab2c130ddeeba751adecfe43c69173ed7e3760dcc7281b4c1bc4b0a4d5a4a17",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-groups.js",
+          "tested_sha256": "827c5026d9fbd2a1e00bb8279ae88a4b32f934c722e55ff4632a42c8b36f39c8",
+          "final_sha256": "827c5026d9fbd2a1e00bb8279ae88a4b32f934c722e55ff4632a42c8b36f39c8",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-import-bulk-new.js",
+          "tested_sha256": "7e78504236178527b7a8dfdb3b78cc73887613e290b55fca20ee6b2a98a81b5e",
+          "final_sha256": "7e78504236178527b7a8dfdb3b78cc73887613e290b55fca20ee6b2a98a81b5e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-import-identity.js",
+          "tested_sha256": "f7fbc974096b641230f3773356d48891e221b2fe46fe6b892dd924540e20b4fa",
+          "final_sha256": "f7fbc974096b641230f3773356d48891e221b2fe46fe6b892dd924540e20b4fa",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-import-transaction.js",
+          "tested_sha256": "e746c7ff6f6134f8381a9a1c5a42c5419f607cd1fd2fe202ca46a4d38470e502",
+          "final_sha256": "e746c7ff6f6134f8381a9a1c5a42c5419f607cd1fd2fe202ca46a4d38470e502",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-label-content-time.js",
+          "tested_sha256": "53d55b18172838a35f8fb4902d0011c63a34b3c478b752affa3b094a301641d8",
+          "final_sha256": "53d55b18172838a35f8fb4902d0011c63a34b3c478b752affa3b094a301641d8",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-original-source-updates.js",
+          "tested_sha256": "cfc879cbca7db1c45427f344ce66b3ec58f5371c65e517466d2b95d7f5fbf1f3",
+          "final_sha256": "cfc879cbca7db1c45427f344ce66b3ec58f5371c65e517466d2b95d7f5fbf1f3",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-original-wlan-resume.js",
+          "tested_sha256": "42420e99650498056438d1e49df32ccdff38c5f11e3b85f74e9170c6ea82f107",
+          "final_sha256": "42420e99650498056438d1e49df32ccdff38c5f11e3b85f74e9170c6ea82f107",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-person-editor.js",
+          "tested_sha256": "f3fc6bbee1ba92fe9835c1fec5b7ee8e0b3bbac35433182b95c153b5093974b4",
+          "final_sha256": "f3fc6bbee1ba92fe9835c1fec5b7ee8e0b3bbac35433182b95c153b5093974b4",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-phone-label-conflicts.js",
+          "tested_sha256": "36e9cee294a7ee44246f4a31c0ef411fd403d7c7cd0003b8db048ad2cb17ca60",
+          "final_sha256": "36e9cee294a7ee44246f4a31c0ef411fd403d7c7cd0003b8db048ad2cb17ca60",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-photo-cache.js",
+          "tested_sha256": "cc6e152a590adef713f63a08a496fca8bb6700ded54b9aafc48c12ec7c5335a1",
+          "final_sha256": "cc6e152a590adef713f63a08a496fca8bb6700ded54b9aafc48c12ec7c5335a1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-photo-selection.js",
+          "tested_sha256": "091e48548fbbe689a2e471fbe6619dbbe0e5404c19ae631008d75a93706cff78",
+          "final_sha256": "091e48548fbbe689a2e471fbe6619dbbe0e5404c19ae631008d75a93706cff78",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-provider-bulk-review.js",
+          "tested_sha256": "2df8a48df61b30d47e7083c1f4c7a7fae380532ad258e12db304d91de45fb527",
+          "final_sha256": "2df8a48df61b30d47e7083c1f4c7a7fae380532ad258e12db304d91de45fb527",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-provider-review.js",
+          "tested_sha256": "ea3246588eea92d9e0d685c4c9926062b5e7955159cc92c56235a59148297eb6",
+          "final_sha256": "ea3246588eea92d9e0d685c4c9926062b5e7955159cc92c56235a59148297eb6",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-source-differences.js",
+          "tested_sha256": "7e233961dbecc3249b5a053fe51c70550e9b80e1ed48db823504812d9c8339df",
+          "final_sha256": "7e233961dbecc3249b5a053fe51c70550e9b80e1ed48db823504812d9c8339df",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-source-writeback.js",
+          "tested_sha256": "4912fffb7245a76077460c2a6e9c82fec636ac6a6bfdab9566b4bc0f2a4aa539",
+          "final_sha256": "4912fffb7245a76077460c2a6e9c82fec636ac6a6bfdab9566b4bc0f2a4aa539",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-sync-cleanup.js",
+          "tested_sha256": "f3d310651bfe51f61db17e6b7b0e58cc86be4d9d9e723f0f85e8b70d9d4e5e8e",
+          "final_sha256": "f3d310651bfe51f61db17e6b7b0e58cc86be4d9d9e723f0f85e8b70d9d4e5e8e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-sync-conflicts.js",
+          "tested_sha256": "6f20d9ea360d82b330aba52abb2e62c48c412c59a523c6413a54e5e713503112",
+          "final_sha256": "6f20d9ea360d82b330aba52abb2e62c48c412c59a523c6413a54e5e713503112",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-sync-time.js",
+          "tested_sha256": "66212096d97932f3ed034c3135807ba7e699c51e1d3708cd06b57f4078a4276e",
+          "final_sha256": "66212096d97932f3ed034c3135807ba7e699c51e1d3708cd06b57f4078a4276e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-time-zones.js",
+          "tested_sha256": "9f80099b3096c2eaac85b20ec6de5c67d5b035e00d29d7cd3212039755422ff0",
+          "final_sha256": "9f80099b3096c2eaac85b20ec6de5c67d5b035e00d29d7cd3212039755422ff0",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-value-write.js",
+          "tested_sha256": "a1f7241ecbcba56b975bf45f5c000d0a78b6a21cf58d255a906cd932f5abbecd",
+          "final_sha256": "a1f7241ecbcba56b975bf45f5c000d0a78b6a21cf58d255a906cd932f5abbecd",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/contact-websites.js",
+          "tested_sha256": "6e58675b696e16f576bd627843e6a4829661a33a1bcc53fe40881ff3523a504b",
+          "final_sha256": "6e58675b696e16f576bd627843e6a4829661a33a1bcc53fe40881ff3523a504b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/country-flags-ui.js",
+          "tested_sha256": "6f8abb71fa1a0cf05a3a81bcb6d373b786ab78f855ca78542dab8cead4681eae",
+          "final_sha256": "6f8abb71fa1a0cf05a3a81bcb6d373b786ab78f855ca78542dab8cead4681eae",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/custom-time-regressions.js",
+          "tested_sha256": "bc508804f4fd2e635a63b35af0436bddb60727a3aabe5f4f0fe8c68b80312e1d",
+          "final_sha256": "bc508804f4fd2e635a63b35af0436bddb60727a3aabe5f4f0fe8c68b80312e1d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/cycle-calendar.js",
+          "tested_sha256": "b12c11dece624d2b29fa066f027117c819c58c587aae96f84abd94c141d47ca3",
+          "final_sha256": "b12c11dece624d2b29fa066f027117c819c58c587aae96f84abd94c141d47ca3",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/cycle-forecast-browser.py",
+          "tested_sha256": "5a7eb8f0986f8a01d23a7c82c58aa5ee9905620cbe560430bd95ff3dedc22153",
+          "final_sha256": "5a7eb8f0986f8a01d23a7c82c58aa5ee9905620cbe560430bd95ff3dedc22153",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/cycle-forecast.js",
+          "tested_sha256": "01dfb74503f81f38ac3cb8b1988e971c6fbfcedee1fd808944db788c4c67d24d",
+          "final_sha256": "01dfb74503f81f38ac3cb8b1988e971c6fbfcedee1fd808944db788c4c67d24d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/desktop-data-regressions.js",
+          "tested_sha256": "63144b67c7546a0712c15f8c5a4e7224ff55f2513ea322f120d5dc136ab4d779",
+          "final_sha256": "63144b67c7546a0712c15f8c5a4e7224ff55f2513ea322f120d5dc136ab4d779",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/desktop-state-regressions.js",
+          "tested_sha256": "c27e77e00889fe7a23853256249128844868b23c5c5cffafed25b11584dbdb7d",
+          "final_sha256": "c27e77e00889fe7a23853256249128844868b23c5c5cffafed25b11584dbdb7d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/developer-mode-ui.js",
+          "tested_sha256": "a144cedd3de843ec5c1fd28ee098c091cab899726e6b1fe9c0f70e53e51d396b",
+          "final_sha256": "a144cedd3de843ec5c1fd28ee098c091cab899726e6b1fe9c0f70e53e51d396b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/device-identifiers.js",
+          "tested_sha256": "ca98bd1b413163f7d35ba0a65bbc7ea4c0e686e662dc729773dc202c796a5a32",
+          "final_sha256": "ca98bd1b413163f7d35ba0a65bbc7ea4c0e686e662dc729773dc202c796a5a32",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/device-layout-probe.js",
+          "tested_sha256": "6dfb3d4f433100c92d35c8bbbcae4f32e2253f7267230f97c273f10dd286f580",
+          "final_sha256": "6dfb3d4f433100c92d35c8bbbcae4f32e2253f7267230f97c273f10dd286f580",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/display-alarm-preservation.js",
+          "tested_sha256": "4b8a7ab1aefebd289d1fba0290db5c0f39215b92faa489e0935783ddd6c0ab21",
+          "final_sha256": "4b8a7ab1aefebd289d1fba0290db5c0f39215b92faa489e0935783ddd6c0ab21",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/drawing-pointerup.js",
+          "tested_sha256": "95d635bb12478f32d564c0e6e9482d88503cf264496241e3881049f834d98b4a",
+          "final_sha256": "95d635bb12478f32d564c0e6e9482d88503cf264496241e3881049f834d98b4a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/drawing-sheet.js",
+          "tested_sha256": "aef58fb16f6d86f09c268367bf821c5be00440343fc226fabeeaa4b9f287802f",
+          "final_sha256": "aef58fb16f6d86f09c268367bf821c5be00440343fc226fabeeaa4b9f287802f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/editor_localization_native.py",
+          "tested_sha256": "0d9ed33a5c1e578b34bcaca597f0c1e5d188b5fc105f0866965c0d099487e088",
+          "final_sha256": "0d9ed33a5c1e578b34bcaca597f0c1e5d188b5fc105f0866965c0d099487e088",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/email-obfuscation.js",
+          "tested_sha256": "946a69f7146029a6497b67ad972893f39378664a7f25cc1fb89b553aef2d4734",
+          "final_sha256": "946a69f7146029a6497b67ad972893f39378664a7f25cc1fb89b553aef2d4734",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/fax-options.js",
+          "tested_sha256": "105f700ee8faa557a310babd169ce86988621c939aebfd2822277728e1701c2c",
+          "final_sha256": "105f700ee8faa557a310babd169ce86988621c939aebfd2822277728e1701c2c",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/fixtures/recovery-deletions.json",
+          "tested_sha256": "367efd09b9fa3c28e825a59609049660b79f3a86c33ecc89ce8b687a741ef8cf",
+          "final_sha256": "367efd09b9fa3c28e825a59609049660b79f3a86c33ecc89ce8b687a741ef8cf",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/frontend-integrity.js",
+          "tested_sha256": "2aca29cfb2931c7a66d881ab3e76f4e5a8c6330860b7dd33602f38c0042829de",
+          "final_sha256": "2aca29cfb2931c7a66d881ab3e76f4e5a8c6330860b7dd33602f38c0042829de",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/full-parity-contract.js",
+          "tested_sha256": "c8dced901eb558a41f59bbfed212dafbe44b8c0cb5c9a9e716adc2ae3fdb691b",
+          "final_sha256": "c8dced901eb558a41f59bbfed212dafbe44b8c0cb5c9a9e716adc2ae3fdb691b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/generate-linux-parity-fixture.js",
+          "tested_sha256": "de8936504a1021335abb6e2097958ef9ceaf1b46229bc454a47fe7cf3de9c75d",
+          "final_sha256": "de8936504a1021335abb6e2097958ef9ceaf1b46229bc454a47fe7cf3de9c75d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/handbook-page-ids.js",
+          "tested_sha256": "40a36e4599a3170e45cdff0daf6eac3a6cab9aeb6056d97e81d521059d45bafe",
+          "final_sha256": "40a36e4599a3170e45cdff0daf6eac3a6cab9aeb6056d97e81d521059d45bafe",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/handbook-protection.js",
+          "tested_sha256": "2039e1178af4554ef212f99f36b0f1c6f067ed1035ce642e07c1296efdf2d497",
+          "final_sha256": "2039e1178af4554ef212f99f36b0f1c6f067ed1035ce642e07c1296efdf2d497",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/handbook-smoke.js",
+          "tested_sha256": "1668d1cc2c0e716f42a28ba5352e45ff852d2f7814c98058ab92ee8b34ce6cae",
+          "final_sha256": "1668d1cc2c0e716f42a28ba5352e45ff852d2f7814c98058ab92ee8b34ce6cae",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/handbook-source-diagnostics.js",
+          "tested_sha256": "f4518a47f8d883b30dd6e398eb3166af1aea26d082d32e155d0da9fa083b32e8",
+          "final_sha256": "f4518a47f8d883b30dd6e398eb3166af1aea26d082d32e155d0da9fa083b32e8",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/handbook-source.js",
+          "tested_sha256": "0b7809faea1f17d38cf0645389ef67e5f45e7d647fffa1e0012868b3352b5805",
+          "final_sha256": "0b7809faea1f17d38cf0645389ef67e5f45e7d647fffa1e0012868b3352b5805",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/handbook-windows-variants.js",
+          "tested_sha256": "8a97a6304e90d7cf9e817a66e1433a7970b724f607f237d5fb27eecadfc93c0b",
+          "final_sha256": "8a97a6304e90d7cf9e817a66e1433a7970b724f607f237d5fb27eecadfc93c0b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/installer-authenticode.js",
+          "tested_sha256": "8b0859e4066b929e0fc184cce5d344fadfc23c2e8ccb00a561ec6d7e6048e164",
+          "final_sha256": "8b0859e4066b929e0fc184cce5d344fadfc23c2e8ccb00a561ec6d7e6048e164",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/installer-publication.js",
+          "tested_sha256": "cfcec1151c327b2c53f48f819b5bcef54a7e067452a434caf442fdc31bf14b6e",
+          "final_sha256": "cfcec1151c327b2c53f48f819b5bcef54a7e067452a434caf442fdc31bf14b6e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/journal-selection.js",
+          "tested_sha256": "dac4257d6b3ba5f967412ff37c83f366a0266eac190763f80cffc19ac33264d3",
+          "final_sha256": "dac4257d6b3ba5f967412ff37c83f366a0266eac190763f80cffc19ac33264d3",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/kde-contact-import.js",
+          "tested_sha256": "5bd7a8ef58ef106152614a51242ee3fbfa6736199c61c6eecd8df6adedd01181",
+          "final_sha256": "5bd7a8ef58ef106152614a51242ee3fbfa6736199c61c6eecd8df6adedd01181",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/kde-filesystem-ui.js",
+          "tested_sha256": "17a64a716212f006e855a71abbf1b26bef3def6bc3132c878e91cba954b446f6",
+          "final_sha256": "17a64a716212f006e855a71abbf1b26bef3def6bc3132c878e91cba954b446f6",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/kde-input-ui.js",
+          "tested_sha256": "eee5bc51c90731e9fde13f00c1926364f998b42feb283deb8ad8ec9019a55186",
+          "final_sha256": "eee5bc51c90731e9fde13f00c1926364f998b42feb283deb8ad8ec9019a55186",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/kde-receive-ui.js",
+          "tested_sha256": "c2fec416ce00ed8a788c9348968f3a405b86bd3294059731d423a348a90df38e",
+          "final_sha256": "c2fec416ce00ed8a788c9348968f3a405b86bd3294059731d423a348a90df38e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/legacy-android-instance-ui.js",
+          "tested_sha256": "256869a6a715bacd7782215bb604b076fef479b7fe9cb5e9b1d20598f85e6f27",
+          "final_sha256": "256869a6a715bacd7782215bb604b076fef479b7fe9cb5e9b1d20598f85e6f27",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/linux-backup-recovery-ui.js",
+          "tested_sha256": "939ae9e00eb500c655599f4ced158d7ef0d94bce675734f7dce45942e62d144c",
+          "final_sha256": "939ae9e00eb500c655599f4ced158d7ef0d94bce675734f7dce45942e62d144c",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/linux-backup-ui.js",
+          "tested_sha256": "278a6de0dd9c7a864c82ce0aaf9fb437c8f9e865cb6bcf40198cee093cca218e",
+          "final_sha256": "278a6de0dd9c7a864c82ce0aaf9fb437c8f9e865cb6bcf40198cee093cca218e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/linux-live-parity.js",
+          "tested_sha256": "84e725fdeff6077b83e463cb625f0a1b96a49cd69c3f099b1fa4ea24a5f3a61d",
+          "final_sha256": "84e725fdeff6077b83e463cb625f0a1b96a49cd69c3f099b1fa4ea24a5f3a61d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/linux-parity-fixture.js",
+          "tested_sha256": "be23678ce337ac5edd466cc9101260530c31e47a0a021f5636176bd625130ebb",
+          "final_sha256": "be23678ce337ac5edd466cc9101260530c31e47a0a021f5636176bd625130ebb",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/localization-completeness.js",
+          "tested_sha256": "f13ac24fd761e05fa9c19d21b361b6df8f8007939cd40fb0c954092c4b66d334",
+          "final_sha256": "f13ac24fd761e05fa9c19d21b361b6df8f8007939cd40fb0c954092c4b66d334",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/managed-account-adapter.js",
+          "tested_sha256": "874a6167ace6d112ecb2f1f150cc44de253dfa93ff53bae2a34bd21a9bfdad37",
+          "final_sha256": "874a6167ace6d112ecb2f1f150cc44de253dfa93ff53bae2a34bd21a9bfdad37",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/managed-source-folders.js",
+          "tested_sha256": "bd40df582d00aa9e31207f33538efae83b24954e517a079a5a47d9e89310636d",
+          "final_sha256": "bd40df582d00aa9e31207f33538efae83b24954e517a079a5a47d9e89310636d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/manifest-policy.js",
+          "tested_sha256": "f412b456d9f5ba7a5ae2cf2b46d51bc3c1f79ab3b8a4ee5ab00ba90ba32f64af",
+          "final_sha256": "f412b456d9f5ba7a5ae2cf2b46d51bc3c1f79ab3b8a4ee5ab00ba90ba32f64af",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-contact-group-diagnostics.js",
+          "tested_sha256": "658c7c9483eb0ac38b8b236f59e25d68ff9f99fb03331e24cef3c38e98fff5fd",
+          "final_sha256": "658c7c9483eb0ac38b8b236f59e25d68ff9f99fb03331e24cef3c38e98fff5fd",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-dav-account.js",
+          "tested_sha256": "0b4f2e7b04b797c06b2630191de9d7d47f51710552a473330af53a1d71d9fd20",
+          "final_sha256": "0b4f2e7b04b797c06b2630191de9d7d47f51710552a473330af53a1d71d9fd20",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-device-status.js",
+          "tested_sha256": "fbd73f529d21a24fc445624ed03e8df2ad628b181f36aadfa284309c018e20d6",
+          "final_sha256": "fbd73f529d21a24fc445624ed03e8df2ad628b181f36aadfa284309c018e20d6",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-entry-time-zones.js",
+          "tested_sha256": "3c4173f3fc6ab8356b3ad16ed1103870b92001cd8e8910add60e8c9e2ea53bb5",
+          "final_sha256": "3c4173f3fc6ab8356b3ad16ed1103870b92001cd8e8910add60e8c9e2ea53bb5",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-import-review.js",
+          "tested_sha256": "0cb4e9a89d576c1ccacf7cf5d9ead654f7d7319e7dcf7dc28fa89afa515abb8b",
+          "final_sha256": "0cb4e9a89d576c1ccacf7cf5d9ead654f7d7319e7dcf7dc28fa89afa515abb8b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-internet-accounts.js",
+          "tested_sha256": "34f2bd4b44934cc2302b01df0724a2439b9bfd3d17c9ad5a959982c0a28ed6ca",
+          "final_sha256": "34f2bd4b44934cc2302b01df0724a2439b9bfd3d17c9ad5a959982c0a28ed6ca",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-kde-lifecycle.js",
+          "tested_sha256": "b4bd53b582263dec2cbb0726702ad237717d529ef67e3b52abd40c3bb97f63e9",
+          "final_sha256": "b4bd53b582263dec2cbb0726702ad237717d529ef67e3b52abd40c3bb97f63e9",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-kde-pairing-jobs.js",
+          "tested_sha256": "4014b443b6ae4f19e7268cda8b0a5e51d47e3c7789d45830482a5d23c2b3033d",
+          "final_sha256": "4014b443b6ae4f19e7268cda8b0a5e51d47e3c7789d45830482a5d23c2b3033d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-microsoft-signin.js",
+          "tested_sha256": "c233221870da7e0ac67b1aea5cc5b6f056166a23fb2347b0986660fca1a95649",
+          "final_sha256": "c233221870da7e0ac67b1aea5cc5b6f056166a23fb2347b0986660fca1a95649",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-notes-actor-baseline.js",
+          "tested_sha256": "f43faf0fe61ba9ad75f2156b3d9f2d0bf1c04c9cf9e84f23a04c03e6e59b2edb",
+          "final_sha256": "f43faf0fe61ba9ad75f2156b3d9f2d0bf1c04c9cf9e84f23a04c03e6e59b2edb",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-notes-actor-late-candidate.js",
+          "tested_sha256": "3c4f40bd4cd4373fba529b15cbc52f2c8ddfb9dedfb868708a01e87f74734283",
+          "final_sha256": "3c4f40bd4cd4373fba529b15cbc52f2c8ddfb9dedfb868708a01e87f74734283",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-notes-actor-original-attachment.js",
+          "tested_sha256": "c65abed6d8011908502f32bfc05944f0cfdc334671cca4cf192b1e772adf1954",
+          "final_sha256": "c65abed6d8011908502f32bfc05944f0cfdc334671cca4cf192b1e772adf1954",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-notes-actor-review.js",
+          "tested_sha256": "8d4793e2bdbfda584318afb6a5f2037dc1ba6db0ffb178a4d49282a224f0970a",
+          "final_sha256": "8d4793e2bdbfda584318afb6a5f2037dc1ba6db0ffb178a4d49282a224f0970a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-notes-actor-scope.js",
+          "tested_sha256": "6647e1e8f0e05b4f3969f43d3d3357ab29695a96b6b6f27884580d3bb78fbe64",
+          "final_sha256": "6647e1e8f0e05b4f3969f43d3d3357ab29695a96b6b6f27884580d3bb78fbe64",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-notes-actor-two-phase.js",
+          "tested_sha256": "df8189b1c47d8339da9c43a0d3089da29b159b886f9d272b747c51adf566c255",
+          "final_sha256": "df8189b1c47d8339da9c43a0d3089da29b159b886f9d272b747c51adf566c255",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-notes-historical-candidate.js",
+          "tested_sha256": "1ca24df2d392b28fc64b776413bbf6917acd7497d78dd79d8313fc23a1f74876",
+          "final_sha256": "1ca24df2d392b28fc64b776413bbf6917acd7497d78dd79d8313fc23a1f74876",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-notes-historical-group.js",
+          "tested_sha256": "1ccbcf548d36d730ff5c817cbd9441320efbb4145efd45919f650970f9b24b24",
+          "final_sha256": "1ccbcf548d36d730ff5c817cbd9441320efbb4145efd45919f650970f9b24b24",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-notes-historical-source-fixture.js",
+          "tested_sha256": "5690066fb59555f9756e1b17cf52c43a6bda21a6b7090033171af27225421718",
+          "final_sha256": "5690066fb59555f9756e1b17cf52c43a6bda21a6b7090033171af27225421718",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-notes-pending-attachment.js",
+          "tested_sha256": "0f4b91b2c10abfd1ed118a3a3dd410764cfb24f8589a531e5affe98fc49095e1",
+          "final_sha256": "0f4b91b2c10abfd1ed118a3a3dd410764cfb24f8589a531e5affe98fc49095e1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-notes-settings.js",
+          "tested_sha256": "dab831c8f04a5f8cb7c31122ca874bd74e8263f44b38eda39b3e4f9bb60d0d15",
+          "final_sha256": "dab831c8f04a5f8cb7c31122ca874bd74e8263f44b38eda39b3e4f9bb60d0d15",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-notes-time-direction.js",
+          "tested_sha256": "2da5fc8888a6c0a01133808e7f44444d8790a575a1d0f5130a5d9da30942c65d",
+          "final_sha256": "2da5fc8888a6c0a01133808e7f44444d8790a575a1d0f5130a5d9da30942c65d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-notes-timer.js",
+          "tested_sha256": "ca96d69c6ba3973d87996c1e7918d68e2a5e408c75f4c99aab251152132977d3",
+          "final_sha256": "ca96d69c6ba3973d87996c1e7918d68e2a5e408c75f4c99aab251152132977d3",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-phone-call-actors.js",
+          "tested_sha256": "73646769b4f12154d20a82629c68bb78572ffc80c3fb59a99c28f3ccb89fbb04",
+          "final_sha256": "73646769b4f12154d20a82629c68bb78572ffc80c3fb59a99c28f3ccb89fbb04",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-phone-lifecycle.js",
+          "tested_sha256": "5acec764f94395e4a615713049cf136ba89fd2a60249aa24b11dc0c2a006435a",
+          "final_sha256": "5acec764f94395e4a615713049cf136ba89fd2a60249aa24b11dc0c2a006435a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-planner-export.js",
+          "tested_sha256": "85386ecb49c95da89eb09facf6ec71b697fd56e703b06e82d0b6147b6a989f4c",
+          "final_sha256": "85386ecb49c95da89eb09facf6ec71b697fd56e703b06e82d0b6147b6a989f4c",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-print.js",
+          "tested_sha256": "55418b9530f1398d4b79cbc9b062da6ebad33d8b8a6782e9960dba2a77fece50",
+          "final_sha256": "55418b9530f1398d4b79cbc9b062da6ebad33d8b8a6782e9960dba2a77fece50",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-protocol.js",
+          "tested_sha256": "3cb9600d7a9105e87b3c58377b3c7f472c80001b0949d2e84f36cc15104f2157",
+          "final_sha256": "3cb9600d7a9105e87b3c58377b3c7f472c80001b0949d2e84f36cc15104f2157",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-provider-conflicts.js",
+          "tested_sha256": "d82ce801ec0f95c134712417f1d321cd15fc673190969a7b09c3d8c10fc47323",
+          "final_sha256": "d82ce801ec0f95c134712417f1d321cd15fc673190969a7b09c3d8c10fc47323",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-sync-run.js",
+          "tested_sha256": "ef5d1a4f404a6074dbae5c5a5098c729a5c1d51c2689df2c0990403f28ff79d2",
+          "final_sha256": "ef5d1a4f404a6074dbae5c5a5098c729a5c1d51c2689df2c0990403f28ff79d2",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-sync-settings.js",
+          "tested_sha256": "914deee73039cbc501fda70d6c636302109c33651300c41d5de7a32b356559aa",
+          "final_sha256": "914deee73039cbc501fda70d6c636302109c33651300c41d5de7a32b356559aa",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-time-zone-management.js",
+          "tested_sha256": "75b4e30bd1d26202e810529156b6fddd00af0012720161f89a76b48e0decd262",
+          "final_sha256": "75b4e30bd1d26202e810529156b6fddd00af0012720161f89a76b48e0decd262",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-tree-actions.js",
+          "tested_sha256": "448aa6f94ef872c9e6c900c7704db856638b6a1b2e5f56566eb5d5280499862a",
+          "final_sha256": "448aa6f94ef872c9e6c900c7704db856638b6a1b2e5f56566eb5d5280499862a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-tree-contact-preview.js",
+          "tested_sha256": "722d9f87e2e678c5614f705dc79cd1460e31e6adc13b2b02941a484e95dbebf2",
+          "final_sha256": "722d9f87e2e678c5614f705dc79cd1460e31e6adc13b2b02941a484e95dbebf2",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-tree-content.js",
+          "tested_sha256": "0c872415d60245b2cdaa7fd0ee2a935f1be2dd227df8e00626d8624dfcb23a3d",
+          "final_sha256": "0c872415d60245b2cdaa7fd0ee2a935f1be2dd227df8e00626d8624dfcb23a3d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-tree-inbox.js",
+          "tested_sha256": "464fb4c09fae8cfc9199f6fcae7259e7cac59fda2fdc75a0b09071af85294870",
+          "final_sha256": "464fb4c09fae8cfc9199f6fcae7259e7cac59fda2fdc75a0b09071af85294870",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-tree-sync.js",
+          "tested_sha256": "7fa9f4d58bf7405a428a2898dd5b5d979d72a86664cceb054d1f0b37ade93a56",
+          "final_sha256": "7fa9f4d58bf7405a428a2898dd5b5d979d72a86664cceb054d1f0b37ade93a56",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-ui.js",
+          "tested_sha256": "67c43d35161eb897ce557348eae8c5b410e48ee40111ce1158c7bfb5fe7ddd77",
+          "final_sha256": "67c43d35161eb897ce557348eae8c5b410e48ee40111ce1158c7bfb5fe7ddd77",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/mcp-waste-import.js",
+          "tested_sha256": "0ea73dce45037a3ac66ca1362cb119d8a1998c21b74f96294b5a3eea11f5a2e5",
+          "final_sha256": "0ea73dce45037a3ac66ca1362cb119d8a1998c21b74f96294b5a3eea11f5a2e5",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/month-recurrence-stability.js",
+          "tested_sha256": "6aebbe41a45d8f5d08cf4a170267124e5f5d9b42ac30c0a07ba6ab11e1d67522",
+          "final_sha256": "6aebbe41a45d8f5d08cf4a170267124e5f5d9b42ac30c0a07ba6ab11e1d67522",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/native-import/check.py",
+          "tested_sha256": "f02831af188cebd7e075f969691f43b0026fe8e84dba4d13f93043a5e8e8292b",
+          "final_sha256": "f02831af188cebd7e075f969691f43b0026fe8e84dba4d13f93043a5e8e8292b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/native-import/frontend.cjs",
+          "tested_sha256": "eefd0430e8018a8b4acf3fc99b5e6b524df1992204856d468cc2adc200d035fd",
+          "final_sha256": "eefd0430e8018a8b4acf3fc99b5e6b524df1992204856d468cc2adc200d035fd",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/native-integration-smoke.js",
+          "tested_sha256": "f9aa64a42fe797d34992f600855c3d22f0773832a9f374816813afd9033ab63d",
+          "final_sha256": "f9aa64a42fe797d34992f600855c3d22f0773832a9f374816813afd9033ab63d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/native-reminder-provenance.js",
+          "tested_sha256": "02a44dff6f887703b4a63e03f32291af78e1459c843893facef359078801d9c9",
+          "final_sha256": "02a44dff6f887703b4a63e03f32291af78e1459c843893facef359078801d9c9",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/native-test-process-cases.js",
+          "tested_sha256": "949f53bf756da38e106aabfd43339b6c3aeca0c24dbbe75839ad0b8c687e9edc",
+          "final_sha256": "949f53bf756da38e106aabfd43339b6c3aeca0c24dbbe75839ad0b8c687e9edc",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/native-test-process.js",
+          "tested_sha256": "86258db8e8f1b1b6ab6cca6562c448e81f7f55be3635f9bfb4e513036cfac4d5",
+          "final_sha256": "86258db8e8f1b1b6ab6cca6562c448e81f7f55be3635f9bfb4e513036cfac4d5",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/normative-timezones.js",
+          "tested_sha256": "f61834c023d5d7a6f9e7e9992160de0262872660b1706e62436378c95e72e7f3",
+          "final_sha256": "f61834c023d5d7a6f9e7e9992160de0262872660b1706e62436378c95e72e7f3",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/note-import-attachments.js",
+          "tested_sha256": "d9eb56f2ba61b1f9715f03f8d9dc75fb1dc920ce8188b900877c022ae55c934f",
+          "final_sha256": "d9eb56f2ba61b1f9715f03f8d9dc75fb1dc920ce8188b900877c022ae55c934f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/note-overview.js",
+          "tested_sha256": "aeb13100055d196de8fa1c9c698aee3f968e9044fcfebc62c8978e31139d1b22",
+          "final_sha256": "aeb13100055d196de8fa1c9c698aee3f968e9044fcfebc62c8978e31139d1b22",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/note-send.js",
+          "tested_sha256": "6f1f4d2bac3ee939ec0ec152c53338bfa507a5715caa045eaea987661c8415e1",
+          "final_sha256": "6f1f4d2bac3ee939ec0ec152c53338bfa507a5715caa045eaea987661c8415e1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/note-web-links.js",
+          "tested_sha256": "242f1ebade714b777468f1d11efb269826cf82dff565b73204646ae69099c59b",
+          "final_sha256": "242f1ebade714b777468f1d11efb269826cf82dff565b73204646ae69099c59b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/notes-original-fresh-readiness.js",
+          "tested_sha256": "ff5af5dd9c3e21c6e4e21e36de0757900c8d28167918b20c117902d1d3a4c34e",
+          "final_sha256": "ff5af5dd9c3e21c6e4e21e36de0757900c8d28167918b20c117902d1d3a4c34e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/notes-original-ui-save.js",
+          "tested_sha256": "8cbdff1a3fda0cad26d68b0986b46129309a1b4bbe881ba4d819a36699149631",
+          "final_sha256": "8cbdff1a3fda0cad26d68b0986b46129309a1b4bbe881ba4d819a36699149631",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/notes-setup-preparation.js",
+          "tested_sha256": "4fb08cf051f176f4813d91fee490f3a0dbc4e15a04ea61f0fe7b3768d3d965b6",
+          "final_sha256": "4fb08cf051f176f4813d91fee490f3a0dbc4e15a04ea61f0fe7b3768d3d965b6",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/nsis-installer-fixture.js",
+          "tested_sha256": "ce2ed82a4c51f9d86b4c02db2fced7d5bf0ccbfbdcf882e9e309525be23691c1",
+          "final_sha256": "ce2ed82a4c51f9d86b4c02db2fced7d5bf0ccbfbdcf882e9e309525be23691c1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/ods-regional.js",
+          "tested_sha256": "00cbf19007721dd91c87c0370b408edda0eee4fddb46537c38fcd21dd1f1b1b7",
+          "final_sha256": "00cbf19007721dd91c87c0370b408edda0eee4fddb46537c38fcd21dd1f1b1b7",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/or6-appointment-categories.js",
+          "tested_sha256": "f4e9b7d2413640f2328eea9ccf606360589b4253bd5eca3d1b868c715a71735a",
+          "final_sha256": "f4e9b7d2413640f2328eea9ccf606360589b4253bd5eca3d1b868c715a71735a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/or6-appointment-overrides.js",
+          "tested_sha256": "c173e84ddb943d77fbd5cd3c437d68d37555b1f3ef5ae2a6aac06f5b9fba044e",
+          "final_sha256": "c173e84ddb943d77fbd5cd3c437d68d37555b1f3ef5ae2a6aac06f5b9fba044e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/or6-calendar-history.js",
+          "tested_sha256": "3686623a39f64d014a07997a57bd572955345566cee68b18c9bb029fd89ff49f",
+          "final_sha256": "3686623a39f64d014a07997a57bd572955345566cee68b18c9bb029fd89ff49f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/or6-planner.js",
+          "tested_sha256": "25fbcd8273dae1502a73df17479f141baaa63256cf2ea989c9afac63383482ae",
+          "final_sha256": "25fbcd8273dae1502a73df17479f141baaa63256cf2ea989c9afac63383482ae",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/or6-single-task-dates.js",
+          "tested_sha256": "e16b422898c6e6222dec289c317b479a4b8191aa2e19754fc4090c077cf13c2e",
+          "final_sha256": "e16b422898c6e6222dec289c317b479a4b8191aa2e19754fc4090c077cf13c2e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/or6-task-bindings.js",
+          "tested_sha256": "c1971b9a71a6d54b8dfdc97363b4fa3dff8b4c35bddc689ab220d6d070bc7dd1",
+          "final_sha256": "c1971b9a71a6d54b8dfdc97363b4fa3dff8b4c35bddc689ab220d6d070bc7dd1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/or6-task-scopes.js",
+          "tested_sha256": "d53506824ffbfc981f3a69005f227328fc34fb15a853d6050defff6089bcf812",
+          "final_sha256": "d53506824ffbfc981f3a69005f227328fc34fb15a853d6050defff6089bcf812",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/or6-task-series.js",
+          "tested_sha256": "1c6a589082d8dc8b218ad0640650f970257c1caec366f5a2053ccafaf0801305",
+          "final_sha256": "1c6a589082d8dc8b218ad0640650f970257c1caec366f5a2053ccafaf0801305",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/oversized-note-safety.js",
+          "tested_sha256": "2c4d9166c132719e64b886edc1ff8187c865233253ab36150425f21e5003449f",
+          "final_sha256": "2c4d9166c132719e64b886edc1ff8187c865233253ab36150425f21e5003449f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/own-profile.js",
+          "tested_sha256": "60ff98c1534baa82ef060851d0c2cbd3991449344e5449e6c39c3f80c7b1a173",
+          "final_sha256": "60ff98c1534baa82ef060851d0c2cbd3991449344e5449e6c39c3f80c7b1a173",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/packages.lock.json",
+          "tested_sha256": "4699091bda905eb2d8d12e0c7e9a84ccf3b19c6bbd8c664cb13058625de29b6c",
+          "final_sha256": "4699091bda905eb2d8d12e0c7e9a84ccf3b19c6bbd8c664cb13058625de29b6c",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/personal-asset-protection.js",
+          "tested_sha256": "4a7defb3e1258bf8cc10b25762f9bc2c0b98095a6fd4559fb975b09f3220e6e9",
+          "final_sha256": "4a7defb3e1258bf8cc10b25762f9bc2c0b98095a6fd4559fb975b09f3220e6e9",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/personal-content-scope.js",
+          "tested_sha256": "eb851e66fe6bcb9dffe82a90928b8f1163babfbe344838bf91a7231f0e973bf6",
+          "final_sha256": "eb851e66fe6bcb9dffe82a90928b8f1163babfbe344838bf91a7231f0e973bf6",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/personal-custom-consent.js",
+          "tested_sha256": "e1ad342daa01e2ba4c87d67697477fc6c420856059b97a270f5ac5678a6dad80",
+          "final_sha256": "e1ad342daa01e2ba4c87d67697477fc6c420856059b97a270f5ac5678a6dad80",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/personal-custom-snapshot.js",
+          "tested_sha256": "2369da759178bf3c8a2ae3e2731420def3d28363f9c961ba1bce2a22b5b58a4a",
+          "final_sha256": "2369da759178bf3c8a2ae3e2731420def3d28363f9c961ba1bce2a22b5b58a4a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/personal-note-dates.js",
+          "tested_sha256": "eab78c8320a6ee6cae623d280e01d7918677b7184234ef46b35b55e8f58f79f1",
+          "final_sha256": "eab78c8320a6ee6cae623d280e01d7918677b7184234ef46b35b55e8f58f79f1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/personal-note-identities.js",
+          "tested_sha256": "19cdb9af054d52c4454990fc6270922ea1d90178c1ae10f27da89cfdfc0b7eb7",
+          "final_sha256": "19cdb9af054d52c4454990fc6270922ea1d90178c1ae10f27da89cfdfc0b7eb7",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/personal-note-mode.js",
+          "tested_sha256": "4bae67befc17ce822e152bb02e4549303f4b3eecadc8a59eaad089248eccdaf7",
+          "final_sha256": "4bae67befc17ce822e152bb02e4549303f4b3eecadc8a59eaad089248eccdaf7",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/personal-provenance.js",
+          "tested_sha256": "5813422528ecab9ef5cd6a081e0684bcd63277557134fe4db675ea4876c98b97",
+          "final_sha256": "5813422528ecab9ef5cd6a081e0684bcd63277557134fe4db675ea4876c98b97",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/personal-scoped-reply.js",
+          "tested_sha256": "a571ae40dfd492cd00158bedeb6af016b5dc3ee5b63bac73b90747c548c5b472",
+          "final_sha256": "a571ae40dfd492cd00158bedeb6af016b5dc3ee5b63bac73b90747c548c5b472",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/personal-success-notifications.js",
+          "tested_sha256": "62b6253cd33c5db982dd49eb548c76fc951543c64df5ce7ef992815a22a0d7fe",
+          "final_sha256": "62b6253cd33c5db982dd49eb548c76fc951543c64df5ce7ef992815a22a0d7fe",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-contact-preview-batches.js",
+          "tested_sha256": "3207f0d4f14bb62fa952b69d5a9496a52450cc40b7130faa37d8602dbd743e59",
+          "final_sha256": "3207f0d4f14bb62fa952b69d5a9496a52450cc40b7130faa37d8602dbd743e59",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js",
+          "tested_sha256": "168fb7450104ef2302dd1849adc9b8db652cbdee035db99e9028ba2efbcedece",
+          "final_sha256": "168fb7450104ef2302dd1849adc9b8db652cbdee035db99e9028ba2efbcedece",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-media-source-choice-ui.js",
+          "tested_sha256": "b8ae2cbeed405b2746e86ae3ab5531f63577f18e4d81cd8ece9009012b19f1f3",
+          "final_sha256": "b8ae2cbeed405b2746e86ae3ab5531f63577f18e4d81cd8ece9009012b19f1f3",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-media-ui.js",
+          "tested_sha256": "872a45d6a785618da680530abf6d794c7e2350f7485a49bd444c625acc1ccb29",
+          "final_sha256": "872a45d6a785618da680530abf6d794c7e2350f7485a49bd444c625acc1ccb29",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-media-wait-ui.js",
+          "tested_sha256": "b23caa774a97f599bf53d39a4cca1693ce6ba40f140f0a81e51548bc0995ab35",
+          "final_sha256": "b23caa774a97f599bf53d39a4cca1693ce6ba40f140f0a81e51548bc0995ab35",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-settings-regressions.js",
+          "tested_sha256": "c7551cc3cc8d02484b0ec28125078d1d10a5daa272b4435db82feaf32e5e9eef",
+          "final_sha256": "c7551cc3cc8d02484b0ec28125078d1d10a5daa272b4435db82feaf32e5e9eef",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/planned-sms-save-regressions.js",
+          "tested_sha256": "39070215b536730238ece192f837ff2df78545db0f4d0e922529f802328a297c",
+          "final_sha256": "39070215b536730238ece192f837ff2df78545db0f4d0e922529f802328a297c",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/planner-sms-regressions.js",
+          "tested_sha256": "1eb5cc4a543d5c4473df26a8f5403c6636fecd10e9b5892330e0dc01fb95f52e",
+          "final_sha256": "1eb5cc4a543d5c4473df26a8f5403c6636fecd10e9b5892330e0dc01fb95f52e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/qr-dialog-ui.js",
+          "tested_sha256": "106301766ad0b32e0998d665a0c1b8886c76c4a33df84836b823e9b7ffb888df",
+          "final_sha256": "106301766ad0b32e0998d665a0c1b8886c76c4a33df84836b823e9b7ffb888df",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/qr-image-fixture.js",
+          "tested_sha256": "79709853e994a8dcc9b22563e0ca96a3375ba0c348359568566a0372b7acc643",
+          "final_sha256": "79709853e994a8dcc9b22563e0ca96a3375ba0c348359568566a0372b7acc643",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/realm-data-assert-test.js",
+          "tested_sha256": "5b0188f94a22b3e8c866a66d80d25e9c8e51a7491854ede0febdb44277121b5b",
+          "final_sha256": "5b0188f94a22b3e8c866a66d80d25e9c8e51a7491854ede0febdb44277121b5b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/realm-data-assert.js",
+          "tested_sha256": "24d6e5ac1aecb5d54f4b396ca9209530824564d6e153e80b5407ac2647de8708",
+          "final_sha256": "24d6e5ac1aecb5d54f4b396ca9209530824564d6e153e80b5407ac2647de8708",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/recovery-rhythm-ui.js",
+          "tested_sha256": "a3d12d77b26e285e5398f4643e049ff63854f2190f29b9fa22926d71e4eabcc6",
+          "final_sha256": "a3d12d77b26e285e5398f4643e049ff63854f2190f29b9fa22926d71e4eabcc6",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/recurrence-golden.js",
+          "tested_sha256": "ede00e0aff41c8033ebc4fdaba76ca0967442af6815a67b4141782407c04b561",
+          "final_sha256": "ede00e0aff41c8033ebc4fdaba76ca0967442af6815a67b4141782407c04b561",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/recurrence-integration.js",
+          "tested_sha256": "effb7da22f0ddf185e99e05a802dd5c06ee28e35eb0abebac111213545589faf",
+          "final_sha256": "effb7da22f0ddf185e99e05a802dd5c06ee28e35eb0abebac111213545589faf",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/recurrence-worker.js",
+          "tested_sha256": "f185e641a362cf2453c3a6c916dada9cba60d6c0770961e4408aa39b882f69ce",
+          "final_sha256": "f185e641a362cf2453c3a6c916dada9cba60d6c0770961e4408aa39b882f69ce",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/regional-language-direction.js",
+          "tested_sha256": "66c08a115f60ae9ff12b48c9e3a3ebc45971f9571d7ae34d0a0f30c707129b28",
+          "final_sha256": "66c08a115f60ae9ff12b48c9e3a3ebc45971f9571d7ae34d0a0f30c707129b28",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/regional-time-input.js",
+          "tested_sha256": "08b9167ce9464cf3007cbae3806a7dfc58e34dd2acf1b8d724a2a62221b2feb1",
+          "final_sha256": "08b9167ce9464cf3007cbae3806a7dfc58e34dd2acf1b8d724a2a62221b2feb1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/release-audit.js",
+          "tested_sha256": "f2c217f5902281be56c27e5f6c7b20bb93bf38b8cf5124b2a9f8418675d05b21",
+          "final_sha256": "f2c217f5902281be56c27e5f6c7b20bb93bf38b8cf5124b2a9f8418675d05b21",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/resources/linux-parity-contract.json",
+          "tested_sha256": "aa0fec35464336a42572af680aa0fec7bd133e08917de6e13f125fb3efb0ca77",
+          "final_sha256": "aa0fec35464336a42572af680aa0fec7bd133e08917de6e13f125fb3efb0ca77",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/resources/personal-sync-batch-boundaries.json",
+          "tested_sha256": "e94a25e1700945650a7df469ce1407029b773e1bf0e178444f3c15c76dc0afd3",
+          "final_sha256": "e94a25e1700945650a7df469ce1407029b773e1bf0e178444f3c15c76dc0afd3",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/resources/personal-sync-contract.json",
+          "tested_sha256": "0654c1bd5d238d6b7ed67e813d424c12bbb49a7a9ebdbcdc8d5f71a23ad6c87a",
+          "final_sha256": "0654c1bd5d238d6b7ed67e813d424c12bbb49a7a9ebdbcdc8d5f71a23ad6c87a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/resources/phone-region-vectors.json",
+          "tested_sha256": "31e35459b7d315bb339e84a52c4da0769c2601a4d184913caa7e6a4f9438323e",
+          "final_sha256": "31e35459b7d315bb339e84a52c4da0769c2601a4d184913caa7e6a4f9438323e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/resources/sms-localized-terms.json",
+          "tested_sha256": "644a18f3a5b0de7def2efc782971f846e814621f28e6e51327f65130f697354d",
+          "final_sha256": "644a18f3a5b0de7def2efc782971f846e814621f28e6e51327f65130f697354d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/resources/system-contact-copy-exchange-v1.json",
+          "tested_sha256": "071e9d01305b646ea079b9c6bceeef0b0213ebb5ab3340dfce993a7e1ba07472",
+          "final_sha256": "071e9d01305b646ea079b9c6bceeef0b0213ebb5ab3340dfce993a7e1ba07472",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/resources/telefon-control-contract.json",
+          "tested_sha256": "7fedcfa4c3092b018d1d027df556a51611020a66ed2b937fd8dd5f32710a62df",
+          "final_sha256": "7fedcfa4c3092b018d1d027df556a51611020a66ed2b937fd8dd5f32710a62df",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/run.js",
+          "tested_sha256": "04e720c57dfd31e715ede906718ac1805486e26039a25333e423318966d20a5d",
+          "final_sha256": "04e720c57dfd31e715ede906718ac1805486e26039a25333e423318966d20a5d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/save-custom-regressions.js",
+          "tested_sha256": "f969bae7b1a73ac316d8412dbc5885b8939d8f740c7d9eccf52cfd9d03e30bef",
+          "final_sha256": "f969bae7b1a73ac316d8412dbc5885b8939d8f740c7d9eccf52cfd9d03e30bef",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/selection-css-compatibility.js",
+          "tested_sha256": "3c1fae849bec493b222a6a6beb61ceaf92ba7ef5b11a3b9d4d49d9307fa0f8b4",
+          "final_sha256": "3c1fae849bec493b222a6a6beb61ceaf92ba7ef5b11a3b9d4d49d9307fa0f8b4",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/setup-holidays.js",
+          "tested_sha256": "401a75060f7a90f4cf12f962c6097bb089eff7debc471be29b71bea150d4209a",
+          "final_sha256": "401a75060f7a90f4cf12f962c6097bb089eff7debc471be29b71bea150d4209a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/shared-controls-ui.js",
+          "tested_sha256": "4fa44e165c9f27866fba48409467b81d2c22da8c4f1929d119d0f1ef04edacfb",
+          "final_sha256": "4fa44e165c9f27866fba48409467b81d2c22da8c4f1929d119d0f1ef04edacfb",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/structured-appointment-parity.js",
+          "tested_sha256": "d08153476de246861274f305f03851a8acddcbdd04a9f084b1775ef95fd0ea5d",
+          "final_sha256": "d08153476de246861274f305f03851a8acddcbdd04a9f084b1775ef95fd0ea5d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/sync-calendar-identity.js",
+          "tested_sha256": "f21b893d1898692f749b910a97364915bf66c8d3ea95025a1f401b24a68eccb1",
+          "final_sha256": "f21b893d1898692f749b910a97364915bf66c8d3ea95025a1f401b24a68eccb1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/test_account_runtime.py",
+          "tested_sha256": "6c37729368f78ce5d19353aa9e1d008da6e14ac1b5fb0aa37977fb0b04b0023a",
+          "final_sha256": "6c37729368f78ce5d19353aa9e1d008da6e14ac1b5fb0aa37977fb0b04b0023a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/test_native_response_files.py",
+          "tested_sha256": "9561d4b8b7cf7622a7849d7854970adf6c60f51a707e9db2ad2cfa2dc3c2b209",
+          "final_sha256": "9561d4b8b7cf7622a7849d7854970adf6c60f51a707e9db2ad2cfa2dc3c2b209",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/test_phone_audio_native_entry.py",
+          "tested_sha256": "e8e99ab37b24b0639113adee4baea725b620d3e62f463cb0fd2d35b2dedbbf97",
+          "final_sha256": "e8e99ab37b24b0639113adee4baea725b620d3e62f463cb0fd2d35b2dedbbf97",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/test_windows_pot_source_coverage.py",
+          "tested_sha256": "28225a8f0cc1705fc78ed658386132368fe0dbc6fbc011f80154771387a944e2",
+          "final_sha256": "28225a8f0cc1705fc78ed658386132368fe0dbc6fbc011f80154771387a944e2",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/thunderbird-bridge.js",
+          "tested_sha256": "77dd619d43bf90a1584e61461c7b0292d494c1ad631fc242ea34479f8fb77be3",
+          "final_sha256": "77dd619d43bf90a1584e61461c7b0292d494c1ad631fc242ea34479f8fb77be3",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/thunderbird-environment.js",
+          "tested_sha256": "69620aba9bdb275056a17226d887dcd3caef7b0912eecbce8895c8936a913efd",
+          "final_sha256": "69620aba9bdb275056a17226d887dcd3caef7b0912eecbce8895c8936a913efd",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/time-edit-browser.js",
+          "tested_sha256": "1ada5938be9fd5aff30b4642481e6c032f02c3ca6ecb98ff7afea3034e71ff9c",
+          "final_sha256": "1ada5938be9fd5aff30b4642481e6c032f02c3ca6ecb98ff7afea3034e71ff9c",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/time-sync-ui.js",
+          "tested_sha256": "03936daf63f4433072e3af013593339776dea76f0f527eb25adfa2d00847269c",
+          "final_sha256": "03936daf63f4433072e3af013593339776dea76f0f527eb25adfa2d00847269c",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/time-tracking-core.js",
+          "tested_sha256": "9d25cb2d51e105350069eec35265a6919ca30fb2954425760c106b70607745bf",
+          "final_sha256": "9d25cb2d51e105350069eec35265a6919ca30fb2954425760c106b70607745bf",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/time-tracking-ui.js",
+          "tested_sha256": "4e2eeee9ca33de8ca682fdb36b127163099ecb6961a3bdc38307c6137276d765",
+          "final_sha256": "4e2eeee9ca33de8ca682fdb36b127163099ecb6961a3bdc38307c6137276d765",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/time-zone-entry-planning.js",
+          "tested_sha256": "4f8d96a159bd0084bda6dbdefa135bd159fb60328cec9c6531a857e5bbb95fb1",
+          "final_sha256": "4f8d96a159bd0084bda6dbdefa135bd159fb60328cec9c6531a857e5bbb95fb1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/time-zone-entry-ui.js",
+          "tested_sha256": "9082dcc0ca239a1ada6ba3fef05a2d9eb98926ad704105c65b613e6309632d81",
+          "final_sha256": "9082dcc0ca239a1ada6ba3fef05a2d9eb98926ad704105c65b613e6309632d81",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/time-zone-management-ui.js",
+          "tested_sha256": "c5e593d9bccff58c04415b748b9d0977ce21d09e0c4704803f9effe20bb2d209",
+          "final_sha256": "c5e593d9bccff58c04415b748b9d0977ce21d09e0c4704803f9effe20bb2d209",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/time-zone-planning.js",
+          "tested_sha256": "860257b11c9551507ccd58e89742ec259fc201faf98ffc8b61930c2e9ed007fc",
+          "final_sha256": "860257b11c9551507ccd58e89742ec259fc201faf98ffc8b61930c2e9ed007fc",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/time-zone-settings.js",
+          "tested_sha256": "9dbfe96ef318e99b8f53dc99a4668ca5bcf8bb6fda49043f1e805280e3895f80",
+          "final_sha256": "9dbfe96ef318e99b8f53dc99a4668ca5bcf8bb6fda49043f1e805280e3895f80",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/tray-current-day.js",
+          "tested_sha256": "e3a763bafc7a12317f965c2358f930cd8b62eacb40e5928c52efd6e45104180c",
+          "final_sha256": "e3a763bafc7a12317f965c2358f930cd8b62eacb40e5928c52efd6e45104180c",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/tray-phone-ui.js",
+          "tested_sha256": "511b523688970b634bab844090c8cce15e941c8773c83027ef71f76d24d54d71",
+          "final_sha256": "511b523688970b634bab844090c8cce15e941c8773c83027ef71f76d24d54d71",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/tree-connection-sharing.js",
+          "tested_sha256": "0180ccd4f6dc1e723bca1b002eb08881abe99d11868f6b7ab388343708f17363",
+          "final_sha256": "0180ccd4f6dc1e723bca1b002eb08881abe99d11868f6b7ab388343708f17363",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/ui-bugfix-probe.js",
+          "tested_sha256": "0bca59ebe3df5a4c5da3bfdd1e95d1491a1ccec0acdc8712f03f15b1d26685fd",
+          "final_sha256": "0bca59ebe3df5a4c5da3bfdd1e95d1491a1ccec0acdc8712f03f15b1d26685fd",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/ui-bugfixes.js",
+          "tested_sha256": "5c3cc5fb3558fb595355259e197c88a1d777e58679b685c163135f43c71766a1",
+          "final_sha256": "5c3cc5fb3558fb595355259e197c88a1d777e58679b685c163135f43c71766a1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/update-waiting.js",
+          "tested_sha256": "529a4a7881bb3164dfc36b3cf0186aa6f041e79c06c0cc4161bf72fc481f3e05",
+          "final_sha256": "529a4a7881bb3164dfc36b3cf0186aa6f041e79c06c0cc4161bf72fc481f3e05",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/waste-import.js",
+          "tested_sha256": "19c565b76a77f2bcf576c83364e5203705777af3e4c23837da91a02caddfba37",
+          "final_sha256": "19c565b76a77f2bcf576c83364e5203705777af3e4c23837da91a02caddfba37",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/web-smoke.js",
+          "tested_sha256": "6389901cd737e408280a188969b07f9861c084d1b0ed9fc37667b73cd145af5d",
+          "final_sha256": "6389901cd737e408280a188969b07f9861c084d1b0ed9fc37667b73cd145af5d",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/web-test-roots.js",
+          "tested_sha256": "d52ae0f385f7af6d6fb17ae438853fb815f0d91e04388061d7a9ca00d5bd1031",
+          "final_sha256": "d52ae0f385f7af6d6fb17ae438853fb815f0d91e04388061d7a9ca00d5bd1031",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/welcome-first-save.js",
+          "tested_sha256": "bde223147c66c9223e41473da25abea8652e32d32864a675d06eedcf59ecc0c0",
+          "final_sha256": "bde223147c66c9223e41473da25abea8652e32d32864a675d06eedcf59ecc0c0",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/worker-file-fixture.js",
+          "tested_sha256": "1cd4cc3c27f9fcd70d8cb8e95b2d9e1a08be56f1e4b0b9f8ede5a2fb9c701f4b",
+          "final_sha256": "1cd4cc3c27f9fcd70d8cb8e95b2d9e1a08be56f1e4b0b9f8ede5a2fb9c701f4b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/anwendung.js",
+          "tested_sha256": "2c4be5692ba5c5b8863600e1ad698f2b29d233d778d3f29d0fe701018eee4293",
+          "final_sha256": "2c4be5692ba5c5b8863600e1ad698f2b29d233d778d3f29d0fe701018eee4293",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/appearance.js",
+          "tested_sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "final_sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/contact-group-aliases.js",
+          "tested_sha256": "5705c6530819766533e3ad92b7cbb9b75253068023a6259c511ba03f8a4202a5",
+          "final_sha256": "5705c6530819766533e3ad92b7cbb9b75253068023a6259c511ba03f8a4202a5",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/i18n-en.js",
+          "tested_sha256": "ad84f1d51f4630c1d957b0825fe67e18cd7723c91ea47b91d3f8afac9b8a393f",
+          "final_sha256": "ad84f1d51f4630c1d957b0825fe67e18cd7723c91ea47b91d3f8afac9b8a393f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/i18n-markers.js",
+          "tested_sha256": "b131e754a7ef1c48ed7c5a4653257e3d92f267649ec85716704fff41c83c5b48",
+          "final_sha256": "b131e754a7ef1c48ed7c5a4653257e3d92f267649ec85716704fff41c83c5b48",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/i18n-start.js",
+          "tested_sha256": "29e904c052904fcbf499694237ed0d7cd953a677a61fecfed5de6a0009109f02",
+          "final_sha256": "29e904c052904fcbf499694237ed0d7cd953a677a61fecfed5de6a0009109f02",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/i18n.js",
+          "tested_sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "final_sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/index.html",
+          "tested_sha256": "24e3806b8a057693e289ac94ebb879f851c317a27064b0bc307db10da0829ea0",
+          "final_sha256": "24e3806b8a057693e289ac94ebb879f851c317a27064b0bc307db10da0829ea0",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/mcp-protocol.js",
+          "tested_sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "final_sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/qr-decoder.js",
+          "tested_sha256": "bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859",
+          "final_sha256": "bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/qr-dialog.js",
+          "tested_sha256": "b885d1238bb01989bf35f16f19f35ebc0b968b6c707d525b11e02a24cc267628",
+          "final_sha256": "b885d1238bb01989bf35f16f19f35ebc0b968b6c707d525b11e02a24cc267628",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/zeichenblatt.js",
+          "tested_sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "final_sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/app-hook-host.test.cjs",
+          "tested_sha256": "a8e0e31dead07e78ec1ddf75571d9fe000e40efff518a2461fad9ca68ce5451b",
+          "final_sha256": "a8e0e31dead07e78ec1ddf75571d9fe000e40efff518a2461fad9ca68ce5451b",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/app-hooks.snippets",
+          "tested_sha256": "764f92f567178dbe05dca0beda85335b9a8fab1c37d4f338ad2d549230a96242",
+          "final_sha256": "764f92f567178dbe05dca0beda85335b9a8fab1c37d4f338ad2d549230a96242",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/bootstrap.template.js",
+          "tested_sha256": "8600c43c7007aa701545c1145a30e54ac8da9bcf7805b47378abe5ad37131554",
+          "final_sha256": "8600c43c7007aa701545c1145a30e54ac8da9bcf7805b47378abe5ad37131554",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/build-tzif.py",
+          "tested_sha256": "fb18577d563b14fa75508928fd19e18204bfcce66b83db6db850af5e4cec0f9b",
+          "final_sha256": "fb18577d563b14fa75508928fd19e18204bfcce66b83db6db850af5e4cec0f9b",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/build-tzif.test.py",
+          "tested_sha256": "f26d9039e841ff55987995fc95537a3e92bb24af99bb205045f5352eea4b845b",
+          "final_sha256": "f26d9039e841ff55987995fc95537a3e92bb24af99bb205045f5352eea4b845b",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/check-independent.py",
+          "tested_sha256": "8535e65a68813d8a7806b5eb821c363c5c7b1219898f3b79f6b59ce278a6b550",
+          "final_sha256": "8535e65a68813d8a7806b5eb821c363c5c7b1219898f3b79f6b59ce278a6b550",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/check-projected-inputs.py",
+          "tested_sha256": "1b9405958dcd620b4ae69b42ef67e94432f8ee2eb46c29f2a9d675b302db2bea",
+          "final_sha256": "1b9405958dcd620b4ae69b42ef67e94432f8ee2eb46c29f2a9d675b302db2bea",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/checkout-inputs.test.py",
+          "tested_sha256": "e018c6c7c267b3a17faa0c51ee9a4a7964ba1d0dbe2b2100e8df897ff93a00bb",
+          "final_sha256": "e018c6c7c267b3a17faa0c51ee9a4a7964ba1d0dbe2b2100e8df897ff93a00bb",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/diagnostics/bp-direct-independent-report.json",
+          "tested_sha256": "dc57fb22c7084d0dfb5f972da16a99f5b4db376a2ce128a855b77c4a48343bbb",
+          "final_sha256": "dc57fb22c7084d0dfb5f972da16a99f5b4db376a2ce128a855b77c4a48343bbb",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/diagnostics/bp-independent-report.json",
+          "tested_sha256": "4ea0dfbd6a8232018a9d8e44c9fa52ed748341ab8aed81b1a187e470432485a4",
+          "final_sha256": "4ea0dfbd6a8232018a9d8e44c9fa52ed748341ab8aed81b1a187e470432485a4",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/diagnostics/bp-production-codec-report.json",
+          "tested_sha256": "7d1dc6fafb319c412838f3deeda5e9cf5424f93e36fe3c91a5a94a379b01aced",
+          "final_sha256": "7d1dc6fafb319c412838f3deeda5e9cf5424f93e36fe3c91a5a94a379b01aced",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/diagnostics/bp-provenance.json",
+          "tested_sha256": "9cab85ce35b393b749bab21ec69982cf6ee049fb5b24c4a6456a50a0626a34f3",
+          "final_sha256": "9cab85ce35b393b749bab21ec69982cf6ee049fb5b24c4a6456a50a0626a34f3",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/diagnostics/extract-bp.py",
+          "tested_sha256": "95ca6efdc24d7c948f2646728388dee3505346aa9b9261cf19f9de34b76e69f3",
+          "final_sha256": "95ca6efdc24d7c948f2646728388dee3505346aa9b9261cf19f9de34b76e69f3",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/independent-validation.json",
+          "tested_sha256": "e83de3e2b9b9aaf977755f2f108502ee62794ad5220a503259937fff13ba75a0",
+          "final_sha256": "e83de3e2b9b9aaf977755f2f108502ee62794ad5220a503259937fff13ba75a0",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/oracle-worker.cjs",
+          "tested_sha256": "006725fceca87f2532ef41083c4be428b25f04290b7a50588d71261c045d214b",
+          "final_sha256": "006725fceca87f2532ef41083c4be428b25f04290b7a50588d71261c045d214b",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/port-runtime.js",
+          "tested_sha256": "7fe5e5f5c44c0c601579fff1e91038402ff1cd7866b5963cb84372df74bd7ac6",
+          "final_sha256": "7fe5e5f5c44c0c601579fff1e91038402ff1cd7866b5963cb84372df74bd7ac6",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/port-runtime.test.cjs",
+          "tested_sha256": "1ee03d924bc5e599f4098eacfc0f1f4b4640d825c40ed6a728325290cd22cf66",
+          "final_sha256": "1ee03d924bc5e599f4098eacfc0f1f4b4640d825c40ed6a728325290cd22cf66",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/projection-assets.cjs",
+          "tested_sha256": "43af5b9ef3b8cfd1b2e12825fef2f9709d3f09f6c52aca6fe95adf0921a19a4f",
+          "final_sha256": "43af5b9ef3b8cfd1b2e12825fef2f9709d3f09f6c52aca6fe95adf0921a19a4f",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/projection-patches.cjs",
+          "tested_sha256": "c8a8c7559e5c488ed8b76bc32c4246904859a50b7f7f6cb1f0c4542213955e36",
+          "final_sha256": "c8a8c7559e5c488ed8b76bc32c4246904859a50b7f7f6cb1f0c4542213955e36",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/projection-patches.json",
+          "tested_sha256": "c4f53c184b583cdb4a088f98457ea7c4952110a959314b8260c2d52a8c60e0ca",
+          "final_sha256": "c4f53c184b583cdb4a088f98457ea7c4952110a959314b8260c2d52a8c60e0ca",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/promoted-hooks.test.cjs",
+          "tested_sha256": "45ab1ae8c188c26165db1e04fd17320223d36a9a3889680581833ee97920c2de",
+          "final_sha256": "45ab1ae8c188c26165db1e04fd17320223d36a9a3889680581833ee97920c2de",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/provenance.json",
+          "tested_sha256": "b6b926b73620b3ab9ba477195041e52925ee6b12376791e647f70beba6bcc2a0",
+          "final_sha256": "b6b926b73620b3ab9ba477195041e52925ee6b12376791e647f70beba6bcc2a0",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/resolver.js",
+          "tested_sha256": "052009fbe3fedeb3d59c937ddf6c8ac924f52d13c5992bc1b9d27fc355acf2da",
+          "final_sha256": "052009fbe3fedeb3d59c937ddf6c8ac924f52d13c5992bc1b9d27fc355acf2da",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/resolver.test.cjs",
+          "tested_sha256": "b0f365e2e4d9dad6e1e64b28fd6341a69fb954efe4f7164fec914f8d9ecbc747",
+          "final_sha256": "b0f365e2e4d9dad6e1e64b28fd6341a69fb954efe4f7164fec914f8d9ecbc747",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/tzdb-2026egtz.json",
+          "tested_sha256": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c",
+          "final_sha256": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c",
+          "equal": true
+        }
+      ],
+      "all_equal": true
+    },
+    {
+      "proof": "Final integrated proof: import-export/final-pipeline/pipeline-manifest.json",
+      "inputs": [
+        {
+          "path": "magnolie-organizer/bin/magnolie-organizer",
+          "tested_sha256": "57954b0e3f58080b156651f748f021990af995308f218731e90db08cfea31192",
+          "final_sha256": "57954b0e3f58080b156651f748f021990af995308f218731e90db08cfea31192",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/anwendung.js",
+          "tested_sha256": "2c4be5692ba5c5b8863600e1ad698f2b29d233d778d3f29d0fe701018eee4293",
+          "final_sha256": "2c4be5692ba5c5b8863600e1ad698f2b29d233d778d3f29d0fe701018eee4293",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+          "tested_sha256": "3495cc8fa91b8f2d3f9c4cafd14fafa5b179b8aede876a2219d93e13ec4cc35a",
+          "final_sha256": "3495cc8fa91b8f2d3f9c4cafd14fafa5b179b8aede876a2219d93e13ec4cc35a",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/AtomicStore.cs",
+          "tested_sha256": "cf09f284d1f82806a61735c1df9c13369ef86e8d77f0e9b0a7eecece17da1f90",
+          "final_sha256": "cf09f284d1f82806a61735c1df9c13369ef86e8d77f0e9b0a7eecece17da1f90",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/anwendung.js",
+          "tested_sha256": "eba45644c432793e892d61b9e73055526ae9a8e1cc6be0d7939a735cb5f7bd07",
+          "final_sha256": "eba45644c432793e892d61b9e73055526ae9a8e1cc6be0d7939a735cb5f7bd07",
+          "equal": true
+        },
+        {
+          "path": "contracts/calendar-color-remainders.json",
+          "tested_sha256": "8fd2ccb729c77f406de99a4bd6a0faf3832837466275a4d35bd937f1c68dbbd8",
+          "final_sha256": "8fd2ccb729c77f406de99a4bd6a0faf3832837466275a4d35bd937f1c68dbbd8",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/calendar-colour-remainders.js",
+          "tested_sha256": "63708d326ca7922b152fa2e440c3e7d6e7cfac2b553a7d9a66487e9e06416cef",
+          "final_sha256": "63708d326ca7922b152fa2e440c3e7d6e7cfac2b553a7d9a66487e9e06416cef",
+          "equal": true
+        }
+      ],
+      "all_equal": true
+    }
+  ],
+  "final_evidence": [
+    {
+      "path": "validation/final/manifest.json",
+      "sha256": "67aaa804eadf5d81941170ed74c5d4a9959b4697df44c2b7d8463ba55fe40053",
+      "source_head": "cae1baef60488686577ab74bb964ed980de7114b"
+    },
+    {
+      "path": "import-export/final/manifest.json",
+      "sha256": "3b2a158d702be5b66e14f9c5b3cbe53940230fbadc4c8478f595851ea6670bf2",
+      "source_head": "cae1baef60488686577ab74bb964ed980de7114b"
+    },
+    {
+      "path": "desktop/evidence/final-integration/manifest.json",
+      "sha256": "801e9d4b1e1d5538db3f7906fcbdd4cd978700634173927db28bfa7263e104d4",
+      "source_head": "cae1baef60488686577ab74bb964ed980de7114b"
+    },
+    {
+      "path": "import-export/final-pipeline/pipeline-manifest.json",
+      "sha256": "80cb8d085449d34580d0e0dda76265eea3e697fd989a1715afa71fd92eedaf31",
+      "source_head": "cae1baef60488686577ab74bb964ed980de7114b"
+    }
+  ],
+  "integration_manifest": {
+    "path": "integration-final/manifest.json",
+    "sha256": "cf6b5037ffc1fe173bf5647f035bb5ae83a5239b7591abc09a499c4a0b5c20e4"
+  },
+  "upstream_already_adopted": {
+    "823": "50b1512234a765635f82af4537f277594fbf9878",
+    "843": "66b50c44482f279d7c3566fe2959f66ebcc20cd5",
+    "844_initial_fix": "8c99834367cc59c7bf936dd630e86a3194304f96"
+  },
+  "limits": "Source/host proof only. No installed package or month-long native soak acceptance."
+}

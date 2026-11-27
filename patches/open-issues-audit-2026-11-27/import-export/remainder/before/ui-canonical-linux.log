@@ -1,0 +1,37 @@
+FAIL /workspace/scratch/7203da5bd564/open-audit-final-source/magnolie-organizer/web: birthday-standard: month: visible accent differs
+
+'' !== '#40e0d0'
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-final-source/magnolie-organizer/web: birthday-own: month: visible accent differs
+
+'' !== '#112233'
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-final-source/magnolie-organizer/web: birthday-calendar: month: visible accent differs
+
+'' !== '#40e0d0'
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-final-source/magnolie-organizer/web: birthday-apple: month: visible accent differs
+
+'' !== '#40e0d0'
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-final-source/magnolie-organizer/web: birthday-own-priority: month: visible accent differs
+
+'' !== '#112233'
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-final-source/magnolie-organizer/web: birthday-component-priority: month: visible accent differs
+
+'' !== '#ff0000'
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-final-source/magnolie-organizer/web: birthday-partial-leap: month: visible accent differs
+
+'' !== '#40e0d0'
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-final-source/magnolie-organizer/web: anniversary-wedding: month: visible accent differs
+
+'' !== '#40e0d0'
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-final-source/magnolie-organizer/web: jahrestage-parameter-own: month: visible accent differs
+
+'' !== '#112233'
+
+CALENDAR COLOUR REMAINDERS 3/12 /workspace/scratch/7203da5bd564/open-audit-final-source/magnolie-organizer/web UI model fixtures

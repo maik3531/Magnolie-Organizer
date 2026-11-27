@@ -1,0 +1,36 @@
+{
+  "source_ui_sha256": "2d72813b4bf614526812a668dd45218422be268f306f854970cd853e2b62cabe",
+  "native_execution": false,
+  "results": [
+    {
+      "test": "phone-media-wait-ui.js",
+      "command": [
+        "node",
+        "magnolie-organizer-windows/tests/phone-media-wait-ui.js"
+      ],
+      "exit_code": 0,
+      "log": "phone-media-wait-ui.js.log",
+      "log_sha256": "962722f620b36840a452c3d8cd353753c57ac19d16c3b684ce718def6affb437"
+    },
+    {
+      "test": "phone-media-ui.js",
+      "command": [
+        "node",
+        "magnolie-organizer-windows/tests/phone-media-ui.js"
+      ],
+      "exit_code": 0,
+      "log": "phone-media-ui.js.log",
+      "log_sha256": "8c84fd7d67d9e528e56b5d64cdde28ed7f35c03b86f09cd770d0a9157c14baa1"
+    },
+    {
+      "test": "phone-media-source-choice-ui.js",
+      "command": [
+        "node",
+        "magnolie-organizer-windows/tests/phone-media-source-choice-ui.js"
+      ],
+      "exit_code": 0,
+      "log": "phone-media-source-choice-ui.js.log",
+      "log_sha256": "889c379097a9df2fb8efda5a4db93a7ce8ce9dce81010d53bd34b9a22a8b2e22"
+    }
+  ]
+}

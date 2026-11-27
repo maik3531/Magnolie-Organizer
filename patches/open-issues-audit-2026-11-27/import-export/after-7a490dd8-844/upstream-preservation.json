@@ -1,0 +1,92 @@
+{
+  "base": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "bindings": [
+    {
+      "scope": "Python Nextcloud date detector",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "base_sha256": "dbcb19eb20d452bd31c855be7215cbe04eebda4a27b529fd136423d9bcdc49a3",
+      "current_sha256": "dbcb19eb20d452bd31c855be7215cbe04eebda4a27b529fd136423d9bcdc49a3",
+      "equal": true
+    },
+    {
+      "scope": "Python adopted anniversary exporter",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "base_sha256": "c5db623e11e4ec3054581eda2f47d2129ce173eafbfd38bb9eda86b3dcdd409f",
+      "current_sha256": "c5db623e11e4ec3054581eda2f47d2129ce173eafbfd38bb9eda86b3dcdd409f",
+      "equal": true
+    },
+    {
+      "scope": "Python provider eligibility and date conditions",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "base_sha256": "fd06c0aa309cf71249a44b553418083cf5de8c03fc79da62242903831e4843ec",
+      "current_sha256": "fd06c0aa309cf71249a44b553418083cf5de8c03fc79da62242903831e4843ec",
+      "equal": true
+    },
+    {
+      "scope": "Python provider original anchor and rule retention",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "base_sha256": "0be67355f5e1de8de905c75da02958b37dd2751228ba4a6899f394a46af69aeb",
+      "current_sha256": "0be67355f5e1de8de905c75da02958b37dd2751228ba4a6899f394a46af69aeb",
+      "equal": true
+    },
+    {
+      "scope": "C# Nextcloud constants/type/date helpers",
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "base_sha256": "c329023ea15ab02a6cced85dcc962fe4500d32c9f654900113ae0576fcf95801",
+      "current_sha256": "c329023ea15ab02a6cced85dcc962fe4500d32c9f654900113ae0576fcf95801",
+      "equal": true
+    },
+    {
+      "scope": "C# adopted anniversary exporter",
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "base_sha256": "ac325f37d1a88d0f82c98d530a0cd4b7409a15a7d48db20f9e3db22387ea7f64",
+      "current_sha256": "ac325f37d1a88d0f82c98d530a0cd4b7409a15a7d48db20f9e3db22387ea7f64",
+      "equal": true
+    },
+    {
+      "scope": "C# detached-instance scan",
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "base_sha256": "542d3af92e89c0a318c3ab61c024704bbf10dba95c3649a22a0e326b5a26a16c",
+      "current_sha256": "542d3af92e89c0a318c3ab61c024704bbf10dba95c3649a22a0e326b5a26a16c",
+      "equal": true
+    },
+    {
+      "scope": "C# detached eligibility and CalendarItems dispatch",
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "base_sha256": "1687f1fbdd5285de79f85de2e0ff229dd995131f9a7c90ace33126e3c0b66356",
+      "current_sha256": "1687f1fbdd5285de79f85de2e0ff229dd995131f9a7c90ace33126e3c0b66356",
+      "equal": true
+    },
+    {
+      "scope": "C# adopted provider-anchor retention",
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "base_sha256": "418b32d12c12261cac46a64765ac178e7313f8c11767afb86a6baeff2116d741",
+      "current_sha256": "418b32d12c12261cac46a64765ac178e7313f8c11767afb86a6baeff2116d741",
+      "equal": true
+    },
+    {
+      "scope": "Adopted #845 regression file preserved whole",
+      "path": "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py",
+      "base_sha256": "c0039cb762f03ba7ded68d8a0ea476ff3d23a339862dd647306aeb8416d11075",
+      "current_sha256": "c0039cb762f03ba7ded68d8a0ea476ff3d23a339862dd647306aeb8416d11075",
+      "equal": true
+    },
+    {
+      "scope": "Adopted #845 regression file preserved whole",
+      "path": "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs",
+      "base_sha256": "0b12f5ee85325e07a032bb80bf10ba383768b0adfbbcd4212a1f2ec5025d5cb7",
+      "current_sha256": "0b12f5ee85325e07a032bb80bf10ba383768b0adfbbcd4212a1f2ec5025d5cb7",
+      "equal": true
+    },
+    {
+      "scope": "Entire adopted birthday-display test preserved plus four #844 lines",
+      "path": "magnolie-organizer-windows/tests/birthday-display.js",
+      "base_sha256": "df3ef2ae93257701769c2c9dbd007deb5dbf2eb804fb48c8e57848182b1f9081",
+      "current_sha256": "a805d2a24801fb23c888f135c26ab520ac91aa1ab841d7c98bb6606f914e37fb",
+      "preserved": true
+    }
+  ],
+  "boundary": "Exact unchanged excerpts and preserved adopted test files. Only #844 colour fields are extended to all already-recognized anniversaries.",
+  "source_commit": "c534e008f39785e1cd98ab5473ec9421a6828845",
+  "source_tree": "d771358a8564b2ea6ac498b9f5c9d3af09cf349b"
+}

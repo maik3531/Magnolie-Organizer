@@ -1,0 +1,9 @@
+/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows/ExchangeCodec.cs(1628,17): error CS0136: A local or parameter named 'properties' cannot be declared in this scope because that name is used in an enclosing local scope to define a local or parameter [/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows/tests/CoreTests.csproj]
+
+Build FAILED.
+
+/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows/ExchangeCodec.cs(1628,17): error CS0136: A local or parameter named 'properties' cannot be declared in this scope because that name is used in an enclosing local scope to define a local or parameter [/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows/tests/CoreTests.csproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:11.82

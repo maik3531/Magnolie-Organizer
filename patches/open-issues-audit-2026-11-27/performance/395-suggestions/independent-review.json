@@ -1,0 +1,14 @@
+{
+  "reviewer": "review_ui_docs",
+  "source_commit": "38edd46ef18259e232c786bf2e8e88903f96b655",
+  "source_tree": "14bceb0da8d668f64b882a729201c7c23c65dab9",
+  "review_type": "independent static product diff and all ten new test cases",
+  "source_sha256": {
+    "magnolie-organizer/web/anwendung.js": "0a9e1db12e4b32c32170e7548ad3ebd8b10b1e45444f47a568ca2dd2a1e90701",
+    "magnolie-organizer-windows/app/web/anwendung.js": "e04962afaea1b02c2b2a4aa8af9d26a03ad522ce00b93ca38e7aec18e6ea648a"
+  },
+  "findings": [],
+  "signoff_de": "Keine materielle Regression gefunden. Beschränkung betrifft nur DOM-Optionen, gesamte aktuelle Kontaktliste bleibt durchsuchbar. Späterer exakter Name bleibt sichtbar; bestehende Organisatorfelder, freie Eingaben und alle E-Mail-Treffer gleicher Namen bleiben erhalten. Kein neuer globaler Cache.",
+  "runtime_tests_by_reviewer": false,
+  "limitations_de": "Keine native Datalist-Bedienung oder Langzeit-/Heap-Abnahme; gezielte Laufzeitprüfungen stammen vom Implementierungsagenten."
+}

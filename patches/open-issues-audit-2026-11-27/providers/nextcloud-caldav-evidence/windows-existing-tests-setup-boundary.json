@@ -1,0 +1,32 @@
+{
+  "base": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "results": [
+    {
+      "name": "windows-existing-dav",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "run",
+        "--project",
+        "magnolie-organizer-windows/tests/CoreTests.csproj",
+        "--no-build",
+        "--configuration",
+        "Debug",
+        "--",
+        "Nextcloud CalDAV"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-dav-tests",
+      "exit_code": 1,
+      "elapsed_s": 1.321,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/logs/windows-existing-dav-wrong-cwd.log"
+    }
+  ],
+  "env": {
+    "DOTNET_CLI_HOME": "/workspace/scratch/7203da5bd564/round3-tools/dotnet-state",
+    "NUGET_PACKAGES": "/workspace/scratch/7203da5bd564/round3-tools/nuget",
+    "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+  },
+  "inputs_binding": "windows-marker-manifest.json",
+  "boundary_de": "Bestehende CoreTests-Gruppen, tatsächliche C#-Produktklassen mit kontrollierten Transporten und synthetischen Daten; kein echter Nextcloudserver/Windows-GUIabgleich.",
+  "setup_boundary_de": "Erster Aufruf verwendete Repositoryroot als cwd. Eine vorhandene Quellassertion liest BridgeDispatcher.Sync.cs relativ zum Windowsprojekt. Folgelauf verwendet deshalb den im Test erwarteten Windowsprojektordner; keine Produkt-/Teständerung."
+}

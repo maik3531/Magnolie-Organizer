@@ -1,0 +1,847 @@
+{
+  "checkout": "/workspace/scratch/7203da5bd564/open-audit-final-source",
+  "head": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "source_sha256": "7934accd6161750a643bf16dccba4244f59aef031af4024604d6b5d8c52003a9",
+  "cases": [
+    {
+      "id": "birthday-standard",
+      "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:birthday-standard\r\nSUMMARY:birthday-standard\r\nDTSTART;VALUE=DATE:20000229\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nRRULE:FREQ=YEARLY\r\nCOLOR:turquoise\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "expected_accent": "#40e0d0",
+      "payload": {
+        "termine": [],
+        "jahrestage": [
+          {
+            "name": "birthday-standard",
+            "datum": "2000-02-29",
+            "typ": "birthday",
+            "uid": "birthday-standard",
+            "icsSerienUid": "birthday-standard",
+            "notiz": "",
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:20000229",
+              "X-MAGNOLIE-TYPE-ID:birthday",
+              "RRULE:FREQ=YEARLY",
+              "COLOR:turquoise"
+            ],
+            "geaendert": 0,
+            "icsQuelleName": "synthetic-844-review.ics",
+            "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+          }
+        ],
+        "aufgaben": [],
+        "wiederholend": 0,
+        "uebersprungen": 0,
+        "uebersprungenTermine": 0,
+        "uebersprungenAufgaben": 0,
+        "komplexeSerien": []
+      },
+      "accent_matches": false,
+      "birthday_type_preserved": true,
+      "exports": {
+        "jahrestage": {
+          "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:birthday-standard\r\nDTSTAMP:20261127T185845Z\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:birthday-standard\r\nCATEGORIES:Geburtstag\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:Geburtstag\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nCOLOR:turquoise\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+          "reimport": {
+            "termine": [],
+            "jahrestage": [
+              {
+                "name": "birthday-standard",
+                "datum": "2000-02-29",
+                "typ": "birthday",
+                "uid": "birthday-standard",
+                "icsSerienUid": "birthday-standard",
+                "notiz": "",
+                "icsRoundtrip": [
+                  "DTSTART;VALUE=DATE:20000229",
+                  "RRULE:FREQ=YEARLY",
+                  "X-MAGNOLIE-TYPE-ID:birthday",
+                  "X-MAGNOLIE-TYP:Geburtstag",
+                  "X-MAGNOLIE-JAHRESTAG-TYP:birthday",
+                  "COLOR:turquoise"
+                ],
+                "geaendert": 1795805925000,
+                "icsQuelleName": "synthetic-844-review.ics",
+                "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+              }
+            ],
+            "aufgaben": [],
+            "wiederholend": 0,
+            "uebersprungen": 0,
+            "uebersprungenTermine": 0,
+            "uebersprungenAufgaben": 0,
+            "komplexeSerien": []
+          }
+        }
+      }
+    },
+    {
+      "id": "birthday-own",
+      "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:birthday-own\r\nSUMMARY:birthday-own\r\nDTSTART;VALUE=DATE:20000229\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "expected_accent": "#112233",
+      "payload": {
+        "termine": [],
+        "jahrestage": [
+          {
+            "name": "birthday-own",
+            "datum": "2000-02-29",
+            "typ": "birthday",
+            "uid": "birthday-own",
+            "icsSerienUid": "birthday-own",
+            "notiz": "",
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:20000229",
+              "X-MAGNOLIE-TYPE-ID:birthday",
+              "RRULE:FREQ=YEARLY",
+              "X-MAGNOLIE-ACCENT-COLOR:#112233"
+            ],
+            "geaendert": 0,
+            "icsQuelleName": "synthetic-844-review.ics",
+            "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+          }
+        ],
+        "aufgaben": [],
+        "wiederholend": 0,
+        "uebersprungen": 0,
+        "uebersprungenTermine": 0,
+        "uebersprungenAufgaben": 0,
+        "komplexeSerien": []
+      },
+      "accent_matches": false,
+      "birthday_type_preserved": true,
+      "exports": {
+        "jahrestage": {
+          "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:birthday-own\r\nDTSTAMP:20261127T185845Z\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:birthday-own\r\nCATEGORIES:Geburtstag\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:Geburtstag\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+          "reimport": {
+            "termine": [],
+            "jahrestage": [
+              {
+                "name": "birthday-own",
+                "datum": "2000-02-29",
+                "typ": "birthday",
+                "uid": "birthday-own",
+                "icsSerienUid": "birthday-own",
+                "notiz": "",
+                "icsRoundtrip": [
+                  "DTSTART;VALUE=DATE:20000229",
+                  "RRULE:FREQ=YEARLY",
+                  "X-MAGNOLIE-TYPE-ID:birthday",
+                  "X-MAGNOLIE-TYP:Geburtstag",
+                  "X-MAGNOLIE-JAHRESTAG-TYP:birthday"
+                ],
+                "geaendert": 1795805925000,
+                "icsQuelleName": "synthetic-844-review.ics",
+                "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+              }
+            ],
+            "aufgaben": [],
+            "wiederholend": 0,
+            "uebersprungen": 0,
+            "uebersprungenTermine": 0,
+            "uebersprungenAufgaben": 0,
+            "komplexeSerien": []
+          }
+        }
+      }
+    },
+    {
+      "id": "birthday-calendar",
+      "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:turquoise\r\nBEGIN:VEVENT\r\nUID:birthday-calendar\r\nSUMMARY:birthday-calendar\r\nDTSTART;VALUE=DATE:20000229\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nRRULE:FREQ=YEARLY\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "expected_accent": "#40e0d0",
+      "payload": {
+        "termine": [],
+        "jahrestage": [
+          {
+            "name": "birthday-calendar",
+            "datum": "2000-02-29",
+            "typ": "birthday",
+            "uid": "birthday-calendar",
+            "icsSerienUid": "birthday-calendar",
+            "notiz": "",
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:20000229",
+              "X-MAGNOLIE-TYPE-ID:birthday",
+              "RRULE:FREQ=YEARLY"
+            ],
+            "geaendert": 0,
+            "icsQuelleName": "synthetic-844-review.ics",
+            "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+          }
+        ],
+        "aufgaben": [],
+        "wiederholend": 0,
+        "uebersprungen": 0,
+        "uebersprungenTermine": 0,
+        "uebersprungenAufgaben": 0,
+        "komplexeSerien": []
+      },
+      "accent_matches": false,
+      "birthday_type_preserved": true,
+      "exports": {
+        "jahrestage": {
+          "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:birthday-calendar\r\nDTSTAMP:20261127T185845Z\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:birthday-calendar\r\nCATEGORIES:Geburtstag\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:Geburtstag\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+          "reimport": {
+            "termine": [],
+            "jahrestage": [
+              {
+                "name": "birthday-calendar",
+                "datum": "2000-02-29",
+                "typ": "birthday",
+                "uid": "birthday-calendar",
+                "icsSerienUid": "birthday-calendar",
+                "notiz": "",
+                "icsRoundtrip": [
+                  "DTSTART;VALUE=DATE:20000229",
+                  "RRULE:FREQ=YEARLY",
+                  "X-MAGNOLIE-TYPE-ID:birthday",
+                  "X-MAGNOLIE-TYP:Geburtstag",
+                  "X-MAGNOLIE-JAHRESTAG-TYP:birthday"
+                ],
+                "geaendert": 1795805925000,
+                "icsQuelleName": "synthetic-844-review.ics",
+                "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+              }
+            ],
+            "aufgaben": [],
+            "wiederholend": 0,
+            "uebersprungen": 0,
+            "uebersprungenTermine": 0,
+            "uebersprungenAufgaben": 0,
+            "komplexeSerien": []
+          }
+        }
+      }
+    },
+    {
+      "id": "parameterized-standard-unchanged",
+      "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:parameterized-standard-unchanged\r\nSUMMARY:parameterized-standard-unchanged\r\nDTSTART;VALUE=DATE:20000229\r\nCOLOR;X-SOURCE=synthetic:red\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "payload": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "Europe/Berlin",
+            "datum": "2000-02-29",
+            "endDatum": "",
+            "zeit": "",
+            "endZeit": "",
+            "titel": "parameterized-standard-unchanged",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "#ff0000",
+            "icsCalendarColor": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": false,
+            "icsSerienUid": "",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": true,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:20000229",
+              "COLOR;X-SOURCE=synthetic:red"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "parameterized-standard-unchanged",
+            "geaendert": 0,
+            "icsQuelleName": "synthetic-844-review.ics",
+            "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+          }
+        ],
+        "jahrestage": [],
+        "aufgaben": [],
+        "wiederholend": 0,
+        "uebersprungen": 0,
+        "uebersprungenTermine": 0,
+        "uebersprungenAufgaben": 0,
+        "komplexeSerien": []
+      },
+      "exports": {
+        "termine": {
+          "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:parameterized-standard-unchanged\r\nDTSTAMP:20261127T185845Z\r\nSEQUENCE:0\r\nDTEND;VALUE=DATE:20000301\r\nSUMMARY:parameterized-standard-unchanged\r\nX-MAGNOLIE-ACCENT-COLOR:#ff0000\r\nDTSTART;VALUE=DATE:20000229\r\nCOLOR;X-SOURCE=synthetic:red\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+          "reimport": {
+            "termine": [
+              {
+                "icsAnzeigeZeitzone": "Europe/Berlin",
+                "datum": "2000-02-29",
+                "endDatum": "",
+                "zeit": "",
+                "endZeit": "",
+                "titel": "parameterized-standard-unchanged",
+                "notiz": "",
+                "kategorien": "",
+                "akzentFarbe": "#ff0000",
+                "icsCalendarColor": "",
+                "vertraulich": false,
+                "vorlaeufig": false,
+                "kostenstelle": "",
+                "kunde": "",
+                "individuelleErinnerungTage": 0,
+                "standardErinnerung": true,
+                "wiederholung": {
+                  "art": "none",
+                  "bis": ""
+                },
+                "icsKomplex": false,
+                "icsSerienUid": "",
+                "icsZusatzDaten": [],
+                "icsZusatzTermine": [],
+                "icsEndeFehlt": false,
+                "icsNullDauer": false,
+                "icsRoundtrip": [
+                  "DTEND;VALUE=DATE:20000301",
+                  "X-MAGNOLIE-ACCENT-COLOR:#ff0000",
+                  "DTSTART;VALUE=DATE:20000229",
+                  "COLOR;X-SOURCE=synthetic:red"
+                ],
+                "icsSequence": 0,
+                "icsAenderungszeitFehlt": true,
+                "uid": "parameterized-standard-unchanged",
+                "geaendert": 1795805925000,
+                "icsQuelleName": "synthetic-844-review.ics",
+                "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+              }
+            ],
+            "jahrestage": [],
+            "aufgaben": [],
+            "wiederholend": 0,
+            "uebersprungen": 0,
+            "uebersprungenTermine": 0,
+            "uebersprungenAufgaben": 0,
+            "komplexeSerien": []
+          }
+        }
+      },
+      "raw_color_preserved": true
+    },
+    {
+      "id": "parameterized-own-over-standard",
+      "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:parameterized-own-over-standard\r\nSUMMARY:parameterized-own-over-standard\r\nDTSTART;VALUE=DATE:20000229\r\nCOLOR;X-SOURCE=synthetic:red\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "payload": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "Europe/Berlin",
+            "datum": "2000-02-29",
+            "endDatum": "",
+            "zeit": "",
+            "endZeit": "",
+            "titel": "parameterized-own-over-standard",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "#112233",
+            "icsCalendarColor": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": false,
+            "icsSerienUid": "",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": true,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:20000229",
+              "COLOR;X-SOURCE=synthetic:red",
+              "X-MAGNOLIE-ACCENT-COLOR:#112233"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "parameterized-own-over-standard",
+            "geaendert": 0,
+            "icsQuelleName": "synthetic-844-review.ics",
+            "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+          }
+        ],
+        "jahrestage": [],
+        "aufgaben": [],
+        "wiederholend": 0,
+        "uebersprungen": 0,
+        "uebersprungenTermine": 0,
+        "uebersprungenAufgaben": 0,
+        "komplexeSerien": []
+      },
+      "exports": {
+        "termine": {
+          "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:parameterized-own-over-standard\r\nDTSTAMP:20261127T185845Z\r\nSEQUENCE:0\r\nDTEND;VALUE=DATE:20000301\r\nSUMMARY:parameterized-own-over-standard\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nDTSTART;VALUE=DATE:20000229\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+          "reimport": {
+            "termine": [
+              {
+                "icsAnzeigeZeitzone": "Europe/Berlin",
+                "datum": "2000-02-29",
+                "endDatum": "",
+                "zeit": "",
+                "endZeit": "",
+                "titel": "parameterized-own-over-standard",
+                "notiz": "",
+                "kategorien": "",
+                "akzentFarbe": "#112233",
+                "icsCalendarColor": "",
+                "vertraulich": false,
+                "vorlaeufig": false,
+                "kostenstelle": "",
+                "kunde": "",
+                "individuelleErinnerungTage": 0,
+                "standardErinnerung": true,
+                "wiederholung": {
+                  "art": "none",
+                  "bis": ""
+                },
+                "icsKomplex": false,
+                "icsSerienUid": "",
+                "icsZusatzDaten": [],
+                "icsZusatzTermine": [],
+                "icsEndeFehlt": false,
+                "icsNullDauer": false,
+                "icsRoundtrip": [
+                  "DTEND;VALUE=DATE:20000301",
+                  "X-MAGNOLIE-ACCENT-COLOR:#112233",
+                  "DTSTART;VALUE=DATE:20000229"
+                ],
+                "icsSequence": 0,
+                "icsAenderungszeitFehlt": true,
+                "uid": "parameterized-own-over-standard",
+                "geaendert": 1795805925000,
+                "icsQuelleName": "synthetic-844-review.ics",
+                "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+              }
+            ],
+            "jahrestage": [],
+            "aufgaben": [],
+            "wiederholend": 0,
+            "uebersprungen": 0,
+            "uebersprungenTermine": 0,
+            "uebersprungenAufgaben": 0,
+            "komplexeSerien": []
+          }
+        }
+      },
+      "raw_color_preserved": false
+    },
+    {
+      "id": "unknown-component-color",
+      "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:unknown-component-color\r\nSUMMARY:unknown-component-color\r\nDTSTART;VALUE=DATE:20000229\r\nCOLOR:synthetic-unknown\r\nX-SOURCE:synthetic\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "payload": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "Europe/Berlin",
+            "datum": "2000-02-29",
+            "endDatum": "",
+            "zeit": "",
+            "endZeit": "",
+            "titel": "unknown-component-color",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "icsCalendarColor": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": false,
+            "icsSerienUid": "",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": true,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:20000229",
+              "COLOR:synthetic-unknown",
+              "X-SOURCE:synthetic"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "unknown-component-color",
+            "geaendert": 0,
+            "icsQuelleName": "synthetic-844-review.ics",
+            "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+          }
+        ],
+        "jahrestage": [],
+        "aufgaben": [],
+        "wiederholend": 0,
+        "uebersprungen": 0,
+        "uebersprungenTermine": 0,
+        "uebersprungenAufgaben": 0,
+        "komplexeSerien": []
+      },
+      "exports": {
+        "termine": {
+          "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:unknown-component-color\r\nDTSTAMP:20261127T185845Z\r\nSEQUENCE:0\r\nDTEND;VALUE=DATE:20000301\r\nSUMMARY:unknown-component-color\r\nDTSTART;VALUE=DATE:20000229\r\nCOLOR:synthetic-unknown\r\nX-SOURCE:synthetic\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+          "reimport": {
+            "termine": [
+              {
+                "icsAnzeigeZeitzone": "Europe/Berlin",
+                "datum": "2000-02-29",
+                "endDatum": "",
+                "zeit": "",
+                "endZeit": "",
+                "titel": "unknown-component-color",
+                "notiz": "",
+                "kategorien": "",
+                "akzentFarbe": "",
+                "icsCalendarColor": "",
+                "vertraulich": false,
+                "vorlaeufig": false,
+                "kostenstelle": "",
+                "kunde": "",
+                "individuelleErinnerungTage": 0,
+                "standardErinnerung": true,
+                "wiederholung": {
+                  "art": "none",
+                  "bis": ""
+                },
+                "icsKomplex": false,
+                "icsSerienUid": "",
+                "icsZusatzDaten": [],
+                "icsZusatzTermine": [],
+                "icsEndeFehlt": false,
+                "icsNullDauer": false,
+                "icsRoundtrip": [
+                  "DTEND;VALUE=DATE:20000301",
+                  "DTSTART;VALUE=DATE:20000229",
+                  "COLOR:synthetic-unknown",
+                  "X-SOURCE:synthetic"
+                ],
+                "icsSequence": 0,
+                "icsAenderungszeitFehlt": true,
+                "uid": "unknown-component-color",
+                "geaendert": 1795805925000,
+                "icsQuelleName": "synthetic-844-review.ics",
+                "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+              }
+            ],
+            "jahrestage": [],
+            "aufgaben": [],
+            "wiederholend": 0,
+            "uebersprungen": 0,
+            "uebersprungenTermine": 0,
+            "uebersprungenAufgaben": 0,
+            "komplexeSerien": []
+          }
+        }
+      },
+      "raw_color_preserved": true
+    },
+    {
+      "id": "edited-and-cleared",
+      "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:blue\r\nBEGIN:VEVENT\r\nUID:edited-and-cleared\r\nSUMMARY:edited-and-cleared\r\nDTSTART;VALUE=DATE:20000229\r\nCOLOR:turquoise\r\nX-SOURCE:synthetic\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "edited": {
+        "termine": {
+          "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nCOLOR:blue\r\nBEGIN:VEVENT\r\nUID:edited-and-cleared\r\nDTSTAMP:20261127T185845Z\r\nSEQUENCE:0\r\nDTEND;VALUE=DATE:20000301\r\nSUMMARY:edited-and-cleared\r\nX-MAGNOLIE-ACCENT-COLOR:#123456\r\nDTSTART;VALUE=DATE:20000229\r\nX-SOURCE:synthetic\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+          "reimport": {
+            "termine": [
+              {
+                "icsAnzeigeZeitzone": "Europe/Berlin",
+                "datum": "2000-02-29",
+                "endDatum": "",
+                "zeit": "",
+                "endZeit": "",
+                "titel": "edited-and-cleared",
+                "notiz": "",
+                "kategorien": "",
+                "akzentFarbe": "#123456",
+                "icsCalendarColor": "COLOR:blue",
+                "vertraulich": false,
+                "vorlaeufig": false,
+                "kostenstelle": "",
+                "kunde": "",
+                "individuelleErinnerungTage": 0,
+                "standardErinnerung": true,
+                "wiederholung": {
+                  "art": "none",
+                  "bis": ""
+                },
+                "icsKomplex": false,
+                "icsSerienUid": "",
+                "icsZusatzDaten": [],
+                "icsZusatzTermine": [],
+                "icsEndeFehlt": false,
+                "icsNullDauer": false,
+                "icsRoundtrip": [
+                  "DTEND;VALUE=DATE:20000301",
+                  "X-MAGNOLIE-ACCENT-COLOR:#123456",
+                  "DTSTART;VALUE=DATE:20000229",
+                  "X-SOURCE:synthetic"
+                ],
+                "icsSequence": 0,
+                "icsAenderungszeitFehlt": true,
+                "uid": "edited-and-cleared",
+                "geaendert": 1795805925000,
+                "icsQuelleName": "synthetic-844-review.ics",
+                "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+              }
+            ],
+            "jahrestage": [],
+            "aufgaben": [],
+            "wiederholend": 0,
+            "uebersprungen": 0,
+            "uebersprungenTermine": 0,
+            "uebersprungenAufgaben": 0,
+            "komplexeSerien": []
+          }
+        }
+      },
+      "cleared": {
+        "termine": {
+          "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:edited-and-cleared\r\nDTSTAMP:20261127T185845Z\r\nSEQUENCE:0\r\nDTEND;VALUE=DATE:20000301\r\nSUMMARY:edited-and-cleared\r\nDTSTART;VALUE=DATE:20000229\r\nX-SOURCE:synthetic\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+          "reimport": {
+            "termine": [
+              {
+                "icsAnzeigeZeitzone": "Europe/Berlin",
+                "datum": "2000-02-29",
+                "endDatum": "",
+                "zeit": "",
+                "endZeit": "",
+                "titel": "edited-and-cleared",
+                "notiz": "",
+                "kategorien": "",
+                "akzentFarbe": "",
+                "icsCalendarColor": "",
+                "vertraulich": false,
+                "vorlaeufig": false,
+                "kostenstelle": "",
+                "kunde": "",
+                "individuelleErinnerungTage": 0,
+                "standardErinnerung": true,
+                "wiederholung": {
+                  "art": "none",
+                  "bis": ""
+                },
+                "icsKomplex": false,
+                "icsSerienUid": "",
+                "icsZusatzDaten": [],
+                "icsZusatzTermine": [],
+                "icsEndeFehlt": false,
+                "icsNullDauer": false,
+                "icsRoundtrip": [
+                  "DTEND;VALUE=DATE:20000301",
+                  "DTSTART;VALUE=DATE:20000229",
+                  "X-SOURCE:synthetic"
+                ],
+                "icsSequence": 0,
+                "icsAenderungszeitFehlt": true,
+                "uid": "edited-and-cleared",
+                "geaendert": 1795805925000,
+                "icsQuelleName": "synthetic-844-review.ics",
+                "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+              }
+            ],
+            "jahrestage": [],
+            "aufgaben": [],
+            "wiederholend": 0,
+            "uebersprungen": 0,
+            "uebersprungenTermine": 0,
+            "uebersprungenAufgaben": 0,
+            "komplexeSerien": []
+          }
+        }
+      },
+      "edit_pass": true,
+      "clear_pass": true,
+      "unknown_metadata_preserved": true
+    },
+    {
+      "id": "two-calendar-roots",
+      "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:blue\r\nBEGIN:VEVENT\r\nUID:with-default\r\nSUMMARY:with-default\r\nDTSTART;VALUE=DATE:20000229\r\nEND:VEVENT\r\nEND:VCALENDAR\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:without-default\r\nSUMMARY:without-default\r\nDTSTART;VALUE=DATE:20000229\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "payload": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "Europe/Berlin",
+            "datum": "2000-02-29",
+            "endDatum": "",
+            "zeit": "",
+            "endZeit": "",
+            "titel": "with-default",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "#0000ff",
+            "icsCalendarColor": "COLOR:blue",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": false,
+            "icsSerienUid": "",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": true,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:20000229"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "with-default",
+            "geaendert": 0,
+            "icsQuelleName": "synthetic-844-review.ics",
+            "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+          },
+          {
+            "icsAnzeigeZeitzone": "Europe/Berlin",
+            "datum": "2000-02-29",
+            "endDatum": "",
+            "zeit": "",
+            "endZeit": "",
+            "titel": "without-default",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "icsCalendarColor": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": false,
+            "icsSerienUid": "",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": true,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:20000229"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "without-default",
+            "geaendert": 0,
+            "icsQuelleName": "synthetic-844-review.ics",
+            "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+          }
+        ],
+        "jahrestage": [],
+        "aufgaben": [],
+        "wiederholend": 0,
+        "uebersprungen": 0,
+        "uebersprungenTermine": 0,
+        "uebersprungenAufgaben": 0,
+        "komplexeSerien": []
+      },
+      "exports": {
+        "termine": {
+          "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:with-default\r\nDTSTAMP:20261127T185845Z\r\nSEQUENCE:0\r\nDTEND;VALUE=DATE:20000301\r\nSUMMARY:with-default\r\nX-MAGNOLIE-ACCENT-COLOR:#0000ff\r\nDTSTART;VALUE=DATE:20000229\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:without-default\r\nDTSTAMP:20261127T185845Z\r\nSEQUENCE:0\r\nDTEND;VALUE=DATE:20000301\r\nSUMMARY:without-default\r\nDTSTART;VALUE=DATE:20000229\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+          "reimport": {
+            "termine": [
+              {
+                "icsAnzeigeZeitzone": "Europe/Berlin",
+                "datum": "2000-02-29",
+                "endDatum": "",
+                "zeit": "",
+                "endZeit": "",
+                "titel": "with-default",
+                "notiz": "",
+                "kategorien": "",
+                "akzentFarbe": "#0000ff",
+                "icsCalendarColor": "",
+                "vertraulich": false,
+                "vorlaeufig": false,
+                "kostenstelle": "",
+                "kunde": "",
+                "individuelleErinnerungTage": 0,
+                "standardErinnerung": true,
+                "wiederholung": {
+                  "art": "none",
+                  "bis": ""
+                },
+                "icsKomplex": false,
+                "icsSerienUid": "",
+                "icsZusatzDaten": [],
+                "icsZusatzTermine": [],
+                "icsEndeFehlt": false,
+                "icsNullDauer": false,
+                "icsRoundtrip": [
+                  "DTEND;VALUE=DATE:20000301",
+                  "X-MAGNOLIE-ACCENT-COLOR:#0000ff",
+                  "DTSTART;VALUE=DATE:20000229"
+                ],
+                "icsSequence": 0,
+                "icsAenderungszeitFehlt": true,
+                "uid": "with-default",
+                "geaendert": 1795805925000,
+                "icsQuelleName": "synthetic-844-review.ics",
+                "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+              },
+              {
+                "icsAnzeigeZeitzone": "Europe/Berlin",
+                "datum": "2000-02-29",
+                "endDatum": "",
+                "zeit": "",
+                "endZeit": "",
+                "titel": "without-default",
+                "notiz": "",
+                "kategorien": "",
+                "akzentFarbe": "",
+                "icsCalendarColor": "",
+                "vertraulich": false,
+                "vorlaeufig": false,
+                "kostenstelle": "",
+                "kunde": "",
+                "individuelleErinnerungTage": 0,
+                "standardErinnerung": true,
+                "wiederholung": {
+                  "art": "none",
+                  "bis": ""
+                },
+                "icsKomplex": false,
+                "icsSerienUid": "",
+                "icsZusatzDaten": [],
+                "icsZusatzTermine": [],
+                "icsEndeFehlt": false,
+                "icsNullDauer": false,
+                "icsRoundtrip": [
+                  "DTEND;VALUE=DATE:20000301",
+                  "DTSTART;VALUE=DATE:20000229"
+                ],
+                "icsSequence": 0,
+                "icsAenderungszeitFehlt": true,
+                "uid": "without-default",
+                "geaendert": 1795805925000,
+                "icsQuelleName": "synthetic-844-review.ics",
+                "icsQuelleId": "ics:76e8943b9c2d0a31703f1f8d612c9568df59d98b3d3ce947e952e4b5c09d437a"
+              }
+            ],
+            "jahrestage": [],
+            "aufgaben": [],
+            "wiederholend": 0,
+            "uebersprungen": 0,
+            "uebersprungenTermine": 0,
+            "uebersprungenAufgaben": 0,
+            "komplexeSerien": []
+          }
+        }
+      },
+      "scope_pass": true
+    }
+  ],
+  "boundary_de": "Acht gezielte Diagnosefälle am tatsächlichen Python-Parser/Exporter. JSON-Speichern wird durch Serialisierung nachvollzogen; keine GUI-/native Speicherabnahme. Regulärer Skriptexit ist keine pauschale fachliche Freigabe."
+}

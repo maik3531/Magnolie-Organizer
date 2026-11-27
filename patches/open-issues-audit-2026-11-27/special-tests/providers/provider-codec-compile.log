@@ -1,0 +1,18 @@
+Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarExport.kt:215:47: warning: unnecessary non-null assertion (!!) on a non-null receiver of type 'Double'.
+            val offset = if (editable) minutes!!.toLong() else 0L
+                                              ^^
+Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarImport.kt:407:59: warning: unnecessary non-null assertion (!!) on a non-null receiver of type 'Long'.
+            if (ordinal != null) { it["ordinal"] = ordinal!!; it["wochentag"] = weekday; if (fields.containsKey("BYSETPOS")) it["rruleForm"] = "bysetpos" }
+                                                          ^^
+Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarImport.kt:502:79: warning: unnecessary non-null assertion (!!) on a non-null receiver of type 'ICalendarImport.Clock'.
+            requireImport(start == null || end == null || start.instant <= end!!.instant, "Task end precedes start.")
+                                                                              ^^
+Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarImport.kt:528:41: warning: unnecessary non-null assertion (!!) on a non-null receiver of type 'ICalendarImport.Clock'.
+        requireImport(end == null || end!!.instant >= start.instant && end!!.dateOnly == start.dateOnly, "Invalid event time range.")
+                                        ^^
+Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarImport.kt:528:75: warning: unnecessary non-null assertion (!!) on a non-null receiver of type 'ICalendarImport.Clock'.
+        requireImport(end == null || end!!.instant >= start.instant && end!!.dateOnly == start.dateOnly, "Invalid event time range.")
+                                                                          ^^
+Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ProviderZone.kt:143:31: warning: cast is redundant.
+            val result=(value as Number).toLong();require(result.toDouble()==value.toDouble() && result in low..high) {"invalid-timezone-number"};return result
+                              ^^^^^^^^^

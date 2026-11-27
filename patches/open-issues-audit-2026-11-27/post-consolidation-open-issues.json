@@ -1,0 +1,524 @@
+{
+  "count": 74,
+  "phase": "after 31 closures, before supplementary finding #843",
+  "issues": [
+    {
+      "number": 53,
+      "title": "TuxedoOS: Absturzmeldungen und längere Hänger mit Organizer-DEBs 2.0.19/2.0.23",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/53",
+      "state": "open",
+      "updated_at": "2026-09-29T13:11:59Z"
+    },
+    {
+      "number": 64,
+      "title": "Google-Tasks- und Microsoft/EAS-Aufgabenadapter anbinden – Folge #39",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/64",
+      "state": "open",
+      "updated_at": "2026-09-29T08:27:12Z"
+    },
+    {
+      "number": 75,
+      "title": "Wunsch: Doppelte Erinnerungen anderer Programme optional zugunsten von Magnolie unterdrücken",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/75",
+      "state": "open",
+      "updated_at": "2026-10-08T19:26:46Z"
+    },
+    {
+      "number": 113,
+      "title": "Nächster Gesamtkandidat: Restpunkte, private Testlieferung und Paketabnahme",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/113",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:38Z"
+    },
+    {
+      "number": 121,
+      "title": "Nach Gesamtabnahme: macOS- und Android-Organizer auf Funktions- und Darstellungsparität bringen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/121",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:40Z"
+    },
+    {
+      "number": 128,
+      "title": "Notes: automatischen Abgleich auf freigegebene aktive Transporte erweitern",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/128",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:54Z"
+    },
+    {
+      "number": 146,
+      "title": "Eigenprofil: automatische Quelle, bestätigte Eigenidentität und optionale medizinische Angaben vervollständigen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/146",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:24Z"
+    },
+    {
+      "number": 148,
+      "title": "Notes-Kopfzeile: echte Sync-Verfügbarkeit und Rechnerverbindung vervollständigen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/148",
+      "state": "open",
+      "updated_at": "2026-10-11T13:10:42Z"
+    },
+    {
+      "number": 153,
+      "title": "KDE Connect: Ferneingabe, Präsentationsmodus und konfigurierte Befehle abschließen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/153",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:47Z"
+    },
+    {
+      "number": 156,
+      "title": "Native Online-Konten: Providerfähigkeiten und Google-Rückabgleich tatsächlich prüfen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/156",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:29Z"
+    },
+    {
+      "number": 161,
+      "title": "Schulferien: keine täglichen Erinnerungen, optional einmal pro Zeitraum",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/161",
+      "state": "open",
+      "updated_at": "2026-10-12T11:58:38Z"
+    },
+    {
+      "number": 168,
+      "title": "KDE-Kopplung: Zeichenblatt bei erster und erneuter Kopplung automatisch bereitstellen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/168",
+      "state": "open",
+      "updated_at": "2026-10-28T05:36:21Z"
+    },
+    {
+      "number": 192,
+      "title": "MCP: verbleibende Telefon-/KDE-Kommunikation, Empfangsvorgaben und Geräteaktionen anbinden",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/192",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:31Z"
+    },
+    {
+      "number": 194,
+      "title": "MCP: verbleibende Produktwerkzeuge und Einstellungen verbinden – Rest #170",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/194",
+      "state": "open",
+      "updated_at": "2026-11-16T20:43:24Z"
+    },
+    {
+      "number": 242,
+      "title": "Korrekturkandidat: verbleibende persönliche Live- und Finalpaketnachweise – Rest implementierter Fixes",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/242",
+      "state": "open",
+      "updated_at": "2026-10-31T09:41:02Z"
+    },
+    {
+      "number": 243,
+      "title": "OR6: verbleibende Overrides, Metadaten und Originalkontexte – Rest #222",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/243",
+      "state": "open",
+      "updated_at": "2026-11-13T23:53:10Z"
+    },
+    {
+      "number": 245,
+      "title": "Bildschirm: Spiegelung und echten Zweitmonitor auf Telefon oder Tablet ergänzen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/245",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:45Z"
+    },
+    {
+      "number": 258,
+      "title": "Zeitzonenmanagement: IANA/iCalendar-konforme Technik mit einfacher seniorengerechter Oberfläche",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/258",
+      "state": "open",
+      "updated_at": "2026-10-28T06:08:18Z"
+    },
+    {
+      "number": 269,
+      "title": "Telefondateisystem als benanntes Netzlaufwerk mit korrekten Speicherwerten darstellen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/269",
+      "state": "open",
+      "updated_at": "2026-11-02T06:39:12Z"
+    },
+    {
+      "number": 272,
+      "title": "Internetkonten: integrierte Konto-Erweiterungen zusammen mit der Laufzeit automatisch aktualisieren",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/272",
+      "state": "open",
+      "updated_at": "2026-10-28T22:06:13Z"
+    },
+    {
+      "number": 273,
+      "title": "Thunderbird-Quellen beim Import wahlweise dauerhaft synchronisieren",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/273",
+      "state": "open",
+      "updated_at": "2026-10-28T22:41:56Z"
+    },
+    {
+      "number": 275,
+      "title": "Internetkonten: Offlinebetrieb, erforderliche Anmeldung und Providerfehler einheitlich führen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/275",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:27Z"
+    },
+    {
+      "number": 276,
+      "title": "Telefonkontakte: allgemeine Schreibfreigabe und automatischer bidirektionaler Providerabgleich",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/276",
+      "state": "open",
+      "updated_at": "2026-10-30T13:11:54Z"
+    },
+    {
+      "number": 278,
+      "title": "Windows: nativer Sync-Commit bestätigt gespeicherten erfolgreichen Providerabgleich nicht",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/278",
+      "state": "open",
+      "updated_at": "2026-10-31T09:41:02Z"
+    },
+    {
+      "number": 290,
+      "title": "EDS: Provider-Schreibbeleg und historischen Cache-Auslöser nachverfolgen – Rest #285",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/290",
+      "state": "open",
+      "updated_at": "2026-11-13T18:26:41Z"
+    },
+    {
+      "number": 292,
+      "title": "Microsoft-Internetkonten: tatsächliche Kontakt-/Kalenderdatenpipeline abschließen – Rest #29",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/292",
+      "state": "open",
+      "updated_at": "2026-11-01T03:51:32Z"
+    },
+    {
+      "number": 294,
+      "title": "Windows: Readonly-Kalenderfix paketgebunden übernehmen und echten Feiertagsfeed prüfen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/294",
+      "state": "open",
+      "updated_at": "2026-11-02T07:09:05Z"
+    },
+    {
+      "number": 295,
+      "title": "Diagnose: ungeklärte persönliche Datenprüfsummenänderung während isolierter Windows-Probe",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/295",
+      "state": "open",
+      "updated_at": "2026-11-02T08:20:24Z"
+    },
+    {
+      "number": 302,
+      "title": "Notes/Organizer: geschützter Restore ohne Papierkorb, historische Zielrechte und physische Gesamtabnahme – Rest #300",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/302",
+      "state": "open",
+      "updated_at": "2026-11-02T05:30:03Z"
+    },
+    {
+      "number": 306,
+      "title": "Notes-Zeitübersicht: native GUI- und physische Sync-Abnahme nach #304",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/306",
+      "state": "open",
+      "updated_at": "2026-11-01T22:54:57Z"
+    },
+    {
+      "number": 322,
+      "title": "Notes-Monatsdruck: physische WLAN-Drucker- und Handyabnahme nach #320",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/322",
+      "state": "open",
+      "updated_at": "2026-11-02T07:14:45Z"
+    },
+    {
+      "number": 326,
+      "title": "Windows-native Abnahme: GUI-Läufe unter eigenem eingeschränktem Testkonto von persönlicher Laufzeit trennen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/326",
+      "state": "open",
+      "updated_at": "2026-11-13T18:26:41Z"
+    },
+    {
+      "number": 330,
+      "title": "Datei-/Foto-/Videosynchronisation: Aktivierung, native Integration und Gesamtabnahme",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/330",
+      "state": "open",
+      "updated_at": "2026-11-27T18:08:31Z"
+    },
+    {
+      "number": 336,
+      "title": "Animationen im Fotobereich belassen und optionalen Unterordner Animationen unterstützen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/336",
+      "state": "open",
+      "updated_at": "2026-11-22T09:48:24Z"
+    },
+    {
+      "number": 337,
+      "title": "Reale Foto- und Videoaufnahmen optional von Memes und Grafiken trennen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/337",
+      "state": "open",
+      "updated_at": "2026-11-03T13:42:36Z"
+    },
+    {
+      "number": 338,
+      "title": "Medien-Abgleichrichtung wie Notes wählen: Handy zu PC als Vorgabe, beidseitig nur mit sicherem Rückweg",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/338",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:52Z"
+    },
+    {
+      "number": 375,
+      "title": "Native Abnahme der Notes-Telefonoberfläche und bestätigten Sync-Anzeige",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/375",
+      "state": "open",
+      "updated_at": "2026-11-21T05:34:34Z"
+    },
+    {
+      "number": 380,
+      "title": "Müllkalender: Feiertagsverschiebung und einzelne Ersatztermine ohne erfundene Abholdaten",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/380",
+      "state": "open",
+      "updated_at": "2026-11-04T17:44:33Z"
+    },
+    {
+      "number": 382,
+      "title": "Termin-Einzellöschung: native Providerabnahme und alte Mehrfach-Uhrzeiten nach #379",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/382",
+      "state": "open",
+      "updated_at": "2026-11-04T18:16:24Z"
+    },
+    {
+      "number": 392,
+      "title": "PC-Mediensicherungen: inhaltsbasierte Versionierung und geprüfte Leerlauf-Komprimierung",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/392",
+      "state": "open",
+      "updated_at": "2026-11-06T14:54:02Z"
+    },
+    {
+      "number": 395,
+      "title": "Linux 2.0.30: gemeldete UI-Trägheit auf Intel N100 unter Mint/Cinnamon untersuchen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/395",
+      "state": "open",
+      "updated_at": "2026-11-07T13:27:20Z"
+    },
+    {
+      "number": 441,
+      "title": "Linux/CalDAV: typisierten Jahrestagsabgleich vollständig anschließen – Rest aus #440",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/441",
+      "state": "open",
+      "updated_at": "2026-11-08T16:05:31Z"
+    },
+    {
+      "number": 449,
+      "title": "Notizenimport: native Linux-/Windows-Abnahme des Anhangserhalts (Rest aus #445)",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/449",
+      "state": "open",
+      "updated_at": "2026-11-08T19:47:36Z"
+    },
+    {
+      "number": 454,
+      "title": "Mac/Tablet: persistierte Sync-Epoche und Löschquarantäne bei Wiederherstellung ergänzen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/454",
+      "state": "open",
+      "updated_at": "2026-11-26T13:12:57Z"
+    },
+    {
+      "number": 458,
+      "title": "Zeichenblatt: geringe Rasterabweichung nach Undo/Redo bei identischem Vektormodell untersuchen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/458",
+      "state": "open",
+      "updated_at": "2026-11-26T13:13:00Z"
+    },
+    {
+      "number": 465,
+      "title": "ICS-Ausnahmeidentität: Altkennungen, gespeicherte Doppelpaare und native Save-/Reopen-Abnahme",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/465",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:35Z"
+    },
+    {
+      "number": 471,
+      "title": "Tablet: Android beendet Organizer nach Ausfall des Google-Schriftanbieters",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/471",
+      "state": "open",
+      "updated_at": "2026-11-26T13:13:09Z"
+    },
+    {
+      "number": 500,
+      "title": "Fortsetzung #497: zugelassene Windows-Zielgenerationen mit rückrollfestem aktuellem Auswahlowner",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/500",
+      "state": "open",
+      "updated_at": "2026-11-09T23:52:59Z"
+    },
+    {
+      "number": 503,
+      "title": "Webcam: produktiver Kamera-/Mikrofonpfad, kombinierte Einrichtung und native OBS-Abnahme",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/503",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:49Z"
+    },
+    {
+      "number": 511,
+      "title": "Fortsetzung #455: opaque Unicode-JSON-Schlüssel verlustfrei bis zum nativen Mac-Buch erhalten",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/511",
+      "state": "open",
+      "updated_at": "2026-11-26T08:20:32Z"
+    },
+    {
+      "number": 536,
+      "title": "Windows-Audio: Audiosrv hängt an audiodg AudioClientRpc und wird beendet",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/536",
+      "state": "open",
+      "updated_at": "2026-11-11T07:12:14Z"
+    },
+    {
+      "number": 538,
+      "title": "Windows-Audio zuerst isoliert in ressourcenbegrenzter Test-VM prüfen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/538",
+      "state": "open",
+      "updated_at": "2026-11-11T11:11:00Z"
+    },
+    {
+      "number": 566,
+      "title": "Windows: gemeldete Kontakt-Importkonflikte mit Linux-Verhalten vergleichen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/566",
+      "state": "open",
+      "updated_at": "2026-11-27T12:55:44Z"
+    },
+    {
+      "number": 569,
+      "title": "Lotus-Jahrestage: separaten ICS-Export samt Wiederholung und Zielbereich prüfen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/569",
+      "state": "open",
+      "updated_at": "2026-11-13T22:29:14Z"
+    },
+    {
+      "number": 571,
+      "title": "Windows: berichteten fehlgeschlagenen In-App-Wechsel 2.0.29 auf 2.0.30 eingrenzen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/571",
+      "state": "open",
+      "updated_at": "2026-11-13T11:42:01Z"
+    },
+    {
+      "number": 578,
+      "title": "OR6: bereitgestellte Original- und Exportdatei auf weitere unbemerkte Übernahmefehler prüfen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/578",
+      "state": "open",
+      "updated_at": "2026-11-13T22:43:55Z"
+    },
+    {
+      "number": 595,
+      "title": "Distribution: veröffentlichten Windows-PAD bei Softwareportalen einreichen und Aufnahme prüfen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/595",
+      "state": "open",
+      "updated_at": "2026-11-26T19:41:26Z"
+    },
+    {
+      "number": 611,
+      "title": "OR6: aktive Bereichs-/Containerbindung getrennt von gewöhnlicher Rubriklöschung verifizieren",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/611",
+      "state": "open",
+      "updated_at": "2026-11-15T08:24:45Z"
+    },
+    {
+      "number": 615,
+      "title": "OR6: Pencil-in und natives Busy-Feld getrennt von Serien-Overrides abbilden",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/615",
+      "state": "open",
+      "updated_at": "2026-11-15T08:23:56Z"
+    },
+    {
+      "number": 641,
+      "title": "Notes: belegtes Gegenstellenprofil, Bedienaktion und bedingter Neustart – Rest #640",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/641",
+      "state": "open",
+      "updated_at": "2026-11-15T07:53:45Z"
+    },
+    {
+      "number": 647,
+      "title": "Windows: reale Magnolie-Signatur-, Deinstaller- und Nested-Payload-Paketabnahme – Rest #560",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/647",
+      "state": "open",
+      "updated_at": "2026-11-16T12:49:26Z"
+    },
+    {
+      "number": 680,
+      "title": "Zeitzonen: aktuelle native Linux-/Windows-/Mac-/Tablet-Abnahme und Benachrichtigungszustellung",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/680",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:33Z"
+    },
+    {
+      "number": 682,
+      "title": "Kalenderanhänge: echte HTTPS-/Clipboard-Handler und native Portmatrix – Rest #651",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/682",
+      "state": "open",
+      "updated_at": "2026-11-26T13:13:15Z"
+    },
+    {
+      "number": 683,
+      "title": "CalDAV: echter Testserver, Legacy-Baselines und Konfliktmatrix nach installierter Farbformularabnahme – Rest #652",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/683",
+      "state": "open",
+      "updated_at": "2026-11-26T13:13:16Z"
+    },
+    {
+      "number": 689,
+      "title": "Windows-Kontaktautomatik: korrigiertes Paket und echte Schlüssel-/Konto-/WLAN-/Monitorabnahme – Rest #681",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/689",
+      "state": "open",
+      "updated_at": "2026-11-16T16:53:33Z"
+    },
+    {
+      "number": 691,
+      "title": "Notes: target37-/LAN-Manifestmigration und native Upgrade-/Gerätematrix – Rest #672",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/691",
+      "state": "open",
+      "updated_at": "2026-11-27T18:01:51Z"
+    },
+    {
+      "number": 711,
+      "title": "Rest #707: GitLab-Speicherschutz an bestehenden Publisher anbinden und live abnehmen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/711",
+      "state": "open",
+      "updated_at": "2026-11-20T01:27:15Z"
+    },
+    {
+      "number": 721,
+      "title": "Mac/iPhone: AirPlay-Bildschirmspiegelung mit UxPlay integrieren und nativ prüfen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/721",
+      "state": "open",
+      "updated_at": "2026-11-26T08:20:40Z"
+    },
+    {
+      "number": 749,
+      "title": "Medienabgleich: Originalformate über JPEG/PNG und MP4/MOV hinaus, einschließlich iPhone",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/749",
+      "state": "open",
+      "updated_at": "2026-11-26T08:20:43Z"
+    },
+    {
+      "number": 785,
+      "title": "Mac-Importparität: aktuelle OR6-/Dateiparser und vollständige native Importwege anbinden",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/785",
+      "state": "open",
+      "updated_at": "2026-11-26T08:21:16Z"
+    },
+    {
+      "number": 786,
+      "title": "macOS-Systemkonten: echten Apple-Kalender-, Kontakt- und Erinnerungsabgleich anbinden",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/786",
+      "state": "open",
+      "updated_at": "2026-11-26T08:21:19Z"
+    },
+    {
+      "number": 790,
+      "title": "Android-Tablet: Build auf aktuelle gemeinsame Quellen umstellen und Quellstand nachweisen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/790",
+      "state": "open",
+      "updated_at": "2026-11-27T11:21:14Z"
+    },
+    {
+      "number": 791,
+      "title": "Android-Tablet: Kontakte und Termine direkt aus Android übernehmen",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/791",
+      "state": "open",
+      "updated_at": "2026-11-26T13:05:11Z"
+    },
+    {
+      "number": 810,
+      "title": "macOS und Android-Tablet: reproduzierbare signierte Pakete für den Gesamtrelease",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/810",
+      "state": "open",
+      "updated_at": "2026-11-27T04:20:36Z"
+    }
+  ]
+}

@@ -1,0 +1,464 @@
+{
+  "base_commit": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "base_tree": "c465628581d0e4f49bc02e64db41f8a9cc73b2ae",
+  "head": "aed96df09d0d536832e5e1ad0d2ffa00b7ef9b1e",
+  "result_tree": "900b7bbfad110eb394ea1ddbf99c4e0eea836179",
+  "product_merged_to_main": false,
+  "series": [
+    {
+      "path": "01-566-preserve-csv-contact-fields.patch",
+      "commit": "b500c855f055fb40120efe732dadac1346928f04",
+      "sha256": "cd6ff88eadde191e5ee799e8d01147eeebb3bf58d8def674a686795c9abe1453",
+      "bytes": 27224,
+      "subject": "Refs #566: Rebase reviewed CSV contact preservation onto audited main"
+    },
+    {
+      "path": "02-192-correct-mcp-coverage.patch",
+      "commit": "641e901f87b8cc58bd4fc1a057ec6b5d98b98d56",
+      "sha256": "662248ba338db0d18ddfff86aa9d00349fdc67e7ce6be10b0cc6f3ac88cbc71c",
+      "bytes": 3369,
+      "subject": "Docs #192: Reflect connected public phone call tools"
+    },
+    {
+      "path": "03-790-correct-current-source-test.patch",
+      "commit": "164f923a723c976441e7efd20dd78605bde9f63f",
+      "sha256": "fa7496906c7712c3c470e712b0ceeb18562820596596bc163f6ef261a9c1106a",
+      "bytes": 2447,
+      "subject": "Refs #790: align Mac source gate with current Tablet checkout"
+    },
+    {
+      "path": "04-330-shared-media-wait.patch",
+      "commit": "b65f1b62cb6b6eed13f75a330adca371162e5822",
+      "sha256": "89285d663c85920cd31b18b3c1fe8d55a4b482f2e26a69c641f2136c400fec89",
+      "bytes": 31191,
+      "subject": "Refs #759: wait for shared media settings without legacy controls"
+    },
+    {
+      "path": "05-330-initial-recovery-and-refresh.patch",
+      "commit": "2365a88411dfe4afa36fb8e03b1b6ecfb4862aee",
+      "sha256": "366c8dce0484136d0fdfde5aeb00c9a1a0b03f8d01615c1148c5b2ce7491bfac",
+      "bytes": 10548,
+      "subject": "Refs #759 #330: retain media recovery requests until initial UI mount"
+    },
+    {
+      "path": "06-395-organizer-suggestions.patch",
+      "commit": "11d3a7179781077c6b56de57ed7c80a2ff8e57f7",
+      "sha256": "5667456f4dfd530d21fa4b0b0692a7301399be8e15dccdba441a1e9111c05133",
+      "bytes": 16758,
+      "subject": "Refs #395: bound organizer suggestions to active input"
+    },
+    {
+      "path": "07-843-worker-url-lifecycle.patch",
+      "commit": "aed96df09d0d536832e5e1ad0d2ffa00b7ef9b1e",
+      "sha256": "8cb83013f41213bc58da0bd9d5906796204443fa1c7112d58e9c6f2953fbccef",
+      "bytes": 14435,
+      "subject": "Refs #843: Release recurrence worker URLs on failed lifecycle"
+    }
+  ],
+  "combined_patch": {
+    "path": "all-after-24927cf9.patch",
+    "sha256": "cd4d94d4224ef0f51628e633d03ffb4d318113529ef51d239638478a4c5af1ef",
+    "bytes": 98952
+  },
+  "apply_checks": [
+    {
+      "kind": "combined",
+      "result_tree": "900b7bbfad110eb394ea1ddbf99c4e0eea836179",
+      "equal": true
+    },
+    {
+      "kind": "series",
+      "result_tree": "900b7bbfad110eb394ea1ddbf99c4e0eea836179",
+      "equal": true
+    }
+  ],
+  "changed_files": [
+    "Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py",
+    "contracts/lotus-csv-contact-fields.json",
+    "contracts/mcp-coverage.md",
+    "magnolie-organizer-windows/ExchangeCodec.cs",
+    "magnolie-organizer-windows/app/web/anwendung.js",
+    "magnolie-organizer-windows/app/web/phone-media.js",
+    "magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs",
+    "magnolie-organizer-windows/tests/Program.cs",
+    "magnolie-organizer-windows/tests/appointment-organizer-suggestions.js",
+    "magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js",
+    "magnolie-organizer-windows/tests/phone-media-ui.js",
+    "magnolie-organizer-windows/tests/phone-media-wait-ui.js",
+    "magnolie-organizer-windows/tests/recurrence-worker.js",
+    "magnolie-organizer-windows/tests/run.js",
+    "magnolie-organizer/bin/magnolie-organizer",
+    "magnolie-organizer/pruefungen/test.js",
+    "magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py",
+    "magnolie-organizer/web/anwendung.js"
+  ],
+  "evidence_bindings": [
+    {
+      "proof": "Earlier 155 Python tests: compare to final inputs; changed sources require final focused results",
+      "inputs": [
+        {
+          "path": "magnolie-organizer/pruefungen/test_lotus_task_csv.py",
+          "tested_sha256": "70c1ac4d50e54fc4286a9cd1b29fa2ac4cc56f438403395139c4f866ab2f54a2",
+          "final_sha256": "70c1ac4d50e54fc4286a9cd1b29fa2ac4cc56f438403395139c4f866ab2f54a2",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py",
+          "tested_sha256": "e5163d391c11a6d2b9dbc9f40ca6969639a39e389129a4ea6005367f7b600299",
+          "final_sha256": "e5163d391c11a6d2b9dbc9f40ca6969639a39e389129a4ea6005367f7b600299",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_restore_identity.py",
+          "tested_sha256": "530b06ee21ee47f17d306c9c8ad3a69cf5217b272f18ce0a2d20026a6010a03b",
+          "final_sha256": "530b06ee21ee47f17d306c9c8ad3a69cf5217b272f18ce0a2d20026a6010a03b",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_save_restore_boundary.py",
+          "tested_sha256": "c8177dba0e58ab49796e155e147cde295e44184d1e8adea3012e3cf13d985e68",
+          "final_sha256": "c8177dba0e58ab49796e155e147cde295e44184d1e8adea3012e3cf13d985e68",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_restore_commit_result.py",
+          "tested_sha256": "1f89953524ddf5eb2bfe5266546fc9f6d1882015ced3e285fb039d3e0a11886e",
+          "final_sha256": "1f89953524ddf5eb2bfe5266546fc9f6d1882015ced3e285fb039d3e0a11886e",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_backup_profile_validation.py",
+          "tested_sha256": "aafa627f8e6aef096b23d29f0238cbf646390d77a7ce9c266dc36fd1daf35181",
+          "final_sha256": "aafa627f8e6aef096b23d29f0238cbf646390d77a7ce9c266dc36fd1daf35181",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie-organizer",
+          "tested_sha256": "1374eb1faf231c6d00dfe6f540f16bc77f93025f7be0bc1bf25f898d0422d47e",
+          "final_sha256": "1374eb1faf231c6d00dfe6f540f16bc77f93025f7be0bc1bf25f898d0422d47e",
+          "equal": true
+        },
+        {
+          "path": "contracts/lotus-csv-contact-fields.json",
+          "tested_sha256": "c480c3606eab613a6151ac4006d9d01a56f61abe2f4f3439434fb1e03b335bce",
+          "final_sha256": "c480c3606eab613a6151ac4006d9d01a56f61abe2f4f3439434fb1e03b335bce",
+          "equal": true
+        },
+        {
+          "path": "contracts/restore-additive-identity-vectors.json",
+          "tested_sha256": "8023b85d18bd30c009f4579f53d7cf58f3666439cd9b589d49b743a61a20930e",
+          "final_sha256": "8023b85d18bd30c009f4579f53d7cf58f3666439cd9b589d49b743a61a20930e",
+          "equal": true
+        }
+      ],
+      "all_equal": true
+    },
+    {
+      "proof": "6 wait + 5 recovery + 29 source-choice cases and existing media program",
+      "inputs": [
+        {
+          "path": "magnolie-organizer-windows/app/web/phone-media.js",
+          "tested_sha256": "5295c10d3a1e955c84984bc983598062ab2b5fabb4b5a2c60485bb06d362dde5",
+          "final_sha256": "5295c10d3a1e955c84984bc983598062ab2b5fabb4b5a2c60485bb06d362dde5",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/index.html",
+          "tested_sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+          "final_sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/anwendung.js",
+          "tested_sha256": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+          "final_sha256": "a05d25a9a02fe9fa290e644c85e4658e756ab2d113bb2a5ff3376428df18a09d",
+          "equal": false
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n.js",
+          "tested_sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "final_sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/i18n/de.js",
+          "tested_sha256": "8e91d625884344f1a65ae3b316bb09456420c8bea505f2ea52ba70d020120535",
+          "final_sha256": "8e91d625884344f1a65ae3b316bb09456420c8bea505f2ea52ba70d020120535",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-media-wait-ui.js",
+          "tested_sha256": "b23caa774a97f599bf53d39a4cca1693ce6ba40f140f0a81e51548bc0995ab35",
+          "final_sha256": "b23caa774a97f599bf53d39a4cca1693ce6ba40f140f0a81e51548bc0995ab35",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js",
+          "tested_sha256": "168fb7450104ef2302dd1849adc9b8db652cbdee035db99e9028ba2efbcedece",
+          "final_sha256": "168fb7450104ef2302dd1849adc9b8db652cbdee035db99e9028ba2efbcedece",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-media-ui.js",
+          "tested_sha256": "872a45d6a785618da680530abf6d794c7e2350f7485a49bd444c625acc1ccb29",
+          "final_sha256": "872a45d6a785618da680530abf6d794c7e2350f7485a49bd444c625acc1ccb29",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/phone-media-source-choice-ui.js",
+          "tested_sha256": "b8ae2cbeed405b2746e86ae3ab5531f63577f18e4d81cd8ece9009012b19f1f3",
+          "final_sha256": "b8ae2cbeed405b2746e86ae3ab5531f63577f18e4d81cd8ece9009012b19f1f3",
+          "equal": true
+        }
+      ],
+      "all_equal": false
+    },
+    {
+      "proof": "Automatic settings transport: earlier source review; changed TelefonWerk reviewed in bounded delta",
+      "inputs": [
+        {
+          "path": "magnolie-organizer-windows/DeviceFileUiCoordinator.cs",
+          "tested_sha256": "8ae1190c422b07f1c4964189d166d0072b4385bd7e3c51bd3b377f7e6e332739",
+          "final_sha256": "8ae1190c422b07f1c4964189d166d0072b4385bd7e3c51bd3b377f7e6e332739",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/DeviceFileConnectionSharedSettings.cs",
+          "tested_sha256": "cf090c23aeb89628fdf8837982f7028b104ccf11d32e98adc61be35d147b31e6",
+          "final_sha256": "cf090c23aeb89628fdf8837982f7028b104ccf11d32e98adc61be35d147b31e6",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/DeviceFileSharedPreferences.cs",
+          "tested_sha256": "5c283dc6bbad93ddd6acdb4d78ace2ae01bad69d4512235d1b57f29d03e9cf90",
+          "final_sha256": "5c283dc6bbad93ddd6acdb4d78ace2ae01bad69d4512235d1b57f29d03e9cf90",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/DeviceFileComposition.cs",
+          "tested_sha256": "0a98fa845f8720d396a77ce7c4b207474ae6d0751b6a3fd700584a65c4d859a1",
+          "final_sha256": "0a98fa845f8720d396a77ce7c4b207474ae6d0751b6a3fd700584a65c4d859a1",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer-windows/DeviceFileAutomatic.cs",
+          "tested_sha256": "eb5c3b75a6e51ccaee6a3b320728919f76a25aebb516ab41036630640cd80994",
+          "final_sha256": "eb5c3b75a6e51ccaee6a3b320728919f76a25aebb516ab41036630640cd80994",
+          "equal": true
+        },
+        {
+          "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/MediaSyncTransport.kt",
+          "tested_sha256": "dd36c80d41d42bf6bee3dcf2a5fd1d6ea3156c2877f04443063fa3545fc88a65",
+          "final_sha256": "dd36c80d41d42bf6bee3dcf2a5fd1d6ea3156c2877f04443063fa3545fc88a65",
+          "equal": true
+        },
+        {
+          "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/NativeMediaSettingsLane.kt",
+          "tested_sha256": "5c11711a33ea67a932c5946861ab93215e7ec2515652c0833d1b9545ce4ec07f",
+          "final_sha256": "5c11711a33ea67a932c5946861ab93215e7ec2515652c0833d1b9545ce4ec07f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/MediaSyncStorage.kt",
+          "tested_sha256": "52b5c1e67f52632df6fe672dca0da654c97ba76b31412f0a67e9c5f99cc9fade",
+          "final_sha256": "52b5c1e67f52632df6fe672dca0da654c97ba76b31412f0a67e9c5f99cc9fade",
+          "equal": true
+        },
+        {
+          "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt",
+          "tested_sha256": "b1046188783708bed450010f4fb7227cf11f98884d2239a25adc43bca1cfc202",
+          "final_sha256": "4dd66077ad5067841e0cf7e6d01bad712f465fba0d42d3a4c2e88d506a1e36a3",
+          "equal": false
+        }
+      ],
+      "all_equal": false
+    },
+    {
+      "proof": "Provider jvm proof on original audit base; inspect any recorded source differences",
+      "inputs": [
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ProviderZone.kt",
+          "tested_sha256": "df732f386818efb7c0d09368d087704971956fdb753536334f60c27430c6ad23",
+          "final_sha256": "df732f386818efb7c0d09368d087704971956fdb753536334f60c27430c6ad23",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/TimeZoneExport.kt",
+          "tested_sha256": "7475d43f54caded4f8e4a721127d43882423e05c591a814e2ad2a82b766da75e",
+          "final_sha256": "7475d43f54caded4f8e4a721127d43882423e05c591a814e2ad2a82b766da75e",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/CalendarIdentity.kt",
+          "tested_sha256": "0a9e8fefb733069b68d0dc259fee2997da6786ac67fc9a539ed173fe8e6f7932",
+          "final_sha256": "0a9e8fefb733069b68d0dc259fee2997da6786ac67fc9a539ed173fe8e6f7932",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarImport.kt",
+          "tested_sha256": "56e9cce3866701d034b5b4dc9276ac90adbcb2fca3640f063bc01321b5d7f93a",
+          "final_sha256": "56e9cce3866701d034b5b4dc9276ac90adbcb2fca3640f063bc01321b5d7f93a",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarExport.kt",
+          "tested_sha256": "2f04cc2859a96f35181e8c2e481da55a1f3cda63a0bb156411b4f9e7781286c8",
+          "final_sha256": "2f04cc2859a96f35181e8c2e481da55a1f3cda63a0bb156411b4f9e7781286c8",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/ProviderCodecMigrationTest.kt",
+          "tested_sha256": "8a2d3b3f5394b4a59da8faebe66905b086e4c7622b05408609774c5453dd3cd5",
+          "final_sha256": "8a2d3b3f5394b4a59da8faebe66905b086e4c7622b05408609774c5453dd3cd5",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/tzdb-2026egtz.json",
+          "tested_sha256": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c",
+          "final_sha256": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/timezones/LICENSE-tzdb.txt",
+          "tested_sha256": "0613408568889f5739e5ae252b722a2659c02002839ad970a63dc5e9174b27cf",
+          "final_sha256": "0613408568889f5739e5ae252b722a2659c02002839ad970a63dc5e9174b27cf",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/resources/calendar-export-system-zone-ui.json",
+          "tested_sha256": "7c0cb3c83dd27feb10266d332223cb1ba20867482e42694934a8aac95392dc27",
+          "final_sha256": "7c0cb3c83dd27feb10266d332223cb1ba20867482e42694934a8aac95392dc27",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/app/build.gradle.kts",
+          "tested_sha256": "dbf657e3fe7c56b50588d8320496b3a300ac199bac0ce0d1566d613d76218a7f",
+          "final_sha256": "dbf657e3fe7c56b50588d8320496b3a300ac199bac0ce0d1566d613d76218a7f",
+          "equal": true
+        }
+      ],
+      "all_equal": true
+    },
+    {
+      "proof": "Provider ui proof on original audit base; inspect any recorded source differences",
+      "inputs": [
+        {
+          "path": "port-adapters/tests/occurrence-identity.cjs",
+          "tested_sha256": "3f72a383047c0a5eecee5942a0a8fce7732542f143cd049430d2dc2369b41733",
+          "final_sha256": "3f72a383047c0a5eecee5942a0a8fce7732542f143cd049430d2dc2369b41733",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/tests/fixtures/distinct-rid-same-slot.json",
+          "tested_sha256": "9a36461014b4a4f1c909ca98c1c174b7231527bb3e4185f5ed19596a84c5ad38",
+          "final_sha256": "9a36461014b4a4f1c909ca98c1c174b7231527bb3e4185f5ed19596a84c5ad38",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/occurrence-identity.js",
+          "tested_sha256": "08f51f03c3c158017e7df7222807c042ec79c1e8caa81c2d628d40a9a06bbd32",
+          "final_sha256": "08f51f03c3c158017e7df7222807c042ec79c1e8caa81c2d628d40a9a06bbd32",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/occurrence-identity-patch.json",
+          "tested_sha256": "71ed501a3fdcab8dd108141889910fc32abce976e785d5db7ce09f12363b6a49",
+          "final_sha256": "71ed501a3fdcab8dd108141889910fc32abce976e785d5db7ce09f12363b6a49",
+          "equal": true
+        },
+        {
+          "path": "port-adapters/occurrence-identity-projection.cjs",
+          "tested_sha256": "a313a300b467ed33b1b56d75e31401e918e41824b942dd7e9a53dbd08e8a247f",
+          "final_sha256": "a313a300b467ed33b1b56d75e31401e918e41824b942dd7e9a53dbd08e8a247f",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/web/anwendung.js",
+          "tested_sha256": "573b2b457689c9d3e7a71be4aca60630144b892e0fd53ce21c778d8806259440",
+          "final_sha256": "26ccbae9a02b6c836bedd1e195ec30db9fabe800ec9654d532520d4b85d7e32e",
+          "equal": false
+        },
+        {
+          "path": "Magnolie-Organizer-Android-Tablet-Beta/tools/project-web.cjs",
+          "tested_sha256": "6d4ad1d5ae692ba16618763ae07f12fbc4fb4b0a24a90a96e7829789f4af2fdd",
+          "final_sha256": "6d4ad1d5ae692ba16618763ae07f12fbc4fb4b0a24a90a96e7829789f4af2fdd",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/tools/project_ui.py",
+          "tested_sha256": "3a0983b04c1eb77037a3787b45f5f8fc38548f62088791477ec733925935cd33",
+          "final_sha256": "3a0983b04c1eb77037a3787b45f5f8fc38548f62088791477ec733925935cd33",
+          "equal": true
+        }
+      ],
+      "all_equal": false
+    },
+    {
+      "proof": "Provider helper proof on original audit base; inspect any recorded source differences",
+      "inputs": [
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py",
+          "tested_sha256": "13d808524cc329d72688e82612c38606a9d20d96d73dfa3f0a070dbcd3946119",
+          "final_sha256": "13d808524cc329d72688e82612c38606a9d20d96d73dfa3f0a070dbcd3946119",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/ImportHelper/helper.py",
+          "tested_sha256": "52de85c855a3b86dd47f2cc4681ed0cbb278e08e6b25d7e328a5dee1c21bb990",
+          "final_sha256": "52de85c855a3b86dd47f2cc4681ed0cbb278e08e6b25d7e328a5dee1c21bb990",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py",
+          "tested_sha256": "f9c6530a83c834599f9d7bf98ed13f9445e02e060068aa9da46fb9b0a1612792",
+          "final_sha256": "f9c6530a83c834599f9d7bf98ed13f9445e02e060068aa9da46fb9b0a1612792",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py",
+          "tested_sha256": "94733b99acbca60b855ae5d260ee9b2ad678130a5d07326a0d695f5878c7ab58",
+          "final_sha256": "94733b99acbca60b855ae5d260ee9b2ad678130a5d07326a0d695f5878c7ab58",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/fixtures/caldav-series-resource.ics",
+          "tested_sha256": "670de67684a9563555fe42837e2740572ff77f00375df4c213e329f41fdfccf5",
+          "final_sha256": "670de67684a9563555fe42837e2740572ff77f00375df4c213e329f41fdfccf5",
+          "equal": true
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie-organizer",
+          "tested_sha256": "7dc6b588d62c1df6e0da9550995fd2f6761cff694a1026c47b8dc645ef704ee9",
+          "final_sha256": "1374eb1faf231c6d00dfe6f540f16bc77f93025f7be0bc1bf25f898d0422d47e",
+          "equal": false
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie_or6.py",
+          "tested_sha256": "e4576a8b1df12d064e5645e43beadfac7c390e6fc7f68e0c9bea9ab1e4ab58ac",
+          "final_sha256": "e4576a8b1df12d064e5645e43beadfac7c390e6fc7f68e0c9bea9ab1e4ab58ac",
+          "equal": true
+        }
+      ],
+      "all_equal": false
+    },
+    {
+      "proof": "7 CandidateSourceTests, same source and workflow",
+      "inputs": [
+        {
+          "path": ".github/workflows/ports-2.0.30.yml",
+          "tested_sha256": "009ffd1a786c11d8e46785e96b48f9f48ac2821095251693eedd90ba07a78b93",
+          "final_sha256": "009ffd1a786c11d8e46785e96b48f9f48ac2821095251693eedd90ba07a78b93",
+          "equal": true
+        },
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/tests/test_candidate_sources.py",
+          "tested_sha256": "a70bc081260b5f47f9c63db9111e5009846ba9f4ecd5ea574db51c74bd772f52",
+          "final_sha256": "a70bc081260b5f47f9c63db9111e5009846ba9f4ecd5ea574db51c74bd772f52",
+          "equal": true
+        }
+      ],
+      "all_equal": true
+    }
+  ],
+  "limits": "Source/host proof only. No installed package or month-long native soak acceptance."
+}

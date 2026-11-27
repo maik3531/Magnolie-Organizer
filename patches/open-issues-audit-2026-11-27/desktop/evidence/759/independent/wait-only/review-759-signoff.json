@@ -1,0 +1,23 @@
+{
+  "issue": 759,
+  "reviewed_commit": "7453838a78895e31f1103b2065692b6fabfae1fb",
+  "parent_commit": "50b1512234a765635f82af4537f277594fbf9878",
+  "source_path": "magnolie-organizer-windows/app/web/phone-media.js",
+  "source_sha256": "2d72813b4bf614526812a668dd45218422be268f306f854970cd853e2b62cabe",
+  "review_outcome": "approved_for_scoped_ui_patch",
+  "material_regressions_found": [],
+  "product_bytes_equal_to_independently_tested_source": true,
+  "test_rerun_for_final_commit": false,
+  "test_transfer_reason_de": "Die im finalen Commit gespeicherte Produktdatei ist bytegleich zur tatsächlich unabhängig geprüften Quelle. Die zwei zusätzlichen JSDOM-Fälle werden nicht unnötig wiederholt.",
+  "independent_tests": {
+    "report": "review-759-result.json",
+    "runner": "review-759.cjs",
+    "executed": true,
+    "passed": 2,
+    "total": 2
+  },
+  "automatic_settings_review": "review-759-automatic-path.json",
+  "scope_de": "Wartezustand ohne Legacy-Einstellungen; kein zusätzlicher Notes- oder Setup-Klick; automatische technische Statusrückmeldung bleibt erreichbar. Save-ACK-Verlust und verspäteter Status sind unabhängig geprüft. Stop und bereits geladene lokale Recovery bleiben getrennt.",
+  "excluded_known_preexisting_issue_de": "Der parallel gefundene vorbestehende Fehler beim sofortigen Mounten der lokalen Backup-Historie ist nicht Teil dieses Commits oder dieser Freigabe; er wird separat verfolgt.",
+  "limitations_de": "Windows-JavaScript in JSDOM mit synthetischen nativen Antworten plus statischer Quellenreview des vorhandenen Einstellungsprotokolls. Keine native Windows-, Kotlin-, Geräte-, WLAN- oder Medienübertragungsabnahme; produktive gemeinsame Medienanbindung bleibt offen. Keine Produktänderung oder GitHub-Mutation durch den unabhängigen Reviewer."
+}

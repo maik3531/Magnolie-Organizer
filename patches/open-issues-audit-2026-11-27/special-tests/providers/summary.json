@@ -1,0 +1,16 @@
+{
+  "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "counts": {
+    "provider_codec_junit": 7,
+    "macos_ui_occurrence": 29,
+    "tablet_ui_occurrence": 29,
+    "legacy_sidecar_helper": 1
+  },
+  "native_execution": false,
+  "tracked_source_clean": true,
+  "manifests": {
+    "jvm-manifest.json": "a70cafbec0921653804d780660e35efd334aaeca0dc9ee978eeffc8309a05d57",
+    "ui-manifest.json": "449c6ccdc6a7e3b5a1d403d826ff410581261a6bbcfe02754acad937c7ff6a4c",
+    "helper-manifest.json": "d42062f293f03fa06abfbd310b8a4dda6ac1a08b4cbc706e5ea24224cd374dbd"
+  }
+}

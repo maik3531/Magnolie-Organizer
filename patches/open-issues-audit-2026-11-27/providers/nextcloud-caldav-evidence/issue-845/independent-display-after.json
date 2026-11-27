@@ -1,0 +1,100 @@
+{
+  "checkout": "/workspace/scratch/7203da5bd564/open-audit-845",
+  "head": "a64624071e700920907bcab7dd14d62fc93e0b9a",
+  "fixture": "/workspace/scratch/7203da5bd564/open-audit-845/contracts/nextcloud-birthday-vectors.json",
+  "fixture_sha256": "a26e053fc23716f3e3fe06bec103d3bfab5878eeee721141fa554b9c57d94919",
+  "source_sha256": {
+    "magnolie-organizer/bin/magnolie-organizer": "f214466ddd27c7798ed2a4333dc92917943a6b6dc807d70c5a204fa053e7ac8e",
+    "magnolie-organizer/web/anwendung.js": "0eda608891a9f508fb3155c45789c162364aa3377048f8deb6d2dbe12cc50122",
+    "magnolie-organizer-windows/app/web/anwendung.js": "d8a6a51533e67eeebc5a8eb1b793a53ab4f9cf8f4c27658cf38b5e76079b2f8f",
+    "magnolie-organizer-windows/tests/desktop-state-regressions.js": "c27e77e00889fe7a23853256249128844868b23c5c5cffafed25b11584dbdb7d"
+  },
+  "cases": [
+    {
+      "edition": "magnolie-organizer/web",
+      "id": "known-leap",
+      "expected_date": "1988-02-29",
+      "projections": [
+        {
+          "day": "2027-02-28",
+          "absent": "2027-03-01",
+          "text": "✱ Synthetic birthday – Birthday (turns 39)",
+          "accent": "#ff0000"
+        },
+        {
+          "day": "2028-02-29",
+          "absent": "2028-02-28",
+          "text": "✱ Synthetic birthday – Birthday (turns 40)",
+          "accent": "#ff0000"
+        }
+      ],
+      "saved_reload_pass": true,
+      "passed": true
+    },
+    {
+      "edition": "magnolie-organizer/web",
+      "id": "yearless-leap",
+      "expected_date": "--02-29",
+      "projections": [
+        {
+          "day": "2027-02-28",
+          "absent": "2027-03-01",
+          "text": "✱ Synthetic birthday – Birthday",
+          "accent": "#ff0000"
+        },
+        {
+          "day": "2028-02-29",
+          "absent": "2028-02-28",
+          "text": "✱ Synthetic birthday – Birthday",
+          "accent": "#ff0000"
+        }
+      ],
+      "saved_reload_pass": true,
+      "passed": true
+    },
+    {
+      "edition": "magnolie-organizer-windows/app/web",
+      "id": "known-leap",
+      "expected_date": "1988-02-29",
+      "projections": [
+        {
+          "day": "2027-02-28",
+          "absent": "2027-03-01",
+          "text": "✱ Synthetic birthday – Birthday (turns 39)",
+          "accent": "#ff0000"
+        },
+        {
+          "day": "2028-02-29",
+          "absent": "2028-02-28",
+          "text": "✱ Synthetic birthday – Birthday (turns 40)",
+          "accent": "#ff0000"
+        }
+      ],
+      "saved_reload_pass": true,
+      "passed": true
+    },
+    {
+      "edition": "magnolie-organizer-windows/app/web",
+      "id": "yearless-leap",
+      "expected_date": "--02-29",
+      "projections": [
+        {
+          "day": "2027-02-28",
+          "absent": "2027-03-01",
+          "text": "✱ Synthetic birthday – Birthday",
+          "accent": "#ff0000"
+        },
+        {
+          "day": "2028-02-29",
+          "absent": "2028-02-28",
+          "text": "✱ Synthetic birthday – Birthday",
+          "accent": "#ff0000"
+        }
+      ],
+      "saved_reload_pass": true,
+      "passed": true
+    }
+  ],
+  "passed": 4,
+  "boundary_de": "Vier tatsächliche App-Import-/Anzeige-/Save-Reload-Fälle in JSDOM mit echten Python-Codec-Payloads. Beide Desktop-JavaScript-Ausgaben, keine Ausführung des C#-Codecs durch diese Probe. Bridge simuliert, keine native GTK-/WebView-, Datei-/Server- oder Geräteabnahme."
+}

@@ -1,0 +1,186 @@
+{
+  "source_commit": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "reviewed_file": "README.md",
+  "reviewed_file_sha256": "7a8ad4c0a92a4a4d7e141b3790e4f9f659e24aa758034bd093dbef6c37664adc",
+  "reviewer": "review_storage",
+  "decision": "approved",
+  "new_tests_executed": false,
+  "product_changes": false,
+  "findings": [
+    {
+      "severity": "documentation_precision",
+      "location": "Tabelle: automatischer Gesamtabgleich; Abschnitt Automatischer Gesamtabgleich und einfache Bedienung",
+      "detail_de": "Die Aufzählung nennt Empfang, WLAN, Partner und sechs Stunden, lässt aber den gesonderten eingeschalteten Automatikswitch aus. automatischWlan ist standardmäßig false. Außerdem werden nur bestätigte UND vertraute Partner gewählt. Ohne diese Qualifikation könnte der Text regelmäßigen Vollabgleich bereits allein bei aktiviertem Empfang versprechen.",
+      "required_correction_de": "Bei aktivierter Option „Automatisch im lokalen WLAN synchronisieren“ läuft der periodische Gesamtabgleich mit bestätigten und vertrauten Partnern bei aktivem Empfang und WLAN frühestens nach sechs Stunden. Tabellenzeile und Absatz entsprechend präzisieren.",
+      "evidence_paths": [
+        "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/daten/Modell.kt",
+        "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt",
+        "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/AutoSync.kt",
+        "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/ui/BaumBlatt.kt"
+      ],
+      "status": "resolved",
+      "resolution_de": "Tabelle und Absatz nennen die gesondert aktivierte WLAN-Automatik; Absatz nennt Standard aus sowie bestätigte und vertraute Partner. Quelle und neue Formulierung stimmen überein."
+    }
+  ],
+  "confirmed_de": [
+    "Automatisches Fortschreiben schon geteilter Notizen ist unabhängig vom Sechsstundentakt vorhanden. editorAktion startet nach dem erfolgreichen Speichern zusätzlich direkt die Postfachbearbeitung. Die README-Aussage schließt diesen Pfad nicht falsch aus.",
+    "Regelmäßiger WLAN-Vollabgleich und normale Fortschreibung/Postfachversuche sind verschiedene Auslöser; ein eingerichteter entfernter Endpunkt kann in beiden Versandwegen verwendet werden.",
+    "Eine Vollantwort ist eine getrennte Sendung. Erreichbarer Rechner allein belegt deshalb keinen eingehenden Internetweg zum Telefon; keine gegenteilige Produkteigenschaft aus dem FS1-ACK.",
+    "Die gezielte Fernaktion erweitert vorhandene Freigaben nicht und fordert keine volle Antwort an.",
+    "Die baum-1-/FS1-Abgrenzung ist korrekt als normaler Versand formuliert: ein bereits reservierter alter Umschlag bleibt auch nach Protokollupgrade eigener Legacyfall. Das ist kein allgemeiner FS1-Briefkastenfallback.",
+    "Eigener ergänzender Suchlauf im vollständigen Notes-Hauptquellbaum fand keine Treffer für Nextcloud/WebDAV/Briefkasten. Die dokumentierte Abgrenzung wird durch direkte Transportpfade gestützt.",
+    "Die fehlende native Internet-/Android-/NAT-/Langzeitabnahme wird korrekt offengehalten. Tests auf dem integrierten Prüfstand werden im README gesondert genannt und nicht als eigene erneute Ausführung dieses Reviews gezählt."
+  ],
+  "non_blocking_note_de": "Der normale Empfang kann Bearbeitungskonflikte weiterhin in den Eingang legen. Die Formulierung „kann ohne erneute Annahme fortgeschrieben werden“ ist entsprechend richtig eingeschränkt; sie sollte nicht in „jede Änderung wird stets ohne Konfliktrückfrage übernommen“ umformuliert werden.",
+  "notes_scan": {
+    "argv": [
+      "rg",
+      "-n",
+      "-i",
+      "nextcloud|webdav|briefkasten",
+      "magnolie-notes/app/src/main"
+    ],
+    "exit_code": 1,
+    "matches": 0
+  },
+  "evidence": [
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt",
+      "line": 701,
+      "sha256": "0939d209819f3e46299b34e3daf9da294ebf4f031e2aaa80bdb0ebcbbc3b3c6b",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt#L701",
+      "detail_de": "Nach erfolgreichem Editorvorgang wird postfachAbarbeiten unmittelbar im IO-Kontext gestartet; Speichern ist nicht nur auf den Diensttimer angewiesen."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt",
+      "line": 1075,
+      "sha256": "0939d209819f3e46299b34e3daf9da294ebf4f031e2aaa80bdb0ebcbbc3b3c6b",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt#L1075",
+      "detail_de": "Speichern einer Notiz ruft notizFortschreiben(sofortSenden=false) innerhalb dieses Editorvorgangs auf."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt",
+      "line": 388,
+      "sha256": "c3715079c5bef204bf8611ca40bb2991a1cffd24cf7787bbc94d142f1912ee24",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt#L388",
+      "detail_de": "Bereits geteilte Notiz geht als notiz_sync an die vorhandenen Freigabepartner; notizFortschreiben endet ohne Freigabe früh."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt",
+      "line": 780,
+      "sha256": "c3715079c5bef204bf8611ca40bb2991a1cffd24cf7787bbc94d142f1912ee24",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt#L780",
+      "detail_de": "Vollabgleich plant Notizen/eigene Aufgaben und optional sync_anfrage; Antworten werden gesondert in das Postfach eingereiht."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt",
+      "line": 817,
+      "sha256": "c3715079c5bef204bf8611ca40bb2991a1cffd24cf7787bbc94d142f1912ee24",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt#L817",
+      "detail_de": "Periodischer Vollabgleich prüft automatischWlan, dienstAn, WLAN, bestätigte und vertraute Partner sowie Zeitabstand."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/daten/Modell.kt",
+      "line": 226,
+      "sha256": "800a605797883b91557bbc07d27bacbb257665e4cc4f05162f3633ae3e0a1b4a",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/daten/Modell.kt#L226",
+      "detail_de": "automatischWlan hat standardmäßig den Wert false."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/ui/BaumBlatt.kt",
+      "line": 497,
+      "sha256": "9188a2e33a7dfa9a891c5858b5d8b26d95277948c55e4d005e445c911b159161",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/ui/BaumBlatt.kt#L497",
+      "detail_de": "Vorhandener Schalter für die separate WLAN-Automatik."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/AutoSync.kt",
+      "line": 3,
+      "sha256": "90a094f38484454200b6678464ded1be34156185fbdecc73fdf5cbd3a9d03434",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/AutoSync.kt#L3",
+      "detail_de": "Sechs Stunden Mindestabstand und explizites eingeschaltet-Prädikat."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/BaumDienst.kt",
+      "line": 85,
+      "sha256": "e53402d939bd39cac0f040395bc459b8a2a3aa7e0fcbfcbd30ed6ff6980ea8c9",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/BaumDienst.kt#L85",
+      "detail_de": "Dienst bearbeitet zuerst das Postfach und danach den separat bedingten WLAN-Vollabgleich."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Versand.kt",
+      "line": 108,
+      "sha256": "3708f811eb9ab114278d2dce8142418b3ccc16283d19aa2cb0b709c96345ae13",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Versand.kt#L108",
+      "detail_de": "Lokale und entfernte Adresse verwenden dieselbe Transportkette; danach optional Bluetooth."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Transport.kt",
+      "line": 51,
+      "sha256": "d536fb865f841ba6b2c19bc959732147a3d9ef6f27e8f189a3ec1607678bc4a5",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Transport.kt#L51",
+      "detail_de": "WlanTransport öffnet TCP zum konfigurierten Host; Klassenname beschränkt den Endpunkt nicht auf das lokale WLAN."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleich.kt",
+      "line": 34,
+      "sha256": "aafe60506e07d837b84ac4339c4fd5c6845cd9df6e6f0463298924b17d9f7463",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleich.kt#L34",
+      "detail_de": "Signierter FS1-Handshake ohne Inhalt; kurzlebiger Nachweis hängt an Gegenstelle, Identität und Route."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt",
+      "line": 735,
+      "sha256": "c3715079c5bef204bf8611ca40bb2991a1cffd24cf7787bbc94d142f1912ee24",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt#L735",
+      "detail_de": "Fern-Einzelaktion nur an passende schon freigegebene Ziele; kein Vollantwortauftrag."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt",
+      "line": 1179,
+      "sha256": "c3715079c5bef204bf8611ca40bb2991a1cffd24cf7787bbc94d142f1912ee24",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt#L1179",
+      "detail_de": "sync_anfrage erzeugt eine neue Antwortsendung; kein Rückinhalt im ursprünglichen Empfangsbeleg."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt",
+      "line": 1457,
+      "sha256": "c3715079c5bef204bf8611ca40bb2991a1cffd24cf7787bbc94d142f1912ee24",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt#L1457",
+      "detail_de": "Konflikte gehen weiterhin in den Eingang; kein pauschales automatisches Überschreiben aller Bearbeitungskonflikte."
+    },
+    {
+      "path": "magnolie-organizer-windows/MagnolienbaumCoordinator.cs",
+      "line": 1059,
+      "sha256": "11547f72b414f11c0ef23b097075bb7ba87b59ad087c5e609ae213405b63457c",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer-windows/MagnolienbaumCoordinator.cs#L1059",
+      "detail_de": "Normaler FS1-Versand verzweigt vor dem Legacy-Briefkasten; ein bereits reservierter alter Umschlag ist bewusst separat behandelt."
+    },
+    {
+      "path": "magnolie-organizer-windows/MagnolienbaumCoordinator.cs",
+      "line": 1132,
+      "sha256": "11547f72b414f11c0ef23b097075bb7ba87b59ad087c5e609ae213405b63457c",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer-windows/MagnolienbaumCoordinator.cs#L1132",
+      "detail_de": "FS1 sendet über konfigurierte direkte Endpunkte, ohne allgemeinen WebDAV-Fallback."
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "line": 29875,
+      "sha256": "527b00475cd035bcf111b94e382e6b692cca0c6ba29454e2b65a72d7309ca53f",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer/web/anwendung.js#L29875",
+      "detail_de": "Oberfläche beschreibt den Briefkasten ausdrücklich für baum-1."
+    }
+  ],
+  "limits_de": "Nur unabhängiger gezielter Quellen-/Textabgleich. Keine neuen Tests, kein echter Internet- oder Geräteversuch, keine Produktänderung. Laufende Ergänzungen der Testlogs/Manifestdatei wurden nicht als Fehler gewertet.",
+  "original_reviewed_file_sha256": "7a8ad4c0a92a4a4d7e141b3790e4f9f659e24aa758034bd093dbef6c37664adc",
+  "original_decision": "approved_with_one_documentation_correction",
+  "open_findings": [],
+  "followup_confirmation": {
+    "confirmed_at_utc": "2026-11-27T19:21:13.950088+00:00",
+    "readme_sha256": "7a8ad4c0a92a4a4d7e141b3790e4f9f659e24aa758034bd093dbef6c37664adc",
+    "functional_sections_sha256": "79767b1030fe1ca5e1fc0afcf931fdfd5e810634764caec466f21e75a9e17dca",
+    "conclusion_de": "Nachtrag vollständig nachgelesen. Einziger konkreter Präzisionsbefund behoben; unmittelbarer Postfachstart nach erfolgreichem Speichern zusätzlich korrekt beschrieben. Unveränderte Aussagen zu Rückweg und baum-1/FS1 bleiben freigegeben.",
+    "tests_executed": false,
+    "boundary_de": "Spätere Änderungen ausschließlich am Abschnitt Prüfbelege und Grenzen sind nicht pauschal von dieser Inhaltsfreigabe erfasst. Der zusätzliche Hash des funktionalen Textteils hält die hier geprüften Aussagen unabhängig davon fest."
+  }
+}

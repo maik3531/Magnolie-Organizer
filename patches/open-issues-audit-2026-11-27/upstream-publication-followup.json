@@ -1,0 +1,196 @@
+{
+  "observed_at": "2026-11-27T19:43:18.128555+00:00",
+  "base": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "head": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "commits": [
+    {
+      "sha": "bc9b4db57d2ee6577ee9314a858f8be6fea4c757",
+      "subject": "Refs #330: Set up Linux Wi-Fi media receive after explicit approval"
+    },
+    {
+      "sha": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+      "subject": "Refs #845: Preserve explicit Nextcloud birthdays in desktop ICS import"
+    }
+  ],
+  "files": [
+    {
+      "path": "ARBEITSSTAND.md",
+      "additions": 13,
+      "deletions": 2
+    },
+    {
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "additions": 82,
+      "deletions": 19
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs",
+      "additions": 67,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/Program.cs",
+      "additions": 1,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/birthday-display.js",
+      "additions": 14,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "additions": 72,
+      "deletions": 6
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_desktop_connection.py",
+      "additions": 72,
+      "deletions": 25
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_storage_bootstrap.py",
+      "additions": 7,
+      "deletions": 6
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_preferences.py",
+      "additions": 52,
+      "deletions": 6
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_telefon.py",
+      "additions": 5,
+      "deletions": 2
+    },
+    {
+      "path": "magnolie-organizer/po/ar.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/be.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/cs.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/da.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/de.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/es.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/fr.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/hi.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/hsb.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/it.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/ja.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/magnolie-organizer.pot",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/nb.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/nl.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/pl.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/pt.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/ru.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/tr.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/uk.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/po/zh_CN.po",
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/media-source-choice-ui.cjs",
+      "additions": 24,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_media_first_receive.py",
+      "additions": 81,
+      "deletions": 8
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_media_support_draft.py",
+      "additions": 49,
+      "deletions": 3
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py",
+      "additions": 60,
+      "deletions": 0
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "additions": 13,
+      "deletions": 6
+    }
+  ],
+  "source_review": "source-followups.json",
+  "media_review": "media/upstream-bc9b4db5-review.json",
+  "birthday_review": "providers/nextcloud-caldav-evidence/issue-845",
+  "delivery_decision": "Keep already adopted #845 initial implementation; prepare only actual remaining corrections on frozen7a."
+}

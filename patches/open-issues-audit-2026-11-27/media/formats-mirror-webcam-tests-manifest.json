@@ -1,0 +1,52 @@
+{
+  "source_commit": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "cwd": "/workspace/scratch/7203da5bd564/open-audit-final-source",
+  "argv": [
+    "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+    "-m",
+    "pytest",
+    "-p",
+    "no:cacheprovider",
+    "-q",
+    "magnolie-organizer/pruefungen/test_media_original_bmp.py",
+    "magnolie-organizer/pruefungen/test_media_original_webp.py",
+    "magnolie-organizer/pruefungen/test_media_tiff_probe.py",
+    "magnolie-organizer/pruefungen/test_media_webm_probe.py",
+    "magnolie-organizer/pruefungen/test_photo_metadata.py",
+    "magnolie-organizer/pruefungen/test_phone_screen_transport.py",
+    "magnolie-organizer/pruefungen/test_phone_webcam.py"
+  ],
+  "env_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "test_exit_code": 0,
+  "passed": 111,
+  "failed": 0,
+  "skipped": 0,
+  "pytest_reported_seconds": 20.34,
+  "separately_measured_wall_seconds": null,
+  "interpreter_version": "Python 3.12.14",
+  "pytest_version": "pytest 8.3.5",
+  "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "test_sha256": {
+    "magnolie-organizer/pruefungen/test_media_original_bmp.py": "401b3b9dd55fec80cb641a7ab617628b0c87326748032a44dbff671dbbd63377",
+    "magnolie-organizer/pruefungen/test_media_original_webp.py": "41a05a67c9bb757a5a79f2daab083e676f15717594261e7156ee51f7e0b400f2",
+    "magnolie-organizer/pruefungen/test_media_tiff_probe.py": "3496dd938aa92949b7b88d589a191b8416b0c1f1b5ef62774bb26eccc21e3acb",
+    "magnolie-organizer/pruefungen/test_media_webm_probe.py": "70b5e9ecf4a27d52bb496a227080934f9152346c00fdd70c26792de0f44fad6d",
+    "magnolie-organizer/pruefungen/test_photo_metadata.py": "90a3aba6cc78cefe2eba223a244cfdf2a8dc3fb58d221e992271444d18ebf1dd",
+    "magnolie-organizer/pruefungen/test_phone_screen_transport.py": "a1b5d43207cd270a1ecfd0cba0a23948f1945d7d2badb2c755487e25ab6eb0f7",
+    "magnolie-organizer/pruefungen/test_phone_webcam.py": "8cc28c814c9b00e1df5542e763be3e5cce01f5b6d4bff76a71ae03c9d7311665"
+  },
+  "selected_fixture_sha256": {
+    "contracts/media-tiff-probe-vectors.json": "1653fa3507708f89bc1155e44b32054e17893a555d9e6613425c422c21fbf785",
+    "contracts/media-heic-original-vector.json": "cc7fc5a5b229078c31c6475f5fc3bda168ed0f16fbb83abba6f1a9b8d4d8b4a2",
+    "contracts/media-heif-original-vector.json": "72bce3de125c218b809188adf5b8cc7d39fb90c7a95b96efa87412ec207c238d",
+    "contracts/media-webm-probe-vectors.json": "e794947962845202b4038944efaf6640cceefdcb5e52e31ba262f90518b580b6",
+    "contracts/media-avi-original-vector.json": "f930aefbbcc795cc8b61841947e44d426eec02036acf1e0f92faaed4de9e7701"
+  },
+  "log": "formats-mirror-webcam-tests.log",
+  "log_sha256": "0b42bee4658b78f18eecbff7b5beb9f3c51334b211d933d36528d3bce6d60985",
+  "source_hashes_file": "formats-mirror-webcam-audit.json",
+  "test_modifications": false,
+  "boundary_de": "Vorhandene unveränderte gezielte Python-Hosttests. Echte lokale temporäre Datei-/Transport-/Originalfixturepfade und kontrollierte Systemadapter; keine reale Android-Kamera, kein Android-MediaStore-Gerät, kein installiertes Windows, kein OBS/Teams/Zoom, keine echte Bildschirmaufnahme, keine Monats-Tray-RAM-Abnahme. Shellausgabe wurde in die genannte Logdatei umgeleitet; die 20,34 Sekunden sind die pytest-Ausgabe, keine separat gemessene gesamte Wandzeit."
+}

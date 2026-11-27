@@ -1,0 +1,955 @@
+[
+  {
+    "id": "birthday-standard",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "birthday-standard.ics",
+      "termine": [],
+      "jahrestage": [
+        {
+          "uid": "birthday-standard",
+          "name": "birthday-standard",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#40e0d0",
+          "icsCalendarColor": "",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "COLOR:turquoise",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:ee1dc30b8f13ad919a667fc7a058da2596406bd260f298e467366a019e7a8844"
+        }
+      ],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "jahrestage": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:birthday-standard\r\nDTSTAMP:20261127T191143Z\r\nDTSTART;VALUE=DATE:20000229\r\nSUMMARY:birthday-standard\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:birthday\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-ACCENT-COLOR:#40e0d0\r\nCOLOR:turquoise\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "birthday-standard.ics",
+          "termine": [],
+          "jahrestage": [
+            {
+              "uid": "birthday-standard",
+              "name": "birthday-standard",
+              "datum": "2000-02-29",
+              "typ": "birthday",
+              "akzentFarbe": "#40e0d0",
+              "icsCalendarColor": "",
+              "notiz": "",
+              "icsRoundtrip": [
+                "DTSTART;VALUE=DATE:20000229",
+                "RRULE:FREQ=YEARLY",
+                "X-MAGNOLIE-ACCENT-COLOR:#40e0d0",
+                "COLOR:turquoise",
+                "X-OWNED:keep"
+              ],
+              "geaendert": 1795806703000,
+              "icsQuelleId": "ics:ee1dc30b8f13ad919a667fc7a058da2596406bd260f298e467366a019e7a8844"
+            }
+          ],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-own",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "birthday-own.ics",
+      "termine": [],
+      "jahrestage": [
+        {
+          "uid": "birthday-own",
+          "name": "birthday-own",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#112233",
+          "icsCalendarColor": "",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-MAGNOLIE-ACCENT-COLOR:#112233",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:a54576e8ac26869176aaabfac68d2f7a4061b36d615290f550208dcfb6418e80"
+        }
+      ],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "jahrestage": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:birthday-own\r\nDTSTAMP:20261127T191143Z\r\nDTSTART;VALUE=DATE:20000229\r\nSUMMARY:birthday-own\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:birthday\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "birthday-own.ics",
+          "termine": [],
+          "jahrestage": [
+            {
+              "uid": "birthday-own",
+              "name": "birthday-own",
+              "datum": "2000-02-29",
+              "typ": "birthday",
+              "akzentFarbe": "#112233",
+              "icsCalendarColor": "",
+              "notiz": "",
+              "icsRoundtrip": [
+                "DTSTART;VALUE=DATE:20000229",
+                "RRULE:FREQ=YEARLY",
+                "X-MAGNOLIE-ACCENT-COLOR:#112233",
+                "X-OWNED:keep"
+              ],
+              "geaendert": 1795806703000,
+              "icsQuelleId": "ics:a54576e8ac26869176aaabfac68d2f7a4061b36d615290f550208dcfb6418e80"
+            }
+          ],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-calendar",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "birthday-calendar.ics",
+      "termine": [],
+      "jahrestage": [
+        {
+          "uid": "birthday-calendar",
+          "name": "birthday-calendar",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#40e0d0",
+          "icsCalendarColor": "COLOR:turquoise",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:9c81fb26bb53f399fb35f22fab30b0862f29dedf3dd6dcc3cc45fc8a8c43ad05"
+        }
+      ],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "jahrestage": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nCOLOR:turquoise\r\nBEGIN:VEVENT\r\nUID:birthday-calendar\r\nDTSTAMP:20261127T191143Z\r\nDTSTART;VALUE=DATE:20000229\r\nSUMMARY:birthday-calendar\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:birthday\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-ACCENT-COLOR:#40e0d0\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "birthday-calendar.ics",
+          "termine": [],
+          "jahrestage": [
+            {
+              "uid": "birthday-calendar",
+              "name": "birthday-calendar",
+              "datum": "2000-02-29",
+              "typ": "birthday",
+              "akzentFarbe": "#40e0d0",
+              "icsCalendarColor": "COLOR:turquoise",
+              "notiz": "",
+              "icsRoundtrip": [
+                "DTSTART;VALUE=DATE:20000229",
+                "RRULE:FREQ=YEARLY",
+                "X-MAGNOLIE-ACCENT-COLOR:#40e0d0",
+                "X-OWNED:keep"
+              ],
+              "geaendert": 1795806703000,
+              "icsQuelleId": "ics:9c81fb26bb53f399fb35f22fab30b0862f29dedf3dd6dcc3cc45fc8a8c43ad05"
+            }
+          ],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-apple",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "birthday-apple.ics",
+      "termine": [],
+      "jahrestage": [
+        {
+          "uid": "birthday-apple",
+          "name": "birthday-apple",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#40e0d0",
+          "icsCalendarColor": "X-APPLE-CALENDAR-COLOR:#40E0D0FF",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:f951e979abda8e24b0b7deeb0425f735b7abbfcd54d657e80dd958b6e037f023"
+        }
+      ],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "jahrestage": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nX-APPLE-CALENDAR-COLOR:#40E0D0FF\r\nBEGIN:VEVENT\r\nUID:birthday-apple\r\nDTSTAMP:20261127T191143Z\r\nDTSTART;VALUE=DATE:20000229\r\nSUMMARY:birthday-apple\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:birthday\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-ACCENT-COLOR:#40e0d0\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "birthday-apple.ics",
+          "termine": [],
+          "jahrestage": [
+            {
+              "uid": "birthday-apple",
+              "name": "birthday-apple",
+              "datum": "2000-02-29",
+              "typ": "birthday",
+              "akzentFarbe": "#40e0d0",
+              "icsCalendarColor": "X-APPLE-CALENDAR-COLOR:#40E0D0FF",
+              "notiz": "",
+              "icsRoundtrip": [
+                "DTSTART;VALUE=DATE:20000229",
+                "RRULE:FREQ=YEARLY",
+                "X-MAGNOLIE-ACCENT-COLOR:#40e0d0",
+                "X-OWNED:keep"
+              ],
+              "geaendert": 1795806703000,
+              "icsQuelleId": "ics:f951e979abda8e24b0b7deeb0425f735b7abbfcd54d657e80dd958b6e037f023"
+            }
+          ],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-own-priority",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "birthday-own-priority.ics",
+      "termine": [],
+      "jahrestage": [
+        {
+          "uid": "birthday-own-priority",
+          "name": "birthday-own-priority",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#112233",
+          "icsCalendarColor": "COLOR:blue",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "COLOR:RED",
+            "X-MAGNOLIE-ACCENT-COLOR:#112233",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:cdb7a1276cc87e47782cee90ce4e0d7554162de51aaf6d8874112b23bb63fcbf"
+        }
+      ],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "jahrestage": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nCOLOR:blue\r\nBEGIN:VEVENT\r\nUID:birthday-own-priority\r\nDTSTAMP:20261127T191143Z\r\nDTSTART;VALUE=DATE:20000229\r\nSUMMARY:birthday-own-priority\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:birthday\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nCOLOR:RED\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "birthday-own-priority.ics",
+          "termine": [],
+          "jahrestage": [
+            {
+              "uid": "birthday-own-priority",
+              "name": "birthday-own-priority",
+              "datum": "2000-02-29",
+              "typ": "birthday",
+              "akzentFarbe": "#112233",
+              "icsCalendarColor": "COLOR:blue",
+              "notiz": "",
+              "icsRoundtrip": [
+                "DTSTART;VALUE=DATE:20000229",
+                "RRULE:FREQ=YEARLY",
+                "X-MAGNOLIE-ACCENT-COLOR:#112233",
+                "COLOR:RED",
+                "X-OWNED:keep"
+              ],
+              "geaendert": 1795806703000,
+              "icsQuelleId": "ics:cdb7a1276cc87e47782cee90ce4e0d7554162de51aaf6d8874112b23bb63fcbf"
+            }
+          ],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-component-priority",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "birthday-component-priority.ics",
+      "termine": [],
+      "jahrestage": [
+        {
+          "uid": "birthday-component-priority",
+          "name": "birthday-component-priority",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#ff0000",
+          "icsCalendarColor": "COLOR:blue",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "COLOR:RED",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:8feeeab181bd07d7b5eb54b00d787001caae67bbd34e1b7b14a60c17824794fa"
+        }
+      ],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "jahrestage": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nCOLOR:blue\r\nBEGIN:VEVENT\r\nUID:birthday-component-priority\r\nDTSTAMP:20261127T191143Z\r\nDTSTART;VALUE=DATE:20000229\r\nSUMMARY:birthday-component-priority\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:birthday\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-ACCENT-COLOR:#ff0000\r\nCOLOR:RED\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "birthday-component-priority.ics",
+          "termine": [],
+          "jahrestage": [
+            {
+              "uid": "birthday-component-priority",
+              "name": "birthday-component-priority",
+              "datum": "2000-02-29",
+              "typ": "birthday",
+              "akzentFarbe": "#ff0000",
+              "icsCalendarColor": "COLOR:blue",
+              "notiz": "",
+              "icsRoundtrip": [
+                "DTSTART;VALUE=DATE:20000229",
+                "RRULE:FREQ=YEARLY",
+                "X-MAGNOLIE-ACCENT-COLOR:#ff0000",
+                "COLOR:RED",
+                "X-OWNED:keep"
+              ],
+              "geaendert": 1795806703000,
+              "icsQuelleId": "ics:8feeeab181bd07d7b5eb54b00d787001caae67bbd34e1b7b14a60c17824794fa"
+            }
+          ],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-partial-leap",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "birthday-partial-leap.ics",
+      "termine": [],
+      "jahrestage": [
+        {
+          "uid": "birthday-partial-leap",
+          "name": "birthday-partial-leap",
+          "datum": "--02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#40e0d0",
+          "icsCalendarColor": "COLOR:turquoise",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:5610d5394d26793c13694feb91478335490294a66f0496d02c8b85d79d327ff8"
+        }
+      ],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "jahrestage": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nCOLOR:turquoise\r\nBEGIN:VEVENT\r\nUID:birthday-partial-leap\r\nDTSTAMP:20261127T191143Z\r\nDTSTART;VALUE=DATE:20000229\r\nSUMMARY:birthday-partial-leap\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:birthday\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-DATE:--02-29\r\nX-MAGNOLIE-ACCENT-COLOR:#40e0d0\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "birthday-partial-leap.ics",
+          "termine": [],
+          "jahrestage": [
+            {
+              "uid": "birthday-partial-leap",
+              "name": "birthday-partial-leap",
+              "datum": "--02-29",
+              "typ": "birthday",
+              "akzentFarbe": "#40e0d0",
+              "icsCalendarColor": "COLOR:turquoise",
+              "notiz": "",
+              "icsRoundtrip": [
+                "DTSTART;VALUE=DATE:20000229",
+                "RRULE:FREQ=YEARLY",
+                "X-MAGNOLIE-ACCENT-COLOR:#40e0d0",
+                "X-OWNED:keep"
+              ],
+              "geaendert": 1795806703000,
+              "icsQuelleId": "ics:5610d5394d26793c13694feb91478335490294a66f0496d02c8b85d79d327ff8"
+            }
+          ],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "anniversary-wedding",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "anniversary-wedding.ics",
+      "termine": [],
+      "jahrestage": [
+        {
+          "uid": "anniversary-wedding",
+          "name": "anniversary-wedding",
+          "datum": "2000-02-29",
+          "typ": "wedding-anniversary",
+          "akzentFarbe": "#40e0d0",
+          "icsCalendarColor": "",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "COLOR:turquoise",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:c86353498a143c4053781e69e3cdce48ef6848e122c1cc34cafd75c3105d8dbe"
+        }
+      ],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "jahrestage": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:anniversary-wedding\r\nDTSTAMP:20261127T191143Z\r\nDTSTART;VALUE=DATE:20000229\r\nSUMMARY:anniversary-wedding\r\nX-MAGNOLIE-TYPE-ID:wedding-anniversary\r\nX-MAGNOLIE-TYP:wedding-anniversary\r\nX-MAGNOLIE-JAHRESTAG-TYP:wedding-anniversary\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-ACCENT-COLOR:#40e0d0\r\nCOLOR:turquoise\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "anniversary-wedding.ics",
+          "termine": [],
+          "jahrestage": [
+            {
+              "uid": "anniversary-wedding",
+              "name": "anniversary-wedding",
+              "datum": "2000-02-29",
+              "typ": "wedding-anniversary",
+              "akzentFarbe": "#40e0d0",
+              "icsCalendarColor": "",
+              "notiz": "",
+              "icsRoundtrip": [
+                "DTSTART;VALUE=DATE:20000229",
+                "RRULE:FREQ=YEARLY",
+                "X-MAGNOLIE-ACCENT-COLOR:#40e0d0",
+                "COLOR:turquoise",
+                "X-OWNED:keep"
+              ],
+              "geaendert": 1795806703000,
+              "icsQuelleId": "ics:c86353498a143c4053781e69e3cdce48ef6848e122c1cc34cafd75c3105d8dbe"
+            }
+          ],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "jahrestage-parameter-own",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "jahrestage-parameter-own.ics",
+      "termine": [],
+      "jahrestage": [
+        {
+          "uid": "jahrestage-parameter-own",
+          "name": "jahrestage-parameter-own",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "#112233",
+          "icsCalendarColor": "",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "COLOR;X-SOURCE=owned-synthetic:red",
+            "X-MAGNOLIE-ACCENT-COLOR:#112233",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:297bd9a646193782cba57b2d9c68488d14ee16df844b1ec1ad239d9b3b59a538"
+        }
+      ],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "jahrestage": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:jahrestage-parameter-own\r\nDTSTAMP:20261127T191143Z\r\nDTSTART;VALUE=DATE:20000229\r\nSUMMARY:jahrestage-parameter-own\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:birthday\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nCOLOR;X-SOURCE=owned-synthetic:red\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "jahrestage-parameter-own.ics",
+          "termine": [],
+          "jahrestage": [
+            {
+              "uid": "jahrestage-parameter-own",
+              "name": "jahrestage-parameter-own",
+              "datum": "2000-02-29",
+              "typ": "birthday",
+              "akzentFarbe": "#112233",
+              "icsCalendarColor": "",
+              "notiz": "",
+              "icsRoundtrip": [
+                "DTSTART;VALUE=DATE:20000229",
+                "RRULE:FREQ=YEARLY",
+                "X-MAGNOLIE-ACCENT-COLOR:#112233",
+                "COLOR;X-SOURCE=owned-synthetic:red",
+                "X-OWNED:keep"
+              ],
+              "geaendert": 1795806703000,
+              "icsQuelleId": "ics:297bd9a646193782cba57b2d9c68488d14ee16df844b1ec1ad239d9b3b59a538"
+            }
+          ],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "termine-parameter-own",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "termine-parameter-own.ics",
+      "termine": [
+        {
+          "uid": "termine-parameter-own",
+          "datum": "2000-02-29",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "termine-parameter-own",
+          "notiz": "",
+          "kategorien": "",
+          "ort": "",
+          "akzentFarbe": "#112233",
+          "icsCalendarColor": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "none",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": false,
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "COLOR;X-SOURCE=owned-synthetic:red",
+            "X-MAGNOLIE-ACCENT-COLOR:#112233",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:7afa2f912fc6aaf86cb3cd821817c1a0217770ba19b5c88fcf5009a0484870bd"
+        }
+      ],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:termine-parameter-own\r\nDTSTAMP:20261127T191143Z\r\nDTEND;VALUE=DATE:20000301\r\nSUMMARY:termine-parameter-own\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nDTSTART;VALUE=DATE:20000229\r\nCOLOR;X-SOURCE=owned-synthetic:red\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "termine-parameter-own.ics",
+          "termine": [
+            {
+              "uid": "termine-parameter-own",
+              "datum": "2000-02-29",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "termine-parameter-own",
+              "notiz": "",
+              "kategorien": "",
+              "ort": "",
+              "akzentFarbe": "#112233",
+              "icsCalendarColor": "",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "none",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": false,
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20000301",
+                "X-MAGNOLIE-ACCENT-COLOR:#112233",
+                "DTSTART;VALUE=DATE:20000229",
+                "COLOR;X-SOURCE=owned-synthetic:red",
+                "X-OWNED:keep"
+              ],
+              "geaendert": 1795806703000,
+              "icsQuelleId": "ics:7afa2f912fc6aaf86cb3cd821817c1a0217770ba19b5c88fcf5009a0484870bd"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "aufgaben-parameter-own",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "aufgaben-parameter-own.ics",
+      "termine": [],
+      "jahrestage": [],
+      "geburtstage": [],
+      "aufgaben": [
+        {
+          "uid": "aufgaben-parameter-own",
+          "elternUid": "",
+          "icsElternUid": "",
+          "icsSerienUid": "",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "reihenfolge": 0,
+          "titel": "aufgaben-parameter-own",
+          "faellig": "2000-02-29",
+          "faelligZeit": "",
+          "startDatum": "",
+          "startZeit": "",
+          "prio": 2,
+          "erledigt": false,
+          "notiz": "",
+          "kategorien": "",
+          "akzentFarbe": "#112233",
+          "icsCalendarColor": "",
+          "erinnern": false,
+          "individuelleErinnerungTage": 0,
+          "icsRoundtrip": [
+            "DUE;VALUE=DATE:20000229",
+            "COLOR;X-SOURCE=owned-synthetic:red",
+            "X-MAGNOLIE-ACCENT-COLOR:#112233",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:be8671b4c7aec07f1916a3a2d2fa08ff8439e4b23da5b5256a20cf0ad0886bcb",
+          "icsElternQuelleId": "ics:be8671b4c7aec07f1916a3a2d2fa08ff8439e4b23da5b5256a20cf0ad0886bcb"
+        }
+      ],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "aufgaben": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTODO\r\nUID:aufgaben-parameter-own\r\nDTSTAMP:20261127T191143Z\r\nSUMMARY:aufgaben-parameter-own\r\nPRIORITY:5\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nX-MAGNOLIE-REIHENFOLGE:0\r\nDUE;VALUE=DATE:20000229\r\nCOLOR;X-SOURCE=owned-synthetic:red\r\nX-OWNED:keep\r\nX-MAGNOLIE-TASK-IDENTITY:{\u0022v\u0022:1\\,\u0022source\u0022:\u0022ics:be8671b4c7aec07f1916a3a2d2fa\r\n 08ff8439e4b23da5b5256a20cf0ad0886bcb\u0022\\,\u0022uid\u0022:\u0022aufgaben-parameter-own\u0022\\,\u0022pa\r\n rent\u0022:\u0022\u0022\\,\u0022parentSource\u0022:\u0022ics:be8671b4c7aec07f1916a3a2d2fa08ff8439e4b23da5\r\n b5256a20cf0ad0886bcb\u0022}\r\nEND:VTODO\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "aufgaben-parameter-own.ics",
+          "termine": [],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [
+            {
+              "uid": "aufgaben-parameter-own",
+              "elternUid": "",
+              "icsElternUid": "",
+              "icsSerienUid": "",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "reihenfolge": 0,
+              "titel": "aufgaben-parameter-own",
+              "faellig": "2000-02-29",
+              "faelligZeit": "",
+              "startDatum": "",
+              "startZeit": "",
+              "prio": 2,
+              "erledigt": false,
+              "notiz": "",
+              "kategorien": "",
+              "akzentFarbe": "#112233",
+              "icsCalendarColor": "",
+              "erinnern": false,
+              "individuelleErinnerungTage": 0,
+              "icsRoundtrip": [
+                "X-MAGNOLIE-ACCENT-COLOR:#112233",
+                "DUE;VALUE=DATE:20000229",
+                "COLOR;X-SOURCE=owned-synthetic:red",
+                "X-OWNED:keep"
+              ],
+              "geaendert": 1795806703000,
+              "icsElternQuelleId": "ics:be8671b4c7aec07f1916a3a2d2fa08ff8439e4b23da5b5256a20cf0ad0886bcb",
+              "icsQuelleId": "ics:be8671b4c7aec07f1916a3a2d2fa08ff8439e4b23da5b5256a20cf0ad0886bcb"
+            }
+          ],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "birthday-unknown",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "birthday-unknown.ics",
+      "termine": [],
+      "jahrestage": [
+        {
+          "uid": "birthday-unknown",
+          "name": "birthday-unknown",
+          "datum": "2000-02-29",
+          "typ": "birthday",
+          "akzentFarbe": "",
+          "icsCalendarColor": "",
+          "notiz": "",
+          "icsRoundtrip": [
+            "DTSTART;VALUE=DATE:20000229",
+            "RRULE:FREQ=YEARLY",
+            "COLOR:future-colour",
+            "X-OWNED:keep"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:dae50b6c55aae5fba14de55a7fd8768c4aa6dc009c4514fc80217e9a3911283c"
+        }
+      ],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "jahrestage": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:birthday-unknown\r\nDTSTAMP:20261127T191143Z\r\nDTSTART;VALUE=DATE:20000229\r\nSUMMARY:birthday-unknown\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:birthday\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nRRULE:FREQ=YEARLY\r\nCOLOR:future-colour\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "birthday-unknown.ics",
+          "termine": [],
+          "jahrestage": [
+            {
+              "uid": "birthday-unknown",
+              "name": "birthday-unknown",
+              "datum": "2000-02-29",
+              "typ": "birthday",
+              "akzentFarbe": "",
+              "icsCalendarColor": "",
+              "notiz": "",
+              "icsRoundtrip": [
+                "DTSTART;VALUE=DATE:20000229",
+                "RRULE:FREQ=YEARLY",
+                "COLOR:future-colour",
+                "X-OWNED:keep"
+              ],
+              "geaendert": 1795806703000,
+              "icsQuelleId": "ics:dae50b6c55aae5fba14de55a7fd8768c4aa6dc009c4514fc80217e9a3911283c"
+            }
+          ],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  }
+]

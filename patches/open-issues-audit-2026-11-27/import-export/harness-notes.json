@@ -1,0 +1,14 @@
+[
+  {
+    "scope": "external C# diagnostic runner, first invocation",
+    "failure": "JsonNode.ToJsonString with a new bare options instance lacked TypeInfoResolver for customized JsonValues.",
+    "correction": "Clone JsonSerializerOptions.Default before enabling indentation; actual codec unchanged.",
+    "product_failure": false
+  },
+  {
+    "scope": "first calendar UI runner invocation on fresh checkout",
+    "failure": "Required generated normative-timezones.js absent before preparation.",
+    "correction": "Run canonical zeitzonen_erzeugen.generate with hash-validated port-adapters/timezones inputs for both web roots.",
+    "product_failure": false
+  }
+]

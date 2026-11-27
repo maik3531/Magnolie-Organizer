@@ -1,0 +1,304 @@
+FFFFFFF............FFFFFFFFFFFF                                          [100%]
+=================================== FAILURES ===================================
+______________ test_actual_codec_and_saved_json_roundtrip[known] _______________
+
+case = {'date': '1988-12-03', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:syntheti...r\nDESCRIPTION:Keep alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'known', 'rule': 'FREQ=YEARLY', ...}
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-23/test_actual_codec_and_saved_js0')
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_codec_and_saved_json_roundtrip(case, tmp_path):
+        parsed = m.ics_lesen(case["ics"])
+        if case["date"] is None:
+            assert not parsed["jahrestage"] and len(parsed["termine"]) == 1
+            exported = m.ics_schreiben_termine(parsed["termine"])
+            assert "RRULE:" + case["rule"] in m._entfalte_zeilen(exported)
+            assert not m.ics_lesen(exported)["jahrestage"]
+            return
+>       assert not parsed["termine"] and len(parsed["jahrestage"]) == 1
+E       AssertionError: assert (not [{'akzentFarbe': '#ff0000', 'datum': '1988-12-03', 'endDatum': '', 'endZeit': '', ...}])
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:22: AssertionError
+_____________ test_actual_codec_and_saved_json_roundtrip[pre-unix] _____________
+
+case = {'date': '1950-12-03', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:syntheti...DESCRIPTION:Keep alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'pre-unix', 'rule': 'FREQ=YEARLY', ...}
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-23/test_actual_codec_and_saved_js1')
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_codec_and_saved_json_roundtrip(case, tmp_path):
+        parsed = m.ics_lesen(case["ics"])
+        if case["date"] is None:
+            assert not parsed["jahrestage"] and len(parsed["termine"]) == 1
+            exported = m.ics_schreiben_termine(parsed["termine"])
+            assert "RRULE:" + case["rule"] in m._entfalte_zeilen(exported)
+            assert not m.ics_lesen(exported)["jahrestage"]
+            return
+>       assert not parsed["termine"] and len(parsed["jahrestage"]) == 1
+E       AssertionError: assert (not [{'akzentFarbe': '#ff0000', 'datum': '1950-12-03', 'endDatum': '', 'endZeit': '', ...}])
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:22: AssertionError
+_____________ test_actual_codec_and_saved_json_roundtrip[yearless] _____________
+
+case = {'date': '--12-03', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:synthetic-y...DESCRIPTION:Keep alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'yearless', 'rule': 'FREQ=YEARLY', ...}
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-23/test_actual_codec_and_saved_js2')
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_codec_and_saved_json_roundtrip(case, tmp_path):
+        parsed = m.ics_lesen(case["ics"])
+        if case["date"] is None:
+            assert not parsed["jahrestage"] and len(parsed["termine"]) == 1
+            exported = m.ics_schreiben_termine(parsed["termine"])
+            assert "RRULE:" + case["rule"] in m._entfalte_zeilen(exported)
+            assert not m.ics_lesen(exported)["jahrestage"]
+            return
+>       assert not parsed["termine"] and len(parsed["jahrestage"]) == 1
+E       AssertionError: assert (not [{'akzentFarbe': '#ff0000', 'datum': '1970-12-03', 'endDatum': '', 'endZeit': '', ...}])
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:22: AssertionError
+____________ test_actual_codec_and_saved_json_roundtrip[known-leap] ____________
+
+case = {'date': '1988-02-29', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:syntheti...END:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'known-leap', 'rule': 'FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1', ...}
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-23/test_actual_codec_and_saved_js3')
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_codec_and_saved_json_roundtrip(case, tmp_path):
+        parsed = m.ics_lesen(case["ics"])
+        if case["date"] is None:
+            assert not parsed["jahrestage"] and len(parsed["termine"]) == 1
+            exported = m.ics_schreiben_termine(parsed["termine"])
+            assert "RRULE:" + case["rule"] in m._entfalte_zeilen(exported)
+            assert not m.ics_lesen(exported)["jahrestage"]
+            return
+>       assert not parsed["termine"] and len(parsed["jahrestage"]) == 1
+E       AssertionError: assert (not [{'akzentFarbe': '#ff0000', 'datum': '1988-02-29', 'endDatum': '', 'endZeit': '', ...}])
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:22: AssertionError
+__________ test_actual_codec_and_saved_json_roundtrip[yearless-leap] ___________
+
+case = {'date': '--02-29', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:synthetic-y...:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'yearless-leap', 'rule': 'FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1', ...}
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-23/test_actual_codec_and_saved_js4')
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_codec_and_saved_json_roundtrip(case, tmp_path):
+        parsed = m.ics_lesen(case["ics"])
+        if case["date"] is None:
+            assert not parsed["jahrestage"] and len(parsed["termine"]) == 1
+            exported = m.ics_schreiben_termine(parsed["termine"])
+            assert "RRULE:" + case["rule"] in m._entfalte_zeilen(exported)
+            assert not m.ics_lesen(exported)["jahrestage"]
+            return
+>       assert not parsed["termine"] and len(parsed["jahrestage"]) == 1
+E       AssertionError: assert (not [{'akzentFarbe': '#ff0000', 'datum': '1972-02-29', 'endDatum': '', 'endZeit': '', ...}])
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:22: AssertionError
+___________ test_actual_codec_and_saved_json_roundtrip[ordered-leap] ___________
+
+case = {'date': '--02-29', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:synthetic-o...nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'ordered-leap', 'rule': 'BYMONTHDAY=-1;INTERVAL=1;FREQ=YEARLY;BYMONTH=2', ...}
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-23/test_actual_codec_and_saved_js5')
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_codec_and_saved_json_roundtrip(case, tmp_path):
+        parsed = m.ics_lesen(case["ics"])
+        if case["date"] is None:
+            assert not parsed["jahrestage"] and len(parsed["termine"]) == 1
+            exported = m.ics_schreiben_termine(parsed["termine"])
+            assert "RRULE:" + case["rule"] in m._entfalte_zeilen(exported)
+            assert not m.ics_lesen(exported)["jahrestage"]
+            return
+>       assert not parsed["termine"] and len(parsed["jahrestage"]) == 1
+E       AssertionError: assert (not [{'akzentFarbe': '#ff0000', 'datum': '1972-02-29', 'endDatum': '', 'endZeit': '', ...}])
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:22: AssertionError
+_______ test_actual_codec_and_saved_json_roundtrip[known-no-extra-year] ________
+
+case = {'date': '1988-12-03', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:syntheti...:Keep alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'known-no-extra-year', 'rule': 'FREQ=YEARLY', ...}
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-23/test_actual_codec_and_saved_js6')
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_codec_and_saved_json_roundtrip(case, tmp_path):
+        parsed = m.ics_lesen(case["ics"])
+        if case["date"] is None:
+            assert not parsed["jahrestage"] and len(parsed["termine"]) == 1
+            exported = m.ics_schreiben_termine(parsed["termine"])
+            assert "RRULE:" + case["rule"] in m._entfalte_zeilen(exported)
+            assert not m.ics_lesen(exported)["jahrestage"]
+            return
+>       assert not parsed["termine"] and len(parsed["jahrestage"]) == 1
+E       AssertionError: assert (not [{'akzentFarbe': '#ff0000', 'datum': '1988-12-03', 'endDatum': '', 'endZeit': '', ...}])
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:22: AssertionError
+__________ test_edit_keeps_nextcloud_year_and_rule_coherent[--12-03] ___________
+
+date = '--12-03'
+
+    @pytest.mark.parametrize("date", ["--12-03", "1950-12-03", "--02-29", "1988-02-29", "--03-01"])
+    def test_edit_keeps_nextcloud_year_and_rule_coherent(date):
+>       item = m.ics_lesen(CASES[0]["ics"])["jahrestage"][0]
+E       IndexError: list index out of range
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:45: IndexError
+_________ test_edit_keeps_nextcloud_year_and_rule_coherent[1950-12-03] _________
+
+date = '1950-12-03'
+
+    @pytest.mark.parametrize("date", ["--12-03", "1950-12-03", "--02-29", "1988-02-29", "--03-01"])
+    def test_edit_keeps_nextcloud_year_and_rule_coherent(date):
+>       item = m.ics_lesen(CASES[0]["ics"])["jahrestage"][0]
+E       IndexError: list index out of range
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:45: IndexError
+__________ test_edit_keeps_nextcloud_year_and_rule_coherent[--02-29] ___________
+
+date = '--02-29'
+
+    @pytest.mark.parametrize("date", ["--12-03", "1950-12-03", "--02-29", "1988-02-29", "--03-01"])
+    def test_edit_keeps_nextcloud_year_and_rule_coherent(date):
+>       item = m.ics_lesen(CASES[0]["ics"])["jahrestage"][0]
+E       IndexError: list index out of range
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:45: IndexError
+_________ test_edit_keeps_nextcloud_year_and_rule_coherent[1988-02-29] _________
+
+date = '1988-02-29'
+
+    @pytest.mark.parametrize("date", ["--12-03", "1950-12-03", "--02-29", "1988-02-29", "--03-01"])
+    def test_edit_keeps_nextcloud_year_and_rule_coherent(date):
+>       item = m.ics_lesen(CASES[0]["ics"])["jahrestage"][0]
+E       IndexError: list index out of range
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:45: IndexError
+__________ test_edit_keeps_nextcloud_year_and_rule_coherent[--03-01] ___________
+
+date = '--03-01'
+
+    @pytest.mark.parametrize("date", ["--12-03", "1950-12-03", "--02-29", "1988-02-29", "--03-01"])
+    def test_edit_keeps_nextcloud_year_and_rule_coherent(date):
+>       item = m.ics_lesen(CASES[0]["ics"])["jahrestage"][0]
+E       IndexError: list index out of range
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:45: IndexError
+_______ test_linux_dav_does_not_silently_omit_the_new_typed_scope[known] _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f4b456279e0>
+case = {'date': '1988-12-03', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:syntheti...r\nDESCRIPTION:Keep alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'known', 'rule': 'FREQ=YEARLY', ...}
+
+    @pytest.mark.parametrize("case", [case for case in CASES if case["date"]], ids=lambda case: case["id"])
+    def test_linux_dav_does_not_silently_omit_the_new_typed_scope(monkeypatch, case):
+        dav = SyncDav({"calendar": [dict(href="https://cloud.example/calendar/birthday.ics",
+                                       etag='"fixture"', data=case["ics"])], "addressbook": []})
+        data = empty_data()
+        before = json.dumps(data, sort_keys=True)
+>       with pytest.raises(nc.NextcloudError) as failed:
+E       Failed: DID NOT RAISE <class 'magnolie_nextcloud.NextcloudError'>
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:62: Failed
+_____ test_linux_dav_does_not_silently_omit_the_new_typed_scope[pre-unix] ______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f4b45625e20>
+case = {'date': '1950-12-03', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:syntheti...DESCRIPTION:Keep alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'pre-unix', 'rule': 'FREQ=YEARLY', ...}
+
+    @pytest.mark.parametrize("case", [case for case in CASES if case["date"]], ids=lambda case: case["id"])
+    def test_linux_dav_does_not_silently_omit_the_new_typed_scope(monkeypatch, case):
+        dav = SyncDav({"calendar": [dict(href="https://cloud.example/calendar/birthday.ics",
+                                       etag='"fixture"', data=case["ics"])], "addressbook": []})
+        data = empty_data()
+        before = json.dumps(data, sort_keys=True)
+>       with pytest.raises(nc.NextcloudError) as failed:
+E       Failed: DID NOT RAISE <class 'magnolie_nextcloud.NextcloudError'>
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:62: Failed
+_____ test_linux_dav_does_not_silently_omit_the_new_typed_scope[yearless] ______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f4b4565fa70>
+case = {'date': '--12-03', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:synthetic-y...DESCRIPTION:Keep alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'yearless', 'rule': 'FREQ=YEARLY', ...}
+
+    @pytest.mark.parametrize("case", [case for case in CASES if case["date"]], ids=lambda case: case["id"])
+    def test_linux_dav_does_not_silently_omit_the_new_typed_scope(monkeypatch, case):
+        dav = SyncDav({"calendar": [dict(href="https://cloud.example/calendar/birthday.ics",
+                                       etag='"fixture"', data=case["ics"])], "addressbook": []})
+        data = empty_data()
+        before = json.dumps(data, sort_keys=True)
+>       with pytest.raises(nc.NextcloudError) as failed:
+E       Failed: DID NOT RAISE <class 'magnolie_nextcloud.NextcloudError'>
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:62: Failed
+____ test_linux_dav_does_not_silently_omit_the_new_typed_scope[known-leap] _____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f4b4562fc50>
+case = {'date': '1988-02-29', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:syntheti...END:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'known-leap', 'rule': 'FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1', ...}
+
+    @pytest.mark.parametrize("case", [case for case in CASES if case["date"]], ids=lambda case: case["id"])
+    def test_linux_dav_does_not_silently_omit_the_new_typed_scope(monkeypatch, case):
+        dav = SyncDav({"calendar": [dict(href="https://cloud.example/calendar/birthday.ics",
+                                       etag='"fixture"', data=case["ics"])], "addressbook": []})
+        data = empty_data()
+        before = json.dumps(data, sort_keys=True)
+>       with pytest.raises(nc.NextcloudError) as failed:
+E       Failed: DID NOT RAISE <class 'magnolie_nextcloud.NextcloudError'>
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:62: Failed
+___ test_linux_dav_does_not_silently_omit_the_new_typed_scope[yearless-leap] ___
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f4b4562ce60>
+case = {'date': '--02-29', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:synthetic-y...:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'yearless-leap', 'rule': 'FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1', ...}
+
+    @pytest.mark.parametrize("case", [case for case in CASES if case["date"]], ids=lambda case: case["id"])
+    def test_linux_dav_does_not_silently_omit_the_new_typed_scope(monkeypatch, case):
+        dav = SyncDav({"calendar": [dict(href="https://cloud.example/calendar/birthday.ics",
+                                       etag='"fixture"', data=case["ics"])], "addressbook": []})
+        data = empty_data()
+        before = json.dumps(data, sort_keys=True)
+>       with pytest.raises(nc.NextcloudError) as failed:
+E       Failed: DID NOT RAISE <class 'magnolie_nextcloud.NextcloudError'>
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:62: Failed
+___ test_linux_dav_does_not_silently_omit_the_new_typed_scope[ordered-leap] ____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f4b4562e3c0>
+case = {'date': '--02-29', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:synthetic-o...nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'ordered-leap', 'rule': 'BYMONTHDAY=-1;INTERVAL=1;FREQ=YEARLY;BYMONTH=2', ...}
+
+    @pytest.mark.parametrize("case", [case for case in CASES if case["date"]], ids=lambda case: case["id"])
+    def test_linux_dav_does_not_silently_omit_the_new_typed_scope(monkeypatch, case):
+        dav = SyncDav({"calendar": [dict(href="https://cloud.example/calendar/birthday.ics",
+                                       etag='"fixture"', data=case["ics"])], "addressbook": []})
+        data = empty_data()
+        before = json.dumps(data, sort_keys=True)
+>       with pytest.raises(nc.NextcloudError) as failed:
+E       Failed: DID NOT RAISE <class 'magnolie_nextcloud.NextcloudError'>
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:62: Failed
+_ test_linux_dav_does_not_silently_omit_the_new_typed_scope[known-no-extra-year] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f4b4562fef0>
+case = {'date': '1988-12-03', 'ics': 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALCOLOR:#123456\r\nBEGIN:VEVENT\r\nUID:syntheti...:Keep alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n', 'id': 'known-no-extra-year', 'rule': 'FREQ=YEARLY', ...}
+
+    @pytest.mark.parametrize("case", [case for case in CASES if case["date"]], ids=lambda case: case["id"])
+    def test_linux_dav_does_not_silently_omit_the_new_typed_scope(monkeypatch, case):
+        dav = SyncDav({"calendar": [dict(href="https://cloud.example/calendar/birthday.ics",
+                                       etag='"fixture"', data=case["ics"])], "addressbook": []})
+        data = empty_data()
+        before = json.dumps(data, sort_keys=True)
+>       with pytest.raises(nc.NextcloudError) as failed:
+E       Failed: DID NOT RAISE <class 'magnolie_nextcloud.NextcloudError'>
+
+magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py:62: Failed
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_actual_codec_and_saved_json_roundtrip[known]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_actual_codec_and_saved_json_roundtrip[pre-unix]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_actual_codec_and_saved_json_roundtrip[yearless]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_actual_codec_and_saved_json_roundtrip[known-leap]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_actual_codec_and_saved_json_roundtrip[yearless-leap]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_actual_codec_and_saved_json_roundtrip[ordered-leap]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_actual_codec_and_saved_json_roundtrip[known-no-extra-year]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_edit_keeps_nextcloud_year_and_rule_coherent[--12-03]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_edit_keeps_nextcloud_year_and_rule_coherent[1950-12-03]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_edit_keeps_nextcloud_year_and_rule_coherent[--02-29]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_edit_keeps_nextcloud_year_and_rule_coherent[1988-02-29]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_edit_keeps_nextcloud_year_and_rule_coherent[--03-01]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_linux_dav_does_not_silently_omit_the_new_typed_scope[known]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_linux_dav_does_not_silently_omit_the_new_typed_scope[pre-unix]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_linux_dav_does_not_silently_omit_the_new_typed_scope[yearless]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_linux_dav_does_not_silently_omit_the_new_typed_scope[known-leap]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_linux_dav_does_not_silently_omit_the_new_typed_scope[yearless-leap]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_linux_dav_does_not_silently_omit_the_new_typed_scope[ordered-leap]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py::test_linux_dav_does_not_silently_omit_the_new_typed_scope[known-no-extra-year]
+19 failed, 12 passed in 1.24s

@@ -1,0 +1,178 @@
+{
+  "issue": 844,
+  "review_type": "independent_static_residual_backend_review",
+  "reviewer": "review_storage",
+  "reviewed_at_utc": "2026-11-27T19:46:17.921503+00:00",
+  "base_commit": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "reviewed_commit": "c534e008f39785e1cd98ab5473ec9421a6828845",
+  "reviewed_tree": "d771358a8564b2ea6ac498b9f5c9d3af09cf349b",
+  "worktree_clean": true,
+  "source_files": [
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "sha256": "0ac1da4cd64ba1cba8b87886b8b79a9b3e9739d5db7b9fb8b3a1683564acc644",
+      "git_blob": "8e2336a5cc5728ac6fbf3078458e915db76f0cc6"
+    },
+    {
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "sha256": "f2ca0d80627c67b6986558d6089460fee0cab4b8573c9fdc19a4286881c87d15",
+      "git_blob": "144bfc0c0fbba13443cafa6d9bbd6764095cd452"
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "sha256": "51642942b70bede175e9484543b6ca81e66a98d1aea77ad22412a001c022a1f9",
+      "git_blob": "c388436a50d10ec26fba739a9646ed531f84b44f"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "sha256": "d8a6a51533e67eeebc5a8eb1b793a53ab4f9cf8f4c27658cf38b5e76079b2f8f",
+      "git_blob": "2b6a3a4a6239897737402452c6383d3b5854a60b"
+    }
+  ],
+  "complete_diff_sha256": "972884baf2e60c74cf5eb0acc2786c37aa10d66292c9745bef81a12a7059d4b3",
+  "decision": "approved",
+  "open_findings": [],
+  "scope_de": "Unabhängiger enger Review der Anpassung des #844-Restpatches an den tatsächlich integrierten #845-Erstfix auf 7a. Backend-Konfliktauflösung, Farbpriorität und Erhalt der übernommenen Erkennungs-/Datums-/Ausnahme-/Exportregeln. Keine erneute initiale #845-Implementierung.",
+  "conclusions_de": [
+    "Beide Codecs geben akzentFarbe und icsCalendarColor jetzt für alle bereits erkannten Jahrestage mit; die Voraussetzungen für die Erkennung selbst bleiben unverändert.",
+    "Die Kalenderfarbe kann deshalb über den bestehenden CalendarItems-/DTO-Pfad auch eigene Jahrestage erreichen. Eigene Eintragsfarbe, Standard-COLOR und Kalenderfarbe behalten die bestehende Rangfolge.",
+    "Der Vergleich mit dem aus den obersten rohen Eigenschaften berechneten wirksamen Akzent erhält widersprechendes parametriertes COLOR, solange die wirksame Farbe unverändert ist. Eine tatsächliche Änderung oder Löschung stellt die bekannte alte Standardfarbe nicht wieder her.",
+    "Die Umbenennung der Schleifenvariable verhindert die lokale Überschattung von gettext; sie ändert keine Providerregel.",
+    "Die zwölf unten nachvollziehbar begrenzten Erhaltungsprüfungen bestätigen unveränderte relevante Upstream-Abschnitte bzw. unveränderte Tests mit nur vier ergänzten Farbprüfzeilen."
+  ],
+  "upstream_preservation_checks": [
+    {
+      "scope": "_nextcloud_geburtstagsdatum",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "selector": {
+        "python_ast_function": "_nextcloud_geburtstagsdatum"
+      },
+      "base_sha256": "8583810fa4c0bbdd4b89c93fdbe7298c27792f9924a0a925377780a9eeb530b2",
+      "candidate_sha256": "8583810fa4c0bbdd4b89c93fdbe7298c27792f9924a0a925377780a9eeb530b2",
+      "byte_equal": true
+    },
+    {
+      "scope": "_jahrestag_zeilen",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "selector": {
+        "python_ast_function": "_jahrestag_zeilen"
+      },
+      "base_sha256": "b0e759fbad41d39dcfb5def0e826ef8659c56c7f0e3054b777e099c7e479ced6",
+      "candidate_sha256": "b0e759fbad41d39dcfb5def0e826ef8659c56c7f0e3054b777e099c7e479ced6",
+      "byte_equal": true
+    },
+    {
+      "scope": "Python annual/provider eligibility",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "selector": {
+        "start_inclusive": "    typ_id = jahrestag_typ_id(wert(\"X-MAGNOLIE-TYPE-ID\"))",
+        "end_exclusive": "        ergebnis[\"jahrestage\"].append({"
+      },
+      "base_sha256": "a0b0bf655704b406df6945266f16d7b2e05b8f3eba8b4ff2151a076c47227c4b",
+      "candidate_sha256": "a0b0bf655704b406df6945266f16d7b2e05b8f3eba8b4ff2151a076c47227c4b",
+      "byte_equal": true
+    },
+    {
+      "scope": "Python provider anchor retention",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "selector": {
+        "start_inclusive": "        provider_datum = _nextcloud_geburtstagsdatum(haupt_props)",
+        "end_exclusive": "    akzent = _kalender_akzentfarbe(eintrag.get(\"akzentFarbe\"))"
+      },
+      "base_sha256": "0be67355f5e1de8de905c75da02958b37dd2751228ba4a6899f394a46af69aeb",
+      "candidate_sha256": "0be67355f5e1de8de905c75da02958b37dd2751228ba4a6899f394a46af69aeb",
+      "byte_equal": true
+    },
+    {
+      "scope": "C# Nextcloud marker and date helpers",
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "selector": {
+        "start_inclusive": "    private const string NextcloudBirthdayType",
+        "end_exclusive": "    internal static bool IsUnboundedAnnualRule"
+      },
+      "base_sha256": "c329023ea15ab02a6cced85dcc962fe4500d32c9f654900113ae0576fcf95801",
+      "candidate_sha256": "c329023ea15ab02a6cced85dcc962fe4500d32c9f654900113ae0576fcf95801",
+      "byte_equal": true
+    },
+    {
+      "scope": "C# detached-instance prepass",
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "selector": {
+        "start_inclusive": "        var detachedUids = new HashSet<string>(StringComparer.Ordinal);",
+        "end_exclusive": "        foreach (var line in unfolded)"
+      },
+      "base_sha256": "a2f88aac1fedc345158267f42f244c8191bff8bd3fe7dcbe6a425dca111d0aa6",
+      "candidate_sha256": "a2f88aac1fedc345158267f42f244c8191bff8bd3fe7dcbe6a425dca111d0aa6",
+      "byte_equal": true
+    },
+    {
+      "scope": "C# provider eligibility",
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "selector": {
+        "start_inclusive": "        var anniversaryType = IcsText(First(values, \"X-MAGNOLIE-TYPE-ID\")",
+        "end_exclusive": "            var item = new JsonObject { [\"uid\"] = IcsText(First(values, \"UID\")?.Value ?? \"\"), [\"name\"] = title,"
+      },
+      "base_sha256": "c690c050bf7b5c7cd94a1d3b36406a33cccbe6a3e9baa31ff47828931cec15b1",
+      "candidate_sha256": "c690c050bf7b5c7cd94a1d3b36406a33cccbe6a3e9baa31ff47828931cec15b1",
+      "byte_equal": true
+    },
+    {
+      "scope": "C# adopted anniversary exporter",
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "selector": {
+        "start_inclusive": "    private static IEnumerable<string> AnniversaryLines",
+        "end_exclusive": "    private static IEnumerable<string> TaskLines"
+      },
+      "base_sha256": "f3c82451b4c3f6eaed4afd240ebd1fad5f6d3d70a9fcddad1dc1146bb99ad58f",
+      "candidate_sha256": "f3c82451b4c3f6eaed4afd240ebd1fad5f6d3d70a9fcddad1dc1146bb99ad58f",
+      "byte_equal": true
+    },
+    {
+      "scope": "C# provider-anchor roundtrip branch",
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "selector": {
+        "start_inclusive": "            var providerDate = NextcloudBirthdayDate(TopLevelProperties(raw.Select(ParseIcsProperty).OfType<IcsProperty>()));",
+        "end_exclusive": "        if (!anniversary && lines[0] == \"BEGIN:VEVENT\""
+      },
+      "base_sha256": "b62660d6d70b918c5887aa4e0f912c471f0bc5add56a3cb3378f63bbe9d82404",
+      "candidate_sha256": "b62660d6d70b918c5887aa4e0f912c471f0bc5add56a3cb3378f63bbe9d82404",
+      "byte_equal": true
+    },
+    {
+      "scope": "Existing upstream #845 test whole file",
+      "path": "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py",
+      "selector": {
+        "whole_file": true
+      },
+      "base_sha256": "c0039cb762f03ba7ded68d8a0ea476ff3d23a339862dd647306aeb8416d11075",
+      "candidate_sha256": "c0039cb762f03ba7ded68d8a0ea476ff3d23a339862dd647306aeb8416d11075",
+      "byte_equal": true
+    },
+    {
+      "scope": "Existing upstream #845 test whole file",
+      "path": "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs",
+      "selector": {
+        "whole_file": true
+      },
+      "base_sha256": "0b12f5ee85325e07a032bb80bf10ba383768b0adfbbcd4212a1f2ec5025d5cb7",
+      "candidate_sha256": "0b12f5ee85325e07a032bb80bf10ba383768b0adfbbcd4212a1f2ec5025d5cb7",
+      "byte_equal": true
+    },
+    {
+      "scope": "Upstream birthday display test retained plus colour-specific assertions",
+      "path": "magnolie-organizer-windows/tests/birthday-display.js",
+      "added_lines": 4,
+      "removed_lines": 0,
+      "preserved": true
+    }
+  ],
+  "tests_executed_by_reviewer": 0,
+  "test_boundary_de": "Dieser Abschluss ist eine statische Differenzprüfung mit Byte-/Git-Bindung. Die aktuellen Python-, C#-, DOM- und Pipeline-Läufe stammen vom Patchautor und sind im benachbarten manifest.json dokumentiert; sie wurden hier nicht erneut ausgeführt. Die älteren eigenen Ausführungen auf a6462407 bleiben historische Nachweise und werden nicht als neue Tests auf c534e008 ausgegeben.",
+  "author_evidence_manifest": "manifest.json",
+  "historical_review": "../independent-final-review.json",
+  "limitations_de": [
+    "Keine native GTK-/WebView-/Endgeräte-/Live-Provider-Abnahme.",
+    "Unbekannte oder parametrisierte Kalenderkopf-Farben erhalten dadurch kein neues vollständiges Metadatenmodell.",
+    "Die gesondert bestätigten #845-Reste für Linux-DAV-Scope und Februar-Regel nach Typ-/Jahresänderung sind nicht Bestandteil dieses #844-Commits."
+  ]
+}

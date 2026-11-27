@@ -1,0 +1,11 @@
+OBSERVATION {"hidden_organizer_option_counts":[0,0,0,0,0],"regular_open_close_ms":[29.999091,18.116899,25.110677,23.736362,22.266064]}
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer-windows/app/web · five regular open/close cycles build no unused organizer options
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer-windows/app/web · focus and each query stay bounded while the last contact and company remain reachable
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer-windows/app/web · duplicate names keep all exact-name email choices and free organizer input still saves
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer-windows/app/web · editing retains the selected organizer and exact-name email choices before focus
+OBSERVATION {"hidden_organizer_option_counts":[0,0,0,0,0],"regular_open_close_ms":[15.519813,8.674444,8.343857,13.650418,18.149368]}
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer/web · five regular open/close cycles build no unused organizer options
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer/web · focus and each query stay bounded while the last contact and company remain reachable
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer/web · duplicate names keep all exact-name email choices and free organizer input still saves
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer/web · editing retains the selected organizer and exact-name email choices before focus
+8/8 organizer suggestion cases passed (actual desktop JavaScript in JSDOM)

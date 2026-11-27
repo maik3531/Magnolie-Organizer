@@ -1,0 +1,25 @@
+{
+  "name": "core-search",
+  "command": [
+    "node",
+    "--max-old-space-size=2048",
+    "/workspace/scratch/7203da5bd564/open-audit/performance/core-search.cjs"
+  ],
+  "cwd": "/workspace/scratch/7203da5bd564/open-audit-performance-tests",
+  "env": {
+    "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+    "MAGNOLIE_SPUR": "1"
+  },
+  "base_commit": "50b1512234a765635f82af4537f277594fbf9878",
+  "exit_code": 0,
+  "elapsed_s": 19.802,
+  "child_maxrss_kib": 324660,
+  "child_user_s": 19.55883,
+  "child_system_s": 0.801599,
+  "stop_reason": null,
+  "rss_sample_count": 79,
+  "script_sha256": "4d012c751b1ace653fcbdcb8625f7acc52dc6f49eb5b0672488c367fab59f668",
+  "node_version": "v24.22.3",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "measurement_boundary": "Unchanged source harness in Node/JSDOM with synthetic bridge ACKs; no native GUI, disk Save, tray or month-long execution. RSS includes harness/fixtures/DOM. No explicit GC."
+}

@@ -1,0 +1,3 @@
+PASS
+PASS
+[{"source": "magnolie-organizer/web/anwendung.js", "sha256": "2c4be5692ba5c5b8863600e1ad698f2b29d233d778d3f29d0fe701018eee4293", "macOS_timezone_adapter": "PASS", "tablet_timezone_adapter": "PASS", "native_claim": false}, {"source": "magnolie-organizer-windows/app/web/anwendung.js", "sha256": "eba45644c432793e892d61b9e73055526ae9a8e1cc6be0d7939a735cb5f7bd07", "macOS_timezone_adapter": "PASS", "tablet_timezone_adapter": "PASS", "native_claim": false}]

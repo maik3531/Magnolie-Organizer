@@ -1,0 +1,77 @@
+{
+  "contact_count": 2003,
+  "distinct_display_names": 2002,
+  "source_base": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "source_commit": "38edd46ef18259e232c786bf2e8e88903f96b655",
+  "observations": {
+    "baseline": {
+      "Windows": {
+        "hidden_organizer_option_counts": [
+          2002,
+          2002,
+          2002,
+          2002,
+          2002
+        ],
+        "regular_open_close_ms": [
+          360.96818,
+          262.339375,
+          284.122123,
+          314.954907,
+          304.850908
+        ]
+      },
+      "Linux": {
+        "hidden_organizer_option_counts": [
+          2002,
+          2002,
+          2002,
+          2002,
+          2002
+        ],
+        "regular_open_close_ms": [
+          241.465728,
+          243.729594,
+          235.816002,
+          240.417524,
+          249.497594
+        ]
+      }
+    },
+    "final": {
+      "Windows": {
+        "hidden_organizer_option_counts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "regular_open_close_ms": [
+          31.906022,
+          20.146638,
+          18.68988,
+          20.12785,
+          22.602027
+        ]
+      },
+      "Linux": {
+        "hidden_organizer_option_counts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "regular_open_close_ms": [
+          14.957408,
+          8.128016,
+          8.828349,
+          7.26965,
+          8.663025
+        ]
+      }
+    }
+  },
+  "timing_limit_de": "Einzelne lokale JSDOM-Messungen mit kontrollierten Timern; keine native Latenzgarantie und kein universeller Faktor. DOM-Knotenzahl ist der primäre Nachweis."
+}

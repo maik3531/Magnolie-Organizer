@@ -1,0 +1,23 @@
+{
+  "status": "optional_proposals_for_user_decision_only",
+  "implemented": false,
+  "issues_created": false,
+  "proposals": [
+    {
+      "title_de": "Eigene Favoriten für Arbeitsarten",
+      "idea_de": "Zusätzlich zu Training/Meeting ein paar selbst benannte Arbeitsarten als wählbare Favoriten anbieten, etwa Fahrt, Beratung oder Support. Die vorhandene freie Eingabe und bisherige Vorgabe bleiben nutzbar.",
+      "benefit_de": "Wiederkehrende Tätigkeiten lassen sich konsistent mit einer Auswahl erfassen, ohne Bezeichnungen jedes Mal neu einzugeben.",
+      "scope_de": "Neue optionale Bedienhilfe; keine Bedingung für die bereits implementierte Arbeitsart-Vorgabe und die native Restabnahme #306.",
+      "basis": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/ui/ZeitArtOptionen.kt#L11",
+      "observed_de": "Aktuell gibt es eine freie Bezeichnung und genau zwei feste Vorschlagsknöpfe Training/Meeting."
+    },
+    {
+      "title_de": "Druckauswahl „Nur Tage mit Einträgen“",
+      "idea_de": "Für den Monatsbericht neben Alle Tage und Einzelwahl einen eigenen Druckfilter für Tage mit Zeiteinträgen anbieten. Lösch-/Papierkorbauswahl dadurch nicht verändern.",
+      "benefit_de": "Der gewünschte kompakte Monatsnachweis benötigt weniger manuelle Tagesauswahl; leere Monatsvorlagen bleiben über Alle Tage weiterhin möglich.",
+      "scope_de": "Optionale Erweiterung der vorhandenen Druckauswahl, kein neuer Drucker-Backendauftrag und kein Ersatz für #322.",
+      "basis": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/ui/ZeitMonate.kt#L50",
+      "observed_de": "Aktuell stehen Alle Tage oder ein Kontrollkästchen für jeden Tag des Monats zur Verfügung."
+    }
+  ]
+}

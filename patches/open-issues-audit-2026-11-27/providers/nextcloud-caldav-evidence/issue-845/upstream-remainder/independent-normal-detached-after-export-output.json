@@ -1,0 +1,181 @@
+[
+  {
+    "id": "independent-normal-birthday",
+    "payload": {
+      "art": "ics",
+      "abgebrochen": false,
+      "datei": "independent-normal-birthday.ics",
+      "termine": [
+        {
+          "uid": "independent-normal-birthday#20260417",
+          "datum": "2026-04-18",
+          "endDatum": "",
+          "zeit": "",
+          "endZeit": "",
+          "titel": "Moved synthetic birthday",
+          "notiz": "",
+          "kategorien": "",
+          "ort": "",
+          "akzentFarbe": "",
+          "icsCalendarColor": "",
+          "vertraulich": false,
+          "vorlaeufig": false,
+          "kostenstelle": "",
+          "kunde": "",
+          "standardErinnerung": true,
+          "individuelleErinnerungTage": 0,
+          "icsAusnahmen": [],
+          "icsAusnahmeTermine": [],
+          "icsZusatzDaten": [],
+          "icsZusatzTermine": [],
+          "wiederholung": {
+            "art": "none",
+            "bis": "",
+            "intervall": 1,
+            "ordinal": 0,
+            "wochentag": "",
+            "rruleForm": ""
+          },
+          "icsKomplex": true,
+          "icsSerienUid": "independent-normal-birthday",
+          "icsStatus": "",
+          "icsAnzeigeZeitzone": "Europe/Berlin",
+          "icsEndeFehlt": true,
+          "icsNullDauer": false,
+          "icsRoundtrip": [
+            "RECURRENCE-ID;VALUE=DATE:20260417",
+            "DTSTART;VALUE=DATE:20260418",
+            "SUMMARY:Moved synthetic birthday"
+          ],
+          "geaendert": 0,
+          "icsQuelleId": "ics:ec9499f2e8713c11f1b59b0f2c79a11d1148394ea330fd2226594faafb4709bf"
+        }
+      ],
+      "jahrestage": [
+        {
+          "uid": "independent-normal-birthday",
+          "name": "Synthetic birthday",
+          "datum": "1985-04-17",
+          "typ": "birthday",
+          "notiz": "",
+          "icsRoundtrip": [
+            "RRULE:FREQ=YEARLY",
+            "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY",
+            "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0",
+            "X-NEXTCLOUD-BC-YEAR:1985"
+          ],
+          "geaendert": 1795808949000,
+          "icsQuelleId": "ics:ec9499f2e8713c11f1b59b0f2c79a11d1148394ea330fd2226594faafb4709bf"
+        }
+      ],
+      "geburtstage": [],
+      "aufgaben": [],
+      "kontakte": [],
+      "notizen": null,
+      "uebersprungen": 0,
+      "wiederholend": 0,
+      "bericht": ""
+    },
+    "exports": {
+      "termine": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:independent-normal-birthday\r\nDTSTAMP:20261127T194910Z\r\nDTEND;VALUE=DATE:20260419\r\nSUMMARY:Moved synthetic birthday\r\nRECURRENCE-ID;VALUE=DATE:20260417\r\nDTSTART;VALUE=DATE:20260418\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "independent-normal-birthday.ics",
+          "termine": [
+            {
+              "uid": "independent-normal-birthday#20260417",
+              "datum": "2026-04-18",
+              "endDatum": "",
+              "zeit": "",
+              "endZeit": "",
+              "titel": "Moved synthetic birthday",
+              "notiz": "",
+              "kategorien": "",
+              "ort": "",
+              "akzentFarbe": "",
+              "icsCalendarColor": "",
+              "vertraulich": false,
+              "vorlaeufig": false,
+              "kostenstelle": "",
+              "kunde": "",
+              "standardErinnerung": true,
+              "individuelleErinnerungTage": 0,
+              "icsAusnahmen": [],
+              "icsAusnahmeTermine": [],
+              "icsZusatzDaten": [],
+              "icsZusatzTermine": [],
+              "wiederholung": {
+                "art": "none",
+                "bis": "",
+                "intervall": 1,
+                "ordinal": 0,
+                "wochentag": "",
+                "rruleForm": ""
+              },
+              "icsKomplex": true,
+              "icsSerienUid": "independent-normal-birthday",
+              "icsStatus": "",
+              "icsAnzeigeZeitzone": "Europe/Berlin",
+              "icsEndeFehlt": false,
+              "icsNullDauer": false,
+              "icsRoundtrip": [
+                "DTEND;VALUE=DATE:20260419",
+                "SUMMARY:Moved synthetic birthday",
+                "RECURRENCE-ID;VALUE=DATE:20260417",
+                "DTSTART;VALUE=DATE:20260418"
+              ],
+              "geaendert": 1795808950000,
+              "icsQuelleId": "ics:ec9499f2e8713c11f1b59b0f2c79a11d1148394ea330fd2226594faafb4709bf"
+            }
+          ],
+          "jahrestage": [],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      },
+      "jahrestage": {
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:independent-normal-birthday\r\nDTSTAMP:20261127T194910Z\r\nDTSTART;VALUE=DATE:19850417\r\nSUMMARY:Synthetic birthday\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:birthday\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nRRULE:FREQ=YEARLY\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\nX-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1985\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport": {
+          "art": "ics",
+          "abgebrochen": false,
+          "datei": "independent-normal-birthday.ics",
+          "termine": [],
+          "jahrestage": [
+            {
+              "uid": "independent-normal-birthday",
+              "name": "Synthetic birthday",
+              "datum": "1985-04-17",
+              "typ": "birthday",
+              "notiz": "",
+              "icsRoundtrip": [
+                "DTSTART;VALUE=DATE:19850417",
+                "RRULE:FREQ=YEARLY",
+                "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY",
+                "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0",
+                "X-NEXTCLOUD-BC-YEAR:1985"
+              ],
+              "geaendert": 1795808950000,
+              "akzentFarbe": "",
+              "icsCalendarColor": "",
+              "icsQuelleId": "ics:ec9499f2e8713c11f1b59b0f2c79a11d1148394ea330fd2226594faafb4709bf"
+            }
+          ],
+          "geburtstage": [],
+          "aufgaben": [],
+          "kontakte": [],
+          "notizen": null,
+          "uebersprungen": 0,
+          "wiederholend": 0,
+          "bericht": ""
+        }
+      }
+    }
+  }
+]

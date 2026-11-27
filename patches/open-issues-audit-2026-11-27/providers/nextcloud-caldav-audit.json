@@ -1,0 +1,232 @@
+{
+  "base": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "date": "2026-11-27",
+  "decision_de": "Nextcloud/CalDAV/CardDAV besitzen wesentliche Desktopfunktionen, aber eine allgemeine Zusage reibungsloser vollständiger Synchronisation wäre nicht belegt. Die BDAY-Grundklassifikation ist upstream7a490dd8 behoben. Die getrennten geprüften Folgecommits559c5c1f und573905f5 korrigieren Linux-DAV-Erfolg mit ausgelassenem Jahrestag, Monatsende-Regelverlust bei Typ-/Jahresänderung und den tatsächlichen normalen C#-Export mit nachträglicher Serienausnahme. Vollständiger Linux-Jahrestags-Sync #441, Portkoordination und echte Server-/Neustart-/Konfliktabnahme #683 bleiben offen.",
+  "implemented": [
+    {
+      "area": "Desktop DAV Discovery/Transport",
+      "detail_de": "Nextcloud- und generische DAV-Konten, well-known-/Home-Ermittlung, stabile quellengebundene IDs, ausgewählte Kalender/Adressbücher, VTODO-Fähigkeit, vollständige Ressourcen, HTTPS-/Origin-/Größengrenzen sowie bedingte PUT/DELETE sind vorhanden. CardDAV ermittelt Updateprivilegien dreistufig; unbekannt ist keine pauschale Schreibfreigabe.",
+      "sources": [
+        "magnolie-organizer/bin/magnolie_nextcloud.py",
+        "magnolie-organizer-windows/NextcloudDav.cs"
+      ]
+    },
+    {
+      "area": "Konflikte/Löschen/Wiederherstellung",
+      "detail_de": "Exakte ETag-Preconditions, 412-/Konfliktpfade, erstadditive Synchronisation, Quellen/Baselines, Wiederherstellungsepoche und Löschquarantäne sind vorhandene Schutzmechanismen. Serienressourcen werden mit UID/Instanzidentität behandelt; eine Teilinstanz darf nicht blind die gesamte Ressource löschen. Erfolgreiches HTTP allein ersetzt keinen gespeicherten Buch-/Journalabschluss.",
+      "sources": [
+        "magnolie-organizer/bin/magnolie-organizer",
+        "magnolie-organizer-windows/NextcloudDav.cs"
+      ]
+    },
+    {
+      "area": "Kalender-/Kontaktsemantik",
+      "detail_de": "VEVENT/VTODO, vCard-Geburtstage und Jahrestage, eigene typisierte Jahrestage, Kalender-/Komponentenfarben und komplexe rohe ICS sind vorhanden. Nicht vollständig editierbare komplexe Serien bleiben teils geschützt. Kontakt-BDAY aus CardDAV und Nextclouds daraus erzeugtes Birthday-VEVENT sind unterschiedliche Eingangswege.",
+      "sources": [
+        "magnolie-organizer/bin/magnolie-organizer",
+        "magnolie-organizer-windows/ExchangeCodec.cs",
+        "magnolie-organizer-windows/NextcloudDav.cs"
+      ]
+    }
+  ],
+  "confirmed_gaps": [
+    {
+      "issue": 845,
+      "kind": "source_bug",
+      "detail_de": "Die ursprüngliche BDAY-Grundlücke ist seit7a490dd8 behoben. Der historische8d-Alternativpatch wird nicht erneut angewendet. Die aktuelle geprüfte Folge559c5c1f→573905f5 korrigiert die konkret verbliebenen Scope-/Serienpfade. Vollständige #441-Integration und reale #683-Abnahme bleiben offen.",
+      "evidence": [
+        "nextcloud-caldav-evidence/linux-marker-results.json",
+        "nextcloud-caldav-evidence/windows-marker-results.json"
+      ],
+      "patch": {
+        "issue": 845,
+        "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/845",
+        "status": "current_reviewed_followup_on_upstream",
+        "commit": "573905f561f00537c39a98133aa8e7719239a4af",
+        "parent": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+        "tree": "76b67280d07756efcf6741231e0992b0e446edd7",
+        "branch": "audit/845-upstream-remainder",
+        "worktree": "/workspace/scratch/7203da5bd564/open-audit-845-remainder",
+        "patch": null,
+        "patch_sha256": null,
+        "base_already_contains": "Upstream Nextcloud-BDAY-Grundkorrektur7a490dd8",
+        "do_not_apply_initial_patch": "8d7263fda398f7ee0cbe6b9f5b7bab3e9d6c5f5a",
+        "inputs": {
+          "magnolie-organizer/bin/magnolie-organizer": "a709b549469f686ed43b5de2a21f74ccf48347d6f24cba6a86832966a2c651cf",
+          "magnolie-organizer-windows/ExchangeCodec.cs": "99916294d70392d04fb4ac7f6beb5b00da0c344adc96ab4dbbaf799098815de0",
+          "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py": "daf71563c3cc88067de0c62873d8f2b25730e69b097c68645105b60f5b00b88e",
+          "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs": "45d368fc2917ef552e7e3624b8f897af0f2a8b180e6f7f8866f44f4cb01bcf50"
+        },
+        "tests": {
+          "python_before": {
+            "passed": 19,
+            "failed": 6
+          },
+          "python_after": {
+            "passed": 25,
+            "failed": 0
+          },
+          "csharp_before": "Nextcloud ICS birthdays: FAIL at edited last-February RRULE",
+          "csharp_after": [
+            "Nextcloud ICS birthdays: PASS1/1",
+            "Nextcloud CalDAV: PASS1/1"
+          ],
+          "build": "0warnings/0errors",
+          "additional_guard": {
+            "baseline": "New exact C# import/export/detached regression FAIL on559c; normal control passed before the failing assertion",
+            "after": "Nextcloud ICS birthdays PASS1/1; build0warnings/0errors",
+            "other_input_binding": "Both Python inputs from559c remain byte-identical; no repeated Python execution."
+          }
+        },
+        "source_scope_de": "Vorhandene Monatsende-Regel bei weiterhin29.Februar erhalten und explizite Jahrestagstypen entsprechend reimportieren; bestehende Detached-Abgrenzung auch beim tatsächlichen normalen NC-BDAY-Export mit eigenem Typmarker beachten; Linux-DAV vor stiller Auslassung des nicht integrierten #441-Scopes schützen. Keine ursprüngliche Nextcloud-Erkennung ersetzt.",
+        "limitations_de": "Kein Live-Server/GUI/Device. Kein vollständiger Linux-Jahrestags-Sync. Die zusätzlichen C#-Regressionsfälle belegen genau die erhaltene Februarregel und den tatsächlichen NC-BDAY-Import/Export/Detached-Weg; keine pauschale Abnahme beliebiger Fremdserien. Die übrigen Nachweise bleiben an ihre tatsächlichen Quellstände gebunden.",
+        "manifest": "final-manifest.json",
+        "baseline_manifest": "baseline-manifest.json",
+        "independent_review": "independent-review.json",
+        "commits_in_order": [
+          "559c5c1f103caf0be09d381e0ca59f2e07b9e608",
+          "573905f561f00537c39a98133aa8e7719239a4af"
+        ],
+        "patches": [
+          {
+            "file": "0008-Refs-845-followup-on-7a490dd8.patch",
+            "sha256": "dc24b369800cdc78a33d62eeeb08d79cc5a8fa300a9509f700e2223c1288dd23",
+            "commit": "559c5c1f103caf0be09d381e0ca59f2e07b9e608",
+            "parent": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2"
+          },
+          {
+            "file": "0009-Refs-845-exported-birthday-detached-guard.patch",
+            "sha256": "5b984bda0f31c3fe17d841deb091c5ce8c9476b8a49b1e61e6bcce83bb839cd6",
+            "commit": "573905f561f00537c39a98133aa8e7719239a4af",
+            "parent": "559c5c1f103caf0be09d381e0ca59f2e07b9e608"
+          }
+        ],
+        "additional_guard_manifest": "normal-detached-final-manifest.json",
+        "additional_guard_baseline": "normal-detached-baseline-manifest.json",
+        "additional_guard_independent_review": "independent-normal-detached-fix-review.json",
+        "independent_reviews": [
+          "independent-review.json",
+          "independent-normal-detached-fix-review.json"
+        ]
+      },
+      "current_upstream_adoption": "nextcloud-caldav-evidence/issue-845/upstream-adoption.json",
+      "current_remainder": "nextcloud-caldav-evidence/issue-845/upstream-remainder",
+      "original_alternative_patch": "nextcloud-caldav-evidence/issue-845/delivery.json"
+    },
+    {
+      "issue": 441,
+      "kind": "feature_or_integration_remaining",
+      "detail_de": "Linux besitzt weiterhin keinen vollständigen typisierten CalDAV-Jahrestagsabgleich. Ein ausdrücklicher Schutz bricht vor Kalenderwrites ab. Der #845-Dateicodecfix ersetzt diese Integration nicht; erkannte Nextcloud-BDAY dürfen im vorhandenen Termin-Sync nicht still ausgelassen werden.",
+      "source": "magnolie-organizer/bin/magnolie-organizer",
+      "anchor": "_nextcloud_sync_ausfuehren / pruefe_jahrestagsbereich"
+    },
+    {
+      "issue": 683,
+      "kind": "acceptance_and_port_integration",
+      "detail_de": "Echter zugelassener DAV-Server: Farben setzen/ändern/leeren; If-Match/412; parallele Änderungen; alte cleanHash-Baselines; fremde Parameter; Export/Reimport/weiterer Sync; Neustart und dauerhafter Journal-/Buchabschluss. Mac-/Tablet-DAV-Koordination bleibt eigenständiger Portrest.",
+      "evidence": [
+        "nextcloud-caldav-evidence/issue-683-current.json"
+      ]
+    }
+  ],
+  "limits": [
+    {
+      "area": "Große Sammlungen / sync-token",
+      "detail_de": "Beide Desktopwege holen derzeit vollständige calendar-query/addressbook-query-REPORTs. Linux fordert bei Discovery sync-token an, übernimmt ihn aber nicht in eine inkrementelle sync-collection-Strategie. Windows verwendet ebenfalls keine entsprechende inkrementelle Tokenkette. Das ist ein konkreter Skalierungsrest; 50.000 Serverobjekte sind damit nicht als flüssig oder vollständig akzeptiert.",
+      "linux_limits": {
+        "discovery_xml_bytes": 2097152,
+        "report_and_object_bytes": 44040192
+      },
+      "windows_limits": {
+        "xml_report_bytes": 16777216,
+        "object_bytes": 4194304
+      },
+      "sources": [
+        "magnolie-organizer/bin/magnolie_nextcloud.py",
+        "magnolie-organizer-windows/NextcloudDav.cs"
+      ]
+    },
+    {
+      "area": "Schreibgeschützte/geteilte Kalender",
+      "detail_de": "Explizit als ReadOnly bekannte Quellen werden geschützt. Die allgemeine Kalender-Discovery ermittelt aber nicht dieselbe vollständige Schreibprivilegienlage wie der CardDAV-Kontaktweg. ReadOnly-/Sharing-Verhalten aller echten Nextcloud-Kalender ist deshalb nicht durch diese Quellprüfung belegt; Serverfehler/403 bleiben maßgeblich. Kein nachgewiesener neuer Datenverlust aus dieser Beobachtung.",
+      "sources": [
+        "magnolie-organizer/bin/magnolie_nextcloud.py",
+        "magnolie-organizer-windows/NextcloudDav.cs"
+      ]
+    },
+    {
+      "area": "Offline und Authentisierung",
+      "detail_de": "Transportfehler, Geheimnisspeicher, Kontorevisionen und Wiederaufnahme besitzen Schutzpfade. Eine allgemeine Zusage für beliebige Offlineänderung plus spätere konfliktfreie Zusammenführung wäre dennoch unbelegt. Reale App-Passwortänderung, Widerruf, Unterpfadinstallation, Berechtigungswechsel und dauerhafte Speicherung gehören in die Server-/Native-Abnahme.",
+      "sources": [
+        "magnolie-organizer/bin/magnolie_nextcloud.py",
+        "magnolie-organizer-windows/NextcloudDav.cs"
+      ]
+    },
+    {
+      "area": "Mac und Android-Tablet",
+      "detail_de": "Mac bindet Kontokonfiguration/Test/Discovery im tatsächlichen Host ein; DAV-Planer-/Journal-/Lease-Bausteine und begrenzter Apple-Feldabgleich sind vorhanden, aber kein vollständiger daraus belegter DAV-Syncabschluss. Android-Providerkopien sind eigenständig und benötigen keine Notes-/KDE-Paarung; diese Kopien sind kein direkter CalDAV-/CardDAV-Synchronisationsnachweis.",
+      "sources": [
+        "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift",
+        "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/DavAccountService.kt",
+        "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/SystemSourceBridge.kt"
+      ]
+    }
+  ],
+  "new_tests": [
+    {
+      "name": "Linux vorhandene DAV-/Farb-/Cleanup-/Kontaktfactory-Regressionen",
+      "base": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+      "result": "194 passed, 4 failed",
+      "detail_de": "Drei Fälle sind wegen fehlendem gi/GLib im Host blockiert. Ein echter Fehler im ungültigen ICS-Pfad (lokales _ verdeckt gettext) ist in #844-Folge a6462407 korrigiert und dort gezielt grün nachgeprüft. Kein Grün für die drei GLib-Fälle behauptet.",
+      "manifest": "nextcloud-caldav-evidence/linux-existing-tests-manifest.json"
+    },
+    {
+      "name": "Windows Nextcloud CalDAV / CardDAV / Discovery / ETag / Sicherheit",
+      "result": "PASS 1/1 group",
+      "detail_de": "Bestehende tatsächliche C#-Klassen mit kontrolliertem HttpClient/Fixtures; umfasst u.a. Farben und Konflikte. 5,889 s Tooldauer. Kein echter Nextcloud-Server.",
+      "manifest": "nextcloud-caldav-evidence/windows-existing-tests-manifest.json"
+    },
+    {
+      "name": "Windows DAV wildcard ETag",
+      "result": "PASS 1/1 group",
+      "detail_de": "Bestehender Versions-/Precondition-Test; 0,616 s Tooldauer.",
+      "manifest": "nextcloud-caldav-evidence/windows-existing-tests-manifest.json"
+    },
+    {
+      "name": "Windows Calendar birthday cleanup",
+      "result": "BLOCKED / process exit 1",
+      "detail_de": "NamedPipeServerStream scheitert im Host mit SocketException(13) Permission denied. Daher keine erfolgreiche Gesamtgruppenabnahme. Kein Produktfehler daraus abgeleitet.",
+      "manifest": "nextcloud-caldav-evidence/windows-existing-tests-manifest.json"
+    },
+    {
+      "name": "Nextcloud-Markerdiagnose in beiden echten Codecs",
+      "result": "2 bestätigte Klassifikationsabweichungen je Codec, 2 passende Kontrollen",
+      "detail_de": "Beobachtungsrunner exit 0 ist kein bestandenes Sollkriterium. Initialer Februarfall hatte FREQ=YEARLY; er ist kein originalgetreues BirthdayService-Leapdaymuster. Der echte Nextcloud-Leapdayfall muss die primärbelegte BYMONTH=2;BYMONTHDAY=-1-Regel verwenden und wird im #845-Patch gesondert geprüft.",
+      "evidence": [
+        "nextcloud-caldav-evidence/linux-marker-results.json",
+        "nextcloud-caldav-evidence/windows-marker-results.json"
+      ]
+    }
+  ],
+  "important_formats_de": "ICS für Termine/Aufgaben/Jahrestage und VCF für Kontakte sind die wesentlichen Nextcloud-Austauschformate und bereits vorhanden; hinzu kommen bestehende CSV-/LDIF-/Claws-/Lotus-OR6-Importwege im Projekt. Es ist hier kein zwingend fehlendes neues Dateiformat belegt. Priorität haben korrekte explizite Typ-/Jahr-/Serien-/Farbsemantik und vollständige freigegebene DAV-Flüsse. PST oder weitere proprietäre Formate wären ein zusätzlicher Nutzerworkflow, nicht Voraussetzung für Nextcloud.",
+  "primary_source": {
+    "url": "https://github.com/nextcloud/server/blob/1ab09ec753f106661beadee1794b390ebec455dd/apps/dav/lib/CalDAV/BirthdayService.php",
+    "sha256": "5e33e9e3840a0e12c1688130a3ba8897323ff41463203ef21d13c36f17bc9c29",
+    "detail_de": "buildDateFromContact: unbekanntes Jahr verwendet technischen DTSTART-Anker 1970 bzw. für 29. Februar 1972. UNKNOWN-YEAR ist nur dann 1; bekanntes ursprüngliches Jahr steht in BC-YEAR. Der 29. Februar wiederholt am letzten Februartag (BYMONTH=2;BYMONTHDAY=-1). Die aktuelle Generatorquelle ist präziser als die verkürzte Wiki-Erläuterung. Vollständige fremde PHP-Quelldateien sind Analysecache und nicht Teil des Lieferumfangs."
+  },
+  "inputs_sha256": {
+    "magnolie-organizer/bin/magnolie-organizer": "7934accd6161750a643bf16dccba4244f59aef031af4024604d6b5d8c52003a9",
+    "magnolie-organizer/bin/magnolie_nextcloud.py": "8c3cac6032aa30fba04dd2719cd296cf4ab1df6c69a6a7e403db0aebdf8df726",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "e12d49b0638356556facab25049a3b32f91d5ad062d552b59d0c6b7bd6f9fa18",
+    "magnolie-organizer-windows/NextcloudDav.cs": "e855919f8267519edf2f2cb8b3847fc8574c4071c25c2b76a54a36d9abae4b4e",
+    "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift": "700a7a72e2bdea18e4cbb708e375e25624d0e602ff512506a6723eef55e9682e",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/DavAccountService.kt": "4558fc38fe9669c76b30c1f83d2e8646c325b072b11962b31fdb0a0d28241260",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/SystemSourceBridge.kt": "f66c630d692425cd78bf4a9e5f428a4db1bb0ce01c7ccf6155b8c38a6d23dce8"
+  },
+  "no_live_acceptance_de": "Keine realen Konten, Server, Nutzerbücher, Geräte, VM-/native GUIs oder installierbaren Pakete wurden verwendet oder freigegeben. Dies sind Quellen-, kontrollierte Transport- und Hostregressionen. Keine Quelle einer Zeit-/Speicherbehauptung über 30 Tage.",
+  "current_review_base": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "reviewed_followup_commits": [
+    "559c5c1f103caf0be09d381e0ca59f2e07b9e608",
+    "573905f561f00537c39a98133aa8e7719239a4af"
+  ]
+}

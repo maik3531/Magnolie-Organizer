@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-27",
+  "source": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "report": "README.md",
+  "source_inputs": {
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Versand.kt": "3708f811eb9ab114278d2dce8142418b3ccc16283d19aa2cb0b709c96345ae13",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Transport.kt": "d536fb865f841ba6b2c19bc959732147a3d9ef6f27e8f189a3ec1607678bc4a5",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt": "c3715079c5bef204bf8611ca40bb2991a1cffd24cf7787bbc94d142f1912ee24",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/BaumDienst.kt": "e53402d939bd39cac0f040395bc459b8a2a3aa7e0fcbfcbd30ed6ff6980ea8c9",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleich.kt": "aafe60506e07d837b84ac4339c4fd5c6845cd9df6e6f0463298924b17d9f7463",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/AutoSync.kt": "90a094f38484454200b6678464ded1be34156185fbdecc73fdf5cbd3a9d03434",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt": "0939d209819f3e46299b34e3daf9da294ebf4f031e2aaa80bdb0ebcbbc3b3c6b",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/ui/BaumBlatt.kt": "9188a2e33a7dfa9a891c5858b5d8b26d95277948c55e4d005e445c911b159161",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/ui/WischVerbindungen.kt": "ecb25a13aec6221ca91296bf4fde171a11f5708643673287007033d7bba8123c",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/daten/Modell.kt": "800a605797883b91557bbc07d27bacbb257665e4cc4f05162f3633ae3e0a1b4a",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/netz/LanFreigabe.kt": "d5069cb447ac908fb695efef9c46f6c1de39ad405f13141c3eb9abfba49d8de9",
+    "magnolie-notes/app/src/main/res/values-de/strings.xml": "6aecf4a57f848304f5bceb8b08737e018c6c41a989cf56f165c3331948aa186c",
+    "magnolie-notes/LIESMICH.md": "a8a401e675f8d644e32d831c81da6818ed348c10d6fc66c721295be996fca877",
+    "magnolie-organizer-windows/MagnolienbaumCoordinator.cs": "11547f72b414f11c0ef23b097075bb7ba87b59ad087c5e609ae213405b63457c",
+    "magnolie-organizer-windows/NextcloudMailbox.cs": "04af03481bac19b2513d6b9f17d5e0e88530a6dffc040830b25e128eb17a8e4b",
+    "magnolie-organizer/web/anwendung.js": "527b00475cd035bcf111b94e382e6b692cca0c6ba29454e2b65a72d7309ca53f"
+  },
+  "findings": {
+    "direct_remote_route": "implemented, explicitly configured reachable endpoint required",
+    "shared_notes": "existing shared note updates queued on save and outbox immediately started; remote route available",
+    "regular_full_sync": "opt-in, default off; active reception and Wi-Fi, trusted confirmed partner and minimum six-hour interval",
+    "full_reply": "separate outgoing message; bidirectional reachability needed",
+    "modern_notes_nextcloud_mailbox": "not implemented; normal FS1 direct path does not use legacy desktop baum-1 WebDAV fallback",
+    "ease_of_setup": "manual host/port and already reachable route; optional guided setup proposed, not implemented"
+  },
+  "test_manifests": [
+    "final-1f1f3225/manifest.json",
+    "corrected-node-path/manifest.json",
+    "final-prepared/manifest.json"
+  ],
+  "limitations": [
+    "No live remote Internet pair, NAT/device/Android power-save or long-running native proof.",
+    "Eight existing Android remote-route tests reviewed, not executed without full Android/Robolectric runtime."
+  ],
+  "protocol_final": {
+    "result": "PASS1/1",
+    "head": "cae1baef60488686577ab74bb964ed980de7114b",
+    "seconds": 80.605,
+    "initial_attempts": "Missing jsdom and then generated timezones: setup errors preserved, not product failures."
+  }
+}

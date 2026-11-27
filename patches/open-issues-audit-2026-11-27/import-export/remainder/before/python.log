@@ -1,0 +1,492 @@
+FFFFFFFFFFF.FFFFFFFFF..FF                                                [100%]
+=================================== FAILURES ===================================
+____ test_colours_survive_native_book_reopen_and_export[birthday-standard] _____
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc639cbf7d0>
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-13/test_colours_survive_native_bo0')
+case = {'expected_accent': '#40e0d0', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'birthday-standard', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_colours_survive_native_book_reopen_and_export(codec, monkeypatch, tmp_path, case):
+        section = case["section"]
+        book = codec.ics_lesen(case["input"])
+        path = tmp_path / "book.json"
+        monkeypatch.setattr(codec, "daten_datei", lambda: str(path))
+        codec.speichere_daten(book)
+        codec._DATEN_ZWISCHENSPEICHER = {"stand": None, "daten": None}
+        reopened = codec.daten_lesen_gepuffert(str(path))
+        item = reopened[section][0]
+>       assert item.get("akzentFarbe", "") == case["expected_accent"]
+E       AssertionError: assert '' == '#40e0d0'
+E         
+E         - #40e0d0
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:29: AssertionError
+_______ test_colours_survive_native_book_reopen_and_export[birthday-own] _______
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc639a26300>
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-13/test_colours_survive_native_bo1')
+case = {'expected_accent': '#112233', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'birthday-own', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_colours_survive_native_book_reopen_and_export(codec, monkeypatch, tmp_path, case):
+        section = case["section"]
+        book = codec.ics_lesen(case["input"])
+        path = tmp_path / "book.json"
+        monkeypatch.setattr(codec, "daten_datei", lambda: str(path))
+        codec.speichere_daten(book)
+        codec._DATEN_ZWISCHENSPEICHER = {"stand": None, "daten": None}
+        reopened = codec.daten_lesen_gepuffert(str(path))
+        item = reopened[section][0]
+>       assert item.get("akzentFarbe", "") == case["expected_accent"]
+E       AssertionError: assert '' == '#112233'
+E         
+E         - #112233
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:29: AssertionError
+____ test_colours_survive_native_book_reopen_and_export[birthday-calendar] _____
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc638fdf050>
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-13/test_colours_survive_native_bo2')
+case = {'expected_accent': '#40e0d0', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'birthday-calendar', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_colours_survive_native_book_reopen_and_export(codec, monkeypatch, tmp_path, case):
+        section = case["section"]
+        book = codec.ics_lesen(case["input"])
+        path = tmp_path / "book.json"
+        monkeypatch.setattr(codec, "daten_datei", lambda: str(path))
+        codec.speichere_daten(book)
+        codec._DATEN_ZWISCHENSPEICHER = {"stand": None, "daten": None}
+        reopened = codec.daten_lesen_gepuffert(str(path))
+        item = reopened[section][0]
+>       assert item.get("akzentFarbe", "") == case["expected_accent"]
+E       AssertionError: assert '' == '#40e0d0'
+E         
+E         - #40e0d0
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:29: AssertionError
+______ test_colours_survive_native_book_reopen_and_export[birthday-apple] ______
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc63900ed50>
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-13/test_colours_survive_native_bo3')
+case = {'expected_accent': '#40e0d0', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'birthday-apple', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_colours_survive_native_book_reopen_and_export(codec, monkeypatch, tmp_path, case):
+        section = case["section"]
+        book = codec.ics_lesen(case["input"])
+        path = tmp_path / "book.json"
+        monkeypatch.setattr(codec, "daten_datei", lambda: str(path))
+        codec.speichere_daten(book)
+        codec._DATEN_ZWISCHENSPEICHER = {"stand": None, "daten": None}
+        reopened = codec.daten_lesen_gepuffert(str(path))
+        item = reopened[section][0]
+>       assert item.get("akzentFarbe", "") == case["expected_accent"]
+E       AssertionError: assert '' == '#40e0d0'
+E         
+E         - #40e0d0
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:29: AssertionError
+__ test_colours_survive_native_book_reopen_and_export[birthday-own-priority] ___
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc6397a2ff0>
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-13/test_colours_survive_native_bo4')
+case = {'expected_accent': '#112233', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'birthday-own-priority', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_colours_survive_native_book_reopen_and_export(codec, monkeypatch, tmp_path, case):
+        section = case["section"]
+        book = codec.ics_lesen(case["input"])
+        path = tmp_path / "book.json"
+        monkeypatch.setattr(codec, "daten_datei", lambda: str(path))
+        codec.speichere_daten(book)
+        codec._DATEN_ZWISCHENSPEICHER = {"stand": None, "daten": None}
+        reopened = codec.daten_lesen_gepuffert(str(path))
+        item = reopened[section][0]
+>       assert item.get("akzentFarbe", "") == case["expected_accent"]
+E       AssertionError: assert '' == '#112233'
+E         
+E         - #112233
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:29: AssertionError
+_ test_colours_survive_native_book_reopen_and_export[birthday-component-priority] _
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc638cd7890>
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-13/test_colours_survive_native_bo5')
+case = {'expected_accent': '#ff0000', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'birthday-component-priority', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_colours_survive_native_book_reopen_and_export(codec, monkeypatch, tmp_path, case):
+        section = case["section"]
+        book = codec.ics_lesen(case["input"])
+        path = tmp_path / "book.json"
+        monkeypatch.setattr(codec, "daten_datei", lambda: str(path))
+        codec.speichere_daten(book)
+        codec._DATEN_ZWISCHENSPEICHER = {"stand": None, "daten": None}
+        reopened = codec.daten_lesen_gepuffert(str(path))
+        item = reopened[section][0]
+>       assert item.get("akzentFarbe", "") == case["expected_accent"]
+E       AssertionError: assert '' == '#ff0000'
+E         
+E         - #ff0000
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:29: AssertionError
+__ test_colours_survive_native_book_reopen_and_export[birthday-partial-leap] ___
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc638d07410>
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-13/test_colours_survive_native_bo6')
+case = {'expected_accent': '#40e0d0', 'expected_date': '--02-29', 'expected_type': 'birthday', 'id': 'birthday-partial-leap', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_colours_survive_native_book_reopen_and_export(codec, monkeypatch, tmp_path, case):
+        section = case["section"]
+        book = codec.ics_lesen(case["input"])
+        path = tmp_path / "book.json"
+        monkeypatch.setattr(codec, "daten_datei", lambda: str(path))
+        codec.speichere_daten(book)
+        codec._DATEN_ZWISCHENSPEICHER = {"stand": None, "daten": None}
+        reopened = codec.daten_lesen_gepuffert(str(path))
+        item = reopened[section][0]
+>       assert item.get("akzentFarbe", "") == case["expected_accent"]
+E       AssertionError: assert '' == '#40e0d0'
+E         
+E         - #40e0d0
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:29: AssertionError
+____ test_colours_survive_native_book_reopen_and_export[anniversary-custom] ____
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc638d3a930>
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-13/test_colours_survive_native_bo7')
+case = {'expected_accent': '#40e0d0', 'expected_date': '2000-02-29', 'expected_type': 'named-anniversary', 'id': 'anniversary-custom', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_colours_survive_native_book_reopen_and_export(codec, monkeypatch, tmp_path, case):
+        section = case["section"]
+        book = codec.ics_lesen(case["input"])
+        path = tmp_path / "book.json"
+        monkeypatch.setattr(codec, "daten_datei", lambda: str(path))
+        codec.speichere_daten(book)
+        codec._DATEN_ZWISCHENSPEICHER = {"stand": None, "daten": None}
+        reopened = codec.daten_lesen_gepuffert(str(path))
+>       item = reopened[section][0]
+E       IndexError: list index out of range
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:28: IndexError
+_ test_colours_survive_native_book_reopen_and_export[jahrestage-parameter-own] _
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc638cde720>
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-13/test_colours_survive_native_bo8')
+case = {'expected_accent': '#112233', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'jahrestage-parameter-own', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_colours_survive_native_book_reopen_and_export(codec, monkeypatch, tmp_path, case):
+        section = case["section"]
+        book = codec.ics_lesen(case["input"])
+        path = tmp_path / "book.json"
+        monkeypatch.setattr(codec, "daten_datei", lambda: str(path))
+        codec.speichere_daten(book)
+        codec._DATEN_ZWISCHENSPEICHER = {"stand": None, "daten": None}
+        reopened = codec.daten_lesen_gepuffert(str(path))
+        item = reopened[section][0]
+>       assert item.get("akzentFarbe", "") == case["expected_accent"]
+E       AssertionError: assert '' == '#112233'
+E         
+E         - #112233
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:29: AssertionError
+__ test_colours_survive_native_book_reopen_and_export[termine-parameter-own] ___
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc638fd87d0>
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-13/test_colours_survive_native_bo9')
+case = {'expected_accent': '#112233', 'expected_date': '2000-02-29', 'expected_type': '', 'id': 'termine-parameter-own', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_colours_survive_native_book_reopen_and_export(codec, monkeypatch, tmp_path, case):
+        section = case["section"]
+        book = codec.ics_lesen(case["input"])
+        path = tmp_path / "book.json"
+        monkeypatch.setattr(codec, "daten_datei", lambda: str(path))
+        codec.speichere_daten(book)
+        codec._DATEN_ZWISCHENSPEICHER = {"stand": None, "daten": None}
+        reopened = codec.daten_lesen_gepuffert(str(path))
+        item = reopened[section][0]
+        assert item.get("akzentFarbe", "") == case["expected_accent"]
+        if section == "jahrestage":
+            assert item["datum"] == case["expected_date"] and item["typ"] == case["expected_type"]
+            assert not reopened["termine"]
+        write = getattr(codec, "ics_schreiben_" + section)
+        text = write([item])
+        assert "X-OWNED:keep" in text
+        if case["preserve_line"]:
+>           assert case["preserve_line"] in text.splitlines()
+E           AssertionError: assert 'COLOR;X-SOURCE=owned-synthetic:red' in ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Magnolie Organizer//DE', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT', 'UID:termine-parameter-own', ...]
+E            +  where ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Magnolie Organizer//DE', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT', 'UID:termine-parameter-own', ...] = <built-in method splitlines of str object at 0x7fc6389b2fa0>()
+E            +    where <built-in method splitlines of str object at 0x7fc6389b2fa0> = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:termi...n\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nDTSTART;VALUE=DATE:20000229\r\nX-OWNED:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n'.splitlines
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:37: AssertionError
+__ test_colours_survive_native_book_reopen_and_export[aufgaben-parameter-own] __
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc638697890>
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-13/test_colours_survive_native_bo10')
+case = {'expected_accent': '#112233', 'expected_date': '2000-02-29', 'expected_type': '', 'id': 'aufgaben-parameter-own', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_colours_survive_native_book_reopen_and_export(codec, monkeypatch, tmp_path, case):
+        section = case["section"]
+        book = codec.ics_lesen(case["input"])
+        path = tmp_path / "book.json"
+        monkeypatch.setattr(codec, "daten_datei", lambda: str(path))
+        codec.speichere_daten(book)
+        codec._DATEN_ZWISCHENSPEICHER = {"stand": None, "daten": None}
+        reopened = codec.daten_lesen_gepuffert(str(path))
+        item = reopened[section][0]
+        assert item.get("akzentFarbe", "") == case["expected_accent"]
+        if section == "jahrestage":
+            assert item["datum"] == case["expected_date"] and item["typ"] == case["expected_type"]
+            assert not reopened["termine"]
+        write = getattr(codec, "ics_schreiben_" + section)
+        text = write([item])
+        assert "X-OWNED:keep" in text
+        if case["preserve_line"]:
+>           assert case["preserve_line"] in text.splitlines()
+E           assert 'COLOR;X-SOURCE=owned-synthetic:red' in ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Magnolie Organizer//DE', 'CALSCALE:GREGORIAN', 'BEGIN:VTODO', 'UID:aufgaben-parameter-own', ...]
+E            +  where ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Magnolie Organizer//DE', 'CALSCALE:GREGORIAN', 'BEGIN:VTODO', 'UID:aufgaben-parameter-own', ...] = <built-in method splitlines of str object at 0x7fc638aced30>()
+E            +    where <built-in method splitlines of str object at 0x7fc638aced30> = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTODO\r\nUID:aufgab...:""\\,"parentSource":""\\,"source":""\\,"uid\r\n ":"aufgaben-parameter-own"\\,"v":1}\r\nEND:VTODO\r\nEND:VCALENDAR\r\n'.splitlines
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:37: AssertionError
+_ test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-standard] _
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+case = {'expected_accent': '#40e0d0', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'birthday-standard', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_colour_edit_and_clear_do_not_restore_old_colour(codec, case):
+        section = case["section"]
+        item = codec.ics_lesen(case["input"])[section][0]
+        write = getattr(codec, "ics_schreiben_" + section)
+        for accent in ("#123456", ""):
+            item["akzentFarbe"] = accent
+            text = write([item])
+>           assert codec.ics_lesen(text)[section][0].get("akzentFarbe", "") == accent
+E           AssertionError: assert '' == '#123456'
+E             
+E             - #123456
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:54: AssertionError
+__ test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-own] ___
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+case = {'expected_accent': '#112233', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'birthday-own', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_colour_edit_and_clear_do_not_restore_old_colour(codec, case):
+        section = case["section"]
+        item = codec.ics_lesen(case["input"])[section][0]
+        write = getattr(codec, "ics_schreiben_" + section)
+        for accent in ("#123456", ""):
+            item["akzentFarbe"] = accent
+            text = write([item])
+>           assert codec.ics_lesen(text)[section][0].get("akzentFarbe", "") == accent
+E           AssertionError: assert '' == '#123456'
+E             
+E             - #123456
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:54: AssertionError
+_ test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-calendar] _
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+case = {'expected_accent': '#40e0d0', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'birthday-calendar', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_colour_edit_and_clear_do_not_restore_old_colour(codec, case):
+        section = case["section"]
+        item = codec.ics_lesen(case["input"])[section][0]
+        write = getattr(codec, "ics_schreiben_" + section)
+        for accent in ("#123456", ""):
+            item["akzentFarbe"] = accent
+            text = write([item])
+>           assert codec.ics_lesen(text)[section][0].get("akzentFarbe", "") == accent
+E           AssertionError: assert '' == '#123456'
+E             
+E             - #123456
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:54: AssertionError
+_ test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-apple] __
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+case = {'expected_accent': '#40e0d0', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'birthday-apple', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_colour_edit_and_clear_do_not_restore_old_colour(codec, case):
+        section = case["section"]
+        item = codec.ics_lesen(case["input"])[section][0]
+        write = getattr(codec, "ics_schreiben_" + section)
+        for accent in ("#123456", ""):
+            item["akzentFarbe"] = accent
+            text = write([item])
+>           assert codec.ics_lesen(text)[section][0].get("akzentFarbe", "") == accent
+E           AssertionError: assert '' == '#123456'
+E             
+E             - #123456
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:54: AssertionError
+_ test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-own-priority] _
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+case = {'expected_accent': '#112233', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'birthday-own-priority', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_colour_edit_and_clear_do_not_restore_old_colour(codec, case):
+        section = case["section"]
+        item = codec.ics_lesen(case["input"])[section][0]
+        write = getattr(codec, "ics_schreiben_" + section)
+        for accent in ("#123456", ""):
+            item["akzentFarbe"] = accent
+            text = write([item])
+>           assert codec.ics_lesen(text)[section][0].get("akzentFarbe", "") == accent
+E           AssertionError: assert '' == '#123456'
+E             
+E             - #123456
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:54: AssertionError
+_ test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-component-priority] _
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+case = {'expected_accent': '#ff0000', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'birthday-component-priority', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_colour_edit_and_clear_do_not_restore_old_colour(codec, case):
+        section = case["section"]
+        item = codec.ics_lesen(case["input"])[section][0]
+        write = getattr(codec, "ics_schreiben_" + section)
+        for accent in ("#123456", ""):
+            item["akzentFarbe"] = accent
+            text = write([item])
+>           assert codec.ics_lesen(text)[section][0].get("akzentFarbe", "") == accent
+E           AssertionError: assert '' == '#123456'
+E             
+E             - #123456
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:54: AssertionError
+_ test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-partial-leap] _
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+case = {'expected_accent': '#40e0d0', 'expected_date': '--02-29', 'expected_type': 'birthday', 'id': 'birthday-partial-leap', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_colour_edit_and_clear_do_not_restore_old_colour(codec, case):
+        section = case["section"]
+        item = codec.ics_lesen(case["input"])[section][0]
+        write = getattr(codec, "ics_schreiben_" + section)
+        for accent in ("#123456", ""):
+            item["akzentFarbe"] = accent
+            text = write([item])
+>           assert codec.ics_lesen(text)[section][0].get("akzentFarbe", "") == accent
+E           AssertionError: assert '' == '#123456'
+E             
+E             - #123456
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:54: AssertionError
+_ test_actual_colour_edit_and_clear_do_not_restore_old_colour[anniversary-custom] _
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+case = {'expected_accent': '#40e0d0', 'expected_date': '2000-02-29', 'expected_type': 'named-anniversary', 'id': 'anniversary-custom', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_colour_edit_and_clear_do_not_restore_old_colour(codec, case):
+        section = case["section"]
+>       item = codec.ics_lesen(case["input"])[section][0]
+E       IndexError: list index out of range
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:49: IndexError
+_ test_actual_colour_edit_and_clear_do_not_restore_old_colour[jahrestage-parameter-own] _
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+case = {'expected_accent': '#112233', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'jahrestage-parameter-own', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_colour_edit_and_clear_do_not_restore_old_colour(codec, case):
+        section = case["section"]
+        item = codec.ics_lesen(case["input"])[section][0]
+        write = getattr(codec, "ics_schreiben_" + section)
+        for accent in ("#123456", ""):
+            item["akzentFarbe"] = accent
+            text = write([item])
+>           assert codec.ics_lesen(text)[section][0].get("akzentFarbe", "") == accent
+E           AssertionError: assert '' == '#123456'
+E             
+E             - #123456
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:54: AssertionError
+_ test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-unknown] _
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+case = {'expected_accent': '', 'expected_date': '2000-02-29', 'expected_type': 'birthday', 'id': 'birthday-unknown', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_colour_edit_and_clear_do_not_restore_old_colour(codec, case):
+        section = case["section"]
+        item = codec.ics_lesen(case["input"])[section][0]
+        write = getattr(codec, "ics_schreiben_" + section)
+        for accent in ("#123456", ""):
+            item["akzentFarbe"] = accent
+            text = write([item])
+>           assert codec.ics_lesen(text)[section][0].get("akzentFarbe", "") == accent
+E           AssertionError: assert '' == '#123456'
+E             
+E             - #123456
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:54: AssertionError
+____________ test_mixed_anniversary_calendars_do_not_share_a_colour ____________
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+
+    def test_mixed_anniversary_calendars_do_not_share_a_colour(codec):
+        coloured = next(case for case in CASES if case["id"] == "birthday-calendar")
+        other = coloured["input"].replace("COLOR:turquoise\r\n", "").replace("birthday-calendar", "uncoloured")
+        items = codec.ics_lesen(coloured["input"] + other)["jahrestage"]
+        text = codec.ics_schreiben_jahrestage(items)
+        assert "COLOR:turquoise" not in text.split("BEGIN:VEVENT", 1)[0]
+>       assert [item.get("akzentFarbe", "") for item in codec.ics_lesen(text)["jahrestage"]] == ["#40e0d0", ""]
+E       AssertionError: assert ['', ''] == ['#40e0d0', '']
+E         
+E         At index 0 diff: '' != '#40e0d0'
+E         Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:68: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_colours_survive_native_book_reopen_and_export[birthday-standard]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_colours_survive_native_book_reopen_and_export[birthday-own]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_colours_survive_native_book_reopen_and_export[birthday-calendar]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_colours_survive_native_book_reopen_and_export[birthday-apple]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_colours_survive_native_book_reopen_and_export[birthday-own-priority]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_colours_survive_native_book_reopen_and_export[birthday-component-priority]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_colours_survive_native_book_reopen_and_export[birthday-partial-leap]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_colours_survive_native_book_reopen_and_export[anniversary-custom]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_colours_survive_native_book_reopen_and_export[jahrestage-parameter-own]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_colours_survive_native_book_reopen_and_export[termine-parameter-own]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_colours_survive_native_book_reopen_and_export[aufgaben-parameter-own]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-standard]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-own]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-calendar]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-apple]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-own-priority]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-component-priority]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-partial-leap]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_actual_colour_edit_and_clear_do_not_restore_old_colour[anniversary-custom]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_actual_colour_edit_and_clear_do_not_restore_old_colour[jahrestage-parameter-own]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_actual_colour_edit_and_clear_do_not_restore_old_colour[birthday-unknown]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_mixed_anniversary_calendars_do_not_share_a_colour
+22 failed, 3 passed in 1.27s

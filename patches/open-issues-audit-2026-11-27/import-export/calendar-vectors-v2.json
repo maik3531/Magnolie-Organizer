@@ -1,0 +1,176 @@
+[
+  {
+    "id": "event-standard-color",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:event-standard-color\r\nSUMMARY:Owned event-standard-color\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR:turquoise\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "termine",
+      "accent": "#40e0d0"
+    }
+  },
+  {
+    "id": "task-standard-color",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VTODO\r\nUID:task-standard-color\r\nSUMMARY:Owned task-standard-color\r\nDUE;VALUE=DATE:20261205\r\nCOLOR:RED\r\nEND:VTODO\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "aufgaben",
+      "accent": "#ff0000"
+    }
+  },
+  {
+    "id": "event-own-color",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:event-own-color\r\nSUMMARY:Owned event-own-color\r\nDTSTART;VALUE=DATE:20261205\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "termine",
+      "accent": "#112233"
+    }
+  },
+  {
+    "id": "own-over-standard",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:own-over-standard\r\nSUMMARY:Owned own-over-standard\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR:turquoise\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "termine",
+      "accent": "#112233"
+    }
+  },
+  {
+    "id": "calendar-standard-color",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:turquoise\r\nBEGIN:VEVENT\r\nUID:calendar-standard-color\r\nSUMMARY:Owned calendar-standard-color\r\nDTSTART;VALUE=DATE:20261205\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "termine",
+      "accent": "#40e0d0"
+    }
+  },
+  {
+    "id": "calendar-apple-color",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-APPLE-CALENDAR-COLOR:#40E0D0\r\nBEGIN:VEVENT\r\nUID:calendar-apple-color\r\nSUMMARY:Owned calendar-apple-color\r\nDTSTART;VALUE=DATE:20261205\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "termine",
+      "accent": "#40e0d0",
+      "convention": "calendar-level Apple/Sabre export"
+    }
+  },
+  {
+    "id": "event-over-calendar",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:turquoise\r\nBEGIN:VEVENT\r\nUID:event-over-calendar\r\nSUMMARY:Owned event-over-calendar\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR:red\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "termine",
+      "accent": "#ff0000"
+    }
+  },
+  {
+    "id": "unknown-color-opaque",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:unknown-color-opaque\r\nSUMMARY:Owned unknown-color-opaque\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR:not-a-css3-color\r\nX-OTHER-COLOR:keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "termine",
+      "accent": "",
+      "opaque": [
+        "COLOR:not-a-css3-color",
+        "X-OTHER-COLOR:keep"
+      ]
+    }
+  },
+  {
+    "id": "nested-color-opaque",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:nested-color-opaque\r\nSUMMARY:Owned nested-color-opaque\r\nDTSTART;VALUE=DATE:20261205\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-PT5M\r\nCOLOR:red\r\nDESCRIPTION:Owned alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "termine",
+      "accent": "",
+      "opaque": [
+        "COLOR:red"
+      ]
+    }
+  },
+  {
+    "id": "marked-birthday",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:marked-birthday\r\nSUMMARY:Owned marked-birthday\r\nDTSTART;VALUE=DATE:19900203\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nRRULE:FREQ=YEARLY\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "jahrestage",
+      "typ": "birthday",
+      "datum": "1990-02-03"
+    }
+  },
+  {
+    "id": "marked-partial-leap-birthday",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:marked-partial-leap-birthday\r\nSUMMARY:Owned marked-partial-leap-birthday\r\nDTSTART;VALUE=DATE:20000229\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-DATE:--02-29\r\nRRULE:FREQ=YEARLY\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "jahrestage",
+      "typ": "birthday",
+      "datum": "--02-29"
+    }
+  },
+  {
+    "id": "ordinary-annual-event",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:ordinary-annual-event\r\nSUMMARY:Owned ordinary-annual-event\r\nDTSTART;VALUE=DATE:20261205\r\nRRULE:FREQ=YEARLY\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "termine",
+      "recurrence": "yearly"
+    }
+  },
+  {
+    "id": "lotus-anniversary-no-rule",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:lotus-anniversary-no-rule\r\nSUMMARY:Owned lotus-anniversary-no-rule\r\nDTSTART;VALUE=DATE:20261205\r\nCATEGORIES:ANNIVERSARY\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "termine",
+      "recurrence": "none"
+    }
+  },
+  {
+    "id": "lotus-anniversary-annual",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:lotus-anniversary-annual\r\nSUMMARY:Owned lotus-anniversary-annual\r\nDTSTART;VALUE=DATE:20261205\r\nCATEGORIES:ANNIVERSARY\r\nRRULE:FREQ=YEARLY\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "termine",
+      "recurrence": "yearly"
+    }
+  },
+  {
+    "id": "weekly-exception",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:weekly-exception\r\nSUMMARY:Owned weekly-exception\r\nDTSTART;VALUE=DATE:20261205\r\nRRULE:FREQ=WEEKLY;COUNT=4\r\nEXDATE;VALUE=DATE:20261212\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "termine",
+      "opaque": [
+        "RRULE:FREQ=WEEKLY;COUNT=4",
+        "EXDATE;VALUE=DATE:20261212"
+      ]
+    }
+  },
+  {
+    "id": "rdate-exact",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:rdate-exact\r\nSUMMARY:Owned rdate-exact\r\nDTSTART;VALUE=DATE:20261205\r\nRDATE;VALUE=DATE:20261210,20261213\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "termine",
+      "recurrence": "custom",
+      "opaque": [
+        "RDATE;VALUE=DATE:20261210,20261213"
+      ]
+    }
+  },
+  {
+    "id": "birthday-own",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:birthday-own\r\nSUMMARY:Owned birthday own\r\nDTSTART;VALUE=DATE:19900203\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "jahrestage",
+      "accent": "#112233",
+      "typ": "birthday",
+      "datum": "1990-02-03"
+    }
+  },
+  {
+    "id": "birthday-standard",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:birthday-standard\r\nSUMMARY:Owned birthday standard\r\nDTSTART;VALUE=DATE:19900203\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nCOLOR:turquoise\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "jahrestage",
+      "accent": "#40e0d0",
+      "typ": "birthday",
+      "datum": "1990-02-03"
+    }
+  },
+  {
+    "id": "birthday-calendar",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:turquoise\r\nBEGIN:VEVENT\r\nUID:birthday-calendar\r\nSUMMARY:Owned birthday calendar\r\nDTSTART;VALUE=DATE:19900203\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+    "expected": {
+      "kind": "jahrestage",
+      "accent": "#40e0d0",
+      "typ": "birthday",
+      "datum": "1990-02-03"
+    }
+  }
+]

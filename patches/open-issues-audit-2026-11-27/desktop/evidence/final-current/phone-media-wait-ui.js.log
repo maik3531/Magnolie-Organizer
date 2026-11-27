@@ -1,0 +1,7 @@
+PASS old peer waits without legacy edits or readiness claims
+PASS confirmed shared values restore controls without enabling or starting
+PASS loss of shared settings removes old choices without rewriting them
+PASS shared settings lost during Save-ACK do not dispatch the old edit
+PASS waiting retains Stop for an already running native operation
+PASS loaded local recovery remains reachable while shared media settings wait
+6/6 Windows media waiting-state cases passed (JSDOM)

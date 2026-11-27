@@ -1,0 +1,281 @@
+{
+  "started_at_utc": "2026-11-27T20:07:55.578753+00:00",
+  "node_version": "v24.22.3",
+  "node_path": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+  "jsdom_version": "26.1.0",
+  "bun_available_on_path": false,
+  "program_sha256": "0cb4e9a89d576c1ccacf7cf5d9ead654f7d7319e7dcf7dc28fa89afa515abb8b",
+  "harness_sha256": "c27e77e00889fe7a23853256249128844868b23c5c5cffafed25b11584dbdb7d",
+  "checkouts": [
+    {
+      "label": "baseline",
+      "path": "/workspace/scratch/7203da5bd564/open-audit-latest-source",
+      "commit": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+      "clean_before": true,
+      "clean_after": true,
+      "commit_after": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2"
+    },
+    {
+      "label": "final",
+      "path": "/workspace/scratch/7203da5bd564/open-audit-final-current",
+      "commit": "f3ea06e275ce6cd7547106096cfd96d27cf57e15",
+      "clean_before": true,
+      "clean_after": true,
+      "commit_after": "f3ea06e275ce6cd7547106096cfd96d27cf57e15"
+    }
+  ],
+  "runs": [
+    {
+      "label": "baseline",
+      "edition": "windows",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer-windows/tests/mcp-import-review.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer-windows",
+      "env": {
+        "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+        "MAGNOLIE_WEB": "/workspace/scratch/7203da5bd564/open-audit/new-issues/846/mcp-846-m7ez5gs3/baseline-windows"
+      },
+      "exit_code": 1,
+      "elapsed_s": 2.749,
+      "log": "baseline-windows.log",
+      "log_sha256": "ab1ba3b1fa35be3eca0510a6f7f8a1d9b9a922467ef9af02190c5626b8098fa1",
+      "input_files": [
+        {
+          "name": "index.html",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer-windows/app/web/index.html",
+          "sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "i18n.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer-windows/app/web/i18n.js",
+          "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "zeichenblatt.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer-windows/app/web/zeichenblatt.js",
+          "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "appearance.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer-windows/app/web/appearance.js",
+          "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "normative-timezones.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/app/web/normative-timezones.js",
+          "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+          "supplied_generated_asset": true
+        },
+        {
+          "name": "anwendung.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer-windows/app/web/anwendung.js",
+          "sha256": "b2d53e7d0a54c2e71e4f1fde8f3ef68bdfb3b9e7c4b6f7c6c611c2b5a0a44cb5",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "mcp-protocol.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer-windows/app/web/mcp-protocol.js",
+          "sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "supplied_generated_asset": false
+        }
+      ],
+      "operation_failed_at_reported_line": true,
+      "program_pass": false
+    },
+    {
+      "label": "baseline",
+      "edition": "linux",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer-windows/tests/mcp-import-review.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer-windows",
+      "env": {
+        "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+        "MAGNOLIE_WEB": "/workspace/scratch/7203da5bd564/open-audit/new-issues/846/mcp-846-m7ez5gs3/baseline-linux"
+      },
+      "exit_code": 1,
+      "elapsed_s": 1.957,
+      "log": "baseline-linux.log",
+      "log_sha256": "ab1ba3b1fa35be3eca0510a6f7f8a1d9b9a922467ef9af02190c5626b8098fa1",
+      "input_files": [
+        {
+          "name": "index.html",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer/web/index.html",
+          "sha256": "24e3806b8a057693e289ac94ebb879f851c317a27064b0bc307db10da0829ea0",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "i18n.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer/web/i18n.js",
+          "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "zeichenblatt.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer/web/zeichenblatt.js",
+          "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "appearance.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer/web/appearance.js",
+          "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "normative-timezones.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer/web/normative-timezones.js",
+          "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+          "supplied_generated_asset": true
+        },
+        {
+          "name": "anwendung.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer/web/anwendung.js",
+          "sha256": "75cb7fb2a23435622738e30bedcf48dc16e5ccb2c6921995fe6b44f3bc6d850d",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "mcp-protocol.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-latest-source/magnolie-organizer/web/mcp-protocol.js",
+          "sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "supplied_generated_asset": false
+        }
+      ],
+      "operation_failed_at_reported_line": true,
+      "program_pass": false
+    },
+    {
+      "label": "final",
+      "edition": "windows",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/tests/mcp-import-review.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows",
+      "env": {
+        "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+        "MAGNOLIE_WEB": "/workspace/scratch/7203da5bd564/open-audit/new-issues/846/mcp-846-m7ez5gs3/final-windows"
+      },
+      "exit_code": 0,
+      "elapsed_s": 2.587,
+      "log": "final-windows.log",
+      "log_sha256": "7ce1c71885f15eca064de523b5652e65769ec2f12d11feba38a4e39969a825f0",
+      "input_files": [
+        {
+          "name": "index.html",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/app/web/index.html",
+          "sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "i18n.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/app/web/i18n.js",
+          "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "zeichenblatt.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/app/web/zeichenblatt.js",
+          "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "appearance.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/app/web/appearance.js",
+          "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "normative-timezones.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/app/web/normative-timezones.js",
+          "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "anwendung.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/app/web/anwendung.js",
+          "sha256": "eba45644c432793e892d61b9e73055526ae9a8e1cc6be0d7939a735cb5f7bd07",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "mcp-protocol.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/app/web/mcp-protocol.js",
+          "sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "supplied_generated_asset": false
+        }
+      ],
+      "operation_failed_at_reported_line": false,
+      "program_pass": true
+    },
+    {
+      "label": "final",
+      "edition": "linux",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/tests/mcp-import-review.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows",
+      "env": {
+        "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+        "MAGNOLIE_WEB": "/workspace/scratch/7203da5bd564/open-audit/new-issues/846/mcp-846-m7ez5gs3/final-linux"
+      },
+      "exit_code": 0,
+      "elapsed_s": 2.408,
+      "log": "final-linux.log",
+      "log_sha256": "7b12c16f4ed41808dc79b490370346451e06c48a119ae811a28ca0c87bcccf00",
+      "input_files": [
+        {
+          "name": "index.html",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer/web/index.html",
+          "sha256": "24e3806b8a057693e289ac94ebb879f851c317a27064b0bc307db10da0829ea0",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "i18n.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer/web/i18n.js",
+          "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "zeichenblatt.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer/web/zeichenblatt.js",
+          "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "appearance.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer/web/appearance.js",
+          "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "normative-timezones.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer/web/normative-timezones.js",
+          "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "anwendung.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer/web/anwendung.js",
+          "sha256": "0d154ca259dc389333aed26df2d4565c5725ef40b807229140a6fc84b9979131",
+          "supplied_generated_asset": false
+        },
+        {
+          "name": "mcp-protocol.js",
+          "source": "/workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer/web/mcp-protocol.js",
+          "sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+          "supplied_generated_asset": false
+        }
+      ],
+      "operation_failed_at_reported_line": false,
+      "program_pass": true
+    }
+  ]
+}

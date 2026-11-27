@@ -1,0 +1,7 @@
+Magnolie CoreTests: 1 Gruppen
+  FEHLER Thunderbird local.sqlite Schema 23 (0.05 s)
+         System.IO.DirectoryNotFoundException: Test source root containing 'MagnolieOrganizer.Windows.csproj' not found from /workspace/scratch/7203da5bd564/open-audit-current.
+   at MagnolieOrganizer.Windows.Tests.TestSource.Root(String marker) in /workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/TestRunner.cs:line 71
+   at MagnolieOrganizer.Windows.Tests.ThunderbirdSchema23Tests.RunAsync() in /workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/ThunderbirdSchema23Tests.cs:line 18
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in /workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/1 Gruppen bestanden.

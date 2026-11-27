@@ -1,0 +1,34 @@
+{
+  "base_commit": "50b1512234a765635f82af4537f277594fbf9878",
+  "frozen_followup_commit": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "python": "3.12.14",
+  "node": "v24.22.3",
+  "jsdom": "26.1.0",
+  "cpus_visible": 9,
+  "node_path": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+  "data": "Ausschließlich synthetische Testdaten; keine persönlichen Daten",
+  "source_hashes": {
+    "AGENTS.md": "6e8aad1008052d8c4050205555c13b69e60eb481edb6ea48c8569ab4066a7d84",
+    "ARBEITSSTAND.md": "d64019548baf8613a5525651405a1bd7a9173d881ca542a82e771c86ce271d10",
+    "magnolie-organizer/pruefungen/last_test.js": "78a7c866f17f8fbea4e176f7af2399363ddf6dab402a710ee5cab59146e7aa54",
+    "magnolie-organizer/pruefungen/test.js": "6901adde3eb6fb9e2f3c2b198223677cc1c2971ac2f30c6c4e15d8c7b0349274",
+    "magnolie-organizer/web/index.html": "24e3806b8a057693e289ac94ebb879f851c317a27064b0bc307db10da0829ea0",
+    "magnolie-organizer/web/anwendung.js": "573b2b457689c9d3e7a71be4aca60630144b892e0fd53ce21c778d8806259440",
+    "magnolie-organizer/web/normative-timezones.js": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+    "magnolie-organizer/web/i18n/de.js": "4d0e250145574c0e13eab26035f309c83a20c8ce3ed5fa5a397cd64df441b575",
+    "magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py": "5dbb2041bcc5b499c770c366a914e115d02c0dc35f71f890b9c3e479f91a4846",
+    "magnolie-organizer/werkzeuge/po_zu_js.py": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1",
+    "magnolie-organizer-windows/app/web/anwendung.js": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+    "magnolie-organizer-windows/app/web/normative-timezones.js": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+    "magnolie-organizer-windows/tests/desktop-state-regressions.js": "c27e77e00889fe7a23853256249128844868b23c5c5cffafed25b11584dbdb7d",
+    "magnolie-organizer-windows/tests/recurrence-worker.js": "a089d9c802eb725405e2d609c1694b1f7efb0059da9d2eb5dc4bcfa502d5129e",
+    "magnolie-organizer-windows/tests/worker-file-fixture.js": "1cd4cc3c27f9fcd70d8cb8e95b2d9e1a08be56f1e4b0b9f8ede5a2fb9c701f4b",
+    "port-adapters/timezones/port-runtime.js": "7fe5e5f5c44c0c601579fff1e91038402ff1cd7866b5963cb84372df74bd7ac6"
+  },
+  "preparation_notes_de": [
+    "Kalter Worktree enthielt noch keine erzeugten normativen Zeitzonenassets und keinen Linux-de.js-Katalog; beide ausschließlich mit vorhandenen unveränderten Rezepten hergestellt.",
+    "/usr/bin/time ist auf diesem Host nicht vorhanden; der anfängliche Aufruf endete vor Teststart mit127. Statt Installation nutzt run_existing.py resource.getrusage plus /proc-Statussammlung.",
+    "Der Messrunner erzwingt keine Garbage Collection. max-old-space-size=2048 MiB und ein2,5-GiB-RSS/300-s-Abbruch sind Ausführungswächter, keine neuen Produkt-Leistungsziele."
+  ]
+}

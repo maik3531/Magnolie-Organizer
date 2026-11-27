@@ -1,0 +1,63 @@
+{
+  "issue": 843,
+  "reviewed_head": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "comparison": [
+    {
+      "commit": "9c00336342f736f541cf14e006de1248b22b8850",
+      "sources": [
+        {
+          "path": "magnolie-organizer/web/anwendung.js",
+          "sha256": "2c7a5a59f6cc0334dbc52065bc5ad611add546c096686b0daad5077c4f56e4f3",
+          "icsRuntime_sha256": "206bc8c75382e764c16523bc95445ef1a69517e0cf8ebad96f944b94d221d8e1"
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/anwendung.js",
+          "sha256": "9ff3b77ba62503c62c209cca49f72285373b5c2f6102f7b59947da862bfd3914",
+          "icsRuntime_sha256": "206bc8c75382e764c16523bc95445ef1a69517e0cf8ebad96f944b94d221d8e1"
+        }
+      ]
+    },
+    {
+      "commit": "66b50c44482f279d7c3566fe2959f66ebcc20cd5",
+      "sources": [
+        {
+          "path": "magnolie-organizer/web/anwendung.js",
+          "sha256": "db337b5d9116fea381214b46f94459c4134455ed3506eaa5653c532891708bb9",
+          "icsRuntime_sha256": "e2fe2bad6c0e7016595faff7c8bafabab197c214f85f6e6d4fbc3e1d05504741"
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/anwendung.js",
+          "sha256": "90ecbf0ec24f671e0cb709db74609a8a1a20cf075ea207d1497844698ca85c0f",
+          "icsRuntime_sha256": "e2fe2bad6c0e7016595faff7c8bafabab197c214f85f6e6d4fbc3e1d05504741"
+        }
+      ]
+    },
+    {
+      "commit": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+      "sources": [
+        {
+          "path": "magnolie-organizer/web/anwendung.js",
+          "sha256": "527b00475cd035bcf111b94e382e6b692cca0c6ba29454e2b65a72d7309ca53f",
+          "icsRuntime_sha256": "e2fe2bad6c0e7016595faff7c8bafabab197c214f85f6e6d4fbc3e1d05504741"
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/anwendung.js",
+          "sha256": "b2d53e7d0a54c2e71e4f1fde8f3ef68bdfb3b9e7c4b6f7c6c611c2b5a0a44cb5",
+          "icsRuntime_sha256": "e2fe2bad6c0e7016595faff7c8bafabab197c214f85f6e6d4fbc3e1d05504741"
+        }
+      ]
+    }
+  ],
+  "conclusions_de": [
+    "Die unabhängige Upstreamlösung ist nicht bytegleich mit dem historischen Patch; beide lösen den konkret beschriebenen Ressourcenbesitz mit unterschiedlichen lokalen Kontrollstrukturen.",
+    "Upstream behandelt ausschließlich Blob-URLs als registrierte Ressourcen. Im nativen Linux-Custom-Scheme entsteht eine data:-URL ohne Blob-Registrierung.",
+    "Der Konstruktorfehler gibt eine bereits angelegte Blob-URL sofort frei, bevor fail() veröffentlicht wird.",
+    "releaseWorker ist an die Workerinstanz gebunden, nullt den zugehörigen aktuellen Besitzer, entfernt den eigenen Listener und beendet den Worker; danach gibt es die eigene Blob-URL frei.",
+    "onmessage und onerror ignorieren veraltete Worker. Providerverwerfung und onerror rufen releaseWorker vor publish auf; damit bleibt ein synchron in publish erzeugter Ersatzworker unabhängig.",
+    "Ein erfolgreicher Worker sowie einzelne Auftrags-/postMessagefehler behalten den lebenden Besitzer; unload räumt auf.",
+    "Der Provideridentitäts-TZ_PORT-Block ist bewusst geändert und die gemeinsame projection-patches.json replacement-Regel entsprechend aktualisiert. Historische Aussage alle 51 Blöcke unverändert gilt nur für den damaligen Alternativpatch, nicht diesen anderen Upstreamdiff.",
+    "icsRuntime ist zwischen Upstreamfix 66b50c44 und geprüftem Folgestand 1f1f3225 unverändert und in beiden Desktopquellen bytegleich."
+  ],
+  "concrete_regression_found": false,
+  "limitations_de": "Statischer enger Quellvergleich; dynamischer Kontextnachweis wird separat gespeichert. Keine native Heap-, N100- oder 30-Tage-Abnahme."
+}

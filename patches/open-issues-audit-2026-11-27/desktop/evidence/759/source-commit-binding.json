@@ -1,0 +1,152 @@
+{
+  "base_commit": "50b1512234a765635f82af4537f277594fbf9878",
+  "base_tree": "192af15fd05a08995d04e33840d87f810a84c3fe",
+  "commits": [
+    "7453838a78895e31f1103b2065692b6fabfae1fb",
+    "d242f95c38d9c2c5ce42159318e3c7831b1aa80c"
+  ],
+  "head": "d242f95c38d9c2c5ce42159318e3c7831b1aa80c",
+  "tree": "fe9242fc30a014fd850ca3b9e8c66b15747783be",
+  "clean_worktree": true,
+  "test_manifest": "after/manifest.json",
+  "test_manifest_sha256": "89de3f27bdbc7f2364a80a252db697e66529631ae3a3022d08f194b8d8338622",
+  "exact_test_input_bindings": [
+    {
+      "path": "magnolie-organizer-windows/app/web/phone-media.js",
+      "tested_sha256": "5295c10d3a1e955c84984bc983598062ab2b5fabb4b5a2c60485bb06d362dde5",
+      "final_commit_sha256": "5295c10d3a1e955c84984bc983598062ab2b5fabb4b5a2c60485bb06d362dde5",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/index.html",
+      "tested_sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+      "final_commit_sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "tested_sha256": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+      "final_commit_sha256": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n.js",
+      "tested_sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+      "final_commit_sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/de.js",
+      "tested_sha256": "8e91d625884344f1a65ae3b316bb09456420c8bea505f2ea52ba70d020120535",
+      "final_commit_sha256": "8e91d625884344f1a65ae3b316bb09456420c8bea505f2ea52ba70d020120535",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/phone-media-wait-ui.js",
+      "tested_sha256": "b23caa774a97f599bf53d39a4cca1693ce6ba40f140f0a81e51548bc0995ab35",
+      "final_commit_sha256": "b23caa774a97f599bf53d39a4cca1693ce6ba40f140f0a81e51548bc0995ab35",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js",
+      "tested_sha256": "168fb7450104ef2302dd1849adc9b8db652cbdee035db99e9028ba2efbcedece",
+      "final_commit_sha256": "168fb7450104ef2302dd1849adc9b8db652cbdee035db99e9028ba2efbcedece",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/phone-media-ui.js",
+      "tested_sha256": "872a45d6a785618da680530abf6d794c7e2350f7485a49bd444c625acc1ccb29",
+      "final_commit_sha256": "872a45d6a785618da680530abf6d794c7e2350f7485a49bd444c625acc1ccb29",
+      "equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/phone-media-source-choice-ui.js",
+      "tested_sha256": "b8ae2cbeed405b2746e86ae3ab5531f63577f18e4d81cd8ece9009012b19f1f3",
+      "final_commit_sha256": "b8ae2cbeed405b2746e86ae3ab5531f63577f18e4d81cd8ece9009012b19f1f3",
+      "equal": true
+    }
+  ],
+  "unchanged_automatic_transport_inputs": [
+    {
+      "path": "magnolie-organizer-windows/DeviceFileUiCoordinator.cs",
+      "sha256": "8ae1190c422b07f1c4964189d166d0072b4385bd7e3c51bd3b377f7e6e332739",
+      "unchanged_from_50b15122": true
+    },
+    {
+      "path": "magnolie-organizer-windows/DeviceFileConnectionSharedSettings.cs",
+      "sha256": "cf090c23aeb89628fdf8837982f7028b104ccf11d32e98adc61be35d147b31e6",
+      "unchanged_from_50b15122": true
+    },
+    {
+      "path": "magnolie-organizer-windows/DeviceFileSharedPreferences.cs",
+      "sha256": "5c283dc6bbad93ddd6acdb4d78ace2ae01bad69d4512235d1b57f29d03e9cf90",
+      "unchanged_from_50b15122": true
+    },
+    {
+      "path": "magnolie-organizer-windows/DeviceFileComposition.cs",
+      "sha256": "0a98fa845f8720d396a77ce7c4b207474ae6d0751b6a3fd700584a65c4d859a1",
+      "unchanged_from_50b15122": true
+    },
+    {
+      "path": "magnolie-organizer-windows/DeviceFileAutomatic.cs",
+      "sha256": "eb5c3b75a6e51ccaee6a3b320728919f76a25aebb516ab41036630640cd80994",
+      "unchanged_from_50b15122": true
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/MediaSyncTransport.kt",
+      "sha256": "dd36c80d41d42bf6bee3dcf2a5fd1d6ea3156c2877f04443063fa3545fc88a65",
+      "unchanged_from_50b15122": true
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/NativeMediaSettingsLane.kt",
+      "sha256": "5c11711a33ea67a932c5946861ab93215e7ec2515652c0833d1b9545ce4ec07f",
+      "unchanged_from_50b15122": true
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/MediaSyncStorage.kt",
+      "sha256": "52b5c1e67f52632df6fe672dca0da654c97ba76b31412f0a67e9c5f99cc9fade",
+      "unchanged_from_50b15122": true
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt",
+      "sha256": "b1046188783708bed450010f4fb7227cf11f98884d2239a25adc43bca1cfc202",
+      "unchanged_from_50b15122": true
+    }
+  ],
+  "patches": [
+    {
+      "commit": "7453838a78895e31f1103b2065692b6fabfae1fb",
+      "path": "patches/01-refs-759-shared-media-wait.patch",
+      "sha256": "1a5c645320c5b5176358cac1fef610d4ebf82ffe33635cef75695ca42f0adb5c",
+      "bytes": 31191
+    },
+    {
+      "commit": "d242f95c38d9c2c5ce42159318e3c7831b1aa80c",
+      "path": "patches/02-refs-759-initial-recovery-mount.patch",
+      "sha256": "f7c6114ed751900c81c8d4001d20422acd4d0fcf295fd8e69fa60c7dc3a8fbf4",
+      "bytes": 10548
+    }
+  ],
+  "combined_patch": {
+    "path": "patches/all-759-after-50b15122.patch",
+    "sha256": "e64525195e747de94777a06308be15db98d610de0d38a73c7d145cf9daa5d8e7",
+    "bytes": 38447
+  },
+  "reverse_apply_check_exit_code": 0,
+  "build_executed": false,
+  "native_tests_executed": false,
+  "validation_summary": {
+    "wait_cases": {
+      "before_passed": 0,
+      "total": 6,
+      "after_passed": 6
+    },
+    "recovery_mount_cases": {
+      "before_passed": 1,
+      "total": 5,
+      "after_passed": 5
+    },
+    "existing_source_choice_cases_passed": 29,
+    "existing_full_media_ui_program_passed": true
+  }
+}

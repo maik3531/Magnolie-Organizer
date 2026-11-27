@@ -1,0 +1,186 @@
+............FFFFFF.......                                                [100%]
+=================================== FAILURES ===================================
+_ test_type_or_year_edit_keeps_last_february_recurrence[19720229-X-NEXTCLOUD-BC-UNKNOWN-YEAR:1---02-29-wedding-anniversary] _
+
+codec = <module 'category_colors_probe' from '/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer/bin/magnolie-organizer'>
+start = '19720229', years = 'X-NEXTCLOUD-BC-UNKNOWN-YEAR:1', date = '--02-29'
+kind = 'wedding-anniversary'
+
+    @pytest.mark.parametrize("start,years,date,kind", [
+        ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "--02-29", "wedding-anniversary"),
+        ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "1988-02-29", "wedding-anniversary"),
+        ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "1988-02-29", "birthday"),
+        ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "--02-29", "birthday"),
+    ])
+    def test_type_or_year_edit_keeps_last_february_recurrence(codec, start, years, date, kind):
+        text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:edited-leap",
+            "SUMMARY:Synthetic birthday", f"DTSTART;VALUE=DATE:{start}",
+            "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1", "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY",
+            years, "X-SYNTHETIC-PRESERVE:keep", "END:VEVENT", "END:VCALENDAR", ""])
+        item = codec.ics_lesen(text)["jahrestage"][0]
+        item.update(datum=date, typ=kind)
+        for _round in range(2):
+            exported = codec.ics_schreiben_jahrestage([item])
+            assert "X-NEXTCLOUD-BC-" not in exported
+            assert "X-SYNTHETIC-PRESERVE:keep" in exported
+>           assert [line for line in exported.splitlines() if line.startswith("RRULE:")] == [
+                "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1"]
+E           AssertionError: assert ['RRULE:FREQ=YEARLY'] == ['RRULE:FREQ=...YMONTHDAY=-1']
+E             
+E             At index 0 diff: 'RRULE:FREQ=YEARLY' != 'RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1'
+E             Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py:80: AssertionError
+_ test_type_or_year_edit_keeps_last_february_recurrence[19880229-X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988-1988-02-29-wedding-anniversary] _
+
+codec = <module 'category_colors_probe' from '/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer/bin/magnolie-organizer'>
+start = '19880229'
+years = 'X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988'
+date = '1988-02-29', kind = 'wedding-anniversary'
+
+    @pytest.mark.parametrize("start,years,date,kind", [
+        ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "--02-29", "wedding-anniversary"),
+        ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "1988-02-29", "wedding-anniversary"),
+        ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "1988-02-29", "birthday"),
+        ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "--02-29", "birthday"),
+    ])
+    def test_type_or_year_edit_keeps_last_february_recurrence(codec, start, years, date, kind):
+        text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:edited-leap",
+            "SUMMARY:Synthetic birthday", f"DTSTART;VALUE=DATE:{start}",
+            "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1", "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY",
+            years, "X-SYNTHETIC-PRESERVE:keep", "END:VEVENT", "END:VCALENDAR", ""])
+        item = codec.ics_lesen(text)["jahrestage"][0]
+        item.update(datum=date, typ=kind)
+        for _round in range(2):
+            exported = codec.ics_schreiben_jahrestage([item])
+            assert "X-NEXTCLOUD-BC-" not in exported
+            assert "X-SYNTHETIC-PRESERVE:keep" in exported
+>           assert [line for line in exported.splitlines() if line.startswith("RRULE:")] == [
+                "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1"]
+E           AssertionError: assert ['RRULE:FREQ=YEARLY'] == ['RRULE:FREQ=...YMONTHDAY=-1']
+E             
+E             At index 0 diff: 'RRULE:FREQ=YEARLY' != 'RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1'
+E             Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py:80: AssertionError
+_ test_type_or_year_edit_keeps_last_february_recurrence[19720229-X-NEXTCLOUD-BC-UNKNOWN-YEAR:1-1988-02-29-birthday] _
+
+codec = <module 'category_colors_probe' from '/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer/bin/magnolie-organizer'>
+start = '19720229', years = 'X-NEXTCLOUD-BC-UNKNOWN-YEAR:1', date = '1988-02-29'
+kind = 'birthday'
+
+    @pytest.mark.parametrize("start,years,date,kind", [
+        ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "--02-29", "wedding-anniversary"),
+        ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "1988-02-29", "wedding-anniversary"),
+        ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "1988-02-29", "birthday"),
+        ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "--02-29", "birthday"),
+    ])
+    def test_type_or_year_edit_keeps_last_february_recurrence(codec, start, years, date, kind):
+        text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:edited-leap",
+            "SUMMARY:Synthetic birthday", f"DTSTART;VALUE=DATE:{start}",
+            "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1", "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY",
+            years, "X-SYNTHETIC-PRESERVE:keep", "END:VEVENT", "END:VCALENDAR", ""])
+        item = codec.ics_lesen(text)["jahrestage"][0]
+        item.update(datum=date, typ=kind)
+        for _round in range(2):
+            exported = codec.ics_schreiben_jahrestage([item])
+            assert "X-NEXTCLOUD-BC-" not in exported
+            assert "X-SYNTHETIC-PRESERVE:keep" in exported
+>           assert [line for line in exported.splitlines() if line.startswith("RRULE:")] == [
+                "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1"]
+E           AssertionError: assert ['RRULE:FREQ=YEARLY'] == ['RRULE:FREQ=...YMONTHDAY=-1']
+E             
+E             At index 0 diff: 'RRULE:FREQ=YEARLY' != 'RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1'
+E             Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py:80: AssertionError
+_ test_type_or_year_edit_keeps_last_february_recurrence[19880229-X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988---02-29-birthday] _
+
+codec = <module 'category_colors_probe' from '/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer/bin/magnolie-organizer'>
+start = '19880229'
+years = 'X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988'
+date = '--02-29', kind = 'birthday'
+
+    @pytest.mark.parametrize("start,years,date,kind", [
+        ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "--02-29", "wedding-anniversary"),
+        ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "1988-02-29", "wedding-anniversary"),
+        ("19720229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "1988-02-29", "birthday"),
+        ("19880229", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988", "--02-29", "birthday"),
+    ])
+    def test_type_or_year_edit_keeps_last_february_recurrence(codec, start, years, date, kind):
+        text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:edited-leap",
+            "SUMMARY:Synthetic birthday", f"DTSTART;VALUE=DATE:{start}",
+            "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1", "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY",
+            years, "X-SYNTHETIC-PRESERVE:keep", "END:VEVENT", "END:VCALENDAR", ""])
+        item = codec.ics_lesen(text)["jahrestage"][0]
+        item.update(datum=date, typ=kind)
+        for _round in range(2):
+            exported = codec.ics_schreiben_jahrestage([item])
+            assert "X-NEXTCLOUD-BC-" not in exported
+            assert "X-SYNTHETIC-PRESERVE:keep" in exported
+>           assert [line for line in exported.splitlines() if line.startswith("RRULE:")] == [
+                "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1"]
+E           AssertionError: assert ['RRULE:FREQ=YEARLY'] == ['RRULE:FREQ=...YMONTHDAY=-1']
+E             
+E             At index 0 diff: 'RRULE:FREQ=YEARLY' != 'RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1'
+E             Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py:80: AssertionError
+__ test_nextcloud_birthday_scope_is_not_silently_omitted_by_linux_dav[False] ___
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f1c33265cd0>
+leap = False
+
+    @pytest.mark.parametrize("leap", [False, True])
+    def test_nextcloud_birthday_scope_is_not_silently_omitted_by_linux_dav(monkeypatch, leap):
+        from test_nextcloud import m, nc, SyncDav, run_sync, empty_data
+        start = "19720229" if leap else "19700417"
+        rule = "FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1" if leap else "FREQ=YEARLY"
+        text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:provider-scope",
+            f"DTSTART;VALUE=DATE:{start}", f"RRULE:{rule}", "SUMMARY:Synthetic birthday",
+            "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1",
+            "BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER;VALUE=DURATION:PT9H", "END:VALARM",
+            "END:VEVENT", "END:VCALENDAR", ""])
+        assert len(m.ics_lesen(text)["jahrestage"]) == 1
+        dav = SyncDav({"calendar": [dict(href="https://cloud.example/calendar/birthday.ics",
+                                       etag='"fixture"', data=text)], "addressbook": []})
+        data = empty_data()
+        import copy
+        before = copy.deepcopy(data)
+>       with pytest.raises(nc.NextcloudError) as failed:
+E       Failed: DID NOT RAISE <class 'magnolie_nextcloud.NextcloudError'>
+
+magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py:108: Failed
+___ test_nextcloud_birthday_scope_is_not_silently_omitted_by_linux_dav[True] ___
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f1c33265760>
+leap = True
+
+    @pytest.mark.parametrize("leap", [False, True])
+    def test_nextcloud_birthday_scope_is_not_silently_omitted_by_linux_dav(monkeypatch, leap):
+        from test_nextcloud import m, nc, SyncDav, run_sync, empty_data
+        start = "19720229" if leap else "19700417"
+        rule = "FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1" if leap else "FREQ=YEARLY"
+        text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:provider-scope",
+            f"DTSTART;VALUE=DATE:{start}", f"RRULE:{rule}", "SUMMARY:Synthetic birthday",
+            "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1",
+            "BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER;VALUE=DURATION:PT9H", "END:VALARM",
+            "END:VEVENT", "END:VCALENDAR", ""])
+        assert len(m.ics_lesen(text)["jahrestage"]) == 1
+        dav = SyncDav({"calendar": [dict(href="https://cloud.example/calendar/birthday.ics",
+                                       etag='"fixture"', data=text)], "addressbook": []})
+        data = empty_data()
+        import copy
+        before = copy.deepcopy(data)
+>       with pytest.raises(nc.NextcloudError) as failed:
+E       Failed: DID NOT RAISE <class 'magnolie_nextcloud.NextcloudError'>
+
+magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py:108: Failed
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py::test_type_or_year_edit_keeps_last_february_recurrence[19720229-X-NEXTCLOUD-BC-UNKNOWN-YEAR:1---02-29-wedding-anniversary]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py::test_type_or_year_edit_keeps_last_february_recurrence[19880229-X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988-1988-02-29-wedding-anniversary]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py::test_type_or_year_edit_keeps_last_february_recurrence[19720229-X-NEXTCLOUD-BC-UNKNOWN-YEAR:1-1988-02-29-birthday]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py::test_type_or_year_edit_keeps_last_february_recurrence[19880229-X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988---02-29-birthday]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py::test_nextcloud_birthday_scope_is_not_silently_omitted_by_linux_dav[False]
+FAILED magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py::test_nextcloud_birthday_scope_is_not_silently_omitted_by_linux_dav[True]
+6 failed, 19 passed in 1.54s

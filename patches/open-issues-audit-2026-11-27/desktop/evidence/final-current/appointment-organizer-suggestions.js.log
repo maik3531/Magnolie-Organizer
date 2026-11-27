@@ -1,0 +1,13 @@
+OBSERVATION {"hidden_organizer_option_counts":[0,0,0,0,0],"regular_open_close_ms":[25.218465,12.830238,13.311278,11.296387,16.334976]}
+PASS /workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/app/web · five regular open/close cycles build no unused organizer options
+PASS /workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/app/web · focus and each query stay bounded while the last contact and company remain reachable
+PASS /workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/app/web · duplicate names keep all exact-name email choices and free organizer input still saves
+PASS /workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/app/web · editing retains the selected organizer and exact-name email choices before focus
+PASS /workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer-windows/app/web · an exact name after more than one chunk of partial matches remains selectable
+OBSERVATION {"hidden_organizer_option_counts":[0,0,0,0,0],"regular_open_close_ms":[13.414469,7.416756,7.116724,6.806917,7.375755]}
+PASS /workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer/web · five regular open/close cycles build no unused organizer options
+PASS /workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer/web · focus and each query stay bounded while the last contact and company remain reachable
+PASS /workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer/web · duplicate names keep all exact-name email choices and free organizer input still saves
+PASS /workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer/web · editing retains the selected organizer and exact-name email choices before focus
+PASS /workspace/scratch/7203da5bd564/open-audit-final-current/magnolie-organizer/web · an exact name after more than one chunk of partial matches remains selectable
+10/10 organizer suggestion cases passed (actual desktop JavaScript in JSDOM)

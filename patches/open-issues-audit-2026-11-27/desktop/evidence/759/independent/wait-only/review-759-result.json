@@ -1,0 +1,18 @@
+{
+  "source_path": "/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/app/web/phone-media.js",
+  "source_sha256": "2d72813b4bf614526812a668dd45218422be268f306f854970cd853e2b62cabe",
+  "environment": "Actual Windows phone-media.js evaluated in JSDOM with synthetic native replies; no native process/device/transport execution",
+  "tests_executed": true,
+  "total": 2,
+  "passed": 2,
+  "results": [
+    {
+      "name": "folder choice loses shared settings during Save-ACK and releases its wait slot",
+      "passed": true
+    },
+    {
+      "name": "late legacy status cannot replace the newer confirmed shared status",
+      "passed": true
+    }
+  ]
+}

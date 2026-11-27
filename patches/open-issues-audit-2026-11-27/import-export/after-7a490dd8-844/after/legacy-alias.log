@@ -1,0 +1,2 @@
+PASS magnolie-organizer/web: actual Python codec, old alias reimport/save/frontend reopen, full source/RID boundaries, ambiguous inputs and concurrent book edit
+PASS magnolie-organizer-windows/app/web: actual Python codec, old alias reimport/save/frontend reopen, full source/RID boundaries, ambiguous inputs and concurrent book edit

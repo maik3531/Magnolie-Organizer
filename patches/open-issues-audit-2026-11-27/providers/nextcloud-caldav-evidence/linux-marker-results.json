@@ -1,0 +1,64 @@
+{
+  "root": "/workspace/scratch/7203da5bd564/open-audit-dav-tests",
+  "product_file": "magnolie-organizer/bin/magnolie-organizer",
+  "product_sha256": "7934accd6161750a643bf16dccba4244f59aef031af4024604d6b5d8c52003a9",
+  "results": [
+    {
+      "name": "nc-bday-unknown-leap",
+      "filename": "nc-bday-unknown-leap.ics",
+      "expected_bucket": "jahrestage",
+      "expected_date": "--02-29",
+      "expected_type": "birthday",
+      "actual_bucket": "termine",
+      "actual_date": "2000-02-29",
+      "actual_type": null,
+      "ics_complex": true,
+      "markers_preserved": true,
+      "fixture_sha256": "8f8008039ad1d4ebe16a2efa6b1289ba3f5b7f8251ff2ba231096902334376fa",
+      "matches_expected": false
+    },
+    {
+      "name": "nc-bday-known-year",
+      "filename": "nc-bday-known-year.ics",
+      "expected_bucket": "jahrestage",
+      "expected_date": "1988-12-03",
+      "expected_type": "birthday",
+      "actual_bucket": "termine",
+      "actual_date": "1988-12-03",
+      "actual_type": null,
+      "ics_complex": false,
+      "markers_preserved": true,
+      "fixture_sha256": "29e5419ff6641d9d56b2a3fd83de0da06782e2eec449bb1d952f5cb034b4d8d1",
+      "matches_expected": false
+    },
+    {
+      "name": "ordinary-annual-control",
+      "filename": "ordinary-annual-control.ics",
+      "expected_bucket": "termine",
+      "expected_date": null,
+      "expected_type": null,
+      "actual_bucket": "termine",
+      "actual_date": "2000-02-29",
+      "actual_type": null,
+      "ics_complex": true,
+      "markers_preserved": true,
+      "fixture_sha256": "3eb3098b4c35c9e878a02131b16d68615603a5281fd2a15ccf5d5be957c8cef7",
+      "matches_expected": true
+    },
+    {
+      "name": "magnolie-birthday-control",
+      "filename": "magnolie-birthday-control.ics",
+      "expected_bucket": "jahrestage",
+      "expected_date": "--02-29",
+      "expected_type": "birthday",
+      "actual_bucket": "jahrestage",
+      "actual_date": "--02-29",
+      "actual_type": "birthday",
+      "ics_complex": null,
+      "markers_preserved": true,
+      "fixture_sha256": "d2dfe89474804d9ad4c8a2f0e90549556c10b589484076634021029053902815",
+      "matches_expected": true
+    }
+  ],
+  "boundary": "Actual current Linux ICS reader; synthetic explicit Nextcloud birthday markers, no live server or contact-derived birthday/dedup path."
+}

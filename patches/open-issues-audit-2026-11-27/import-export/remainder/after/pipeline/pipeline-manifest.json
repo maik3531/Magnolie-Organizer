@@ -1,0 +1,448 @@
+{
+  "checkout": "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+  "head_at_execution": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "commands": [
+    {
+      "label": "probe-build",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "build",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/codec-runner/CalendarCodecProbe.csproj",
+        "--nologo",
+        "--verbosity",
+        "quiet"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+      "exit_code": 0,
+      "log": "probe-build.log",
+      "log_sha256": "4ada313e2665ab2dea5d3bd5b05a2d75a48e2f5694865fda906547f0fac94ef0"
+    },
+    {
+      "label": "python-import",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/calendar-book-probe.py",
+        "--checkout",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+        "--input",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final/contracts/calendar-color-remainders.json",
+        "--output",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/after/pipeline/python-import.json"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+      "exit_code": 0,
+      "log": "python-import.log",
+      "log_sha256": "8e5d724e69bc193caaf406f9ce524e5edbd3d1c072e4527e5b13975a15287a33"
+    },
+    {
+      "label": "python-ui",
+      "command": [
+        "node",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/tests/calendar-colour-remainders.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+      "exit_code": 0,
+      "log": "python-ui.log",
+      "log_sha256": "ab323d91f1068ca86654154798807734aa0c72b4d8add2836d5383d8631d59e1"
+    },
+    {
+      "label": "python-linux-stored-export",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/calendar-book-probe.py",
+        "--checkout",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+        "--input",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/after/pipeline/python-ui/linux.json",
+        "--output",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/after/pipeline/python-linux-stored-export.json",
+        "--mode",
+        "store-export"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+      "exit_code": 0,
+      "log": "python-linux-stored-export.log",
+      "log_sha256": "d25de682b571b06617dfc5511e4dda501cba25cfdf8e87fa73c5cae9dabe45d9"
+    },
+    {
+      "label": "python-windows-stored-export",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/calendar-book-probe.py",
+        "--checkout",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+        "--input",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/after/pipeline/python-ui/windows.json",
+        "--output",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/after/pipeline/python-windows-stored-export.json",
+        "--mode",
+        "store-export"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+      "exit_code": 0,
+      "log": "python-windows-stored-export.log",
+      "log_sha256": "01b6d1c817b9b8d805976170b21edfe5dd3110d69e3a8264433a1c2c9d8f6de3"
+    },
+    {
+      "label": "csharp-import",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/codec-runner/bin/Debug/net8.0/CalendarCodecProbe.dll",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final/contracts/calendar-color-remainders.json",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/after/pipeline/csharp-import.json",
+        "import"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+      "exit_code": 0,
+      "log": "csharp-import.log",
+      "log_sha256": "f23dfc06f22143567d6fa885e0c6aa790c9daf511f12700479f3012c2edde528"
+    },
+    {
+      "label": "csharp-ui",
+      "command": [
+        "node",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/tests/calendar-colour-remainders.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+      "exit_code": 0,
+      "log": "csharp-ui.log",
+      "log_sha256": "ab323d91f1068ca86654154798807734aa0c72b4d8add2836d5383d8631d59e1"
+    },
+    {
+      "label": "csharp-linux-stored-export",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/codec-runner/bin/Debug/net8.0/CalendarCodecProbe.dll",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/after/pipeline/csharp-ui/linux.json",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/after/pipeline/csharp-linux-stored-export.json",
+        "store-export"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+      "exit_code": 0,
+      "log": "csharp-linux-stored-export.log",
+      "log_sha256": "8430f7b0d7abd9fb1a6f7f43426be9d68528cd34e75b142bd14c21028e84253a"
+    },
+    {
+      "label": "csharp-windows-stored-export",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/codec-runner/bin/Debug/net8.0/CalendarCodecProbe.dll",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/after/pipeline/csharp-ui/windows.json",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/remainder/after/pipeline/csharp-windows-stored-export.json",
+        "store-export"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+      "exit_code": 0,
+      "log": "csharp-windows-stored-export.log",
+      "log_sha256": "e855912997db7d04d4bac81f728a92a70e94ff71be9a211ecbad04bb94004310"
+    }
+  ],
+  "build_executed_by_runner": false,
+  "build_exit_code": null,
+  "boundary": "Actual synthetic codecs, real native disk writers/readers and JSDOM frontends; no native GUI, package or provider-device acceptance.",
+  "assembly_sha256": "b02980688cd11f4bbd1ddcbb1a5af52a9a83c68b9e9c9217a59c9c7baba7a328",
+  "probe_assembly_sha256": "40f56f7a902cda34b5186f730b360e627812e7b871ec4e9fa6188ac785c5c4db",
+  "results": [
+    {
+      "runtime": "python",
+      "edition": "linux",
+      "id": "birthday-standard",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "linux",
+      "id": "birthday-own",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "linux",
+      "id": "birthday-calendar",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "linux",
+      "id": "birthday-apple",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "linux",
+      "id": "birthday-own-priority",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "linux",
+      "id": "birthday-component-priority",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "linux",
+      "id": "birthday-partial-leap",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "linux",
+      "id": "anniversary-wedding",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "linux",
+      "id": "jahrestage-parameter-own",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "linux",
+      "id": "termine-parameter-own",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "linux",
+      "id": "aufgaben-parameter-own",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "linux",
+      "id": "birthday-unknown",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "windows",
+      "id": "birthday-standard",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "windows",
+      "id": "birthday-own",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "windows",
+      "id": "birthday-calendar",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "windows",
+      "id": "birthday-apple",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "windows",
+      "id": "birthday-own-priority",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "windows",
+      "id": "birthday-component-priority",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "windows",
+      "id": "birthday-partial-leap",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "windows",
+      "id": "anniversary-wedding",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "windows",
+      "id": "jahrestage-parameter-own",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "windows",
+      "id": "termine-parameter-own",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "windows",
+      "id": "aufgaben-parameter-own",
+      "passed": true
+    },
+    {
+      "runtime": "python",
+      "edition": "windows",
+      "id": "birthday-unknown",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "linux",
+      "id": "birthday-standard",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "linux",
+      "id": "birthday-own",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "linux",
+      "id": "birthday-calendar",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "linux",
+      "id": "birthday-apple",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "linux",
+      "id": "birthday-own-priority",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "linux",
+      "id": "birthday-component-priority",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "linux",
+      "id": "birthday-partial-leap",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "linux",
+      "id": "anniversary-wedding",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "linux",
+      "id": "jahrestage-parameter-own",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "linux",
+      "id": "termine-parameter-own",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "linux",
+      "id": "aufgaben-parameter-own",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "linux",
+      "id": "birthday-unknown",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "windows",
+      "id": "birthday-standard",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "windows",
+      "id": "birthday-own",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "windows",
+      "id": "birthday-calendar",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "windows",
+      "id": "birthday-apple",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "windows",
+      "id": "birthday-own-priority",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "windows",
+      "id": "birthday-component-priority",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "windows",
+      "id": "birthday-partial-leap",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "windows",
+      "id": "anniversary-wedding",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "windows",
+      "id": "jahrestage-parameter-own",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "windows",
+      "id": "termine-parameter-own",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "windows",
+      "id": "aufgaben-parameter-own",
+      "passed": true
+    },
+    {
+      "runtime": "csharp",
+      "edition": "windows",
+      "id": "birthday-unknown",
+      "passed": true
+    }
+  ],
+  "passed": 48,
+  "source_hashes": {
+    "magnolie-organizer/bin/magnolie-organizer": "d56b38f837ac04969e13fabc8210876b02982a262acbcf0670c9f0ac431b8b95",
+    "magnolie-organizer/web/anwendung.js": "0eda608891a9f508fb3155c45789c162364aa3377048f8deb6d2dbe12cc50122",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "74235130ed2fa7caa9189a3619bca1d31ffffb9a533c3895b7b569766f91c89e",
+    "magnolie-organizer-windows/AtomicStore.cs": "cf09f284d1f82806a61735c1df9c13369ef86e8d77f0e9b0a7eecece17da1f90",
+    "magnolie-organizer-windows/app/web/anwendung.js": "d8a6a51533e67eeebc5a8eb1b793a53ab4f9cf8f4c27658cf38b5e76079b2f8f",
+    "contracts/calendar-color-remainders.json": "8fd2ccb729c77f406de99a4bd6a0faf3832837466275a4d35bd937f1c68dbbd8",
+    "magnolie-organizer-windows/tests/calendar-colour-remainders.js": "63708d326ca7922b152fa2e440c3e7d6e7cfac2b553a7d9a66487e9e06416cef"
+  }
+}

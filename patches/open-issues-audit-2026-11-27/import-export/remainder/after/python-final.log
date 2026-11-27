@@ -1,0 +1,38 @@
+.......F...........F...........................                          [100%]
+=================================== FAILURES ===================================
+___ test_colours_survive_native_book_reopen_and_export[anniversary-wedding] ____
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f0631acf8c0>
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-18/test_colours_survive_native_bo7')
+case = {'expected_accent': '#40e0d0', 'expected_date': '2000-02-29', 'expected_type': 'wedding', 'id': 'anniversary-wedding', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_colours_survive_native_book_reopen_and_export(codec, monkeypatch, tmp_path, case):
+        section = case["section"]
+        book = codec.ics_lesen(case["input"])
+        path = tmp_path / "book.json"
+        monkeypatch.setattr(codec, "daten_datei", lambda: str(path))
+        codec.speichere_daten(book)
+        codec._DATEN_ZWISCHENSPEICHER = {"stand": None, "daten": None}
+        reopened = codec.daten_lesen_gepuffert(str(path))
+>       item = reopened[section][0]
+E       IndexError: list index out of range
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:30: IndexError
+_ test_actual_colour_edit_and_clear_do_not_restore_old_colour[anniversary-wedding] _
+
+codec = <module 'calendar_colour_remainders' from '/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/bin/magnolie-organizer'>
+case = {'expected_accent': '#40e0d0', 'expected_date': '2000-02-29', 'expected_type': 'wedding', 'id': 'anniversary-wedding', ...}
+
+    @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
+    def test_actual_colour_edit_and_clear_do_not_restore_old_colour(codec, case):
+        section = case["section"]
+>       item = codec.ics_lesen(case["input"])[section][0]
+E       IndexError: list index out of range
+
+magnolie-organizer/pruefungen/test_calendar_color_remainders.py:51: IndexError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_colours_survive_native_book_reopen_and_export[anniversary-wedding]
+FAILED magnolie-organizer/pruefungen/test_calendar_color_remainders.py::test_actual_colour_edit_and_clear_do_not_restore_old_colour[anniversary-wedding]
+2 failed, 45 passed in 3.52s

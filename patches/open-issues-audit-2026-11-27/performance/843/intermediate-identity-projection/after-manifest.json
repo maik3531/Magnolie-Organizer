@@ -1,0 +1,48 @@
+{
+  "issue": 843,
+  "phase": "after",
+  "root": "/workspace/scratch/7203da5bd564/open-audit-395-worker-url",
+  "head": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "git_status": " M magnolie-organizer-windows/app/web/anwendung.js\n M magnolie-organizer-windows/tests/recurrence-worker.js\n M magnolie-organizer/web/anwendung.js\n",
+  "env": {
+    "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules"
+  },
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "node": "v24.22.3",
+  "inputs": {
+    "magnolie-organizer/web/anwendung.js": "bdbba9d5fcf079189797753dc224cb7345b5e2a39ec21933973e0b8f8df5cb1e",
+    "magnolie-organizer-windows/app/web/anwendung.js": "5d7e8113750391809c8f83f141268a7863603ee4e3cc124e94c5af8e76ce85ad",
+    "magnolie-organizer-windows/tests/recurrence-worker.js": "7d007774054a47730ec8fd67b96ea3c4d902c732eb7e98334e2097f5e63b9ce3",
+    "magnolie-organizer-windows/tests/desktop-state-regressions.js": "c27e77e00889fe7a23853256249128844868b23c5c5cffafed25b11584dbdb7d",
+    "magnolie-organizer-windows/tests/worker-file-fixture.js": "1cd4cc3c27f9fcd70d8cb8e95b2d9e1a08be56f1e4b0b9f8ede5a2fb9c701f4b",
+    "magnolie-organizer/web/normative-timezones.js": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+    "magnolie-organizer-windows/app/web/normative-timezones.js": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b"
+  },
+  "probe_sha256": "ec8aad943748846804ec5314fd922a78e5b67300129626c0f14fad29fd53546a",
+  "results": [
+    {
+      "name": "actual-urls",
+      "command": [
+        "node",
+        "/workspace/scratch/7203da5bd564/open-audit/performance/843/actual-url-probe.cjs",
+        "/workspace/scratch/7203da5bd564/open-audit-395-worker-url",
+        "/workspace/scratch/7203da5bd564/open-audit/performance/843/after-actual-urls.json",
+        "--expect-clean"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 2.221,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/performance/843/logs/after-actual-urls.log"
+    },
+    {
+      "name": "recurrence-worker",
+      "command": [
+        "node",
+        "magnolie-organizer-windows/tests/recurrence-worker.js"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 3.928,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/performance/843/logs/after-recurrence-worker.log"
+    }
+  ],
+  "child_maxrss_kib": 308208
+}

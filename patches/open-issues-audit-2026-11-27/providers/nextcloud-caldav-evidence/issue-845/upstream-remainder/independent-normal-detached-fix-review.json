@@ -1,0 +1,84 @@
+{
+  "issue": 845,
+  "review_type": "independent_static_review_of_exact_normal_detached_followup",
+  "reviewer": "review_storage",
+  "reviewed_at_utc": "2026-11-27T19:54:43.149276+00:00",
+  "base_commit": "559c5c1f103caf0be09d381e0ca59f2e07b9e608",
+  "reviewed_commit": "573905f561f00537c39a98133aa8e7719239a4af",
+  "reviewed_tree": "76b67280d07756efcf6741231e0992b0e446edd7",
+  "worktree_clean": true,
+  "decision": "approved",
+  "open_findings": [],
+  "source_files": [
+    {
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "sha256": "99916294d70392d04fb4ac7f6beb5b00da0c344adc96ab4dbbaf799098815de0",
+      "git_blob": "1713a71af867bfcbbfc96f9fcb0b253877aed77c"
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs",
+      "sha256": "45d368fc2917ef552e7e3624b8f897af0f2a8b180e6f7f8866f44f4cb01bcf50",
+      "git_blob": "53c2a959f10c439fabdde22ff4ec025712a84401"
+    }
+  ],
+  "complete_diff_sha256": "e132085d3015f9c1d45fb5277d9ba42228b4fdc5fcd18c10cba6f9363cfc47e2",
+  "scope_de": "Ausschließlich der zusätzliche Guard für den belegten C#-Pfad: normales Nextcloud-BDAY importieren, tatsächlich exportieren, separate Ausnahme gleicher UID anhängen und erneut importieren. Keine weitere Suche und keine allgemeine Serienabnahme.",
+  "product_diff_verification": {
+    "changed_product_files": 1,
+    "old_expression_prefix": "var anniversary = start.AllDay &&",
+    "new_expression_prefix": "var anniversary = allowProviderBirthday && start.AllDay &&",
+    "entire_product_file_equal_after_reversing_this_one_replacement": true,
+    "conclusion_de": "Die Produktänderung besteht exakt aus einem vorgeschalteten allowProviderBirthday &&. Alle übrigen Parser-, Provider-, Datums-, Februar- und Exportbytes dieses C#-Codecs bleiben gegenüber 559c unverändert."
+  },
+  "review_conclusions_de": [
+    "Der einzige explizite Aufrufer übergibt weiterhin !hasDetached. Der neue äußere Guard verhindert, dass ein beim Export hinzugefügter eigener Geburtstagstyp eine bereits erkannte separate Ausnahme übergeht.",
+    "Ohne zugeordnete Ausnahme bleibt allowProviderBirthday wahr; damit bleibt die bisherige Einstufung einschließlich des Geburtstagsdatums unverändert. Andere Aufrufer behalten den bestehenden Standardwert true.",
+    "Der vorhandene Ereignis-/Ausnahmeabgleich erhält den vollständigen Master anstelle eines ausgelagerten Jahrestags. Es wird kein neuer Rekurrenzalgorithmus eingeführt.",
+    "Der neue Test erzeugt beide Typmarker über den echten ParseIcs→WriteIcs-Pfad, kontrolliert den Reimport ohne Ausnahme und prüft danach zwei Termine statt Jahrestag plus isolierter Ausnahme.",
+    "Die neue Regression verwendet vor und nach der Korrektur exakt dieselben Testbytes. Der dokumentierte rote Ausgang ist genau die erwartete verlorene Masterzuordnung; der Nachherlauf ist grün."
+  ],
+  "author_test_evidence": {
+    "baseline_manifest": "normal-detached-baseline-manifest.json",
+    "final_manifest": "normal-detached-final-manifest.json",
+    "test_bytes_equal_before_after": true,
+    "baseline_groups": {
+      "passed": 0,
+      "failed": 1
+    },
+    "after_groups": {
+      "passed": 1,
+      "failed": 0
+    },
+    "group": "Nextcloud ICS birthdays",
+    "build_after": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "logs": [
+      {
+        "path": "logs/normal-detached-before.log",
+        "sha256": "1f00dd7adfcb32f655236ff9f07c3d4d5bff280dd4a769aec9a1009faf84937c"
+      },
+      {
+        "path": "logs/normal-detached-after.log",
+        "sha256": "22063b861890e34af538f4506e7a324ebf981a08b5c5bc68c7af62b634981877"
+      },
+      {
+        "path": "logs/normal-detached-build-after.log",
+        "sha256": "bd535427a2b65185e1c12b7b286db680a5e8c311316e899506c3b4812f151e09"
+      }
+    ],
+    "executed_by_reviewer": false
+  },
+  "reviewer_tests_executed_for_this_addendum": 0,
+  "prior_evidence": {
+    "approved_february_and_dav_review_unchanged": "independent-review.json",
+    "actual_counterexample_unchanged": "independent-normal-detached-review.json",
+    "relation_de": "Die bisherigen Dateien bleiben unverändert als Nachweis für 559c erhalten. Dieser ausdrücklich beauftragte Zusatz löst deren als bestehend/offen dokumentierten normalen C#-Export→Ausnahme-Rest für den konkret geprüften NC-BDAY-Pfad ab."
+  },
+  "limitations_de": [
+    "Die Freigabe betrifft den konkreten NC-BDAY-Pfad mit bereits ermittelter Detached-UID; sie behauptet keine allgemeine Abnahme aller eigenen oder fremden Jahrestags-/Ausnahmemodelle.",
+    "Keine neuen DOM-, Live-Provider- oder nativen Endgerätetests.",
+    "Die dokumentierte Grenze der vollständigen Linux-DAV-Jahrestagsintegration bleibt bestehen."
+  ]
+}

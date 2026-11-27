@@ -1,0 +1,178 @@
+{
+  "source_head": "2365a88411dfe4afa36fb8e03b1b6ecfb4862aee",
+  "source_tree": "3ec6fa97daedd89ab77f8b59dc1b176455291b6a",
+  "inputs": {
+    "magnolie-organizer/pruefungen/test_native_import_regressions.py": "1927f5bbcf2b172d3c82bc18341f5d1ed5d235d8830eaef5f288d3c5afc5f3a7",
+    "magnolie-organizer/pruefungen/test_csv_unicode_import.py": "a017bf12d2adb4c77016ce14c9354c3854c40d8f07c79bf88f6ed285c69330d2",
+    "magnolie-organizer/pruefungen/test_contact_type_category_separation.py": "802ce8ca7bb3e4218ca4afd7b31db4bd41bcbb0ee26ec56269a7e015646742df",
+    "magnolie-organizer/pruefungen/test_contact_person_details.py": "ea5303ec986ddd8963ee8414cc5ac762e63323c2720ba0ecbb3a2a6eec47bdad",
+    "magnolie-organizer/pruefungen/test_thunderbird_contacts.py": "a7808bdc1a4efd3939d653a950fe19786020005be0be47c0f93b934305cbc1fb",
+    "magnolie-organizer/pruefungen/test_kde_contact_export.py": "6780c2a286ca430149a22ba6e789dd6f4806e64c8c32fb1334ed14cf811ff80a",
+    "magnolie-organizer/pruefungen/test_mcp_records_export.py": "936b838f779eb1c22f53a8b62af244a314b6e8a2e3e4a99ba7375cb6166fbf01",
+    "magnolie-organizer/pruefungen/test_mcp_local_import.py": "9950ebc167bb2d2156f66bb8c88ec6bb6388c1fce46289385b2ea9549b321ab1",
+    "magnolie-organizer/pruefungen/test_category_colors.py": "69350e158a9c454eefa6cfbc5c750e6b1b77a9f45fc9303cb5da4588e97fd994",
+    "magnolie-organizer/pruefungen/test_or6_import.py": "1e5ba5a930ebe2449718135f3f7738d1a20a684394abac5f6889ff22f089c486",
+    "magnolie-organizer/pruefungen/test_or6_contact_region.py": "6ca8239a682d921622596b583ae916a32800b537ced745828c514cccd3fd93c9",
+    "magnolie-organizer/pruefungen/test_or6_contact_source_text.py": "207f3183527b645ecbf2f4b4914786528f290b7ecdcb853a95129ce5fb3bc0a6",
+    "magnolie-organizer/pruefungen/test_waste_import.py": "1d6a25cc5d587d3f7cc7bbf38036401cc4e5f5532470da554eba1877f45a046f",
+    "magnolie-organizer/pruefungen/test_contact_time_contract.py": "eb342b4c6b97d1a2f175d7a874bd02d55a2d3feaf877cefb23598c40f58f46d3",
+    "magnolie-organizer/pruefungen/test_import_export_vertrag.py": "5d46c8328f0c673998282e71fefd41de596b9fa0141407f7868f91b1e8e3e967",
+    "magnolie-organizer/bin/magnolie-organizer": "1374eb1faf231c6d00dfe6f540f16bc77f93025f7be0bc1bf25f898d0422d47e",
+    "magnolie-organizer/bin/magnolie_or6.py": "e4576a8b1df12d064e5645e43beadfac7c390e6fc7f68e0c9bea9ab1e4ab58ac",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "85776769684950c2cef34748244bbafa49fe1c761a8327523ebf1c6299793dbf",
+    "magnolie-organizer-windows/RecordExportFile.cs": "0be7416748887b166da56c1021ccc986a6fe15a23016ae47498ed22cde18c1be",
+    "magnolie-organizer-windows/tests/RecordExportFileTests.cs": "f3f5c6a88a11d6d81571105d6e86f7aef910abee90f06e66de324b1907d2a191",
+    "magnolie-organizer-windows/tests/CategoryColorTests.cs": "7c8961018ae68319a8adce49acbd6e1ae1b075ebc986aa768ebc3b21ac38d01d",
+    "magnolie-organizer-windows/tests/UnicodeImportTests.cs": "d3512af3953760b26d85c8c58eabce55e4e0ce8989d7db8f5f205f0981439389",
+    "magnolie-organizer-windows/tests/Program.cs": "f56fa3ee605b6b39aebbe92653894f403798dd1c8ce66c4ebf4639b170c18a0e"
+  },
+  "environment": {
+    "TZ": "Europe/Berlin",
+    "MAGNOLIE_TEST_SOURCE_ROOT": "/workspace/scratch/7203da5bd564/open-audit-current",
+    "DOTNET_CLI_HOME": "/workspace/scratch/7203da5bd564/round3-tools/dotnet-state",
+    "NUGET_PACKAGES": "/workspace/scratch/7203da5bd564/round3-tools/nuget",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+    "DOTNET_GENERATE_ASPNET_CERTIFICATE": "false"
+  },
+  "runs": [
+    {
+      "name": "python-file-contract",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "magnolie-organizer/pruefungen/test_import_export_vertrag.py"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-current",
+      "exit_code": 0,
+      "seconds": 0.903,
+      "log": "python-file-contract.log",
+      "sha256": "d5bcc3c94d66cb510117008e06293aeffef82903fe7b7fb11230a4c205e71c5a",
+      "assertion_checks": 26
+    },
+    {
+      "name": "python-semantics",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "magnolie-organizer/pruefungen/test_native_import_regressions.py",
+        "magnolie-organizer/pruefungen/test_csv_unicode_import.py",
+        "magnolie-organizer/pruefungen/test_contact_type_category_separation.py",
+        "magnolie-organizer/pruefungen/test_contact_person_details.py",
+        "magnolie-organizer/pruefungen/test_thunderbird_contacts.py",
+        "magnolie-organizer/pruefungen/test_kde_contact_export.py",
+        "magnolie-organizer/pruefungen/test_mcp_records_export.py",
+        "magnolie-organizer/pruefungen/test_mcp_local_import.py",
+        "magnolie-organizer/pruefungen/test_category_colors.py",
+        "magnolie-organizer/pruefungen/test_or6_import.py",
+        "magnolie-organizer/pruefungen/test_or6_contact_region.py",
+        "magnolie-organizer/pruefungen/test_or6_contact_source_text.py",
+        "magnolie-organizer/pruefungen/test_waste_import.py",
+        "magnolie-organizer/pruefungen/test_contact_time_contract.py"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-current",
+      "exit_code": 0,
+      "seconds": 8.253,
+      "log": "python-semantics.log",
+      "sha256": "0d1632f16bdcee1dd67042ba39251cc7f672214c7e7f7663ef867bb93f058f1d",
+      "pytest_counts": {
+        "passed": 203
+      }
+    },
+    {
+      "name": "csharp-record-export",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Record export / native codecs"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows",
+      "exit_code": 0,
+      "seconds": 0.209,
+      "log": "csharp-record-export.log",
+      "sha256": "0d905d17a0d6d4851fedc93e71c466573cc00ba77741c59001b0d87f7b03498b",
+      "passed_groups": 1,
+      "total_groups": 1
+    },
+    {
+      "name": "csharp-category-colors",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Category colors / native"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows",
+      "exit_code": 0,
+      "seconds": 0.255,
+      "log": "csharp-category-colors.log",
+      "sha256": "4f8daf52648b3495537f7d42b575543f710ff96c0fa3f196131d56c24afa37d6",
+      "passed_groups": 1,
+      "total_groups": 1
+    },
+    {
+      "name": "csharp-encoding",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "UTF-16 import"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows",
+      "exit_code": 0,
+      "seconds": 0.276,
+      "log": "csharp-encoding.log",
+      "sha256": "3526b92d1229ec4d607c42b68d9a1fbd774f82668985221376002938761032f0",
+      "passed_groups": 1,
+      "total_groups": 1
+    },
+    {
+      "name": "csharp-or6",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "OR6 import / native fixtures"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows",
+      "exit_code": 0,
+      "seconds": 0.227,
+      "log": "csharp-or6.log",
+      "sha256": "bc286a103a5654656f5de6f5dd5654476c3ae3aed98a2719eece855822446abe",
+      "passed_groups": 1,
+      "total_groups": 1
+    },
+    {
+      "name": "csharp-or6-extension",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "OR6 extension / original recurring"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows",
+      "exit_code": 0,
+      "seconds": 0.839,
+      "log": "csharp-or6-extension.log",
+      "sha256": "99e1e8a9397abfae07957daf2df203f3cb34e01c27b3924074cd49d60965084f",
+      "passed_groups": 1,
+      "total_groups": 1
+    },
+    {
+      "name": "csharp-thunderbird",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Thunderbird local.sqlite Schema 23"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows",
+      "exit_code": 1,
+      "seconds": 0.2,
+      "log": "csharp-thunderbird.log",
+      "sha256": "81b0fa2a0ab0297f6bb944736eec33cd319e762693414c2da83141b7dd912918",
+      "passed_groups": 0,
+      "total_groups": 1
+    }
+  ],
+  "limits": "Actual Python and .NET codecs with synthetic data on Linux. No installed desktop UI, native provider, Apple/Android OS, private original book or package acceptance.",
+  "assembly_sha256": "f7de2ec3c1558a432c63f48df463bc03f773c5863a178a63c2b4d344ccae77ed",
+  "inputs_unchanged": true,
+  "worktree_status": "",
+  "passed": false
+}

@@ -1,0 +1,10 @@
+{
+  "commit": "3a471143050564eb348288e137d32fbcdaea77e2",
+  "tree": "016a5254bcd43a5fed90b331e36d9b92a77b0e43",
+  "base": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "kind": "documentation_only",
+  "path": "/workspace/scratch/7203da5bd564/open-audit/providers/issue-192/0001-192-mcp-call-coverage.patch",
+  "sha256": "ba3c6c6b7ceab76f5336504a6a2a4fc00cad09df6530d7d38a2664174cef15d3",
+  "validation": "/workspace/scratch/7203da5bd564/open-audit/providers/issue-192/source-check.json",
+  "summary_de": "Veraltete Coverage-Aussage zu bereits registrierten Telefon-Actors korrigiert; SMS/Routing und installierte Abnahme bleiben offen."
+}

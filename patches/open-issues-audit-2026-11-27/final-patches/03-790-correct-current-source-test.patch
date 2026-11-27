@@ -1,4 +1,4 @@
-From 164f923a723c976441e7efd20dd78605bde9f63f Mon Sep 17 00:00:00 2001
+From 683ab35a3c020d2f0bd5798f512d259fb0db2b5a Mon Sep 17 00:00:00 2001
 From: Codex <codex@openai.com>
 Date: Fri, 27 Nov 2026 18:36:11 +0100
 Subject: [PATCH] Refs #790: align Mac source gate with current Tablet checkout

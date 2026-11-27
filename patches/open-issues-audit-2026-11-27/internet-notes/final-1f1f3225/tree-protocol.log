@@ -1,0 +1,56 @@
+Magnolie CoreTests: 1 Gruppen
+FS1 NATIVE IDENTITY PASS normal
+FS1 NATIVE IDENTITY PASS cosmetic
+FS1 NATIVE IDENTITY PASS peer-key
+FS1 NATIVE IDENTITY PASS own-key
+FS1 NATIVE IDENTITY PASS unconfirmed
+Notes native FS1 origin: 22 synthetic scenarios passed (no installed counterpart acceptance).
+Notes native protocol negotiation: 15 actual-FS1 synthetic scenarios passed (no source grant).
+Notes native export/result/writer: 21 synthetic scenarios plus projection guards passed (actual generated SaveAsync, no durable ACK history).
+Notes durable private consent core: 22 synthetic scenarios passed (stable-book only; no native save-chain activation).
+Notes actual known-book save chain: 15 synthetic native-writer/recovery scenarios passed (no primary-read saved witness).
+Notes private save-chain interruption: 5 signed-intent/content/readback/delete boundary scenarios passed.
+Notes independent journal primitives: crypto isolation/tamper/canonical/key clearing and narrow private layout passed (no send authority).
+Notes existing independent journal key: 12 synthetic read-only/DPAPI-or-controlled cases passed (no key/store/database creation).
+Notes physical-first request intentions: 20 synthetic cases passed (loaded history never restores send rights).
+Notes independent genuine saved-ACK history: 35 actual-writer synthetic cases passed (loaded history is not ACK authority).
+Notes unconfirmed query-only restart: 10 synthetic cases passed (no replay, pending writer, saved witness or ACK).
+Notes durable terminal retirement: 15 native-writer synthetic cases passed (settled history and matching installed mapping before physical reuse).
+Notes fresh VERIFIED local recovery: 20 synthetic actual-writer cases passed (real bootstrap then metadata save, no provider replay).
+Notes reserved native FS1 transport: 17 synthetic authenticated-handler cases passed (no generic fallback or receipt settlement).
+Notes regular export bootstrap/private discovery: 15 synthetic native-writer cases passed (no fake recovered request or primary-read saved scope).
+Notes bounded native controller: 28 synthetic receive/deferred/actual-writer cases passed (no registered pump or UI dispatch).
+Notes controller multi-source: 2 fairness/conflict/stale-whole-book actual-writer cases passed.
+Notes native readiness/worker: 8 cached-restriction and 3 coalesced/event/Stop synthetic cases passed (no listener or startup factory).
+  FEHLER Magnolienbaum Crypto / Pairing / FS1 / Replay / Queues / Netzwerk (51.01 s)
+         System.InvalidOperationException: Fresh DOM policy cases failed: node:internal/modules/cjs/loader:1568
+  throw err;
+  ^
+
+Error: Cannot find module 'jsdom'
+Require stack:
+- /workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows/tests/notes-original-fresh-readiness.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1118:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1142:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1169:12)
+    at Module._load (node:internal/modules/cjs/loader:1341:5)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.require (node:internal/modules/cjs/loader:1674:12)
+    at require (node:internal/modules/helpers:157:16)
+    at Object.<anonymous> (/workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows/tests/notes-original-fresh-readiness.js:4:59)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows/tests/notes-original-fresh-readiness.js'
+  ]
+}
+
+Node.js v24.22.3
+
+   at MagnolieOrganizer.Windows.Tests.TestAssert.That(Boolean condition, String message) in /workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows/tests/TestRunner.cs:line 41
+   at MagnolieOrganizer.Windows.Tests.NotesOriginalChoiceStoreTests.FrontendWireAsync(String root) in /workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows/tests/NotesOriginalFrontendWireTests.cs:line 25
+   at MagnolieOrganizer.Windows.Tests.NotesOriginalChoiceStoreTests.FrontendWireAsync(String root) in /workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows/tests/NotesOriginalFrontendWireTests.cs:line 28
+   at MagnolieOrganizer.Windows.Tests.ContractGroupTests.TreeAsync() in /workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows/tests/ContractGroupTests.cs:line 1081
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in /workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/1 Gruppen bestanden.

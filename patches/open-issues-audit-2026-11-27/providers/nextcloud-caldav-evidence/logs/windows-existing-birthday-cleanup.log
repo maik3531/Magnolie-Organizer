@@ -1,0 +1,15 @@
+Magnolie CoreTests: 1 Gruppen
+  FEHLER Calendar birthday cleanup (0.29 s)
+         System.Net.Sockets.SocketException (13): Permission denied
+   at System.Net.Sockets.Socket..ctor(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType)
+   at System.IO.Pipes.NamedPipeServerStream.SharedServer..ctor(String path, Int32 maxCount, Boolean isFirstPipeInstance)
+   at System.IO.Pipes.NamedPipeServerStream.SharedServer.Get(String path, Int32 maxCount, PipeOptions pipeOptions)
+   at System.IO.Pipes.NamedPipeServerStream.Create(String pipeName, PipeDirection direction, Int32 maxNumberOfServerInstances, PipeTransmissionMode transmissionMode, PipeOptions options, Int32 inBufferSize, Int32 outBufferSize, HandleInheritability inheritability)
+   at System.IO.Pipes.NamedPipeServerStream..ctor(String pipeName, PipeDirection direction, Int32 maxNumberOfServerInstances, PipeTransmissionMode transmissionMode, PipeOptions options)
+   at MagnolieOrganizer.Windows.Tests.CalendarBirthdayCleanupTests.BridgeRelay.<>c__DisplayClass5_0.<<-ctor>b__0>d.MoveNext() in /workspace/scratch/7203da5bd564/open-audit-dav-tests/magnolie-organizer-windows/tests/CalendarBirthdayCleanupTests.cs:line 300
+--- End of stack trace from previous location ---
+   at MagnolieOrganizer.Windows.Tests.CalendarBirthdayCleanupTests.BridgeRelay.DisposeAsync() in /workspace/scratch/7203da5bd564/open-audit-dav-tests/magnolie-organizer-windows/tests/CalendarBirthdayCleanupTests.cs:line 323
+   at MagnolieOrganizer.Windows.Tests.CalendarBirthdayCleanupTests.RuntimeAsync(Boolean crash, Boolean conflict, Boolean weakEtag, Boolean bridge, Boolean legacyBaseline) in /workspace/scratch/7203da5bd564/open-audit-dav-tests/magnolie-organizer-windows/tests/CalendarBirthdayCleanupTests.cs:line 204
+   at MagnolieOrganizer.Windows.Tests.CalendarBirthdayCleanupTests.RunAsync() in /workspace/scratch/7203da5bd564/open-audit-dav-tests/magnolie-organizer-windows/tests/CalendarBirthdayCleanupTests.cs:line 94
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in /workspace/scratch/7203da5bd564/open-audit-dav-tests/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/1 Gruppen bestanden.

@@ -1,0 +1,4 @@
+Unhandled exception. System.InvalidOperationException: Keine Testgruppe entspricht 'Nextcloud birthday'.
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in /workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows/tests/TestRunner.cs:line 15
+   at Program.<Main>$(String[] args) in /workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows/tests/Program.cs:line 755
+   at Program.<Main>(String[] args)

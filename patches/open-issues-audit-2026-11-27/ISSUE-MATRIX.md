@@ -1,6 +1,6 @@
 # Vollständige Matrix der 106 ursprünglich offenen Issues
 
-Quellenbasis der vollständigen Sichtung: `3f4b69ca`; begrenzte Nachträge bis `24927cf9`. Ein geschlossenes übertragenes Issue bedeutet, dass seine offenen Kriterien im Leitissue weitergeführt werden. Bereitgestellte Patches sind noch keine Produktübernahme. Neue Zusatzbefunde stehen gesondert unter `new-issues/`.
+Quellenbasis der vollständigen Sichtung: `3f4b69ca`; begrenzte Nachträge bis `7a490dd8`. Ein geschlossenes übertragenes Issue bedeutet, dass seine offenen Kriterien im Leitissue weitergeführt werden. Bereitgestellte Patches sind noch keine Produktübernahme. Neue Zusatzbefunde stehen gesondert unter `new-issues/`.
 
 | Issue | Bewertung | Ergebnis und verbleibender Umfang | Ausgeführte Aktion |
 | --- | --- | --- | --- |

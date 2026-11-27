@@ -1,0 +1,38 @@
+Magnolie CoreTests: 2 Gruppen
+  FEHLER Lotus CSV contacts / explicit role fields / repeated VCF exchange (0.07 s)
+         System.InvalidOperationException: home-and-work: Phone values or roles changed
+home-and-work: Address lost, fabricated or assigned to another role
+home-and-work: Phone values or roles changed
+home-and-work: Address lost, fabricated or assigned to another role
+home-and-work: Phone values or roles changed
+home-and-work: Address lost, fabricated or assigned to another role
+work-only: Phone values or roles changed
+work-only: Address lost, fabricated or assigned to another role
+work-only: Phone values or roles changed
+work-only: Address lost, fabricated or assigned to another role
+work-only: Phone values or roles changed
+work-only: Address lost, fabricated or assigned to another role
+interleaved-fields: Address lost, fabricated or assigned to another role
+interleaved-fields: Address lost, fabricated or assigned to another role
+interleaved-fields: Address lost, fabricated or assigned to another role
+generic-and-explicit: Phone values or roles changed
+generic-and-explicit: Address lost, fabricated or assigned to another role
+generic-and-explicit: Phone values or roles changed
+generic-and-explicit: Address lost, fabricated or assigned to another role
+generic-and-explicit: Phone values or roles changed
+generic-and-explicit: Address lost, fabricated or assigned to another role
+partial-work-does-not-borrow-home-fields: Address lost, fabricated or assigned to another role
+partial-work-does-not-borrow-home-fields: Address lost, fabricated or assigned to another role
+partial-work-does-not-borrow-home-fields: Address lost, fabricated or assigned to another role
+empty-role-columns: Address lost, fabricated or assigned to another role
+english-role-columns: Phone values or roles changed
+english-role-columns: Address lost, fabricated or assigned to another role
+english-role-columns: Phone values or roles changed
+english-role-columns: Address lost, fabricated or assigned to another role
+english-role-columns: Phone values or roles changed
+english-role-columns: Address lost, fabricated or assigned to another role
+   at MagnolieOrganizer.Windows.Tests.TestAssert.That(Boolean condition, String message) in /workspace/scratch/7203da5bd564/open-audit-patches/magnolie-organizer-windows/tests/TestRunner.cs:line 41
+   at MagnolieOrganizer.Windows.Tests.LotusCsvContactFieldTests.RunAsync() in /workspace/scratch/7203da5bd564/open-audit-patches/magnolie-organizer-windows/tests/LotusCsvContactFieldTests.cs:line 47
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in /workspace/scratch/7203da5bd564/open-audit-patches/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+  OK     Lotus task CSV / status and priority roundtrip (0.07 s)
+CoreTests: 1/2 Gruppen bestanden.

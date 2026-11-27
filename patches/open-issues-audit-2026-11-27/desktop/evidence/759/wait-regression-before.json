@@ -1,0 +1,13 @@
+{
+  "audit_source_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "patch_base_commit": "50b1512234a765635f82af4537f277594fbf9878",
+  "module_bytes_equal_between_bases": true,
+  "module_sha256": "79d16842bac53b090b058474edad25c3791f6ffd5c73fdd20d14c2dd6c4c0ccf",
+  "test_sha256": "b23caa774a97f599bf53d39a4cca1693ce6ba40f140f0a81e51548bc0995ab35",
+  "command": [
+    "node",
+    "/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js"
+  ],
+  "source_root": "/workspace/scratch/7203da5bd564/open-audit-source",
+  "exit_code": 1
+}

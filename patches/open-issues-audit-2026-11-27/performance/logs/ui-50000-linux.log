@@ -1,0 +1,65 @@
+Belastungstest der Oberfläche mit je 50000 Lotus-Einträgen
+
+  Termine erzeugen                                   49 ms   (Grenze  4000 ms) ok
+
+Öffnen des Buches
+  App.init mit dem ganzen Bestand                  1375 ms   (Grenze  8000 ms) ok
+  ok   – alle Termine übernommen (50000)
+
+Die übrigen Bereiche (je 50000 Einträge)
+  alles übernehmen und zeichnen                   22100 ms   (Grenze 20000 ms) ZU LANGSAM
+  ok   – alle Adressen im Buch (50000)
+  ok   – mehrfache Rufnummern und Anschriften bleiben im großen Bestand erhalten
+  ok   – alle Aufgaben im Buch (50000)
+  ok   – alle Notizen im Buch (50000)
+  ok   – alle Jahrestage im Buch (50000)
+  Adressbuch zeichnen                               168 ms   (Grenze  4000 ms) ok
+  Aufgabenliste zeichnen                            645 ms   (Grenze  4000 ms) ok
+  Elternaufgabe am Listenende suchen                430 ms   (Grenze  4000 ms) ok
+  ok   – jede Elternaufgabe bleibt über die Suche auswählbar
+  ok   – die Elternauswahl bleibt auf ein Listenhäppchen begrenzt
+  Notizbuch zeichnen                                150 ms   (Grenze  4000 ms) ok
+  ok   – die reine Elternsuche erzeugt keine ungespeicherte Aufgabe
+  Jahrestage zeichnen                              1097 ms   (Grenze  4000 ms) ok
+
+Die drei Ansichten mit vollem Bestand
+  Terminübersicht (Monat) zeichnen                  274 ms   (Grenze  5000 ms) ok
+  ok   – die Terminübersicht steht rechts
+  in die Tagesansicht wechseln                      705 ms   (Grenze  3000 ms) ok
+  ok   – zwei Tagesspalten
+  zehnmal zwei Tage weiterblättern                 1415 ms   (Grenze  6000 ms) ok
+  Terminblatt öffnen und schließen                 4588 ms   (Grenze  4000 ms) ZU LANGSAM
+
+Blättern und Ansichten
+  Monatsblatt zeichnen                                0 ms   (Grenze  1500 ms) ok
+  zehnmal einen Monat weiterblättern               3400 ms   (Grenze  4000 ms) ok
+  auf das Wochenblatt umschalten                    679 ms   (Grenze  1500 ms) ok
+  zehnmal eine Woche weiterblättern                1831 ms   (Grenze  4000 ms) ok
+  ok   – beide Halbjahre sind vollstaendig gezeichnet
+  Jahresplaner zeichnen                             759 ms   (Grenze  3000 ms) ok
+  Aufgaben, Adressen, Notizen, Jahrestage          1763 ms   (Grenze  8000 ms) ok
+
+Eintragen und Speichern
+  einen Termin anlegen und zeichnen                   0 ms   (Grenze  1500 ms) ok
+  Daten in Text verwandeln (Speichern)              697 ms   (Grenze  3000 ms) ok
+    Die Datei wäre 140.9 MB groß
+  Daten wieder einlesen                            1192 ms   (Grenze  3000 ms) ok
+
+Übernahme aus Lotus (Zusammenführen)
+  5.000 neue Termine zusammenführen                3791 ms   (Grenze 15000 ms) ok
+  ok   – Bestand deutlich gewachsen (55001)
+  dieselben 5.000 noch einmal (alles doppelt)       108 ms   (Grenze 15000 ms) ok
+  ok   – nichts doppelt angelegt (55001)
+
+Weitergeben (Export) über die Oberfläche
+  ok   – der Drucktest behaelt alle 30.000 Kontakte nach dem asynchronen Import
+  Druckseite für 30.000 Adressen bauen             2552 ms   (Grenze 15000 ms) ok
+    Die Druckseite wäre 18.5 MB groß
+  ok   – Druckseite ist vollständig
+  ok   – jede Karteikarte steht auf der Seite
+  Druckseite für die Termine eines Monats bauen     673 ms   (Grenze  8000 ms) ok
+  ok   – Kopfzeile vorhanden
+
+Speicher: 1724 MB belegt
+
+2 PRÜFUNGEN FEHLGESCHLAGEN

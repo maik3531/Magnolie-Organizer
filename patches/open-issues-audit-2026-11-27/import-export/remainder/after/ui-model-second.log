@@ -1,0 +1,74 @@
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-standard: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-own: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-calendar: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-apple: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-own-priority: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-component-priority: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-partial-leap: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: anniversary-wedding: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: jahrestage-parameter-own: year planner visible bars
+
+0 !== 1
+
+CALENDAR COLOUR REMAINDERS 3/12 /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web UI model fixtures
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-standard: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-own: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-calendar: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-apple: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-own-priority: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-component-priority: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-partial-leap: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: anniversary-wedding: year planner visible bars
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: jahrestage-parameter-own: year planner visible bars
+
+0 !== 1
+
+CALENDAR COLOUR REMAINDERS 3/12 /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web UI model fixtures

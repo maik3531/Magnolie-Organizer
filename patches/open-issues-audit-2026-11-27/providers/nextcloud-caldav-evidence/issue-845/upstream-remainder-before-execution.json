@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+    "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/probe_upstream_remainder.py",
+    "/workspace/scratch/7203da5bd564/open-audit-latest-source",
+    "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder-before.json"
+  ],
+  "cwd": "/workspace/scratch/7203da5bd564",
+  "exit_code": 0,
+  "elapsed_s": 0.228,
+  "commit": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "runner_sha256": "e7d5c160516d16af710c21df5749d62a0201c9e99b3bff818e371628c36fc896"
+}

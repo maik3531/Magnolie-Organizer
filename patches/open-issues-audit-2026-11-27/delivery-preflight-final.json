@@ -1,0 +1,63 @@
+{
+  "scope": "Final documentation and artifact binding review; no product runtime tests repeated",
+  "reviewed_patch_base": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "reviewed_final_head": "f3ea06e275ce6cd7547106096cfd96d27cf57e15",
+  "independent_review": {
+    "reviewer": "review_ui_docs",
+    "top_level_markdown_files": 6,
+    "existing_local_links": 53,
+    "verified_proof_and_patch_hash_bindings": 72,
+    "patch_parts": 9,
+    "combined_patches": 1,
+    "other_material_findings": []
+  },
+  "finding_corrected": {
+    "file": "IMPORT-EXPORT.md",
+    "old_link": "import-export/final-current-pipeline/pipeline-manifest.json",
+    "corrected_link": "import-export/final-tail-pipeline/pipeline-manifest.json",
+    "reason": "The current48-case statement must point to the actual finalf3ea run, not previous32ff."
+  },
+  "historical_preflight": {
+    "scope": "delivery preflight only; no product edits or domain suite runs",
+    "changed_files": [
+      "build-delivery.py",
+      "performance/843/README.md",
+      "performance/SHA256SUMS"
+    ],
+    "builder_sha256": "fc31eb072e383b7443fc1228609effa1e9bf34e994e216f9362b95d61e78d1a0",
+    "prepare_final_patches_sha256": "d2c9efd2420878ceba07a8d70fdc9c6ae1a304275059d71ac27a7f61a721b869",
+    "prepare_final_patches_changed": false,
+    "checks": {
+      "nextcloud_report_source_exists": true,
+      "nextcloud_report_present_in_preflight": true,
+      "discussion_595_target": "https://github.com/maik3531/Magnolie-Organizer/issues/595",
+      "843_local_links_checked": 13,
+      "843_missing_links": [],
+      "843_readme_sha256": "20458ef030d1aa1f60ea890dac526bfdbc2ee061f326c3318f6e5d6597df7705",
+      "843_readme_bound_in_local_sha256sums": true,
+      "leftover_guard_rejects_stale_patch_and_binary": true,
+      "leftover_guard_preserves_files": true,
+      "clean_control_passed": true,
+      "base_head_guard_rejects_current_old_249_manifest": true,
+      "base_head_guard_created_no_output": true
+    },
+    "initial_fresh_delivery": {
+      "files": 489,
+      "forbidden_files": 0,
+      "relative_markdown_links": 84,
+      "broken_links": 2
+    },
+    "remaining_root_steps": [
+      "Finish #845 integration and root documentation/counts",
+      "Run prepare-final-patches.py on the clean final checkout",
+      "Run build-delivery.py into a fresh output directory",
+      "Validate final relative links and final manifest/hash inventory"
+    ],
+    "notes": [
+      "The intentionally retained historical #843 patch is explicitly marked obsolete and must not be applied again.",
+      "Root README and IMPORT-EXPORT were not changed; their pending final counts were not treated as finished statements.",
+      "The current final-patches directory still represents the earlier24927cf checkpoint; the new base/HEAD guard prevents accidentally publishing it as the1f series."
+    ]
+  },
+  "boundary": "Earlier preflight below intentionally records its original intermediate state. Final document checksum inventory is generated separately in DELIVERY-MANIFEST.json."
+}

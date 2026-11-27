@@ -1,0 +1,8 @@
+{"id": "birthday-standard", "accent_matches": true, "birthday_type_preserved": true}
+{"id": "birthday-own", "accent_matches": true, "birthday_type_preserved": true}
+{"id": "birthday-calendar", "accent_matches": true, "birthday_type_preserved": true}
+{"id": "parameterized-standard-unchanged", "raw_color_preserved": true}
+{"id": "parameterized-own-over-standard", "raw_color_preserved": true}
+{"id": "unknown-component-color", "raw_color_preserved": true}
+{"id": "edited-and-cleared", "edit_pass": true, "clear_pass": true, "unknown_metadata_preserved": true}
+{"id": "two-calendar-roots", "scope_pass": true}

@@ -1,0 +1,63 @@
+{
+  "base": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "cwd": "/workspace/scratch/7203da5bd564/open-audit-dav-tests",
+  "environment": {
+    "DOTNET_CLI_HOME": "/workspace/scratch/7203da5bd564/round3-tools/dotnet-state",
+    "NUGET_PACKAGES": "/workspace/scratch/7203da5bd564/round3-tools/nuget",
+    "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+  },
+  "results": [
+    {
+      "name": "windows-restore",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "restore",
+        "magnolie-organizer-windows/tests/CoreTests.csproj",
+        "--locked-mode"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 1.371,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/logs/windows-restore.log"
+    },
+    {
+      "name": "windows-build",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "build",
+        "magnolie-organizer-windows/tests/CoreTests.csproj",
+        "--no-restore",
+        "--configuration",
+        "Debug"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 16.379,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/logs/windows-build.log"
+    },
+    {
+      "name": "windows-markers",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "run",
+        "--project",
+        "magnolie-organizer-windows/tests/CoreTests.csproj",
+        "--no-build",
+        "--configuration",
+        "Debug",
+        "--",
+        "--nextcloud-marker-audit",
+        "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/fixtures",
+        "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/windows-marker-results.json"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.666,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/logs/windows-markers.log"
+    }
+  ],
+  "production_hashes": {
+    "magnolie-organizer-windows/ExchangeCodec.cs": "e12d49b0638356556facab25049a3b32f91d5ad062d552b59d0c6b7bd6f9fa18",
+    "magnolie-organizer-windows/NextcloudDav.cs": "e855919f8267519edf2f2cb8b3847fc8574c4071c25c2b76a54a36d9abae4b4e",
+    "magnolie-organizer-windows/ContactSyncModels.cs": "c75c30b7df07047b63ddb44a0ef8d7e8017a25250759c9b7c6a55e2b2bc7c259"
+  },
+  "test_host_diff_de": "Nur Program.cs bekommt einen diagnostischen Einstieg; NextcloudMarkerAuditProbe.cs ruft tatsächliches ExchangeCodec.ParseIcs. Produktdateien unverändert."
+}

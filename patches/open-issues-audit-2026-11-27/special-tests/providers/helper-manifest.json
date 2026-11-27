@@ -1,0 +1,43 @@
+{
+  "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "stage": "helper",
+  "scope": "Existing focused host regressions only; no native OS/installed/device acceptance.",
+  "source_files": {
+    "Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py": "13d808524cc329d72688e82612c38606a9d20d96d73dfa3f0a070dbcd3946119",
+    "Magnolie-Organizer-macOS-Beta/ImportHelper/helper.py": "52de85c855a3b86dd47f2cc4681ed0cbb278e08e6b25d7e328a5dee1c21bb990",
+    "Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py": "f9c6530a83c834599f9d7bf98ed13f9445e02e060068aa9da46fb9b0a1612792",
+    "Magnolie-Organizer-macOS-Beta/tools/project_import_helper.py": "94733b99acbca60b855ae5d260ee9b2ad678130a5d07326a0d695f5878c7ab58",
+    "magnolie-organizer/pruefungen/fixtures/caldav-series-resource.ics": "670de67684a9563555fe42837e2740572ff77f00375df4c213e329f41fdfccf5",
+    "magnolie-organizer/bin/magnolie-organizer": "7dc6b588d62c1df6e0da9550995fd2f6761cff694a1026c47b8dc645ef704ee9",
+    "magnolie-organizer/bin/magnolie_or6.py": "e4576a8b1df12d064e5645e43beadfac7c390e6fc7f68e0c9bea9ab1e4ab58ac"
+  },
+  "runs": [
+    {
+      "name": "legacy-sidecar-helper",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-macOS-Beta/tests/test_import_helper.py",
+        "ImportHelperTests.test_legacy_android_sidecar_is_exact_and_transient",
+        "-v"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 0,
+      "seconds": 5.718,
+      "log": "legacy-sidecar-helper.log",
+      "sha256": "9553ba9342c847b75598845bac5c660d8a62a14a855746e0da845c197a3226d5"
+    }
+  ],
+  "environment": {
+    "PATH": "/workspace/scratch/7203da5bd564/round3-tools/gettext/usr/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+    "LD_LIBRARY_PATH": "/workspace/scratch/7203da5bd564/round3-tools/gettext/usr/lib/x86_64-linux-gnu",
+    "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+    "MACOS_BETA_JSDOM": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules/jsdom/lib/api.js",
+    "PYTHONPATH": "/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-macOS-Beta/ImportHelper",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "reused_import_dependency": {
+    "filename": "phonenumbers-9.0.38-py2.py3-none-any.whl",
+    "sha256": "f3cbeb1a42bf226060c60fc6277f5431755d325eddc23fbf2c72ef7e156113c6"
+  },
+  "source_inputs_unchanged_after_run": true
+}

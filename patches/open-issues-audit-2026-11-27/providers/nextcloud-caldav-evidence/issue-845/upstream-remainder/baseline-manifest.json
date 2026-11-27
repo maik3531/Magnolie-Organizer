@@ -1,0 +1,85 @@
+{
+  "base": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "results": [
+    {
+      "name": "python-before",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py",
+        "magnolie-organizer/pruefungen/test_nextcloud_anniversary_scope.py"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845-remainder",
+      "exit_code": 1,
+      "elapsed_s": 1.901,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/logs/python-before.log"
+    },
+    {
+      "name": "windows-restore",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "restore",
+        "tests/CoreTests.csproj",
+        "--locked-mode"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_s": 1.113,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/logs/windows-restore.log"
+    },
+    {
+      "name": "windows-build-before",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "build",
+        "tests/CoreTests.csproj",
+        "--no-restore",
+        "--configuration",
+        "Debug"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_s": 15.728,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/logs/windows-build-before.log"
+    },
+    {
+      "name": "windows-before",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "run",
+        "--project",
+        "tests/CoreTests.csproj",
+        "--no-build",
+        "--configuration",
+        "Debug",
+        "--",
+        "Nextcloud ICS birthdays"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows",
+      "exit_code": 1,
+      "elapsed_s": 0.846,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/logs/windows-before.log"
+    }
+  ],
+  "inputs": {
+    "magnolie-organizer/bin/magnolie-organizer": "0c06acdcb05b127edb8728f42cf4a3c47c44498efb14db67a42770188d1d0847",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "554a37e143557ac7b8ad2b2161e71a02bb049ab4a15eddd1a8ebdbc6ccba9c67",
+    "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py": "daf71563c3cc88067de0c62873d8f2b25730e69b097c68645105b60f5b00b88e",
+    "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs": "04caf82a56db5404b59aa555230a84dc4a0b30011274c779098db0bf96019f75"
+  },
+  "env": {
+    "PYTHONPATH": "/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer/bin",
+    "DOTNET_CLI_HOME": "/workspace/scratch/7203da5bd564/round3-tools/dotnet-state",
+    "NUGET_PACKAGES": "/workspace/scratch/7203da5bd564/round3-tools/nuget",
+    "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+  },
+  "unchanged_after": {
+    "magnolie-organizer/bin/magnolie-organizer": true,
+    "magnolie-organizer-windows/ExchangeCodec.cs": true,
+    "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py": true,
+    "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs": true
+  }
+}

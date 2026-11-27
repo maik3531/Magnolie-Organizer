@@ -1,0 +1,85 @@
+{
+  "source_head": "2365a88411dfe4afa36fb8e03b1b6ecfb4862aee",
+  "runs": [
+    {
+      "name": "python-archive",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "magnolie-organizer/pruefungen/test_gesamtarchiv.py"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-current",
+      "exit_code": 0,
+      "seconds": 0.35,
+      "log": "python-archive.log",
+      "sha256": "3c9c879c9780e17567cc7319645b83e8d073bea81b63df3139337dc41b8263c9"
+    },
+    {
+      "name": "csharp-archive",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        ".magnolie Gesamtarchiv"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-current",
+      "exit_code": 1,
+      "seconds": 0.285,
+      "log": "csharp-archive.log",
+      "sha256": "a834cc3ea0bea38680609eb14adef61a07a35f9f81bc1a77cb5493997d5d5c82"
+    },
+    {
+      "name": "generate-magnolie-organizer",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py",
+        "--source",
+        "port-adapters/timezones",
+        "--output",
+        "magnolie-organizer/web"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-current",
+      "exit_code": 0,
+      "seconds": 0.039,
+      "log": "generate-magnolie-organizer.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generate-magnolie-organizer-windows",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py",
+        "--source",
+        "port-adapters/timezones",
+        "--output",
+        "magnolie-organizer-windows/app/web"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-current",
+      "exit_code": 0,
+      "seconds": 0.049,
+      "log": "generate-magnolie-organizer-windows.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "note-import-save-reopen",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "magnolie-organizer-windows/tests/note-import-attachments.js"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-current",
+      "exit_code": 0,
+      "seconds": 3.128,
+      "log": "note-import-save-reopen.log",
+      "sha256": "4c009338878b0995827ac83202ca454cf5bfcb154f99f0f3f56289bfdd4bc32f"
+    }
+  ],
+  "limits": "Actual Python/C# archive code and actual JavaScript UI with simulated native save ACK. No installed GUI or Android SAF run.",
+  "inputs": {
+    "magnolie-organizer/bin/magnolie-organizer": "1374eb1faf231c6d00dfe6f540f16bc77f93025f7be0bc1bf25f898d0422d47e",
+    "magnolie-organizer/pruefungen/test_gesamtarchiv.py": "7a365c10dd495ebba81642730c5438b00a4030b52e2635a48fb6681ad4a267df",
+    "magnolie-organizer-windows/tests/note-import-attachments.js": "d9eb56f2ba61b1f9715f03f8d9dc75fb1dc920ce8188b900877c022ae55c934f",
+    "magnolie-organizer/web/anwendung.js": "a6a34206aed0b92c294607a8155593d1d9ef2a712321f1d5e1c54b18fd72f18a",
+    "magnolie-organizer-windows/app/web/anwendung.js": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+    "magnolie-organizer/web/normative-timezones.js": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+    "magnolie-organizer-windows/app/web/normative-timezones.js": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b"
+  },
+  "passed": false
+}

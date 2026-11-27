@@ -1,0 +1,42 @@
+{
+  "status": "optional_proposals_for_user_decision_only",
+  "implemented": false,
+  "issues_created": false,
+  "source_base": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "limited_delta_head": "50b1512234a765635f82af4537f277594fbf9878",
+  "delta_scope_de": "Die beiden geprüften Folgecommits ändern die hier genannten Desktop-Such-/Filterquellen nicht.",
+  "deduplication": {
+    "open_issue_bodies_scanned": 106,
+    "cached_comment_files_scanned": 106,
+    "cached_comments_scanned": 744,
+    "terms_checked": ["gespeicherte Suche", "gespeicherte Filter", "Suchansicht", "Filtervorlage", "Befehlssuche", "Befehlsuche", "command palette", "saved search", "saved filter", "saved view", "Strg+K", "Ctrl+K"],
+    "matching_issue_or_comment_requests_found": false,
+    "scope_de": "Begriffsabgleich plus inhaltliche Sichtung naher Aufträge und tatsächlicher UI-Quellen. Kein Beweis, dass ein unbekanntes älteres geschlossenes Issue das Thema nie erwähnte. #194 betrifft offene MCP-Adapter, nicht eine sichtbare Befehlsuche; #153 betrifft konfigurierte KDE-Fernbefehle."
+  },
+  "proposals": [
+    {
+      "title_de": "Benannte Such- und Filteransichten",
+      "idea_de": "Eine häufig verwendete Kombination aus Bereich, Suchtext und vorhandenen Filtern unter einem eigenen Namen merken, etwa Aufgaben für eine bestimmte Person oder Kontakte einer bestimmten Gruppe. Über eine kleine Favoritenliste später wieder aufrufen; die Treffer jeweils aus dem aktuellen Bestand berechnen.",
+      "benefit_de": "Wiederkehrende Arbeitsansichten müssen nicht jedes Mal neu zusammengestellt werden. Gespeichert wird die Auswahl, kein veralteter Ergebnisauszug.",
+      "existing_behavior_de": "Die Desktop-Oberflächen besitzen Suchtext sowie Kontaktgruppen-/Aufgabenfilter. suchZustand und diese Viewwerte sind bisher flüchtige UI-Zustände; ein benannter Vorlagen-/Favoritenbestand und entsprechender Dialog wurden nicht gefunden.",
+      "scope_de": "Optionale Bedienerweiterung der vorhandenen Such-/Filterlogik. Keine neue Sync-, Import- oder Massenänderungsfunktion.",
+      "evidence": [
+        {"url":"https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L244", "detail_de":"Lokale Viewwerte für Aufgabenfilter, Kontaktsuche und suchZustand werden direkt initialisiert."},
+        {"url":"https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L21014", "detail_de":"gefilterteKontakte verbindet bereits Suchtext und Gruppenfilter."},
+        {"url":"https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/app/web/anwendung.js#L258", "detail_de":"Auch Windows besitzt denselben flüchtigen Suchzustand."}
+      ]
+    },
+    {
+      "title_de": "Sichtbare Suche nach Programmfunktionen",
+      "idea_de": "Eine kleine Funktionensuche anbieten: Ein Begriff wie Drucken, Telefon verbinden oder neue Notiz führt zur passenden vorhandenen Ansicht bzw. zum vorhandenen Dialog. Sie soll über einen sichtbaren Knopf erreichbar sein; ein Tastenkürzel kann ergänzen.",
+      "benefit_de": "Selten verwendete Funktionen lassen sich finden, ohne sich den Ort in Registern und Einstellungen merken zu müssen. Der sichtbare Einstieg bleibt auch für Nutzer ohne Tastenkürzel verständlich.",
+      "existing_behavior_de": "Die aktuelle Strg/Cmd+F-Suche durchsucht Datensätze des gewählten Bereichs. suchTrefferFuer liefert Inhaltsfunde; Adressen und Notizen fokussieren ihre jeweiligen Suchfelder. Eine Suche über Programmfunktionen oder Einstellungsseiten ist in den geprüften Oberflächen nicht vorhanden.",
+      "scope_de": "Optionale Navigation zu bestehenden Bedienhandlungen. Bestehende Editor-/Buch-/Rechteprüfungen bleiben die Ausführungsgrenze; keine zweite Shell-/KDE-/MCP-Schnittstelle und kein automatischer Start eines Sync-/Installationsvorgangs durch bloßes Suchen.",
+      "evidence": [
+        {"url":"https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L15363", "detail_de":"suchTrefferFuer dispatcht ausschließlich auf die Inhaltsbereiche."},
+        {"url":"https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L44339", "detail_de":"Strg/Cmd+F öffnet die Suchfunktion des aktuellen Bereichs; daneben vorhandene Registerkürzel."},
+        {"url":"https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/app/web/anwendung.js#L15076", "detail_de":"Windows besitzt ebenfalls die bereichsbezogene Inhaltssuche."}
+      ]
+    }
+  ]
+}

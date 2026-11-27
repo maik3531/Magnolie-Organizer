@@ -2,145 +2,531 @@
   "date": "2026-11-27",
   "initial_base": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
   "intermediate_base": "50b1512234a765635f82af4537f277594fbf9878",
-  "frozen_patch_base": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
-  "base_tree": "c465628581d0e4f49bc02e64db41f8a9cc73b2ae",
+  "frozen_patch_base": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "base_tree": "1e6bcfe5c7fc271f8bdb0da4ab3b0018109bea82",
   "latest_comparison": {
-    "base": "50b1512234a765635f82af4537f277594fbf9878",
-    "head": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+    "base": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+    "head": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
     "commits": [
       {
-        "sha": "4664c8940fba6d71134ac952ba98e214203a7fb0",
-        "subject": "Refs #841: Cover regional Arabic through application startup"
+        "sha": "bc9b4db57d2ee6577ee9314a858f8be6fea4c757",
+        "subject": "Refs #330: Set up Linux Wi-Fi media receive after explicit approval"
       },
       {
-        "sha": "9fff707a5c3f76fac9b4022bf52a4a340e07aed4",
-        "subject": "Refs #842: Expand the Windows import encoding regression matrix"
-      },
-      {
-        "sha": "f635d84068ffcf11a483dd50827be7f585649877",
-        "subject": "Refs #839: Cover coincident due-day and early task reminders"
-      },
-      {
-        "sha": "d25b0142fda1c0e23bd845d736497d0a2e5738b9",
-        "subject": "Refs #330: Preserve acknowledged Linux media controls on equivalent WLAN refresh"
-      },
-      {
-        "sha": "312366a363a413a31139da149d2846f8ca76c8cf",
-        "subject": "Refs #330 #429: Create private media defaults under verified user-group directories"
-      },
-      {
-        "sha": "bf47c5b484113728e6086452497ca8651dd29e2a",
-        "subject": "Refs #330: Admit manual first photo receive on the original WLAN reader"
-      },
-      {
-        "sha": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
-        "subject": "Refs #330: Keep acknowledged Notes media agreement across equivalent WLAN revisions"
+        "sha": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+        "subject": "Refs #845: Preserve explicit Nextcloud birthdays in desktop ICS import"
       }
     ],
     "files": [
       {
         "path": "ARBEITSSTAND.md",
-        "status": "modified",
-        "additions": 15,
+        "additions": 13,
+        "deletions": 2
+      },
+      {
+        "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+        "additions": 82,
+        "deletions": 19
+      },
+      {
+        "path": "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs",
+        "additions": 67,
         "deletions": 0
       },
       {
-        "path": "Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs",
-        "status": "modified",
+        "path": "magnolie-organizer-windows/tests/Program.cs",
+        "additions": 1,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer-windows/tests/birthday-display.js",
+        "additions": 14,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/bin/magnolie-organizer",
+        "additions": 72,
+        "deletions": 6
+      },
+      {
+        "path": "magnolie-organizer/bin/magnolie_file_desktop_connection.py",
+        "additions": 72,
+        "deletions": 25
+      },
+      {
+        "path": "magnolie-organizer/bin/magnolie_media_storage_bootstrap.py",
+        "additions": 7,
+        "deletions": 6
+      },
+      {
+        "path": "magnolie-organizer/bin/magnolie_photo_preferences.py",
+        "additions": 52,
+        "deletions": 6
+      },
+      {
+        "path": "magnolie-organizer/bin/magnolie_telefon.py",
+        "additions": 5,
+        "deletions": 2
+      },
+      {
+        "path": "magnolie-organizer/po/ar.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/be.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/cs.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/da.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/de.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/es.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/fr.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/hi.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/hsb.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/it.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/ja.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/magnolie-organizer.pot",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/nb.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/nl.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/pl.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/pt.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/ru.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/tr.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/uk.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/po/zh_CN.po",
+        "additions": 3,
+        "deletions": 0
+      },
+      {
+        "path": "magnolie-organizer/pruefungen/media-source-choice-ui.cjs",
         "additions": 24,
         "deletions": 0
       },
       {
-        "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt",
-        "status": "modified",
-        "additions": 22,
-        "deletions": 5
-      },
-      {
-        "path": "magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/telefon/PhoneWebcamWerkDispatchTest.kt",
-        "status": "modified",
-        "additions": 56,
-        "deletions": 4
-      },
-      {
-        "path": "magnolie-organizer-windows/tests/Program.cs",
-        "status": "modified",
-        "additions": 1,
-        "deletions": 0
-      },
-      {
-        "path": "magnolie-organizer-windows/tests/UnicodeImportTests.cs",
-        "status": "added",
-        "additions": 135,
-        "deletions": 0
-      },
-      {
-        "path": "magnolie-organizer-windows/tests/regional-language-direction.js",
-        "status": "added",
-        "additions": 57,
-        "deletions": 0
-      },
-      {
-        "path": "magnolie-organizer-windows/tests/run.js",
-        "status": "modified",
-        "additions": 1,
-        "deletions": 1
-      },
-      {
-        "path": "magnolie-organizer/bin/magnolie_file_desktop_connection.py",
-        "status": "modified",
-        "additions": 182,
-        "deletions": 22
-      },
-      {
-        "path": "magnolie-organizer/bin/magnolie_media_storage_bootstrap.py",
-        "status": "modified",
-        "additions": 23,
+        "path": "magnolie-organizer/pruefungen/test_media_first_receive.py",
+        "additions": 81,
         "deletions": 8
       },
       {
-        "path": "magnolie-organizer/bin/magnolie_photo_destination.py",
-        "status": "modified",
-        "additions": 85,
-        "deletions": 9
-      },
-      {
-        "path": "magnolie-organizer/bin/magnolie_telefon.py",
-        "status": "modified",
-        "additions": 31,
-        "deletions": 5
-      },
-      {
-        "path": "magnolie-organizer/pruefungen/media-source-choice-ui.cjs",
-        "status": "modified",
-        "additions": 23,
-        "deletions": 0
-      },
-      {
-        "path": "magnolie-organizer/pruefungen/test_media_first_receive.py",
-        "status": "added",
-        "additions": 211,
-        "deletions": 0
-      },
-      {
         "path": "magnolie-organizer/pruefungen/test_media_support_draft.py",
-        "status": "modified",
-        "additions": 76,
+        "additions": 49,
         "deletions": 3
       },
       {
-        "path": "magnolie-organizer/pruefungen/test_photo_destination.py",
-        "status": "modified",
-        "additions": 50,
+        "path": "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py",
+        "additions": 60,
         "deletions": 0
       },
       {
         "path": "magnolie-organizer/web/anwendung.js",
-        "status": "modified",
         "additions": 13,
         "deletions": 6
       }
-    ]
+    ],
+    "review_de": "Letzter begrenzter Übernahmenachtrag: private Linux-WLAN-Empfangseinrichtung und tatsächlicher Nextcloud-Geburtstagsgrundfix. Erste Korrektur bleibt erhalten; nur unabhängig bestätigte845Restlücken und verbleibende844Fälle werden angepasst."
   },
-  "scope_de": "Vollständige ursprüngliche Inventur auf 3f4b69ca; zwei begrenzte Nachträge bis 50b15122 und 24927cf9. Kein fortlaufendes Neuaudit eines beweglichen main."
+  "scope_de": "Vollständige ursprüngliche Inventur auf3f4b69ca; begrenzte Nachträge über50b15122,24927cf9,1f1f3225bis zum endgültig eingefrorenen Lieferstand7a490dd8. Kein fortlaufendes Vollneuaudit eines beweglichen main.",
+  "previous_comparisons": [
+    {
+      "base": "50b1512234a765635f82af4537f277594fbf9878",
+      "head": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+      "commits": [
+        {
+          "sha": "4664c8940fba6d71134ac952ba98e214203a7fb0",
+          "subject": "Refs #841: Cover regional Arabic through application startup"
+        },
+        {
+          "sha": "9fff707a5c3f76fac9b4022bf52a4a340e07aed4",
+          "subject": "Refs #842: Expand the Windows import encoding regression matrix"
+        },
+        {
+          "sha": "f635d84068ffcf11a483dd50827be7f585649877",
+          "subject": "Refs #839: Cover coincident due-day and early task reminders"
+        },
+        {
+          "sha": "d25b0142fda1c0e23bd845d736497d0a2e5738b9",
+          "subject": "Refs #330: Preserve acknowledged Linux media controls on equivalent WLAN refresh"
+        },
+        {
+          "sha": "312366a363a413a31139da149d2846f8ca76c8cf",
+          "subject": "Refs #330 #429: Create private media defaults under verified user-group directories"
+        },
+        {
+          "sha": "bf47c5b484113728e6086452497ca8651dd29e2a",
+          "subject": "Refs #330: Admit manual first photo receive on the original WLAN reader"
+        },
+        {
+          "sha": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+          "subject": "Refs #330: Keep acknowledged Notes media agreement across equivalent WLAN revisions"
+        }
+      ],
+      "files": [
+        {
+          "path": "ARBEITSSTAND.md",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 0
+        },
+        {
+          "path": "Magnolie-Organizer-macOS-Beta/tests/system_reminder_import.mjs",
+          "status": "modified",
+          "additions": 24,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt",
+          "status": "modified",
+          "additions": 22,
+          "deletions": 5
+        },
+        {
+          "path": "magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/telefon/PhoneWebcamWerkDispatchTest.kt",
+          "status": "modified",
+          "additions": 56,
+          "deletions": 4
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/Program.cs",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/UnicodeImportTests.cs",
+          "status": "added",
+          "additions": 135,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/regional-language-direction.js",
+          "status": "added",
+          "additions": 57,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/run.js",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie_file_desktop_connection.py",
+          "status": "modified",
+          "additions": 182,
+          "deletions": 22
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie_media_storage_bootstrap.py",
+          "status": "modified",
+          "additions": 23,
+          "deletions": 8
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie_photo_destination.py",
+          "status": "modified",
+          "additions": 85,
+          "deletions": 9
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie_telefon.py",
+          "status": "modified",
+          "additions": 31,
+          "deletions": 5
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/media-source-choice-ui.cjs",
+          "status": "modified",
+          "additions": 23,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_media_first_receive.py",
+          "status": "added",
+          "additions": 211,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_media_support_draft.py",
+          "status": "modified",
+          "additions": 76,
+          "deletions": 3
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_photo_destination.py",
+          "status": "modified",
+          "additions": 50,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-organizer/web/anwendung.js",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 6
+        }
+      ]
+    },
+    {
+      "base": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+      "head": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+      "commits": [
+        {
+          "sha": "b9e74bae1ae12d206d244ff4732773d77cddf4cc",
+          "subject": "Refs #330: Keep explicitly selected Linux photo folder at first receive"
+        },
+        {
+          "sha": "f11b6b8690059429a3a94e813e7efecb9d5aefe9",
+          "subject": "Refs #330: Check both types before starting mixed manual Linux receive"
+        },
+        {
+          "sha": "af08ddc5d9f196ef8c8bf6e5c140f3cc9de021fd",
+          "subject": "Refs #330: Bind first Notes video SEND independently of photo consent"
+        },
+        {
+          "sha": "9b2feb7f33abb48a2e011eced25f52c3be520029",
+          "subject": "Refs #338: Use one-way inputs in shared canonical media offer vectors"
+        },
+        {
+          "sha": "66b50c44482f279d7c3566fe2959f66ebcc20cd5",
+          "subject": "Refs #843: Release recurrence worker URLs and unload handlers on failure"
+        },
+        {
+          "sha": "8c99834367cc59c7bf936dd630e86a3194304f96",
+          "subject": "Refs #844: Preserve external ICS entry and calendar colours on desktop"
+        },
+        {
+          "sha": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+          "subject": "Refs #330: Admit manual Linux video receive without photo consent"
+        }
+      ],
+      "files": [
+        {
+          "path": "ARBEITSSTAND.md",
+          "additions": 29,
+          "deletions": 2
+        },
+        {
+          "path": "contracts/media-offer-v1-vectors.json",
+          "additions": 3,
+          "deletions": 3
+        },
+        {
+          "path": "contracts/media-offer-v1.md",
+          "additions": 4,
+          "deletions": 2
+        },
+        {
+          "path": "contracts/media-pc-batch-v3-vector.json",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "contracts/media-pc-origin-v1-vectors.json",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/GalleryPhotoPolicy.kt",
+          "additions": 50,
+          "deletions": 17
+        },
+        {
+          "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/GalleryReceivePolicyController.kt",
+          "additions": 3,
+          "deletions": 2
+        },
+        {
+          "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/NativeGalleryFileGrantPolicy.kt",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/PhotoSourceJobIndex.kt",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/telefon/GalleryVideoPolicyTest.kt",
+          "additions": 46,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/telefon/MediaOfferEnvelopeTest.kt",
+          "additions": 2,
+          "deletions": 1
+        },
+        {
+          "path": "magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/telefon/NativeGalleryFileRuntimeTest.kt",
+          "additions": 39,
+          "deletions": 2
+        },
+        {
+          "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+          "additions": 75,
+          "deletions": 6
+        },
+        {
+          "path": "magnolie-organizer-windows/app/web/anwendung.js",
+          "additions": 26,
+          "deletions": 11
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/CategoryColorTests.cs",
+          "additions": 65,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/MediaOfferEnvelopeTests.cs",
+          "additions": 3,
+          "deletions": 1
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/Program.cs",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/category-colors.js",
+          "additions": 4,
+          "deletions": 2
+        },
+        {
+          "path": "magnolie-organizer-windows/tests/recurrence-worker.js",
+          "additions": 99,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie-organizer",
+          "additions": 87,
+          "deletions": 9
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie_file_desktop_connection.py",
+          "additions": 143,
+          "deletions": 58
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie_file_sources.py",
+          "additions": 3,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie_media_storage_bootstrap.py",
+          "additions": 23,
+          "deletions": 11
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie_photo_destination_choice.py",
+          "additions": 4,
+          "deletions": 1
+        },
+        {
+          "path": "magnolie-organizer/bin/magnolie_photo_preferences.py",
+          "additions": 50,
+          "deletions": 13
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/media-source-choice-ui.cjs",
+          "additions": 21,
+          "deletions": 1
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_category_colors.py",
+          "additions": 53,
+          "deletions": 0
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_media_first_receive.py",
+          "additions": 191,
+          "deletions": 29
+        },
+        {
+          "path": "magnolie-organizer/pruefungen/test_media_support_draft.py",
+          "additions": 8,
+          "deletions": 5
+        },
+        {
+          "path": "magnolie-organizer/web/anwendung.js",
+          "additions": 39,
+          "deletions": 21
+        },
+        {
+          "path": "port-adapters/timezones/projection-patches.json",
+          "additions": 1,
+          "deletions": 1
+        }
+      ],
+      "review": "Bounded review of seven commits: manual Linux photo/video receive and shared consent; actual #843 resource cleanup verified independently; #844 initial color adoption checked against codecs and remaining defects fixed separately."
+    }
+  ]
 }

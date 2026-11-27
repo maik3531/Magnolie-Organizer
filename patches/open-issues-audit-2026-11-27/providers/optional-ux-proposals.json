@@ -1,0 +1,102 @@
+{
+  "status": "proposals_only_user_decides",
+  "source_base": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "product_edits": false,
+  "github_issue_creation": false,
+  "scope_de": "Zwei optionale Bedienideen aus konkret gelesenen Quellen. Keine Fehlerdiagnose und kein Umsetzungsauftrag. Die technische 30-Tage-/Großbestandsabnahme bleibt unabhängig davon verpflichtend.",
+  "duplicate_boundary_de": "#258 betrifft die bereits verlangte einfache IANA-/Systemzeitzonenoberfläche; diese wird ausdrücklich nicht als neue Idee angeboten. #374 enthält vorhandene Trennung von Geräteinformation und Syncbedienung; #80 den schon vorhandenen ICS-/CSV-Müllkalenderimport. Die unten benannte Zusatzleistung geht jeweils über diese vorhandenen Funktionen hinaus. Die Abgrenzung beruht auf dem vollständigen lokalen Issueindex und gelesenen aktuellen Quellwegen, nicht auf einer neuen vollständigen Live-Suche aller Diskussionen.",
+  "proposals": [
+    {
+      "id": "readable_transfer_receipts",
+      "title_de": "Lesbare Übernahmeübersicht: hier gespeichert, am Telefon bestätigt, wartet",
+      "benefit_de": "Nach einer Änderung oder Synchronisation soll die Person ohne technische Begriffe erkennen, wo der gewählte Inhalt tatsächlich bestätigt ist und ob noch eine Antwort fehlt.",
+      "proposal_de": "Eine kleine rein lesende Übersicht für das ausgewählte eigene Telefon und zunächst Notizen/Aufgaben: getrennte Zeilen für dauerhaft hier gespeichert, durch die Gegenstelle bestätigt und noch wartend beziehungsweise unbekannt; Zeitpunkt des letzten passenden Nachweises sichtbar. Bloßes Öffnen der Übersicht startet keinen Abgleich und verändert keine Freigabe.",
+      "existing_de": "Online-/Offline-Gerätestatus, gemeinsame Syncbedienung, wartende Einstellungsänderungen und explizite manuelle Synchronisation sind vorhanden. Personal-Sync-Metadaten und die letzten 20 Reports werden bereits gehalten. Neu vorgeschlagen ist deren verständliche gemeinsame Ergebnisdarstellung; keine neue Syncengine und kein Ersatz der bestehenden Gerätekarte.",
+      "evidence": [
+        {
+          "url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L2477",
+          "detail_de": "Gerätestatus zeigt Online/Offline und letzten Kontakt; Erreichbarkeit ist von erfolgreicher Inhaltsübernahme zu unterscheiden.",
+          "anchor_source_line": "online.textContent = status.online === true ? _(\"Online\")"
+        },
+        {
+          "url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L2788",
+          "detail_de": "Manueller Start und wartende Shared-Sync-Einstellungen sind bereits angebunden.",
+          "anchor_source_line": "const button = knopf(_(\"Synchronize now\"), \"hauptknopf\", () => {"
+        },
+        {
+          "url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L9562",
+          "detail_de": "Vorhandene Personal-Sync-Normalisierung begrenzt last_reports auf 20.",
+          "anchor_source_line": "last_reports: Array.isArray(ps.last_reports) ? ps.last_reports.slice(-20) : [],"
+        },
+        {
+          "url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L36780",
+          "detail_de": "Eingehende Reports werden im aktuellen Buch gehalten.",
+          "anchor_source_line": "DATEN.personalSync.last_reports.push(body);"
+        },
+        {
+          "url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L36871",
+          "detail_de": "Inhaltsmetadaten und nachDauerhaftemSpeichern bilden unterschiedliche Stufen; einzelne Flags dürfen nicht pauschal als frische dauerhafte Telefonquittung interpretiert werden.",
+          "anchor_source_line": "if (meta.state !== \"deleted\") { meta.peer_device_id = peer.device_id; meta.acknowledged_by_peer = true; }"
+        }
+      ],
+      "design_conditions_de": [
+        "Nur nachweisbare Zustände anzeigen; unbekannt oder veraltete Quittung bleibt ausdrücklich unbekannt.",
+        "Bestätigung an aktuelles Buch, richtigen Peer/Fingerprint und passende Inhaltsrevision binden. Ein Empfangs-/Verbindungsereignis allein bedeutet nicht am Telefon gespeichert.",
+        "Keine zusätzliche dauerhafte Gesamtkopie des Inhalts für die Übersicht; bestehende begrenzte Reports wiederverwenden.",
+        "Vor Umsetzung die tatsächlich verfügbaren authentifizierten, dauerhaften Gegenstellenquittungen je Bereich sauber zuordnen; dieser Vorschlag behauptet noch keine vollständige native Nachweiskette."
+      ],
+      "related_issues": [
+        374,
+        330
+      ],
+      "implementation_size_de": "Zuerst enger Entwurf für vorhandene Notes-/Aufgabenquittungen; keine allgemeine Erweiterung auf alle Provider ohne eigenen Nachweisvertrag."
+    },
+    {
+      "id": "manual_named_import_presets",
+      "title_de": "Benannte Importvorlagen für wiederkehrende CSV-Dateien",
+      "benefit_de": "Wer regelmäßig die gleiche Dateistruktur erhält, muss Spalten und Datumsformat nicht jedes Mal neu auswählen.",
+      "proposal_de": "Im bereits vorhandenen CSV-Import einen geprüften Satz aus Spaltenzuordnung, Kopfzeilenwahl und Datumsformat unter einem frei gewählten Namen speichern. Konkreter kleiner Einstieg: Abfuhrkalender wie „Abholtermine Gemeinde“. Beim nächsten manuell gestarteten Import die passende Vorlage auswählen und vor der Übernahme dieselbe Vorschau sehen.",
+      "existing_de": "Müllkalender-CSV erkennt typische Überschriften, bietet explizite Spalten-/Datumsformatwahl und erzeugt Vorschaugruppen mit Namen, Art und Farbe. Diese Kontrollen werden pro Dialog aus der aktuellen Datei aufgebaut; der gelesene Pfad bietet keine benannte wiederverwendbare Spaltenvorlage. Gleiche Quellen werden bereits dedupliziert. Diese bestehenden Funktionen werden nicht als Neuerfindung angeboten.",
+      "evidence": [
+        {
+          "url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L11797",
+          "detail_de": "Jeder Dialog initialisiert lokale Auswahl und liest Kopfzeilen der aktuellen Datei.",
+          "anchor_source_line": "const wahlen = new Map(); let gruppen = [], fehler = \"\", version = 0, beschaeftigt = false;"
+        },
+        {
+          "url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L11809",
+          "detail_de": "Datum-, Art-, Orts-, Notiz- und UID-Spalten sowie Datumsformat werden als explizite Kontrollen erzeugt.",
+          "anchor_source_line": "const datumSpalte = auswahlFeld(spalten, String(Math.max(0, dateIndex)));"
+        },
+        {
+          "url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L11845",
+          "detail_de": "Änderungen der Zuordnung zeichnen dieselbe Vorschau neu.",
+          "anchor_source_line": "if (nutzlast.muellFormat === \"csv\") {"
+        },
+        {
+          "url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L11853",
+          "detail_de": "Übernahme prüft Entwurf, Versionsstand und Mutationssnapshot vor dem eigentlichen Datenwechsel.",
+          "anchor_source_line": "const anwenden = knopf(_(\"Apply\"), \"hauptknopf\", async () => {"
+        },
+        {
+          "url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L42091",
+          "detail_de": "Bereits vorhandener MCP-Vertrag beschreibt die CSV-Zuordnung als explizite validierte Struktur; dies ist ein möglicher fachlicher Anknüpfungspunkt, keine neue Parsersemantik.",
+          "anchor_source_line": "csv: { type: \"object\", properties: { has_header: { type: \"boolean\" }, date_column: { type: \"integer\", minimum: 0, maximum: 63 }, type_column: column,"
+        }
+      ],
+      "design_conditions_de": [
+        "Vorlage speichert Einstellungen, keine Datei, Zugangsdaten oder automatische Abholadresse.",
+        "Geänderte oder fehlende Spalten werden sichtbar und müssen in der vorhandenen Vorschau neu zugeordnet werden; keine stille Anwendung auf unpassende Struktur.",
+        "Keine automatische Ausführung oder neue Synchronisation. Der Nutzer wählt Datei und Übernahme weiterhin selbst.",
+        "Vorhandene Daten-/UID-/Deduplizierungs-, Abbruch- und Speicherbedingungen bleiben erhalten.",
+        "Zuerst den belegten CSV-Weg abdecken; allgemeine Vorlagen für alle Formate nur nach separater fachlicher Entscheidung."
+      ],
+      "related_issues": [
+        80,
+        273,
+        258
+      ],
+      "distinction_de": "#80 implementiert den eigentlichen Import, #273 eine einmalig-versus-dauerhaft-Synchronisationswahl. Die vorgeschlagene Vorlage ist nur die benannte Wiederverwendung manueller Zuordnung und ergänzt weder Providerintegration noch Zeitzonen-UX aus #258."
+    }
+  ]
+}

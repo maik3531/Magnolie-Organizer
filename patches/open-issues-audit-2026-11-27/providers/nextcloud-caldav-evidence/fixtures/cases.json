@@ -1,0 +1,30 @@
+[
+  {
+    "name": "nc-bday-unknown-leap",
+    "filename": "nc-bday-unknown-leap.ics",
+    "expected_bucket": "jahrestage",
+    "expected_date": "--02-29",
+    "expected_type": "birthday"
+  },
+  {
+    "name": "nc-bday-known-year",
+    "filename": "nc-bday-known-year.ics",
+    "expected_bucket": "jahrestage",
+    "expected_date": "1988-12-03",
+    "expected_type": "birthday"
+  },
+  {
+    "name": "ordinary-annual-control",
+    "filename": "ordinary-annual-control.ics",
+    "expected_bucket": "termine",
+    "expected_date": null,
+    "expected_type": null
+  },
+  {
+    "name": "magnolie-birthday-control",
+    "filename": "magnolie-birthday-control.ics",
+    "expected_bucket": "jahrestage",
+    "expected_date": "--02-29",
+    "expected_type": "birthday"
+  }
+]

@@ -1,0 +1,8 @@
+Magnolie CoreTests: 1 Gruppen
+  FEHLER Nextcloud ICS birthdays (0.14 s)
+         System.InvalidOperationException: Edited type/year changed last-February recurrence.
+   at MagnolieOrganizer.Windows.Tests.TestAssert.That(Boolean condition, String message) in /workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows/tests/TestRunner.cs:line 41
+   at MagnolieOrganizer.Windows.Tests.NextcloudIcsBirthdayTests.EditedLeapBirthdays() in /workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs:line 87
+   at MagnolieOrganizer.Windows.Tests.NextcloudIcsBirthdayTests.RunAsync() in /workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs:line 65
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in /workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/1 Gruppen bestanden.

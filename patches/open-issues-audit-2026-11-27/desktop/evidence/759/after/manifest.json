@@ -1,0 +1,64 @@
+{
+  "source_head": "7453838a78895e31f1103b2065692b6fabfae1fb",
+  "source_tree": "a4f65cc94c8d2faad33c50a8929b82f1d8102a07",
+  "worktree_status": "M magnolie-organizer-windows/app/web/phone-media.js\n M magnolie-organizer-windows/tests/run.js\n?? magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js",
+  "node_version": "v24.22.3",
+  "environment": "Actual UI modules in JSDOM; no installed Windows/Notes or native transfer test",
+  "build_executed_by_runner": false,
+  "build_exit_code": null,
+  "inputs": {
+    "magnolie-organizer-windows/app/web/phone-media.js": "5295c10d3a1e955c84984bc983598062ab2b5fabb4b5a2c60485bb06d362dde5",
+    "magnolie-organizer-windows/app/web/index.html": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c",
+    "magnolie-organizer-windows/app/web/anwendung.js": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+    "magnolie-organizer-windows/app/web/i18n.js": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593",
+    "magnolie-organizer-windows/app/web/i18n/de.js": "8e91d625884344f1a65ae3b316bb09456420c8bea505f2ea52ba70d020120535"
+  },
+  "results": [
+    {
+      "test": "magnolie-organizer-windows/tests/phone-media-wait-ui.js",
+      "test_sha256": "b23caa774a97f599bf53d39a4cca1693ce6ba40f140f0a81e51548bc0995ab35",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "magnolie-organizer-windows/tests/phone-media-wait-ui.js"
+      ],
+      "exit_code": 0,
+      "log": "phone-media-wait-ui.js.log",
+      "log_sha256": "962722f620b36840a452c3d8cd353753c57ac19d16c3b684ce718def6affb437"
+    },
+    {
+      "test": "magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js",
+      "test_sha256": "168fb7450104ef2302dd1849adc9b8db652cbdee035db99e9028ba2efbcedece",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js"
+      ],
+      "exit_code": 0,
+      "log": "phone-media-recovery-mount-ui.js.log",
+      "log_sha256": "fbc85be6f51db13401009f3b010d78f349a69e89bbaa34c512161090157ca71e"
+    },
+    {
+      "test": "magnolie-organizer-windows/tests/phone-media-ui.js",
+      "test_sha256": "872a45d6a785618da680530abf6d794c7e2350f7485a49bd444c625acc1ccb29",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "magnolie-organizer-windows/tests/phone-media-ui.js"
+      ],
+      "exit_code": 0,
+      "log": "phone-media-ui.js.log",
+      "log_sha256": "8c84fd7d67d9e528e56b5d64cdde28ed7f35c03b86f09cd770d0a9157c14baa1"
+    },
+    {
+      "test": "magnolie-organizer-windows/tests/phone-media-source-choice-ui.js",
+      "test_sha256": "b8ae2cbeed405b2746e86ae3ab5531f63577f18e4d81cd8ece9009012b19f1f3",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "magnolie-organizer-windows/tests/phone-media-source-choice-ui.js"
+      ],
+      "exit_code": 0,
+      "log": "phone-media-source-choice-ui.js.log",
+      "log_sha256": "889c379097a9df2fb8efda5a4db93a7ce8ce9dce81010d53bd34b9a22a8b2e22"
+    }
+  ],
+  "passed_programs": 4,
+  "programs": 4
+}

@@ -1,0 +1,16 @@
+## Bestätigter Rest nach der ersten Übernahme; geprüfter Nachtrag bereitgestellt
+
+Die erste Farbkorrektur `8c99834367cc59c7bf936dd630e86a3194304f96` ist erhalten. Auf dem Prüfstand `1f1f3225ab50fe38902bc8e790454fd944f8b693` wurden vier konkrete Reste an den tatsächlichen Codecs und Frontends unabhängig bestätigt:
+
+1. Markierte Geburtstage/Jahrestage verlieren ihre sichtbare Komponentenfarbe beziehungsweise Kalenderfarbzuordnung im gesonderten Import-/Exportzweig.
+2. Eine unveränderte parameterisierte fremde `COLOR`-Zeile wird bei eigener abweichender Farbübersteuerung verworfen.
+3. Ein Altimport ohne das neue optionale Feld kann beim UID-/Serieninstanzabgleich über `kopie(undefined)` abbrechen.
+4. Eine neue lokale Schleifenvariable verdeckt gettext; ungültige/unvollständige ICS erreichen dadurch nicht mehr den vorgesehenen Fehlerpfad.
+
+Der enge Nachtrag ist an die endgültige Basis `7a490dd87e94eec08d7f09cb95a04b34bf4621c2` angepasst, erhält die ebenfalls übernommene #845-Grundkorrektur und ist auf [dem Artefaktzweig unter final-patches](https://github.com/maik3531/Magnolie-Organizer/tree/work/open-issues-audit-20261127/patches/open-issues-audit-2026-11-27/final-patches) bereitgestellt. [Umfang und Reproduktion](https://github.com/maik3531/Magnolie-Organizer/blob/work/open-issues-audit-20261127/patches/open-issues-audit-2026-11-27/import-export/after-7a490dd8-844/README.md), [unabhängige Schlussprüfung](https://github.com/maik3531/Magnolie-Organizer/blob/work/open-issues-audit-20261127/patches/open-issues-audit-2026-11-27/import-export/after-7a490dd8-844/independent-review.json) und [abschließende Integration](https://github.com/maik3531/Magnolie-Organizer/blob/work/open-issues-audit-20261127/patches/open-issues-audit-2026-11-27/final-integration-summary.json) enthalten Quellenbindungen, Befehle und erhaltene Vorher-/Nachherlogs.
+
+Der Nachtrag hat 25 gemeinsame neue Pythonfälle (vorher 22 rot / 3 grün), 24 neue DOM-Modellfälle und 48 tatsächliche Codec→Frontend→Speicherdatei→Wiederöffnen→Export/Reimport-Fälle. Bestehende Farb-/Geburtstags-/Aliasprüfungen und eine unabhängige Gegenprüfung ergänzen ihn. Die C#-Named-Pipe-Abnahme eines zusätzlichen Cleanup-Pfads blieb im Host blockiert und wird nicht als bestanden gezählt.
+
+Der nach dem eingefrorenen Prüfstand hinzugekommene #846-MCP-Pfad wurde ebenfalls mit demselben ursprünglichen Programm für beide Desktop-Webquellen verglichen: auf `7a490dd8` jeweils der gemeldete Fehler, mit dem vorbereiteten #844-Guard jeweils PASS unter Node/JSDOM. Der später gemeldete Upstream-Commit `f8ad956e` überschneidet sich mit genau diesem Alias-/fehlende-Farbe-Teil; die anderen hier aufgeführten Reste bleiben getrennt. Bei einer Übernahme auf einen neueren Hauptzweig ist dieser bereits ergänzte Teil zu berücksichtigen. [Nachtrag und Prüfgrenzen](https://github.com/maik3531/Magnolie-Organizer/blob/work/open-issues-audit-20261127/patches/open-issues-audit-2026-11-27/new-issues/846-followup.json).
+
+Bewusstes Ändern/Leeren reaktiviert alte Farben weiterhin nicht. Es entstehen kein Farbdialog, keine zusätzliche Bestätigung und keine Behauptung einer installierten Port-/Providerabnahme. #845 ist der getrennte Nextcloud-Typmarkerbefund. Dieses Issue bleibt bis zur tatsächlichen Übernahme der bestätigten Reste offen; die Artefaktlieferung verändert `main` nicht.

@@ -1,0 +1,41 @@
+From 641e901f87b8cc58bd4fc1a057ec6b5d98b98d56 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 18:32:25 +0100
+Subject: [PATCH] Docs #192: Reflect connected public phone call tools
+
+---
+ contracts/mcp-coverage.md | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/contracts/mcp-coverage.md b/contracts/mcp-coverage.md
+index fa8f5481a3bf6ec221d12651d28268fbdb581d92..811dd30ecb924eeb7a93077eefcd43e5fd89bcf7 100644
+--- a/contracts/mcp-coverage.md
++++ b/contracts/mcp-coverage.md
+@@ -51,6 +51,15 @@ The running-timer group from #191 is connected below.
+   retired nonces and late replies are scoped. Private GTK/stdio acceptance uses
+   a synthetic pinned phone context; C#/Python checks distinguish that from a
+   physical handset authentication/read.
++- Phone calls (#192): `organizer_phone_call_read` and the session-owned
++  `organizer_phone_call_command_start/status/cancel` tools are connected in both
++  desktop catalogs. Dial, answer and end use the existing native Linux/C# actors
++  with source/fingerprint checks, a private operation owner and correlated
++  command receipts. A retained authenticated call event is not a fresh phone OS
++  query; a local receipt or transport ACK is not a phone result or delivery
++  confirmation. Cancellation cannot recall a claimed dispatch. The exact
++  contracts are documented in [mcp.md](mcp.md#native-call-context-and-commands);
++  physical handset and combined installed acceptance remain separate.
+ - Native Notes timers (#191): fresh state reads and source/state/restore-bound
+   start/pause/resume/finish commands use the existing Notes timer handlers and
+   encrypted book writer. Strict correlated reports distinguish actual durable
+@@ -79,7 +88,7 @@ content synchronization and transfers remain in the group below.
+ | --- | --- | --- |
+ | Phone and KDE lifecycle | Remaining KDE receive preferences/routing and offered lifecycle utilities beyond the connected pinned basic controls | Existing device/attempt/source identity guards and native receipts |
+ | Own Notes synchronization | Own-device selection, note/shared-book direction and operating preferences, existing initial/manual sync, contact/photo/profile transfer | Existing confirmed-peer and transaction gates; actual result/readback |
+-| Communications | Routing/notification preferences, dial/accept/hang-up, SMS send/history/planning through existing supported adapters | Existing call/command references, source/fingerprint checks, receipt versus delivery distinction |
++| Communications | Routing/notification preferences and SMS send/history/planning through existing supported adapters; call context and dial/answer/end are connected above | Existing call/command references, source/fingerprint checks, receipt versus delivery distinction |
+ | Other offered KDE actions | Existing drawing/input/device actions not already covered by media/filesystem tools | Current capability/source validation, existing permission handlers, truthful unsupported results |
+ | Remaining utilities/preferences | Existing contact-duplicate assistant, weather/medication lookup, developer/preferences, Thunderbird extension setup and application-support actions not represented by current settings/export tools | Shared product handlers, bounded typed results and actual launch/write outcomes |
+ 
+-- 
+2.56.1
+

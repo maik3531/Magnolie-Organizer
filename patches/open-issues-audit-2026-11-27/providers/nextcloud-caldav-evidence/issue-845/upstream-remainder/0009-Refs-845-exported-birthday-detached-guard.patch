@@ -1,0 +1,62 @@
+From 573905f561f00537c39a98133aa8e7719239a4af Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 20:53:48 +0100
+Subject: [PATCH] Refs #845: Keep exported birthday masters attached to their
+ overrides
+
+---
+ magnolie-organizer-windows/ExchangeCodec.cs   |  2 +-
+ .../tests/NextcloudIcsBirthdayTests.cs        | 21 +++++++++++++++++++
+ 2 files changed, 22 insertions(+), 1 deletion(-)
+
+diff --git a/magnolie-organizer-windows/ExchangeCodec.cs b/magnolie-organizer-windows/ExchangeCodec.cs
+index 84975af6aa329f04195fd6288f8e97120f7a3eeb..1713a71af867bfcbbfc96f9fcb0b253877aed77c 100644
+--- a/magnolie-organizer-windows/ExchangeCodec.cs
++++ b/magnolie-organizer-windows/ExchangeCodec.cs
+@@ -981,7 +981,7 @@ internal static partial class ExchangeCodec
+                                        First(values, "X-MAGNOLIE-JAHRESTAG-TYP")?.Value ?? "");
+         var providerDate = allowProviderBirthday && (anniversaryType.Length == 0 || IsBirthdayType(anniversaryType))
+             ? NextcloudBirthdayDate(values) : "";
+-        var anniversary = start.AllDay && (providerDate.Length > 0 || anniversaryType.Length > 0 &&
++        var anniversary = allowProviderBirthday && start.AllDay && (providerDate.Length > 0 || anniversaryType.Length > 0 &&
+             (IsUnboundedAnnualRule(recurrence) || allowProviderBirthday && values.Count(value => value.Name == "RRULE") == 1 &&
+              IsLastFebruaryAnnualRule(recurrence, start.DateTime.ToString("yyyy-MM-dd")))) &&
+             !values.Any(value => value.Name is "EXDATE" or "RDATE" or "EXRULE" or "RECURRENCE-ID") &&
+diff --git a/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs b/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs
+index 22d0b4df5b5b703e8eb63d6b19fa5c7a43e84b54..53c2a959f10c439fabdde22ff4ec025712a84401 100644
+--- a/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs
++++ b/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs
+@@ -63,9 +63,30 @@ internal static class NextcloudIcsBirthdayTests
+         var withException = ExchangeCodec.ParseIcs(series);
+         TestAssert.That(withException.Jahrestage.Count == 0 && withException.Termine.Count == 2, "The master was detached from its override.");
+         EditedLeapBirthdays();
++        ExportedBirthdayKeepsDetachedOverride();
+         return Task.CompletedTask;
+     }
+ 
++    private static void ExportedBirthdayKeepsDetachedOverride()
++    {
++        const string source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:exported-birthday\r\nSUMMARY:Synthetic birthday\r\n" +
++            "DTSTART;VALUE=DATE:19850417\r\nRRULE:FREQ=YEARLY\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\n" +
++            "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1985\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
++        var imported = ExchangeCodec.ParseIcs(source);
++        using var data = JsonDocument.Parse(imported.Jahrestage.ToJsonString());
++        var exported = ExchangeCodec.WriteIcs("ics-jahrestage", data.RootElement).Text;
++        TestAssert.That(exported.Contains("X-MAGNOLIE-TYPE-ID:birthday") && exported.Contains("X-NEXTCLOUD-BC-FIELD-TYPE:BDAY"),
++            "The fixture did not traverse the actual provider birthday export.");
++        var ordinary = ExchangeCodec.ParseIcs(exported);
++        TestAssert.That(ordinary.Termine.Count == 0 && ordinary.Jahrestage.Count == 1 &&
++            ordinary.Jahrestage[0]!["datum"]!.ToString() == "1985-04-17", "An ordinary exported birthday changed classification.");
++        const string exception = "BEGIN:VEVENT\r\nUID:exported-birthday\r\nRECURRENCE-ID;VALUE=DATE:20260417\r\n" +
++            "DTSTART;VALUE=DATE:20260418\r\nSUMMARY:Moved\r\nEND:VEVENT\r\n";
++        var withException = ExchangeCodec.ParseIcs(exported.Replace("END:VCALENDAR", exception + "END:VCALENDAR"));
++        TestAssert.That(withException.Jahrestage.Count == 0 && withException.Termine.Count == 2,
++            "The own type marker detached the exported birthday master from its override.");
++    }
++
+     private static void EditedLeapBirthdays()
+     {
+         foreach (var (start, years, date, type) in new[] {
+-- 
+2.56.1
+

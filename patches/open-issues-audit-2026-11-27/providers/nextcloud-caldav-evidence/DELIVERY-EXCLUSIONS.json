@@ -1,0 +1,7 @@
+{
+  "exclude": [
+    "official-BirthdayService-stable35.php",
+    "official-BirthdayService.php"
+  ],
+  "reason_de": "Vollständige fremde Primärquelldateien nur als Analysecache. Zur Lieferung genügen URL, Dateicommit, SHA256 und eigene Zusammenfassung."
+}

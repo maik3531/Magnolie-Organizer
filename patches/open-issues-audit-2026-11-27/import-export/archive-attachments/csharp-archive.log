@@ -1,0 +1,12 @@
+Magnolie CoreTests: 1 Gruppen
+  FEHLER .magnolie Gesamtarchiv / Cross-Platform / Anhänge / Fehler (0.13 s)
+         System.IO.DirectoryNotFoundException: Could not find a part of the path '/workspace/scratch/7203da5bd564/open-audit-current/tests/fixtures/linux-ordinal.magnolie'.
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64& fileLength, UnixFileMode& filePermissions, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Encoding encoding, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at MagnolieOrganizer.Windows.Tests.ContractGroupTests.ArchiveAsync() in /workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/ContractGroupTests.cs:line 46
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in /workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/1 Gruppen bestanden.

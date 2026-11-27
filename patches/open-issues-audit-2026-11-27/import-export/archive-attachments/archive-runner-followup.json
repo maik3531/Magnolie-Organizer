@@ -1,0 +1,18 @@
+{
+  "reason": "The original invocation used repository cwd, while the archive group reads tests/fixtures relative to the Windows project. Rerun from documented project cwd, unchanged source, tests and compiled assembly.",
+  "command": [
+    "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+    "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+    ".magnolie Gesamtarchiv"
+  ],
+  "cwd": "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows",
+  "environment": {
+    "TZ": "Europe/Berlin",
+    "MAGNOLIE_TEST_SOURCE_ROOT": "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows"
+  },
+  "exit_code": 0,
+  "seconds": 0.273,
+  "log": "csharp-archive-after-runner-cwd.log",
+  "log_sha256": "02108937275d456d78bcf3ebb01c2739367f00153a96b12f9a2ba01bab1dc4ab",
+  "assembly_sha256": "f7de2ec3c1558a432c63f48df463bc03f773c5863a178a63c2b4d344ccae77ed"
+}

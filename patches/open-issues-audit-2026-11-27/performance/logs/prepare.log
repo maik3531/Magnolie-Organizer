@@ -1,0 +1,3 @@
+["python", "magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py"]
+["python", "magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py", "--output", "magnolie-organizer-windows/app/web"]
+["python", "magnolie-organizer/werkzeuge/po_zu_js.py", "de", "magnolie-organizer/po/de.po", "magnolie-organizer/web/i18n/de.js"]

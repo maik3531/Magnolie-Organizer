@@ -1,0 +1,62 @@
+{
+  "base": "559c5c1f103caf0be09d381e0ca59f2e07b9e608",
+  "results": [
+    {
+      "name": "normal-detached-build-after",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "build",
+        "tests/CoreTests.csproj",
+        "--no-restore",
+        "--configuration",
+        "Debug"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_s": 15.134,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/logs/normal-detached-build-after.log"
+    },
+    {
+      "name": "normal-detached-after",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "run",
+        "--project",
+        "tests/CoreTests.csproj",
+        "--no-build",
+        "--configuration",
+        "Debug",
+        "--",
+        "Nextcloud ICS birthdays"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_s": 0.63,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/logs/normal-detached-after.log"
+    }
+  ],
+  "inputs": {
+    "magnolie-organizer-windows/ExchangeCodec.cs": "99916294d70392d04fb4ac7f6beb5b00da0c344adc96ab4dbbaf799098815de0",
+    "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs": "45d368fc2917ef552e7e3624b8f897af0f2a8b180e6f7f8866f44f4cb01bcf50"
+  },
+  "env": {
+    "DOTNET_CLI_HOME": "/workspace/scratch/7203da5bd564/round3-tools/dotnet-state",
+    "NUGET_PACKAGES": "/workspace/scratch/7203da5bd564/round3-tools/nuget",
+    "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+  },
+  "unchanged_after": {
+    "magnolie-organizer-windows/ExchangeCodec.cs": true,
+    "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs": true
+  },
+  "commit": "573905f561f00537c39a98133aa8e7719239a4af",
+  "tree": "76b67280d07756efcf6741231e0992b0e446edd7",
+  "unchanged_prior_inputs": {
+    "magnolie-organizer/bin/magnolie-organizer": true,
+    "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py": true
+  },
+  "additional_commit_changed_only": [
+    "magnolie-organizer-windows/ExchangeCodec.cs",
+    "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs"
+  ]
+}

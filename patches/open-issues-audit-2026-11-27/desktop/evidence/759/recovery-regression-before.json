@@ -1,0 +1,11 @@
+{
+  "source_commit": "7453838a78895e31f1103b2065692b6fabfae1fb",
+  "source_module_sha256": "2d72813b4bf614526812a668dd45218422be268f306f854970cd853e2b62cabe",
+  "test_sha256": "168fb7450104ef2302dd1849adc9b8db652cbdee035db99e9028ba2efbcedece",
+  "command": [
+    "node",
+    "/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js"
+  ],
+  "source_root": "/workspace/scratch/7203da5bd564/open-audit/desktop/evidence/759/baseline-7453838a",
+  "exit_code": 1
+}

@@ -1,0 +1,67 @@
+{
+  "issue": 843,
+  "url": "https://github.com/maik3531/Magnolie-Organizer/issues/843",
+  "base_commit": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "source_commit": "9c00336342f736f541cf14e006de1248b22b8850",
+  "source_tree": "879c6e4464832672c12d93384017153726ba3988",
+  "branch": "audit/843-worker-url-lifecycle",
+  "patch": "refs-843-worker-url-lifecycle.patch",
+  "patch_sha256": "eaafc136ce6f46e6f22019b7dbab2d2150f81f895c9ffe13a300b40874ae5b2e",
+  "test_binding_de": "Die finalen Prüfungen liefen vor dem Commit auf genau diesen Arbeitsbaumbytes. Die drei committeten Dateien und alle übrigen Testeingaben wurden nach dem Commit gegen after-manifest.json abgeglichen; keine Testwiederholung allein wegen unveränderter Commit-Metadaten.",
+  "inputs": [
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "tested_sha256": "2c7a5a59f6cc0334dbc52065bc5ad611add546c096686b0daad5077c4f56e4f3",
+      "working_file_matches": true,
+      "committed_sha256": "2c7a5a59f6cc0334dbc52065bc5ad611add546c096686b0daad5077c4f56e4f3"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "tested_sha256": "9ff3b77ba62503c62c209cca49f72285373b5c2f6102f7b59947da862bfd3914",
+      "working_file_matches": true,
+      "committed_sha256": "9ff3b77ba62503c62c209cca49f72285373b5c2f6102f7b59947da862bfd3914"
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/recurrence-worker.js",
+      "tested_sha256": "7d007774054a47730ec8fd67b96ea3c4d902c732eb7e98334e2097f5e63b9ce3",
+      "working_file_matches": true,
+      "committed_sha256": "7d007774054a47730ec8fd67b96ea3c4d902c732eb7e98334e2097f5e63b9ce3"
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/desktop-state-regressions.js",
+      "tested_sha256": "c27e77e00889fe7a23853256249128844868b23c5c5cffafed25b11584dbdb7d",
+      "working_file_matches": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/worker-file-fixture.js",
+      "tested_sha256": "1cd4cc3c27f9fcd70d8cb8e95b2d9e1a08be56f1e4b0b9f8ede5a2fb9c701f4b",
+      "working_file_matches": true
+    },
+    {
+      "path": "magnolie-organizer/web/normative-timezones.js",
+      "tested_sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+      "working_file_matches": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/normative-timezones.js",
+      "tested_sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+      "working_file_matches": true
+    }
+  ],
+  "validation": "after-manifest.json",
+  "baseline": "before-manifest.json",
+  "unrelated_existing_test_boundary": "planner-parity-boundary.json",
+  "main_merge": false,
+  "github_mutations_by_this_agent": false,
+  "native_month_or_ram_acceptance": false,
+  "independent_review": "independent-review.json",
+  "independent_executed_cases": 3,
+  "independent_result": "3/3 PASS; data:-Pfad, Reentrancy und idempotente Freigabe",
+  "integrated_rest_series_commit": "aed96df09d0d536832e5e1ad0d2ffa00b7ef9b1e",
+  "integration_binding": "integration-checkpoint.json",
+  "status": "historical_alternative_do_not_apply",
+  "apply_patch": false,
+  "upstream_adoption": "upstream-adoption.json",
+  "current_upstream_fix_commit": "66b50c44482f279d7c3566fe2959f66ebcc20cd5",
+  "current_verified_head": "1f1f3225ab50fe38902bc8e790454fd944f8b693"
+}

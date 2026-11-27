@@ -1,0 +1,139 @@
+{
+  "generated_at_utc": "2026-11-27T20:12:00.072341+00:00",
+  "base_commit": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "source_head": "f3ea06e275ce6cd7547106096cfd96d27cf57e15",
+  "source_tree": "76fc1ad7fa80414164b2688723884e11ca2f25cc",
+  "previous_complete_integration_head": "32ff7d88af51c7e52275b3a0be348dae913c8598",
+  "passed": true,
+  "meaning": "Required host proofs for this exact prepared patch series passed. This is not an installed product, physical-device, real-server, or month-long acceptance.",
+  "patch_series": {
+    "parts": 9,
+    "manifest": {
+      "path": "final-patches/manifest.json",
+      "sha256": "02c9a67dea6adfd1bf38d00d428c50d4e9774e0e4d889a419cc65ba0f0fdb01c"
+    },
+    "combined_and_individual_series_produce_identical_tested_tree": true
+  },
+  "fresh_final_source_checks": [
+    {
+      "name": "C# clean rebuild and focused regression groups",
+      "groups_passed": 17,
+      "filters": 14,
+      "rebuild_executed": true,
+      "restore_locked": true,
+      "assembly_sha256": "9dd9e64b170cefacb0df9b0be3caac0f6a28568268163cd31355e881b078c0da",
+      "proof": {
+        "path": "validation/final-csharp-tail/manifest.json",
+        "sha256": "aec3a8a1d896f257a9492fbaf0da19290bc755b3868f60f3ba84fbb7915f6c54"
+      }
+    },
+    {
+      "name": "Codec to both frontends to actual stored book to reopen/export/reimport",
+      "cases_passed": 48,
+      "same_fresh_assembly": true,
+      "proof": {
+        "path": "import-export/final-tail-pipeline/pipeline-manifest.json",
+        "sha256": "fe915cb03a204494d10303196c5219f6dc9bf6502237a6aa26dacbddb119f514"
+      }
+    }
+  ],
+  "reused_unchanged_python_ui_results": {
+    "executed_on": "32ff7d88af51c7e52275b3a0be348dae913c8598",
+    "bound_to": "f3ea06e275ce6cd7547106096cfd96d27cf57e15",
+    "method": "Every selected source input, generated UI asset and result log retains its exact hash; only two C# files changed after the complete integration. C# and storage pipeline were rebuilt/rerun separately.",
+    "python_restore_csv_tests_passed": 155,
+    "python_import_export_semantic_tests_passed": 286,
+    "direct_file_contract_checks_passed": 26,
+    "javascript_programs_passed": 15,
+    "javascript_programs": [
+      "phone-media-wait-ui.js",
+      "phone-media-recovery-mount-ui.js",
+      "phone-media-ui.js",
+      "phone-media-source-choice-ui.js",
+      "appointment-organizer-suggestions.js",
+      "structured-appointment-parity.js",
+      "recurrence-worker.js",
+      "calendar-accent-edits.js",
+      "category-colors.js",
+      "kde-contact-import.js",
+      "note-import-attachments.js",
+      "calendar-colour-remainders.js",
+      "birthday-display.js",
+      "legacy-android-instance-ui.js",
+      "notes-original-fresh-readiness.js"
+    ],
+    "additional_passed": [
+      "Independent worker ownership check",
+      "Actual Mac/tablet timezone projection adapters"
+    ],
+    "binding_manifest": {
+      "path": "validation/final-csharp-tail/manifest.json",
+      "sha256": "aec3a8a1d896f257a9492fbaf0da19290bc755b3868f60f3ba84fbb7915f6c54"
+    },
+    "original_integration": {
+      "path": "integration-final-current/manifest.json",
+      "sha256": "cdccea07620c3f29cd8e216cc6c12badbea293ef14c9f5fb9dae6f68f1003544"
+    },
+    "old_csharp_results_relabelled_as_fresh": false
+  },
+  "separate_source_bound_evidence": {
+    "later_issue_846_mcp_path": {
+      "proof": {
+        "path": "new-issues/846-followup.json",
+        "sha256": "02f4c798a9fbb9d6b86c65c1a4d1750533ed26d4630a806035468de39a6412a9"
+      },
+      "execution": {
+        "path": "new-issues/846/execution-manifest.json",
+        "sha256": "5a1037930f01b5cf14f3fa619b97360c3c27c7ddd3cd9f4f99dc33df8f3dc9a9"
+      },
+      "outcome": "The unchanged MCP program fails on the frozen base and passes with this series for both canonical desktop web sources under Node/JSDOM.",
+      "boundary": "Later upstream f8ad956e overlaps only this alias/color part. No own Bun or complete Windows archive CI acceptance; patch base remains7a."
+    },
+    "internet_complete_protocol_group": {
+      "groups_passed": 1,
+      "executed_on": "cae1baef60488686577ab74bb964ed980de7114b",
+      "unchanged_transport_inputs_count": 39,
+      "proof": {
+        "path": "internet-notes/final-prepared/manifest.json",
+        "sha256": "485d2ef9343ccdcd7c76fc8e736a15ec3bed64a6e077712ca4696109a1557c4d"
+      },
+      "boundary": "Controlled protocol tests; no real router, mobile carrier, or physical Android background-delivery acceptance."
+    },
+    "media_formats_mirroring_webcam": {
+      "host_tests_passed": 111,
+      "proof": {
+        "path": "media/formats-mirror-webcam-tests-manifest.json",
+        "sha256": "6259f0d049775263bd568dc2005a10f5f77931f846f7064cde58ea8bb3a85339"
+      },
+      "bounded_upstream_review": {
+        "path": "media/upstream-bc9b4db5-review.json",
+        "sha256": "a19d69a97b44706b41ac4a71fcb9b70b3eda4bd09f19bf02f466e24910c63111"
+      },
+      "boundary": "Earlier host run retained at its recorded source; no native webcam target-application or physical-phone acceptance."
+    },
+    "color_followup_independent_review": {
+      "path": "import-export/after-7a490dd8-844/independent-review.json",
+      "sha256": "850e8300b613a44fafd6176fda304fcbcfe80f683ed48f2da3fafd37d5f2febd"
+    },
+    "birthday_followup_independent_review": {
+      "path": "providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/independent-review.json",
+      "sha256": "a467998f8d4c63ee24cad3719ef244348859bede2e726cd3ba5fa63ae8816399"
+    },
+    "birthday_detached_guard_independent_review": {
+      "path": "providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/independent-normal-detached-fix-review.json",
+      "sha256": "7e913f7ec07d922abe3d6ac702cb9aa0c88b1671ba92fe9253f42851923d7518"
+    }
+  },
+  "counting_boundary": "The suites overlap. These figures are not summed into a unique test total. A C# group can contain many assertions and is not counted as one individual fixture.",
+  "not_claimed": [
+    "Installed Windows/macOS/Linux/Android product acceptance",
+    "Complete real Nextcloud rights/conflict/offline/restart matrix",
+    "Internet reachability in both directions behind real routers/mobile networks",
+    "Physical phone camera, screen, microphone or target-application compatibility",
+    "Android Robolectric execution without its full SDK environment",
+    "Named-pipe cleanup test that remained blocked in this host",
+    "250,000-record performance rerun after all fixes or 30-day native tray soak",
+    "Public release packages or merging the product patches into main"
+  ],
+  "source_worktree_clean": true
+}

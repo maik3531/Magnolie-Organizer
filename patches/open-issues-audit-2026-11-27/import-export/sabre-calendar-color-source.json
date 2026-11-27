@@ -1,0 +1,85 @@
+{
+  "url": "https://github.com/sabre-io/dav/blob/c1afdc77a95efea6ee40c03c45f57c3c0c80ec22/lib/CalDAV/ICSExportPlugin.php",
+  "excerpt": [
+    {
+      "line": 284,
+      "text": "     * @return VObject\\Component\\VCalendar"
+    },
+    {
+      "line": 285,
+      "text": "     */"
+    },
+    {
+      "line": 286,
+      "text": "    public function mergeObjects(array $properties, array $inputObjects)"
+    },
+    {
+      "line": 287,
+      "text": "    {"
+    },
+    {
+      "line": 288,
+      "text": "        $calendar = new VObject\\Component\\VCalendar();"
+    },
+    {
+      "line": 289,
+      "text": "        $calendar->VERSION = '2.0';"
+    },
+    {
+      "line": 290,
+      "text": "        if (DAV\\Server::$exposeVersion) {"
+    },
+    {
+      "line": 291,
+      "text": "            $calendar->PRODID = '-//SabreDAV//SabreDAV '.DAV\\Version::VERSION.'//EN';"
+    },
+    {
+      "line": 292,
+      "text": "        } else {"
+    },
+    {
+      "line": 293,
+      "text": "            $calendar->PRODID = '-//SabreDAV//SabreDAV//EN';"
+    },
+    {
+      "line": 294,
+      "text": "        }"
+    },
+    {
+      "line": 295,
+      "text": "        if (isset($properties['{DAV:}displayname'])) {"
+    },
+    {
+      "line": 296,
+      "text": "            $calendar->{'X-WR-CALNAME'} = $properties['{DAV:}displayname'];"
+    },
+    {
+      "line": 297,
+      "text": "        }"
+    },
+    {
+      "line": 298,
+      "text": "        if (isset($properties['{http://apple.com/ns/ical/}calendar-color'])) {"
+    },
+    {
+      "line": 299,
+      "text": "            $calendar->{'X-APPLE-CALENDAR-COLOR'} = $properties['{http://apple.com/ns/ical/}calendar-color'];"
+    },
+    {
+      "line": 300,
+      "text": "        }"
+    },
+    {
+      "line": 301,
+      "text": ""
+    },
+    {
+      "line": 302,
+      "text": "        $collectedTimezones = [];"
+    },
+    {
+      "line": 303,
+      "text": ""
+    }
+  ]
+}

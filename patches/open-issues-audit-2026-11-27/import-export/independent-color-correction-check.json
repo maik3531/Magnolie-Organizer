@@ -1,0 +1,85 @@
+{
+  "boundary_de": "Tatsächliche Python-Parser/Exporter, ausschließlich synthetische Daten. Vorläufiger Review auf noch nicht festgeschriebenem Backend-Diff; keine native oder UI-Abnahme.",
+  "sources": {
+    "/workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer/bin/magnolie-organizer": "f21f7e71c33e39d7479305412143965da013f1f57b77fd07c6b13265dcf7f7c4",
+    "/workspace/scratch/7203da5bd564/open-audit-import-export/magnolie-organizer/bin/magnolie-organizer": "3d9490830a677136436737d6553b179e42a69545cc280ad3271bb5ea2c6d45b9"
+  },
+  "cases": [
+    {
+      "id": "persisted-pre-patch-color",
+      "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:independent-844\r\nSUMMARY:Independent synthetic color\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR:turquoise\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "persisted_payload": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "Europe/Berlin",
+            "datum": "2026-12-05",
+            "endDatum": "",
+            "zeit": "",
+            "endZeit": "",
+            "titel": "Independent synthetic color",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": false,
+            "icsSerienUid": "",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": true,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:20261205",
+              "COLOR:turquoise"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "independent-844",
+            "geaendert": 0,
+            "icsQuelleName": "independent-synthetic.ics",
+            "icsQuelleId": "ics:daf8ed0d902b6c685a3dfd23e14c4a1a92e50d19700db88803e153045b00744d"
+          }
+        ],
+        "jahrestage": [],
+        "aufgaben": [],
+        "wiederholend": 0,
+        "uebersprungen": 0,
+        "uebersprungenTermine": 0,
+        "uebersprungenAufgaben": 0,
+        "komplexeSerien": []
+      },
+      "baseline_export": {
+        "ok": true,
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:independent-844\r\nDTSTAMP:20261127T185401Z\r\nSEQUENCE:0\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Independent synthetic color\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR:turquoise\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport_accent": ""
+      },
+      "candidate_export": {
+        "ok": true,
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:independent-844\r\nDTSTAMP:20261127T185401Z\r\nSEQUENCE:0\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Independent synthetic color\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR:turquoise\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport_accent": "#40e0d0"
+      }
+    },
+    {
+      "id": "own-over-parameterized-color-unchanged",
+      "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:independent-844\r\nSUMMARY:Independent synthetic color\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR;X-SOURCE=owned-synthetic:red\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "baseline_import_export": {
+        "ok": true,
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:independent-844\r\nDTSTAMP:20261127T185401Z\r\nSEQUENCE:0\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Independent synthetic color\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR;X-SOURCE=owned-synthetic:red\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport_accent": "#112233"
+      },
+      "candidate_import_export": {
+        "ok": true,
+        "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:independent-844\r\nDTSTAMP:20261127T185401Z\r\nSEQUENCE:0\r\nDTEND;VALUE=DATE:20261206\r\nSUMMARY:Independent synthetic color\r\nX-MAGNOLIE-ACCENT-COLOR:#112233\r\nDTSTART;VALUE=DATE:20261205\r\nCOLOR;X-SOURCE=owned-synthetic:red\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+        "reimport_accent": "#112233"
+      }
+    }
+  ]
+}

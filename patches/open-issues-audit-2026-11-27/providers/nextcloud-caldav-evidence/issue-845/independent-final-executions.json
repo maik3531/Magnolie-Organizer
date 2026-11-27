@@ -1,0 +1,82 @@
+{
+  "generated_asset_setup": [
+    {
+      "source": "/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web/normative-timezones.js",
+      "target": "/workspace/scratch/7203da5bd564/open-audit-845/magnolie-organizer/web/normative-timezones.js",
+      "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+      "ignored_generated_test_asset": true
+    },
+    {
+      "source": "/workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web/normative-timezones.js",
+      "target": "/workspace/scratch/7203da5bd564/open-audit-845/magnolie-organizer-windows/app/web/normative-timezones.js",
+      "sha256": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+      "ignored_generated_test_asset": true
+    }
+  ],
+  "fixtures_sha256": "a26e053fc23716f3e3fe06bec103d3bfab5878eeee721141fa554b9c57d94919",
+  "executions": [
+    {
+      "label": "display-final-baseline",
+      "argv": [
+        "node",
+        "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/independent-birthday-display.cjs",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "/workspace/scratch/7203da5bd564/open-audit-845/contracts/nextcloud-birthday-vectors.json",
+        "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/independent-display-final-baseline.json"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564",
+      "env_overrides": {
+        "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 1,
+      "seconds": 2.8200821160007763,
+      "log": "logs/independent-display-final-baseline.log",
+      "log_sha256": "adc7e13fb1b9a9b6a890002d73707c75435a2b32b1316ba3ac2189d5ee821ae3"
+    },
+    {
+      "label": "display-after",
+      "argv": [
+        "node",
+        "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/independent-birthday-display.cjs",
+        "/workspace/scratch/7203da5bd564/open-audit-845",
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "/workspace/scratch/7203da5bd564/open-audit-845/contracts/nextcloud-birthday-vectors.json",
+        "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/independent-display-after.json"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564",
+      "env_overrides": {
+        "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "seconds": 1.994344929998988,
+      "log": "logs/independent-display-after.log",
+      "log_sha256": "fad8aa8f2fb2bc1be48e0617fc32823f428c27c72b12994642a620d81cd19265"
+    },
+    {
+      "label": "boundaries-after",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/independent-boundaries-review.py",
+        "--checkout",
+        "/workspace/scratch/7203da5bd564/open-audit-845",
+        "--fixtures",
+        "/workspace/scratch/7203da5bd564/open-audit-845/contracts/nextcloud-birthday-vectors.json",
+        "--output",
+        "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/independent-boundaries-after.json"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564",
+      "env_overrides": {
+        "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "seconds": 0.15417716299998574,
+      "log": "logs/independent-boundaries-after.log",
+      "log_sha256": "9e5e2489255865324b9f79bd9bbd93966fdaa05ea4c2b784e9363894e1f9d066"
+    }
+  ],
+  "boundary_de": "Enger finaler Vorher/Nachhervergleich mit identischen endgültigen Fixturebytes; ursprüngliche frühere Baseline blieb separat erhalten. Keine breite Testsuite."
+}

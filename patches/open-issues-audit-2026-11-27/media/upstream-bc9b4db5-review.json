@@ -1,0 +1,138 @@
+{
+  "source_commit": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "reviewed_delta_commit": "bc9b4db57d2ee6577ee9314a858f8be6fea4c757",
+  "prior_report_base": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "scope_de": "Begrenzter read-only Quell-/Testquellabgleich des neuen Linux-Empfangssetups; keine vollständige neue7a-Inventur und keine erneute Initialimplementierung von845.",
+  "newly_implemented_de": [
+    "Explizite Organizer-Aktion setup_automatic_receive für private WLAN-Ersteinrichtung bei bereits abgestimmter gemeinsamer Auswahl. Foto-, Video- und gemischte Typwahl werden getrennt geprüft.",
+    "Geschützte Pending-Bindung an Buchversion und ausgewählte Typen. Scheduler bleibt während ausstehender Einrichtung gesperrt; erfolgreiche frische Bindung und Android-Leseabdeckung für alle ausgewählten Typen schließen die Einrichtung ab.",
+    "Reiner Videoempfang kann nach WLAN-Wiederverbindung mit frischer technischer Vereinbarung und nativen Dateirechten auch bei geschlossenen Einstellungen wieder anlaufen. Kein Fotoziel/Fotorecht wird dafür erzwungen."
+  ],
+  "still_open_de": [
+    "Die drei privaten Produktfreigaben für Medienunterstützung bleiben inLinux/Windows/Notes false; keine allgemeine Paket-/Gerätefreigabe aus diesem Commit.",
+    "Windows-Erstempfang und tatsächliche installierte Paarabnahme bleiben im Arbeitsstand ausdrücklich offen.",
+    "Sicherer atomarer Android-Originalrückweg, Löschbelege und vollständige Zweiwegintegration bleiben eigenständige Kriterien.",
+    "Formatallowlists, Decoderlisten, Dateigrößen, Spiegelung und Webcam ändern sich durchbc9 nicht."
+  ],
+  "usability_de": "Die gemeinsame Einstellung wird weiterhin technisch automatisch mit Notes abgestimmt. Neu ist eine eigene lokale Organizer-Aktion „Set up automatic receiving“ für die erste Empfangseinrichtung; das ist keine zweite manuelle Notes-Bestätigung derselben Einstellung. Fehlendes Android-READ führt zu permission_required und hält Pending/Scheduler-Sperre aufrecht. Der konkrete neue Test führt nach Erteilung des Lesezugriffs erneut setup_automatic_receive aus. Ein universeller Ein-Klick-Abschluss darf daraus nicht versprochen werden.",
+  "patch_759_relevance": {
+    "required": true,
+    "detail_de": "Beide ursprünglichen759-Patches ändern die Windows-phone-media.js-Warte-/Save-ACK-/Stop- bzw.Initial-Mount-Cleanup-Pfade. bc9 ändert Linux-Setupquellen und Linux-anwendung.js; Windows-phone-media.js ist sogar bytegleich zum ursprünglichen759-Elternstand. Es ersetzt weder Wartezustandsfix noch Recovery-Mount-Korrektur. Keine neue Testausführung oder pauschale native Aussage aus dieser Bytegleichheit.",
+    "path": "magnolie-organizer-windows/app/web/phone-media.js",
+    "original_759_parent": "50b1512234a765635f82af4537f277594fbf9878",
+    "original_759_parent_blob": "a590a42778f35269d94df1140007b020c9a6fe41",
+    "latest_upstream_blob": "a590a42778f35269d94df1140007b020c9a6fe41",
+    "byte_identical": true
+  },
+  "unchanged_format_mirror_webcam_blobs": {
+    "magnolie-organizer/bin/magnolie_media_mime.py": {
+      "prior_blob": "867f7bfed07f8781e9da50af76dbc6ee21131e05",
+      "current_blob": "867f7bfed07f8781e9da50af76dbc6ee21131e05"
+    },
+    "magnolie-organizer-windows/DeviceFileMediaMime.cs": {
+      "prior_blob": "0b90749c0e89fe3fd5fc4ea8318cecf5681bada4",
+      "current_blob": "0b90749c0e89fe3fd5fc4ea8318cecf5681bada4"
+    },
+    "magnolie-organizer/bin/magnolie_media_preview.py": {
+      "prior_blob": "2d50c44525103321e2412e4cad1909b51cd89114",
+      "current_blob": "2d50c44525103321e2412e4cad1909b51cd89114"
+    },
+    "magnolie-organizer-windows/DeviceFileMediaPreview.Drawing.cs": {
+      "prior_blob": "45deb39af7004480af1c2c34c5dc53eaf4b465d1",
+      "current_blob": "45deb39af7004480af1c2c34c5dc53eaf4b465d1"
+    },
+    "magnolie-organizer-windows/DeviceFileMediaPreview.Video.cs": {
+      "prior_blob": "f9391a3694b95b7882e84d49c8a9aafce2901fd9",
+      "current_blob": "f9391a3694b95b7882e84d49c8a9aafce2901fd9"
+    },
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/NativeGalleryRecoveryPreview.kt": {
+      "prior_blob": "553c31ede6fec6578a163d1a3949bfd958cabf1f",
+      "current_blob": "553c31ede6fec6578a163d1a3949bfd958cabf1f"
+    },
+    "magnolie-organizer/bin/magnolie_file_transfer.py": {
+      "prior_blob": "5e870f290b15f9bb5e548f6fa8dfd8bbd0059545",
+      "current_blob": "5e870f290b15f9bb5e548f6fa8dfd8bbd0059545"
+    },
+    "magnolie-organizer/bin/magnolie_phone_webcam.py": {
+      "prior_blob": "8fb1d5cb5317b1a65306f85f9423050c7ee4c5db",
+      "current_blob": "8fb1d5cb5317b1a65306f85f9423050c7ee4c5db"
+    },
+    "contracts/phone-screen-view-v1.md": {
+      "prior_blob": "d43d100080e224f9f5de441132449fba9bc40ea5",
+      "current_blob": "d43d100080e224f9f5de441132449fba9bc40ea5"
+    },
+    "contracts/desktop-screen-send-v1.md": {
+      "prior_blob": "ced576e13b407ab537f51ba2c53c0dee160d139e",
+      "current_blob": "ced576e13b407ab537f51ba2c53c0dee160d139e"
+    },
+    "contracts/phone-webcam-v1.md": {
+      "prior_blob": "c8d1610276f615f8afb4417a5095e6279ebe02de",
+      "current_blob": "c8d1610276f615f8afb4417a5095e6279ebe02de"
+    }
+  },
+  "evidence": [
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_desktop_connection.py",
+      "line": 608,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/bin/magnolie_file_desktop_connection.py#L608",
+      "sha256": "14b0fcf742bea311df462bc770e22f16243521c8803000232d7f5b1a35de6028"
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_storage_bootstrap.py",
+      "line": 42,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/bin/magnolie_media_storage_bootstrap.py#L42",
+      "sha256": "0f4c6f834ddc51f7d964556fe1c41435705fd8532d3397a7d4c0310d8b1b88af"
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_preferences.py",
+      "line": 70,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/bin/magnolie_photo_preferences.py#L70",
+      "sha256": "4f161b2bf1ad4d6eb29d080e0ff2d9bc4f50a60b1d6a5e6b22e7a50b7f93dc7a"
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_telefon.py",
+      "line": 2911,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/bin/magnolie_telefon.py#L2911",
+      "sha256": "55d4512b3b3c6f6301d4fb8f7932fe20c93978680b40e26a1d62f32be7cac290"
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "line": 30150,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/web/anwendung.js#L30150",
+      "sha256": "75cb7fb2a23435622738e30bedcf48dc16e5ccb2c6921995fe6b44f3bc6d850d"
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_media_first_receive.py",
+      "line": 340,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/pruefungen/test_media_first_receive.py#L340",
+      "sha256": "fe92176e240179364dad2d5cb55fabee77e5cce05e1acef2303dcc1e68368a34"
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_media_support_draft.py",
+      "line": 538,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/pruefungen/test_media_support_draft.py#L538",
+      "sha256": "9e5202341d0d2231437d0ccf250ac8e524b0c6807421538e9dc5ceefb7512315"
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/media-source-choice-ui.cjs",
+      "line": 427,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/pruefungen/media-source-choice-ui.cjs#L427",
+      "sha256": "407465f0753aa1a995efc0fc8893a7056c97ce3c3f5bd3db0d2d00fceae679b5"
+    },
+    {
+      "path": "ARBEITSSTAND.md",
+      "line": 49,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/ARBEITSSTAND.md#L49",
+      "sha256": "50131d1db5bff3cb1ed1265252fdde2b1fbcbda3adf4e1decf455e412eeec754"
+    }
+  ],
+  "tests_de": "Keine neuen Tests. Die früheren111PASS bleiben exakt an1f1f3225 gebunden. bc9 ergänzt Testquellen für ausdrückliche Einrichtung, fehlendesREAD, Stop, gemischte Auswahl und Video-Wiederverbindung. ARBEITSSTAND nennt154Python-,13DOM- und19Sprachkatalogprüfungen; diese Angaben stammen vom Upstreamautor und wurden hier nicht neu ausgeführt.",
+  "required_report_changes_de": [
+    "Linux-WLAN-Ersteinrichtung nicht länger als fehlende Implementierung beschreiben; vorhandenen privaten Setup-/Wiederanlaufpfad nennen.",
+    "Bedienung zwischen gemeinsamer Einstellungsübernahme, lokaler Empfangseinrichtung und tatsächlicher Android-OS-Berechtigung unterscheiden.",
+    "Keine Erweiterung der Format-/Vorschauzusage und keine Umdeutung der alten111PASS auf7a."
+  ],
+  "product_changes": false,
+  "tests_executed": false,
+  "github_mutations": false
+}

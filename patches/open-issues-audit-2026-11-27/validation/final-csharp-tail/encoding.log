@@ -1,0 +1,4 @@
+Magnolie CoreTests: 1 Gruppen
+  Unicode import: 148 file, ZIP and waste-calendar cases passed.
+  OK     UTF-16 import / malformed bytes and valid roundtrip (0.17 s)
+CoreTests: 1/1 Gruppen bestanden.

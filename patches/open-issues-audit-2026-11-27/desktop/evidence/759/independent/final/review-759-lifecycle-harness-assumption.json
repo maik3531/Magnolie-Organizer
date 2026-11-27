@@ -1,0 +1,27 @@
+{
+  "source_path": "/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/app/web/phone-media.js",
+  "source_sha256": "5295c10d3a1e955c84984bc983598062ab2b5fabb4b5a2c60485bb06d362dde5",
+  "environment": "Actual unchanged Windows phone-media.js in JSDOM; ownership maps, queued microtasks and real JSDOM timeout handles observed by harness",
+  "scope_limit": "Bounded UI lifecycle regression tests; not a native Windows, real-device, heap-profile, month-long tray or wall-clock duration test",
+  "tests_executed": true,
+  "total": 2,
+  "passed": 1,
+  "results": [
+    {
+      "name": "128 two-phone rebuilds retain only current owners and keep automatic refresh",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: One synchronous rebuild must queue only one cleanup\n\n3 !== 1\n\n    at /workspace/scratch/7203da5bd564/open-audit/media/review-759-lifecycle.cjs:65:14\n    at async /workspace/scratch/7203da5bd564/open-audit/media/review-759-lifecycle.cjs:107:60"
+    },
+    {
+      "name": "detached folder request releases its real timeout and cannot revive an old owner",
+      "passed": true,
+      "observations": {
+        "detached_request_removed": true,
+        "timeout_cleared": true,
+        "old_owner_revived": false
+      }
+    }
+  ],
+  "harness_error_de": "Der erste Harness erwartete nur eine gesamte Microtask pro Zweizeilen-Aufbau und übersah die zwei unveränderten Vorschau-Observer-Microtasks. Das ist keine Produktregression. Die Erwartung wird auf genau diese zwei vorhandenen Observer plus eine gebündelte Cleanup-Microtask korrigiert.",
+  "usable_as_product_failure_evidence": false
+}

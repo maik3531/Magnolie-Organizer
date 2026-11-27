@@ -1,4 +1,4 @@
-From 11d3a7179781077c6b56de57ed7c80a2ff8e57f7 Mon Sep 17 00:00:00 2001
+From 9a0208543ecdba3879f8f554389aa9cefc1235f3 Mon Sep 17 00:00:00 2001
 From: Codex <codex@openai.com>
 Date: Fri, 27 Nov 2026 19:25:12 +0100
 Subject: [PATCH] Refs #395: bound organizer suggestions to active input
@@ -13,10 +13,10 @@ Subject: [PATCH] Refs #395: bound organizer suggestions to active input
  create mode 100644 magnolie-organizer-windows/tests/appointment-organizer-suggestions.js
 
 diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
-index 8264d96f76f6d8f051a2ab2a6be1c62ed1f44018..8a3034c136b1b42105d4e34e009fa9f064cee51c 100644
+index c16f10674cdc584792b5b333572c916ba9f5c0c4..a19efe6ac661016d798d38aaf59704f6abdbfb1d 100644
 --- a/magnolie-organizer-windows/app/web/anwendung.js
 +++ b/magnolie-organizer-windows/app/web/anwendung.js
-@@ -17782,11 +17782,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+@@ -17797,11 +17797,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
      orgUri.id = "tb-organisator-uri";
      orgName.setAttribute("list", "tb-organisator-namen");
      orgEmail.setAttribute("list", "tb-organisator-emails");
@@ -30,7 +30,7 @@ index 8264d96f76f6d8f051a2ab2a6be1c62ed1f44018..8a3034c136b1b42105d4e34e009fa9f0
      const eindeutigeTexte = (werte) => {
        const gesehen = new Set();
        return werte.filter((wert) => {
-@@ -17795,19 +17792,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+@@ -17810,19 +17807,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
          gesehen.add(schluessel); return true;
        });
      };
@@ -208,10 +208,10 @@ index d93d20e5683694d74ffc1d0474d7170316210887..56950aba8809d2335ea8fb75098c706f
      (option) => option.value).includes("Anna Beispiel"), "Organisatorvorschlag fehlt");
    setze($("#tb-organisator-name"), "Anna Beispiel");
 diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
-index 77eece4f2d9199dd414674af7d2f566f3e35e633..d41474f17aa05fd641799621c3cb924d6ac40f05 100644
+index df295942aaa2461f256ac777343f89841e60b6e1..0ae4e69b5b257ff690072892703e8f39040527df 100644
 --- a/magnolie-organizer/web/anwendung.js
 +++ b/magnolie-organizer/web/anwendung.js
-@@ -18074,11 +18074,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+@@ -18089,11 +18089,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
      orgUri.id = "tb-organisator-uri";
      orgName.setAttribute("list", "tb-organisator-namen");
      orgEmail.setAttribute("list", "tb-organisator-emails");
@@ -225,7 +225,7 @@ index 77eece4f2d9199dd414674af7d2f566f3e35e633..d41474f17aa05fd641799621c3cb924d
      const eindeutigeTexte = (werte) => {
        const gesehen = new Set();
        return werte.filter((wert) => {
-@@ -18087,19 +18084,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+@@ -18102,19 +18099,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
          gesehen.add(schluessel); return true;
        });
      };

@@ -1,0 +1,18 @@
+{
+  "reason": "The first attempt set MAGNOLIE_TEST_SOURCE_ROOT to the repository. This group needs the Windows project marker and can find parent repository fixtures from that project directory. Product and test code unchanged.",
+  "command": [
+    "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+    "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+    "Thunderbird local.sqlite Schema 23"
+  ],
+  "cwd": "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows",
+  "environment": {
+    "TZ": "Europe/Berlin",
+    "MAGNOLIE_TEST_SOURCE_ROOT": "/workspace/scratch/7203da5bd564/open-audit-current/magnolie-organizer-windows"
+  },
+  "exit_code": 0,
+  "seconds": 0.481,
+  "log": "csharp-thunderbird-after-runner-path.log",
+  "log_sha256": "8f325914254aadf07e1b8eb3cd0a3190ef7f7d75686e9bd2c8ac3ec6b58e3513",
+  "assembly_sha256": "f7de2ec3c1558a432c63f48df463bc03f773c5863a178a63c2b4d344ccae77ed"
+}

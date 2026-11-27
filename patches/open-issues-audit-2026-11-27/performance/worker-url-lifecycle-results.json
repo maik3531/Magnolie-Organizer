@@ -1,0 +1,96 @@
+{
+  "results": [
+    {
+      "edition": "windows-source",
+      "samples": [
+        {
+          "attempts": 1,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "unload_listeners_added": 1,
+          "created": 1,
+          "revoked": 0
+        },
+        {
+          "attempts": 8,
+          "active_object_urls": 8,
+          "retained_blob_bytes": 3911888,
+          "unload_listeners_added": 8,
+          "created": 8,
+          "revoked": 0
+        },
+        {
+          "attempts": 16,
+          "active_object_urls": 16,
+          "retained_blob_bytes": 7823776,
+          "unload_listeners_added": 16,
+          "created": 16,
+          "revoked": 0
+        },
+        {
+          "attempts": 32,
+          "active_object_urls": 32,
+          "retained_blob_bytes": 15647552,
+          "unload_listeners_added": 32,
+          "created": 32,
+          "revoked": 0
+        }
+      ],
+      "before_unload": {
+        "active_object_urls": 32,
+        "retained_blob_bytes": 15647552
+      },
+      "after_unload": {
+        "active_object_urls": 0,
+        "revoked": 32
+      },
+      "seam": "Actual production failed Worker-constructor path, real Blob URL store. Constructor deliberately fails; no running browser Worker or native tray."
+    },
+    {
+      "edition": "linux-source",
+      "samples": [
+        {
+          "attempts": 1,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "unload_listeners_added": 1,
+          "created": 1,
+          "revoked": 0
+        },
+        {
+          "attempts": 8,
+          "active_object_urls": 8,
+          "retained_blob_bytes": 3911888,
+          "unload_listeners_added": 8,
+          "created": 8,
+          "revoked": 0
+        },
+        {
+          "attempts": 16,
+          "active_object_urls": 16,
+          "retained_blob_bytes": 7823776,
+          "unload_listeners_added": 16,
+          "created": 16,
+          "revoked": 0
+        },
+        {
+          "attempts": 32,
+          "active_object_urls": 32,
+          "retained_blob_bytes": 15647552,
+          "unload_listeners_added": 32,
+          "created": 32,
+          "revoked": 0
+        }
+      ],
+      "before_unload": {
+        "active_object_urls": 32,
+        "retained_blob_bytes": 15647552
+      },
+      "after_unload": {
+        "active_object_urls": 0,
+        "revoked": 32
+      },
+      "seam": "Actual production failed Worker-constructor path, real Blob URL store. Constructor deliberately fails; no running browser Worker or native tray."
+    }
+  ]
+}

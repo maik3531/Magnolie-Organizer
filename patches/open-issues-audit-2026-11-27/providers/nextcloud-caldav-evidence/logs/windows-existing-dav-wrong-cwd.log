@@ -1,0 +1,14 @@
+Magnolie CoreTests: 1 Gruppen
+  FEHLER Nextcloud CalDAV / CardDAV / Discovery / ETag / Sicherheit (0.54 s)
+         System.IO.FileNotFoundException: Could not find file '/workspace/scratch/7203da5bd564/open-audit-dav-tests/BridgeDispatcher.Sync.cs'.
+File name: '/workspace/scratch/7203da5bd564/open-audit-dav-tests/BridgeDispatcher.Sync.cs'
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64& fileLength, UnixFileMode& filePermissions, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Encoding encoding, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at MagnolieOrganizer.Windows.Tests.NextcloudDavTests.TestSafeFirstRunsAndConflictIdentity(NextcloudMailboxSettingsStore settings) in /workspace/scratch/7203da5bd564/open-audit-dav-tests/magnolie-organizer-windows/tests/NextcloudDavTests.cs:line 542
+   at MagnolieOrganizer.Windows.Tests.NextcloudDavTests.RunAsync() in /workspace/scratch/7203da5bd564/open-audit-dav-tests/magnolie-organizer-windows/tests/NextcloudDavTests.cs:line 309
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in /workspace/scratch/7203da5bd564/open-audit-dav-tests/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/1 Gruppen bestanden.

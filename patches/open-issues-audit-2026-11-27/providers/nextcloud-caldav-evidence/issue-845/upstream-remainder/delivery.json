@@ -1,0 +1,71 @@
+{
+  "issue": 845,
+  "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/845",
+  "status": "current_reviewed_followup_on_upstream",
+  "commit": "573905f561f00537c39a98133aa8e7719239a4af",
+  "parent": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "tree": "76b67280d07756efcf6741231e0992b0e446edd7",
+  "branch": "audit/845-upstream-remainder",
+  "worktree": "/workspace/scratch/7203da5bd564/open-audit-845-remainder",
+  "patch": null,
+  "patch_sha256": null,
+  "base_already_contains": "Upstream Nextcloud-BDAY-Grundkorrektur7a490dd8",
+  "do_not_apply_initial_patch": "8d7263fda398f7ee0cbe6b9f5b7bab3e9d6c5f5a",
+  "inputs": {
+    "magnolie-organizer/bin/magnolie-organizer": "a709b549469f686ed43b5de2a21f74ccf48347d6f24cba6a86832966a2c651cf",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "99916294d70392d04fb4ac7f6beb5b00da0c344adc96ab4dbbaf799098815de0",
+    "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py": "daf71563c3cc88067de0c62873d8f2b25730e69b097c68645105b60f5b00b88e",
+    "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs": "45d368fc2917ef552e7e3624b8f897af0f2a8b180e6f7f8866f44f4cb01bcf50"
+  },
+  "tests": {
+    "python_before": {
+      "passed": 19,
+      "failed": 6
+    },
+    "python_after": {
+      "passed": 25,
+      "failed": 0
+    },
+    "csharp_before": "Nextcloud ICS birthdays: FAIL at edited last-February RRULE",
+    "csharp_after": [
+      "Nextcloud ICS birthdays: PASS1/1",
+      "Nextcloud CalDAV: PASS1/1"
+    ],
+    "build": "0warnings/0errors",
+    "additional_guard": {
+      "baseline": "New exact C# import/export/detached regression FAIL on559c; normal control passed before the failing assertion",
+      "after": "Nextcloud ICS birthdays PASS1/1; build0warnings/0errors",
+      "other_input_binding": "Both Python inputs from559c remain byte-identical; no repeated Python execution."
+    }
+  },
+  "source_scope_de": "Vorhandene Monatsende-Regel bei weiterhin29.Februar erhalten und explizite Jahrestagstypen entsprechend reimportieren; bestehende Detached-Abgrenzung auch beim tatsächlichen normalen NC-BDAY-Export mit eigenem Typmarker beachten; Linux-DAV vor stiller Auslassung des nicht integrierten #441-Scopes schützen. Keine ursprüngliche Nextcloud-Erkennung ersetzt.",
+  "limitations_de": "Kein Live-Server/GUI/Device. Kein vollständiger Linux-Jahrestags-Sync. Die zusätzlichen C#-Regressionsfälle belegen genau die erhaltene Februarregel und den tatsächlichen NC-BDAY-Import/Export/Detached-Weg; keine pauschale Abnahme beliebiger Fremdserien. Die übrigen Nachweise bleiben an ihre tatsächlichen Quellstände gebunden.",
+  "manifest": "final-manifest.json",
+  "baseline_manifest": "baseline-manifest.json",
+  "independent_review": "independent-review.json",
+  "commits_in_order": [
+    "559c5c1f103caf0be09d381e0ca59f2e07b9e608",
+    "573905f561f00537c39a98133aa8e7719239a4af"
+  ],
+  "patches": [
+    {
+      "file": "0008-Refs-845-followup-on-7a490dd8.patch",
+      "sha256": "dc24b369800cdc78a33d62eeeb08d79cc5a8fa300a9509f700e2223c1288dd23",
+      "commit": "559c5c1f103caf0be09d381e0ca59f2e07b9e608",
+      "parent": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2"
+    },
+    {
+      "file": "0009-Refs-845-exported-birthday-detached-guard.patch",
+      "sha256": "5b984bda0f31c3fe17d841deb091c5ce8c9476b8a49b1e61e6bcce83bb839cd6",
+      "commit": "573905f561f00537c39a98133aa8e7719239a4af",
+      "parent": "559c5c1f103caf0be09d381e0ca59f2e07b9e608"
+    }
+  ],
+  "additional_guard_manifest": "normal-detached-final-manifest.json",
+  "additional_guard_baseline": "normal-detached-baseline-manifest.json",
+  "additional_guard_independent_review": "independent-normal-detached-fix-review.json",
+  "independent_reviews": [
+    "independent-review.json",
+    "independent-normal-detached-fix-review.json"
+  ]
+}

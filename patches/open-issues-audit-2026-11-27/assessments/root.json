@@ -1,0 +1,799 @@
+[
+  {
+    "number": 243,
+    "title": "OR6: verbleibende Overrides, Metadaten und Originalkontexte – Rest #222",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Die früheren Basislücken sind überwiegend geschlossen; unverstandene OR6-Metadaten und komplexere Originalkontexte bleiben ein realer eigener Rest.",
+    "implemented_de": "Die Reader erhalten verifizierte finite Serien, verschobene indizierte Ausnahmen, frühere Seriensegmente, Kontaktgruppen, bekannte Telefonkontexte, Planerwerte und jährliche gegenüber einmaligen Jahrestagen.",
+    "remaining_de": "Unabhängige Originalsemantik für abweichende Meeting-/Busy-Daten, leere/verschachtelte Verteiler, weitere Anhänge/Erinnerungen und vertrauliche Zielbereiche fehlt. Die aktuellen Gleichheitswächter halten unbekannte Unterschiede bewusst zurück.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "contracts/or6-import.md",
+        "detail_de": "Aktuelle unterstützte Teilmenge und ausdrücklich nicht unterstützte Restformen."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer/bin/magnolie_or6.py",
+        "detail_de": "Serienhistorie und Overrides verwerfen unbekannte Inhalts-/Busy-/Meetingunterschiede nicht stillschweigend."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer-windows/Or6Codec.cs",
+        "detail_de": "Entsprechender C#-Importumfang."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/243#issuecomment-6867933825",
+        "detail_de": "#616 erledigt; verbleibende abweichende Meetingfelder konkret benannt."
+      }
+    ],
+    "comments_reviewed_count": 2,
+    "proposed_action_de": "Offen lassen; nächste Erweiterung nur an unabhängig belegtem synthetischem Originalfall. Keine bereits vorhandenen Mappingfixes nochmals erstellen.",
+    "patch": null,
+    "limitations_de": "Keine privaten Originalbücher oder ausgeschlossenen Notizbereiche verwendet; kein neuer Originalprogramm-/Migrationsnachweis.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/243",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 258,
+    "title": "Zeitzonenmanagement: IANA/iCalendar-konforme Technik mit einfacher seniorengerechter Oberfläche",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Die Zeitzonentechnik ist vorhanden, die verlangte vereinfachte Normalansicht ist noch nicht vollständig umgesetzt.",
+    "implemented_de": "Normative IANA-Daten, automatische/manuelle Erkennung, Quell-/Kontakt-/Kalenderanzeigen und getrennte Anzeigeplanung sind im aktuellen Code vorhanden.",
+    "remaining_de": "oeffneZeitzonenManagement zeigt weiterhin Bereichswahl, Quellenfolge Phone→GPS→IP→System sowie einen achtzeiligen manuellen Fallback direkt. Der geforderte standardmäßig geschlossene erweiterte Bereich und die tatsächliche 20-Sprachen-/native UX-Abnahme fehlen.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer/web/anwendung.js",
+        "detail_de": "oeffneZeitzonenManagement: sichtbare scope/source/picker-Struktur ohne geschlossenes details für Sonderregeln."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer-windows/app/web/anwendung.js",
+        "detail_de": "Zweiter Desktop verwendet dieselbe Zeitzonenbedienung."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer-windows/TimeZoneManagement.cs",
+        "detail_de": "Vorhandene native Erkennung und Revisionsgrenzen."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer-windows/tests/TimeZoneManagementTests.cs",
+        "detail_de": "Bestehende technische Regressionen; ersetzen keine Senioren-UX-Abnahme."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Als enges UX-Restissue behalten; vorhandene Technik wiederverwenden und die Bedienung samt Übersetzungen gezielt vereinfachen.",
+    "patch": null,
+    "limitations_de": "Kein neuer nativer Bedienlauf. Der aktuelle Sourcebefund betrifft die sichtbare Dialogstruktur, nicht einen erneut behaupteten TZDB-Rechenfehler.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/258",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 380,
+    "title": "Müllkalender: Feiertagsverschiebung und einzelne Ersatztermine ohne erfundene Abholdaten",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Kein belegter falscher Feiertagsalgorithmus; die manuelle Ausnahme-/Ersatzbedienung im Müllkalender bleibt offen.",
+    "implemented_de": "Manuelles Wochenintervall und kommunaler ICS-/CSV-Import sind getrennt. EXDATE lässt aus, ein tatsächlich geliefertes RDATE benennt den Ersatz; ohne Ersatz wird kein Folgetag erfunden.",
+    "remaining_de": "Für den ursprünglichen Bericht fehlen Kommune, Jahr, Quelle und Importart. Ein eigener Bedienweg für manuelle Einzelausnahme/Ersatz im Müllkalender ist nicht durch normale Termin-Einzellöschung erledigt.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "contracts/waste-holiday-authority.md",
+        "detail_de": "Expliziter Quellenvorrang und genau abgegrenzter Rest."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer/pruefungen/waste-holiday-authority.cjs",
+        "detail_de": "Sechs bestehende duale Desktopfälle."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/380#issuecomment-6637726022",
+        "detail_de": "Bisherige Fälle positiv; unbekannte kommunale Eingabe und manueller UI-Rest getrennt."
+      }
+    ],
+    "comments_reviewed_count": 1,
+    "proposed_action_de": "Offen lassen, Beschreibung auf den konkreten Bedienrest konzentrieren. Kein pauschales Verschieben von Feiertagen implementieren.",
+    "patch": null,
+    "limitations_de": "Keine kommunale Originaldatei vorhanden; vorhandene Fälle in dieser Bestandsprüfung nicht als neue native Abnahme ausgegeben.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/380",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 382,
+    "title": "Termin-Einzellöschung: native Providerabnahme und alte Mehrfach-Uhrzeiten nach #379",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Die ursprüngliche sichere Einzel-/Serienlöschung ist umgesetzt; Legacy-Mehrfachuhrzeiten und native Providerabnahme bleiben eigenständig.",
+    "implemented_de": "EXDATE wird an den exakten UTC-/floating-/DATE-Vorkommensfall gebunden. Ersatztermine und konservative Rollbackgrenzen sind vorhanden.",
+    "remaining_de": "terminVorkommenAusnahme hält Legacy-Einträge mit icsZusatzTermine weiterhin zurück, weil eine Tagesausnahme mehrere Uhrzeiten träfe. Dazu fehlen aktueller nativer Provider-Save/Reopen sowie Papierkorb-/Rollbacknachweis.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer/web/anwendung.js",
+        "detail_de": "terminVorkommenAusnahme: ausdrücklicher Guard bei Legacy-icsZusatzTermine; vollständige ICS-EXDATE-Identität."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer-windows/app/web/anwendung.js",
+        "detail_de": "Entsprechender Windows-UI-Pfad."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/382#issuecomment-6638434337",
+        "detail_de": "#383-Ersatzfälle bestanden; geänderte/fehlende/synchronisierte Providerobjekte werden konservativ gehalten."
+      }
+    ],
+    "comments_reviewed_count": 1,
+    "proposed_action_de": "Offen lassen: Legacy-Ausnahmeidentität gezielt erweitern und native Fälle getrennt nachweisen.",
+    "patch": null,
+    "limitations_de": "Ein Host-/DOM-Test wäre kein Beleg für eine tatsächliche Providerübernahme oder installierte Paketabnahme.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/382",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 449,
+    "title": "Notizenimport: native Linux-/Windows-Abnahme des Anhangserhalts (Rest aus #445)",
+    "classification": "acceptance_or_live_evidence",
+    "relevance": "partial",
+    "summary_de": "Der Anhangsverlust ist im Quellcode behoben; übrig ist die echte native Datei-/Speicher-/Wiederöffnungsabnahme.",
+    "implemented_de": "mergeNotizen vergleicht sichtbaren Namen, abgeleiteten Typ und exakte Datenbytes; zufällige Anhangs-IDs sind keine Inhaltsidentität. Teilweise ungültige Anhangslisten werden nicht still gekürzt übernommen.",
+    "remaining_de": "Im echten GTK/WebKit und Windows/WebView2 je zwei gleichnamige PNG/PDF mit unterschiedlichen Bytes auswählen, speichern und nach Prozessneustart prüfen; Abbruch und Größenüberschreitungen einschließen.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer/web/anwendung.js",
+        "detail_de": "mergeNotizen und gleicheAnhaenge enthalten den erforderlichen Bytes-/Namens-/Typvergleich und Ganzlisten-Guard."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer-windows/tests/note-import-attachments.js",
+        "detail_de": "Bestehender tatsächlicher UI-Import mit synthetischen Save-ACKs; Umfang ist ausdrücklich Host/DOM."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Keinen neuen Produktpatch. Native Restkriterien mit aktuellem Paket-/Quellhash ausführen bzw. in geeignetem Abnahmeissue erhalten.",
+    "patch": null,
+    "limitations_de": "Keine reale GTK-/WebView2-Dateiauswahl oder installierte Wiederöffnung in dieser Quellsichtung.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/449",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 452,
+    "title": "Tablet/TZDB: ThreeTenBP liefert falsche Gaza-/Hebron-Zeiten und erfolgreiche falsche ICS-Roundtrips",
+    "classification": "acceptance_or_live_evidence",
+    "relevance": "partial",
+    "summary_de": "Der titelgebende ThreeTenBP-Zonenfehler ist im aktuellen Codec ersetzt; offen ist die aktuelle native Portmatrix.",
+    "implemented_de": "Kotlin nutzt ProviderZoneDatabase.bundled und PointResolver für Zonenregeln; ThreeTenBP bleibt für lokale Kalenderarithmetik. Die Gaza-2074- und eingebetteten-Zonen-Regressionsfälle liegen vor. Swift CalendarTimeContext bindet normative Regeln.",
+    "remaining_de": "Aktuelle Android-/Mac-Dateiimport-, WebView-/Worker-, Restore- und Prozessneustartfälle mit dem tatsächlich gebündelten Datenstand; nicht erneut denselben bereits korrigierten Provider implementieren.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarImport.kt",
+        "detail_de": "knownZone verwendet ProviderZoneDatabase; Resolver bevorzugt eingebettete Definitionen."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/ProviderCodecMigrationTest.kt",
+        "detail_de": "Gaza 2074 und bisherige Markerfälle im tatsächlichen Codec."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CalendarTimeContext.swift",
+        "detail_de": "Explizite normative Zeitautorität."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/452#issuecomment-7186470845",
+        "detail_de": "Aktueller Mac-Code vorhanden; historische Läufe sind keine neue Paketmatrix."
+      }
+    ],
+    "comments_reviewed_count": 3,
+    "proposed_action_de": "Verbleibende native Fälle in Leitissue #680 übernehmen, dann dieses erledigte Codefehlerissue als zusammengeführt schließen.",
+    "patch": null,
+    "limitations_de": "Historische Referenzzahlen sind dokumentierte Vorbelege. Neue gezielte JVM-Prüfung wird separat protokolliert; kein Android-/Mac-Geräteerfolg daraus ableiten.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/452",
+    "executed_action": {
+      "number": 452,
+      "lead_issue": 680,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:42Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/452",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/452#issuecomment-7225079081",
+      "verified": true
+    }
+  },
+  {
+    "number": 453,
+    "title": "ICS-Ports: eigene VTIMEZONE-TZIDs kollidieren mit privaten UTC-Stringmarkern",
+    "classification": "acceptance_or_live_evidence",
+    "relevance": "partial",
+    "summary_de": "UTC-Stringmarker kollidieren im aktuellen Portcode nicht mehr mit benutzerdefinierten TZIDs.",
+    "implemented_de": "Kotlin trennt absolute UTC per null von floating und benannter Quelle; Swift verwendet CalendarTimeSource.absoluteUTC/floating/named. Eingebettete Zonen besitzen Vorrang vor Datenbanknamen.",
+    "remaining_de": "Eigene TZIDs @utc, @magnolie-utc-instant und UTC mit eingebetteter VTIMEZONE im aktuellen nativen Import/Export/Save/Reopen auf Android und Mac nachweisen.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarImport.kt",
+        "detail_de": "Resolver.instant/clock: null ist Protokollzustand, keine benutzbare TZID-Zeichenfolge."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CalendarTimeContext.swift",
+        "detail_de": "Typisierte CalendarTimeSource statt Sentinelstring."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/ProviderCodecMigrationTest.kt",
+        "detail_de": "Former-marker-Sonderfälle liegen als Regression vor."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/453#issuecomment-7186471583",
+        "detail_de": "Bestehender Mac-Fix und historischer nativer Teilnachweis klar abgegrenzt."
+      }
+    ],
+    "comments_reviewed_count": 2,
+    "proposed_action_de": "Diese drei expliziten TZID-Sonderfälle in #680 erhalten und #453 danach zusammengeführt schließen.",
+    "patch": null,
+    "limitations_de": "Keine Behauptung eines neuen native Save/Reopen; eine erneute enge JVM-Prüfung wird gesondert belegt.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/453",
+    "executed_action": {
+      "number": 453,
+      "lead_issue": 680,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:47Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/453",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/453#issuecomment-7225080369",
+      "verified": true
+    }
+  },
+  {
+    "number": 464,
+    "title": "Serientermine: verschiedene Ausnahmen am selben Zielzeitpunkt werden zusammengefaltet",
+    "classification": "acceptance_or_live_evidence",
+    "relevance": "partial",
+    "summary_de": "Der ursprüngliche Zusammenfaltfehler ist durch quellen- und RID-genaue Identität geschützt.",
+    "implemented_de": "portTerminOccurrenceCompatible prüft Quellkennung, Wire-UID und vollständige rohe RECURRENCE-ID einschließlich TZID/VALUE/RANGE. Gleicher Zielzeitpunkt oder Titel reicht nicht zum Zusammenfalten; mehrdeutige Daten bleiben getrennt.",
+    "remaining_de": "Beide unterschiedlichen Ausnahmen in aktuellem Mac/Tablet nativ speichern und separat wiederöffnen, einschließlich lokaler IDs, Referenzen und unbekannter Felder.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "port-adapters/occurrence-identity.js",
+        "detail_de": "Expliziter opaque Quellen-/Wire-/RID-Vergleich und konservative Fehlformen."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "port-adapters/tests/occurrence-identity.cjs",
+        "detail_de": "29 relevante UI-Identitätsfälle samt synthetischer Speicherung."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/464#issuecomment-7186473921",
+        "detail_de": "Codefix und UI-Prüfungen bereits vorhanden; nativer Rest bleibt."
+      }
+    ],
+    "comments_reviewed_count": 3,
+    "proposed_action_de": "Native Restfälle in #465 als eigene Untergruppe übernehmen; #464 anschließend zusammengeführt schließen.",
+    "patch": null,
+    "limitations_de": "Die projizierte UI verwendet Test-ACKs; aktuelle erneute Regression ersetzt keine echte Mac-/Tablet-Diskwiederöffnung.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/464",
+    "executed_action": {
+      "number": 464,
+      "lead_issue": 465,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:54Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/464",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/464#issuecomment-7225082777",
+      "verified": true
+    }
+  },
+  {
+    "number": 465,
+    "title": "ICS-Altbestand: verbleibende Port-Abnahme und exakte Reparatur bereits gespeicherter Ausnahme-Duplikate",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Altkennungsbelege und begrenzte Wiederimportadoption sind implementiert; die Reparatur bereits gespeicherter Doppelpaare fehlt.",
+    "implemented_de": "Die heutige Mac-Dateiroute läuft über FileImportHost und den Python-Helfer. calendar_evidence erzeugt den transienten quellhash-/index-/Wire-/RID-gebundenen Sidecar; file-import.js führt ihn zur streng gebundenen Aliasregistrierung. Die frühere direkte main.swift→ICalendarImport.response-Route ist nicht mehr die aktuelle Route.",
+    "remaining_de": "Exakt bestätigte bereits doppelte gespeicherte Paare samt widersprüchlichen Listen, unbekannten Feldern, Verweisen und Komponentenassoziationen reparieren; strenge Wiederöffnungsprüfung erhalten; aktueller nativer Mac-/Tablet-Save/Reopen.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "Magnolie-Organizer-macOS-Beta/ImportHelper/calendar_evidence.py",
+        "detail_de": "Aktueller Python-Dateiimport erzeugt legacyAndroidAliases."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "Magnolie-Organizer-macOS-Beta/Projection/file-import.js",
+        "detail_de": "Übergabe an macOSBetaNativeCalendarResult."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "Magnolie-Organizer-macOS-Beta/Projection/calendar-legacy-alias.js",
+        "detail_de": "Transienter WeakMap-Beleg und erneute Bindungsprüfung vor Mutation."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "contracts/macos-465-native-calendar-alias-adoption.md",
+        "detail_de": "Paarreparatur ausdrücklich nicht vom bestehenden Teilfix abgedeckt."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/465#issuecomment-7186474755",
+        "detail_de": "Teilfix, Hostbelege und verbleibende gespeicherte Duplikate getrennt."
+      }
+    ],
+    "comments_reviewed_count": 2,
+    "proposed_action_de": "Als Leitissue für Ausnahmeidentität/Altbestand behalten; native Restfälle aus #464 als gesonderte Abnahmepunkte aufnehmen.",
+    "patch": null,
+    "limitations_de": "Kein pauschaler automatischer Dedup-Patch und keine neue native Paarreparatur ausgeführt.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/465",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 511,
+    "title": "Fortsetzung #455: opaque Unicode-JSON-Schlüssel verlustfrei bis zum nativen Mac-Buch erhalten",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Die No-loss-Prüfung ist korrigiert; der vollständige verlustfreie Swift-JSON-Pfad für kollidierende Unicode-Schlüssel bleibt offen.",
+    "implemented_de": "Document.assertNoLoss ordnet Feldnamen und IDs über OpaqueUTF8Identity zu. JSONKeys unterscheidet echte doppelte dekodierte Schlüssel von der noch nicht darstellbaren kanonischen Swift-Kollision.",
+    "remaining_de": "Eine durchgängige Objektstruktur muss zugleich NFC-/NFD-äquivalente verschiedene Schlüssel in Parse/Validate/Save/Restore/Export erhalten. [String:Any] kann das weiterhin nicht; der Guard vor JSONSerialization darf nicht einfach entfernt werden.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift",
+        "detail_de": "assertNoLoss verwendet opaque Identität; JSONKeys besitzt getrennte decodedKeys/foundationKeys-Guards."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "Magnolie-Organizer-macOS-Beta/JSON-IDENTITY-511.md",
+        "detail_de": "Konkrete End-to-End-Grenzen und vorbereitete native Regressionen."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/511#issuecomment-7186477162",
+        "detail_de": "Begrenzter Teilfix bereits vorhanden; vollständige Darstellung weiterhin offen."
+      }
+    ],
+    "comments_reviewed_count": 1,
+    "proposed_action_de": "Offen lassen; eigenständige verlustfreie Repräsentation mit kompletter nativer Speicher-/Restorefolge entwickeln.",
+    "patch": null,
+    "limitations_de": "Kein Swift-Compiler-/WKWebView-Erfolg in dieser Linux-Umgebung behauptet; der aktuelle Guard vermeidet stillen Verlust.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/511",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 566,
+    "title": "Windows: gemeldete Kontakt-Importkonflikte mit Linux-Verhalten vergleichen",
+    "classification": "source_fix_needed",
+    "relevance": "partial",
+    "summary_de": "Der synthetisch belegte CSV-Teilfehler ist auf der aktuellen Basis weiterhin reproduzierbar; der historische private OR6-/UI-Bericht ist separat ungeklärt.",
+    "implemented_de": "Die Sammelentscheidung 'neue Kontakte für alle' ist seit #572 umgesetzt. Der aktuelle Windows-CSV-Reader nimmt dennoch nur die zuerst gefundene Anschrift und verliert HOME-/WORK-Telefonrollen; Linux bildet bei bestimmten Spalten falsche Misch-/HOME-Adressen.",
+    "remaining_de": "Den bereits geprüften CSV-Fix auf den aktuellen Stand übernehmen. Anschließend bleibt die historische installierte Windows-Konfliktfolge mit ihrem Zielbestand und genauer Entscheidung gesondert zu reproduzieren.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer-windows/ExchangeCodec.cs",
+        "detail_de": "ParseLotusCsv bildet im ungepatchten Stand genau ein Anschriftenobjekt und nur CELL/FAX/VOICE."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer/bin/magnolie-organizer",
+        "detail_de": "Ungepatchter _lotus_kontakte-Pfad; neue Vorherprüfung bestätigt sechs Adress-/Rollenfehler."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer/web/anwendung.js",
+        "detail_de": "Sammelaktion erlaubt plan.modus===new bereits zielunabhängig."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/566#issuecomment-7218612878",
+        "detail_de": "Vorhandener enger CSV-Patch, Aufgabenaliase und Grenze zum privaten OR6-Konfliktbericht."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "validation/before/python.log",
+        "detail_de": "Aktuelle Basis: sechs CSV-Kontaktfälle rot."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "validation/after/csv.log",
+        "detail_de": "Gepatchte C#-CSV-Gruppen beide grün."
+      }
+    ],
+    "comments_reviewed_count": 4,
+    "proposed_action_de": "Beiliegenden #566-Teilpatch anwenden; Issue für den unabhängigen historischen GUI-Rest offen halten.",
+    "patch": {
+      "status": "validated",
+      "issue": 566,
+      "series_file": "patches/01-566-csv-contact-fields.patch",
+      "source_commit": "e717bb31",
+      "origin": "Bereits publizierter Fix, an Prüfstand 3f4b69ca angepasst; keine doppelte Neuerfindung."
+    },
+    "limitations_de": "Nur synthetische CSV-/vCard-Fixtures und tatsächliche Python-/C#-Reader auf Linux. Keine private Datei oder native Windows-Paketabnahme.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/566",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 569,
+    "title": "Lotus-Jahrestage: separaten ICS-Export samt Wiederholung und Zielbereich prüfen",
+    "classification": "unconfirmed_report",
+    "relevance": "unknown",
+    "summary_de": "Der gemeldete LCS-/ICS-Verlust ist ohne die tatsächliche berichtete Eingabe weiterhin nicht als Magnolie-Parserfehler belegt.",
+    "implemented_de": "Unabhängige synthetische Lotus-LCS-Ausgaben mit Jahrescheckbox an/aus waren abgesehen von UID/DTSTAMP identisch und enthielten keine RRULE/RDATE. Der native OR6-Reader unterscheidet jährliche und einmalige Jahrestage anhand belegter Originalflags.",
+    "remaining_de": "Exakte LCS-/ICS-Eingabe des ursprünglichen Berichts oder ein weiterer unabhängiger synthetischer Originalexport mit wirklicher Wiederholungsinformation fehlt.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer/bin/magnolie_or6.py",
+        "detail_de": "Jahrescheckbox und einmaliger All-day-Termin werden getrennt abgebildet."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "contracts/or6-import.md",
+        "detail_de": "Verifizierte Annual-/One-off-Abgrenzung."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/569#issuecomment-6862703283",
+        "detail_de": "Original-LCS-Gegenprobe enthält keine belastbare Jahresregel."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/569#issuecomment-6866510540",
+        "detail_de": "Tatsächlich gemeldete Datei fehlt weiter; kein Parserfehler nachgewiesen."
+      }
+    ],
+    "comments_reviewed_count": 2,
+    "proposed_action_de": "Als unbestätigten Bericht offen halten oder in den OR6-Audit aufnehmen; keine Jahresregel allein aus Kategorie/Titel erfinden.",
+    "patch": null,
+    "limitations_de": "Kein Zugriff auf die fehlende Originaleingabe; bestehende synthetische Originalprobe nicht als Lösung des historischen Falls ausgeben.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/569",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 578,
+    "title": "OR6: bereitgestellte Original- und Exportdatei auf weitere unbemerkte Übernahmefehler prüfen",
+    "classification": "tracking_or_policy",
+    "relevance": "partial",
+    "summary_de": "Der breite OR6-Migrationsauftrag ist weiterhin ein Audit-/Koordinationsissue, keine einzelne noch offene Parserkorrektur.",
+    "implemented_de": "Mehrere konkrete Aufgaben-, Planer-, Kategorien-, Datums-, Serien- und Rubriklöschlücken wurden in eigenen Issues umgesetzt und sind in den aktuellen Readern und Verträgen vorhanden.",
+    "remaining_de": "Vollständige semantische Migration, fehlende strukturierte Zielmöglichkeiten und unabhängige Originalkontexte bleiben; aktuelle konkrete Reste liegen besonders in #243/#569/#611/#615. Backup-/Restorequalität gehört zum ausdrücklich einbezogenen Auftrag.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "contracts/or6-import.md",
+        "detail_de": "Aktueller Umfang mit abgegrenzten unterstützten und nicht unterstützten Originalformen."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer/bin/magnolie_or6.py",
+        "detail_de": "Tatsächlicher Reader hält unbekannte Formen zurück und berichtet Verluste."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/578#issuecomment-6863158630",
+        "detail_de": "Nutzerziel: fehlende nötige Zielfunktionen ergänzen, nicht nur Ersatznotizen; Backups/Restore einbezogen."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/578#issuecomment-6866773323",
+        "detail_de": "Ältere Unterbefunde bereits erledigt; präzise Folgereste genannt."
+      }
+    ],
+    "comments_reviewed_count": 3,
+    "proposed_action_de": "Als Leit-/Auditissue behalten; konkrete Teilissues verlinken und erledigte Altaufgaben aus der aktiven Restliste entfernen.",
+    "patch": null,
+    "limitations_de": "Keine pauschale 100%-Migrationsabnahme; private ausgeschlossene Notizbereiche bleiben außerhalb der Untersuchung.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/578",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 611,
+    "title": "OR6: aktive Bereichs-/Containerbindung getrennt von gewöhnlicher Rubriklöschung verifizieren",
+    "classification": "unconfirmed_report",
+    "relevance": "unknown",
+    "summary_de": "Ein allgemeiner aktiver-aber-unerreichbarer OR6-Bereich ist noch nicht unabhängig bewiesen; ein vorschneller Filter wäre unbegründet.",
+    "implemented_de": "Gewöhnliche Rubriklöschung und getrennte innere Bereichsidentität trotz äußerer Tabumbenennung sind anhand synthetischer Originalfälle belegt. Statische Originalhilfe bestätigt die getrennten From/Section/Tab-Begriffe.",
+    "remaining_de": "Feste äußere Container-/Include-/Detach-Links und ein aktiver, tatsächlich nicht erreichbarer Original-Sollfall fehlen. Weder Namensgleichheit noch Allokation beweist globale Sichtbarkeit.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "contracts/or6-import.md",
+        "detail_de": "#570-Löschung bleibt ausdrücklich enger als allgemeine Root-/Containersemantik."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "contracts/or6-native-section-removal.json",
+        "detail_de": "Unabhängige bekannte Rubriklöschfixtures."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/611#issuecomment-6866738543",
+        "detail_de": "Umbenennen/gezieltes Entfernen belegt; allgemeine Erreichbarkeit nicht."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/611#issuecomment-6891656309",
+        "detail_de": "HLP jetzt statisch lesbar; dennoch kein Beleg für einen allgemeinen Sichtbarkeitsfilter."
+      }
+    ],
+    "comments_reviewed_count": 2,
+    "proposed_action_de": "Unbestätigte Semantik gezielt mit synthetischem Include-/Detach-Fall klären; kein Namens-/Namespacefilter patchen.",
+    "patch": null,
+    "limitations_de": "Keine privaten Bücher, externen Included-Dateien oder ausgeschlossenen Payloads verwendet; keine neue VM-/Originalprogrammsitzung.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/611",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 615,
+    "title": "OR6: Pencil-in und natives Busy-Feld getrennt von Serien-Overrides abbilden",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Vorläufiger Terminstatus ist abgebildet; eine belastbare allgemeine Busy-/Verfügbarkeitszuordnung fehlt weiterhin.",
+    "implemented_de": "Beide Reader setzen vorlaeufig aus dem nativen Pencil-in-Feld. Die inzwischen statisch lesbare Originalhilfe erklärt Pencil-in als tentative und unterscheidet Konfliktprüfung; der frühere HLP-Zugriffsblocker ist überholt.",
+    "remaining_de": "Die beobachtete Busy-Änderung 0100→fehlend→0100 beweist keine allgemeine TRANSP-Abbildung. Es fehlt ein kontrollierter unabhängiger Verfügbarkeits-/Meeting-Sollfall samt exakter Feldbindung.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer/bin/magnolie_or6.py",
+        "detail_de": "vorlaeufig aus Feld 18 vorhanden; abweichende Busy-/Meeting-Seriendaten werden gehalten."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer-windows/Or6Codec.cs",
+        "detail_de": "Entsprechender vorlaeufig-Pfad."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "contracts/or6-import.md",
+        "detail_de": "Busy-Verfügbarkeit separat von sicheren Serienoverrides."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/615#issuecomment-6891647632",
+        "detail_de": "Originalhilfe ist lesbar, aber persistierte Busy→TRANSP-Semantik nicht bewiesen."
+      }
+    ],
+    "comments_reviewed_count": 2,
+    "proposed_action_de": "Offen lassen; konkrete Verfügbarkeit an unabhängiger Synthetik klären und dann eng mappen.",
+    "patch": null,
+    "limitations_de": "Kein spekulatives TRANSP-Mapping; keine privaten Termine oder neuen Originalprogramm-Aktionen.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/615",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 659,
+    "title": "Windows-Zeitzonen: installierte Organizer-/WebView2-/Scheduler-Abnahme nach #653",
+    "classification": "acceptance_or_live_evidence",
+    "relevance": "partial",
+    "summary_de": "Die installierte Windows-Zeitmatrix ist weitgehend belegt; verbleibend ist der echte Datei-Speichern-/Reimportdialog.",
+    "implemented_de": "Dokumentiert sind 37 native und 37 WebView-Uhren, DATE/floating/VTIMEZONE in zwei Kontexten, echter stiller Timer, persistierte Foldidentität über getrennten Prozess und unveränderter Autostart. Echter Datei-Öffnen-Import war ebenfalls erfolgreich.",
+    "remaining_de": "Der tatsächliche Save-Dialog lieferte bei Win32-Automation nicht den gewünschten Zielnamen; die semantische Gegenprobe fand kein eindeutig bedienbares Feld. Das ist ein Automationsblocker, kein belegter Produktfehler. Echter Save und Reimport fehlen.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer-windows/TimeZoneManagement.cs",
+        "detail_de": "Vorhandene aktuelle native Zeitverwaltung."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer-windows/tests/TimeZoneManagementTests.cs",
+        "detail_de": "Bestehende technische Regression, kein echter Dialognachweis."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/659#issuecomment-6917640439",
+        "detail_de": "Konkrete erfolgreiche installierte Teilmatrix."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/659#issuecomment-6918327685",
+        "detail_de": "Datei-Öffnen positiv; Save-Ziel nicht korrekt bestätigt."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/659#issuecomment-6918378666",
+        "detail_de": "Semantische Dialogprobe blockiert; keine weitere Produktursache bewiesen."
+      }
+    ],
+    "comments_reviewed_count": 5,
+    "proposed_action_de": "Den genauen Windows-Save-/Reimportrest samt positiven Vorbelegen nach #680 übertragen und #659 zusammengeführt schließen.",
+    "patch": null,
+    "limitations_de": "Die hier verfügbare Linux-Prüfumgebung ersetzt keinen installierten Windows-IFileDialog.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/659",
+    "executed_action": {
+      "number": 659,
+      "lead_issue": 680,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:51Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/659",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/659#issuecomment-7225081690",
+      "verified": true
+    }
+  },
+  {
+    "number": 680,
+    "title": "Zeitzonen: nativer Linux-Journal-Restore und verbleibende macOS-/Tablet-/Android-Matrix – Rest #661",
+    "classification": "acceptance_or_live_evidence",
+    "relevance": "partial",
+    "summary_de": "Der titelgebende Linux-Journal-Restore ist bereits belegt; dieses Issue eignet sich als Leitissue für die aktuelle native Zeitzonenmatrix.",
+    "implemented_de": "Installierter Linux-Restore v152 stellte 37 Kalenderfälle atomar wieder her und erhielt Notizen/Sync-Epoch über getrennten Prozess. Start-/Ressourcen- und DEB-Payloadlücken wurden separat korrigiert. #839-Tablet-Zustellung wurde nativ nachgewiesen.",
+    "remaining_de": "Aktueller installierter Linux-Paket-/Dienst-/OS-Reminderpfad, vollständige aktuelle Mac-/Tablet-Matrix und tatsächliche macOS-Notification-Zustellung bleiben. Die vorliegenden entpackten Payload-/Hostläufe ersetzen diese Grenzen nicht.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer/bin/magnolie-organizer",
+        "detail_de": "Aktueller _journal_wiederherstellen-Pfad mit Worker/atomarem Save."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CalendarTimeContext.swift",
+        "detail_de": "Normative Portgrundlage vorhanden."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/680#issuecomment-6918648959",
+        "detail_de": "Linux-Journal v152 ist ausdrücklich erfolgreich; nicht länger als fehlend führen."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/680#issuecomment-6920564443",
+        "detail_de": "Korrigierte DEB-Payload geprüft, installierte Restgates getrennt."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/680#issuecomment-7223554317",
+        "detail_de": "#839 geschlossen; installierte macOS-Zustellung bleibt hier."
+      }
+    ],
+    "comments_reviewed_count": 6,
+    "proposed_action_de": "Leitissue auf den heutigen Rest umbenennen und #452/#453/#659 mit konkreten Sonderfällen/positiven Vorbelegen konsolidieren.",
+    "patch": null,
+    "limitations_de": "Keine neue native Installation oder Mac-Zustellung behauptet. Historische private Belege werden als dokumentierte Nachweise, nicht als hier neu gelesene private Dateien behandelt.",
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/680",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 823,
+    "title": "Additive Wiederherstellung: gleiche UID aus verschiedenen Kalendern verliert Einträge; Windows kann abbrechen oder Notizen duplizieren",
+    "classification": "resolved_or_obsolete",
+    "relevance": "no",
+    "summary_de": "Während der Prüfung in main 50b15122 übernommen und bereits geschlossen: der letzte Kontaktlistenverlust ist damit behoben.",
+    "implemented_de": "Der ursprüngliche Quellen-/UID-Fix und nun auch kontaktpersonen in beiden Inhaltswhitelists sind vorhanden. Main hat die geprüften Produktänderungen unverändert übernommen und den gemeinsamen Vektor sowie dauerhaften Restore/Editorfälle zusätzlich um Betreuer/Betreuerin ergänzt.",
+    "remaining_de": "Kein eigenständiger offener Quellrest dieses Issues. Historische Test- und Patchbelege bleiben nachvollziehbar, werden aber nicht nochmals als notwendiger Produktfix angeboten.",
+    "evidence": [
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer-windows/RestoreSelection.cs",
+        "detail_de": "Kontakt-HashSet fehlt kontaktpersonen im ungepatchten Prüfstand."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "magnolie-organizer/bin/magnolie-organizer",
+        "detail_de": "Entsprechende inhaltsfelder-Liste fehlt ebenfalls."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/823#issuecomment-7223870692",
+        "detail_de": "Bereits übergebener Feldrest und eingegrenzter Patch."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "validation/before/restore-identity.log",
+        "detail_de": "Aktueller C#-Quellhost scheitert genau am neuen Notfallkontaktfall."
+      },
+      {
+        "kind": "source",
+        "path_or_url": "validation/after/restore-identity.log",
+        "detail_de": "Gepatchte gemeinsame Identitätsgruppe besteht."
+      },
+      {
+        "kind": "commit",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/commit/50b1512234a765635f82af4537f277594fbf9878",
+        "detail_de": "Beide Produktwhitelists übernehmen exakt das fehlende kontaktpersonen-Feld."
+      },
+      {
+        "kind": "discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/823#issuecomment-7224612753",
+        "detail_de": "Übernahme, zusätzliche Rollenfälle, gezielte Prüfungen und Schließung dokumentiert."
+      }
+    ],
+    "comments_reviewed_count": 6,
+    "proposed_action_de": "Bereits erfolgte Schließung beibehalten. #823 aus der empfohlenen Rest-Patchfolge auf Basis 50b15122 entfernen.",
+    "patch": {
+      "status": "adopted_in_main",
+      "source_commit": "50b1512234a765635f82af4537f277594fbf9878",
+      "recommended_patch": null
+    },
+    "limitations_de": "Geprüft mit synthetischen Datensätzen im tatsächlichen Python-/C#-Code. Keine Aussage zur installierten GUI-/Paketabnahme.",
+    "initial_assessment": {
+      "classification": "source_fix_needed",
+      "relevance": "partial",
+      "summary_de": "Die ursprüngliche UID-/Quellidentität ist korrigiert; die Kontaktinhaltsliste verliert weiterhin mehrere Notfallkontakte.",
+      "source_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f"
+    },
+    "followup_comments_reviewed_count": 1,
+    "latest_verified_commit": "50b1512234a765635f82af4537f277594fbf9878",
+    "actual_state_after_main_adoption": "closed",
+    "initial_comments_reviewed_count": 5,
+    "domain": "root",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/823",
+    "executed_action": {
+      "state": "closed",
+      "state_reason": "completed",
+      "by": "upstream adoption in 50b15122"
+    }
+  }
+]

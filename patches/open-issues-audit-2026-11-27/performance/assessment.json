@@ -1,0 +1,289 @@
+{
+  "title_de": "Dauerbetrieb, Speicherbesitz und große Bestände – begrenzter Zusatz zum offenen Audit",
+  "lead_issue": 395,
+  "lead_url": "https://github.com/maik3531/Magnolie-Organizer/issues/395",
+  "package_acceptance_link": 113,
+  "overall_status": "native_30_day_acceptance_remaining_worker_lifecycle_resolved_upstream",
+  "source_bases": {
+    "volume_and_search": "50b1512234a765635f82af4537f277594fbf9878",
+    "frozen_followup": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+    "unchanged_core_binding": "source-delta-binding.json",
+    "upstream_adoption_review": "1f1f3225ab50fe38902bc8e790454fd944f8b693"
+  },
+  "summary_de": "50.000 synthetische Einträge insgesamt bestehen die vorhandene Volumensuite. 250.000 insgesamt überschreiten zwei bestehende Zeitgrenzen. Eine erfolglose Ziffernsuche in 50.000 Terminen mit 50.000 verknüpften Kontakten kostet im Host etwa 2,3–2,4 Sekunden. Ein konkreter Worker-URL-/Listenerbesitzfehler ist unter #843 eng behoben und geprüft; der separate #395-Teilpatch entfernt unbenutzte Organisator-DOM-Optionen. Native 30-Tage-Trayabnahme und die ursprüngliche N100-Ursache sind offen.",
+  "issue_context": {
+    "snapshot": "issue-context.json",
+    "all_395_comments_reviewed": 5,
+    "existing_requirement_de": "#395 enthielt bereits Ressourcen- und Langzeit-Trayprüfung; die neue ausdrückliche Nutzeranforderung präzisiert 30 Tage und große Bestände. Root hat diese Kriterien in #395 und den Abnahmeverweis in #113 ergänzt und remote verifiziert.",
+    "prior_native_600s_de": "Kommentar 6707374870 dokumentiert 600,55 Sekunden, 36 Zyklen und 252 Punkte mit drei Prozessen. Das ist weder ein Monatslauf noch Nachweis vollständiger Telefon-/Netz- oder echter DPI-Zyklen.",
+    "prior_pause_de": "Die frühere Zurückstellung aus Kommentar 6707540218 wird durch den neuen gezielten Nutzerauftrag überholt; keine Deaktivierung von Telefonfunktionen als Leistungsmaßnahme.",
+    "historical_related": [
+      {
+        "issues": [
+          15,
+          90,
+          422
+        ],
+        "meaning_de": "Schon erledigte Import-/Index-/Notizsortierkosten; keine ungeprüfte Wiedereröffnung."
+      },
+      {
+        "issues": [
+          593,
+          832
+        ],
+        "meaning_de": "Speicherprobleme von Prüfhelfern; keine native Produkt-RAMursache."
+      },
+      {
+        "issues": [
+          53
+        ],
+        "meaning_de": "Physischer WebKit-Absturzbericht; Speicherursache nicht belegt."
+      },
+      {
+        "issues": [
+          818,
+          821,
+          98
+        ],
+        "meaning_de": "Backup-Dateiwachstum, Notes-Importbegrenzung bzw. Tray-Datumsfrische sind eigenständige Themen."
+      }
+    ]
+  },
+  "measurement": {
+    "environment": "environment-and-inputs.json",
+    "runner": "run_existing.py",
+    "node": "v24.22.3",
+    "jsdom": "26.1.0",
+    "source_harness": "magnolie-organizer/pruefungen/last_test.js",
+    "harness_modified": false,
+    "synthetic_only": true,
+    "native_gui": false,
+    "forced_gc": false,
+    "rss_sampling_seconds": 0.25,
+    "execution_guard_de": "Node max-old-space-size=2048 MiB, Runner 2,5 GiB RSS und 300 Sekunden als Ausführungswächter. Kein Wächter schlug bei den Volumenläufen an; dies sind keine neu erfundenen Produkt-Zielwerte.",
+    "volumes": [
+      {
+        "fixture_per_domain": 10000,
+        "domains": [
+          "termine",
+          "kontakte",
+          "aufgaben",
+          "notizen",
+          "jahrestage"
+        ],
+        "total_before_extra_5k_import": 50000,
+        "base": "50b1512234a765635f82af4537f277594fbf9878",
+        "exit_code": 0,
+        "wall_seconds": 15.585,
+        "peak_rss_kib": 800320,
+        "peak_rss_mib": 781.5625,
+        "last_heap_mib_reported": 592,
+        "aggregate_import_draw_ms": 7680,
+        "aggregate_import_draw_existing_limit_ms": 20000,
+        "five_appointment_open_remove_ms": 824,
+        "five_appointment_existing_limit_ms": 4000,
+        "existing_time_limits_failed": 0,
+        "data_count_fidelity_duplicate_assertions": "PASS",
+        "manifest": "logs/ui-10000-linux.manifest.json",
+        "log": "logs/ui-10000-linux.log",
+        "rss_trace": "logs/ui-10000-linux.rss.csv"
+      },
+      {
+        "fixture_per_domain": 50000,
+        "domains": [
+          "termine",
+          "kontakte",
+          "aufgaben",
+          "notizen",
+          "jahrestage"
+        ],
+        "total_before_extra_5k_import": 250000,
+        "base": "50b1512234a765635f82af4537f277594fbf9878",
+        "exit_code": 1,
+        "wall_seconds": 54.191,
+        "peak_rss_kib": 2559920,
+        "peak_rss_mib": 2499.921875,
+        "last_heap_mib_reported": 1724,
+        "aggregate_import_draw_ms": 22100,
+        "aggregate_import_draw_existing_limit_ms": 20000,
+        "five_appointment_open_remove_ms": 4588,
+        "five_appointment_existing_limit_ms": 4000,
+        "existing_time_limits_failed": 2,
+        "data_count_fidelity_duplicate_assertions": "PASS",
+        "manifest": "logs/ui-50000-linux.manifest.json",
+        "log": "logs/ui-50000-linux.log",
+        "rss_trace": "logs/ui-50000-linux.rss.csv"
+      }
+    ]
+  },
+  "search": {
+    "script": "core-search.cjs",
+    "results": "core-search-results.json",
+    "manifest": "logs/core-search.manifest.json",
+    "editions": [
+      "Linux-Quell-JS",
+      "Windows-Quell-JS"
+    ],
+    "fixture_sizes_de": [
+      "10.000 Termine plus 10.000 Kontakte = 20.000 Datensätze",
+      "50.000 Termine plus 50.000 Kontakte = 100.000 Datensätze"
+    ],
+    "samples_per_case": 3,
+    "hit_counts_correct": true,
+    "invented_latency_assertion": false,
+    "finding_de": "Die erfolglose Anfrage nomatchingtitle2026 löst wegen hatZiffern den teuren Formatierungsweg für alle Termine aus. Ohne Ziffern kann ein fehlender Rohtexttreffer vorher übersprungen werden. Bei 50.000 Terminen: Ziffernsuche Windows 2293,636–2440,869 ms, Linux 2301,508–2371,847 ms; Text ohne Ziffern Windows 106,864–118,945 ms, Linux 93,030–93,666 ms.",
+    "source": "magnolie-organizer/web/anwendung.js:15090–15140 on 50b15122",
+    "remaining_de": "Gezielte native Reaktion und Bedeutung von Zahlen-/Datumsbegriffen prüfen; keinen breit umgebauten Suchindex oder willkürliche Zeitschwelle aus dieser Probe ableiten."
+  },
+  "findings": [
+    {
+      "issue": 843,
+      "classification": "resolved_upstream",
+      "artifact": "843/upstream-adoption.json",
+      "detail_de": "Einzelne Worker besitzen ihre URL und ihren unload-Listener. Fehlerpfade geben beides sofort frei; veraltete Callbacks beeinträchtigen Ersatzworker nicht. Vorher 32 Fehlstarts: 32 Blob-URLs, 15.647.552 registrierte Bytes und 32 Listener; nachher null. Crash/Providerverwerfung vorher 64 Listener, nachher null. Erfolg hält genau eine Quelle bis unload.",
+      "scope_limit_de": "Gemessene Blob-Daten sind keine Heapmessung. Native Linux-Custom-Scheme-Nutzung wählt data:. Unabhängiger Protokoll-/Ownershipreview 3/3, einschließlich data:-Wahl und synchronem Ersatzworker; kein echter WebKit-data:-Worker-Lauf.",
+      "historical_alternative_commit": "9c00336342f736f541cf14e006de1248b22b8850",
+      "upstream_fix_commit": "66b50c44482f279d7c3566fe2959f66ebcc20cd5",
+      "reviewed_head": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+      "apply_historical_patch": false
+    },
+    {
+      "issue": 395,
+      "classification": "source_fix_prepared_and_verified",
+      "commit": "38edd46ef18259e232c786bf2e8e88903f96b655",
+      "artifact": "395-suggestions/README.md",
+      "detail_de": "Unabhängiger Teilpatch entfernt beim Terminblattöffnen die sofortige Erzeugung aller Kontakt-Namensoptionen im noch verborgenen Zusatzfeld. 2.003 Kontakte erzeugten vorher 2.002 versteckte Optionen je Öffnen; danach null, bei Benutzung höchstens 250 passende Vorschläge. 10/10 enge Fälle und bestehende strukturierte Terminprüfung bestanden.",
+      "scope_limit_de": "Kein kompletter Wiederholungslauf der 250.000-Einträge-Suite. Kein Nachweis, dass deren zwei Zeitfehler oder die native Langzeitabnahme dadurch vollständig erledigt sind."
+    },
+    {
+      "issue": 395,
+      "classification": "host_volume_limit_failure_not_fully_isolated",
+      "artifact": "review-395-source-analysis.json",
+      "detail_de": "22.100 ms Import/Zeichnen überschreiten die vorhandene Grenze von 20.000 ms bei 250.000 Gesamteinträgen. Sichere Kopien, kanonische Revisionsprüfung, Vorschau und mehrere Merges liegen im gemessenen Block. Vorschau ist bereits auf 25 Fälle beschränkt; kein unnötiger Einzelanteil ausreichend isoliert.",
+      "remaining_de": "Mit denselben Fixtures einzelne vorhandene Importphasen messen, bevor notwendige Schutzprüfungen entfernt oder Architekturänderungen vorgeschlagen werden."
+    },
+    {
+      "issue": 395,
+      "classification": "measured_search_cost_remaining",
+      "artifact": "core-search-results.json",
+      "detail_de": "Gleiche korrekte leere Ergebnismenge, deutlich höhere synchrone Kosten bei Suchbegriffen mit Ziffern; etwa 2,3–2,4 Sekunden im großen Hostfall. Keine neue normative Zielzeit angenommen."
+    },
+    {
+      "issue": 395,
+      "classification": "acceptance_or_live_evidence",
+      "artifact": "README.md",
+      "detail_de": "30 Tage kontinuierlicher Traybetrieb, unveränderte Datengröße, Speicher-/Prozessverlauf und Bedienung nach Langzeitbetrieb müssen auf nativen Zielsystemen noch geprüft werden. Der N100-Bericht bleibt ohne bestätigte Gesamtursache."
+    }
+  ],
+  "existing_source_controls": [
+    {
+      "path": "magnolie-organizer/web/anwendung.js:19315–19348",
+      "detail_de": "Listen zeichnen zunächst 250 Zeilen. Show more erweitert dies; Show all kann bewusst alle Zeilen erzeugen. Kein fester Gesamt-DOM-Cap."
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js:15374",
+      "detail_de": "Suchdialog besitzt Verzögerung/Abbruch sowie begrenzte sichtbare Ergebnisse; die zugrunde liegende synchrone Suche wird dadurch nicht stückweise."
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js:10985–11028",
+      "detail_de": "Workerauftragszahl 1024, Ergebnisbereinigung anhand ungefähr 200.000 Zeilen mit Ausnahme des neuesten Ergebnisses; explizite Erweiterungsgrenzen. Diese Quellgrenzen ersetzen keinen Gesamtprozess-Speichertest."
+    },
+    {
+      "path": "port-adapters/timezones/port-runtime.js:33",
+      "detail_de": "Intl-Formatierercache auf 128 Einträge begrenzt; bereits übernommene Hotpathkorrektur nicht erneut als neue Lücke behandelt."
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js:23141",
+      "detail_de": "Manuell sortierte Notizen werden bereits ohne unnötige Gesamtsortierung kopiert."
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer:25019",
+      "detail_de": "Journalwartung besitzt einen einzelnen bewachten 60-Sekunden-Timer; Endpfad entfernt Timer. Kein nativer Laufnachweis."
+    },
+    {
+      "path": "magnolie-organizer-windows/MainForm.cs:139 and :491",
+      "detail_de": "Fenster-/Tray-/Erinnerungsressourcen besitzen Dispose-/Schließpfade. Deren Existenz allein beweist keine monatelange Stabilität."
+    }
+  ],
+  "acceptance_matrix": [
+    {
+      "area": "Datengröße und Erhaltung",
+      "fixture": "Gemischte synthetische Bücher mit 10.000 und 50.000 Einträgen insgesamt; separat 50.000 je Bereich als 250.000-Stresstest ausweisen.",
+      "operation": "Verschlüsseltes Buch kalt/warm öffnen, echte Änderungen speichern, wieder einlesen und erneut öffnen.",
+      "measure": "Objektzahlen und kanonische Feld-/Referenzprüfungen vor/nach SaveACK und Reopen; Dateien, Edition und Quellhash festhalten.",
+      "criterion": "Keine verlorenen, umgedeuteten oder doppelten Einträge; alle Bereiche bleiben bedienbar.",
+      "status": "Host-Counts/JSON vorhanden; native Disk-/GUIfolge offen."
+    },
+    {
+      "area": "Suche und Bearbeitung",
+      "fixture": "Erste/mittlere/letzte sowie fehlende Treffer; Namen, Ziffern, ISO- und lokales Datum, Unicode; Einmal- und Serieneinträge.",
+      "operation": "Echte Suche tippen, Ergebnis sichtbar abwarten, öffnen, ändern, abbrechen/speichern, Undo/Neuladen soweit vorgesehen.",
+      "measure": "Eingabe bis sichtbare Treffer bzw. responsiver Frame; Latenzverteilungen vor/nach Dauerlauf auf gleicher Hardware und gleichem Buch.",
+      "criterion": "Keine falschen oder unerreichbaren Treffer, keine blockierte Eingabe; konkrete Budgetentscheidung vor nativer Abnahme anhand benannter Referenzhardware, vorhandene Regressionlimits nicht stillschweigend erhöhen.",
+      "status": "Gezielte Hostsuchfunktion gemessen; native Bedienfolge offen."
+    },
+    {
+      "area": "30 Tage im Tray",
+      "fixture": "Konstanter Buchbestand, stabile festgehaltene Hintergrundkonfiguration; synthetische Telefon-/Backupaktivität soweit real verfügbar.",
+      "operation": "30 Tage ohne Appneustart, technische Reinigung oder erzwungene GC. Regulär öffnen/verbergen, lesen und bearbeiten; tägliche gleiche Aktivitäts-/Ruhephase.",
+      "measure": "Gesamter nativer Prozessbaum: RSS/PSS oder privater Working Set, CPU, Threads, FDs/Handles, Prozesszahl; Rohzeitreihe plus normalisierte ruhige Vergleichspunkte nach Warmup und an Tag 1/7/14/30.",
+      "criterion": "Kein anhaltend steigender ressourcenbezogener Ruheboden bei gleicher Daten-/Aktivitätslage. Erwartbare Datenänderung und begrenzter Cacheaufbau separat erklären; keine pauschale Leakfreiheit aus einem Einzelpeak.",
+      "status": "Offen. Historische 600-Sekunden-Probe ist kein Ersatz."
+    },
+    {
+      "area": "Wiederholte Lebenszyklen",
+      "fixture": "Gleiches Buch mit Terminen, Kontakten, Telefonen und Serien; gültige und kontrolliert fehlgeschlagene Aktionen.",
+      "operation": "Modal öffnen/schließen, Suche ersetzen, Kalenderwechsel, Workerfehler/Retry, Telefonpanels mehrfach aufbauen und entfernen.",
+      "measure": "Aktive Besitzer, Timer, Listener, URL-Registry, Detached-Knoten und nach gleichartiger Ruhephase verbleibende Speicherbasis.",
+      "criterion": "Nach abgeschlossener Aktion keine mit Wiederholungen wachsende Menge verwaister Besitzer; Erfolg darf benötigte aktive Ressourcen behalten.",
+      "status": "#843 eng geprüft; #759 besitzt eigenen 128-Zyklen-Nachweis. Kein globaler Monatsbeweis."
+    },
+    {
+      "area": "Plattformübergänge und Hintergrundfunktionen",
+      "fixture": "Linux GTK/WebKit und Windows WebView2; native Mac-Statusleistenabnahme gesondert, Android-Hintergrundmodell getrennt.",
+      "operation": "Tray/Restore, Sperren, Standby/Resume, tatsächlicher Monitor-/DPIwechsel, Offline/Online; konfigurierte Synchronisation/Backups weiter nutzen.",
+      "measure": "Vor/nach Übergang gleiche Bedienfälle und Prozess-/Handleverlauf; Fehler, Wiederverbindungen und Zeitabweichungen protokollieren.",
+      "criterion": "Funktionen bleiben korrekt und wiederholbar; kein Neustart oder Abschalten freigegebener Funktionen als Bestehensbedingung.",
+      "status": "Auf diesen Zielsystemen nicht ausgeführt."
+    },
+    {
+      "area": "Reproduzierbarkeit",
+      "fixture": "Releasekandidat mit exaktem Quell-/Paket-/Fixturehash und dokumentierter OS-/Runtime-/Hardwarekonfiguration.",
+      "operation": "Gleiche vorbereitete Sequenzen ohne parallele Schwerlast; Rohdaten und Fehlerfälle speichern.",
+      "measure": "Vorher-/Nachher-Verteilung, native Ressourcenkurve, Datenintegrität und klar benannte Messnaht.",
+      "criterion": "Keine Monats-/RAM-/Disk-Behauptung aus JSDOM, kein falsches 50k=250k, keine nachträglich erhöhten Zeitgrenzen.",
+      "status": "Für die vorliegenden Hostmessungen erfüllt; native Kandidatenmessung offen."
+    }
+  ],
+  "limitations_de": [
+    "Node/JSDOM und synthetische Bridge-ACKs sind keine GTK-/WebKit-/WebView2-GUI und keine verschlüsselte native Dateispeicherung.",
+    "RSS umfasst Quellfixtures, normalisierte Buchdaten, DOM, Druck- und JSON-Strings; ein Spitzenwert oder Endheap beweist weder Leak noch dessen Abwesenheit.",
+    "Der alte Terminblatt-Abschnitt in last_test.js entfernt Dialoge direkt per DOM.remove und umgeht den regulären Schließpfad; daraus zurückbleibende Harnesszustände nicht als Produktleck ausgeben. Der separate DOM-Fix wurde über tatsächliches reguläres Schließen geprüft.",
+    "Der Speichern-Abschnitt des vorhandenen Volumentests misst JSON.stringify/parse; der neue Termin wird dort direkt in Testdaten eingefügt. Nicht als vollständige Editor-/Save-/Reopenabnahme darstellen.",
+    "Manche vorhandenen Testbeschriftungen nennen weiterhin 30.000; MAGNOLIE_ANZAHL und Assertions verwenden die oben angegebenen echten Größen. Der optionale Adresssuchabschnitt erzeugte keine Messzeile und wird nicht als geprüft beansprucht.",
+    "Ein Teil der vorhandenen Zeitmessungen umschließt synchronen Aufruf statt tatsächlichem Renderframe. Vorhandene harte Grenzen wurden unverändert verwendet; kein universelles Versprechen flüssiger Bedienung.",
+    "Der optionale Planner-Quellparitätstest scheitert bereits auf unverändertem 24927cf am alten Regex-Anker. Vollständige Funktionsparität und die tatsächlichen Projektoradapter wurden separat verifiziert; Testfehler nicht verschwiegen und nicht in #843 umgebaut.",
+    "Volumen-/Suchmessungen sind an 50b15122 gebunden. Der gezielte 24927cf-Abgleich betrifft ausschließlich dokumentierte Eingaben; keine Gesamt-Neuabnahme nach späteren Mainänderungen."
+  ],
+  "publication_boundary": {
+    "product_changes": "Zwei enge separate Quellpatches mit Issuebezug; keine breite Such-/Importumgestaltung.",
+    "github_mutations_by_this_agent": false,
+    "main_merge_by_this_agent": false,
+    "packages": false,
+    "native_device_actions": false
+  },
+  "artifacts": [
+    "README.md",
+    "assessment.json",
+    "source-delta-binding.json",
+    "environment-and-inputs.json",
+    "issue-context.json",
+    "logs/",
+    "core-search-results.json",
+    "843/README.md",
+    "843/delivery.json",
+    "395-suggestions/README.md",
+    "review-395-source-analysis.json"
+  ],
+  "current_upstream_note_de": "#843 wurde unabhängig in 66b50c44 upstream umgesetzt. Auf 1f1f3225 bestehen die unveränderte unabhängige 3-Case-Ownershipprobe und beide tatsächlichen Projektoradapter. Historischer Alternativpatch 9c003363 ist nicht erneut anzuwenden; ursprüngliche Messdaten bleiben historisch gebunden."
+}

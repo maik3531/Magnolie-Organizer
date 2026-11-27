@@ -1,0 +1,391 @@
+From 7453838a78895e31f1103b2065692b6fabfae1fb Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 18:59:00 +0100
+Subject: [PATCH] Refs #759: wait for shared media settings without legacy
+ controls
+
+---
+ .../app/web/phone-media.js                    |  48 ++++---
+ .../tests/phone-media-ui.js                   |  39 +++--
+ .../tests/phone-media-wait-ui.js              | 133 ++++++++++++++++++
+ magnolie-organizer-windows/tests/run.js       |   2 +-
+ 4 files changed, 189 insertions(+), 33 deletions(-)
+ create mode 100644 magnolie-organizer-windows/tests/phone-media-wait-ui.js
+
+diff --git a/magnolie-organizer-windows/app/web/phone-media.js b/magnolie-organizer-windows/app/web/phone-media.js
+index a590a42778f35269d94df1140007b020c9a6fe41..57c48448828cc0a336cac5566e5e44b544b47cc1 100644
+--- a/magnolie-organizer-windows/app/web/phone-media.js
++++ b/magnolie-organizer-windows/app/web/phone-media.js
+@@ -82,12 +82,12 @@
+     status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite");
+     const note = node("p", "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet.");
+     note.className = "einst-hinweis";
+-    const rightsArea = node("section"), settingsArea = node("section");
++    const rightsArea = node("section"), settingsArea = node("section"), waitingControls = node("div");
+     for (const area of [rightsArea, settingsArea, manualArea]) area.className = "telefon-medien-gruppe";
+     rightsArea.append(node("h4", "Access rights"));
+     settingsArea.append(node("h4", "Synchronization settings"), note);
+     manualArea.append(node("h4", "Manual synchronization"));
+-    root.append(title, status, rightsArea, settingsArea, ...(!recovery ? [restoreArea] : []), manualArea);
++    root.append(title, status, waitingControls, rightsArea, settingsArea, ...(!recovery ? [restoreArea] : []), manualArea);
+     const masterRow = node("label"), master = node("input"); master.type = "checkbox"; master.dataset.media = "enabled";
+     masterRow.className = "telefon-medien-aktivierung"; masterRow.hidden = true;
+     master.setAttribute("aria-label", t("Enable photo and video synchronization"));
+@@ -207,15 +207,21 @@
+     };
+     const toggle = () => {
+       busy ||= sourceChoiceWaiting;
+-      const shared = !!native?.shared_settings, enabled = !shared || master.checked;
++      const shared = !!native?.shared_settings, enabled = shared && master.checked;
++      const waiting = !!native && !shared;
+       const sourceValues = native?.shared_settings?.values;
+       const twoWayHeld = sourceValues?.direction === "two_way" && sourceValues.collection_mode !== "import_only";
+-      const runtimeReady = !shared || !twoWayHeld && native.shared_runtime_ready === true;
++      const runtimeReady = shared && !twoWayHeld && native.shared_runtime_ready === true;
+       directionNotice.hidden = !twoWayHeld;
+       deletionNotice.hidden = !shared;
+-      masterRow.hidden = receiveRow.hidden = scope.parentElement.hidden = direction.parentElement.hidden = !shared;
++      masterRow.hidden = !native;
++      receiveRow.hidden = scope.parentElement.hidden = direction.parentElement.hidden = !shared;
++      rightsArea.hidden = settingsArea.hidden = manualArea.hidden = waiting;
++      waitingControls.hidden = !waiting;
++      const statusControls = waiting ? waitingControls : controls;
++      if (refresh && refresh.parentElement !== statusControls) statusControls.append(stop, refresh);
+       photosOnly.parentElement.hidden = !shared || typeof native.shared_settings.versions?.photos_only !== "string";
+-      master.disabled = !native;
++      master.disabled = !shared;
+       receiveConsent.disabled = !enabled || (busy && !receiveConsent.checked);
+       for (const entry of sendChoices.values()) {
+         entry.row.hidden = !shared || !native?.send_consent || native.metadata_ready?.[entry.mediaType] !== true;
+@@ -234,6 +240,7 @@
+       automatic.disabled = (busy && !transfer) || !native || !enabled || native.automatic_ready !== true;
+       for (const entry of actions) entry.button.disabled = busy || !enabled || !runtimeReady || native?.metadata_ready?.[entry.mediaType] !== true || !(entry.mediaType === "video" ? videos.checked : photos.checked) || !native?.[entry.key];
+       stop.disabled = !transfer;
++      stop.hidden = waiting && !transfer;
+       if (refresh) refresh.disabled = false;
+       albumChoice.disabled = busy || !catalog;
+       if (manualSync) manualSync.disabled = busy || !enabled || !runtimeReady || (shared
+@@ -266,6 +273,8 @@
+     };
+     const request = async (action, data = {}, save = true) => {
+       if (emptyRunning && action.startsWith("trash_")) return;
++      const requiresShared = !["status", "activate", "cancel"].includes(action) && !action.startsWith("trash_");
++      if (requiresShared && !native?.shared_settings) return;
+       const sourceChoice = action === "pick_collection_source";
+       const destinationChoice = action === "pick_destination" || action === "default_destination";
+       const folderChoice = sourceChoice || destinationChoice;
+@@ -281,6 +290,10 @@
+           restoreSharedInputs(); toggle(); status.textContent = t("The book could not be saved. Media synchronization was not started."); return;
+         }
+       }
++      if (requiresShared && !native?.shared_settings) {
++        if (folderChoice) { sourceChoiceWaiting = false; busy = false; }
++        toggle(); return;
++      }
+       if (folderChoice && (!root.isConnected || !currentContext() ||
+           (sourceChoice ? native?.collection_sources_version : native?.destination_choices?.[data.media_type]) !== data.version)) {
+         sourceChoiceWaiting = false; busy = false; toggle(); return;
+@@ -311,14 +324,10 @@
+       toggle();
+       if (!send(message)) { clearTimeout(item.timer); pending.delete(requestId); busy = false; if (emptying) emptyRunning = false; if (folderChoice) sourceChoiceWaiting = false; if (["sync", "sync_shared"].includes(action)) transfer = false; restoreSharedInputs(); toggle(); status.textContent = t("Native media connection is unavailable."); }
+     };
+-    const settings = () => {
+-      if (skip.indeterminate) {
+-        photos.checked = !!native?.photos; videos.checked = !!native?.videos;
+-        status.textContent = t("Skip deletions") + "?"; skip.focus(); return;
+-      }
+-      return request("settings", { version: native.version ?? null, photos: photos.checked, videos: videos.checked, skip_deletions: skip.checked });
++    const sharedSetting = (field, value) => {
++      if (!native?.shared_settings) return;
++      return request("shared_setting", { field, value, version: native.shared_settings.versions[field] });
+     };
+-    const sharedSetting = (field, value) => request("shared_setting", { field, value, version: native.shared_settings.versions[field] });
+     const restoreSharedInputs = () => {
+       const values = native?.shared_settings?.values;
+       if (!values) return;
+@@ -335,13 +344,13 @@
+       photos: sendChoices.get("photos").input.checked, videos: sendChoices.get("videos").input.checked, version: native.send_consent.version
+     }));
+     for (const [input, field] of [[photos, "photos_enabled"], [videos, "videos_enabled"]])
+-      input.addEventListener("change", () => native?.shared_settings ? sharedSetting(field, input.checked) : settings());
+-    skip.addEventListener("change", () => native?.shared_settings ? restoreSharedInputs() : settings());
++      input.addEventListener("change", () => sharedSetting(field, input.checked));
++    skip.addEventListener("change", restoreSharedInputs);
+     photosOnly.addEventListener("change", () => {
+       if (typeof native?.shared_settings?.versions?.photos_only === "string") sharedSetting("photos_only", photosOnly.checked);
+       else restoreSharedInputs();
+     });
+-    automatic.addEventListener("change", () => native?.shared_settings ? sharedSetting("auto_mode", automatic.value) : request("mode", { version: native.version ?? null, automatic: automatic.value === "wifi" }));
++    automatic.addEventListener("change", () => sharedSetting("auto_mode", automatic.value));
+     scope.addEventListener("change", () => sharedSetting("collection_mode", scope.value));
+     direction.addEventListener("change", () => {
+       const wanted = direction.selectedOptions[0];
+@@ -461,6 +470,7 @@
+       if (reply.activation_required === true) {
+         // A compatible legacy pairing exposes only explicit activation, never
+         // transfers, paths or stored permission defaults before initialization.
++        native = null; master.checked = false; master.disabled = true; masterRow.hidden = true;
+         for (const child of root.children) if (child !== recovery) child.hidden = child !== title && child !== status && child !== activate;
+         activate.hidden = false; activate.disabled = false; busy = false;
+         status.textContent = t("Waiting for native media status"); return;
+@@ -524,6 +534,9 @@
+         native = reply; photos.checked = !!reply.photos; videos.checked = !!reply.videos;
+         photosOnly.checked = reply.shared_settings?.values?.photos_only === true;
+         const shared = reply.shared_settings?.values;
++        if (!shared) {
++          catalog = null; selectedAlbum = null; albumChoice.replaceChildren(); albumChoice.hidden = true;
++        }
+         master.checked = shared?.enabled === true;
+         receiveConsent.checked = reply.receive_consent?.granted === true;
+         for (const [key, entry] of sendChoices) entry.input.checked = reply.send_consent?.[key] === true;
+@@ -552,9 +565,10 @@
+         }
+         status.textContent = t(busy ? "A native media operation is still running." : reply.metadata_ready?.images !== true
+           ? "Media transfer is not available on this connection yet." : "Native settings loaded. No transfer has been started.");
++        if (!shared) status.textContent = t("Synchronization settings") + " · " + t("Waiting for native media status");
+         if (shared && reply.shared_runtime_ready !== true && shared.enabled)
+           status.textContent = t("Media transfer is not available on this connection yet.");
+-        if (!busy && reply.automatic) {
++        if (shared && !busy && reply.automatic) {
+           if (reply.automatic_phase === "paused") status.textContent = t("Automatic synchronization is paused. Switch to manual mode and enable it again to resume.");
+           else if (["review", "held", "partial"].includes(reply.automatic_phase)) status.textContent = t("Automatic content comparison needs attention. No deletion completion was confirmed.");
+           else if (reply.automatic_phase === "content_pass") status.textContent = t("Automatic pass checked one album per media type. Further albums follow; deletions remain pending.");
+diff --git a/magnolie-organizer-windows/tests/phone-media-ui.js b/magnolie-organizer-windows/tests/phone-media-ui.js
+index 629ab7500919f7c2f1cf1850e726ca79ac8d9731..89bfbeb76952289210bea4580c8bdf0a65185374 100644
+--- a/magnolie-organizer-windows/tests/phone-media-ui.js
++++ b/magnolie-organizer-windows/tests/phone-media-ui.js
+@@ -10,16 +10,21 @@ w.document.body.append(panel);
+ const last = () => messages.at(-1), tick = () => new Promise(resolve => setImmediate(resolve));
+ const buttons = title => [...panel.querySelectorAll("button")].filter(x => x.textContent === title);
+ function reply(value) { api.receive({ requestId: last().requestId, device_id: peer, ok: true, ...value }); }
+-const state = { supported: true, version: "a".repeat(64), destination_choices: { images: "7".repeat(64), video: "8".repeat(64) }, photos: false, videos: false, automatic: false, automatic_ready: true, automatic_phase: "idle", skip_deletions: true, pictures: null, video_destination: null, busy: false, metadata_ready: { images: true, video: true } };
++const sharedValues = { enabled: true, photos_enabled: false, videos_enabled: false, collection_mode: "phone_inventory",
++  auto_mode: "manual", skip_deletions: true, direction: "phone_to_pc", photos_only: false };
++const sharedVersions = Object.fromEntries(Object.keys(sharedValues).map((field, index) => [field, String(index + 1).repeat(64)]));
++const state = { supported: true, version: "a".repeat(64), destination_choices: { images: "7".repeat(64), video: "8".repeat(64) }, photos: false, videos: false, automatic: false, automatic_ready: true, automatic_phase: "idle", skip_deletions: true, pictures: null, video_destination: null, busy: false, metadata_ready: { images: true, video: true },
++  shared_settings: { values: sharedValues, versions: sharedVersions }, shared_runtime_ready: true, shared_matched: true,
++  receive_consent: { granted: true, version: "e".repeat(64) } };
+ (async () => {
+   assert.equal(last().action, "status"); assert.equal(saves, 0); assert(panel.hidden);
+   api.receive({ requestId: last().requestId, device_id: "foreign-peer", ok: true, ...state }); assert(panel.hidden);
+-  reply({ ...state, skip_deletions: null }); assert(!panel.hidden); assert(!panel.querySelector('[data-media="videos"]').checked);
++  reply(state); assert(!panel.hidden); assert(!panel.querySelector('[data-media="videos"]').checked);
+   const firstPhoto = panel.querySelector('[data-media="photos"]'), skipChoice = panel.querySelector('[data-media="skip_deletions"]');
+-  const mixedCount = messages.length; firstPhoto.checked = true; firstPhoto.dispatchEvent(new w.Event("change")); await tick();
+-  assert.equal(messages.length, mixedCount); assert(skipChoice.indeterminate); assert(!firstPhoto.checked);
+-  skipChoice.indeterminate = false; skipChoice.checked = true; skipChoice.dispatchEvent(new w.Event("change")); await tick();
+-  assert.equal(last().action, "settings"); reply(state);
++  assert(skipChoice.disabled && skipChoice.checked, "Stored deletion opt-out remains visible and read-only");
++  const initialCount = messages.length; firstPhoto.checked = true; firstPhoto.dispatchEvent(new w.Event("change")); await tick();
++  assert.equal(messages.length, initialCount + 1); assert.equal(last().action, "shared_setting");
++  assert.equal(last().field, "photos_enabled"); assert.equal(last().value, true); reply(state);
+    panel.querySelector('[data-destination="images"]').click(); await tick(); assert.equal(last().action, "pick_destination");
+    assert.equal(last().media_type, "images"); assert.equal(last().version, state.destination_choices.images); assert(!("pfad" in last()));
+   const withRoot = { ...state, pictures: { version: "d".repeat(64), display_path: "C:\\Pictures\\<img onerror=evil>" } };
+@@ -35,8 +40,10 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
+    reply({ ...withRoot, pictures: { ...withRoot.pictures, default: true } });
+    assert(folderButtons[1].disabled, "Already-default destination still offered a reset");
+   const photos = panel.querySelector('[data-media="photos"]'); photos.checked = true; photos.dispatchEvent(new w.Event("change")); await tick();
+-  assert.equal(last().action, "settings"); assert.equal(last().videos, false); assert.equal(last().skip_deletions, true);
+-  const enabled = { ...withRoot, photos: true, version: "b".repeat(64) }; reply(enabled);
++  assert.equal(last().action, "shared_setting"); assert.equal(last().field, "photos_enabled");
++  assert(!("videos" in last()) && !("skip_deletions" in last()), "A single field edit changed unrelated choices");
++  const enabled = { ...withRoot, photos: true, version: "b".repeat(64), shared_start_version: "9".repeat(64),
++    shared_settings: { ...state.shared_settings, values: { ...sharedValues, photos_enabled: true } } }; reply(enabled);
+   assert(buttons("Read video albums")[0].disabled); assert(!buttons("Read photo albums")[0].disabled);
+   const sections = [...panel.querySelectorAll(".telefon-medien-gruppe > h4")].map(title => title.textContent);
+   assert.deepEqual(sections, ["Access rights", "Synchronization settings", "Manual synchronization"]);
+@@ -56,13 +63,15 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
+   const automaticChoice = panel.querySelector('[data-media="automatic"]');
+   assert.equal(automaticChoice.value, "manual"); assert(automaticChoice.classList.contains("feld")); assert(!automaticChoice.disabled);
+   automaticChoice.value = "wifi"; automaticChoice.dispatchEvent(new w.Event("change")); await tick();
+-  assert.equal(last().action, "mode"); assert.equal(last().automatic, true); assert(!("skip_deletions" in last()));
+-  reply({ ...enabled, automatic: true, automatic_phase: "content_pass" });
++  assert.equal(last().action, "shared_setting"); assert.equal(last().field, "auto_mode"); assert.equal(last().value, "wifi"); assert(!("skip_deletions" in last()));
++  const automaticState = { ...enabled, automatic: true,
++    shared_settings: { ...enabled.shared_settings, values: { ...enabled.shared_settings.values, auto_mode: "wifi" } } };
++  reply({ ...automaticState, automatic_phase: "content_pass" });
+   assert(panel.textContent.includes("one album per media type")); assert(panel.textContent.includes("deletions remain pending"));
+-  buttons("Refresh")[0].click(); await tick(); reply({ ...enabled, automatic: true, automatic_busy: true, busy: true });
++  buttons("Refresh")[0].click(); await tick(); reply({ ...automaticState, automatic_busy: true, busy: true });
+   assert(!automaticChoice.disabled); assert(!buttons("Stop")[0].disabled);
+   automaticChoice.value = "manual"; automaticChoice.dispatchEvent(new w.Event("change")); await tick();
+-  assert.equal(last().action, "mode"); assert.equal(last().automatic, false);
++  assert.equal(last().action, "shared_setting"); assert.equal(last().field, "auto_mode"); assert.equal(last().value, "manual");
+   reply(enabled);
+   saveAllowed = false; const before = messages.length; buttons("Read photo albums")[0].click(); await tick();
+   assert.equal(messages.length, before); assert(panel.textContent.includes("could not be saved"));
+@@ -74,15 +83,15 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
+    assert(albumChoice.classList.contains("feld"));
+    albumChoice.value = album; albumChoice.dispatchEvent(new w.Event("change"));
+    assert.equal(last().action, "discover", "Selecting an album must not implicitly start synchronization");
+-   buttons("Synchronize now")[0].click(); await tick(); assert.equal(last().action, "sync"); assert.equal(last().album_id, album);
++   buttons("Synchronize now")[0].click(); await tick(); assert.equal(last().action, "sync_shared");
++   assert.equal(last().version, enabled.shared_start_version); assert(!("album_id" in last()));
+   const syncRequest = last().requestId;
+   reply({ state: "running" }); assert(panel.textContent.includes("total is not known")); assert(!buttons("Stop")[0].disabled);
+   buttons("Stop")[0].click(); await tick(); assert.equal(last().action, "cancel"); reply({ state: "stopping" });
+   api.receive({ requestId: syncRequest, device_id: peer, ok: false, state: "partial", error: "canceled" });
+   assert(panel.textContent.includes("Original files and recovery history are retained"));
+    buttons("Synchronize now")[0].click(); await tick(); reply({ state: "review", copied: 1, kept_edits: 1, coverage_uncertain: true, review: [{ name: "<script>user-file", reason: "conflict_edit_edit" }] });
+-  assert(panel.textContent.includes("Local edits kept: 1")); assert(panel.textContent.includes("Deletions are not synchronized yet")); assert.equal(panel.querySelector("script"), null);
+-  assert(panel.textContent.includes("Some source entries may not have been offered"));
++  assert(panel.textContent.includes("Content comparison needs review")); assert(panel.textContent.includes("Deletions are not synchronized yet")); assert.equal(panel.querySelector("script"), null);
+   const old = last().requestId; api.receive({ requestId: old, device_id: peer, ok: true, supported: false }); assert(!panel.hidden);
+   buttons("Read media recycle bin")[0].click(); await tick(); assert.equal(last().action, "trash_list"); assert.equal(last().after, 0);
+   const retained = { operation_id: "a".repeat(32), version: "b".repeat(64), state: "trashed", display_name: "<img>my-file.jpg", media_type: "images" };
+diff --git a/magnolie-organizer-windows/tests/phone-media-wait-ui.js b/magnolie-organizer-windows/tests/phone-media-wait-ui.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..594daff1bc10d131b2b1b805fb7c0620b26d39cf
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/phone-media-wait-ui.js
+@@ -0,0 +1,133 @@
++"use strict";
++const fs = require("node:fs"), path = require("node:path"), assert = require("node:assert/strict");
++const { JSDOM } = require("jsdom");
++const sourceRoot = process.env.MAGNOLIE_TEST_SOURCE_ROOT || path.resolve(__dirname, "../..");
++const source = fs.readFileSync(path.join(sourceRoot, "magnolie-organizer-windows/app/web/phone-media.js"), "utf8");
++const tick = () => new Promise(resolve => setImmediate(resolve));
++const peer = "11111111-1111-4111-8111-111111111111";
++const legacy = { supported: true, version: "a".repeat(64), photos: true, videos: false, automatic: false,
++  automatic_ready: true, automatic_phase: "idle", skip_deletions: true, busy: false,
++  metadata_ready: { images: true, video: true }, pictures: { version: "b".repeat(64), default: true },
++  video_destination: null, destination_choices: { images: "c".repeat(64), video: "d".repeat(64) } };
++const values = { enabled: true, photos_enabled: true, videos_enabled: false, collection_mode: "phone_inventory",
++  direction: "phone_to_pc", auto_mode: "manual", skip_deletions: true, photos_only: false };
++const versions = Object.fromEntries(Object.keys(values).map((field, i) => [field, String(i + 1).repeat(64)]));
++const shared = { ...legacy, shared_settings: { values, versions }, shared_matched: true,
++  shared_runtime_ready: true, shared_start_version: "e".repeat(64), receive_consent: { granted: true, version: "f".repeat(64) } };
++const backup = { backup_id: "1".repeat(64), version: "2".repeat(64), display_name: "saved.jpg", saved_ms: 1234 };
++function boot({ deferredSave = false, withRecovery = false } = {}) {
++  const dom = new JSDOM("<!doctype html><body></body>", { runScripts: "outside-only", url: "https://media-wait.invalid" });
++  const w = dom.window, messages = []; let saves = 0, finishSave;
++  w.eval(source);
++  const api = w.MagnolieMedia, send = message => { messages.push(JSON.parse(JSON.stringify(message))); return true; };
++  const save = () => { saves++; return deferredSave ? new Promise(resolve => { finishSave = resolve; }) : Promise.resolve(); };
++  const recovery = withRecovery ? api.createRecoveryPanel(peer, x => x, send, save) : null;
++  // This case checks preservation of already loaded local history. The initial
++  // application construction sequence has its own separate regression.
++  if (recovery) {
++    w.document.body.append(recovery);
++    for (const request of messages.filter(message => message.action === "backup_list"))
++      api.receive({ requestId: request.requestId, device_id: peer, ok: true, next_cursor: null,
++        backups: request.media_type === "images" ? [backup] : [], location_id: "3".repeat(64),
++        backup_location: request.media_type === "images" ? { is_default: true, sources: [] } : null });
++  }
++  const panel = api.createPanel(peer, x => x, send, save, () => true,
++    recovery ? { recovery, mountLive: () => {} } : {});
++  w.document.body.append(panel);
++  const b = { dom, w, api, messages, panel, recovery,
++    input: key => panel.querySelector(`[data-media="${key}"]`),
++    button: title => [...panel.querySelectorAll("button")].find(button => button.textContent === title),
++    last: () => messages.at(-1), saves: () => saves, finishSave: () => finishSave(),
++    reply: (request, value) => api.receive({ requestId: request.requestId, device_id: peer, ok: true, ...value }),
++    refresh: value => { api.changed({ device_id: peer }); b.reply(b.last(), value); } };
++  return b;
++}
++function assertWaiting(b) {
++  const master = b.input("enabled"), photos = b.input("photos"), automatic = b.input("automatic");
++  assert(!b.panel.hidden && !master.closest("[hidden]") && master.disabled && !master.checked,
++    "A supported peer without shared settings needs a visible unavailable master");
++  assert(photos.closest("[hidden]") && photos.disabled && automatic.closest("[hidden]") && automatic.disabled,
++    "Missing shared settings exposed legacy controls");
++  assert(b.panel.querySelector('[role="status"]').textContent.includes("Waiting for native media status"));
++  assert(!b.button("Refresh").closest("[hidden]") && !b.button("Refresh").disabled,
++    "Waiting must remain refreshable");
++}
++const cases = [
++  ["old peer waits without legacy edits or readiness claims", async b => {
++    b.reply(b.last(), { ...legacy, skip_deletions: null }); assertWaiting(b);
++    const before = b.messages.length;
++    b.input("photos").checked = false; b.input("photos").dispatchEvent(new b.w.Event("change"));
++    b.input("automatic").value = "wifi"; b.input("automatic").dispatchEvent(new b.w.Event("change"));
++    b.input("enabled").dispatchEvent(new b.w.Event("change"));
++    await tick();
++    assert.equal(b.messages.length, before); assert.equal(b.saves(), 0);
++    b.refresh({ supported: false }); assert(b.panel.hidden);
++  }],
++  ["confirmed shared values restore controls without enabling or starting", async b => {
++    b.reply(b.last(), legacy); assertWaiting(b);
++    const off = { ...shared, shared_matched: false,
++      shared_settings: { values: { ...values, enabled: false }, versions } };
++    const snapshot = JSON.stringify(off);
++    b.refresh(off);
++    assert(!b.input("enabled").disabled && !b.input("enabled").checked);
++    assert(!b.input("photos").closest("[hidden]") && b.input("photos").disabled);
++    assert.equal(b.saves(), 0); assert(b.messages.every(message => message.action === "status"));
++    assert.equal(JSON.stringify(off), snapshot);
++    const beforeEnable = b.messages.length;
++    b.input("enabled").click(); await tick();
++    assert.equal(b.messages.length, beforeEnable + 1, "One setting choice must not require an extra confirmation command");
++    assert.equal(b.panel.querySelector("dialog"), null);
++    assert.equal(b.last().action, "shared_setting"); assert.equal(b.last().field, "enabled");
++    assert.equal(b.last().value, true); assert.equal(b.last().version, versions.enabled);
++    b.reply(b.last(), shared);
++    assert(!b.input("photos").disabled);
++    assert(!b.messages.some(message => ["sync", "sync_shared", "request_read"].includes(message.action)));
++  }],
++  ["loss of shared settings removes old choices without rewriting them", async b => {
++    const snapshot = JSON.stringify(shared);
++    b.reply(b.last(), shared); assert(!b.input("photos").disabled);
++    b.refresh(legacy); assertWaiting(b);
++    const before = b.messages.length;
++    b.button("Synchronize now").click(); b.button("Photos · Destination folder").click();
++    b.input("photos").dispatchEvent(new b.w.Event("change")); await tick();
++    assert.equal(b.messages.length, before); assert.equal(b.saves(), 0);
++    assert.equal(JSON.stringify(shared), snapshot);
++    b.refresh(shared); assert(!b.input("photos").disabled && b.input("enabled").checked);
++  }],
++  ["shared settings lost during Save-ACK do not dispatch the old edit", async b => {
++    b.reply(b.last(), shared);
++    b.input("photos").checked = false; b.input("photos").dispatchEvent(new b.w.Event("change"));
++    assert.equal(b.saves(), 1);
++    b.refresh(legacy); assertWaiting(b);
++    b.finishSave(); await tick();
++    assert(b.messages.every(message => message.action === "status")); assertWaiting(b);
++  }, { deferredSave: true }],
++  ["waiting retains Stop for an already running native operation", async b => {
++    b.reply(b.last(), { ...legacy, busy: true, transfer_busy: true }); assertWaiting(b);
++    const stop = b.button("Stop"); assert(!stop.closest("[hidden]") && !stop.disabled);
++    stop.click(); await tick(); assert.equal(b.last().action, "cancel"); assert.equal(b.saves(), 0);
++    b.reply(b.last(), { state: "idle" });
++    assert(stop.hidden && stop.disabled); assert(b.input("photos").disabled);
++  }],
++  ["loaded local recovery remains reachable while shared media settings wait", async b => {
++    b.reply(b.messages.find(message => message.action === "status"), legacy); assertWaiting(b);
++    assert(!b.recovery.closest("[hidden]"));
++    const restore = [...b.recovery.querySelectorAll("button")].find(button => button.textContent === "Restore");
++    restore.click(); await tick();
++    assert.equal(b.last().action, "backup_restore"); assert.equal(b.last().backup_id, backup.backup_id);
++    assert(!b.messages.some(message => ["settings", "mode", "sync", "sync_shared"].includes(message.action)));
++    b.reply(b.last(), { canceled: true });
++    assert.equal(b.recovery.querySelectorAll("li").length, 1);
++  }, { withRecovery: true }]
++];
++(async () => {
++  let failures = 0;
++  for (const [name, run, options] of cases) {
++    const b = boot(options);
++    try { await run(b); console.log("PASS " + name); }
++    catch (error) { failures++; console.error("FAIL " + name + "\n" + error.stack); }
++    finally { b.dom.window.close(); }
++  }
++  console.log(`${cases.length - failures}/${cases.length} Windows media waiting-state cases passed (JSDOM)`);
++  if (failures) process.exitCode = 1;
++})();
+diff --git a/magnolie-organizer-windows/tests/run.js b/magnolie-organizer-windows/tests/run.js
+index c8578d8021192cf6d75ff1aabf976f1e6e1938f6..f81b0f9549ffb383dfc6111ae0364f644cbdfec8 100644
+--- a/magnolie-organizer-windows/tests/run.js
++++ b/magnolie-organizer-windows/tests/run.js
+@@ -28,7 +28,7 @@ for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-sav
+   "contact-email-case.js", "contact-copy-birthday.js",
+   "oversized-note-safety.js", "desktop-state-regressions.js", "../../magnolie-organizer/pruefungen/phone-personal-status-ui.cjs", "../../magnolie-organizer/pruefungen/appointment-occurrence-delete.cjs", "mcp-ui.js", "mcp-import-review.js", "mcp-planner-export.js", "mcp-print.js", "mcp-waste-import.js", "mcp-sync-settings.js", "mcp-sync-run.js", "mcp-provider-conflicts.js", "mcp-dav-account.js", "mcp-microsoft-signin.js", "mcp-internet-accounts.js", "mcp-tree-actions.js", "save-custom-regressions.js", "custom-time-regressions.js", "regional-time-input.js", "planned-sms-save-regressions.js", "asr-sms-regressions.js", "desktop-data-regressions.js", "frontend-integrity.js", "recurrence-worker.js", "recurrence-golden.js",
+     "phone-contact-preview-batches.js", "kde-receive-ui.js", "realm-data-assert-test.js", "legacy-android-instance-ui.js", "drawing-pointerup.js",
+-    "phone-media-ui.js", "phone-media-source-choice-ui.js",
++    "phone-media-ui.js", "phone-media-source-choice-ui.js", "phone-media-wait-ui.js",
+    "../../magnolie-organizer/pruefungen/waste-holiday-authority.cjs",
+    "../../magnolie-organizer/pruefungen/appointment-replacement.cjs",
+     "../../magnolie-organizer/pruefungen/media-trash-ui.cjs",
+-- 
+2.56.1
+

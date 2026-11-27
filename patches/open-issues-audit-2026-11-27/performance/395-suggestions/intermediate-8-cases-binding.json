@@ -1,0 +1,9 @@
+{
+  "source_sha256": {
+    "magnolie-organizer/web/anwendung.js": "f30e144bb31c8e97c731be80f12fcdc4431221fd07e0f8d0fa79ca93ec4c18e7",
+    "magnolie-organizer-windows/app/web/anwendung.js": "d2918ca93fd5d4da71980c70a97664fc81f093bc16aac5549af8baf3234567db"
+  },
+  "test_sha256": "3e4466203d37a7b843ab65aa32a91319ff17a96608cd8b42b9b4b1bb1e79725f",
+  "state_de": "Erster geprüfter enger Patch vor der zusätzlich gefundenen exakten Kurzname-Kante; 8/8 Fälle bestanden. Nicht der finale Quellstand.",
+  "test_source_snapshot": "baseline-tests-8-cases.source.txt"
+}

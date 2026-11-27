@@ -1,0 +1,15 @@
+{
+  "status": "Unfinished candidate, not approved or integrated. Work stopped after independent upstream8c998343 adoption.",
+  "base_commit": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "files": {
+    "magnolie-organizer-windows/ExchangeCodec.cs": "907a8b3f384562b87d30130760990ff5e707c19c5bb19339c9943f2a94d9be12",
+    "magnolie-organizer-windows/app/web/anwendung.js": "78e1145335ec397bf7cd3cdcedfe73a5e3a1f681e0f76193da100350eaa2b88a",
+    "magnolie-organizer-windows/tests/Program.cs": "40534f4737c13348e47bced937c78d26d91849599606dc4ef0c13ea341c14ae1",
+    "magnolie-organizer/bin/magnolie-organizer": "3d9490830a677136436737d6553b179e42a69545cc280ad3271bb5ea2c6d45b9",
+    "magnolie-organizer/web/anwendung.js": "1aa334802e145cb86e5513d47f86f22be4326c4ce167cb8ee08e1162e7309df4",
+    "contracts/calendar-external-colors.json": "963e74bd11ad371a775a5adb19bcd8d9d86244e1712fb3787294e061a69856cf",
+    "magnolie-organizer-windows/tests/ExternalCalendarColorTests.cs": "aeea6a450f70eee9c6f598a25e0bd80ab49295d34cbb9197e99df513ce1bebc8",
+    "magnolie-organizer/pruefungen/test_external_calendar_colors.py": "603b9c3bc6208276309444de7075cb3dc77ac91e8ad962dc74e8801cc22984f9"
+  },
+  "known_checks": "Initial16 actualcodec cases;4 existingPython tests PASS. First182-case extendedPython run179PASS/3 harness substring falsepositives (preserved log); correction saved but not rerun. Candidate not approved."
+}

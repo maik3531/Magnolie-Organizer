@@ -1,0 +1,9 @@
+{
+  "command": [
+    "node",
+    "/workspace/scratch/7203da5bd564/open-audit/desktop/evidence/759/reproduce-initial-recovery.cjs",
+    "/workspace/scratch/7203da5bd564/open-audit-source"
+  ],
+  "exit_code": 1,
+  "source_root": "/workspace/scratch/7203da5bd564/open-audit-source"
+}

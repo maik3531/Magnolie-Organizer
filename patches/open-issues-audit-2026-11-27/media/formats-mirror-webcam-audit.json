@@ -1,0 +1,748 @@
+{
+  "schema_version": 1,
+  "scope_de": "Gezielter aktueller Quellabgleich zur Nutzerfrage nach Foto-/Videoformaten, Spiegelung und Webcam. Ergänzung der vorherigen 27er-Medieninventur; keine vollständige erneute Issueinventur.",
+  "source_commit": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "checkout": "/workspace/scratch/7203da5bd564/open-audit-final-source",
+  "conclusion_de": "Alle Bild-/Videoformate und eine fehlerfreie vollständige Spiegelungs-/Webcamfunktion sind nicht belegt. Begrenzte implementierte Pfade, Originaldateierhalt, Vorschau und reale native Produktfreigabe müssen getrennt beurteilt werden.",
+  "formats": [
+    {
+      "formats": [
+        "JPEG",
+        "JPG"
+      ],
+      "desktop_sender_type_gate_de": "Zugelassen bei passender JPEG-Struktur und Abmessungen.",
+      "phone_original_path_evidence_de": "Native image/*-Quelle vorgesehen; historische private Paketabnahme umfasst JPEG.",
+      "recovery_preview_de": "Linux/Windows/Android: JPEG-Pfad vorhanden.",
+      "limits_or_missing_de": "Keine Freigabe beliebiger JPEG-Varianten oder Geräte aus einer Headerprüfung; Vorschau braucht tatsächlichen Decoder.",
+      "source_ids": [
+        "sender_linux",
+        "sender_windows",
+        "gallery_types",
+        "preview_linux",
+        "preview_windows",
+        "preview_android"
+      ]
+    },
+    {
+      "formats": [
+        "PNG"
+      ],
+      "desktop_sender_type_gate_de": "Zugelassen bei gültigem IHDR und Abmessungen.",
+      "phone_original_path_evidence_de": "Native image/*-Quelle vorgesehen.",
+      "recovery_preview_de": "Linux/Windows/Android: PNG-Pfad vorhanden.",
+      "limits_or_missing_de": "24-Megapixel-Grenzen in Desktop-Typprüfung und Vorschauen beachten.",
+      "source_ids": [
+        "sender_linux",
+        "sender_windows",
+        "gallery_types",
+        "preview_linux",
+        "preview_windows",
+        "preview_android"
+      ]
+    },
+    {
+      "formats": [
+        "GIF"
+      ],
+      "desktop_sender_type_gate_de": "GIF87a/GIF89a-Struktur zugelassen; Bewegungsnachweis zusätzlich begrenzt.",
+      "phone_original_path_evidence_de": "Originalpfad vorgesehen; Animation wird separat klassifiziert.",
+      "recovery_preview_de": "Keine GIF-Freigabe im hier geprüften Recovery-Bilddecoder.",
+      "limits_or_missing_de": "Mehrbildnachweis max. 4 MiB, 48 Frames und begrenzte Gesamtpixel; keine pauschale Animations-/Vorschauzusage.",
+      "source_ids": [
+        "sender_linux",
+        "gallery_projection",
+        "preview_linux",
+        "preview_windows",
+        "preview_android"
+      ]
+    },
+    {
+      "formats": [
+        "WebP"
+      ],
+      "desktop_sender_type_gate_de": "Statische VP8/VP8L-Varianten zugelassen; ANIM/ANMF bzw. Animationsflag verweigert.",
+      "phone_original_path_evidence_de": "Native image/*-Quelle vorgesehen; statischer Originaltest vorhanden.",
+      "recovery_preview_de": "Android: WebP-Pfad; Linux/Windows-Recovery-Bildpfad nur JPEG/PNG.",
+      "limits_or_missing_de": "Animiertes WebP wird vom Desktop-Sender nicht unterstützt.",
+      "source_ids": [
+        "sender_linux",
+        "sender_windows",
+        "gallery_types",
+        "preview_android",
+        "preview_linux",
+        "preview_windows"
+      ]
+    },
+    {
+      "formats": [
+        "BMP"
+      ],
+      "desktop_sender_type_gate_de": "Nur 24-Bit-BMP mit unkomprimiertem Windows-DIB zugelassen.",
+      "phone_original_path_evidence_de": "Originaltest dieser begrenzten Variante vorhanden.",
+      "recovery_preview_de": "Keine BMP-Freigabe im Recovery-Bilddecoder.",
+      "limits_or_missing_de": "Kein Versprechen für palettierte, komprimierte oder andere BMP-Varianten.",
+      "source_ids": [
+        "sender_linux",
+        "sender_windows",
+        "preview_linux",
+        "preview_windows",
+        "preview_android"
+      ]
+    },
+    {
+      "formats": [
+        "HEIC",
+        "HEIF"
+      ],
+      "desktop_sender_type_gate_de": "Nicht in der Desktop-Senderliste.",
+      "phone_original_path_evidence_de": "Echte Linux-Hostfälle belegen typisierten Empfang, Backup und Offline-Restore bytegleich einschließlich XMP-/EXIF-Fixturemetadaten.",
+      "recovery_preview_de": "In den geprüften Recovery-Bildpfaden nicht zugelassen.",
+      "limits_or_missing_de": "Das belegt weder physische MediaStore-Erfassung noch Decoder noch PC→Telefon-Rückweg.",
+      "source_ids": [
+        "sender_linux",
+        "gallery_types",
+        "tiff_heif_tests",
+        "preview_linux",
+        "preview_windows",
+        "preview_android"
+      ]
+    },
+    {
+      "formats": [
+        "TIFF"
+      ],
+      "desktop_sender_type_gate_de": "Private enge TIFF-Probe vorhanden, Sender bleibt gesperrt.",
+      "phone_original_path_evidence_de": "Echte kleine/big-endian TIFF-Fixtures im Linux-Empfang/Backup/Offline-Restore bytegleich.",
+      "recovery_preview_de": "In den geprüften Recovery-Bildpfaden nicht zugelassen.",
+      "limits_or_missing_de": "Keine universelle mehrseitige/komprimierte TIFF- oder RAW-Unterstützung daraus.",
+      "source_ids": [
+        "sender_linux",
+        "tiff_heif_tests",
+        "preview_linux",
+        "preview_windows",
+        "preview_android"
+      ]
+    },
+    {
+      "formats": [
+        "AVIF",
+        "RAW",
+        "DNG"
+      ],
+      "desktop_sender_type_gate_de": "Nicht in der Desktop-Senderliste.",
+      "phone_original_path_evidence_de": "Die breite Android-MIME-Auswahl kann passende Medieneinträge zulassen; kein formatspezifischer positiver Ende-zu-Ende-Nachweis in diesem Audit.",
+      "recovery_preview_de": "Keine explizite Recovery-Bildfreigabe.",
+      "limits_or_missing_de": "Nicht als unterstützt freigeben. TIFF-Metadatenlesen beweist keinen RAW-Decoder.",
+      "source_ids": [
+        "sender_linux",
+        "gallery_types",
+        "photo_metadata_linux",
+        "preview_linux",
+        "preview_windows",
+        "preview_android"
+      ]
+    },
+    {
+      "formats": [
+        "MP4",
+        "M4V"
+      ],
+      "desktop_sender_type_gate_de": "Begrenzte ftyp-Marken isom/iso2/mp41/mp42/avc1/M4V zugelassen.",
+      "phone_original_path_evidence_de": "Native video/*-Quelle vorgesehen; historische private Paketabnahme umfasst MP4.",
+      "recovery_preview_de": "Linux: FFmpeg-Einzelbild; Windows: MediaFoundation bei validiertem lokalen MP4; Android: OS-Metadatendecoder.",
+      "limits_or_missing_de": "Containerprüfung garantiert nicht H.264/H.265/AV1 oder jede Kombination von Bild-/Tonspuren; Decoderabhängigkeit und 50-MiB-Dateigrenze.",
+      "source_ids": [
+        "sender_linux",
+        "sender_windows",
+        "gallery_types",
+        "preview_linux",
+        "preview_windows_video",
+        "preview_android"
+      ]
+    },
+    {
+      "formats": [
+        "MOV",
+        "QuickTime"
+      ],
+      "desktop_sender_type_gate_de": "Nur passender ftyp-Container mit Hauptmarke qt; Endung allein genügt nicht.",
+      "phone_original_path_evidence_de": "Native video/*-Quelle vorgesehen.",
+      "recovery_preview_de": "Linux/Windows über jeweiligen MOV/MP4-Containerpfad und installierte Decoder; Android abhängig vom OS-Decoder.",
+      "limits_or_missing_de": "Kein Nachweis beliebiger alter MOV-Dateien ohne ftyp oder beliebiger Codecs.",
+      "source_ids": [
+        "sender_linux",
+        "sender_windows",
+        "gallery_types",
+        "preview_linux",
+        "preview_windows_video",
+        "preview_android"
+      ]
+    },
+    {
+      "formats": [
+        "WebM",
+        "MKV",
+        "AVI"
+      ],
+      "desktop_sender_type_gate_de": "Nicht in der Desktop-Senderliste; enge WebM-Probe aktiviert kein SEND.",
+      "phone_original_path_evidence_de": "Echte Linux-Hostfälle belegen typisierten Empfang, Backup und Offline-Restore bytegleich.",
+      "recovery_preview_de": "Linux: vorhandenes FFmpeg kann begrenzt ein Standbild liefern; Windows-Video-Gate hier MP4/QuickTime; Android OS-abhängig.",
+      "limits_or_missing_de": "Keine allgemeine Wiedergabe-/Rückwegzusage. Private WebM-Probe beschränkt auf endliche VP8/VP9-Struktur.",
+      "source_ids": [
+        "sender_linux",
+        "webm_tests",
+        "preview_linux",
+        "preview_windows_video",
+        "preview_android"
+      ]
+    },
+    {
+      "formats": [
+        "3GP"
+      ],
+      "desktop_sender_type_gate_de": "3gp-Marken nicht in der Desktop-Senderliste.",
+      "phone_original_path_evidence_de": "Breiter Android-video/*-Pfad vorhanden; kein eigener positiver 3GP-Originalbeleg in diesem Audit.",
+      "recovery_preview_de": "Kein formatspezifischer nativer Vorschau-/Gerätenachweis.",
+      "limits_or_missing_de": "Nicht aus MP4-Verwandtschaft oder Dateiendung als unterstützt ableiten.",
+      "source_ids": [
+        "sender_linux",
+        "gallery_types",
+        "preview_linux",
+        "preview_windows_video",
+        "preview_android"
+      ]
+    }
+  ],
+  "cross_cutting": {
+    "source_selection_de": "Desktop identifiziert authentifizierte Originalbytes mit Signatur-/Containerprüfung. Namen oder MIME-Angaben allein gewähren keine Quellenfreigabe. Notes MediaStore trennt image/* und video/*; der zusätzliche Dokumentbaum-Fotopfad erlaubt nur image/* und verweigert virtuelle Dokumente.",
+    "limits": {
+      "per_file_bytes": 52428800,
+      "files_per_manifest": 128,
+      "bytes_per_manifest": 419430400,
+      "desktop_sender_image_max_pixels": 24000000,
+      "windows_android_preview_input_bytes": 16777216,
+      "preview_sides": [
+        192,
+        1024
+      ],
+      "preview_max_pixels": 24000000
+    },
+    "limits_de": "Manifestgrenzen sind keine Höchstzahl der gesamten Galerie. Viele längere Telefonvideos überschreiten bereits die Dateigrenze. Die engere 16-MiB-Vorschaugrenze kann Vorschauen verhindern, obwohl Originalübertragung unter 50 MiB liegt.",
+    "photo_filter_de": "Nur Fotos bedeutet geprüftes Make oder Model plus gültiges DateTimeOriginal (ab 1900), kein Dateiname/Ordnerbeweis. Linux/Windows lesen JPEG-EXIF, klassische TIFF-Metadaten und PNG-eXIf begrenzt; Notes benutzt ExifInterface. Entfernte oder nicht lesbare Metadaten können echte Fotos ausschließen.",
+    "orientation_de": "Originalkopie bewahrt eingebettete Metadaten. Linux-Vorschaubild verwendet apply_embedded_orientation, Windows EXIF-Rotation. Im betrachteten Android-Recovery-Bildpfad ist kein ausdrücklicher EXIF-Rotationsschritt sichtbar; reale Geräte-/Ausrichtungsabnahme fehlt. Kein daraus erfundener nativer Fehler.",
+    "product_gate_de": "Private native Medienfreigaben stehen in Linux, Windows und Notes regulär auf false. Bereits vorhandene manuelle/Shared-/WLAN-Teilimplementierung und historische private Paketbelege werden dadurch nicht negiert, sind aber keine allgemeine Produktfreigabe.",
+    "source_ids": [
+      "sender_linux",
+      "sender_windows",
+      "gallery_types",
+      "gallery_source",
+      "document_source",
+      "manifest_linux",
+      "manifest_android",
+      "photo_metadata_linux",
+      "photo_metadata_windows",
+      "photo_metadata_android",
+      "preview_linux",
+      "preview_windows",
+      "preview_android",
+      "media_gate_linux",
+      "media_gate_windows",
+      "media_gate_android"
+    ]
+  },
+  "mirror": {
+    "implemented_de": "Eigener Handy→Desktop-JPEG-Bildkanal, Linux-/Windows-Viewer und Notes-MediaProjection-Bausteine vorhanden. Begrenzte authentifizierte Frames und Sitzungs-/Sperrbeendigung sind implementiert.",
+    "limits_de": "Reine Ansicht: kein Tastatur-/Mauseingriff, kein Audio und keine Zwischenablage. Maximal 1920 je Seite, insgesamt 2073600 Pixel, JPEG maximal 1 MiB; keine automatische Wiederaufnahme einer alten Sitzung nach Sperre/Trennung.",
+    "remaining_de": "Produktive Viewerfreigabe bleibt geschlossen (Linux False/Windows false). Reale Bild-/Sperr-/Stop-Abnahme des exakten installierten Paares bleibt erforderlich. PC→Telefon ist eigener privater Entwurf ohne registrierte Produktnachrichten; echter Zweitmonitor verlangt neuen nativen Ausgang, eindeutige Zuordnung, Fensterbewegung und beobachtete Entfernung. Vorhandene Portal/PipeWire/KWin-Bausteine sind keine fertige Produktkette.",
+    "source_ids": [
+      "screen_contract",
+      "screen_gate_linux",
+      "screen_gate_windows",
+      "reverse_screen_contract",
+      "virtual_screen_remainder",
+      "service_composition"
+    ],
+    "issues": [
+      245
+    ]
+  },
+  "webcam": {
+    "implemented_de": "Getrennte Kamera-/Audioübertragung und tatsächliche native Adapter vorhanden: Notes Camera2/AudioRecord im Foreground-Laufzeitpfad; Linux v4l2loopback plus PulseAudio/PipeWire; Windows-Source-/Audio-/Lebensdauerbausteine. Netzwerkframes allein reichen nicht, eine OS-Webcam bereitzustellen.",
+    "limits_de": "Der betrachtete AV-Vertrag ist fest auf 640×480 bei 15 fps und I420/YU12 begrenzt, Audio 48 kHz mono PCM16 in 20-ms-Blöcken. Kamera muss diese Capturekonfiguration unterstützen. Audio wird nur bei ausdrücklicher Stummschaltung ausgelassen. Linux verlangt installierte/zulässige native Ausgänge und enthaltenes Buildmerkmal.",
+    "remaining_de": "Windows NativeWebcamChecked bleibt false; gemeinsamer Source-/Mikrofon-Setup-Aufrufer ist weiterhin nicht produktiv gebunden. Echte Camera2-/AudioRecord-Abnahme, Linux-/Windows-OS-Quellenanzeige, tatsächliche OBS/Teams/Zoom-Nutzung, AV-Synchronität, Latenz, Abbruch/Sperre/Trennung sowie Langzeitstabilität sind durch diese Hosttests nicht abgeschlossen.",
+    "source_ids": [
+      "webcam_linux",
+      "webcam_ui_linux",
+      "webcam_android_codec",
+      "webcam_android_capture",
+      "webcam_android_composition",
+      "webcam_gate_windows",
+      "webcam_contract",
+      "optional_linux",
+      "service_composition"
+    ],
+    "issues": [
+      503,
+      588
+    ]
+  },
+  "historical_evidence": [
+    {
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/330#issuecomment-7222229215",
+      "detail_de": "Historisches exaktes privates Paketpaar: manueller JPEG-/MP4-Erstempfang und Wiederholung; keine allgemeine Formatzusage."
+    },
+    {
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/330#issuecomment-7222370384",
+      "detail_de": "Historischer privater WLAN-Wiederanlauf; kein atomarer Android-Originalrückweg."
+    },
+    {
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/245#issuecomment-7216893749",
+      "detail_de": "Privater Diagnose-/Updatebeleg ist von tatsächlicher physischer Bild-/Sperrfreigabe getrennt."
+    },
+    {
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/503#issuecomment-7073925831",
+      "detail_de": "Kontrollierter Linux-WLAN-/Mediennachweis, keine aktuelle physische Kamera-/OBS-Abnahme."
+    }
+  ],
+  "prior_issue_audit": "assessments.json",
+  "test_execution": "formats-mirror-webcam-tests-manifest.json",
+  "sources": [
+    {
+      "id": "sender_linux",
+      "path": "magnolie-organizer/bin/magnolie_media_mime.py",
+      "line": 279,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer/bin/magnolie_media_mime.py#L279",
+      "sha256": "9c403178c834fa2bc9885267548bed55ba1758b92dd395d87e10eb3083d72b6d",
+      "detail_de": "Strikte Containerprüfung des Desktop-Senders; TIFF/WebM-Proben schalten den Sender nicht frei."
+    },
+    {
+      "id": "sender_windows",
+      "path": "magnolie-organizer-windows/DeviceFileMediaMime.cs",
+      "line": 29,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer-windows/DeviceFileMediaMime.cs#L29",
+      "sha256": "2beb7137344b5029a96bd85952430007d94b5018ef4a2e61212e283a7c5350be",
+      "detail_de": "Windows-Parität der begrenzten Bild-/Videocontainerliste."
+    },
+    {
+      "id": "gallery_types",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/GalleryMediaType.kt",
+      "line": 8,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/GalleryMediaType.kt#L8",
+      "sha256": "9954d33fac80fcc138c775dbfcb15ae298ea0494ff8c5e5c575f251eea5ad1f2",
+      "detail_de": "Getrennte Android-MediaStore-Bereiche und syntaktischer image/*-/video/*-MIME-Filter."
+    },
+    {
+      "id": "gallery_source",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/AndroidGalleryPhotoSource.kt",
+      "line": 127,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/AndroidGalleryPhotoSource.kt#L127",
+      "sha256": "baabd69c8b6009c2bfaca640b546681d228ea42c829a78dff5697f9349a3093a",
+      "detail_de": "Native aktuelle MediaStore-Zeile, Größe, Identität und MIME vor dem Lesen."
+    },
+    {
+      "id": "document_source",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/AndroidPhotoSourceReader.kt",
+      "line": 46,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/AndroidPhotoSourceReader.kt#L46",
+      "sha256": "e9652028de7f1e8d4fdd3abd02bd7e89f18e93a736f2e5592c183832fea5e6f8",
+      "detail_de": "Der zusätzliche Dokumentbaum-Fotopfad erlaubt image/*, keine virtuellen Dokumente."
+    },
+    {
+      "id": "gallery_projection",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/NativeGalleryMediaProjection.kt",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/NativeGalleryMediaProjection.kt#L1",
+      "sha256": "30209f0435c47015243977622586fdc57cd535fef1ac049804a487322b269cb3",
+      "detail_de": "Originalprojektion und getrennte image/animation/unknown_image/video-Klassifikation."
+    },
+    {
+      "id": "preview_linux",
+      "path": "magnolie-organizer/bin/magnolie_media_preview.py",
+      "line": 19,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer/bin/magnolie_media_preview.py#L19",
+      "sha256": "ab2c46bdd6fbd2560e12f16a4c9129f8389ca90ae9c78860a543fb1d30e3f44a",
+      "detail_de": "Recovery-/Papierkorbvorschau: JPEG/PNG; Video über vorhandenen begrenzten FFmpeg-Prozess."
+    },
+    {
+      "id": "preview_windows",
+      "path": "magnolie-organizer-windows/DeviceFileMediaPreview.Drawing.cs",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer-windows/DeviceFileMediaPreview.Drawing.cs#L1",
+      "sha256": "6d922d1edd07e04f39e5a8e93f690b9be6f3bac0a0cbadd74a1fd24076fb4d8c",
+      "detail_de": "JPEG/PNG-GDI-Vorschau und EXIF-Rotation; vorhandene MediaFoundation-Videovorschau."
+    },
+    {
+      "id": "preview_windows_video",
+      "path": "magnolie-organizer-windows/DeviceFileMediaPreview.Video.cs",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer-windows/DeviceFileMediaPreview.Video.cs#L1",
+      "sha256": "0467442b1ba9bf28fa0ae93af0e3d682dee26dc4d72fdb12af58a383c50d7ed0",
+      "detail_de": "Windows-Videogate prüft lokalen MP4/QuickTime-Container; installierter Decoder erforderlich."
+    },
+    {
+      "id": "preview_windows_limits",
+      "path": "magnolie-organizer-windows/DeviceFileMediaPreview.cs",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer-windows/DeviceFileMediaPreview.cs#L1",
+      "sha256": "eebeba8869afc697421acdb29d1f6ab2a4e727691380d1e6a6015b1d87107a49",
+      "detail_de": "Windows-Vorschau begrenzt Eingabebytes und feste Rastergrößen."
+    },
+    {
+      "id": "preview_android",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/NativeGalleryRecoveryPreview.kt",
+      "line": 11,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/NativeGalleryRecoveryPreview.kt#L11",
+      "sha256": "686d27c90708dbc7a17d57ac45c41d8abb6a82f0077c18c1e062a4af8f18dcc6",
+      "detail_de": "Android-Recovery: 16 MiB, JPEG/PNG/WebP; Video mit MediaMetadataRetriever ab API 27."
+    },
+    {
+      "id": "inspection_android",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/NativeIncomingMediaInspection.kt",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/NativeIncomingMediaInspection.kt#L1",
+      "sha256": "cd20d183bed5e88f11ecde2f4477e6faaed96db1f61f1fab53564645deeb3ba6",
+      "detail_de": "Native Metadaten-/Trackprüfung eingehender Originaldateien, keine universelle Pixeldecoder-Garantie."
+    },
+    {
+      "id": "photo_metadata_linux",
+      "path": "magnolie-organizer/bin/magnolie_photo_metadata.py",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer/bin/magnolie_photo_metadata.py#L1",
+      "sha256": "8bb23e5150e0fffad79bb3e13eac3fb70a14cde2eb1a16f1f76fc013eaab3716",
+      "detail_de": "Nur-Fotos-Kriterium über begrenzte JPEG/TIFF/PNG-EXIF-Metadaten."
+    },
+    {
+      "id": "photo_metadata_windows",
+      "path": "magnolie-organizer-windows/PhotoCaptureMetadata.cs",
+      "line": 7,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer-windows/PhotoCaptureMetadata.cs#L7",
+      "sha256": "29ed7fb2b3f8066fef271fb15a9e36db2cfb3b5b22e49b5d9b83679da094fdc9",
+      "detail_de": "Make/Model plus DateTimeOriginal; Metadatenkriterium ist keine Formatfreigabe."
+    },
+    {
+      "id": "photo_metadata_android",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/CameraPhotoMetadata.kt",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/CameraPhotoMetadata.kt#L1",
+      "sha256": "39a27a35270572c91a92f14a3e3e885c13c2fa8b576a0e659d3141e0814ca1c1",
+      "detail_de": "Android-ExifInterface-basierter Metadatenfilter."
+    },
+    {
+      "id": "manifest_linux",
+      "path": "magnolie-organizer/bin/magnolie_file_transfer.py",
+      "line": 32,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer/bin/magnolie_file_transfer.py#L32",
+      "sha256": "0cc2e25669721dd5af947c9c3b41d84749a40e111c36630323d04ab14bdd91cf",
+      "detail_de": "128 Dateien, 50 MiB je Datei, 400 MiB je Manifest."
+    },
+    {
+      "id": "manifest_android",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/DeviceFileManifest.kt",
+      "line": 45,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/DeviceFileManifest.kt#L45",
+      "sha256": "b90e46da7819eba64afa2eb07770ab26d5a075ef1f9b8e3b370f8ff08ffac6ba",
+      "detail_de": "Gleiche Manifestgrenzen auf Notes."
+    },
+    {
+      "id": "media_gate_linux",
+      "path": "magnolie-organizer/bin/magnolie_telefon.py",
+      "line": 2911,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer/bin/magnolie_telefon.py#L2911",
+      "sha256": "bb0dc7f75401f03742cb657f6bcd9600aebb2fc714a42e7cfd4f358a788c931f",
+      "detail_de": "Private native Medienfreigabe bleibt im Standardzustand aus."
+    },
+    {
+      "id": "media_gate_windows",
+      "path": "magnolie-organizer-windows/DeviceFileConnectionMetadata.cs",
+      "line": 15,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer-windows/DeviceFileConnectionMetadata.cs#L15",
+      "sha256": "6f053e0097272d9e0a513f686e02e11c3970cc140ff629be3cb7c3126a489ec3",
+      "detail_de": "Private native Medienfreigabe auf Windows."
+    },
+    {
+      "id": "media_gate_android",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt",
+      "line": 687,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt#L687",
+      "sha256": "4dd66077ad5067841e0cf7e6d01bad712f465fba0d42d3a4c2e88d506a1e36a3",
+      "detail_de": "Private native Medienfreigabe auf Notes."
+    },
+    {
+      "id": "screen_contract",
+      "path": "contracts/phone-screen-view-v1.md",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/contracts/phone-screen-view-v1.md#L1",
+      "sha256": "7118e5b091acbffb6f279ef95fda2cb391e47f6e045c901bd8de5fb9564e28cb",
+      "detail_de": "Handy zu Desktop: reiner JPEG-Bildkanal ohne Audio, Eingabe oder Wiederaufnahme."
+    },
+    {
+      "id": "reverse_screen_contract",
+      "path": "contracts/desktop-screen-send-v1.md",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/contracts/desktop-screen-send-v1.md#L1",
+      "sha256": "e6476d5c51fe410ea062ac98c57ebfa1a657e4a7b5a83ca086044a270cdb949c",
+      "detail_de": "Gegenrichtung und echter zusätzlicher Monitor sind getrennte private Entwürfe."
+    },
+    {
+      "id": "virtual_screen_remainder",
+      "path": "contracts/desktop-screen-send-v1.md",
+      "line": 132,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/contracts/desktop-screen-send-v1.md#L132",
+      "sha256": "e6476d5c51fe410ea062ac98c57ebfa1a657e4a7b5a83ca086044a270cdb949c",
+      "detail_de": "KDE-Ausgangsidentität vorbereitet; produktive Routen-/Observerbindung und reale Entfernung offen."
+    },
+    {
+      "id": "screen_gate_linux",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "line": 22064,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer/bin/magnolie-organizer#L22064",
+      "sha256": "7934accd6161750a643bf16dccba4244f59aef031af4024604d6b5d8c52003a9",
+      "detail_de": "Linux-Produktgate für nativen Bildschirmviewer bleibt False."
+    },
+    {
+      "id": "screen_gate_windows",
+      "path": "magnolie-organizer-windows/TelefonCoordinator.cs",
+      "line": 14,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer-windows/TelefonCoordinator.cs#L14",
+      "sha256": "f89e71297c41acdcb30dd4b7400ef08675f496e11fc969396f9c50fe4b461574",
+      "detail_de": "Windows NativeScreenChecked bleibt false."
+    },
+    {
+      "id": "webcam_linux",
+      "path": "magnolie-organizer/bin/magnolie_phone_webcam.py",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer/bin/magnolie_phone_webcam.py#L1",
+      "sha256": "2f4369aa99c5de1b8cbd0513e300fa339f9dff4bc7f72fe0add46db7d02c14ab",
+      "detail_de": "Linux-OS-Ausgänge: v4l2loopback und PulseAudio/PipeWire, feste Video-/Audioformate."
+    },
+    {
+      "id": "webcam_ui_linux",
+      "path": "magnolie-organizer/bin/magnolie_phone_camera_ui.py",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer/bin/magnolie_phone_camera_ui.py#L1",
+      "sha256": "61f5c91f4d06c3fea5c97f7689feb6d84f67f6ed7234ea241c5f11fdf6dccbeb",
+      "detail_de": "Native Quellenwahl und vorhandene Treiberintegration; Installation bleibt gesonderter Vorgang."
+    },
+    {
+      "id": "webcam_android_codec",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/PhoneWebcamMediaCodec.kt",
+      "line": 61,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/PhoneWebcamMediaCodec.kt#L61",
+      "sha256": "bcb6ffdc40e2da409c0da764c466631925228315f7d1dc85dcd7877c8b234bd7",
+      "detail_de": "640×480, 15 fps, YUV420/I420 und getrennte PCM-Audiospur."
+    },
+    {
+      "id": "webcam_android_capture",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/PhoneWebcamAndroidCapture.kt",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/PhoneWebcamAndroidCapture.kt#L1",
+      "sha256": "b5002384c907ef270972f34a3da3527a80bd70acaa78d97b014e4704278b1b53",
+      "detail_de": "Tatsächlicher Camera2-/AudioRecord-Adapter mit aktuellen Capture-/Berechtigungsgrenzen."
+    },
+    {
+      "id": "webcam_android_composition",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/PhoneWebcamForegroundRun.kt",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/PhoneWebcamForegroundRun.kt#L1",
+      "sha256": "8a0b07a57635cb6edff8cf8c1ea69e581d25010c2d24a16271106c78177910a6",
+      "detail_de": "Capture-Adapter ist im Notes-Laufzeitpfad komponiert; alter Einzeldateikommentar ist keine Fehlstellenbeschreibung."
+    },
+    {
+      "id": "webcam_gate_windows",
+      "path": "magnolie-organizer-windows/PhoneCameraDesktopMainForm.cs",
+      "line": 9,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer-windows/PhoneCameraDesktopMainForm.cs#L9",
+      "sha256": "9e56de1c5e9cb9da8634ff5001469fd81910ca39ceae91b350f60a72ec02e816",
+      "detail_de": "Windows NativeWebcamChecked bleibt false."
+    },
+    {
+      "id": "webcam_contract",
+      "path": "contracts/phone-webcam-v1.md",
+      "line": 3,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/contracts/phone-webcam-v1.md#L3",
+      "sha256": "ce971440907a25c9548a8ebeef1d8acea6a6afadec1d159113f3ff99566952fd",
+      "detail_de": "Gemeinsamer Windows-Setup-Aufrufer und echte OS-/Capture-Abnahme bleiben offen."
+    },
+    {
+      "id": "optional_linux",
+      "path": "magnolie-organizer/bin/magnolie_optional_phone.py",
+      "line": 1,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer/bin/magnolie_optional_phone.py#L1",
+      "sha256": "733de95dd785ad913096caed697296a264c71fe9a7a7b0aaa11de98af6d37a34",
+      "detail_de": "Optionales Buildmerkmal entscheidet über enthaltene Linux-Funktion."
+    },
+    {
+      "id": "service_composition",
+      "path": "magnolie-organizer/bin/magnolie_telefon.py",
+      "line": 2881,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer/bin/magnolie_telefon.py#L2881",
+      "sha256": "bb0dc7f75401f03742cb657f6bcd9600aebb2fc714a42e7cfd4f358a788c931f",
+      "detail_de": "Linux-Buildmerkmale und noch ungebundener Desktop-Screen-Entwurf."
+    },
+    {
+      "id": "tiff_heif_tests",
+      "path": "magnolie-organizer/pruefungen/test_media_tiff_probe.py",
+      "line": 24,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer/pruefungen/test_media_tiff_probe.py#L24",
+      "sha256": "3496dd938aa92949b7b88d589a191b8416b0c1f1b5ef62774bb26eccc21e3acb",
+      "detail_de": "Echte TIFF-/HEIC-/HEIF-Originalfixtures; Linux-Empfang/Backup/Offline-Restore mit Bytevergleich."
+    },
+    {
+      "id": "webm_tests",
+      "path": "magnolie-organizer/pruefungen/test_media_webm_probe.py",
+      "line": 23,
+      "url": "https://github.com/maik3531/Magnolie-Organizer/blob/1f1f3225ab50fe38902bc8e790454fd944f8b693/magnolie-organizer/pruefungen/test_media_webm_probe.py#L23",
+      "sha256": "70b5e9ecf4a27d52bb496a227080934f9152346c00fdd70c26792de0f44fad6d",
+      "detail_de": "Echte WebM-/MKV-/AVI-Originalfixtures; Sender bleibt außerhalb der Liste gesperrt."
+    }
+  ],
+  "actions_de": [
+    "Bestehende Leitissues #330/#338 für Format-/Richtungs-/Originalrückwegabnahme fortführen; keine pauschale Zweirichtungsfreigabe aus der Containerliste ableiten.",
+    "#245 nach Ansicht, Fernbedienung/Audio und echtem Zusatzmonitor getrennt bewerten; letztere Funktionen sind aus dem JPEG-Viewkanal nicht entstanden.",
+    "#503/#588 erst nach tatsächlicher nativer Kamera-/Mikrofon-/Anwendungsabnahme als vollständige Webcamfunktion bewerten."
+  ],
+  "limitations_de": [
+    "Keine neuen Produktfunktionen oder Produktänderungen; keine Pakete, Installationen oder Geräteaktionen.",
+    "111 tatsächliche gezielte Hostfälle; keine Windows-/Android-Gerätetests aus dem Python-Lauf ableiten.",
+    "Kein unbekanntes Format wurde allein aus breitem MIME-Filter, Endung oder möglicher OS-Unterstützung freigegeben.",
+    "Kein Monat-Tray-RAM- oder Langzeit-AV-Beweis."
+  ],
+  "bounded_followup_7a490dd8": {
+    "source_commit": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+    "reviewed_delta_commit": "bc9b4db57d2ee6577ee9314a858f8be6fea4c757",
+    "prior_report_base": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+    "scope_de": "Begrenzter read-only Quell-/Testquellabgleich des neuen Linux-Empfangssetups; keine vollständige neue7a-Inventur und keine erneute Initialimplementierung von845.",
+    "newly_implemented_de": [
+      "Explizite Organizer-Aktion setup_automatic_receive für private WLAN-Ersteinrichtung bei bereits abgestimmter gemeinsamer Auswahl. Foto-, Video- und gemischte Typwahl werden getrennt geprüft.",
+      "Geschützte Pending-Bindung an Buchversion und ausgewählte Typen. Scheduler bleibt während ausstehender Einrichtung gesperrt; erfolgreiche frische Bindung und Android-Leseabdeckung für alle ausgewählten Typen schließen die Einrichtung ab.",
+      "Reiner Videoempfang kann nach WLAN-Wiederverbindung mit frischer technischer Vereinbarung und nativen Dateirechten auch bei geschlossenen Einstellungen wieder anlaufen. Kein Fotoziel/Fotorecht wird dafür erzwungen."
+    ],
+    "still_open_de": [
+      "Die drei privaten Produktfreigaben für Medienunterstützung bleiben inLinux/Windows/Notes false; keine allgemeine Paket-/Gerätefreigabe aus diesem Commit.",
+      "Windows-Erstempfang und tatsächliche installierte Paarabnahme bleiben im Arbeitsstand ausdrücklich offen.",
+      "Sicherer atomarer Android-Originalrückweg, Löschbelege und vollständige Zweiwegintegration bleiben eigenständige Kriterien.",
+      "Formatallowlists, Decoderlisten, Dateigrößen, Spiegelung und Webcam ändern sich durchbc9 nicht."
+    ],
+    "usability_de": "Die gemeinsame Einstellung wird weiterhin technisch automatisch mit Notes abgestimmt. Neu ist eine eigene lokale Organizer-Aktion „Set up automatic receiving“ für die erste Empfangseinrichtung; das ist keine zweite manuelle Notes-Bestätigung derselben Einstellung. Fehlendes Android-READ führt zu permission_required und hält Pending/Scheduler-Sperre aufrecht. Der konkrete neue Test führt nach Erteilung des Lesezugriffs erneut setup_automatic_receive aus. Ein universeller Ein-Klick-Abschluss darf daraus nicht versprochen werden.",
+    "patch_759_relevance": {
+      "required": true,
+      "detail_de": "Beide ursprünglichen759-Patches ändern die Windows-phone-media.js-Warte-/Save-ACK-/Stop- bzw.Initial-Mount-Cleanup-Pfade. bc9 ändert Linux-Setupquellen und Linux-anwendung.js; Windows-phone-media.js ist sogar bytegleich zum ursprünglichen759-Elternstand. Es ersetzt weder Wartezustandsfix noch Recovery-Mount-Korrektur. Keine neue Testausführung oder pauschale native Aussage aus dieser Bytegleichheit.",
+      "path": "magnolie-organizer-windows/app/web/phone-media.js",
+      "original_759_parent": "50b1512234a765635f82af4537f277594fbf9878",
+      "original_759_parent_blob": "a590a42778f35269d94df1140007b020c9a6fe41",
+      "latest_upstream_blob": "a590a42778f35269d94df1140007b020c9a6fe41",
+      "byte_identical": true
+    },
+    "unchanged_format_mirror_webcam_blobs": {
+      "magnolie-organizer/bin/magnolie_media_mime.py": {
+        "prior_blob": "867f7bfed07f8781e9da50af76dbc6ee21131e05",
+        "current_blob": "867f7bfed07f8781e9da50af76dbc6ee21131e05"
+      },
+      "magnolie-organizer-windows/DeviceFileMediaMime.cs": {
+        "prior_blob": "0b90749c0e89fe3fd5fc4ea8318cecf5681bada4",
+        "current_blob": "0b90749c0e89fe3fd5fc4ea8318cecf5681bada4"
+      },
+      "magnolie-organizer/bin/magnolie_media_preview.py": {
+        "prior_blob": "2d50c44525103321e2412e4cad1909b51cd89114",
+        "current_blob": "2d50c44525103321e2412e4cad1909b51cd89114"
+      },
+      "magnolie-organizer-windows/DeviceFileMediaPreview.Drawing.cs": {
+        "prior_blob": "45deb39af7004480af1c2c34c5dc53eaf4b465d1",
+        "current_blob": "45deb39af7004480af1c2c34c5dc53eaf4b465d1"
+      },
+      "magnolie-organizer-windows/DeviceFileMediaPreview.Video.cs": {
+        "prior_blob": "f9391a3694b95b7882e84d49c8a9aafce2901fd9",
+        "current_blob": "f9391a3694b95b7882e84d49c8a9aafce2901fd9"
+      },
+      "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/NativeGalleryRecoveryPreview.kt": {
+        "prior_blob": "553c31ede6fec6578a163d1a3949bfd958cabf1f",
+        "current_blob": "553c31ede6fec6578a163d1a3949bfd958cabf1f"
+      },
+      "magnolie-organizer/bin/magnolie_file_transfer.py": {
+        "prior_blob": "5e870f290b15f9bb5e548f6fa8dfd8bbd0059545",
+        "current_blob": "5e870f290b15f9bb5e548f6fa8dfd8bbd0059545"
+      },
+      "magnolie-organizer/bin/magnolie_phone_webcam.py": {
+        "prior_blob": "8fb1d5cb5317b1a65306f85f9423050c7ee4c5db",
+        "current_blob": "8fb1d5cb5317b1a65306f85f9423050c7ee4c5db"
+      },
+      "contracts/phone-screen-view-v1.md": {
+        "prior_blob": "d43d100080e224f9f5de441132449fba9bc40ea5",
+        "current_blob": "d43d100080e224f9f5de441132449fba9bc40ea5"
+      },
+      "contracts/desktop-screen-send-v1.md": {
+        "prior_blob": "ced576e13b407ab537f51ba2c53c0dee160d139e",
+        "current_blob": "ced576e13b407ab537f51ba2c53c0dee160d139e"
+      },
+      "contracts/phone-webcam-v1.md": {
+        "prior_blob": "c8d1610276f615f8afb4417a5095e6279ebe02de",
+        "current_blob": "c8d1610276f615f8afb4417a5095e6279ebe02de"
+      }
+    },
+    "evidence": [
+      {
+        "path": "magnolie-organizer/bin/magnolie_file_desktop_connection.py",
+        "line": 608,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/bin/magnolie_file_desktop_connection.py#L608",
+        "sha256": "14b0fcf742bea311df462bc770e22f16243521c8803000232d7f5b1a35de6028"
+      },
+      {
+        "path": "magnolie-organizer/bin/magnolie_media_storage_bootstrap.py",
+        "line": 42,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/bin/magnolie_media_storage_bootstrap.py#L42",
+        "sha256": "0f4c6f834ddc51f7d964556fe1c41435705fd8532d3397a7d4c0310d8b1b88af"
+      },
+      {
+        "path": "magnolie-organizer/bin/magnolie_photo_preferences.py",
+        "line": 70,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/bin/magnolie_photo_preferences.py#L70",
+        "sha256": "4f161b2bf1ad4d6eb29d080e0ff2d9bc4f50a60b1d6a5e6b22e7a50b7f93dc7a"
+      },
+      {
+        "path": "magnolie-organizer/bin/magnolie_telefon.py",
+        "line": 2911,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/bin/magnolie_telefon.py#L2911",
+        "sha256": "55d4512b3b3c6f6301d4fb8f7932fe20c93978680b40e26a1d62f32be7cac290"
+      },
+      {
+        "path": "magnolie-organizer/web/anwendung.js",
+        "line": 30150,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/web/anwendung.js#L30150",
+        "sha256": "75cb7fb2a23435622738e30bedcf48dc16e5ccb2c6921995fe6b44f3bc6d850d"
+      },
+      {
+        "path": "magnolie-organizer/pruefungen/test_media_first_receive.py",
+        "line": 340,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/pruefungen/test_media_first_receive.py#L340",
+        "sha256": "fe92176e240179364dad2d5cb55fabee77e5cce05e1acef2303dcc1e68368a34"
+      },
+      {
+        "path": "magnolie-organizer/pruefungen/test_media_support_draft.py",
+        "line": 538,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/pruefungen/test_media_support_draft.py#L538",
+        "sha256": "9e5202341d0d2231437d0ccf250ac8e524b0c6807421538e9dc5ceefb7512315"
+      },
+      {
+        "path": "magnolie-organizer/pruefungen/media-source-choice-ui.cjs",
+        "line": 427,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/magnolie-organizer/pruefungen/media-source-choice-ui.cjs#L427",
+        "sha256": "407465f0753aa1a995efc0fc8893a7056c97ce3c3f5bd3db0d2d00fceae679b5"
+      },
+      {
+        "path": "ARBEITSSTAND.md",
+        "line": 49,
+        "url": "https://github.com/maik3531/Magnolie-Organizer/blob/7a490dd87e94eec08d7f09cb95a04b34bf4621c2/ARBEITSSTAND.md#L49",
+        "sha256": "50131d1db5bff3cb1ed1265252fdde2b1fbcbda3adf4e1decf455e412eeec754"
+      }
+    ],
+    "tests_de": "Keine neuen Tests. Die früheren111PASS bleiben exakt an1f1f3225 gebunden. bc9 ergänzt Testquellen für ausdrückliche Einrichtung, fehlendesREAD, Stop, gemischte Auswahl und Video-Wiederverbindung. ARBEITSSTAND nennt154Python-,13DOM- und19Sprachkatalogprüfungen; diese Angaben stammen vom Upstreamautor und wurden hier nicht neu ausgeführt.",
+    "required_report_changes_de": [
+      "Linux-WLAN-Ersteinrichtung nicht länger als fehlende Implementierung beschreiben; vorhandenen privaten Setup-/Wiederanlaufpfad nennen.",
+      "Bedienung zwischen gemeinsamer Einstellungsübernahme, lokaler Empfangseinrichtung und tatsächlicher Android-OS-Berechtigung unterscheiden.",
+      "Keine Erweiterung der Format-/Vorschauzusage und keine Umdeutung der alten111PASS auf7a."
+    ],
+    "product_changes": false,
+    "tests_executed": false,
+    "github_mutations": false
+  }
+}

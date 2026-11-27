@@ -1,0 +1,106 @@
+{
+  "files": [
+    "844-remainder.patch",
+    "README.md",
+    "after/birthday-csharp.log",
+    "after/birthday-display.log",
+    "after/birthday-python.log",
+    "after/category-ui-prepared.log",
+    "after/category-ui.log",
+    "after/csharp-build-final.log",
+    "after/csharp-build.log",
+    "after/csharp-category.log",
+    "after/legacy-alias.log",
+    "after/pipeline/csharp-import.json",
+    "after/pipeline/csharp-import.log",
+    "after/pipeline/csharp-linux-stored-export.json",
+    "after/pipeline/csharp-linux-stored-export.log",
+    "after/pipeline/csharp-ui/linux.json",
+    "after/pipeline/csharp-ui/windows.json",
+    "after/pipeline/csharp-ui.log",
+    "after/pipeline/csharp-windows-stored-export.json",
+    "after/pipeline/csharp-windows-stored-export.log",
+    "after/pipeline/pipeline-manifest.json",
+    "after/pipeline/probe-build.log",
+    "after/pipeline/python-import.json",
+    "after/pipeline/python-import.log",
+    "after/pipeline/python-linux-stored-export.json",
+    "after/pipeline/python-linux-stored-export.log",
+    "after/pipeline/python-ui/linux.json",
+    "after/pipeline/python-ui/windows.json",
+    "after/pipeline/python-ui.log",
+    "after/pipeline/python-windows-stored-export.json",
+    "after/pipeline/python-windows-stored-export.log",
+    "after/python-final.log",
+    "after/python-first.log",
+    "after/python-verified.log",
+    "after/ui-model/linux.json",
+    "after/ui-model/windows.json",
+    "after/ui-model-first.log",
+    "after/ui-model-second.log",
+    "after/ui-model-verified.log",
+    "before/assembly-calendar-delta.patch",
+    "before/birthday-display.log",
+    "before/csharp-canonical.json",
+    "before/csharp.json",
+    "before/invalid-ics.log",
+    "before/legacy-alias.log",
+    "before/python-canonical.log",
+    "before/python-final-vectors.log",
+    "before/python.log",
+    "before/ui-canonical/linux.json",
+    "before/ui-canonical/windows.json",
+    "before/ui-canonical-linux.log",
+    "before/ui-canonical-windows.log",
+    "before/ui-model/linux.json",
+    "before/ui-model/windows.json",
+    "before/ui-model.log",
+    "calendar-book-probe.py",
+    "codec-runner/CalendarCodecProbe.csproj",
+    "codec-runner/Program.cs",
+    "harness-notes.json",
+    "manifest.json",
+    "run-pipeline.py",
+    "test-commands.json"
+  ],
+  "independent_evidence": [
+    {
+      "path": "../independent-final-1.log",
+      "sha256": "27a3c76601264a11818c5f44f811ba09ceed0895ec34e627a2a5fa495b02aa55"
+    },
+    {
+      "path": "../independent-final-2.log",
+      "sha256": "fbeba654b64dde853b368c01f72810389708789d41e65b703d3c75c1e231cf3e"
+    },
+    {
+      "path": "../independent-final-3.log",
+      "sha256": "db4844c88adc0efcf00a7985aeebdc103a8809add556aaf8e154d4ffe8381ee3"
+    },
+    {
+      "path": "../independent-final-alias-result.json",
+      "sha256": "8e9b0d7095de3906bf0cf75b33bc62b2f6a3b3dabbf5f36eb99126a0f9fae32b"
+    },
+    {
+      "path": "../independent-final-detail.json",
+      "sha256": "948383f43b4033495bf53304ed58a328187a45b005022b076affff57b803d640"
+    },
+    {
+      "path": "../independent-final-executions.json",
+      "sha256": "d0b577a18eb96a984f0c3522c0c698af9f8efe2d5b1a03f7b9d2e51a16259e00"
+    },
+    {
+      "path": "../independent-final-legacy-result.json",
+      "sha256": "1dd87660e78ff9e762364a8c25e88f769b6b6b333b14b86682143ede0da614a8"
+    },
+    {
+      "path": "../independent-final-review.json",
+      "sha256": "05000d7ee9042ae0a30202cd1349917d5e79c2a2e4de1b5c369c1566b28f4374"
+    }
+  ],
+  "excluded": [
+    "bin/",
+    "obj/",
+    "__pycache__/",
+    "temporary synthetic books"
+  ]
+}

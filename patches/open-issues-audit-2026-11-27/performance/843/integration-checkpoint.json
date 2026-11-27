@@ -1,0 +1,8 @@
+{
+  "source_commit": "9c00336342f736f541cf14e006de1248b22b8850",
+  "integrated_rest_series_commit": "aed96df09d0d536832e5e1ad0d2ffa00b7ef9b1e",
+  "stable_patch_id": "e113860dcbec60ca2cc16f3e9cf6fdb8c7ed6c3a",
+  "same_patch": true,
+  "checked_read_only_in": "open-audit-current",
+  "boundary_de": "Root hat den Patch auf die separate integrierte Restserie übernommen. Der stabile Patch-ID-Abgleich ist lesend bestätigt; dieser Nachweis ersetzt keine abschließenden integrierten Tests und behauptet keinen Main-Merge oder Paketfreigabe."
+}

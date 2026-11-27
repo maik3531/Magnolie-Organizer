@@ -1,0 +1,37 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____________ test_nextcloud_partial_report_aborts_without_result ______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f45a7bc61e0>
+
+    def test_nextcloud_partial_report_aborts_without_result(monkeypatch):
+        dav = SyncDav({"calendar": [{"href": "https://cloud.example/calendar/bad.ics",
+                                      "etag": '"bad"', "data": "not an ics"}],
+                       "addressbook": []})
+        with pytest.raises(ValueError):
+>           run_sync(monkeypatch, dav, empty_data())
+
+magnolie-organizer/pruefungen/test_nextcloud.py:1237: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+magnolie-organizer/pruefungen/test_nextcloud.py:968: in run_sync
+    m.Fenster._nextcloud_sync_ausfuehren(
+magnolie-organizer/bin/magnolie-organizer:30142: in _nextcloud_sync_ausfuehren
+    pruefe_jahrestagsbereich(ics_lesen(resource["data"]), resource["data"])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = 'not an ics', quellenname = '', quellen_id = ''
+jahrestage_als_termine = False
+
+    def ics_lesen(text, quellenname="", quellen_id="", jahrestage_als_termine=False):
+        """Liest iCalendar-Text. Termine, jährliche Wiederholungen (als
+        Jahrestage) und VTODO-Aufgaben werden übernommen; eingebettete
+        Bestandteile wie VALARM bleiben als Roundtrip-Daten erhalten."""
+        if not isinstance(text, str) or "\x00" in text or not re.search(
+                r"(?im)^BEGIN:(?:VCALENDAR|VEVENT|VTODO)\s*$", text):
+>           raise ValueError(_("The selected file is not a readable iCalendar file."))
+E           UnboundLocalError: cannot access local variable '_' where it is not associated with a value
+
+magnolie-organizer/bin/magnolie-organizer:3585: UnboundLocalError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_nextcloud.py::test_nextcloud_partial_report_aborts_without_result
+1 failed in 1.69s

@@ -1,0 +1,138 @@
+{
+  "head": "bfac85982ed16b877e0c4f06e4fcb4fcda341125",
+  "tree": "0ad6fd88ad26868bd608a2fa86e5487a5bda57d9",
+  "inputs": {
+    "magnolie-organizer/bin/magnolie-organizer": "665866bf099edfc1b7d0629f2e9e0ae61714789ec1f68599bd50f7489750908a",
+    "magnolie-organizer/bin/magnolie_nextcloud.py": "8c3cac6032aa30fba04dd2719cd296cf4ab1df6c69a6a7e403db0aebdf8df726",
+    "magnolie-organizer-windows/MagnolienbaumCoordinator.cs": "11547f72b414f11c0ef23b097075bb7ba87b59ad087c5e609ae213405b63457c",
+    "magnolie-organizer-windows/NextcloudMailbox.cs": "04af03481bac19b2513d6b9f17d5e0e88530a6dffc040830b25e128eb17a8e4b",
+    "magnolie-organizer-windows/tests/Program.cs": "f5d5f40afa67b4f09811d0de8f8a31335cf25fcb88799ca48d44c5e73b878639",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Kanonisch.kt": "93519405a31e985eff509b1946054fde9a5ac92d2b6cce170c0fe4b452a2ffcc",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktOriginalVersuche.kt": "84b92a4530efa469aa44eb4564354e69dc66c432fae9900ea5c0a3cedca57978",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Sitzung.kt": "e39a543a414902b3ab3e2fd680c653c876a69f61d2c192e6db26c35ee250ad54",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/AndroidKontakte.kt": "4d5feb682118f70627f1885b52f9588838cf0157b1357bf2146115b998d7d714",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktOriginalZuordnungen.kt": "c2fdbe4c88fdb31a2d255959aab4808fc2974841d6e6e6033017fad5c7bbec93",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/BaumDienst.kt": "e53402d939bd39cac0f040395bc459b8a2a3aa7e0fcbfcbd30ed6ff6980ea8c9",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baum1.kt": "f0c461b7ca59e0bb263505e9bcec71b6d9407ce3475ddb66c7673352e77f2f10",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktOriginalInhalt.kt": "f1de1fd9fbf52fbdc26bc3b265867a4ba95c81f9ab586dac66091a7fbb99825e",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktUebernahme.kt": "1311ecc6e7adca0f3e15e6251436bbadc8c09872e71c0b4c5d1e86703831898f",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktSync.kt": "9f4985e3ad283a42ff15d0a61435a1f23baa481728106c4d018e1d20387af241",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktEingang.kt": "810f8177c193c829a3218010bfe123b0d1b448239dd750101922709a4d2aa9b7",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktOriginalBindung.kt": "a52afa9f8804e061203d9e840bb33528c12cfa5d56be407d6ab043f75f9a03e8",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baum1Quittung.kt": "ab201c4494f4a612f66acc29ff39180aaef2cc6f7a237e41ba121e6b7e86b78e",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Versand.kt": "3708f811eb9ab114278d2dce8142418b3ccc16283d19aa2cb0b709c96345ae13",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Synchronisation.kt": "4ea523060205a6bb240a750b9806b60b2f04be5ba8f429231ee30e103e4e4220",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktImport.kt": "a2025261a51674ccd95914499321f84d32bc6c91e01e8c905a5d8ee271498fb1",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktOriginalDateien.kt": "66a0c2e99a86b8928b61bc0db61cf53e7bdc17abd8f67d728e6adc060527027a",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Server.kt": "f20e2edcf57ce1baaf0bf38b7561778a5c671270f8a46da98f5b3154ce01497a",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktOriginalEmpfang.kt": "46d11e5ac51bb93f02227d2d8f87ec5edb2d1044ab5a0d5856eca30f8704629c",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/BluetoothHorcher.kt": "ab8621d36433b1a3462dc4e6af6027910d22126a2c0a09acb167441785b9c4a1",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktOriginalFreigaben.kt": "d56eef67d9d12c11fb0fef3015fe552caf197324ac1a420d9534e07ffb953f08",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktOriginalDauerfreigaben.kt": "30da7678046ae675e11256fb4528424f053dfb88f7c33c2fe8a1ae05a3af7838",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/AnhangSpeicher.kt": "82a160dbaa0cb81e314087a6b4b1b6a732251c12d4a966f9373353e9a2ee2a29",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/AutoSync.kt": "90a094f38484454200b6678464ded1be34156185fbdecc73fdf5cbd3a9d03434",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Paarung.kt": "0ff99482ba6eb1bf2ca93d4aaf29f8bca539f1a2b3289d5352aa59b56e37a725",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/PaarungsLink.kt": "24638a900d7c7d356c4a33095c22fbcf6212c75280d6e5540025aadb1c2665e1",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Transport.kt": "d536fb865f841ba6b2c19bc959732147a3d9ef6f27e8f189a3ec1607678bc4a5",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/AndroidKontaktGruppen.kt": "182b984c23604a4513c5d98dfb08d7168f6f9c417c9aa9b1c9d3cad0cb382849",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktOriginalSchutz.kt": "af788cf41a5cb97e9a75e56c7782bc3e25a8cf743fad15de0c80c41757f9de4d",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktOriginalExport.kt": "ee54eee8ee83f2a4e0a4ae1639e3dd192fc56830fb04a1a8c9f4210b40692442",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/KontaktPruefung.kt": "05a1dde8ee32509dd1efd5c65692a8a4a16a530125115fa8af5dc1494289a7aa",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Nutzlast.kt": "bfc1cf545829c916e314e28260cc225d75123c83375cbbb22484283a24297235",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Krypto.kt": "df2e610fa56d7aed6182928bcc43c321de0ea40bb79a65cdddee999b97b4c71f",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Entdeckung.kt": "532b610cf1f8da8b6eaacefbde26192146d7baadb340d814fb23ccbd55972968",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt": "c3715079c5bef204bf8611ca40bb2991a1cffd24cf7787bbc94d142f1912ee24",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/FernAbgleich.kt": "aafe60506e07d837b84ac4339c4fd5c6845cd9df6e6f0463298924b17d9f7463",
+    "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/NotizQuellen.kt": "1b7456024eb9360b5da3ca3494c810b4c9aeb52424fc11e0e2d2b826f37d9b1b"
+  },
+  "runs": [
+    {
+      "name": "python-tree",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "magnolie-organizer/pruefungen/test_fs1_identity_binding.py",
+        "magnolie-organizer/pruefungen/test_tree_pair_request.py",
+        "magnolie-organizer/pruefungen/test_baum_receipts.py",
+        "magnolie-organizer/pruefungen/test_baum_discovery_firewall.py",
+        "magnolie-organizer/pruefungen/test_baum_off_state.py",
+        "magnolie-organizer/pruefungen/test_baum_ui_opt_in.py",
+        "magnolie-organizer/pruefungen/test_auto_sync_transport.py"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-final",
+      "exit_code": 0,
+      "seconds": 5.859,
+      "log": "python-tree.log",
+      "sha256": "267a4aeeaab073106fff34aa3b9ee199cc3bd1decb3f3c6bcdf3393878feb543",
+      "counts": {
+        "passed": 47
+      }
+    },
+    {
+      "name": "tree-protocol",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Magnolienbaum Crypto / Pairing / FS1 / Replay / Queues / Netzwerk"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows",
+      "exit_code": 1,
+      "seconds": 51.094,
+      "log": "tree-protocol.log",
+      "sha256": "a27bbfefff609602dab64342ea6b5cf3efe0faa23c09c5928561cc9e1a43eda8",
+      "passed_groups": 0,
+      "total_groups": 1
+    },
+    {
+      "name": "mailbox",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Magnolienbaum Nextcloud / WebDAV / Authentisierung"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows",
+      "exit_code": 0,
+      "seconds": 0.297,
+      "log": "mailbox.log",
+      "sha256": "2b1b0ccca3760bcbab9aa480b1a85f3468dd0cec093d37a201adf4d95a65a97b",
+      "passed_groups": 1,
+      "total_groups": 1
+    },
+    {
+      "name": "snapshot",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Baum synchronization snapshot continuity"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows",
+      "exit_code": 0,
+      "seconds": 0.175,
+      "log": "snapshot.log",
+      "sha256": "156aa5387e04bef3caa1b7440a0e70be0b8fab2004199f934d1e193e1dc20b5d",
+      "passed_groups": 1,
+      "total_groups": 1
+    },
+    {
+      "name": "discovery",
+      "command": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "Magnolienbaum discovery / allowed UDP port / active listener"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-final/magnolie-organizer-windows",
+      "exit_code": 0,
+      "seconds": 6.293,
+      "log": "discovery.log",
+      "sha256": "b059d9243c358ee52f0977ef2764d6ac2a2d13ee04848d0f52333f9601531ac8",
+      "passed_groups": 1,
+      "total_groups": 1
+    }
+  ],
+  "boundary": "Actual Python and C# host code with synthetic peers/local fixtures. Notes Kotlin remote route and Compose setup reviewed as source only; Android/Robolectric and real Internet/device/NAT behavior not executed.",
+  "assembly_sha256": "75db6d7debe0d373bc55af89b2422facdca961d75063324097ce3df9f6827c74",
+  "inputs_unchanged": true,
+  "passed": false
+}

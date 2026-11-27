@@ -1,0 +1,203 @@
+{
+  "review": "targeted_media_source_delta_only",
+  "from_commit": "50b1512234a765635f82af4537f277594fbf9878",
+  "to_commit": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "to_tree": "c465628581d0e4f49bc02e64db41f8a9cc73b2ae",
+  "commits": [
+    {
+      "commit": "4664c8940fba6d71134ac952ba98e214203a7fb0",
+      "title": "Refs #841: Cover regional Arabic through application startup"
+    },
+    {
+      "commit": "9fff707a5c3f76fac9b4022bf52a4a340e07aed4",
+      "title": "Refs #842: Expand the Windows import encoding regression matrix"
+    },
+    {
+      "commit": "f635d84068ffcf11a483dd50827be7f585649877",
+      "title": "Refs #839: Cover coincident due-day and early task reminders"
+    },
+    {
+      "commit": "d25b0142fda1c0e23bd845d736497d0a2e5738b9",
+      "title": "Refs #330: Preserve acknowledged Linux media controls on equivalent WLAN refresh"
+    },
+    {
+      "commit": "312366a363a413a31139da149d2846f8ca76c8cf",
+      "title": "Refs #330 #429: Create private media defaults under verified user-group directories"
+    },
+    {
+      "commit": "bf47c5b484113728e6086452497ca8651dd29e2a",
+      "title": "Refs #330: Admit manual first photo receive on the original WLAN reader"
+    },
+    {
+      "commit": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+      "title": "Refs #330: Keep acknowledged Notes media agreement across equivalent WLAN revisions"
+    }
+  ],
+  "new_tests_executed": false,
+  "native_or_installed_pair_tests_executed": false,
+  "conclusion_de": "Die produktive Shared-Capability-/Anbindungsgrenze bleibt bestehen. Die aktuelle Hauptquelle enthält inzwischen zusätzliche konkrete Linux-/Notes-Integrationsbausteine; diese dürfen nicht mehr als fehlende Implementierung beschrieben werden. Die Windows-UI-Datei und der Statuskoordinator sind gegenüber50b15122 unverändert, deshalb bleiben beide759-Nachträge relevant.",
+  "now_implemented_in_main": [
+    {
+      "commits": [
+        "d25b0142fda1c0e23bd845d736497d0a2e5738b9",
+        "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b"
+      ],
+      "detail_de": "Linux und Notes erhalten eine bereits bestätigte Medienvereinbarung bei einer ausschließlich revisionshöheren, inhaltlich gleichen WLAN-Fähigkeits-/Rechteerneuerung. Tatsächliche Änderungen sperren den alten Zustand weiter. Notes publiziert den äquivalenten Pendingzustand atomar mit der Peerpersistenz.",
+      "paths": [
+        "magnolie-organizer/bin/magnolie_telefon.py",
+        "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt"
+      ]
+    },
+    {
+      "commits": [
+        "312366a363a413a31139da149d2846f8ca76c8cf"
+      ],
+      "detail_de": "Linux kann neue private Foto-/Video-Standardziele unter verifizierten lokalen Benutzergruppen-Elternordnern anlegen. Dafür werden Gruppenmitgliedschaft, Pfadidentitäten und zusätzliche ACL-Schreibrechte geprüft; bestehende Ziele werden nicht pauschal umberechtigt.",
+      "paths": [
+        "magnolie-organizer/bin/magnolie_photo_destination.py"
+      ]
+    },
+    {
+      "commits": [
+        "bf47c5b484113728e6086452497ca8651dd29e2a"
+      ],
+      "detail_de": "Ein eng begrenzter manueller erster Fotoempfang läuft auf dem ursprünglichen privaten WLAN-Leser über Jetzt synchronisieren. Bei passender bestätigter Foto-only-/manueller Wahl entfällt der separate Empfangsschalter. Der Lauf kann ein noch nicht vorhandenes Ziel/Policy initialisieren, wahrt gespeichertes AUS und fremde Bindungen, prüft aktuelle native SEND/RECEIVE-Rückmeldungen und fordert nötigen Android-Lesezugriff gesondert an.",
+      "paths": [
+        "magnolie-organizer/bin/magnolie_file_desktop_connection.py",
+        "magnolie-organizer/bin/magnolie_media_storage_bootstrap.py",
+        "magnolie-organizer/web/anwendung.js"
+      ]
+    }
+  ],
+  "still_open_de": [
+    "Die Notes-Standardliste TelefonCapabilities.phase1 enthält weiterhin keinen MediaSyncSettings-Discoverymarker; auch die Windows-Standardliste wurde nicht geändert.",
+    "Notes nativeMediaSupportChecked und Linux _native_media_support_checked bleiben im regulären Initialzustand false. Die neuen privaten Wege sind damit kein Beleg einer regulär freigegebenen produktiven Anbindung.",
+    "Die automatische Übernahme einer Organizer-Feldeinstellung ohne weitere manuelle Notes-Bestätigung bleibt als vorhandener Transportpfad erhalten; tatsächlicher Nachweis am passenden installierten Produktpaar ist weiter offen.",
+    "Der neue Erstempfang ist ausdrücklich Foto-only und manuell. Video-Erstempfang, gemischte Läufe und WLAN-Automatik sind davon nicht freigegeben.",
+    "Windows/Linux-Parität, sicherer Android-Originalrückweg, Löschweitergabe und reale Paket-Paarabnahme bleiben eigenständige #330/#338-Restkriterien."
+  ],
+  "evidence": [
+    {
+      "path": "magnolie-organizer/bin/magnolie_telefon.py",
+      "commit": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+      "members": "PhoneService.__init__, _observe_native_file_control, _equivalent_native_metadata_refresh, _begin_native_media_support",
+      "detail_de": "Private Standardfreigabe bleibt False; äquivalente Metadaten werden von echten Änderungen unterschieden."
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_desktop_connection.py",
+      "commit": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+      "members": "photo_state, _first_image_receive_choice, _prepare_first_image_receive, start, _run",
+      "detail_de": "Neue Zulassung verlangt ursprünglichen privaten Supportpfad, genau images, manuellen Intent und passende gespeicherte Policy. Vorbereitung hat eine eigene begrenzte Deadline und erhält native Laufgrenzen."
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "commit": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+      "members": "manualImageReceive, photoManualSync",
+      "detail_de": "Neue UI-Projektion benutzt bereits bestätigte gemeinsame Werte und sendet einen normalen sync_shared-Start; kein zusätzlicher Notes-Einstellungsdialog."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt",
+      "commit": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+      "members": "nativeMediaSupportChecked, observeMediaSupportControl, hasAcknowledgedMediaControl, mediaSupportReaderCurrent, receiveMessageCurrent",
+      "detail_de": "Neue ACK-Erneuerungslogik, aber weiterhin private Standardfreigabe false; der bestehende automatische Media-Receive/Merge/ACK-Weg wurde hier nicht ersetzt."
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonModelle.kt",
+      "commit": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+      "members": "TelefonCapabilities.phase1",
+      "detail_de": "Standardfähigkeiten bytegleich zu50b15122; keine neue Shared-Medien-Discoverywerbung."
+    },
+    {
+      "path": "ARBEITSSTAND.md",
+      "commit": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+      "detail_de": "Neu dokumentierte Laufzahlen58/75/194/91/12 stammen aus den übernommenen Commitnachweisen. Sie wurden in diesem begrenzten Delta-Abgleich nicht erneut ausgeführt."
+    }
+  ],
+  "source_snapshots": [
+    {
+      "path": "magnolie-organizer/bin/magnolie_telefon.py",
+      "sha256_at_50b15122": "564f4c889c2dec3b68b9f3c4b0b0167e3724d039a5a0153f9a1abd1705be4ac2",
+      "sha256_at_24927cf9": "bb0dc7f75401f03742cb657f6bcd9600aebb2fc714a42e7cfd4f358a788c931f",
+      "bytes_equal": false
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_file_desktop_connection.py",
+      "sha256_at_50b15122": "37d501c69c49a2350a2fbc10333117ec995bfb5b778701ff6c7789e0f5d45c8a",
+      "sha256_at_24927cf9": "951e18e0e3d173c91f0780b83ae3cc141189bb8ef048cb3372fa98d8d1697b3d",
+      "bytes_equal": false
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_media_storage_bootstrap.py",
+      "sha256_at_50b15122": "71a94cc94264dc238a4c3cf76d944cc6f023604c6441231ddc6cb8d2adfa17a0",
+      "sha256_at_24927cf9": "a22fb8de7d59801e7f6103a032aa38510a307c0a906609e21835ddc5030c47a7",
+      "bytes_equal": false
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_photo_destination.py",
+      "sha256_at_50b15122": "45329a78c367266ff0181d8bd431ae3e541e553cfd850839955e9d871aa302cd",
+      "sha256_at_24927cf9": "55b5eb60edd89746247e751a816e0f387ecc26d36a6b10ccef1562f2766db5e0",
+      "bytes_equal": false
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "sha256_at_50b15122": "573b2b457689c9d3e7a71be4aca60630144b892e0fd53ce21c778d8806259440",
+      "sha256_at_24927cf9": "a6a34206aed0b92c294607a8155593d1d9ef2a712321f1d5e1c54b18fd72f18a",
+      "bytes_equal": false
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt",
+      "sha256_at_50b15122": "b1046188783708bed450010f4fb7227cf11f98884d2239a25adc43bca1cfc202",
+      "sha256_at_24927cf9": "4dd66077ad5067841e0cf7e6d01bad712f465fba0d42d3a4c2e88d506a1e36a3",
+      "bytes_equal": false
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonModelle.kt",
+      "sha256_at_50b15122": "9aed6f9df0934d1d8a29f5c2782e57936230026aa21870a4d3ee66e7a6742f9e",
+      "sha256_at_24927cf9": "9aed6f9df0934d1d8a29f5c2782e57936230026aa21870a4d3ee66e7a6742f9e",
+      "bytes_equal": true
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/MediaSyncTransport.kt",
+      "sha256_at_50b15122": "dd36c80d41d42bf6bee3dcf2a5fd1d6ea3156c2877f04443063fa3545fc88a65",
+      "sha256_at_24927cf9": "dd36c80d41d42bf6bee3dcf2a5fd1d6ea3156c2877f04443063fa3545fc88a65",
+      "bytes_equal": true
+    },
+    {
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/NativeMediaSettingsLane.kt",
+      "sha256_at_50b15122": "5c11711a33ea67a932c5946861ab93215e7ec2515652c0833d1b9545ce4ec07f",
+      "sha256_at_24927cf9": "5c11711a33ea67a932c5946861ab93215e7ec2515652c0833d1b9545ce4ec07f",
+      "bytes_equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/phone-media.js",
+      "sha256_at_50b15122": "79d16842bac53b090b058474edad25c3791f6ffd5c73fdd20d14c2dd6c4c0ccf",
+      "sha256_at_24927cf9": "79d16842bac53b090b058474edad25c3791f6ffd5c73fdd20d14c2dd6c4c0ccf",
+      "bytes_equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "sha256_at_50b15122": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+      "sha256_at_24927cf9": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+      "bytes_equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/DeviceFileUiCoordinator.cs",
+      "sha256_at_50b15122": "8ae1190c422b07f1c4964189d166d0072b4385bd7e3c51bd3b377f7e6e332739",
+      "sha256_at_24927cf9": "8ae1190c422b07f1c4964189d166d0072b4385bd7e3c51bd3b377f7e6e332739",
+      "bytes_equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/DeviceFileConnectionSharedSettings.cs",
+      "sha256_at_50b15122": "cf090c23aeb89628fdf8837982f7028b104ccf11d32e98adc61be35d147b31e6",
+      "sha256_at_24927cf9": "cf090c23aeb89628fdf8837982f7028b104ccf11d32e98adc61be35d147b31e6",
+      "bytes_equal": true
+    },
+    {
+      "path": "magnolie-organizer-windows/TelefonProtocolContract.cs",
+      "sha256_at_50b15122": "ea4c9608c72b277d12957af52e93810b437a1465a5deb2593693ef0a13eeb4f0",
+      "sha256_at_24927cf9": "ea4c9608c72b277d12957af52e93810b437a1465a5deb2593693ef0a13eeb4f0",
+      "bytes_equal": true
+    }
+  ],
+  "limits_de": "Gezielter Lesen-/Diffabgleich der genannten Änderungen auf festem24927cf, kein erneuter Gesamtaudit und keine neue Runtime-, Native-, Geräte- oder Paketbehauptung. Historische759-Patches bleiben an50b15122 gebunden; Root passt die gemeinsame Restserie gesondert an24927cf an."
+}

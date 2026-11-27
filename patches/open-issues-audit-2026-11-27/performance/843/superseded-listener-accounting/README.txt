@@ -1,0 +1,1 @@
+Erster Messhelfer zählte einmalige Listener nach ausgelöstem unload noch in seiner eigenen Menge. Vor-unload-Zählung und URL-Befund waren richtig; finaler Helfer berücksichtigt die automatische once-Entfernung. Diese erste Metadatenausgabe ist ersetzt, kein Produktbefund.

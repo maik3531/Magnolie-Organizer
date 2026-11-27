@@ -1,0 +1,28 @@
+{
+  "initial_audit_base": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "current_upstream_base": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "current_followup_commits": [
+    "559c5c1f103caf0be09d381e0ca59f2e07b9e608",
+    "573905f561f00537c39a98133aa8e7719239a4af"
+  ],
+  "historical_do_not_apply": "8d7263fda398f7ee0cbe6b9f5b7bab3e9d6c5f5a",
+  "reports": {
+    "nextcloud-caldav-audit.json": "bedd5d3e285ae15e2bdc6f7cd25edde80f6ab28de242004b0e3753f4661c1fc6",
+    "nextcloud-caldav-README.md": "63bed4746baaa9b13444a76521c01a50729232c763e53a2df4f0f15a3dd7c188"
+  },
+  "checksums": {
+    "nextcloud-caldav-evidence/issue-845/upstream-remainder": {
+      "files": 35,
+      "sha256": "734fe9fc21ee3aaa6894a81697ba9d28c0d01640d30d7a2e3ff0429a0cf59b8d"
+    },
+    "nextcloud-caldav-evidence/issue-845": {
+      "files": 85,
+      "sha256": "fddfc5f3aa5f8c7974b701dabfa8c811b411236d0f4f0a4c4e5f7e7594add6c1"
+    }
+  },
+  "excluded_analysis_cache": [
+    "nextcloud-caldav-evidence/official-BirthdayService-stable35.php",
+    "nextcloud-caldav-evidence/official-BirthdayService.php"
+  ],
+  "artifact_only_no_main_merge": true
+}

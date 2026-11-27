@@ -1,0 +1,27 @@
+{
+  "root": "/workspace/scratch/7203da5bd564/open-audit-latest-source",
+  "input_sha256": "0c06acdcb05b127edb8728f42cf4a3c47c44498efb14db67a42770188d1d0847",
+  "results": [
+    {
+      "case": "linux-dav-scope",
+      "ok": false,
+      "outcome": "success",
+      "birthday_count": 0,
+      "appointment_count": 0,
+      "puts": 0,
+      "deletes": 0
+    },
+    {
+      "case": "type-edit-last-february",
+      "ok": false,
+      "rules": [
+        "RRULE:FREQ=YEARLY"
+      ],
+      "nextcloud_markers_remain": false,
+      "birthday_count": 1,
+      "date": "--02-29",
+      "type": "wedding-anniversary",
+      "exported": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nX-APPLE-CALENDAR-COLOR:#123456\r\nBEGIN:VEVENT\r\nUID:synthetic-yearless-leap\r\nDTSTAMP:20261127T193906Z\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-DATE:--02-29\r\nSUMMARY:Synthetic birthday\r\nCATEGORIES:Hochzeitstag\r\nX-MAGNOLIE-TYPE-ID:wedding-anniversary\r\nX-MAGNOLIE-TYP:Hochzeitstag\r\nX-MAGNOLIE-JAHRESTAG-TYP:wedding-anniversary\r\nDESCRIPTION:Keep this note\r\nX-MAGNOLIE-ACCENT-COLOR:#ff0000\r\nCOLOR:red\r\nTRANSP:TRANSPARENT\r\nX-SYNTHETIC-PRESERVE:keep\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DURATION:PT9H\r\nDESCRIPTION:Keep alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+    }
+  ]
+}

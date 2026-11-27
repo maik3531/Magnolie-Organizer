@@ -1,0 +1,43 @@
+FAIL old peer waits without legacy edits or readiness claims
+AssertionError [ERR_ASSERTION]: A supported peer without shared settings needs a visible unavailable master
+    at assertWaiting (/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:47:3)
+    at /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:57:61
+    at /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:127:17
+    at Object.<anonymous> (/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:133:3)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+FAIL confirmed shared values restore controls without enabling or starting
+AssertionError [ERR_ASSERTION]: A supported peer without shared settings needs a visible unavailable master
+    at assertWaiting (/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:47:3)
+    at /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:67:32
+    at /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:127:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+FAIL loss of shared settings removes old choices without rewriting them
+AssertionError [ERR_ASSERTION]: A supported peer without shared settings needs a visible unavailable master
+    at assertWaiting (/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:47:3)
+    at /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:89:24
+    at /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:127:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+FAIL shared settings lost during Save-ACK do not dispatch the old edit
+AssertionError [ERR_ASSERTION]: A supported peer without shared settings needs a visible unavailable master
+    at assertWaiting (/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:47:3)
+    at cases.deferredSave (/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:101:24)
+    at /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:127:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+FAIL waiting retains Stop for an already running native operation
+AssertionError [ERR_ASSERTION]: A supported peer without shared settings needs a visible unavailable master
+    at assertWaiting (/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:47:3)
+    at /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:106:72
+    at /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:127:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+FAIL loaded local recovery remains reachable while shared media settings wait
+AssertionError [ERR_ASSERTION]: A supported peer without shared settings needs a visible unavailable master
+    at assertWaiting (/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:47:3)
+    at cases.withRecovery (/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:113:79)
+    at /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-wait-ui.js:127:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+0/6 Windows media waiting-state cases passed (JSDOM)

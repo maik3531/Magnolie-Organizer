@@ -1,0 +1,71 @@
+{
+  "head_at_execution": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "source_sha256": {
+    "magnolie-organizer/bin/magnolie-organizer": "d56b38f837ac04969e13fabc8210876b02982a262acbcf0670c9f0ac431b8b95",
+    "magnolie-organizer/web/anwendung.js": "0eda608891a9f508fb3155c45789c162364aa3377048f8deb6d2dbe12cc50122",
+    "magnolie-organizer-windows/app/web/anwendung.js": "d8a6a51533e67eeebc5a8eb1b793a53ab4f9cf8f4c27658cf38b5e76079b2f8f",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "74235130ed2fa7caa9189a3619bca1d31ffffb9a533c3895b7b569766f91c89e"
+  },
+  "executions": [
+    {
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/independent-preliminary-color-review.py",
+        "--baseline",
+        "/workspace/scratch/7203da5bd564/open-audit-395",
+        "--candidate",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+        "--output",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/independent-final-legacy-result.json"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules"
+      },
+      "exit_code": 0,
+      "duration_seconds": 0.18526152899903536,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/import-export/independent-final-1.log",
+      "log_sha256": "27a3c76601264a11818c5f44f811ba09ceed0895ec34e627a2a5fa495b02aa55"
+    },
+    {
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/independent-upstream-detail.py",
+        "--checkout",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+        "--output",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/independent-final-detail.json"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules"
+      },
+      "exit_code": 0,
+      "duration_seconds": 0.15973721699992893,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/import-export/independent-final-2.log",
+      "log_sha256": "fbeba654b64dde853b368c01f72810389708789d41e65b703d3c75c1e231cf3e"
+    },
+    {
+      "argv": [
+        "node",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/independent-upstream-alias-review.cjs",
+        "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+        "/workspace/scratch/7203da5bd564/open-audit-395",
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/independent-final-alias-result.json"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-colors-final",
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules"
+      },
+      "exit_code": 0,
+      "duration_seconds": 1.590094355000474,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/import-export/independent-final-3.log",
+      "log_sha256": "db4844c88adc0efcf00a7985aeebdc103a8809add556aaf8e154d4ffe8381ee3"
+    }
+  ],
+  "note_de": "Drei enge unabhängige Diagnoseprogramme auf stabilen Nachtragbytes; vor der Commitbindung. Produktflags in Ergebnisdateien gesondert bewertet, regulärer Skriptexit allein ist kein Produkterfolg."
+}

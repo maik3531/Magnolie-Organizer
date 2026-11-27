@@ -1,0 +1,6 @@
+PASS initial live phone row receives both local history replies
+PASS multiple initial rows retain history and automatic status refresh
+PASS offline local history remains independent of live media status
+PASS disposed history requests cannot populate a reattached old row
+PASS initial history replies remain bound to their actual peer
+5/5 Windows media recovery-mount cases passed (JSDOM)

@@ -1,0 +1,1 @@
+Der Initialpatch 0008-Refs-845-nextcloud-birthday-semantics.patch / Commit8d7263fd ist seit Upstream7a490dd8 historisch. Nicht erneut anwenden. Nur den geprüften Restpatch unter upstream-remainder/ berücksichtigen. Der frühere vollständige Stand ist separat archiviert; dieses Archiv ist kein aktueller Anwendungsvorschlag.

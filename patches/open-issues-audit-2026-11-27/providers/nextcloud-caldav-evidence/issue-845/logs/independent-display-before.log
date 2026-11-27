@@ -1,0 +1,4 @@
+{"edition":"magnolie-organizer/web","id":"known-leap","expected_date":"1988-02-29","projections":[],"passed":false,"error":"Explicit Nextcloud BDAY remained an ordinary appointment\n\n1 !== 0\n"}
+{"edition":"magnolie-organizer/web","id":"yearless-leap","expected_date":"--02-29","projections":[],"passed":false,"error":"Explicit Nextcloud BDAY remained an ordinary appointment\n\n1 !== 0\n"}
+{"edition":"magnolie-organizer-windows/app/web","id":"known-leap","expected_date":"1988-02-29","projections":[],"passed":false,"error":"Explicit Nextcloud BDAY remained an ordinary appointment\n\n1 !== 0\n"}
+{"edition":"magnolie-organizer-windows/app/web","id":"yearless-leap","expected_date":"--02-29","projections":[],"passed":false,"error":"Explicit Nextcloud BDAY remained an ordinary appointment\n\n1 !== 0\n"}

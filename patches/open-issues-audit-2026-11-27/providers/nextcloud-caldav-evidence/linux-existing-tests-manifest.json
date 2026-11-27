@@ -1,0 +1,29 @@
+{
+  "base": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "argv": [
+    "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+    "-m",
+    "pytest",
+    "-q",
+    "magnolie-organizer/pruefungen/test_nextcloud.py",
+    "magnolie-organizer/pruefungen/test_dav_accent_baseline.py",
+    "magnolie-organizer/pruefungen/test_dav_birthday_cleanup.py",
+    "magnolie-organizer/pruefungen/test_contact_source_dav_factory.py"
+  ],
+  "cwd": "/workspace/scratch/7203da5bd564/open-audit-dav-tests",
+  "env": {
+    "PYTHONPATH": "/workspace/scratch/7203da5bd564/open-audit-dav-tests/magnolie-organizer/bin"
+  },
+  "exit_code": 1,
+  "elapsed_s": 7.9,
+  "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/logs/linux-existing-dav-tests.log",
+  "inputs": {
+    "magnolie-organizer/pruefungen/test_nextcloud.py": "1de86537553eb8d3f005b08205fed74aa94979ed672107a846a033d4f2a06263",
+    "magnolie-organizer/pruefungen/test_dav_accent_baseline.py": "af6fe7d0ff43836c1b51cc9f94f4ab5c5cf43aec95f9cdd1683aebc81403ad6f",
+    "magnolie-organizer/pruefungen/test_dav_birthday_cleanup.py": "a2cbc96f11534b3d064f809072494a8e2bc440e23b1cf1d7e7a63fe7f68b8a0d",
+    "magnolie-organizer/pruefungen/test_contact_source_dav_factory.py": "b907c7b1f3f9962ce01a1012fa249dc1635c8d793ac130b696da85f4cc6dccb1",
+    "magnolie-organizer/bin/magnolie_nextcloud.py": "8c3cac6032aa30fba04dd2719cd296cf4ab1df6c69a6a7e403db0aebdf8df726",
+    "magnolie-organizer/bin/magnolie-organizer": "7934accd6161750a643bf16dccba4244f59aef031af4024604d6b5d8c52003a9"
+  },
+  "boundary_de": "Bestehende unveränderte Hostregressionen, teils lokale synthetische HTTPS-Gegenstelle und teils Speicher-/Transportseams. Kein autorisierter echter Nextcloudserver und keine native GUI-/Kontenabnahme."
+}

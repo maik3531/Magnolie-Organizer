@@ -1,0 +1,199 @@
+....FFFF.FF....................................................F........ [ 61%]
+.............................................                            [100%]
+=================================== FAILURES ===================================
+________ test_csv_contact_roles_and_addresses_survive_vcard[work-only] _________
+
+native = <module 'magnolie_startup_read_failure' from '/workspace/scratch/7203da5bd564/open-audit-patches/magnolie-organizer/bin/magnolie-organizer'>
+vector = {'addresses': [{'land': 'DE', 'ort': 'Hamburg', 'plz': '20095', 'strasse': 'Firmenweg 2', ...}], 'headers': ['Vorname'...lich', 'Ort Geschäftlich', ...], 'id': 'work-only', 'phones': [{'typen': ['WORK', 'VOICE'], 'wert': '040654321'}], ...}
+
+    @pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
+    def test_csv_contact_roles_and_addresses_survive_vcard(native, vector):
+        text = io.StringIO()
+        writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
+        writer.writerow(vector["headers"])
+        writer.writerow(vector["row"])
+        raw = text.getvalue().encode("utf-8")
+        result = native.import_rohdaten_lesen("lotus", raw, "owned-contacts.csv")
+        assert result["uebersprungen"] == 0
+        contact, = result["kontakte"]
+        assert native.import_rohdaten_lesen("vcf", raw, "owned-contacts.csv")["kontakte"] == [contact]
+        for _ in range(3):
+            assert (contact["vorname"], contact["nachname"]) == ("Synthetic", "CSV")
+            assert rows(contact.get("telefone", []), ("wert",)) == rows(vector["phones"], ("wert",))
+            fields = ("strasse", "plz", "ort", "land")
+>           assert rows(contact.get("anschriften", []), fields) == rows(vector["addresses"], fields)
+E           AssertionError: assert [('Firmenweg ...ME', 'WORK'))] == [('Firmenweg ...', ('WORK',))]
+E             
+E             At index 0 diff: ('Firmenweg 2', '20095', 'Hamburg', 'DE', ('HOME', 'WORK')) != ('Firmenweg 2', '20095', 'Hamburg', 'DE', ('WORK',))
+E             Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py:37: AssertionError
+____ test_csv_contact_roles_and_addresses_survive_vcard[interleaved-fields] ____
+
+native = <module 'magnolie_startup_read_failure' from '/workspace/scratch/7203da5bd564/open-audit-patches/magnolie-organizer/bin/magnolie-organizer'>
+vector = {'addresses': [{'land': 'DE', 'ort': 'Berlin', 'plz': '10115', 'strasse': 'Privatweg 1', ...}, {'land': 'DE', 'ort': '... Privat', 'Ort Geschäftlich', 'PLZ Privat', 'Straße Geschäftlich', ...], 'id': 'interleaved-fields', 'phones': [], ...}
+
+    @pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
+    def test_csv_contact_roles_and_addresses_survive_vcard(native, vector):
+        text = io.StringIO()
+        writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
+        writer.writerow(vector["headers"])
+        writer.writerow(vector["row"])
+        raw = text.getvalue().encode("utf-8")
+        result = native.import_rohdaten_lesen("lotus", raw, "owned-contacts.csv")
+        assert result["uebersprungen"] == 0
+        contact, = result["kontakte"]
+        assert native.import_rohdaten_lesen("vcf", raw, "owned-contacts.csv")["kontakte"] == [contact]
+        for _ in range(3):
+            assert (contact["vorname"], contact["nachname"]) == ("Synthetic", "CSV")
+            assert rows(contact.get("telefone", []), ("wert",)) == rows(vector["phones"], ("wert",))
+            fields = ("strasse", "plz", "ort", "land")
+>           assert rows(contact.get("anschriften", []), fields) == rows(vector["addresses"], fields)
+E           AssertionError: assert [('Firmenweg ...', ('HOME',))] == [('Firmenweg ...', ('HOME',))]
+E             
+E             Left contains one more item: ('Privatweg 1', '10115', 'Hamburg', '', ('HOME',))
+E             Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py:37: AssertionError
+___ test_csv_contact_roles_and_addresses_survive_vcard[generic-and-explicit] ___
+
+native = <module 'magnolie_startup_read_failure' from '/workspace/scratch/7203da5bd564/open-audit-patches/magnolie-organizer/bin/magnolie-organizer'>
+vector = {'addresses': [{'land': 'DE', 'ort': 'Dresden', 'plz': '01067', 'strasse': 'Allgemeinweg 3', ...}, {'land': 'DE', 'ort...OICE'], 'wert': '030123456'}, {'typen': ['FAX'], 'wert': '030234567'}, {'typen': ['PAGER'], 'wert': '030345678'}], ...}
+
+    @pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
+    def test_csv_contact_roles_and_addresses_survive_vcard(native, vector):
+        text = io.StringIO()
+        writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
+        writer.writerow(vector["headers"])
+        writer.writerow(vector["row"])
+        raw = text.getvalue().encode("utf-8")
+        result = native.import_rohdaten_lesen("lotus", raw, "owned-contacts.csv")
+        assert result["uebersprungen"] == 0
+        contact, = result["kontakte"]
+        assert native.import_rohdaten_lesen("vcf", raw, "owned-contacts.csv")["kontakte"] == [contact]
+        for _ in range(3):
+            assert (contact["vorname"], contact["nachname"]) == ("Synthetic", "CSV")
+            assert rows(contact.get("telefone", []), ("wert",)) == rows(vector["phones"], ("wert",))
+            fields = ("strasse", "plz", "ort", "land")
+>           assert rows(contact.get("anschriften", []), fields) == rows(vector["addresses"], fields)
+E           AssertionError: assert [('Allgemeinw...', ('HOME',))] == [('Allgemeinw...', ('HOME',))]
+E             
+E             At index 0 diff: ('Allgemeinweg 3', '01067', 'Dresden', '', ('HOME',)) != ('Allgemeinweg 3', '01067', 'Dresden', 'DE', ())
+E             Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py:37: AssertionError
+_ test_csv_contact_roles_and_addresses_survive_vcard[partial-work-does-not-borrow-home-fields] _
+
+native = <module 'magnolie_startup_read_failure' from '/workspace/scratch/7203da5bd564/open-audit-patches/magnolie-organizer/bin/magnolie-organizer'>
+vector = {'addresses': [{'land': 'DE', 'ort': 'Berlin', 'plz': '10115', 'strasse': 'Privatweg 1', ...}, {'land': '', 'ort': '',...'Straße Privat', 'PLZ Privat', 'Ort Privat', ...], 'id': 'partial-work-does-not-borrow-home-fields', 'phones': [], ...}
+
+    @pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
+    def test_csv_contact_roles_and_addresses_survive_vcard(native, vector):
+        text = io.StringIO()
+        writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
+        writer.writerow(vector["headers"])
+        writer.writerow(vector["row"])
+        raw = text.getvalue().encode("utf-8")
+        result = native.import_rohdaten_lesen("lotus", raw, "owned-contacts.csv")
+        assert result["uebersprungen"] == 0
+        contact, = result["kontakte"]
+        assert native.import_rohdaten_lesen("vcf", raw, "owned-contacts.csv")["kontakte"] == [contact]
+        for _ in range(3):
+            assert (contact["vorname"], contact["nachname"]) == ("Synthetic", "CSV")
+            assert rows(contact.get("telefone", []), ("wert",)) == rows(vector["phones"], ("wert",))
+            fields = ("strasse", "plz", "ort", "land")
+>           assert rows(contact.get("anschriften", []), fields) == rows(vector["addresses"], fields)
+E           AssertionError: assert [('Firmenweg ...', ('HOME',))] == [('Firmenweg ...', ('HOME',))]
+E             
+E             At index 0 diff: ('Firmenweg 2', '10115', 'Berlin', '', ('HOME', 'WORK')) != ('Firmenweg 2', '', '', '', ('WORK',))
+E             Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py:37: AssertionError
+_ test_csv_contact_roles_and_addresses_survive_vcard[generic-keeps-no-invented-role] _
+
+native = <module 'magnolie_startup_read_failure' from '/workspace/scratch/7203da5bd564/open-audit-patches/magnolie-organizer/bin/magnolie-organizer'>
+vector = {'addresses': [{'land': 'DE', 'ort': 'Dresden', 'plz': '01067', 'strasse': 'Allgemeinweg 3', ...}], 'headers': ['Vorna...'PLZ', 'Ort', ...], 'id': 'generic-keeps-no-invented-role', 'phones': [{'typen': ['VOICE'], 'wert': '035123456'}], ...}
+
+    @pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
+    def test_csv_contact_roles_and_addresses_survive_vcard(native, vector):
+        text = io.StringIO()
+        writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
+        writer.writerow(vector["headers"])
+        writer.writerow(vector["row"])
+        raw = text.getvalue().encode("utf-8")
+        result = native.import_rohdaten_lesen("lotus", raw, "owned-contacts.csv")
+        assert result["uebersprungen"] == 0
+        contact, = result["kontakte"]
+        assert native.import_rohdaten_lesen("vcf", raw, "owned-contacts.csv")["kontakte"] == [contact]
+        for _ in range(3):
+            assert (contact["vorname"], contact["nachname"]) == ("Synthetic", "CSV")
+            assert rows(contact.get("telefone", []), ("wert",)) == rows(vector["phones"], ("wert",))
+            fields = ("strasse", "plz", "ort", "land")
+>           assert rows(contact.get("anschriften", []), fields) == rows(vector["addresses"], fields)
+E           AssertionError: assert [('Allgemeinw...', ('HOME',))] == [('Allgemeinw...n', 'DE', ())]
+E             
+E             At index 0 diff: ('Allgemeinweg 3', '01067', 'Dresden', '', ('HOME',)) != ('Allgemeinweg 3', '01067', 'Dresden', 'DE', ())
+E             Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py:37: AssertionError
+___ test_csv_contact_roles_and_addresses_survive_vcard[english-role-columns] ___
+
+native = <module 'magnolie_startup_read_failure' from '/workspace/scratch/7203da5bd564/open-audit-patches/magnolie-organizer/bin/magnolie-organizer'>
+vector = {'addresses': [{'land': 'DE', 'ort': 'Berlin', 'plz': '10115', 'strasse': 'Privatweg 1', ...}, {'land': 'DE', 'ort': '... 'phones': [{'typen': ['WORK', 'VOICE'], 'wert': '040654321'}, {'typen': ['HOME', 'VOICE'], 'wert': '030123456'}], ...}
+
+    @pytest.mark.parametrize("vector", VECTORS, ids=lambda case: case["id"])
+    def test_csv_contact_roles_and_addresses_survive_vcard(native, vector):
+        text = io.StringIO()
+        writer = csv.writer(text, delimiter=";", lineterminator="\r\n")
+        writer.writerow(vector["headers"])
+        writer.writerow(vector["row"])
+        raw = text.getvalue().encode("utf-8")
+        result = native.import_rohdaten_lesen("lotus", raw, "owned-contacts.csv")
+        assert result["uebersprungen"] == 0
+        contact, = result["kontakte"]
+        assert native.import_rohdaten_lesen("vcf", raw, "owned-contacts.csv")["kontakte"] == [contact]
+        for _ in range(3):
+            assert (contact["vorname"], contact["nachname"]) == ("Synthetic", "CSV")
+            assert rows(contact.get("telefone", []), ("wert",)) == rows(vector["phones"], ("wert",))
+            fields = ("strasse", "plz", "ort", "land")
+>           assert rows(contact.get("anschriften", []), fields) == rows(vector["addresses"], fields)
+E           AssertionError: assert [('Firmenweg ...', ('HOME',))] == [('Firmenweg ...', ('HOME',))]
+E             
+E             At index 0 diff: ('Firmenweg 2', '20095', 'Hamburg', 'DE', ('HOME', 'WORK')) != ('Firmenweg 2', '20095', 'Hamburg', 'DE', ('WORK',))
+E             Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py:37: AssertionError
+_ test_additive_restore_identity[contact-uid-change-restores-multiple-emergency-contacts] _
+
+case = {'area': 'contacts', 'collection': 'kontakte', 'current': [{'id': 'contact-local', 'kontaktpersonName': '', 'kontaktpe...ontaktpersonName': 'Alex Example', 'kontaktpersonStatus': 'Family', 'kontaktpersonTelefon': '+12025550101', ...}], ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f46c28376b0>
+
+    @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["id"])
+    def test_additive_restore_identity(case, monkeypatch):
+        monkeypatch.setattr(native, "jetzt_ms", lambda: 123456789)
+        name = case["collection"]
+        current = {name: copy.deepcopy(case["current"])}
+        snapshot = {name: copy.deepcopy(case["snapshot"])}
+        untouched = copy.deepcopy((current, snapshot))
+        if case.get("error") == "ambiguous-local-id":
+            with pytest.raises(ValueError):
+                native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+            assert (current, snapshot) == untouched
+            return
+        restored = native.journal_restore_daten(snapshot, current, [case["area"]], "additive")
+>       assert restored[name] == case["expected"]
+E       AssertionError: assert [{'id': 'cont...550101', ...}] == [{'id': 'cont...550101', ...}]
+E         
+E         At index 0 diff: {'id': 'contact-local', 'uid': 'new-uid', 'vorname': 'Current', 'kontaktpersonen': [], 'kontaktpersonName': 'Alex Example', 'kontaktpersonTelefon': '+12025550101', 'kontaktpersonStatus': 'Family'} != {'id': 'contact-local', 'uid': 'new-uid', 'vorname': 'Current', 'kontaktpersonen': [{'name': 'Alex Example', 'telefon': '+12025550101', 'status': 'Family'}, {'name': 'Berta Example', 'telefon': '+12025550102', 'status': 'Friend'}], 'kontaktpersonName': 'Alex Example', 'kontaktpersonTelefon': '+12025550101', 'kontaktpersonStatus': 'Family'}
+E         Use -v to get more diff
+
+magnolie-organizer/pruefungen/test_restore_identity.py:29: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py::test_csv_contact_roles_and_addresses_survive_vcard[work-only]
+FAILED magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py::test_csv_contact_roles_and_addresses_survive_vcard[interleaved-fields]
+FAILED magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py::test_csv_contact_roles_and_addresses_survive_vcard[generic-and-explicit]
+FAILED magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py::test_csv_contact_roles_and_addresses_survive_vcard[partial-work-does-not-borrow-home-fields]
+FAILED magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py::test_csv_contact_roles_and_addresses_survive_vcard[generic-keeps-no-invented-role]
+FAILED magnolie-organizer/pruefungen/test_lotus_csv_contact_fields.py::test_csv_contact_roles_and_addresses_survive_vcard[english-role-columns]
+FAILED magnolie-organizer/pruefungen/test_restore_identity.py::test_additive_restore_identity[contact-uid-change-restores-multiple-emergency-contacts]
+7 failed, 110 passed in 1.32s

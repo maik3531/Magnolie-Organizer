@@ -1,0 +1,1562 @@
+diff --git a/ARBEITSSTAND.md b/ARBEITSSTAND.md
+index 75793c14a1bd98ad67f31c4f1074632d7935117f..f6f98d61be667017780595811b5330d9e6f8eeed 100644
+--- a/ARBEITSSTAND.md
++++ b/ARBEITSSTAND.md
+@@ -50,8 +50,12 @@ aufgeführt.
+   WLAN-Kanal wurde ein MP4 bytegleich im Videoziel gespeichert, ohne Fotoziel
+   oder Fotoempfangsrecht. Getrenntes Video-READ, bestehendes AUS und lokaler
+   Widerruf sind geprüft. 147 Python- und 12 DOM-Fälle bestanden.
+-  Video-Empfang unter Windows, WLAN-Ersteinrichtung und installierte
+-  Paarprüfung bleiben offen.
++  Die Linux-WLAN-Ersteinrichtung startet erst nach einer bewussten Aktion
++  und plant erst nach bestätigtem Android-Lesezugriff für alle ausgewählten
++  Typen. Reiner Videoempfang wartet nach einem WLAN-Wechsel auf die frische
++  Vereinbarung und läuft dann auch bei geschlossenen Einstellungen an.
++  154 Python- und 13 DOM-Fälle sowie die 19 Sprachkataloge bestanden.
++  Windows-Erstempfang und installierte Paarprüfung bleiben offen.
+ - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
+   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte
+   zusammen, wenn ein Import ihr zwischenzeitlich eine UID zugewiesen hat.
+@@ -75,6 +79,13 @@ aufgeführt.
+   und gemischte Exporte behalten den jeweiligen Eintragsbezug.
+   69 Linux-Prüfungen, vier native Windows-Gruppen und beide
+   Oberflächenpfade bestanden.
++- [#845](https://github.com/maik3531/Magnolie-Organizer/issues/845):
++  Linux und Windows erkennen eindeutig markierte Nextcloud-Geburtstage.
++  Fehlende Geburtsjahre bleiben unbekannt; der 29. Februar behält beim
++  Export die Nextcloud-Regel für den letzten Februartag. Widersprüche,
++  andere Markertypen und Serienausnahmen bleiben Kalendertermine.
++  102 Linux-Prüfungen, sechs native Windows-Gruppen, beide
++  Oberflächenpfade und 44 Projektionsprüfungen bestanden.
+ - [#841](https://github.com/maik3531/Magnolie-Organizer/issues/841):
+   Organizer übernimmt die Schreibrichtung auch bei regionalen arabischen
+   Sprachcodes aus dem primären Sprachuntertag. 16 Startfälle mit den
+diff --git a/magnolie-organizer-windows/ExchangeCodec.cs b/magnolie-organizer-windows/ExchangeCodec.cs
+index d4ed1e328c686d889d350fe31280b6c01ce0ad24..c8648dc1b4842b3a320472f04a0334204c30b260 100644
+--- a/magnolie-organizer-windows/ExchangeCodec.cs
++++ b/magnolie-organizer-windows/ExchangeCodec.cs
+@@ -215,10 +215,25 @@ internal static partial class ExchangeCodec
+         var properties = new List<IcsProperty>();
+         var calendarColours = new List<IcsProperty>();
+         var calendarItems = new List<JsonObject>();
+-        var timezoneBlocks = Regex.Matches(string.Join("\n", Unfold(text)), @"(?ims)^BEGIN:VTIMEZONE\s*\n.*?^END:VTIMEZONE\s*$")
++        var unfolded = Unfold(text).ToArray();
++        var unfoldedText = string.Join("\n", unfolded);
++        var timezoneBlocks = Regex.Matches(unfoldedText, @"(?ims)^BEGIN:VTIMEZONE\s*\n.*?^END:VTIMEZONE\s*$")
+             .Select(match => match.Value.TrimEnd().Split('\n')).ToArray();
+         var zones = CalendarRecurrence.CalendarZones(timezoneBlocks);
+-        foreach (var line in Unfold(text))
++        // A detached instance needs its VEVENT master, even when the master
++        // carries a provider birthday marker.
++        var detachedUids = new HashSet<string>(StringComparer.Ordinal);
++        if (unfoldedText.Contains(NextcloudBirthdayType, StringComparison.OrdinalIgnoreCase) &&
++            unfoldedText.Contains("RECURRENCE-ID", StringComparison.OrdinalIgnoreCase))
++        {
++            foreach (Match block in EventBlock().Matches(unfoldedText))
++            {
++                var fields = TopLevelProperties(block.Value.Split('\n').Skip(1).Select(ParseIcsProperty).OfType<IcsProperty>());
++                if (First(fields, "RECURRENCE-ID") is not null && First(fields, "UID") is { } uid)
++                    detachedUids.Add(IcsText(uid.Value));
++            }
++        }
++        foreach (var line in unfolded)
+         {
+             var property = ParseIcsProperty(line);
+             if (property?.Name == "BEGIN")
+@@ -254,13 +269,11 @@ internal static partial class ExchangeCodec
+                     {
+                         if (component == "VEVENT")
+                         {
+-                            var result = ParseEvent(properties, timeZone, zones, birthdayRepairs);
+-                            if (result.Anniversary) anniversaries.Add(result.Value);
+-                            else
+-                            {
+-                                appointments.Add(result.Value);
+-                                if (parent == "VCALENDAR") calendarItems.Add(result.Value);
+-                            }
++                            var hasDetached = detachedUids.Count > 0 &&
++                                detachedUids.Contains(IcsText(First(TopLevelProperties(properties), "UID")?.Value ?? ""));
++                            var result = ParseEvent(properties, timeZone, zones, birthdayRepairs, allowProviderBirthday: !hasDetached);
++                            if (result.Anniversary) anniversaries.Add(result.Value); else appointments.Add(result.Value);
++                            if (parent == "VCALENDAR" && result.Value.ContainsKey("akzentFarbe")) calendarItems.Add(result.Value);
+                             if (result.Complex && !CalendarRecurrence.SupportsRules(properties.Select(value => value.Raw))) complex++;
+                         }
+                         else
+@@ -894,7 +907,7 @@ internal static partial class ExchangeCodec
+         return new ExchangeExportResult(output.ToString(), count, skipped, report.Trim());
+     }
+ 
+-    private static (JsonObject Value, bool Anniversary, bool Complex) ParseEvent(List<IcsProperty> values, CalendarRecurrence.SourceZone? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null, ISet<string>? birthdayRepairs = null)
++    private static (JsonObject Value, bool Anniversary, bool Complex) ParseEvent(List<IcsProperty> values, CalendarRecurrence.SourceZone? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null, ISet<string>? birthdayRepairs = null, bool allowProviderBirthday = true)
+     {
+         var roundtripValues = values;
+         values = TopLevelProperties(values);
+@@ -965,7 +978,9 @@ internal static partial class ExchangeCodec
+         var anniversaryType = IcsText(First(values, "X-MAGNOLIE-TYPE-ID")?.Value ??
+                                        First(values, "X-MAGNOLIE-TYP")?.Value ??
+                                        First(values, "X-MAGNOLIE-JAHRESTAG-TYP")?.Value ?? "");
+-        var anniversary = start.AllDay && IsUnboundedAnnualRule(recurrence) && anniversaryType.Length > 0 &&
++        var providerDate = allowProviderBirthday && (anniversaryType.Length == 0 || IsBirthdayType(anniversaryType))
++            ? NextcloudBirthdayDate(values) : "";
++        var anniversary = start.AllDay && (providerDate.Length > 0 || IsUnboundedAnnualRule(recurrence) && anniversaryType.Length > 0) &&
+             !values.Any(value => value.Name is "EXDATE" or "RDATE" or "EXRULE" or "RECURRENCE-ID") &&
+             (end is null || end.Value.DateTime.Date == start.DateTime.Date);
+         if (anniversary)
+@@ -976,17 +991,21 @@ internal static partial class ExchangeCodec
+                 date = magnolieDate;
+             // Keep native synchronization baselines consistent with the web
+             // birthday normalization, including legacy exported type names.
+-            if (date.StartsWith("1604-", StringComparison.Ordinal) &&
+-                (anniversaryType.Equals("birthday", StringComparison.OrdinalIgnoreCase) ||
+-                 anniversaryType.Equals("Geburtstag", StringComparison.OrdinalIgnoreCase)))
++            if (date.StartsWith("1604-", StringComparison.Ordinal) && IsBirthdayType(anniversaryType))
+             {
+                 date = "--" + date[5..];
+                 birthdayRepairs?.Add(IcsText(First(values, "UID")?.Value ?? ""));
+             }
+-            return (new JsonObject { ["uid"] = IcsText(First(values, "UID")?.Value ?? ""), ["name"] = title,
+-                ["datum"] = date, ["typ"] = anniversaryType,
++            var item = new JsonObject { ["uid"] = IcsText(First(values, "UID")?.Value ?? ""), ["name"] = title,
++                ["datum"] = providerDate.Length > 0 ? providerDate : date, ["typ"] = providerDate.Length > 0 ? "birthday" : anniversaryType,
+                 ["notiz"] = IcsText(First(values, "DESCRIPTION")?.Value ?? ""),
+-                ["icsRoundtrip"] = IcsRoundtrip(roundtripValues, complex), ["geaendert"] = IcsModified(values) }, true, complex);
++                ["icsRoundtrip"] = IcsRoundtrip(roundtripValues, complex || providerDate.Length > 0), ["geaendert"] = IcsModified(values) };
++            if (providerDate.Length > 0)
++            {
++                item["akzentFarbe"] = ImportedAccent(values);
++                item["icsCalendarColor"] = "";
++            }
++            return (item, true, providerDate.Length == 0 && complex);
+         }
+         var until = RRuleValue(recurrence, "UNTIL");
+         var untilDate = ParseCompactDate(until);
+@@ -1095,6 +1114,42 @@ internal static partial class ExchangeCodec
+         return result;
+     }
+ 
++    private const string NextcloudBirthdayType = "X-NEXTCLOUD-BC-FIELD-TYPE";
++    private const string NextcloudBirthdayUnknownYear = "X-NEXTCLOUD-BC-UNKNOWN-YEAR";
++    private const string NextcloudBirthdayYear = "X-NEXTCLOUD-BC-YEAR";
++
++    private static bool IsBirthdayType(string value) => value.Equals("birthday", StringComparison.OrdinalIgnoreCase) ||
++        value.Equals("Geburtstag", StringComparison.OrdinalIgnoreCase);
++
++    private static string NextcloudBirthdayDate(IReadOnlyList<IcsProperty> properties)
++    {
++        if (!properties.Any(property => property.Name == NextcloudBirthdayType &&
++            property.Value.Equals("BDAY", StringComparison.OrdinalIgnoreCase))) return "";
++        var fields = new Dictionary<string, string>(StringComparer.Ordinal);
++        foreach (var property in properties)
++        {
++            var name = property.Name;
++            if (name is "DURATION" or "RDATE" or "EXDATE" or "EXRULE" or "RECURRENCE-ID" ||
++                name == "STATUS" && property.Value.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase)) return "";
++            if (name is not ("DTSTART" or "DTEND" or "RRULE" or NextcloudBirthdayType or NextcloudBirthdayUnknownYear or NextcloudBirthdayYear)) continue;
++            if (property.Parameters.Length > 0 && !(name is "DTSTART" or "DTEND" && property.Parameters.Length == 1 &&
++                property.Parameters[0].Equals("VALUE=DATE", StringComparison.OrdinalIgnoreCase)) ||
++                !fields.TryAdd(name, property.Value)) return "";
++        }
++        if (!string.Equals(fields.GetValueOrDefault(NextcloudBirthdayType), "BDAY", StringComparison.OrdinalIgnoreCase) ||
++            !DateOnly.TryParseExact(fields.GetValueOrDefault("DTSTART"), "yyyyMMdd", out var date)) return "";
++        if (fields.TryGetValue("DTEND", out var end) &&
++            (date == DateOnly.MaxValue || end != date.AddDays(1).ToString("yyyyMMdd"))) return "";
++        var leapDay = date.Month == 2 && date.Day == 29;
++        var expected = leapDay ? new[] { "FREQ=YEARLY", "BYMONTH=2", "BYMONTHDAY=-1" } : new[] { "FREQ=YEARLY" };
++        var rule = fields.GetValueOrDefault("RRULE", "").Split(';');
++        if (rule.Length != expected.Length || !expected.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(rule)) return "";
++        var year = fields.GetValueOrDefault(NextcloudBirthdayYear);
++        var unknown = fields.GetValueOrDefault(NextcloudBirthdayUnknownYear, "0");
++        if (unknown == "1") return year is null ? $"--{date:MM-dd}" : "";
++        return unknown == "0" && date.Year != 1604 && (year is null || year == date.Year.ToString()) ? $"{date:yyyy-MM-dd}" : "";
++    }
++
+     internal static bool IsUnboundedAnnualRule(string rule) => Regex.IsMatch(rule, @"^FREQ=YEARLY(?:;INTERVAL=1)?$|^INTERVAL=1;FREQ=YEARLY$", RegexOptions.IgnoreCase);
+     // Keep shipped instance IDs stable; timezone-qualified identity remains in RECURRENCE-ID.
+     private static string InstanceUid(string uid, IcsProperty recurrenceId) => uid + "#" + recurrenceId.Value;
+@@ -1230,6 +1285,7 @@ internal static partial class ExchangeCodec
+             $"X-MAGNOLIE-JAHRESTAG-TYP:{V(J(item, "typ"))}", "RRULE:FREQ=YEARLY" };
+         if (fullDate is null) lines.Add($"X-MAGNOLIE-DATE:{value}");
+         if (J(item, "notiz") is { Length: > 0 } note) lines.Add("DESCRIPTION:" + V(note));
++        if (AccentColor(J(item, "akzentFarbe")) is { Length: > 0 } accent) lines.Add("X-MAGNOLIE-ACCENT-COLOR:" + accent);
+         ApplyIcsRoundtrip(lines, item, anniversary: true);
+         lines.Add("END:VEVENT");
+         return lines;
+@@ -1559,13 +1615,20 @@ internal static partial class ExchangeCodec
+         if (anniversary)
+         {
+             // Annual core fields are generated; nested VALARM data remains opaque.
++            var providerDate = NextcloudBirthdayDate(TopLevelProperties(raw.Select(ParseIcsProperty).OfType<IcsProperty>()));
++            var keepProviderAnchor = providerDate.Length > 0 && providerDate == J(item, "datum") && IsBirthdayType(J(item, "typ"));
+             var depth = 0;
+             raw = raw.Where(line =>
+             {
+                 var name = PropertyName(line);
+                 if (name == "BEGIN") depth++;
+-                var keep = depth > 0 || name is not ("DTSTART" or "DTEND" or "DUE" or "DURATION" or "RRULE" or
+-                    "X-MAGNOLIE-DATE" or "X-MAGNOLIE-TYPE-ID" or "X-MAGNOLIE-TYP" or "X-MAGNOLIE-JAHRESTAG-TYP");
++                var keep = depth > 0 || (name switch
++                {
++                    "DTSTART" or "DTEND" or "RRULE" => keepProviderAnchor,
++                    NextcloudBirthdayType or NextcloudBirthdayUnknownYear or NextcloudBirthdayYear => providerDate.Length == 0 || keepProviderAnchor,
++                    _ => name is not ("DUE" or "DURATION" or
++                        "X-MAGNOLIE-DATE" or "X-MAGNOLIE-TYPE-ID" or "X-MAGNOLIE-TYP" or "X-MAGNOLIE-JAHRESTAG-TYP")
++                });
+                 if (name == "END") depth--;
+                 return keep;
+             }).ToArray();
+diff --git a/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs b/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs
+new file mode 100644
+index 0000000000000000000000000000000000000000..7630c5751762e6af5a8d16f976df1004eec9e798
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs
+@@ -0,0 +1,67 @@
++using System.Text.Json;
++
++namespace MagnolieOrganizer.Windows.Tests;
++
++internal static class NextcloudIcsBirthdayTests
++{
++    public static Task RunAsync()
++    {
++        foreach (var (start, end, years, rule, expected) in new (string, string, string, string, string?)[]
++        {
++            ("19850417", "19850418", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1985", "FREQ=YEARLY", "1985-04-17"),
++            ("19700417", "19700418", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "FREQ=YEARLY", "--04-17"),
++            ("19720229", "19720301", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1", "--02-29"),
++            ("19880417", "19880418", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1\r\nX-NEXTCLOUD-BC-YEAR:1988", "FREQ=YEARLY", null),
++        })
++        {
++            var raw = $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCOLOR:gold\r\nBEGIN:VEVENT\r\nUID:provider-birthday\r\nSUMMARY:Example\r\n" +
++                $"DTSTART;VALUE=DATE:{start}\r\nDTEND;VALUE=DATE:{end}\r\nRRULE:{rule}\r\n" +
++                $"X-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\n{years}\r\nCOLOR:turquoise\r\nX-TEST-PROVIDER:retained\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
++            var imported = ExchangeCodec.ParseIcs(raw, "provider-source");
++            if (expected is null)
++            {
++                TestAssert.That(imported.Jahrestage.Count == 0 && imported.Termine.Count == 1, "Conflicting markers changed the event type.");
++                continue;
++            }
++            TestAssert.That(imported.Termine.Count == 0 && imported.Jahrestage.Count == 1, $"Nextcloud birthday stayed a VEVENT: {start}");
++            var item = imported.Jahrestage[0]!;
++            TestAssert.That(item["datum"]?.GetValue<string>() == expected && item["typ"]?.GetValue<string>() == "birthday" &&
++                item["uid"]?.GetValue<string>() == "provider-birthday" && item["icsQuelleId"]?.GetValue<string>() == "provider-source" &&
++                item["akzentFarbe"]?.GetValue<string>() == "#40e0d0", "Birthday date, type, source or colour changed.");
++            using var document = JsonDocument.Parse(imported.Jahrestage.ToJsonString());
++            var saved = ExchangeCodec.WriteIcs("ics-jahrestage", document.RootElement).Text;
++            TestAssert.That(saved.Split("\r\n").Where(line => line.StartsWith("RRULE:")).SequenceEqual(new[] { $"RRULE:{rule}" }),
++                "The recurrence changed on export.");
++            TestAssert.That(saved.Contains($"DTSTART;VALUE=DATE:{start}") && saved.Contains($"DTEND;VALUE=DATE:{end}"),
++                "The original interval did not round-trip.");
++            TestAssert.That(saved.Contains("COLOR:gold") && saved.Contains("COLOR:turquoise") && saved.Contains("X-TEST-PROVIDER:retained"),
++                "Raw properties were lost.");
++            TestAssert.That(ExchangeCodec.ParseIcs(saved).Jahrestage[0]?["datum"]?.GetValue<string>() == expected,
++                "The exported birthday date did not round-trip.");
++            item["datum"] = "--07-12";
++            using var editedDocument = JsonDocument.Parse(imported.Jahrestage.ToJsonString());
++            var edited = ExchangeCodec.WriteIcs("ics-jahrestage", editedDocument.RootElement).Text;
++            TestAssert.That(!edited.Contains("X-NEXTCLOUD-BC-UNKNOWN-YEAR:") && edited.Contains("X-TEST-PROVIDER:retained") &&
++                ExchangeCodec.ParseIcs(edited).Jahrestage[0]?["datum"]?.GetValue<string>() == "--07-12",
++                "An edited birthday revived the old anchor or lost unrelated metadata.");
++        }
++        foreach (var properties in new[] { "", "X-NEXTCLOUD-BC-FIELD-TYPE:DEATHDATE", "X-NEXTCLOUD-BC-FIELD-TYPE:ANNIVERSARY",
++            "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\nX-NEXTCLOUD-BC-FIELD-TYPE:DEATHDATE",
++            "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\nX-NEXTCLOUD-BC-YEAR:1986",
++            "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\nEXDATE;VALUE=DATE:20260417",
++            "BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-P1D\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\nEND:VALARM" })
++        {
++            var raw = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:control\r\nSUMMARY:Birthday-looking title\r\n" +
++                $"DTSTART;VALUE=DATE:19850417\r\nRRULE:FREQ=YEARLY\r\n{properties}\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
++            var parsed = ExchangeCodec.ParseIcs(raw);
++            TestAssert.That(parsed.Jahrestage.Count == 0 && parsed.Termine.Count == 1, $"Control was reclassified: {properties}");
++        }
++        const string series = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:series\r\nSUMMARY:Master\r\n" +
++            "DTSTART;VALUE=DATE:19850417\r\nRRULE:FREQ=YEARLY\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\nEND:VEVENT\r\n" +
++            "BEGIN:VEVENT\r\nUID:series\r\nSUMMARY:Moved\r\nRECURRENCE-ID;VALUE=DATE:20260417\r\n" +
++            "DTSTART;VALUE=DATE:20260418\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
++        var withException = ExchangeCodec.ParseIcs(series);
++        TestAssert.That(withException.Jahrestage.Count == 0 && withException.Termine.Count == 2, "The master was detached from its override.");
++        return Task.CompletedTask;
++    }
++}
+diff --git a/magnolie-organizer-windows/tests/Program.cs b/magnolie-organizer-windows/tests/Program.cs
+index 61dc8d7cac2425907c363f519b408d20ea12485a..45cb99a39b05feea20f85cf80dc49d1a0196200e 100644
+--- a/magnolie-organizer-windows/tests/Program.cs
++++ b/magnolie-organizer-windows/tests/Program.cs
+@@ -374,6 +374,7 @@ runner.Add("ICS unfolding / bounded allocations / valid folded descriptions", Ca
+ runner.Add("DAV wildcard ETag / exact version preconditions / no transport", NextcloudDavTests.WildcardVersionBindingAsync);
+ runner.Add("Nextcloud CalDAV / CardDAV / Discovery / ETag / Sicherheit", NextcloudDavTests.RunAsync);
+ runner.Add("Calendar birthday cleanup", CalendarBirthdayCleanupTests.RunAsync);
++runner.Add("Nextcloud ICS birthdays", NextcloudIcsBirthdayTests.RunAsync);
+ runner.Add("Shared preference controller", SharedSyncControllerTests.RunAsync);
+ runner.Add("Own profile / LibreOffice field comparison", OfficeProfileTests.RunAsync);
+ runner.Add("Thunderbird bridge / framing / provider identity", ThunderbirdBridgeTests.RunAsync);
+diff --git a/magnolie-organizer-windows/tests/birthday-display.js b/magnolie-organizer-windows/tests/birthday-display.js
+index 637682ba26cb5b645f1b96c2529efa8ece1cde1b..bf7c5f38916fc9154e511bbc8e097a5c1f56b8f8 100644
+--- a/magnolie-organizer-windows/tests/birthday-display.js
++++ b/magnolie-organizer-windows/tests/birthday-display.js
+@@ -78,6 +78,20 @@ function check(web) {
+     load([birthday("a", { datum: "--12-25" }), birthday("b", { datum: "--12-25" })]); shown(1);
+     load([birthday("a", { datum: "--12-25" }), birthday("b")]); shown(2);
+     load([birthday("a", { datum: "--02-29" }), birthday("b", { datum: "--02-29" })]); shown(1, "2027-02-28");
++    load([]);
++    const provider = birthday("nextcloud", { datum: "--02-29", akzentFarbe: "#40e0d0", icsCalendarColor: "COLOR:gold",
++      icsRoundtrip: ["DTSTART;VALUE=DATE:19720229", "DTEND;VALUE=DATE:19720301", "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1",
++        "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "COLOR:turquoise"] });
++    T.mergeJahrestage([provider]);
++    load(JSON.parse(JSON.stringify(T.daten().jahrestage)));
++    const restored = T.daten().jahrestage[0];
++    assert.equal(restored.icsQuelleId, provider.icsQuelleId);
++    assert.equal(restored.icsCalendarColor, provider.icsCalendarColor);
++    assert.equal(restored.akzentFarbe, provider.akzentFarbe);
++    assert.equal(JSON.stringify(restored.icsRoundtrip), JSON.stringify(provider.icsRoundtrip));
++    shown(1, "2027-02-28");
++    shown(1, "2028-02-29");
++    assert.equal(T.jahrestageAm("2028-02-28", true).length, 0);
+     load([birthday("a", { uid: "shared" }), birthday("b", { uid: "shared", datum: "1991-12-25" })]);
+     assert.equal(T.daten().jahrestage.length, 2, "normalization discarded a conflicting year"); shown(2);
+     load([birthday("a", { kontaktId: "person" }), birthday("b", { kontaktId: "person", notiz: "Conflicting note" })]);
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index c0ef6f1a498c718d6fc9ccc77f2f69e217ba6124..d4d31f6da83f2c737d0ce7689591a51b53f3eb78 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -3126,6 +3126,50 @@ def _erinnerung_vorlauf(wert):
+         return 15
+ 
+ 
++_NEXTCLOUD_GEBURTSTAG_FELDER = (
++    "X-NEXTCLOUD-BC-FIELD-TYPE", "X-NEXTCLOUD-BC-UNKNOWN-YEAR", "X-NEXTCLOUD-BC-YEAR")
++_NEXTCLOUD_GEBURTSTAG_SERIE = ("DTSTART", "DTEND", "RRULE")
++
++
++def _nextcloud_geburtstagsdatum(props):
++    markiert, unbekannt, jahr = _NEXTCLOUD_GEBURTSTAG_FELDER
++    if not any(name == markiert and wert.upper() == "BDAY" for name, _, wert in props):
++        return ""
++    relevant = (*_NEXTCLOUD_GEBURTSTAG_FELDER, *_NEXTCLOUD_GEBURTSTAG_SERIE)
++    felder = {}
++    for name, params, wert in props:
++        if name in ("DURATION", "RDATE", "EXDATE", "EXRULE", "RECURRENCE-ID"):
++            return ""
++        if name == "STATUS" and wert.upper() == "CANCELLED":
++            return ""
++        if name not in relevant:
++            continue
++        if name in felder or params and not (name in ("DTSTART", "DTEND") and params == {"VALUE": "DATE"}):
++            return ""
++        felder[name] = wert
++    if felder.get(markiert, "").upper() != "BDAY":
++        return ""
++    start = felder.get("DTSTART", "")
++    if not re.fullmatch(r"[0-9]{8}", start):
++        return ""
++    try:
++        datum = datetime.strptime(start, "%Y%m%d").date()
++        if "DTEND" in felder and felder["DTEND"] != (datum + timedelta(days=1)).isoformat().replace("-", ""):
++            return ""
++    except (ValueError, OverflowError):
++        return ""
++    schalttag = (datum.month, datum.day) == (2, 29)
++    regel = felder.get("RRULE", "").upper().split(";")
++    erwartet = {"FREQ=YEARLY", "BYMONTH=2", "BYMONTHDAY=-1"} if schalttag else {"FREQ=YEARLY"}
++    if len(regel) != len(erwartet) or set(regel) != erwartet:
++        return ""
++    if felder.get(unbekannt) == "1":
++        return "--" + datum.isoformat()[5:] if jahr not in felder else ""
++    if felder.get(unbekannt, "0") != "0" or datum.year == 1604 or felder.get(jahr, str(datum.year)) != str(datum.year):
++        return ""
++    return datum.isoformat()
++
++
+ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
+                     jahrestage_als_termine=False, zone_resolver=None, kalenderfarbe=("", "")):
+     roundtrip_props = props
+@@ -3346,18 +3390,21 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
+                        (wiederholung and wiederholung["art"] == "yearly" and
+                         not wiederholung["bis"]))
+     ganztag_jahrestag = (not zeit or (zeit == "00:00" and end_zeit == "23:59"))
+-    if (not jahrestage_als_termine and jahrestag_markiert and jahrestag_regel and
+-            ganztag_jahrestag and not end_datum):
++    provider_datum = (_nextcloud_geburtstagsdatum(props) if not komplexe_serie and
++                      (not typ_feld or typ_kategorie == "birthday") else "")
++    if (not jahrestage_als_termine and ganztag_jahrestag and not end_datum and
++            (provider_datum or jahrestag_markiert and jahrestag_regel)):
+         jahrlose_erweiterung = _maschinen_datum(wert("X-MAGNOLIE-DATE"))
+         if (jahrlose_erweiterung.startswith("--") and
+                 _maschinen_monat_tag(jahrlose_erweiterung) ==
+                 _maschinen_monat_tag(datum)):
+             datum = jahrlose_erweiterung
+         ergebnis["jahrestage"].append({
+-            "name": titel, "datum": datum, "typ": typ_kategorie,
++            "name": titel, "datum": provider_datum or datum, "typ": "birthday" if provider_datum else typ_kategorie,
+             "uid": uid_wert, "icsSerienUid": serien_uid,
+             "notiz": wert("DESCRIPTION"),
+             "icsRoundtrip": _ics_roundtrip(roundtrip_props),
++            **({"akzentFarbe": akzent, "icsCalendarColor": kalenderfarbe[0]} if provider_datum else {}),
+             "geaendert": geaendert})
+         return
+     if nicht_abbildbar or (rrule and not wiederholung):
+@@ -3837,7 +3884,10 @@ def _jahrestag_zeilen(jt):
+             "X-MAGNOLIE-JAHRESTAG-TYP:" + _ical_escape(typ_id or legacy)]
+     if jt.get("notiz"):
+         zeilen.append("DESCRIPTION:" + _ical_escape(jt["notiz"]))
+-    _ics_roundtrip_anwenden(zeilen, jt.get("icsRoundtrip"), jahrestag=True)
++    akzent = _kalender_akzentfarbe(jt.get("akzentFarbe"))
++    if akzent:
++        zeilen.append("X-MAGNOLIE-ACCENT-COLOR:" + akzent)
++    _ics_roundtrip_anwenden(zeilen, jt.get("icsRoundtrip"), jahrestag=True, eintrag=jt)
+     zeilen.append("END:VEVENT")
+     return zeilen
+ 
+@@ -4123,7 +4173,7 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
+         if name == "BEGIN":
+             tiefe += 1
+         if not tiefe and name == "X-MAGNOLIE-ACCENT-COLOR" and params:
+-            if eintrag is not None and _kalender_akzentfarbe(eintrag.get("akzentFarbe")) != _kalender_akzentfarbe(wert):
++            if eintrag is not None and (not jahrestag or "akzentFarbe" in eintrag) and _kalender_akzentfarbe(eintrag.get("akzentFarbe")) != _kalender_akzentfarbe(wert):
+                 # Do not let the generic invalid-record skip path silently
+                 # turn this protected edit into a partial calendar export.
+                 raise RuntimeError(_("The content is unreadable."))
+@@ -4136,9 +4186,25 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
+                      (_prop_zerlegen(line) or ("",))[0] != "X-MAGNOLIE-ACCENT-COLOR"]
+     if jahrestag:
+         # The annual projection owns its anchor and rule, not nested alarm fields.
+-        eigene.update(("DTSTART", "DTEND", "DUE", "DURATION", "RRULE",
++        eigene.update((*_NEXTCLOUD_GEBURTSTAG_SERIE, "DUE", "DURATION",
+                        "X-MAGNOLIE-DATE", "X-MAGNOLIE-TYPE-ID", "X-MAGNOLIE-TYP",
+                        "X-MAGNOLIE-JAHRESTAG-TYP"))
++        haupt_props, tiefe = [], 0
++        for zeile in rohzeilen:
++            prop = _prop_zerlegen(zeile)
++            if prop[0] == "BEGIN":
++                tiefe += 1
++            elif prop[0] == "END":
++                tiefe -= 1
++            elif not tiefe:
++                haupt_props.append(prop)
++        provider_datum = _nextcloud_geburtstagsdatum(haupt_props)
++        if provider_datum:
++            if (provider_datum == _maschinen_datum(eintrag.get("datum"))
++                    and jahrestag_typ_id(eintrag.get("typ")) == "birthday"):
++                eigene.difference_update(_NEXTCLOUD_GEBURTSTAG_SERIE)
++            else:
++                eigene.update(_NEXTCLOUD_GEBURTSTAG_FELDER)
+     akzent = _kalender_akzentfarbe(eintrag.get("akzentFarbe")) if eintrag is not None else ""
+     farbentscheidung = bool(akzent or eintrag is not None and "icsCalendarColor" in eintrag)
+     tiefe, gefiltert = 0, []
+diff --git a/magnolie-organizer/bin/magnolie_file_desktop_connection.py b/magnolie-organizer/bin/magnolie_file_desktop_connection.py
+index 1e5d6c5bb544281253d62d275ae021263c63415a..93ac3c197d4c7edbc1270e007b9d7a94a6bf90e9 100644
+--- a/magnolie-organizer/bin/magnolie_file_desktop_connection.py
++++ b/magnolie-organizer/bin/magnolie_file_desktop_connection.py
+@@ -162,7 +162,9 @@ class NativeDesktopFileConnection:
+             videos=bool(consent is not None and consent.videos))
+         self._media_receiving_state=dict(version=snapshot.version,photos=bool(grant.grants.receive_files and snapshot.policy.enabled),
+             videos=bool(grant.grants.receive_files and snapshot.include_videos),
+-            manual_receive=NativePhotoDesktopSession._manual_receive_kinds(snapshot))
++             manual_receive=NativePhotoDesktopSession._manual_receive_kinds(snapshot),
++             automatic_setup=NativePhotoDesktopSession._automatic_setup_kinds(snapshot),
++             automatic_pending=snapshot.policy is not None and snapshot.policy.pending_automatic_receive is not None)
+         if grant.grants.send_files or grant.grants.receive_files:
+             witness=snapshot.policy.mapping_store
+             if witness is not None:
+@@ -606,9 +608,11 @@ class NativeDesktopFileConnection:
+                     from magnolie_media_sync import effective
+                     kinds=self._private_receive_kinds()
+                     intent=self._media_transport.intent_for(kinds[0]) if kinds else None
+-                    value['manual_receive']=(intent is not None and effective(intent.body)['auto_mode']=='manual'
+-                        and self._manual_receive_kinds_supported(kinds)
+-                        and kinds in getattr(self,'_media_receiving_state',{}).get('manual_receive',()))
++                    mode=effective(intent.body)['auto_mode'] if intent is not None else None
++                    supported=self._manual_receive_kinds_supported(kinds)
++                    receiving=getattr(self,'_media_receiving_state',{})
++                    value['manual_receive']=mode=='manual' and supported and kinds in receiving.get('manual_receive',())
++                    value['automatic_receive_setup']=mode=='wifi' and supported and kinds in receiving.get('automatic_setup',())
+         if self._media_collection_roots_state is not None:
+             value['collection_sources']=dict(version=self._media_collection_roots_state['version'],
+                 roots=[dict(root) for root in self._media_collection_roots_state['roots']])
+@@ -3408,7 +3412,15 @@ class NativePhotoDesktopSession:
+             return ()
+         return (('images',),('video',),('images','video')) if snapshot.include_videos else (('images',),)
+ 
+-    def _manual_receive_choice(self):
++    @classmethod
++    def _automatic_setup_kinds(cls,snapshot):
++        allowed=cls._manual_receive_kinds(snapshot)
++        policy=snapshot.policy
++        if policy is None or policy.staged_receive_targets:return allowed
++        pending=policy.pending_automatic_receive
++        return (pending.kinds,) if pending is not None and pending.kinds in allowed else ()
++
++    def _first_receive_choice(self,*,automatic=False):
+         connection=self.connection
+         if connection._media_support is None:return None
+         from magnolie_media_sync import effective
+@@ -3417,20 +3429,24 @@ class NativePhotoDesktopSession:
+             kinds=connection._private_receive_kinds()
+             if not connection._manual_receive_kinds_supported(kinds):return None
+             intent=connection._media_transport.intent_for(kinds[0])
+-            if intent is None or effective(intent.body)['auto_mode']!='manual':return None
++            if intent is None or effective(intent.body)['auto_mode']!=('wifi' if automatic else 'manual'):return None
+             before=connection._preferences.read()
+-            if kinds not in self._manual_receive_kinds(before):
++            if automatic:
++                if kinds not in self._automatic_setup_kinds(before):return None
++            elif kinds not in self._manual_receive_kinds(before):
+                 raise TransferError('photo_schedule_not_ready')
+             with NativeMediaRetention(connection._authority.binding.native_directory) as book:
+                 started=time.monotonic()
+                 fence=(book.saved_book_version(),started,started+book.MAX_ACTIVE_COPY_SECONDS)
++            if automatic and before.policy is not None and (pending:=before.policy.pending_automatic_receive) is not None:
++                if pending.book_version!=fence[0]:raise TransferError('media_retention_lease_changed')
+             return intent,kinds,before,fence
+ 
+     def start(self, operation, album_id=None, *, schedule_run=None, job_owner=None,historical_choice=None,destination_path=None,video_album_id=None):
+         if operation not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic','automatic','resume_automatic',
+                 'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together',
+                 'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_destination','videos_default_destination',
+-                'photos_destination','photos_default_destination','sync_selected','sync_shared'):
++                'photos_destination','photos_default_destination','sync_selected','sync_shared','setup_automatic_receive'):
+             raise TransferError('photo_sync_invalid_action')
+         if (video_album_id is not None and (operation!='sync_selected' or type(video_album_id) is not str)
+                 or operation=='sync_selected' and (album_id is not None and type(album_id) is not str or album_id is None and video_album_id is None)):
+@@ -3446,7 +3462,7 @@ class NativePhotoDesktopSession:
+                 or job_owner is not None and (type(job_owner) is not str or re.fullmatch('[0-9a-f]{32}',job_owner) is None)):
+             raise TransferError('photo_sync_invalid_action')
+         transport=getattr(self.connection,'_media_transport',None)
+-        if (operation in ('sync','videos_sync','sync_selected','sync_shared','automatic')
++        if (operation in ('sync','videos_sync','sync_selected','sync_shared','automatic','setup_automatic_receive')
+                 and transport is not None and transport.requires_safe_return()):
+             raise TransferError('media_source_native_composition_required')
+         with self._lock:
+@@ -3479,7 +3495,10 @@ class NativePhotoDesktopSession:
+                         or self._schedule.mode!='automatic'):
+                     raise TransferError('photo_sync_invalid_action')
+                 first_receive=None
+-                if operation=='sync_shared':first_receive=self._manual_receive_choice()
++                if operation=='sync_shared':first_receive=self._first_receive_choice()
++                if operation=='setup_automatic_receive':
++                    first_receive=self._first_receive_choice(automatic=True)
++                    if first_receive is None:raise TransferError('media_automatic_receive_setup_not_available')
+                 if operation in ('sync','videos_sync','sync_selected','sync_shared') and first_receive is None:
+                     schedule_run=self._schedule.request_now()
+                 if operation in ('sync','videos_sync','sync_selected','sync_shared','automatic'):
+@@ -3530,11 +3549,15 @@ class NativePhotoDesktopSession:
+             kinds=self.connection._private_receive_kinds()
+             if not kinds:return None
+             try:
++                from magnolie_media_sync import effective
++                token=transport.intent_for(kinds[0])
++                if token is None:return None
++                if (effective(token.body)['auto_mode']=='wifi'
++                        and self.connection._receiving_policy(media_type=kinds[0]).policy.pending_automatic_receive is not None):
++                    return None
+                 # Every selected type needs its own live native receive binding.
+                 # No fallback to legacy photo-only scheduling for a mixed run.
+                 bindings=[self.connection._receive_binding(media_type=kind) for kind in kinds]
+-                token=transport.intent_for(kinds[0])
+-                if token is None:return None
+                 from hashlib import sha256
+                 return NativePhotoSyncScope(bindings[0],sha256(canonical(token.body)).hexdigest(),self.connection)
+             except (TransferError,OSError,InvalidTag):return None
+@@ -3578,7 +3601,9 @@ class NativePhotoDesktopSession:
+             kinds=self.connection._private_receive_kinds() if private_media else ('images','video')
+             token=next((value for kind in kinds
+                 if receiving.get('photos' if kind=='images' else 'videos') is True
+-                and (value:=transport.intent_for(kind)) is not None),None)
++                and (value:=transport.intent_for(kind)) is not None
++                and (not private_media or not receiving.get('automatic_pending')
++                    or effective(value.body)['auto_mode']!='wifi')),None)
+         automatic=token is not None and effective(token.body)['auto_mode']=='wifi'
+         with self._lock:
+             previous=self._shared_schedule_token
+@@ -3762,25 +3787,29 @@ class NativePhotoDesktopSession:
+         # enable/configure path: a shared choice cannot manufacture phone SEND,
+         # a local destination/consent or Android OS READ permission.
+         connection=self.connection;before=connection._preferences.read()
+-        if before.policy is None or not before.associated or not before.policy.enabled:
++        if before.policy is None or not before.associated or not (
++                before.policy.enabled or media_type=='video' and before.independent_video_available):
+             raise TransferError('media_source_shared_incoming_review_required')
+         connection._receive_binding(media_type=media_type)
+         with self._lock:
+-            self._enabled=True;self._destination=before.policy.destination.path
++            self._enabled=before.policy.enabled
++            self._destination=before.policy.destination.path if before.policy.destination is not None else None
+             self._separate_animations=before.separate_animations;self._separate_captures=before.separate_own_recordings
+             videos=before.policy.videos
+             self._video_enabled=bool(videos is not None and videos.enabled)
+             self._video_destination=videos.destination.path if videos is not None and videos.destination is not None else None
+         state=self._command('status');status=state['status']
+-        if status.repair_pending or not status.enabled or not status.associated:
++        if status.repair_pending or not status.send_enabled_for(media_type) or not status.associated:
+             raise TransferError('media_source_shared_incoming_review_required')
+         if media_type=='video':
+-            if status.videos is None or not status.videos.enabled:
+-                raise TransferError('media_source_shared_incoming_review_required')
+             connection._require_video_metadata_scope()
++            if before.policy.video_only_receive:
++                armed=self._command('configure_videos',enabled=True)['status']
++                if armed!=replace(status,request_id=armed.request_id,operation='configure_videos'):
++                    raise TransferError('media_source_shared_incoming_review_required')
+             with self._lock:self._video_supported=True
+ 
+-    def _prepare_manual_receive(self, choice, require_current):
++    def _prepare_first_receive(self, choice, require_current, *, automatic_setup=False):
+         from magnolie_media_storage_bootstrap import NativeMediaStorageBootstrap
+         connection=self.connection
+         _,kinds,before,fence=choice
+@@ -3811,7 +3840,8 @@ class NativePhotoDesktopSession:
+             saved=before
+             if before.policy is None or before.policy.staged_receive_targets:
+                 bootstrap=NativeMediaStorageBootstrap(connection._authority)
+-                try:saved=bootstrap.prepare_first_receive(bootstrap.issue_action(_native_current=current),before,kinds)
++                try:saved=bootstrap.prepare_first_receive(bootstrap.issue_action(_native_current=current),before,kinds,
++                    automatic_book=fence[0] if automatic_setup else None)
+                 finally:bootstrap.close()
+             if 'video' in kinds:connection._require_video_metadata_scope()
+             current()
+@@ -3875,6 +3905,20 @@ class NativePhotoDesktopSession:
+                     self._state='permission_required'
+                 return None
+ 
++        if automatic_setup:
++            def arm():
++                for kind in kinds:connection._receive_binding(media_type=kind)
++                preferences=connection._preferences
++                # Serialize Stop with the protected commit, never with a network wait.
++                with self._lock:
++                    current()
++                    preferences.complete_automatic_receive(preferences.issue_action(_native_current=current),saved)
++                    self._state='waiting'
++                connection._local()
++            inspect(arm,None)
++            self.shared_settings_changed()
++            return None
++
+         while True:
+             generation=connection._update_generation
+             with self._lock:
+@@ -3969,6 +4013,7 @@ class NativePhotoDesktopSession:
+ 
+     def _run(self, operation, album_id, schedule_run=None, job_owner=None,historical_choice=None,destination_path=None,video_album_id=None,*,first_receive=None):
+         syncing=operation in ('sync','videos_sync','sync_selected','sync_shared','automatic')
++        automatic_setup=operation=='setup_automatic_receive'
+         reported=syncing and first_receive is None
+         if reported:self._sync_activity(True)
+         shared_constraint=None
+@@ -3977,15 +4022,17 @@ class NativePhotoDesktopSession:
+             shared_token=None
+             transport=self.connection._media_transport
+             private_media=getattr(self.connection,'_media_support',None) is not None
+-            if syncing and transport is not None and transport.requires_safe_return():
++            if automatic_setup and (first_receive is None or not private_media):
++                raise TransferError('media_automatic_receive_setup_not_available')
++            if (syncing or automatic_setup) and transport is not None and transport.requires_safe_return():
+                 raise TransferError('media_source_native_composition_required')
+-            if syncing and private_media:
++            if (syncing or automatic_setup) and private_media:
+                 if any(transport.intent_for(kind,to_phone=True) is not None for kind in ('images','video')):
+                     # Do not silently complete the phone half of a two-way run.
+                     raise TransferError('media_source_native_composition_required')
+                 if not self.connection._private_receive_kinds():
+                     raise TransferError('media_source_current_intent_required')
+-            if syncing and transport is not None and (private_media or transport._display_body is not None):
++            if (syncing or automatic_setup) and transport is not None and (private_media or transport._display_body is not None):
+                 # Once shared settings exist, legacy selected-album actions
+                 # cannot bypass OFF/pending settings using receiving consent.
+                 # The cache only selects this restrictive gate; actual intent
+@@ -4021,7 +4068,7 @@ class NativePhotoDesktopSession:
+                     self.connection._ready();now=time.monotonic()
+                     if (self._stop.is_set() or not original_book[1]<=now<original_book[2]
+                             or self.connection._native_metadata_current() is not True
+-                            or operation=='automatic' and self.connection._native_wifi_current() is not True
++                             or (operation=='automatic' or automatic_setup) and self.connection._native_wifi_current() is not True
+                             or any(transport.intent_for(kind) is not shared_token
+                                 and transport.intent_for(kind,to_phone=True) is not shared_token for kind in original_kinds)):
+                         raise TransferError('media_incoming_operation_ended')
+@@ -4034,7 +4081,7 @@ class NativePhotoDesktopSession:
+                 self._shared_run_constraint=shared_constraint
+                 shared_constraint.require_current()
+                 if first_receive is not None:
+-                    schedule_run=self._prepare_manual_receive(first_receive,shared_constraint.require_current)
++                    schedule_run=self._prepare_first_receive(first_receive,shared_constraint.require_current,automatic_setup=automatic_setup)
+                     if schedule_run is None:return
+                     self._sync_activity(True)
+                     reported=True
+diff --git a/magnolie-organizer/bin/magnolie_media_storage_bootstrap.py b/magnolie-organizer/bin/magnolie_media_storage_bootstrap.py
+index 5c367a0fe07a1e4237466a3e8008731d0f4bd919..a5ce415b907b1aaa13d68bded973e69851e931d9 100644
+--- a/magnolie-organizer/bin/magnolie_media_storage_bootstrap.py
++++ b/magnolie-organizer/bin/magnolie_media_storage_bootstrap.py
+@@ -8,7 +8,7 @@ from magnolie_file_native_authority import NativeDesktopFileAuthority
+ from magnolie_file_transfer import TransferError
+ from magnolie_photo_destination import NativePhotoDestinationAction, NativePhotoDestinationController, NativeVideoDestinationController
+ from magnolie_photo_mappings import ProtectedPhotoMappings
+-from magnolie_photo_preferences import ProtectedPhotoPreferences,PhotoPreferencesSnapshot
++from magnolie_photo_preferences import PendingAutomaticReceive,ProtectedPhotoPreferences,PhotoPreferencesSnapshot
+ from magnolie_transfer_job_catalog import ProtectedTransferJobCatalog
+ 
+ 
+@@ -39,7 +39,7 @@ class NativeMediaStorageBootstrap:
+     def prepare(self,action,expected):
+         return self._prepare(action,expected)
+ 
+-    def prepare_first_receive(self,action,expected,kinds):
++    def prepare_first_receive(self,action,expected,kinds,*,automatic_book=None):
+         """Bind selected targets and storage together on an explicit native Start."""
+         if (type(action) is not NativePhotoDestinationAction or action._native_current is None
+                 or type(expected) is not PhotoPreferencesSnapshot
+@@ -47,9 +47,10 @@ class NativeMediaStorageBootstrap:
+                 or expected.policy is not None and (not expected.policy.staged_receive_targets
+                     or 'images' not in kinds or not expected.associated or not expected.destination_available)):
+             raise TransferError('media_first_receive_original_action_required')
+-        return self._prepare(action,expected,kinds=kinds)
++        pending=PendingAutomaticReceive(automatic_book,kinds) if automatic_book is not None else None
++        return self._prepare(action,expected,kinds=kinds,pending=pending)
+ 
+-    def _prepare(self,action,expected,*,kinds=()):
++    def _prepare(self,action,expected,*,kinds=(),pending=None):
+         self._open()
+         if type(action) is not NativePhotoDestinationAction:raise TransferError('media_storage_native_action_required')
+         action.consume(self)
+@@ -98,11 +99,11 @@ class NativeMediaStorageBootstrap:
+                 self._validate(peer)
+                 action_guard=(lambda:self._validate(peer)) if kinds else None
+                 result=prefs.configure(prefs.issue_action(_native_current=action_guard),current,
+-                     enabled='images' in kinds or (policy is not None and policy.enabled),
++                      enabled='images' in kinds or (policy is not None and policy.enabled),
+                      mode=policy.mode if policy is not None else 'manual',
+                      phone_to_pc_delete=policy.phone_to_pc_delete if policy is not None else False,
+                      pc_to_phone_delete=policy.pc_to_phone_delete if policy is not None else False,
+-                     mapping_store_choice=mapping_choice,job_catalog_choice=catalog_choice,**options)
++                      mapping_store_choice=mapping_choice,job_catalog_choice=catalog_choice,pending_automatic_receive=pending,**options)
+                 self._validate(peer)
+                 if result.policy.mapping_store!=mapping_choice.witness or result.policy.job_catalog!=catalog_choice.witness:
+                     raise TransferError('media_storage_bootstrap_joint_readback_failed')
+diff --git a/magnolie-organizer/bin/magnolie_photo_preferences.py b/magnolie-organizer/bin/magnolie_photo_preferences.py
+index c99d0be27607f1ff4da723c71e855a05f484b223..3b1aa0abb21bf88049f53563a22a2173f8450969 100644
+--- a/magnolie-organizer/bin/magnolie_photo_preferences.py
++++ b/magnolie-organizer/bin/magnolie_photo_preferences.py
+@@ -67,6 +67,24 @@ class MediaSendingConsent:
+         return cls(value['photos'],value['videos'],value['pairing_epoch'])
+ 
+ 
++@dataclass(frozen=True)
++class PendingAutomaticReceive:
++    book_version: str
++    kinds: tuple[str, ...]
++
++    def __post_init__(self):
++        if not _hex(self.book_version) or self.kinds not in (('images',),('video',),('images','video')):
++            raise TransferError('media_automatic_receive_invalid_setup')
++
++    def wire(self):return dict(book_version=self.book_version,kinds=list(self.kinds))
++
++    @classmethod
++    def parse(cls,value):
++        if type(value) is not dict or set(value)!={'book_version','kinds'} or type(value['kinds']) is not list:
++            raise TransferError('media_automatic_receive_invalid_setup')
++        return cls(value['book_version'],tuple(value['kinds']))
++
++
+ @dataclass(frozen=True)
+ class PhotoPreferences:
+     revision: int
+@@ -89,6 +107,7 @@ class PhotoPreferences:
+     collection_roots: 'NativeMediaCollectionRootsWitness | None' = None
+     staged_receive_targets: bool = False
+     video_only_receive: bool = False
++    pending_automatic_receive: PendingAutomaticReceive | None = None
+ 
+     def wire(self):
+         value=dict(format=1,revision=self.revision,permission_epoch=self.permission_epoch,pairing_epoch=self.pairing_epoch,
+@@ -105,13 +124,14 @@ class PhotoPreferences:
+         if self.collection_roots is not None:value['collection_roots']=self.collection_roots.wire()
+         if self.staged_receive_targets:value['staged_receive_targets']=True
+         if self.video_only_receive:value['video_only_receive']=True
++        if self.pending_automatic_receive is not None:value['pending_automatic_receive']=self.pending_automatic_receive.wire()
+         return value # Unchanged legacy policies keep exactly their original shape.
+ 
+     @classmethod
+     def parse(cls,value):
+         required={'format','revision','permission_epoch','pairing_epoch','enabled','mode',
+                 'phone_to_pc_delete','pc_to_phone_delete','destination','destination_token'}
+-        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store','job_catalog','permission_revision','sending','collection_roots','staged_receive_targets','video_only_receive'}
++        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store','job_catalog','permission_revision','sending','collection_roots','staged_receive_targets','video_only_receive','pending_automatic_receive'}
+                 or 'separate_animations' in value and type(value['separate_animations']) is not bool
+                 or 'separate_own_recordings' in value and type(value['separate_own_recordings']) is not bool
+                 or 'direction' in value and (type(value['direction']) is not str or value['direction'] not in ('phone_to_desktop','bidirectional'))
+@@ -152,7 +172,8 @@ class PhotoPreferences:
+             value.get('separate_animations'),value.get('separate_own_recordings'),value.get('direction'),
+             PhotoMappingStoreWitness.parse(value['mapping_store']) if 'mapping_store' in value else None,
+             JobCatalogWitness.parse(value['job_catalog']) if 'job_catalog' in value else None,value.get('permission_revision'),
+-            MediaSendingConsent.parse(value['sending']) if 'sending' in value else None,roots,staged,independent_video)
++            MediaSendingConsent.parse(value['sending']) if 'sending' in value else None,roots,staged,independent_video,
++            PendingAutomaticReceive.parse(value['pending_automatic_receive']) if 'pending_automatic_receive' in value else None)
+ 
+ @dataclass(frozen=True)
+ class PhotoPreferencesSnapshot:
+@@ -386,12 +407,21 @@ class ProtectedPhotoPreferences:
+ 
+     def configure(self,action,expected,*,enabled,mode,phone_to_pc_delete=False,pc_to_phone_delete=False,destination_choice=None,
+             include_videos=None,video_destination_choice=None,separate_animations=None,separate_own_recordings=None,direction=None,mapping_store_choice=None,
+-             job_catalog_choice=None,staged_receive_targets=False,video_only_receive=False):
++             job_catalog_choice=None,staged_receive_targets=False,video_only_receive=False,pending_automatic_receive=None):
+         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
+         action.consume(self)
+         if (type(expected) is not PhotoPreferencesSnapshot or any(type(value) is not bool for value in (enabled,phone_to_pc_delete,pc_to_phone_delete))
+                 or mode not in ('manual','automatic')):raise TransferError('photo_preferences_invalid_settings')
+         if pc_to_phone_delete:raise TransferError('photo_preferences_reverse_delete_unavailable')
++        if pending_automatic_receive is not None and (
++                type(pending_automatic_receive) is not PendingAutomaticReceive or action._native_current is None
++                or expected.policy is not None and not expected.policy.staged_receive_targets
++                or enabled!=('images' in pending_automatic_receive.kinds)
++                or video_only_receive!=('images' not in pending_automatic_receive.kinds)
++                or (include_videos is True)!=('video' in pending_automatic_receive.kinds)
++                or phone_to_pc_delete or direction not in (None,'phone_to_desktop')
++                or mapping_store_choice is None or job_catalog_choice is None):
++            raise TransferError('media_automatic_receive_invalid_setup')
+         if type(video_only_receive) is not bool or video_only_receive and (enabled or expected.policy is not None
+                 or action._native_current is None or include_videos is not True or destination_choice is not None
+                 or video_destination_choice is None or mapping_store_choice is None or job_catalog_choice is None
+@@ -481,7 +511,9 @@ class ProtectedPhotoPreferences:
+                      sending=current.policy.sending if current.policy is not None else None,
+                      collection_roots=current.policy.collection_roots if current.policy is not None else None,
+                      staged_receive_targets=staged_receive_targets,
+-                     video_only_receive=video_only_receive or bool(current.associated and current.policy.video_only_receive and not enabled))
++                     video_only_receive=video_only_receive or bool(current.associated and current.policy.video_only_receive and not enabled),
++                     pending_automatic_receive=(current.policy.pending_automatic_receive
++                         if current.policy is not None and not current.policy.staged_receive_targets else pending_automatic_receive))
+                 blob=self._protect(policy.wire(),'policy');head=self._protect(dict(revision=revision,policy_sha256=sha256(blob).hexdigest()),'owner')
+                 action.validate(self);self._peer();mutated=False
+                 try:
+@@ -611,6 +643,9 @@ class ProtectedPhotoPreferences:
+         """UI scheduling only: retain exact grants, destinations and baselines."""
+         return self._set_behavior(action,expected,dict(mode=mode))
+ 
++    def complete_automatic_receive(self,action,expected):
++        return self._set_behavior(action,expected,{'pending_automatic_receive':None})
++
+     def set_animation_layout(self,action,expected,*,separate,historical_choice):
+         """Explicit future-only layout; historical mappings always win.
+ 
+@@ -637,7 +672,10 @@ class ProtectedPhotoPreferences:
+     def _set_behavior(self,action,expected,changes,*,historical_choice=None,video_settings=None,photo_destination_choice=None):
+         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
+         action.consume(self)
+-        if photo_destination_choice is not None:
++        completing=changes=={'pending_automatic_receive':None}
++        if completing:
++            if action._native_current is None:raise TransferError('media_automatic_receive_invalid_setup')
++        elif photo_destination_choice is not None:
+             if changes or video_settings is not None or type(photo_destination_choice) is not NativePhotoDestinationChoice or historical_choice!='keep_existing':
+                 raise TransferError('photo_preferences_historical_destination_choice_required')
+         elif video_settings is not None:
+@@ -659,8 +697,16 @@ class ProtectedPhotoPreferences:
+                 if current.version!=expected.version:raise TransferError('photo_preferences_cas_conflict')
+                 if (policy is None or not current.associated
+                         or photo_destination_choice is not None and policy.enabled
+-                        or not policy.enabled and not (video_settings is not None and video_settings[0] is False or photo_destination_choice is not None)):
++                        or not policy.enabled and not (video_settings is not None and video_settings[0] is False
++                            or photo_destination_choice is not None or completing and current.independent_video_available)):
+                     raise TransferError('photo_preferences_authority_changed')
++                if completing:
++                    pending=policy.pending_automatic_receive
++                    if (pending is None or current.direction!='phone_to_desktop' or policy.phone_to_pc_delete
++                            or policy.pc_to_phone_delete or policy.mapping_store is None or policy.job_catalog is None
++                            or ('images' in pending.kinds)!=(policy.enabled and current.destination_available)
++                            or ('video' in pending.kinds)!=current.include_videos):
++                        raise TransferError('media_automatic_receive_setup_changed')
+                 if photo_destination_choice is not None:
+                     choice=photo_destination_choice
+                     if (type(choice.owner) is not NativePhotoDestinationController or choice.owner._authority is not self._authority):
+diff --git a/magnolie-organizer/bin/magnolie_telefon.py b/magnolie-organizer/bin/magnolie_telefon.py
+index 5069dec5a7943caa00c8cd5da03da86bfefe37a6..6954f03ed847588a823ec05ee964978611c7c113 100644
+--- a/magnolie-organizer/bin/magnolie_telefon.py
++++ b/magnolie-organizer/bin/magnolie_telefon.py
+@@ -3527,7 +3527,8 @@ class PhoneService:
+         if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','video_album_id','job_owner','historical_choice'}
+                  or request['action'] not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic',
+                     'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together',
+-                    'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_default_destination','photos_default_destination','sync_selected','sync_shared')
++                    'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_default_destination','photos_default_destination',
++                    'sync_selected','sync_shared','setup_automatic_receive')
+                 or ('album_id' in request) != (request['action'] in ('sync','videos_sync','sync_selected'))
+                 or ('video_album_id' in request) != (request['action']=='sync_selected')
+                 or ('job_owner' in request) != (request['action'] in ('recover_saved','repair_receipt'))
+@@ -3768,7 +3769,9 @@ class PhoneService:
+                 try:saved=prefs.read()
+                 finally:prefs.close()
+                 policy=saved.policy
+-                if (policy is None or not saved.associated or not policy.enabled or not saved.destination_available
++                if (policy is None or not saved.associated
++                        or not (policy.enabled and saved.destination_available
++                            or kinds==['video'] and saved.independent_video_available)
+                         or policy.mapping_store is None or policy.job_catalog is None
+                         or 'video' in kinds and not saved.include_videos):return
+             finally:authority.close()
+diff --git a/magnolie-organizer/po/ar.po b/magnolie-organizer/po/ar.po
+index c9ed4de98e4790b5513a747f6d041f435069a538..cbc29009fea76e8e62e444c6b7595d95c54bf6f4 100644
+--- a/magnolie-organizer/po/ar.po
++++ b/magnolie-organizer/po/ar.po
+@@ -7143,6 +7143,9 @@ msgstr "مزامنة جهات الاتصال"
+ msgid "Synchronize now"
+ msgstr "المزامنة الآن"
+ 
++msgid "Set up automatic receiving"
++msgstr "إعداد الاستلام التلقائي"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "مزامنة المجموعة الموجودة على الهاتف فقط"
+ 
+diff --git a/magnolie-organizer/po/be.po b/magnolie-organizer/po/be.po
+index 60b677ef694815b084735a98cfc5179bb1c54d8a..41fe5668b81ec1d3acead731bb74ad6d1c2151d1 100644
+--- a/magnolie-organizer/po/be.po
++++ b/magnolie-organizer/po/be.po
+@@ -7078,6 +7078,9 @@ msgstr "Сінхранізаваць кантакты"
+ msgid "Synchronize now"
+ msgstr "Сінхранізаваць зараз"
+ 
++msgid "Set up automatic receiving"
++msgstr "Наладзіць аўтаматычнае атрыманне"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Сінхранізаваць толькі калекцыю на тэлефоне"
+ 
+diff --git a/magnolie-organizer/po/cs.po b/magnolie-organizer/po/cs.po
+index c6304e653eb768e978eccd8985ec22b00daa9293..a554d3a2283429b1ec3a99dfdfd196c8c3e40275 100644
+--- a/magnolie-organizer/po/cs.po
++++ b/magnolie-organizer/po/cs.po
+@@ -7055,6 +7055,9 @@ msgstr "Synchronizovat kontakty"
+ msgid "Synchronize now"
+ msgstr "Synchronizovat nyní"
+ 
++msgid "Set up automatic receiving"
++msgstr "Nastavit automatický příjem"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Synchronizovat pouze sbírku v telefonu"
+ 
+diff --git a/magnolie-organizer/po/da.po b/magnolie-organizer/po/da.po
+index f57d03e155338edf4acb506a30d6b75c31509610..9a87393ff179447708b54a7501dfb4bce53ad75b 100644
+--- a/magnolie-organizer/po/da.po
++++ b/magnolie-organizer/po/da.po
+@@ -7029,6 +7029,9 @@ msgstr "Synkronisér kontakter"
+ msgid "Synchronize now"
+ msgstr "Synkroniser nu"
+ 
++msgid "Set up automatic receiving"
++msgstr "Konfigurer automatisk modtagelse"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Synkroniser kun samlingen på telefonen"
+ 
+diff --git a/magnolie-organizer/po/de.po b/magnolie-organizer/po/de.po
+index bc7ad5dddae010e06c757751f02b87d543a609a1..f06bf97d1eda12f324fe5057c6032c0f9ea1958f 100644
+--- a/magnolie-organizer/po/de.po
++++ b/magnolie-organizer/po/de.po
+@@ -7135,6 +7135,9 @@ msgstr "Notizen und Notizbücher synchronisieren"
+ msgid "Synchronize now"
+ msgstr "Jetzt synchronisieren"
+ 
++msgid "Set up automatic receiving"
++msgstr "Automatischen Empfang einrichten"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Nur den Bestand auf dem Handy abgleichen"
+ 
+diff --git a/magnolie-organizer/po/es.po b/magnolie-organizer/po/es.po
+index bcad9ec77b41a5715cf8d5444ecda91959a90044..388958fb5c2a8992439e358d67ca580c8a3e6e37 100644
+--- a/magnolie-organizer/po/es.po
++++ b/magnolie-organizer/po/es.po
+@@ -7136,6 +7136,9 @@ msgstr "Sincronizar contactos"
+ msgid "Synchronize now"
+ msgstr "Sincronizar ahora"
+ 
++msgid "Set up automatic receiving"
++msgstr "Configurar la recepción automática"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Sincronizar solo la colección del teléfono"
+ 
+diff --git a/magnolie-organizer/po/fr.po b/magnolie-organizer/po/fr.po
+index 8b24c3c069a673512dc59ac935c9feaad1796530..1ec1c99c4a72538e38e06b8489487c1a99fcf7ec 100644
+--- a/magnolie-organizer/po/fr.po
++++ b/magnolie-organizer/po/fr.po
+@@ -7196,6 +7196,9 @@ msgstr "Synchroniser les contacts"
+ msgid "Synchronize now"
+ msgstr "Synchroniser maintenant"
+ 
++msgid "Set up automatic receiving"
++msgstr "Configurer la réception automatique"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Synchroniser uniquement la collection du téléphone"
+ 
+diff --git a/magnolie-organizer/po/hi.po b/magnolie-organizer/po/hi.po
+index 86ad5c6bb2a061c7ab450d110934f67b061313c2..a1bcc1a0d41df7657692a5c3d77ef0f2611e0819 100644
+--- a/magnolie-organizer/po/hi.po
++++ b/magnolie-organizer/po/hi.po
+@@ -6915,6 +6915,9 @@ msgstr "संपर्क सिंक्रनाइज़ करें"
+ msgid "Synchronize now"
+ msgstr "अभी सिंक्रोनाइज़ करें"
+ 
++msgid "Set up automatic receiving"
++msgstr "फ़ाइलें अपने-आप प्राप्त करने की सुविधा सेट करें"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "केवल फ़ोन के संग्रह को सिंक्रनाइज़ करें"
+ 
+diff --git a/magnolie-organizer/po/hsb.po b/magnolie-organizer/po/hsb.po
+index 512488da5e91e65792a2dd52aa4c8f7ad1f13249..3324ec77ade9e2ba3f5bf13abea809bfc6f165da 100644
+--- a/magnolie-organizer/po/hsb.po
++++ b/magnolie-organizer/po/hsb.po
+@@ -7163,6 +7163,9 @@ msgstr "Kontakty synchronizować"
+ msgid "Synchronize now"
+ msgstr "Nětko synchronizować"
+ 
++msgid "Set up automatic receiving"
++msgstr "Awtomatiske přijimanje zarjadować"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Jeno zběrku na telefonje synchronizować"
+ 
+diff --git a/magnolie-organizer/po/it.po b/magnolie-organizer/po/it.po
+index a3a81ac584767851e70e08bf8b99ab296640d0a4..9cd309fd68816772a4db103ec7e072f741caebbd 100644
+--- a/magnolie-organizer/po/it.po
++++ b/magnolie-organizer/po/it.po
+@@ -7136,6 +7136,9 @@ msgstr "Sincronizza contatti"
+ msgid "Synchronize now"
+ msgstr "Sincronizza ora"
+ 
++msgid "Set up automatic receiving"
++msgstr "Configura la ricezione automatica"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Sincronizza solo la raccolta del telefono"
+ 
+diff --git a/magnolie-organizer/po/ja.po b/magnolie-organizer/po/ja.po
+index 14047181423be6f0cbdc0d69ad6b6c4b8134e5ba..012bb654198b5b9d3426f6de29c493c3852c2cd1 100644
+--- a/magnolie-organizer/po/ja.po
++++ b/magnolie-organizer/po/ja.po
+@@ -6966,6 +6966,9 @@ msgstr "連絡先を同期"
+ msgid "Synchronize now"
+ msgstr "今すぐ同期"
+ 
++msgid "Set up automatic receiving"
++msgstr "自動受信を設定"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "スマートフォン内のコレクションのみ同期"
+ 
+diff --git a/magnolie-organizer/po/magnolie-organizer.pot b/magnolie-organizer/po/magnolie-organizer.pot
+index 5ee651fc711942be453d71c5a21cfb519c22e4f5..1fedd0c806a16ccd8d7b355a252c6058e1d56160 100644
+--- a/magnolie-organizer/po/magnolie-organizer.pot
++++ b/magnolie-organizer/po/magnolie-organizer.pot
+@@ -6841,6 +6841,9 @@ msgstr ""
+ msgid "Synchronize now"
+ msgstr ""
+ 
++msgid "Set up automatic receiving"
++msgstr ""
++
+ msgid "Synchronize only the phone's collection"
+ msgstr ""
+ 
+diff --git a/magnolie-organizer/po/nb.po b/magnolie-organizer/po/nb.po
+index 19730beb95a478450d0d06d7bba7db1f27ab89d0..0295941f5815fb745581e5977985bcbc0d4e21fe 100644
+--- a/magnolie-organizer/po/nb.po
++++ b/magnolie-organizer/po/nb.po
+@@ -7026,6 +7026,9 @@ msgstr "Synkroniser kontakter"
+ msgid "Synchronize now"
+ msgstr "Synkroniser nå"
+ 
++msgid "Set up automatic receiving"
++msgstr "Sett opp automatisk mottak"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Synkroniser bare samlingen på telefonen"
+ 
+diff --git a/magnolie-organizer/po/nl.po b/magnolie-organizer/po/nl.po
+index 363b0abab389fc4e3bb6b7e8a78511c46a1ca5ea..37a2cb924522bd1aaa6595e77e46567bba62ba9a 100644
+--- a/magnolie-organizer/po/nl.po
++++ b/magnolie-organizer/po/nl.po
+@@ -7099,6 +7099,9 @@ msgstr "Contacten synchroniseren"
+ msgid "Synchronize now"
+ msgstr "Nu synchroniseren"
+ 
++msgid "Set up automatic receiving"
++msgstr "Automatische ontvangst instellen"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Alleen de verzameling op de telefoon synchroniseren"
+ 
+diff --git a/magnolie-organizer/po/pl.po b/magnolie-organizer/po/pl.po
+index b4f4c40c916488432f5c7694cee3c408b837acd7..a67aec481163b0e9160a637790f9300874b35c11 100644
+--- a/magnolie-organizer/po/pl.po
++++ b/magnolie-organizer/po/pl.po
+@@ -7105,6 +7105,9 @@ msgstr "Synchronizuj kontakty"
+ msgid "Synchronize now"
+ msgstr "Synchronizuj teraz"
+ 
++msgid "Set up automatic receiving"
++msgstr "Skonfiguruj automatyczne odbieranie"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Synchronizuj tylko kolekcję na telefonie"
+ 
+diff --git a/magnolie-organizer/po/pt.po b/magnolie-organizer/po/pt.po
+index e42695dec30751e99b647d406c7c100d40444013..b098a87b31c928ead1dac89eb0ca7bb31f52bcfc 100644
+--- a/magnolie-organizer/po/pt.po
++++ b/magnolie-organizer/po/pt.po
+@@ -7132,6 +7132,9 @@ msgstr "Sincronizar contactos"
+ msgid "Synchronize now"
+ msgstr "Sincronizar agora"
+ 
++msgid "Set up automatic receiving"
++msgstr "Configurar o recebimento automático"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Sincronizar apenas a coleção do telefone"
+ 
+diff --git a/magnolie-organizer/po/ru.po b/magnolie-organizer/po/ru.po
+index 8501bb031450a1581c085edf0f57a302412a3b52..fdf52e67d80cbb4d26f42048737086517f88271c 100644
+--- a/magnolie-organizer/po/ru.po
++++ b/magnolie-organizer/po/ru.po
+@@ -7111,6 +7111,9 @@ msgstr "Синхронизировать контакты"
+ msgid "Synchronize now"
+ msgstr "Синхронизировать сейчас"
+ 
++msgid "Set up automatic receiving"
++msgstr "Настроить автоматическое получение"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Синхронизировать только коллекцию на телефоне"
+ 
+diff --git a/magnolie-organizer/po/tr.po b/magnolie-organizer/po/tr.po
+index f17badd316c7da26cbd3fd2639ee2bef5aaa4a4b..0119f45cacaabbd55986b6e86c79d8cc5fd9e04c 100644
+--- a/magnolie-organizer/po/tr.po
++++ b/magnolie-organizer/po/tr.po
+@@ -7033,6 +7033,9 @@ msgstr "Kişileri eşzamanla"
+ msgid "Synchronize now"
+ msgstr "Şimdi eşitle"
+ 
++msgid "Set up automatic receiving"
++msgstr "Otomatik almayı ayarla"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Yalnızca telefondaki koleksiyonu eşitle"
+ 
+diff --git a/magnolie-organizer/po/uk.po b/magnolie-organizer/po/uk.po
+index b120ce70eb2aaaa659a1cac554975d93a7150659..0f6b206060ea523718b953b24abc5255f8f97dd4 100644
+--- a/magnolie-organizer/po/uk.po
++++ b/magnolie-organizer/po/uk.po
+@@ -7083,6 +7083,9 @@ msgstr "Синхронізувати контакти"
+ msgid "Synchronize now"
+ msgstr "Синхронізувати зараз"
+ 
++msgid "Set up automatic receiving"
++msgstr "Налаштувати автоматичне отримання"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "Синхронізувати лише колекцію на телефоні"
+ 
+diff --git a/magnolie-organizer/po/zh_CN.po b/magnolie-organizer/po/zh_CN.po
+index 167e7eed79e95321e5d687ac9f85c50fb28df428..ea8b5ccaa96c66d08b2e0ccc36ec0792a9e5bb71 100644
+--- a/magnolie-organizer/po/zh_CN.po
++++ b/magnolie-organizer/po/zh_CN.po
+@@ -6744,6 +6744,9 @@ msgstr "同步联系人"
+ msgid "Synchronize now"
+ msgstr "立即同步"
+ 
++msgid "Set up automatic receiving"
++msgstr "设置自动接收"
++
+ msgid "Synchronize only the phone's collection"
+ msgstr "仅同步手机上的照片集"
+ 
+diff --git a/magnolie-organizer/pruefungen/media-source-choice-ui.cjs b/magnolie-organizer/pruefungen/media-source-choice-ui.cjs
+index a4325815980ccb21831b3dba4f2ceb2dee7d36b3..dfbbaf112fdb090fbd0f863f0d8b7a1c29e7d7d7 100644
+--- a/magnolie-organizer/pruefungen/media-source-choice-ui.cjs
++++ b/magnolie-organizer/pruefungen/media-source-choice-ui.cjs
+@@ -129,6 +129,30 @@ async function boot() {
+     stopVideo.click();
+     assert.deepEqual(outgoing().at(-1).request, { action: "videos_disable" });
+   });
++  await test("Wi-Fi setup starts only from the explicit receive action", async b => {
++    const shared = { ...b.state.shared_media, values: { ...b.state.shared_media.values,
++      collection_mode: "phone_inventory", direction: "phone_to_pc", auto_mode: "wifi" } };
++    const show = (media, state = {}) => b.show({ automatic_receive_setup: true, sending_consent: null, shared_media: media, ...state });
++    const setup = () => b.w.document.querySelector("[data-photo-automatic-setup]");
++    const actions = () => b.messages.filter(m => m.cmd === "telefon_foto_aktion");
++    show({ ...shared, agreed: false }); assert.equal(setup(), null);
++    show({ ...shared, values: { ...shared.values, enabled: false } }); assert.equal(setup(), null);
++    show(shared);
++    const fold = b.w.document.querySelector("details.notes-foto-sync");
++    assert.equal(fold.open, false);
++    fold.querySelector("summary").click(); await tick();
++    assert.equal(actions().length, 0);
++    assert.ok(setup() && !setup().disabled);
++    assert.equal(fold.querySelector("[data-photo-manual-sync], [data-media-receive]"), null);
++    setup().click();
++    assert.deepEqual(actions().at(-1).request, { action: "setup_automatic_receive" });
++    show(shared, { busy: true }); assert.ok(setup().disabled);
++    show(shared, { automatic_receive_setup: false, enabled: true });
++    assert.equal(setup(), null);
++    assert.equal(b.w.document.querySelector("[data-media-receive]"), null);
++    assert.ok([...b.w.document.querySelectorAll("details.notes-foto-sync button")]
++      .some(button => button.textContent === "Revoke · Photos"));
++  });
+   await test("unsupported two-way mode cannot be selected or start a partial run", async b => {
+     const direction = () => b.w.document.querySelector('[data-media-setting="direction"]');
+     assert.ok(direction().querySelector('[value="two_way"]').disabled, "Two-way must not be selectable without safe return");
+diff --git a/magnolie-organizer/pruefungen/test_media_first_receive.py b/magnolie-organizer/pruefungen/test_media_first_receive.py
+index 4c266ce16cd905b84ca35ab0e1e32281206d1178..cf2197a8eaed722cca11cd7f36ff0c49649f09f9 100644
+--- a/magnolie-organizer/pruefungen/test_media_first_receive.py
++++ b/magnolie-organizer/pruefungen/test_media_first_receive.py
+@@ -30,11 +30,14 @@ from test_video_destination_ui import saved_book_inputs
+                                       'read_missing', 'read_allowed', 'worker', 'book_changed', 'custom_target',
+                                       'changed_custom_target', 'mixed_video_read_missing', 'mixed_existing_video_off',
+                                       'mixed_both_read', 'mixed_both_workers', 'video_only_read_missing',
+-                                      'video_only_worker', 'video_only_remote_off'])
++                                      'video_only_worker', 'video_only_remote_off',
++                                      'automatic_ready', 'automatic_read_missing', 'automatic_stopped',
++                                      'automatic_mixed_video_read_missing', 'automatic_video_ready'])
+ def test_manual_first_receive_waits_for_explicit_start_and_original_file_controls(native, tmp_path, monkeypatch, outcome):
+     service, peer, _ = native
+-    mixed=outcome.startswith('mixed_')
+-    video_only=outcome.startswith('video_only_')
++    mixed=outcome.startswith('mixed_') or outcome=='automatic_mixed_video_read_missing'
++    video_only=outcome.startswith('video_only_') or outcome=='automatic_video_ready'
++    automatic=outcome.startswith('automatic_')
+     peer['capabilities'] = legacy_state()
+     service.store.save_peers()
+     monkeypatch.setattr(service, '_native_media_support_checked', True)
+@@ -81,6 +84,7 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
+             dispatch(ack(submitted))
+             connection = service.open_native_file_connection(peer['device_id'], peer['static_public'], channel, binding.generation)
+             connection._media_transport.change('enabled', True)
++            if automatic:connection._media_transport.change('auto_mode','wifi')
+             if mixed or video_only:connection._media_transport.change('videos_enabled',True)
+             if video_only:connection._media_transport.change('photos_enabled',False)
+             settings = connection._media_transport.send_settings()
+@@ -97,7 +101,7 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
+ 
+             state = service.photo_sync_state(peer['device_id'])
+             assert state['shared_media']['agreed']
+-            assert state['manual_receive']
++            assert state['manual_receive'] is not automatic
+             assert connection._preferences.read().policy is None
+             assert not list(pictures.iterdir())
+             assert not list(videos.iterdir())
+@@ -147,7 +151,10 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
+                     assert not list(chosen.iterdir()) and not list(pictures.iterdir())
+                     quiet()
+                     return
+-            start('sync_shared')
++            if automatic:
++                session=connection.desktop_session()
++                monkeypatch.setattr(session,'_ensure_timer',lambda:None)
++            start('setup_automatic_receive' if automatic else 'sync_shared')
+             control = wire.receive()
+             assert control['kind'] == 'file_transfer.control'
+             packet = FileControlPacket.parse(control['body'])
+@@ -163,7 +170,7 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
+                 assert saved.destination_token!=saved.videos.destination_token
+             else:assert saved.videos is None
+             if video_only:
+-                assert saved.video_only_receive and saved.destination is None and connection.desktop_snapshot()['manual_receive']
++                assert saved.video_only_receive and saved.destination is None
+                 assert not list(pictures.iterdir())
+                 with connection._operation():
+                     with pytest.raises(TransferError,match='file_desktop_receive_consent_unavailable'):
+@@ -262,10 +269,24 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
+                 album=str(uuid4())
+                 coverage=response(observe,sources.CATALOG,version=version,media_type='video',page=dict(
+                     format=1,catalog_id=str(uuid4()),after=0,next_cursor=None,
+-                    coverage='full_videos' if worker_ready else 'none',proves_deletion=False,
++                    coverage='full_videos' if worker_ready or automatic else 'none',proves_deletion=False,
+                     albums=[dict(album_id=album,kind='camera',display_name='Camera',visible_images=1,
+                         needs_choice=False)] if worker_ready else []))
+                 video_root=Path(saved.videos.destination.path)
++                if automatic:
++                    with connection._operation(incoming=True):pending=connection._preferences.read()
++                    assert pending.policy.pending_automatic_receive.kinds==('video',)
++                    assert session._schedule_scope() is None
++                    dispatch(coverage)
++                    assert session.join(3) and session.snapshot()['state']=='waiting',session.snapshot()['error']
++                    assert connection._preferences.read().policy.pending_automatic_receive is None
++                    assert session._schedule_scope() is not None and session._schedule.active is None
++                    assert connection._album_worker is None and not list(video_root.iterdir()) and not list(pictures.iterdir())
++                    quiet()
++                    service._end_native_file_connection(channel)
++                    from test_media_support_draft import exercise_private_reconnect
++                    exercise_private_reconnect(service,peer,video_only=True)
++                    return
+                 if worker_ready:
+                     from base64 import b64decode
+                     from dataclasses import replace
+@@ -309,7 +330,7 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
+             discover = wire.receive()
+             assert discover['body']['operation'] == 'discover' and discover['expires_ms'] <= status['expires_ms'] + 2
+             assert session._schedule.active is None and not session._sync_active
+-            coverage = 'none' if outcome == 'read_missing' else 'full_images'
++            coverage = 'none' if outcome in ('read_missing','automatic_read_missing') else 'full_images'
+             album_id = str(uuid4())
+             albums = [dict(album_id=album_id, kind='camera', display_name='Camera',
+                            visible_images=1, needs_choice=False)] if outcome in ('worker','mixed_video_read_missing','mixed_both_workers') else []
+@@ -319,6 +340,58 @@ def test_manual_first_receive_waits_for_explicit_start_and_original_file_control
+             catalog = response(discover, sources.CATALOG, version=version,
+                                page=dict(format=1, catalog_id=str(uuid4()), after=0, next_cursor=None,
+                                          coverage=coverage, proves_deletion=False, albums=albums))
++            if automatic:
++                with connection._operation(incoming=True):pending=connection._preferences.read()
++                assert pending.policy.pending_automatic_receive.kinds==(('images','video') if mixed else ('images',))
++                assert session._schedule_scope() is None and not session._sync_active
++                if outcome=='automatic_stopped':
++                    start('stop')
++                    assert session.join(3)
++                    dispatch(catalog)
++                    assert connection._source_catalog is None
++                else:
++                    dispatch(catalog)
++                    if mixed:
++                        video_catalog=wire.receive()
++                        assert video_catalog['body']['operation']=='discover' and video_catalog['body']['media_type']=='video'
++                        dispatch(response(video_catalog,sources.CATALOG,version=version,media_type='video',page=dict(
++                            format=1,catalog_id=str(uuid4()),after=0,next_cursor=None,coverage='none',proves_deletion=False,albums=[])))
++                    if outcome=='automatic_read_missing' or mixed:
++                        request=wire.receive()
++                        assert request['body']['operation']=='request_read'
++                        assert request['body'].get('media_type','images')==('video' if mixed else 'images')
++                        dispatch(response(request,sources.PERMISSION_RESULT,version=version,state='notification_posted',
++                            **({'media_type':'video'} if mixed else {})))
++                    assert session.join(3)
++                    assert session.snapshot()['state']==('waiting' if outcome=='automatic_ready' else 'permission_required'),session.snapshot()['error']
++                after=connection._preferences.read()
++                if outcome=='automatic_ready':
++                    assert after.policy.pending_automatic_receive is None
++                    assert after.policy.destination==pending.policy.destination
++                    assert after.policy.permission_epoch==pending.policy.permission_epoch
++                    assert session._schedule_scope() is not None
++                else:
++                    assert after==pending and session._schedule_scope() is None
++                assert session._schedule.active is None and not session._sync_active
++                assert connection._album_worker is None and connection._source_pending is None
++                assert not list(Path(saved.destination.path).iterdir())
++                quiet()
++                if outcome=='automatic_read_missing':
++                    start('setup_automatic_receive')
++                    status=wire.receive()
++                    assert status['body']['operation']=='status'
++                    dispatch(response(status,sources.RESULT,version=version,revision=2,enabled=True,
++                        associated=True,repair_pending=False,kinds=sorted(sources.KINDS)))
++                    discover=wire.receive()
++                    assert discover['body']['operation']=='discover'
++                    dispatch(response(discover,sources.CATALOG,version=version,page=dict(
++                        format=1,catalog_id=str(uuid4()),after=0,next_cursor=None,coverage='full_images',
++                        proves_deletion=False,albums=[])))
++                    assert session.join(3) and session.snapshot()['state']=='waiting',session.snapshot()['error']
++                    assert connection._preferences.read().policy.pending_automatic_receive is None
++                    assert session._schedule_scope() is not None and session._schedule.active is None
++                    quiet()
++                return
+             if outcome == 'book_changed':
+                 changed = {'einstellungen': {'papierkorb': {'an': True, 'tage': 7}}}
+                 with NativeMediaRetention(service.store.root) as retention:
+diff --git a/magnolie-organizer/pruefungen/test_media_support_draft.py b/magnolie-organizer/pruefungen/test_media_support_draft.py
+index 42f836a01a643f5e2be21f3635fa9110c12d02fc..65935151523a9e5ef85814ecc0556d03490c192e 100644
+--- a/magnolie-organizer/pruefungen/test_media_support_draft.py
++++ b/magnolie-organizer/pruefungen/test_media_support_draft.py
+@@ -535,7 +535,7 @@ def test_actual_reader_joins_only_original_wlan_after_acks_and_never_uses_outbox
+             exercise_private_reconnect(service,peer)
+ 
+ 
+-def exercise_private_reconnect(service,peer):
++def exercise_private_reconnect(service,peer,*,video_only=False):
+     with wire_pair() as (channel,wire):
+         binding=capture_authenticated_binding(dict(service.store.identity),dict(peer),service._generation,service.store)
+         service._activate_connection(peer['device_id'],channel,'wifi',file_binding=binding)
+@@ -551,7 +551,8 @@ def exercise_private_reconnect(service,peer):
+             deliver(ack(local))
+             connection=service._native_file_connections[channel]
+             settings=wire.receive();assert settings['kind']==media.KIND and media.effective(settings['body'])['auto_mode']=='wifi'
+-            assert wire.receive()['kind']=='file_transfer.control'
++            controls=wire.receive()
++            assert controls['kind']=='file_transfer.control'
+             assert not connection.desktop_snapshot()['shared_media']['agreed'] and connection._desktop_session is None
+             deliver(ack(settings))
+             assert not connection.desktop_snapshot()['shared_media']['agreed'] and connection._desktop_session is None
+@@ -559,7 +560,52 @@ def exercise_private_reconnect(service,peer):
+             deliver(echo);assert wire.receive()==ack(echo)
+             assert connection.desktop_snapshot()['shared_media']['agreed']
+             assert connection._desktop_session is None  # No current phone SEND or file-control echo.
+-            assert connection._preferences.read().policy.enabled
++            policy=connection._preferences.read().policy
++            assert policy.enabled is not video_only
++            if video_only:
++                from hashlib import sha256
++                from magnolie_file_control import FileControlPacket,FileGrantState,NativeFilePeer,NativeLocalFileGrant,NativeFileControlSession
++                import magnolie_file_sources as sources
++                from magnolie_transfer_job_catalog import NativeJobCatalogIdentity
++                from test_file_desktop_sources import response
++
++                assert policy.destination is None and policy.video_only_receive and policy.videos.enabled
++                identity=connection._authority.identity
++                desktop=NativeFilePeer(identity.receiver_id,identity.receiver_identity_sha256,object(),True,True,True,True,True)
++                origin=NativeJobCatalogIdentity(peer['device_id'],sha256(phone.unb64(peer['static_public'],32)).hexdigest())
++                grant=NativeLocalFileGrant(FileGrantState(2,'c'*64,True,False),object(),True)
++                phone_controls=NativeFileControlSession(origin,lambda:desktop,lambda:grant)
++                try:
++                    phone_controls.observe_remote(FileControlPacket.parse(controls['body']),desktop)
++                    for echo_round in range(2):
++                        packet=phone_controls.packet()
++                        at=phone.now_ms()
++                        deliver(dict(type='message',v=1,message_id=str(uuid.uuid4()),kind='file_transfer.control',
++                            created_ms=at,expires_ms=at+60_000,body=packet.wire()))
++                        phone_controls.mark_sent(packet)
++                        if echo_round==0:
++                            phone_controls.observe_remote(FileControlPacket.parse(wire.receive()['body']),desktop)
++                    wire.sock.settimeout(10)
++                    try:status=wire.receive()
++                    except TimeoutError:
++                        session=connection._desktop_session
++                        pytest.fail(f"No automatic start after reconnect: {None if session is None else session.snapshot()}")
++                    assert status['body']['operation']=='status'
++                    typed=dict(version='b'*64,revision=2,enabled=False,associated=True,repair_pending=False,
++                               kinds=sorted(sources.KINDS),videos=dict(enabled=True,revision=1))
++                    deliver(response(status,sources.RESULT,**typed))
++                    arm=wire.receive()
++                    assert arm['body']['operation']=='configure_videos' and arm['body']['enabled'] is True
++                    deliver(response(arm,sources.RESULT,**typed))
++                    discover=wire.receive()
++                    assert discover['body']['operation']=='discover' and discover['body']['media_type']=='video'
++                    deliver(response(discover,sources.CATALOG,version='b'*64,media_type='video',page=dict(
++                        format=1,catalog_id=str(uuid.uuid4()),after=0,next_cursor=None,coverage='full_videos',
++                        proves_deletion=False,albums=[])))
++                    session=connection._desktop_session
++                    assert session.join(5) and session.snapshot()['state']=='complete',session.snapshot()['error']
++                    assert connection._preferences.read().policy==policy
++                finally:phone_controls.close()
+         finally:service._end_native_file_connection(channel)
+ 
+ 
+diff --git a/magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py b/magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..219db9d36dc670480f0129e177a623dca72ee1dc
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py
+@@ -0,0 +1,60 @@
++"""Explicit Nextcloud birthday properties in the actual desktop ICS codec."""
++from hashlib import sha256
++
++import pytest
++from test_category_colors import codec
++
++
++@pytest.mark.parametrize("start,end,year_fields,rule,expected", [
++    ("19850417", "19850418", ["X-NEXTCLOUD-BC-UNKNOWN-YEAR:0", "X-NEXTCLOUD-BC-YEAR:1985"], "FREQ=YEARLY", "1985-04-17"),
++    ("19700417", "19700418", ["X-NEXTCLOUD-BC-UNKNOWN-YEAR:1"], "FREQ=YEARLY", "--04-17"),
++    ("19720229", "19720301", ["X-NEXTCLOUD-BC-UNKNOWN-YEAR:1"], "FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1", "--02-29"),
++    ("19880417", "19880418", ["X-NEXTCLOUD-BC-UNKNOWN-YEAR:1", "X-NEXTCLOUD-BC-YEAR:1988"], "FREQ=YEARLY", None),
++])
++def test_nextcloud_birthday(codec, start, end, year_fields, rule, expected):
++    text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "COLOR:gold", "BEGIN:VEVENT", "UID:provider-birthday",
++        "SUMMARY:Example", f"DTSTART;VALUE=DATE:{start}", f"DTEND;VALUE=DATE:{end}", f"RRULE:{rule}",
++        "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", *year_fields, "COLOR:turquoise", "X-TEST-PROVIDER:retained",
++        "END:VEVENT", "END:VCALENDAR", ""])
++    imported = codec.ics_lesen(text, "Nextcloud", "provider-source")
++    if expected is None:
++        assert not imported["jahrestage"] and len(imported["termine"]) == 1
++        return
++    assert not imported["termine"] and len(imported["jahrestage"]) == 1
++    item = imported["jahrestage"][0]
++    assert (item["datum"], item["typ"], item["uid"]) == (expected, "birthday", "provider-birthday")
++    assert item["icsQuelleId"] == "ics:" + sha256(b"provider-source\n").hexdigest()
++    assert item["icsQuelleName"] == "Nextcloud" and item["akzentFarbe"] == "#40e0d0"
++    exported = codec.ics_schreiben_jahrestage([item])
++    assert [line for line in exported.splitlines() if line.startswith("RRULE:")] == [f"RRULE:{rule}"]
++    assert f"DTSTART;VALUE=DATE:{start}" in exported and f"DTEND;VALUE=DATE:{end}" in exported
++    assert "COLOR:gold" in exported and "COLOR:turquoise" in exported and "X-TEST-PROVIDER:retained" in exported
++    assert codec.ics_lesen(exported)["jahrestage"][0]["datum"] == expected
++    edited = codec.ics_schreiben_jahrestage([{**item, "datum": "--07-12"}])
++    assert "X-NEXTCLOUD-BC-UNKNOWN-YEAR:" not in edited and "X-TEST-PROVIDER:retained" in edited
++    assert codec.ics_lesen(edited)["jahrestage"][0]["datum"] == "--07-12"
++
++
++@pytest.mark.parametrize("properties", [
++    [], ["X-NEXTCLOUD-BC-FIELD-TYPE:DEATHDATE"], ["X-NEXTCLOUD-BC-FIELD-TYPE:ANNIVERSARY"],
++    ["X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", "X-NEXTCLOUD-BC-FIELD-TYPE:DEATHDATE"],
++    ["X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", "X-NEXTCLOUD-BC-YEAR:1986"],
++    ["X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", "EXDATE;VALUE=DATE:20260417"],
++    ["BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:-P1D", "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", "END:VALARM"],
++])
++def test_other_events_keep_their_type(codec, properties):
++    text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:control",
++        "SUMMARY:Birthday-looking title", "DTSTART;VALUE=DATE:19850417", "RRULE:FREQ=YEARLY",
++        *properties, "END:VEVENT", "END:VCALENDAR", ""])
++    parsed = codec.ics_lesen(text)
++    assert not parsed["jahrestage"] and len(parsed["termine"]) == 1
++
++
++def test_nextcloud_marker_cannot_detach_a_series_master_from_its_exception(codec):
++    text = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:series",
++        "SUMMARY:Master", "DTSTART;VALUE=DATE:19850417", "RRULE:FREQ=YEARLY",
++        "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", "END:VEVENT", "BEGIN:VEVENT", "UID:series",
++        "SUMMARY:Moved", "RECURRENCE-ID;VALUE=DATE:20260417", "DTSTART;VALUE=DATE:20260418",
++        "END:VEVENT", "END:VCALENDAR", ""])
++    parsed = codec.ics_lesen(text)
++    assert not parsed["jahrestage"] and len(parsed["termine"]) == 2
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+index e0a99dab64a54e63ab7d494d1cedbaf034c2566c..df295942aaa2461f256ac777343f89841e60b6e1 100644
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -30150,10 +30150,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       const twoWayHeld = sharedValues
+         ? sharedValues.direction === "two_way" && sharedValues.collection_mode !== "import_only"
+         : stand.mapped_direction === "two_way";
+-      const manualReceive = stand.manual_receive === true && stand.shared_media?.agreed === true &&
+-        sharedValues?.enabled === true && sharedValues.auto_mode === "manual" &&
++      const sharedReceive = stand.shared_media?.agreed === true && sharedValues?.enabled === true &&
+         (sharedValues.photos_enabled === true || sharedValues.videos_enabled === true) &&
+         (sharedValues.direction === "phone_to_pc" || sharedValues.collection_mode === "import_only");
++      const manualReceive = sharedReceive && stand.manual_receive === true && sharedValues.auto_mode === "manual";
++      const automaticReceive = sharedReceive && sharedValues.auto_mode === "wifi";
++      const automaticSetup = automaticReceive && stand.automatic_receive_setup === true;
+       const sende = (action, album_id, job_owner, historical_choice) => {
+         telefonFotoFehler.delete(peer.device_id);
+         const request = { action }; if (album_id !== undefined) request.album_id = album_id;
+@@ -30170,11 +30172,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       label.addEventListener("click", event => event.stopPropagation());
+       label.addEventListener("keydown", event => event.stopPropagation());
+       const revokeVideo = stand.shared_media && stand.enabled !== true && stand.video_enabled === true;
+-      if (revokeVideo || manualReceive && stand.enabled === true) {
++      if (revokeVideo || (manualReceive || automaticReceive) && stand.enabled === true) {
+         const revoke = knopf(_("Revoke") + " · " + (revokeVideo ? _("Videos") : _("Photos")), "", () => sende(revokeVideo ? "videos_disable" : "disable"));
+         revoke.title = revokeVideo ? (stand.video_destination || "") : label.title;
+         gruppe.append(revoke);
+-      } else if (stand.shared_media && !manualReceive && sharedValues?.photos_enabled === true) {
++      } else if (stand.shared_media && !manualReceive && !automaticReceive && sharedValues?.photos_enabled === true) {
+         const row = el("label", "hak"); row.append(an, document.createTextNode(" " + label.title));
+         gruppe.append(row);
+       } else if (!stand.shared_media) titel.append(label);
+@@ -30449,7 +30451,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
+       if (twoWayHeld) gruppe.append(el("p", "einst-hinweis", _("Two-way synchronization") + " · " + _("Unavailable")));
+       const backupRecovery = baueMedienBackupWiederherstellung(); gruppe.append(backupRecovery);
+-      if (manualReceive || stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
++      if (manualReceive || automaticSetup || stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
+         const manuell = el("div", "knopfreihe notes-medien-manuell");
+         const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => {
+           telefonFotoFehler.delete(peer.device_id);
+@@ -30460,7 +30462,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         jetzt.dataset.photoManualSync = "true";
+         jetzt.disabled = twoWayHeld || stand.busy === true || !(manualReceive || stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length) ||
+           !!(stand.shared_media && stand.shared_media.configured !== false && (!stand.shared_media.values.enabled || !stand.shared_media.agreed));
+-        manuell.append(jetzt);
++        if (automaticSetup) {
++          const einrichten = knopf(_("Set up automatic receiving"), "hauptknopf", () => sende("setup_automatic_receive"));
++          einrichten.dataset.photoAutomaticSetup = "true";
++          einrichten.disabled = stand.busy === true;
++          manuell.append(einrichten);
++        } else manuell.append(jetzt);
+         if (stand.busy) {
+           const stop = knopf(_("Stop"), "", () => sende("stop")); stop.dataset.photoStop = "true"; manuell.append(stop);
+         }

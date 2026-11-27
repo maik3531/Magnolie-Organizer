@@ -1,0 +1,43 @@
+{
+  "reviewed_at_utc": "2026-11-27T19:49:10.198593+00:00",
+  "reviewed_commit": "559c5c1f103caf0be09d381e0ca59f2e07b9e608",
+  "source_sha256": "a59cef826e140590ffd652056a53d8a5683f2a053d400c287554995b09ef2ba6",
+  "assembly_sha256": "df34794502b1baca0410fa6ab6f68400390d2f08ce20b92b96662bdf2fd47fee",
+  "runner_sha256": "728fc7bcfc07c22f907517ca3adb80c41f571773e46575f30e4331d525213456",
+  "commands": [
+    {
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/codec-runner/bin/Debug/net8.0/CalendarCodecProbe.dll",
+        "/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/independent-normal-detached-initial-input.json",
+        "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/independent-normal-detached-initial-output.json",
+        "import"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845-remainder",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "/workspace/scratch/7203da5bd564/open-audit/import-export/codec-runner/bin/Debug/net8.0/CalendarCodecProbe.dll",
+        "/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll",
+        "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/independent-normal-detached-after-export-input.json",
+        "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/independent-normal-detached-after-export-output.json",
+        "import"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845-remainder",
+      "exit_code": 0
+    }
+  ],
+  "observed_counts": {
+    "termine": 1,
+    "jahrestage": 1
+  },
+  "expected_counts": {
+    "termine": 2,
+    "jahrestage": 0
+  },
+  "passed": false,
+  "scope_de": "Ein tatsächlicher C#-Import eines normalen Nextcloud-Geburtstags, Export über WriteIcs, anschließend Reimport nach angehängter separater Ausnahme gleicher UID. Kein nativer Kalender/Provider."
+}

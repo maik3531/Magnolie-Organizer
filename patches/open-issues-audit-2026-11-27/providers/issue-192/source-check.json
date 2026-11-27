@@ -1,0 +1,37 @@
+{
+  "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "scope": "Static source/registration comparison for documentation only; no runtime, native phone, provider or installation actions executed.",
+  "sources": {
+    "magnolie-organizer/web/anwendung.js": "573b2b457689c9d3e7a71be4aca60630144b892e0fd53ce21c778d8806259440",
+    "magnolie-organizer-windows/app/web/anwendung.js": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+    "magnolie-organizer/bin/magnolie_call_actors.py": "b2f94c00022a16e4c472b79c6686833b154c059a90c51003d7867abea1198153",
+    "magnolie-organizer-windows/TelefonCallActors.cs": "83068b7ac03bdcd7115c70795beabc57f7df46ca45cdb4c925c955272988d000",
+    "contracts/mcp.md": "7d00856b2f4e1bfa416aaf5c92055974171e05049df089d88fe49e02be6b3d6e",
+    "contracts/mcp-coverage.md": "e1a8f9b1c704518f03f9ccb719c359b82819b4660f99403e03a820f7d36b7bbe"
+  },
+  "calls": [
+    "organizer_phone_call_read",
+    "organizer_phone_call_command_start",
+    "organizer_phone_call_command_status",
+    "organizer_phone_call_command_cancel"
+  ],
+  "checks": [
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "result": "all four public tools registered"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "result": "all four public tools registered"
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_call_actors.py",
+      "result": "all four native actor operations present"
+    },
+    {
+      "path": "magnolie-organizer-windows/TelefonCallActors.cs",
+      "result": "all four native actor operations present"
+    }
+  ],
+  "diff_check": "PASS"
+}

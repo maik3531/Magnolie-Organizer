@@ -1,0 +1,35 @@
+{
+  "issue": 843,
+  "status": "resolved_upstream_no_duplicate_patch",
+  "upstream_fix_commit": "66b50c44482f279d7c3566fe2959f66ebcc20cd5",
+  "reviewed_head": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "issue_closed_comment": "https://github.com/maik3531/Magnolie-Organizer/issues/843#issuecomment-7225588940",
+  "remote_status_provenance_de": "Root hat Abschlussabruf und Kommentar geprüft; dieser Nachtrag bestätigt die aktuelle Quelllösung zusätzlich lokal und dynamisch.",
+  "historical_alternative_commit": "9c00336342f736f541cf14e006de1248b22b8850",
+  "historical_integrated_commit": "aed96df09d0d536832e5e1ad0d2ffa00b7ef9b1e",
+  "historical_patch": "refs-843-worker-url-lifecycle.patch",
+  "apply_historical_patch": false,
+  "decision_de": "Die unabhängig implementierte Upstreamlösung deckt die konkret geprüften Besitzfälle ab. Den historischen Alternativpatch und dessen alte Restserienübernahme nicht erneut anwenden; keine zusätzliche #843-Quellkorrektur empfohlen.",
+  "source_review": "upstream-source-review.json",
+  "independent_test_result": "upstream-independent-ownership-result.json",
+  "manifest": "upstream-manifest.json",
+  "tests_de": "Unveränderte unabhängige Ownershipprobe: 3/3 Protokollfälle bestanden. Beide tatsächlichen Mac-/Tablet-Projektoradapter bestanden auf neuer Quelle und geänderter TZ_PORT-Regel. Keine komplette zusätzliche Worker- oder Portsuite behauptet.",
+  "context_coverage": [
+    "Konstruktorfehler: URL wird vor Fehlerveröffentlichung freigegeben",
+    "Linux-/Windows-Blobzweig und Linux-Custom-Scheme/data:",
+    "Synchroner Ersatzworker während Providerfehler-Publish bleibt bestehen",
+    "Späte alte onmessage/onerror-Ereignisse ändern Ersatzworker/Job nicht",
+    "Erfolgreicher Worker behält aktive URL und Listener",
+    "Einzelner Jobfehler hält wiederverwendbaren Worker",
+    "Wiederholte Freigabe und zweimal unload sind idempotent"
+  ],
+  "historical_checkpoint": {
+    "archive": "../../performance-before-upstream-843.tar.gz",
+    "manifest": "../../performance-before-upstream-843.json",
+    "sha256": "30a2e644ac5d1c1c997c65de7e4742fb0181fe4572d4f5c5a8df078f689efe0a",
+    "contains_de": "Vollständiger unveränderter 77-Dateien-Stand plus damalige SHA256SUMS vor diesem Nachtrag."
+  },
+  "remaining_de": "#395: native 30-Tage-/N100-/Gesamtressourcenabnahme sowie numerische Suche und Import/Draw-Phasen bleiben eigenständig offen.",
+  "native_heap_or_30_day_proof": false,
+  "product_files_changed_in_review": false
+}

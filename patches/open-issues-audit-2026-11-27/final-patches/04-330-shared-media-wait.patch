@@ -1,4 +1,4 @@
-From b65f1b62cb6b6eed13f75a330adca371162e5822 Mon Sep 17 00:00:00 2001
+From 0c6ca5129f5009b805d1acd0d3f224e381bc9020 Mon Sep 17 00:00:00 2001
 From: Codex <codex@openai.com>
 Date: Fri, 27 Nov 2026 18:59:00 +0100
 Subject: [PATCH] Refs #759: wait for shared media settings without legacy

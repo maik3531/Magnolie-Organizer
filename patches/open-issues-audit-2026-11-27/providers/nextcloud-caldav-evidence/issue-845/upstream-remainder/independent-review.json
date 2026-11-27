@@ -1,0 +1,154 @@
+{
+  "issue": 845,
+  "review_type": "independent_static_review_of_current_residual_patch",
+  "reviewer": "review_storage",
+  "reviewed_at_utc": "2026-11-27T19:50:57.945205+00:00",
+  "base_commit": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "reviewed_commit": "559c5c1f103caf0be09d381e0ca59f2e07b9e608",
+  "reviewed_tree": "955187d653a1a991b20f13bc77ef1f47be8af126",
+  "worktree_clean": true,
+  "decision": "approved_for_two_scoped_remainders",
+  "patch_regressions_found": [],
+  "scope_de": "Ausschließlich aktueller Nachtrag auf 7a: (1) exakte Februar-Monatsende-Regel bei Typ-/Jahresänderung und erneutem Import; (2) ausdrücklicher Linux-DAV-Abbruch für bereits als Nextcloud-Geburtstag erkannte Ressourcen. Der historische initiale 8d-Patch ist nicht Bestandteil dieser Freigabe.",
+  "source_and_test_files": [
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "sha256": "a709b549469f686ed43b5de2a21f74ccf48347d6f24cba6a86832966a2c651cf",
+      "git_blob": "25be8a4ed379b4934ca9c6be75dc47fd3f4e3943"
+    },
+    {
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "sha256": "a59cef826e140590ffd652056a53d8a5683f2a053d400c287554995b09ef2ba6",
+      "git_blob": "84975af6aa329f04195fd6288f8e97120f7a3eeb"
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py",
+      "sha256": "daf71563c3cc88067de0c62873d8f2b25730e69b097c68645105b60f5b00b88e",
+      "git_blob": "e0f31e5cc9672cb2e2207dd6299aef696a7c9538"
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs",
+      "sha256": "04caf82a56db5404b59aa555230a84dc4a0b30011274c779098db0bf96019f75",
+      "git_blob": "22d0b4df5b5b703e8eb63d6b19fa5c7a43e84b54"
+    }
+  ],
+  "complete_diff_sha256": "06c8648425b05f6d2b9b15f10e55b79fe838fedc1fb93ee7f085a89e46ea5b29",
+  "preserved_upstream_checks": [
+    {
+      "scope": "_nextcloud_geburtstagsdatum",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "byte_equal": true,
+      "sha256": "8583810fa4c0bbdd4b89c93fdbe7298c27792f9924a0a925377780a9eeb530b2"
+    },
+    {
+      "scope": "_jahrestag_zeilen",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "byte_equal": true,
+      "sha256": "b0e759fbad41d39dcfb5def0e826ef8659c56c7f0e3054b777e099c7e479ced6"
+    },
+    {
+      "scope": "C# adopted Nextcloud detector",
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "byte_equal": true,
+      "sha256": "b5642fdf8effdf6bc0d63ae1933ad66ecc9fac17e9ac211bc9dd9d72b589b86d",
+      "start_inclusive": "    private static string NextcloudBirthdayDate",
+      "end_exclusive": "    internal static bool IsUnboundedAnnualRule"
+    },
+    {
+      "scope": "C# anniversary writer",
+      "path": "magnolie-organizer-windows/ExchangeCodec.cs",
+      "byte_equal": true,
+      "sha256": "f3c82451b4c3f6eaed4afd240ebd1fad5f6d3d70a9fcddad1dc1146bb99ad58f",
+      "start_inclusive": "    private static IEnumerable<string> AnniversaryLines",
+      "end_exclusive": "    private static IEnumerable<string> TaskLines"
+    }
+  ],
+  "conclusions_de": [
+    "Die bestehende Nextcloud-BDAY-Erkennung samt Datumsregeln bleibt bytegleich; der Patch führt keine neue Provider- oder Typheuristik ein.",
+    "Beide neuen Februarhelfer verlangen den 29. Februar und exakt FREQ=YEARLY, BYMONTH=2 und BYMONTHDAY=-1. Doppelte oder zusätzliche Regelteile erfüllen die Bedingung nicht.",
+    "Der Export erhält genau eine passende rohe RRULE, wenn die aktuelle Jahrestagsangabe weiterhin den 29. Februar bezeichnet. Typ- oder Jahreswechsel entfernt weiterhin veraltete bekannte Nextcloud-Marker; andere Tage fallen auf die vorhandene neu erzeugte Jahresregel zurück.",
+    "Die neue typisierte Reimport-Erkennung bleibt auf die passende einzelne Februarregel begrenzt. Python berücksichtigt komplexe_serie und die vorhandenen Wiederholungsfelder; C# bindet den neuen Zweig an den vorhandenen Detached-Guard. Die vorgeschaltete C#-Suche erfasst dazu auch den exportierten Fall ohne Nextcloud-Marker.",
+    "Der Linux-DAV-Guard prüft bereits typisierte Jahrestage anhand ihrer obersten rohen Eigenschaften. Ein verschachtelter Alarmmarker allein genügt nicht. Die Vorabprüfung aller gewählten Kalender läuft vor Remote-Schreiben, Dublettenbereinigung und Erfolgscursor-Fortschritt.",
+    "Der DAV-Nachtrag behebt den irreführenden leeren Erfolg durch einen ausdrücklichen unsupported-Fehler. Ein vollständiger DAV-Abgleich von Jahrestagen wird damit nicht implementiert."
+  ],
+  "author_tests_reviewed": {
+    "baseline_manifest": "baseline-manifest.json",
+    "final_manifest": "final-manifest.json",
+    "test_bytes_equal_before_after": true,
+    "python_baseline": {
+      "passed": 19,
+      "failed": 6
+    },
+    "python_after": {
+      "passed": 25,
+      "failed": 0
+    },
+    "csharp_birthdays_before": {
+      "passed_groups": 0,
+      "failed_groups": 1
+    },
+    "csharp_birthdays_after": {
+      "passed_groups": 1,
+      "failed_groups": 0
+    },
+    "csharp_dav_after": {
+      "passed_groups": 1,
+      "failed_groups": 0
+    },
+    "build_after": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "executed_by_reviewer": false,
+    "log_bindings": [
+      {
+        "path": "logs/python-before.log",
+        "sha256": "479a62a98b702d81d0b0ac7ef87f88109fe74909b5f904484070d24f8239040c"
+      },
+      {
+        "path": "logs/python-after.log",
+        "sha256": "a87153cd74bd889932a6a17e8a0494e1efd56dfe39b9895b991b3c6c3ddcb27f"
+      },
+      {
+        "path": "logs/windows-before.log",
+        "sha256": "ac62d7e477c6880f36e1a4d87238aecd2d86025b2210a985001e22df2ae97856"
+      },
+      {
+        "path": "logs/windows-after.log",
+        "sha256": "22063b861890e34af538f4506e7a324ebf981a08b5c5bc68c7af62b634981877"
+      },
+      {
+        "path": "logs/windows-dav-after.log",
+        "sha256": "fbdf458d28dcb80634d7f3ce81656c1d3a1af3e73744b1debd6580dc17e36929"
+      },
+      {
+        "path": "logs/windows-build-after.log",
+        "sha256": "8ea4307b21a9aeddd252ce510289847e018f112726870a889eccfb0b048c1033"
+      }
+    ]
+  },
+  "reviewer_executions": {
+    "broad_or_existing_suites_rerun": false,
+    "one_additional_actual_csharp_boundary_scenario": {
+      "report": "independent-normal-detached-review.json",
+      "codec_process_invocations": 2,
+      "result": "existing_boundary_confirmed",
+      "detail_de": "Tatsächlicher C#-Import eines normalen BDAY, tatsächlicher Export, danach Reimport mit separater RECURRENCE-ID gleicher UID. Der bestehende normale eigene FREQ=YEARLY-Zweig liefert 1 Jahrestag + 1 Termin statt 0 + 2."
+    }
+  },
+  "existing_out_of_scope_boundary": {
+    "classification": "preexisting_ordinary_annual_detached_boundary",
+    "report": "independent-normal-detached-review.json",
+    "executed_commit": "559c5c1f103caf0be09d381e0ca59f2e07b9e608",
+    "executed_on_base_7a": false,
+    "base_origin_evidence_de": "Der tatsächliche Fall verwendet die unverändert zulässige Kombination IsUnboundedAnnualRule(recurrence) und anniversaryType.Length > 0. Auf 7a liegt derselbe eigene Jahreszweig außerhalb von allowProviderBirthday; auf 559c bleibt er bei FREQ=YEARLY wahr, ohne den neuen Februarzweig zu betreten. Diese Herkunft ist durch Quellenvergleich belegt, nicht durch eine behauptete zweite Ausführung auf 7a.",
+    "base_condition": "providerDate.Length > 0 || IsUnboundedAnnualRule(recurrence) && anniversaryType.Length > 0",
+    "followup_condition": "providerDate.Length > 0 || anniversaryType.Length > 0 && (IsUnboundedAnnualRule(recurrence) || allowProviderBirthday && ... IsLastFebruaryAnnualRule(...))",
+    "disposition_de": "Root ausdrücklich informiert und gemäß Abschlussumfang als bestehende Grenze dokumentiert. Keine weitere Produktänderung oder Folgesuite. Keine allgemeine Detached-Freigabe."
+  },
+  "limitations_de": [
+    "Keine allgemeine Abnahme sämtlicher Jahrestags-/Serien-/Ausnahmevarianten.",
+    "Keine neue DOM-/Endgeräte-/Live-Nextcloud-Abnahme; die historischen vier DOM-Fälle auf 8d bleiben historische Nachweise.",
+    "Keine vollständige Linux-DAV-Jahrestagsintegration, kein neuer Dialog und keine zusätzliche manuelle Bestätigung."
+  ]
+}

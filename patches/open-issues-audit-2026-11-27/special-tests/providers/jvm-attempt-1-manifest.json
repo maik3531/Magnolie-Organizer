@@ -1,0 +1,68 @@
+{
+  "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "stage": "jvm",
+  "scope": "Existing focused host regressions only; no native OS/installed/device acceptance.",
+  "source_files": {
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ProviderZone.kt": "df732f386818efb7c0d09368d087704971956fdb753536334f60c27430c6ad23",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/TimeZoneExport.kt": "7475d43f54caded4f8e4a721127d43882423e05c591a814e2ad2a82b766da75e",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarImport.kt": "56e9cce3866701d034b5b4dc9276ac90adbcb2fca3640f063bc01321b5d7f93a",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarExport.kt": "2f04cc2859a96f35181e8c2e481da55a1f3cda63a0bb156411b4f9e7781286c8",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/ProviderCodecMigrationTest.kt": "8a2d3b3f5394b4a59da8faebe66905b086e4c7622b05408609774c5453dd3cd5",
+    "port-adapters/timezones/tzdb-2026egtz.json": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c",
+    "port-adapters/timezones/LICENSE-tzdb.txt": "0613408568889f5739e5ae252b722a2659c02002839ad970a63dc5e9174b27cf",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/resources/calendar-export-system-zone-ui.json": "7c0cb3c83dd27feb10266d332223cb1ba20867482e42694934a8aac95392dc27",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/build.gradle.kts": "dbf657e3fe7c56b50588d8320496b3a300ac199bac0ce0d1566d613d76218a7f"
+  },
+  "runs": [
+    {
+      "name": "provider-codec-compile",
+      "command": [
+        "java",
+        "-cp",
+        "/workspace/scratch/7203da5bd564/round3-tools/kotlin/annotations-13.0.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/hamcrest-core-1.3.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/json-20240303.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/junit-4.13.2.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlin-build-tools-api-2.4.21.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlin-compiler-embeddable-2.4.21.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlin-daemon-embeddable-2.4.21.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlin-reflect-1.6.10.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlin-script-runtime-2.4.21.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlin-stdlib-2.4.21.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlinx-coroutines-core-jvm-1.8.0.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/okio-jvm-3.6.0.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/threetenbp-1.7.5.jar",
+        "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler",
+        "-jvm-target",
+        "17",
+        "-no-stdlib",
+        "-no-reflect",
+        "-classpath",
+        "/workspace/scratch/7203da5bd564/round3-tools/kotlin/annotations-13.0.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/hamcrest-core-1.3.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/json-20240303.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/junit-4.13.2.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlin-build-tools-api-2.4.21.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlin-compiler-embeddable-2.4.21.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlin-daemon-embeddable-2.4.21.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlin-reflect-1.6.10.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlin-script-runtime-2.4.21.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlin-stdlib-2.4.21.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/kotlinx-coroutines-core-jvm-1.8.0.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/okio-jvm-3.6.0.jar:/workspace/scratch/7203da5bd564/round3-tools/kotlin/threetenbp-1.7.5.jar",
+        "-d",
+        "/workspace/scratch/7203da5bd564/open-audit/special-tests/providers/provider-codec-classes",
+        "/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ProviderZone.kt",
+        "/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/TimeZoneExport.kt",
+        "/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarImport.kt",
+        "/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarExport.kt",
+        "/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/ProviderCodecMigrationTest.kt"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-provider-tests",
+      "exit_code": 1,
+      "seconds": 7.843,
+      "log": "provider-codec-compile.log",
+      "sha256": "2ffe42b1d957d9434893e601fc4269c15c8434265f1d0e7873c52a1fec03316e"
+    }
+  ],
+  "environment": {
+    "PATH": "/workspace/scratch/7203da5bd564/round3-tools/gettext/usr/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+    "LD_LIBRARY_PATH": "/workspace/scratch/7203da5bd564/round3-tools/gettext/usr/lib/x86_64-linux-gnu",
+    "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules",
+    "MACOS_BETA_JSDOM": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules/jsdom/lib/api.js",
+    "PYTHONPATH": "/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-macOS-Beta/ImportHelper",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "dependencies": {
+    "annotations-13.0.jar": "ace2a10dc8e2d5fd34925ecac03e4988b2c0f851650c94b8cef49ba1bd111478",
+    "hamcrest-core-1.3.jar": "66fdef91e9739348df7a096aa384a5685f4e875584cce89386a7a47251c4d8e9",
+    "json-20240303.jar": "3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed",
+    "junit-4.13.2.jar": "8e495b634469d64fb8acfa3495a065cbacc8a0fff55ce1e31007be4c16dc57d3",
+    "kotlin-build-tools-api-2.4.21.jar": "c5cd6a49bd072b529ae10809111c16a7aa0f92147e95d288354017fd65799461",
+    "kotlin-compiler-embeddable-2.4.21.jar": "ef19419c765e7ac8404465fa026ca8fc4dbb8a822de0fc79aa53c8dce29f1d02",
+    "kotlin-daemon-embeddable-2.4.21.jar": "7b3ef24674e5bcffcadfc4e43202ea314194939ecbcdd90a4770b2f1b04e0d07",
+    "kotlin-reflect-1.6.10.jar": "3277ac102ae17aad10a55abec75ff5696c8d109790396434b496e75087854203",
+    "kotlin-script-runtime-2.4.21.jar": "a658cf5902a1525a06c264a5e42b437e97a6679ddeef8ca641246f270cf6a013",
+    "kotlin-stdlib-2.4.21.jar": "bd8250210584cb659847dce9cda660f8e9906e5def7fbebcea93dc6dcb6a88a3",
+    "kotlinx-coroutines-core-jvm-1.8.0.jar": "9860906a1937490bf5f3b06d2f0e10ef451e65b95b269f22daf68a3d1f5065c5",
+    "okio-jvm-3.6.0.jar": "67543f0736fc422ae927ed0e504b98bc5e269fda0d3500579337cb713da28412",
+    "threetenbp-1.7.5.jar": "58c5593452f871ebf736dfda3bf8f3bc0de4e92cec61bc19c8ad81f9dfb70d72"
+  }
+}

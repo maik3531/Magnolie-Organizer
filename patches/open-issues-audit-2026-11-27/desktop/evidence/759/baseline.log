@@ -1,0 +1,22 @@
+{
+  "environment": "Actual Windows phone-media.js evaluated in JSDOM; native status contract input, no native process/device run",
+  "master_visible": false,
+  "master_disabled": false,
+  "photos_visible": true,
+  "photos_disabled": false,
+  "automatic_visible": true,
+  "automatic_disabled": false,
+  "status": "Native settings loaded. No transfer has been started.",
+  "messages_before_edit": [
+    "status"
+  ],
+  "saves_before_edit": 0,
+  "messages_after_hidden_or_visible_edit": [
+    "status",
+    "settings"
+  ],
+  "saves_after_edit": 1
+}
+AssertionError [ERR_ASSERTION]: Missing shared settings must retain a visible, unavailable master switch
+    at Immediate._onImmediate (/workspace/scratch/7203da5bd564/open-audit/desktop/evidence/759/reproduce-no-shared.cjs:34:5)
+    at process.processImmediate (node:internal/timers:574:21)

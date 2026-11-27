@@ -1,0 +1,1043 @@
+[
+  {
+    "number": 64,
+    "title": "Google-Tasks- und Microsoft/EAS-Aufgabenadapter anbinden – Folge #39",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "yes",
+    "summary_de": "Die beiden separaten Aufgabenadapter fehlen weiterhin; eine korrekt ausgewählte VTODO-CalDAV-Quelle erledigt diesen Folgeauftrag nicht.",
+    "implemented_de": "Vorhandene DAV-Aufgabenwege und Quellenwahl sind implementiert. Die verwaltete Bridge nennt Google Tasks ausdrücklich nicht verfügbar; Microsoft-Ordner können eingerichtet und eindeutig ausgewählt werden.",
+    "remaining_de": "Google-Tasks-Datenservice sowie tatsächliche Microsoft/EAS-Aufgabendaten einschließlich Lesen, Schreiben, Quellbindung und Rücklesebeleg anbinden. Keine neue OAuth-Appregistrierung aus diesem Auftrag ableiten.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/app/thunderbird/api.js#L292",
+        "detail_de": "google.tasks.available bleibt false; der Quellenexport erfasst CalDAV-Kalender."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/ManagedEasSourceFolders.cs#L15",
+        "detail_de": "Der Ordnervertrag ist ausdrücklich nur Einrichtung; keine Daten-, Schreib- oder Commitquittung."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Offen halten als Adapterintegration; vorhandenen CalDAV-Auswahlfix nicht erneut implementieren.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/64",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 65,
+    "title": "Linux/Google-Kalender: gemeldete fehlende Rücksynchronisation unter 2.0.24 prüfen",
+    "classification": "unconfirmed_report",
+    "relevance": "unknown",
+    "summary_de": "Der historische Google-Rücksyncbericht ist weiterhin nicht als aktueller allgemeiner Programmfehler reproduziert. Die konkrete Google-Livebedingung ist von erfolgreich geprüften anderen Wegen zu trennen.",
+    "implemented_de": "Native EDS-/Akonadi-Anlage und -Änderung sind im Produkt vorhanden. Die Diskussion dokumentiert positive installierte EDS-/Akonadi- und isolierte DAV-Rückleseläufe ohne Dubletten.",
+    "remaining_de": "Bei passender echter Google-Quelle Rechte, beschreibbare Auswahl und denselben regulären Save-/Sync-/Readbackweg beobachten; die ursprüngliche unbekannte Adapterursache nicht erfinden.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/bin/magnolie-organizer#L20054",
+        "detail_de": "eds_event_anlegen und eds_event_aendern verwenden echte EDS- beziehungsweise Akonadi-Schreibmethoden."
+      },
+      {
+        "kind": "issue_discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/65#issuecomment-5891005148",
+        "detail_de": "Positive andere Adapterproben; Google-Live-/Rechteprüfung ausdrücklich offen."
+      }
+    ],
+    "comments_reviewed_count": 2,
+    "proposed_action_de": "Als unbestätigten Bericht mit engem Google-Nachweisziel führen; keinen spekulativen Reparaturpatch und keine pauschale Behauptung eines weiterhin defekten Rücksyncs.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt. Ohne Originalreproduktion oder neuen Google-Lauf ist weder aktuelle Fehlerbestätigung noch eine abschließende Entwarnung möglich.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/65",
+    "executed_action": {
+      "number": 65,
+      "lead_issue": 156,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:35Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/65",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/65#issuecomment-7225076565",
+      "verified": true
+    }
+  },
+  {
+    "number": 75,
+    "title": "Wunsch: Doppelte Erinnerungen anderer Programme optional zugunsten von Magnolie unterdrücken",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "yes",
+    "summary_de": "Der optionale programmübergreifende Erinnerungsbesitz ist ein weiterhin eigenständiger Machbarkeits- und Funktionsauftrag.",
+    "implemented_de": "Magnolie besitzt eigene persistierte Erinnerungsquittungen und interne Dublettenregeln. Beim Einrichten verwalteter Google-Kalender setzt die Thunderbird-Bridge suppressAlarms; das ist eine enge Integration.",
+    "remaining_de": "Dokumentierte Linux-/Windows-/Providerwege für selektive fremde Erinnerungen klären, stabile Ereignis-/Instanzidentität und rückgängig machbare Zuständigkeit bei Dienstende/Widerruf nachweisen. Ein universeller Schalter ist nicht vorhanden.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/app/thunderbird/api.js#L37",
+        "detail_de": "signInGoogle setzt bei neu registrierten Kalendern suppressAlarms; kein allgemeiner Fremdprogrammvertrag."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/ReminderScheduler.cs#L9",
+        "detail_de": "Der Scheduler verwaltet Magnolies eigenen Zustand und eigene Notice-Ausgabe."
+      },
+      {
+        "kind": "acceptance_condition",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/75",
+        "detail_de": "Nutzer verlangt zuerst belegte Machbarkeit und reversible, identitätsgebundene Unterdrückung anderer Programme."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Offen als begrenzte Machbarkeitsarbeit führen; interne Alarmkorrekturen nicht als Erledigung dieses Wunsches ausweisen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/75",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 146,
+    "title": "Eigenprofil: Kontaktkarte, selektives Senden und echte Android-Profilquelle",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Eigenprofilkarte, normaler Editor und selektive Weitergabe sind umgesetzt. Offen ist vor allem die automatische tatsächliche Samsung-Eigenprofilquelle, deren Zugriff im dokumentierten Gerätetest gerade nicht gelang.",
+    "implemented_de": "Separates eigenesProfil, normaler Mehrfeld-/Fotoeditor und Profilversand bestehen. Android liest canonical Profile oder eindeutig systemmarkiertes Eigenprofil, prüft Identität erneut und übernimmt Foto/Geburtstag, wenn der Provider sie liefert.",
+    "remaining_de": "Einen unterstützten automatischen Zugriff für die betroffene OEM-Konfiguration finden oder dessen konkrete Grenze festhalten. Manuelle VCF-Übernahme ist vom Nutzer ausdrücklich kein Ersatz. Kein persönlicher Namensabgleich oder privater API-Bypass.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/ContactReadAndroid.kt#L96",
+        "detail_de": "readOwnProfile nutzt Profile.CONTENT_URI und eine exakt revalidierte IS_USER_PROFILE-Ausweichquelle."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L20729",
+        "detail_de": "Die getrennte Profilkarte verwendet die gemeinsamen Kontaktkarten-/Editorwege."
+      },
+      {
+        "kind": "issue_discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/146#issuecomment-6133017029",
+        "detail_de": "Konkrete Samsung-/Android-Diagnose lieferte keine öffentlich lesbaren Eigenprofilzeilen; keine allgemeine Samsung-Aussage."
+      }
+    ],
+    "comments_reviewed_count": 11,
+    "proposed_action_de": "Titel/Rest auf automatische unterstützte Profilquelle präzisieren; bereits vorhandene UI-Funktionen nicht neu implementieren.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt. Die Diskussion belegt eine bestimmte OEM-Konfiguration, keine generelle Unmöglichkeit auf Android oder allen Samsung-Geräten.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/146",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 156,
+    "title": "Native Online-Konten: Kontakt- und Kalenderabgleich über alle Systemanbieter prüfen",
+    "classification": "acceptance_or_live_evidence",
+    "relevance": "yes",
+    "summary_de": "Es bleibt eine Anbieter-/Fähigkeitsmatrix der vorhandenen nativen Online-Konten; kein aus dem Issue bewiesener neuer Adapterfehler.",
+    "implemented_de": "Der EDS-Einstieg lädt SourceRegistry, Kalender- und Adressbuchschnittstellen generisch. Er ist nicht auf Google als Anbieter fest verdrahtet.",
+    "remaining_de": "Tatsächlich installierte WebDAV-/Nextcloud-/Exchange-/Microsoft365-Quellen mit den jeweils vom System angebotenen Rechten, Baselines, Aktualisierung und Fehlererhaltung prüfen.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/bin/magnolie-organizer#L19655",
+        "detail_de": "EDS-Laden, SourceRegistry und eds_quellen verwenden die vorhandenen nativen Systemquellen."
+      },
+      {
+        "kind": "acceptance_condition",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/156",
+        "detail_de": "Google/EDS-Erfolg wird bestätigt, universelle Anbieterabnahme ausdrücklich nicht."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Offen als konkrete Providerabnahme führen; nur einen neu reproduzierten Fehler als Quellfix abspalten, keine zusätzlichen Authentifizierungswege vorsorglich bauen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/156",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 158,
+    "title": "Eigener Geburtstag: persönliche Glückwünsche und quellenübergreifende Identität",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "yes",
+    "summary_de": "Persönliche Geburtstagsansprache und bestätigte quellenübergreifende Eigenidentität fehlen weiterhin als zusammenhängende Funktion.",
+    "implemented_de": "Das Eigenprofil bleibt getrennt; allgemeine Kontaktgeburtstage und native Jahrestagserinnerungen sind vorhanden.",
+    "remaining_de": "Bestätigte Eigenprofil-/Kontakt-/Terminbindungen über Quellen nutzen, bestehende UIDs/ETags erhalten und persönliche Vorab-/Tagesansprache ohne zweite generische Meldung ergänzen.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/ReminderScheduler.cs#L464",
+        "detail_de": "AnniversaryNotice verwendet weiterhin generische Namens-/Geburtstagsansprache ohne Eigenprofilzuordnung."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L21639",
+        "detail_de": "Der allgemeine Kontakt-Geburtstagseditor wird beim eigenen Profil bewusst nicht verwendet."
+      },
+      {
+        "kind": "issue_discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/158#issuecomment-6123028994",
+        "detail_de": "Neu gelesenes Eigenprofilgeburtsdatum muss mit vorhandener bestätigter Google/EDS/DAV-Identität zusammengeführt werden."
+      }
+    ],
+    "comments_reviewed_count": 2,
+    "proposed_action_de": "Offen halten; Identitätsvertrag vor Textänderung umsetzen. Nicht mit interner Alarmdeduplizierung oder der Profilkarte gleichsetzen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/158",
+    "executed_action": {
+      "number": 158,
+      "lead_issue": 146,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:23Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/158",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/158#issuecomment-7225064642",
+      "verified": true
+    }
+  },
+  {
+    "number": 159,
+    "title": "Samsung-Eigenprofil: medizinische Informationen optional übernehmen und anzeigen",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "yes",
+    "summary_de": "Medizinische OEM-Eigenprofildaten sind noch kein angebotener Übernahme-/Anzeigepfad; ihre tatsächliche Zugänglichkeit bleibt Voraussetzung.",
+    "implemented_de": "Der Android-Reader erfasst nur medizinisch benannte MIME-Typen als Fähigkeitsmetadaten und überträgt ausdrücklich keine Werte.",
+    "remaining_de": "Tatsächlich erreichbare, ausgewählte Felder und getrennte Übernahme-/Anzeigeoptionen definieren; manuelle Werte bewahren und fehlenden OEM-Zugriff sichtbar behandeln.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/ContactReadAndroid.kt#L179",
+        "detail_de": "Expliziter Kommentar: Capability metadata only; medizinische Werte benötigen einen eigenen angeforderten Datenpfad."
+      },
+      {
+        "kind": "acceptance_condition",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/159",
+        "detail_de": "Abnahme verlangt echte zugängliche Felder und Freigaben; keine behaupteten privaten Samsung-Schnittstellen."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Offen als bedingte Provider-/Datenmodellfunktion führen, mit #146-Zugriffsgrenze verknüpfen; kein Blindpatch anhand von MIME-Namen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/159",
+    "executed_action": {
+      "number": 159,
+      "lead_issue": 146,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:27Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/159",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/159#issuecomment-7225074095",
+      "verified": true
+    }
+  },
+  {
+    "number": 161,
+    "title": "Schulferien: keine täglichen Erinnerungen, optional einmal pro Zeitraum",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Native Ferienanzeige und Terminerinnerungen sind getrennt, aber der geforderte quellengebundene Umgang mit importierten Ferien sowie die optionale einzelne Zeitraummeldung ist nicht vollständig umgesetzt.",
+    "implemented_de": "Ferien werden als eigene Kalenderdarstellung beziehungsweise aus synchronisierten Terminen projiziert. Native Erinnerungsreader bearbeiten Termine/Aufgaben/Jahrestage, nicht pauschal die Ferienanzeigeliste.",
+    "remaining_de": "Bekannte importierte Ferienquellen sicher identifizieren und deren Standardunterdrückung beziehungsweise einmalige Zeitraumoption in Linux/Windows verbinden. Normale Termine nicht anhand ähnlicher Titel unterdrücken.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L11309",
+        "detail_de": "istSynchronisierteFerien/ferienAusTermin sind Darstellungsprojektionen; sie erteilen keinen nativen Alarmvertrag."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/bin/magnolie-organizer#L8769",
+        "detail_de": "faellige_erinnerungen arbeitet auf Termineinträgen; keine quellengebundene Ferienperiode in diesem Auswahlpfad."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/ReminderScheduler.cs#L115",
+        "detail_de": "SelectData übernimmt Termin-/Aufgabenprojektionen unter den bestehenden Gruppen-/Datenschutzregeln."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Offen als eng zu spezifizierende Ferien-Erinnerungsfunktion halten; keine tägliche Fehlmeldung für alle nativen Ferienobjekte pauschal behaupten.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/161",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 192,
+    "title": "MCP: Telefonie und SMS-Aktionen über bestehende Adapter vervollständigen – Rest #170",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Die alte Aussage, öffentliche Wählen/Annehmen/Auflegen-Aktionen fehlten, ist überholt. SMS und Kommunikationsvorgaben bleiben eigenständiger Rest.",
+    "implemented_de": "Beide Frontends registrieren call_read sowie call_command_start/status/cancel; Linux und C# besitzen native Actor-Owner, Source-CAS, Dispatch-/Receipt- und Late-Reply-Grenzen. Der aktuelle mcp.md-Vertrag beschreibt diese Umsetzung bereits.",
+    "remaining_de": "Routing-/Benachrichtigungsvorgaben, SMS-Senden, -Verlauf und -Planung an die vorhandenen angebotenen Adapter anbinden und deren Ergebnis-/Zustellungsgrenzen sowie reale Plattformabnahme erhalten.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L40423",
+        "detail_de": "Vier öffentliche Telefonwerkzeuge einschließlich dial/answer/end werden in mcpWerkzeuge registriert."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/app/web/anwendung.js#L39280",
+        "detail_de": "Windows registriert denselben Call-Startvertrag."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/bin/magnolie_call_actors.py#L88",
+        "detail_de": "Linux besitzt native Create/Start/Status/Cancel-Actors."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/TelefonCallActors.cs#L58",
+        "detail_de": "C# revalidiert native Quelle, Verbindung und Owner."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/contracts/mcp.md#L118",
+        "detail_de": "Aktueller Vertrag trennt persistierte Commandquittung von authentifiziertem Telefonergebnis und Zustellung."
+      }
+    ],
+    "comments_reviewed_count": 2,
+    "proposed_action_de": "Offen für SMS/Routing und passende Abnahme halten. Engen Dokumentationspatch zu #192 liefern, der die veraltete Coverage-Zeile korrigiert; keinen vorhandenen Call-Actor neu implementieren.",
+    "patch": {
+      "commit": "3a471143050564eb348288e137d32fbcdaea77e2",
+      "tree": "016a5254bcd43a5fed90b331e36d9b92a77b0e43",
+      "base": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+      "kind": "documentation_only",
+      "path": "/workspace/scratch/7203da5bd564/open-audit/providers/issue-192/0001-192-mcp-call-coverage.patch",
+      "sha256": "ba3c6c6b7ceab76f5336504a6a2a4fc00cad09df6530d7d38a2664174cef15d3",
+      "validation": "/workspace/scratch/7203da5bd564/open-audit/providers/issue-192/source-check.json",
+      "summary_de": "Veraltete Coverage-Aussage zu bereits registrierten Telefon-Actors korrigiert; SMS/Routing und installierte Abnahme bleiben offen."
+    },
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt. Der neue Patch ändert nur die Coverage-Dokumentation; statischer Registrierungsabgleich genügt, keine Telefonaktion wird ausgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/192",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 193,
+    "title": "MCP: verbleibende KDE-Empfangs-, Routing- und Geräteaktionen anbinden – Rest #170",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Grundkopplung, Medien, Dateisystem und grundlegende Eingabeeinstellungen existieren; der weitergehende KDE-Empfangs-/Routingumfang ist nicht vollständig an MCP angeschlossen.",
+    "implemented_de": "Der aktuelle KDE-Werkzeugkatalog enthält Mediengeräte/-status/-aktionen, Playerwahl, input_status/input_settings und Dateisystemstatus/-öffnen; gesonderte Kopplungswerkzeuge sind registriert.",
+    "remaining_de": "Tatsächlich angebotene Empfangsvorgaben, Routing und weitere Geräte-/Zeichenaktionen mit existierenden nativen Fähigkeiten verbinden oder eine konkrete Plattformgrenze benennen. Standardmäßig ausgeschaltete Zeichenblattweitergabe bleibt erhalten.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L43438",
+        "detail_de": "mcpKdeWerkzeuge zeigt den tatsächlichen begrenzten öffentlichen Operationenkatalog."
+      },
+      {
+        "kind": "acceptance_condition",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/193",
+        "detail_de": "Der Rest ist ausdrücklich außerhalb bereits verbundener Basis-/Medien-/Dateisystemfunktionen abgegrenzt."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Offen lassen, bereits verbundene input_settings nicht als fehlend zählen; Restaktionen einzeln inventarisieren.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/193",
+    "executed_action": {
+      "number": 193,
+      "lead_issue": 192,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:39Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/193",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/193#issuecomment-7225077921",
+      "verified": true
+    }
+  },
+  {
+    "number": 194,
+    "title": "MCP: verbleibende Produktwerkzeuge und Einstellungen verbinden – Rest #170",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Mehrere Produktwerkzeuge sind bereits vorhanden, die konkret genannten übrigen Such-/Assistenten-/Setup- und Transferaktionen bleiben jedoch nicht insgesamt angebunden.",
+    "implemented_de": "Notes-Diagnostik und aktueller quellengebundener Medienstatus sind öffentlich verbunden. Medikamentendatensätze besitzen CRUD und Einstellungen; das ist nicht die externe Medikamentensuche. Eigenprofildaten können gelesen/bearbeitet werden.",
+    "remaining_de": "Kontaktduplikat-Assistent, Wetter-/Medikamentensuche, noch fehlende Entwickler-/Support-/Thunderbird-Setupaktionen und tatsächliche Profil-/Foto-Transfers gegen aktuelle Handler einzeln verbinden.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L40238",
+        "detail_de": "organizer_phone_media_status_read ist implementiert; nicht erneut als fehlendes nächstes Werkzeug behandeln."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L39115",
+        "detail_de": "Medikamenten-CRUD ist vorhanden, während die Produktsuche einen getrennten Handler verwendet."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L43847",
+        "detail_de": "Aktuelle Werkzeugregistrierung und bestehende Diagnostik sind überprüfbar."
+      },
+      {
+        "kind": "issue_discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/194#issuecomment-6928754174",
+        "detail_de": "Die Medienstatus-Teilumsetzung ist bereits im Thread bestätigt; gesamter Restauftrag bleibt getrennt."
+      }
+    ],
+    "comments_reviewed_count": 2,
+    "proposed_action_de": "Offen als präzise Restliste führen; vorhandene Diagnostik, Medienstatus und Gesundheits-CRUD aus der Fehlmenge entfernen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/194",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 272,
+    "title": "Internetkonten: integrierte Konto-Erweiterungen zusammen mit der Laufzeit automatisch aktualisieren",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "yes",
+    "summary_de": "Eine gemeinsame regelmäßige Aktualisierung kompatibler Laufzeit-/Providerpakete ist weiterhin nicht vorhanden.",
+    "implemented_de": "PrepareProfile übernimmt paketierte angepasste Erweiterungen und berücksichtigt Version/Hash. EnsureAvailableAsync wählt zuerst eine bereits kompatible Laufzeit und bereitet nur bei deren Fehlen eine neue vor; Eigenupdates bleiben ausgeschaltet.",
+    "remaining_de": "Den vorhandenen Updateweg um ein zusammengehöriges kompatibles Komponentenset und Wiederholungs-/Offlineverhalten ergänzen, bestehendes Profil und nutzbares Set erhalten.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/ManagedAccountRuntimeUpdater.cs#L22",
+        "detail_de": "Ein vorhandener kompatibler Kandidat wird unmittelbar zurückgegeben; kein regelmäßiger gemeinsamer Updatezyklus."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/ManagedInternetAccounts.cs#L163",
+        "detail_de": "PrepareProfile staged integrierte XPIs; extensions.update.enabled und app.update.auto sind false."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Als echte Updateintegration offen halten. Früheren LastVersion-/Warmstartfix nicht als gesamte automatische Komponentenpflege ausweisen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/272",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 273,
+    "title": "Thunderbird-Quellen beim Import wahlweise dauerhaft synchronisieren",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "yes",
+    "summary_de": "Der ausdrücklich verlangte Importdialog mit Wahl zwischen einmaligem Import und dauerhaft gebundener Thunderbird-Synchronisation ist noch nicht verbunden.",
+    "implemented_de": "Die Livebridge exportiert vorhandene HTTPS-CardDAV-/CalDAV-Quellen mit stabiler Profil-/Quellidentität. Der Kontaktassistent trennt einmaligen Thunderbird-Import und die allgemeine Onlineadressbuch-Synchronisation.",
+    "remaining_de": "Die gewählte tatsächliche Thunderbird-Livequelle nach Vorschau und SaveACK dauerhaft binden; Anbieterbreite, Read-only, fehlende Bridge, Gruppen, Abbruch und Wiederöffnung im selben Ablauf behandeln.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/app/thunderbird/api.js#L114",
+        "detail_de": "sources erfasst konfigurierte DAV-Ressourcen unter stabilen Thunderbird-Profilkennungen."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L26726",
+        "detail_de": "Thunderbird steht ausdrücklich unter Import once; Synchronize permanently führt zu einem getrennten allgemeinen Onlineadressbuchweg."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L34303",
+        "detail_de": "starteImport(lokal) sendet Quelle/Bereich, keine persistente Syncwahl."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Offen halten; die vorhandene Bridge und DAV-Engine weiterverwenden. Eine separate Onlinequellenauswahl nicht als abgeschlossenen Import-/Syncwahlvertrag ausgeben.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/273",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 274,
+    "title": "Offlinebetrieb als normalen Zustand behandeln und gespeicherte Konten still weiterverwenden",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Lokaler Betrieb und mehrere Retry-/Erhaltungsmechanismen bestehen; ein durchgehender normaler Offlinezustand für Konto-/Status-/Synchronisationsabläufe ist weiterhin nicht belegt oder vollständig modelliert.",
+    "implemented_de": "Lokal gespeicherte Inhalte und Telefon-WLAN-Wege sind unabhängig vorhanden. Helferstart verhindert doppelte Prozesse; kompatible lokale Laufzeit wird ohne Download gewählt. Statuslesen löst keine explizite sign_in-Aktion aus.",
+    "remaining_de": "Nichterreichbarkeit/DNS/Offline von echten Authentifizierungs- und Speicherfehlern unterscheiden; Jobs sichtbar warten und ohne Credentialverlust oder Fenster bei Wiederverbindung fortsetzen.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/ManagedInternetAccounts.cs#L76",
+        "detail_de": "ReadAsync verwendet Status/EnsureStarted; kein eigener normalisierter Offlinezustand in dieser öffentlichen Projektion."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/app/thunderbird/background.js#L84",
+        "detail_de": "Providerexceptions werden auf ok:false begrenzt; der gemeinsame Offline-/Authzustandsvertrag ist hier nicht vollständig."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L27708",
+        "detail_de": "Die bestehende Syncoberfläche beschreibt Fehler weiterhin allgemein als immer anzuzeigen."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Offen als durchgehende Zustands-/Integrationsarbeit; einen konkreten neuen Popup-/Datenverlustfehler erst nach Reproduktion behaupten.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt. Dies ist keine Behauptung, dass jeder Offline-Start Fehlerfenster öffnet oder Daten verliert.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/274",
+    "executed_action": {
+      "number": 274,
+      "lead_issue": 275,
+      "requested_reason": "duplicate",
+      "state_reason": "duplicate",
+      "state": "closed",
+      "closed_at": "2026-11-27T18:03:31Z",
+      "url": "https://github.com/maik3531/Magnolie-Organizer/issues/274",
+      "comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/274#issuecomment-7225075342",
+      "verified": true
+    }
+  },
+  {
+    "number": 275,
+    "title": "Internetkonten: notwendige Anmeldung und Providerfehler einheitlich in Magnolie führen",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Der frühere Warmstart-/Silentstartblocker ist korrigiert. Einheitliche erforderliche Anmeldung, Wiederanmeldung, Abbruch und Anbieterfehler sind ein größerer noch gültiger Rest.",
+    "implemented_de": "MOZ_APP_SILENT_START und fensterloser profilgebundener Start sind vorhanden. Die Diskussion belegt frischen und zweiten Start desselben isolierten Profils ohne sichtbare Komponentenfenster; gemeinsame Kontoaktionen nutzen vorhandene Provider.",
+    "remaining_de": "Notwendige Anmeldung und Providerfehler einheitlich führen; vollständige Kontakt-/Kalenderbereitschaft statt bloß angelegter Teilkonten prüfen. Offlinegrenze #274 und echte Datenpipeline #292 getrennt halten.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/ManagedInternetAccounts.cs#L343",
+        "detail_de": "CreateStartInfo setzt frühen Mozilla-Silentstart und vorhandene stille Startargumente."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/app/thunderbird/background.js#L51",
+        "detail_de": "Explizite Loginoperation vermittelt Google beziehungsweise TbSync/EAS; Status ist getrennt."
+      },
+      {
+        "kind": "issue_discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/275#issuecomment-6499051270",
+        "detail_de": "Nativer Fail→Pass-Doppelstart korrigiert nur den konkreten Helferstart, nicht den gesamten persönlichen Cloud-Anmeldeablauf."
+      },
+      {
+        "kind": "issue_discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/275#issuecomment-6541946900",
+        "detail_de": "Angelegte Google-/Microsoftkonten waren kein Beleg für sämtliche gewünschten Datenquellen."
+      }
+    ],
+    "comments_reviewed_count": 3,
+    "proposed_action_de": "Offen mit präzisem Rest führen; Warmstartfehler nicht erneut als unbehoben zählen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/275",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 276,
+    "title": "Telefonkontakte: allgemeine Schreibfreigabe und automatischer bidirektionaler Providerabgleich",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Die Diskussion unterschätzt den aktuellen Stand: allgemeine Schreibfreigabe und automatische Telefon-/E-Mail-Wertewrites samt Transport/UI sind inzwischen vorhanden. Vollständiger Kontakt-/Foto-/Mehrwegeabgleich bleibt darüber hinaus offen.",
+    "implemented_de": "v19 ist aktiviert; gemeinsame contacts_write_enabled-Freigabe übernimmt alte Gruppenschreibwahl. Native Prepare/Apply schützt eindeutigen RawContact, Version und tatsächlichen Readback. Beide Desktops und normaler Save-/Reconciliationpfad führen Telefon-/E-Mailabsichten mit SaveACK aus; Gruppen und deren Titel besitzen getrennte Pfade.",
+    "remaining_de": "Weitere Kontaktfelder und Fotos, vollständige Provider-/Internetfallback- und Mehrwegeidentität sowie tatsächliche native Geräte-/Windowsabnahme des Gesamtumfangs erfüllen. Ressource 19 umfasst ausdrücklich nur Telefon-/E-Maillisten.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/contracts/phone-contact-values-v19.md#L1",
+        "detail_de": "Aktueller Vertrag beschreibt allgemeine Freigabe, automatische SaveACK-Kette und explizit ausgeschlossene Namen/Skalarfelder/Adressen/Fotos."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/ContactValueWrite.kt#L9",
+        "detail_de": "RUNTIME_ENABLED=true; Felder telefone und emailEintraege."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/ContactValueWriteAndroid.kt#L25",
+        "detail_de": "Echter Providerprepare und atomarer wertListenUebernehmen-Readback."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/web/anwendung.js#L14890",
+        "detail_de": "Automatischer Write wartet auf lokalen SaveACK, prüft Prepare, Apply und gespeicherten Readback."
+      },
+      {
+        "kind": "issue_discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/276#issuecomment-6515264816",
+        "detail_de": "Die historische Aussage ohne Transport-/GUI-Aufrufer wird durch die heutige Implementierung überholt."
+      }
+    ],
+    "comments_reviewed_count": 7,
+    "proposed_action_de": "Offen lassen, implementierten Telefon-/E-Mail-/Freigabeteil ausdrücklich abhaken und nur verbleibende Felder, Mehrwegeintegration und aktuelle native Gesamtbelege verfolgen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/276",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 278,
+    "title": "Windows: nativer Sync-Commit bestätigt gespeicherten erfolgreichen Providerabgleich nicht",
+    "classification": "acceptance_or_live_evidence",
+    "relevance": "partial",
+    "summary_de": "Der konkret bestätigte Commitmarker-Quellfehler ist behoben; die eigenständige echte Abschlussquittung aus der neu installierten Windows-GUI bleibt offen.",
+    "implemented_de": "ContainsSavedResult normalisiert nur die fehlende eigene Fortschrittsmarke bei passender 64-Hex-Transaktion, Basis und dauerhaftem Handoff; Inhalt, Quellen und Epoch bleiben Pflicht. Eine positive und sieben negative Regressionsvarianten sind vorhanden.",
+    "remaining_de": "Regulären neuen Produktabschluss auf einem Paket mit dem Fix bis native_commit_confirmed=true nachweisen; vorhandenen Journalbestand nicht zurücksetzen oder manuell entfernen.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/ContactSyncModels.cs#L735",
+        "detail_de": "Eng begrenzte Normalisierung der eigenen ausstehendenTransaktion ist aktuell enthalten."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/tests/SyncCommitProjectionTests.cs#L10",
+        "detail_de": "Regression enthält den echten Markerunterschied und Schutznegative."
+      },
+      {
+        "kind": "issue_discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/278#issuecomment-6541809090",
+        "detail_de": "Originaler Kalenderfehler wurde geschlossen; ausdrücklich separat offen bleibt die neue native GUI-Commitbestätigung."
+      }
+    ],
+    "comments_reviewed_count": 2,
+    "proposed_action_de": "Als Abnahmerest führen, keine erneute Quellkorrektur. Erst nach der spezifischen realen Commitquittung schließen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/278",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 290,
+    "title": "EDS: Provider-Schreibbeleg und historischen Cache-Auslöser nachverfolgen – Rest #285",
+    "classification": "acceptance_or_live_evidence",
+    "relevance": "yes",
+    "summary_de": "Dies ist ausdrücklich kein bestätigter neuer EDS-Programmfehler, sondern zwei noch eigenständige Belegaufträge.",
+    "implemented_de": "Cachewiederherstellung und Prävention des gefährlichen Testmechanismus sind laut dokumentiertem Verlauf abgeschlossen; Produktquellen besitzen native Kontakt-Schreib- und Rücklesepfade.",
+    "remaining_de": "Einen tatsächlich beauftragten Providerwrite mit nativer Rücklese-/Speicherquittung dokumentieren. Den historischen konkreten cacheverschiebenden Aufruf nur soweit vorhandene Belege reichen eingrenzen; eine Korrelation ist kein Ursachenbeweis.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/bin/magnolie-organizer#L20688",
+        "detail_de": "Native EDS-Kontaktanlage/-Änderung/-Löschung sind vorhanden; Quellcode allein beweist keinen konkreten produktiven Schreibvorgang."
+      },
+      {
+        "kind": "issue_discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/290#issuecomment-6861501441",
+        "detail_de": "#267 wurde als echte inhaltliche Dublette geschlossen und hier konsolidiert; diese beiden Restbedingungen bleiben bewusst erhalten."
+      }
+    ],
+    "comments_reviewed_count": 2,
+    "proposed_action_de": "Offen als enges Nachweisissue halten; keine weitere Dublette öffnen, keine persönlichen Testkontakte oder Cache-/Kontenresets erzeugen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt. Private historische Originalbelege wurden in diesem Audit nicht neu erhoben; eine abschließende historische Verursacherzuordnung ist damit nicht möglich.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/290",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 292,
+    "title": "Microsoft-Internetkonten: tatsächliche Kontakt-/Kalenderdatenpipeline abschließen – Rest #29",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "yes",
+    "summary_de": "Die tatsächliche Microsoft-Kontakt-/Kalenderdatenpipeline ist gegenüber vorhandener Kontoeinrichtung weiterhin ein realer eigenständiger Integrationsrest.",
+    "implemented_de": "TbSync/EAS-Einrichtung, Konto-/Ordnerermittlung und sichere Auswahl sind vorhanden. Der Quellenexport für eigentliche DAV-Daten arbeitet jedoch mit CardDAV und CalDAV.",
+    "remaining_de": "Die tatsächlich vorhandenen EAS-/Outlook-/Microsoft365-Daten über den verwalteten Anbieterweg lesen/schreiben und dauerhaft bestätigen, einschließlich genauer Ordnerbindung, Rechte und Offline-/Wiederverbindungsfällen.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/ManagedEasSourceFolders.cs#L15",
+        "detail_de": "EAS-Ordnerquittungen sind ausdrücklich keine Provider-Datensync- oder Schreibquittungen."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/app/thunderbird/api.js#L114",
+        "detail_de": "Live-Datenquellen werden aus CardDAV-Verzeichnissen und CalDAV-Kalendern gebildet."
+      },
+      {
+        "kind": "acceptance_condition",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/292",
+        "detail_de": "#29 wurde nur für Einrichtung/Ermittlung geschlossen; eine sichtbare Konto-/Kalenderauswahl ist kein vollständiger Microsoft-Datennachweis."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Offen als Datenadapterintegration halten; keine neue OAuth-App oder fremde Tokens, keine Neuanlage von Konten für diesen Audit.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/292",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 441,
+    "title": "Linux/CalDAV: typisierten Jahrestagsabgleich vollständig anschließen – Rest aus #440",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "yes",
+    "summary_de": "Der vollständige typisierte Linux-CalDAV-Jahrestagsabgleich fehlt weiterhin; der vorhandene ehrliche Schutzblock ist kein vollständiger Sync.",
+    "implemented_de": "Die Orchestrierung erkennt ausdrücklich X-MAGNOLIE-JAHRESTAG-TYP-markierte Jahrestage vor Kalenderwrites und bricht mit calendar_anniversaries_unsupported ab. Legacy-Kontaktgeburtstagsbereinigung bleibt gesondert.",
+    "remaining_de": "Eigenen Scope mit Quellen/UID/ETag, Baselines, gemischten Ressourcen, Konflikten und Löschungen sowie dauerhaftem Commitnachweis integrieren; erst dann den Schutz ersetzen.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer/bin/magnolie-organizer#L30047",
+        "detail_de": "pruefe_jahrestagsbereich blockiert den explizit markierten ununterstützten Scope vor jedem ausgewählten Kalenderwrite."
+      },
+      {
+        "kind": "acceptance_condition",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/441",
+        "detail_de": "Abnahme enthält gemischte VEVENT/VTODO-Ressourcen, ETag-Konflikte, Wiederholung und dauerhaften Abschluss."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Offen als echte größere Syncintegration führen; vorhandenen #440-Schutz weder entfernen noch als ursprünglichen Bug erneut melden.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/441",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 454,
+    "title": "Mac/Tablet: persistierte Sync-Epoche und Löschquarantäne bei Wiederherstellung ergänzen",
+    "classification": "acceptance_or_live_evidence",
+    "relevance": "partial",
+    "summary_de": "Die ursprüngliche Behauptung fehlender Mac-/Tablet-Restoreintegration ist überholt. Persistierte Epochentransformation und Quarantäne sind in beiden tatsächlichen Hosts enthalten.",
+    "implemented_de": "Mac verwendet NativeBookRestore prepare/validate/commit/apply/finish. Tablet Vault.replace transformiert den authentifizierten Import gegen den aktuellen Vaultstand. Historische native Mac- und Android-Keystore-/Os-Teilproben sind dokumentiert.",
+    "remaining_de": "Aktuelle Gesamtbasis mit tatsächlicher Dateiauswahl/SAF, Abbruch, Neustart/Crash und den fünf vorbereiteten nativen OS-Fehlerinjektionen prüfen; gespeicherte Epoche und Sperre alter Sitzungen nachweisen.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift#L794",
+        "detail_de": "Tatsächlicher Restorehost ruft NativeBookRestore bis zur finalen UI-/Nativebestätigung auf."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/Vault.kt#L214",
+        "detail_de": "replace verwendet BookRestore.transform und eine frische UUID gegen den aktuellen Snapshot."
+      },
+      {
+        "kind": "issue_discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/454#issuecomment-6732747019",
+        "detail_de": "Native Keystore-/Os-Teilprobe bestätigt Epochendrehung und alte Sitzung; fünf weitere OS-Fehlerfälle zunächst nur vorbereitet."
+      },
+      {
+        "kind": "acceptance_condition",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/454",
+        "detail_de": "Aktualisierter Body grenzt noch offene SAF-/Crash-/Fehlermatrix ausdrücklich ab."
+      }
+    ],
+    "comments_reviewed_count": 7,
+    "proposed_action_de": "Offen als konkrete native Abnahmematrix; keine bereits integrierten Restorebausteine erneut implementieren.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/454",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 682,
+    "title": "Kalenderanhänge: echte HTTPS-/Clipboard-Handler und native Portmatrix – Rest #651",
+    "classification": "acceptance_or_live_evidence",
+    "relevance": "partial",
+    "summary_de": "HTTPS- und Clipboard-Handler sind als Quellpfade vorhanden; die reale OS-Handler-/Zwischenablage- und Portformularkette ist der weiterhin gültige Rest.",
+    "implemented_de": "Tablet validiert den bereits gespeicherten HTTPS-Anhang und ruft ACTION_VIEW mit klassifizierten Handlerfehlern auf. ClipboardManager ist angeschlossen. Mac hat HTTPS-/Credential-Policy und CommunicationLaunchBroker; Desktopformular-/Speicherteil ist historisch geprüft.",
+    "remaining_de": "Bewussten echten HTTPS-Aufruf einschließlich fehlender Handler, tatsächliche Clipboardaktion sowie native Mac-/Tablet-Formular-/Save-/Reopenfälle unter den konkret erlaubten Testbedingungen abnehmen.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/MainActivity.kt#L110",
+        "detail_de": "Gespeicherte URI wird geprüft, ACTION_VIEW ausgeführt; Handlerannahme wird nicht als Netzwerk-/Downloadbeweis bezeichnet."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/MainActivity.kt#L582",
+        "detail_de": "ablage_kopieren verwendet den echten ClipboardManager."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/CommunicationLaunchPolicy.swift#L182",
+        "detail_de": "HTTPS ohne URL-Zugangsdaten bleibt die enge native Policy."
+      },
+      {
+        "kind": "acceptance_condition",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/682",
+        "detail_de": "Die vorliegenden Formulartests hielten externe Handler und Clipboard; diese konkrete OS-Grenze ist ausdrücklich nicht abgenommen."
+      }
+    ],
+    "comments_reviewed_count": 5,
+    "proposed_action_de": "Offen als native Handler-/Portabnahme, keine falsche Aussage mehr über einen fehlenden Tablet-HTTPS-Quellanschluss.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt. Lange Patchdiskussion vollständig indiziert; relevante Handler-/Bridge-Abschnitte im Original und gegen heutige Dateien geprüft.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/682",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 683,
+    "title": "CalDAV: echter Testserver, Legacy-Baselines und Konfliktmatrix nach installierter Farbformularabnahme – Rest #652",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Desktopformular und Codecs sind umgesetzt; echter DAV-Gesamtrundlauf und noch unvollständige DAV-Portkoordination bleiben getrennte aktuelle Reste.",
+    "implemented_de": "Desktop-Farb-/ICS-Felder und historische native Formular-/Speichernachweise sind dokumentiert. Mac besitzt Codecs und begrenzten Apple-Systemfeldsync; Tablet besitzt lokale Android-Providerkopien.",
+    "remaining_de": "Zugelassenen DAV-Testserver mit Farbsetzen/-ändern/-leeren, If-Match/412, alten cleanHash-Baselines, parallelen Änderungen und dauerhaftem Journal-/Buchabschluss prüfen. Mac-/Tablet-DAV-Syncumfang weiterhin konkret anbinden; Apple-/Androidlokalkopien ersetzen ihn nicht.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/tests/CalendarAccentSyncTests.cs#L61",
+        "detail_de": "Vorhandene Farb-Sync-Regressionen bilden Quellfälle ab, keinen neuen realen Serverlauf dieses Audits."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/SystemSourceBridge.kt#L25",
+        "detail_de": "Android-Quelle/Import wird ausdrücklich getrennt von implementierter Systemkontensynchronisation dargestellt."
+      },
+      {
+        "kind": "issue_discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/683#issuecomment-7186479357",
+        "detail_de": "Mac-Codec vorhanden; vollständige DAV-Koordination und tatsächlicher Serverabschluss bleiben offen."
+      },
+      {
+        "kind": "acceptance_condition",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/683",
+        "detail_de": "Konkrete Server-/Legacy-/Konflikt-/Neustartmatrix ist eigenständig gegenüber abgeschlossenem Formular-/Codecumfang."
+      }
+    ],
+    "comments_reviewed_count": 1,
+    "proposed_action_de": "Offen halten; Abnahmefälle und fehlende Portintegration getrennt ausweisen, nicht durch zusätzliche reine Codectests schließen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/683",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 689,
+    "title": "Windows-Kontaktautomatik: korrigiertes Paket und echte Schlüssel-/Konto-/WLAN-/Monitorabnahme – Rest #681",
+    "classification": "acceptance_or_live_evidence",
+    "relevance": "partial",
+    "summary_de": "Der SaveACK-/Konfigurationswettlauf ist quellenmäßig behoben; echte Schlüssel-/Konten-/Monitor- und installierte End-to-End-Abnahme wurde dadurch nicht ersetzt.",
+    "implemented_de": "ContactSourceAutomation besitzt generationsgebundene SaveACK-/Setupgrenzen. Native gespeicherte Buchzeugen und DPAPI-basierter Consentstore sind vorhanden; dokumentierte Kandidatenproben nutzten bei mehreren externen Grenzen synthetische Adapter.",
+    "remaining_de": "Auf dem korrigierten Paket tatsächliche Settings→Consent→SaveACK→Neustartkette, DPAPI/ACL/Accountbindung, Produktionsmonitor sowie genehmigte Provider-CAS/Readback-/Result-SaveACK-Kette inklusive Schutznegativen belegen.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/ContactSourceAutomation.cs#L16",
+        "detail_de": "SaveAcknowledgement/Generation und Setup-/Widerrufsgrenzen bilden den korrigierten Quellpfad."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/ContactSourceApprovalStore.cs#L44",
+        "detail_de": "Produktiver ConsentKeyProtector verwendet Windows ProtectedData.CurrentUser."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/magnolie-organizer-windows/ContactSourceApprovalSave.cs#L145",
+        "detail_de": "ConfirmSave verlangt unabhängigen aktuellen nativen Speicherzeugen; Renderer-ACK genügt nicht."
+      },
+      {
+        "kind": "acceptance_condition",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/689",
+        "detail_de": "Die ursprüngliche Abnahme dokumentiert explizit alte installierte DLL versus synthetischen korrigierten Kandidaten und benennt die verbleibende reale Matrix."
+      }
+    ],
+    "comments_reviewed_count": 0,
+    "proposed_action_de": "Offen als spezifischen installierten/native Abnahmerest führen; #688/#619 nicht als erneut unbehoben darstellen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/689",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 785,
+    "title": "Mac-Importparität: aktuelle OR6-/Dateiparser und vollständige native Importwege anbinden",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Der ursprüngliche nur-ICS-Dispatcher ist überholt. Klassische Dateiformate und aktuelle OR6-Projektion sind verbunden; Gesamtarchiv und lokale Mac-Quellen fehlen weiterhin.",
+    "implemented_de": "Native import-Route ruft FileImportHost auf, mit privatem inventarisiertem Pythonhelper, Pickerbytes, gemeinsamer Vorschau/Merge und Speicherquittung. Aktuelle OR6-/vCard-/LDIF-/klassische ZIP-Pfade sind dokumentiert.",
+    "remaining_de": "Vollständiges .magnolie-Archiv mit Kennwort/Integrität/Recovery/Restore und echte Mac-Programmerkennung integrieren. Privaten Interpreter und Picker-/Save-/Reopenfluss auf beiden Mac-Architekturen abnehmen; offene OR6-Detailgrenzen bleiben.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift#L288",
+        "detail_de": "importFile verwendet den begrenzten FileImportHost und tatsächliche Prepare/Commit-UI-Schnittstellen."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift#L941",
+        "detail_de": "Der import-Dispatcher ruft importFile statt eines reinen ICS-Sonderwegs auf."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/Magnolie-Organizer-macOS-Beta/IMPORT-CODECS.md#L255",
+        "detail_de": "Präzise offene Folgearbeiten: Vollarchiv und lokale Evolution-/Thunderbird-Erkennung."
+      },
+      {
+        "kind": "issue_discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/785#issuecomment-7186492012",
+        "detail_de": "Klassische Parser-/UI-Teilnachweise und offene native Laufzeit-/Archivgrenzen sind ausdrücklich getrennt."
+      }
+    ],
+    "comments_reviewed_count": 1,
+    "proposed_action_de": "Offen mit aktualisiertem Resttitel; vorhandenen klassischen Importpatch nicht erneut anwenden oder nachbauen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/785",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 786,
+    "title": "macOS-Systemkonten: echten Apple-Kalender-, Kontakt- und Erinnerungsabgleich anbinden",
+    "classification": "feature_or_integration_remaining",
+    "relevance": "partial",
+    "summary_de": "Die ursprüngliche Aussage ohne echten Apple-Koordinator ist überholt. Ein gebundener manueller Feldabgleich ist vorhanden, vollständige Systemkontenparität weiterhin nicht.",
+    "implemented_de": "EventKit-/Contacts-Provider, Dreiwegevergleich, persistierte Freigabe, verschlüsseltes Ledger und unabhängig zurückgelesener Buchabschluss sind im Host angeschlossen. Bestehende ausgewählte Datensätze können im definierten Feldumfang in beide Richtungen abgeglichen werden.",
+    "remaining_de": "Create/Delete, beliebige neue lokale Einträge, Serien/Alarme/weitere Felder, Automatik, geführte Recovery ungeklärter Writes und Quellenverlust-Freigabenverwaltung sowie Apple-Notes-Rückabgleich. Neue native Swift-/Provider-/Restartprüfung auf dem Gesamtstand fehlt.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccountSyncHost.swift#L45",
+        "detail_de": "begin verbindet tatsächlichen Diskstand, UI-Admission, Quellenfreigabe, Providerplan und Ledger."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/Magnolie-Organizer-macOS-Beta/Sources/MacBeta/SystemAccounts.swift#L323",
+        "detail_de": "Aktueller Normalstatus meldet systemAccountSyncImplemented:true; false im Host ist der Fehlerfallback."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/contracts/macos-786-native-system-sync.md#L18",
+        "detail_de": "Konkrete Feldmatrix und verbleibende Create/Delete-/Automatik-/API-Grenzen sind dokumentiert."
+      },
+      {
+        "kind": "issue_discussion",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/786#issuecomment-7186492778",
+        "detail_de": "Teilabgleich wurde bereitgestellt; native neue Gesamtausführung und weitergehende Funktionen bleiben offen."
+      }
+    ],
+    "comments_reviewed_count": 1,
+    "proposed_action_de": "Offen als konkret abgegrenzte weitere Integration plus native Abnahme; passive Kopien und vorhandenen Feldsync nicht vermischen.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt. Lokaler Apple-Readback beweist keinen iCloud-/iPhone-Serverrundlauf und keinen atomaren Provider-CAS.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/786",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  },
+  {
+    "number": 791,
+    "title": "Android-Tablet: Kontakte und Termine direkt aus Android übernehmen",
+    "classification": "acceptance_or_live_evidence",
+    "relevance": "partial",
+    "summary_de": "Die direkte Android-Kontakt-/Terminübernahme ist implementiert und teilweise gegen echte Provider geprüft. Die alte Metadaten-only-Beschreibung trifft nicht mehr zu.",
+    "implemented_de": "AndroidSystemRecords liest explizit gewählte Quellen, Kontaktfelder und Kalenderinstanzen; Schema 2 bindet stabile Herkunft. UI-Merge bewahrt vorhandene Kopien und meldet Erfolg erst nach SaveACK. Der aktualisierte Body dokumentiert erfolgreiche API34-Providergruppen mit fehlenden Schreibrechten.",
+    "remaining_de": "Unsynchronisierte lokale Serienausnahme, zweite Kontaktquelle, Berechtigungsdialog/Live-Widerruf, laufende Query-Cancellation sowie echte Activity-/SaveACK-/Reopen-/IME-/TalkBackkette. Der Auftrag ist lokale Kopie, kein still hinzugefügter bidirektionaler Sync.",
+    "evidence": [
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/AndroidSystemRecords.kt#L16",
+        "detail_de": "Tatsächlicher ContentResolver-Reader für explizite schreibfreie Kontakt- und Kalenderimporte; keine Provider-Mutation."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/Magnolie-Organizer-Android-Tablet-Beta/web/system-import.js#L1",
+        "detail_de": "Aktuelle UI-Import-/Herkunftspolitik statt bloßer Quellenanzeige."
+      },
+      {
+        "kind": "current_source",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/ARBEITSSTAND.md#L1514",
+        "detail_de": "CI101-Teilnachweise und nachfolgend explizite offene UI-/Berechtigungs-/lokale Ausnahmefälle sind dokumentiert."
+      },
+      {
+        "kind": "acceptance_condition",
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/issues/791",
+        "detail_de": "Aktualisierter CI101-Abschnitt dokumentiert begrenzten Erfolg und konkret verbleibende Abnahmegrenzen."
+      }
+    ],
+    "comments_reviewed_count": 9,
+    "proposed_action_de": "Offen als eng benannte native Bedien-/Provider-Restmatrix; bereits vorhandenen Import nicht nochmals implementieren.",
+    "patch": null,
+    "limitations_de": "Aktuelle Quellen und vollständiger Diskussionsbestand geprüft; keine neue native Geräte-, Konto- oder installierte Produktabnahme durchgeführt. Alle neun Patchkommentare vollständig indiziert; relevante ursprüngliche Reader-/Bridge-/UI-/Providerstufenabschnitte mit heutigen Quellen abgeglichen. Historische CI-Ergebnisse wurden nicht als heutiger neuer Lauf ausgegeben.",
+    "domain": "providers",
+    "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/791",
+    "executed_action": {
+      "state": "open",
+      "scope": "initial snapshot issue after consolidation"
+    }
+  }
+]

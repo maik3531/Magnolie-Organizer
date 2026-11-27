@@ -1,0 +1,19 @@
+{
+  "environment": "Actual UI construction order in JSDOM; no native device run",
+  "sent": [
+    {
+      "action": "backup_list",
+      "media_type": "images"
+    },
+    {
+      "action": "backup_list",
+      "media_type": "video"
+    },
+    {
+      "action": "status"
+    }
+  ],
+  "visible_recovery": true,
+  "loaded_rows": 2
+}
+PASS initial live-panel recovery mount

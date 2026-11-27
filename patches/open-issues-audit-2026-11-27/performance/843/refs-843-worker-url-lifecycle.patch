@@ -1,0 +1,226 @@
+From 9c00336342f736f541cf14e006de1248b22b8850 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 19:32:31 +0100
+Subject: [PATCH] Refs #843: Release recurrence worker URLs on failed lifecycle
+
+---
+ .../app/web/anwendung.js                      | 23 ++++--
+ .../tests/recurrence-worker.js                | 74 +++++++++++++++----
+ magnolie-organizer/web/anwendung.js           | 23 ++++--
+ 3 files changed, 95 insertions(+), 25 deletions(-)
+
+diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
+index 8264d96f..619c991d 100644
+--- a/magnolie-organizer-windows/app/web/anwendung.js
++++ b/magnolie-organizer-windows/app/web/anwendung.js
+@@ -10719,13 +10719,20 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
+         };`;
+       // WebKit's custom local scheme cannot load blob workers; data workers
+       // retain the same isolated, fixed-code execution without a native bridge.
+-      let url;
++      let url, worker;
++      const releaseWorker = () => {
++        if (state.worker === worker) { worker?.terminate(); state.worker = null; }
++        if (url) { URL.revokeObjectURL(url); url = null; }
++        window.removeEventListener("unload", releaseWorker);
++      };
+       try {
+         url = location.protocol === "magnolie-organizer:" ? "data:text/javascript," + encodeURIComponent(source) : URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
+-        state.worker = new Worker(url);
+-      } catch (error) { return fail("recurrence-worker-unavailable"); }
+-      finally { if (url) window.addEventListener("unload", () => URL.revokeObjectURL(url), { once: true }); }
++        state.worker = worker = new Worker(url);
++      } catch (error) { releaseWorker(); return fail("recurrence-worker-unavailable"); }
++      window.addEventListener("unload", releaseWorker, { once: true });
+       state.worker.onmessage = ({ data }) => {
++        if (state.worker !== worker) return;
++        try {
+ /*TZ_PORT:worker-response-identity:BEGIN*/        const job = state.jobs.get(data.key); if (!job) return;
+         if (data.timeZoneIdentity !== MagnolieTime.identity.payloadSHA256) {
+           for (const value of state.jobs.values()) if (value.status === "pending") Object.assign(value, { status: "error", error: "timezone-provider-identity", result: null });
+@@ -10747,13 +10754,17 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
+           if ((["kalender", "aufgaben"].includes(zustand.sektion) ||
+             zustand.sektion === "planer" && planerPaint) && !editorIstGeaendert()) zeichneAlles();
+         }, 0));
++        } finally {
++          // The shared provider-identity guard can retire this worker too.
++          if (state.worker !== worker) releaseWorker();
++        }
+       };
+       state.worker.onerror = () => {
++        if (state.worker !== worker) return;
+         for (const job of state.jobs.values()) if (job.status === "pending") job.status = "error";
+-        state.worker?.terminate(); state.worker = null;
++        releaseWorker();
+         terminIndexVeraltet = true; publish(); warn("recurrence-worker-error");
+       };
+-      window.addEventListener("unload", () => state.worker?.terminate(), { once: true });
+     }
+     // Only the unbounded single-event expansion contributes to the base index.
+     state.jobs.set(key, { status: "pending", planerFeiertag,
+diff --git a/magnolie-organizer-windows/tests/recurrence-worker.js b/magnolie-organizer-windows/tests/recurrence-worker.js
+index b77500c1..f9320080 100644
+--- a/magnolie-organizer-windows/tests/recurrence-worker.js
++++ b/magnolie-organizer-windows/tests/recurrence-worker.js
+@@ -9,10 +9,27 @@ const { JSDOM } = require("jsdom");
+   if (process.env.MAGNOLIE_LINUX_SOURCE || fs.existsSync(linuxRoot)) webRoots.unshift(linuxRoot);
+   for (const web of webRoots) {
+     const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), { runScripts: "outside-only", url: "https://recurrence.test/", pretendToBeVisual: true });
+-    const w = dom.window, blobs = new Map(), workers = [];
++    const w = dom.window, blobs = new Map(), workers = [], unloadListeners = new Map();
++    let blobSequence = 0;
++    const addListener = w.addEventListener.bind(w), removeListener = w.removeEventListener.bind(w);
++    w.addEventListener = (type, listener, options) => {
++      if (type !== "unload") return addListener(type, listener, options);
++      const wrapped = function (event) {
++        if (options?.once) unloadListeners.delete(listener);
++        return listener.call(this, event);
++      };
++      unloadListeners.set(listener, wrapped);
++      return addListener(type, wrapped, options);
++    };
++    w.removeEventListener = (type, listener, options) => {
++      const wrapped = type === "unload" ? unloadListeners.get(listener) : null;
++      if (type === "unload") unloadListeners.delete(listener);
++      return removeListener(type, wrapped || listener, options);
++    };
++    const retainedBlobBytes = () => [...blobs.values()].reduce((sum, source) => sum + Buffer.byteLength(source), 0);
+     const workerFiles = new WorkerFileFixture();
+     w.Blob = class { constructor(parts) { this.source = parts.join(""); } };
+-    w.URL.createObjectURL = blob => { const id = "blob:" + blobs.size; blobs.set(id, blob.source); return id; };
++    w.URL.createObjectURL = blob => { const id = "blob:" + blobSequence++; blobs.set(id, blob.source); return id; };
+     w.URL.revokeObjectURL = id => blobs.delete(id);
+     w.Worker = class {
+       constructor(url) {
+@@ -137,14 +154,23 @@ const { JSDOM } = require("jsdom");
+           postMessage() { throw new Error("structured clone failed"); }
+           terminate() {}
+         };
++        const beforeUrls = blobs.size, beforeBytes = retainedBlobBytes(), beforeListeners = unloadListeners.size;
+         let ready = 0;
+         const settled = () => ready++;
+         w.document.addEventListener("magnolie-recurrence-ready", settled);
+-        assert.equal(T.icsRuntime("expand", item, [Date.parse("2026-09-07"), Date.parse("2026-09-08")]), null);
++        const attempts = failure === "constructor" ? 32 : 1;
++        for (let attempt = 0; attempt < attempts; attempt++) {
++          assert.equal(T.icsRuntime("expand", item, [Date.parse("2026-09-07") + attempt, Date.parse("2026-09-08")]), null);
++          if (failure !== "postMessage") {
++            assert.equal(blobs.size, beforeUrls, failure + " retained a failed worker object URL");
++            assert.equal(retainedBlobBytes(), beforeBytes, failure + " retained failed worker source bytes");
++            assert.equal(unloadListeners.size, beforeListeners, failure + " retained a failed worker unload listener");
++          }
++        }
+         assert.equal(w.document.body.dataset.recurrenceState, "error", failure + " must not look like an empty successful calendar");
+         assert.equal(w.document.body.getAttribute("aria-busy"), "false", failure + " left an endless busy state");
+         assert.ok(!T.icsRuntime.state.progress || T.icsRuntime.state.progress.hidden);
+-        assert.equal(ready, 1, "Failure must settle waiting previews");
++        assert.equal(ready, attempts, "Failure must settle waiting previews");
+         assert.ok(w.document.querySelector("#zettel").textContent.includes("original calendar data was preserved"));
+         assert.equal(JSON.stringify(T.daten()), stored);
+         w.document.removeEventListener("magnolie-recurrence-ready", settled);
+@@ -157,15 +183,33 @@ const { JSDOM } = require("jsdom");
+         postMessage() {}
+         terminate() { terminated++; }
+       };
+-      assert.equal(T.icsRuntime("expand", item, [0, 1]), null);
+-      T.icsRuntime.state.worker.onerror(new Error("worker crashed"));
+-      assert.equal(T.icsRuntime.state.worker, null, "A dead worker must not be reused for new jobs");
+-      assert.equal(w.document.body.dataset.recurrenceState, "error");
+-      assert.equal(w.document.body.getAttribute("aria-busy"), "false");
+-      assert.equal(terminated, 1);
+-      assert.equal(T.icsRuntime("expand", item, [1, 2]), null);
+-      assert.equal(constructed, 2, "A new query after a crash needs a live worker");
+-      T.icsRuntime.state.worker.onerror(new Error("worker crashed again"));
++      const beforeUrls = blobs.size, beforeBytes = retainedBlobBytes(), beforeListeners = unloadListeners.size;
++      let staleWorker = null;
++      for (let attempt = 0; attempt < 32; attempt++) {
++        assert.equal(T.icsRuntime("expand", item, [attempt, attempt + 1]), null);
++        const worker = T.icsRuntime.state.worker, key = [...T.icsRuntime.state.jobs.keys()].at(-1);
++        assert.equal(blobs.size, beforeUrls + 1, "A live worker must retain its source URL until disposal");
++        assert.ok(retainedBlobBytes() > beforeBytes);
++        if (staleWorker) {
++          staleWorker.onerror(new Error("late error from disposed worker"));
++          staleWorker.onmessage({ data: { key, timeZoneIdentity: "wrong-old-provider" } });
++          assert.equal(T.icsRuntime.state.worker, worker, "A stale worker disposed its replacement");
++          assert.equal(T.icsRuntime.state.jobs.get(key).status, "pending", "A stale worker changed the replacement's job");
++        }
++        if (attempt % 2) worker.onmessage({ data: { key, timeZoneIdentity: "wrong-provider" } });
++        else worker.onerror(new Error("worker crashed"));
++        assert.equal(T.icsRuntime.state.worker, null, "A dead worker must not be reused for new jobs");
++        assert.equal(w.document.body.dataset.recurrenceState, "error");
++        assert.equal(w.document.body.getAttribute("aria-busy"), "false");
++        assert.equal(blobs.size, beforeUrls, "Disposal retained a worker object URL");
++        assert.equal(retainedBlobBytes(), beforeBytes, "Disposal retained worker source bytes");
++        assert.equal(unloadListeners.size, beforeListeners, "Disposal retained a worker unload listener");
++        staleWorker = worker;
++      }
++      assert.equal(constructed, 32, "New queries after disposal need a live worker");
++      assert.equal(terminated, 32, "Each disposed worker must be terminated once");
++      assert.equal(T.icsRuntime("expand", item, [32, 33]), null);
++      assert.equal(blobs.size, beforeUrls + 1, "Successful construction must not revoke the active source early");
+       T.icsRuntime.state = undefined;
+       w.Worker = undefined;
+       assert.equal(T.icsRuntime("expand", { icsRoundtrip: ["DTSTART:20260907T090000Z", "RRULE:FREQ=INVALID"] }, [0, 1]), null);
+@@ -173,6 +217,10 @@ const { JSDOM } = require("jsdom");
+       assert.equal(w.document.body.getAttribute("aria-busy"), "false");
+       assert.equal(JSON.stringify(T.daten()), stored);
+       w.Worker = originalWorker;
++      w.dispatchEvent(new w.Event("unload"));
++      assert.equal(blobs.size, 0, "Document unload must release every remaining worker source URL");
++      assert.equal(retainedBlobBytes(), 0);
++      assert.equal(unloadListeners.size, 0, "Document unload must release worker listeners");
+     } finally { try { await workerFiles.close(); } finally { dom.window.close(); } }
+   }
+   process.stdout.write(`RECURRENCE WORKERS PASSED (${webRoots.length} packaged/source web roots)\n`);
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+index 77eece4f..c669b415 100644
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -11007,13 +11007,20 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
+         };`;
+       // WebKit's custom local scheme cannot load blob workers; data workers
+       // retain the same isolated, fixed-code execution without a native bridge.
+-      let url;
++      let url, worker;
++      const releaseWorker = () => {
++        if (state.worker === worker) { worker?.terminate(); state.worker = null; }
++        if (url) { URL.revokeObjectURL(url); url = null; }
++        window.removeEventListener("unload", releaseWorker);
++      };
+       try {
+         url = location.protocol === "magnolie-organizer:" ? "data:text/javascript," + encodeURIComponent(source) : URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
+-        state.worker = new Worker(url);
+-      } catch (error) { return fail("recurrence-worker-unavailable"); }
+-      finally { if (url) window.addEventListener("unload", () => URL.revokeObjectURL(url), { once: true }); }
++        state.worker = worker = new Worker(url);
++      } catch (error) { releaseWorker(); return fail("recurrence-worker-unavailable"); }
++      window.addEventListener("unload", releaseWorker, { once: true });
+       state.worker.onmessage = ({ data }) => {
++        if (state.worker !== worker) return;
++        try {
+ /*TZ_PORT:worker-response-identity:BEGIN*/        const job = state.jobs.get(data.key); if (!job) return;
+         if (data.timeZoneIdentity !== MagnolieTime.identity.payloadSHA256) {
+           for (const value of state.jobs.values()) if (value.status === "pending") Object.assign(value, { status: "error", error: "timezone-provider-identity", result: null });
+@@ -11035,13 +11042,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
+           if ((["kalender", "aufgaben"].includes(zustand.sektion) ||
+             zustand.sektion === "planer" && planerPaint) && !editorIstGeaendert()) zeichneAlles();
+         }, 0));
++        } finally {
++          // The shared provider-identity guard can retire this worker too.
++          if (state.worker !== worker) releaseWorker();
++        }
+       };
+       state.worker.onerror = () => {
++        if (state.worker !== worker) return;
+         for (const job of state.jobs.values()) if (job.status === "pending") job.status = "error";
+-        state.worker?.terminate(); state.worker = null;
++        releaseWorker();
+         terminIndexVeraltet = true; publish(); warn("recurrence-worker-error");
+       };
+-      window.addEventListener("unload", () => state.worker?.terminate(), { once: true });
+     }
+     // Only the unbounded single-event expansion contributes to the base index.
+     state.jobs.set(key, { status: "pending", planerFeiertag,
+-- 
+2.56.1
+

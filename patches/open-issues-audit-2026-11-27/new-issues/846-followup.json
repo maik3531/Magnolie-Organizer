@@ -1,0 +1,153 @@
+{
+  "issue": 846,
+  "title": "Windows-CI: MCP-Importvorschau scheitert beim Übernehmen eines historischen Android-Serienalias",
+  "issue_url": "https://github.com/maik3531/Magnolie-Organizer/issues/846",
+  "reviewed_at_utc": "2026-11-27T20:10:46.321154+00:00",
+  "comments_reviewed_count": 2,
+  "comments_fetched_all_pages": true,
+  "github_source_cache": "846/github-sources.json",
+  "classification": "acceptance_or_live_evidence",
+  "relevance": "partial",
+  "product_fix_needed_in_final_series": false,
+  "summary_de": "Der exakt gemeldete MCP-Übernahmefehler ist auf 7a in beiden Desktop-Webquellen reproduzierbar und auf f3ea durch den bereits vorhandenen #844-Alias-Guard behoben. Offen bleibt das vollständige Windows-Quellarchiv-Gate; keine neue Produktänderung erforderlich.",
+  "base_commit": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "final_commit": "f3ea06e275ce6cd7547106096cfd96d27cf57e15",
+  "existing_fix_commit": "c534e008f39785e1cd98ab5473ec9421a6828845",
+  "test": {
+    "program": "magnolie-organizer-windows/tests/mcp-import-review.js",
+    "program_sha256": "0cb4e9a89d576c1ccacf7cf5d9ead654f7d7319e7dcf7dc28fa89afa515abb8b",
+    "harness": "magnolie-organizer-windows/tests/desktop-state-regressions.js",
+    "harness_sha256": "c27e77e00889fe7a23853256249128844868b23c5c5cffafed25b11584dbdb7d",
+    "program_and_harness_byte_equal_between_checkouts": true,
+    "runtime": "v24.22.3",
+    "jsdom": "26.1.0",
+    "execution_manifest": "846/execution-manifest.json",
+    "reproduction_runner": "846/run-mcp-comparison.py",
+    "results": [
+      {
+        "label": "baseline",
+        "edition": "windows",
+        "exit_code": 1,
+        "elapsed_s": 2.749,
+        "operation_failed_at_reported_line": true,
+        "program_pass": false,
+        "log": "baseline-windows.log",
+        "log_sha256": "ab1ba3b1fa35be3eca0510a6f7f8a1d9b9a922467ef9af02190c5626b8098fa1"
+      },
+      {
+        "label": "baseline",
+        "edition": "linux",
+        "exit_code": 1,
+        "elapsed_s": 1.957,
+        "operation_failed_at_reported_line": true,
+        "program_pass": false,
+        "log": "baseline-linux.log",
+        "log_sha256": "ab1ba3b1fa35be3eca0510a6f7f8a1d9b9a922467ef9af02190c5626b8098fa1"
+      },
+      {
+        "label": "final",
+        "edition": "windows",
+        "exit_code": 0,
+        "elapsed_s": 2.587,
+        "operation_failed_at_reported_line": false,
+        "program_pass": true,
+        "log": "final-windows.log",
+        "log_sha256": "7ce1c71885f15eca064de523b5652e65769ec2f12d11feba38a4e39969a825f0"
+      },
+      {
+        "label": "final",
+        "edition": "linux",
+        "exit_code": 0,
+        "elapsed_s": 2.408,
+        "operation_failed_at_reported_line": false,
+        "program_pass": true,
+        "log": "final-linux.log",
+        "log_sha256": "7b12c16f4ed41808dc79b490370346451e06c48a119ae811a28ca0c87bcccf00"
+      }
+    ],
+    "result_log_directory": "846/",
+    "scope_de": "Vier Ausführungen nur dieses einen unveränderten Programms: je eine Windows- und Linux-Webquelle auf Basis und Endstand. Keine vollständige JavaScript-Suite, keine C#-Suite.",
+    "assertions_verified_on_final_de": [
+      "Persistierter MCP-Abschluss",
+      "Alte UID und lokale Datensatzidentität",
+      "Lokaler Alarm",
+      "Aufgabenverweis",
+      "Unbekannte Fremdmetadaten",
+      "Mehrdeutigkeits-HOLD ohne Speichern"
+    ],
+    "not_claimed_de": "Der später in f8ad956e ergänzte spezifische Farbherkunfts-Assert ist nicht Bestandteil der unveränderten hier ausgeführten 7a/f3-Testbytes."
+  },
+  "source_comparison": {
+    "files": [
+      {
+        "edition": "windows",
+        "path": "magnolie-organizer-windows/app/web/anwendung.js",
+        "base_sha256": "b2d53e7d0a54c2e71e4f1fde8f3ef68bdfb3b9e7c4b6f7c6c611c2b5a0a44cb5",
+        "final_sha256": "eba45644c432793e892d61b9e73055526ae9a8e1cc6be0d7939a735cb5f7bd07",
+        "base_guard_line": 33631,
+        "final_guard_line": 33666,
+        "normalization_still_assigns_undefined_when_absent": true
+      },
+      {
+        "edition": "linux",
+        "path": "magnolie-organizer/web/anwendung.js",
+        "base_sha256": "75cb7fb2a23435622738e30bedcf48dc16e5ccb2c6921995fe6b44f3bc6d850d",
+        "final_sha256": "0d154ca259dc389333aed26df2d4565c5725ef40b807229140a6fc84b9979131",
+        "base_guard_line": 34769,
+        "final_guard_line": 34804,
+        "normalization_still_assigns_undefined_when_absent": true
+      }
+    ],
+    "base_guard": "if (Object.prototype.hasOwnProperty.call(t, feld)) uidTreffer[feld] = kopie(t[feld]);",
+    "final_guard": "if (Object.prototype.hasOwnProperty.call(t, feld) && t[feld] !== undefined) uidTreffer[feld] = kopie(t[feld]);",
+    "cause_de": "Die Normalisierung erzeugt beim fehlenden optionalen icsCalendarColor eine eigene Eigenschaft mit undefined. Der alte Aliaszweig kopiert vorhandene Eigenschaften mittels JSON; JSON.parse(undefined) scheitert. Der bereits gelieferte #844-Guard überspringt undefined und erhält damit vorhandene Werte.",
+    "same_path_de": "Der MCP-Review verwendet genau diesen Aliaszweig beim Anwenden des geklonten Importentwurfs. Der Nachherlauf bestätigt den zuvor roten organizer_import_review_apply-Aufruf und die nachfolgenden Identitäts-/Referenz-/Konfliktprüfungen."
+  },
+  "later_upstream": {
+    "commit": "f8ad956ec4c9a71cd4d857c3218177c481407c85",
+    "url": "https://github.com/maik3531/Magnolie-Organizer/commit/f8ad956ec4c9a71cd4d857c3218177c481407c85",
+    "status_de": "Nach dem eingefrorenen 7a-Prüfstand gemeldete spätere Quellkorrektur; nur Diff gelesen, nicht als neue Prüf- oder Patchbasis verwendet.",
+    "overlap_de": "Überlappung besteht ausschließlich mit dem #844-Teil für fehlendes icsCalendarColor im historischen Android-Serienalias. f8ad956e entfernt das fehlende Feld bereits in der Termin-/Aufgabennormalisierung; unsere Serie schützt die JSON-Kopie im Aliaszweig. Beide vermeiden für diesen MCP-Fall dieselbe undefined-Ursache, sind aber kein bytegleicher Patch.",
+    "does_not_cover_de": [
+      "Jahrestagsfarben in den beiden Codecs und Anzeigen",
+      "Erhalt unveränderter parametrierter Farbmetadaten",
+      "Gettext-Variablenkorrektur"
+    ],
+    "author_reported_evidence_de": "Kommentar 7226802558 meldet den vollständigen MCP-Review unter Node22.23.2 und Bun1.4.4 für beide Webquellen grün. Das ist fremder Nachweis und wird nicht als eigener Lauf ausgegeben.",
+    "upstream_comment_urls": [
+      "https://github.com/maik3531/Magnolie-Organizer/issues/846#issuecomment-7226785569",
+      "https://github.com/maik3531/Magnolie-Organizer/issues/846#issuecomment-7226802558"
+    ]
+  },
+  "checkout_integrity": [
+    {
+      "label": "baseline",
+      "path": "/workspace/scratch/7203da5bd564/open-audit-latest-source",
+      "commit": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+      "clean_before": true,
+      "clean_after": true,
+      "commit_after": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2"
+    },
+    {
+      "label": "final",
+      "path": "/workspace/scratch/7203da5bd564/open-audit-final-current",
+      "commit": "f3ea06e275ce6cd7547106096cfd96d27cf57e15",
+      "clean_before": true,
+      "clean_after": true,
+      "commit_after": "f3ea06e275ce6cd7547106096cfd96d27cf57e15"
+    }
+  ],
+  "generated_asset_handling_de": "Die 7a-Checkouts enthielten keine generierten normative-timezones.js. Für alle vier Läufe wurden ausschließlich laufzeitbezogene temporäre Kopien der tatsächlich benötigten Webdateien verwendet, einzeln auf Bytegleichheit geprüft. Die vorhandenen kanonischen finalen TZ-Assets ergänzten die fehlenden Baseline-Assets; die ausgewählten getrackten Zeitzonenpfade haben zwischen 7a und f3 keine Änderung. Originalquellen und Tests blieben unverändert; temporäre Kopien wurden entfernt.",
+  "integration_boundary": {
+    "declared_patch_base": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+    "apply_check_executed_by_this_followup": false,
+    "instruction_de": "Die ausgewiesene Basis der Patchserie und ihrer git apply --check-Prüfung bleibt 7a490dd8. Dieser MCP-Nachtrag führt keinen neuen Apply-Check und keinen Rebase aus. Bei Übernahme gegen einen späteren main-Stand muss insbesondere f8ad956e mit dem überschneidenden #844-Teil abgeglichen werden; die übrigen #844-Korrekturen sind dadurch nicht erledigt."
+  },
+  "remaining_de": "Vollständige Windows-Archiv-CI des korrigierten übernommenen Stands gemäß #846/#113. Bun ist in der hier verfügbaren Laufzeit nicht vorhanden; keine Installation und kein eigener Bun-Lauf. Keine Paket- oder native Freigabe.",
+  "actions_de": "Keine zusätzliche Produktkorrektur, kein Commit und keine GitHub-Mutation aus diesem Nachtrag. Den vorhandenen Patchumfang bei späterer Übernahme mit f8ad956e abgleichen; Issue-Abnahme am Archiv-Gate festmachen.",
+  "limitations_de": [
+    "MCP-Webanwendung und persistierter Bridge-ACK im JSDOM-Harness; keine installierte Windows-/Linux-Anwendung.",
+    "Keine neue vollständige CI- oder Paketprüfung.",
+    "Kein Test gegen spätere main-Stände und keine Behauptung einer vollständig identischen Upstream-Implementierung."
+  ]
+}

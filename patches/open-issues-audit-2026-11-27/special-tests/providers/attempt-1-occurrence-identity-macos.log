@@ -1,0 +1,16 @@
+Error: ENOENT: no such file or directory, open '/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-macOS-Beta/Generated/index.html'
+    at Object.readFileSync (node:fs:483:20)
+    at boot (/workspace/scratch/7203da5bd564/open-audit-provider-tests/port-adapters/tests/occurrence-identity.cjs:30:26)
+    at run (/workspace/scratch/7203da5bd564/open-audit-provider-tests/port-adapters/tests/occurrence-identity.cjs:52:19)
+    at Object.<anonymous> (/workspace/scratch/7203da5bd564/open-audit-provider-tests/port-adapters/tests/occurrence-identity.cjs:126:26)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/workspace/scratch/7203da5bd564/open-audit-provider-tests/Magnolie-Organizer-macOS-Beta/Generated/index.html'
+}

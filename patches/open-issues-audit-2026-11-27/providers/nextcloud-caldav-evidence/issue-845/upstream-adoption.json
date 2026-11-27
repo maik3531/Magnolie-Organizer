@@ -1,0 +1,45 @@
+{
+  "upstream_commit": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "upstream_parent": "bc9b4db57d2ee6577ee9314a858f8be6fea4c757",
+  "original_alternative": "8d7263fda398f7ee0cbe6b9f5b7bab3e9d6c5f5a",
+  "original_applicability": "historical_do_not_apply",
+  "upstream_source_inputs": {
+    "magnolie-organizer/bin/magnolie-organizer": "0c06acdcb05b127edb8728f42cf4a3c47c44498efb14db67a42770188d1d0847",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "554a37e143557ac7b8ad2b2161e71a02bb049ab4a15eddd1a8ebdbc6ccba9c67",
+    "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py": "c0039cb762f03ba7ded68d8a0ea476ff3d23a339862dd647306aeb8416d11075",
+    "magnolie-organizer-windows/tests/NextcloudIcsBirthdayTests.cs": "0b12f5ee85325e07a032bb80bf10ba383768b0adfbbcd4212a1f2ec5025d5cb7"
+  },
+  "adopted_de": [
+    "Explizite BDAY-Grundklassifikation, bekannte/jahrlose Daten und unveränderte Nextcloud-Anker/RRULE sind upstream vorhanden.",
+    "Die getrennte Serienausnahme bleibt im bestehenden Ereignis-/Serienpfad.",
+    "Bei bewussten Typ-/Datumsänderungen entfernt upstream alte BC-Marker; eine falsche alte BDAY-Angabe bleibt dadurch nicht bestehen."
+  ],
+  "confirmed_remainders": [
+    {
+      "case": "linux_dav_scope",
+      "detail_de": "Tatsächlicher ursprünglicher Linux-Sync auf7a meldet success, gibt aber0Termine/0Jahrestage für eine korrekt als BDAY gelesene Ressource zurück. Der vollständige typisierte Scope #441 ist nicht implementiert; erforderlich ist der vorhandene ehrliche Vorab-Hold statt stiller Auslassung.",
+      "evidence": "upstream-remainder-before.json"
+    },
+    {
+      "case": "edited_last_february_rule",
+      "detail_de": "Bei unverändertem29.Februar und Änderung zu wedding-anniversary fällt der Export auf FREQ=YEARLY zurück. Damit fehlen Nichtschaltjahre gegenüber der ursprünglichen Regel für den letzten Februartag. Derselbe Bedeutungsverlust betrifft Jahres-/Jahrlosigkeitsänderungen bei unverändertemMonat/Tag.",
+      "evidence": "upstream-remainder-before.json"
+    },
+    {
+      "case": "normal_exported_birthday_detached_override",
+      "detail_de": "Auf559c tatsächlich reproduziert und anhand unverändertem Quellzweig als vorbestehend auf7a eingeordnet: tatsächlicher NC-BDAY-Export fügt eigenen Typmarker hinzu, der eine später erkannte separate Ausnahme im normalen Jahreszweig umgehen konnte. Gezielter Zusatz573905f5 schaltet den vorhandenen Guard vor; identische neue Regression vorherrot/nachhergrün, normaleKontrollegrün.",
+      "evidence": "upstream-remainder/normal-detached-final-manifest.json",
+      "before_evidence": "upstream-remainder/independent-normal-detached-review.json",
+      "resolution_commit": "573905f561f00537c39a98133aa8e7719239a4af"
+    }
+  ],
+  "diagnostic_scope_de": "Nur aktuelle echte Produktionspfade wurden als Reste gewertet. Der ursprüngliche breitere Vektorkorpus8d wurde nicht ungeprüft als Abnahmepflicht für7a ausgegeben. Strengere Erkennungspräferenzen wie zusätzliche INTERVAL=1-Reihenfolgen sind kein durch diesen Nachtrag bewiesener aktueller Produktfehler.",
+  "followup": "upstream-remainder/",
+  "limits_de": "Kein Live-Server/GUI/Device. Statische Adoption plus tatsächlicher Python-Sync-/Codecaufruf; C#-Gruppen und finale Folgebindung stehen im Unterverzeichnis. Die fehlende vollständige Linux-Jahrestagsintegration #441 und echte DAV-Abnahme #683 bleiben offen.",
+  "reviewed_followup_commit": "573905f561f00537c39a98133aa8e7719239a4af",
+  "reviewed_followup_delivery": "upstream-remainder/delivery.json",
+  "reviewed_followup_commits": [
+    "559c5c1f103caf0be09d381e0ca59f2e07b9e608",
+    "573905f561f00537c39a98133aa8e7719239a4af"
+  ]
+}

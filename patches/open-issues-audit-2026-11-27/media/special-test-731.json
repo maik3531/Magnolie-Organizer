@@ -1,0 +1,54 @@
+{
+  "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "verified_limited_delta_head": "50b1512234a765635f82af4537f277594fbf9878",
+  "test_source": "magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/MedienDiagnoseTest.kt",
+  "test_source_sha256": "e2559b1944d4d8c630719d9e64cc942c73e82070676a9fcb945da88d7d141fd7",
+  "production_source": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/Entwicklermodus.kt",
+  "production_source_sha256": "1b8e3950367fc57a3081495ee8cc1bff27dc28fa3859267e422271b9aa718dcc",
+  "status": "not_executed_missing_existing_dependencies",
+  "test_executed": false,
+  "test_exit_code": null,
+  "passed_count": null,
+  "failed_count": null,
+  "runner": "org.robolectric.RobolectricTestRunner",
+  "android_test_sdk": 35,
+  "test_method": "mediaDiagnosticsAreLocalOptInBoundedAndClearedOnWithdrawal",
+  "required_by_source": [
+    "android.app.Application",
+    "androidx.test.core.app.ApplicationProvider",
+    "org.robolectric.RobolectricTestRunner",
+    "org.robolectric.annotation.Config",
+    "kotlinx.serialization.json"
+  ],
+  "existing_toolchain_check": {
+    "location": "round3-tools/kotlin",
+    "available": [
+      "Kotlin compiler/stdlib 2.4.21",
+      "JUnit 4.13.2",
+      "Hamcrest 1.3"
+    ],
+    "absent": [
+      "Robolectric",
+      "android-all / Android SDK",
+      "AndroidX test core",
+      "kotlinx-serialization-json"
+    ],
+    "configured_android_sdk_present": false,
+    "existing_gradle_cache_has_required_libraries": false
+  },
+  "reason_de": "Der vorhandene Test benutzt echte Android-Application/SharedPreferences unter Robolectric und kann mit dem verfügbaren alleinigen Kotlin/JVM-Compiler nicht unverändert ausgeführt werden. Keine Abhängigkeiten installiert, keine Android-Stubs als tatsächlichen Testnachweis verwendet.",
+  "history_de": "Vorhandene signierte private Notes-Bau-/Updatebelege wurden gelesen. Das ist kein neuer Lauf des Tests und kein aktueller physischer Gerätetest.",
+  "historical_sources": [
+    "https://github.com/maik3531/Magnolie-Organizer/blob/3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f/ARBEITSSTAND.md#L1167",
+    "https://github.com/maik3531/Magnolie-Organizer/issues/245#issuecomment-7216893749",
+    "https://github.com/maik3531/Magnolie-Organizer/issues/330#issuecomment-7222229215",
+    "https://github.com/maik3531/Magnolie-Organizer/commit/b8a69a102d7ce8de01f4b1b9dc145b9062151402"
+  ],
+  "historical_private_source_blob_comparison": "not_verified_private_commit_unavailable_locally",
+  "no_claims": [
+    "new Robolectric PASS",
+    "new Android build",
+    "new native device acceptance",
+    "new package installation"
+  ]
+}

@@ -1,0 +1,7 @@
+Magnolie CoreTests: 1 Gruppen
+  FEHLER Additive restore / source identity / duplicate fallback (0.03 s)
+         System.InvalidOperationException: contact-uid-change-restores-multiple-emergency-contacts: additive selection differs.
+   at MagnolieOrganizer.Windows.Tests.TestAssert.That(Boolean condition, String message) in /workspace/scratch/7203da5bd564/open-audit-patches/magnolie-organizer-windows/tests/TestRunner.cs:line 41
+   at MagnolieOrganizer.Windows.Tests.RestoreSelectionIdentityTests.RunAsync() in /workspace/scratch/7203da5bd564/open-audit-patches/magnolie-organizer-windows/tests/RestoreSelectionIdentityTests.cs:line 32
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in /workspace/scratch/7203da5bd564/open-audit-patches/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/1 Gruppen bestanden.

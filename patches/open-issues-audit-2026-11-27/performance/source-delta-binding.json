@@ -1,0 +1,45 @@
+{
+  "measured_base": "50b1512234a765635f82af4537f277594fbf9878",
+  "frozen_followup": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "files": [
+    {
+      "path": "magnolie-organizer/pruefungen/last_test.js",
+      "measured_base_sha256": "78a7c866f17f8fbea4e176f7af2399363ddf6dab402a710ee5cab59146e7aa54",
+      "frozen_head_sha256": "78a7c866f17f8fbea4e176f7af2399363ddf6dab402a710ee5cab59146e7aa54",
+      "unchanged": true
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "measured_base_sha256": "573b2b457689c9d3e7a71be4aca60630144b892e0fd53ce21c778d8806259440",
+      "frozen_head_sha256": "a6a34206aed0b92c294607a8155593d1d9ef2a712321f1d5e1c54b18fd72f18a",
+      "unchanged": false
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "measured_base_sha256": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+      "frozen_head_sha256": "68d1116b4bc03ed8be8789e97b91fca754ebcb81a9307e13dd53423633508e5a",
+      "unchanged": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/desktop-state-regressions.js",
+      "measured_base_sha256": "c27e77e00889fe7a23853256249128844868b23c5c5cffafed25b11584dbdb7d",
+      "frozen_head_sha256": "c27e77e00889fe7a23853256249128844868b23c5c5cffafed25b11584dbdb7d",
+      "unchanged": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/worker-file-fixture.js",
+      "measured_base_sha256": "1cd4cc3c27f9fcd70d8cb8e95b2d9e1a08be56f1e4b0b9f8ede5a2fb9c701f4b",
+      "frozen_head_sha256": "1cd4cc3c27f9fcd70d8cb8e95b2d9e1a08be56f1e4b0b9f8ede5a2fb9c701f4b",
+      "unchanged": true
+    },
+    {
+      "path": "port-adapters/timezones/port-runtime.js",
+      "measured_base_sha256": "7fe5e5f5c44c0c601579fff1e91038402ff1cd7866b5963cb84372df74bd7ac6",
+      "frozen_head_sha256": "7fe5e5f5c44c0c601579fff1e91038402ff1cd7866b5963cb84372df74bd7ac6",
+      "unchanged": true
+    }
+  ],
+  "source_diff": "final-base-source-delta.diff",
+  "diff_sha256": "51e59876fec5e86854cf01a4aa1f95a670e9233ce3a01bc9404f522edef904dd",
+  "assessment_de": "Die einzige geänderte dieser geprüften Eingaben ist Linux anwendung.js. Deren sechs Hunks liegen im Telefonmedien-UI um ursprüngliche Zeilen 30137–30435; gemessene Suche, Listen, Terminblatt und Worker vor dem #843-Patch wurden nicht geändert. Keine pauschale Neuabnahme oder erneute Volumensuite behauptet."
+}

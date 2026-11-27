@@ -1,0 +1,1 @@
+[{"case": "linux-dav-scope", "ok": false, "outcome": "success", "rules": null}, {"case": "type-edit-last-february", "ok": false, "outcome": null, "rules": ["RRULE:FREQ=YEARLY"]}]

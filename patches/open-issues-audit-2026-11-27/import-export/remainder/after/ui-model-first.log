@@ -1,0 +1,74 @@
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-standard: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-own: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-calendar: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-apple: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-own-priority: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-component-priority: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: birthday-partial-leap: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: anniversary-custom: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web: jahrestage-parameter-own: Expected values to be strictly equal:
+
+0 !== 1
+
+CALENDAR COLOUR REMAINDERS 3/12 /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer-windows/app/web UI model fixtures
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-standard: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-own: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-calendar: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-apple: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-own-priority: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-component-priority: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: birthday-partial-leap: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: anniversary-custom: Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web: jahrestage-parameter-own: Expected values to be strictly equal:
+
+0 !== 1
+
+CALENDAR COLOUR REMAINDERS 3/12 /workspace/scratch/7203da5bd564/open-audit-colors-final/magnolie-organizer/web UI model fixtures

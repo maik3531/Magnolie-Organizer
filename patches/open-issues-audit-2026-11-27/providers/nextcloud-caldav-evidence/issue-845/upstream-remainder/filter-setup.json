@@ -1,0 +1,18 @@
+{
+  "name": "windows-before",
+  "argv": [
+    "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+    "run",
+    "--project",
+    "tests/CoreTests.csproj",
+    "--no-build",
+    "--configuration",
+    "Debug",
+    "--",
+    "Nextcloud birthday"
+  ],
+  "cwd": "/workspace/scratch/7203da5bd564/open-audit-845-remainder/magnolie-organizer-windows",
+  "exit_code": 134,
+  "elapsed_s": 0.48,
+  "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/upstream-remainder/logs/windows-before-filter-setup.log"
+}

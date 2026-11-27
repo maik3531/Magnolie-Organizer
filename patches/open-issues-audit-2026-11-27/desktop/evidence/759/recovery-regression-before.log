@@ -1,0 +1,35 @@
+FAIL initial live phone row receives both local history replies
+AssertionError [ERR_ASSERTION]: Initial image/video history replies were discarded during construction
+
+0 !== 2
+
+    at assertLoaded (/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js:33:10)
+    at /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js:40:5
+    at async /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js:86:11
+FAIL multiple initial rows retain history and automatic status refresh
+AssertionError [ERR_ASSERTION]: Initial image/video history replies were discarded during construction
+
+0 !== 2
+
+    at assertLoaded (/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js:33:10)
+    at /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js:47:5
+    at async /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js:86:11
+PASS offline local history remains independent of live media status
+FAIL disposed history requests cannot populate a reattached old row
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'status'
+- 'backup_list'
+
+    at /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js:64:45
+    at async /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js:86:11
+FAIL initial history replies remain bound to their actual peer
+AssertionError [ERR_ASSERTION]: Initial image/video history replies were discarded during construction
+
+0 !== 2
+
+    at assertLoaded (/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js:33:10)
+    at cases (/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js:79:5)
+    at async /workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/tests/phone-media-recovery-mount-ui.js:86:11
+1/5 Windows media recovery-mount cases passed (JSDOM)

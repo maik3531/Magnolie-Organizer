@@ -1,0 +1,84 @@
+{
+  "issue": 845,
+  "reviewer": "review_storage",
+  "decision": "approved",
+  "base_commit": "a64624071e700920907bcab7dd14d62fc93e0b9a",
+  "reviewed_commit": "8d7263fda398f7ee0cbe6b9f5b7bab3e9d6c5f5a",
+  "source_sha256": {
+    "magnolie-organizer/bin/magnolie-organizer": "f214466ddd27c7798ed2a4333dc92917943a6b6dc807d70c5a204fa053e7ac8e",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "5697e9113c86bf011758a23a380528fe274edd93cee84ad21fd71d6793c3c1c3",
+    "magnolie-organizer/web/anwendung.js": "0eda608891a9f508fb3155c45789c162364aa3377048f8deb6d2dbe12cc50122",
+    "magnolie-organizer-windows/app/web/anwendung.js": "d8a6a51533e67eeebc5a8eb1b793a53ab4f9cf8f4c27658cf38b5e76079b2f8f"
+  },
+  "source_unchanged_since_executions": true,
+  "summary_de": "Unabhängige enge Freigabe des finalen Commits. Alle vier Produktdateien stimmen exakt mit den bereits geprüften und ausgeführten stabilen Bytes überein. Zwei während des Reviews tatsächlich belegte Kandidatenfehler wurden vor Freigabe korrigiert; keine offenen materiellen Reviewbefunde.",
+  "resolved_findings": [
+    {
+      "id": "separate-recurrence-exception",
+      "initial_evidence": "independent-exception-candidate.json",
+      "detail_de": "Nextcloud-BDAY-Master wurde im ersten Kandidaten trotz separater RECURRENCE-ID-Ausnahme zu einem ausnahmenlosen Jahrestag. Python erhält nun die komplexe Seriengrenze; C# überführt Kandidaten mit gleicher Ausnahme-UID unabhängig von Komponentenreihenfolge vor der üblichen Serienabstimmung zurück ins Terminmodell. Vorhandene Kalenderfarbe wird bei der C#-Rückstufung übernommen.",
+      "verification": "independent-boundaries-after.json",
+      "status": "resolved"
+    },
+    {
+      "id": "stale-nextcloud-type-after-edit",
+      "initial_evidence": "independent-type-edit-candidate.json",
+      "detail_de": "Nach bewusster Änderung zum Hochzeitstag blieb zunächst der Nextcloud-BDAY-Typmarker im Export. Der Export entfernt nun genau die drei erkannten BirthdayService-Typ/Jahresmarker bei einer Typänderung, ohne andere Metadaten zu entfernen. Die bestehende letzte-Februar-Regel bleibt im Quellen- und Reimportpfad erhalten.",
+      "verification": "independent-boundaries-after.json",
+      "status": "resolved"
+    }
+  ],
+  "open_findings": [],
+  "static_review_de": [
+    "Die dokumentierte aktuelle BirthdayService-Semantik ist an explizite BDAY-/UNKNOWN-YEAR- und optionale YEAR-Felder gebunden. Kein Titel-/Kategorieraten; abweichende, duplizierte, parametrisierte oder widersprüchliche Nextcloud-Marker sowie andere Nextcloud-Typen lösen aus sich heraus keine neue Geburtstagspromotion aus. Bereits vorhandene eigene Magnolie-Typregeln bleiben getrennt davon erhalten.",
+    "Eigene Magnolie-Typmarker behalten Vorrang. Die neue Nextcloud-Promotion verlangt, dass alle vorhandenen eigenen Typangaben Geburtstag bedeuten; die bestehenden eigenen fremden Jahrestagstypen werden nicht in Geburtstag umgeschrieben.",
+    "Die genaue unbegrenzte letzte-Februar-Regel ist im vorhandenen Jahrestagsmodell darstellbar. COUNT/UNTIL/EXDATE/RDATE/RECURRENCE-ID und getrennte Ausnahmen dürfen nicht versehentlich zu einem unbeschränkten jährlichen Geburtstag werden.",
+    "Der aktuelle Nextcloud-Anker1970/1972 wird nur bei eindeutig unbekanntem Jahr zum kanonischen --MM-DD; bekannte Jahre vor1970 bleiben echte bekannte Jahre. Beim bewussten Datumsedit werden die erkannten Nextcloud-Jahresmarker konsistent regeneriert.",
+    "C#-Ausnahmekorrektur läuft nach Lesen aller Komponenten, vor ReconcileRecurrences; dadurch bleibt Reihenfolge unerheblich. Temporäre Kandidatenlisten sind lokal zur Importmethode, ohne neue statische Besitzer/Timer.",
+    "Farb-/Rohmetadaten aus844 werden weitergetragen. Die unveränderten JavaScript-Jahrestagsfunktionen projizieren Schaltgeburtstage bereits auf den28.Februar in Nichtschaltjahren.",
+    "Der Linux-DAV-Adapter kann den neu typisierten Jahrestagsbereich weiterhin nicht vollständig integrieren. Er verweigert diesen Fall deshalb ausdrücklich vor Schreib-/Löschmutationen; daraus wird kein fertiger nativer Nextcloud-Geburtstagsabgleich abgeleitet."
+  ],
+  "independent_tests": {
+    "actual_dom_cases": 4,
+    "actual_dom_final_baseline_passed": 0,
+    "actual_dom_final_passed": 4,
+    "actual_codec_boundary_cases": 2,
+    "actual_codec_boundary_passed": 2,
+    "identical_final_fixture_sha256": "a26e053fc23716f3e3fe06bec103d3bfab5878eeee721141fa554b9c57d94919",
+    "detail_de": "Zwei echte Python-Codec-Payloads (bekanntes/unbekanntes Schaltgeburtsjahr) in beiden Desktop-JavaScript-Ausgaben. Tatsächliche App-Import-, Tagesbanner-, Save-ACK-/Reloadpfade; Anzeige2027-02-28 und2028-02-29, falsche Tage ausgeschlossen, Alter39/40 bzw.kein erfundenesAlter, roteFarbe. Hinzu kommen die zwei zuvor tatsächlich fehlerhaften Python-Grenzfälle.",
+    "execution_record": "independent-final-executions.json",
+    "asset_setup_de": "Nur fehlende ignorierte normative-timezones.js-Prüfassets aus dem bereits kanonisch vorbereiteten sauberen a646-Worktree übernommen; Quelle undHashes im Ausführungsprotokoll. Keine Produktdatei verändert."
+  },
+  "author_evidence_reviewed": {
+    "manifest": "final-manifest.json",
+    "distinction_de": "44Python-Fälle, neueC#-Gruppe und drei bestehendeFarbgruppen wurden vom Autor ausgeführt; Manifest/Quellenbindung gelesen, nicht als eigene Testausführung gezählt."
+  },
+  "official_source": {
+    "url": "https://github.com/nextcloud/server/blob/1ab09ec753f106661beadee1794b390ebec455dd/apps/dav/lib/CalDAV/BirthdayService.php",
+    "local_file": "../official-BirthdayService-stable35.php",
+    "sha256": "5e33e9e3840a0e12c1688130a3ba8897323ff41463203ef21d13c36f17bc9c29",
+    "reviewed_lines": "176–240"
+  },
+  "evidence_sha256": {
+    "independent-display-before.json": "8a3fa8036200de63aecf0588b86d611f9c7c3793090bfef10041555a09743c06",
+    "independent-display-final-baseline.json": "061838189f67ae0c33faaa3b206ae8cc106506037690682205912f14927c1b61",
+    "independent-display-after.json": "cfe63c5debe2643a2e6f9e0e58b7c336767e7870b60be46bba4c62490c486cf6",
+    "independent-boundaries-after.json": "cc8265f102e28d1c1211edad42f9e6c5fcee4e70b5a05637bce5faa898242fc7",
+    "independent-exception-candidate.json": "5275739fa9b73372302e8f55278bf601a644e802adf2c3e21851dd9d7344233b",
+    "independent-type-edit-candidate.json": "3d55a409f7bb1c568de06a5fdd03ba9cd80104e5e1c6046093276eae8602b34b",
+    "independent-final-executions.json": "4b0763ad0927238539463f651d0eb3e2d451e9c03879d4817058fda8d719f877",
+    "independent-birthday-display.cjs": "4624911db5b448452200cea57a1566a459c47f3aa021e902aab0df597ab4047e",
+    "independent-boundaries-review.py": "a0d4039f5960e2582fcf39158b522329b6537b72f32db1a81c1ff3904b345858",
+    "final-manifest.json": "62921e9e743cbaeecd43dc4cb0e5db0baa1959171eb81473806c5f89e11bc41f"
+  },
+  "limits_de": [
+    "Eigene DOM-Probe verwendet echte Python-Payloads in beiden JavaScript-Editionen; sie führt den C#-Codec nicht selbst aus.",
+    "JSDOM und synthetische Bridge sind keine native GTK-/WebView-/Datenträger- oder Geräteabnahme. JSON-Speicherung/Reload ist kein produktiver Nextcloud-Serverversuch.",
+    "Linux-CalDAV-Jahrestagsintegration bleibt bewusst gesperrter Modellrest. Dateiimport, korrekte Typdarstellung und Export/Reimport sind davon getrennt.",
+    "Keine neue native Netzwerk-, Server-, Kalenderänderungs-, Langzeit- oder RAM-Abnahme; keine Pakete/Installationen/GitHub-Mutation durch den Reviewer."
+  ],
+  "tree": "8a18f65ab50d4e9125b3ffd086ccab7066fc053f",
+  "worktree_clean": true,
+  "commit_bound_at_utc": "2026-11-27T19:35:05.790992+00:00",
+  "additional_tests_after_commit": false
+}

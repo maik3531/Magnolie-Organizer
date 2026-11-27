@@ -1,0 +1,16 @@
+{"edition":"windows-source","records_per_domain":10000,"total_contact_plus_event_records":20000,"case":"last-title","runs_ms":[44.04,52.409,36.864],"hits":1}
+{"edition":"windows-source","records_per_domain":10000,"total_contact_plus_event_records":20000,"case":"missing-text","runs_ms":[57.847,24.517,17.348],"hits":0}
+{"edition":"windows-source","records_per_domain":10000,"total_contact_plus_event_records":20000,"case":"missing-with-digits","runs_ms":[507.313,472.616,449.264],"hits":0}
+{"edition":"windows-source","records_per_domain":10000,"total_contact_plus_event_records":20000,"case":"date-first-101","runs_ms":[6.923,7.235,7.269],"hits":101}
+{"edition":"windows-source","records_per_domain":50000,"total_contact_plus_event_records":100000,"case":"last-title","runs_ms":[122.139,178.843,183.712],"hits":1}
+{"edition":"windows-source","records_per_domain":50000,"total_contact_plus_event_records":100000,"case":"missing-text","runs_ms":[118.945,109.407,106.864],"hits":0}
+{"edition":"windows-source","records_per_domain":50000,"total_contact_plus_event_records":100000,"case":"missing-with-digits","runs_ms":[2440.869,2308.054,2293.636],"hits":0}
+{"edition":"windows-source","records_per_domain":50000,"total_contact_plus_event_records":100000,"case":"date-first-101","runs_ms":[13.308,16.028,13.125],"hits":101}
+{"edition":"linux-source","records_per_domain":10000,"total_contact_plus_event_records":20000,"case":"last-title","runs_ms":[26.003,22.248,27.696],"hits":1}
+{"edition":"linux-source","records_per_domain":10000,"total_contact_plus_event_records":20000,"case":"missing-text","runs_ms":[19.747,17.464,17.077],"hits":0}
+{"edition":"linux-source","records_per_domain":10000,"total_contact_plus_event_records":20000,"case":"missing-with-digits","runs_ms":[494.662,465.866,498.971],"hits":0}
+{"edition":"linux-source","records_per_domain":10000,"total_contact_plus_event_records":20000,"case":"date-first-101","runs_ms":[5.629,5.648,5.459],"hits":101}
+{"edition":"linux-source","records_per_domain":50000,"total_contact_plus_event_records":100000,"case":"last-title","runs_ms":[117.004,109.91,95.894],"hits":1}
+{"edition":"linux-source","records_per_domain":50000,"total_contact_plus_event_records":100000,"case":"missing-text","runs_ms":[93.03,93.666,93.426],"hits":0}
+{"edition":"linux-source","records_per_domain":50000,"total_contact_plus_event_records":100000,"case":"missing-with-digits","runs_ms":[2301.508,2323.556,2371.847],"hits":0}
+{"edition":"linux-source","records_per_domain":50000,"total_contact_plus_event_records":100000,"case":"date-first-101","runs_ms":[11.882,18.752,18.177],"hits":101}

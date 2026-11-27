@@ -1,0 +1,536 @@
+{
+  "root": "/workspace/scratch/7203da5bd564/open-audit-395-worker-url",
+  "expect_clean": false,
+  "passed": true,
+  "boundary": "Actual unmodified or patched icsRuntime product function and real Node Blob object-URL registry; Worker is an explicitly controlled startup/crash/provider fault seam. URL bytes are registered blob data, not native browser heap. No native tray/month claim.",
+  "results": [
+    {
+      "edition": "windows-source",
+      "scenario": "constructor",
+      "samples": [
+        {
+          "attempts": 1,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 1,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 0
+        },
+        {
+          "attempts": 8,
+          "active_object_urls": 8,
+          "retained_blob_bytes": 3911888,
+          "active_unload_listeners": 8,
+          "created": 8,
+          "revoked": 0,
+          "constructed": 8,
+          "terminated": 0
+        },
+        {
+          "attempts": 16,
+          "active_object_urls": 16,
+          "retained_blob_bytes": 7823776,
+          "active_unload_listeners": 16,
+          "created": 16,
+          "revoked": 0,
+          "constructed": 16,
+          "terminated": 0
+        },
+        {
+          "attempts": 32,
+          "active_object_urls": 32,
+          "retained_blob_bytes": 15647552,
+          "active_unload_listeners": 32,
+          "created": 32,
+          "revoked": 0,
+          "constructed": 32,
+          "terminated": 0
+        }
+      ],
+      "before_unload": {
+        "attempts": 32,
+        "active_object_urls": 32,
+        "retained_blob_bytes": 15647552,
+        "active_unload_listeners": 32,
+        "created": 32,
+        "revoked": 0,
+        "constructed": 32,
+        "terminated": 0
+      },
+      "after_unload": {
+        "attempts": 32,
+        "active_object_urls": 0,
+        "retained_blob_bytes": 0,
+        "active_unload_listeners": 32,
+        "created": 32,
+        "revoked": 32,
+        "constructed": 32,
+        "terminated": 0
+      }
+    },
+    {
+      "edition": "windows-source",
+      "scenario": "worker-error",
+      "samples": [
+        {
+          "attempts": 1,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 2,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 1
+        },
+        {
+          "attempts": 8,
+          "active_object_urls": 8,
+          "retained_blob_bytes": 3911888,
+          "active_unload_listeners": 16,
+          "created": 8,
+          "revoked": 0,
+          "constructed": 8,
+          "terminated": 8
+        },
+        {
+          "attempts": 16,
+          "active_object_urls": 16,
+          "retained_blob_bytes": 7823776,
+          "active_unload_listeners": 32,
+          "created": 16,
+          "revoked": 0,
+          "constructed": 16,
+          "terminated": 16
+        },
+        {
+          "attempts": 32,
+          "active_object_urls": 32,
+          "retained_blob_bytes": 15647552,
+          "active_unload_listeners": 64,
+          "created": 32,
+          "revoked": 0,
+          "constructed": 32,
+          "terminated": 32
+        }
+      ],
+      "before_unload": {
+        "attempts": 32,
+        "active_object_urls": 32,
+        "retained_blob_bytes": 15647552,
+        "active_unload_listeners": 64,
+        "created": 32,
+        "revoked": 0,
+        "constructed": 32,
+        "terminated": 32
+      },
+      "after_unload": {
+        "attempts": 32,
+        "active_object_urls": 0,
+        "retained_blob_bytes": 0,
+        "active_unload_listeners": 64,
+        "created": 32,
+        "revoked": 32,
+        "constructed": 32,
+        "terminated": 32
+      }
+    },
+    {
+      "edition": "windows-source",
+      "scenario": "provider-mismatch",
+      "samples": [
+        {
+          "attempts": 1,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 2,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 1
+        },
+        {
+          "attempts": 8,
+          "active_object_urls": 8,
+          "retained_blob_bytes": 3911888,
+          "active_unload_listeners": 16,
+          "created": 8,
+          "revoked": 0,
+          "constructed": 8,
+          "terminated": 8
+        },
+        {
+          "attempts": 16,
+          "active_object_urls": 16,
+          "retained_blob_bytes": 7823776,
+          "active_unload_listeners": 32,
+          "created": 16,
+          "revoked": 0,
+          "constructed": 16,
+          "terminated": 16
+        },
+        {
+          "attempts": 32,
+          "active_object_urls": 32,
+          "retained_blob_bytes": 15647552,
+          "active_unload_listeners": 64,
+          "created": 32,
+          "revoked": 0,
+          "constructed": 32,
+          "terminated": 32
+        }
+      ],
+      "before_unload": {
+        "attempts": 32,
+        "active_object_urls": 32,
+        "retained_blob_bytes": 15647552,
+        "active_unload_listeners": 64,
+        "created": 32,
+        "revoked": 0,
+        "constructed": 32,
+        "terminated": 32
+      },
+      "after_unload": {
+        "attempts": 32,
+        "active_object_urls": 0,
+        "retained_blob_bytes": 0,
+        "active_unload_listeners": 64,
+        "created": 32,
+        "revoked": 32,
+        "constructed": 32,
+        "terminated": 32
+      }
+    },
+    {
+      "edition": "windows-source",
+      "scenario": "successful-owner",
+      "samples": [
+        {
+          "attempts": 1,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 2,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 0
+        },
+        {
+          "attempts": 8,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 2,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 0
+        },
+        {
+          "attempts": 16,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 2,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 0
+        },
+        {
+          "attempts": 32,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 2,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 0
+        }
+      ],
+      "before_unload": {
+        "attempts": 32,
+        "active_object_urls": 1,
+        "retained_blob_bytes": 488986,
+        "active_unload_listeners": 2,
+        "created": 1,
+        "revoked": 0,
+        "constructed": 1,
+        "terminated": 0
+      },
+      "after_unload": {
+        "attempts": 32,
+        "active_object_urls": 0,
+        "retained_blob_bytes": 0,
+        "active_unload_listeners": 2,
+        "created": 1,
+        "revoked": 1,
+        "constructed": 1,
+        "terminated": 1
+      }
+    },
+    {
+      "edition": "linux-source",
+      "scenario": "constructor",
+      "samples": [
+        {
+          "attempts": 1,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 1,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 0
+        },
+        {
+          "attempts": 8,
+          "active_object_urls": 8,
+          "retained_blob_bytes": 3911888,
+          "active_unload_listeners": 8,
+          "created": 8,
+          "revoked": 0,
+          "constructed": 8,
+          "terminated": 0
+        },
+        {
+          "attempts": 16,
+          "active_object_urls": 16,
+          "retained_blob_bytes": 7823776,
+          "active_unload_listeners": 16,
+          "created": 16,
+          "revoked": 0,
+          "constructed": 16,
+          "terminated": 0
+        },
+        {
+          "attempts": 32,
+          "active_object_urls": 32,
+          "retained_blob_bytes": 15647552,
+          "active_unload_listeners": 32,
+          "created": 32,
+          "revoked": 0,
+          "constructed": 32,
+          "terminated": 0
+        }
+      ],
+      "before_unload": {
+        "attempts": 32,
+        "active_object_urls": 32,
+        "retained_blob_bytes": 15647552,
+        "active_unload_listeners": 32,
+        "created": 32,
+        "revoked": 0,
+        "constructed": 32,
+        "terminated": 0
+      },
+      "after_unload": {
+        "attempts": 32,
+        "active_object_urls": 0,
+        "retained_blob_bytes": 0,
+        "active_unload_listeners": 32,
+        "created": 32,
+        "revoked": 32,
+        "constructed": 32,
+        "terminated": 0
+      }
+    },
+    {
+      "edition": "linux-source",
+      "scenario": "worker-error",
+      "samples": [
+        {
+          "attempts": 1,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 2,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 1
+        },
+        {
+          "attempts": 8,
+          "active_object_urls": 8,
+          "retained_blob_bytes": 3911888,
+          "active_unload_listeners": 16,
+          "created": 8,
+          "revoked": 0,
+          "constructed": 8,
+          "terminated": 8
+        },
+        {
+          "attempts": 16,
+          "active_object_urls": 16,
+          "retained_blob_bytes": 7823776,
+          "active_unload_listeners": 32,
+          "created": 16,
+          "revoked": 0,
+          "constructed": 16,
+          "terminated": 16
+        },
+        {
+          "attempts": 32,
+          "active_object_urls": 32,
+          "retained_blob_bytes": 15647552,
+          "active_unload_listeners": 64,
+          "created": 32,
+          "revoked": 0,
+          "constructed": 32,
+          "terminated": 32
+        }
+      ],
+      "before_unload": {
+        "attempts": 32,
+        "active_object_urls": 32,
+        "retained_blob_bytes": 15647552,
+        "active_unload_listeners": 64,
+        "created": 32,
+        "revoked": 0,
+        "constructed": 32,
+        "terminated": 32
+      },
+      "after_unload": {
+        "attempts": 32,
+        "active_object_urls": 0,
+        "retained_blob_bytes": 0,
+        "active_unload_listeners": 64,
+        "created": 32,
+        "revoked": 32,
+        "constructed": 32,
+        "terminated": 32
+      }
+    },
+    {
+      "edition": "linux-source",
+      "scenario": "provider-mismatch",
+      "samples": [
+        {
+          "attempts": 1,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 2,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 1
+        },
+        {
+          "attempts": 8,
+          "active_object_urls": 8,
+          "retained_blob_bytes": 3911888,
+          "active_unload_listeners": 16,
+          "created": 8,
+          "revoked": 0,
+          "constructed": 8,
+          "terminated": 8
+        },
+        {
+          "attempts": 16,
+          "active_object_urls": 16,
+          "retained_blob_bytes": 7823776,
+          "active_unload_listeners": 32,
+          "created": 16,
+          "revoked": 0,
+          "constructed": 16,
+          "terminated": 16
+        },
+        {
+          "attempts": 32,
+          "active_object_urls": 32,
+          "retained_blob_bytes": 15647552,
+          "active_unload_listeners": 64,
+          "created": 32,
+          "revoked": 0,
+          "constructed": 32,
+          "terminated": 32
+        }
+      ],
+      "before_unload": {
+        "attempts": 32,
+        "active_object_urls": 32,
+        "retained_blob_bytes": 15647552,
+        "active_unload_listeners": 64,
+        "created": 32,
+        "revoked": 0,
+        "constructed": 32,
+        "terminated": 32
+      },
+      "after_unload": {
+        "attempts": 32,
+        "active_object_urls": 0,
+        "retained_blob_bytes": 0,
+        "active_unload_listeners": 64,
+        "created": 32,
+        "revoked": 32,
+        "constructed": 32,
+        "terminated": 32
+      }
+    },
+    {
+      "edition": "linux-source",
+      "scenario": "successful-owner",
+      "samples": [
+        {
+          "attempts": 1,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 2,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 0
+        },
+        {
+          "attempts": 8,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 2,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 0
+        },
+        {
+          "attempts": 16,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 2,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 0
+        },
+        {
+          "attempts": 32,
+          "active_object_urls": 1,
+          "retained_blob_bytes": 488986,
+          "active_unload_listeners": 2,
+          "created": 1,
+          "revoked": 0,
+          "constructed": 1,
+          "terminated": 0
+        }
+      ],
+      "before_unload": {
+        "attempts": 32,
+        "active_object_urls": 1,
+        "retained_blob_bytes": 488986,
+        "active_unload_listeners": 2,
+        "created": 1,
+        "revoked": 0,
+        "constructed": 1,
+        "terminated": 0
+      },
+      "after_unload": {
+        "attempts": 32,
+        "active_object_urls": 0,
+        "retained_blob_bytes": 0,
+        "active_unload_listeners": 2,
+        "created": 1,
+        "revoked": 1,
+        "constructed": 1,
+        "terminated": 1
+      }
+    }
+  ]
+}

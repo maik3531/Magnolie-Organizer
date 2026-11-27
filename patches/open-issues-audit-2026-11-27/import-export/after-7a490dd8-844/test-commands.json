@@ -1,0 +1,135 @@
+{
+  "environments": {
+    "NODE_PATH": "${TOOLS}/js/node_modules",
+    "DOTNET_CLI_HOME": "${TOOLS}/dotnet-state",
+    "NUGET_PACKAGES": "${TOOLS}/nuget",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+    "DOTNET_GENERATE_ASPNET_CERTIFICATE": "false",
+    "TZ": "Europe/Berlin",
+    "MAGNOLIE_TEST_SOURCE_ROOT": "${CHECKOUT}"
+  },
+  "commands": [
+    {
+      "cwd": "${CHECKOUT}",
+      "argv": [
+        "${TOOLS}/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "magnolie-organizer/pruefungen/test_calendar_color_remainders.py",
+        "magnolie-organizer/pruefungen/test_category_colors.py",
+        "magnolie-organizer/pruefungen/test_nextcloud.py::test_nextcloud_partial_report_aborts_without_result"
+      ],
+      "expected": "47 passed"
+    },
+    {
+      "cwd": "${CHECKOUT}",
+      "argv": [
+        "${TOOLS}/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "magnolie-organizer/pruefungen/test_calendar_birthday_dedup.py",
+        "magnolie-organizer/pruefungen/test_calendar_birthday_cleanup.py"
+      ],
+      "expected": "15 passed"
+    },
+    {
+      "cwd": "${CHECKOUT}",
+      "argv": [
+        "${TOOLS}/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "magnolie-organizer/pruefungen/test_nextcloud_ics_birthdays.py"
+      ],
+      "expected": "12 passed; upstream test unchanged"
+    },
+    {
+      "cwd": "${CHECKOUT}/magnolie-organizer-windows",
+      "argv": [
+        "${TOOLS}/dotnet/dotnet",
+        "build",
+        "tests/CoreTests.csproj",
+        "--nologo",
+        "--verbosity",
+        "quiet",
+        "-p:RestoreLockedMode=true"
+      ],
+      "expected": "exit 0"
+    },
+    {
+      "cwd": "${CHECKOUT}/magnolie-organizer-windows",
+      "argv": [
+        "${TOOLS}/dotnet/dotnet",
+        "tests/bin/Debug/net8.0/CoreTests.dll",
+        "Category colors"
+      ],
+      "expected": "3 groups passed"
+    },
+    {
+      "cwd": "${CHECKOUT}/magnolie-organizer-windows",
+      "argv": [
+        "${TOOLS}/dotnet/dotnet",
+        "tests/bin/Debug/net8.0/CoreTests.dll",
+        "Nextcloud ICS birthdays"
+      ],
+      "expected": "1 group passed; upstream test unchanged"
+    },
+    {
+      "cwd": "${CHECKOUT}",
+      "argv": [
+        "node",
+        "magnolie-organizer-windows/tests/calendar-colour-remainders.js"
+      ],
+      "expected": "both editions passed"
+    },
+    {
+      "cwd": "${CHECKOUT}",
+      "argv": [
+        "node",
+        "magnolie-organizer-windows/tests/category-colors.js"
+      ],
+      "expected": "both editions passed"
+    },
+    {
+      "cwd": "${CHECKOUT}",
+      "argv": [
+        "node",
+        "magnolie-organizer-windows/tests/birthday-display.js"
+      ],
+      "expected": "both editions passed"
+    },
+    {
+      "cwd": "${CHECKOUT}",
+      "argv": [
+        "node",
+        "magnolie-organizer-windows/tests/legacy-android-instance-ui.js"
+      ],
+      "expected": "both editions passed"
+    },
+    {
+      "cwd": "${EVIDENCE}",
+      "argv": [
+        "python3",
+        "../remainder/run-pipeline.py",
+        "--checkout",
+        "${CHECKOUT}",
+        "--tools",
+        "${TOOLS}",
+        "--output",
+        "${NEW_OUTPUT}"
+      ],
+      "expected": "48 real native disk/codec plus JSDOM cases passed; default builds CoreTests"
+    }
+  ],
+  "canonical_assets": {
+    "timezones": [
+      "python3 magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py --source port-adapters/timezones --output magnolie-organizer/web",
+      "python3 magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py --source port-adapters/timezones --output magnolie-organizer-windows/app/web"
+    ],
+    "linux_catalogs": "For every language in magnolie-organizer/po/LINGUAS run python3 magnolie-organizer/werkzeuge/po_zu_js.py LANGUAGE magnolie-organizer/po/LANGUAGE.po magnolie-organizer/web/i18n/LANGUAGE.js with actual GNU msgfmt in PATH."
+  },
+  "base": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "source_commit": "c534e008f39785e1cd98ab5473ec9421a6828845"
+}

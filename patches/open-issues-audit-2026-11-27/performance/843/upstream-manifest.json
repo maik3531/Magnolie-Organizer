@@ -1,0 +1,42 @@
+{
+  "issue": 843,
+  "upstream_commit": "66b50c44482f279d7c3566fe2959f66ebcc20cd5",
+  "tested_head": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "argv": [
+    "node",
+    "/workspace/scratch/7203da5bd564/open-audit/performance/843/independent-ownership-review.cjs",
+    "/workspace/scratch/7203da5bd564/open-audit-final-source",
+    "/workspace/scratch/7203da5bd564/open-audit/performance/843/upstream-independent-ownership-result.json"
+  ],
+  "cwd": "/workspace/scratch/7203da5bd564",
+  "env": {
+    "NODE_PATH": "/workspace/scratch/7203da5bd564/round3-tools/js/node_modules"
+  },
+  "exit_code": 0,
+  "elapsed_s": 1.3213,
+  "log": "/workspace/scratch/7203da5bd564/open-audit/performance/843/logs/upstream-independent-ownership-review.log",
+  "result": "/workspace/scratch/7203da5bd564/open-audit/performance/843/upstream-independent-ownership-result.json",
+  "script_sha256": "8e2783bfd945430713dbca381e59eecc71ee3607548b9c22218f0e186a91970e",
+  "inputs": {
+    "magnolie-organizer/web/anwendung.js": "527b00475cd035bcf111b94e382e6b692cca0c6ba29454e2b65a72d7309ca53f",
+    "magnolie-organizer-windows/app/web/anwendung.js": "b2d53e7d0a54c2e71e4f1fde8f3ef68bdfb3b9e7c4b6f7c6c611c2b5a0a44cb5",
+    "magnolie-organizer-windows/tests/desktop-state-regressions.js": "c27e77e00889fe7a23853256249128844868b23c5c5cffafed25b11584dbdb7d",
+    "magnolie-organizer/web/normative-timezones.js": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+    "magnolie-organizer-windows/app/web/normative-timezones.js": "82a07365a6a4076609dfa3ed7b4eba4125b38b3daf16a5cf8e95278c0cb45c8b",
+    "port-adapters/timezones/projection-patches.json": "c4f53c184b583cdb4a088f98457ea7c4952110a959314b8260c2d52a8c60e0ca"
+  },
+  "git_status_after": "",
+  "boundary_de": "Bestehende unabhängige 3-Case-Probe unverändert gegen neuen Upstreamstand; kontrollierte Workerereignisse, reale Node-Blob-URLs, keine native data:-Worker-/Heap-/Monatsabnahme.",
+  "projection_adapter_check": {
+    "argv": [
+      "python",
+      "/workspace/scratch/7203da5bd564/open-audit/performance/843/check_projection.py",
+      "/workspace/scratch/7203da5bd564/open-audit-final-source"
+    ],
+    "cwd": "/workspace/scratch/7203da5bd564",
+    "exit_code": 0,
+    "elapsed_s": 0.9705,
+    "log": "/workspace/scratch/7203da5bd564/open-audit/performance/843/logs/upstream-projection-adapters.log",
+    "scope_de": "Beide unveränderten tatsächlichen Projektoradapter auf den neuen Quellbytes; kein vollständiger nativer Portbuild."
+  }
+}

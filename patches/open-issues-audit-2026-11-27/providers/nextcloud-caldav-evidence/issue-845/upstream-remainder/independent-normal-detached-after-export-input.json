@@ -1,0 +1,6 @@
+[
+  {
+    "id": "independent-normal-birthday",
+    "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:independent-normal-birthday\r\nDTSTAMP:20261127T194909Z\r\nSUMMARY:Synthetic birthday\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:birthday\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nDTSTART;VALUE=DATE:19850417\r\nRRULE:FREQ=YEARLY\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\nX-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1985\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:independent-normal-birthday\r\nRECURRENCE-ID;VALUE=DATE:20260417\r\nDTSTART;VALUE=DATE:20260418\r\nSUMMARY:Moved synthetic birthday\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+  }
+]

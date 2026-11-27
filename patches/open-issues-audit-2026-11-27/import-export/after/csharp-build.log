@@ -1,0 +1,9 @@
+/workspace/scratch/7203da5bd564/open-audit-import-export/magnolie-organizer-windows/tests/ExternalCalendarColorTests.cs(83,47): error CS8604: Possible null reference argument for parameter 'json' in 'JsonNode? JsonNode.Parse(string json, JsonNodeOptions? nodeOptions = null, JsonDocumentOptions documentOptions = default(JsonDocumentOptions))'. [/workspace/scratch/7203da5bd564/open-audit-import-export/magnolie-organizer-windows/tests/CoreTests.csproj]
+
+Build FAILED.
+
+/workspace/scratch/7203da5bd564/open-audit-import-export/magnolie-organizer-windows/tests/ExternalCalendarColorTests.cs(83,47): error CS8604: Possible null reference argument for parameter 'json' in 'JsonNode? JsonNode.Parse(string json, JsonNodeOptions? nodeOptions = null, JsonDocumentOptions documentOptions = default(JsonDocumentOptions))'. [/workspace/scratch/7203da5bd564/open-audit-import-export/magnolie-organizer-windows/tests/CoreTests.csproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:17.92

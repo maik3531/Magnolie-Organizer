@@ -1,0 +1,35 @@
+[
+  {
+    "log": "after/python-first.log",
+    "classification": "new test fixture issue",
+    "detail": "X-MAGNOLIE-TYPE-ID:named-anniversary was not a supported canonical type marker; corrected without changing parser type rules."
+  },
+  {
+    "log": "after/python-final.log",
+    "classification": "new test fixture issue",
+    "detail": "Short wedding marker corrected to existing canonical wedding-anniversary. Final before/after use the same corrected shared vectors."
+  },
+  {
+    "log": "after/csharp-build.log",
+    "classification": "new test compile issue",
+    "detail": "ToPayload requires explicit art and filename; fixed in the test, then actual locked build succeeded."
+  },
+  {
+    "logs": [
+      "after/ui-model-first.log",
+      "after/ui-model-second.log"
+    ],
+    "classification": "harness scheduling issue",
+    "detail": "Shared harness suppresses RAF; new year-view test now executes the existing two deferred RAF/timer callbacks rather than treating an unpainted placeholder as the finished view."
+  },
+  {
+    "log": "after/category-ui.log",
+    "classification": "missing generated prerequisite",
+    "detail": "Linux i18n catalogs absent from fresh worktree; generated from canonical PO inputs with repository po_zu_js and actual msgfmt, then suite passed."
+  },
+  {
+    "log": "after/birthday-csharp.log",
+    "classification": "host limitation",
+    "detail": "SocketException PermissionDenied prevents NamedPipeServerStream; test is not counted as passed."
+  }
+]

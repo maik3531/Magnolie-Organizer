@@ -1,0 +1,78 @@
+{
+  "issue": 395,
+  "source_base": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "source_commit": "38edd46ef18259e232c786bf2e8e88903f96b655",
+  "issue_discussion": {
+    "comments_reviewed_count": 5,
+    "all_pages_refetched": true,
+    "snapshot": "395-suggestions/issue-comments.json",
+    "latest_comment_url": "https://github.com/maik3531/Magnolie-Organizer/issues/395#issuecomment-6707540218",
+    "history_de": "Zeitzonenformatierer-Fix und manuelle Notizsortierung waren bereits erledigt. Die gemeldete gesamte N100-Ursache sowie lange native Tray-/Displayabnahme blieben offen. Der konkrete versteckte Organisator-Datalist-Pfad ist in den fünf aktuellen Kommentaren nicht als behobener Befund enthalten. Die neue Nutzeranweisung autorisiert diese eng belegte Fortsetzung."
+  },
+  "existing_performance_measurement": {
+    "base": "50b1512234a765635f82af4537f277594fbf9878",
+    "evidence": "logs/ui-50000-linux.manifest.json",
+    "log": "logs/ui-50000-linux.log",
+    "count_per_area": 50000,
+    "total_count": 250000,
+    "aggregate_import_draw_ms": 22100,
+    "aggregate_import_draw_budget_ms": 20000,
+    "five_appointment_sheet_open_remove_ms": 4588,
+    "five_appointment_sheet_budget_ms": 4000,
+    "boundary_de": "Unverändertes last_test.js in Node/JSDOM, synthetische Bridge-ACKs. Der alte Terminblatt-Messabschnitt entfernt Dialoge direkt mit DOM.remove(), nicht über reguläres Schließen. RSS enthält Fixtures/DOM/JavaScript und ist kein Leaknachweis."
+  },
+  "confirmed_and_fixed": {
+    "summary_de": "Bei jedem Öffnen erzeugte das Terminblatt sofort einen DOM-Optionsknoten pro eindeutigem Kontaktnamen, obwohl der zugehörige Zusatzbereich bei neuen Terminen geschlossen war. Das bestätigte sich auf Linux und Windows mit fünf regulären Öffnen/Schließen-Zyklen und jeweils 2.002 versteckten Optionen.",
+    "evidence": [
+      {
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L18077",
+        "detail_de": "Unbegrenzte Kontakt-Namensprojektion und sofortiger Aufruf von vorschlagsListe."
+      },
+      {
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L3120",
+        "detail_de": "vorschlagsListe erzeugt für jedes Element einen option-Knoten."
+      },
+      {
+        "path_or_url": "395-suggestions/dom-observations.json",
+        "detail_de": "Tatsächliche vorher/nachher DOM-Zählung beider Desktopquellen mit regulärem Schließen."
+      }
+    ],
+    "change_de": "Namensvorschläge werden erst bei Fokus/Eingabe erzeugt; höchstens 250 DOM-Treffer aus dem aktuellen Bestand. Leere Fokussuche endet nach einem Listenhäppchen. Nichtleere Suche findet auch einen späten exakten kurzen Namen und hält ihn im begrenzten Ergebnis sichtbar. Kein persistenter Kontaktcache, keine Vollsortierung oder weitere Bestätigung.",
+    "preserved_de": "Alle Namen bleiben über ihre Eingabe erreichbar; E-Mails aller Kontakte mit exakt gleichem Namen werden weiter zusammengeführt. Firmen ohne Personennamen, case-insensitive Duplikate, freie Name-/E-Mail-Eingaben und vorhandene Name-/E-Mail-/URI-Werte sind geprüft.",
+    "validation_de": "Final 10/10 neue gezielte Fälle auf beiden realen Desktop-JavaScriptquellen; bestehende structured-appointment-parity ebenfalls bestanden. Statischer unabhängiger Review an finalen Commit und Quellhashes gebunden.",
+    "patch": "395-suggestions/refs-395-organizer-suggestions.patch",
+    "manifest": "395-suggestions/manifest.json"
+  },
+  "aggregate_import_draw": {
+    "status": "not_isolated_no_product_change",
+    "analysis_de": "Der gemessene Block umfasst Importkopie, Kontaktprüfung und Vorschau, Revision-/Snapshotgrenzen, Entwurf, vier Bereichsmerges sowie Zeichnen. Die Kontaktvorschau rendert nur 25 Fälle pro Seite. Vollständige kanonische Revisionsprüfungen und Kopien sind sichtbar, schützen hier aber gegen Änderungen während asynchroner Entscheidungen. Ohne getrennte Phasenmessung ist weder deren Überflüssigkeit noch ein einzelner Anteil an 22,10 Sekunden belegt. Keine solche Prüfung wurde entfernt und kein Zeitbudget geändert.",
+    "evidence": [
+      {
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L37807",
+        "detail_de": "App.importErgebnis orchestriert Kopie, Kontaktreview, Mutationssnapshot, Datenmerge und Zeichnen."
+      },
+      {
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L35063",
+        "detail_de": "Vorbereitung erzeugt Identitätsindizes und einen kanonischen Buchstand."
+      },
+      {
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L35136",
+        "detail_de": "Kontaktentwurf kopiert nur die zu ersetzenden Sammlungen, übrige Buchteile bleiben referenziert."
+      },
+      {
+        "path_or_url": "https://github.com/maik3531/Magnolie-Organizer/blob/24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b/magnolie-organizer/web/anwendung.js#L35262",
+        "detail_de": "Vorschau ist auf 25 Pläne pro Seite beschränkt; Gültigkeit wird gegen den kanonischen Ausgangsstand geprüft."
+      }
+    ],
+    "next_step_de": "Bei weiterer Bearbeitung dieselben 50k-Fixtures in die vorhandenen Importphasen aufteilen und Vorbereitung, Entwurf, Bereichsmerges und Zeichnen getrennt messen. Erst danach einen belegten unnötigen Kostenanteil korrigieren."
+  },
+  "open_acceptance_de": [
+    "Die komplette 250.000-Einträge-Volumensuite wurde für diesen engen Fix nicht erneut ausgeführt. Das ursprüngliche 20-Sekunden-Importbudget bleibt offen; keine Behauptung, dass die gesamte Suite jetzt grün sei.",
+    "Kein nativer N100-/GTK-/WebKit-/WebView2-Datalist-Test; die ausgeräumte DOM-Arbeit ist plattformübergreifend aus tatsächlichen Quellen belegt.",
+    "Keine Monats-Tray-/Heap-/RAM-Verlaufabnahme. Frühere kurze native Traymessung und aktuelle Spitzen-RSS-Werte erlauben weder Leakbehauptung noch Entwarnung für Langzeitnutzung.",
+    "Die nichtleere Namenssuche durchläuft den Kontaktbestand weiterhin linear, hält jedoch die erzeugte DOM-Liste und den pro-Suche-Deduplizierungssatz auf 250 Einträge begrenzt."
+  ],
+  "github_mutations": false,
+  "main_merge": false,
+  "packages_built_or_installed": false
+}

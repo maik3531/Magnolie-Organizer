@@ -1,0 +1,25 @@
+{
+  "source_commit": "38edd46ef18259e232c786bf2e8e88903f96b655",
+  "files": {
+    "README.md": "1d22df334a01d79bc396d7a64ab4b4a3725392be462875f58a972953109d52df",
+    "manifest.json": "da5c5bc0e10d195141e2696ef63697031cc483bff842af6e7a5644e28ad4b958",
+    "independent-review.json": "d5eb0a19e2b3b2ae8fae546889db2a32b629e5122e5d68e9377ab7d44cca7a54",
+    "dom-observations.json": "85eb3165ca2f16c4a78eed635e42e40192dca7de7930d5744423e820e2d801ff",
+    "refs-395-organizer-suggestions.patch": "0b4fe4091774bb1235ff2ff5cb811693530a8d027c355b716d1e1595fe54aa2b",
+    "ARBEITSSTAND-fragment.md": "c640081661a3380cdca0346474551a21ff23a303cd613a404595d3b0cb941bb4",
+    "issue-comments.json": "b809378b4b4297ccfcbacee0020a2060f5e96ce866d99e1545735b4aa115e1f2",
+    "baseline-tests-8-cases.source.txt": "3e4466203d37a7b843ab65aa32a91319ff17a96608cd8b42b9b4b1bb1e79725f",
+    "before.log": "596b4b397ee9e11d2c201202101979950f60a6edbf2db6a63d2b386496ea0bc1",
+    "after.log": "057b089a9ce3c19c529fe4e660dcbe27cff1fc50a5933dd4fa1a6611fa29c78e",
+    "exact-name-before.log": "ded6c81f1426c22c9e526fb94d3b3a9412b1a991b6f54a9c973cd5b308f990f5",
+    "final.log": "28b9f5a0825a5a52153fccd84f2911ccc2a5c28a3cbd30fe28ba3240a1b0162e",
+    "structured-appointment-parity-final.log": "de75a319de588f1beed9daca26162c2204e342ecbfbe9390fcfb53db8546e7c8",
+    "intermediate-8-cases-binding.json": "1c01c93719a8dc815401030c24a7918c51e00135692cb5f7a390f54f770b4ab7",
+    "before-exact-match.patch": "6129dcb5fd641535cf7f7dc43fde74f8473a631afc5f05949aa278cd96388ac8"
+  },
+  "source_analysis": {
+    "path": "../review-395-source-analysis.json",
+    "sha256": "2edb5d647649bcbe0742815ca5ffdf9ac83cfcbdf749e84aad3d15d5a5542856"
+  },
+  "relative_readme_links_valid": true
+}

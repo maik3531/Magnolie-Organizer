@@ -1,0 +1,4 @@
+Magnolie CoreTests: 2 Gruppen
+  OK     Lotus CSV contacts / explicit role fields / repeated VCF exchange (0.08 s)
+  OK     Lotus task CSV / status and priority roundtrip (0.08 s)
+CoreTests: 2/2 Gruppen bestanden.

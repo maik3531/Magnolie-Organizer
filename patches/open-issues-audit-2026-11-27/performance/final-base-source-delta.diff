@@ -1,0 +1,43 @@
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+index e1ddbd3a..77eece4f 100644
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -30137,2 +30137,5 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         : stand.mapped_direction === "two_way";
++      const manualImageReceive = stand.manual_image_receive === true && stand.shared_media?.agreed === true &&
++        sharedValues?.enabled === true && sharedValues.auto_mode === "manual" && sharedValues.photos_enabled === true &&
++        sharedValues.videos_enabled === false && (sharedValues.direction === "phone_to_pc" || sharedValues.collection_mode === "import_only");
+       const sende = (action, album_id, job_owner, historical_choice) => {
+@@ -30152,6 +30155,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       label.addEventListener("keydown", event => event.stopPropagation());
+-      if (stand.shared_media) {
++      if (manualImageReceive && stand.enabled === true) {
++        const revoke = knopf(_("Revoke") + " · " + _("Photos"), "", () => sende("disable"));
++        revoke.title = label.title; gruppe.append(revoke);
++      } else if (stand.shared_media && !manualImageReceive) {
+         const row = el("label", "hak"); row.append(an, document.createTextNode(" " + label.title));
+         gruppe.append(row);
+-      } else titel.append(label);
++      } else if (!stand.shared_media) titel.append(label);
+       const sendeStand = stand.sending_consent || (stand.sending_setup ? { photos: false, videos: false, ...stand.sending_setup } : null);
+@@ -30300,3 +30306,4 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         const status = {
+-          enable: _("Preparing photo synchronization…"), permission_required: _("Allow photo access on the phone, then refresh albums."),
++          enable: _("Preparing photo synchronization…"), waiting: _("Waiting for the phone…"),
++          permission_required: _("Allow photo access on the phone, then refresh albums."),
+           discover: _("Finding phone albums…"), albums: _("Phone albums are ready."), syncing: _("Photo synchronization active"),
+@@ -30426,3 +30433,3 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+       const backupRecovery = baueMedienBackupWiederherstellung(); gruppe.append(backupRecovery);
+-      if (stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
++      if (manualImageReceive || stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
+         const manuell = el("div", "knopfreihe notes-medien-manuell");
+@@ -30431,3 +30438,3 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+           Bruecke.sende({ cmd: "telefon_foto_aktion", kennung: peer.device_id, fingerprint: peer.fingerprint,
+-            request: stand.mapped_outgoing === true && !(fotoAlbumWahl?.value || videoAlbumWahl?.value) ? { action: "sync_shared" } :
++             request: manualImageReceive || stand.mapped_outgoing === true && !(fotoAlbumWahl?.value || videoAlbumWahl?.value) ? { action: "sync_shared" } :
+               { action: "sync_selected", album_id: fotoAlbumWahl?.value || null, video_album_id: videoAlbumWahl?.value || null } });
+@@ -30435,3 +30442,3 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         jetzt.dataset.photoManualSync = "true";
+-        jetzt.disabled = twoWayHeld || stand.busy === true || !(stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length) ||
++        jetzt.disabled = twoWayHeld || stand.busy === true || !(manualImageReceive || stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length) ||
+           !!(stand.shared_media && stand.shared_media.configured !== false && (!stand.shared_media.values.enabled || !stand.shared_media.agreed));

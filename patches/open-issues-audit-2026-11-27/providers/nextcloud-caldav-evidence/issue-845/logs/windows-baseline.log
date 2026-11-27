@@ -1,0 +1,7 @@
+Magnolie CoreTests: 1 Gruppen
+  FEHLER Nextcloud explicit birthday markers / year / recurrence / roundtrip (0.10 s)
+         System.InvalidOperationException: known is not a typed birthday
+   at MagnolieOrganizer.Windows.Tests.TestAssert.That(Boolean condition, String message) in /workspace/scratch/7203da5bd564/open-audit-845/magnolie-organizer-windows/tests/TestRunner.cs:line 41
+   at MagnolieOrganizer.Windows.Tests.NextcloudBirthdayMarkerTests.RunAsync() in /workspace/scratch/7203da5bd564/open-audit-845/magnolie-organizer-windows/tests/NextcloudBirthdayMarkerTests.cs:line 24
+   at MagnolieOrganizer.Windows.Tests.TestRunner.RunAsync(String filter) in /workspace/scratch/7203da5bd564/open-audit-845/magnolie-organizer-windows/tests/TestRunner.cs:line 23
+CoreTests: 0/1 Gruppen bestanden.

@@ -1,0 +1,53 @@
+{
+  "issue": 844,
+  "review_phase": "preliminary_uncommitted_backend",
+  "status": "changes_requested",
+  "base": "24927cf94cfe9a7bb5c4f148a38d6b04b0bc732b",
+  "product_sources": {
+    "/workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer/bin/magnolie-organizer": "f21f7e71c33e39d7479305412143965da013f1f57b77fd07c6b13265dcf7f7c4",
+    "/workspace/scratch/7203da5bd564/open-audit-import-export/magnolie-organizer/bin/magnolie-organizer": "92224769766f5e06fcf4d128c68515e19d0b9dd793e1c6a21684b19e6c820df2"
+  },
+  "reproduction": {
+    "script": "independent-preliminary-color-review.py",
+    "result": "independent-preliminary-color-result.json",
+    "cwd": "/workspace/scratch/7203da5bd564",
+    "argv": [
+      "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+      "/workspace/scratch/7203da5bd564/open-audit/import-export/independent-preliminary-color-review.py",
+      "--baseline",
+      "/workspace/scratch/7203da5bd564/open-audit-395",
+      "--candidate",
+      "/workspace/scratch/7203da5bd564/open-audit-import-export",
+      "--output",
+      "/workspace/scratch/7203da5bd564/open-audit/import-export/independent-preliminary-color-result.json"
+    ],
+    "exit_code": 0,
+    "exit_code_meaning_de": "Diagnoseskript beendet regulär; die beobachteten Produkt-Rückfälle sind in den Ausgaben belegt, nicht als bestandene Produktprüfung gewertet."
+  },
+  "findings": [
+    {
+      "id": "844-legacy-stored-color",
+      "status": "confirmed_on_preliminary_diff",
+      "summary_de": "Tatsächlicher Altimport mit leerer akzentFarbe und gültiger roher COLOR-Zeile verliert diese beim neuen Export. Vorheriger Export erhält sie."
+    },
+    {
+      "id": "844-unchanged-parameterized-precedence",
+      "status": "confirmed_on_preliminary_diff",
+      "summary_de": "Unveränderte eigene Farbe über einer abweichenden parametrierten Standardfarbe exportiert vor dem Patch, wird durch den Kandidaten als vermeintliche Änderung blockiert."
+    }
+  ],
+  "contract_sources": [
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc7986.html#section-5.9",
+      "detail_de": "COLOR für VCALENDAR, VEVENT, VTODO und VJOURNAL; Textwert ist ein CSS3-Farbname ohne Beachtung der Groß-/Kleinschreibung. Darstellung ist RFC-MAY, die Übernahmeforderung kommt vom Nutzer."
+    },
+    {
+      "url": "https://www.w3.org/TR/2011/REC-css3-color-20110607/#svg-color",
+      "detail_de": "Normative benannte RGB-Werte; keine Näherung an eine Palette und keine beliebigen CSS-Ausdrücke."
+    }
+  ],
+  "limitations_de": [
+    "Nur tatsächlicher Python-Backend-Rundlauf bisher unabhängig ausgeführt; C#-Befund in dieser Phase statisch analog.",
+    "Die spätere endgültige Freigabe muss den finalen Commit und Speichern/Normalisierung/Anzeige einschließlich Entfernen getrennt prüfen."
+  ]
+}

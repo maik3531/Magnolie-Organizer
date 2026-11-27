@@ -1,0 +1,36 @@
+{
+  "source_path": "/workspace/scratch/7203da5bd564/open-audit-759/magnolie-organizer-windows/app/web/phone-media.js",
+  "source_sha256": "5295c10d3a1e955c84984bc983598062ab2b5fabb4b5a2c60485bb06d362dde5",
+  "environment": "Actual unchanged Windows phone-media.js in JSDOM; ownership maps, queued microtasks and real JSDOM timeout handles observed by harness",
+  "scope_limit": "Bounded UI lifecycle regression tests; not a native Windows, real-device, heap-profile, month-long tray or wall-clock duration test",
+  "tests_executed": true,
+  "total": 2,
+  "passed": 2,
+  "results": [
+    {
+      "name": "128 two-phone rebuilds retain only current owners and keep automatic refresh",
+      "passed": true,
+      "observations": {
+        "rebuild_turns": 128,
+        "phone_rows_per_turn": 2,
+        "maximum_pending_after_cleanup": 6,
+        "maximum_panel_owners_after_cleanup": 2,
+        "final_pending": 0,
+        "final_panel_owners": 2,
+        "active_timers": 0,
+        "microtasks_per_rebuild": 3,
+        "existing_preview_observer_microtasks_per_rebuild": 2,
+        "additional_cleanup_microtasks_per_rebuild": 1
+      }
+    },
+    {
+      "name": "detached folder request releases its real timeout and cannot revive an old owner",
+      "passed": true,
+      "observations": {
+        "detached_request_removed": true,
+        "timeout_cleared": true,
+        "old_owner_revived": false
+      }
+    }
+  ]
+}

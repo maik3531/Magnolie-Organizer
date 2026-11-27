@@ -1,0 +1,19 @@
+OBSERVATION {"hidden_organizer_option_counts":[0,0,0,0,0],"regular_open_close_ms":[28.73008,13.523639,25.295986,19.292414,12.297932]}
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer-windows/app/web · five regular open/close cycles build no unused organizer options
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer-windows/app/web · focus and each query stay bounded while the last contact and company remain reachable
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer-windows/app/web · duplicate names keep all exact-name email choices and free organizer input still saves
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer-windows/app/web · editing retains the selected organizer and exact-name email choices before focus
+FAIL /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer-windows/app/web · an exact name after more than one chunk of partial matches remains selectable
+AssertionError [ERR_ASSERTION]: An exact later name was hidden behind the first 250 partial matches
+    at cases (/workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer-windows/tests/appointment-organizer-suggestions.js:88:5)
+    at /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer-windows/tests/appointment-organizer-suggestions.js:97:17
+OBSERVATION {"hidden_organizer_option_counts":[0,0,0,0,0],"regular_open_close_ms":[14.181458,8.46439,8.794778,9.52234,10.848676]}
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer/web · five regular open/close cycles build no unused organizer options
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer/web · focus and each query stay bounded while the last contact and company remain reachable
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer/web · duplicate names keep all exact-name email choices and free organizer input still saves
+PASS /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer/web · editing retains the selected organizer and exact-name email choices before focus
+FAIL /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer/web · an exact name after more than one chunk of partial matches remains selectable
+AssertionError [ERR_ASSERTION]: An exact later name was hidden behind the first 250 partial matches
+    at cases (/workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer-windows/tests/appointment-organizer-suggestions.js:88:5)
+    at /workspace/scratch/7203da5bd564/open-audit-395/magnolie-organizer-windows/tests/appointment-organizer-suggestions.js:97:17
+8/10 organizer suggestion cases passed (actual desktop JavaScript in JSDOM)

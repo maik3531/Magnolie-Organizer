@@ -1,0 +1,123 @@
+{
+  "checkout": "/workspace/scratch/7203da5bd564/open-audit-845",
+  "head": "a64624071e700920907bcab7dd14d62fc93e0b9a",
+  "source_sha256": "f214466ddd27c7798ed2a4333dc92917943a6b6dc807d70c5a204fa053e7ac8e",
+  "fixtures_sha256": "a26e053fc23716f3e3fe06bec103d3bfab5878eeee721141fa554b9c57d94919",
+  "cases": [
+    {
+      "id": "separate-recurrence-exception",
+      "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-APPLE-CALENDAR-COLOR:#123456\r\nBEGIN:VEVENT\r\nUID:synthetic-known\r\nDTSTART;VALUE=DATE:19881203\r\nDTEND;VALUE=DATE:19881204\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:Synthetic birthday\r\nDESCRIPTION:Keep this note\r\nCOLOR:red\r\nTRANSP:TRANSPARENT\r\nX-SYNTHETIC-PRESERVE:keep\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\nX-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DURATION:PT9H\r\nDESCRIPTION:Keep alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:synthetic-known\r\nRECURRENCE-ID;VALUE=DATE:20261203\r\nDTSTART;VALUE=DATE:20261204\r\nDTEND;VALUE=DATE:20261205\r\nSUMMARY:Moved birthday exception\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "payload": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "Europe/Berlin",
+            "datum": "1988-12-03",
+            "endDatum": "",
+            "zeit": "",
+            "endZeit": "",
+            "titel": "Synthetic birthday",
+            "notiz": "Keep this note",
+            "kategorien": "",
+            "akzentFarbe": "#ff0000",
+            "icsCalendarColor": "X-APPLE-CALENDAR-COLOR:#123456",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": true,
+            "icsSerienUid": "synthetic-known",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:19881203",
+              "DTEND;VALUE=DATE:19881204",
+              "RRULE:FREQ=YEARLY",
+              "COLOR:red",
+              "TRANSP:TRANSPARENT",
+              "X-SYNTHETIC-PRESERVE:keep",
+              "X-NEXTCLOUD-BC-FIELD-TYPE:BDAY",
+              "X-NEXTCLOUD-BC-UNKNOWN-YEAR:0",
+              "X-NEXTCLOUD-BC-YEAR:1988",
+              "BEGIN:VALARM",
+              "ACTION:DISPLAY",
+              "TRIGGER;VALUE=DURATION:PT9H",
+              "DESCRIPTION:Keep alarm",
+              "END:VALARM",
+              "EXDATE;VALUE=DATE:20261203"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "synthetic-known",
+            "geaendert": 0,
+            "icsRangeOverrides": []
+          },
+          {
+            "icsAnzeigeZeitzone": "Europe/Berlin",
+            "datum": "2026-12-04",
+            "endDatum": "",
+            "zeit": "",
+            "endZeit": "",
+            "titel": "Moved birthday exception",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "#123456",
+            "icsCalendarColor": "X-APPLE-CALENDAR-COLOR:#123456",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": true,
+            "icsSerienUid": "synthetic-known",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "RECURRENCE-ID;VALUE=DATE:20261203",
+              "DTSTART;VALUE=DATE:20261204",
+              "DTEND;VALUE=DATE:20261205",
+              "SUMMARY:Moved birthday exception"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "synthetic-known-magnolie-instanz-2b18a8c8af961dea",
+            "geaendert": 0
+          }
+        ],
+        "jahrestage": [],
+        "aufgaben": [],
+        "wiederholend": 0,
+        "uebersprungen": 0,
+        "uebersprungenTermine": 0,
+        "uebersprungenAufgaben": 0,
+        "komplexeSerien": [
+          "synthetic-known"
+        ]
+      },
+      "exported": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nX-APPLE-CALENDAR-COLOR:#123456\r\nBEGIN:VEVENT\r\nUID:synthetic-known\r\nDTSTAMP:20261127T193304Z\r\nSEQUENCE:0\r\nSUMMARY:Synthetic birthday\r\nDESCRIPTION:Keep this note\r\nX-MAGNOLIE-ACCENT-COLOR:#ff0000\r\nDTSTART;VALUE=DATE:19881203\r\nDTEND;VALUE=DATE:19881204\r\nRRULE:FREQ=YEARLY\r\nCOLOR:red\r\nTRANSP:TRANSPARENT\r\nX-SYNTHETIC-PRESERVE:keep\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\nX-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DURATION:PT9H\r\nDESCRIPTION:Keep alarm\r\nEND:VALARM\r\nEXDATE;VALUE=DATE:20261203\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:synthetic-known\r\nDTSTAMP:20261127T193304Z\r\nSEQUENCE:0\r\nSUMMARY:Moved birthday exception\r\nX-MAGNOLIE-ACCENT-COLOR:#123456\r\nRECURRENCE-ID;VALUE=DATE:20261203\r\nDTSTART;VALUE=DATE:20261204\r\nDTEND;VALUE=DATE:20261205\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "passed": true
+    },
+    {
+      "id": "explicit-type-edit-removes-stale-bday",
+      "input": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-APPLE-CALENDAR-COLOR:#123456\r\nBEGIN:VEVENT\r\nUID:synthetic-known\r\nDTSTART;VALUE=DATE:19881203\r\nDTEND;VALUE=DATE:19881204\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:Synthetic birthday\r\nDESCRIPTION:Keep this note\r\nCOLOR:red\r\nTRANSP:TRANSPARENT\r\nX-SYNTHETIC-PRESERVE:keep\r\nX-NEXTCLOUD-BC-FIELD-TYPE:BDAY\r\nX-NEXTCLOUD-BC-UNKNOWN-YEAR:0\r\nX-NEXTCLOUD-BC-YEAR:1988\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DURATION:PT9H\r\nDESCRIPTION:Keep alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "exported": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nX-APPLE-CALENDAR-COLOR:#123456\r\nBEGIN:VEVENT\r\nUID:synthetic-known\r\nDTSTAMP:20261127T193304Z\r\nDTSTART;VALUE=DATE:19881203\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:Synthetic birthday\r\nCATEGORIES:Hochzeitstag\r\nX-MAGNOLIE-TYPE-ID:wedding-anniversary\r\nX-MAGNOLIE-TYP:Hochzeitstag\r\nX-MAGNOLIE-JAHRESTAG-TYP:wedding-anniversary\r\nDESCRIPTION:Keep this note\r\nX-MAGNOLIE-ACCENT-COLOR:#ff0000\r\nCOLOR:red\r\nTRANSP:TRANSPARENT\r\nX-SYNTHETIC-PRESERVE:keep\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER;VALUE=DURATION:PT9H\r\nDESCRIPTION:Keep alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "passed": true
+    }
+  ],
+  "passed": 2,
+  "boundary_de": "Zwei konkrete unabhängige Python-Codec-Regressionsfälle. Keine C#-, native GUI-, Server- oder Geräteausführung durch diese Probe."
+}

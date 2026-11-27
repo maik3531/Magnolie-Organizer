@@ -1,0 +1,89 @@
+{
+  "issue": 759,
+  "review_scope_de": "Zusätzliche unabhängige Quellenprüfung gegen die Nutzeranforderung: gemeinsame Einstellung einmal im Organizer ändern, Notes übernimmt automatisch; keine zweite oder dritte manuelle Bestätigung.",
+  "source_base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "verified_limited_delta_head": "50b1512234a765635f82af4537f277594fbf9878",
+  "ui_product_sha256": "2d72813b4bf614526812a668dd45218422be268f306f854970cd853e2b62cabe",
+  "new_tests_executed_for_this_protocol_review": false,
+  "native_device_or_transport_tests_executed": false,
+  "new_ui_deadlock_found": false,
+  "new_confirmation_required_by_patch": false,
+  "conclusion_de": "Der enge UI-Patch führt keine zusätzliche Notes-Bestätigung ein und sperrt den vorhandenen automatischen Einstellungsweg nicht. Technische Shared-/ACK-/Revisionsrückmeldungen bleiben intern. Eine produktive gemeinsame Medienanbindung ist damit nicht nachgewiesen oder freigegeben.",
+  "evidence": [
+    {
+      "kind": "source_read",
+      "path": "magnolie-organizer-windows/DeviceFileUiCoordinator.cs",
+      "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+      "member": "NativeMediaUiStatus / ChangeNativeMediaUiSharedSettingAsync",
+      "detail_de": "Bei MediaSharedControlsReady wird auch ohne gespeicherten Shared-Datensatz eine Feld-/Versionsprojektion geliefert. Eine lokale Einstellung wird dauerhaft geändert und unmittelbar SendMediaSharedSettingsAsync aufgerufen; kein Bestätigungsdialog auf Notes."
+    },
+    {
+      "kind": "source_read",
+      "path": "magnolie-organizer-windows/DeviceFileSharedPreferences.cs",
+      "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+      "member": "NativeMediaSharedSettingsView / ProjectNativeMediaSharedSettings",
+      "detail_de": "Initiale Vorschau verwendet den bestehenden Datensatz oder eine sichere Legacy-Projektion. Sie benötigt keinen vorgelagerten Notes-Klick und schafft keine Datei-/Sendeberechtigung."
+    },
+    {
+      "kind": "source_read",
+      "path": "magnolie-organizer-windows/DeviceFileConnectionSharedSettings.cs",
+      "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+      "member": "SendMediaSharedSettingsAsync / HandleMediaSharedSettingsAsync",
+      "detail_de": "Der Versand stellt den aktuellen Datensatz in die Outbox und pumpt direkt. Empfang führt dauerhaften Merge, ACK und gegebenenfalls automatisches Echo aus; danach MediaPreferencesChanged."
+    },
+    {
+      "kind": "source_read",
+      "path": "magnolie-organizer-windows/DeviceFileUiCoordinator.cs",
+      "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+      "member": "NativeMediaSharedPreferencesChangedAsync",
+      "detail_de": "Technische Rückmeldung projiziert nur bei vollständiger Übereinstimmung und sendet MagnolieMedia.changed unabhängig von einem zusätzlichen Benutzerklick."
+    },
+    {
+      "kind": "source_and_committed_patch_review",
+      "path": "magnolie-organizer-windows/app/web/phone-media.js",
+      "base_commit": "50b1512234a765635f82af4537f277594fbf9878",
+      "member": "MagnolieMedia.changed / request / panels.refresh",
+      "detail_de": "Das im Patch unveränderte Änderungsereignis fordert Status automatisch an, bei Busy verzögert. Status, Cancel und Aktivierung bleiben vom neuen Shared-Gate ausgenommen. Der Patch fügt keine neue Bestätigungsaktion hinzu.",
+      "reviewed_sha256": "2d72813b4bf614526812a668dd45218422be268f306f854970cd853e2b62cabe",
+      "reviewed_commit": "7453838a78895e31f1103b2065692b6fabfae1fb"
+    },
+    {
+      "kind": "source_read",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/MediaSyncTransport.kt",
+      "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+      "member": "receive / queueSettings / publish",
+      "detail_de": "Empfang persistiert und liest exakt zurück, sendet ACK, plant Echo und aktualisiert die Sicht automatisch. Der begrenzt geprüfte bb967f45-Nachtrag ändert nur die Two-Way-Intentfreigabe, nicht diese Empfangs-/ACK-Kette."
+    },
+    {
+      "kind": "source_read",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt",
+      "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+      "member": "receiveMessageCurrent / sendDue / refreshMediaPreferenceState",
+      "detail_de": "Media-Nachrichten gehen direkt an den Transport. Nach eingehenden Frames ruft die Sitzung sendDue auf; dort werden Einstellungen gepumpt. refreshMediaPreferenceState aktualisiert den sichtbaren State ohne Bedienaktion."
+    },
+    {
+      "kind": "source_read",
+      "path": "magnolie-organizer-windows/TelefonProtocolContract.cs",
+      "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+      "member": "DesktopCapabilities",
+      "detail_de": "Die Standard-Capabilityliste wirbt nicht den MediaSyncSettings-Discoverymarker. Das verhindert eine Behauptung, die produktive Shared-Medienanbindung sei mit dem UI-Fix bereits geliefert."
+    },
+    {
+      "kind": "source_read",
+      "path": "magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonModelle.kt",
+      "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+      "member": "TelefonCapability defaults",
+      "detail_de": "Auch die Notes-Standardliste enthält den Shared-Medienmarker nicht; mediaSharedControlsReady fordert ihn jedoch auf beiden Seiten."
+    },
+    {
+      "kind": "source_read",
+      "path": "ARBEITSSTAND.md",
+      "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+      "member": "Private Integrationsstände #330",
+      "detail_de": "Die gemeinsame Medienintegration ist auf gesonderten Linux-/Windows-/Notes-Zweigen dokumentiert. Quell-/Loopbacknachweise sind von installierter WLAN-/Geräteabnahme getrennt."
+    }
+  ],
+  "remaining_de": "Produktive gemeinsame Medienanbindung und tatsächliche automatische Organizer→Notes-Übernahme auf einem passenden installierten Paar bleiben eigenständige #330/#759-Kriterien. Eine fehlende Capability wird vom engen UI-Fix als Wartezustand gezeigt, nicht durch einen zusätzlichen Dialog oder erfundene Runtime-Freigabe ersetzt.",
+  "limitations_de": "Statische Prüfung des vorhandenen Protokoll-/UI-Aufrufwegs; zusätzliche zwei tatsächliche JSDOM-Randfälle stehen separat in review-759-result.json. Kein Kotlin-, C#-, Geräte- oder Transportlauf für diese zusätzliche Quellenprüfung.",
+  "reviewed_ui_commit": "7453838a78895e31f1103b2065692b6fabfae1fb"
+}

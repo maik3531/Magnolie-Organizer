@@ -1,0 +1,8 @@
+cd6ff88eadde191e5ee799e8d01147eeebb3bf58d8def674a686795c9abe1453  01-566-preserve-csv-contact-fields.patch
+662248ba338db0d18ddfff86aa9d00349fdc67e7ce6be10b0cc6f3ac88cbc71c  02-192-correct-mcp-coverage.patch
+fa7496906c7712c3c470e712b0ceeb18562820596596bc163f6ef261a9c1106a  03-790-correct-current-source-test.patch
+89285d663c85920cd31b18b3c1fe8d55a4b482f2e26a69c641f2136c400fec89  04-330-shared-media-wait.patch
+366c8dce0484136d0fdfde5aeb00c9a1a0b03f8d01615c1148c5b2ce7491bfac  05-330-initial-recovery-and-refresh.patch
+5667456f4dfd530d21fa4b0b0692a7301399be8e15dccdba441a1e9111c05133  06-395-organizer-suggestions.patch
+8cb83013f41213bc58da0bd9d5906796204443fa1c7112d58e9c6f2953fbccef  07-843-worker-url-lifecycle.patch
+cd4d94d4224ef0f51628e633d03ffb4d318113529ef51d239638478a4c5af1ef  all-after-24927cf9.patch

@@ -1,0 +1,14 @@
+AssertionError [ERR_ASSERTION]: constructor retained a failed worker object URL
+
+2 !== 1
+
+    at /workspace/scratch/7203da5bd564/open-audit-395-worker-url/magnolie-organizer-windows/tests/recurrence-worker.js:165:20
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processTimers (node:internal/timers:615:9) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 2,
+  expected: 1,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

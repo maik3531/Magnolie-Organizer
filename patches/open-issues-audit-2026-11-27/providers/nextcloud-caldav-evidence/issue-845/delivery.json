@@ -1,0 +1,44 @@
+{
+  "issue": 845,
+  "url": "https://github.com/maik3531/Magnolie-Organizer/issues/845",
+  "commit": "8d7263fda398f7ee0cbe6b9f5b7bab3e9d6c5f5a",
+  "parent": "a64624071e700920907bcab7dd14d62fc93e0b9a",
+  "tree": "8a18f65ab50d4e9125b3ffd086ccab7066fc053f",
+  "branch": "audit/845-nextcloud-birthdays",
+  "worktree": "/workspace/scratch/7203da5bd564/open-audit-845",
+  "patch": "0008-Refs-845-nextcloud-birthday-semantics.patch",
+  "patch_sha256": "ab621b91122c1ba7448e993fca0db7630dc2a75cc5d8bffb1bc3f7afa05a22e3",
+  "inputs": {
+    "magnolie-organizer/bin/magnolie-organizer": "f214466ddd27c7798ed2a4333dc92917943a6b6dc807d70c5a204fa053e7ac8e",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "5697e9113c86bf011758a23a380528fe274edd93cee84ad21fd71d6793c3c1c3",
+    "magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py": "ab7ad293284b1d1322688c4d9dd4424dc921b8b43d01a883758ee98509f07711",
+    "magnolie-organizer-windows/tests/NextcloudBirthdayMarkerTests.cs": "c7f0243bce3ec6ed27d87e80dd2bb35335bc1b9fda2f19b3aa360b93414fa771",
+    "magnolie-organizer-windows/tests/Program.cs": "6f8eb08b6193b9bec357d05172c5e8e91eac6b8b7b5e65b1946b16113db49eea",
+    "contracts/nextcloud-birthday-vectors.json": "a26e053fc23716f3e3fe06bec103d3bfab5878eeee721141fa554b9c57d94919"
+  },
+  "final_manifest": "final-manifest.json",
+  "baseline_manifest": "baseline-final-manifest.json",
+  "independent_review": "independent-final-review.json",
+  "counts": {
+    "shared_vectors": 21,
+    "new_python_cases": 37,
+    "existing_python_scope_cases": 7,
+    "python_final_passed": 44,
+    "python_final_failed": 0,
+    "python_baseline_passed": 23,
+    "python_baseline_failed": 21,
+    "csharp_new_groups_passed": 1,
+    "csharp_existing_colour_groups_passed": 3,
+    "independent_dom_cases_passed": 4,
+    "independent_review_boundary_cases_passed": 2
+  },
+  "limitations_de": "Keine Live-Server-, native GUI-/Konten-/Geräte-/Paketabnahme. Python/C#-Codec-JSONseams und unabhängige Python→DOMfälle getrennt. Linux #441 bleibt ein vorab blockierter vollständiger Jahrestagsscope; #683 bleibt offen.",
+  "upstream_primary_source": "https://github.com/nextcloud/server/blob/1ab09ec753f106661beadee1794b390ebec455dd/apps/dav/lib/CalDAV/BirthdayService.php",
+  "not_for_distribution": [
+    "../official-BirthdayService-stable35.php",
+    "../official-BirthdayService.php"
+  ],
+  "status": "historical_alternative_do_not_apply",
+  "superseded_by_upstream": "7a490dd87e94eec08d7f09cb95a04b34bf4621c2",
+  "current_remainder_directory": "upstream-remainder"
+}

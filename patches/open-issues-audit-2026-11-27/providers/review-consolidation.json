@@ -1,0 +1,247 @@
+{
+  "reviewer": "/root/review_calendar",
+  "date_utc": "2026-11-27",
+  "verdict": "approved_for_issue_consolidation",
+  "summary_de": "Finaler Plan fachlich bestätigt: 13 Leitgruppen, 29 eindeutige Übertragungen und zwei begründete eigenständige Schließungen. Keine Übertragungszyklen, keine doppelten Ziele pro Quellissue und keine fälschliche globale Erledigungsbehauptung. Alle im unabhängigen Review konkret benannten Erhaltungs- und Freigabekorrekturen sind im letzten Plan vorhanden.",
+  "reviewed_inputs": [
+    {
+      "path": "/workspace/scratch/7203da5bd564/open-audit/consolidation-plan.json",
+      "sha256": "13cd694cf9f8e18ef47f78e72dfc800bd555b8fd766cd7e42ae4e39e6b583203"
+    },
+    {
+      "path": "/workspace/scratch/7203da5bd564/open-audit/desktop/consolidation-proposals.json",
+      "sha256": "d8944484333c1fa1a000938543fdd53313382f183205d5377f99fa3833ed87c1"
+    },
+    {
+      "path": "/workspace/scratch/7203da5bd564/open-audit/issues.json",
+      "detail_de": "Originalbodies selektiv gegen die geplanten Restübernahmen geprüft."
+    },
+    {
+      "path": "/workspace/scratch/7203da5bd564/open-audit/providers/assessments.json",
+      "detail_de": "27 zuvor vollständig geprüfte Provider-/Kontakt-/MCP-/Kontoissues."
+    },
+    {
+      "path": "/workspace/scratch/7203da5bd564/open-audit/desktop/assessments.json",
+      "detail_de": "Zusätzliche konkrete Desktop-/Port-Abnahmereste und #790-Integrationsgrenze."
+    },
+    {
+      "path": "/workspace/scratch/7203da5bd564/open-audit/media/assessments.json",
+      "detail_de": "Medien-/Eingabe-/Webcamrest und begründete Schließungen #389/#731."
+    },
+    {
+      "path": "/workspace/scratch/7203da5bd564/open-audit/root/assessments.json",
+      "detail_de": "Zeitzonen-, Ausnahmeidentitäts- und native Dateidialoggrenzen."
+    }
+  ],
+  "base_commit": "3f4b69cafeb87b71dc622f0bfa3780e0a6a61b0f",
+  "followup_commit": "50b1512234a765635f82af4537f277594fbf9878",
+  "groups": [
+    {
+      "lead_issue": 146,
+      "source_issues": [
+        158,
+        159
+      ],
+      "verdict": "fit",
+      "detail_de": "Passende gemeinsame Eigenprofilquelle. #158 bleibt eine eigenständige Geburtstagsfunktion auch bei weiterhin fehlendem Samsung-Zugriff; #159 bleibt optional und auf belegte öffentliche medizinische Werte begrenzt."
+    },
+    {
+      "lead_issue": 275,
+      "source_issues": [
+        274
+      ],
+      "verdict": "fit",
+      "detail_de": "Offlinezustand und wirklich notwendige Anmeldung passen in einen Zustandsvertrag. Authentifizierungsfehler dürfen nicht pauschal als offline verdeckt werden; #272 Komponentenupdates, #273 Bindung und #292 Datenpipeline bleiben getrennt."
+    },
+    {
+      "lead_issue": 156,
+      "source_issues": [
+        65
+      ],
+      "verdict": "fit",
+      "detail_de": "#65 nur als konsolidierten unbestätigten historischen Googlebericht schließen. Positive EDS-/Akonadi-/isolierte DAV-Belege werden nicht zu einem Google-Live-PASS. Native Providermatrix bleibt offen."
+    },
+    {
+      "lead_issue": 192,
+      "source_issues": [
+        193
+      ],
+      "verdict": "fit",
+      "detail_de": "MCP-Geräte-/Kommunikationswerkzeuge passen zusammen. Bereits implementierte Call-Actors werden anerkannt; eigentliche Produktfunktionen bleiben bei #153, #168 und #171. Der veraltete Eigenständigkeitsverweis auf #149 wurde korrigiert."
+    },
+    {
+      "lead_issue": 680,
+      "source_issues": [
+        452,
+        453,
+        659
+      ],
+      "verdict": "fit",
+      "detail_de": "Die bereits korrigierten TZDB-/Markerquellfehler werden von aktuellen nativen Import-/Export-/Save-/Restore-/Neustartfällen und macOS-Zustellung getrennt. #659 bleibt ein konkreter Datei-Speichern-/Reimport-Abnahmerest, kein erfundener Produktfehler."
+    },
+    {
+      "lead_issue": 465,
+      "source_issues": [
+        464
+      ],
+      "verdict": "fit",
+      "detail_de": "Gleiche Zielzeit verschiedener RID-Ausnahmen und gespeicherte exakte Alt-Doppelpaare bleiben zwei getrennte Kriterien. 29+29 UI-Proben mit synthetischen ACKs ersetzen keinen nativen Save/Reopen. Aktuelle Mac-Python-Sidecarroute ist korrekt beschrieben."
+    },
+    {
+      "lead_issue": 113,
+      "source_issues": [
+        254,
+        809,
+        237,
+        384,
+        434,
+        687,
+        695,
+        451
+      ],
+      "verdict": "fit",
+      "detail_de": "Zusätzliche Desktop-Paket-/Druck-/Tray-/Metainfo-/Engineabnahmen passen in die konkrete Kandidatenmatrix. Neuer Titel und release_gate_de bewahren private Testlieferung und erneutes Nutzer-Okay. #451 Desktopteil wird vor Desktopfreigabe geprüft; Portteil ist mit #121 verbunden."
+    },
+    {
+      "lead_issue": 121,
+      "source_issues": [
+        816,
+        461,
+        463,
+        468,
+        472
+      ],
+      "verdict": "fit",
+      "detail_de": "#461 Startinteraktion/API26, #463 echte Fensterbindung, #468 Pointer-/Pixelnachweis, #472 Files-/Domains-Speichern und #816 40/40 Navigation sind passende getrennte native Portzeilen. Historische Host-/Provider-Pässe schließen diese nicht."
+    },
+    {
+      "lead_issue": 330,
+      "source_issues": [
+        335,
+        759
+      ],
+      "verdict": "fit",
+      "detail_de": "#335 separater standardmäßig deaktivierter Videozweig und #759 konkreter Legacy-Wartezustand gehören zur Medienintegration. Zehn Originalkriterien plus Erhaltungsregeln aus #759 sind im Plan vollständig vorhanden; #338 Richtungs-/Löschvertrag bleibt erhalten."
+    },
+    {
+      "lead_issue": 245,
+      "source_issues": [
+        727
+      ],
+      "verdict": "fit",
+      "detail_de": "#727 KWin-Portalroute, exakt gebundener neuer Ausgang und beobachtetes Entfernen sind präzise Teilkriterien eines echten Zweitmonitors; reine Spiegelung oder zufällig passende Geometrie genügt weiterhin nicht."
+    },
+    {
+      "lead_issue": 153,
+      "source_issues": [
+        149
+      ],
+      "verdict": "fit",
+      "detail_de": "Empfangende Handy→Rechner-Ferneingabe aus #149 passt zum Presenter-/Befehlsauftrag. Ihr noch fehlender korrigierter Paket-/Bediennachweis bleibt getrennt von noch nicht integrierten Presenter-/Runcommand-Funktionen."
+    },
+    {
+      "lead_issue": 503,
+      "source_issues": [
+        517,
+        597
+      ],
+      "verdict": "fit",
+      "detail_de": "Linux-Install-/Polkit-/Autoloadabnahme und Windows-Kombinationsaufrufer/FrameServer-Adoption sind unterschiedliche Plattformabschnitte. Beide bleiben vollständig offen; interne Komponenten werden nicht als produktive Webcam-/OBS-Gesamtabnahme gewertet."
+    },
+    {
+      "lead_issue": 691,
+      "source_issues": [
+        558
+      ],
+      "verdict": "fit",
+      "detail_de": "#558 ist durch die Ziel-37-Migration nicht erledigt. Android16/API36-Funktions-/Install-/Save-/Reopen-Abnahme und tatsächlich signiertes Release-AAB mit Manifest-Zielnachweis sind jetzt ausdrücklich übernommen; ältere Android-Kompatibilität und minSdk-Vertrag bleiben."
+    }
+  ],
+  "resolved_during_review": [
+    {
+      "issue": 113,
+      "detail_de": "Titel direkt veröffentlichen durch private Testlieferung/Paketabnahme ersetzt; ausdrücklicher Releasegate ergänzt. Die ältere gegenteilige Freigabeformulierung aus #237 wird dadurch nicht wieder aktiviert."
+    },
+    {
+      "issue": 759,
+      "detail_de": "Zehn statt elf nummerierte Kriterien; vollständiger Originalabschnitt samt Erhaltungsregeln vorhanden."
+    },
+    {
+      "issue": 451,
+      "detail_de": "Nach #113 statt pauschal nach #121 übertragen; Desktopteil vor Desktopfreigabe, Portteil explizit mit #121 verbunden."
+    },
+    {
+      "issue": 558,
+      "detail_de": "Android16/API36, signiertes Release-AAB und Ziel-API genau dieses Artefakts ausdrücklich ergänzt."
+    },
+    {
+      "issue": 192,
+      "detail_de": "#149-Verweis konsistent auf Produkt-Leitissue #153 geändert; kein Transferkreis zwischen Produkt- und MCP-Auftrag."
+    },
+    {
+      "issue": 790,
+      "detail_de": "Bleibt bis tatsächlicher Übernahme des vorhandenen Quell-/Prüfpatchs offen. Ein bereitgestelltes Patchartefakt ist noch keine Mainintegration."
+    },
+    {
+      "lead_issue": 113,
+      "source_issue": 434,
+      "status": "verified_in_final_plan",
+      "detail_de": "Die fünf originalen Abnahmebullets vollständig übertragen. Insbesondere echte Verbindungsfarben/Goldrahmen, Benachrichtigungszähler, TEST-Ende nach 60 s sowie Sperre/Modusentzug/neuer Buchkontext, Kristalle maximal etwa 1 cm, Sternvorrang 30.12., Ostern, Lesbarkeit/Nichtinteraktivität/Druckausblendung/Skalierung und getrennte muttersprachliche Kontrolle erhalten. Der Einzeiler zu zeitlich begrenztem TEST und Saison ist hierfür allein zu grob.",
+      "evidence": "https://github.com/maik3531/Magnolie-Organizer/issues/434"
+    },
+    {
+      "lead_issue": 113,
+      "source_issue": 695,
+      "status": "verified_in_final_plan",
+      "detail_de": "Den bestehenden reinen Upstream-/menschlichen Katalog-/Flathub-Verantwortungsabschnitt ausdrücklich als verbleibende Veröffentlichungsgrenze behalten. Keine KI-unterstützte Flathub-Einreichung/PR/Interaktion aus dieser Konsolidierung ableiten; kein Katalog-PASS. Private Kandidatenabnahme und späterer Storeweg bleiben getrennt.",
+      "evidence": "https://github.com/maik3531/Magnolie-Organizer/issues/695"
+    }
+  ],
+  "standalone_closures": [
+    {
+      "issue": 389,
+      "verdict": "valid_requirement_withdrawn",
+      "reason": "not_planned",
+      "detail_de": "Eigener Android-Langzeitpapierkorb ausdrücklich entfallen. PC-Aufbewahrung #392, Galerie-/Systempapierkorb ohne pauschale 30-Tage-Garantie, bestehende Archive/Schlüssel und offene Löschsemantik #338 bleiben erhalten.",
+      "evidence": "https://github.com/maik3531/Magnolie-Organizer/issues/389#issuecomment-6656075424"
+    },
+    {
+      "issue": 731,
+      "verdict": "valid_scoped_completion",
+      "reason": "completed",
+      "detail_de": "Begrenzte lokale Diagnosephasen und privater signierter Teststand sind dokumentiert. Reale Foto-/Video-/Webcam-/Spiegelungserfolge bleiben bei #330/#503/#245. Keine heutige neue APK- oder Geräteausführung behauptet.",
+      "evidence": "https://github.com/maik3531/Magnolie-Organizer/issues/245#issuecomment-7216893749"
+    }
+  ],
+  "additional_sources_recommended_and_now_in_plan": [
+    237,
+    384,
+    434,
+    451,
+    461,
+    463,
+    468,
+    472,
+    558,
+    687,
+    695
+  ],
+  "keep_separate_de": [
+    "#64 GoogleTasks/EAS, #272 Komponentenupdates, #273 dauerhafte Thunderbirdbindung und #292 MS-Datenpipeline besitzen eigene noch fehlende Integrationsverträge.",
+    "#194 eigenständige MCP-Produktwerkzeuge; #276 weiterer Kontaktfeldumfang; #278 echter Commit-ACK und #689 Consent/DPAPI/Monitor sind nicht durch die allgemeine Providermatrix erledigt.",
+    "#454 Restoretransaktion, #682 native Kommunikationshandler, #683 DAV-Konflikt-/Servermatrix, #785 kompletter Macimport, #786 Apple-Sync und #791 Android-Providerkopie bleiben konkrete eigenständige Wege.",
+    "#53/#295/#395/#458/#471/#571 bleiben ungeklärte konkrete Berichte; keine pauschale Schließung als Paketmatrixrest. #500/#711/#810 haben reale Integrationsaufgaben.",
+    "#790 erst nach echter Codeübernahme schließen; #823 ist bereits geschlossen und wird nicht erneut in die 31 Schließungen eingerechnet."
+  ],
+  "limits_de": "Unabhängiger fachlicher Konsolidierungsreview anhand lokaler Snapshotbodies, aktueller Assessments und gezielt gelesener Originalkommentare. Kein erneuter Vollabruf aller GitHubdiskussionen, keine native Prüfung, keine Geräte-/Build-/Signier-/Publikationsfreigabe und keine GitHub-Mutation. Mainnachtrag 50b15122 wird begrenzt gemäß Hauptaudit berücksichtigt; übrige Codepatches bleiben separate Artefakte.",
+  "graph_check": {
+    "transfer_edges": 29,
+    "cycles": [],
+    "source_is_also_lead": [],
+    "standalone_closures": 2,
+    "total_planned_closures": 31,
+    "number_matches_plan": true,
+    "duplicate_sources": []
+  },
+  "remaining_preservation_additions": []
+}

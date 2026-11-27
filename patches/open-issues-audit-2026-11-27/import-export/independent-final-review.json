@@ -1,0 +1,61 @@
+{
+  "issue": 844,
+  "decision": "approved",
+  "reviewer": "review_storage",
+  "reviewed_commit": "a64624071e700920907bcab7dd14d62fc93e0b9a",
+  "base_commit": "1f1f3225ab50fe38902bc8e790454fd944f8b693",
+  "tree": "afe90d4ded1b70f889462ef055c5bedfdd5d5c18",
+  "worktree_clean": true,
+  "review_bound_at_utc": "2026-11-27T19:15:55.310376+00:00",
+  "source_sha256": {
+    "magnolie-organizer/bin/magnolie-organizer": "d56b38f837ac04969e13fabc8210876b02982a262acbcf0670c9f0ac431b8b95",
+    "magnolie-organizer/web/anwendung.js": "0eda608891a9f508fb3155c45789c162364aa3377048f8deb6d2dbe12cc50122",
+    "magnolie-organizer-windows/app/web/anwendung.js": "d8a6a51533e67eeebc5a8eb1b793a53ab4f9cf8f4c27658cf38b5e76079b2f8f",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "74235130ed2fa7caa9189a3619bca1d31ffffb9a533c3895b7b569766f91c89e"
+  },
+  "same_bytes_as_executed": true,
+  "additional_tests_after_commit": false,
+  "findings": [],
+  "summary_de": "Unabhängige enge Freigabe des Nachtrags. Die während der Prüfung ausgeführten stabilen Produktbytes entsprechen exakt dem finalen Commit; ursprüngliche 1f-Nachweise bleiben unverändert erhalten.",
+  "source_review_de": [
+    "Python und C# tragen vorhandene eigene/Standard-/Kalenderfarben in Jahrestage weiter und schreiben sie beim Export korrekt; Typ und Datum bleiben erhalten. C# fügt nun auch jährliche Einträge in die jeweilige VCALENDAR-Headerprojektion ein.",
+    "Unveränderte wirksame eigene Farbe wird aus vorhandenen top-level Rohprops bestimmt. Eine widersprechende Standard-COLOR-Zeile bleibt einschließlich Zusatzparametern erhalten, solange die wirksame Importfarbe unverändert ist. Erkannte alte COLOR-Zeilen werden bei tatsächlicher Änderung/Löschung nicht wiederbelebt. Unbekannte Farben und verschachtelte Rohdaten bleiben der bestehenden Behandlung unterstellt.",
+    "Beide Frontends überspringen undefined im vorhandenen Legacy-Android-UID-Alias-Kopierpfad; explizite leere Provenienz bleibt dagegen eine bewusste Übernahme. Es entsteht kein neues Identitätsmodell und keine neue Bestätigung.",
+    "Jahrestagsnormalisierung und bestehende Akzent-/Kontrasthilfen decken Monat, Woche, Tag, Jahresübersicht, Liste und Druck ab. Farbprovenienz wird aus sichtbarer Geburtstagsduplikatidentität herausgenommen; unfarbige Alt-/Neudaten bleiben gleich, bewusst verschiedene Farben bleiben verschieden.",
+    "Die Python-Umbenennung der Schleifenvariable verhindert das Überschatten der vorhandenen gettext-Funktion; keine neue Importentscheidung."
+  ],
+  "independent_executed_checks": [
+    {
+      "program": "independent-preliminary-color-review.py",
+      "result": "2/2 focused cases pass",
+      "detail_de": "Tatsächlicher vor-844-Python-Import, JSON-Persistenzform und aktueller Export erhalten Altfarbe; unveränderter eigener Vorrang über parametrisiertem Standard-COLOR exportiert ohne Verlust."
+    },
+    {
+      "program": "independent-upstream-detail.py",
+      "result": "8/8 diagnostic cases have all expected product flags true",
+      "detail_de": "Drei Geburtstags-Farbquellen inklusive Typ und Export/Reimport, unveränderte Parameter, unbekannte Farbe, echtes Edit/Clear und zwei getrennte Kalenderquellen."
+    },
+    {
+      "program": "independent-upstream-alias-review.cjs",
+      "result": "4/4 actual DOM imports pass; baseline 1f was 2/4",
+      "detail_de": "Echte alte und aktuelle Python-Codec-Payloads in beiden Desktop-Frontends. Alter Android-Instanzalias aktualisiert wieder die Änderungszeit und erhält seine gespeicherte UID; kein Import-failed-UI."
+    }
+  ],
+  "execution_record": "independent-final-executions.json",
+  "evidence_sha256": {
+    "independent-final-legacy-result.json": "1dd87660e78ff9e762364a8c25e88f769b6b6b333b14b86682143ede0da614a8",
+    "independent-final-detail.json": "948383f43b4033495bf53304ed58a328187a45b005022b076affff57b803d640",
+    "independent-final-alias-result.json": "8e9b0d7095de3906bf0cf75b33bc62b2f6a3b3dabbf5f36eb99126a0f9fae32b",
+    "independent-final-executions.json": "d0b577a18eb96a984f0c3522c0c698af9f8efe2d5b1a03f7b9d2e51a16259e00",
+    "independent-upstream-color-result.json": "1c6c5566d6bcd58fb0565874f9d2bcf0ee37e942aaf94a388c26d5ead345e13a",
+    "independent-upstream-detail.json": "1f5dcec8de0c0d45b2a331e10690cdb71a54e8669d0337cf82f11b2bba0a93f9",
+    "independent-upstream-alias-result.json": "ffbdd2441b8d7343f4b11033c6fa417bb10806b0d4f128a691aacae1b71756d7"
+  },
+  "limits_de": [
+    "Eigene Ausführung: tatsächliche Python-Codecpfade und JSDOM-App-Import mit bestehender synthetischer Bridge. JSON-Serialisierung ersetzt keine neue native GUI-/Dateisystemabnahme.",
+    "C#-Produktdiff unabhängig gelesen; die vom Autor gemeldeten tatsächlichen C#- und plattformübergreifenden Store/UI-Pipelines werden nicht als eigene Testausführung gezählt.",
+    "Bewusste Farbänderung/-löschung entfernt die bekannte alte COLOR-Zeile samt daran gebundenen Parametern. Nur unveränderte Farbmetadaten werden hier verlustfrei bewahrt; keine neue beliebige Metadatenhülle.",
+    "Unbekannte oder parametrisierte Kalender-Headerfarben erhalten weiterhin keine neue allgemeine Speicherrepräsentation. Bekannte Kalenderdefaults bleiben scoped und dürfen nicht in gemischte unfarbige Einträge übergreifen.",
+    "Keine neue GTK-/WebView-, Notes-/Provider-, Drucker- oder Geräteabnahme; keine Veröffentlichungs-, Installations- oder Langzeit-RAM-Aussage."
+  ]
+}

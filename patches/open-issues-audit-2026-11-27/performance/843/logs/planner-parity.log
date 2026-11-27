@@ -1,0 +1,25 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+_______________ PlannerParityTests.test_shared_planner_functions _______________
+
+self = <test_planner_regressions.PlannerParityTests testMethod=test_shared_planner_functions>
+
+    def test_shared_planner_functions(self):
+        root = Path(__file__).resolve().parents[2]
+        sources = [(root / relative).read_text() for relative in (
+            "magnolie-organizer/web/anwendung.js",
+            "magnolie-organizer-windows/app/web/anwendung.js")]
+        for name in ("icsRuntime", "icsBasisExpansion", "terminVerzeichnis", "termineAm", "planerFeiertagVerzeichnis",
+                     "feiertageAm", "planerSuchTreffer", "zeichnePlaner", "wechsel", "zeichneRegister",
+                     "planerMonatsModell", "planerKalenderModell", "planerOdsNutzlast",
+                     "planerMonatsDruckSeite", "oeffnePlanerDruckvorschau"):
+            with self.subTest(function=name):
+                bodies = [re.search(r"^  function " + name + r"\(.*?^  }", source, re.M | re.S)
+                          for source in sources]
+>               self.assertTrue(all(bodies), name)
+E               AssertionError: False is not true : icsRuntime
+
+magnolie-organizer/pruefungen/test_planner_regressions.py:34: AssertionError
+=========================== short test summary info ============================
+FAILED magnolie-organizer/pruefungen/test_planner_regressions.py::PlannerParityTests::test_shared_planner_functions
+1 failed, 1 passed in 0.29s

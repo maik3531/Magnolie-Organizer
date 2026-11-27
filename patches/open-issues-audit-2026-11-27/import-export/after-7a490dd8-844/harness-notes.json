@@ -1,0 +1,12 @@
+[
+  {
+    "stage": "existing category UI launch",
+    "classification": "invocation typo before process start",
+    "detail": "A nonexistent cwd typo was rejected by exec before product code ran. Correct cwd was then used with no product change."
+  },
+  {
+    "stage": "upstream excerpt binding",
+    "classification": "comparison selector mistake",
+    "detail": "First C# selector matched the earlier ParseEvent if(anniversary), not the later ApplyIcsRoundtrip branch. Correctly bounded actual exporter excerpt is byte-identical to upstream. No product change."
+  }
+]

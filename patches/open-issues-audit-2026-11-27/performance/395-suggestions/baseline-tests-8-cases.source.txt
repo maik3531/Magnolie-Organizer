@@ -1,0 +1,95 @@
+"use strict";
+
+const fs = require("node:fs"), path = require("node:path"), Module = require("node:module"), assert = require("node:assert/strict");
+const harnessPath = path.join(__dirname, "desktop-state-regressions.js");
+const harness = new Module(harnessPath, module);
+harness.filename = harnessPath; harness.paths = Module._nodeModulePaths(path.dirname(harnessPath));
+harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(web)")[0] +
+  "\nmodule.exports={boot,roots};", harnessPath);
+const plain = value => JSON.parse(JSON.stringify(value));
+const contacts = Array.from({ length: 2000 }, (_, index) => ({ id: "person-" + index,
+  uid: "person-" + index + "@test", vorname: "Person", nachname: String(index), email: "person-" + index + "@example.test" }));
+contacts.push(
+  { id: "anna-one", vorname: "Anna", nachname: "Beispiel", email: "anna@example.test",
+    emailEintraege: [{ wert: "anna@example.test" }, { wert: "privat@example.test" }] },
+  { id: "anna-two", vorname: "ANNA", nachname: "BEISPIEL", email: "weitere@example.test" },
+  { id: "company", firma: "Karton GmbH", email: "office@example.test" }
+);
+const selected = { id: "existing", datum: "2026-11-27", titel: "Existing appointment",
+  organisator: { name: "Anna Beispiel", email: "custom@example.test", uri: "urn:keep:organizer" } };
+const options = (b, id) => Array.from(b.w.document.getElementById(id).options, option => option.value);
+function open(b, existing = false) {
+  b.t.oeffneTerminBlatt(existing ? b.t.daten().termine[0] : null, "2026-11-27");
+  return b.w.document.getElementById("tb-organisator-name");
+}
+function close(b) {
+  b.w.document.querySelector("#termin-schleier header > button").click();
+  assert.equal(b.w.document.getElementById("termin-schleier"), null, "Regular close did not finish");
+  assert.equal(b.w.document.getElementById("aenderungen-schleier"), null);
+}
+const cases = [
+  ["five regular open/close cycles build no unused organizer options", b => {
+    const before = JSON.stringify(b.t.daten()), counts = [], durations = [];
+    for (let index = 0; index < 5; index++) {
+      const start = process.hrtime.bigint(); open(b);
+      assert.equal(b.w.document.getElementById("tb-weitere-felder").style.display, "none");
+      counts.push(options(b, "tb-organisator-namen").length);
+      close(b); durations.push(Number(process.hrtime.bigint() - start) / 1e6);
+    }
+    console.log("OBSERVATION " + JSON.stringify({ hidden_organizer_option_counts: counts, regular_open_close_ms: durations }));
+    assert.deepEqual(counts, [0, 0, 0, 0, 0], "Closed organizer fields eagerly built the whole contact list");
+    assert.equal(JSON.stringify(b.t.daten()), before, "Opening or closing changed the book");
+  }],
+  ["focus and each query stay bounded while the last contact and company remain reachable", b => {
+    const name = open(b);
+    b.w.document.querySelector(".tb-aufklapper").click(); name.focus();
+    assert.equal(options(b, "tb-organisator-namen").length, 250, "Empty lookup exceeded one existing list chunk");
+    b.input("#tb-organisator-name", "PERSON 1999");
+    assert.deepEqual(options(b, "tb-organisator-namen"), ["Person 1999"]);
+    assert.deepEqual(options(b, "tb-organisator-emails"), ["person-1999@example.test"]);
+    b.input("#tb-organisator-name", "gmbh");
+    assert.deepEqual(options(b, "tb-organisator-namen"), ["Karton GmbH"]);
+    b.input("#tb-organisator-name", "Karton GmbH");
+    assert.deepEqual(options(b, "tb-organisator-emails"), ["office@example.test"]);
+    b.input("#tb-organisator-name", "");
+    assert.equal(options(b, "tb-organisator-namen").length, 250);
+    assert.deepEqual(options(b, "tb-organisator-emails"), []);
+    close(b);
+  }],
+  ["duplicate names keep all exact-name email choices and free organizer input still saves", b => {
+    const records = JSON.stringify(b.t.daten().kontakte);
+    open(b); b.input("#tb-organisator-name", "aNNa BeISPIEL");
+    assert.deepEqual(options(b, "tb-organisator-namen"), ["Anna Beispiel"]);
+    assert.deepEqual(options(b, "tb-organisator-emails"),
+      ["anna@example.test", "privat@example.test", "weitere@example.test"]);
+    b.input("#tb-organisator-name", "External organizer");
+    assert.deepEqual(options(b, "tb-organisator-namen"), []);
+    assert.deepEqual(options(b, "tb-organisator-emails"), []);
+    b.input("#tb-organisator-email", "external@example.test"); b.input("#tb-titel", "New appointment");
+    b.w.document.getElementById("tb-fertig").click();
+    assert.deepEqual(plain(b.t.daten().termine[0].organisator),
+      { name: "External organizer", email: "external@example.test", uri: "" });
+    assert.equal(JSON.stringify(b.t.daten().kontakte), records);
+  }],
+  ["editing retains the selected organizer and exact-name email choices before focus", b => {
+    open(b, true);
+    assert.equal(options(b, "tb-organisator-namen").length, 0);
+    assert.deepEqual(options(b, "tb-organisator-emails"),
+      ["anna@example.test", "privat@example.test", "weitere@example.test"]);
+    assert.equal(b.w.document.getElementById("tb-organisator-email").value, "custom@example.test");
+    b.input("#tb-titel", "Updated appointment"); b.w.document.getElementById("tb-fertig").click();
+    assert.deepEqual(plain(b.t.daten().termine[0].organisator), selected.organisator);
+  }, { termine: [selected] }]
+];
+(async () => {
+  let passed = 0, total = 0;
+  for (const web of harness.exports.roots) for (const [name, test, extra] of cases) {
+    total++;
+    const b = await harness.exports.boot(web, { kontakte: plain(contacts), ...extra });
+    try { await test(b); passed++; console.log("PASS " + web + " · " + name); }
+    catch (error) { console.error("FAIL " + web + " · " + name + "\n" + error.stack); }
+    finally { b.close(); }
+  }
+  console.log(`${passed}/${total} organizer suggestion cases passed (actual desktop JavaScript in JSDOM)`);
+  if (passed !== total) process.exitCode = 1;
+})();

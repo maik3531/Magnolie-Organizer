@@ -1,0 +1,80 @@
+{
+  "base": "a64624071e700920907bcab7dd14d62fc93e0b9a",
+  "results": [
+    {
+      "name": "python-baseline",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845",
+      "exit_code": 1,
+      "elapsed_s": 1.648,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/logs/python-baseline.log"
+    },
+    {
+      "name": "windows-restore",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "restore",
+        "tests/CoreTests.csproj",
+        "--locked-mode"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_s": 1.279,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/logs/windows-restore.log"
+    },
+    {
+      "name": "windows-build-baseline",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "build",
+        "tests/CoreTests.csproj",
+        "--no-restore",
+        "--configuration",
+        "Debug"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845/magnolie-organizer-windows",
+      "exit_code": 0,
+      "elapsed_s": 18.17,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/logs/windows-build-baseline.log"
+    },
+    {
+      "name": "windows-baseline",
+      "argv": [
+        "/workspace/scratch/7203da5bd564/round3-tools/dotnet/dotnet",
+        "run",
+        "--project",
+        "tests/CoreTests.csproj",
+        "--no-build",
+        "--configuration",
+        "Debug",
+        "--",
+        "Nextcloud explicit birthday"
+      ],
+      "cwd": "/workspace/scratch/7203da5bd564/open-audit-845/magnolie-organizer-windows",
+      "exit_code": 1,
+      "elapsed_s": 0.586,
+      "log": "/workspace/scratch/7203da5bd564/open-audit/providers/nextcloud-caldav-evidence/issue-845/logs/windows-baseline.log"
+    }
+  ],
+  "env": {
+    "PYTHONPATH": "/workspace/scratch/7203da5bd564/open-audit-845/magnolie-organizer/bin",
+    "DOTNET_CLI_HOME": "/workspace/scratch/7203da5bd564/round3-tools/dotnet-state",
+    "NUGET_PACKAGES": "/workspace/scratch/7203da5bd564/round3-tools/nuget",
+    "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+  },
+  "inputs": {
+    "magnolie-organizer/bin/magnolie-organizer": "d56b38f837ac04969e13fabc8210876b02982a262acbcf0670c9f0ac431b8b95",
+    "magnolie-organizer-windows/ExchangeCodec.cs": "74235130ed2fa7caa9189a3619bca1d31ffffb9a533c3895b7b569766f91c89e",
+    "magnolie-organizer/pruefungen/test_nextcloud_birthday_markers.py": "0a977fc70a0f3ac1aa07575eb49abee8819f4721d7593f09d3757f3ba091c001",
+    "magnolie-organizer-windows/tests/NextcloudBirthdayMarkerTests.cs": "c418a9a978c1bf8b94c06c8860c7f0c63b5ec97921b354251eda7feeefbb6420",
+    "magnolie-organizer-windows/tests/Program.cs": "6f8eb08b6193b9bec357d05172c5e8e91eac6b8b7b5e65b1946b16113db49eea",
+    "contracts/nextcloud-birthday-vectors.json": "e83b4fc7d228befbc018e710ae0ca31cc224832747c67caed3a0838841220ab9"
+  }
+}

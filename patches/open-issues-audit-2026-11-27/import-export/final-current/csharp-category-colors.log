@@ -1,0 +1,6 @@
+Magnolie CoreTests: 3 Gruppen
+  OK     Category colors / native categories and accent interchange (0.19 s)
+  OK     Category colors / foreign ICS component and calendar accent (0.03 s)
+Calendar colour remainders: 12 native store/reopen/export vectors, 12 edit/clear vectors, one mixed-calendar case.
+  OK     Category colors / anniversary native storage and unchanged parameters (0.03 s)
+CoreTests: 3/3 Gruppen bestanden.

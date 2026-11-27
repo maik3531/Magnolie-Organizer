@@ -1,0 +1,20 @@
+{
+  "existing_test": "magnolie-organizer/pruefungen/test_planner_regressions.py",
+  "result": "1 passed / 1 failed: existing regex misses an already marker-prefixed icsRuntime declaration on the unchanged24927cf baseline too",
+  "product_function_parity": "PASS",
+  "results": [
+    {
+      "source": "magnolie-organizer/web/anwendung.js",
+      "baseline_existing_test_regex_matches": false,
+      "patched_existing_test_regex_matches": false,
+      "actual_function_sha256": "206bc8c75382e764c16523bc95445ef1a69517e0cf8ebad96f944b94d221d8e1"
+    },
+    {
+      "source": "magnolie-organizer-windows/app/web/anwendung.js",
+      "baseline_existing_test_regex_matches": false,
+      "patched_existing_test_regex_matches": false,
+      "actual_function_sha256": "206bc8c75382e764c16523bc95445ef1a69517e0cf8ebad96f944b94d221d8e1"
+    }
+  ],
+  "decision": "No unrelated test or product change; exact production function parity and both real timezone projection adapters separately checked."
+}

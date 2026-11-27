@@ -1,0 +1,1 @@
+Zwischenstand des lokalen Lifecycle-Fixes vor Erhalt des bytegenauen TZ_PORT-Identitätsblocks. Die abschließenden Dateien after-* im übergeordneten Verzeichnis prüfen den endgültigen projizierbaren Produktdiff.

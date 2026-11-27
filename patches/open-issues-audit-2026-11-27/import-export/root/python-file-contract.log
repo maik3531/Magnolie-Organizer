@@ -1,0 +1,27 @@
+  ok   - ICS-Termine behalten alle zugesagten Felder und lange Notizen
+  ok   - ordinaler Monatswochentag bleibt beim ganztägigen ICS-Rundlauf exakt
+  ok   - zeitgebundene zweitägige BYSETPOS-Monatsserie bleibt exakt
+  ok   - ICS-Aufgaben ueberstehen den Rundlauf
+  ok   - ICS-Jahrestage behalten Typ und Schaltjahrdatum
+  ok   - vCard-Kontakte behalten Anschrift, Kommunikation und lange Notiz
+  ok   - VCF bewahrt Foto bytegleich, jahrlose BDAY, Typen und Land
+  ok   - jahrlose VCF nutzt RFC 6350 mit legalem Datum, URI-Foto und Text-Telefon; volle BDAY bleibt v3-kompatibel
+  ok   - ICS bewahrt jahrlose Jahrestage mit gültigem Projektdatum und Erweiterung
+  ok   - LDIF-Kontakte behalten Unicode, Mehrfachwerte, Dollar, JPEG und Geburtstag
+  ok   - LDIF-Ausgabe erfindet für jahrlose Geburtstage kein Jahr
+  ok   - LDIF bewahrt alle Attribute des Alt-Goldens, Original-UID und volle vCard-Erweiterung bei korrekter Faltung
+  ok   - unveraendertes altes LDIF-Golden bleibt vollstaendig lesbar
+  ok   - LDIF-DN maskiert führende und abschließende Leerzeichen und Sonderzeichen
+  ok   - LDIF verhindert Injektionen, vergibt eindeutige LDAP-UIDs und bewahrt PNG sowie Original-UIDs verlustlos
+  ok   - LDIF-Teilname 0 behaelt Originalfelder und waehlt die Klasse ohne erfundenen Nachnamen
+  ok   - LDIF-Teilname 1 behaelt Originalfelder und waehlt die Klasse ohne erfundenen Nachnamen
+  ok   - LDIF-Teilname 2 behaelt Originalfelder und waehlt die Klasse ohne erfundenen Nachnamen
+  ok   - LDIF wird atomar, ohne BOM und mit privaten Dateirechten geschrieben
+  ok   - komplexe ICS-Serie, Quell-TZID, Alarm und Anhang bleiben opak erhalten
+  ok   - plattformübergreifende Goldens bewahren Serie, Alarm, Foto und BDAY
+  ok   - unbekannte ICS-Eigenschaften, Parameter und Alarme bleiben im Roundtrip erhalten
+  ok   - Serienstamm und Ausnahme behalten beim Export dieselbe UID
+  ok   - Lotus-CSV-Termine ueberstehen Export und erneuten Import
+  ok   - ODS-Export bleibt gueltig und bewahrt lange Zellinhalte
+  ok   - alle zugesagten Dateiimportpfade bleiben im Programmkern vorhanden
+IMPORT-/EXPORT-VERTRAG BESTANDEN

@@ -1,0 +1,274 @@
+From 38edd46ef18259e232c786bf2e8e88903f96b655 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 27 Nov 2026 19:25:12 +0100
+Subject: [PATCH] Refs #395: bound organizer suggestions to active input
+
+---
+ .../app/web/anwendung.js                      |  37 +++++--
+ .../appointment-organizer-suggestions.js      | 103 ++++++++++++++++++
+ magnolie-organizer-windows/tests/run.js       |   1 +
+ magnolie-organizer/pruefungen/test.js         |   1 +
+ magnolie-organizer/web/anwendung.js           |  37 +++++--
+ 5 files changed, 157 insertions(+), 22 deletions(-)
+ create mode 100644 magnolie-organizer-windows/tests/appointment-organizer-suggestions.js
+
+diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
+index 8264d96f..8a3034c1 100644
+--- a/magnolie-organizer-windows/app/web/anwendung.js
++++ b/magnolie-organizer-windows/app/web/anwendung.js
+@@ -17782,11 +17782,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     orgUri.id = "tb-organisator-uri";
+     orgName.setAttribute("list", "tb-organisator-namen");
+     orgEmail.setAttribute("list", "tb-organisator-emails");
+-    const kontaktVorschlaege = DATEN.kontakte.map((kontakt) => ({
+-      name: [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ").trim() ||
+-        String(kontakt.firma || "").trim(),
+-      kontakt: kontakt
+-    })).filter((kontakt) => kontakt.name);
++    const kontaktVorschlagName = kontakt => [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ").trim() ||
++      String(kontakt.firma || "").trim();
+     const eindeutigeTexte = (werte) => {
+       const gesehen = new Set();
+       return werte.filter((wert) => {
+@@ -17795,19 +17792,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         gesehen.add(schluessel); return true;
+       });
+     };
+-    const orgNamenListe = vorschlagsListe("tb-organisator-namen",
+-      eindeutigeTexte(kontaktVorschlaege.map((kontakt) => kontakt.name)));
++    const orgNamenListe = vorschlagsListe("tb-organisator-namen", []);
+     const orgEmailListe = vorschlagsListe("tb-organisator-emails", []);
++    const orgNamenVorschlaege = () => {
++      const suche = orgName.value.trim().toLocaleLowerCase(), gesehen = new Set(), werte = [];
++      let exakt = "";
++      // Search the whole book on demand, but create only one visible chunk.
++      // No full-book option tree or persistent contact cache for a closed field.
++      for (const kontakt of DATEN.kontakte) {
++        const name = kontaktVorschlagName(kontakt), schluessel = name.toLocaleLowerCase();
++        if (!name || !schluessel.includes(suche) || gesehen.has(schluessel)) continue;
++        if (suche && schluessel === suche) exakt ||= name;
++        if (werte.length < LISTEN_HAEPPCHEN) { gesehen.add(schluessel); werte.push(name); }
++        if (!suche && werte.length >= LISTEN_HAEPPCHEN) break;
++      }
++      // A short exact name must not disappear behind earlier partial matches.
++      if (exakt && !gesehen.has(suche)) { werte.pop(); werte.unshift(exakt); }
++      orgNamenListe.replaceChildren(...werte.map(wert => {
++        const option = document.createElement("option"); option.value = wert; return option;
++      }));
++    };
+     const orgEmailVorschlaege = () => {
+       const name = orgName.value.trim().toLocaleLowerCase();
+-      const passend = kontaktVorschlaege.filter((kontakt) =>
+-        kontakt.name.toLocaleLowerCase() === name);
+-      const emails = passend.flatMap((vorschlag) => emailEintragListe(vorschlag.kontakt).map((eintrag) => eintrag.wert));
++      const passend = name ? DATEN.kontakte.filter(kontakt =>
++        kontaktVorschlagName(kontakt).toLocaleLowerCase() === name) : [];
++      const emails = passend.flatMap(kontakt => emailEintragListe(kontakt).map(eintrag => eintrag.wert));
+       orgEmailListe.replaceChildren(...eindeutigeTexte(emails).map((wert) => {
+         const option = document.createElement("option"); option.value = wert; return option;
+       }));
+     };
+-    orgName.addEventListener("input", orgEmailVorschlaege);
++    orgName.addEventListener("focus", orgNamenVorschlaege);
++    orgName.addEventListener("input", () => { orgNamenVorschlaege(); orgEmailVorschlaege(); });
+     orgEmailVorschlaege();
+     weitere.append(el("h4", null, _("Organizer")), orgNamenListe, orgEmailListe,
+       formZeile(_("Name"), orgName),
+diff --git a/magnolie-organizer-windows/tests/appointment-organizer-suggestions.js b/magnolie-organizer-windows/tests/appointment-organizer-suggestions.js
+new file mode 100644
+index 00000000..909a92c5
+--- /dev/null
++++ b/magnolie-organizer-windows/tests/appointment-organizer-suggestions.js
+@@ -0,0 +1,103 @@
++"use strict";
++
++const fs = require("node:fs"), path = require("node:path"), Module = require("node:module"), assert = require("node:assert/strict");
++const harnessPath = path.join(__dirname, "desktop-state-regressions.js");
++const harness = new Module(harnessPath, module);
++harness.filename = harnessPath; harness.paths = Module._nodeModulePaths(path.dirname(harnessPath));
++harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(web)")[0] +
++  "\nmodule.exports={boot,roots};", harnessPath);
++const plain = value => JSON.parse(JSON.stringify(value));
++const contacts = Array.from({ length: 2000 }, (_, index) => ({ id: "person-" + index,
++  uid: "person-" + index + "@test", vorname: "Person", nachname: String(index), email: "person-" + index + "@example.test" }));
++contacts.push(
++  { id: "anna-one", vorname: "Anna", nachname: "Beispiel", email: "anna@example.test",
++    emailEintraege: [{ wert: "anna@example.test" }, { wert: "privat@example.test" }] },
++  { id: "anna-two", vorname: "ANNA", nachname: "BEISPIEL", email: "weitere@example.test" },
++  { id: "company", firma: "Karton GmbH", email: "office@example.test" }
++);
++const selected = { id: "existing", datum: "2026-11-27", titel: "Existing appointment",
++  organisator: { name: "Anna Beispiel", email: "custom@example.test", uri: "urn:keep:organizer" } };
++const options = (b, id) => Array.from(b.w.document.getElementById(id).options, option => option.value);
++function open(b, existing = false) {
++  b.t.oeffneTerminBlatt(existing ? b.t.daten().termine[0] : null, "2026-11-27");
++  return b.w.document.getElementById("tb-organisator-name");
++}
++function close(b) {
++  b.w.document.querySelector("#termin-schleier header > button").click();
++  assert.equal(b.w.document.getElementById("termin-schleier"), null, "Regular close did not finish");
++  assert.equal(b.w.document.getElementById("aenderungen-schleier"), null);
++}
++const cases = [
++  ["five regular open/close cycles build no unused organizer options", b => {
++    const before = JSON.stringify(b.t.daten()), counts = [], durations = [];
++    for (let index = 0; index < 5; index++) {
++      const start = process.hrtime.bigint(); open(b);
++      assert.equal(b.w.document.getElementById("tb-weitere-felder").style.display, "none");
++      counts.push(options(b, "tb-organisator-namen").length);
++      close(b); durations.push(Number(process.hrtime.bigint() - start) / 1e6);
++    }
++    console.log("OBSERVATION " + JSON.stringify({ hidden_organizer_option_counts: counts, regular_open_close_ms: durations }));
++    assert.deepEqual(counts, [0, 0, 0, 0, 0], "Closed organizer fields eagerly built the whole contact list");
++    assert.equal(JSON.stringify(b.t.daten()), before, "Opening or closing changed the book");
++  }],
++  ["focus and each query stay bounded while the last contact and company remain reachable", b => {
++    const name = open(b);
++    b.w.document.querySelector(".tb-aufklapper").click(); name.focus();
++    assert.equal(options(b, "tb-organisator-namen").length, 250, "Empty lookup exceeded one existing list chunk");
++    b.input("#tb-organisator-name", "PERSON 1999");
++    assert.deepEqual(options(b, "tb-organisator-namen"), ["Person 1999"]);
++    assert.deepEqual(options(b, "tb-organisator-emails"), ["person-1999@example.test"]);
++    b.input("#tb-organisator-name", "gmbh");
++    assert.deepEqual(options(b, "tb-organisator-namen"), ["Karton GmbH"]);
++    b.input("#tb-organisator-name", "Karton GmbH");
++    assert.deepEqual(options(b, "tb-organisator-emails"), ["office@example.test"]);
++    b.input("#tb-organisator-name", "");
++    assert.equal(options(b, "tb-organisator-namen").length, 250);
++    assert.deepEqual(options(b, "tb-organisator-emails"), []);
++    close(b);
++  }],
++  ["duplicate names keep all exact-name email choices and free organizer input still saves", b => {
++    const records = JSON.stringify(b.t.daten().kontakte);
++    open(b); b.input("#tb-organisator-name", "aNNa BeISPIEL");
++    assert.deepEqual(options(b, "tb-organisator-namen"), ["Anna Beispiel"]);
++    assert.deepEqual(options(b, "tb-organisator-emails"),
++      ["anna@example.test", "privat@example.test", "weitere@example.test"]);
++    b.input("#tb-organisator-name", "External organizer");
++    assert.deepEqual(options(b, "tb-organisator-namen"), []);
++    assert.deepEqual(options(b, "tb-organisator-emails"), []);
++    b.input("#tb-organisator-email", "external@example.test"); b.input("#tb-titel", "New appointment");
++    b.w.document.getElementById("tb-fertig").click();
++    assert.deepEqual(plain(b.t.daten().termine[0].organisator),
++      { name: "External organizer", email: "external@example.test", uri: "" });
++    assert.equal(JSON.stringify(b.t.daten().kontakte), records);
++  }],
++  ["editing retains the selected organizer and exact-name email choices before focus", b => {
++    open(b, true);
++    assert.equal(options(b, "tb-organisator-namen").length, 0);
++    assert.deepEqual(options(b, "tb-organisator-emails"),
++      ["anna@example.test", "privat@example.test", "weitere@example.test"]);
++    assert.equal(b.w.document.getElementById("tb-organisator-email").value, "custom@example.test");
++    b.input("#tb-titel", "Updated appointment"); b.w.document.getElementById("tb-fertig").click();
++    assert.deepEqual(plain(b.t.daten().termine[0].organisator), selected.organisator);
++  }, { termine: [selected] }],
++  ["an exact name after more than one chunk of partial matches remains selectable", b => {
++    b.t.daten().kontakte.push({ id: "short-name-at-end", vorname: "Person", nachname: "", email: "exact@example.test" });
++    open(b); b.input("#tb-organisator-name", "PERSON");
++    const names = options(b, "tb-organisator-namen");
++    assert.equal(names.length, 250);
++    assert(names.includes("Person"), "An exact later name was hidden behind the first 250 partial matches");
++    assert.deepEqual(options(b, "tb-organisator-emails"), ["exact@example.test"]);
++  }]
++];
++(async () => {
++  let passed = 0, total = 0;
++  for (const web of harness.exports.roots) for (const [name, test, extra] of cases) {
++    total++;
++    const b = await harness.exports.boot(web, { kontakte: plain(contacts), ...extra });
++    try { await test(b); passed++; console.log("PASS " + web + " · " + name); }
++    catch (error) { console.error("FAIL " + web + " · " + name + "\n" + error.stack); }
++    finally { b.close(); }
++  }
++  console.log(`${passed}/${total} organizer suggestion cases passed (actual desktop JavaScript in JSDOM)`);
++  if (passed !== total) process.exitCode = 1;
++})();
+diff --git a/magnolie-organizer-windows/tests/run.js b/magnolie-organizer-windows/tests/run.js
+index 97f18f81..34693780 100644
+--- a/magnolie-organizer-windows/tests/run.js
++++ b/magnolie-organizer-windows/tests/run.js
+@@ -23,6 +23,7 @@ for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-sav
+   "handbook-source-diagnostics.js",
+   "calendar-attachment-actions.js", "calendar-attachment-native.js",
+   "calendar-accent-edits.js",
++  "appointment-organizer-suggestions.js",
+   "sync-calendar-identity.js",
+   "normative-timezones.js",
+   "contact-email-case.js", "contact-copy-birthday.js",
+diff --git a/magnolie-organizer/pruefungen/test.js b/magnolie-organizer/pruefungen/test.js
+index d93d20e5..56950aba 100644
+--- a/magnolie-organizer/pruefungen/test.js
++++ b/magnolie-organizer/pruefungen/test.js
+@@ -3779,6 +3779,7 @@ function knopfMit(text, wurzel) {
+   assert.strictEqual($(".tb-aufklapper").getAttribute("aria-expanded"), "true");
+   assert.deepStrictEqual(Array.from($("#tb-kategorien-vorschlaege").options,
+     (option) => option.value), ["Arbeit", "Privat"], "Kategorienvorschläge fehlen");
++  $("#tb-organisator-name").focus();
+   assert.ok(Array.from($("#tb-organisator-namen").options,
+     (option) => option.value).includes("Anna Beispiel"), "Organisatorvorschlag fehlt");
+   setze($("#tb-organisator-name"), "Anna Beispiel");
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+index 77eece4f..d41474f1 100644
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -18074,11 +18074,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+     orgUri.id = "tb-organisator-uri";
+     orgName.setAttribute("list", "tb-organisator-namen");
+     orgEmail.setAttribute("list", "tb-organisator-emails");
+-    const kontaktVorschlaege = DATEN.kontakte.map((kontakt) => ({
+-      name: [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ").trim() ||
+-        String(kontakt.firma || "").trim(),
+-      kontakt: kontakt
+-    })).filter((kontakt) => kontakt.name);
++    const kontaktVorschlagName = kontakt => [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ").trim() ||
++      String(kontakt.firma || "").trim();
+     const eindeutigeTexte = (werte) => {
+       const gesehen = new Set();
+       return werte.filter((wert) => {
+@@ -18087,19 +18084,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
+         gesehen.add(schluessel); return true;
+       });
+     };
+-    const orgNamenListe = vorschlagsListe("tb-organisator-namen",
+-      eindeutigeTexte(kontaktVorschlaege.map((kontakt) => kontakt.name)));
++    const orgNamenListe = vorschlagsListe("tb-organisator-namen", []);
+     const orgEmailListe = vorschlagsListe("tb-organisator-emails", []);
++    const orgNamenVorschlaege = () => {
++      const suche = orgName.value.trim().toLocaleLowerCase(), gesehen = new Set(), werte = [];
++      let exakt = "";
++      // Search the whole book on demand, but create only one visible chunk.
++      // No full-book option tree or persistent contact cache for a closed field.
++      for (const kontakt of DATEN.kontakte) {
++        const name = kontaktVorschlagName(kontakt), schluessel = name.toLocaleLowerCase();
++        if (!name || !schluessel.includes(suche) || gesehen.has(schluessel)) continue;
++        if (suche && schluessel === suche) exakt ||= name;
++        if (werte.length < LISTEN_HAEPPCHEN) { gesehen.add(schluessel); werte.push(name); }
++        if (!suche && werte.length >= LISTEN_HAEPPCHEN) break;
++      }
++      // A short exact name must not disappear behind earlier partial matches.
++      if (exakt && !gesehen.has(suche)) { werte.pop(); werte.unshift(exakt); }
++      orgNamenListe.replaceChildren(...werte.map(wert => {
++        const option = document.createElement("option"); option.value = wert; return option;
++      }));
++    };
+     const orgEmailVorschlaege = () => {
+       const name = orgName.value.trim().toLocaleLowerCase();
+-      const passend = kontaktVorschlaege.filter((kontakt) =>
+-        kontakt.name.toLocaleLowerCase() === name);
+-      const emails = passend.flatMap((vorschlag) => emailEintragListe(vorschlag.kontakt).map((eintrag) => eintrag.wert));
++      const passend = name ? DATEN.kontakte.filter(kontakt =>
++        kontaktVorschlagName(kontakt).toLocaleLowerCase() === name) : [];
++      const emails = passend.flatMap(kontakt => emailEintragListe(kontakt).map(eintrag => eintrag.wert));
+       orgEmailListe.replaceChildren(...eindeutigeTexte(emails).map((wert) => {
+         const option = document.createElement("option"); option.value = wert; return option;
+       }));
+     };
+-    orgName.addEventListener("input", orgEmailVorschlaege);
++    orgName.addEventListener("focus", orgNamenVorschlaege);
++    orgName.addEventListener("input", () => { orgNamenVorschlaege(); orgEmailVorschlaege(); });
+     orgEmailVorschlaege();
+     weitere.append(el("h4", null, _("Organizer")), orgNamenListe, orgEmailListe,
+       formZeile(_("Name"), orgName),
+-- 
+2.56.1
+
