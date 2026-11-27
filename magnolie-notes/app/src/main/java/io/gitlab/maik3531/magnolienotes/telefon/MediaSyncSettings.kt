@@ -150,7 +150,7 @@ internal object MediaSyncSettings {
         val values = completeEffective(body, mediaType)
         if (!requested(values, mediaType)) return null
         val direction = values.string("direction")
-        return values.takeIf { direction == "two_way" || direction == (if (toPhone) "pc_to_phone" else "phone_to_pc") }
+        return values.takeIf { direction == (if (toPhone) "pc_to_phone" else "phone_to_pc") }
     }
 
     fun requestedFor(body: JsonObject, mediaType: String): Boolean = requested(completeEffective(body, mediaType), mediaType)
@@ -160,7 +160,9 @@ internal object MediaSyncSettings {
         return effective(body)
     }
 
-    private fun requested(values: JsonObject, mediaType: String): Boolean = values.getValue("enabled").jsonPrimitive.boolean &&
+    // Stored/received two-way settings can agree, but have no supported transfer path.
+    internal fun requested(values: JsonObject, mediaType: String): Boolean = values.string("direction") != "two_way" &&
+        values.getValue("enabled").jsonPrimitive.boolean &&
         values.getValue(if (mediaType == "images") "photos_enabled" else "videos_enabled").jsonPrimitive.boolean
 
     fun merge(body: JsonObject, incoming: JsonObject, localActor: String, peerActor: String): JsonObject =

@@ -23,12 +23,11 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
         private val values = MediaSyncSettings.effective(body)
         internal val collectionMode: String get() = values.string("collection_mode")
         internal val photosOnly: Boolean get() = values["photos_only"] == JsonPrimitive(true)
-        internal fun requested(mediaType: GalleryMediaType): Boolean = values["enabled"] == JsonPrimitive(true) &&
-            values[if (mediaType == GalleryMediaType.IMAGES) "photos_enabled" else "videos_enabled"] == JsonPrimitive(true)
+        internal fun requested(mediaType: GalleryMediaType): Boolean = MediaSyncSettings.requested(values, mediaType.uriSegment)
         internal fun requestedOutgoing(mediaType: GalleryMediaType): Boolean = requested(mediaType) &&
-            values["direction"] in setOf(JsonPrimitive("phone_to_pc"), JsonPrimitive("two_way"))
+            values.string("direction") == "phone_to_pc"
         internal fun requestedIncoming(mediaType: GalleryMediaType): Boolean = requested(mediaType) &&
-            values["direction"] in setOf(JsonPrimitive("pc_to_phone"), JsonPrimitive("two_way"))
+            values.string("direction") == "pc_to_phone"
     }
     @Volatile private var currentIntent: IntentToken? = null
     private data class ManualRequest(val id: String, val intent: IntentToken, val started: Long)

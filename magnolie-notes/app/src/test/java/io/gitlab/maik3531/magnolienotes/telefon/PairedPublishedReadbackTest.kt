@@ -62,7 +62,7 @@ class PairedPublishedReadbackTest {
                             // Explicit synthetic fixture scope, not an inferred
                             // phone-inventory reference or production default.
                             val collection = MediaSyncSettings.change(enabled, a, b, "collection_mode", JsonPrimitive("entire_collection"))
-                            val token = MediaSyncTransport.IntentToken(MediaSyncSettings.change(collection, a, b, "direction", JsonPrimitive("two_way")))
+                            val token = MediaSyncTransport.IntentToken(MediaSyncSettings.change(collection, a, b, "direction", JsonPrimitive("pc_to_phone")))
                             val payload = File(f.root, "paired-original.png")
                             val provider = GalleryIncomingRowsTest.Provider(app, payload = payload).apply { allowPublish = true }
                             ShadowContentResolver.registerProviderInternal("media", provider)

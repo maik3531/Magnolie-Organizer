@@ -73,7 +73,7 @@ class NativeGalleryIncomingTransferTest {
         val a = "11111111-1111-4111-8111-111111111111"; val b = "22222222-2222-4222-8222-222222222222"
         val enabled = MediaSyncSettings.change(MediaSyncSettings.change(MediaSyncSettings.create(a), a, b,
             "collection_mode", JsonPrimitive(collectionMode)), a, b, "enabled", JsonPrimitive(true))
-        return MediaSyncTransport.IntentToken(MediaSyncSettings.change(enabled, a, b, "direction", JsonPrimitive("two_way")))
+        return MediaSyncTransport.IntentToken(MediaSyncSettings.change(enabled, a, b, "direction", JsonPrimitive("pc_to_phone")))
     }
     internal fun grant(f: GalleryReceiveConsentTest.Fixture) {
         val selected = f.approve(); f.io { f.controller.grant(f.index.galleryPolicy(), selected) }; f.handshake()

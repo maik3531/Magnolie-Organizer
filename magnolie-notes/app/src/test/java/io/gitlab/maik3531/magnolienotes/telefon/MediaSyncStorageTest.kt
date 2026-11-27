@@ -137,6 +137,41 @@ class MediaSyncStorageTest {
         assertTrue(queue.due(expected.peerActor, TelefonTransportArt.WIFI).isEmpty())
     }
 
+    @Test fun matchedTwoWayStaysStoredWithoutSourceReceiverOrManualRequest() {
+        val queue = TelefonQueue(context, codec).also { queues += it }
+        val storage = store()
+        fun edit(field: String, value: JsonElement) =
+            storage.change(expected, field, value, storage.fieldVersion(expected, field))
+        edit("enabled", JsonPrimitive(true))
+        edit("direction", JsonPrimitive("two_way"))
+        val retained = edit("auto_mode", JsonPrimitive("wifi"))
+        val channel = MediaSyncTransport(expected, storage, queue) { true }
+        fun match() {
+            channel.queueSettings()
+            val sent = queue.due(expected.peerActor, TelefonTransportArt.WIFI).single().payload
+            assertTrue(channel.send(sent) {})
+            channel.receive(TelefonNachrichten.message(MediaSyncSettings.KIND, storage.read(expected)!!, 60_000)) {}
+            channel.acknowledge(TelefonNachrichten.ack(sent.string("message_id"), "accepted", "none"))
+            queue.acknowledge(expected.peerActor, sent.string("message_id"))
+            assertTrue(channel.matched())
+        }
+        match()
+        val requests = mutableListOf<JsonObject>()
+        val manual = runCatching { channel.startManual(requests::add) }
+        assertEquals("Matched two-way choice exposed source, receiver or manual work",
+            listOf(false, false, false, false),
+            listOf(channel.intentFor(GalleryMediaType.IMAGES) != null,
+                channel.incomingIntentFor(GalleryMediaType.IMAGES) != null, manual.isSuccess, requests.isNotEmpty()))
+        assertEquals(retained, storage.read(expected))
+        assertEquals(JsonPrimitive("two_way"), storage.view(expected).first["direction"])
+        edit("collection_mode", JsonPrimitive("import_only"))
+        match()
+        assertNotNull(channel.intentFor(GalleryMediaType.IMAGES))
+        assertNull(channel.incomingIntentFor(GalleryMediaType.IMAGES))
+        channel.startManual(requests::add)
+        assertEquals(JsonPrimitive(MediaSyncSettings.START_KIND), requests.single()["kind"])
+    }
+
     @Test fun configuredViewPreservesIndependentDirectionAndModeWithoutGrantingImportOnlyExport() {
         val storage = store()
         fun edit(field: String, value: JsonElement) = storage.change(expected, field, value, storage.fieldVersion(expected, field))
@@ -155,11 +190,12 @@ class MediaSyncStorageTest {
         assertFalse(MediaSyncSettings.transferRequestedFor(changed, "images", true))
         val restored = edit("collection_mode", JsonPrimitive("phone_inventory"))
         assertEquals(changed["settings"]!!.jsonObject["direction"], restored["settings"]!!.jsonObject["direction"])
-        assertTrue(MediaSyncSettings.transferRequestedFor(restored, "images", true))
+        assertFalse(MediaSyncSettings.transferRequestedFor(restored, "images", true))
+        assertFalse(MediaSyncSettings.transferRequestedFor(restored, "images", false))
         assertTrue(queues.isEmpty())
     }
 
-    @Test fun incomingIntentRequiresExactMatchedTwoWayMasterAndIndependentMediaChoiceWithoutCreatingPermissions() {
+    @Test fun incomingIntentRequiresExactMatchedDirectionMasterAndIndependentMediaChoiceWithoutCreatingPermissions() {
         val queue = TelefonQueue(context, codec).also { queues += it }; val storage = store()
         fun tables(): Set<String> = helper.readableDatabase.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null).use { cursor ->
             buildSet { while (cursor.moveToNext()) add(cursor.getString(0)) }
@@ -183,9 +219,9 @@ class MediaSyncStorageTest {
         edit("enabled", JsonPrimitive(true)); match()
         assertNotNull(channel.intentFor(GalleryMediaType.IMAGES)); assertNull(channel.incomingIntentFor(GalleryMediaType.IMAGES))
         assertNull(channel.incomingIntentFor(GalleryMediaType.VIDEO))
-        edit("direction", JsonPrimitive("two_way")); match()
+        edit("direction", JsonPrimitive("pc_to_phone")); match()
         val first = channel.incomingIntentFor(GalleryMediaType.IMAGES)!!
-        assertSame(first, channel.intentFor(GalleryMediaType.IMAGES)); assertNull(channel.incomingIntentFor(GalleryMediaType.VIDEO))
+        assertNull(channel.intentFor(GalleryMediaType.IMAGES)); assertNull(channel.incomingIntentFor(GalleryMediaType.VIDEO))
         val unchanged = storage.read(expected)!!
         channel.receive(TelefonNachrichten.message(MediaSyncSettings.KIND, unchanged, 60_000)) { }
         assertSame(first, channel.incomingIntentFor(GalleryMediaType.IMAGES))
@@ -196,14 +232,12 @@ class MediaSyncStorageTest {
         assertNotSame(first, channel.incomingIntentFor(GalleryMediaType.IMAGES))
         edit("videos_enabled", JsonPrimitive(true)); match()
         assertSame(channel.incomingIntentFor(GalleryMediaType.IMAGES), channel.incomingIntentFor(GalleryMediaType.VIDEO))
-        edit("direction", JsonPrimitive("pc_to_phone")); match()
         assertNotNull(channel.incomingIntentFor(GalleryMediaType.IMAGES)); assertNull(channel.intentFor(GalleryMediaType.IMAGES))
         assertNotNull(channel.incomingIntentFor(GalleryMediaType.VIDEO)); assertNull(channel.intentFor(GalleryMediaType.VIDEO))
         edit("collection_mode", JsonPrimitive("import_only")); match()
         assertNull(channel.incomingIntentFor(GalleryMediaType.IMAGES)); assertNotNull(channel.intentFor(GalleryMediaType.IMAGES))
         edit("collection_mode", JsonPrimitive("phone_inventory")); match()
         assertNotNull(channel.incomingIntentFor(GalleryMediaType.IMAGES)); assertNull(channel.intentFor(GalleryMediaType.IMAGES))
-        edit("direction", JsonPrimitive("two_way")); match()
         edit("photos_enabled", JsonPrimitive(false)); match()
         assertNull(channel.incomingIntentFor(GalleryMediaType.IMAGES)); assertNotNull(channel.incomingIntentFor(GalleryMediaType.VIDEO))
         edit("enabled", JsonPrimitive(false)); match()
@@ -216,7 +250,7 @@ class MediaSyncStorageTest {
     @Test fun incomingIntentLookupDoesNotWaitForTransportMonitorOrReadProtectedMetadata() {
         val queue = TelefonQueue(context, codec).also { queues += it }; val storage = store()
         storage.change(expected, "enabled", JsonPrimitive(true), storage.fieldVersion(expected, "enabled"))
-        storage.change(expected, "direction", JsonPrimitive("two_way"), storage.fieldVersion(expected, "direction"))
+        storage.change(expected, "direction", JsonPrimitive("pc_to_phone"), storage.fieldVersion(expected, "direction"))
         val channel = MediaSyncTransport(expected, storage, queue) { true }; channel.queueSettings()
         val message = queue.due(expected.peerActor, TelefonTransportArt.WIFI).single().payload
         channel.send(message) { }; channel.receive(TelefonNachrichten.message(MediaSyncSettings.KIND, storage.read(expected)!!, 60_000)) { }

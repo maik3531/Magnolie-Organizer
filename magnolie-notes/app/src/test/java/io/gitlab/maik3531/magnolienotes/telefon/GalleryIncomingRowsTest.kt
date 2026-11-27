@@ -77,13 +77,13 @@ class GalleryIncomingRowsTest {
         put("transfer_id", "2".repeat(32)); put("source_id", "3".repeat(32)); put("sender_id", pc); put("receiver_id", "phone_fixture_0001")
         put("files", JsonArray(listOf(buildJsonObject { put("id", fileId); put("path", if (kind == GalleryMediaType.IMAGES) "album/original.jpg" else "album/original.mp4"); put("size", size); put("sha256", hash) })))
     })
-    private fun intent(kind: GalleryMediaType = GalleryMediaType.IMAGES, twoWay: Boolean = true,
+    private fun intent(kind: GalleryMediaType = GalleryMediaType.IMAGES, direction: String = "pc_to_phone",
         collectionMode: String = "entire_collection", photosOnly: Boolean = false): MediaSyncTransport.IntentToken {
         val a = "11111111-1111-4111-8111-111111111111"; val b = "22222222-2222-4222-8222-222222222222"
         var body = MediaSyncSettings.change(MediaSyncSettings.create(a), a, b, "enabled", JsonPrimitive(true))
         body = MediaSyncSettings.change(body, a, b, "collection_mode", JsonPrimitive(collectionMode))
         if (photosOnly) body = MediaSyncSettings.change(body, a, b, "photos_only", JsonPrimitive(true))
-        if (twoWay) body = MediaSyncSettings.change(body, a, b, "direction", JsonPrimitive("two_way"))
+        body = MediaSyncSettings.change(body, a, b, "direction", JsonPrimitive(direction))
         if (kind == GalleryMediaType.VIDEO) {
             body = MediaSyncSettings.change(body, a, b, "videos_enabled", JsonPrimitive(true))
             body = MediaSyncSettings.change(body, a, b, "photos_enabled", JsonPrimitive(false))
@@ -1981,7 +1981,7 @@ class GalleryIncomingRowsTest {
                             val proof = f.io { NativeGalleryPublishedReadback.capture(owner, offer, link.channel) }
                             when (change) {
                                 "consent" -> { f.io { f.controller.revoke(f.index.galleryPolicy(), GalleryMediaType.IMAGES, f.book()) }; f.handshake() }
-                                "intent" -> currentToken = intent(twoWay = false)
+                                "intent" -> currentToken = intent(direction = "phone_to_pc")
                                 "book" -> f.unlocked = false
                                 else -> payload.writeBytes(raw.copyOf().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() })
                             }
@@ -2056,7 +2056,7 @@ class GalleryIncomingRowsTest {
                 val selected = f.io { NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { currentToken }, published) }
                 when (change) {
                     "consent" -> { f.io { f.controller.revoke(f.index.galleryPolicy(), GalleryMediaType.IMAGES, f.book()) }; f.handshake() }
-                    "intent" -> currentToken = intent(twoWay = false)
+                    "intent" -> currentToken = intent(direction = "phone_to_pc")
                     "book" -> f.unlocked = false
                     "peer" -> f.peer = f.peer.copy(identitySha256 = "b".repeat(64))
                     "namespace" -> provider.namespace = "replaced-provider"
@@ -2284,13 +2284,14 @@ class GalleryIncomingRowsTest {
     @Test fun sourceOnlyIntentWrongKindAndMissingReceiveConsentCannotAdmitIncomingRows() {
         GalleryReceiveConsentTest.Fixture().use { f ->
             val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
-            val twoWay = intent(); val oneWay = intent(twoWay = false)
+            val incoming = intent(); val sourceOnly = intent(direction = "phone_to_pc")
+            val held = intent(direction = "two_way")
             f.io { assertThrows(PhotoFolderScopeError::class.java) {
-                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { twoWay }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES)
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { incoming }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES)
             } }
             ready(f)
             f.io {
-                for ((token, kind) in listOf(oneWay to GalleryMediaType.IMAGES, twoWay to GalleryMediaType.VIDEO))
+                for ((token, kind) in listOf(sourceOnly to GalleryMediaType.IMAGES, incoming to GalleryMediaType.VIDEO, held to GalleryMediaType.IMAGES))
                     assertThrows(PhotoFolderScopeError::class.java) {
                         NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId), kind)
                     }
