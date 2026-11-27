@@ -1,13 +1,19 @@
 # Aktueller Arbeitsstand
 
+Die geprüften Einzelissues sind abgeschlossen; die weiterhin benötigten
+Paket- und Geräteprüfungen sind in [#113](https://github.com/maik3531/Magnolie-Organizer/issues/113#issuecomment-7215114176)
+und [#121](https://github.com/maik3531/Magnolie-Organizer/issues/121#issuecomment-7215113730)
+aufgeführt.
+
 ## Weitere Abnahme für den Gesamtrelease
 
 - [#809](https://github.com/maik3531/Magnolie-Organizer/issues/809):
-  Das offiziell signierte Mint-27-Cinnamon-Beta-ISO und die
-  Abhängigkeiten beider DEBs sind geprüft. Mit einem Gastkern
-  erreichte die Probe die Live-Konsole. Der Temperaturschutz
-  stoppte nach 73 Sekunden vor der Paketinstallation.
-  Der Vergleich installierter Programme mit Mint 22.3 steht aus.
+  Beide ISO-Abbilder sind anhand offizieller Signaturen geprüft.
+  Mint 27 erreichte die Live-Konsole und die Einrichtung beider
+  2.0.30-DEBs. Nach den Pakettriggern blieb der Test bis zum
+  Zeitlimit stehen, vor dem belegten Paketstatus und GUI-Start.
+  Die beobachtete Python-3.14-Warnung wird in #815 verfolgt.
+  Der Bedienvergleich mit Mint 22.3 steht aus.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
@@ -58,15 +64,16 @@ eine nicht verfügbare Telefonverbindung und aktualisiert sich wieder
 nach erfolgreicher Antwort. Der lokale Buchcodec bildet den Nachweis
 für die Medien-Aufbewahrung auch bei gültigen Dezimalzahlen.
 39 fokussierte Tests und vier zusätzliche Zielordner-IPC-Fälle
-bestanden. Der Auslöser des früher gemeldeten GUI-Abbruchs und die
-installierte In-place-Probe für die Aufbewahrung bleiben offen.
+bestanden. Der Auslöser des früher gemeldeten GUI-Abbruchs ließ sich
+nicht bestimmen. Die installierte Speicher- und Wiederöffnungsprobe
+für die Medienaufbewahrung steht in #113.
 
 [#762](https://github.com/maik3531/Magnolie-Organizer/issues/762):
 Notes berücksichtigt nach authentifizierter WLAN-Rückkehr verspätete
 Inhaltsfreigaben, bevor es den einmaligen automatischen Abgleich auslöst.
 Alle 135 gezielten Notes-Tests bestanden, einschließlich der Fälle für
 gültige Alt-Läufe, Widerruf und ersetzte Verbindungen. Die Heimkehrprobe
-mit der installierten Organizer-Gegenstelle bleibt offen.
+mit der persönlichen Organizer-Gegenstelle wurde nicht ausgeführt.
 
 ## Windows-Testbereinigung – 27. November 2026
 
