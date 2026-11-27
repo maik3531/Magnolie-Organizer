@@ -7,6 +7,15 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#121](https://github.com/maik3531/Magnolie-Organizer/issues/121):
+  Tablet unter API 35: native Dateiauswahl und Abbruch, verschlüsselter
+  Export mit Passwortprüfung sowie bestätigtes Wiederherstellen mit
+  Vorsicherung und getrenntem Freigabestatus bestanden. Nach simuliertem
+  Fehler direkt nach dem atomaren Dateiaustausch zeigte ein frischer
+  Lesevorgang das wiederhergestellte Buch; alte UI-Schreibversuche wurden
+  abgewiesen. API-34-Speicherabnahme ([#471](https://github.com/maik3531/Magnolie-Organizer/issues/471)),
+  die 40 Touchwechsel und PDF-Druck ([#848](https://github.com/maik3531/Magnolie-Organizer/issues/848))
+  bleiben offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

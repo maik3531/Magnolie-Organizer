@@ -968,7 +968,8 @@ class NativeTabletInstrumentation : Instrumentation() {
         raw("Tablet.action('tablet_export')"); waitFor("export password") {nodes().any {it.className?.toString()=="android.widget.EditText"}}
         setNativeText("synthetic-password-123"); clickNode("android:id/button1")
         waitFor("SAF create document") {nodes().any {it.packageName?.toString()?.contains("documentsui")==true}}
-        selectProvider(); setNativeText("tablet-export.json"); clickNode("Save")
+        selectProvider(); setNativeText("tablet-export.json")
+        confirmDocumentDestination("tablet-export.json")
         waitFor("native export finished") {value("document.querySelector('#tablet-status').textContent.includes('Saved.')")=="true"}
         val exported=String(documentControl("tablet-export.json"))
         check(!exported.contains("Private synthetic")); check(JSONObject(Portable.open(exported,"synthetic-password-123".toCharArray())).getInt("version")==6)
@@ -1012,7 +1013,8 @@ class NativeTabletInstrumentation : Instrumentation() {
         val save=nodes().firstOrNull {it.contentDescription?.toString() in listOf("Save to PDF","Save as PDF","Save") || it.viewIdResourceName?.endsWith("/print_button")==true}
             ?: error("Print PDF action missing")
         check(save.performAction(AccessibilityNodeInfo.ACTION_CLICK)); SystemClock.sleep(500)
-        selectProvider(); setNativeText("tablet-print.pdf"); clickNode("Save")
+        selectProvider(); setNativeText("tablet-print.pdf")
+        confirmDocumentDestination("tablet-print.pdf")
         SystemClock.sleep(1500)
         val bytes=documentControl("tablet-print.pdf")
         check(String(bytes.copyOfRange(0,5))=="%PDF-"); File(out,"tablet-print.pdf").writeBytes(bytes)
