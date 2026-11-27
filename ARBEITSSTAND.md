@@ -34,6 +34,10 @@ aufgeführt.
   Web-Nachrichten bestanden den Vertragsvergleich, zuvor 38. Acht
   gezielte Gruppen bestanden nativ unter Windows. Die Aufnahme mit
   echter Kamera und Mikrofon bleibt Teil der Geräteabnahme.
+- [#830](https://github.com/maik3531/Magnolie-Organizer/issues/830):
+  Der Downloadgenerator erhält benachbarte URL-Konstanten und damit
+  den F-Droid-QR-Eintrag im Linux-Erstassistenten. Neun Prüfungen und
+  das Generator-Gate bestanden mit unveränderten Downloadzielen.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal

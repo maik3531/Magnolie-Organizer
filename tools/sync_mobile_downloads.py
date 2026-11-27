@@ -33,8 +33,8 @@ def outputs():
     # Inline generated constants preserve standalone source/package layouts.
     for path, entries in (
         (ROOT / "magnolie-organizer/bin/magnolie_setup_ui.py", (
-            (r'^MAGNOLIE_NOTES_URL = .*?(?=\nKDE_CONNECT_URL)', 'MAGNOLIE_NOTES_URL = ' + json.dumps(notes["url"])),
-            (r'^KDE_CONNECT_URL = .*?(?=\n\n)', 'KDE_CONNECT_URL = ' + json.dumps(values["kdeConnect"]["url"])))),
+            (r'^MAGNOLIE_NOTES_URL = [^\r\n]*$', 'MAGNOLIE_NOTES_URL = ' + json.dumps(notes["url"])),
+            (r'^KDE_CONNECT_URL = [^\r\n]*$', 'KDE_CONNECT_URL = ' + json.dumps(values["kdeConnect"]["url"])))),
         (WINDOWS / "FirstRunSetupForm.cs", (
             (r'(?<=internal const string MagnolieNotesUrl = )[^;]+', json.dumps(notes["url"])),
             (r'(?<=internal const string KdeConnectUrl = )[^;]+', json.dumps(values["kdeConnect"]["url"]))))):

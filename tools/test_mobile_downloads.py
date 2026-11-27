@@ -87,6 +87,42 @@ def test_png_gate_preserves_pixels_not_compression(tmp_path):
     assert not sync.matches(tmp_path / "missing.png", expected)
 
 
+def test_constant_generation_preserves_neighboring_assignments(tmp_path, monkeypatch):
+    """Refs #830: refreshing APK URLs must keep independent setup destinations."""
+    handbook = tmp_path / "magnolie-handbuch"
+    windows = tmp_path / "magnolie-organizer-windows"
+    linux = tmp_path / "magnolie-organizer/bin/magnolie_setup_ui.py"
+    (handbook / "web").mkdir(parents=True)
+    windows.mkdir()
+    linux.parent.mkdir(parents=True)
+    source = json.loads((sync.HANDBOOK / "web/mobile-downloads.json").read_text())
+    (handbook / "web/mobile-downloads.json").write_text(json.dumps(source))
+    linux.write_text(
+        'MAGNOLIE_NOTES_URL = "old-notes"\n'
+        'MAGNOLIE_NOTES_FDROID_URL = "https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes"\n'
+        'KDE_CONNECT_URL = "old-kde"\n'
+        'OTHER_DESTINATION = "keep this independent destination"\n\n'
+        'def fdroid_destination():\n    return MAGNOLIE_NOTES_FDROID_URL\n'
+    )
+    (windows / "FirstRunSetupForm.cs").write_text(
+        'internal const string MagnolieNotesUrl = "old-notes";\n'
+        'internal const string KdeConnectUrl = "old-kde";\n'
+    )
+    monkeypatch.setattr(sync, "ROOT", tmp_path)
+    monkeypatch.setattr(sync, "HANDBOOK", handbook)
+    monkeypatch.setattr(sync, "WINDOWS", windows)
+    generated = sync.outputs()[linux].decode()
+    namespace = {}
+    exec(compile(generated, str(linux), "exec"), namespace)
+    assert namespace["MAGNOLIE_NOTES_URL"] == source["notes"]["url"]
+    assert namespace["KDE_CONNECT_URL"] == source["kdeConnect"]["url"]
+    assert namespace["fdroid_destination"]() == "https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes"
+    assert namespace["OTHER_DESTINATION"] == "keep this independent destination"
+    # A second generation must be stable and preserve the same independent data.
+    linux.write_text(generated)
+    assert sync.outputs()[linux].decode() == generated
+
+
 @pytest.mark.parametrize("version", ["1.0.14", "1.0.99", "2.7.0"])
 def test_future_versions_keep_desktop_outputs_and_retain_history(tmp_path, version):
     before = sync.outputs()
