@@ -1095,14 +1095,6 @@ msgstr "Ao deitar"
 msgid "At least one health view must remain enabled."
 msgstr "Pelo menos uma vista de saúde tem de permanecer ativada."
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"São necessários pelo menos três inícios registados. Dias de sangramento "
-"separados por até três dias formam um episódio; apenas intervalos de 14–60 "
-"dias entram na mediana."
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Só é possível exportar até 5.000 contactos de cada vez."
 
@@ -3000,9 +2992,6 @@ msgstr "Erro"
 #, python-format
 msgid "Error: %s"
 msgstr "Erro: %s"
-
-msgid "Estimate the next period"
-msgstr "Estimar a próxima menstruação"
 
 msgid "Estimated from older data"
 msgstr "Estimado a partir de dados anteriores"
@@ -10834,3 +10823,25 @@ msgstr "Confirmar nova menstruação"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "Manter a pausa"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "Mover as animações GIF selecionadas?"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "Ficheiros a mover"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "Mover os ficheiros selecionados (%(count)d) para a pasta de animações? Os ficheiros originais e as alterações serão preservados. Escolha Não para os deixar na localização atual."
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "Criar as pastas em falta na pasta de animações e mover os ficheiros selecionados (%(count)d)? Escolha Não para manter os ficheiros e as pastas inalterados."
+
+#. Existing desktop recovery label; Refs #820.
+msgid "Restore media"
+msgstr "Restaurar ficheiros multimédia"

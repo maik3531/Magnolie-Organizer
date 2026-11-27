@@ -1048,13 +1048,6 @@ msgstr "就寝時"
 msgid "At least one health view must remain enabled."
 msgstr "健康管理の表示を 1 つ以上有効にしておく必要があります。"
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"記録された開始日が3回以上必要です。間隔が3日以内の出血日は同じ期間とし、中央"
-"値には14〜60日の間隔だけを使用します。"
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "一度にエクスポートできる連絡先は最大 5,000 件です。"
 
@@ -2923,9 +2916,6 @@ msgstr "エラー"
 #, python-format
 msgid "Error: %s"
 msgstr "エラー: %s"
-
-msgid "Estimate the next period"
-msgstr "次の月経を推定する"
 
 msgid "Estimated from older data"
 msgstr "古いデータから推定"
@@ -10575,3 +10565,25 @@ msgstr "新たな月経として確認"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "一時停止を続ける"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "選択したGIFアニメーションを移動しますか？"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "移動するファイル"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "選択したファイル（%(count)d件）をアニメーションフォルダーに移動しますか？元のファイルと編集内容は保持されます。現在の場所に残すには「いいえ」を選んでください。"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "アニメーションフォルダー内に不足しているフォルダーを作成し、選択したファイル（%(count)d件）を移動しますか？ファイルとフォルダーを変更しない場合は「いいえ」を選んでください。"
+
+#. Existing desktop recovery label; Refs #820.
+msgid "Restore media"
+msgstr "メディアを復元"

@@ -1106,14 +1106,6 @@ msgstr "Au coucher"
 msgid "At least one health view must remain enabled."
 msgstr "Au moins une vue de santé doit rester activée."
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"Au moins trois débuts enregistrés sont nécessaires. Les jours de saignement "
-"espacés de trois jours au maximum forment un épisode ; seuls les intervalles "
-"de 14–60 jours entrent dans la médiane."
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Vous pouvez exporter au maximum 5 000 contacts à la fois."
 
@@ -3027,9 +3019,6 @@ msgstr "Erreur"
 #, python-format
 msgid "Error: %s"
 msgstr "Erreur : %s"
-
-msgid "Estimate the next period"
-msgstr "Estimer les prochaines règles"
 
 msgid "Estimated from older data"
 msgstr "Estimé à partir des anciennes données"
@@ -10962,3 +10951,25 @@ msgstr "Confirmer de nouvelles règles"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "Maintenir la pause"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "Déplacer les animations GIF sélectionnées ?"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "Fichiers à déplacer"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "Déplacer les fichiers sélectionnés (%(count)d) dans le dossier des animations ? Les fichiers originaux et leurs modifications seront conservés. Choisissez Non pour les laisser à leur emplacement actuel."
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "Créer les dossiers manquants dans le dossier des animations et déplacer les fichiers sélectionnés (%(count)d) ? Choisissez Non pour laisser les fichiers et les dossiers inchangés."
+
+#. Existing desktop recovery label; Refs #820.
+msgid "Restore media"
+msgstr "Restaurer les médias"

@@ -1167,14 +1167,6 @@ msgstr "Před spanjom"
 msgid "At least one health view must remain enabled."
 msgstr "Znajmjeńša jedyn napohlad strowoty dyrbi zmóžnjeny wostać."
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"Trjebaja so znajmjeńša tři zapisane spočatki. Krwawjenske dny z interwalom "
-"hač do třoch dnjow tworia jedyn wuskyt; jenož interwale 14–60 dnjow do "
-"mediana zachadźeja."
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Najwjace 5.000 kontaktow hodźi so naraz eksportować."
 
@@ -3056,9 +3048,6 @@ msgstr "Fehler"
 #, python-format
 msgid "Error: %s"
 msgstr "Zmylk: %s"
-
-msgid "Estimate the next period"
-msgstr "Přichodnu menstruaciju wobličić"
 
 msgid "Estimated from older data"
 msgstr "Ze staršich datow troštny"
@@ -10834,3 +10823,25 @@ msgstr "Nowu menstruaciju wobkrućić"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "Přestawku wobchować"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "Wubrane GIF-animacije přesunyć?"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "Dataje za přesunjenje"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "Wubrane dataje (%(count)d) do rjadowaka animacijow přesunyć? Originalne dataje a wobdźěłanja so zachowaja. Wubjerće Ně, zo byšće je na dotalnym městnje wostajili."
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "Falowace rjadowaki w rjadowaku animacijow wutworić a wubrane dataje (%(count)d) přesunyć? Wubjerće Ně, zo byšće dataje a rjadowaki njezměnjene wostajili."
+
+#. Existing desktop recovery label; Refs #820.
+msgid "Restore media"
+msgstr "Medije wobnowić"

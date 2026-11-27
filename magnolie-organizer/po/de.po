@@ -1097,14 +1097,6 @@ msgstr "Vor dem Schlafengehen"
 msgid "At least one health view must remain enabled."
 msgstr "Mindestens eine Gesundheitsansicht muss aktiviert bleiben."
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"Mindestens drei eingetragene Regelbeginne sind nötig. Blutungstage mit bis "
-"zu drei Tagen Abstand zählen als ein Vorkommen; nur Abstände von 14–60 Tagen "
-"gehen in den Median ein."
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Es können höchstens 5.000 Kontakte auf einmal exportiert werden."
 
@@ -3004,9 +2996,6 @@ msgstr "Fehler"
 #, python-format
 msgid "Error: %s"
 msgstr "Fehler: %s"
-
-msgid "Estimate the next period"
-msgstr "Nächste Regel schätzen"
 
 msgid "Estimated from older data"
 msgstr "Aus älteren Daten abgeleitet"
@@ -10882,3 +10871,21 @@ msgstr "Neue Periode bestätigen"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "Pause beibehalten"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "Ausgewählte GIF-Animationen verschieben?"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "Zu verschiebende Dateien"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "Die ausgewählten Dateien (%(count)d) in den Ordner Animationen verschieben? Die Originaldateien und Bearbeitungen bleiben erhalten. Wählen Sie Nein, um sie an ihrem bisherigen Ort zu belassen."
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "Die fehlenden Ordner im Ordner Animationen anlegen und die ausgewählten Dateien (%(count)d) verschieben? Wählen Sie Nein, um Dateien und Ordner unverändert zu lassen."

@@ -252,6 +252,26 @@ def test_manual_recovery_reason_has_its_own_translation_context():
         ["Benutzerdefiniert"]
 
 
+def test_native_gif_confirmation_catalogs_preserve_count_formatting():
+    messages = (
+        "Move selected GIF animations?",
+        "Files to move",
+        "Move the %(count)d selected files into the Animations folder? "
+        "The original files and edits are preserved. Choose No to leave them where they are.",
+        "Create the missing folders in the Animations folder and move the %(count)d selected files? "
+        "Choose No to leave the files and folders unchanged.",
+    )
+    for locale in (PO_DIR / "LINGUAS").read_text(encoding="utf-8").split():
+        translator = gettext.translation("magnolie-organizer", ROOT / "locale", languages=[locale])
+        for message in messages:
+            value = translator.gettext(message)
+            assert value != message, f"{locale}: native confirmation falls back to English: {message}"
+            if "%(count)d" in message:
+                for count in (1, 2, 17, 100001):
+                    rendered = value % {"count": count}
+                    assert str(count) in rendered and "%(count)" not in rendered
+
+
 def test_archive_and_contributor_ui_has_no_hardcoded_visible_strings():
     source = (ROOT / "web" / "anwendung.js").read_text(encoding="utf-8")
     function_names = (

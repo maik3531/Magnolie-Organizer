@@ -1089,14 +1089,6 @@ msgstr "Voor het slapengaan"
 msgid "At least one health view must remain enabled."
 msgstr "Minstens één gezondheidsweergave moet ingeschakeld blijven."
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"Minstens drie vastgelegde begindagen zijn nodig. Bloedingsdagen met "
-"hoogstens drie dagen ertussen vormen één episode; alleen intervallen van 14–"
-"60 dagen tellen mee voor de mediaan."
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Er kunnen maximaal 5.000 contacten tegelijk worden geëxporteerd."
 
@@ -2987,9 +2979,6 @@ msgstr "Fout"
 #, python-format
 msgid "Error: %s"
 msgstr "Fout: %s"
-
-msgid "Estimate the next period"
-msgstr "Volgende menstruatie schatten"
 
 msgid "Estimated from older data"
 msgstr "Geschat op basis van oudere gegevens"
@@ -10809,3 +10798,25 @@ msgstr "Nieuwe menstruatie bevestigen"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "Pauze behouden"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "Geselecteerde GIF-animaties verplaatsen?"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "Te verplaatsen bestanden"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "De geselecteerde bestanden (%(count)d) naar de map met animaties verplaatsen? De oorspronkelijke bestanden en bewerkingen blijven behouden. Kies Nee om ze op hun huidige plaats te laten staan."
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "De ontbrekende mappen in de map met animaties maken en de geselecteerde bestanden (%(count)d) verplaatsen? Kies Nee om bestanden en mappen ongewijzigd te laten."
+
+#. Existing desktop recovery label; Refs #820.
+msgid "Restore media"
+msgstr "Media herstellen"

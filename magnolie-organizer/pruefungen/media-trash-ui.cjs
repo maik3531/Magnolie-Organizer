@@ -17,6 +17,8 @@ for (const locale of Object.keys(messages).filter(locale => locale !== "en")) {
   });
   messages.en.forEach((key, index) => assert.equal(catalog.messages[key], messages[locale][index], `${locale}: ${key}`));
   retentionMessages.en.forEach((key, index) => assert.equal(catalog.messages[key], retentionMessages[locale][index], `${locale}: ${key}`));
+  assert.equal(typeof catalog.messages["Restore media"], "string", `${locale}: recovery heading is missing`);
+  assert.notEqual(catalog.messages["Restore media"], "Restore media", `${locale}: recovery heading is untranslated`);
 }
 const row = (index = 1) => ({ scope: "a".repeat(64), operation: index.toString(16).padStart(32, "0"), version: "b".repeat(64),
   name: index === 1 ? "<img src=x onerror=bad>.mp4" : `video-${index}.mp4`, media_type: "video", state: "trashed" });
@@ -25,6 +27,26 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 
 (async () => {
   let cases = 0;
+  // Exercise the actual offline heading in every supported non-English locale.
+  // This catches a source/catalog mismatch even when German happens to work.
+  const localized = await harness.exports.boot(linux);
+  try {
+    const before = JSON.stringify(localized.t.daten()), saves = localized.saves().length;
+    for (const locale of Object.keys(messages).filter(locale => locale !== "en")) {
+      localized.w.eval(fs.readFileSync(path.join(linux, "i18n", locale + ".js"), "utf8"));
+      localized.w.MagnolieI18n.setLocale(locale);
+      localized.t.oeffneEinstellungen();
+      localized.w.document.querySelector("#einst-tab-baum").click();
+      const heading = localized.w.document.querySelector("[data-offline-media-recovery] > details > summary");
+      assert(heading, `${locale}: offline recovery is reachable`);
+      assert.equal(heading.textContent, localized.w.MagnolieI18n.gettext("Restore media"));
+      assert.notEqual(heading.textContent, "Restore media", `${locale}: visible heading is untranslated`);
+      localized.t.schliesseEinstellungen();
+      cases++;
+    }
+    assert.equal(JSON.stringify(localized.t.daten()), before);
+    assert.equal(localized.saves().length, saves, "Reading localized recovery controls must not save the book");
+  } finally { localized.close(); }
   for (const web of harness.exports.roots) for (const locale of ["en", "de"]) {
     const b = await harness.exports.boot(web, { notizen: [{ id: "keep", titel: "Keep", text: "Keep", html: "Keep" }],
       papierkorb: [{ id: "keep-trash", art: "note", name: "Existing note", geloescht: Date.now(), eintrag: { id: "old", titel: "Old", text: "Keep" } }],

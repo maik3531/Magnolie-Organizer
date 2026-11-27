@@ -1079,13 +1079,6 @@ msgstr "Ved sengetid"
 msgid "At least one health view must remain enabled."
 msgstr "Mindst én sundhedsvisning skal forblive aktiveret."
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"Mindst tre registrerede starter kræves. Blødningsdage med op til tre dages "
-"mellemrum udgør én episode; kun intervaller på 14–60 dage indgår i medianen."
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Der kan højst eksporteres 5.000 kontakter ad gangen."
 
@@ -2958,9 +2951,6 @@ msgstr "Fejl"
 #, python-format
 msgid "Error: %s"
 msgstr "Fejl: %s"
-
-msgid "Estimate the next period"
-msgstr "Anslå næste menstruation"
 
 msgid "Estimated from older data"
 msgstr "Anslået ud fra ældre data"
@@ -10665,3 +10655,25 @@ msgstr "Bekræft ny menstruation"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "Behold pausen"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "Flyt de valgte GIF-animationer?"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "Filer, der skal flyttes"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "Flyt de valgte filer (%(count)d) til mappen med animationer? De oprindelige filer og redigeringer bevares. Vælg Nej for at lade dem blive, hvor de er."
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "Opret de manglende mapper i mappen med animationer, og flyt de valgte filer (%(count)d)? Vælg Nej for at lade filer og mapper være uændrede."
+
+#. Existing desktop recovery label; Refs #820.
+msgid "Restore media"
+msgstr "Gendan medier"

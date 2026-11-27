@@ -1087,13 +1087,6 @@ msgstr "Yatmadan önce"
 msgid "At least one health view must remain enabled."
 msgstr "En az bir sağlık görünümü etkin kalmalıdır."
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"En az üç kayıtlı başlangıç gerekir. Aralarında en çok üç gün bulunan kanama "
-"günleri tek dönem sayılır; medyana yalnızca 14–60 günlük aralıklar katılır."
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Tek seferde en fazla 5.000 kişi dışa aktarılabilir."
 
@@ -2961,9 +2954,6 @@ msgstr "Hata"
 #, python-format
 msgid "Error: %s"
 msgstr "Hata: %s"
-
-msgid "Estimate the next period"
-msgstr "Sonraki adeti tahmin et"
 
 msgid "Estimated from older data"
 msgstr "Eski verilerden tahmin edildi"
@@ -10655,3 +10645,25 @@ msgstr "Yeni adeti onayla"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "Duraklatmayı sürdür"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "Seçilen GIF animasyonları taşınsın mı?"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "Taşınacak dosyalar"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "Seçilen dosyalar (%(count)d) animasyonlar klasörüne taşınsın mı? Özgün dosyalar ve düzenlemeler korunur. Dosyaları bulundukları yerde bırakmak için Hayır seçeneğini seçin."
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "Animasyonlar klasöründe eksik klasörler oluşturulsun ve seçilen dosyalar (%(count)d) taşınsın mı? Dosyaları ve klasörleri değiştirmemek için Hayır seçeneğini seçin."
+
+#. Existing desktop recovery label; Refs #820.
+msgid "Restore media"
+msgstr "Medya dosyalarını geri yükle"

@@ -135,6 +135,10 @@ aufgeführt.
   lesen UTF-16LE und UTF-16BE mit BOM auch aus ZIP-Dateien.
   Beschädigtes UTF-16 und eingebettete Nullzeichen werden abgewiesen.
   35 Linux-Prüfungen und 18 Prüfungen des Importhelfers auf Linux bestanden.
+- [#820](https://github.com/maik3531/Magnolie-Organizer/issues/820):
+  Linux übersetzt „Medien wiederherstellen“ und die GIF-Bestätigungen.
+  Die Katalogextraktion erfasst die bedingten Regelkalendertexte.
+  Alle 19 Kataloge, zehn Katalogprüfungen und 39 Oberflächenfälle bestanden.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal

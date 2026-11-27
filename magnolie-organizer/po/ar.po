@@ -1229,13 +1229,6 @@ msgstr "عند وقت النوم"
 msgid "At least one health view must remain enabled."
 msgstr "يجب إبقاء عرض صحي واحد على الأقل مفعّلًا."
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"يلزم تسجيل ثلاث بدايات على الأقل. أيام النزف التي تفصلها ثلاثة أيام كحد أقصى "
-"تُعد فترة واحدة؛ تدخل الفواصل من 14 إلى 60 يومًا فقط في الوسيط."
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "يمكن تصدير 5,000 جهة اتصال كحد أقصى في المرة الواحدة."
 
@@ -3079,9 +3072,6 @@ msgstr "خطأ"
 #, python-format
 msgid "Error: %s"
 msgstr "خطأ: %s"
-
-msgid "Estimate the next period"
-msgstr "تقدير الدورة التالية"
 
 msgid "Estimated from older data"
 msgstr "تقدير من بيانات أقدم"
@@ -10753,3 +10743,25 @@ msgstr "تأكيد دورة شهرية جديدة"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "إبقاء الإيقاف المؤقت"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "هل تريد نقل صور GIF المتحركة المحددة؟"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "الملفات المراد نقلها"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "هل تريد نقل الملفات المحددة (%(count)d) إلى مجلد الرسوم المتحركة؟ ستُحفظ الملفات الأصلية وتعديلاتها. اختر «لا» لإبقائها في مكانها."
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "هل تريد إنشاء المجلدات المفقودة داخل مجلد الرسوم المتحركة ونقل الملفات المحددة (%(count)d)؟ اختر «لا» لترك الملفات والمجلدات دون تغيير."
+
+#. Existing desktop recovery label; Refs #820.
+msgid "Restore media"
+msgstr "استعادة الوسائط"

@@ -1078,14 +1078,6 @@ msgstr "Ved sengetid"
 msgid "At least one health view must remain enabled."
 msgstr "Minst én helsevisning må være aktivert."
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"Minst tre registrerte starter kreves. Blødningsdager med opptil tre dagers "
-"mellomrom utgjør én episode; bare intervaller på 14–60 dager inngår i "
-"medianen."
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Maksimalt 5 000 kontakter kan eksporteres om gangen."
 
@@ -2959,9 +2951,6 @@ msgstr "Feil"
 #, python-format
 msgid "Error: %s"
 msgstr "Feil: %s"
-
-msgid "Estimate the next period"
-msgstr "Anslå neste menstruasjon"
 
 msgid "Estimated from older data"
 msgstr "Anslått fra eldre data"
@@ -10672,3 +10661,25 @@ msgstr "Bekreft ny menstruasjon"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "Behold pausen"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "Flytte de valgte GIF-animasjonene?"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "Filer som skal flyttes"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "Flytte de valgte filene (%(count)d) til animasjonsmappen? De opprinnelige filene og redigeringene beholdes. Velg Nei for å la dem ligge der de er."
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "Opprette de manglende mappene i animasjonsmappen og flytte de valgte filene (%(count)d)? Velg Nei for å la filer og mapper være uendret."
+
+#. Existing desktop recovery label; Refs #820.
+msgid "Restore media"
+msgstr "Gjenopprett medier"

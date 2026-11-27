@@ -1122,14 +1122,6 @@ msgstr "Перад сном"
 msgid "At least one health view must remain enabled."
 msgstr "Павінен заставацца ўключаным прынамсі адзін від раздзела здароўя."
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"Патрэбныя прынамсі тры запісаныя пачаткі. Дні крывацёку з прамежкамі да трох "
-"дзён утвараюць адзін эпізод; у медыяну ўваходзяць толькі інтэрвалы 14–60 "
-"дзён."
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "За адзін раз можна экспартаваць не больш за 5 000 кантактаў."
 
@@ -2998,9 +2990,6 @@ msgstr "Памылка"
 #, python-format
 msgid "Error: %s"
 msgstr "Памылка: %s"
-
-msgid "Estimate the next period"
-msgstr "Ацэньваць пачатак наступнай менструацыі"
 
 msgid "Estimated from older data"
 msgstr "Ацэнена са старэйшых даных"
@@ -10723,3 +10712,25 @@ msgstr "Пацвердзіць новую менструацыю"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "Пакінуць паўзу"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "Перамясціць выбраныя GIF-анімацыі?"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "Файлы для перамяшчэння"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "Перамясціць выбраныя файлы (%(count)d) у папку анімацый? Зыходныя файлы і змены захаваюцца. Выберыце «Не», каб пакінуць іх на ранейшым месцы."
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "Стварыць адсутныя папкі ў папцы анімацый і перамясціць выбраныя файлы (%(count)d)? Выберыце «Не», каб пакінуць файлы і папкі без змен."
+
+#. Existing desktop recovery label; Refs #820.
+msgid "Restore media"
+msgstr "Аднавіць медыяфайлы"

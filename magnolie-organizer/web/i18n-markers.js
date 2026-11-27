@@ -1,4 +1,7 @@
 /* Nur für xgettext; diese Datei wird nicht in der Anwendung geladen. */
+/* Conditional forecast labels are not extracted from the format call. Refs #820. */
+gettext("Estimated start: %(date)s");
+gettext("Period predictions paused: %(reason)s; no fixed end date.");
 /* Appearance selectors use translated data-driven labels. Refs #432. */
 gettext("Visual test only; no connections or permissions are changed.");
 gettext("Tray preview");

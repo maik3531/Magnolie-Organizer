@@ -1016,13 +1016,6 @@ msgstr "睡前"
 msgid "At least one health view must remain enabled."
 msgstr "必须至少保留一个健康视图。"
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"至少需要记录三次开始日期。相隔不超过三天的出血日视为同一次；中位数只使用14–60"
-"天的间隔。"
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "一次最多可导出 5,000 个联系人。"
 
@@ -2820,9 +2813,6 @@ msgstr "错误"
 #, python-format
 msgid "Error: %s"
 msgstr "错误：%s"
-
-msgid "Estimate the next period"
-msgstr "估计下次月经"
 
 msgid "Estimated from older data"
 msgstr "根据旧数据估算"
@@ -10173,3 +10163,25 @@ msgstr "确认新月经"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "保持暂停"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "移动选中的 GIF 动画？"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "要移动的文件"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "将选中的 %(count)d 个文件移入动画文件夹？原始文件及其编辑内容将保留。选择“否”可将文件保留在当前位置。"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "在动画文件夹中创建缺少的文件夹，并移动选中的 %(count)d 个文件？选择“否”可保持文件和文件夹不变。"
+
+#. Existing desktop recovery label; Refs #820.
+msgid "Restore media"
+msgstr "恢复媒体文件"

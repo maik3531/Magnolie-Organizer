@@ -1070,13 +1070,6 @@ msgstr "सोने के समय"
 msgid "At least one health view must remain enabled."
 msgstr "कम से कम एक स्वास्थ्य दृश्य सक्षम रहना चाहिए।"
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"कम से कम तीन दर्ज शुरुआत चाहिए। अधिकतम तीन दिन के अंतर वाले रक्तस्राव के दिन एक अवधि "
-"हैं; मध्यिका में केवल 14–60 दिन के अंतर शामिल हैं।"
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "एक बार में अधिकतम 5,000 संपर्क निर्यात किए जा सकते हैं।"
 
@@ -2906,9 +2899,6 @@ msgstr "गलती"
 #, python-format
 msgid "Error: %s"
 msgstr "त्रुटि: %s"
-
-msgid "Estimate the next period"
-msgstr "अगली माहवारी का अनुमान लगाएँ"
 
 msgid "Estimated from older data"
 msgstr "पुराने डेटा से अनुमानित"
@@ -10454,3 +10444,25 @@ msgstr "नई माहवारी की पुष्टि करें"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "विराम बनाए रखें"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "चुने हुए GIF ऐनिमेशन स्थानांतरित करें?"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "स्थानांतरित की जाने वाली फ़ाइलें"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "चुनी हुई फ़ाइलों (%(count)d) को ऐनिमेशन फ़ोल्डर में स्थानांतरित करें? मूल फ़ाइलें और उनमें किए गए संपादन सुरक्षित रहेंगे। उन्हें वहीं रखने के लिए नहीं चुनें।"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "ऐनिमेशन फ़ोल्डर में अनुपस्थित फ़ोल्डर बनाएँ और चुनी हुई फ़ाइलों (%(count)d) को स्थानांतरित करें? फ़ाइलों और फ़ोल्डरों को अपरिवर्तित रखने के लिए नहीं चुनें।"
+
+#. Existing desktop recovery label; Refs #820.
+msgid "Restore media"
+msgstr "मीडिया पुनर्स्थापित करें"

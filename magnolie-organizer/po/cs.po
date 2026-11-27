@@ -1119,14 +1119,6 @@ msgstr "Před spaním"
 msgid "At least one health view must remain enabled."
 msgstr "Alespoň jedno zobrazení zdraví musí zůstat povolené."
 
-msgid ""
-"At least three recorded starts are needed. Bleeding days up to three days "
-"apart form one episode; only intervals of 14–60 days enter the median."
-msgstr ""
-"Jsou potřeba alespoň tři zaznamenané začátky. Dny krvácení vzdálené nejvýše "
-"tři dny tvoří jednu epizodu; do mediánu se započítávají pouze intervaly 14–"
-"60 dní."
-
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Najednou lze exportovat nejvýše 5 000 kontaktů."
 
@@ -2989,9 +2981,6 @@ msgstr "Chyba"
 #, python-format
 msgid "Error: %s"
 msgstr "Chyba: %s"
-
-msgid "Estimate the next period"
-msgstr "Odhadovat příští menstruaci"
 
 msgid "Estimated from older data"
 msgstr "Odhadnuto ze starších dat"
@@ -10680,3 +10669,25 @@ msgstr "Potvrdit novou menstruaci"
 #. Optional period forecast improvements (Refs #803).
 msgid "Keep pause"
 msgstr "Ponechat přestávku"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Move selected GIF animations?"
+msgstr "Přesunout vybrané animace GIF?"
+
+#. Native GIF selection confirmation; Refs #820.
+msgid "Files to move"
+msgstr "Soubory k přesunutí"
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Move the %(count)d selected files into the Animations folder? The original files and edits are preserved. Choose No to leave them where they are."
+msgstr "Přesunout vybrané soubory (%(count)d) do složky animací? Původní soubory a úpravy budou zachovány. Zvolte Ne, pokud je chcete ponechat na původním místě."
+
+#. Native GIF selection confirmation; Refs #820.
+#, python-format
+msgid "Create the missing folders in the Animations folder and move the %(count)d selected files? Choose No to leave the files and folders unchanged."
+msgstr "Vytvořit chybějící složky ve složce animací a přesunout vybrané soubory (%(count)d)? Zvolte Ne, pokud chcete ponechat soubory a složky beze změny."
+
+#. Existing desktop recovery label; Refs #820.
+msgid "Restore media"
+msgstr "Obnovit média"
