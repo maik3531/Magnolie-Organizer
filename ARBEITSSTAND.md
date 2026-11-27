@@ -28,6 +28,12 @@ aufgeführt.
   Der Windows-Webcam-Test bereitet beide Test-Gegenstellen vor
   dem Medienstart vor. Der betroffene Fall und insgesamt
   19 gezielte Testgruppen bestanden nativ unter Windows.
+- [#831](https://github.com/maik3531/Magnolie-Organizer/issues/831):
+  Die Windows-Web-Brücke lässt die vorhandenen Webcam-Befehle und
+  Medienfelder bis zu ihren nativen Prüfungen durch. Alle 56 erfassten
+  Web-Nachrichten bestanden den Vertragsvergleich, zuvor 38. Acht
+  gezielte Gruppen bestanden nativ unter Windows. Die Aufnahme mit
+  echter Kamera und Mikrofon bleibt Teil der Geräteabnahme.
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal

@@ -452,6 +452,8 @@ runner.Add("Device file native run lifecycle / strict batch and END codec", Devi
 runner.Add("Device file native run lifecycle / retained cleanup lease boundaries", DeviceFileMetadataCommandTests.SourceCleanupLeaseAsync);
 runner.Add("Device file native destination / absent read does not bootstrap", DeviceFileStoreDestinationsTests.DefaultsAsync);
 runner.Add("Device file native media UI / strict requests reject browser paths and grants", DeviceFileUiTests.StrictRequestsAsync);
+runner.Add("Phone web bridge / media envelopes reach strict native actions", DeviceFileUiTests.WebBridgeRequestsAsync);
+runner.Add("Phone web bridge / webcam envelopes match the native commands", DeviceFileUiTests.WebcamBridgeRequestsAsync);
 if (OperatingSystem.IsWindows())
 {
     runner.Add("Phone webcam source registration / memory-only registry ACL policy", PhoneCameraSourceRegistrationTests.RegistryAclPolicyAsync);

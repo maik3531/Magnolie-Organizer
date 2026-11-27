@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using MagnolieOrganizer.Windows;
 
@@ -5,6 +6,91 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class DeviceFileUiTests
 {
+    internal static Task WebBridgeRequestsAsync()
+    {
+        const string requestId = "11111111-1111-4111-8111-111111111111";
+        const string peer = "22222222-2222-4222-8222-222222222222";
+        var version = new string('a', 64);
+        var backupId = new string('b', 64);
+        var location = new string('c', 64);
+
+        JsonObject Media(string action) => new()
+        {
+            ["cmd"] = "telefon_medien", ["requestId"] = requestId, ["device_id"] = peer, ["action"] = action
+        };
+        NativeMediaUiRequest Forward(JsonObject message)
+        {
+            using var parsed = BridgeDispatcherContract.Parse(message.ToJsonString());
+            return NativeMediaUiRequest.Parse(JsonNode.Parse(parsed.RootElement.GetRawText())!.AsObject());
+        }
+
+        TestAssert.That(Forward(Media("status")).PeerId == peer, "The existing status envelope did not reach the native parser.");
+        var send = Media("send_consent");
+        send["version"] = version; send["photos"] = true; send["videos"] = false;
+        TestAssert.That(Forward(send) is { Photos: true, Videos: false }, "The existing SEND choice changed in transit.");
+
+        var edit = Media("shared_setting");
+        edit["version"] = version; edit["field"] = "enabled"; edit["value"] = true;
+        TestAssert.That(Forward(edit) is { SharedField: "enabled" } enabled && enabled.SharedValue!.GetValue<bool>(),
+            "The web master switch did not reach the native parser.");
+        edit["field"] = "auto_mode"; edit["value"] = "wifi";
+        TestAssert.That(Forward(edit) is { SharedField: "auto_mode" } timing && timing.SharedValue!.GetValue<string>() == "wifi",
+            "The web timing choice did not reach the native parser.");
+        edit["value"] = 1;
+        TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse(edit.ToJsonString()),
+            "The outer envelope accepted a numeric shared setting.");
+        edit["value"] = true;
+        TestAssert.Throws<InvalidDataException>(() => Forward(edit), "The native action accepted a boolean timing choice.");
+
+        var consent = Media("receive_consent");
+        consent["version"] = version; consent["granted"] = true;
+        TestAssert.That(Forward(consent).ReceiveConsent, "The web RECEIVE choice did not reach the native parser.");
+        consent["granted"] = "true";
+        TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse(consent.ToJsonString()),
+            "The outer envelope accepted a string as consent.");
+
+        var list = Media("backup_list");
+        list["media_type"] = "video"; list["after"] = 0; list["location_id"] = location;
+        TestAssert.That(Forward(list).BackupLocation == location, "The web backup page lost the historical location.");
+        var restore = Media("backup_restore");
+        restore["media_type"] = "video"; restore["backup_id"] = backupId; restore["location_id"] = location; restore["version"] = version;
+        TestAssert.That(Forward(restore) is { MediaType: "video" } selected && selected.BackupId == backupId && selected.BackupLocation == location,
+            "The web restore action lost the selected backup or historical location.");
+        restore["path"] = "unselected.mp4";
+        TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse(restore.ToJsonString()),
+            "The outer envelope accepted a browser-selected restore path.");
+        restore.Remove("path"); restore["action"] = "status";
+        TestAssert.Throws<InvalidDataException>(() => Forward(restore), "The native action accepted restore fields on status.");
+        return Task.CompletedTask;
+    }
+
+    internal static Task WebcamBridgeRequestsAsync()
+    {
+        const string requestId = "11111111-1111-4111-8111-111111111111";
+        const string peer = "22222222-2222-4222-8222-222222222222";
+        const string run = "33333333-3333-4333-8333-333333333333";
+        foreach (var request in new[]
+        {
+            JsonSerializer.Serialize(new { cmd = "telefon_webcam_stand", requestId }),
+            JsonSerializer.Serialize(new { cmd = "telefon_webcam_start", requestId, peer }),
+            JsonSerializer.Serialize(new { cmd = "telefon_webcam_stop", requestId, run })
+        })
+        {
+            using var parsed = BridgeDispatcherContract.Parse(request);
+            TestAssert.That(parsed.RootElement.GetProperty("requestId").GetString() == requestId, "The webcam callback lost its request ID.");
+        }
+        foreach (var request in new[]
+        {
+            JsonSerializer.Serialize(new { cmd = "telefon_webcam_unknown", requestId }),
+            JsonSerializer.Serialize(new { cmd = "telefon_webcam_start", requestId }),
+            JsonSerializer.Serialize(new { cmd = "telefon_webcam_start", requestId, peer, confirmed = true }),
+            JsonSerializer.Serialize(new { cmd = "telefon_webcam_stop", requestId, run = 1 })
+        })
+            TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse(request),
+                "The webcam envelope accepted an unknown command, field, or invalid value.");
+        return Task.CompletedTask;
+    }
+
     internal static async Task WindowsReadBeforeAlbumScanAsync()
     {
         var book = new NativeBookOwnerScope(); book.SetReady(true); book.RecordSaved("read-ui-book", true, new string('a', 64));
