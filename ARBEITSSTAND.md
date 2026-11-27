@@ -10,8 +10,17 @@
 - [#810](https://github.com/maik3531/Magnolie-Organizer/issues/810):
   Mac und Android-Tablet sind als Quellen übernommen. Die
   Entwicklungsbundles und Debug-APKs sind noch keine normal
-  signierten Releaseartefakte. Ein aktueller Tablet-CI-Lauf endete
-  nach den Hostprüfungen an Maven Central HTTP 429, vor dem APK-Bau.
+  signierten Releaseartefakte. Der lokal nachgeholte Tablet-Bau
+  `c9745c9e` bindet beide Debug-APKs an den exakten Quellstand;
+  303 Unit- und 194 Webtests sind bestanden. Auf API 34 waren
+  Start, Editor, verschlüsselte Ablage, Wiederöffnen und
+  Layout erfolgreich. Die vollständige native Abnahme ist offen.
+- [#811](https://github.com/maik3531/Magnolie-Organizer/issues/811):
+  `c363dc01` aktualisiert den Prüfer für die Zeitzonenidentität
+  der Serien-Worker-Jobs. Die Quellbindung und der gezielte
+  Schlüsseltest sind bestanden. Der native Folgelauf stoppte
+  vorher beim Touch-Fokus des Notiztitels (siehe [#792](https://github.com/maik3531/Magnolie-Organizer/issues/792));
+  erneute Bestätigung der Serien-Jobs und Touch-Navigation offen.
 - [#330](https://github.com/maik3531/Magnolie-Organizer/issues/330):
   Die Linux-Korrekturen des Einstellungsabgleichs fehlten in dem
   privaten DEB. Auf `work/330-linux-settings-on-user-deb`
