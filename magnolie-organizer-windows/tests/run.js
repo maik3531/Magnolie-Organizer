@@ -23,6 +23,7 @@ for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-sav
   "handbook-source-diagnostics.js",
   "calendar-attachment-actions.js", "calendar-attachment-native.js",
   "calendar-accent-edits.js",
+  "appointment-organizer-suggestions.js",
   "sync-calendar-identity.js",
   "normative-timezones.js",
   "contact-email-case.js", "contact-copy-birthday.js",

@@ -98,6 +98,16 @@ aufgeführt.
   sofort frei. Absturz, falsche Zeitzonenidentität und Fensterende
   räumen den jeweiligen Worker auf. Beide Webquellen und die
   Portprojektion bestanden. Die native Langzeitprüfung bleibt in #395.
+- [#395](https://github.com/maik3531/Magnolie-Organizer/issues/395):
+  Das Terminblatt baut Namensvorschläge erst bei Fokus oder Eingabe
+  und zeigt bis zu 250 Treffer. Ein später exakter Name bleibt aus
+  dem vollständigen Bestand erreichbar. E-Mail-Auswahl und gespeicherte
+  Organisatorwerte bleiben erhalten. Zehn gezielte Fälle mit beiden
+  Desktop-Oberflächen bestanden. Der Host-Lasttest besteht mit
+  50.000 Einträgen insgesamt. Bei 250.000 Einträgen bleibt der
+  kombinierte Import-/Zeichenschritt über seinem Zeitlimit; das
+  fünfmalige Öffnen/Schließen des Terminblatts bleibt darunter.
+  Die native N100- und 30-Tage-Prüfung bleibt offen.
 - [#844](https://github.com/maik3531/Magnolie-Organizer/issues/844):
   Linux und Windows übernehmen ICS-Eintragsfarben und gültige
   Kalendervorgaben. Eigene Farben haben Vorrang; Bearbeiten, Löschen

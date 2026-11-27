@@ -816,9 +816,10 @@ assert.strictEqual(window.document.querySelector(".tb-aufklapper").getAttribute(
   "true", "additional-fields disclosure state is missing");
 assert.deepStrictEqual(Array.from(window.document.querySelector("#tb-kategorien-vorschlaege").options,
   (option) => option.value), ["Arbeit", "Privat"], "category suggestions are missing");
+const organizerName = window.document.querySelector("#tb-organisator-name");
+organizerName.focus();
 assert.ok(Array.from(window.document.querySelector("#tb-organisator-namen").options,
   (option) => option.value).includes("Anna Beispiel"), "organizer suggestion is missing");
-const organizerName = window.document.querySelector("#tb-organisator-name");
 organizerName.value = "Anna Beispiel";
 organizerName.dispatchEvent(new window.Event("input", { bubbles: true }));
 assert.deepStrictEqual(Array.from(window.document.querySelector("#tb-organisator-emails").options,

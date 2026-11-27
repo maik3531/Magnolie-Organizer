@@ -17815,11 +17815,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     orgUri.id = "tb-organisator-uri";
     orgName.setAttribute("list", "tb-organisator-namen");
     orgEmail.setAttribute("list", "tb-organisator-emails");
-    const kontaktVorschlaege = DATEN.kontakte.map((kontakt) => ({
-      name: [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ").trim() ||
-        String(kontakt.firma || "").trim(),
-      kontakt: kontakt
-    })).filter((kontakt) => kontakt.name);
+    const kontaktVorschlagName = kontakt => [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ").trim() ||
+      String(kontakt.firma || "").trim();
     const eindeutigeTexte = (werte) => {
       const gesehen = new Set();
       return werte.filter((wert) => {
@@ -17828,19 +17825,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         gesehen.add(schluessel); return true;
       });
     };
-    const orgNamenListe = vorschlagsListe("tb-organisator-namen",
-      eindeutigeTexte(kontaktVorschlaege.map((kontakt) => kontakt.name)));
+    const orgNamenListe = vorschlagsListe("tb-organisator-namen", []);
     const orgEmailListe = vorschlagsListe("tb-organisator-emails", []);
+    const orgNamenVorschlaege = () => {
+      const suche = orgName.value.trim().toLocaleLowerCase(), gesehen = new Set(), werte = [];
+      let exakt = "";
+      // Search the whole book on demand, but create only one visible chunk.
+      // No full-book option tree or persistent contact cache for a closed field.
+      for (const kontakt of DATEN.kontakte) {
+        const name = kontaktVorschlagName(kontakt), schluessel = name.toLocaleLowerCase();
+        if (!name || !schluessel.includes(suche) || gesehen.has(schluessel)) continue;
+        if (suche && schluessel === suche) exakt ||= name;
+        if (werte.length < LISTEN_HAEPPCHEN) { gesehen.add(schluessel); werte.push(name); }
+        if (!suche && werte.length >= LISTEN_HAEPPCHEN) break;
+      }
+      // A short exact name must not disappear behind earlier partial matches.
+      if (exakt && !gesehen.has(suche)) { werte.pop(); werte.unshift(exakt); }
+      orgNamenListe.replaceChildren(...werte.map(wert => {
+        const option = document.createElement("option"); option.value = wert; return option;
+      }));
+    };
     const orgEmailVorschlaege = () => {
       const name = orgName.value.trim().toLocaleLowerCase();
-      const passend = kontaktVorschlaege.filter((kontakt) =>
-        kontakt.name.toLocaleLowerCase() === name);
-      const emails = passend.flatMap((vorschlag) => emailEintragListe(vorschlag.kontakt).map((eintrag) => eintrag.wert));
+      const passend = name ? DATEN.kontakte.filter(kontakt =>
+        kontaktVorschlagName(kontakt).toLocaleLowerCase() === name) : [];
+      const emails = passend.flatMap(kontakt => emailEintragListe(kontakt).map(eintrag => eintrag.wert));
       orgEmailListe.replaceChildren(...eindeutigeTexte(emails).map((wert) => {
         const option = document.createElement("option"); option.value = wert; return option;
       }));
     };
-    orgName.addEventListener("input", orgEmailVorschlaege);
+    orgName.addEventListener("focus", orgNamenVorschlaege);
+    orgName.addEventListener("input", () => { orgNamenVorschlaege(); orgEmailVorschlaege(); });
     orgEmailVorschlaege();
     weitere.append(el("h4", null, _("Organizer")), orgNamenListe, orgEmailListe,
       formZeile(_("Name"), orgName),

@@ -3779,6 +3779,7 @@ function knopfMit(text, wurzel) {
   assert.strictEqual($(".tb-aufklapper").getAttribute("aria-expanded"), "true");
   assert.deepStrictEqual(Array.from($("#tb-kategorien-vorschlaege").options,
     (option) => option.value), ["Arbeit", "Privat"], "Kategorienvorschläge fehlen");
+  $("#tb-organisator-name").focus();
   assert.ok(Array.from($("#tb-organisator-namen").options,
     (option) => option.value).includes("Anna Beispiel"), "Organisatorvorschlag fehlt");
   setze($("#tb-organisator-name"), "Anna Beispiel");
