@@ -14,6 +14,7 @@ from magnolie_telefon import SecureChannel, now_ms, valid_uuid
 
 KIND = 'media_support.hello'
 TTL = 10_000
+_MAX_CLOCK_LEAD_MS = 250
 _FIELDS = {'type', 'v', 'message_id', 'kind', 'created_ms', 'expires_ms', 'body'}
 
 
@@ -32,7 +33,8 @@ def valid(message, at):
     return (message['type']=='message' and type(message['v']) is int and message['v']==1
             and message['kind']==KIND and valid_uuid(message['message_id'],4)
             and type(message['created_ms']) is int and type(message['expires_ms']) is int
-            and 0<=message['created_ms']<=at<message['expires_ms']<=253402300799999
+            and at>=0 and 0<=message['created_ms']<=at+_MAX_CLOCK_LEAD_MS
+            and max(message['created_ms'],at)<message['expires_ms']<=253402300799999
             and message['expires_ms']-message['created_ms']<=TTL
             and type(body) is dict and set(body)=={'format','feature'}
             and type(body['format']) is int and body['format']==1 and body['feature']=='shared_settings')

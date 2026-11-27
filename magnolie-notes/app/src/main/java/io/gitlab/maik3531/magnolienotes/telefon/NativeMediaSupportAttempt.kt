@@ -99,6 +99,7 @@ internal class NativeMediaSupportAttempt(
     companion object {
         const val KIND = "media_support.hello"
         const val TTL = 10_000L
+        private const val MAX_CLOCK_LEAD_MS = 250L
         private val fields = setOf("type", "v", "message_id", "kind", "created_ms", "expires_ms", "body")
         private val body = JsonObject(mapOf("format" to JsonPrimitive(1), "feature" to JsonPrimitive("shared_settings")))
 
@@ -112,7 +113,8 @@ internal class NativeMediaSupportAttempt(
             val created = (frame["created_ms"] as? JsonPrimitive)?.takeUnless { it.isString }?.longOrNull ?: return false
             val expires = (frame["expires_ms"] as? JsonPrimitive)?.takeUnless { it.isString }?.longOrNull ?: return false
             return id.isString && runCatching { TelefonNachrichten.uuid4(id.content) }.isSuccess &&
-                created >= 0 && created <= now && now < expires && expires <= 253_402_300_799_999L && expires - created <= TTL
+                now >= 0 && created >= 0 && created - now <= MAX_CLOCK_LEAD_MS &&
+                now < expires && created < expires && expires <= 253_402_300_799_999L && expires - created <= TTL
         }
     }
 }

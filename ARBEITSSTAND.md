@@ -116,6 +116,11 @@ aufgeführt.
   Sekunden und innerhalb der ursprünglichen Frist. Der Android-Dialog
   bleibt bedienbar und seine Entscheidung erfolgt weiterhin getrennt.
   60 gezielte Notes-Release-JVM-Tests bestanden.
+  Linux und Notes akzeptieren wie Windows bis zu 250 ms Uhrvorlauf
+  bei der WLAN-Erkennung gemeinsamer Medieneinstellungen. Der Ablauf
+  des Hello und die ursprüngliche Zehn-Sekunden-Frist gelten weiter.
+  32 Linux- und 33 Notes-Release-JVM-Prüfungen sowie drei gekoppelte
+  Linux/Notes-Reader-Fälle einschließlich WLAN-Wiederverbindung bestanden.
   Die Prüfung mit installierten Paketen bleibt offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte

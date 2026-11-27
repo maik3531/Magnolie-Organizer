@@ -240,6 +240,26 @@ def test_encrypted_support_requires_both_completions_and_retains_every_legacy_ve
         assert not attempt.supports(channel) and not attempt.send()
 
 
+def test_encrypted_support_accepts_slight_clock_lead_without_extending_the_attempt():
+    tick = [100]
+    ahead = offer(AT + 250)
+    assert not valid(offer(AT + 251), AT)
+    assert not valid(ahead, ahead['expires_ms'])
+    assert not valid(dict(ahead, expires_ms=ahead['created_ms']), AT)
+    with wire_pair() as (channel, wire):
+        attempt = NativeMediaSupportAttempt(channel, lambda: True, lambda: AT, lambda: tick[0])
+        assert attempt.send()
+        own = wire.receive()
+        wire.send(ahead)
+        assert attempt.receive(channel, channel.receive())
+        assert wire.receive() == ack(ahead)
+        assert not attempt.supports(channel)
+        tick[0] += own['expires_ms'] - own['created_ms']
+        wire.send(ack(own))
+        assert not attempt.receive(channel, channel.receive())
+        assert not attempt.supports(channel)
+
+
 def test_full_legacy_schema_reaches_actual_settings_store_and_requires_separate_agreement(native):
     service, peer, _ = native
     peer['capabilities'] = legacy_state()

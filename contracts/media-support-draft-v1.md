@@ -11,6 +11,8 @@ It uses an original UUIDv4 and at most 10 seconds on the wire. It contains no
 settings, account, media, permission, path or file-manifest data. It must not
 use the reserved `file_transfer.*` route: a legacy paired desktop without an
 active file owner rejects that route before it can answer a capability probe.
+The receiver allows up to 250 ms of sender clock lead on this Hello only.
+The advertised expiry and the original monotonic setup deadline still apply.
 
 On the receiving side, new implementations would handle this before ordinary
 dispatch and without a durable queue. Authorize the probe only on the current

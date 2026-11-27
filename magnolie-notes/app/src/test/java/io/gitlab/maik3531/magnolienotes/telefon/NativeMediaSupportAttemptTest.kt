@@ -92,4 +92,25 @@ class NativeMediaSupportAttemptTest {
             assertFalse(attempt.supports(channel))
         }
     }
+
+    @Test fun slightDesktopClockLeadAllowsTheHelloButDoesNotExtendTheAttempt() = exchange { pipe, channel, desktop ->
+        val ahead = NativeMediaSupportAttempt.offer(at + 250)
+        assertFalse(NativeMediaSupportAttempt.valid(NativeMediaSupportAttempt.offer(at + 251), at))
+        assertFalse(NativeMediaSupportAttempt.valid(ahead, at + 250 + NativeMediaSupportAttempt.TTL))
+        val invalidLifetime = JsonObject(ahead + ("expires_ms" to JsonPrimitive(at + 250)))
+        assertFalse(NativeMediaSupportAttempt.valid(invalidLifetime, at))
+        var tick = 100L
+        NativeMediaSupportAttempt(channel, pipe, { true }, { at }, { tick }).use { attempt ->
+            assertTrue(attempt.send())
+            val own = receive(desktop, 0)
+            send(desktop, 0, ahead)
+            assertTrue("250 ms clock lead on the authenticated Hello", attempt.receive(channel, channel.receive()))
+            assertEquals(NativeMediaSupportAttempt.ack(ahead), receive(desktop, 1))
+            assertFalse(attempt.supports(channel))
+            tick += NativeMediaSupportAttempt.TTL
+            send(desktop, 1, NativeMediaSupportAttempt.ack(own))
+            assertFalse(attempt.receive(channel, channel.receive()))
+            assertFalse(attempt.supports(channel))
+        }
+    }
 }
