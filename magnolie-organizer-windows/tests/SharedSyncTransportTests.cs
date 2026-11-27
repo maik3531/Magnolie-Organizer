@@ -101,6 +101,10 @@ internal static class SharedSyncTransportTests
         DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
             ? NativeMediaSupportAsync(firstReceive: "pc_image_manual", transfer: true, composed: true)
             : Task.CompletedTask;
+    internal static Task NativeOriginalPcVideoManualEntryAsync() =>
+        DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
+            ? NativeMediaSupportAsync(firstReceive: "pc_video_manual_entry", transfer: true, composed: true)
+            : Task.CompletedTask;
     internal static Task NativeOriginalCompositionAsync() =>
         DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
             ? NativeMediaSupportAsync(firstReceive: null, composed: true)
@@ -124,7 +128,7 @@ internal static class SharedSyncTransportTests
             return null;
         }
         using var fixture = new PhoneCameraParentTests.Fixture(filePairingEpoch: new string('a', 64), receive: PublishMetadata,
-            lifetime: transfer ? TimeSpan.FromSeconds(firstReceive == "pc_image_manual" ? 240 : 50) : null,
+             lifetime: transfer ? TimeSpan.FromSeconds(firstReceive is "pc_image_manual" or "pc_video_manual_entry" ? 240 : 50) : null,
             peerName: useDefaults ? "Magnolie Test " + Guid.NewGuid().ToString("N") : "Controlled original parent");
         var connection = fixture.Connection;
         fixture.Store.SavePeers([fixture.Peer]);
@@ -292,12 +296,13 @@ internal static class SharedSyncTransportTests
             var remote = fixture.Peer.Id;
             var selected = MediaSyncSettings.Change(MediaSyncSettings.Create(remote), remote, local.Id, "enabled", JsonValue.Create(true)!);
             var pcImages = firstReceive is "pc_image_hello" or "pc_image_manual";
-            selected = MediaSyncSettings.Change(selected, remote, local.Id, "direction", JsonValue.Create(pcImages ? "pc_to_phone" : "phone_to_pc")!);
-            if (pcImages)
+            var pcVideo = firstReceive == "pc_video_manual_entry";
+            selected = MediaSyncSettings.Change(selected, remote, local.Id, "direction", JsonValue.Create(pcImages || pcVideo ? "pc_to_phone" : "phone_to_pc")!);
+            if (pcImages || pcVideo)
                 selected = MediaSyncSettings.Change(selected, remote, local.Id, "collection_mode", JsonValue.Create("entire_collection")!);
-            if (firstReceive == "video")
+            if (firstReceive == "video" || pcVideo)
                 selected = MediaSyncSettings.Change(selected, remote, local.Id, "photos_enabled", JsonValue.Create(false)!);
-            if (firstReceive is "video" or "mixed")
+            if (firstReceive is "video" or "mixed" || pcVideo)
                 selected = MediaSyncSettings.Change(selected, remote, local.Id, "videos_enabled", JsonValue.Create(true)!);
             if (automatic is not null)
                 selected = MediaSyncSettings.Change(selected, remote, local.Id, "auto_mode", JsonValue.Create("wifi")!);
@@ -343,6 +348,11 @@ internal static class SharedSyncTransportTests
                 {
                     await VerifyPcImageHello(fixture, body, () => fixture.Read(received++), frame => fixture.Send(frame, sent++),
                         manual: firstReceive == "pc_image_manual");
+                    return;
+                }
+                if (pcVideo)
+                {
+                    await VerifyPcVideoManualEntry(fixture, () => fixture.Read(received++), frame => fixture.Send(frame, sent++));
                     return;
                 }
                 originalImport = connection.CapturePrivateMediaPhoneImport(body);
@@ -419,6 +429,33 @@ internal static class SharedSyncTransportTests
             connection.Dispose();
             try { await run; } catch (Exception error) when (error is IOException or OperationCanceledException or ObjectDisposedException) { }
         }
+    }
+
+    private static async Task VerifyPcVideoManualEntry(PhoneCameraParentTests.Fixture fixture,
+        Func<Task<JsonObject>> read, Func<JsonObject, Task> send)
+    {
+        var peer = fixture.Peer.Id;
+        using var coordinator = new TelefonCoordinator(fixture.Paths, (_, _) => Task.CompletedTask, dataStore: fixture.Store, localOnly: true);
+        var book = new PersonalActorNativeSaveHost(Path.Combine(fixture.Paths.Root, "pc-video-book"),
+            "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}");
+        coordinator.NativeProducerBook = book.Snapshot;
+        coordinator.NativeSavedBook = book.Saved;
+        var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+        online.Add(peer, fixture.Connection);
+        try
+        {
+            var view = coordinator.NativeMediaUiStatus(peer);
+            TestAssert.That(view["send_choice_kinds"] is JsonArray kinds && kinds.Count == 1 &&
+                kinds[0]?.GetValue<string>() == "video" && view["send_consent"] is not null,
+                "The matched WLAN video-only settings did not expose independent video SEND.");
+            TestAssert.That(view["shared_start_version"] is null && !fixture.HasUnexpectedFrame &&
+                !fixture.Store.ReadNativeMediaSendConsent(peer).Explicit &&
+                fixture.Store.NativeMediaCollectionRoots(peer).Count == 0,
+                "Viewing the video choice granted SEND, picked a root, or started work.");
+            await DeviceFileOriginalImagesTests.VerifyManualAsync(fixture, coordinator, read, send, video: true);
+        }
+        finally { online.Remove(peer); }
     }
 
     private static async Task VerifyPcImageHello(PhoneCameraParentTests.Fixture fixture, JsonObject settings,

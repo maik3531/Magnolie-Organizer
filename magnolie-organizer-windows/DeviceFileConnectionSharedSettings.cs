@@ -70,6 +70,19 @@ internal sealed partial class TelefonConnection
         return agreement is not null && discovery is not null ? () => agreement() && discovery() : null;
     }
 
+    internal Func<bool>? CapturePrivatePcVideoExport(JsonObject intent)
+    {
+        if (!NativePcVideoExportChecked || Transport != "wifi" ||
+            !OriginalMediaReceiveSelected || !NativeMediaUiMetadataAvailable(videos: true)) return null;
+        var values = MediaSyncSettings.Effective(intent);
+        if (values["collection_mode"]?.GetValue<string>() != "entire_collection" ||
+            values["direction"]?.GetValue<string>() != "pc_to_phone" ||
+            !MediaSyncSettings.TransferRequestedFor(intent, "video", toPhone: true) ||
+            MediaSyncSettings.TransferRequestedFor(intent, "images", toPhone: true)) return null;
+        var agreement = CapturePrivateMediaAgreement(intent);
+        return agreement is null ? null : () => NativePcVideoExportChecked && agreement();
+    }
+
     internal bool NativeMediaReceiveSettingsReady => OriginalMediaReceiveSelected
         ? store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey) is { } intent && CapturePrivateMediaPhoneImport(intent) is not null
         : MediaSharedSettingsReady;

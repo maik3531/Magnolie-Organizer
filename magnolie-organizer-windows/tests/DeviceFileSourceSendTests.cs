@@ -49,14 +49,17 @@ internal static class DeviceFileSourceSendTests
         body["receipts"] = new JsonArray(new JsonObject { ["file_id"] = file.Id, ["size"] = file.Size, ["sha256"] = file.Sha256, ["receipt_sha256"] = new string('b', 64) });
         return Message(DeviceFileSavedEnvelope.Kind, body, offer);
     }
-    internal static JsonObject Exchange(DeviceFileReceiveJobTests.Fixture f, string jobId)
+    internal static JsonObject Exchange(DeviceFileReceiveJobTests.Fixture f, string jobId) =>
+        Exchange(f.Native.Store, f.Native.Peer.Id, jobId);
+
+    internal static JsonObject Exchange(TelefonStore store, string peerId, string jobId)
     {
-        using var db = f.Native.Store.OpenDatabase(); db.Open(); using var read = db.CreateCommand();
+        using var db = store.OpenDatabase(); db.Open(); using var read = db.CreateCommand();
         read.CommandText = "SELECT value FROM native_media_source_exchanges WHERE job_id=$job"; read.Parameters.AddWithValue("$job", jobId);
         var cipher = (byte[])read.ExecuteScalar()!;
         var open = typeof(TelefonStore).GetMethod("Open", BindingFlags.Instance | BindingFlags.NonPublic, null,
             [typeof(string), typeof(string), typeof(byte[])], null)!;
-        var plain = (byte[])open.Invoke(f.Native.Store, ["native_media_source_exchange", f.Native.Peer.Id + "/" + jobId, cipher])!;
+        var plain = (byte[])open.Invoke(store, ["native_media_source_exchange", peerId + "/" + jobId, cipher])!;
         try { return JsonNode.Parse(plain)!.AsObject(); } finally { CryptographicOperations.ZeroMemory(plain); }
     }
     private static async Task Failed(Task task)

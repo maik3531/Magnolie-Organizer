@@ -46,27 +46,33 @@ function boot() {
     assert.equal(b.sourceMessages().length, 1);
     assert(!b.messages.some(m => ["sync", "sync_shared", "trash_preview", "trash_thumbnail"].includes(m.action)));
   });
-  await test("original WLAN photos expose only their SEND choice and require a manual start", async b => {
-    const state = { ...b.state, original_receive_settings: true, original_settings_editable: true, shared_runtime_ready: false,
-      send_choice_kinds: ["images"], collection_sources: [], send_consent: { ...b.state.send_consent, videos: false },
-      shared_settings: { ...b.state.shared_settings, values: { ...b.state.shared_settings.values, videos_enabled: false } } };
-    b.refresh(); b.reply(b.messages.at(-1), state);
-    const photos = b.panel.querySelector('[data-media="send_photos"]');
-    const video = b.panel.querySelector('[data-media="send_videos"]');
-    const sync = [...b.panel.querySelectorAll("button")].find(button => button.textContent === "Synchronize now");
-    assert(!photos.closest("label").hidden && !photos.closest("label").parentElement.hidden);
-    assert(video.closest("label").hidden && b.add("video").disabled);
-    assert(!b.add("images").disabled && sync.disabled);
-    b.add("images").click(); b.save(); await tick();
-    const pick = b.sourceMessages()[0];
-    b.reply(pick, { ...state, collection_sources: b.state.collection_sources, private_pc_image_manual_start: true,
-      shared_start_version: "e".repeat(64) });
-    assert(!sync.disabled);
-    assert(!b.messages.some(m => m.action === "sync_shared"));
-    sync.click(); b.save(); await tick();
-    assert.equal(b.messages.at(-1).action, "sync_shared");
-    assert.equal(b.messages.at(-1).version, "e".repeat(64));
-  });
+  for (const kind of ["images", "video"]) {
+    await test("original WLAN " + kind + " exposes only its SEND choice and requires a manual start", async b => {
+      const video = kind === "video";
+      const other = video ? "images" : "video";
+      const flag = video ? "private_pc_video_manual_start" : "private_pc_image_manual_start";
+      const state = { ...b.state, original_receive_settings: true, original_settings_editable: true, shared_runtime_ready: false,
+        send_choice_kinds: [kind], collection_sources: [], send_consent: { ...b.state.send_consent, photos: !video, videos: video },
+        shared_settings: { ...b.state.shared_settings, values: { ...b.state.shared_settings.values, photos_enabled: !video, videos_enabled: video } } };
+      b.refresh(); b.reply(b.messages.at(-1), state);
+      const allowed = b.panel.querySelector(`[data-media="send_${video ? "videos" : "photos"}"]`).closest("label");
+      const held = b.panel.querySelector(`[data-media="send_${video ? "photos" : "videos"}"]`).closest("label");
+      const sync = [...b.panel.querySelectorAll("button")].find(button => button.textContent === "Synchronize now");
+      assert(!allowed.hidden && !allowed.parentElement.hidden);
+      assert(held.hidden && b.add(other).disabled);
+      assert(!b.add(kind).disabled && sync.disabled);
+      b.add(kind).click(); b.save(); await tick();
+      const pick = b.sourceMessages()[0];
+      assert.equal(pick.media_type, kind);
+      b.reply(pick, { ...state, collection_sources: [{ ...b.state.collection_sources[0], media_type: kind }],
+        [flag]: true, shared_start_version: "e".repeat(64) });
+      assert(!sync.disabled);
+      assert(!b.messages.some(m => m.action === "sync_shared"));
+      sync.click(); b.save(); await tick();
+      assert.equal(b.messages.at(-1).action, "sync_shared");
+      assert.equal(b.messages.at(-1).version, "e".repeat(64));
+    });
+  }
   for (const scenario of ["start", "changed-version", "changed-book", "revoked"]) {
     await test("original WLAN photo start " + scenario, async b => {
       const receive = { granted: scenario === "revoked", version: "b".repeat(64) };

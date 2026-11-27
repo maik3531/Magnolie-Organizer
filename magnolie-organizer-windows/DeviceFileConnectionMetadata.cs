@@ -15,6 +15,7 @@ internal sealed partial class TelefonConnection
     private const string PcImageBatchSupport = "pc_image_batch_v3";
     internal bool NativeMediaSupportChecked { get; set; } // Explicit native composition.
     internal bool NativePcImageBatchChecked { get; set; } // Set only alongside the native sender.
+    internal bool NativePcVideoExportChecked { get; set; } // Set only alongside the native sender.
     private sealed class PcImageBatchProbe(string id, long started, long expires)
     {
         internal readonly string Id = id;

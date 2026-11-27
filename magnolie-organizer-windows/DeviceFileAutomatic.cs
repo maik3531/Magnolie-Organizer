@@ -16,7 +16,7 @@ internal sealed partial class TelefonCoordinator
         internal CancellationTokenSource? Active;
     }
     private readonly ConcurrentDictionary<string, NativeAutomaticMediaState> nativeAutomaticMedia = new(StringComparer.Ordinal);
-    private sealed record OriginalImageExport(NativeBookSaveState Book, NativeMediaSendConsent Consent,
+    private sealed record OriginalExport(string Kind, NativeBookSaveState Book, NativeMediaSendConsent Consent,
         NativeMediaCollectionRoot[] Roots, byte[] PeerKey, Func<bool> Agreement);
 
     partial void StartNativeMediaAutomatic(CancellationToken token)
@@ -118,7 +118,7 @@ internal sealed partial class TelefonCoordinator
 
     private async Task<string> RunNativeMediaInventoryOnceAsync(string peerId, JsonObject? manualIntent, CancellationToken token,
         TelefonConnection? expectedConnection = null, NativeMediaReceiveConsent? originalReceive = null, NativeBookSaveState? originalBook = null,
-        bool originalAutomaticSetup = false, bool originalBackground = false, OriginalImageExport? originalImages = null)
+        bool originalAutomaticSetup = false, bool originalBackground = false, OriginalExport? originalExport = null)
     {
         var manual = manualIntent is not null && !originalBackground;
         JsonObject? runIntent = manualIntent;
@@ -136,12 +136,12 @@ internal sealed partial class TelefonCoordinator
         void Intent()
         {
             if (runIntent is not null && (!ReferenceEquals(NativeMediaOnlineConnection(peerId), connection) ||
-                !(originalImages?.Agreement() ?? original?.Invoke() ?? connection.MediaSharedSettingsReady) ||
+                 !(originalExport?.Agreement() ?? original?.Invoke() ?? connection.MediaSharedSettingsReady) ||
                 !JsonNode.DeepEquals(store.ReadNativeMediaSharedSettings(peerId, store.LoadPeers().Single(value => value.Id == peerId).PublicKey), runIntent)))
                 throw DeviceFileControl.Error(manual ? "file_media_manual_intent_changed" : "file_media_original_shared_intent_changed");
         }
         Intent();
-        if (original is null && originalImages is null && (connection.MediaSharedControlsReady || store.HasNativeMediaSharedSettings(peerId)))
+        if (original is null && originalExport is null && (connection.MediaSharedControlsReady || store.HasNativeMediaSharedSettings(peerId)))
         {
             // Pin the full original registers for automatic roots too. Equal
             // projected local preferences do not make a later shared ACK the
@@ -155,7 +155,7 @@ internal sealed partial class TelefonCoordinator
             Intent();
         }
         var preferences = store.ReadNativeMediaPreferences(peerId);
-        if (original is null && originalImages is null && ((!manual && !preferences.AutomaticWifi) || !preferences.PhotosEnabled && !preferences.VideosEnabled))
+        if (original is null && originalExport is null && ((!manual && !preferences.AutomaticWifi) || !preferences.PhotosEnabled && !preferences.VideosEnabled))
         {
             if (manual) throw DeviceFileControl.Error("file_media_manual_choice_required");
             return "held";
@@ -190,23 +190,27 @@ internal sealed partial class TelefonCoordinator
             }
             activity = TraySyncActivity.Enter();
             var permit = NativeMediaBookPermit.Capture(NativeProducerBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required"), NativeSavedBook);
-            if (originalImages is not null)
+            if (originalExport is not null)
             {
                 void RequireIntent()
                 {
                     lifetime.Token.ThrowIfCancellationRequested(); permit.Require();
-                    if (!JsonNode.DeepEquals(store.ReadNativeMediaSharedSettings(peerId, originalImages.PeerKey), runIntent))
+                     if (!JsonNode.DeepEquals(store.ReadNativeMediaSharedSettings(peerId, originalExport.PeerKey), runIntent))
                         throw DeviceFileControl.Error("media_source_current_sending_owner_required");
                 }
                 try
                 {
-                    if (NativeSavedBook() != originalImages.Book)
+                     if (NativeSavedBook() != originalExport.Book)
                         throw DeviceFileControl.Error("file_media_current_saved_book_required");
                     RequireIntent();
-                    await connection.PrepareNativeMediaSendUiAsync(NativeSavedBook, "images", lifetime.Token,
-                        originalImages.Agreement, originalImages.Consent);
-                    await connection.SynchronizeOriginalPcImageCollectionAsync(runIntent!, permit, RequireIntent, originalImages.Agreement,
-                        originalImages.Consent, originalImages.Roots, lifetime.Token);
+                     await connection.PrepareNativeMediaSendUiAsync(NativeSavedBook, originalExport.Kind, lifetime.Token,
+                         originalExport.Agreement, originalExport.Consent);
+                     if (originalExport.Kind == "images")
+                         await connection.SynchronizeOriginalPcImageCollectionAsync(runIntent!, permit, RequireIntent, originalExport.Agreement,
+                             originalExport.Consent, originalExport.Roots, lifetime.Token);
+                     else
+                         await connection.SynchronizeOriginalPcVideoCollectionAsync(runIntent!, permit, RequireIntent, originalExport.Agreement,
+                             originalExport.Consent, originalExport.Roots, lifetime.Token);
                     lock (state) state.Phase = "content_pass";
                     return "content_pass";
                 }

@@ -341,6 +341,7 @@ internal sealed partial class TelefonStore
         internal string JobId => Manifest.SourceId;
         internal TelefonStore OwnerStore => store;
         internal object ConnectionOwner => source.ConnectionOwner;
+        internal bool NewTypedVideoOnly { get; private init; }
         internal string PeerId => scope.PeerId;
         internal string Nonce { get { lock (cacheGate) { Require(); return record["nonce"]!.GetValue<string>(); } } }
         internal void BeginSendAttempt(TelefonConnection connection)
@@ -583,7 +584,8 @@ internal sealed partial class TelefonStore
             }
         }
 
-        internal static NativePreparedMediaSource Create(TelefonStore store, NativeMediaSourceOwner source, bool completedSuccessor = false)
+        internal static NativePreparedMediaSource Create(TelefonStore store, NativeMediaSourceOwner source, bool completedSuccessor = false,
+            bool newTypedVideoOnly = false)
         {
             if (!ReferenceEquals(source.Store, store)) throw DeviceFileControl.Error("media_source_cache_native_owner_required");
             source.Require(); var scope = store.MediaPreferenceScope(source.PeerId); var manifest = source.PrepareManifest();
@@ -600,11 +602,13 @@ internal sealed partial class TelefonStore
                 {
                     source.Require(); using var db = store.OpenNativeMediaDatabase(); db.Open(); using var transaction = db.BeginTransaction(deferred: true);
                     var previous = store.CompletedSourcePredecessor(db, transaction, scope, store.SourceRecords(db, transaction, scope), body, manifest);
+                    if (newTypedVideoOnly && previous is not null)
+                        throw DeviceFileControl.Error("media_collection_video_replacement_unavailable");
                     if (previous is not null) { body["format"] = local is null ? 2 : 4; body["previous"] = previous; }
                     source.Require(); transaction.Commit();
                 }
             }
-            var result = new NativePreparedMediaSource(store, source, scope, body);
+            var result = new NativePreparedMediaSource(store, source, scope, body) { NewTypedVideoOnly = newTypedVideoOnly };
             try { result.Freeze(); return result; } catch { result.retired = true; throw; } // Never erase partial/history or adopt it on retry.
         }
     }

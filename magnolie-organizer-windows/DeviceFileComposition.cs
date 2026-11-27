@@ -11,6 +11,7 @@ internal sealed partial class TelefonCoordinator
     {
         connection.NativeMediaSupportChecked = DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows();
         connection.NativePcImageBatchChecked = connection.NativeMediaSupportChecked;
+        connection.NativePcVideoExportChecked = connection.NativeMediaSupportChecked;
         connection.MediaPreferencesChanged = () => NativeMediaSharedPreferencesChangedAsync(peer.Id, connection);
         connection.MediaManualRequested = (settings, requestId, deadline, token) =>
             StartNativeMediaManualRequest(peer.Id, connection, settings, requestId, deadline, token);

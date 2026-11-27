@@ -13,6 +13,7 @@ internal sealed partial class TelefonStore
         private readonly string path, senderId, receiverId;
         private readonly JsonObject provenance, origin;
         private DeviceFileManifest? prepared;
+        private string? preparedMime;
         private NativePreparedMediaSource? frozen;
         private bool freezeAttempted;
         internal override TelefonStore Store { get; }
@@ -35,19 +36,24 @@ internal sealed partial class TelefonStore
         internal DeviceFileNativeDirectory.CollectionSignature ObserveCollection() => file.Observe();
         internal NativePreparedMediaSource Freeze() => FreezeCore(false);
         internal NativePreparedMediaSource FreezeCompletedSuccessor() => FreezeCore(true);
-        private NativePreparedMediaSource FreezeCore(bool completedSuccessor)
+        internal NativePreparedMediaSource FreezeNewTypedVideo() => FreezeCore(true, newTypedVideoOnly: true);
+        private NativePreparedMediaSource FreezeCore(bool completedSuccessor, bool newTypedVideoOnly = false)
         {
             NativePreparedMediaSource result;
             lock (sourceGate)
             {
                 Require();
+                if (newTypedVideoOnly && (PrepareManifest().TotalBytes <= 0 || preparedMime != "video/mp4"))
+                    throw DeviceFileControl.Error("media_collection_video_original_required");
                 if (frozen is null)
                 {
                     if (freezeAttempted) throw DeviceFileControl.Error("media_source_original_preparation_required");
                     freezeAttempted = true;
-                    frozen = NativePreparedMediaSource.Create(Store, this, completedSuccessor);
+                    frozen = NativePreparedMediaSource.Create(Store, this, completedSuccessor, newTypedVideoOnly);
                 }
                 result = frozen;
+                if (newTypedVideoOnly && !result.NewTypedVideoOnly)
+                    throw DeviceFileControl.Error("media_collection_video_original_required");
             }
             result.Require(); return result;
         }
@@ -72,7 +78,7 @@ internal sealed partial class TelefonStore
                         }
                         finally { CryptographicOperations.ZeroMemory(chunk); }
                     }
-                    Require(); _ = NativeMediaContentMime.IdentifyCollection(prefix, file.Size, provenance["media_type"]!.GetValue<string>());
+                    Require(); preparedMime = NativeMediaContentMime.IdentifyCollection(prefix, file.Size, provenance["media_type"]!.GetValue<string>());
                     var hash = Convert.ToHexString(digest.GetHashAndReset()).ToLowerInvariant();
                     prepared = new(Guid.NewGuid().ToString("N"), Guid.NewGuid().ToString("N"), senderId, receiverId,
                         [new DeviceManifestFile(Guid.NewGuid().ToString("N"), path, file.Size, hash)], file.Size);
@@ -397,6 +403,45 @@ internal sealed partial class TelefonConnection
                 var backups = store.SaveNativePreparedPcBatchBackups(cache, output, TargetCurrent, createBackup: true);
                 await SendConnectedMediaBatchToSourceEndAsync(cache, output, backups, PermitAfterDrain, agreement, token);
             }
+        }
+        collection.Finish();
+    }
+
+    internal async Task SynchronizeOriginalPcVideoCollectionAsync(JsonObject intent, NativeMediaBookPermit book,
+        Action requireIntent, Func<bool> agreement, NativeMediaSendConsent expectedSend,
+        IReadOnlyList<NativeMediaCollectionRoot> expectedRoots, CancellationToken token)
+    {
+        var controls = RequireNativeFileControls();
+        var binding = controls.Binding(new string('0', 64), senderIsLocal: true)
+            ?? throw DeviceFileControl.Error("media_source_positive_sending_grant_required");
+        var position = controls.RemoteControlWitness();
+        if (position is null || controls.Binding(binding.DestinationToken, senderIsLocal: true) != binding)
+            throw DeviceFileControl.Error("media_collection_original_send_binding_required");
+        void Current()
+        {
+            requireIntent();
+            if (!agreement() || !ReferenceEquals(Volatile.Read(ref fileControls), controls) ||
+                !controls.NativeMetadataPositionUnchanged(position))
+                throw DeviceFileControl.Error("media_collection_original_send_binding_required");
+        }
+        Current();
+        var plan = store.NativeMappedMediaCandidates(peer.Id, "video");
+        if (plan.NeedsReview || plan.Candidates.Count != 0)
+            throw DeviceFileControl.Error("media_source_private_mapped_return_unavailable");
+        using var collection = new NativeCollectionMediaPass(store, peer.Id, "video", Current, token, this, expectedSend, expectedRoots);
+        foreach (var (selection, member) in collection.Members())
+        {
+            var tokenForRoot = DeviceFileControl.Digest("magnolie-media-collection-member-v1\0",
+                new JsonObject { ["root_id"] = selection.Id, ["root_version"] = selection.Version });
+            using var source = store.OpenNativeCollectionMediaSource(peer.Id, "video", selection.Id, selection.Version,
+                member, binding with { DestinationToken = tokenForRoot }, book, intent, collection.Require, this);
+            collection.CheckOpened(selection, member, source.ObserveCollection());
+            TelefonStore.NativePreparedMediaSource cache;
+            try { cache = source.FreezeNewTypedVideo(); }
+            catch (InvalidDataException error) when (error.Message is "media_collection_known_other_type" or
+                "media_source_cache_latest_payload_already_sent") { Current(); continue; }
+            using (cache) await SendNativeMappedMediaSourceToSourceEndAsync(cache, token);
+            Current();
         }
         collection.Finish();
     }

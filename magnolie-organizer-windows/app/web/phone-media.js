@@ -229,7 +229,6 @@
       const sourceValues = native?.shared_settings?.values;
       const originalReceive = native?.original_receive_settings === true;
       const sendKinds = native?.send_choice_kinds;
-      const ownImageSource = Array.isArray(sendKinds) && sendKinds.includes("images");
       const settingsHeld = originalReceive && native.original_settings_editable !== true;
       const twoWayHeld = sourceValues?.direction === "two_way" && sourceValues.collection_mode !== "import_only";
       const runtimeReady = shared && !twoWayHeld && native.shared_runtime_ready === true;
@@ -273,7 +272,7 @@
         manualSync.textContent = t(native?.automatic_receive_setup === true ? "Automatically synchronize over Wi-Fi" : "Synchronize now");
         manualSync.disabled = busy || !enabled || !(runtimeReady ||
           (native?.original_manual_receive === true || native?.automatic_receive_setup === true ||
-            native?.private_pc_image_manual_start === true) && !twoWayHeld) || (shared
+             native?.private_pc_image_manual_start === true || native?.private_pc_video_manual_start === true) && !twoWayHeld) || (shared
           ? native.shared_matched !== true || !/^[a-f0-9]{64}$/.test(native.shared_start_version || "")
           : !selectedAlbum || !catalog || native?.metadata_ready?.[kind] !== true);
       }
@@ -289,7 +288,7 @@
       for (const [mediaType, entry] of sourceRows) {
         entry.row.hidden = native?.metadata_ready?.[mediaType] !== true || Array.isArray(sendKinds) && !sendKinds.includes(mediaType);
         entry.button.disabled = busy || sourceChoiceWaiting || sourceArea.hidden || !enabled ||
-          !(runtimeReady || ownImageSource && mediaType === "images") || native?.shared_matched !== true ||
+           !(runtimeReady || Array.isArray(sendKinds) && sendKinds.includes(mediaType)) || native?.shared_matched !== true ||
           native?.metadata_ready?.[mediaType] !== true || !/^[a-f0-9]{64}$/.test(native?.collection_sources_version || "") ||
           sourceValues?.[mediaType === "video" ? "videos_enabled" : "photos_enabled"] !== true ||
           native?.send_consent?.[mediaType === "video" ? "videos" : "photos"] !== true;
