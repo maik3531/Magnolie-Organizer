@@ -19,17 +19,6 @@ def fixture(tmp_path, monkeypatch, decision='delete', own_ack=False, admitted=Fa
     provider = lambda:book.current('native-completion-profile',True)
     service, peer, channel, registry, handle, events = owned_transport(tmp_path,monkeypatch,
         deletions=True,skip_deletions=False,book_source=provider)
-    semantic_callback=service.callback
-    activity=[]
-    def callback(kind,payload):
-        if kind=='personal_sync_activity' and type(payload) is dict and payload=={}:
-            active=service.tray_sync_activity()['synchronizing']
-            if type(active) is not bool or active is not (not activity[-1] if activity else True):
-                semantic_callback('invalid_personal_sync_activity',payload)
-            activity.append(active)
-        else:semantic_callback(kind,payload)
-    service.callback=callback
-    service._completion_test_activity=activity
     fingerprint = phone.fingerprint(phone.unb64(peer['static_public'],32))
     private = actor.storage_peer(handle.actor_id)
     proposal = {'proposal_id':str(uuid.uuid4()),'kind':'note','id':'note-one','parent_id':'',
@@ -66,12 +55,14 @@ def test_completion_fixture_keeps_semantic_callback_denial_and_validates_real_ac
     service.personal_actor_admissions[handle.actor_id]['completion']=completion
     advance([])
     service._receive_personal_actor(peer,channel,ack)
-    assert service._completion_test_activity==[True,False]
+    assert service._actor_test_activity==[True,False]
     assert not service.tray_sync_activity()['synchronizing'] and not events and not channel.sent
     service.callback('unexpected_content',{'synthetic':True})
     assert events==[('unexpected_content',{'synthetic':True})]
     service.callback('personal_sync_activity',{'unexpected':True})
     assert events[-1]==('personal_sync_activity',{'unexpected':True})
+    service.callback('personal_sync_activity',{})
+    assert events[-1]==('invalid_personal_sync_activity',{})
 
 
 def test_success_requires_fresh_expected_scope_and_durable_control(tmp_path,monkeypatch):

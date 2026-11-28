@@ -36,7 +36,21 @@ def owned_transport(tmp_path, monkeypatch, *, deletions=False, skip_deletions=No
         assert not service.lock._is_owned(), "Actor network write held the service/source guard"
         original_send(value)
     channel.send = send
-    events = []; service.callback = lambda *event: events.append(event)
+    events, activity = [], []
+
+    def callback(kind, payload):
+        if kind == "personal_sync_activity" and type(payload) is dict and payload == {}:
+            active = service.tray_sync_activity()["synchronizing"]
+            expected = not activity[-1] if activity else True
+            if active is not expected:
+                events.append(("invalid_personal_sync_activity", payload))
+            else:
+                activity.append(active)
+        else:
+            events.append((kind, payload))
+
+    service.callback = callback
+    service._actor_test_activity = activity
     channel.sent.clear()
     return service, peer, channel, registry, handle, events
 

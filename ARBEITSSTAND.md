@@ -50,6 +50,12 @@ aufgeführt.
   Capability-Anfangszustand des Readers. Alle 42 Linux-Telefontests
   bestanden auf unverändertem Produktcode.
 
+- [#870](https://github.com/maik3531/Magnolie-Organizer/issues/870):
+  Der Linux-Actor-Testaufbau erfasst gültige inhaltsfreie Tray-Aktivität
+  getrennt. Falsche Zustandswechsel, falsche Payloads und unerwartete
+  Callbacks bleiben sichtbar. 82 Transport-, Completion-, Postfach- und
+  Tray-Fälle bestanden auf unverändertem Produktcode.
+
 - [#869](https://github.com/maik3531/Magnolie-Organizer/issues/869):
   Der breite Linux-Webtest prüft Feiertagsabrufe über die kontrollierte
   Brücke mit exakter Regions- und Jahresabdeckung. Ungebundene Antworten
