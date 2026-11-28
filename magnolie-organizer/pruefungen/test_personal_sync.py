@@ -7,7 +7,10 @@ import copy
 import io
 import hashlib
 import base64
+import sqlite3
 from unittest import mock
+
+import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "bin"))
@@ -645,6 +648,49 @@ def test_android_to_desktop_format2_contract_vector_and_run_barrier(tmp_path):
         ("personal_sync.batch", batch, 60000)], [(descriptor, raw)], "any")
     assert [item["kind"] for item in queued] == ["personal_sync.request", "personal_sync.batch"]
     assert store.has_outgoing_attachments(peer, run)
+
+
+@pytest.mark.parametrize("grouped", [False, True], ids=["request", "request-with-batch"])
+def test_failed_outbox_insert_does_not_leave_automatic_run(tmp_path, grouped):
+    service, peer = _personal_service(tmp_path, lambda *_: None)
+    remote = service.store.peer(peer)
+    remote["capabilities"] = phone.desktop_capabilities()
+    for name in ("grants", "local_grants"):
+        remote[name]["grants"]["personal_tasks_sync"] = True
+    service.store.save_peers()
+    request = {"format": 3 if grouped else 1, "run_id": str(uuid.uuid4()),
+               "trigger": "auto_wifi", "modules": ["tasks"] if grouped else ["notes"]}
+    value = {"title": "Child", "note": "", "due": "", "priority": 2, "completed": False,
+             "remind": False, "lead_days": 0, "reminder_minute": 0, "created_ms": 1,
+             "modified_ms": 2, "uid": "child", "parent_uid": "parent", "order": 7}
+    record = {"kind": "task", "id": "child", "state": "live", "clock": contract()["clock"]["left"],
+              "hash": sync.projection_hash(value), "modified_ms": 2, "value": value}
+    batch = {"format": 3, "run_id": request["run_id"], "batch_id": str(uuid.uuid4()),
+             "sequence": 0, "last": True, "reply": False, "records": [record],
+             "records_hash": sync.records_hash([record])}
+
+    def submit():
+        if grouped:
+            return service.send_personal_sync_run(peer, request, [batch], [])
+        return service.send_personal_sync(peer, "personal_sync.request", request)
+
+    fail_kind = "personal_sync.batch" if grouped else "personal_sync.request"
+    with sqlite3.connect(service.store.database_path) as db:
+        db.execute(f"""CREATE TRIGGER fail_test_outbox BEFORE INSERT ON outbox
+                   WHEN NEW.kind='{fail_kind}' BEGIN SELECT RAISE(ABORT, 'test failure'); END""")
+    with pytest.raises(sqlite3.IntegrityError, match="test failure"):
+        submit()
+    reopened = phone.PhoneStore(str(tmp_path / "phone"), "Test")
+    assert reopened.personal_run(peer, request["run_id"]) == {}
+    assert reopened.active_auto_run(peer) == ""
+    assert reopened.pending(peer, "wifi") == []
+    with sqlite3.connect(service.store.database_path) as db:
+        db.execute("DROP TRIGGER fail_test_outbox")
+    submit()
+    assert reopened.personal_run(peer, request["run_id"]) == request
+    assert reopened.active_auto_run(peer) == request["run_id"]
+    assert len(reopened.pending(peer, "wifi")) == (2 if grouped else 1)
+    assert reopened.pending(peer, "bluetooth") == []
 
 
 def test_deletion_messages_are_exact_bounded_and_content_free():

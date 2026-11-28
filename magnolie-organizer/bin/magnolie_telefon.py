@@ -949,7 +949,10 @@ class PhoneStore:
             return {}
         return status
 
-    def queue(self, peer_id, kind, body, ttl_ms, transport_policy="any", actor_run_id=None):
+    def queue(self, peer_id, kind, body, ttl_ms, transport_policy="any", actor_run_id=None, *,
+              remember_request=False):
+        if remember_request and (kind != "personal_sync.request" or actor_run_id is not None):
+            raise ValueError("invalid ordinary run registration")
         if is_reserved_ephemeral_phone_control({'kind': kind, 'body': body}):
             raise ValueError('ephemeral phone controls cannot enter a persistent queue')
         if kind.startswith("device_status.") and ("identifiers" in body or body.get("version") == 4):
@@ -982,8 +985,9 @@ class PhoneStore:
             validate_personal_sync_body(kind, body)
         encrypted = self._encrypt(canonical(message), "outbox", message["message_id"])
         with sqlite3.connect(self.database_path) as db:
-            if kind == "personal_sync.deletion_proposals":
+            if remember_request or kind == "personal_sync.deletion_proposals":
                 db.execute("BEGIN IMMEDIATE")
+            if kind == "personal_sync.deletion_proposals":
                 self._remember_personal_proposal_kinds(db,
                     personal_actor_contract.storage_peer(actor_run_id) if actor_run_id is not None else peer_id, body, True, now)
             if kind in {personal_sync_contract.NOTE_MODE_KIND, personal_sync_contract.DESKTOP_FEATURES_KIND, shared_sync_contract.KIND}:
@@ -991,6 +995,8 @@ class PhoneStore:
             size = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM outbox").fetchone()[0]
             if size + len(encrypted) > 50 * 1024 * 1024:
                 raise RuntimeError("queue_full")
+            if remember_request:
+                self.remember_personal_run(peer_id, body, db=db)
             db.execute("INSERT INTO outbox(message_id,peer_id,kind,created_ms,expires_ms,payload,attempts,next_attempt_ms,last_error,transport_policy) VALUES(?,?,?,?,?,?,?,?,?,?)",
                        (message["message_id"], peer_id, kind, now, now + ttl_ms,
                          encrypted, 0, now, "", transport_policy))
@@ -1171,10 +1177,14 @@ class PhoneStore:
             require_current()
         return copy.deepcopy(recorded['frames'])
 
-    def queue_format2_run(self, peer_id, messages, attachments, transport_policy, actor_run_id=None, storage_peer_id=None):
+    def queue_format2_run(self, peer_id, messages, attachments, transport_policy, actor_run_id=None,
+                          storage_peer_id=None, *, remember_request=False):
         """Atomically encrypt-stage every source before record messages enter outbox."""
         if transport_policy not in {"any", "wifi_only"} or not messages:
             raise ValueError("invalid format 2 run")
+        if remember_request and (actor_run_id is not None or storage_peer_id is not None
+                or messages[0][0] != "personal_sync.request" or messages[-1][1].get("reply")):
+            raise ValueError("invalid ordinary run registration")
         storage_peer = storage_peer_id or peer_id
         if (storage_peer_id is not None and actor_run_id is None or
                 actor_run_id is not None and storage_peer != personal_actor_contract.storage_peer(actor_run_id)):
@@ -1214,6 +1224,8 @@ class PhoneStore:
                     or rows + len(staged) > 4096 or used + added > 100 * 1024 * 1024
                     or run_used + added > 50 * 1024 * 1024):
                 raise RuntimeError("attachment staging capacity")
+            if remember_request:
+                self.remember_personal_run(peer_id, messages[0][1], db=db)
             for descriptor in {item["sha256"]: item for item, _raw in attachments}.values():
                 metadata = self._attachment_metadata(storage_peer, run_id, reply, aggregate_hash, descriptor["sha256"],
                     "outgoing", descriptor["size"], descriptor["mime"], transport_policy, now + DAY_MS, False,
@@ -1857,10 +1869,10 @@ class PhoneStore:
                     (self._encrypt_attachment_metadata(transfer), peer_id, run_id, int(reply), aggregate_hash, digest))
         return valid
 
-    def _personal_run_record(self, peer_id, run_id):
+    def _personal_run_record(self, peer_id, run_id, *, db=None):
         key = "personal_run:%s:%s" % (peer_id, run_id)
-        with sqlite3.connect(self.database_path) as db:
-            row = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+        with (sqlite3.connect(self.database_path) if db is None else contextlib.nullcontext(db)) as connection:
+            row = connection.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
         if not row:
             return None
         stored = strict_json(self._decrypt(row[0], "personal_run", key))
@@ -1874,9 +1886,13 @@ class PhoneStore:
             raise ValueError("invalid durable personal sync policy")
         return stored
 
-    def remember_personal_run(self, peer_id, body, claimed_expires_ms=None):
+    def remember_personal_run(self, peer_id, body, claimed_expires_ms=None, *, db=None):
+        if db is None:
+            with sqlite3.connect(self.database_path) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                return self.remember_personal_run(peer_id, body, claimed_expires_ms, db=connection)
         key = "personal_run:%s:%s" % (peer_id, body["run_id"])
-        existing = self._personal_run_record(peer_id, body["run_id"])
+        existing = self._personal_run_record(peer_id, body["run_id"], db=db)
         if existing:
             if existing["body"] != body:
                 raise ValueError("conflicting personal sync run")
@@ -1891,8 +1907,7 @@ class PhoneStore:
             expires = min(expires, claimed_expires_ms)
         value = self._encrypt(canonical({"body": body, "created_ms": created,
             "expires_ms": expires}), "personal_run", key)
-        with sqlite3.connect(self.database_path) as db:
-            db.execute("INSERT OR IGNORE INTO meta(key,value) VALUES(?,?)", (key, value))
+        db.execute("INSERT INTO meta(key,value) VALUES(?,?)", (key, value))
 
     def remember_scoped_run(self, peer_id, expected_public, request, reference, claimed_expires_ms):
         """Atomically bind the ordinary run to the current paired content preference.
@@ -8148,7 +8163,6 @@ class PhoneService:
             trigger = body["trigger"]
             if trigger == "auto_wifi" and self.store.active_auto_run(peer_id):
                 raise RuntimeError("Ein automatischer Personal-Sync-Lauf ist bereits aktiv.")
-            self.store.remember_personal_run(peer_id, body)
         else:
             run = self.store.personal_run(peer_id, body["run_id"])
             if kind in {"personal_sync.batch", "personal_sync.report"} and format != run.get("format", 1):
@@ -8191,7 +8205,8 @@ class PhoneService:
             return ""
         message = (self.store.queue_deletion_decision(peer_id, body, ttl, policy)
                    if kind == "personal_sync.deletion_decision" else
-                   self.store.queue(peer_id, kind, body, ttl, policy))
+                   self.store.queue(peer_id, kind, body, ttl, policy,
+                                    remember_request=kind == "personal_sync.request"))
         if kind == "personal_sync.request" and trigger == "auto_wifi":
             self.store.set_active_auto_run(peer_id, body["run_id"])
         if kind == "personal_sync.report" and body["state"] in {
@@ -8260,14 +8275,12 @@ class PhoneService:
         reply = batches[-1]["reply"]
         if trigger == "auto_wifi" and not reply and self.store.active_auto_run(peer_id):
             raise RuntimeError("Ein automatischer Personal-Sync-Lauf ist bereits aktiv.")
-        if not reply:
-            self.store.remember_personal_run(peer_id, request)
-        elif self.store.personal_run(peer_id, request["run_id"]) != request:
+        if reply and self.store.personal_run(peer_id, request["run_id"]) != request:
             raise ValueError("conflicting personal sync reply")
         policy = "wifi_only" if trigger == "auto_wifi" else "any"
         messages = ([] if reply else [("personal_sync.request", request, 60 * 60 * 1000)]) + [
             ("personal_sync.batch", body, DAY_MS) for body in batches]
-        queued = self.store.queue_format2_run(peer_id, messages, decoded, policy)
+        queued = self.store.queue_format2_run(peer_id, messages, decoded, policy, remember_request=not reply)
         if report is not None:
             if decoded:
                 self.store.hold_personal_report(peer_id, report)

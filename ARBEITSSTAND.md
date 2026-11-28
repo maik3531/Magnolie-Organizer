@@ -53,8 +53,12 @@ aufgeführt.
   Scheitert das Einreihen der Anfrage oder eines Datenpakets, kann ein
   erneuter Versuch sofort starten. 134 Release-JVM-Tests bestanden,
   darunter SQLite-Fehlschläge in beiden Protokollformaten und erneuter
-  Versand ausschließlich über WLAN. Die Automatik über weitere
-  freigegebene Transporte bleibt offen.
+  Versand ausschließlich über WLAN. Linux speichert den gewöhnlichen
+  Lauf ebenfalls gemeinsam mit seiner Anfrage und bei einem gruppierten
+  Start mit Daten und Anhängen. Zwei reale SQLite-Fehlertests ließen auf
+  dem alten Stand einen Lauf zurück und bestanden nach der Korrektur,
+  zusammen mit insgesamt 105 Hosttests. Windows und die Automatik über
+  weitere freigegebene Transporte bleiben offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere
