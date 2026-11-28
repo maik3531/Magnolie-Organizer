@@ -686,7 +686,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     private val mediaSessions = java.util.IdentityHashMap<TelefonSecureChannel, MediaSyncTransport>()
     private val nativePcVideoReceiveChecked = BuildConfig.PRIVATE_PC_VIDEO_RECEIVE
-    @Volatile private var nativeMediaSupportChecked = nativePcVideoReceiveChecked
+    private val nativePcImageBatchChecked = BuildConfig.PRIVATE_PC_IMAGE_BATCH_RECEIVE
+    private val privatePcReceiveChecked get() = nativePcVideoReceiveChecked || nativePcImageBatchChecked
+    @Volatile private var nativeMediaSupportChecked = privatePcReceiveChecked
     private val mediaSupportReaders = java.util.IdentityHashMap<TelefonSecureChannel, MediaSupportReader>()
     private val mediaSupportControls = setOf("capabilities.update", "grants.update", "personal_sync.settings")
 
@@ -696,7 +698,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val equivalentPending = mutableMapOf<String, JsonObject>() // Validated, but ACK output is not confirmed.
         var epoch: String? = null
         var attempt: NativeMediaSupportAttempt? = null
+        @Volatile var imageBatch: NativeMediaSupportAttempt? = null
         var settings: NativeMediaSettingsLane? = null
+
+        fun retire() {
+            imageBatch?.close()
+            attempt?.close()
+        }
     }
 
     @Synchronized private fun observeMediaSupportControl(sessionPeer: TelefonPeer, message: JsonObject, reply: JsonObject,
@@ -714,7 +722,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val body = message["body"] as? JsonObject ?: return
         val reader = mediaSupportReaders.getOrPut(channel) { MediaSupportReader(pipe, generation, peer.device_id, peer.static_public) }
         if (reader.pipe !== pipe || reader.generation != generation || reader.peerId != peer.device_id ||
-            reader.publicKey != peer.static_public) { reader.attempt?.close(); return }
+            reader.publicKey != peer.static_public) { reader.retire(); return }
         val previous = reader.controls[kind]
         val current = when (kind) {
             "capabilities.update" -> body.long("revision") == peer.remote_capabilities_revision
@@ -733,7 +741,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         else if (written || previous != message) reader.equivalentPending.remove(kind)
         if (previous != message && !equivalentRefresh) {
             reader.controls.remove(kind)
-            reader.attempt?.close() // Sticky, before the acknowledgement can fail or block.
+            reader.retire() // Sticky, before the acknowledgement can fail or block.
         }
         if (written) reader.controls[kind] = message
     }
@@ -757,21 +765,30 @@ class TelefonWerk private constructor(private val context: Context, private val 
         reader.controls["personal_sync.settings"]?.get("body")?.jsonObject?.get("own_device") == JsonPrimitive(true) &&
         NativeFilePairingAuthority.currentEpoch(peer)?.let { reader.epoch == null || it == reader.epoch } == true
 
-    private fun beginMediaSupport(sessionPeer: TelefonPeer, channel: TelefonSecureChannel, generation: Long): NativeMediaSupportAttempt? {
+    private fun beginMediaSupport(sessionPeer: TelefonPeer, channel: TelefonSecureChannel, generation: Long,
+        feature: String = NativeMediaSupportAttempt.SHARED_SETTINGS): NativeMediaSupportAttempt? {
         val attempt = synchronized(this) {
             val reader = mediaSupportReaders[channel] ?: return null
             val peer = safePeer() ?: return null
             if (reader.generation != generation || sessionPeer.device_id != peer.device_id || sessionPeer.static_public != peer.static_public ||
-                !mediaSupportReaderCurrent(reader, channel, peer)) { reader.attempt?.close(); return null }
-            reader.attempt?.let { return it } // Never renew on the original parent.
+                !mediaSupportReaderCurrent(reader, channel, peer)) { reader.retire(); return null }
+            val settings = if (feature == NativeMediaSupportAttempt.PC_IMAGE_BATCH) {
+                if (!nativePcImageBatchChecked || Build.VERSION.SDK_INT < 30 ||
+                    MediaSyncSettings.DISCOVERY_VERSION in peer.remote_device_status_versions) return null
+                reader.attempt?.takeIf { it.supports(channel) } ?: return null
+            } else null
+            (if (settings == null) reader.attempt else reader.imageBatch)?.let { return it } // Never renew on the original parent.
             reader.epoch = NativeFilePairingAuthority.currentEpoch(peer)
             NativeMediaSupportAttempt(channel, reader.pipe, {
                 // The writer gate must not acquire Werk or access storage. The
                 // reader retires before changed controls are written; teardown
                 // and original pipe/generation checks also guard the write.
                 nativeMediaSupportChecked && nativeGalleryHandlersReady && serviceRunning && pairingGeneration == generation &&
-                    activeChannel === channel && activeTransport?.second === reader.pipe
-            }).also { reader.attempt = it }
+                    activeChannel === channel && activeTransport?.second === reader.pipe &&
+                    (settings == null || nativePcImageBatchChecked && settings.supports(channel))
+            }, feature = feature).also {
+                if (settings == null) reader.attempt = it else reader.imageBatch = it
+            }
         }
         attempt.send()
         return attempt
@@ -779,10 +796,21 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     internal fun receiveMediaSupportAck(sessionPeer: TelefonPeer, channel: TelefonSecureChannel, generation: Long,
         payload: JsonObject): Boolean {
-        val attempt = synchronized(this) { mediaSupportReaders[channel]?.attempt } ?: return false
-        if (!attempt.ownsAck(channel, payload)) return false
-        if (beginMediaSupport(sessionPeer, channel, generation) === attempt) attempt.receive(channel, payload)
+        val attempt = synchronized(this) {
+            val reader = mediaSupportReaders[channel] ?: return false
+            listOfNotNull(reader.attempt, reader.imageBatch).firstOrNull { it.ownsAck(channel, payload) }
+        } ?: return false
+        if (beginMediaSupport(sessionPeer, channel, generation, attempt.feature) === attempt)
+            receiveMediaSupportFrame(sessionPeer, channel, generation, attempt, payload)
         return true
+    }
+
+    private fun receiveMediaSupportFrame(sessionPeer: TelefonPeer, channel: TelefonSecureChannel, generation: Long,
+        attempt: NativeMediaSupportAttempt, payload: JsonObject) {
+        if (!attempt.receive(channel, payload) || !attempt.supports(channel)) return
+        if (attempt.feature == NativeMediaSupportAttempt.SHARED_SETTINGS && nativePcImageBatchChecked)
+            beginMediaSupport(sessionPeer, channel, generation, NativeMediaSupportAttempt.PC_IMAGE_BATCH)
+        if (privatePcReceiveChecked) refreshMediaPreferenceState()
     }
 
     @Synchronized private fun privateMediaSettings(channel: TelefonSecureChannel): NativeMediaSettingsLane? {
@@ -814,17 +842,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
     internal fun receivePrivateMediaSettingsAck(channel: TelefonSecureChannel, payload: JsonObject): Boolean {
         val settings = synchronized(this) { mediaSupportReaders[channel]?.settings }
         val handled = settings?.receiveAck(payload) == true
-        if (handled && nativePcVideoReceiveChecked) {
-            retireChangedPrivatePcVideo(channel)
+        if (handled && privatePcReceiveChecked) {
+            retireChangedPrivatePcReceive(channel)
             refreshMediaPreferenceState()
         }
         return handled
     }
 
-    private fun retireChangedPrivatePcVideo(channel: TelefonSecureChannel) {
-        if (!nativePcVideoReceiveChecked) return
+    private fun retireChangedPrivatePcReceive(channel: TelefonSecureChannel) {
+        if (!privatePcReceiveChecked) return
         val owner = synchronized(this) { galleryFileConnection?.takeIf { it.channel === channel } }
-        owner?.retireChangedPrivatePcVideo()
+        owner?.retireChangedPrivatePcReceive()
     }
 
     @Synchronized private fun currentMediaBinding(): MediaSettingsBinding? {
@@ -889,7 +917,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     // existing protected gallery index, whose native owners call back into Werk.
     internal fun refreshMediaPreferenceState() {
         val snapshot = synchronized(this) { activeChannel?.let { channel -> currentMediaBinding()?.let { channel to it } } }
-        val privateSettings = if (nativePcVideoReceiveChecked) snapshot?.let { privateMediaSettings(it.first) } else null
+        val privateSettings = if (privatePcReceiveChecked) snapshot?.let { privateMediaSettings(it.first) } else null
         if (snapshot == null || privateSettings == null && !mediaSharedControlsReady(snapshot.first, snapshot.second)) {
             synchronized(this) { clearMediaPreferenceState() }
             return
@@ -903,8 +931,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val manual = legacy?.manualStatus()
         val owner = if (privateSettings != null && matched)
             synchronized(this) { galleryFileConnection?.takeIf { it.channel === channel } } else null
-        val receiveIntent = owner?.privatePcVideoReceiveIntent()
-        val receiveReady = receiveIntent != null && runCatching { owner.runtime.receiveSetupReady() }.getOrDefault(false)
+        val imageIntent = owner?.privatePcImageReceiveIntent()
+        val videoIntent = owner?.privatePcVideoReceiveIntent()
+        val receiveReady = owner != null && (imageIntent != null || videoIntent != null) &&
+            runCatching { owner.runtime.receiveSetupReady() }.getOrDefault(false)
         synchronized(this) {
             if (currentMediaBinding() != binding ||
                 (if (privateSettings == null) !mediaSharedControlsReady(channel, binding)
@@ -912,8 +942,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val current = view.getOrNull()
             _state.value = _state.value.copy(mediaPreferencesSupported = current != null, mediaPreferencesReady = matched,
                 mediaPreferencesSettingsOnly = privateSettings != null,
-                privatePcVideoReceiveReady = receiveReady && galleryFileConnection === owner &&
-                    owner?.privatePcVideoReceiveIntent() === receiveIntent,
+                privatePcVideoReceiveReady = receiveReady && videoIntent != null && galleryFileConnection === owner &&
+                    owner?.privatePcVideoReceiveIntent() === videoIntent,
+                privatePcImageReceiveReady = receiveReady && imageIntent != null && galleryFileConnection === owner &&
+                    owner?.privatePcImageReceiveIntent() === imageIntent,
                 mediaPreferencesValues = current?.first, mediaPreferencesVersions = current?.second ?: emptyMap(),
                 mediaManualBusy = manual?.first == true, mediaManualState = manual?.second.orEmpty(),
                 error = view.exceptionOrNull()?.message ?: _state.value.error)
@@ -924,10 +956,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val snapshot = synchronized(this) { activeChannel?.let { channel -> currentMediaBinding()?.let { channel to it } } }
             ?: error("media_shared_peer_unavailable")
         val (channel, binding) = snapshot
-        if (nativePcVideoReceiveChecked) privateMediaSettings(channel)?.let { settings ->
+        if (privatePcReceiveChecked) privateMediaSettings(channel)?.let { settings ->
             try { settings.change(field, value, expectedVersion) }
             finally {
-                retireChangedPrivatePcVideo(channel)
+                retireChangedPrivatePcReceive(channel)
                 refreshMediaPreferenceState()
             }
             return
@@ -962,16 +994,15 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 ?: DeviceFileControl.fail("gallery_incoming_current_intent_required"))
         }
         val documents = Ablage.hole(context)
-        val privateIntent = if (nativePcVideoReceiveChecked && media is NativeMediaSettingsLane) {
-            if (kind != GalleryMediaType.VIDEO) DeviceFileControl.fail("gallery_incoming_current_intent_required")
-            connection.privatePcVideoReceiveIntent() ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
+        val privateIntent = if (media is NativeMediaSettingsLane) {
+            connection.privatePcReceiveIntent(kind) ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
         } else null
         val book = NativeGalleryReceiveBookPermit.capture({ Ablage.hole(context) }) {
             Ablage.hole(context) === documents && documents.synchronisationsSchreibbar()
         }
         return NativeGalleryReceiveAction.request(activity, connection, label, kind, book) {
             if (!media.matched() || media.incomingIntentFor(kind) == null ||
-                privateIntent != null && connection.privatePcVideoReceiveIntent() !== privateIntent)
+                privateIntent != null && connection.privatePcReceiveIntent(kind) !== privateIntent)
                 DeviceFileControl.fail("gallery_incoming_current_intent_required")
         }
     }
@@ -1138,6 +1169,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 MediaSyncSettings.DISCOVERY_VERSION in current.remote_device_status_versions &&
                 MediaSyncSettings.DISCOVERY_VERSION in sharedLocalCapabilities().getValue("device_status").versions } == true
             val privateAgreement = if (legacyAdvertised) null else privateMediaSettings(channel)
+            val batchReader = mediaSupportReaders[channel]?.takeIf { nativePcImageBatchChecked && privateAgreement != null }
             val media = privateAgreement ?: when {
                 legacyAdvertised || queue.hasMediaSettings(peerId) -> mediaTransport(channel)
                 else -> null
@@ -1158,6 +1190,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     nativePcVideoReceiveChecked && peer.videoSupported && android.os.Build.VERSION.SDK_INT >= 30
                 }?.let { agreement ->
                     { agreement.incomingIntentFor(GalleryMediaType.VIDEO)?.takeIf { nativeGalleryVideoHandlersReady } }
+                },
+                privatePcImageBatchIntent = privateAgreement?.let { agreement ->
+                    batchReader?.let { reader ->
+                        {
+                            if (reader.imageBatch?.supports(channel) == true) agreement.incomingIntentFor(GalleryMediaType.IMAGES)
+                            else null
+                        }
+                    }
                 }) { released ->
                 synchronized(this) { if (galleryFileConnection === released) galleryFileConnection = null }
             }
@@ -1188,9 +1228,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val currentPeer = { if (connection.isEnded) null else currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) }
             val runtime = if (media != null) {
                 val incoming = { type: GalleryMediaType ->
-                    if (nativePcVideoReceiveChecked && media is NativeMediaSettingsLane) {
-                        if (type == GalleryMediaType.VIDEO) connection.privatePcVideoReceiveIntent() else null
-                    } else media.incomingIntentFor(type)
+                    if (media is NativeMediaSettingsLane) connection.privatePcReceiveIntent(type)
+                    else media.incomingIntentFor(type)
                 }
                 NativeGalleryFileRuntime.withIncomingMedia(context, directory, identity, protection, channel,
                     currentPeer, handlersReady, { nativeGalleryVideoHandlersReady }, { type -> media.intentFor(type) },
@@ -1220,13 +1259,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     /** The first authenticated file control can open a closed local owner.
-     * A desktop with only SEND also needs a matched video-only choice on this
-     * original reader and an existing pairing. This never grants media rights.
+     * A desktop with only SEND also needs a matched incoming media choice on
+     * this original reader and an existing pairing. This never grants rights.
      * The socket lane never holds Werk while waiting for native UI.
      */
     private fun nativeGalleryConnectionForMessage(sessionPeer: TelefonPeer, message: JsonObject,
         channel: TelefonSecureChannel, generation: Long): NativeGalleryFileConnection {
-        val videoIntent = synchronized(this) {
+        val receiveIntent = synchronized(this) {
             if (currentNativeFileTransportPeer(sessionPeer.device_id, sessionPeer.static_public, channel, generation) == null)
                 DeviceFileControl.fail("file_control_native_channel_changed")
             galleryFileConnection?.let {
@@ -1240,7 +1279,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 DeviceFileControl.fail("file_control_native_activation_required")
             when {
                 packet.grants.receiveFiles -> null
-                packet.grants.sendFiles -> currentPcVideoActivation(sessionPeer, channel, generation)
+                packet.grants.sendFiles -> currentPrivatePcReceiveActivation(sessionPeer, channel, generation)
                     ?: DeviceFileControl.fail("file_control_native_activation_required")
                 else -> DeviceFileControl.fail("file_control_native_activation_required")
             }
@@ -1250,10 +1289,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
         fun create(): NativeGalleryFileConnection {
             fun live() = !canceled.get() && nativeGalleryHandlersReady
             fun activationLive() = live() && System.currentTimeMillis() < message.long("expires_ms") &&
-                (videoIntent == null || currentPcVideoActivation(sessionPeer, channel, generation) === videoIntent)
+                (receiveIntent == null || currentPrivatePcReceiveActivation(sessionPeer, channel, generation) === receiveIntent)
             if (!activationLive()) DeviceFileControl.fail("file_control_native_activation_expired")
             DeviceFileControlEnvelope.validate(message)
-            if (videoIntent == null)
+            if (receiveIntent == null)
                 prepareNativeFileRelationshipForExplicitActivation(sessionPeer.device_id, sessionPeer.static_public,
                     channel, generation, ::activationLive)
             val connection = openNativeGalleryFileConnection(sessionPeer.device_id, sessionPeer.static_public,
@@ -1283,13 +1322,16 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
     }
 
-    private fun currentPcVideoActivation(peer: TelefonPeer, channel: TelefonSecureChannel,
+    private fun currentPrivatePcReceiveActivation(peer: TelefonPeer, channel: TelefonSecureChannel,
         generation: Long): MediaSyncTransport.IntentToken? {
-        if (!nativePcVideoReceiveChecked || !nativeGalleryVideoHandlersReady || android.os.Build.VERSION.SDK_INT < 30 ||
-            currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, nativeGalleryHandlersReady)?.videoSupported != true)
-            return null
-        return privateMediaSettings(channel)?.incomingIntentFor(GalleryMediaType.VIDEO)
-            ?.takeIf { it.privatePcVideoOnly() }
+        if (!privatePcReceiveChecked || !nativeGalleryHandlersReady || Build.VERSION.SDK_INT < 30) return null
+        val current = currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, nativeGalleryHandlersReady)
+            ?: return null
+        val settings = privateMediaSettings(channel) ?: return null
+        if (nativePcImageBatchChecked && synchronized(this) { mediaSupportReaders[channel]?.imageBatch }?.supports(channel) == true)
+            settings.incomingIntentFor(GalleryMediaType.IMAGES)?.takeIf { it.privatePcImageBatchOnly() }?.let { return it }
+        if (!nativePcVideoReceiveChecked || !nativeGalleryVideoHandlersReady || !current.videoSupported) return null
+        return settings.incomingIntentFor(GalleryMediaType.VIDEO)?.takeIf { it.privatePcVideoOnly() }
     }
 
     private fun currentNativeFileTransportPeer(peerId: String, publicKey: String,
@@ -2358,7 +2400,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         desktopScreenDraftDispatch.retire()
         contactGroupWriter.clear(); contactValueWriter.clear(); contactGroupTitleWriter.clear()
         val pipe = activeTransport?.second
-        activeChannel?.let { mediaSupportReaders[it]?.attempt?.close() }
+        activeChannel?.let { mediaSupportReaders[it]?.retire() }
         activeTransport = null
         activeChannel = null
         clearMediaPreferenceState()
@@ -2368,7 +2410,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     private fun clearMediaPreferenceState() {
         _state.value = _state.value.copy(mediaPreferencesSupported = false, mediaPreferencesReady = false,
-            mediaPreferencesSettingsOnly = false, privatePcVideoReceiveReady = false,
+            mediaPreferencesSettingsOnly = false, privatePcVideoReceiveReady = false, privatePcImageReceiveReady = false,
             mediaPreferencesValues = null, mediaPreferencesVersions = emptyMap(), mediaManualBusy = false, mediaManualState = "")
     }
 
@@ -3053,7 +3095,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         fileChannelIdentities.remove(channel)
                         noteSessions.remove(channel)
                         sessionPipes.remove(channel)
-                        mediaSupportReaders.remove(channel)?.attempt?.close()
+                        mediaSupportReaders.remove(channel)?.retire()
                         mediaSessions.remove(channel)
                         contactGroupWriter.clear(channel); contactValueWriter.clear(channel); contactGroupTitleWriter.clear(channel)
                         retireInvalidPersonalActors()
@@ -3127,8 +3169,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private fun receiveMessageCurrent(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                       generation: Long) {
         if (nativeMediaSupportChecked && message["kind"] == JsonPrimitive(NativeMediaSupportAttempt.KIND)) {
-            if (NativeMediaSupportAttempt.valid(message, System.currentTimeMillis())) {
-                beginMediaSupport(sessionPeer, channel, generation)?.receive(channel, message)
+            val feature = ((message["body"] as? JsonObject)?.get("feature") as? JsonPrimitive)?.content
+            if (feature != null && NativeMediaSupportAttempt.valid(message, System.currentTimeMillis(), feature)) {
+                beginMediaSupport(sessionPeer, channel, generation, feature)?.let {
+                    receiveMediaSupportFrame(sessionPeer, channel, generation, it, message)
+                }
             }
             return // Never store, replay, or share the private probe with other dispatchers.
         }
@@ -3147,8 +3192,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val settings = privateMediaSettings(channel)
             if (settings != null) {
                 settings.receive(message)
-                retireChangedPrivatePcVideo(channel)
-                if (nativePcVideoReceiveChecked) refreshMediaPreferenceState()
+                retireChangedPrivatePcReceive(channel)
+                if (privatePcReceiveChecked) refreshMediaPreferenceState()
                 return // This settings-only lane never enters legacy media workers or the personal outbox.
             }
             if (media == null) {
@@ -3208,7 +3253,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 runtime.receiveSourceCommand(message, channel::send, runCommands = galleryRunCommands, resumeCommands = galleryResumeCommands)
             else DeviceFileControl.fail("file_sources_unexpected_result")
             runtime.sendControls()
-            if (nativePcVideoReceiveChecked && message["kind"] == JsonPrimitive(DeviceFileControl.KIND))
+            if (privatePcReceiveChecked && message["kind"] == JsonPrimitive(DeviceFileControl.KIND))
                 refreshMediaPreferenceState()
             return // Reserved file frames never enter personal-store staging/ACKs.
         }
@@ -3276,7 +3321,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 it is JsonPrimitive && it.content in mediaSupportControls
             }) {
             beginMediaSupport(sessionPeer, channel, generation)
-            retireChangedPrivatePcVideo(channel)
+            retireChangedPrivatePcReceive(channel)
         }
         if (message["kind"] == JsonPrimitive("capabilities.update") && replies.any {
                 it["type"] == JsonPrimitive("ack") && it["status"] == JsonPrimitive("accepted") }) {

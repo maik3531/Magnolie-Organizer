@@ -23,7 +23,7 @@ internal class NativeGalleryIncomingOwner private constructor(private val sessio
     private val peer: () -> NativeFileControlPeer?, private val incomingIntent: () -> Any?,
     internal val manifest: DeviceFileManifest, internal val kind: GalleryMediaType,
     references: Map<String, GalleryPhoneMediaReference>, pcOrigins: Map<String, GalleryPcMediaOrigin>,
-    expectedControl: NativeFileOperationBinding?) : AutoCloseable {
+    expectedControl: NativeFileOperationBinding?, batchOffer: JsonObject?) : AutoCloseable {
     private val token = incomingIntent() as? MediaSyncTransport.IntentToken ?: fail()
     internal val photosOnly: Boolean get() = token.photosOnly
     private val originalPeer = peer()?.takeIf { it.allowed && it.pairingEpoch != null } ?: fail()
@@ -38,8 +38,10 @@ internal class NativeGalleryIncomingOwner private constructor(private val sessio
     init {
         if (expectedControl != null && originalControl != expectedControl) fail()
         requireCurrent()
-        scope = GalleryIncomingScope.capture(manifest, kind, token.collectionMode, binding.senderIdentitySha256,
-            references, pcOrigins, index::knownPhoneMedia)
+        scope = if (batchOffer == null)
+            GalleryIncomingScope.capture(manifest, kind, token.collectionMode, binding.senderIdentitySha256,
+                references, pcOrigins, index::knownPhoneMedia)
+        else GalleryIncomingScope.captureNewPcImageBatch(manifest, kind, token, references, pcOrigins, batchOffer)
         requireCurrent()
     }
 
@@ -77,9 +79,11 @@ internal class NativeGalleryIncomingOwner private constructor(private val sessio
         internal fun capture(session: NativeFileControlSession, index: PhotoSourceJobIndex, book: NativeGalleryReceiveBookPermit,
             currentPeer: () -> NativeFileControlPeer?, incomingIntent: () -> Any?, manifest: DeviceFileManifest,
             kind: GalleryMediaType, references: Map<String, GalleryPhoneMediaReference> = emptyMap(),
-            pcOrigins: Map<String, GalleryPcMediaOrigin> = emptyMap(), expectedControl: NativeFileOperationBinding? = null): NativeGalleryIncomingOwner {
+            pcOrigins: Map<String, GalleryPcMediaOrigin> = emptyMap(), expectedControl: NativeFileOperationBinding? = null,
+            batchOffer: JsonObject? = null): NativeGalleryIncomingOwner {
             if (Build.VERSION.SDK_INT < 30 || Looper.myLooper() == Looper.getMainLooper()) fail()
-            return NativeGalleryIncomingOwner(session, index, book, currentPeer, incomingIntent, manifest, kind, references.toMap(), pcOrigins.toMap(), expectedControl)
+            return NativeGalleryIncomingOwner(session, index, book, currentPeer, incomingIntent, manifest, kind, references.toMap(),
+                pcOrigins.toMap(), expectedControl, batchOffer)
         }
         private fun fail(): Nothing = DeviceFileControl.fail("gallery_incoming_current_owner_required")
     }
@@ -543,6 +547,146 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         if (actual == null || actual.owner !== owner || actual.observation !== observation || actual.recovery !== recovery)
             fail("gallery_published_native_readback_required")
         owner.requireIndex(index)
+    }
+
+    /** Hold all original descriptors until the same worker sends the proof.
+     * A later provider open must not invalidate an already checked member. */
+    internal fun readAndSendPublishedBatch(owner: NativeGalleryPublishedInspection, offer: JsonObject,
+        saved: JsonObject, channel: TelefonSecureChannel, cancellation: CancellationSignal): JsonObject {
+        if (Looper.myLooper() == Looper.getMainLooper() || Build.VERSION.SDK_INT < 30)
+            fail("gallery_incoming_io_android30_required")
+        owner.requireIndex(index); owner.requireChannel(channel); owner.consume()
+        val originalBinding = owner.bindingForReadback(owner.manifestSha256)
+        val now = System.currentTimeMillis()
+        val manifest = DeviceFileOfferEnvelope.validate(offer, originalBinding.senderId, originalBinding.receiverId, now)
+        val accepted = DeviceFileSavedEnvelope.parse(saved, manifest, now)
+        val expires = minOf(offer.long("expires_ms"), accepted.expires)
+        val ttl = minOf(DeviceFileControl.MAX_TTL_MS, expires - now)
+        if (manifest.fingerprint != owner.manifestSha256 ||
+            owner.publications.keys != manifest.files.map { it.id }.toSet() ||
+            accepted.permissionEpoch != originalBinding.permissionEpoch || accepted.destinationToken != originalBinding.destinationToken ||
+            saved.long("created_ms") < offer.long("created_ms") || accepted.expires > offer.long("expires_ms") ||
+            accepted.members.any { owner.publications.getValue(it.fileId).fingerprint != it.receiptSha256 })
+            fail("gallery_published_native_batch_readback_required")
+
+        val lane = Any()
+        if (!NativeGalleryMediaIoLane.acquire(lane)) fail("gallery_incoming_worker_busy")
+        val resources = mutableListOf<AutoCloseable>()
+        try {
+            fun remaining(): Long = minOf(expires - System.currentTimeMillis(),
+                ttl - (DeviceFileControl.monotonicMs() - owner.issuedMs))
+            fun current() {
+                cancellation.throwIfCanceled()
+                if (remaining() <= 0 || System.currentTimeMillis() < offer.long("created_ms") ||
+                    !NativeGalleryMediaIoLane.isOwnedBy(lane))
+                    fail("gallery_published_native_batch_readback_required")
+                owner.requireChannel(channel)
+            }
+            fun checkRow(publication: GalleryIncomingPublication) {
+                val row = publication.row!!
+                val size = publication.body.long("size")
+                if (observeRow(owner.kind, ::current, Uri.parse(row.string("uri")), publication.body.string("mime_type"),
+                        size..size, 0).witness != row)
+                    fail("gallery_incoming_original_row_changed")
+            }
+            fun witness(descriptor: ParcelFileDescriptor, size: Long): JsonObject {
+                if (android.system.Os.fcntlInt(descriptor.fileDescriptor, android.system.OsConstants.F_GETFL, 0) and
+                    android.system.OsConstants.O_ACCMODE != android.system.OsConstants.O_RDONLY)
+                    fail("gallery_published_batch_descriptor_changed")
+                val observed = NativeGalleryPcWriteTarget.witness(descriptor)
+                if (!android.system.OsConstants.S_ISREG(observed.long("mode").toInt()) ||
+                    observed.long("size") != size || observed.long("links") != 1L)
+                    fail("gallery_published_batch_descriptor_changed")
+                return observed
+            }
+            class Held(val publication: GalleryIncomingPublication, val descriptor: ParcelFileDescriptor, val before: JsonObject)
+            val identities = mutableSetOf<Pair<Long, Long>>()
+            val held = manifest.files.associate { file ->
+                val publication = owner.publications.getValue(file.id)
+                val origin = publication.body.getValue("origin").jsonObject
+                if (origin.string("transfer_id") != manifest.transferId || origin.string("source_id") != manifest.sourceId ||
+                    publication.body.long("size") != file.size || publication.body.string("sha256") != file.sha256)
+                    fail("gallery_published_native_batch_readback_required")
+                current(); checkRow(publication)
+                val original = MediaStore.setRequireOriginal(Uri.parse(publication.row!!.string("uri")))
+                val descriptor = if (Build.VERSION.SDK_INT >= 31) {
+                    val asset = resolver.openTypedAssetFileDescriptor(original, "*/*", Bundle().apply {
+                        putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true)
+                    }, cancellation) ?: fail("gallery_incoming_readback_missing")
+                    resources += asset
+                    if (asset.startOffset != 0L) fail("gallery_incoming_original_offset_changed")
+                    asset.parcelFileDescriptor
+                } else {
+                    (resolver.openFileDescriptor(original, "r", cancellation)
+                        ?: fail("gallery_incoming_readback_missing")).also { resources += it }
+                }
+                val before = witness(descriptor, file.size)
+                if (!identities.add(before.long("device") to before.long("inode")))
+                    fail("gallery_published_batch_descriptor_alias")
+                file.id to Held(publication, descriptor, before)
+            }
+            val members = manifest.files.associate { file ->
+                val member = held.getValue(file.id)
+                val publication = member.publication
+                checkRow(publication)
+                if (witness(member.descriptor, file.size) != member.before) fail("gallery_published_batch_descriptor_changed")
+                android.system.Os.lseek(member.descriptor.fileDescriptor, 0, android.system.OsConstants.SEEK_SET)
+                val digest = MessageDigest.getInstance("SHA-256")
+                ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.dup(member.descriptor.fileDescriptor)).use { input ->
+                    val buffer = ByteArray(DeviceFileManifest.CHUNK_BYTES)
+                    try {
+                        var remainingBytes = file.size
+                        while (remainingBytes > 0) {
+                            current()
+                            val count = input.read(buffer, 0, minOf(remainingBytes, buffer.size.toLong()).toInt())
+                            if (count <= 0) fail("gallery_incoming_content_changed")
+                            digest.update(buffer, 0, count)
+                            remainingBytes -= count
+                        }
+                        if (input.read() != -1 || NativeHex.lower(digest.digest()) != file.sha256)
+                            fail("gallery_incoming_content_changed")
+                    } finally { buffer.fill(0) }
+                }
+                val mime = publication.body.string("mime_type")
+                val observed = NativeIncomingMediaInspection.inspect(member.descriptor.fileDescriptor, file.size,
+                    owner.kind, mime, ensureNative = ::current)
+                if (observed.mediaType != owner.kind || observed.mimeType != mime)
+                    fail("gallery_published_native_batch_readback_required")
+                file.id to buildJsonObject {
+                    put("size", file.size); put("sha256", file.sha256); put("mime_type", observed.mimeType)
+                    put("publication_sha256", publication.fingerprint)
+                    put("row_sha256", DeviceFileControl.digest("magnolie-published-row-v1\u0000", publication.row!!))
+                }
+            }
+            val context = buildJsonObject {
+                put("format", 2); put("offer_id", offer.string("message_id")); put("manifest_sha256", manifest.fingerprint)
+                put("transfer_id", manifest.transferId); put("source_id", manifest.sourceId); put("media_type", owner.kind.uriSegment)
+                put("permission_epoch", originalBinding.permissionEpoch)
+                put("readback_nonce", NativeHex.lower(ByteArray(32).also(java.security.SecureRandom()::nextBytes)))
+                put("members", JsonObject(members))
+            }
+            val binding = owner.bindingForReadback(DevicePublishedBatchReadbackEnvelope.destinationToken(context))
+            val body = DevicePublishedBatchReadbackEnvelope.encodeBody(context, binding)
+            for ((_, member) in held) {
+                checkRow(member.publication)
+                if (witness(member.descriptor, member.publication.body.long("size")) != member.before)
+                    fail("gallery_published_batch_descriptor_changed")
+            }
+            val issued = System.currentTimeMillis()
+            val budget = minOf(remaining(), expires - issued)
+            if (budget <= 0) fail("gallery_published_native_batch_readback_required")
+            val message = TelefonNachrichten.message(DevicePublishedBatchReadbackEnvelope.KIND, body, budget, issued)
+            DevicePublishedBatchReadbackEnvelope.parse(message, offer, binding, owner.kind, issued)
+            current(); channel.send(message); current()
+            return message
+        } finally {
+            try {
+                var failure: Throwable? = null
+                for (resource in resources.asReversed()) try { resource.close() }
+                catch (error: Throwable) { if (failure == null) failure = error else failure.addSuppressed(error) }
+                failure?.let { throw it }
+            } finally { NativeGalleryMediaIoLane.release(lane) }
+        }
     }
 
     private fun inspectPublishedOwned(owner: NativeGalleryPublishedInspection, cancellation: CancellationSignal,

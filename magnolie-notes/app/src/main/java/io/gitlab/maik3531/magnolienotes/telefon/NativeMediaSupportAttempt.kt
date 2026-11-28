@@ -4,7 +4,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
-/** Only an observation about shared settings on the original authenticated WLAN parent.
+/** One feature observation on the original authenticated WLAN parent.
  * No queue, automatic registration, setting, or local media permission belongs here.
  * `current` must only read the native atomic/volatile session and control witnesses.
  */
@@ -14,10 +14,11 @@ internal class NativeMediaSupportAttempt(
     private val current: () -> Boolean,
     private val wall: () -> Long = System::currentTimeMillis,
     private val monotonicMs: () -> Long = { System.nanoTime() / 1_000_000 },
+    internal val feature: String = SHARED_SETTINGS,
 ) : AutoCloseable {
     private val gate = Any()
     private val issued = monotonicMs()
-    private val original = offer(wall())
+    private val original = offer(wall(), feature)
     @Volatile private var retired = false
     @Volatile private var established = false
     @Volatile private var sent = false
@@ -85,7 +86,7 @@ internal class NativeMediaSupportAttempt(
                 publish()
                 return true
             }
-            if (remoteClaimed || !valid(frame, wall()) || frame["message_id"] == original["message_id"]) return false
+            if (remoteClaimed || !valid(frame, wall(), feature) || frame["message_id"] == original["message_id"]) return false
             remoteClaimed = true
         }
         if (!write(ack(frame))) return false
@@ -98,17 +99,23 @@ internal class NativeMediaSupportAttempt(
 
     companion object {
         const val KIND = "media_support.hello"
+        const val SHARED_SETTINGS = "shared_settings"
+        const val PC_IMAGE_BATCH = "pc_image_batch_v3"
         const val TTL = 10_000L
         private const val MAX_CLOCK_LEAD_MS = 250L
         private val fields = setOf("type", "v", "message_id", "kind", "created_ms", "expires_ms", "body")
-        private val body = JsonObject(mapOf("format" to JsonPrimitive(1), "feature" to JsonPrimitive("shared_settings")))
+        private fun body(feature: String) = JsonObject(mapOf("format" to JsonPrimitive(1), "feature" to JsonPrimitive(feature)))
 
-        fun offer(at: Long): JsonObject = TelefonNachrichten.message(KIND, body, TTL, now = at)
+        fun offer(at: Long, feature: String = SHARED_SETTINGS): JsonObject {
+            require(feature == SHARED_SETTINGS || feature == PC_IMAGE_BATCH)
+            return TelefonNachrichten.message(KIND, body(feature), TTL, now = at)
+        }
         fun ack(frame: JsonObject): JsonObject = TelefonNachrichten.ack(frame.string("message_id"), "accepted", "none")
 
-        fun valid(frame: JsonObject, now: Long): Boolean {
+        fun valid(frame: JsonObject, now: Long, feature: String = SHARED_SETTINGS): Boolean {
+            if (feature != SHARED_SETTINGS && feature != PC_IMAGE_BATCH) return false
             if (frame.keys != fields || frame["type"] != JsonPrimitive("message") || frame["v"] != JsonPrimitive(1) ||
-                frame["kind"] != JsonPrimitive(KIND) || frame["body"] != body) return false
+                frame["kind"] != JsonPrimitive(KIND) || frame["body"] != body(feature)) return false
             val id = frame["message_id"] as? JsonPrimitive ?: return false
             val created = (frame["created_ms"] as? JsonPrimitive)?.takeUnless { it.isString }?.longOrNull ?: return false
             val expires = (frame["expires_ms"] as? JsonPrimitive)?.takeUnless { it.isString }?.longOrNull ?: return false

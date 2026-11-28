@@ -5,17 +5,23 @@ import kotlinx.serialization.json.*
 /** Native historical correlation only. Current control, book, local consent
  * and fresh paired ownership must independently authorize each incoming run. */
 internal class GalleryIncomingScope private constructor(internal val collectionMode: String,
-    associations: Map<String, GalleryKnownPhoneMedia>, pcOrigins: Map<String, GalleryPcMediaOrigin> = emptyMap()) {
+     associations: Map<String, GalleryKnownPhoneMedia>, pcOrigins: Map<String, GalleryPcMediaOrigin> = emptyMap(),
+     internal val pcBatchOfferSha256: String? = null) {
     internal val associations: Map<String, GalleryKnownPhoneMedia> = java.util.Collections.unmodifiableMap(associations.toMap())
     internal val pcOrigins: Map<String, GalleryPcMediaOrigin> = java.util.Collections.unmodifiableMap(pcOrigins.toMap())
     internal fun fingerprint(manifest: DeviceFileManifest): String = DeviceFileControl.digest(
-        if (pcOrigins.isEmpty()) "magnolie-gallery-incoming-scope-v1\u0000" else "magnolie-gallery-incoming-scope-v2\u0000",
+         when {
+             pcBatchOfferSha256 != null -> "magnolie-gallery-incoming-scope-v3\u0000"
+             pcOrigins.isEmpty() -> "magnolie-gallery-incoming-scope-v1\u0000"
+             else -> "magnolie-gallery-incoming-scope-v2\u0000"
+         },
         buildJsonObject {
             put("collection_mode", collectionMode); put("manifest_sha256", manifest.fingerprint)
             put("originals", JsonArray(manifest.files.map { file -> JsonArray(listOf(JsonPrimitive(file.id),
                 associations[file.id]?.let { JsonPrimitive(it.id) } ?: JsonNull)) }))
-            if (pcOrigins.isNotEmpty()) put("pc_origins", JsonArray(manifest.files.map { file ->
-                JsonArray(listOf(JsonPrimitive(file.id), pcOrigins[file.id]?.body ?: JsonNull)) }))
+             if (pcOrigins.isNotEmpty()) put("pc_origins", JsonArray(manifest.files.map { file ->
+                 JsonArray(listOf(JsonPrimitive(file.id), pcOrigins[file.id]?.body ?: JsonNull)) }))
+             pcBatchOfferSha256?.let { put("pc_batch_offer_sha256", it) }
         })
     companion object {
         internal fun capture(manifest: DeviceFileManifest, kind: GalleryMediaType, collectionMode: String,
@@ -50,6 +56,18 @@ internal class GalleryIncomingScope private constructor(internal val collectionM
             if (selected.values.map { it.reference.body }.distinct().size != selected.size) fail()
             return GalleryIncomingScope(collectionMode, selected, pcOrigins)
         }
+        internal fun captureNewPcImageBatch(manifest: DeviceFileManifest, kind: GalleryMediaType,
+            token: MediaSyncTransport.IntentToken, references: Map<String, GalleryPhoneMediaReference>,
+            origins: Map<String, GalleryPcMediaOrigin>, offer: JsonObject): GalleryIncomingScope {
+            val media = MediaOfferEnvelope.validateNewPcImageBatch(offer, manifest.senderId, manifest.receiverId)
+            if (media.kind != kind || media.settings != token.body ||
+                token.collectionMode != "entire_collection" || !token.requestedIncoming(kind) ||
+                references.isNotEmpty() || media.manifest.wire() != manifest.wire() ||
+                media.pcOrigins.mapValues { it.value.body } != origins.mapValues { it.value.body }) fail()
+            return GalleryIncomingScope("entire_collection", emptyMap(), origins,
+                DeviceFileControl.digest("magnolie-gallery-pc-batch-offer-v3\u0000", offer))
+        }
+
         private fun fail(): Nothing = DeviceFileControl.fail("gallery_incoming_inventory_reference_required")
     }
 }

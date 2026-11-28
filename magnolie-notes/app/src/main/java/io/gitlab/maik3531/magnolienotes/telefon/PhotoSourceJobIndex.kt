@@ -1001,6 +1001,63 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         writeIncomingPublication(null, planned, current)
     }
 
+    /** No orphaned planned member may outlive a rejected all-new batch. */
+    internal fun reserveIncomingPcImageBatch(acceptance: GalleryIncomingAcceptance, planned: List<GalleryIncomingPublication>,
+        current: () -> Unit): GalleryIncomingAcceptance = gated {
+        writableMembership(); current()
+        val accepted = acceptance.body
+        val originFields = listOf("binding", "pairing_epoch", "manifest_sha256", "transfer_id")
+        if (accepted["format"] != JsonPrimitive(2) || accepted["media_type"] != JsonPrimitive("images") ||
+            planned.size !in 1..DeviceFileManifest.MAX_FILES || planned.size.toLong() != accepted.long("file_count") ||
+            planned.sumOf { it.body.long("size") } != accepted.long("total_bytes") ||
+            planned.map { it.id }.toSet().size != planned.size ||
+            planned.map { it.pcOrigin?.origin }.toSet().size != planned.size)
+            fail("gallery_incoming_planned_required")
+        val history = incomingPublications()
+        val byId = history.associateBy { it.id }
+        val sameTransfer = history.filter { it.body.getValue("origin").jsonObject["transfer_id"] == accepted["transfer_id"] }
+        val byPcOrigin = history.groupBy { it.pcOrigin?.origin }
+        val mutableFields = setOf("row", "state")
+        val additions = planned.filter { candidate ->
+            current()
+            val origin = candidate.body.getValue("origin").jsonObject
+            val pcOrigin = candidate.pcOrigin ?: fail("gallery_incoming_planned_required")
+            if (candidate.state != "planned" || candidate.row != null || candidate.knownOriginalId != null ||
+                pcOrigin.previousPublication != null || candidate.body["scope_sha256"] != accepted["scope_sha256"] ||
+                candidate.body["media_type"] != accepted["media_type"] || originFields.any { origin[it] != accepted[it] })
+                fail("gallery_incoming_planned_required")
+            if (sameTransfer.any { it.id != candidate.id && it.sameOriginalTransferFile(candidate) })
+                fail("gallery_incoming_original_transfer_held")
+            if (byPcOrigin[pcOrigin.origin].orEmpty().any { it.id != candidate.id && it.samePcSource(candidate) })
+                fail("gallery_incoming_pc_origin_held")
+            val previous = byId[candidate.id]
+            if (previous != null && previous.body.filterKeys { it !in mutableFields } != candidate.body.filterKeys { it !in mutableFields })
+                fail("gallery_incoming_original_changed")
+            previous == null
+        }
+        if (history.size + additions.size > GalleryIncomingPublication.MAX_RECORDS)
+            fail("gallery_incoming_publication_capacity")
+        db.rawQuery("SELECT COUNT(*) FROM source_meta WHERE name LIKE ?", arrayOf(GalleryIncomingAcceptance.PREFIX + "%")).use {
+            if (!it.moveToFirst() || it.getLong(0) >= GalleryIncomingAcceptance.MAX_RECORDS) fail("gallery_incoming_acceptance_capacity")
+        }
+        val acceptanceName = GalleryIncomingAcceptance.PREFIX + acceptance.id
+        val records = additions.associate { GalleryIncomingPublication.PREFIX + it.id to it.body } + (acceptanceName to accepted)
+        val sealed = records.mapValues { (name, body) -> protection.seal(frame(body), "photo-source-jobs-v1/" + name) }
+        transaction {
+            current()
+            for ((name, cipher) in sealed) {
+                if (meta(name) != null) fail("gallery_incoming_publication_cas_conflict")
+                putMeta(name, cipher)
+            }
+            current()
+        }
+        boundary("gallery-incoming-batch-reserved"); current()
+        if (additions.any { incomingPublication(it.id)?.body != it.body }) fail("gallery_incoming_publication_readback_failed")
+        val saved = incomingAcceptance(acceptance.id) ?: fail("gallery_incoming_acceptance_readback_failed")
+        if (saved.body != accepted) fail("gallery_incoming_acceptance_readback_failed")
+        saved
+    }
+
     internal fun recordIncomingRow(expected: GalleryIncomingPublication, row: JsonObject, current: () -> Unit): GalleryIncomingPublication = gated {
         writableMembership(); current()
         val next = expected.withInsertedRow(row)

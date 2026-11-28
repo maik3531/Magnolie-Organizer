@@ -522,6 +522,7 @@ class NativeGalleryIncomingRuntimeTest {
         private val mime = if (kind == GalleryMediaType.IMAGES) "image/png" else "video/mp4"
         val raw = videoBytes ?: helper.png()
         var servingRaw = raw
+        var servingMembers = emptyMap<String, ByteArray>()
         val manifest = helper.manifest(f.pc.deviceId, raw, "original.$extension")
         val token = helper.intent(collectionMode).let { initial ->
             if (videoBytes == null) initial else {
@@ -544,6 +545,7 @@ class NativeGalleryIncomingRuntimeTest {
         var run: NativeGalleryIncomingRun? = null
         var inspection: NativeGalleryPublishedReadRun? = null
         var incomingAgreement = true
+        @Volatile var imageBatchReady = false
         var pcOfferUi: ((NativeGalleryFileConnection, JsonObject) -> Unit)? = null
         @Volatile var incomingHook: () -> Unit = {}
         @Volatile var incomingToken: Any? = token
@@ -624,7 +626,8 @@ class NativeGalleryIncomingRuntimeTest {
         }
         fun answer(message: JsonObject) {
             val request = DeviceFileChunkEnvelope.parseRequest(message); val offset = request.chunkIndex * 65536
-            val response = DeviceFileChunkEnvelope.response(request, servingRaw.copyOfRange(offset, minOf(servingRaw.size, offset + 65536)))
+            val bytes = servingMembers[request.fileId] ?: servingRaw
+            val response = DeviceFileChunkEnvelope.response(request, bytes.copyOfRange(offset, minOf(bytes.size, offset + 65536)))
             val current = connection
             if (current == null) assertTrue(runtime.observeIncomingChunk(link.channel, link.receive(response)))
             else assertNull(current.receiveIncomingMedia(link.channel, link.receive(response)) { error("Chunk dispatcher must not capture a new book") })
@@ -674,7 +677,7 @@ class NativeGalleryIncomingRuntimeTest {
         }, requestPcReplacement = { connection, message ->
             (pcOfferUi ?: error("No PC replacement UI attached"))(connection, message)
         }, privatePcVideoIntent = if (kind == GalleryMediaType.VIDEO) ({ incomingToken as? MediaSyncTransport.IntentToken })
-            else null) { }.also {
+            else null, privatePcImageBatchIntent = { if (imageBatchReady) incomingToken as? MediaSyncTransport.IntentToken else null }) { }.also {
             it.bind(runtime); connection = it
         }
         fun startDispatched(offer: JsonObject = mediaOffer()) = checkNotNull(nativeConnection().receiveIncomingMedia(link.channel, link.receive(offer), f::book)).also { run = it }
@@ -698,6 +701,106 @@ class NativeGalleryIncomingRuntimeTest {
             inspection?.let { check(it.awaitIoEnded(10000)) }
             connection?.close(); runtime.close(); pc.close(); f.close(); link.close()
             Shadows.shadowOf(Looper.getMainLooper()).idle()
+        }
+    }
+
+    @Test fun originalPcImageBatchSendsSavedThenOneCompleteV2Readback() = checkOriginalPcImageBatch(changeEarlierRow = false)
+
+    @Test fun originalPcImageBatchNeverSendsReadbackAfterEarlierRowChanges() = checkOriginalPcImageBatch(changeEarlierRow = true)
+
+    @Test fun originalPcImageBatchWithLaterCollisionLeavesNoNewReservations() =
+        checkOriginalPcImageBatch(changeEarlierRow = false, collideWithPriorOrigin = true)
+
+    private fun checkOriginalPcImageBatch(changeEarlierRow: Boolean, collideWithPriorOrigin: Boolean = false) {
+        Harness().use { h ->
+            if (collideWithPriorOrigin) h.completePcUpload()
+            val priorPublications = h.f.index.incomingPublications().map { it.body }
+            val secondName = "second.png"
+            val secondId = "4".repeat(32)
+            val bitmap = android.graphics.Bitmap.createBitmap(16, 16, android.graphics.Bitmap.Config.ARGB_8888)
+            val secondBytes = try {
+                bitmap.eraseColor(0xff25a426.toInt())
+                java.io.ByteArrayOutputStream().use {
+                    check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it))
+                    it.toByteArray()
+                }
+            } finally { bitmap.recycle() }
+            val first = h.manifest.files.single()
+            val secondWire = h.helper.manifest(h.f.pc.deviceId, secondBytes, secondName).wire().getValue("files").jsonArray.single().jsonObject
+            val joined = DeviceFileManifest.parse(JsonObject(h.manifest.wire() + mapOf(
+                "transfer_id" to JsonPrimitive("5".repeat(32)), "source_id" to JsonPrimitive("6".repeat(32)),
+                "total_bytes" to JsonPrimitive(h.raw.size + secondBytes.size),
+                "files" to JsonArray(h.manifest.wire().getValue("files").jsonArray + JsonObject(secondWire + ("id" to JsonPrimitive(secondId)))))))
+            h.servingMembers = mapOf(first.id to h.raw, secondId to secondBytes)
+            val secondFile = File(h.f.root, secondName)
+            val secondProvider = GalleryIncomingRowsTest.Provider(h.f.app, payload = secondFile, rowId = 100).apply { allowPublish = true }
+            ShadowContentResolver.registerProviderInternal("media", GalleryIncomingRowsTest.BatchProvider(h.f.app,
+                mapOf(first.path to h.provider, secondName to secondProvider), mapOf("99" to h.provider, "100" to secondProvider)))
+            val standardOffer = DeviceFileOfferEnvelope.create(joined)
+            val offer = JsonObject(standardOffer + mapOf("kind" to JsonPrimitive(MediaOfferEnvelope.KIND), "body" to buildJsonObject {
+                put("format", 3); put("offer", standardOffer.getValue("body")); put("settings", h.token.body); put("media_type", "images")
+                put("mime_types", buildJsonObject { for (id in h.servingMembers.keys) put(id, "image/png") })
+                put("originals", buildJsonObject {})
+                put("pc_origins", buildJsonObject {
+                    for ((index, id) in h.servingMembers.keys.withIndex()) put(id, buildJsonObject {
+                        val origin = if (collideWithPriorOrigin && id == secondId) "a" else (index + 1).toString()
+                        put("format", 1); put("origin_sha256", origin.repeat(64)); put("previous_publication_sha256", JsonNull)
+                    })
+                })
+            }))
+            h.pcSendOnly(); h.nativeConnection()
+            val framesBefore = h.link.frames.size
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { h.startDispatched(offer) } }
+            assertEquals(framesBefore, h.link.frames.size)
+            val priorInserts = if (collideWithPriorOrigin) 1 else 0
+            assertEquals(priorInserts, h.provider.inserts + secondProvider.inserts)
+            h.imageBatchReady = true
+            if (changeEarlierRow) {
+                val previous = h.link.onMessage
+                h.link.onMessage = { message ->
+                    previous(message)
+                    if (message.string("kind") == DeviceFileSavedEnvelope.KIND)
+                        secondProvider.afterReadOpen = { h.provider.generation++ }
+                }
+            }
+            val run = h.f.io { h.startDispatched(offer) }
+            assertTrue(run.awaitIoEnded(10000))
+            if (collideWithPriorOrigin) {
+                assertEquals("gallery_incoming_pc_origin_held", (run.nativeFailure() as PhotoFolderScopeError).code)
+                assertNull(run.actualSavedOutput())
+                assertEquals(framesBefore, h.link.frames.size)
+                assertEquals(priorInserts, h.provider.inserts + secondProvider.inserts)
+                assertEquals("A held batch must not reserve an unrelated new file", priorPublications,
+                    h.f.index.incomingPublications().map { it.body })
+                assertArrayEquals(h.raw, h.file.readBytes())
+                return
+            }
+            run.nativeFailure()?.let { throw it }
+            val savedMessage = run.actualSavedOutput()!!
+            val saved = DeviceFileSavedEnvelope.parse(savedMessage, joined)
+            assertTrue(run.awaitAutomaticReadbackStart(5000))
+            val readback = run.automaticReadbackRun()!!.also { h.inspection = it }
+            assertTrue(readback.awaitIoEnded(10000))
+            val wireReadbacks = h.link.frames.drop(framesBefore).filter { it.string("kind") == DevicePublishedBatchReadbackEnvelope.KIND }
+            if (changeEarlierRow) {
+                assertNotNull(readback.nativeFailure()); assertNull(readback.actualReadbackOutput()); assertTrue(wireReadbacks.isEmpty())
+            } else {
+                readback.nativeFailure()?.let { throw it }
+                val message = wireReadbacks.single()
+                val body = message.getValue("body").jsonObject
+                val report = DevicePublishedBatchReadbackEnvelope.parse(message, standardOffer,
+                    h.readbackBinding(body.string("destination_token")), GalleryMediaType.IMAGES)
+                assertEquals(message, readback.actualReadbackOutput())
+                assertEquals(offer["message_id"], report.body["offer_id"])
+                assertEquals(saved.members.associate { it.fileId to it.receiptSha256 },
+                    body.getValue("members").jsonObject.mapValues { it.value.jsonObject.string("publication_sha256") })
+                assertTrue(h.link.frames.indexOf(savedMessage) in 0 until h.link.frames.indexOf(message))
+                assertTrue(message.long("expires_ms") <= saved.expires)
+            }
+            assertArrayEquals(h.raw, h.file.readBytes()); assertArrayEquals(secondBytes, secondFile.readBytes())
+            assertEquals(2, h.provider.inserts + secondProvider.inserts)
+            assertEquals(2, h.provider.publishes + secondProvider.publishes)
+            assertEquals(0, h.provider.rwOpens + secondProvider.rwOpens)
         }
     }
 
@@ -780,7 +883,7 @@ class NativeGalleryIncomingRuntimeTest {
             val run = h.f.io { h.startDispatched(h.pcOffer()) }
             assertTrue(h.requested.await(5000, TimeUnit.MILLISECONDS))
             h.incomingToken = MediaSyncTransport.IntentToken(h.token.body)
-            h.f.io { connection.retireChangedPrivatePcVideo() }
+            h.f.io { connection.retireChangedPrivatePcReceive() }
             assertTrue(run.awaitIoEnded(5000))
             assertTrue(run.cancelRequested)
             assertNull(run.actualSavedOutput())

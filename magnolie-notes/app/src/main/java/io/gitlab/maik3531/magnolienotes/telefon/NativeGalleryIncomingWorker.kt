@@ -67,8 +67,11 @@ internal class NativeGalleryIncomingRun internal constructor(private val workerO
         return start(this)
     }
     internal fun actualPublishedOutput(): GalleryIncomingPublication {
+        return actualPublishedMembers().singleOrNull() ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required")
+    }
+    internal fun actualPublishedMembers(): List<GalleryIncomingPublication> {
         if (actualSavedOutput() == null || error.get() != null) DeviceFileControl.fail("gallery_incoming_completed_owner_required")
-        return publications.get().singleOrNull() ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required")
+        return publications.get()
     }
     internal fun startAutomaticReadback() {
         try {

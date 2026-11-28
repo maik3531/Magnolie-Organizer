@@ -18,6 +18,7 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
       },
       internal val mediaAgreement: NativeGalleryMediaAgreement? = null,
       private val privatePcVideoIntent: (() -> MediaSyncTransport.IntentToken?)? = null,
+      private val privatePcImageBatchIntent: (() -> MediaSyncTransport.IntentToken?)? = null,
       private val released: (NativeGalleryFileConnection) -> Unit) : AutoCloseable {
     private val ended = AtomicBoolean(false)
     private val permissionQueued = AtomicBoolean(false)
@@ -46,6 +47,13 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
         return when (message.string("kind")) {
             MediaOfferEnvelope.KIND -> {
                 val selected = runtime
+                if ((message["body"] as? JsonObject)?.get("format") == JsonPrimitive(3)) {
+                    val original = privatePcImageReceiveIntent()
+                        ?: DeviceFileControl.fail("gallery_pc_batch_counterpart_required")
+                    return selected.beginNewPcImageBatch(message, book(), original) {
+                        bound === selected && privatePcImageReceiveIntent() === original
+                    }
+                }
                 if ((privatePcVideoIntent != null || mediaAgreement is NativeMediaSettingsLane) &&
                     (message["body"] as? JsonObject)?.get("media_type") == JsonPrimitive(GalleryMediaType.VIDEO.uriSegment)) {
                     val original = privatePcVideoReceiveIntent()
@@ -77,8 +85,18 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
     internal fun privatePcVideoReceiveIntent(): MediaSyncTransport.IntentToken? =
         if (ended.get()) null else privatePcVideoIntent?.invoke()?.takeIf { it.privatePcVideoOnly() }
 
-    internal fun retireChangedPrivatePcVideo() {
-        if (privatePcVideoIntent != null && !ended.get()) bound?.retireChangedIncomingOwners()
+    internal fun privatePcImageReceiveIntent(): MediaSyncTransport.IntentToken? =
+        if (ended.get()) null else privatePcImageBatchIntent?.invoke()?.takeIf { it.privatePcImageBatchOnly() }
+
+    internal fun privatePcReceiveIntent(kind: GalleryMediaType): MediaSyncTransport.IntentToken? =
+        when (kind) {
+            GalleryMediaType.IMAGES -> privatePcImageReceiveIntent()
+            GalleryMediaType.VIDEO -> privatePcVideoReceiveIntent()
+        }
+
+    internal fun retireChangedPrivatePcReceive() {
+        if ((privatePcVideoIntent != null || privatePcImageBatchIntent != null) && !ended.get())
+            bound?.retireChangedIncomingOwners()
     }
 
     internal fun installPcUiJob(job: kotlinx.coroutines.Job) {

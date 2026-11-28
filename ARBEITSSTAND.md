@@ -129,6 +129,18 @@ aufgeführt.
   einschließlich Android-Testdialog, Saved, Rücklesen, Quellenabschluss
   und unveränderter Wiederholung. Mischversand und die installierte
   Windows/Notes-Gegenprobe bleiben offen.
+  Der separat aktivierbare Foto-Batch-Empfang in Notes nimmt neue
+  PC-Originale über dieselbe WLAN-Verbindung wie die bestätigten Einstellungen an.
+  Er benötigt die separat ausgehandelte Foto-Batch-Fähigkeit und die
+  ausdrückliche Foto-Empfangsfreigabe. Notes sendet nach Saved einen
+  gemeinsamen v2-Nachweis erst, wenn alle veröffentlichten Originale
+  einschließlich Inhalt, Dateiende und Galeriezeile rückgeprüft sind.
+  Bei Ablehnung wegen eines Herkunftskonflikts entsteht keine Teilreservierung.
+  131 Notes-Regressionstests und zwei gekoppelte WLAN-Quelltests mit
+  Linux-Sender und Android-35-Testprovider bestanden. Zwei bytegleiche PNGs
+  erreichten den geschützten Quellenabschluss; bei unverändertem Ordner
+  wurde nichts erneut übertragen.
+  Änderungen vorhandener Galeriezeilen und Misch-Batches bleiben offen.
   Windows kann in der privaten Medienkonfiguration Original-MP4 aus
   einem ausdrücklich gewählten Videoordner manuell senden. Die Auswahl
   startet keine Übertragung. Der Lauf braucht getrennt bestätigtes

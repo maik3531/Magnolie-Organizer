@@ -41,6 +41,14 @@ internal object MediaOfferEnvelope {
         return media
     }
 
+    internal fun validateNewPcImageBatch(message: JsonObject, senderId: String, receiverId: String): NativeMediaOffer {
+        val media = validate(message, senderId, receiverId, allowPcBatch = true)
+        if (!media.pcBatch || media.kind != GalleryMediaType.IMAGES ||
+            !MediaSyncTransport.IntentToken(media.settings).privatePcImageBatchOnly() ||
+            media.pcOrigins.values.any { it.previousPublication != null }) fail()
+        return media
+    }
+
     fun validate(message: JsonObject, senderId: String, receiverId: String,
         now: Long = System.currentTimeMillis(), allowPcBatch: Boolean = false): NativeMediaOffer {
         if (TelefonKanonisch.bytes(message).size > TelefonParameter.ANWENDUNG_MAX ||

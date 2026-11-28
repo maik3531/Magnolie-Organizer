@@ -104,7 +104,11 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
              values["direction"] == JsonPrimitive("pc_to_phone")
          for ((kind, key, label) in listOf(Triple(GalleryMediaType.IMAGES, "photos_enabled", R.string.medien_sync_fotos),
              Triple(GalleryMediaType.VIDEO, "videos_enabled", R.string.medien_sync_videos))) {
-             if (telefon.mediaPreferencesSettingsOnly && (kind != GalleryMediaType.VIDEO || !telefon.privatePcVideoReceiveReady)) continue
+            val privateReady = when (kind) {
+                GalleryMediaType.IMAGES -> telefon.privatePcImageReceiveReady
+                GalleryMediaType.VIDEO -> telefon.privatePcVideoReceiveReady
+            }
+            if (telefon.mediaPreferencesSettingsOnly && !privateReady) continue
             Papierknopf(stringResource(label) + " · " + stringResource(R.string.medien_empfang_erlauben), Modifier.fillMaxWidth(),
                 aktiv = receiving && flag(key)) { beiEmpfang(kind) }
             Papierknopf(stringResource(label) + " · " + stringResource(R.string.medien_pc_archiv_kopie), Modifier.fillMaxWidth(),

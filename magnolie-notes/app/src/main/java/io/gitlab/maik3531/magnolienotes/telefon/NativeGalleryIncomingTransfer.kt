@@ -173,13 +173,20 @@ internal class NativeGalleryIncomingTransfer private constructor(private val own
             owner.requireChannel(channel)
             if (mimeTypes.keys != owner.manifest.files.map { it.id }.toSet()) fail("gallery_incoming_media_metadata_required")
             val value = GalleryIncomingAcceptance.create(owner, offer, wall())
-            for (file in owner.manifest.files) {
-                owner.requireChannel(channel)
-                index.reserveIncomingPublication(GalleryIncomingPublication.plan(owner.binding, owner.manifest, file.id,
-                    owner.pairingEpoch, owner.kind, mimeTypes.getValue(file.id), owner.scope), owner::requireLocal)
+            val plans = owner.manifest.files.map { file ->
+                GalleryIncomingPublication.plan(owner.binding, owner.manifest, file.id,
+                    owner.pairingEpoch, owner.kind, mimeTypes.getValue(file.id), owner.scope)
             }
-            owner.requireChannel(channel)
-            val saved = index.reserveIncomingAcceptance(value, owner::requireLocal)
+            val saved = if (owner.scope.pcBatchOfferSha256 != null) {
+                index.reserveIncomingPcImageBatch(value, plans, owner::requireLocal)
+            } else {
+                for (plan in plans) {
+                    owner.requireChannel(channel)
+                    index.reserveIncomingPublication(plan, owner::requireLocal)
+                }
+                owner.requireChannel(channel)
+                index.reserveIncomingAcceptance(value, owner::requireLocal)
+            }
             owner.requireChannel(channel)
             return NativeGalleryIncomingTransfer(owner, channel, index, rows, mimeTypes.toMap(), saved, wall)
         }

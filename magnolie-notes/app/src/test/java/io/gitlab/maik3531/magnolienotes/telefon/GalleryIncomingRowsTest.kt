@@ -91,7 +91,7 @@ class GalleryIncomingRowsTest {
         return MediaSyncTransport.IntentToken(body)
     }
     internal class Provider(private val app: Application, private val kind: GalleryMediaType = GalleryMediaType.IMAGES,
-        private val payload: File? = null) : ContentProvider() {
+        private val payload: File? = null, private val rowId: Long = 99L) : ContentProvider() {
         var inserts = 0
         var namespace = "incoming-provider-v1"
         var afterInsert: () -> Unit = {}
@@ -125,7 +125,7 @@ class GalleryIncomingRowsTest {
             if (method == "create_write_request") {
                 check(allowWriteRequest)
                 @Suppress("DEPRECATION") val clip = extras!!.getParcelable<android.content.ClipData>("clip_data")!!
-                check(clip.itemCount == 1 && clip.getItemAt(0).uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
+                check(clip.itemCount == 1 && clip.getItemAt(0).uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/$rowId")
                 writeRequests++
                 return Bundle().apply { putParcelable("result", android.app.PendingIntent.getActivity(app, writeRequests,
                     Intent("fixture.pc.write.$writeRequests").setData(clip.getItemAt(0).uri), android.app.PendingIntent.FLAG_IMMUTABLE)) }
@@ -135,18 +135,18 @@ class GalleryIncomingRowsTest {
         override fun insert(uri: Uri, values: ContentValues?): Uri {
             check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media")
             this.values = ContentValues(values!!); inserts++; afterInsert()
-            return Uri.withAppendedPath(uri, "99")
+            return Uri.withAppendedPath(uri, rowId.toString())
         }
         override fun query(uri: Uri, projection: Array<out String>?, queryArgs: Bundle?, cancellationSignal: CancellationSignal?): Cursor {
             beforeQuery()
             if (postWriteRevisionDelay >= 0 && rwOpens > 0 && lastRwDescriptor?.valid() == false) {
                 if (postWriteRevisionDelay-- == 0) generationModified++
             }
-            check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
+            check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/$rowId")
             val v = values!!
             val size = payload?.length() ?: 0L
             if (size != lastSize) { generationModified++; lastSize = size }
-            val data: Map<String, Any> = mapOf("_id" to 99L, "_display_name" to v.getAsString("_display_name"), "mime_type" to v.getAsString("mime_type"),
+            val data: Map<String, Any> = mapOf("_id" to rowId, "_display_name" to v.getAsString("_display_name"), "mime_type" to v.getAsString("mime_type"),
                 "relative_path" to v.getAsString("relative_path"), "_size" to size, "date_added" to 100L, "generation_added" to generation,
                 "generation_modified" to maxOf(generation, generationModified), "is_pending" to pending, "is_trashed" to 0L,
                 "owner_package_name" to if (wrongOwner) "foreign.application" else app.packageName)
@@ -158,7 +158,7 @@ class GalleryIncomingRowsTest {
         override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
             if (mode == "rw") {
                 check(allowRwTarget); check(MediaStore.getRequireOriginal(uri))
-                check(uri.buildUpon().clearQuery().build().toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
+                check(uri.buildUpon().clearQuery().build().toString() == "content://media/external_primary/${kind.uriSegment}/media/$rowId")
                 check(pending == 0L); rwOpens++
                 val file = rwFileOverride ?: payload!!
                 return ParcelFileDescriptor.open(file, if (rwReadOnly) ParcelFileDescriptor.MODE_READ_ONLY else ParcelFileDescriptor.MODE_READ_WRITE).also {
@@ -168,7 +168,7 @@ class GalleryIncomingRowsTest {
                     try { afterRwOpen() } catch (error: Throwable) { it.close(); throw error }
                 }
             }
-            check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
+            check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/$rowId")
             val file = payload ?: error("Unexpected byte IO")
             if (mode == "w") {
                 check(pending == 1L)
@@ -194,13 +194,37 @@ class GalleryIncomingRowsTest {
             check(allowPublish)
             check(values!!.keySet() == setOf("is_pending") && values.getAsLong("is_pending") == 0L)
             check(selection == "_id = ? AND date_added = ? AND generation_added = ? AND generation_modified = ? AND owner_package_name = ? AND relative_path = ? AND mime_type = ? AND _display_name = ? AND _size = ? AND is_pending = 1 AND is_trashed = 0")
-            check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
+            check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/$rowId")
             val v = this.values!!
-            check(args!!.toList() == listOf("99", "100", generation.toString(), maxOf(generation, generationModified).toString(), app.packageName,
+            check(args!!.toList() == listOf(rowId.toString(), "100", generation.toString(), maxOf(generation, generationModified).toString(), app.packageName,
                 v.getAsString("relative_path"), v.getAsString("mime_type"), v.getAsString("_display_name"), payload!!.length().toString()))
             if (pending != 1L || wrongOwner) return 0
             pending = 0; generationModified++; publishes++; afterPublish(); return 1
         }
+        override fun delete(uri: Uri, selection: String?, args: Array<out String>?): Int = error("No deletion permitted")
+    }
+
+    internal class BatchProvider(app: Application, private val byName: Map<String, Provider>,
+        private val byId: Map<String, Provider>) : ContentProvider() {
+        init { attachInfo(app, ProviderInfo().apply { authority = "media"; exported = true }) }
+        override fun onCreate() = true
+        private fun member(uri: Uri) = byId.getValue(uri.lastPathSegment!!)
+        override fun call(method: String, arg: String?, extras: Bundle?): Bundle {
+            check(method == "get_version")
+            return Bundle().apply { putString(Intent.EXTRA_TEXT, "incoming-provider-v1") }
+        }
+        override fun insert(uri: Uri, values: ContentValues?): Uri =
+            byName.getValue(values!!.getAsString("_display_name")).insert(uri, values)
+        override fun query(uri: Uri, projection: Array<out String>?, queryArgs: Bundle?, signal: CancellationSignal?): Cursor =
+            member(uri).query(uri, projection, queryArgs, signal)
+        override fun query(uri: Uri, p: Array<out String>?, s: String?, a: Array<out String>?, o: String?): Cursor =
+            error("Unexpected legacy query")
+        override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor = member(uri).openFile(uri, mode)
+        override fun openTypedAssetFile(uri: Uri, mime: String, opts: Bundle?): AssetFileDescriptor =
+            member(uri).openTypedAssetFile(uri, mime, opts)
+        override fun getType(uri: Uri): String = member(uri).getType(uri)
+        override fun update(uri: Uri, values: ContentValues?, selection: String?, args: Array<out String>?): Int =
+            member(uri).update(uri, values, selection, args)
         override fun delete(uri: Uri, selection: String?, args: Array<out String>?): Int = error("No deletion permitted")
     }
 

@@ -49,7 +49,26 @@ class NativeMediaSupportSessionTest {
     fun matchedVideoSenderWithoutReceiveGetsOnlyAClosedNotesOwner() =
         pairedSession(testSettings = true, videoSender = true)
 
-    private fun pairedSession(testSettings: Boolean, reconnect: Boolean = false, videoSender: Boolean = false) {
+    @Test fun originalImageBatchHelloIsSeparateAndWithdrawsOnTheSameParent() {
+        val peer = System.getenv("MAGNOLIE_TEST_PC_IMAGE_BATCH_PEER")?.let(::File)
+        org.junit.Assume.assumeNotNull(peer)
+        assertTrue(BuildConfig.PRIVATE_PC_IMAGE_BATCH_RECEIVE)
+        pairedSession(testSettings = false, imageBatchPeer = checkNotNull(peer))
+    }
+
+    @Test
+    @Config(shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class,
+        GalleryIncomingRowsTest.SameFileDescriptorDuplicate::class])
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun originalImageBatchNeedsSeparatePhotoReceiveAndEndsOnTheDesktop() {
+        val peer = System.getenv("MAGNOLIE_TEST_CONFIRMED_IMAGE_BATCH_PEER")?.let(::File)
+        org.junit.Assume.assumeNotNull(peer)
+        assertTrue(BuildConfig.PRIVATE_PC_IMAGE_BATCH_RECEIVE)
+        pairedSession(testSettings = false, imageBatchPeer = checkNotNull(peer), sendImages = true)
+    }
+
+    private fun pairedSession(testSettings: Boolean, reconnect: Boolean = false, videoSender: Boolean = false,
+        imageBatchPeer: File? = null, sendImages: Boolean = false) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("MediaSessionFixture", 1.0, "Isolated test keys") {
             init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
@@ -69,10 +88,12 @@ class NativeMediaSupportSessionTest {
             storage.setEnabled(true)
             storage.setPersonalSync(true, false, false, false, false)
             val fullVideoPeer = if (videoSender) System.getenv("MAGNOLIE_TEST_TYPED_VIDEO_PEER")?.let(::File) else null
-            val script = (fullVideoPeer ?: File("../magnolie-organizer/pruefungen/media_support_paired_peer.py")).canonicalFile
+            val script = (imageBatchPeer ?: fullVideoPeer ?: File("../magnolie-organizer/pruefungen/media_support_paired_peer.py")).canonicalFile
             assertTrue(script.isFile)
             val command = listOf(System.getenv("MAGNOLIE_PYTHON") ?: "/usr/bin/python3", "-B", script.path) +
                 when {
+                    sendImages -> listOf("--pc-send-bootstrap")
+                    imageBatchPeer != null -> listOf("--batch-support")
                     fullVideoPeer != null -> listOf("--pc-send-typed-video")
                     videoSender -> listOf("--video-sender")
                     reconnect -> listOf("--reconnect")
@@ -91,7 +112,9 @@ class NativeMediaSupportSessionTest {
             val peer = TelefonPeer(desktopId, "Isolated desktop", publicKey, own_device = true, remote_own_device = true,
                 file_pairing_epoch = "a".repeat(64))
             storage.savePeer(peer)
-            process.outputStream.bufferedWriter().use { it.write("${identity.device_id} ${identity.static_public}\n") }
+            val hostInput = process.outputStream.bufferedWriter()
+            hostInput.write("${identity.device_id} ${identity.static_public}\n")
+            hostInput.flush()
             val work = TelefonWerk::class.java.getDeclaredConstructor(Context::class.java, TelefonAblage::class.java)
                 .apply { isAccessible = true }.newInstance(context, storage).also { werk = it }
             field(TelefonWerk::class.java, "serviceRunning").setBoolean(work, true)
@@ -117,6 +140,72 @@ class NativeMediaSupportSessionTest {
                     pipe.setReadTimeout(if (fullVideoPeer == null) 15_000 else 55_000)
                     val reader = tasks.submit { session.invoke(work, peer, TelefonTransportArt.WIFI, pipe, "", "", false, {}) }
                     try {
+                        if (imageBatchPeer != null) {
+                            assertEquals("image-batch-live", readHost())
+                            val channel = field(TelefonWerk::class.java, "activeChannel").get(work) as TelefonSecureChannel
+                            fun attempts(): Pair<NativeMediaSupportAttempt, NativeMediaSupportAttempt> {
+                                val activeReader = synchronized(work) {
+                                    (field(TelefonWerk::class.java, "mediaSupportReaders").get(work) as Map<*, *>)[channel]
+                                } ?: error("Original support reader vanished")
+                                return (field(activeReader.javaClass, "attempt").get(activeReader) as NativeMediaSupportAttempt) to
+                                    (field(activeReader.javaClass, "imageBatch").get(activeReader) as NativeMediaSupportAttempt)
+                            }
+                            val (shared, batch) = attempts()
+                            assertNotSame(shared, batch)
+                            assertEquals(NativeMediaSupportAttempt.SHARED_SETTINGS, shared.feature)
+                            assertEquals(NativeMediaSupportAttempt.PC_IMAGE_BATCH, batch.feature)
+                            assertTrue(shared.supports(channel)); assertTrue(batch.supports(channel))
+                            assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+                            assertFalse(work.state.value.privatePcImageReceiveReady)
+                            if (sendImages) {
+                                fun command(message: String) { hostInput.write("$message\n"); hostInput.flush() }
+                                command("start-send-bootstrap")
+                                assertEquals("pc-send-intent-ready", readHost())
+                                assertTrue(work.state.value.mediaPreferencesReady)
+                                assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+                                command("enable-pc-send-controls")
+                                assertEquals("pc-send-controls-closed", readHost(pumpUi = true))
+                                awaitUi(8) { work.state.value.privatePcImageReceiveReady }
+                                assertFalse(work.state.value.privatePcVideoReceiveReady)
+                                val owner = field(TelefonWerk::class.java, "galleryFileConnection").get(work) as NativeGalleryFileConnection
+                                assertSame(channel, owner.channel)
+                                assertNull(owner.runtime.savedPolicy().policy)
+                                confirmImageReceiving(work, owner)
+                                assertEquals("pc-send-receive-confirmed", readHost())
+
+                                GalleryIncomingRowsTest().mountedPrimaryVolume()
+                                val originals = listOf(png(0xff507991.toInt()), png(0xff314820.toInt()))
+                                assertFalse("The native PNG fixture must yield different originals",
+                                    originals[0].contentEquals(originals[1]))
+                                val files = originals.indices.map { File(context.cacheDir, "published-original-${it + 1}.png") }
+                                val providers = files.mapIndexed { index, file ->
+                                    GalleryIncomingRowsTest.Provider(context as Application, payload = file, rowId = 99L + index)
+                                        .apply { allowPublish = true }
+                                }
+                                ShadowContentResolver.registerProviderInternal("media", GalleryIncomingRowsTest.BatchProvider(context as Application,
+                                    providers.mapIndexed { index, provider -> "original-${index + 1}.png" to provider }.toMap(),
+                                    providers.mapIndexed { index, provider -> (99 + index).toString() to provider }.toMap()))
+                                val encoded = originals.joinToString(" ", transform = java.util.Base64.getEncoder()::encodeToString)
+                                command("publish-original $encoded")
+                                assertEquals("original-batch-accepted", readHost(seconds = 38))
+                                command("continue-original-batch")
+                                assertEquals("original-batch-archived-end", readHost(seconds = 50))
+                                command("check-unchanged-root")
+                                assertEquals("unchanged-root-no-output", readHost(seconds = 38))
+                                for (i in originals.indices) {
+                                    assertArrayEquals(originals[i], files[i].readBytes())
+                                    assertEquals(1, providers[i].inserts)
+                                    assertEquals(1, providers[i].publishes)
+                                    assertEquals(0, providers[i].rwOpens)
+                                }
+                            }
+                            hostInput.write("withdraw-batch-probe\n"); hostInput.flush()
+                            assertEquals("image-batch-withdrawn", readHost())
+                            assertSame(channel, field(TelefonWerk::class.java, "activeChannel").get(work))
+                            assertFalse(batch.supports(channel))
+                            assertFalse(work.state.value.privatePcImageReceiveReady)
+                            hostInput.write("close-batch-probe\n"); hostInput.flush()
+                        }
                         if (gallery != null && fixture != null && published != null) {
                             assertEquals("video-closed-owner", readHost(pumpUi = true))
                             awaitUi(12) { work.state.value.privatePcVideoReceiveReady }
@@ -162,7 +251,8 @@ class NativeMediaSupportSessionTest {
                     }
                 }
                 assertTrue((field(TelefonWerk::class.java, "mediaSupportReaders").get(work) as Map<*, *>).isEmpty())
-                if (videoSender) Shadows.shadowOf(Looper.getMainLooper()).idle()
+                if (videoSender || sendImages)
+                    awaitUi(5) { field(TelefonWerk::class.java, "galleryFileConnection").get(work) == null }
                 assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
                 assertFalse(work.state.value.mediaPreferencesSupported)
                 assertEquals(peer.file_pairing_epoch, storage.fileAuthorityPeers().peer?.file_pairing_epoch)
@@ -184,6 +274,45 @@ class NativeMediaSupportSessionTest {
             documents.set(null, originalDocuments)
             Security.removeProvider(provider.name)
         }
+    }
+
+    private fun confirmImageReceiving(work: TelefonWerk, owner: NativeGalleryFileConnection) {
+        val activity = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+        val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+        try {
+            for (approve in listOf(false, true)) {
+                val result = AtomicReference<Result<GalleryPhotoPolicySnapshot>?>()
+                val previous = ShadowAlertDialog.getLatestAlertDialog()
+                val choice = scope.launch {
+                    result.set(runCatching { work.allowMediaReceiving(activity.get(), GalleryMediaType.IMAGES) })
+                }
+                awaitUi(8) { result.get() != null || ShadowAlertDialog.getLatestAlertDialog() !== previous }
+                result.get()?.getOrThrow()
+                assertNull(owner.runtime.savedPolicy().policy)
+                val dialog = ShadowAlertDialog.getLatestAlertDialog()
+                dialog.getButton(if (approve) DialogInterface.BUTTON_POSITIVE else DialogInterface.BUTTON_NEGATIVE).performClick()
+                awaitUi(8) { choice.isCompleted }
+                if (approve) result.get()!!.getOrThrow()
+                val policy = owner.runtime.savedPolicy().policy
+                assertEquals(approve, policy?.receiving?.photos == true)
+                assertFalse(policy?.receiving?.videos == true)
+                assertFalse(policy?.enabled == true)
+            }
+        } finally {
+            scope.cancel()
+            activity.pause().stop().destroy()
+        }
+    }
+
+    private fun png(color: Int): ByteArray {
+        val bitmap = android.graphics.Bitmap.createBitmap(32, 32, android.graphics.Bitmap.Config.ARGB_8888)
+        return try {
+            bitmap.eraseColor(color)
+            java.io.ByteArrayOutputStream().use {
+                check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it))
+                it.toByteArray()
+            }
+        } finally { bitmap.recycle() }
     }
 
     private fun awaitUi(seconds: Long, ready: () -> Boolean) {
