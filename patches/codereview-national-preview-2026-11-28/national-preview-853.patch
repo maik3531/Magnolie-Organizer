@@ -1,0 +1,26 @@
+diff --git a/magnolie-organizer/web/appearance.js b/magnolie-organizer/web/appearance.js
+--- a/magnolie-organizer/web/appearance.js
++++ b/magnolie-organizer/web/appearance.js
+@@ -279,7 +279,8 @@
+     sync.dataset.appearanceTest = "sync"; syncRow.className = "hak"; syncRow.append(sync, document.createTextNode(" " + t("Synchronization")));
+     sync.addEventListener("change", () => { if (section.isConnected && context.developer && !context.locked) { preview.sync = sync.checked; changed(); } }); section.append(syncRow);
+     select("season", "Seasonal background", [["auto", "Automatic"], ["none", "None"], ["crystals", "Snowflakes"], ["stars", "Stars"]]);
+-    select("holiday", "Holiday watermark", [["auto", "Automatic"], ["none", "None"], ["boots", "Boots"], ["santa", "Santa Claus"], ["rocket", "Rocket"], ["glass", "Champagne glass"], ["eggs", "Easter eggs"]]);
++    select("holiday", "Holiday watermark", [["auto", "Automatic"], ["none", "None"], ["boots", "Boots"], ["santa", "Santa Claus"], ["rocket", "Rocket"], ["glass", "Champagne glass"], ["eggs", "Easter eggs"],
++      ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"]]);
+     const dateRow = document.createElement("label"), date = document.createElement("input"); date.type = "date"; date.className = "feld"; date.value = preview.date;
+     date.dataset.appearanceTest = "date"; dateRow.className = "formzeile"; dateRow.append(document.createTextNode(t("Date")), date); section.append(dateRow);
+     date.addEventListener("change", () => {
+diff --git a/magnolie-organizer-windows/app/web/appearance.js b/magnolie-organizer-windows/app/web/appearance.js
+--- a/magnolie-organizer-windows/app/web/appearance.js
++++ b/magnolie-organizer-windows/app/web/appearance.js
+@@ -279,7 +279,8 @@
+     sync.dataset.appearanceTest = "sync"; syncRow.className = "hak"; syncRow.append(sync, document.createTextNode(" " + t("Synchronization")));
+     sync.addEventListener("change", () => { if (section.isConnected && context.developer && !context.locked) { preview.sync = sync.checked; changed(); } }); section.append(syncRow);
+     select("season", "Seasonal background", [["auto", "Automatic"], ["none", "None"], ["crystals", "Snowflakes"], ["stars", "Stars"]]);
+-    select("holiday", "Holiday watermark", [["auto", "Automatic"], ["none", "None"], ["boots", "Boots"], ["santa", "Santa Claus"], ["rocket", "Rocket"], ["glass", "Champagne glass"], ["eggs", "Easter eggs"]]);
++    select("holiday", "Holiday watermark", [["auto", "Automatic"], ["none", "None"], ["boots", "Boots"], ["santa", "Santa Claus"], ["rocket", "Rocket"], ["glass", "Champagne glass"], ["eggs", "Easter eggs"],
++      ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"]]);
+     const dateRow = document.createElement("label"), date = document.createElement("input"); date.type = "date"; date.className = "feld"; date.value = preview.date;
+     date.dataset.appearanceTest = "date"; dateRow.className = "formzeile"; dateRow.append(document.createTextNode(t("Date")), date); section.append(dateRow);
+     date.addEventListener("change", () => {
