@@ -74,6 +74,11 @@ aufgeführt.
   gemeinsamer Speicherung von Lauf, Anfrage, Batches und Anhängen an
   den Transport. Sieben native .NET-Testgruppen bestanden, darunter
   Rollback und identischer Retry bei Chunk- und Batch-SQL-Fehlern.
+  Verliert Notes nach dem Speichern den ursprünglichen Kanal, stoppt
+  es einen noch unbestätigten Abgleich. Die Entscheidung blockiert
+  danach keine anderen ausstehenden Nachrichten. 139 Release-JVM-Tests
+  bestanden; nach einem SQLite-Fehler gelang der Stopp beim zweiten
+  Versuch. Buch, Entwurf und gespeicherte Belege blieben erhalten.
   Die Automatik über weitere freigegebene Transporte bleibt offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt

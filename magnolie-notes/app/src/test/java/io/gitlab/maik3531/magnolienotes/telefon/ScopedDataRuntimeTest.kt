@@ -114,6 +114,7 @@ class ScopedDataRuntimeTest {
     @Test fun nativeActorTerminalCannotFinishAfterAnotherBookWrite() = exercise("actor-commit-terminal-deny-book")
     @Test fun nativeActorTerminalCannotFinishWithAReplacedPeerKey() = exercise("actor-commit-terminal-deny-key")
     @Test fun nativeActorTerminalCannotFinishOnTheOldChannel() = exercise("actor-commit-terminal-deny-channel")
+    @Test fun channelLossStopsOrdinaryActorCompletionAndRetainsEvidenceAcrossSqlRetry() = exercise("actor-commit-terminal-retire-channel")
     @Test fun nativeActorTerminalCannotFinishAfterRestore() = exercise("actor-commit-terminal-deny-restore")
     @Test fun nativeActorTerminalCannotFinishAfterCancellation() = exercise("actor-commit-terminal-deny-cancel")
     @Test fun nativeActorTerminalCannotFinishWithAnOldBookInstance() = exercise("actor-commit-terminal-deny-instance")
@@ -1283,6 +1284,41 @@ class ScopedDataRuntimeTest {
                                 if (mode == "actor-commit-terminal-restore") assertNotNull(documents.notiz("phone-note")) else assertNull(documents.notiz("phone-note"))
                                 val queuedDecision = queue.due(peerId, TelefonTransportArt.WIFI).single {
                                     PersonalSyncActor.semanticMessage(it.payload)["kind"] == JsonPrimitive("personal_sync.deletion_decision") }.payload
+                                if (mode == "actor-commit-terminal-retire-channel") {
+                                    val decisionId = queuedDecision.string("message_id")
+                                    val savedAfterDeletion = java.io.File(context.filesDir, "notizen.json").readBytes()
+                                    val retire = TelefonWerk::class.java.getDeclaredMethod("retireInvalidPersonalActors")
+                                        .apply { isAccessible = true }
+                                    fun evidence() = database.rawQuery(
+                                        "SELECT key, hex(value) FROM meta WHERE key GLOB ? OR key GLOB ? ORDER BY key",
+                                        arrayOf("personal_actor_wire:$peerId:$run:*", "personal_actor_completion_wire:$peerId:$run:*")
+                                    ).use { cursor -> buildMap {
+                                        while (cursor.moveToNext()) put(cursor.getString(0), cursor.getString(1))
+                                    } }
+                                    val originalEvidence = evidence()
+                                    assertTrue(originalEvidence.isNotEmpty())
+                                    retire.invoke(work)
+                                    assertEquals("completion", work.personalActorJournal.completionState(handle))
+                                    field(TelefonWerk::class.java, "activeChannel").set(work, null)
+                                    database.execSQL("CREATE TRIGGER fail_actor_stop BEFORE UPDATE OF next_attempt_ms ON outbox " +
+                                        "WHEN NEW.message_id='$decisionId' BEGIN SELECT RAISE(ABORT,'synthetic actor stop failure'); END")
+                                    try {
+                                        retire.invoke(work)
+                                        assertEquals("completion", work.personalActorJournal.completionState(handle))
+                                        assertTrue(queue.due(peerId, TelefonTransportArt.WIFI).any { it.messageId == decisionId })
+                                    } finally {
+                                        database.execSQL("DROP TRIGGER fail_actor_stop")
+                                    }
+                                    retire.invoke(work)
+                                    assertEquals("cancelled", work.personalActorJournal.completionState(handle))
+                                    assertTrue(queue.due(peerId, TelefonTransportArt.WIFI).none { it.messageId == decisionId })
+                                    assertNotNull(queue.outboxPersonalMessage(peerId, decisionId))
+                                    assertEquals(originalEvidence, evidence())
+                                    assertEquals(deletionWitness, documents.personalActorSavedBookState())
+                                    assertArrayEquals(savedAfterDeletion, java.io.File(context.filesDir, "notizen.json").readBytes())
+                                    assertEquals(retainedDraft, documents.entwurf.value)
+                                    return@use
+                                }
                                 val terminalAck = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
                                     PersonalSyncActor.ack(run, queuedDecision.string("message_id")), 60000)
                                 if (mode.startsWith("actor-commit-terminal-deny-")) {

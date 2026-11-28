@@ -395,6 +395,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 runCatching { stopPersonalActor(handle) }
             }
         }
+        // An ordinary completion has retired data ownership but still needs its original channel.
+        personalActorCompletions.toMap().forEach { (run, completion) ->
+            if (!completion.completed && run !in personalActorHistoricalHandoffs &&
+                personalActorTransports[run] !== activeChannel)
+                personalActorHandles[run]?.let { handle -> runCatching { stopPersonalActor(handle) } }
+        }
         personalActorHistoricalHandoffs.values.toList().forEach { saved ->
             if (personalActorCompletions[saved.handle.runId]?.completed != true &&
                 currentActorCompletionAuthority(saved.handle.peerId, saved.publicKey, saved.channel, saved.generation) == null)
