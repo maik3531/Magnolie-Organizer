@@ -1,0 +1,17 @@
+{
+  "before": 20,
+  "after": 64,
+  "total": 64,
+  "compiler": "kotlinc-jvm 1.9.0, JRE 21.0.12.1+1-1-deb13u1-Debian",
+  "platform": "Linux JVM method host",
+  "main": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "base_blob": "093ccc9423c8f47f5b9c09ccd661e8d8ae56d321",
+  "candidate_blob": "1a1fe775409adeff64ac448b578753a89044d2cd",
+  "before_fetch_blob": "f303d4fb5f3add50d621082a7e150b720b300295",
+  "after_fetch_blob": "edb8d5d4bbc4ae19b61012d03f1fdf7752d886cc",
+  "before_fetch_sha256": "0c3bae0f01236eb219c85d3b87c7ba8ec891e7e20d0ffe804dfff7d7d76fd649",
+  "after_fetch_sha256": "4bc273487707a42295d0a191e938ef16b3c5143ff3573b66f4bcb4fdeaec9b9a",
+  "patch_sha256": "434d50568ff54ac74848e1e86fa77295092c47af80210829c738783967f50a78",
+  "patch_roundtrip": "unique exact context hunks forward and reverse against entire reconstructed product blob; not git apply",
+  "test_limits": "exact fetch method; Query, date/title normalization, JSON parsing, HTTP transport, cancellation, report and surrounding model types are doubles; not full service or Gradle/Android/live test"
+}

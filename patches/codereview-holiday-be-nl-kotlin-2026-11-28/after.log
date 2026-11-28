@@ -1,0 +1,65 @@
+PASS BE-DE group URL
+PASS BE-DE national public URL
+PASS BE-DE group coverage
+PASS BE-DE cross-year inclusive interval
+PASS BE-FR group URL
+PASS BE-FR national public URL
+PASS BE-FR group coverage
+PASS BE-FR cross-year inclusive interval
+PASS BE-NL group URL
+PASS BE-NL national public URL
+PASS BE-NL group coverage
+PASS BE-NL cross-year inclusive interval
+PASS BE one public request
+PASS BE union and label
+PASS BE all group coverage
+PASS BE missing no school coverage
+PASS BE missing no invented school entry
+PASS BE foreign no school coverage
+PASS BE foreign no invented school entry
+PASS BE wrong no school coverage
+PASS BE wrong no invented school entry
+PASS BE mixed no school coverage
+PASS BE mixed no invented school entry
+PASS BE malformed no school coverage
+PASS BE malformed no invented school entry
+PASS BE empty no school coverage
+PASS BE empty no invented school entry
+PASS BE partial national no coverage
+PASS BE opt-out single public
+PASS BE mixed query rejected
+PASS NL-NO group URL
+PASS NL-NO national public URL
+PASS NL-NO group coverage
+PASS NL-NO cross-year inclusive interval
+PASS NL-MI group URL
+PASS NL-MI national public URL
+PASS NL-MI group coverage
+PASS NL-MI cross-year inclusive interval
+PASS NL-ZU group URL
+PASS NL-ZU national public URL
+PASS NL-ZU group coverage
+PASS NL-ZU cross-year inclusive interval
+PASS NL one public request
+PASS NL union and label
+PASS NL all group coverage
+PASS NL missing no school coverage
+PASS NL missing no invented school entry
+PASS NL foreign no school coverage
+PASS NL foreign no invented school entry
+PASS NL wrong no school coverage
+PASS NL wrong no invented school entry
+PASS NL mixed no school coverage
+PASS NL mixed no invented school entry
+PASS NL malformed no school coverage
+PASS NL malformed no invented school entry
+PASS NL empty no school coverage
+PASS NL empty no invented school entry
+PASS NL partial national no coverage
+PASS NL opt-out single public
+PASS NL mixed query rejected
+PASS AT existing subdivision URL
+PASS AT existing coverage and ISO
+PASS DE existing subdivision URL
+PASS DE existing coverage and ISO
+64/64

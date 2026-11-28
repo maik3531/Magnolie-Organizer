@@ -1,0 +1,110 @@
+diff --git a/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt b/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt
+--- a/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt
++++ b/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt
+@@ -149,16 +149,26 @@
+             return TOTAL_TIMEOUT_MILLIS - elapsed
+         }
+         val selections: List<Region?> = if (query.regions.isEmpty()) listOf(null) else query.regions
++        // Refs #854: OpenHolidays school groups are not administrative subdivisions.
++        val schoolGroups = when (query.country) {
++            "BE" -> setOf("BE-DE", "BE-FR", "BE-NL")
++            "NL" -> setOf("NL-NO", "NL-MI", "NL-ZU")
++            else -> emptySet()
++        }
++        val groupSelection = query.regions.any { it.code in schoolGroups }
++        if (groupSelection && query.regions.any { it.code !in schoolGroups }) invalidQuery()
+         val kinds = if (query.includeSchool) listOf("PublicHolidays" to "public-holiday", "SchoolHolidays" to "school-holiday")
+             else listOf("PublicHolidays" to "public-holiday")
+         val groups = linkedMapOf<Key, Group>()
+         val coverage = mutableListOf<Coverage>()
+         var receivedBytes = 0
+-        for (year in query.years) for ((endpoint, kind) in kinds) for (region in selections) {
++        for (year in query.years) for ((endpoint, kind) in kinds) for (region in
++            if (groupSelection && kind == "public-holiday") listOf(null) else selections) {
++            val groupScope = kind == "school-holiday" && schoolGroups.isNotEmpty() && (groupSelection || region == null)
+             val remaining = remainingMillis()
+             val fields = linkedMapOf("countryIsoCode" to query.country, "languageIsoCode" to query.language,
+                 "validFrom" to "%04d-01-01".format(Locale.ROOT, year), "validTo" to "%04d-12-31".format(Locale.ROOT, year))
+-            if (region != null) fields["subdivisionCode"] = if (query.country == "AT")
++            if (region != null) fields[if (groupScope) "groupCode" else "subdivisionCode"] = if (query.country == "AT")
+                 AUSTRIAN_PROVIDER_REGIONS.getValue(region.code) else region.code
+             val uri = URI("https://openholidaysapi.org/$endpoint?" + fields.entries.joinToString("&") {
+                 URLEncoder.encode(it.key, "UTF-8") + "=" + URLEncoder.encode(it.value, "UTF-8")
+@@ -179,6 +189,7 @@
+             val rows = parse(response.body) { remainingMillis() }
+             if (rows.length() > 10_000) throw HolidayException("holiday_response_too_large")
+             var complete = true
++            val observedGroups = mutableSetOf<String>()
+             for (index in 0 until rows.length()) {
+                 remainingMillis()
+                 val row = rows.opt(index) as? JSONObject ?: invalidResponse()
+@@ -200,8 +211,6 @@
+                     val value = rawNames.opt(index) as? JSONObject
+                     value == null || value.opt("text") !is String || (value.has("language") && value.opt("language") !is String)
+                 }) complete = false
+-                val key = Key(start, end, normalizedName(name), kind)
+-                val group = groups.getOrPut(key) { Group(start, end, name, kind) }
+                 val nationwide = row.opt("nationwide") == true
+                 val scopes = sortedSetOf<String>()
+                 if (row.has("subdivisions") && row.opt("subdivisions") !is JSONArray) complete = false
+@@ -221,6 +230,37 @@
+                     }
+                     else -> invalidResponse()
+                 }
++                if (groupScope) {
++                    // Never infer a school group from the request or a municipality.
++                    val rawGroups = row.opt("groups")
++                    val codes = sortedSetOf<String>()
++                    if (rawGroups != null) {
++                        if (rawGroups !is JSONArray || rawGroups.length() > 256) { complete = false; continue }
++                        var validGroups = true
++                        for (i in 0 until rawGroups.length()) {
++                            remainingMillis()
++                            val code = (rawGroups.opt(i) as? JSONObject)?.opt("code") as? String
++                            if (code == null || code !in schoolGroups) { validGroups = false; break }
++                            codes.add(code)
++                        }
++                        if (!validGroups) { complete = false; continue }
++                    }
++                    if (scopes.isNotEmpty() || (row.has("subdivisions") && row.opt("subdivisions") !is JSONArray)) {
++                        complete = false
++                        if (region != null || nationwide || row.opt("subdivisions") !is JSONArray ||
++                            scopes.any { !it.startsWith(query.country + "-") }) continue
++                    } else {
++                        if (nationwide) {
++                            if (codes.isNotEmpty() && codes != schoolGroups) { complete = false; continue }
++                        } else if (codes.isEmpty() || (region != null && region.code !in codes)) {
++                            complete = false; continue
++                        }
++                        scopes.addAll(codes)
++                        observedGroups.addAll(codes)
++                    }
++                }
++                val key = Key(start, end, normalizedName(name), kind)
++                val group = groups.getOrPut(key) { Group(start, end, name, kind) }
+                 if (scopes.any { "-" in it && !it.startsWith(query.country + "-") }) complete = false
+                 if (!nationwide && region == null && scopes.isEmpty()) complete = false
+                 if (!nationwide && region != null && scopes.isNotEmpty() && scopes.none {
+@@ -230,12 +270,13 @@
+                 if (region != null) {
+                     group.selected.add(region.code)
+                     if (region.name.isNotEmpty()) group.names.add(region.name)
+-                    if (!nationwide && scopes.isEmpty()) scopes.add(region.code)
++                    if (!groupScope && !nationwide && scopes.isEmpty()) scopes.add(region.code)
+                 }
+                 group.nationwide = group.nationwide || nationwide
+                 group.regions.addAll(scopes)
+                 if (groups.size > 20_000) throw HolidayException("holiday_response_too_large")
+             }
++            if (groupScope && !observedGroups.containsAll(if (region == null) schoolGroups else setOf(region.code))) complete = false
+             if (complete) coverage.add(Coverage(query.country, region?.code.orEmpty(), kind,
+                 fields.getValue("validFrom"), fields.getValue("validTo")))
+         }
+@@ -244,6 +285,7 @@
+             remainingMillis()
+             val label = when {
+                 query.regions.size <= 1 || group.names.isEmpty() -> group.names.firstOrNull().orEmpty()
++                groupSelection -> group.names.joinToString(", ")
+                 group.names == allNames -> if (query.language == "DE") {
+                     if (query.country == "CH") "alle Kantone" else "alle Bundesländer"
+                 } else if (query.country == "CH") "all cantons" else "all states"
