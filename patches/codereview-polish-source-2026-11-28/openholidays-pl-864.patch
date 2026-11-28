@@ -1,0 +1,14 @@
+diff --git a/src/pl/holidays/holidays.school.csv b/src/pl/holidays/holidays.school.csv
+--- a/src/pl/holidays/holidays.school.csv
++++ b/src/pl/holidays/holidays.school.csv
+@@ -45,5 +45,8 @@
+ 3beac5c5-9e58-44f8-a728-f0044989b4e2;PL;2026-04-02;2026-04-07;School;National;PL Wiosenna przerwa świąteczna,DE Frühjahrsferien,EN Spring Break;DS,KP,LB,LD,LU,MA,MZ,OP,PD,PK,PM,SK,SL,WN,WP,ZP;
+ 123916df-17df-4b03-9ddf-c8a68a6896e7;PL;2026-06-27;2026-08-31;School;National;PL Ferie letnie,DE Sommerferien,EN Summer Holidays;DS,KP,LB,LD,LU,MA,MZ,OP,PD,PK,PM,SK,SL,WN,WP,ZP;
++12b3b3de-6470-5e68-9bfb-5347abf5e5d1;PL;2026-12-23;2026-12-31;School;National;PL Zimowa przerwa świąteczna,DE Weihnachtsferien,EN Christmas Break;DS,KP,LB,LD,LU,MA,MZ,OP,PD,PK,PM,SK,SL,WN,WP,ZP;
+ eba154bb-e173-478c-ba75-78e4fd12f682;PL;2027-01-18;2027-01-31;School;Regional;PL Ferie zimowe,DE Winterferien,EN Winter Holidays;DS,LD,PD,PK,SK,OP;
+-a62f0be9-d5ec-4472-b80b-36282d2156c0;PL;2027-02-01;2027-02-14;School;Regional;PL Ferie zimowe,DE Winterferien,EN Winter Holidays;MZ,PM,SL,LU;
+-313c8bfc-d2e8-4495-8f24-881fa771c7ec;PL;2027-02-15;2027-02-28;School;Regional;PL Ferie zimowe,DE Winterferien,EN Winter Holidays;KP,MA,WN,WP,ZP;
++a62f0be9-d5ec-4472-b80b-36282d2156c0;PL;2027-02-01;2027-02-14;School;Regional;PL Ferie zimowe,DE Winterferien,EN Winter Holidays;LB,MZ,PM,SL;
++313c8bfc-d2e8-4495-8f24-881fa771c7ec;PL;2027-02-15;2027-02-28;School;Regional;PL Ferie zimowe,DE Winterferien,EN Winter Holidays;KP,LU,MA,WN,WP,ZP;
++0c917c24-3261-5218-bab6-60a7b11b7f5a;PL;2027-03-25;2027-03-30;School;National;PL Wiosenna przerwa świąteczna,DE Frühjahrsferien,EN Spring Break;DS,KP,LB,LD,LU,MA,MZ,OP,PD,PK,PM,SK,SL,WN,WP,ZP;
++d70266eb-a7be-5ed1-a739-883e9d6a2a7e;PL;2027-06-26;2027-08-31;School;National;PL Ferie letnie,DE Sommerferien,EN Summer Holidays;DS,KP,LB,LD,LU,MA,MZ,OP,PD,PK,PM,SK,SL,WN,WP,ZP;

@@ -1,0 +1,1527 @@
+{
+  "upstream": {
+    "commit": "65673ec67926c7819deac742ed78ae548d83272c",
+    "school_blob": "5e100014d14874260146bcb3b439998254574b47",
+    "subdivisions_blob": "c178158f3d5a9aa6b8f1efc51c13c9ff7947f9a5"
+  },
+  "product_main": "c3536a42a6695fb08c2a082809e6fd54dd43cca5",
+  "before": {
+    "total": 83,
+    "passed": 33,
+    "failed": [
+      {
+        "name": "2027 winter PL-06",
+        "actual": []
+      },
+      {
+        "name": "2027 winter PL-08",
+        "actual": [
+          [
+            "2027-02-01",
+            "2027-02-14"
+          ]
+        ]
+      },
+      {
+        "name": "national 2026-12-23 PL-02",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-04",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-06",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-08",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-10",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-12",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-14",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-16",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-18",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-20",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-22",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-24",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-26",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-28",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-30",
+        "actual": 0
+      },
+      {
+        "name": "national 2026-12-23 PL-32",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-02",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-04",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-06",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-08",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-10",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-12",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-14",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-16",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-18",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-20",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-22",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-24",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-26",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-28",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-30",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-03-25 PL-32",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-02",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-04",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-06",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-08",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-10",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-12",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-14",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-16",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-18",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-20",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-22",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-24",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-26",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-28",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-30",
+        "actual": 0
+      },
+      {
+        "name": "national 2027-06-26 PL-32",
+        "actual": 0
+      }
+    ]
+  },
+  "after": {
+    "total": 83,
+    "passed": 83,
+    "failed": []
+  },
+  "checks": {
+    "forward": true,
+    "reverse": true,
+    "unchangedPast": true,
+    "negative": [
+      {
+        "name": "wrong winter scope restored",
+        "detected": true
+      },
+      {
+        "name": "missing Christmas row",
+        "detected": true
+      },
+      {
+        "name": "duplicate national row",
+        "detected": true
+      },
+      {
+        "name": "unknown provider code",
+        "detected": true
+      }
+    ]
+  },
+  "before_details": [
+    {
+      "name": "16 distinct ISO/provider mappings",
+      "ok": true,
+      "actual": [
+        [
+          "PL-02",
+          "DS"
+        ],
+        [
+          "PL-04",
+          "KP"
+        ],
+        [
+          "PL-06",
+          "LB"
+        ],
+        [
+          "PL-10",
+          "LD"
+        ],
+        [
+          "PL-08",
+          "LU"
+        ],
+        [
+          "PL-12",
+          "MA"
+        ],
+        [
+          "PL-14",
+          "MZ"
+        ],
+        [
+          "PL-16",
+          "OP"
+        ],
+        [
+          "PL-18",
+          "PD"
+        ],
+        [
+          "PL-20",
+          "PK"
+        ],
+        [
+          "PL-22",
+          "PM"
+        ],
+        [
+          "PL-24",
+          "SK"
+        ],
+        [
+          "PL-26",
+          "SL"
+        ],
+        [
+          "PL-28",
+          "WN"
+        ],
+        [
+          "PL-30",
+          "WP"
+        ],
+        [
+          "PL-32",
+          "ZP"
+        ]
+      ]
+    },
+    {
+      "name": "unique valid IDs",
+      "ok": true,
+      "actual": 48
+    },
+    {
+      "name": "2026 winter PL-02",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-02",
+          "2026-02-15"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-04",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-02",
+          "2026-02-15"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-06",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-16",
+          "2026-03-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-08",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-16",
+          "2026-03-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-10",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-02",
+          "2026-02-15"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-12",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-02",
+          "2026-02-15"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-14",
+      "ok": true,
+      "actual": [
+        [
+          "2026-01-19",
+          "2026-02-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-16",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-02",
+          "2026-02-15"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-18",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-16",
+          "2026-03-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-20",
+      "ok": true,
+      "actual": [
+        [
+          "2026-01-19",
+          "2026-02-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-22",
+      "ok": true,
+      "actual": [
+        [
+          "2026-01-19",
+          "2026-02-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-24",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-16",
+          "2026-03-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-26",
+      "ok": true,
+      "actual": [
+        [
+          "2026-01-19",
+          "2026-02-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-28",
+      "ok": true,
+      "actual": [
+        [
+          "2026-01-19",
+          "2026-02-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-30",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-16",
+          "2026-03-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-32",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-02",
+          "2026-02-15"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-02",
+      "ok": true,
+      "actual": [
+        [
+          "2027-01-18",
+          "2027-01-31"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-04",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-15",
+          "2027-02-28"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-06",
+      "ok": false,
+      "actual": []
+    },
+    {
+      "name": "2027 winter PL-08",
+      "ok": false,
+      "actual": [
+        [
+          "2027-02-01",
+          "2027-02-14"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-10",
+      "ok": true,
+      "actual": [
+        [
+          "2027-01-18",
+          "2027-01-31"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-12",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-15",
+          "2027-02-28"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-14",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-01",
+          "2027-02-14"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-16",
+      "ok": true,
+      "actual": [
+        [
+          "2027-01-18",
+          "2027-01-31"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-18",
+      "ok": true,
+      "actual": [
+        [
+          "2027-01-18",
+          "2027-01-31"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-20",
+      "ok": true,
+      "actual": [
+        [
+          "2027-01-18",
+          "2027-01-31"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-22",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-01",
+          "2027-02-14"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-24",
+      "ok": true,
+      "actual": [
+        [
+          "2027-01-18",
+          "2027-01-31"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-26",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-01",
+          "2027-02-14"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-28",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-15",
+          "2027-02-28"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-30",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-15",
+          "2027-02-28"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-32",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-15",
+          "2027-02-28"
+        ]
+      ]
+    },
+    {
+      "name": "national 2026-12-23 PL-02",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-04",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-06",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-08",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-10",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-12",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-14",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-16",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-18",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-20",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-22",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-24",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-26",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-28",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-30",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2026-12-23 PL-32",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-02",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-04",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-06",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-08",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-10",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-12",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-14",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-16",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-18",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-20",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-22",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-24",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-26",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-28",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-30",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-03-25 PL-32",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-02",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-04",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-06",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-08",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-10",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-12",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-14",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-16",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-18",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-20",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-22",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-24",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-26",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-28",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-30",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "national 2027-06-26 PL-32",
+      "ok": false,
+      "actual": 0
+    },
+    {
+      "name": "all targeted scopes use known distinct provider codes",
+      "ok": true,
+      "actual": null
+    }
+  ],
+  "after_details": [
+    {
+      "name": "16 distinct ISO/provider mappings",
+      "ok": true,
+      "actual": [
+        [
+          "PL-02",
+          "DS"
+        ],
+        [
+          "PL-04",
+          "KP"
+        ],
+        [
+          "PL-06",
+          "LB"
+        ],
+        [
+          "PL-10",
+          "LD"
+        ],
+        [
+          "PL-08",
+          "LU"
+        ],
+        [
+          "PL-12",
+          "MA"
+        ],
+        [
+          "PL-14",
+          "MZ"
+        ],
+        [
+          "PL-16",
+          "OP"
+        ],
+        [
+          "PL-18",
+          "PD"
+        ],
+        [
+          "PL-20",
+          "PK"
+        ],
+        [
+          "PL-22",
+          "PM"
+        ],
+        [
+          "PL-24",
+          "SK"
+        ],
+        [
+          "PL-26",
+          "SL"
+        ],
+        [
+          "PL-28",
+          "WN"
+        ],
+        [
+          "PL-30",
+          "WP"
+        ],
+        [
+          "PL-32",
+          "ZP"
+        ]
+      ]
+    },
+    {
+      "name": "unique valid IDs",
+      "ok": true,
+      "actual": 51
+    },
+    {
+      "name": "2026 winter PL-02",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-02",
+          "2026-02-15"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-04",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-02",
+          "2026-02-15"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-06",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-16",
+          "2026-03-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-08",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-16",
+          "2026-03-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-10",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-02",
+          "2026-02-15"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-12",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-02",
+          "2026-02-15"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-14",
+      "ok": true,
+      "actual": [
+        [
+          "2026-01-19",
+          "2026-02-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-16",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-02",
+          "2026-02-15"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-18",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-16",
+          "2026-03-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-20",
+      "ok": true,
+      "actual": [
+        [
+          "2026-01-19",
+          "2026-02-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-22",
+      "ok": true,
+      "actual": [
+        [
+          "2026-01-19",
+          "2026-02-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-24",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-16",
+          "2026-03-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-26",
+      "ok": true,
+      "actual": [
+        [
+          "2026-01-19",
+          "2026-02-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-28",
+      "ok": true,
+      "actual": [
+        [
+          "2026-01-19",
+          "2026-02-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-30",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-16",
+          "2026-03-01"
+        ]
+      ]
+    },
+    {
+      "name": "2026 winter PL-32",
+      "ok": true,
+      "actual": [
+        [
+          "2026-02-02",
+          "2026-02-15"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-02",
+      "ok": true,
+      "actual": [
+        [
+          "2027-01-18",
+          "2027-01-31"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-04",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-15",
+          "2027-02-28"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-06",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-01",
+          "2027-02-14"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-08",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-15",
+          "2027-02-28"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-10",
+      "ok": true,
+      "actual": [
+        [
+          "2027-01-18",
+          "2027-01-31"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-12",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-15",
+          "2027-02-28"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-14",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-01",
+          "2027-02-14"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-16",
+      "ok": true,
+      "actual": [
+        [
+          "2027-01-18",
+          "2027-01-31"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-18",
+      "ok": true,
+      "actual": [
+        [
+          "2027-01-18",
+          "2027-01-31"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-20",
+      "ok": true,
+      "actual": [
+        [
+          "2027-01-18",
+          "2027-01-31"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-22",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-01",
+          "2027-02-14"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-24",
+      "ok": true,
+      "actual": [
+        [
+          "2027-01-18",
+          "2027-01-31"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-26",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-01",
+          "2027-02-14"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-28",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-15",
+          "2027-02-28"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-30",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-15",
+          "2027-02-28"
+        ]
+      ]
+    },
+    {
+      "name": "2027 winter PL-32",
+      "ok": true,
+      "actual": [
+        [
+          "2027-02-15",
+          "2027-02-28"
+        ]
+      ]
+    },
+    {
+      "name": "national 2026-12-23 PL-02",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-04",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-06",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-08",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-10",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-12",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-14",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-16",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-18",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-20",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-22",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-24",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-26",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-28",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-30",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2026-12-23 PL-32",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-02",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-04",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-06",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-08",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-10",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-12",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-14",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-16",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-18",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-20",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-22",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-24",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-26",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-28",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-30",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-03-25 PL-32",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-02",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-04",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-06",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-08",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-10",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-12",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-14",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-16",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-18",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-20",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-22",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-24",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-26",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-28",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-30",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "national 2027-06-26 PL-32",
+      "ok": true,
+      "actual": 1
+    },
+    {
+      "name": "all targeted scopes use known distinct provider codes",
+      "ok": true,
+      "actual": null
+    }
+  ],
+  "execution": "V8 JavaScript; same audit function as probe.cjs. Exact context-hunk forward/reverse in memory; no git apply, API replay or product execution."
+}
