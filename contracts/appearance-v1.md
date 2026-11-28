@@ -16,11 +16,27 @@ kopiert oder als Programmbestandteil übernommen.
 - 30. Dezember–1. Januar: Sterne; sie haben am überlappenden 30. Dezember Vorrang.
 - 28 statische, unterschiedlich große Elemente, jeweils höchstens 35 CSS-Pixel
   und zusätzlich auf 1 cm CSS-Maß begrenzt; keine Animation/zusätzliche Uhr.
-- Wochen-Tagesfelder: Stiefel am 6. Dezember, Weihnachtsmann am 24. Dezember,
-  Rakete am 31. Dezember, Sektglas am 1. Januar, Eier am gregorianischen Ostersonntag
-  und Ostermontag. Die Motive richten sich nach dem dargestellten Tag, nicht nach
-  angelegten Feiertags-/Termindatensätzen. Der Osterumfang ist die derzeitige
-  Auslegung von „zu Ostern“ und kann bei anderer Nutzerpräferenz angepasst werden.
+- Wochen-Tagesfelder verwenden das ausdrücklich gewählte Feiertagsland und
+  das Datum des dargestellten Tages. Ohne bekanntes Land erscheint kein
+  automatisches Festtagsmotiv. Für die zwölf derzeit auswählbaren Länder
+  bleiben die bisherigen westlichen Motive vorläufig erhalten; ihre genaue
+  regionale und kulturelle Zuordnung bleibt offen (#853).
+- Neue verifizierte nationale Festidentitäten: Schweiz (1. August, Laterne,
+  landesweit seit 1994); Frankreich (14. Juli seit 1880, Kokarde); Niederlande
+  (Koningsdag, Krone, seit 2014 am 27. April bzw. am Samstag 26. April bei
+  Sonntag); Deutschland (3. Oktober ab 1990, Brandenburger Tor) und Österreich
+  (26. Oktober ab 1965, Parlamentsmotiv). Die Regeln sind unabhängig von
+  Programmsprache und funktionieren offline. Sie erzeugen keine Kalenderdaten, ändern keine Schalter und
+  leiten keine Zugehörigkeit aus Namen, Sprache oder Religion ab.
+- Quellen: https://www.aboutswitzerland.eda.admin.ch/en/national-holiday-and-national-anthem ,
+  https://www.info.gouv.fr/actualite/pourquoi-le-14-juillet-est-il-notre-fete-nationale ,
+  https://www.royal-house.nl/topics/monarchy/king%E2%80%99s-day ,
+  https://www.royal-house.nl/latest/news/2013/1/28/kings-day-on-27-april-from-2014 ,
+  https://www.bundesregierung.de/breg-de/schwerpunkte/deutsche-einheit/fotoreihe-wiedervereinigung-442686 und
+  https://www.parlament.gv.at/en/experience/events/1285635 .
+  Automatische Vorschau mit gewähltem Land und Testdatum; bisherige explizite
+  Übersteuerungen bleiben erhalten. Weitere Festidentitäten und Provider
+  sind Folgearbeit (#853/#854).
 - Die Motive sind sehr schwache Magnolie-farbene Schatten, nicht interaktiv und
   für assistive Technik ausgeblendet. Sie werden nicht mitgedruckt. Die bestehende
   Datumswechselprüfung aktualisiert den Saisonhintergrund auch dann, wenn ein

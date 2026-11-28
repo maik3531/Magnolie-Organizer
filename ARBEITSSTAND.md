@@ -7,6 +7,14 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#853](https://github.com/maik3531/Magnolie-Organizer/issues/853):
+  Fünf nationale Kalenderwasserzeichen für DE, AT, CH, FR und NL sind in
+  den Desktopquellen integriert. Die Wochenansicht folgt dem gewählten
+  Feiertagsland und dem Datum. 40 Desktop-DOM-Läufe in 20 Sprachen sowie
+  die SVG-Anzeige und rastergleiche Druckausgabe mit und ohne Motive im
+  WebKit-Host bestanden. Weitere Festidentitäten, Vorschau, Handbuch und
+  Mac-/Tablet-Projektion bleiben in #853; installierte Pakete in #113.
+
 - [#857](https://github.com/maik3531/Magnolie-Organizer/issues/857):
   Die Feiertagsdienste für Linux, Windows, macOS und Android-Tablet erkennen
   sechs belgische und niederländische Schulgruppen. Bei gültigen Antworten

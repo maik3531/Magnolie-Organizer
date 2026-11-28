@@ -50,6 +50,39 @@
       { d: "M42 24C48 20 60 29 66 24M40 34L47 30L54 34L61 30L68 34M44 43C50 39 58 47 64 43", fill: "none", "data-motif-part": "egg-pattern" },
       { d: "M5 67Q40 58 75 67M11 66L7 57M18 64L17 55M65 64L68 55M72 66L77 59", fill: "none", "data-motif-part": "spring-grass" },
       { d: "M38 63C25 49 21 61 38 65C55 51 59 63 41 65M38 65L30 74M41 65L49 73", fill: "none", "data-motif-part": "ribbon" }
+    ],
+    "swiss-lantern": [
+      { d: "M29 18C29 6 51 6 51 18", fill: "none" },
+      { d: "M20 22L40 16L60 22L56 60L40 69L24 60Z", fill: "none" },
+      { d: "M20 22L40 29L60 22M40 29L40 69M24 60L40 53L56 60", fill: "none" },
+      { d: "M28 32L32 33L32 40L37 42L37 47L32 45L32 52L28 51L28 44L24 42L24 37L28 39Z", fill: "none" },
+      { d: "M44 49C44 44 50 41 49 36C56 44 55 49 50 51C47 52 44 51 44 49Z", fill: "none" },
+      { d: "M31 70L49 70L47 74L33 74Z", fill: "none" }
+    ],
+    "french-rosette": [
+      { d: "M27 50L17 72L29 68L34 76L40 55M53 50L63 72L51 68L46 76L40 55", fill: "none" },
+      { d: "M40 7L46 11L53 10L57 16L64 19L65 26L70 32L67 39L69 45L63 50L60 57L53 58L47 63L40 60L33 63L27 58L20 57L17 50L11 45L13 39L10 32L15 26L16 19L23 16L27 10L34 11Z", fill: "none" },
+      { d: "M40 15A20 20 0 1 1 40 55A20 20 0 1 1 40 15Z", fill: "none" },
+      { d: "M40 23A12 12 0 1 1 40 47A12 12 0 1 1 40 23Z", fill: "none" },
+      { d: "M40 28A7 7 0 1 1 40 42A7 7 0 1 1 40 28Z" }
+    ],
+    "unity-gate": [
+      { d: "M8 65H72M12 60H68V65H12ZM14 30H66V35H14ZM12 26H68V30H12Z", fill: "none", "data-motif-part": "gate-entablature" },
+      { d: "M18 35V60M23 35V60M31 35V60M36 35V60M44 35V60M49 35V60M57 35V60M62 35V60", fill: "none", "data-motif-part": "gate-columns" },
+      { d: "M30 26V22H50V26M35 22L37 16L41 16L43 22M29 20L26 15L30 12L34 15L34 20M46 20L46 15L50 12L54 15L51 20M40 16V9M36 12L40 9L44 12", fill: "none", "data-motif-part": "quadriga" }
+    ],
+    "neutrality-parliament": [
+      { d: "M10 66H70M15 61H65V66H15ZM16 31L40 16L64 31ZM17 35H63M20 36V61M26 36V61M34 36V61M40 36V61M48 36V61M54 36V61", fill: "none", "data-motif-part": "parliament" },
+      { d: "M40 8V16M40 8Q52 3 62 8V16Q52 11 40 16", fill: "none", "data-motif-part": "flag" },
+      { d: "M42 11Q52 7 60 11", fill: "none", "data-motif-part": "flag-stripe" },
+      { d: "M7 47L11 51M69 51L73 47M9 21L13 25M67 25L71 21", fill: "none", "data-motif-part": "festive-rays" }
+    ],
+    "kings-crown": [
+      { d: "M16 24L23 52L57 52L64 24L49 36L40 17L31 36Z", fill: "none" },
+      { d: "M23 52L24 61Q40 66 56 61L57 52M28 57Q40 60 52 57", fill: "none" },
+      { d: "M40 8L40 14M37 11L43 11M13 16L17 12M63 12L67 16", fill: "none" },
+      { d: "M40 43L44 47L40 51L36 47Z" },
+      { d: "M9 38L13 43M67 43L71 38M19 68L14 72M61 68L66 72", fill: "none" }
     ]
   });
   function element(name, attrs = {}) {
@@ -79,8 +112,31 @@
     if (value.month === 12 && value.day >= 30 || value.month === 1 && value.day === 1) return "stars";
     return winterCrystalCountries.has(country) && value.month === 12 && value.day >= 6 ? "crystals" : "none";
   }
-  function holiday(iso) {
-    const value = dateParts(iso); if (!value) return "none";
+  // Verified national festival identities, not translated calendar names.
+  const holidayCountries = new Set(["DE", "AT", "CH", "LI", "LU", "BE", "NL", "FR", "IT", "PL", "CZ", "ES"]);
+  const nationalMotifs = Object.freeze({
+    "de-unity-day": "unity-gate",
+    "at-national-day": "neutrality-parliament",
+    "ch-national-day": "swiss-lantern",
+    "fr-national-day": "french-rosette",
+    "nl-kings-day": "kings-crown"
+  });
+  function nationalFestival(value, country) {
+    const { year, month, day } = value;
+    if (country === "DE" && year >= 1990 && month === 10 && day === 3) return "de-unity-day";
+    if (country === "AT" && year >= 1965 && month === 10 && day === 26) return "at-national-day";
+    if (country === "CH" && year >= 1994 && month === 8 && day === 1) return "ch-national-day";
+    if (country === "FR" && year >= 1880 && month === 7 && day === 14) return "fr-national-day";
+    if (country === "NL" && year >= 2014 && month === 4) {
+      const observed = new Date(Date.UTC(year, 3, 27)).getUTCDay() === 0 ? 26 : 27;
+      if (day === observed) return "nl-kings-day";
+    }
+    return "";
+  }
+  function holiday(iso, country = "") {
+    const value = dateParts(iso); if (!value || !holidayCountries.has(country)) return "none";
+    const national = nationalMotifs[nationalFestival(value, country)];
+    if (national) return national;
     const key = value.month + "-" + value.day;
     const fixed = { "12-6": "boots", "12-24": "santa", "12-31": "rocket", "1-1": "glass" }[key];
     if (fixed) return fixed;
@@ -150,7 +206,7 @@
     node.dataset.appearanceDate = iso;
     node.querySelectorAll(":scope > [data-appearance-watermark]").forEach(old => old.remove());
     if (context.locked) return;
-    const kind = simulated() && preview.holiday !== "auto" ? preview.holiday : holiday(iso);
+    const kind = simulated() && preview.holiday !== "auto" ? preview.holiday : holiday(iso, context.country);
     const image = stamp(kind);
     if (image) { image.classList.add("magnolie-feiertags-schatten"); node.append(image); }
   }
@@ -191,7 +247,7 @@
       panel.icon.replaceChildren(tray({ connected: preview.connected === "auto" ? "none" : preview.connected,
         mode: preview.mode === "auto" ? "flower" : preview.mode, sync: preview.sync }));
       panel.sample.replaceChildren();
-      const image = stamp(preview.holiday === "auto" ? holiday(date) : preview.holiday);
+      const image = stamp(preview.holiday === "auto" ? holiday(date, context.country) : preview.holiday);
       if (image) panel.sample.append(image);
     } else panel = null;
   }

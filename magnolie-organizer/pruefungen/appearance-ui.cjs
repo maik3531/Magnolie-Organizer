@@ -7,7 +7,7 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
   const locales = ["en", ...fs.readdirSync(path.resolve(__dirname, "../web/i18n")).filter(name => name.endsWith(".js")).map(name => name.slice(0, -3))];
   for (const web of harness.exports.roots) for (const locale of locales) {
     const data = { notizen: [{ id: "keep", titel: "Unchanged", text: "Original" }],
-      einstellungen: { allgemein: { entwicklermodus: true } } };
+      einstellungen: { allgemein: { entwicklermodus: true }, ort: { land: "DE" } } };
     const b = await harness.exports.boot(web, data);
     try {
       const d = b.w.document;
@@ -20,12 +20,31 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
         };
         b.t.oeffneEinstellungen(); d.querySelector("#einst-tab-ort").click();
         const country = d.querySelector("#ort-land");
-        for (const [value, season] of [["ES", null], ["DE", "crystals"], ["ES", null], ["DE", "crystals"]]) {
+        const selectCountry = value => {
           country.value = value;
           country.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+        };
+        for (const [value, season] of [["ES", null], ["DE", "crystals"], ["ES", null], ["DE", "crystals"]]) {
+          selectCountry(value);
           assert.equal(d.querySelector("#magnolie-saison")?.dataset.season || null, season,
             "Changing the saved country updates the actual background immediately");
         }
+        for (const [date, land, motif] of [
+          ["2026-10-03", "DE", "unity-gate"], ["2026-10-26", "AT", "neutrality-parliament"],
+          ["2026-08-01", "CH", "swiss-lantern"], ["2026-07-14", "FR", "french-rosette"],
+          ["2025-04-26", "NL", "kings-crown"]
+        ]) {
+          b.t.zustand().kalender.tag = date;
+          await b.t.wechsel("aufgaben"); await b.t.wechsel("kalender");
+          selectCountry(land);
+          const watermarks = () => d.querySelectorAll(`.wo-tag[data-appearance-date="${date}"] [data-appearance-watermark]`);
+          assert.equal(watermarks().length, 1);
+          assert.equal(watermarks()[0].dataset.appearanceWatermark, motif);
+          assert.equal(watermarks()[0].getAttribute("aria-hidden"), "true");
+          selectCountry("ES");
+          assert.equal(watermarks().length, 0);
+        }
+        selectCountry("DE");
       }
       b.t.zustand().kalender.tag = "2026-12-06";
       await b.t.wechsel("aufgaben"); await b.t.wechsel("kalender");
@@ -41,7 +60,7 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
       const enabledSource = source.replace("const SHOW_DEVELOPER_PREVIEW = false;", "const SHOW_DEVELOPER_PREVIEW = true;");
       assert.notEqual(enabledSource, source);
       b.w.eval(enabledSource);
-      b.w.MagnolieAppearance.update({ today: "2026-12-06", developer: true, locked: false });
+      b.w.MagnolieAppearance.update({ today: "2026-12-06", country: "DE", developer: true, locked: false });
       b.t.oeffneEinstellungen(); d.querySelector("#einst-tab-entwickler").click();
       const panel = d.querySelector("#entwickler-darstellung"); assert(panel && panel.textContent.includes("TEST"));
       const t = text => b.w.MagnolieI18n.gettext(text);

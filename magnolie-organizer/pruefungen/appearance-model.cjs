@@ -11,7 +11,23 @@ try {
   assert.equal(appearance.connection("paired", 1), "none", "Pairing/truthy values must never count as a native connection");
   for (const [date, expected] of [["2026-12-05", "none"], ["2026-12-06", "crystals"], ["2026-12-29", "crystals"], ["2026-12-30", "stars"], ["2026-12-31", "stars"], ["2027-01-01", "stars"], ["2027-01-02", "none"], ["2026-02-30", "none"]]) assert.equal(appearance.season(date, "DE"), expected, date);
   for (const country of ["", "ES", "FR", "IT", "AU", "CN", "ZZ"]) assert.equal(appearance.season("2026-12-10", country), "none", country);
-  for (const [date, expected] of [["2026-12-06", "boots"], ["2026-12-24", "santa"], ["2026-12-31", "rocket"], ["2027-01-01", "glass"], ["2026-04-05", "eggs"], ["2026-04-06", "eggs"], ["2027-03-28", "eggs"], ["2027-03-29", "eggs"], ["2026-04-07", "none"]]) assert.equal(appearance.holiday(date), expected, date);
+  for (const [date, expected] of [["2026-12-06", "boots"], ["2026-12-24", "santa"], ["2026-12-31", "rocket"], ["2027-01-01", "glass"], ["2026-04-05", "eggs"], ["2026-04-06", "eggs"], ["2027-03-28", "eggs"], ["2027-03-29", "eggs"], ["2026-04-07", "none"]]) assert.equal(appearance.holiday(date, "DE"), expected, date);
+  for (const [date, country, expected] of [
+    ["2026-08-01", "CH", "swiss-lantern"], ["2026-08-01", "DE", "none"],
+    ["2026-07-14", "FR", "french-rosette"], ["2026-07-14", "BE", "none"],
+    ["2025-04-26", "NL", "kings-crown"], ["2025-04-27", "NL", "none"],
+    ["2026-04-27", "NL", "kings-crown"], ["2026-04-26", "NL", "none"],
+    ["2013-04-27", "NL", "none"], ["2026-12-06", "", "none"],
+    ["2026-04-05", "CN", "none"], ["2026-01-01", "ZZ", "none"]
+  ]) assert.equal(appearance.holiday(date, country), expected, date + " " + country);
+  for (const kind of ["swiss-lantern", "french-rosette", "kings-crown"]) {
+    const svg = appearance.stamp(kind);
+    assert.equal(svg.dataset.appearanceWatermark, kind);
+    assert.equal(svg.getAttribute("aria-hidden"), "true");
+    assert.equal(svg.getAttribute("focusable"), "false");
+    assert(svg.querySelectorAll("path").length >= 5);
+    assert.equal(svg.querySelectorAll("image,script,foreignObject,a,animate,animateTransform").length, 0);
+  }
   for (const connected of ["none", "notes", "kde", "both"]) for (const mode of ["flower", "camera", "phone"]) for (const sync of [false, true]) {
     const svg = appearance.tray({ connected, mode, sync });
     assert.equal(!!svg.querySelector('[data-appearance-shape="sync"]'), sync);
@@ -99,5 +115,15 @@ try {
   appearance.day(day, "2026-12-24");
   assert(day.querySelector('.magnolie-feiertags-schatten[data-appearance-watermark="santa"] [data-motif-part="smile"]'));
   assert.equal(day.querySelectorAll("[data-appearance-watermark]").length, 1);
+  day.className = "wo-tag"; desktop.append(day);
+  appearance.update({ today: "2025-04-26", country: "NL", developer: false, locked: false });
+  appearance.day(day, "2025-04-26");
+  assert(day.querySelector('[data-appearance-watermark="kings-crown"]'));
+  appearance.update({ today: "2025-04-26", country: "DE", developer: false, locked: false });
+  assert.equal(day.querySelectorAll("[data-appearance-watermark]").length, 0);
+  appearance.update({ today: "2025-04-26", country: "NL", developer: false, locked: false });
+  assert.equal(day.querySelectorAll('[data-appearance-watermark="kings-crown"]').length, 1);
+  appearance.update({ today: "2025-04-26", country: "NL", developer: false, locked: true });
+  assert.equal(day.querySelectorAll("[data-appearance-watermark]").length, 0);
   console.log("Appearance model PASS: actual-boolean color matrix, seasonal boundaries, Gregorian Easter, 24 isolated icon variants and passive original vector shapes.");
 } finally { dom.window.close(); }
