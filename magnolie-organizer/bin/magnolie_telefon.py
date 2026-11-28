@@ -2912,6 +2912,8 @@ class PhoneService:
         self._native_file_control_receipts = weakref.WeakKeyDictionary()
         self._native_pc_video_checked = self._native_photo_built and optional_phone.private_pc_video()
         self._native_pc_image_batch_checked = self._native_photo_built and optional_phone.private_pc_image_batch()
+        self._native_pc_mixed_checked = (self._native_pc_video_checked and self._native_pc_image_batch_checked
+            and optional_phone.private_pc_mixed())
         self._native_media_support_checked = self._native_pc_video_checked or self._native_pc_image_batch_checked
         self._native_media_support = weakref.WeakKeyDictionary()
         self._native_pc_image_batch_support = weakref.WeakKeyDictionary()
@@ -3237,7 +3239,8 @@ class PhoneService:
                     self._current_native_source_metadata(peer_id,static_public,channel,generation))
                      and self.connection_transports.get(peer_id)=='wifi'),media_support=support,
                 private_pc_video_runtime=support is not None and self._native_pc_video_checked,
-                pc_batch_peer_ready=batch_peer_ready if support is not None and self._native_pc_image_batch_checked else None)
+                pc_batch_peer_ready=batch_peer_ready if support is not None and self._native_pc_image_batch_checked else None,
+                private_pc_mixed_runtime=support is not None and self._native_pc_mixed_checked)
         except BaseException:
             authority.close()
             raise

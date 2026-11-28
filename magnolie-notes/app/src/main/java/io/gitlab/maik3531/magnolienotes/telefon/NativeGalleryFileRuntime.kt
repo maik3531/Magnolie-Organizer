@@ -106,6 +106,23 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         fun cancel() { admission.close(); preparation.get()?.cancel(); run.get()?.cancel() }
     }
     private val pendingPc = AtomicReference<PendingPc?>()
+    private val seenMixedPcRequests = mutableSetOf<String>() // Original runtime operation gate only.
+    private class MixedPcAdmission(val intent: MediaSyncTransport.IntentToken, private val fast: () -> Boolean,
+        private val check: () -> Unit) {
+        private val retired = AtomicBoolean(false)
+        fun current(): Boolean {
+            if (!fast()) retired.set(true)
+            return !retired.get()
+        }
+        fun boundary(): Boolean = current() && try {
+            check()
+            current()
+        } catch (_: Exception) {
+            retired.set(true)
+            false
+        }
+    }
+    private val mixedPcAdmission = AtomicReference<MixedPcAdmission?>()
     private val completedPc = AtomicReference<Pair<PendingPc, NativeGalleryPcReplacementRun>?>()
     private val pcWorker = NativeGalleryPcReplacementWorker(app, index, incomingRows, localRecoveryProtection, nativeChannel, ::pcIoEnded)
     private val controls: NativeFileControlChannel
@@ -139,6 +156,79 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     }
     fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean = withOperation(allowIncoming = true) {
         controls.observe(message, now).also { incomingWorker.current?.retireIfChanged(); publishedReadWorker.current?.retireIfChanged(); pcWorker.current?.retireIfChanged() }
+    }
+
+    /** Reply only from the existing reader/owner. No gallery access or choice is started here. */
+    internal fun answerMixedPcPreflight(authenticatedChannel: TelefonSecureChannel, request: JsonObject,
+        book: NativeGalleryReceiveBookPermit, originalLive: () -> Boolean, send: (JsonObject, () -> Unit) -> Unit): () -> Boolean = withOperation {
+        if (Looper.myLooper() == Looper.getMainLooper() || authenticatedChannel !== nativeChannel || !originalLive() ||
+            !incomingAvailable() || !videoAvailable()) DeviceFileControl.fail("media_mixed_preflight_current_owner_required")
+        if (!sourceWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null)
+            DeviceFileControl.fail("gallery_sync_run_busy")
+        val intent = (currentIncomingIntent?.invoke(GalleryMediaType.IMAGES) as? MediaSyncTransport.IntentToken)
+            ?.takeIf { it.privatePcMixed() } ?: DeviceFileControl.fail("media_mixed_preflight_current_owner_required")
+        val destination = "0".repeat(64)
+        val control = controls.session.operationBinding(destination)
+            ?: DeviceFileControl.fail("media_mixed_preflight_current_owner_required")
+        val started = DeviceFileControl.monotonicMs()
+        val wall = System.currentTimeMillis()
+        val id = MediaMixedPreflight.readRequest(request, intent.body, control.binding, wall)
+        if (seenMixedPcRequests.size >= 128 || !seenMixedPcRequests.add(id))
+            DeviceFileControl.fail("media_mixed_preflight_replayed")
+        mixedPcAdmission.set(null)
+        val remaining = minOf(MediaMixedPreflight.TTL_MS, request.long("expires_ms") - wall)
+        val saved = index.galleryPolicy()
+        val policy = saved.policy
+        val peer = nativePeer()
+        if (saved.repairPending || peer?.pairingEpoch == null || policy == null ||
+            policy.receiverId != peer.peerId || policy.receiverIdentitySha256 != peer.identitySha256 ||
+            policy.pairingEpoch != peer.pairingEpoch || policy.receiving?.photos != true || policy.receiving.videos != true)
+            DeviceFileControl.fail("media_mixed_preflight_both_receive_choices_required")
+        fun fast() = DeviceFileControl.monotonicMs() - started in 0 until 7_200_000L && originalLive() &&
+            !closed.get() && !revoked.get() && currentIncomingIntent?.invoke(GalleryMediaType.IMAGES) === intent &&
+            currentIncomingIntent?.invoke(GalleryMediaType.VIDEO) === intent
+        fun requireAdmission() {
+            book.requireCurrent()
+            if (!fast() || !incomingAvailable() || !videoAvailable() ||
+                controls.session.operationBinding(destination) != control || index.galleryPolicy() != saved)
+                DeviceFileControl.fail("media_mixed_preflight_current_owner_required")
+        }
+        fun requireCurrent() {
+            requireAdmission()
+            if (DeviceFileControl.monotonicMs() - started !in 0 until remaining)
+                DeviceFileControl.fail("media_mixed_preflight_current_owner_required")
+            MediaMixedPreflight.readRequest(request, intent.body, control.binding, System.currentTimeMillis())
+        }
+        requireCurrent()
+        val result = MediaMixedPreflight.readyResult(request, intent.body, control.binding, System.currentTimeMillis())
+        send(result, ::requireCurrent)
+        requireCurrent()
+        val admission = MixedPcAdmission(intent, ::fast, ::requireAdmission)
+        mixedPcAdmission.set(admission)
+        fun admitted() = mixedPcAdmission.get() === admission && admission.boundary()
+        ::admitted
+    }
+
+    internal fun beginMixedPcMediaOffer(authenticatedChannel: TelefonSecureChannel, message: JsonObject,
+        book: NativeGalleryReceiveBookPermit): NativeGalleryIncomingRun {
+        val admission = mixedPcAdmission.get() ?: DeviceFileControl.fail("media_mixed_preflight_current_owner_required")
+        fun current() = mixedPcAdmission.get() === admission && admission.current()
+        fun requireBoundary() {
+            if (mixedPcAdmission.get() !== admission || !admission.boundary())
+                DeviceFileControl.fail("media_mixed_preflight_current_owner_required")
+        }
+        if (authenticatedChannel !== nativeChannel || Looper.myLooper() == Looper.getMainLooper())
+            DeviceFileControl.fail("media_mixed_preflight_current_owner_required")
+        requireBoundary()
+        val peer = nativePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
+        val body = message["body"] as? JsonObject ?: DeviceFileControl.fail("media_offer_invalid_envelope")
+        val batch = body["format"] == JsonPrimitive(3)
+        val media = if (batch) MediaOfferEnvelope.validateNewPcImageBatch(message, peer.peerId, localIdentity.deviceId, mixed = true)
+            else MediaOfferEnvelope.validatePrivatePcVideoOriginal(message, peer.peerId, localIdentity.deviceId, mixed = true)
+        if (media.settings != admission.intent.body) DeviceFileControl.fail("gallery_incoming_offer_intent_changed")
+        return beginIncomingOwned(media.offer, media.kind, media.mimeTypes, book, media.originals, admission.intent,
+            automaticReadback = true, requireReadbackAgreement = ::requireBoundary, pcOrigins = media.pcOrigins,
+            originalLive = ::current, batchOffer = message.takeIf { batch }, mixed = true)
     }
     internal fun beginIncomingMediaOffer(message: JsonObject, book: NativeGalleryReceiveBookPermit,
         automaticReadback: Boolean = false, requireReadbackAgreement: () -> Unit = {}): NativeGalleryIncomingRun {
@@ -183,7 +273,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         book: NativeGalleryReceiveBookPermit, references: Map<String, GalleryPhoneMediaReference>,
         expectedIntent: MediaSyncTransport.IntentToken?, automaticReadback: Boolean,
          requireReadbackAgreement: () -> Unit, pcOrigins: Map<String, GalleryPcMediaOrigin>,
-          originalLive: () -> Boolean = { true }, batchOffer: JsonObject? = null): NativeGalleryIncomingRun = withOperation {
+           originalLive: () -> Boolean = { true }, batchOffer: JsonObject? = null, mixed: Boolean = false): NativeGalleryIncomingRun = withOperation {
         if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
         if (kind == GalleryMediaType.VIDEO && !videoAvailable()) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
         if (!sourceWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null)
@@ -200,7 +290,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         val originalControl = controls.session.operationBinding(manifest.fingerprint)
         incomingWorker.start(completedReadback = { completed ->
             fun beginReadback() = beginCompletedIncomingReadback(completed, offer, book, kind, originalIntent,
-                originalControl ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required"), originalLive, batchOffer)
+                 originalControl ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required"), originalLive, batchOffer, mixed)
             if (!automaticReadback) beginReadback()
             else {
                 val remaining = minOf(1000L, offer.long("expires_ms") - System.currentTimeMillis())
@@ -221,7 +311,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                  } },
                 manifest, kind, originalReferences, originalPcOrigins,
                  expectedControl = originalControl ?: DeviceFileControl.fail("gallery_incoming_current_owner_required"),
-                 batchOffer = batchOffer)
+                 batchOffer = batchOffer, mixed = mixed)
             try { NativeGalleryIncomingTransfer.prepare(owner, nativeChannel, index, incomingRows, offer, types) }
             catch (error: Throwable) { owner.close(); throw error }
         }
@@ -229,7 +319,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     private fun beginCompletedIncomingReadback(completed: NativeGalleryIncomingRun, offer: JsonObject,
         book: NativeGalleryReceiveBookPermit, kind: GalleryMediaType, originalIntent: Any,
           originalControl: NativeFileOperationBinding, originalLive: () -> Boolean,
-          batchOffer: JsonObject? = null): NativeGalleryPublishedReadRun = withOperation {
+           batchOffer: JsonObject? = null, mixed: Boolean = false): NativeGalleryPublishedReadRun = withOperation {
         if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_incoming_worker_io_required")
          if (!originalLive() || !incomingWorker.owns(completed) || !incomingAvailable() || currentIncomingIntent?.invoke(kind) !== originalIntent)
             DeviceFileControl.fail("gallery_incoming_completed_owner_required")
@@ -242,8 +332,8 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             val intent = originalIntent as? MediaSyncTransport.IntentToken
                 ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required")
             val binding = originalControl.binding
-            val media = MediaOfferEnvelope.validateNewPcImageBatch(batchOffer, binding.senderId, binding.receiverId)
-            val scope = GalleryIncomingScope.captureNewPcImageBatch(media.manifest, kind, intent, media.originals, media.pcOrigins, batchOffer)
+            val media = MediaOfferEnvelope.validateNewPcImageBatch(batchOffer, binding.senderId, binding.receiverId, mixed)
+            val scope = GalleryIncomingScope.captureNewPcImageBatch(media.manifest, kind, intent, media.originals, media.pcOrigins, batchOffer, mixed)
             val expectedScope = JsonPrimitive(scope.fingerprint(media.manifest))
             val members = completed.actualPublishedMembers()
             val publications = members.associateBy { it.body.getValue("origin").jsonObject.string("file_id") }

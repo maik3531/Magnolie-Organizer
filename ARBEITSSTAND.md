@@ -127,8 +127,8 @@ aufgeführt.
   bytegleiches Speichern, Rücklesen und Abbruch bei Einstellungswechsel.
   Mit dem verifizierten Linux-Quellsender bestand der gekoppelte Lauf
   einschließlich Android-Testdialog, Saved, Rücklesen, Quellenabschluss
-  und unveränderter Wiederholung. Mischversand und die installierte
-  Windows/Notes-Gegenprobe bleiben offen.
+  und unveränderter Wiederholung. Die installierte Windows/Notes-Gegenprobe
+  bleibt offen.
   Linux kann im separat aktivierbaren privaten Build eine Original-MP4
   aus einem ausdrücklich gewählten Videoordner manuell an Notes senden.
   Der gekoppelte WLAN-Quelltest bestätigte die getrennte Video-Freigabe,
@@ -157,7 +157,7 @@ aufgeführt.
   zwei bytegleiche PNGs, stillen Wiederholungslauf und den Widerruf
   auf der ursprünglichen Verbindung. Die MP4-Gegenprobe, 32 Prüfungen
   zu Build-Komposition und Videorechten sowie die Linux-Oberfläche
-  bestanden ebenfalls. Geschützte Alt- und Mischfälle, unterbrochene
+  bestanden ebenfalls. Geschützte Altfälle, unterbrochene
   Abschlüsse und installierte Abnahme bleiben offen.
   Im privaten Linux-Build kann eine bewusst gewählte WLAN-Ausgabe
   eine Original-MP4 aus dem gewählten Videoordner ohne manuellen
@@ -180,7 +180,18 @@ aufgeführt.
   Gegenproben, 41 Linux-Regressionstests und die Oberfläche bestanden.
   Automatischer Versand nach einem Verbindungswechsel und installierte
   Abnahme bleiben offen.
-  Änderungen vorhandener Galeriezeilen und Misch-Batches bleiben offen.
+  In den separat aktivierbaren Linux-/Notes-Builds kann „Jetzt
+  synchronisieren“ aus ausdrücklich gewählten Foto- und Videoordnern auf
+  derselben WLAN-Verbindung senden. Die Vorprüfung verlangt beide
+  typbezogenen SEND- und RECEIVE-Freigaben, bevor ein Transfer beginnt.
+  Im gekoppelten Test blieb der Lauf bei alleinigem Foto-RECEIVE stehen.
+  Nach der getrennten Videofreigabe kamen PNG und MP4 bytegleich am
+  Android-35-Testprovider an. Saved, Foto-v2-/Video-v1-Rücklesen und
+  geschützter Quellenabschluss wurden jeweils getrennt bestätigt.
+  Der unveränderte Folgelauf übertrug keine Medien. 73 Linux-Prüfungen
+  und die Oberflächenprüfung bestanden. Gemischte
+  WLAN-Automatik, Änderungen vorhandener Galeriezeilen und unterbrochene
+  Quellenabschlüsse bleiben offen.
   Windows kann in der privaten Medienkonfiguration Original-MP4 aus
   einem ausdrücklich gewählten Videoordner manuell senden. Die Auswahl
   startet keine Übertragung. Der Lauf braucht getrennt bestätigtes
@@ -202,7 +213,7 @@ aufgeführt.
   geschützten Quellenabschluss und einen stillen Folgedurchlauf bei
   unverändertem PC-Empfangsrecht. Vier native Gruppen und der Windows-
   Produktbuild bestanden.
-  Mischversand bleibt offen.
+  Windows-Mischversand bleibt offen.
   Die Prüfung mit installierten Paketen bleibt offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):
   Ergänzendes Wiederherstellen hält eine eindeutige lokale Kontaktkarte

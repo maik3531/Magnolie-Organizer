@@ -24,6 +24,8 @@ val privatePcVideoReceive = providers.gradleProperty("magnoliePrivatePcVideoRece
     .map { it.toBooleanStrict() }.getOrElse(false)
 val privatePcImageBatchReceive = providers.gradleProperty("magnoliePrivatePcImageBatchReceive")
     .map { it.toBooleanStrict() }.getOrElse(false)
+val privatePcMixedPreflight = providers.gradleProperty("magnoliePrivatePcMixedPreflight")
+    .map { it.toBooleanStrict() }.getOrElse(false)
 // #691: an explicit, unsigned, offline migration candidate; not release approval.
 // Reuse the locked release configuration instead of adding new dependency variants.
 val target37Validierung = providers.gradleProperty("magnolieTarget37Validation")
@@ -76,6 +78,7 @@ android {
         buildConfigField("boolean", "FDROID_DISTRIBUTION", fdroidBau.toString())
         buildConfigField("boolean", "PRIVATE_PC_VIDEO_RECEIVE", privatePcVideoReceive.toString())
         buildConfigField("boolean", "PRIVATE_PC_IMAGE_BATCH_RECEIVE", privatePcImageBatchReceive.toString())
+        buildConfigField("boolean", "PRIVATE_PC_MIXED_PREFLIGHT", (privatePcMixedPreflight && privatePcImageBatchReceive && privatePcVideoReceive).toString())
         testInstrumentationRunner = "io.gitlab.maik3531.magnolienotes.MagnolieTestRunner"
         resourceConfigurations += listOf(
             "ar", "be", "cs", "da", "de", "en", "es", "fr", "hi", "hsb",

@@ -12,7 +12,7 @@ from magnolie_telefon import canonical
 
 class NativeMappedMediaWorker:
     PAGE_SIZE=32
-    def __init__(self,connection,kind,book_fence=None,*,automatic=False,native_current=None):
+    def __init__(self,connection,kind,book_fence=None,*,automatic=False,native_current=None,mixed=None):
         from magnolie_file_desktop_connection import NativeDesktopFileConnection
         if (type(connection) is not NativeDesktopFileConnection or kind not in ('images','video')
                 or type(automatic) is not bool
@@ -28,6 +28,7 @@ class NativeMappedMediaWorker:
         self._automatic=automatic
         self._private_video=connection._media_support is not None and kind=='video'
         self._private_images=connection._media_support is not None and kind=='images'
+        self._mixed=mixed
         self._native_current=native_current
         self._collection=None;self._collection_control=None;self._active_sender=None;self._filtered=0
 
@@ -46,7 +47,8 @@ class NativeMappedMediaWorker:
             raise TransferError('media_source_native_operation_ended')
         if c._native_metadata_current() is not True:raise TransferError('media_source_current_metadata_required')
         if self._private_video or self._private_images:
-            intent=c._private_automatic_output(self._kind) if self._automatic else c._private_manual_output(self._kind)
+            if self._mixed is not None:self._mixed.require_worker(c._desktop_session)
+            intent=c._private_worker_intent(self._kind,automatic=self._automatic,mixed=self._mixed)
             if intent is not self._token:
                 raise TransferError('media_source_current_intent_required')
         if self._collection_control is not None:
@@ -215,7 +217,7 @@ class NativeMappedMediaWorker:
             while True:
                 self._current()
                 snapshot,records,cursor=c._mappings.candidate_page(self._kind,after=cursor,expected=snapshot,limit=self.PAGE_SIZE)
-                if self._private_video and records:
+                if (self._private_video or self._mixed is not None) and records:
                     raise TransferError('media_source_private_mapped_return_unavailable')
                 if self._private_images:
                     mapped_keys.update(record.file_key for record in records)

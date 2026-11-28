@@ -69,7 +69,7 @@ class NativeCollectionFolderChoice:
                 or self._control_snapshot()!=self._control or c._media_pc_source is None
                 or c._native_metadata_current() is not True or self._token is None
                  or c._media_transport.intent_for(self._kind,to_phone=True) is not self._token
-                 or c._media_support is not None and c._private_outgoing_intent(self._kind) is not self._token
+                 or c._media_support is not None and c._private_setup_collection_intent(self._kind) is not self._token
                 or effective(self._token.body)['collection_mode']!='entire_collection'
                 or c._preferences.read()!=self._expected):
             self.close();raise TransferError('media_collection_native_choice_changed')

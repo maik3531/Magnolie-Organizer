@@ -247,7 +247,9 @@ class _NativeMediaSourceSender:
                     if self._connection is not None and self._connection._media_support is not None:
                         if kind!='video' or mime!='video/mp4' or previous is not None or file.size<=0 or self._cache.original_references:
                             raise TransferError('media_source_typed_video_counterpart_required')
-                        if self._connection._private_outgoing_video() is not token:
+                        worker=self._connection._mapped_worker
+                        if (worker is None or self._connection._private_worker_intent('video',
+                                automatic=worker._automatic,mixed=worker._mixed) is not token):
                             raise TransferError('media_source_sender_original_intent_required')
                     pc={file.id:dict(format=1,origin_sha256=sha256(b'magnolie-pc-media-origin-v1\0'+canonical(origin)).hexdigest(),
                         previous_publication_sha256=previous)}

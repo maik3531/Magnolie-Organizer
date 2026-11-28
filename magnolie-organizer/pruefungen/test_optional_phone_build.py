@@ -40,6 +40,7 @@ def test_actual_desktop_stage_contains_exact_selected_modules_and_resolves_all_r
     assert (runtime / 'magnolie_photo_schedule.py').exists() is photo
     assert (runtime / 'magnolie_media_preview.py').exists() is photo
     assert (runtime / 'magnolie_media_offer.py').exists() is photo
+    assert (runtime / 'magnolie_media_mixed_preflight.py').exists() is photo
     assert (runtime / 'magnolie_phone_webcam.py').exists() is camera
     assert (runtime / 'magnolie_phone_camera_setup.py').exists() is camera
     assert (runtime / 'magnolie_phone_camera_install.py').exists() is camera
@@ -110,6 +111,30 @@ def test_private_linux_image_batch_is_independent_and_has_no_legacy_marker(tmp_p
             assert not policy.private_pc_video()
             versions = phone.desktop_capabilities()['items']['device_status']['versions']
             assert 22 not in versions and 23 not in versions
+
+
+@pytest.mark.parametrize('mixed, video, photos, expected', [
+    (None, True, True, False),
+    ('true', True, True, False),
+    (True, False, True, False),
+    (True, True, False, False),
+    (True, True, True, True),
+])
+def test_private_linux_mixed_requires_all_three_build_options(tmp_path, monkeypatch, mixed, video, photos, expected):
+    from magnolie_telefon import PhoneService
+    from test_telefon import FakeBluetooth
+
+    runtime = tmp_path / 'magnolie-organizer' / 'python'
+    runtime.mkdir(parents=True)
+    monkeypatch.setattr(policy, '__file__', str(runtime / 'magnolie_optional_phone.py'))
+    (runtime.parent / 'build-config.json').write_text(json.dumps({
+        'phoneFeatures': {'photo_sync': True},
+        'privatePcMixedSend': mixed,
+        'privatePcVideoSend': video,
+        'privatePcImageBatchSend': photos,
+    }))
+    service = PhoneService(str(tmp_path / 'telefon'), 'Test desktop', bluetooth_backend=FakeBluetooth())
+    assert service._native_pc_mixed_checked is expected
 
 
 @pytest.mark.parametrize('value', [True, [], {'photo_sync': 1}, {'phone_camera': 'true'}, {'unknown': True}])

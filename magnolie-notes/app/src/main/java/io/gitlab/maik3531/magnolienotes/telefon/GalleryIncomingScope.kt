@@ -58,8 +58,8 @@ internal class GalleryIncomingScope private constructor(internal val collectionM
         }
         internal fun captureNewPcImageBatch(manifest: DeviceFileManifest, kind: GalleryMediaType,
             token: MediaSyncTransport.IntentToken, references: Map<String, GalleryPhoneMediaReference>,
-            origins: Map<String, GalleryPcMediaOrigin>, offer: JsonObject): GalleryIncomingScope {
-            val media = MediaOfferEnvelope.validateNewPcImageBatch(offer, manifest.senderId, manifest.receiverId)
+            origins: Map<String, GalleryPcMediaOrigin>, offer: JsonObject, mixed: Boolean = false): GalleryIncomingScope {
+            val media = MediaOfferEnvelope.validateNewPcImageBatch(offer, manifest.senderId, manifest.receiverId, mixed)
             if (media.kind != kind || media.settings != token.body ||
                 token.collectionMode != "entire_collection" || !token.requestedIncoming(kind) ||
                 references.isNotEmpty() || media.manifest.wire() != manifest.wire() ||

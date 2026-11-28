@@ -29,22 +29,25 @@ internal object MediaOfferEnvelope {
     const val KIND = "file_transfer.media_offer"
 
     internal fun validatePrivatePcVideoOriginal(message: JsonObject, senderId: String, receiverId: String,
-        now: Long = System.currentTimeMillis()): NativeMediaOffer {
+        now: Long = System.currentTimeMillis(), mixed: Boolean = false): NativeMediaOffer {
         val body = message["body"] as? JsonObject ?: fail()
         if (body["format"] != JsonPrimitive(2)) fail()
         val media = validate(message, senderId, receiverId, now)
         val file = media.manifest.files.singleOrNull() ?: fail()
+        val intent = MediaSyncTransport.IntentToken(media.settings)
         if (media.kind != GalleryMediaType.VIDEO || file.size <= 0 || media.originals.isNotEmpty() ||
             media.pcOrigins.size != 1 || media.pcOrigins[file.id]?.body?.get("previous_publication_sha256") != JsonNull ||
             media.mimeTypes[file.id] != "video/mp4" ||
-            !MediaSyncTransport.IntentToken(media.settings).privatePcVideoOnly()) fail()
+            !(if (mixed) intent.privatePcMixed() else intent.privatePcVideoOnly())) fail()
         return media
     }
 
-    internal fun validateNewPcImageBatch(message: JsonObject, senderId: String, receiverId: String): NativeMediaOffer {
+    internal fun validateNewPcImageBatch(message: JsonObject, senderId: String, receiverId: String,
+        mixed: Boolean = false): NativeMediaOffer {
         val media = validate(message, senderId, receiverId, allowPcBatch = true)
+        val intent = MediaSyncTransport.IntentToken(media.settings)
         if (!media.pcBatch || media.kind != GalleryMediaType.IMAGES ||
-            !MediaSyncTransport.IntentToken(media.settings).privatePcImageBatchOnly() ||
+            !(if (mixed) intent.privatePcMixed() else intent.privatePcImageBatchOnly()) ||
             media.pcOrigins.values.any { it.previousPublication != null }) fail()
         return media
     }

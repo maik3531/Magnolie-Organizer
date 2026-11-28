@@ -2,7 +2,12 @@ package io.gitlab.maik3531.magnolienotes.telefon
 
 import android.app.Application
 import android.content.Context
+import android.content.ContentProvider
+import android.content.ContentValues
 import android.content.DialogInterface
+import android.net.Uri
+import android.os.Bundle
+import android.os.CancellationSignal
 import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.test.core.app.ApplicationProvider
@@ -21,6 +26,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -67,8 +74,17 @@ class NativeMediaSupportSessionTest {
         pairedSession(testSettings = false, imageBatchPeer = checkNotNull(peer), sendImages = true)
     }
 
+    @Test
+    @Config(shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class,
+        GalleryIncomingRowsTest.SameFileDescriptorDuplicate::class])
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun mixedPcPassPublishesOneOriginalOfEachTypeAfterBothNativeReceiveChoices() {
+        org.junit.Assume.assumeTrue(BuildConfig.PRIVATE_PC_MIXED_PREFLIGHT)
+        pairedSession(testSettings = false, mixed = true)
+    }
+
     private fun pairedSession(testSettings: Boolean, reconnect: Boolean = false, videoSender: Boolean = false,
-        imageBatchPeer: File? = null, sendImages: Boolean = false) {
+        imageBatchPeer: File? = null, sendImages: Boolean = false, mixed: Boolean = false) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("MediaSessionFixture", 1.0, "Isolated test keys") {
             init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
@@ -88,10 +104,12 @@ class NativeMediaSupportSessionTest {
             storage.setEnabled(true)
             storage.setPersonalSync(true, false, false, false, false)
             val fullVideoPeer = if (videoSender) System.getenv("MAGNOLIE_TEST_TYPED_VIDEO_PEER")?.let(::File) else null
-            val script = (imageBatchPeer ?: fullVideoPeer ?: File("../magnolie-organizer/pruefungen/media_support_paired_peer.py")).canonicalFile
+            val script = (imageBatchPeer ?: fullVideoPeer ?:
+                File("../magnolie-organizer/pruefungen/media_support_paired_peer.py")).canonicalFile
             assertTrue(script.isFile)
             val command = listOf(System.getenv("MAGNOLIE_PYTHON") ?: "/usr/bin/python3", "-B", script.path) +
                 when {
+                    mixed -> listOf("--pc-send-mixed")
                     sendImages -> listOf("--pc-send-bootstrap")
                     imageBatchPeer != null -> listOf("--batch-support")
                     fullVideoPeer != null -> listOf("--pc-send-typed-video")
@@ -139,9 +157,16 @@ class NativeMediaSupportSessionTest {
                 TelefonTcpRoehre("127.0.0.1", port = port.toInt()).use { pipe ->
                     // Local archive and a quiet rerun intentionally send no
                     // frames. Keep the stage and wire deadlines independent.
-                    pipe.setReadTimeout(if (fullVideoPeer != null || sendImages) 55_000 else 15_000)
+                    pipe.setReadTimeout(when {
+                        mixed -> 115_000
+                        fullVideoPeer != null || sendImages -> 55_000
+                        else -> 15_000
+                    })
                     val reader = tasks.submit { session.invoke(work, peer, TelefonTransportArt.WIFI, pipe, "", "", false, {}) }
                     try {
+                        if (mixed) checkMixedPass(context as Application, work, { pump, seconds ->
+                            readHost(pumpUi = pump, seconds = seconds)
+                        }, { line -> hostInput.write("$line\n"); hostInput.flush() })
                         if (imageBatchPeer != null) {
                             assertEquals("image-batch-live", readHost())
                             val channel = field(TelefonWerk::class.java, "activeChannel").get(work) as TelefonSecureChannel
@@ -253,7 +278,7 @@ class NativeMediaSupportSessionTest {
                     }
                 }
                 assertTrue((field(TelefonWerk::class.java, "mediaSupportReaders").get(work) as Map<*, *>).isEmpty())
-                if (videoSender || sendImages)
+                if (videoSender || sendImages || mixed)
                     awaitUi(5) { field(TelefonWerk::class.java, "galleryFileConnection").get(work) == null }
                 assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
                 assertFalse(work.state.value.mediaPreferencesSupported)
@@ -275,6 +300,96 @@ class NativeMediaSupportSessionTest {
             tasks.shutdownNow()
             documents.set(null, originalDocuments)
             Security.removeProvider(provider.name)
+        }
+    }
+
+    private fun checkMixedPass(app: Application, work: TelefonWerk, readHost: (Boolean, Long) -> String,
+        command: (String) -> Unit) {
+        GalleryIncomingRowsTest().mountedPrimaryVolume()
+        val image = File(app.cacheDir, "paired-mixed.png")
+        val video = File(app.cacheDir, "paired-mixed.mp4")
+        val photos = GalleryIncomingRowsTest.Provider(app, GalleryMediaType.IMAGES, image, 98L).apply { allowPublish = true }
+        val videos = GalleryIncomingRowsTest.Provider(app, GalleryMediaType.VIDEO, video, 99L).apply { allowPublish = true }
+        val fixture = NativeGalleryIncomingRuntimeTest()
+        fixture.prepareVideoMetadata(videos, video)
+        val provider = object : ContentProvider() {
+            private fun child(uri: Uri) = when (uri.pathSegments.getOrNull(1)) {
+                "images" -> photos
+                "video" -> videos
+                else -> error("Unexpected fixture media URI: $uri")
+            }
+            override fun onCreate() = true
+            override fun call(method: String, arg: String?, extras: Bundle?) = photos.call(method, arg, extras)
+            override fun query(uri: Uri, projection: Array<out String>?, queryArgs: Bundle?,
+                cancellationSignal: CancellationSignal?) = child(uri).query(uri, projection, queryArgs, cancellationSignal)
+            override fun query(uri: Uri, projection: Array<out String>?, selection: String?,
+                selectionArgs: Array<out String>?, order: String?) = error("Unexpected old query")
+            override fun getType(uri: Uri) = child(uri).getType(uri)
+            override fun insert(uri: Uri, values: ContentValues?): Uri? {
+                val target = child(uri)
+                val path = if (target === photos) "Pictures/Magnolie/" else "Movies/Magnolie/"
+                assertEquals(path, values?.getAsString(android.provider.MediaStore.MediaColumns.RELATIVE_PATH))
+                return target.insert(uri, values)
+            }
+            override fun openFile(uri: Uri, mode: String) = child(uri).openFile(uri, mode)
+            override fun openTypedAssetFile(uri: Uri, mimeType: String, opts: Bundle?) =
+                child(uri).openTypedAssetFile(uri, mimeType, opts)
+            override fun update(uri: Uri, values: ContentValues?, selection: String?, args: Array<out String>?) =
+                child(uri).update(uri, values, selection, args)
+            override fun delete(uri: Uri, selection: String?, args: Array<out String>?): Int = error("No deletion")
+        }
+        provider.attachInfo(app, android.content.pm.ProviderInfo().apply { authority = "media"; exported = true })
+        ShadowContentResolver.registerProviderInternal("media", provider)
+
+        assertEquals("mixed-closed-owner", readHost(true, 16))
+        awaitUi(10) { work.state.value.privatePcImageReceiveReady && work.state.value.privatePcVideoReceiveReady }
+        val png = png(0xff507991.toInt())
+        val mp4 = fixture.originalMp4()
+        val encoder = java.util.Base64.getEncoder()
+        command("mixed-originals ${encoder.encodeToString(png)} ${encoder.encodeToString(mp4)}")
+        val channel = field(TelefonWerk::class.java, "activeChannel").get(work) as TelefonSecureChannel
+        fun ping(id: String) = channel.send(buildJsonObject {
+            put("type", JsonPrimitive("ping"))
+            put("ping_id", JsonPrimitive(id))
+            put("sent_ms", JsonPrimitive(System.currentTimeMillis()))
+        })
+        val activity = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+        val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+        try {
+            for (kind in listOf(GalleryMediaType.IMAGES, GalleryMediaType.VIDEO)) {
+                val outcome = AtomicReference<Result<GalleryPhotoPolicySnapshot>?>()
+                val previous = ShadowAlertDialog.getLatestAlertDialog()
+                val choice = scope.launch { outcome.set(runCatching { work.allowMediaReceiving(activity.get(), kind) }) }
+                awaitUi(8) { outcome.get() != null || ShadowAlertDialog.getLatestAlertDialog() !== previous }
+                outcome.get()?.getOrThrow()
+                assertEquals(0, photos.inserts + videos.inserts)
+                ShadowAlertDialog.getLatestAlertDialog().getButton(DialogInterface.BUTTON_POSITIVE).performClick()
+                awaitUi(8) { choice.isCompleted }
+                val choices = outcome.get()!!.getOrThrow().policy!!.receiving!!
+                assertTrue(choices.photos)
+                assertEquals(kind == GalleryMediaType.VIDEO, choices.videos)
+                if (kind == GalleryMediaType.IMAGES) {
+                    // Aggregate RECEIVE is live, but the typed video choice is still missing.
+                    ping("2222d686-6130-4125-b60a-e43c2832a9bc")
+                    assertEquals("mixed-photo-only-held", readHost(true, 25))
+                    assertEquals(0, photos.inserts + videos.inserts)
+                    assertEquals(0, photos.writeOpens + videos.writeOpens)
+                }
+            }
+        } finally {
+            scope.cancel()
+            activity.pause().stop().destroy()
+        }
+        ping("b15ff3d5-b4b5-4948-adb7-99795dcadb42")
+        assertEquals("mixed-archived-both-end-unchanged", readHost(true, 110))
+        assertArrayEquals(png, image.readBytes())
+        assertArrayEquals(mp4, video.readBytes())
+        for (target in listOf(photos, videos)) {
+            assertEquals(1, target.inserts)
+            assertEquals(1, target.publishes)
+            assertEquals(1, target.writeOpens)
+            assertTrue(target.readOpens > 0)
+            assertEquals(0, target.rwOpens)
         }
     }
 

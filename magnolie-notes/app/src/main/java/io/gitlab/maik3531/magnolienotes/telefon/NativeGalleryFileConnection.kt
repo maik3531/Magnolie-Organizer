@@ -18,7 +18,8 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
       },
       internal val mediaAgreement: NativeGalleryMediaAgreement? = null,
       private val privatePcVideoIntent: (() -> MediaSyncTransport.IntentToken?)? = null,
-      private val privatePcImageBatchIntent: (() -> MediaSyncTransport.IntentToken?)? = null,
+       private val privatePcImageBatchIntent: (() -> MediaSyncTransport.IntentToken?)? = null,
+       private val privatePcMixedIntent: (() -> MediaSyncTransport.IntentToken?)? = null,
       private val released: (NativeGalleryFileConnection) -> Unit) : AutoCloseable {
     private val ended = AtomicBoolean(false)
     private val permissionQueued = AtomicBoolean(false)
@@ -45,8 +46,10 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
         book: () -> NativeGalleryReceiveBookPermit): NativeGalleryIncomingRun? {
         if (authenticatedChannel !== channel || ended.get()) DeviceFileControl.fail("gallery_incoming_foreign_connection")
         return when (message.string("kind")) {
-            MediaOfferEnvelope.KIND -> {
-                val selected = runtime
+             MediaOfferEnvelope.KIND -> {
+                 val selected = runtime
+                 if (privatePcMixedReceiveIntent() != null)
+                     return selected.beginMixedPcMediaOffer(authenticatedChannel, message, book())
                 if ((message["body"] as? JsonObject)?.get("format") == JsonPrimitive(3)) {
                     val original = privatePcImageReceiveIntent()
                         ?: DeviceFileControl.fail("gallery_pc_batch_counterpart_required")
@@ -82,11 +85,23 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
         }
     }
 
+    internal fun privatePcMixedReceiveIntent(): MediaSyncTransport.IntentToken? =
+        if (ended.get()) null else privatePcMixedIntent?.invoke()?.takeIf { it.privatePcMixed() }
+
     internal fun privatePcVideoReceiveIntent(): MediaSyncTransport.IntentToken? =
-        if (ended.get()) null else privatePcVideoIntent?.invoke()?.takeIf { it.privatePcVideoOnly() }
+        if (ended.get()) null else privatePcVideoIntent?.invoke()?.takeIf { it.privatePcVideoOnly() } ?: privatePcMixedReceiveIntent()
 
     internal fun privatePcImageReceiveIntent(): MediaSyncTransport.IntentToken? =
-        if (ended.get()) null else privatePcImageBatchIntent?.invoke()?.takeIf { it.privatePcImageBatchOnly() }
+        if (ended.get()) null else privatePcImageBatchIntent?.invoke()?.takeIf { it.privatePcImageBatchOnly() } ?: privatePcMixedReceiveIntent()
+
+    internal fun answerMixedPcPreflight(authenticatedChannel: TelefonSecureChannel, request: JsonObject,
+        book: NativeGalleryReceiveBookPermit, originalLive: () -> Boolean, send: (JsonObject, () -> Unit) -> Unit) {
+        val intent = privatePcMixedReceiveIntent() ?: DeviceFileControl.fail("media_mixed_preflight_current_owner_required")
+        val selected = runtime
+        selected.answerMixedPcPreflight(authenticatedChannel, request, book, {
+            originalLive() && bound === selected && privatePcMixedReceiveIntent() === intent
+        }, send)
+    }
 
     internal fun privatePcReceiveIntent(kind: GalleryMediaType): MediaSyncTransport.IntentToken? =
         when (kind) {
@@ -95,7 +110,7 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
         }
 
     internal fun retireChangedPrivatePcReceive() {
-        if ((privatePcVideoIntent != null || privatePcImageBatchIntent != null) && !ended.get())
+        if ((privatePcVideoIntent != null || privatePcImageBatchIntent != null || privatePcMixedIntent != null) && !ended.get())
             bound?.retireChangedIncomingOwners()
     }
 

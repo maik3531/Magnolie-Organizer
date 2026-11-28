@@ -687,6 +687,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val mediaSessions = java.util.IdentityHashMap<TelefonSecureChannel, MediaSyncTransport>()
     private val nativePcVideoReceiveChecked = BuildConfig.PRIVATE_PC_VIDEO_RECEIVE
     private val nativePcImageBatchChecked = BuildConfig.PRIVATE_PC_IMAGE_BATCH_RECEIVE
+    private val nativePcMixedChecked = BuildConfig.PRIVATE_PC_MIXED_PREFLIGHT
     private val privatePcReceiveChecked get() = nativePcVideoReceiveChecked || nativePcImageBatchChecked
     @Volatile private var nativeMediaSupportChecked = privatePcReceiveChecked
     private val mediaSupportReaders = java.util.IdentityHashMap<TelefonSecureChannel, MediaSupportReader>()
@@ -1198,6 +1199,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
                             else null
                         }
                     }
+                },
+                privatePcMixedIntent = privateAgreement?.let { agreement ->
+                    batchReader?.takeIf { nativePcMixedChecked && peer.videoSupported && Build.VERSION.SDK_INT >= 30 }?.let { reader ->
+                        {
+                            if (nativeGalleryVideoHandlersReady && reader.imageBatch?.supports(channel) == true)
+                                agreement.incomingIntentFor(GalleryMediaType.IMAGES)?.takeIf {
+                                    it.privatePcMixed() && agreement.incomingIntentFor(GalleryMediaType.VIDEO) === it
+                                }
+                            else null
+                        }
+                    }
                 }) { released ->
                 synchronized(this) { if (galleryFileConnection === released) galleryFileConnection = null }
             }
@@ -1328,8 +1340,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val current = currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, nativeGalleryHandlersReady)
             ?: return null
         val settings = privateMediaSettings(channel) ?: return null
-        if (nativePcImageBatchChecked && synchronized(this) { mediaSupportReaders[channel]?.imageBatch }?.supports(channel) == true)
-            settings.incomingIntentFor(GalleryMediaType.IMAGES)?.takeIf { it.privatePcImageBatchOnly() }?.let { return it }
+        if (nativePcImageBatchChecked && synchronized(this) { mediaSupportReaders[channel]?.imageBatch }?.supports(channel) == true) {
+            val images = settings.incomingIntentFor(GalleryMediaType.IMAGES)
+            if (images?.privatePcImageBatchOnly() == true) return images
+            if (nativePcMixedChecked && nativeGalleryVideoHandlersReady && current.videoSupported &&
+                images?.privatePcMixed() == true && settings.incomingIntentFor(GalleryMediaType.VIDEO) === images) return images
+        }
         if (!nativePcVideoReceiveChecked || !nativeGalleryVideoHandlersReady || !current.videoSupported) return null
         return settings.incomingIntentFor(GalleryMediaType.VIDEO)?.takeIf { it.privatePcVideoOnly() }
     }
@@ -3213,6 +3229,34 @@ class TelefonWerk private constructor(private val context: Context, private val 
             TelefonNachrichten.validate(message)
             channel.send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted"))
             return // Phone requests are never a desktop-to-phone legacy command.
+        }
+        if (message["kind"] == JsonPrimitive(MediaMixedPreflight.REQUEST)) {
+            if (!nativePcMixedChecked) return
+            val route = synchronized(this) {
+                val owner = galleryFileConnection?.takeIf { it.channel === channel && !it.isEnded }
+                val transport = activeTransport?.takeIf { it.first == TelefonTransportArt.WIFI }
+                if (owner == null || transport == null || !sessionTransportAktuell(channel, generation)) null
+                else owner to transport.second
+            } ?: return
+            val (connection, pipe) = route
+            val documents = Ablage.hole(context)
+            fun live() = activeChannel === channel && pairingGeneration == generation &&
+                activeTransport?.second === pipe && !connection.isEnded && nativeGalleryVideoHandlersReady
+            try {
+                val book = NativeGalleryReceiveBookPermit.capture({ Ablage.hole(context) }) {
+                    Ablage.hole(context) === documents && documents.synchronisationsSchreibbar()
+                }
+                connection.answerMixedPcPreflight(channel, message, book, ::live) { reply, requireCurrent ->
+                    requireCurrent()
+                    channel.sendEphemeral(reply, pipe, {
+                        if (!live() || System.currentTimeMillis() >= reply.long("expires_ms"))
+                            DeviceFileControl.fail("media_mixed_preflight_current_owner_required")
+                    })
+                }
+            } catch (_: PhotoFolderScopeError) {
+                // No positive proof. Leave the original reader available for the local consent choice.
+            }
+            return
         }
         if (message["kind"] in setOf(JsonPrimitive(DeviceFileControl.KIND), JsonPrimitive(MediaOfferEnvelope.KIND), JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND),
                 JsonPrimitive(DeviceFileChunkEnvelope.REQUEST), JsonPrimitive(DeviceFileChunkEnvelope.RESULT),

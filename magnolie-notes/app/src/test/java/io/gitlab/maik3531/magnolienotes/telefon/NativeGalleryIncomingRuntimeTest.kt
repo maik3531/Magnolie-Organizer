@@ -512,6 +512,75 @@ class NativeGalleryIncomingRuntimeTest {
         }
     }
 
+    @Test fun mixedPcPreflightRequiresBothSavedNativeChoicesAndKeepsGalleryUntouched() {
+        Harness(localConsent = false, videoBytes = originalMp4()).use { h ->
+            h.pcSendOnly()
+            val body = MediaSyncSettings.change(h.token.body,
+                "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222",
+                "photos_enabled", JsonPrimitive(true))
+            h.incomingToken = MediaSyncTransport.IntentToken(body)
+            fun grant(kind: GalleryMediaType) {
+                val consent = h.positive(kind)
+                h.f.io { h.runtime.grantReceiving(h.runtime.savedPolicy(), consent) }
+                h.handshake()
+            }
+            fun request(): JsonObject {
+                val now = System.currentTimeMillis()
+                return buildJsonObject {
+                    put("type", "message"); put("v", 1); put("message_id", java.util.UUID.randomUUID().toString())
+                    put("kind", MediaMixedPreflight.REQUEST); put("created_ms", now); put("expires_ms", now + MediaMixedPreflight.TTL_MS)
+                    put("body", buildJsonObject {
+                        put("format", 1)
+                        put("settings_sha256", DeviceFileControl.digest("magnolie-mixed-settings-v1\u0000", body))
+                        put("binding_sha256", DeviceFileControl.digest("magnolie-mixed-control-v1\u0000",
+                            h.readbackBinding("0".repeat(64)).snapshot()))
+                    })
+                }
+            }
+            fun answer(message: JsonObject, beforeWrite: () -> Unit = {}) = h.f.io {
+                h.runtime.answerMixedPcPreflight(h.link.channel, h.link.receive(message), h.f.book(), { true }) { reply, require ->
+                    beforeWrite(); require(); h.link.channel.send(reply)
+                }
+            }
+            fun replies() = h.link.frames.filter { it.string("kind") == MediaMixedPreflight.RESULT }
+            grant(GalleryMediaType.VIDEO)
+            val video = h.pcOffer()
+            val mixedOffer = JsonObject(video + ("body" to JsonObject(video.getValue("body").jsonObject +
+                ("settings" to body))))
+            fun beginMixed() = h.f.io {
+                h.runtime.beginMixedPcMediaOffer(h.link.channel, h.link.receive(mixedOffer), h.f.book())
+            }
+            val missingPreflight = assertThrows(PhotoFolderScopeError::class.java) { beginMixed() }
+            assertEquals("media_mixed_preflight_current_owner_required", missingPreflight.code)
+            val videoOnly = request()
+            val missing = assertThrows(PhotoFolderScopeError::class.java) { answer(videoOnly) }
+            assertEquals("media_mixed_preflight_both_receive_choices_required", missing.code)
+            assertTrue(replies().isEmpty())
+            grant(GalleryMediaType.IMAGES)
+            val frameCount = h.link.frames.size
+            assertThrows(PhotoFolderScopeError::class.java) { answer(videoOnly) }
+            val both = request()
+            assertThrows(PhotoFolderScopeError::class.java) { answer(both) { h.f.unlocked = false } }
+            h.f.unlocked = true
+            assertTrue(replies().isEmpty())
+            val replay = assertThrows(PhotoFolderScopeError::class.java) { answer(both) }
+            assertEquals("media_mixed_preflight_replayed", replay.code)
+            val fresh = request()
+            val admitted = answer(fresh)
+            assertEquals(fresh.long("expires_ms"), replies().single().long("expires_ms"))
+            assertEquals(frameCount + 1, h.link.frames.size)
+            assertTrue(h.f.io { admitted() })
+            h.f.unlocked = false
+            assertFalse(h.f.io { admitted() })
+            h.f.unlocked = true
+            assertFalse(h.f.io { admitted() })
+            assertThrows(PhotoFolderScopeError::class.java) { beginMixed() }
+            assertEquals(0, h.provider.inserts)
+            assertEquals(0, h.provider.publishes)
+            assertEquals(0, h.provider.rwOpens)
+        }
+    }
+
     private class Harness(joined: Boolean = true, localConsent: Boolean = joined,
         collectionMode: String = "entire_collection", videoBytes: ByteArray? = null) : AutoCloseable {
         val helper = NativeGalleryIncomingTransferTest()
