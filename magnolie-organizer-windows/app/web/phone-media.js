@@ -512,7 +512,8 @@
       }
       for (const child of root.children) if (child !== recovery) child.hidden = false;
       activate.hidden = true;
-      if (reply.state === "running" || reply.state === "stopping") {
+      const stopDuringPhoneWait = action === "cancel" && native?.automatic_phase === "waiting_for_phone";
+      if (reply.state === "running" || reply.state === "stopping" && !stopDuringPhoneWait) {
         busy = true; toggle(); status.textContent = t(reply.state === "stopping" ? "Stopping… Waiting for the native operation to end." : "Comparing media content… The total is not known yet."); return;
       }
       busy = false;
@@ -625,9 +626,9 @@
         status.textContent = t("Choose an album to compare. An incomplete catalog never proves deletion.") + " · " + String(reply.coverage || "");
       } else if (action === "request_read") {
         status.textContent = t("Check the access request on your phone, then read the albums again.");
-       } else if (action === "cancel") {
-         if (native?.automatic_phase === "waiting_for_phone") request("status", {}, false);
-         else if (reply.state === "idle") status.textContent = t("No active media operation.");
+      } else if (action === "cancel") {
+        if (stopDuringPhoneWait) request("status", {}, false);
+        else if (reply.state === "idle") status.textContent = t("No active media operation.");
       } else if (action === "sync_shared") {
         if (reply.state === "waiting") request("status", {}, false);
         else status.textContent = t(reply.state === "content_pass" ? "Content comparison finished." : "Content comparison needs review.") +
