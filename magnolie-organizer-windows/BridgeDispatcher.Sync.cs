@@ -1195,6 +1195,7 @@ internal sealed partial class BridgeDispatcher
                 ["remote_own_device"] = personal.RemoteOwnDevice,
                 ["auto_wifi"] = personal.AutoWifi,
                 ["personal_sync_active_auto"] = false,
+                ["personal_connection_start_ready"] = status?["personal_connection_start_ready"]?.GetValue<bool>() == true,
                 ["personal_sync_last_success"] = telefon.PersonalSuccess(peer.Id),
                 ["status"] = telefon.CachedDeviceStatus(peer.Id),
                 ["bluetooth_enabled"] = TelefonBluetoothClient.ValidAddress(bluetoothAddress),
@@ -1425,6 +1426,54 @@ internal sealed partial class BridgeDispatcher
             finally { CryptographicOperations.ZeroMemory(source.Data); }
         }
         return Task.CompletedTask;
+    }
+
+    private async Task QueueScopedConnectionReplyAsync(JsonElement message)
+    {
+        await MutationGate.Global.WaitAsync(backgroundLifetime.Token);
+        try
+        {
+            if (disposed || restoreInProgress || !currentPlainTextAvailable ||
+                store.Read(paths.Data) != (currentEnvelope.Length != 0 ? currentEnvelope : currentPlainText))
+                throw new InvalidOperationException("The native scoped connection reply book is unavailable.");
+            var batches = NodeArray(message, "batches")
+                .Select(value => value as JsonObject ?? throw new InvalidDataException("Invalid scoped connection reply batch.")).ToArray();
+            await telefon.QueueScopedConnectionReplyAsync(Text(message, "kennung"), Text(message, "messageId"),
+                Text(message, "token"), batches, Integer(message, "conflicts"), Integer(message, "oversized"), backgroundLifetime.Token, currentPlainText);
+        }
+        finally { MutationGate.Global.Release(); }
+    }
+
+    private async Task PrepareScopedConnectionStartAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        JsonObject? plan = null;
+        await MutationGate.Global.WaitAsync(backgroundLifetime.Token);
+        try
+        {
+            if (!disposed && !restoreInProgress && currentPlainTextAvailable &&
+                store.Read(paths.Data) == (currentEnvelope.Length != 0 ? currentEnvelope : currentPlainText))
+                plan = await telefon.PrepareScopedConnectionStartAsync(Text(message, "kennung"), Text(message, "fingerprint"), backgroundLifetime.Token);
+        }
+        catch (Exception error) when (error is InvalidOperationException or InvalidDataException or IOException) { }
+        finally { MutationGate.Global.Release(); }
+        await form.SendAsync("App.personalConnectionStartPlan", new { requestId, plan });
+    }
+
+    private async Task StageScopedConnectionStartAsync(JsonElement message)
+    {
+        await MutationGate.Global.WaitAsync(backgroundLifetime.Token);
+        try
+        {
+            if (disposed || restoreInProgress || !currentPlainTextAvailable ||
+                store.Read(paths.Data) != (currentEnvelope.Length != 0 ? currentEnvelope : currentPlainText))
+                throw new InvalidOperationException("The native connection start document is unavailable.");
+            var batches = NodeArray(message, "batches")
+                .Select(value => value as JsonObject ?? throw new InvalidDataException("Invalid initial connection batch.")).ToArray();
+            await telefon.StageScopedConnectionStartAsync(Text(message, "kennung"), Text(message, "token"), Text(message, "sha256"),
+                Object(message, "request"), batches, currentPlainText, backgroundLifetime.Token);
+        }
+        finally { MutationGate.Global.Release(); }
     }
 
     private async Task CommitPersonalSyncAsync(JsonElement message)

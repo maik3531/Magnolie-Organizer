@@ -1152,6 +1152,10 @@ internal static class SharedSyncTransportTests
 
     internal static async Task RunAsync()
     {
+        await ScopedConnectionRequestAsync("wifi");
+        await ScopedConnectionRequestAsync("bluetooth");
+        await ScopedConnectionRequestAsync("wifi", originals: true);
+        await ScopedConnectionRequestAsync("wifi", initiate: true);
         var root = Path.Combine(Path.GetTempPath(), "shared-sync-wire-" + Guid.NewGuid().ToString("N"));
         try
         {
@@ -1390,5 +1394,854 @@ internal static class SharedSyncTransportTests
             }
         }
         finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    private static async Task ScopedConnectionRequestAsync(string transport, bool originals = false, bool initiate = false)
+    {
+        static Task<TelefonAck?> PublishControls(TelefonStore store, TelefonPeer peer, JsonObject message)
+        {
+            var body = message["body"]!.AsObject();
+            switch (message["kind"]!.GetValue<string>())
+            {
+                case "capabilities.update":
+                    store.UpdatePeerProtocol(peer.Id, TelefonProtocolContract.Integer(body["revision"]), body["items"]!.AsObject(), 0, null);
+                    break;
+                case "grants.update":
+                    store.UpdatePeerProtocol(peer.Id, 0, null, TelefonProtocolContract.Integer(body["revision"]), body["grants"]!.AsObject());
+                    break;
+                case "personal_sync.settings":
+                    store.SetPersonalSettings(peer.Id, remoteOwnDevice: body["own_device"]!.GetValue<bool>());
+                    break;
+                default: throw new InvalidOperationException("A connection-only request entered the ordinary receiver.");
+            }
+            return Task.FromResult<TelefonAck?>(null);
+        }
+
+        using var fixture = new PhoneCameraParentTests.Fixture(transport, receive: PublishControls, lifetime: TimeSpan.FromSeconds(35));
+        var store = fixture.Store;
+        var peer = fixture.Peer;
+        var connection = fixture.Connection;
+        var active = true;
+        connection.CurrentConnectionReader = source => ReferenceEquals(source, connection) && active;
+        var offers = new List<JsonObject>();
+        var offerArrived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        connection.ScopedConnectionBatchReady = value => { offers.Add(value); offerArrived.TrySetResult(); return Task.CompletedTask; };
+        store.SavePeers([peer]);
+        store.SetPersonalSettings(peer.Id, ownDevice: true, remoteOwnDevice: true);
+        store.SetLocalGrant("personal_notes_sync", true);
+        store.SetLocalGrant("personal_tasks_sync", true);
+        var desktop = store.LoadOrCreateIdentity();
+        if (initiate)
+        {
+            var electedId = "00000000-0000-4000-8000-000000000000";
+            typeof(TelefonStore).GetMethod("SaveIdentity", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(store, [desktop with { Id = electedId }]);
+            desktop = desktop with { Id = electedId };
+        }
+        CryptographicOperations.ZeroMemory(desktop.PrivateKey);
+        store.ChangeSharedSetting(peer.Id, peer.PublicKey, "content_mode", JsonValue.Create("phone_scope")!);
+        var local = store.ChangeSharedSetting(peer.Id, peer.PublicKey, "auto_mode", JsonValue.Create("connection")!);
+        var caps = TelefonProtocolContract.DesktopCapabilities();
+        foreach (var module in new[] { "personal_notes_sync", "personal_tasks_sync" })
+        {
+            var versions = caps["items"]![module]!["versions"]!.AsArray();
+            caps["items"]![module]!["versions"] = new JsonArray(versions.Select(TelefonProtocolContract.Integer)
+                .Append(PersonalSyncContract.AutoConnectionVersion).Where(version => version != 14).Order()
+                .Select(version => (JsonNode?)JsonValue.Create((int)version)).ToArray());
+        }
+        var grants = TelefonProtocolContract.DesktopGrants();
+        grants["personal_notes_sync"] = true;
+        grants["personal_tasks_sync"] = true;
+        var agreed = SharedSyncSettings.Merge(SharedSyncSettings.Create(peer.Id), local, peer.Id, desktop.Id);
+        var collection = PhoneContentScope.Create(["phone-note"], ["phone-task"]);
+        var request = new JsonObject { ["format"] = 3, ["run_id"] = Guid.NewGuid().ToString("D"),
+            ["trigger"] = PersonalSyncContract.AutoConnectionTrigger, ["modules"] = new JsonArray("notes", "tasks") };
+        var runId = request["run_id"]!.GetValue<string>();
+        var frame = Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.request", request, collection));
+        long written = 0, received = 0;
+        async Task<JsonObject> Exchange(JsonObject packet)
+        {
+            await fixture.Send(packet, written++);
+            while (true)
+            {
+                var response = await fixture.Read(received++);
+                if (response["type"]?.GetValue<string>() != "message") return response;
+                await fixture.Send(new JsonObject { ["type"] = "ack", ["message_id"] = response["message_id"]!.DeepClone(),
+                    ["status"] = "accepted", ["error"] = "none" }, written++);
+            }
+        }
+        async Task Expect(JsonObject packet, string status, string error = "none")
+        {
+            var actual = await Exchange(packet);
+            TestAssert.That(JsonNode.DeepEquals(actual["message_id"], packet["message_id"]) &&
+                actual["status"]?.GetValue<string>() == status && actual["error"]?.GetValue<string>() == error,
+                $"Unexpected {transport} receipt for {packet["kind"]}: {actual}");
+        }
+
+        var run = connection.RunAsync();
+        try
+        {
+            await Expect(Message("capabilities.update", caps), "accepted");
+            await Expect(Message("grants.update", new JsonObject { ["revision"] = 1, ["grants"] = grants }), "accepted");
+            await Expect(Message("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }), "accepted");
+            await Expect(Message(SharedSyncSettings.Kind, agreed), "accepted");
+            foreach (var part in PhoneContentScope.Chunks(collection))
+                await Expect(Message(PhoneContentScope.Kind, part), "accepted");
+            TestAssert.That(!connection.CanOfferScopedConnectionStart(), "A connection without actually advertised capabilities offered to initiate.");
+            var runs = new PersonalSyncStore(store);
+            long Now() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            await Expect(frame, "rejected", "not_granted");
+            TestAssert.That(runs.LoadRun(peer.Id, runId, Now()) is null, "Missing local wire announcement persisted a run.");
+
+            var localCaps = caps.DeepClone().AsObject();
+            localCaps["revision"] = store.NextOwnRevision("capabilities");
+            var announcement = Message("capabilities.update", localCaps);
+            await connection.SendPlainAsync(announcement);
+            TestAssert.That(JsonNode.DeepEquals(announcement, await fixture.Read(received++)), "Local capability did not reach the original reader.");
+            if (initiate)
+            {
+                var original = "%PDF-1.4\nWindows initiated fixture\n%%EOF\n"u8.ToArray();
+                var sha = Convert.ToHexString(SHA256.HashData(original)).ToLowerInvariant();
+                var originalUrl = $"data:application/pdf;base64,{Convert.ToBase64String(original)}";
+                var savedText = new JsonObject
+                {
+                    ["personalSync"] = new JsonObject(),
+                    ["notizen"] = new JsonArray(new JsonObject { ["id"] = "phone-note", ["anhaenge"] = new JsonArray(new JsonObject
+                    {
+                        ["id"] = "original", ["name"] = "Initial.pdf", ["art"] = "pdf", ["daten"] = originalUrl
+                    }) })
+                }.ToJsonString();
+                var book = new NativeBookSaveState("synthetic-book", 7, BaumSyncSnapshot.Hash(savedText));
+                var fingerprint = TelefonCrypto.Fingerprint(peer.PublicKey);
+                TestAssert.That(connection.CanOfferScopedConnectionStart(), "The elected reader did not become ready after original capability and scope.");
+                TestAssert.Throws<InvalidOperationException>(() => connection.PrepareScopedConnectionStart(new string('b', 64), book),
+                    "A different pairing fingerprint obtained a native start plan.");
+                var plan = connection.PrepareScopedConnectionStart(fingerprint, book);
+                var token = plan["token"]!.GetValue<string>();
+                TestAssert.That(JsonNode.DeepEquals(plan, connection.PrepareScopedConnectionStart(fingerprint, book)) &&
+                    plan["format"]?.GetValue<int>() == 3 && JsonNode.DeepEquals(plan["scope"], collection),
+                    "A repeated offer or unnegotiated format changed the elected start.");
+                var start = new JsonObject { ["format"] = 3, ["run_id"] = plan["run_id"]!.DeepClone(),
+                    ["trigger"] = PersonalSyncContract.AutoConnectionTrigger, ["modules"] = new JsonArray("notes", "tasks") };
+                var count = 0;
+                void Stage(JsonObject reference, string authority)
+                {
+                    TestAssert.That(JsonNode.DeepEquals(reference, PhoneContentScope.Reference(collection)) && authority.Length == 64,
+                        "The native initiator lost its exact collection or reader binding.");
+                    count++;
+                }
+                active = false;
+                TestAssert.Throws<InvalidOperationException>(() => connection.StartScopedConnection(token, start, book, Stage),
+                    "An earlier reader's plan was consumed by an inactive reader.");
+                active = true;
+                TestAssert.Throws<InvalidOperationException>(() => connection.StartScopedConnection(token, start, book, Stage),
+                    "A stale launch claim revived.");
+                var fresh = connection.PrepareScopedConnectionStart(fingerprint, book);
+                var freshToken = fresh["token"]!.GetValue<string>();
+                start["run_id"] = fresh["run_id"]!.DeepClone();
+                TestAssert.Throws<InvalidOperationException>(() => connection.StartScopedConnection(freshToken, start,
+                    book with { BookSource = "other-book" }, Stage), "A replacement native book started a scoped run.");
+                fresh = connection.PrepareScopedConnectionStart(fingerprint, book);
+                freshToken = fresh["token"]!.GetValue<string>();
+                start["run_id"] = fresh["run_id"]!.DeepClone();
+                var content = new JsonObject
+                {
+                    ["title"] = "Initial original", ["text"] = "", ["html"] = "", ["notebook_id"] = "", ["symbol"] = "",
+                    ["created_ms"] = 1, ["modified_ms"] = 1,
+                    ["attachments"] = new JsonArray(new JsonObject
+                    {
+                        ["attachment_id"] = "original", ["name"] = "Initial.pdf", ["kind"] = "pdf", ["mime"] = "application/pdf",
+                        ["size"] = original.Length, ["sha256"] = sha
+                    })
+                };
+                var records = new JsonArray(new JsonObject
+                {
+                    ["kind"] = "note", ["id"] = "phone-note", ["state"] = "live", ["modified_ms"] = 1,
+                    ["clock"] = new JsonArray(new JsonObject { ["actor_id"] = desktop.Id, ["counter"] = 1 }),
+                    ["value"] = content, ["hash"] = PersonalSyncContract.ProjectionHash(content)
+                });
+                var aggregate = PersonalSyncContract.RecordsHash(records);
+                JsonObject Batch() => new()
+                {
+                    ["format"] = 3, ["run_id"] = start["run_id"]!.DeepClone(), ["batch_id"] = Guid.NewGuid().ToString("D"),
+                    ["sequence"] = 0, ["last"] = true, ["reply"] = false, ["records"] = records.DeepClone(),
+                    ["records_hash"] = aggregate
+                };
+                using var db = store.OpenDatabase(); db.Open(); using var sql = db.CreateCommand();
+                sql.CommandText = """
+                    CREATE TRIGGER fail_initial_second BEFORE INSERT ON outbox
+                    WHEN NEW.transport_policy='connection_only' AND (SELECT COUNT(*) FROM outbox WHERE transport_policy='connection_only')=1
+                    BEGIN SELECT RAISE(ABORT,'test initial rollback'); END
+                    """;
+                sql.ExecuteNonQuery();
+                TestAssert.Throws<Microsoft.Data.Sqlite.SqliteException>(() =>
+                    connection.StageScopedConnectionStart(freshToken, start, [Batch()], savedText, book, () => book),
+                    "A failed second insert did not abort the entire initial group.");
+                sql.CommandText = "SELECT COUNT(*) FROM outbox WHERE transport_policy='connection_only'";
+                TestAssert.That(count == 0 && (long)sql.ExecuteScalar()! == 0 &&
+                    runs.LoadRun(peer.Id, start["run_id"]!.GetValue<string>(), Now()) is null, "An initial staging failure left a partial run.");
+                sql.CommandText = "DROP TRIGGER fail_initial_second"; sql.ExecuteNonQuery();
+                fresh = connection.PrepareScopedConnectionStart(fingerprint, book);
+                freshToken = fresh["token"]!.GetValue<string>();
+                start["run_id"] = fresh["run_id"]!.DeepClone();
+                var initialRunId = start["run_id"]!.GetValue<string>();
+                var initialBatch = Batch();
+                NativeBookSaveState? currentBook = null;
+                connection.ConnectionReplyBook = () => currentBook;
+                connection.StageScopedConnectionStart(freshToken, start, [initialBatch], savedText, book, () => book);
+                TestAssert.That(!connection.CanOfferScopedConnectionStart(), "The elected reader attempted a second native start.");
+                TestAssert.Throws<InvalidOperationException>(() => connection.StartScopedConnection(freshToken, start, book, Stage), "The consumed token replayed.");
+                sql.CommandText = "SELECT message_id FROM outbox WHERE transport_policy='connection_only' ORDER BY rowid";
+                var ids = new List<string>();
+                using (var frames = sql.ExecuteReader()) while (frames.Read()) ids.Add(frames.GetString(0));
+                TestAssert.That(ids.Count == 2 && runs.LoadRun(peer.Id, initialRunId, Now())?.Policy == "connection_only" &&
+                    ids.All(id => store.OutboxMessage(peer.Id, id) is null), "The atomic start escaped to the legacy queue.");
+                Task InitialAck(string id) => fixture.Send(new JsonObject { ["type"] = "ack", ["message_id"] = id,
+                    ["status"] = "accepted", ["error"] = "none" }, written++);
+                async Task FencePing()
+                {
+                    var ping = Guid.NewGuid().ToString("D");
+                    await fixture.Send(new JsonObject { ["type"] = "ping", ["ping_id"] = ping, ["sent_ms"] = Now() }, written++);
+                    var pong = await fixture.Read(received++);
+                    TestAssert.That(pong["ping_id"]?.GetValue<string>() == ping, "An unconfirmed initial frame escaped the saved-book gate.");
+                }
+                await InitialAck(ids[0]);
+                await FencePing();
+                currentBook = book;
+                var sentRequest = await fixture.Read(received++);
+                TestAssert.That(sentRequest["message_id"]?.GetValue<string>() == ids[0] &&
+                    JsonNode.DeepEquals(sentRequest["body"]?["body"], start), "The initial request did not precede its batches.");
+                await InitialAck(ids[1]);
+                await InitialAck(ids[0]);
+                var sentBatch = await fixture.Read(received++);
+                while (sentBatch["message_id"]?.GetValue<string>() == ids[0]) sentBatch = await fixture.Read(received++);
+                TestAssert.That(sentBatch["message_id"]?.GetValue<string>() == ids[1] &&
+                    JsonNode.DeepEquals(sentBatch["body"]?["body"], initialBatch), "An early ACK removed an unsent initial batch.");
+                await InitialAck(ids[1]);
+                await FencePing();
+                sql.CommandText = "SELECT COUNT(*) FROM outbox WHERE transport_policy='connection_only'";
+                TestAssert.That((long)sql.ExecuteScalar()! == 0 && store.PersonalSuccess(peer.Id) is null,
+                    "Initial ACKs did not drain their exact frames or falsely confirmed the entire run.");
+                JsonObject OriginalControl(string kind, JsonObject payload)
+                {
+                    payload["format"] = 2; payload["reply"] = false; payload["run_id"] = initialRunId;
+                    payload["records_hash"] = aggregate;
+                    return Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap($"personal_sync.attachment_{kind}", payload, collection));
+                }
+                var window = OriginalControl("request", new JsonObject
+                {
+                    ["wants"] = new JsonArray(new JsonObject { ["sha256"] = sha, ["ranges"] = new JsonArray(new JsonArray(0, 1)) })
+                });
+                var result = OriginalControl("result", new JsonObject { ["sha256"] = sha, ["state"] = "complete", ["error"] = "none" });
+                await Expect(result, "rejected", "not_granted");
+                await Expect(window, "accepted");
+                var sentChunk = await fixture.Read(received++);
+                var chunk = sentChunk["body"]!["body"]!.AsObject();
+                TestAssert.That(sentChunk["body"]?["kind"]?.GetValue<string>() == "personal_sync.attachment_chunk" &&
+                    chunk["reply"]?.GetValue<bool>() == false && chunk["sha256"]?.GetValue<string>() == sha &&
+                    Convert.FromBase64String(chunk["data"]!.GetValue<string>()).AsSpan().SequenceEqual(original),
+                    "The initial Notes-facing window did not return the exact source-book bytes.");
+                await InitialAck(sentChunk["message_id"]!.GetValue<string>());
+                await Expect(result, "accepted");
+                await Expect(result, "duplicate");
+                TestAssert.That((long)sql.ExecuteScalar()! == 0 && store.PersonalSuccess(peer.Id) is null,
+                    "An initial-original result falsely completed the elected run.");
+                var replyBatch = Batch();
+                replyBatch["reply"] = true;
+                var returned = Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.batch", replyBatch, collection));
+                var reportBody = new JsonObject
+                {
+                    ["format"] = 3, ["run_id"] = initialRunId, ["state"] = "complete", ["trigger"] = PersonalSyncContract.AutoConnectionTrigger,
+                    ["transport"] = "wifi", ["sent"] = Counts(), ["received"] = Counts(), ["conflicts"] = 0,
+                    ["attachments_omitted"] = 0, ["oversized_skipped"] = 0, ["started_ms"] = Now(), ["finished_ms"] = Now(), ["error"] = "none",
+                    ["attachments"] = new JsonObject { ["declared"] = 1, ["requested"] = 1, ["sent"] = 1, ["received"] = 1,
+                        ["reused"] = 0, ["preserved"] = 0, ["failed"] = 0, ["bytes"] = original.Length },
+                    ["deletions"] = new JsonObject { ["pending"] = 0, ["deleted"] = 0, ["restored"] = 0, ["conflicts"] = 0, ["blocked"] = 0,
+                        ["trash"] = new JsonObject { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0, ["attachments"] = 0 } }
+                };
+                static JsonObject Counts() => new() { ["notes"] = 1, ["tasks"] = 0, ["notebooks"] = 0 };
+                var report = Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.report", reportBody, collection));
+                await Expect(report, "rejected", "not_granted");
+                returned["expires_ms"] = sentRequest["expires_ms"]!.DeepClone();
+                await Expect(returned, "accepted");
+                var receiveWindow = await fixture.Read(received++);
+                TestAssert.That(receiveWindow["body"]?["kind"]?.GetValue<string>() == "personal_sync.attachment_request" &&
+                    receiveWindow["body"]?["body"]?["reply"]?.GetValue<bool>() == true, "The elected reader fetched originals in the wrong direction.");
+                await InitialAck(receiveWindow["message_id"]!.GetValue<string>());
+                var returnedChunk = Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.attachment_chunk",
+                    new JsonObject { ["format"] = 2, ["run_id"] = initialRunId, ["reply"] = true, ["records_hash"] = aggregate,
+                        ["sha256"] = sha, ["index"] = 0, ["data"] = Convert.ToBase64String(original) }, collection));
+                returnedChunk["expires_ms"] = receiveWindow["expires_ms"]!.DeepClone();
+                await Expect(returnedChunk, "accepted");
+                await offerArrived.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                var receivedOffer = offers.Single();
+                TestAssert.That(receivedOffer["body"]?["reply"]?.GetValue<bool>() == true &&
+                    receivedOffer["body"]?["attachment_data"]?[sha]?.GetValue<string>() == originalUrl,
+                    "The saved-reply offer did not retain the initiated direction and exact original.");
+                using var coordinator = new TelefonCoordinator(fixture.Paths, (_, _) => Task.CompletedTask,
+                    dataStore: store, foregroundEnabled: true, localOnly: true);
+                var readers = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+                readers.Add(peer.Id, connection);
+                try
+                {
+                    var host = new PersonalActorNativeSaveHost(Path.Combine(fixture.Paths.Root, "initiator-book"), savedText)
+                        { ConnectionCoordinator = coordinator };
+                    coordinator.NativeSavedBook = host.Saved;
+                    connection.ConnectionReplyBook = host.Saved;
+                    connection.PersonalSuccessConfirmed = (source, complete) => coordinator.RecordConfirmedPersonalSuccess(source, peer, complete);
+                    var tokenForReply = receivedOffer["commit_token"]!.GetValue<string>();
+                    var candidate = JsonNode.Parse(savedText)!.AsObject();
+                    candidate["personalSync"]!["applied_batches"] = new JsonArray(tokenForReply);
+                    var candidateText = candidate.ToJsonString();
+                    var resultSave = await host.SaveBridgeEnvelopeAsync(new JsonObject
+                    {
+                        ["cmd"] = "speichern", ["id"] = 1, ["text"] = candidateText,
+                        ["personalConnectionLauf"] = new JsonObject { ["peer"] = peer.Id, ["messageId"] = receivedOffer["pending_message_id"]!.DeepClone(),
+                            ["token"] = tokenForReply, ["before"] = host.Saved()!.Sha256 }
+                    });
+                    TestAssert.That(resultSave["ok"]?.GetValue<bool>() == true &&
+                        new EncryptionService().Unlock(File.ReadAllText(host.DataPath), PersonalActorNativeSaveHost.Password) == candidateText,
+                        "The elected receiver did not reopen its exact encrypted reply book.");
+                    var returnedResult = await fixture.Read(received++);
+                    var returnedResultId = returnedResult["message_id"]!.GetValue<string>();
+                    TestAssert.That(returnedResult["body"]?["kind"]?.GetValue<string>() == "personal_sync.attachment_result" &&
+                        returnedResult["body"]?["body"]?["reply"]?.GetValue<bool>() == true,
+                        "The saved reply did not emit its protected result.");
+                    await fixture.Send(report, written++);
+                    var early = await fixture.Read(received++);
+                    TestAssert.That(early["status"]?.GetValue<string>() == "rejected" && early["error"]?.GetValue<string>() == "temporary_failure" &&
+                        store.PersonalSuccess(peer.Id) is null, "The elected reader accepted a report before its actual original-result ACK.");
+                    await InitialAck(returnedResultId);
+                    await Expect(report, "accepted");
+                    await Expect(report, "duplicate");
+                    await FencePing();
+                    TestAssert.That(store.PersonalSuccess(peer.Id)?["trigger"]?.GetValue<string>() == PersonalSyncContract.AutoConnectionTrigger,
+                        "The elected reader did not confirm success after the actual report ACK.");
+                }
+                finally { readers.Remove(peer.Id); }
+                await fixture.Send(new JsonObject { ["type"] = "close", ["reason"] = "normal" }, written++);
+                await run;
+                return;
+            }
+            var unshared = request.DeepClone().AsObject();
+            unshared["format"] = 14; unshared["run_id"] = Guid.NewGuid().ToString("D");
+            await Expect(Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.request", unshared, collection)), "rejected", "not_granted");
+            await Expect(frame, "accepted");
+            await Expect(frame, "duplicate");
+            TestAssert.That(runs.LoadRun(peer.Id, runId, Now())?.Policy == "connection_only" &&
+                store.ReceivedMatches(peer.Id, frame), "Original wire request did not make a typed committed receipt.");
+            var another = request.DeepClone().AsObject();
+            var anotherId = Guid.NewGuid().ToString("D"); another["run_id"] = anotherId;
+            await Expect(Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.request", another, collection)), "rejected", "not_granted");
+            TestAssert.That(runs.LoadRun(peer.Id, anotherId, Now()) is null, "The reader admitted a second automatic request.");
+
+            if (originals)
+            {
+                await VerifyScopedOriginalWindowsAsync(fixture, runId, collection, frame["expires_ms"]!.GetValue<long>(), offers,
+                    offerArrived.Task, Expect, message => fixture.Send(message, written++), () => fixture.Read(received++, 1_048_576),
+                    value => active = value);
+                await fixture.Send(new JsonObject { ["type"] = "close", ["reason"] = "normal" }, written++);
+                await run;
+                return;
+            }
+
+            active = false;
+            await Expect(frame, "rejected", "not_granted");
+            var batch = new JsonObject { ["format"] = 3, ["run_id"] = runId, ["batch_id"] = Guid.NewGuid().ToString("D"),
+                ["sequence"] = 0, ["last"] = true, ["reply"] = false, ["records"] = new JsonArray(),
+                ["records_hash"] = PersonalSyncContract.RecordsHash(new JsonArray()) };
+            var batchFrame = Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.batch", batch, collection));
+            batchFrame["expires_ms"] = frame["expires_ms"]!.DeepClone();
+            var batchId = batchFrame["message_id"]!.GetValue<string>();
+            await Expect(batchFrame, "rejected", "not_granted");
+            active = true;
+            var unrelatedBook = new JsonObject { ["name"] = "Outside the phone collection", ["modified_ms"] = 1 };
+            var unrelatedRecords = new JsonArray(new JsonObject { ["kind"] = "notebook", ["id"] = "outside",
+                ["state"] = "live", ["clock"] = new JsonArray(new JsonObject { ["actor_id"] = peer.Id, ["counter"] = 1 }),
+                ["modified_ms"] = 1, ["value"] = unrelatedBook, ["hash"] = PersonalSyncContract.ProjectionHash(unrelatedBook) });
+            var unrelatedBatch = batch.DeepClone().AsObject();
+            unrelatedBatch["records"] = unrelatedRecords;
+            unrelatedBatch["records_hash"] = PersonalSyncContract.RecordsHash(unrelatedRecords);
+            var unrelatedFrame = Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.batch", unrelatedBatch, collection));
+            unrelatedFrame["expires_ms"] = frame["expires_ms"]!.DeepClone();
+            await Expect(unrelatedFrame, "rejected", "not_granted");
+            TestAssert.That(!store.HasIncomingReceipt(peer.Id, unrelatedFrame["message_id"]!.GetValue<string>()),
+                "Unrelated notebook received a positive durable scoped receipt.");
+            using (var database = store.OpenDatabase())
+            {
+                database.Open(); using var command = database.CreateCommand();
+                command.CommandText = "CREATE TRIGGER fail_connection_batch_receipt BEFORE INSERT ON dedupe " +
+                    $"WHEN NEW.message_id='{batchId}' BEGIN SELECT RAISE(ABORT,'synthetic batch receipt failure'); END";
+                command.ExecuteNonQuery();
+                await Expect(batchFrame, "rejected", "temporary_failure");
+                command.CommandText = $"SELECT COUNT(*) FROM personal_batch WHERE message_id='{batchId}'";
+                TestAssert.That((long)command.ExecuteScalar()! == 0 && !store.HasIncomingReceipt(peer.Id, batchId),
+                    "The failed receipt left an acknowledged or staged connection batch behind.");
+                command.CommandText = "DROP TRIGGER fail_connection_batch_receipt"; command.ExecuteNonQuery();
+                await Expect(batchFrame, "accepted");
+                await Expect(batchFrame, "duplicate");
+                command.CommandText = $"SELECT commit_token FROM personal_batch WHERE message_id='{batchId}'";
+                var token = (string)command.ExecuteScalar()!;
+                TestAssert.That(store.ReceivedMatches(peer.Id, batchFrame) && runs.ReadyBatches(Now()).Count == 0 &&
+                    !runs.CommitBatch(peer.Id, batchId, token, Now(), out _),
+                    "The acknowledged connection batch escaped to the ordinary writer.");
+                TestAssert.That(offers.Count == 1 && offers[0]["pending_message_id"]?.GetValue<string>() == batchId &&
+                    offers[0]["commit_token"]?.GetValue<string>() == token && JsonNode.DeepEquals(offers[0]["content_scope"], collection),
+                    "The durable acknowledged batch did not reach exactly one separate GUI dispatch.");
+                await VerifyScopedConnectionNativeSaveAsync(fixture, runId, batchId, token, transport == "bluetooth",
+                    message => fixture.Send(message, written++), () => fixture.Read(received++));
+            }
+            await fixture.Send(new JsonObject { ["type"] = "close", ["reason"] = "normal" }, written++);
+            await run;
+        }
+        finally
+        {
+            connection.Dispose();
+            try { await run; } catch (Exception error) when (error is IOException or OperationCanceledException or ObjectDisposedException) { }
+        }
+    }
+
+    private static async Task VerifyScopedOriginalWindowsAsync(PhoneCameraParentTests.Fixture fixture, string runId, JsonObject collection,
+        long requestExpiry, List<JsonObject> offers, Task offerArrived, Func<JsonObject, string, string, Task> expect,
+        Func<JsonObject, Task> send, Func<Task<JsonObject>> read, Action<bool> readerActive)
+    {
+        var store = fixture.Store;
+        var peer = fixture.Peer;
+        const int chunkSize = PersonalSyncContract.ChunkRaw;
+        var original = Enumerable.Repeat((byte)0x41, 8 * chunkSize + 16).ToArray();
+        "%PDF-1.7\n"u8.CopyTo(original);
+        var hash = Convert.ToHexString(SHA256.HashData(original)).ToLowerInvariant();
+        var value = new JsonObject
+        {
+            ["title"] = "original note", ["text"] = "", ["html"] = "", ["notebook_id"] = "", ["symbol"] = "",
+            ["created_ms"] = 1, ["modified_ms"] = 1,
+            ["attachments"] = new JsonArray(new JsonObject
+            {
+                ["attachment_id"] = "original", ["name"] = "original.pdf", ["kind"] = "pdf",
+                ["mime"] = "application/pdf", ["size"] = original.Length, ["sha256"] = hash
+            })
+        };
+        var records = new JsonArray(new JsonObject
+        {
+            ["kind"] = "note", ["id"] = "phone-note", ["state"] = "live", ["modified_ms"] = 1,
+            ["clock"] = new JsonArray(new JsonObject { ["actor_id"] = peer.Id, ["counter"] = 1 }),
+            ["value"] = value, ["hash"] = PersonalSyncContract.ProjectionHash(value)
+        });
+        var aggregate = PersonalSyncContract.RecordsHash(records);
+        var batchExpiry = requestExpiry - 1000;
+        JsonObject Scoped(string kind, JsonObject body)
+        {
+            var message = Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap(kind, body, collection));
+            message["expires_ms"] = batchExpiry;
+            return message;
+        }
+        var batch = Scoped("personal_sync.batch", new JsonObject
+        {
+            ["format"] = 3, ["run_id"] = runId, ["batch_id"] = Guid.NewGuid().ToString("D"), ["sequence"] = 0,
+            ["last"] = true, ["reply"] = false, ["records"] = records, ["records_hash"] = aggregate
+        });
+        JsonObject Chunk(int index, bool corrupt = false)
+        {
+            var offset = index * chunkSize;
+            var raw = original.AsSpan(offset, Math.Min(chunkSize, original.Length - offset)).ToArray();
+            if (corrupt) raw[^1] ^= 1;
+            return Scoped("personal_sync.attachment_chunk", new JsonObject
+            {
+                ["format"] = 2, ["run_id"] = runId, ["reply"] = false, ["records_hash"] = aggregate, ["sha256"] = hash,
+                ["index"] = index, ["data"] = Convert.ToBase64String(raw)
+            });
+        }
+        async Task<string> ReadWindow(int start, int end)
+        {
+            while (true)
+            {
+                var candidate = await read();
+                var id = candidate["message_id"]!.GetValue<string>();
+                var wrapper = candidate["body"];
+                if (wrapper?["kind"]?.GetValue<string>() == "personal_sync.attachment_request")
+                {
+                    var content = wrapper["body"]!.AsObject();
+                    var want = content["wants"]!.AsArray().Single()!.AsObject();
+                    TestAssert.That(JsonNode.DeepEquals(wrapper["scope"], PhoneContentScope.Reference(collection)) &&
+                        content["run_id"]!.GetValue<string>() == runId && content["records_hash"]!.GetValue<string>() == aggregate &&
+                        want["sha256"]!.GetValue<string>() == hash && !content["reply"]!.GetValue<bool>() &&
+                        JsonNode.DeepEquals(want["ranges"], new JsonArray(new JsonArray(start, end))) &&
+                        candidate["expires_ms"]!.GetValue<long>() == batchExpiry,
+                        "The original window did not bind the precise range, aggregate, expiry and scope.");
+                    TestAssert.That(store.OutboxMessage(peer.Id, id) is null &&
+                        !store.Due(peer.Id, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), transport: "wifi")
+                            .Any(item => item.Message["message_id"]?.GetValue<string>() == id),
+                        "The original window escaped to the ordinary queue.");
+                }
+                await send(new JsonObject { ["type"] = "ack", ["message_id"] = id, ["status"] = "accepted", ["error"] = "none" });
+                if (wrapper?["kind"]?.GetValue<string>() == "personal_sync.attachment_request") return id;
+            }
+        }
+        using var db = store.OpenDatabase(); db.Open(); using var sql = db.CreateCommand();
+        long StoredChunks()
+        {
+            sql.CommandText = "SELECT COUNT(*) FROM personal_attachment_chunk";
+            return (long)sql.ExecuteScalar()!;
+        }
+        async Task Reject(JsonObject packet, string error)
+        {
+            await expect(packet, "rejected", error);
+            TestAssert.That(!store.HasIncomingReceipt(peer.Id, packet["message_id"]!.GetValue<string>()),
+                "A rejected original chunk left a positive receipt.");
+        }
+
+        var first = Chunk(0);
+        await Reject(first, "not_granted");
+        await expect(batch, "accepted", "none");
+        var firstWindow = await ReadWindow(0, 8);
+        await Reject(Chunk(8), "not_granted");
+        readerActive(false);
+        await Reject(first, "not_granted");
+        readerActive(true);
+        sql.CommandText = "CREATE TRIGGER fail_scoped_chunk BEFORE INSERT ON dedupe " +
+            $"WHEN NEW.message_id='{first["message_id"]!.GetValue<string>()}' BEGIN SELECT RAISE(ABORT,'test rollback'); END";
+        sql.ExecuteNonQuery();
+        await Reject(first, "temporary_failure");
+        TestAssert.That(StoredChunks() == 0, "Failing to store a chunk receipt left bytes behind.");
+        sql.CommandText = "DROP TRIGGER fail_scoped_chunk"; sql.ExecuteNonQuery();
+        await expect(first, "accepted", "none");
+        await expect(first, "duplicate", "none");
+        await Reject(Chunk(0), "invalid_schema");
+        for (var index = 7; index >= 1; index--) await expect(Chunk(index), "accepted", "none");
+        var secondWindow = await ReadWindow(8, 9);
+        TestAssert.That(secondWindow != firstWindow && StoredChunks() == 8 && offers.Count == 0,
+            "The first original window did not stage exactly eight chunks, or a partial original reached the renderer.");
+        await Reject(Chunk(8, corrupt: true), "invalid_schema");
+        TestAssert.That(StoredChunks() == 8, "A mismatching original was committed.");
+        var last = Chunk(8);
+        await expect(last, "accepted", "none");
+        await expect(last, "duplicate", "none");
+        await offerArrived.WaitAsync(TimeSpan.FromSeconds(5));
+        TestAssert.That(StoredChunks() == 9 && store.ReceivedMatches(peer.Id, last) && offers.Count == 1,
+            "The verified original was not staged and offered exactly once.");
+        sql.CommandText = "SELECT transfer.transport_policy, length(chunk.payload), transfer.complete FROM personal_attachment_transfer AS transfer " +
+            "JOIN personal_attachment_chunk AS chunk USING (peer_id,run_id,reply,records_hash,sha256,direction) WHERE chunk.chunk_index=8";
+        using (var row = sql.ExecuteReader())
+            TestAssert.That(row.Read() && row.GetString(0) == "connection_only" && row.GetInt64(1) > 16 && row.GetBoolean(2),
+                "The verified original did not remain in protected encrypted staging.");
+
+        var offer = offers.Single();
+        var dataUrl = $"data:application/pdf;base64,{Convert.ToBase64String(original)}";
+        TestAssert.That(offer["body"]?["attachment_data"]?[hash]?.GetValue<string>() == dataUrl,
+            "The renderer did not receive the exact original bytes.");
+        using var coordinator = new TelefonCoordinator(fixture.Paths, (_, _) => Task.CompletedTask,
+            dataStore: store, foregroundEnabled: true, localOnly: true);
+        var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+        online.Add(peer.Id, fixture.Connection);
+        try
+        {
+            var host = new PersonalActorNativeSaveHost(Path.Combine(fixture.Paths.Root, "connection-original-book"),
+                """{"personalSync":{"applied_batches":[]},"notizen":[]}""") { ConnectionCoordinator = coordinator };
+            coordinator.NativeSavedBook = host.Saved;
+            fixture.Connection.ConnectionReplyBook = host.Saved;
+            var prior = host.Saved()!;
+            var token = offer["commit_token"]!.GetValue<string>();
+            var localAttachment = new JsonObject { ["id"] = "original", ["name"] = "original.pdf", ["art"] = "pdf", ["daten"] = dataUrl };
+            var candidate = new JsonObject
+            {
+                ["personalSync"] = new JsonObject { ["applied_batches"] = new JsonArray(token) },
+                ["notizen"] = new JsonArray(new JsonObject { ["id"] = "phone-note", ["anhaenge"] = new JsonArray(localAttachment) })
+            };
+            var id = 0;
+            Task<JsonObject> Save() => host.SaveBridgeEnvelopeAsync(new JsonObject
+            {
+                ["cmd"] = "speichern", ["id"] = ++id, ["text"] = candidate.ToJsonString(),
+                ["personalConnectionLauf"] = new JsonObject { ["peer"] = peer.Id, ["messageId"] = offer["pending_message_id"]!.DeepClone(),
+                    ["token"] = token, ["before"] = prior.Sha256 }
+            });
+            localAttachment["name"] = "other.pdf";
+            TestAssert.That((await Save())["ok"]?.GetValue<bool>() == false && host.Saved() == prior,
+                "Renamed original passed the native writer.");
+            localAttachment["name"] = "original.pdf";
+            original[^1] ^= 1;
+            localAttachment["daten"] = $"data:application/pdf;base64,{Convert.ToBase64String(original)}";
+            TestAssert.That((await Save())["ok"]?.GetValue<bool>() == false && host.Saved() == prior,
+                "Substituted original bytes passed the native writer.");
+            localAttachment["daten"] = dataUrl;
+            readerActive(false);
+            TestAssert.That((await Save())["ok"]?.GetValue<bool>() == false && host.Saved() == prior,
+                "A retired reader's original passed the native writer.");
+            readerActive(true);
+            sql.CommandText = "SELECT COUNT(*) FROM outbox WHERE transport_policy='connection_only'";
+            TestAssert.That((long)sql.ExecuteScalar()! == 0, "A failed original save queued a result.");
+            var saved = await Save();
+            var reopened = new EncryptionService().Unlock(File.ReadAllText(host.DataPath), PersonalActorNativeSaveHost.Password);
+            TestAssert.That(saved["ok"]?.GetValue<bool>() == true && reopened == candidate.ToJsonString() &&
+                host.Saved()?.Sha256 == saved["standSha256"]?.GetValue<string>(),
+                "The native SaveACK did not prove the actual encrypted book with the exact original.");
+            var replyRecords = records.DeepClone().AsArray();
+            var reply = new JsonObject
+            {
+                ["format"] = 3, ["run_id"] = runId, ["batch_id"] = Guid.NewGuid().ToString("D"), ["sequence"] = 0,
+                ["reply"] = true, ["last"] = true, ["records"] = replyRecords, ["records_hash"] = PersonalSyncContract.RecordsHash(replyRecords)
+            };
+            Task QueueReply(string text) => coordinator.QueueScopedConnectionReplyAsync(peer.Id,
+                offer["pending_message_id"]!.GetValue<string>(), token, [reply], 0, 0, CancellationToken.None, text);
+            await TestAssert.ThrowsAsync<InvalidOperationException>(() => QueueReply(reopened + " "), "Unconfirmed book text staged reply originals.");
+            await QueueReply(reopened);
+            fixture.Connection.PersonalSuccessConfirmed = (source, report) => coordinator.RecordConfirmedPersonalSuccess(source, peer, report);
+            var consumedFrames = new HashSet<string>(StringComparer.Ordinal);
+            async Task<JsonObject> ReadNext()
+            {
+                var next = await read();
+                while (next["message_id"] is JsonValue value && consumedFrames.Contains(value.GetValue<string>())) next = await read();
+                return next;
+            }
+            var result = await ReadNext();
+            var resultId = result["message_id"]!.GetValue<string>();
+            var wrapper = result["body"]!.AsObject();
+            var body = wrapper["body"]!.AsObject();
+            sql.CommandText = $"SELECT COUNT(*) FROM outbox WHERE transport_policy='connection_only' AND message_id='{resultId}'";
+            TestAssert.That(wrapper["kind"]?.GetValue<string>() == "personal_sync.attachment_result" &&
+                JsonNode.DeepEquals(wrapper["scope"], PhoneContentScope.Reference(collection)) &&
+                body["run_id"]?.GetValue<string>() == runId && body["reply"]?.GetValue<bool>() == false &&
+                body["records_hash"]?.GetValue<string>() == aggregate && body["sha256"]?.GetValue<string>() == hash &&
+                body["state"]?.GetValue<string>() == "complete" && body["error"]?.GetValue<string>() == "none" &&
+                result["expires_ms"]?.GetValue<long>() == batchExpiry && (long)sql.ExecuteScalar()! == 1,
+                "The written result is not bound to the exact received original and confirmed book.");
+
+            Task Ack(string messageId) => send(new JsonObject { ["type"] = "ack", ["message_id"] = messageId,
+                ["status"] = "accepted", ["error"] = "none" });
+            async Task DrainThroughPing()
+            {
+                var ping = Guid.NewGuid().ToString("D");
+                await send(new JsonObject { ["type"] = "ping", ["ping_id"] = ping, ["sent_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() });
+                var response = await ReadNext();
+                TestAssert.That(response["ping_id"]?.GetValue<string>() == ping, "The protected result blocked the regular connection.");
+            }
+            fixture.Connection.ConnectionReplyBook = () => prior;
+            consumedFrames.Add(resultId);
+            await Ack(resultId);
+            await DrainThroughPing();
+            TestAssert.That((long)sql.ExecuteScalar()! == 1, "A result ACK consumed a different native book's result.");
+            fixture.Connection.ConnectionReplyBook = host.Saved;
+            await Ack(resultId);
+            var writtenReply = await ReadNext();
+            TestAssert.That((long)sql.ExecuteScalar()! == 0 && store.PersonalSuccess(peer.Id) is null,
+                "An exact result ACK failed to retire its frame or falsely completed the whole run.");
+            TestAssert.That(writtenReply["body"]?["kind"]?.GetValue<string>() == "personal_sync.batch" &&
+                JsonNode.DeepEquals(writtenReply["body"]?["body"], reply), "The exact reply did not follow the confirmed incoming result.");
+            var replyId = writtenReply["message_id"]!.GetValue<string>();
+            consumedFrames.Add(replyId);
+            var originalReply = Convert.FromBase64String(dataUrl[(dataUrl.IndexOf(',') + 1)..]);
+            var replyAggregate = reply["records_hash"]!.GetValue<string>();
+            JsonObject Want(int start, int end) => Scoped("personal_sync.attachment_request", new JsonObject
+            {
+                ["format"] = 2, ["reply"] = true, ["run_id"] = runId, ["records_hash"] = replyAggregate,
+                ["wants"] = new JsonArray(new JsonObject { ["sha256"] = hash, ["ranges"] = new JsonArray(new JsonArray(start, end)) })
+            });
+            JsonObject RemoteResult() => Scoped("personal_sync.attachment_result", new JsonObject
+            {
+                ["format"] = 2, ["reply"] = true, ["run_id"] = runId, ["records_hash"] = replyAggregate,
+                ["sha256"] = hash, ["state"] = "complete", ["error"] = "none"
+            });
+            async Task Control(JsonObject message, string status, string error)
+            {
+                await send(message);
+                var receipt = await ReadNext();
+                TestAssert.That(receipt["type"]?.GetValue<string>() == "ack" && JsonNode.DeepEquals(receipt["message_id"], message["message_id"]) &&
+                    receipt["status"]?.GetValue<string>() == status && receipt["error"]?.GetValue<string>() == error,
+                    $"The scoped reply original control had an unexpected receipt: {receipt}");
+            }
+            await Control(Want(0, 8), "rejected", "temporary_failure");
+            await Ack(replyId);
+            await Control(RemoteResult(), "rejected", "not_granted");
+            await Control(Want(0, 9), "rejected", "not_granted");
+            async Task ReplyWindow(int start, int end)
+            {
+                await Control(Want(start, end), "accepted", "none");
+                for (var index = start; index < end; index++)
+                {
+                    var frame = await ReadNext();
+                    var wrapped = frame["body"]!.AsObject();
+                    var chunk = wrapped["body"]!.AsObject();
+                    var offset = index * chunkSize;
+                    TestAssert.That(wrapped["kind"]?.GetValue<string>() == "personal_sync.attachment_chunk" &&
+                        chunk["records_hash"]?.GetValue<string>() == replyAggregate && chunk["sha256"]?.GetValue<string>() == hash &&
+                        chunk["reply"]?.GetValue<bool>() == true && TelefonProtocolContract.Integer(chunk["index"]) == index &&
+                        Convert.FromBase64String(chunk["data"]!.GetValue<string>()).AsSpan().SequenceEqual(
+                            originalReply.AsSpan(offset, Math.Min(chunkSize, originalReply.Length - offset))),
+                        "The protected reply did not contain the exact saved original chunk.");
+                    var id = frame["message_id"]!.GetValue<string>();
+                    consumedFrames.Add(id);
+                    await Ack(id);
+                }
+            }
+            await ReplyWindow(0, 8);
+            await ReplyWindow(8, 9);
+            await DrainThroughPing();
+            TestAssert.That(store.PersonalSuccess(peer.Id) is null, "Chunk ACKs completed the run without the recipient's exact result.");
+            await Control(RemoteResult(), "accepted", "none");
+            var reportFrame = await ReadNext();
+            var reportId = reportFrame["message_id"]!.GetValue<string>();
+            TestAssert.That(reportFrame["body"]?["kind"]?.GetValue<string>() == "personal_sync.report" &&
+                TelefonProtocolContract.Integer(reportFrame["body"]?["body"]?["attachments"]?["sent"]) == 1 &&
+                store.PersonalSuccess(peer.Id) is null, "The report skipped the original result or falsely confirmed before its own ACK.");
+            consumedFrames.Add(reportId);
+            await Ack(reportId);
+            await DrainThroughPing();
+            TestAssert.That(store.PersonalSuccess(peer.Id)?["trigger"]?.GetValue<string>() == PersonalSyncContract.AutoConnectionTrigger,
+                "The final actual report ACK did not complete the protected original run.");
+        }
+        finally { online.Remove(peer.Id); }
+    }
+
+    private static async Task VerifyScopedConnectionNativeSaveAsync(PhoneCameraParentTests.Fixture fixture, string runId, string messageId,
+        string token, bool failAfterPrimary, Func<JsonObject, Task> send, Func<Task<JsonObject>> read)
+    {
+        using var coordinator = new TelefonCoordinator(fixture.Paths, (_, _) => Task.CompletedTask,
+            dataStore: fixture.Store, foregroundEnabled: true, localOnly: true);
+        var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+        online.Add(fixture.Peer.Id, fixture.Connection);
+        try
+        {
+            var host = new PersonalActorNativeSaveHost(Path.Combine(fixture.Paths.Root, "connection-book"),
+                """{"personalSync":{"applied_batches":[]}}""") { ConnectionCoordinator = coordinator };
+            coordinator.NativeSavedBook = host.Saved;
+            var original = host.Saved()!;
+            var originalBytes = File.ReadAllBytes(host.DataPath);
+            var proposed = new JsonObject { ["personalSync"] = new JsonObject { ["applied_batches"] = new JsonArray(token) } }.ToJsonString();
+            var baseline = original.Sha256;
+            var id = 0;
+            Task<JsonObject> TrySave(string witness) => host.SaveBridgeEnvelopeAsync(new JsonObject {
+                ["cmd"] = "speichern", ["id"] = ++id, ["text"] = proposed,
+                ["personalConnectionLauf"] = new JsonObject { ["peer"] = fixture.Peer.Id, ["messageId"] = messageId,
+                    ["token"] = witness, ["before"] = baseline } });
+            static bool Saved(JsonObject response) => response["ok"]?.GetValue<bool>() == true;
+
+            var batches = Enumerable.Range(0, 2).Select(index => new JsonObject { ["format"] = 3, ["run_id"] = runId,
+                ["batch_id"] = Guid.NewGuid().ToString("D"), ["sequence"] = index, ["last"] = index == 1, ["reply"] = true,
+                ["records"] = new JsonArray(), ["records_hash"] = PersonalSyncContract.RecordsHash(new JsonArray()) }).ToArray();
+            Task QueueReply() => coordinator.QueueScopedConnectionReplyAsync(fixture.Peer.Id, messageId, token, batches, 0, 0, CancellationToken.None);
+            await TestAssert.ThrowsAsync<InvalidOperationException>(QueueReply, "A batch receipt stood in for a native SaveACK.");
+
+            TestAssert.That(!Saved(await TrySave(Convert.ToBase64String(new byte[32]))), "Forged batch token reached the native writer.");
+            baseline = new string('a', 64);
+            TestAssert.That(!Saved(await TrySave(token)), "Stale book bytes reached the native writer.");
+            baseline = original.Sha256;
+            using (var database = fixture.Store.OpenDatabase())
+            {
+                database.Open(); using var receipt = database.CreateCommand();
+                receipt.CommandText = "UPDATE dedupe SET result=$result WHERE peer_id=$peer AND message_id=$id";
+                receipt.Parameters.AddWithValue("$peer", fixture.Peer.Id); receipt.Parameters.AddWithValue("$id", messageId);
+                var result = receipt.Parameters.AddWithValue("$result", "rejected");
+                TestAssert.That(receipt.ExecuteNonQuery() == 1 && !Saved(await TrySave(token)),
+                    "A durable batch without a positive exact receipt reached the native writer.");
+                result.Value = "accepted";
+                receipt.ExecuteNonQuery();
+            }
+            using (var replacement = new PhoneCameraParentTests.Fixture(previous: fixture))
+            {
+                online[fixture.Peer.Id] = replacement.Connection;
+                TestAssert.That(!Saved(await TrySave(token)), "Replacement reader reused a protected batch.");
+                online[fixture.Peer.Id] = fixture.Connection;
+            }
+            TestAssert.That(host.Saved() == original && originalBytes.AsSpan().SequenceEqual(File.ReadAllBytes(host.DataPath)),
+                "Rejected protected write changed the native saved book.");
+
+            host.FailAfterPrimary = failAfterPrimary;
+            var response = await TrySave(token);
+            TestAssert.That(Saved(response) != failAfterPrimary &&
+                new EncryptionService().Unlock(File.ReadAllText(host.DataPath), PersonalActorNativeSaveHost.Password) == proposed,
+                "Protected writer lost the actual encrypted bytes or falsely confirmed an uncertain write.");
+            var saved = host.Saved();
+            TestAssert.That(failAfterPrimary ? saved is null && !host.Available :
+                saved is not null && saved.BookSource == original.BookSource && saved.Sequence == original.Sequence + 1 &&
+                saved.Sha256 == response["standSha256"]?.GetValue<string>(), "SaveACK did not match the actual native book owner and bytes.");
+            var persisted = File.ReadAllBytes(host.DataPath);
+            TestAssert.That(!Saved(await TrySave(token)) && host.Saved() == saved && persisted.AsSpan().SequenceEqual(File.ReadAllBytes(host.DataPath)),
+                "A stale/uncertain protected batch was written twice.");
+            if (failAfterPrimary)
+            {
+                await TestAssert.ThrowsAsync<InvalidOperationException>(QueueReply, "An uncertain encrypted save queued a connection reply.");
+                return;
+            }
+
+            using (var replacement = new PhoneCameraParentTests.Fixture(previous: fixture))
+            {
+                online[fixture.Peer.Id] = replacement.Connection;
+                await TestAssert.ThrowsAsync<InvalidOperationException>(QueueReply, "A replacement reader used the original saved batch.");
+                online[fixture.Peer.Id] = fixture.Connection;
+            }
+            using var db = fixture.Store.OpenDatabase(); db.Open();
+            using var command = db.CreateCommand();
+            command.CommandText = """
+                CREATE TRIGGER fail_second_connection_reply BEFORE INSERT ON outbox
+                WHEN NEW.transport_policy='connection_only' AND (SELECT COUNT(*) FROM outbox WHERE transport_policy='connection_only')=1
+                BEGIN SELECT RAISE(ABORT,'synthetic second reply write failure'); END
+                """;
+            command.ExecuteNonQuery();
+            await TestAssert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(QueueReply, "Reply staging did not reach the forced second insert failure.");
+            command.CommandText = "SELECT COUNT(*) FROM outbox WHERE transport_policy='connection_only'";
+            TestAssert.That((long)command.ExecuteScalar()! == 0 && host.Saved() == saved, "Partial reply staging changed the saved book or leaked an outbox row.");
+            command.CommandText = "DROP TRIGGER fail_second_connection_reply"; command.ExecuteNonQuery();
+            await QueueReply();
+            var queuedIds = new List<string>();
+            command.CommandText = "SELECT message_id,payload FROM outbox WHERE transport_policy='connection_only' ORDER BY rowid";
+            using (var frames = command.ExecuteReader())
+                while (frames.Read())
+                {
+                    var replyId = frames.GetString(0);
+                    var queued = JsonNode.Parse(fixture.Store.Open("outbox", replyId, (byte[])frames[1]))!.AsObject();
+                    var wrapper = queued["body"]!.AsObject();
+                    var isBatch = queuedIds.Count < batches.Length;
+                    TestAssert.That(queued["message_id"]?.GetValue<string>() == replyId && queued["kind"]?.GetValue<string>() == PhoneContentScope.DataKind &&
+                        (isBatch ? JsonNode.DeepEquals(wrapper["body"], batches[queuedIds.Count]) :
+                            wrapper["kind"]?.GetValue<string>() == "personal_sync.report" && wrapper["body"]?["run_id"]?.GetValue<string>() == runId),
+                        "The reply outbox did not retain the exact scoped batch/report identity.");
+                    queuedIds.Add(replyId);
+                }
+            TestAssert.That(queuedIds.Count == batches.Length + 1 &&
+                fixture.Store.Due(fixture.Peer.Id, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).All(item => !queuedIds.Contains(item.Id)) &&
+                queuedIds.All(queuedId => fixture.Store.OutboxMessage(fixture.Peer.Id, queuedId) is null && !fixture.Store.CompleteOutbox(fixture.Peer.Id, queuedId) &&
+                    !fixture.Store.CompletePersonalOutbox(fixture.Peer.Id, queuedId, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())),
+                "The ordinary WLAN queue or ACK path touched the protected reply.");
+            await TestAssert.ThrowsAsync<InvalidOperationException>(QueueReply, "A consumed SaveACK requeued the reply.");
+            TestAssert.That(host.Saved() == saved && persisted.AsSpan().SequenceEqual(File.ReadAllBytes(host.DataPath)), "Reply staging rewrote the encrypted book.");
+
+            fixture.Connection.ConnectionReplyBook = host.Saved;
+            fixture.Connection.PersonalSuccessConfirmed = (source, report) => coordinator.RecordConfirmedPersonalSuccess(source, fixture.Peer, report);
+            Task Ack(string replyId) => send(new JsonObject { ["type"] = "ack", ["message_id"] = replyId,
+                ["status"] = "accepted", ["error"] = "none" });
+            var first = await read();
+            TestAssert.That(first["message_id"]?.GetValue<string>() == queuedIds[0] &&
+                JsonNode.DeepEquals(first["body"]?["body"], batches[0]), "The original reader did not write the first exact reply.");
+            await Ack(queuedIds[1]); // Authenticated but not written by this reader.
+            await Ack(queuedIds[2]);
+            await Ack(queuedIds[0]);
+
+            var second = await read();
+            while (second["message_id"]?.GetValue<string>() == queuedIds[0]) second = await read();
+            TestAssert.That(second["message_id"]?.GetValue<string>() == queuedIds[1] &&
+                JsonNode.DeepEquals(second["body"]?["body"], batches[1]), "An unsent or unrelated acknowledgement consumed the second reply.");
+            TestAssert.That(fixture.Store.PersonalSuccess(fixture.Peer.Id) is null, "An unsent report recorded success.");
+            await Ack(queuedIds[1]);
+            var reportFrame = await read();
+            while (reportFrame["message_id"]?.GetValue<string>() == queuedIds[1]) reportFrame = await read();
+            TestAssert.That(reportFrame["message_id"]?.GetValue<string>() == queuedIds[2] &&
+                reportFrame["body"]?["kind"]?.GetValue<string>() == "personal_sync.report" &&
+                reportFrame["body"]?["body"]?["trigger"]?.GetValue<string>() == PersonalSyncContract.AutoConnectionTrigger &&
+                fixture.Store.PersonalSuccess(fixture.Peer.Id) is null, "Writing a report without its actual ACK recorded success.");
+            await Ack(queuedIds[2]);
+            var ping = Guid.NewGuid().ToString("D");
+            await send(new JsonObject { ["type"] = "ping", ["ping_id"] = ping,
+                ["sent_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() });
+            var pong = await read();
+            while (pong["message_id"]?.GetValue<string>() == queuedIds[2]) pong = await read();
+            TestAssert.That(pong["ping_id"]?.GetValue<string>() == ping, "The protected reply blocked the ordinary original reader.");
+            command.CommandText = "SELECT COUNT(*) FROM outbox WHERE transport_policy='connection_only'";
+            TestAssert.That((long)command.ExecuteScalar()! == 0 &&
+                fixture.Store.PersonalSuccess(fixture.Peer.Id)?["trigger"]?.GetValue<string>() == PersonalSyncContract.AutoConnectionTrigger,
+                "The original positive report acknowledgement did not finish the protected reply sequence.");
+        }
+        finally { online.Remove(fixture.Peer.Id); }
     }
 }

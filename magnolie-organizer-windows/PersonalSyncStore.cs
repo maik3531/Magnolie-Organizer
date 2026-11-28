@@ -5,8 +5,9 @@ using Microsoft.Data.Sqlite;
 
 namespace MagnolieOrganizer.Windows;
 
-internal sealed class PersonalSyncStore(TelefonStore store)
+internal sealed partial class PersonalSyncStore(TelefonStore store)
 {
+    private TelefonStore Store => store;
     internal const long RunLifetimeMs = 86_400_000;
     internal const long MaximumAttachmentBytes = 8L * 1024 * 1024;
     private const long MaximumGlobalChunkBytes = 100L * 1024 * 1024;
@@ -36,14 +37,52 @@ internal sealed class PersonalSyncStore(TelefonStore store)
     {
         var value = ReadMeta(RunKey(peerId, runId), "personal_run", context); if (value is null) return null;
         var body = value["body"] as JsonObject ?? throw new InvalidDataException("Personal-Sync-Lauf beschädigt.");
-        PersonalSyncContract.ValidateBody("personal_sync.request", body); var expires = TelefonProtocolContract.Integer(value["expires_ms"]);
-        return new PersonalSyncRun(runId, body["trigger"]!.GetValue<string>() == "auto_wifi" ? "wifi_only" : "any", expires, expires <= now, body.DeepClone().AsObject());
+        var trigger = body["trigger"]!.GetValue<string>();
+        if (trigger == PersonalSyncContract.AutoConnectionTrigger)
+        {
+            PersonalSyncContract.ValidateScopedConnectionRequest(body);
+            if (value["connection_authority"] is not JsonValue authority || !authority.TryGetValue<string>(out var bound) ||
+                !ValidConnectionAuthority(bound)) throw new InvalidDataException("A scoped connection run has no reader authority.");
+        }
+        else PersonalSyncContract.ValidateBody("personal_sync.request", body);
+        var expires = TelefonProtocolContract.Integer(value["expires_ms"]);
+        var policy = trigger switch
+        {
+            "auto_wifi" => "wifi_only",
+            PersonalSyncContract.AutoConnectionTrigger => "connection_only",
+            _ => "any"
+        };
+        return new PersonalSyncRun(runId, policy, expires, expires <= now, body.DeepClone().AsObject());
     }
 
     internal void RememberScopedRun(string peerId, byte[] expectedPublic, JsonObject request, JsonObject reference, long now, long expires)
+        => RememberScopedRun(peerId, expectedPublic, request, reference, now, expires, null, null, null);
+
+    internal TelefonAck RememberScopedConnectionRequest(string peerId, byte[] expectedPublic, JsonObject envelope, long now,
+        string authority, Func<string> currentAuthority)
+    {
+        TelefonMessageContract.ValidateMessage(envelope, now, true);
+        if (envelope["kind"]?.GetValue<string>() != PhoneContentScope.DataKind ||
+            envelope["body"] is not JsonObject wrapped || wrapped["kind"]?.GetValue<string>() != "personal_sync.request")
+            throw new InvalidDataException("Scoped automatic connection request envelope required.");
+        if (!ValidConnectionAuthority(authority)) throw new InvalidOperationException("Connection reader authority unavailable.");
+        var request = wrapped["body"]!.AsObject();
+        PersonalSyncContract.ValidateScopedConnectionRequest(request);
+        var duplicate = RememberScopedRun(peerId, expectedPublic, request, wrapped["scope"]!.AsObject(), now,
+            TelefonProtocolContract.Integer(envelope["expires_ms"]), envelope, authority, currentAuthority);
+        return new TelefonAck(envelope["message_id"]!.GetValue<string>(), duplicate ? "duplicate" : "accepted", "none");
+    }
+
+    private static bool ValidConnectionAuthority(string value) =>
+        value.Length == 64 && value.All(letter => "0123456789abcdef".Contains(letter));
+
+    private bool RememberScopedRun(string peerId, byte[] expectedPublic, JsonObject request, JsonObject reference, long now,
+        long expires, JsonObject? envelope, string? authority, Func<string>? currentAuthority)
     {
         if (store.RestoreFenced) throw new InvalidOperationException("restore_unavailable");
-        PersonalSyncContract.ValidateBody("personal_sync.request", request); PhoneContentScope.ValidateReference(reference);
+        var connection = authority is not null;
+        if (!connection) PersonalSyncContract.ValidateBody("personal_sync.request", request);
+        PhoneContentScope.ValidateReference(reference);
         if (request["format"]!.GetValue<int>() is not (3 or 14) || expires <= now) throw new InvalidDataException("Invalid scoped run.");
         using var db = store.OpenDatabase(); db.Open(); using var transaction = db.BeginTransaction();
         var settings = store.SharedSettings(peerId, expectedPublic) ?? throw new InvalidOperationException("Shared preferences unavailable.");
@@ -55,6 +94,15 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         var binding = new JsonObject { ["peer_key"] = Convert.ToHexString(expectedPublic), ["local_actor"] = actor,
             ["scope"] = reference.DeepClone(), ["content_policy"] = policy };
         var runId = request["run_id"]!.GetValue<string>(); var runKey = RunKey(peerId, runId); var scopeKey = $"personal_scope:{peerId}:{runId}";
+        var receiptId = envelope?["message_id"]?.GetValue<string>();
+        void RequireCurrentConnection()
+        {
+            if (!connection) return;
+            if (currentAuthority!() != authority ||
+                (SharedSyncSettings.Effective(settings)["auto_mode"]?.GetValue<string>() != "connection"))
+                throw new InvalidOperationException("The negotiated connection request reader changed.");
+        }
+        RequireCurrentConnection();
         JsonObject? Read(string key, string type)
         {
             using var query = db.CreateCommand(); query.Transaction = transaction; query.CommandText = "SELECT value FROM meta WHERE key=$key";
@@ -65,21 +113,68 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         if ((oldRun is null) != (oldScope is null)) throw new InvalidDataException("Cannot reinterpret a legacy run as scoped.");
         if (oldRun is not null)
         {
+            if (connection)
+            {
+                if (oldRun["connection_authority"]?.GetValue<string>() != authority)
+                    throw new InvalidOperationException("The connection run belongs to another reader.");
+                if (oldRun["connection_request_id"]?.GetValue<string>() != receiptId ||
+                    !JsonNode.DeepEquals(ReadConnectionReceipt(db, transaction, peerId, receiptId!, now), envelope))
+                    throw new InvalidDataException("Conflicting connection request receipt.");
+            }
             if (!JsonNode.DeepEquals(oldRun["body"], request) || !JsonNode.DeepEquals(oldScope, binding) ||
                 TelefonProtocolContract.Integer(oldRun["expires_ms"]) <= now || expires > TelefonProtocolContract.Integer(oldRun["expires_ms"]))
                 throw new InvalidDataException("Conflicting or expired scoped run.");
-            transaction.Commit(); return;
+            RequireCurrentConnection();
+            transaction.Commit(); return true;
         }
         var run = new JsonObject { ["body"] = request.DeepClone(), ["created_ms"] = now, ["expires_ms"] = Math.Min(checked(now + RunLifetimeMs), expires) };
+        if (connection)
+        {
+            run["connection_authority"] = authority;
+            run["connection_request_id"] = receiptId;
+        }
         foreach (var item in new[] { (Key: runKey, Type: "personal_run", Value: run), (Key: scopeKey, Type: "personal_scope", Value: binding) })
         {
             using var insert = db.CreateCommand(); insert.Transaction = transaction; insert.CommandText = "INSERT INTO meta(key,value) VALUES($key,$value)";
             insert.Parameters.AddWithValue("$key", item.Key); insert.Parameters.AddWithValue("$value", store.Seal(item.Type, item.Key, TelefonCrypto.Canonical(item.Value)));
             insert.ExecuteNonQuery();
         }
+        if (connection)
+        {
+            WriteConnectionReceipt(db, transaction, peerId, envelope!, now);
+            RequireCurrentConnection();
+        }
         if (store.RestoreFenced || !JsonNode.DeepEquals(settings, store.SharedSettings(peerId, expectedPublic)))
             throw new InvalidOperationException("Shared scope binding changed.");
         transaction.Commit();
+        return false;
+    }
+
+    private void WriteConnectionReceipt(SqliteConnection db, SqliteTransaction transaction, string peerId, JsonObject envelope, long now)
+    {
+        var id = envelope["message_id"]!.GetValue<string>();
+        using var receipt = db.CreateCommand(); receipt.Transaction = transaction;
+        receipt.CommandText = "INSERT INTO inbox VALUES($id,$peer,$kind,$now,$expires,$payload,'processed'); " +
+            "INSERT INTO dedupe VALUES($id,$peer,'accepted','none',$now)";
+        receipt.Parameters.AddWithValue("$id", id); receipt.Parameters.AddWithValue("$peer", peerId);
+        receipt.Parameters.AddWithValue("$kind", PhoneContentScope.DataKind);
+        receipt.Parameters.AddWithValue("$now", now);
+        receipt.Parameters.AddWithValue("$expires", TelefonProtocolContract.Integer(envelope["expires_ms"]));
+        receipt.Parameters.AddWithValue("$payload", store.Seal("inbox", peerId + id, TelefonCrypto.Canonical(envelope)));
+        receipt.ExecuteNonQuery();
+    }
+
+    private JsonObject? ReadConnectionReceipt(SqliteConnection db, SqliteTransaction transaction, string peerId, string id, long now)
+    {
+        using var receipt = db.CreateCommand(); receipt.Transaction = transaction;
+        receipt.CommandText = """
+            SELECT i.payload FROM inbox i JOIN dedupe d ON i.peer_id=d.peer_id AND i.message_id=d.message_id
+            WHERE i.peer_id=$peer AND i.message_id=$id AND i.kind=$kind AND i.state='processed' AND i.expires_ms>$now
+                AND d.result='accepted' AND d.error='none'
+            """;
+        receipt.Parameters.AddWithValue("$peer", peerId); receipt.Parameters.AddWithValue("$id", id);
+        receipt.Parameters.AddWithValue("$kind", PhoneContentScope.DataKind); receipt.Parameters.AddWithValue("$now", now);
+        return receipt.ExecuteScalar() is byte[] payload ? JsonNode.Parse(store.Open("inbox", peerId + id, payload))!.AsObject() : null;
     }
 
     internal JsonObject? ScopedRunReference(string peerId, byte[] expectedPublic, string runId, long now)
@@ -137,16 +232,63 @@ internal sealed class PersonalSyncStore(TelefonStore store)
     }
 
     internal PersonalSyncStagedBatch? StageBatch(string peerId, JsonObject message, string transport, long now)
+        => StageBatch(peerId, message, transport, now, null, out _);
+
+    internal (TelefonAck Ack, PersonalSyncStagedBatch? Complete) StageScopedConnectionBatch(string peerId, JsonObject envelope, JsonObject manifest, string transport,
+        long now, string authority, Func<string> currentAuthority)
     {
+        TelefonMessageContract.ValidateMessage(envelope, now, true);
+        if (envelope["kind"]?.GetValue<string>() != PhoneContentScope.DataKind)
+            throw new InvalidDataException("Scoped automatic batch envelope required.");
+        var (kind, body) = PhoneContentScope.Unwrap(envelope["body"]!.AsObject(), manifest);
+        if (kind != "personal_sync.batch" || !ValidConnectionAuthority(authority))
+            throw new InvalidOperationException("The connection batch is not authorized.");
+        var modules = LoadRun(peerId, body["run_id"]!.GetValue<string>(), now)?.Request["modules"]?.AsArray();
+        var members = manifest["members"]!.AsObject();
+        var notes = members["notes"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+        var tasks = members["tasks"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+        foreach (var record in body["records"]!.AsArray().OfType<JsonObject>())
+        {
+            var itemKind = record["kind"]!.GetValue<string>(); var id = record["id"]!.GetValue<string>();
+            var module = itemKind == "task" ? "tasks" : "notes";
+            if (modules?.Any(value => value?.GetValue<string>() == module) != true ||
+                (itemKind == "task" && !tasks.Contains(id)) || (itemKind == "note" && !notes.Contains(id)))
+                throw new InvalidOperationException("A connection batch record is outside the requested scope.");
+        }
+        var inner = envelope.DeepClone().AsObject(); inner["kind"] = kind; inner["body"] = body;
+        var complete = StageBatch(peerId, inner, transport, now, (envelope, manifest, authority, currentAuthority), out var duplicate);
+        return (new TelefonAck(envelope["message_id"]!.GetValue<string>(), duplicate ? "duplicate" : "accepted", "none"), complete);
+    }
+
+    private PersonalSyncStagedBatch? StageBatch(string peerId, JsonObject message, string transport, long now,
+        (JsonObject Envelope, JsonObject Manifest, string Authority, Func<string> CurrentAuthority)? scope, out bool duplicate)
+    {
+        duplicate = false;
         if (store.RestoreFenced) throw new InvalidOperationException("restore_unavailable");
         TelefonMessageContract.ValidateMessage(message, now, true); if (message["kind"]?.GetValue<string>() != "personal_sync.batch") throw new InvalidDataException("Kein Personal-Sync-Batch.");
         var body = message["body"]!.AsObject(); var runId = body["run_id"]!.GetValue<string>(); var run = LoadRun(peerId, runId, now) ?? throw new InvalidDataException("Personal-Sync-Request fehlt.");
         if (body["format"]!.GetValue<int>() != run.Request["format"]!.GetValue<int>()) throw new InvalidDataException("Widersprüchlicher Personal-Sync-Lauf.");
         PersonalSyncContract.ValidateSelectedRecords(run.Request, body["records"]!.AsArray().OfType<JsonObject>());
-        if (run.Expired || run.Policy == "wifi_only" && transport != "wifi") throw new InvalidDataException("Personal-Sync-Transportpolicy verletzt.");
+        if (run.Expired || run.Policy == "wifi_only" && transport != "wifi" ||
+            (run.Policy == "connection_only") != scope.HasValue) throw new InvalidDataException("Personal-Sync-Transportpolicy verletzt.");
         var reply = body["reply"]!.GetValue<bool>(); var sequence = checked((int)TelefonProtocolContract.Integer(body["sequence"])); if (sequence >= 4096) throw new InvalidDataException("Zu viele Personal-Sync-Batches.");
         var primary = BatchPrimary(peerId, runId, reply, sequence); var payload = store.Seal("personal_batch", primary, TelefonCrypto.Canonical(message));
         using var connection = store.OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
+        void RequireCurrentConnection()
+        {
+            if (scope is not { } bound) return;
+            var stored = ReadMeta(RunKey(peerId, runId), "personal_run", (connection, transaction));
+            var binding = ReadMeta($"personal_scope:{peerId}:{runId}", "personal_scope", (connection, transaction));
+            if (store.RestoreFenced || bound.CurrentAuthority() != bound.Authority || transport is not ("wifi" or "bluetooth") ||
+                stored?["connection_authority"]?.GetValue<string>() != bound.Authority ||
+                !JsonNode.DeepEquals(binding?["scope"], bound.Envelope["body"]?["scope"]) ||
+                TelefonProtocolContract.Integer(message["expires_ms"]) <= now || TelefonProtocolContract.Integer(message["expires_ms"]) > run.ExpiresMs)
+                throw new InvalidOperationException("The connection batch no longer owns the original reader.");
+            if (reply != (stored?["connection_start_id"] is not null) ||
+                reply && !ScopedInitialAcknowledged(connection, transaction, peerId, runId, now, bound.Authority, binding!["scope"]!.AsObject()))
+                throw new InvalidOperationException("The connection batch direction does not own an acknowledged initial group.");
+        }
+        RequireCurrentConnection();
         string token;
         using (var applied = connection.CreateCommand())
         {
@@ -163,7 +305,20 @@ internal sealed class PersonalSyncStore(TelefonStore store)
             {
                 var prior = JsonNode.Parse(store.Open("personal_batch", primary, (byte[])reader[2]));
                 if (reader.GetString(0) != body["batch_id"]!.GetValue<string>() || reader.GetString(1) != message["message_id"]!.GetValue<string>() || reader.GetBoolean(3) != body["last"]!.GetValue<bool>() || !JsonNode.DeepEquals(prior, message)) throw new InvalidDataException("Widersprüchliche Batch-Sequenz.");
-                token = reader.GetString(4); reader.Close(); transaction.Commit(); return CompleteBatch(connection, peerId, runId, reply, token);
+                token = reader.GetString(4); reader.Close();
+                if (scope is { } bound)
+                {
+                    if (!JsonNode.DeepEquals(ReadConnectionReceipt(connection, transaction, peerId,
+                        message["message_id"]!.GetValue<string>(), now), bound.Envelope))
+                        throw new InvalidDataException("Conflicting connection batch receipt.");
+                    RequireCurrentConnection();
+                    duplicate = true;
+                    var scoped = CompleteBatch(connection, peerId, runId, reply, token, transaction, scopedNow: now);
+                    transaction.Commit();
+                    return scoped;
+                }
+                transaction.Commit();
+                return CompleteBatch(connection, peerId, runId, reply, token);
             }
         }
         using (var limits = connection.CreateCommand())
@@ -184,10 +339,317 @@ internal sealed class PersonalSyncStore(TelefonStore store)
             insert.Parameters.AddWithValue("$sequence", sequence); insert.Parameters.AddWithValue("$batch", body["batch_id"]!.GetValue<string>()); insert.Parameters.AddWithValue("$message", message["message_id"]!.GetValue<string>());
             insert.Parameters.AddWithValue("$now", now); insert.Parameters.AddWithValue("$expires", message["expires_ms"]!.GetValue<long>()); insert.Parameters.AddWithValue("$payload", payload); insert.Parameters.AddWithValue("$last", body["last"]!.GetValue<bool>()); insert.Parameters.AddWithValue("$token", token); insert.ExecuteNonQuery();
         }
-        var complete = CompleteBatch(connection, peerId, runId, reply, token);
+        var complete = CompleteBatch(connection, peerId, runId, reply, token, transaction, scopedNow: scope.HasValue ? now : null);
         if (complete?.Records.Count > 100_000) throw new InvalidDataException("Personal-Sync-Lauf ist zu groß.");
+        if (scope is { } accepted)
+        {
+            if (complete is not null)
+            {
+                var records = complete.Records.OfType<JsonObject>().ToArray();
+                if (PhoneContentScope.FilterRecords(records, accepted.Manifest).Count != records.Length)
+                    throw new InvalidOperationException("The completed connection batch contains a notebook outside the requested scope.");
+            }
+            WriteConnectionReceipt(connection, transaction, peerId, accepted.Envelope, now);
+            RequireCurrentConnection();
+        }
         transaction.Commit(); return complete;
     }
+
+    internal bool RequireScopedConnectionBatchForSave(string peerId, string messageId, string token, long now,
+        Func<JsonObject, JsonObject, string> currentAuthority, Func<string, bool> acknowledgementWritten, JsonObject? candidate = null)
+    {
+        if (store.RestoreFenced) throw new InvalidOperationException("restore_unavailable");
+        using var db = store.OpenDatabase(); db.Open(); using var transaction = db.BeginTransaction(deferred: true);
+        var input = ReadScopedConnectionInput(db, transaction, peerId, messageId, token, now, currentAuthority, acknowledgementWritten);
+        if (input.Batch.HasScopedOriginals)
+        {
+            if (candidate is null) throw new InvalidOperationException("The scoped original attachments need the proposed book.");
+            ReadCompletedScopedOriginals(db, transaction, input.Batch, now, includeData: false);
+            VerifyScopedOriginalBook(input.Batch.Records, candidate);
+            if (store.RestoreFenced || currentAuthority(input.Run.Request, input.Reference) != input.Authority)
+                throw new InvalidOperationException("The scoped originals lost their reader before the native write.");
+        }
+        return input.Batch.HasScopedOriginals || input.Batch.Reply;
+    }
+
+    private (PersonalSyncRun Run, JsonObject Reference, string Authority, PersonalSyncStagedBatch Batch, long Started) ReadScopedConnectionInput(SqliteConnection db,
+        SqliteTransaction transaction, string peerId, string messageId, string token, long now,
+        Func<JsonObject, JsonObject, string> currentAuthority, Func<string, bool> acknowledgementWritten)
+    {
+        var batch = ReadConnectionReceipt(db, transaction, peerId, messageId, now);
+        if (batch?["body"] is not JsonObject wrapper || wrapper["kind"]?.GetValue<string>() != "personal_sync.batch" ||
+            wrapper["body"] is not JsonObject body || wrapper["scope"] is not JsonObject reference)
+            throw new InvalidOperationException("The scoped connection batch receipt is missing.");
+        var reply = body["reply"]!.GetValue<bool>();
+        var runId = body["run_id"]!.GetValue<string>();
+        var run = LoadRun(peerId, runId, now, (db, transaction));
+        var binding = ReadMeta(RunKey(peerId, runId), "personal_run", (db, transaction));
+        var scope = ReadMeta($"personal_scope:{peerId}:{runId}", "personal_scope", (db, transaction));
+        if (run is not { Expired: false, Policy: "connection_only" } || binding is null || !JsonNode.DeepEquals(scope?["scope"], reference))
+            throw new InvalidOperationException("The original connection request is no longer current.");
+        var authority = currentAuthority(run.Request, reference);
+        if (binding["connection_authority"]?.GetValue<string>() != authority)
+            throw new InvalidOperationException("The connection batch belongs to another reader.");
+        if (reply)
+        {
+            if (binding["connection_start_id"] is null || !ScopedInitialAcknowledged(db, transaction, peerId, runId, now, authority, reference))
+                throw new InvalidOperationException("The scoped reply has no completed initial group.");
+        }
+        else if (binding["connection_request_id"] is not JsonValue requestId ||
+            ReadConnectionReceipt(db, transaction, peerId, requestId.GetValue<string>(), now)?["body"] is not JsonObject request ||
+            request["kind"]?.GetValue<string>() != "personal_sync.request" ||
+            !JsonNode.DeepEquals(request["scope"], reference) || !JsonNode.DeepEquals(request["body"], run.Request))
+            throw new InvalidOperationException("The received connection request has no exact receipt.");
+        var complete = CompleteBatch(db, peerId, runId, reply, token, transaction, (reference, now, acknowledgementWritten), now);
+        if (complete?.PendingMessageId != messageId)
+            throw new InvalidOperationException("The scoped batch is not ready.");
+        if (store.RestoreFenced || currentAuthority(run.Request, reference) != authority)
+            throw new InvalidOperationException("The scoped batch changed before the native write.");
+        return (run, reference, authority, complete, TelefonProtocolContract.Integer(binding["created_ms"]));
+    }
+
+    internal void QueueScopedConnectionReply(string peerId, string messageId, string token, NativeBookSaveState saved,
+        IReadOnlyList<JsonObject> batches, int conflicts, int oversized, string transport, long now, Func<JsonObject, JsonObject, string> currentAuthority,
+        Func<JsonObject, JsonObject> currentScope, Func<string, bool> acknowledgementWritten, Func<bool> currentBook, string? savedText = null)
+    {
+        if (store.RestoreFenced || !currentBook()) throw new InvalidOperationException("The scoped connection reply has no current saved book.");
+        if (batches.Count is < 1 or > 4096) throw new InvalidDataException("Invalid scoped connection reply batch count.");
+        using var db = store.OpenDatabase(); db.Open(); using var transaction = db.BeginTransaction();
+        var (run, reference, authority, input, started) = ReadScopedConnectionInput(db, transaction, peerId, messageId, token, now,
+            currentAuthority, acknowledgementWritten);
+        if (input.Reply) throw new InvalidOperationException("An initiated run cannot send a second reply.");
+        var key = ConnectionReplyKey(peerId, run.RunId);
+        if (ReadMeta(key, "personal_connection_reply", (db, transaction)) is not null)
+            throw new InvalidOperationException("The scoped connection reply is already queued.");
+
+        var records = new JsonArray();
+        var batchIds = new HashSet<string>(StringComparer.Ordinal);
+        var declared = batches[0]["records_hash"]?.GetValue<string>();
+        for (var index = 0; index < batches.Count; index++)
+        {
+            var batch = batches[index];
+            PersonalSyncContract.ValidateBody("personal_sync.batch", batch);
+            if (batch["run_id"]!.GetValue<string>() != run.RunId || batch["format"]!.GetValue<int>() != run.Request["format"]!.GetValue<int>() ||
+                !batch["reply"]!.GetValue<bool>() || TelefonProtocolContract.Integer(batch["sequence"]) != index ||
+                batch["last"]!.GetValue<bool>() != (index == batches.Count - 1) || batch["records_hash"]!.GetValue<string>() != declared ||
+                !batchIds.Add(batch["batch_id"]!.GetValue<string>()))
+                throw new InvalidDataException("Conflicting scoped connection reply batch.");
+            foreach (var record in batch["records"]!.AsArray()) records.Add(record!.DeepClone());
+            if (records.Count > 100_000) throw new InvalidDataException("The scoped connection reply is too large.");
+        }
+        var selected = records.OfType<JsonObject>().ToArray();
+        var manifest = currentScope(reference);
+        if (declared != PersonalSyncContract.RecordsHash(records) || PhoneContentScope.FilterRecords(selected, manifest).Count != selected.Length ||
+            selected.Any(record => !run.Request["modules"]!.AsArray().Any(module => module!.GetValue<string>() ==
+                    (record["kind"]!.GetValue<string>() == "task" ? "tasks" : "notes"))))
+            throw new InvalidDataException("Scoped connection reply records do not match their manifest.");
+        var hasReplyOriginals = ValidateScopedOriginalManifest(records);
+        var expires = input.HasScopedOriginals || hasReplyOriginals ? input.ExpiresMs : run.ExpiresMs;
+        var outgoingHashes = new HashSet<string>(StringComparer.Ordinal);
+        long outgoingBytes = 0;
+        if (hasReplyOriginals)
+        {
+            if (savedText is null || BaumSyncSnapshot.Hash(savedText) != saved.Sha256)
+                throw new InvalidOperationException("The reply originals need the exact native saved document.");
+            VerifyScopedOriginalBook(records, JsonNode.Parse(savedText)!.AsObject(), (descriptor, bytes) =>
+            {
+                if (!outgoingHashes.Add(descriptor["sha256"]!.GetValue<string>())) return;
+                StageAttachmentCore(peerId, run.RunId, true, declared!, descriptor, "outgoing", ConnectionOriginalPolicy, expires,
+                    bytes.Chunk(PersonalSyncContract.ChunkRaw).Select((chunk, index) => (index, chunk)), (db, transaction));
+                outgoingBytes += bytes.LongLength;
+            });
+        }
+        var incomingOriginals = ScopedOriginalDescriptors(input.Records)
+            .DistinctBy(descriptor => descriptor["sha256"]!.GetValue<string>(), StringComparer.Ordinal).ToArray();
+
+        using var insert = db.CreateCommand();
+        insert.Transaction = transaction;
+        insert.CommandText = """
+            INSERT INTO outbox(message_id,peer_id,kind,created_ms,expires_ms,payload,attempts,next_attempt_ms,last_error,transport_policy)
+            VALUES($id,$peer,$kind,$now,$expires,$payload,0,$now,'','connection_only')
+            """;
+        var id = insert.Parameters.Add("$id", SqliteType.Text);
+        var payload = insert.Parameters.Add("$payload", SqliteType.Blob);
+        insert.Parameters.AddWithValue("$peer", peerId); insert.Parameters.AddWithValue("$kind", PhoneContentScope.DataKind);
+        insert.Parameters.AddWithValue("$now", now); insert.Parameters.AddWithValue("$expires", expires);
+        using var usage = db.CreateCommand();
+        usage.Transaction = transaction;
+        usage.CommandText = "SELECT COALESCE(SUM(length(payload)),0) FROM outbox";
+        var size = (long)usage.ExecuteScalar()!;
+        var ids = new JsonArray();
+        var report = new JsonObject { ["format"] = run.Request["format"]!.DeepClone(), ["run_id"] = run.RunId,
+            ["state"] = oversized == 0 ? "complete" : "partial", ["trigger"] = PersonalSyncContract.AutoConnectionTrigger,
+            ["transport"] = transport, ["sent"] = CountRecords(records), ["received"] = CountRecords(input.Records),
+            ["conflicts"] = conflicts, ["oversized_skipped"] = oversized, ["attachments_omitted"] = 0,
+            ["started_ms"] = started, ["finished_ms"] = now, ["error"] = "none",
+            ["attachments"] = new JsonObject { ["declared"] = outgoingHashes.Count, ["requested"] = incomingOriginals.Length,
+                ["sent"] = outgoingHashes.Count, ["received"] = incomingOriginals.Length,
+                ["reused"] = 0, ["preserved"] = 0, ["failed"] = 0, ["bytes"] = outgoingBytes + incomingOriginals.Sum(item =>
+                    TelefonProtocolContract.Integer(item["size"])) },
+            ["deletions"] = new JsonObject { ["pending"] = 0, ["deleted"] = 0, ["restored"] = 0, ["conflicts"] = 0,
+                ["blocked"] = 0, ["trash"] = new JsonObject { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0, ["attachments"] = 0 } } };
+        foreach (var (kind, body) in batches.Select(batch => (Kind: "personal_sync.batch", Body: batch)).Append(("personal_sync.report", report)))
+        {
+            var messageIdToSend = Guid.NewGuid().ToString("D");
+            var message = new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = messageIdToSend,
+                ["kind"] = PhoneContentScope.DataKind, ["created_ms"] = now, ["expires_ms"] = expires,
+                ["body"] = PhoneContentScope.Wrap(kind, body, manifest) };
+            TelefonMessageContract.ValidateMessage(message, now, false);
+            var bytes = store.Seal("outbox", messageIdToSend, TelefonCrypto.Canonical(message));
+            size = checked(size + bytes.Length);
+            if (size > TelefonStore.OutboxLimitBytes) throw new InvalidOperationException("queue_full");
+            id.Value = messageIdToSend; payload.Value = bytes;
+            insert.ExecuteNonQuery();
+            ids.Add(messageIdToSend);
+        }
+        WriteMeta(key, "personal_connection_reply", new JsonObject { ["authority"] = authority, ["request"] = run.Request.DeepClone(),
+            ["scope"] = reference.DeepClone(), ["input_message"] = messageId, ["token"] = token, ["record_hash"] = declared,
+            ["book_source"] = saved.BookSource, ["book_sequence"] = saved.Sequence, ["book_sha256"] = saved.Sha256,
+            ["message_ids"] = ids, ["acknowledged"] = 0, ["expires_ms"] = expires,
+            ["requires_input_results"] = input.HasScopedOriginals,
+            ["outgoing_hashes"] = new JsonArray(outgoingHashes.Order(StringComparer.Ordinal).Select(hash => (JsonNode?)JsonValue.Create(hash)).ToArray())
+            }, false, (db, transaction));
+        if (store.RestoreFenced || !currentBook() || currentAuthority(run.Request, reference) != authority)
+            throw new InvalidOperationException("The scoped connection reply lost its reader or saved book.");
+        transaction.Commit();
+    }
+
+    private static JsonObject CountRecords(JsonArray records) => new()
+    {
+        ["notes"] = records.Count(record => record?["kind"]?.GetValue<string>() == "note"),
+        ["tasks"] = records.Count(record => record?["kind"]?.GetValue<string>() == "task"),
+        ["notebooks"] = records.Count(record => record?["kind"]?.GetValue<string>() == "notebook")
+    };
+
+    internal JsonObject? NextScopedConnectionReply(string peerId, string runId, long now,
+        Func<JsonObject, JsonObject, string> currentAuthority, Func<NativeBookSaveState?> currentBook, Func<string, bool> controlAckWritten)
+    {
+        using var db = store.OpenDatabase(); db.Open(); using var transaction = db.BeginTransaction(deferred: true);
+        return ReadScopedConnectionReply(db, transaction, peerId, runId, now, currentAuthority, currentBook, controlAckWritten)?.Message;
+    }
+
+    internal bool AcknowledgeScopedConnectionReply(string peerId, string runId, JsonObject sent, long now,
+        Func<JsonObject, JsonObject, string> currentAuthority, Func<NativeBookSaveState?> currentBook, Func<string, bool> controlAckWritten, out bool more)
+    {
+        more = false;
+        using var db = store.OpenDatabase(); db.Open(); using var transaction = db.BeginTransaction();
+        var current = ReadScopedConnectionReply(db, transaction, peerId, runId, now, currentAuthority, currentBook, controlAckWritten);
+        if (current is not { } frame || !JsonNode.DeepEquals(frame.Message, sent)) return false;
+        using var remove = db.CreateCommand();
+        remove.Transaction = transaction;
+        remove.CommandText = "DELETE FROM outbox WHERE peer_id=$peer AND message_id=$id AND transport_policy='connection_only'";
+        remove.Parameters.AddWithValue("$peer", peerId);
+        remove.Parameters.AddWithValue("$id", sent["message_id"]!.GetValue<string>());
+        if (remove.ExecuteNonQuery() != 1) return false;
+        var count = TelefonProtocolContract.Integer(frame.Plan["acknowledged"]);
+        if (frame.Chunk) AcknowledgeScopedOutgoingChunk(frame.Plan);
+        else frame.Plan["acknowledged"] = ++count;
+        WriteMeta(frame.Key, "personal_connection_reply", frame.Plan, true, (db, transaction));
+        RequireScopedReplyAuthority(frame.Plan, currentAuthority, currentBook);
+        transaction.Commit();
+        more = count < frame.Plan["message_ids"]!.AsArray().Count ||
+            frame.Key == ConnectionOriginalResultsKey(peerId, runId) &&
+            ReadMeta(ConnectionReplyKey(peerId, runId), "personal_connection_reply") is not null;
+        return true;
+    }
+
+    private (string Key, JsonObject Plan, JsonObject Message, bool Chunk)? ReadScopedConnectionReply(SqliteConnection db, SqliteTransaction transaction,
+        string peerId, string runId, long now, Func<JsonObject, JsonObject, string> currentAuthority, Func<NativeBookSaveState?> currentBook,
+        Func<string, bool> controlAckWritten)
+    {
+        var resultKey = ConnectionOriginalResultsKey(peerId, runId);
+        var results = ReadMeta(resultKey, "personal_connection_reply", (db, transaction));
+        var replyKey = ConnectionReplyKey(peerId, runId);
+        var reply = ReadMeta(replyKey, "personal_connection_reply", (db, transaction));
+        var resultsComplete = results is not null && TelefonProtocolContract.Integer(results["acknowledged"]) == results["message_ids"]!.AsArray().Count;
+        var sendResults = results is not null && !resultsComplete;
+        var plan = sendResults ? results : reply;
+        var run = LoadRun(peerId, runId, now, (db, transaction));
+        if (plan is null || run is not { Expired: false, Policy: "connection_only" }) return null;
+        var expires = TelefonProtocolContract.Integer(plan["expires_ms"]);
+        var originals = plan["original_hashes"] as JsonArray;
+        if (expires <= now || expires > run.ExpiresMs || !JsonNode.DeepEquals(plan["request"], run.Request))
+            throw new InvalidDataException("The scoped reply plan no longer matches its run.");
+        var ids = plan["message_ids"]!.AsArray();
+        var cursor = checked((int)TelefonProtocolContract.Integer(plan["acknowledged"]));
+        if (cursor == ids.Count) return null;
+        if (cursor < 0 || cursor >= ids.Count || originals is not null && originals.Count != ids.Count)
+            throw new InvalidDataException("Invalid scoped reply acknowledgement index.");
+        RequireScopedReplyAuthority(plan, currentAuthority, currentBook);
+        if (!sendResults && plan["requires_input_results"]?.GetValue<bool>() == true)
+        {
+            if (!resultsComplete || results is null || !JsonNode.DeepEquals(results["input_message"], plan["input_message"]) ||
+                !JsonNode.DeepEquals(results["token"], plan["token"])) return null;
+            RequireScopedReplyAuthority(results, currentAuthority, currentBook);
+        }
+        var report = originals is null && cursor == ids.Count - 1;
+        var window = report ? plan["outgoing_window"] as JsonObject : null;
+        var chunk = window?["frames"]?[0] as JsonObject;
+        if (chunk is not null)
+        {
+            expires = TelefonProtocolContract.Integer(window!["expires_ms"]);
+            var requestId = window["request_id"]!.GetValue<string>();
+            if (expires <= now || !controlAckWritten(requestId) ||
+                ReadConnectionReceipt(db, transaction, peerId, requestId, now) is null) return null;
+        }
+        else if (report && plan["outgoing_hashes"] is JsonArray outgoing)
+        {
+            foreach (var entry in outgoing)
+            {
+                var hash = entry!.GetValue<string>();
+                var resultId = plan["outgoing_results"]?[hash]?.GetValue<string>();
+                if (resultId is null || !controlAckWritten(resultId) || ReadConnectionReceipt(db, transaction, peerId, resultId, now) is null ||
+                    LoadAttachmentMetadata(peerId, runId, true, plan["record_hash"]!.GetValue<string>(),
+                        hash, "outgoing", now, (db, transaction))["complete"]?.GetValue<bool>() != true) return null;
+            }
+        }
+        var id = (chunk?["message_id"] ?? ids[cursor])!.GetValue<string>();
+        using var read = db.CreateCommand(); read.Transaction = transaction;
+        read.CommandText = """
+            SELECT payload FROM outbox WHERE peer_id=$peer AND message_id=$id AND kind=$kind
+                AND transport_policy='connection_only' AND expires_ms=$expires
+            """;
+        read.Parameters.AddWithValue("$peer", peerId); read.Parameters.AddWithValue("$id", id);
+        read.Parameters.AddWithValue("$kind", PhoneContentScope.DataKind); read.Parameters.AddWithValue("$expires", expires);
+        if (read.ExecuteScalar() is not byte[] bytes) return null; // A missing outbox row cannot advance the plan.
+        var message = JsonNode.Parse(store.Open("outbox", id, bytes))!.AsObject();
+        TelefonMessageContract.ValidateMessage(message, now, false);
+        var wrapped = message["body"]!.AsObject();
+        var body = wrapped["body"]!.AsObject();
+        var expectedKind = chunk is not null ? "personal_sync.attachment_chunk" :
+            originals is not null ? "personal_sync.attachment_result" : report ? "personal_sync.report" : "personal_sync.batch";
+        if (message["message_id"]?.GetValue<string>() != id || message["kind"]?.GetValue<string>() != PhoneContentScope.DataKind ||
+            TelefonProtocolContract.Integer(message["expires_ms"]) != expires || !JsonNode.DeepEquals(wrapped["scope"], plan["scope"]) ||
+            wrapped["kind"]?.GetValue<string>() != expectedKind || body["run_id"]?.GetValue<string>() != runId)
+            throw new InvalidDataException("The scoped reply message differs from its plan.");
+        var validBody = chunk is not null
+            ? TelefonProtocolContract.Integer(body["format"]) == 2 && body["reply"]?.GetValue<bool>() == true &&
+                JsonNode.DeepEquals(body["sha256"], chunk["sha256"]) && JsonNode.DeepEquals(body["index"], chunk["index"]) &&
+                JsonNode.DeepEquals(body["records_hash"], plan["record_hash"])
+            : originals is not null
+            ? TelefonProtocolContract.Integer(body["format"]) == 2 &&
+                body["reply"]?.GetValue<bool>() == (plan["incoming_reply"]?.GetValue<bool>() == true) &&
+                JsonNode.DeepEquals(body["sha256"], originals[cursor]) && JsonNode.DeepEquals(body["records_hash"], plan["record_hash"]) &&
+                body["state"]?.GetValue<string>() == "complete" && body["error"]?.GetValue<string>() == "none"
+            : JsonNode.DeepEquals(body["format"], run.Request["format"]) &&
+                (report ? body["trigger"]?.GetValue<string>() == PersonalSyncContract.AutoConnectionTrigger :
+                body["reply"]?.GetValue<bool>() == true && TelefonProtocolContract.Integer(body["sequence"]) == cursor &&
+                JsonNode.DeepEquals(body["records_hash"], plan["record_hash"]));
+        if (!validBody)
+            throw new InvalidDataException("The scoped reply message differs from its plan.");
+        return (sendResults ? resultKey : replyKey, plan, message, chunk is not null);
+    }
+
+    private void RequireScopedReplyAuthority(JsonObject plan, Func<JsonObject, JsonObject, string> currentAuthority,
+        Func<NativeBookSaveState?> currentBook)
+    {
+        if (store.RestoreFenced || currentBook() is not { } saved || saved.BookSource != plan["book_source"]!.GetValue<string>() ||
+            saved.Sequence != TelefonProtocolContract.Integer(plan["book_sequence"]) || saved.Sha256 != plan["book_sha256"]!.GetValue<string>() ||
+            currentAuthority(plan["request"]!.AsObject(), plan["scope"]!.AsObject()) != plan["authority"]!.GetValue<string>())
+            throw new InvalidOperationException("The scoped reply lost its original reader or saved book.");
+    }
+
+    private static string ConnectionReplyKey(string peerId, string runId) => $"personal_report:{peerId}:{runId}:connection_reply";
 
     internal bool CommitBatch(string peerId, string pendingMessageId, string token, long now, out IReadOnlyList<string> messageIds,
         IReadOnlyList<(string MessageId, string Token)>? actorIntents = null)
@@ -196,9 +658,11 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         using var connection = store.OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
         string runId; bool reply;
         using (var identity = connection.CreateCommand()) { identity.Transaction = transaction; identity.CommandText = "SELECT run_id,reply FROM personal_batch WHERE peer_id=$peer AND message_id=$message AND commit_token=$token"; identity.Parameters.AddWithValue("$peer", peerId); identity.Parameters.AddWithValue("$message", pendingMessageId); identity.Parameters.AddWithValue("$token", token); using var reader = identity.ExecuteReader(); if (!reader.Read()) { messageIds = []; return false; } runId = reader.GetString(0); reply = reader.GetBoolean(1); }
-        var complete = CompleteBatch(connection, peerId, runId, reply, token);
-        if (string.IsNullOrEmpty(token) || complete is null || complete.PendingMessageId != pendingMessageId ||
-            LoadRun(peerId, runId, now) is not { Expired: false })
+        if (string.IsNullOrEmpty(token) ||
+            LoadRun(peerId, runId, now, (connection, transaction)) is not { Expired: false, Policy: not "connection_only" })
+        { messageIds = []; return false; }
+        var complete = CompleteBatch(connection, peerId, runId, reply, token, transaction);
+        if (complete is null || complete.PendingMessageId != pendingMessageId)
         { messageIds = []; return false; }
         using (var expired = connection.CreateCommand())
         {
@@ -307,7 +771,8 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         }
         var result = new List<PersonalSyncStagedBatch>(); using var database = store.OpenDatabase(); database.Open();
         foreach (var identity in identities)
-            if (LoadRun(identity.PeerId, identity.RunId, now) is { Expired: false } && CompleteBatch(database, identity.PeerId, identity.RunId, identity.Reply, identity.Token) is { } batch) result.Add(batch);
+            if (LoadRun(identity.PeerId, identity.RunId, now) is { Expired: false, Policy: not "connection_only" } &&
+                CompleteBatch(database, identity.PeerId, identity.RunId, identity.Reply, identity.Token) is { } batch) result.Add(batch);
         return result;
     }
 
@@ -354,7 +819,15 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         string direction, string policy, long expiresMs, IEnumerable<(int Index, byte[] Data)> chunks,
         (SqliteConnection Connection, SqliteTransaction Transaction)? context = null)
     {
-        if (direction is not ("incoming" or "outgoing") || policy is not ("any" or "wifi_only")) throw new InvalidDataException("Attachment-Metadaten ungültig.");
+        if (policy is not ("any" or "wifi_only")) throw new InvalidDataException("Attachment-Metadaten ungültig.");
+        StageAttachmentCore(peerId, runId, reply, recordsHash, descriptor, direction, policy, expiresMs, chunks, context);
+    }
+
+    private void StageAttachmentCore(string peerId, string runId, bool reply, string recordsHash, JsonObject descriptor,
+        string direction, string policy, long expiresMs, IEnumerable<(int Index, byte[] Data)> chunks,
+        (SqliteConnection Connection, SqliteTransaction Transaction)? context)
+    {
+        if (direction is not ("incoming" or "outgoing")) throw new InvalidDataException("Attachment-Metadaten ungültig.");
         PersonalSyncContract.ValidateAttachmentDescriptor(descriptor);
         var hash = descriptor["sha256"]?.GetValue<string>() ?? throw new InvalidDataException(); var size = TelefonProtocolContract.Integer(descriptor["size"]); var mime = descriptor["mime"]?.GetValue<string>() ?? throw new InvalidDataException(); var attachmentId = descriptor["attachment_id"]?.GetValue<string>() ?? throw new InvalidDataException();
         if (size is < 1 or > MaximumAttachmentBytes || expiresMs <= 0) throw new InvalidDataException("Attachment-Metadaten ungültig.");
@@ -390,7 +863,7 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         var primary = ChunkPrimary(peerId, runId, reply, recordsHash, hash, direction, index);
         using var connection = store.OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
         long size;
-        using (var transfer = connection.CreateCommand()) { transfer.Transaction = transaction; transfer.CommandText = "SELECT size FROM personal_attachment_transfer WHERE peer_id=$peer AND run_id=$run AND reply=$reply AND records_hash=$records AND sha256=$hash AND direction=$direction AND expires_ms>0"; Parameters(transfer, peerId, runId, reply); transfer.Parameters.AddWithValue("$records", recordsHash); transfer.Parameters.AddWithValue("$hash", hash); transfer.Parameters.AddWithValue("$direction", direction); size = transfer.ExecuteScalar() as long? ?? throw new InvalidDataException("Attachment-Manifest fehlt."); }
+        using (var transfer = connection.CreateCommand()) { transfer.Transaction = transaction; transfer.CommandText = "SELECT size FROM personal_attachment_transfer WHERE peer_id=$peer AND run_id=$run AND reply=$reply AND records_hash=$records AND sha256=$hash AND direction=$direction AND expires_ms>0 AND transport_policy IN ('any','wifi_only')"; Parameters(transfer, peerId, runId, reply); transfer.Parameters.AddWithValue("$records", recordsHash); transfer.Parameters.AddWithValue("$hash", hash); transfer.Parameters.AddWithValue("$direction", direction); size = transfer.ExecuteScalar() as long? ?? throw new InvalidDataException("Attachment-Manifest fehlt."); }
         var total = checked((int)((size + PersonalSyncContract.ChunkRaw - 1) / PersonalSyncContract.ChunkRaw));
         if (index >= total || data.Length != (index + 1 < total ? PersonalSyncContract.ChunkRaw : size - (long)index * PersonalSyncContract.ChunkRaw)) throw new InvalidDataException("Attachment-Chunk ungültig.");
         using (var old = connection.CreateCommand())
@@ -475,18 +948,41 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         transaction.Commit();
     }
 
-    private PersonalSyncStagedBatch? CompleteBatch(SqliteConnection connection, string peerId, string runId, bool reply, string token)
+    private PersonalSyncStagedBatch? CompleteBatch(SqliteConnection connection, string peerId, string runId, bool reply, string token,
+        SqliteTransaction? transaction = null, (JsonObject Reference, long Now, Func<string, bool> AcknowledgementWritten)? protectedSave = null,
+        long? scopedNow = null)
     {
-        var rows = new List<(int Sequence, bool Last, string MessageId, byte[] Payload)>(); using var command = connection.CreateCommand(); command.CommandText = "SELECT sequence,last,message_id,payload FROM personal_batch WHERE peer_id=$peer AND run_id=$run AND reply=$reply ORDER BY sequence"; Parameters(command, peerId, runId, reply); using var reader = command.ExecuteReader(); while (reader.Read()) rows.Add((reader.GetInt32(0), reader.GetBoolean(1), reader.GetString(2), (byte[])reader[3]));
+        var rows = new List<(int Sequence, bool Last, string MessageId, byte[] Payload)>(); using var command = connection.CreateCommand();
+        command.Transaction = transaction; command.CommandText = "SELECT sequence,last,message_id,payload,commit_token FROM personal_batch WHERE peer_id=$peer AND run_id=$run AND reply=$reply ORDER BY sequence";
+        Parameters(command, peerId, runId, reply);
+        using (var reader = command.ExecuteReader())
+            while (reader.Read())
+            {
+                if (protectedSave.HasValue && reader.GetString(4) != token)
+                    throw new InvalidOperationException("The scoped batch does not own the native commit token.");
+                rows.Add((reader.GetInt32(0), reader.GetBoolean(1), reader.GetString(2), (byte[])reader[3]));
+            }
         var finals = rows.Where(row => row.Last).ToArray(); if (finals.Length > 1 || finals.Length == 1 && rows.Any(row => row.Sequence > finals[0].Sequence)) throw new InvalidDataException("Widersprüchliches Batch-Ende.");
         if (finals.Length != 1 || !rows.Select(row => row.Sequence).SequenceEqual(Enumerable.Range(0, finals[0].Sequence + 1))) return null;
         var records = new JsonArray(); string? advertised = null;
-        var request = ReadMeta(RunKey(peerId, runId), "personal_run")?["body"] as JsonObject ?? throw new InvalidDataException("Personal-Sync-Request fehlt.");
+        var expires = long.MaxValue;
+        var request = ReadMeta(RunKey(peerId, runId), "personal_run", transaction is null ? null : (connection, transaction))?["body"] as JsonObject
+            ?? throw new InvalidDataException("Personal-Sync-Request fehlt.");
         var format = request["format"]!.GetValue<int>();
         foreach (var row in rows)
         {
             var message = JsonNode.Parse(store.Open("personal_batch", BatchPrimary(peerId, runId, reply, row.Sequence), row.Payload))!.AsObject();
             var body = message["body"]!.AsObject();
+            expires = Math.Min(expires, TelefonProtocolContract.Integer(message["expires_ms"]));
+            if (protectedSave is { } proof)
+            {
+                var wrapped = message.DeepClone().AsObject(); wrapped["kind"] = PhoneContentScope.DataKind;
+                wrapped["body"] = new JsonObject { ["format"] = PhoneContentScope.Version, ["scope"] = proof.Reference.DeepClone(),
+                    ["kind"] = "personal_sync.batch", ["body"] = body.DeepClone() };
+                if (!proof.AcknowledgementWritten(row.MessageId) ||
+                    !JsonNode.DeepEquals(ReadConnectionReceipt(connection, transaction!, peerId, row.MessageId, proof.Now), wrapped))
+                    throw new InvalidOperationException("An exact scoped batch receipt is missing.");
+            }
             PersonalSyncContract.ValidateBody("personal_sync.batch", body);
             if (body["format"]!.GetValue<int>() != format) throw new InvalidDataException("Widersprüchlicher Personal-Sync-Lauf.");
             if (body["records_hash"] is JsonValue hash)
@@ -498,8 +994,37 @@ internal sealed class PersonalSyncStore(TelefonStore store)
             foreach (var record in body["records"]!.AsArray()) records.Add(record!.DeepClone());
         }
         if (advertised is not null && PersonalSyncContract.RecordsHash(records) != advertised) throw new InvalidDataException("Aggregierter records_hash ungültig.");
-        return new PersonalSyncStagedBatch(peerId, runId, reply, finals[0].MessageId, token, records, advertised ?? "", format);
+        if (scopedNow is { } now && expires <= now)
+            throw new InvalidOperationException("A batch receipt on the original connection has expired.");
+        return new PersonalSyncStagedBatch(peerId, runId, reply, finals[0].MessageId, token, records, advertised ?? "", format,
+            expires, scopedNow.HasValue && ValidateScopedOriginalManifest(records));
     }
+
+    private static bool ValidateScopedOriginalManifest(JsonArray records)
+    {
+        var originals = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+        long bytes = 0;
+        foreach (var descriptor in ScopedOriginalDescriptors(records))
+        {
+            var hash = descriptor["sha256"]!.GetValue<string>();
+            var size = TelefonProtocolContract.Integer(descriptor["size"]);
+            if (originals.TryGetValue(hash, out var previous))
+            {
+                if (!PersonalSyncContract.AttachmentSourceMatches([previous], descriptor["mime"]!.GetValue<string>(), size))
+                    throw new InvalidDataException("Conflicting scoped connection original descriptor.");
+                continue;
+            }
+            originals.Add(hash, descriptor);
+            bytes += size;
+            if (originals.Count > MaximumAttachmentsPerRun || bytes > MaximumRunChunkBytes)
+                throw new InvalidDataException("Scoped connection originals exceed the Windows staging limits.");
+        }
+        return originals.Count != 0;
+    }
+
+    private static IEnumerable<JsonObject> ScopedOriginalDescriptors(JsonArray records) =>
+        records.OfType<JsonObject>().Where(record => record["kind"]?.GetValue<string>() == "note")
+            .SelectMany(record => (record["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>());
 
     private JsonObject? ReadMeta(string key, string type,
         (SqliteConnection Connection, SqliteTransaction Transaction)? context = null)
@@ -512,9 +1037,14 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         command.Parameters.AddWithValue("$key", key);
         return command.ExecuteScalar() is byte[] encrypted ? JsonNode.Parse(store.Open(type, key, encrypted))!.AsObject() : null;
     }
-    private JsonObject LoadAttachmentMetadata(string peerId, string runId, bool reply, string recordsHash, string hash, string direction, long now)
+    private JsonObject LoadAttachmentMetadata(string peerId, string runId, bool reply, string recordsHash, string hash, string direction, long now,
+        (SqliteConnection Connection, SqliteTransaction Transaction)? context = null)
     {
-        using var connection = store.OpenDatabase(); connection.Open(); using var command = connection.CreateCommand(); command.CommandText = "SELECT size,mime,transport_policy,expires_ms,complete,metadata FROM personal_attachment_transfer WHERE peer_id=$peer AND run_id=$run AND reply=$reply AND records_hash=$records AND sha256=$hash AND direction=$direction"; Parameters(command, peerId, runId, reply); command.Parameters.AddWithValue("$records", recordsHash); command.Parameters.AddWithValue("$hash", hash); command.Parameters.AddWithValue("$direction", direction); using var reader = command.ExecuteReader(); if (!reader.Read()) throw new InvalidDataException("Attachment-Manifest fehlt.");
+        using var owned = context is null ? store.OpenDatabase() : null;
+        owned?.Open();
+        using var command = (context?.Connection ?? owned!).CreateCommand(); command.Transaction = context?.Transaction;
+        command.CommandText = "SELECT size,mime,transport_policy,expires_ms,complete,metadata FROM personal_attachment_transfer WHERE peer_id=$peer AND run_id=$run AND reply=$reply AND records_hash=$records AND sha256=$hash AND direction=$direction"; Parameters(command, peerId, runId, reply); command.Parameters.AddWithValue("$records", recordsHash); command.Parameters.AddWithValue("$hash", hash); command.Parameters.AddWithValue("$direction", direction); using var reader = command.ExecuteReader(); if (!reader.Read()) throw new InvalidDataException("Attachment-Manifest fehlt.");
+        if (context is null && reader.GetString(2) is not ("any" or "wifi_only")) throw new InvalidOperationException("The attachment requires its original reader.");
         var metadata = JsonNode.Parse(store.Open("personal_attachment_transfer", TransferPrimary(peerId, runId, reply, recordsHash, hash, direction), (byte[])reader[5]))!.AsObject();
         if (metadata["peer_id"]?.GetValue<string>() != peerId || metadata["run_id"]?.GetValue<string>() != runId || metadata["reply"]?.GetValue<bool>() != reply || metadata["records_hash"]?.GetValue<string>() != recordsHash || metadata["sha256"]?.GetValue<string>() != hash || metadata["direction"]?.GetValue<string>() != direction || metadata["size"]?.GetValue<long>() != reader.GetInt64(0) || metadata["mime"]?.GetValue<string>() != reader.GetString(1) || metadata["transport_policy"]?.GetValue<string>() != reader.GetString(2) || metadata["expires_ms"]?.GetValue<long>() != reader.GetInt64(3) || metadata["complete"]?.GetValue<bool>() != reader.GetBoolean(4) || reader.GetInt64(3) <= now) throw new InvalidDataException("Unauthentisierte oder abgelaufene Attachment-Metadaten.");
         return metadata;
@@ -557,5 +1087,6 @@ internal sealed class PersonalSyncStore(TelefonStore store)
 }
 
 internal sealed record PersonalSyncRun(string RunId, string Policy, long ExpiresMs, bool Expired, JsonObject Request);
-internal sealed record PersonalSyncStagedBatch(string PeerId, string RunId, bool Reply, string PendingMessageId, string CommitToken, JsonArray Records, string RecordsHash, int Format);
+internal sealed record PersonalSyncStagedBatch(string PeerId, string RunId, bool Reply, string PendingMessageId, string CommitToken, JsonArray Records,
+    string RecordsHash, int Format, long ExpiresMs, bool HasScopedOriginals);
 internal sealed record PersonalSyncDecisionIntent(string PeerId, string PendingMessageId, string CommitToken, string Kind, JsonObject Body);

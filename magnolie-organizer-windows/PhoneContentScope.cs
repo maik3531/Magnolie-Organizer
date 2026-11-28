@@ -139,7 +139,11 @@ internal static class PhoneContentScope
         var formats = kind == "personal_sync.deletion_proposals" ? new long[] { 1 } : kind.StartsWith("personal_sync.attachment_", StringComparison.Ordinal) ? new long[] { 2 } : new long[] { 3, 14 };
         if (!formats.Contains(Number(body, "format")))
             throw new InvalidDataException("Invalid scoped record format.");
-        PersonalSyncContract.ValidateBody(kind, body);
+        if (kind == "personal_sync.request" && body["trigger"]?.GetValue<string>() == PersonalSyncContract.AutoConnectionTrigger)
+            PersonalSyncContract.ValidateScopedConnectionRequest(body);
+        else if (kind == "personal_sync.report" && body["trigger"]?.GetValue<string>() == PersonalSyncContract.AutoConnectionTrigger)
+            PersonalSyncContract.ValidateScopedConnectionReport(body);
+        else PersonalSyncContract.ValidateBody(kind, body);
         if (TelefonCrypto.Canonical(value).Length > 256 * 1024) throw new InvalidDataException("Scoped data envelope too large.");
         return value;
     }

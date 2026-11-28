@@ -65,6 +65,8 @@ internal sealed partial class PersonalActorNativeSaveHost
     internal bool FailAfterPrimary;
     internal NotesOriginalUiSaveSession? NativeNotesUi { get; set; }
     internal Action? NativeNotesWake { get; set; }
+    internal TelefonCoordinator? ConnectionCoordinator { get; set; }
+    private TelefonCoordinator telefon => ConnectionCoordinator ?? throw new InvalidOperationException("Synthetic connection coordinator required.");
     internal int Snapshots;
     internal readonly List<string> Errors = [];
     internal const string Password = "synthetic-only-native-bridge-save";

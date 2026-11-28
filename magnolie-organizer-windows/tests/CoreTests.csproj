@@ -323,6 +323,11 @@
     <Compile Include="..\TelefonCallActors.cs" Link="TelefonCallActors.cs" />
     <Compile Include="..\OpenHolidayData.cs" Link="OpenHolidayData.cs" />
     <Compile Include="..\PersonalSyncStore.cs" Link="PersonalSyncStore.cs" />
+    <Compile Include="..\PersonalSyncStore.ConnectionOriginals.cs" Link="PersonalSyncStore.ConnectionOriginals.cs" />
+    <Compile Include="..\PersonalSyncStore.ConnectionOriginalResults.cs" Link="PersonalSyncStore.ConnectionOriginalResults.cs" />
+    <Compile Include="..\PersonalSyncStore.ConnectionReplyOriginals.cs" Link="PersonalSyncStore.ConnectionReplyOriginals.cs" />
+    <Compile Include="..\PersonalSyncStore.ConnectionStart.cs" Link="PersonalSyncStore.ConnectionStart.cs" />
+    <Compile Include="..\PersonalSyncStore.ConnectionReport.cs" Link="PersonalSyncStore.ConnectionReport.cs" />
     <Compile Include="..\TelefonProtocolContract.cs" Link="TelefonProtocolContract.cs" />
     <Compile Include="..\TelefonStore.cs" Link="TelefonStore.cs" />
     <Compile Include="..\TelefonStore.Time.cs" Link="TelefonStore.Time.cs" />
@@ -330,6 +335,7 @@
     <Compile Include="..\TelefonConnection.Time.cs" Link="TelefonConnection.Time.cs" />
     <Compile Include="..\TelefonConnection.Shared.cs" Link="TelefonConnection.Shared.cs" />
     <Compile Include="..\TelefonConnection.Scope.cs" Link="TelefonConnection.Scope.cs" />
+    <Compile Include="..\TelefonConnection.ScopeStart.cs" Link="TelefonConnection.ScopeStart.cs" />
     <Compile Include="..\TelefonCoordinator.Time.cs" Link="TelefonCoordinator.Time.cs" />
     <Compile Include="..\TelefonCoordinator.cs" Link="TelefonCoordinator.cs" />
     <Compile Include="..\TelefonCoordinator.Mcp.cs" Link="TelefonCoordinator.Mcp.cs" />

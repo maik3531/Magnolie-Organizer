@@ -9,7 +9,7 @@ namespace MagnolieOrganizer.Windows;
 internal sealed partial class TelefonStore
 {
     internal const long MaximumMessageTtlMs = 30L * 24 * 60 * 60 * 1000;
-    private const long OutboxLimitBytes = 50L * 1024 * 1024;
+    internal const long OutboxLimitBytes = 50L * 1024 * 1024;
     private readonly object gate = new();
     internal SemaphoreSlim NotePolicyGate { get; } = new(1, 1);
     private readonly WindowsPaths paths;
@@ -858,7 +858,7 @@ internal sealed partial class TelefonStore
             if (RestoreFenced) return [];
             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction(); using var command = connection.CreateCommand();
             if (transport is not ("wifi" or "bluetooth")) throw new ArgumentOutOfRangeException(nameof(transport));
-            command.Transaction = transaction; command.CommandText = "SELECT message_id,kind,payload,attempts,transport_policy FROM outbox WHERE peer_id=$peer AND expires_ms>=$now AND next_attempt_ms<=$now AND (transport_policy='any' OR $transport='wifi') ORDER BY CASE kind WHEN 'capabilities.update' THEN 0 WHEN 'grants.update' THEN 1 WHEN 'personal_sync.settings' THEN 2 WHEN 'personal_sync.note_settings' THEN 3 WHEN 'personal_sync.desktop_features' THEN 4 WHEN 'personal_sync.custom_settings' THEN 5 ELSE 6 END,created_ms,rowid";
+            command.Transaction = transaction; command.CommandText = "SELECT message_id,kind,payload,attempts,transport_policy FROM outbox WHERE peer_id=$peer AND expires_ms>=$now AND next_attempt_ms<=$now AND (transport_policy='any' OR (transport_policy='wifi_only' AND $transport='wifi')) ORDER BY CASE kind WHEN 'capabilities.update' THEN 0 WHEN 'grants.update' THEN 1 WHEN 'personal_sync.settings' THEN 2 WHEN 'personal_sync.note_settings' THEN 3 WHEN 'personal_sync.desktop_features' THEN 4 WHEN 'personal_sync.custom_settings' THEN 5 ELSE 6 END,created_ms,rowid";
             command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$now", now); command.Parameters.AddWithValue("$transport", transport);
             var queued = new List<(string Id, string Kind, byte[] Payload, int Attempts, string Policy)>();
             using (var reader = command.ExecuteReader()) while (reader.Read()) queued.Add((reader.GetString(0), reader.GetString(1), (byte[])reader[2], reader.GetInt32(3), reader.GetString(4)));
@@ -902,7 +902,7 @@ internal sealed partial class TelefonStore
     internal bool CompleteOutbox(string peerId, string messageId)
     {
         using var connection = OpenDatabase(); connection.Open(); using var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM outbox WHERE peer_id=$peer AND message_id=$id"; command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$id", messageId); return command.ExecuteNonQuery() == 1;
+        command.CommandText = "DELETE FROM outbox WHERE peer_id=$peer AND message_id=$id AND transport_policy IN ('any','wifi_only')"; command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$id", messageId); return command.ExecuteNonQuery() == 1;
     }
 
     internal bool RetryOutbox(string peerId, string messageId, long now, string error)
@@ -912,7 +912,7 @@ internal sealed partial class TelefonStore
         using (var read = connection.CreateCommand())
         {
             read.Transaction = transaction;
-            read.CommandText = "SELECT attempts FROM outbox WHERE peer_id=$peer AND message_id=$id";
+            read.CommandText = "SELECT attempts FROM outbox WHERE peer_id=$peer AND message_id=$id AND transport_policy IN ('any','wifi_only')";
             read.Parameters.AddWithValue("$peer", peerId); read.Parameters.AddWithValue("$id", messageId);
             var value = read.ExecuteScalar(); if (value is null) return false; attempts = Convert.ToInt32(value);
         }
@@ -937,7 +937,7 @@ internal sealed partial class TelefonStore
             string? kind; byte[]? payload;
             using (var read = connection.CreateCommand())
             {
-                read.Transaction = transaction; read.CommandText = "SELECT kind,payload FROM outbox WHERE peer_id=$peer AND message_id=$id";
+                read.Transaction = transaction; read.CommandText = "SELECT kind,payload FROM outbox WHERE peer_id=$peer AND message_id=$id AND transport_policy IN ('any','wifi_only')";
                 read.Parameters.AddWithValue("$peer", peerId); read.Parameters.AddWithValue("$id", messageId); using var reader = read.ExecuteReader();
                 if (!reader.Read()) return false; kind = reader.GetString(0); payload = (byte[])reader[1];
             }
@@ -1218,7 +1218,7 @@ internal sealed partial class TelefonStore
 
     internal JsonObject? OutboxMessage(string peerId, string messageId)
     {
-        using var connection = OpenDatabase(); connection.Open(); using var command = connection.CreateCommand(); command.CommandText = "SELECT payload FROM outbox WHERE peer_id=$peer AND message_id=$id";
+        using var connection = OpenDatabase(); connection.Open(); using var command = connection.CreateCommand(); command.CommandText = "SELECT payload FROM outbox WHERE peer_id=$peer AND message_id=$id AND transport_policy IN ('any','wifi_only')";
         command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$id", messageId);
         return command.ExecuteScalar() is byte[] payload ? JsonNode.Parse(Open("outbox", messageId, payload)) as JsonObject : null;
     }

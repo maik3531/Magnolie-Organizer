@@ -6713,6 +6713,142 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     speichereJetzt();
   }
 
+  let wartenderVerbindungsbatch = null;
+  let verbindungsbatchTimer = null;
+  let verbindungsstart = null;
+  let verbindungsstartTimer = null;
+
+  function pruefeVerbindungsstart(peer) {
+    if (!peer?.personal_connection_start_ready || verbindungsstart) return;
+    const requestId = crypto.randomUUID();
+    verbindungsstart = { requestId, peer, book: DATEN };
+    verbindungsstartTimer = setTimeout(() => {
+      verbindungsstart = verbindungsstartTimer = null;
+    }, 10000);
+    if (!Bruecke.sende({ cmd: "telefon_personal_connection_prepare", kennung: peer.device_id, fingerprint: peer.fingerprint, requestId })) {
+      clearTimeout(verbindungsstartTimer);
+      verbindungsstart = verbindungsstartTimer = null;
+    }
+  }
+
+  async function starteGeplantenVerbindungsabgleich(value) {
+    const pending = verbindungsstart;
+    if (!pending || pending.requestId !== value?.requestId) return;
+    clearTimeout(verbindungsstartTimer);
+    verbindungsstartTimer = null;
+    try {
+      const plan = value.plan;
+      if (!plan?.token || ![3, 14].includes(plan.format) || plan.transport !== pending.peer.transport) return;
+      const { peer, book } = pending;
+      const guard = () => {
+        const current = personalSyncNotizPeer(peer.device_id);
+        if (verbindungsstart !== pending || !verbindungsbatchUiFrei() || DATEN !== book ||
+            current?.transport !== plan.transport || current.state !== `online_${plan.transport}` ||
+            current.fingerprint !== peer.fingerprint || !personalSyncNotizBereit(current))
+          throw new Error(_("Personal synchronization failed."));
+      };
+      guard();
+      const selection = await personalSyncScopeAusManifest(plan.scope);
+      const modules = ["notes", "tasks"];
+      const records = await personalSyncSnapshot(modules, plan.format, peer.device_id, { selection, independentRemovals: true, guard });
+      const chunks = personalSyncPakete(records, plan.run_id, false, plan.format);
+      if (chunks.oversizedSkipped) return;
+      const hash = await personalSyncHash(chunks.flat());
+      guard();
+      const text = JSON.stringify(DATEN);
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+      guard();
+      if (letzterSpeicherText !== text || JSON.stringify(DATEN) !== text || !/^[0-9a-f]{64}$/.test(letzterSpeicherSha256)) return;
+      Bruecke.sende({ cmd: "telefon_personal_connection_start", kennung: peer.device_id, token: plan.token,
+        sha256: letzterSpeicherSha256, request: { format: plan.format, run_id: plan.run_id, trigger: "auto_connection", modules },
+        batches: chunks.map((records, sequence) => ({ format: plan.format, run_id: plan.run_id, batch_id: crypto.randomUUID(),
+          sequence, last: sequence === chunks.length - 1, reply: false, records_hash: hash, records })) });
+    } finally {
+      if (verbindungsstart === pending) verbindungsstart = null;
+    }
+  }
+
+  function verbindungsbatchBereit(nutzlast) {
+    if (!nutzlast?.content_scope || !Array.isArray(nutzlast.body?.requested_modules) ||
+        !nutzlast.body.requested_modules.length || ![3, 14].includes(nutzlast.body.format) ||
+        !Number.isSafeInteger(nutzlast.expires_ms) || nutzlast.expires_ms <= Date.now()) return;
+    if (wartenderVerbindungsbatch?.commit_token === nutzlast.commit_token) return;
+    clearTimeout(verbindungsbatchTimer);
+    wartenderVerbindungsbatch = nutzlast;
+    pruefeVerbindungsbatch();
+  }
+
+  function verbindungsbatchUiFrei() {
+    return notesOriginalUiFrei() && !beendenGewuenscht && !modalStapel.some(entry => entry.schleier.isConnected);
+  }
+
+  function pruefeVerbindungsbatch() {
+    verbindungsbatchTimer = null;
+    const batch = wartenderVerbindungsbatch;
+    if (!batch) return;
+    if (batch.expires_ms <= Date.now()) { wartenderVerbindungsbatch = null; return; }
+    const peer = personalSyncNotizPeer(batch.device_id);
+    if (!verbindungsbatchUiFrei() || peer?.state !== `online_${batch.transport}` || peer.fingerprint !== batch.content_scope_fingerprint ||
+        peer.transport !== batch.transport || !personalSyncNotizBereit(peer)) {
+      verbindungsbatchTimer = setTimeout(pruefeVerbindungsbatch, 1000);
+      return;
+    }
+    wartenderVerbindungsbatch = null;
+    personalSyncBatchKette = personalSyncBatchKette.then(() => speichereVerbindungsbatch(batch)).catch(() => {});
+  }
+
+  async function speichereVerbindungsbatch(batch) {
+    const body = batch.body;
+    if (!verbindungsbatchUiFrei() || batch.expires_ms <= Date.now()) return;
+    if (!/^[0-9a-f]{64}$/.test(letzterSpeicherSha256) || letzterSpeicherText !== JSON.stringify(DATEN)) {
+      letzterSpeicherText = null;
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+    }
+    const live = DATEN, before = letzterSpeicherSha256, beforeText = JSON.stringify(live);
+    const guard = () => {
+      const peer = personalSyncNotizPeer(batch.device_id);
+      if (!verbindungsbatchUiFrei() || batch.expires_ms <= Date.now() || DATEN !== live || peer?.state !== `online_${batch.transport}` ||
+          peer.fingerprint !== batch.content_scope_fingerprint || peer.transport !== batch.transport || !personalSyncNotizBereit(peer) ||
+          letzterSpeicherSha256 !== before || !/^[0-9a-f]{64}$/.test(before) ||
+          letzterSpeicherText !== beforeText || JSON.stringify(live) !== beforeText)
+        throw new Error(_("Personal synchronization failed."));
+    };
+    guard();
+    const selection = await personalSyncScopeAusManifest(batch.content_scope);
+    const oldBook = JSON.parse(beforeText), candidate = JSON.parse(beforeText);
+    if (candidate.personalSync.applied_batches.includes(batch.commit_token)) return;
+    const options = { selection, independentRemovals: true, guard,
+      propagateSelectedDeletions: personalSyncNotizPeer(batch.device_id)?.shared_sync?.values?.skip_deletions === false };
+    const originalData = body.attachment_data;
+    const { conflicts } = await personalSyncAnwendenAusBestand(candidate, body.records, originalData || {}, batch.device_id,
+      body.requested_modules, options, body.format);
+    personalSyncMerkeBatch(candidate, batch.commit_token);
+    let batches, oversized = 0;
+    if (body.reply !== true) {
+      const reply = await personalSyncSnapshotAusBestand(candidate, body.requested_modules, body.format, batch.device_id, options);
+      const chunks = personalSyncPakete(reply, body.run_id, true, body.format);
+      const hash = await personalSyncHash(chunks.flat());
+      batches = chunks.map((records, sequence) => ({ format: body.format, run_id: body.run_id,
+        batch_id: crypto.randomUUID(), sequence, last: sequence === chunks.length - 1, reply: true, records_hash: hash, records }));
+      oversized = chunks.oversizedSkipped || 0;
+    }
+    guard();
+    const text = JSON.stringify(candidate);
+    await new Promise((resolve, reject) => {
+      const save = { id: naechsteSpeicherId++, text, verbindungsbatch: { live, oldBook, candidate, resolve, reject } };
+      laufenderSpeicher = save;
+      aktualisiereModalEbenen();
+      setzeSpeicherStatus(_("Saving …"), false);
+      speicherAntwortTimer = setTimeout(() => App.gespeichert({ id: save.id, ok: false }), 30000);
+      if (!Bruecke.sende({ cmd: "speichern", id: save.id, text, personalConnectionLauf: { peer: batch.device_id,
+          messageId: batch.pending_message_id, token: batch.commit_token, before } }))
+        App.gespeichert({ id: save.id, ok: false });
+    });
+    if (batches) Bruecke.sende({ cmd: "telefon_personal_connection_reply", kennung: batch.device_id, messageId: batch.pending_message_id,
+      token: batch.commit_token, batches, conflicts, oversized });
+    if (!gesperrt && !editorIstGeaendert()) zeichneAlles();
+  }
+
   function beendeSpeicherAktionen(fehler) {
     const aktionen = wartendeSpeicherAktionen;
     wartendeSpeicherAktionen = [];
@@ -6730,6 +6866,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     originalKontaktGeneration++;
     originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
     letzterSpeicherSha256 = ""; baumSpeicherNachweis = baumPostVorSpeichern = null;
+    clearTimeout(verbindungsbatchTimer);
+    verbindungsbatchTimer = null; wartenderVerbindungsbatch = null;
+    clearTimeout(verbindungsstartTimer);
+    verbindungsstart = verbindungsstartTimer = null;
+    laufenderSpeicher?.verbindungsbatch?.reject(new Error(_("Restore")));
     clearTimeout(speicherTimer); clearTimeout(speicherAntwortTimer); clearTimeout(notizSnapshotTimer);
     speicherTimer = speicherAntwortTimer = notizSnapshotTimer = null;
     ausstehenderNotizSnapshot = null;
@@ -35675,6 +35816,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (transition) personalSyncAutoBeiSicheremWlan(peer, true).then(started => {
           if (personalSyncNotizPeer(peer) === peer && (started || !peer.auto_wifi)) personalSyncNoteReady.set(peer.device_id, noteReady);
         }).catch(() => {});
+        if (verbindungsbatchUiFrei()) pruefeVerbindungsstart(peer);
       }
       for (const key of personalSyncSecureWifi.keys()) if (!vorhandene.has(key)) {
         personalSyncSecureWifi.delete(key); personalSyncNoteReady.delete(key);
@@ -35712,6 +35854,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zeitAbgleichSenden(nutzlast.device_id, nutzlast.trigger, false).catch(() => App.personalSyncFehler({}));
     },
     personalTimeBatch(nutzlast) { return zeitAbgleichEmpfangen(nutzlast); },
+    personalSyncConnectionBatch(nutzlast) { verbindungsbatchBereit(nutzlast); },
+    personalConnectionStartPlan(value) { starteGeplantenVerbindungsabgleich(value).catch(() => {}); },
     personalSync(nutzlast) {
       nutzlast = nutzlast || {};
       const body = nutzlast.body || {}, kind = nutzlast.kind || "";
@@ -36998,6 +37142,34 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       clearTimeout(speicherAntwortTimer);
       speicherAntwortTimer = null;
       laufenderSpeicher = null;
+      if (erledigt?.verbindungsbatch) {
+        const { live, oldBook, candidate, resolve, reject } = erledigt.verbindungsbatch;
+        aktualisiereModalEbenen();
+        const saved = ergebnis.ok === true && ergebnis.committed === true && /^[0-9a-f]{64}$/.test(ergebnis.standSha256 || "");
+        if (!saved || gesperrt || DATEN !== live) {
+          if (!saved && DATEN === live && !gesperrt) setzeSpeicherStatus(_("Saving failed!"), false);
+          reject(new Error(_("Personal synchronization failed.")));
+          pumpeSpeichern();
+          return;
+        }
+        const changed = ["notizen", "notizbuecher", "aufgaben", "papierkorb", "personalSync"].filter(field =>
+          JSON.stringify(oldBook[field]) !== JSON.stringify(candidate[field]));
+        letzterSpeicherText = erledigt.text;
+        letzterSpeicherSha256 = ergebnis.standSha256;
+        if (changed.some(field => JSON.stringify(live[field]) !== JSON.stringify(oldBook[field]))) {
+          reject(new Error(_("Personal synchronization failed.")));
+        } else {
+          for (const field of changed) live[field] = candidate[field];
+          terminIndexVeraltet = jahrestagIndexVeraltet = true;
+          const d = organizerDatumzeitTeile(new Date());
+          setzeSpeicherStatus(uebersetzt("Saved ✓ %(time)s", { time: pad2(d.stunde) + ":" + pad2(d.minute) }), true);
+          if (ergebnis.repairPending) reject(new Error(_("Personal synchronization failed.")));
+          else resolve();
+        }
+        if (wartenderSpeicherText !== null) wartenderSpeicherText = JSON.stringify(live);
+        queueMicrotask(pumpeSpeichern);
+        return;
+      }
       if (ergebnis.ok === true) {
         if (originalKontaktNachweis) {
           if (ergebnis.kontaktOriginalGespeichert === originalKontaktNachweis.token) originalKontaktSpeicher = null;

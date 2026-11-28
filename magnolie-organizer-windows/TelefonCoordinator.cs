@@ -1301,6 +1301,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
             contact_values_write_available = ContactValuesAvailable(peer.Id),
             contact_group_titles_write_available = ContactGroupTitlesAvailable(peer.Id),
             shared_sync = SharedPreferences(peer.Id),
+            personal_connection_start_ready = ScopedConnectionStartReady(peer.Id),
             dial_request = IsOnline(peer.Id) && RemoteCapability(peer, "dial_request") && peer.Grants["dial_request"]?.GetValue<bool>() == true,
             bluetooth_address = store.BluetoothAddress(peer.Id),
             zuletzt = peer.LastSeenMs, bluetooth = new { available = TelefonBluetoothSupport.Available,
@@ -1319,6 +1320,12 @@ internal sealed partial class TelefonCoordinator : IDisposable
     }
 
     private bool IsOnline(string id) { lock (gate) return online.ContainsKey(id); }
+    private bool ScopedConnectionStartReady(string id)
+    {
+        lock (gate)
+            return NativeSavedBook() is not null && online.TryGetValue(id, out var reader) &&
+                reader.CanOfferScopedConnectionStart();
+    }
     private string OnlineTransport(string id) { lock (gate) return online.TryGetValue(id, out var connection) ? connection.Transport : "offline"; }
 
     private async Task StartAsync()
@@ -1703,8 +1710,15 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 body => emit("App.personalCustomAck", new { device_id = peer.Id, body }), AuthorizeCall, SendCall,
                 async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead, AcceptDeveloperRead, AcceptMcpStatusRead)
                 { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
+                    CurrentConnectionReader = source => { lock (gate) return online.TryGetValue(peer.Id, out var active) && ReferenceEquals(active, source); },
+                    ConnectionReplyBook = () => NativeSavedBook(),
+                    ScopedConnectionBatchReady = value => emit("App.personalSyncConnectionBatch", value),
                     TraySyncActivity = TraySyncActivity,
-                    CollectionChanged = value => emit("App.personalSyncCollection", value),
+                    CollectionChanged = async value =>
+                    {
+                        await emit("App.personalSyncCollection", value);
+                        if (ScopedConnectionStartReady(peer.Id)) await ReportStatusAsync();
+                    },
                     ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message),
                     PersonalSuccessConfirmed = (source, report) => RecordConfirmedPersonalSuccess(source, peer, report),
                     TimerControlReportReceived = (source, message) => ReceiveTimeControlReportAsync(source, peer, message),
@@ -2358,6 +2372,9 @@ internal sealed partial class TelefonConnection : IDisposable
             TelefonProtocolContract.ValidateAck(plain); var id = plain["message_id"]!.GetValue<string>(); var status = plain["status"]!.GetValue<string>(); var error = plain["error"]!.GetValue<string>();
             if (ConsumeWebcamAck(plain)) return;
             if (ConsumeScreenAck(id, status)) return;
+            if (await ObserveScopedConnectionStartAckAsync(id, status, error)) return;
+            if (await ObserveScopedOriginalAckAsync(id, status, error)) return;
+            if (await ObserveScopedConnectionReplyAckAsync(id, status, error)) return;
             var queued = store.OutboxMessage(peer.Id, id!);
             Task? mediaAckHandling = null;
             ObserveNativeMediaAck(id, status, error, queued, ref mediaAckHandling);
@@ -2591,6 +2608,7 @@ internal sealed partial class TelefonConnection : IDisposable
         if (NotePolicyError(kind, body, false) is { } noteError) return noteError;
         var current = store.LoadPeers().First(value => value.Id == peer.Id);
         var run = kind == "personal_sync.request" ? null : new PersonalSyncStore(store).LoadRun(peer.Id, body["run_id"]!.GetValue<string>(), Now());
+        if (run?.Policy == "connection_only") return "not_granted";
         if (kind != "personal_sync.request" && (run is null || run.Expired)) return "expired";
         if (kind == "personal_sync.report" && body["trigger"]?.GetValue<string>() != run!.Request["trigger"]?.GetValue<string>()) return "invalid_schema";
         if (kind is "personal_sync.batch" or "personal_sync.report" && body["format"]!.GetValue<int>() != run!.Request["format"]!.GetValue<int>()) return "invalid_schema";
@@ -2632,9 +2650,18 @@ internal sealed partial class TelefonConnection : IDisposable
     private async Task PumpOutboxAsync()
     {
         if (ActorPump is not null) await ActorPump(this);
+        JsonObject? originalOffer;
         await store.NotePolicyGate.WaitAsync(cancellation);
-        try { await PumpOutboxUnderNotePolicyAsync(); }
+        try
+        {
+            await PumpOutboxUnderNotePolicyAsync();
+            await PumpScopedConnectionStartAsync();
+            originalOffer = await PumpScopedOriginalsAsync();
+            await PumpScopedConnectionReplyAsync();
+        }
         finally { store.NotePolicyGate.Release(); }
+        if (originalOffer is not null && CurrentConnectionReader?.Invoke(this) == true && ScopedConnectionBatchReady is { } offer)
+            await offer(originalOffer);
     }
 
     private async Task PumpOutboxUnderNotePolicyAsync()
@@ -2737,19 +2764,27 @@ internal sealed partial class TelefonConnection : IDisposable
         catch { stream.Dispose(); throw; }
         finally { writer.Release(); }
     }
-    internal async Task SendPlainAsync(JsonObject value)
+    internal Task SendPlainAsync(JsonObject value) => WritePlainAsync(value, null);
+
+    private async Task WritePlainAsync(JsonObject value, Action? requireCurrent)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation); deadline.CancelAfter(TimeSpan.FromSeconds(15));
         await writer.WaitAsync(deadline.Token);
         try
         {
-            var envelope = Seal(value);
-            using var syncActivity = TraySyncFrames.IsData(value) ? TraySyncActivity?.Enter() : null;
-            await TelefonCoordinator.WriteFrameAsync(stream, envelope, deadline.Token);
-            RememberNativeWebcamCapabilities(value);
-            lastSentMs = Now();
+            requireCurrent?.Invoke();
+            try
+            {
+                var envelope = Seal(value);
+                using var syncActivity = TraySyncFrames.IsData(value) ? TraySyncActivity?.Enter() : null;
+                await TelefonCoordinator.WriteFrameAsync(stream, envelope, deadline.Token);
+                RememberNativeWebcamCapabilities(value);
+                if (value["kind"]?.GetValue<string>() == "capabilities.update" && value["body"] is JsonObject capabilities)
+                    Volatile.Write(ref sentConnectionCapabilities, capabilities.DeepClone().AsObject());
+                lastSentMs = Now();
+            }
+            catch { stream.Dispose(); throw; }
         }
-        catch { stream.Dispose(); throw; }
         finally { writer.Release(); }
     }
     private JsonObject Seal(JsonObject value)

@@ -89,9 +89,10 @@ internal static class PhoneCameraParentTests
             count.CommandText = "SELECT (SELECT COUNT(*) FROM outbox)+(SELECT COUNT(*) FROM inbox)+(SELECT COUNT(*) FROM dedupe)";
             TestAssert.That((long)count.ExecuteScalar()! == 0 && LegacyReceives == 0, "Webcam entered legacy callbacks/history/dedupe/outbox");
         }
-        internal async Task<JsonObject> Read(long expectedSequence)
+        internal Task<JsonObject> Read(long expectedSequence) => Read(expectedSequence, 8192);
+        internal async Task<JsonObject> Read(long expectedSequence, int maximum)
         {
-            var frame = await TelefonCoordinator.ReadFrameAsync(phone.GetStream(), 8192, deadline.Token);
+            var frame = await TelefonCoordinator.ReadFrameAsync(phone.GetStream(), maximum, deadline.Token);
             TestAssert.That(frame["seq"]!.GetValue<long>() == expectedSequence &&
                 frame["sid"]!.GetValue<string>() == Convert.ToBase64String(sessionId) &&
                 frame["dir"]!.GetValue<string>() == "desktop_to_phone", "Wrong original crypto envelope");

@@ -233,8 +233,14 @@ aufgeführt.
   Abschlussbestätigung. Der separate Hintergrunddienst besitzt
   noch keinen durchgehenden Beleg vom Originalleser bis zur atomaren
   Buchersetzung. Die neue Fähigkeit wird weiterhin nicht angekündigt.
-  Windows-Quellübernahme, weitere Inhaltsmodi und installierte Abnahme
-  bleiben offen.
+  Die Windows-Quelle übernimmt den lokalen Startplan, die an den Leser
+  gebundenen Originalanhänge und den geschützten Abschluss nach dem
+  tatsächlich bestätigten Bericht. Der bestehende Foto-Wiederanlauf gehört
+  weiterhin zum separaten Medienpfad. Vier native Windows-Testgruppen,
+  61 Oberflächenfälle und der vollständige WinForms-Bau bestanden.
+  Beide Rollen der Windows/Notes-Kopplung sind separat am privaten
+  Quellstand geprüft. Weitere Inhaltsmodi, Funk und die installierte
+  Abnahme bleiben offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

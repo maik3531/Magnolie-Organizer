@@ -473,6 +473,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     }
                     case "personal_sync_attachment_index": await IndexPersonalSyncAttachmentsAsync(message); break;
                     case "telefon_personal_sync_commit": await CommitPersonalSyncAsync(message); break;
+                    case "telefon_personal_connection_reply": await QueueScopedConnectionReplyAsync(message); break;
+                    case "telefon_personal_connection_prepare": await PrepareScopedConnectionStartAsync(message); break;
+                    case "telefon_personal_connection_start": await StageScopedConnectionStartAsync(message); break;
                     case "kde_sms_senden": await SendKdeSmsAsync(message); break;
                     case "telefon_kontaktfotos": await ReadContactPhotosAsync(message); break;
                     case "telefon_kontakte": await ReadContactPhotosAsync(message, fullContacts: true); break;
@@ -977,6 +980,13 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var epoch = previousData?["syncEpoch"]?.GetValue<string>() ?? "";
             if (epoch.Length != 0 && Text(document.RootElement, "syncEpoch") != epoch)
                 throw new JsonException(T("The save request is invalid."));
+            var connectionSave = message.TryGetProperty("personalConnectionLauf", out var connectionClaim);
+            if (connectionSave && (connectionClaim.ValueKind != JsonValueKind.Object ||
+                !connectionClaim.EnumerateObject().Select(value => value.Name).Order(StringComparer.Ordinal)
+                    .SequenceEqual(new[] { "before", "messageId", "peer", "token" }) ||
+                historical is not null || notesBootstrap is not null || notesCompletion is not null ||
+                originalContactWrite is not null || contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
+                throw new InvalidOperationException("connection_batch_mixed_native_save_not_ready");
             if (historical is not null && (contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
                 throw new InvalidOperationException("actor_historical_mixed_save_not_ready");
             if (originalContactWrite is not null && (historical is not null || contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
@@ -1024,7 +1034,29 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         throw new InvalidOperationException("notes_choice_real_saved_book_required")); }
                     catch (Exception) { notesConsentError = true; }
             }
-            if (originalContactWrite is not null) originalContactWrite.Write(text, NativeWrite);
+            if (connectionSave)
+            {
+                var writeStarted = false;
+                try
+                {
+                    await telefon.WriteScopedConnectionBatchAsync(Text(connectionClaim, "peer"), Text(connectionClaim, "messageId"),
+                        Text(connectionClaim, "token"), Text(connectionClaim, "before"), previousData, proposedData, text, payload =>
+                        {
+                            if (store.Read(paths.Data) != (currentEnvelope.Length != 0 ? currentEnvelope : previousText))
+                                throw new InvalidOperationException("connection_batch_primary_book_changed");
+                            writeStarted = true;
+                            NativeWrite(payload);
+                            if (store.Read(paths.Data) != (currentEnvelope.Length != 0 ? currentEnvelope : payload))
+                                throw new IOException("connection_batch_saved_bytes_unconfirmed");
+                        }, backgroundLifetime.Token);
+                }
+                catch
+                {
+                    if (writeStarted) currentPlainTextAvailable = false;
+                    throw;
+                }
+            }
+            else if (originalContactWrite is not null) originalContactWrite.Write(text, NativeWrite);
             else if (notesBootstrap is not null) notesBootstrap.Write(text, NativeWrite);
             else if (historical is null) NativeWrite(text);
             else

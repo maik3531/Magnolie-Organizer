@@ -400,16 +400,26 @@ internal static class PersonalSyncContract
         return format;
     }
 
-    private static void ValidateRequest(JsonObject body)
+    internal static void ValidateScopedConnectionRequest(JsonObject body) => ValidateRequest(body, scopedConnection: true);
+
+    private static void ValidateRequest(JsonObject body, bool scopedConnection = false)
     {
         Exact(body, body.ContainsKey("send_item") ? ["format", "run_id", "trigger", "modules", "send_item"] : ["format", "run_id", "trigger", "modules"]);
-        DataFormat(body); Uuid4(String(body, "run_id")); Enum(body, "trigger", "manual", "auto_wifi");
+        var format = DataFormat(body);
+        Uuid4(String(body, "run_id"));
+        if (scopedConnection)
+        {
+            Enum(body, "trigger", AutoConnectionTrigger);
+            if (format is not (3 or 14) || body.ContainsKey("send_item"))
+                throw new InvalidDataException("Invalid scoped automatic connection request.");
+        }
+        else Enum(body, "trigger", "manual", "auto_wifi");
         if (body["modules"] is not JsonArray modules || !new[] { "notes", "tasks", "notes\0tasks" }.Contains(string.Join("\0", modules.Select(item => String(item)))))
             throw new InvalidDataException("Personal-Sync-Module ungültig.");
         if (body.ContainsKey("send_item"))
         {
             var item = body["send_item"]!.AsObject(); Exact(item, "kind", "id"); Enum(item, "kind", "note", "task");
-            if (DataFormat(body) is not (3 or 14) || String(body, "trigger") != "manual" || !Identifier(String(item, "id")) ||
+            if (format is not (3 or 14) || String(body, "trigger") != "manual" || !Identifier(String(item, "id")) ||
                 modules.Count != 1 || String(modules[0]) != (String(item, "kind") == "note" ? "notes" : "tasks"))
                 throw new InvalidDataException("Ungültiger Einzelversand.");
         }
@@ -467,10 +477,19 @@ internal static class PersonalSyncContract
         descriptors.All(descriptor => TelefonProtocolContract.Integer(descriptor["size"]) == size &&
             string.Equals(descriptor["mime"]?.GetValue<string>(), mime, StringComparison.Ordinal));
 
-    private static void ValidateReport(JsonObject body)
+    internal static void ValidateScopedConnectionReport(JsonObject body) => ValidateReport(body, scopedConnection: true);
+
+    private static void ValidateReport(JsonObject body, bool scopedConnection = false)
     {
         var format = DataFormat(body); Exact(body, format >= 2 ? ["format", "run_id", "state", "trigger", "transport", "sent", "received", "conflicts", "attachments_omitted", "oversized_skipped", "started_ms", "finished_ms", "error", "deletions", "attachments"] : ["format", "run_id", "state", "trigger", "transport", "sent", "received", "conflicts", "attachments_omitted", "oversized_skipped", "started_ms", "finished_ms", "error", "deletions"]);
-        Uuid4(String(body, "run_id")); Enum(body, "state", "complete", "partial", "blocked", "failed"); Enum(body, "trigger", "manual", "auto_wifi"); Enum(body, "transport", "wifi", "bluetooth");
+        Uuid4(String(body, "run_id")); Enum(body, "state", "complete", "partial", "blocked", "failed");
+        if (scopedConnection)
+        {
+            if (format is not (3 or 14)) throw new InvalidDataException("Invalid scoped connection report format.");
+            Enum(body, "trigger", AutoConnectionTrigger);
+        }
+        else Enum(body, "trigger", "manual", "auto_wifi");
+        Enum(body, "transport", "wifi", "bluetooth");
         Counts(body, "sent", "notes", "tasks", "notebooks"); Counts(body, "received", "notes", "tasks", "notebooks"); Number(body, "conflicts", 0, MaximumSafeInteger); Number(body, "attachments_omitted", 0, MaximumSafeInteger); Number(body, "oversized_skipped", 0, MaximumSafeInteger);
         var started = Number(body, "started_ms", 0, MaximumTimestamp); var finished = Number(body, "finished_ms", 0, MaximumTimestamp); if (finished < started) throw new InvalidDataException("Berichtszeitachse ungültig.");
         Enum(body, "error", "none", "offline", "not_granted", "too_large", "save_failed", "protocol", "unknown");

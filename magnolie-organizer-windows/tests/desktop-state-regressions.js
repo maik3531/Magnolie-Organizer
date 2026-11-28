@@ -850,6 +850,139 @@ async function run(web) {
     assert.equal(b.messages.filter(m => m.cmd === "telefon_personal_sync_commit" && m.erfolgreich).length, 1);
   });
 
+  if (web === windows) await test("connection batch uses isolated candidate and exact SaveACK before reply", async b => {
+    const peer = "22222222-2222-4222-8222-222222222222", fingerprint = "ab".repeat(32);
+    b.w.App.telefonStand({ enabled: true, peers: [{ device_id: peer, fingerprint, state: "online_wifi", transport: "wifi",
+      shared_sync: { supported: true, ready: true, values: { auto_mode: "connection", content_mode: "phone_scope" } } }] });
+    const current = b.t.daten();
+    const members = { notes: [], tasks: ["connection-task"] };
+    const manifest = { format: 10, epoch: "44444444-4444-4444-8444-444444444444", revision: 1,
+      scope_hash: await b.t.personalSyncHash(members), members };
+    const value = { title: "Connection task", note: "", due: "2026-09-09", priority: 2, completed: false, remind: false,
+      lead_days: 0, reminder_minute: 480, uid: "", parent_uid: "", order: 0, created_ms: 1, modified_ms: 2 };
+    const record = { kind: "task", id: "connection-task", state: "live", value, hash: await b.t.personalSyncHash(value),
+      modified_ms: 2, clock: [{ actor_id: peer, counter: 1 }] };
+    const offer = { device_id: peer, content_scope_fingerprint: fingerprint, transport: "wifi", content_scope: manifest,
+      expires_ms: Date.now() + 60000, pending_message_id: "batch-message", commit_token: "protected-token",
+      body: { format: 3, run_id: "11111111-1111-4111-8111-111111111111", requested_modules: ["tasks"], records: [record] } };
+    const protectedSaves = () => b.saves().filter(message => message.personalConnectionLauf);
+    const replies = () => b.messages.filter(message => message.cmd === "telefon_personal_connection_reply");
+    const waitFor = async condition => {
+      const end = Date.now() + 1500;
+      while (!condition() && Date.now() < end) await tick();
+      assert.ok(condition(), "Protected batch did not reach its next step");
+    };
+    const acknowledge = (save, ok) => b.w.App.gespeichert({ id: save.id, ok, committed: ok,
+      standSha256: require("node:crypto").createHash("sha256").update(save.text).digest("hex") });
+    b.t.speichereJetzt();
+    acknowledge(b.saves().at(-1), true);
+    b.w.App.personalSyncConnectionBatch(offer);
+    await waitFor(() => protectedSaves().length === 1);
+    const denied = protectedSaves()[0];
+    assert.equal(current.aufgaben.length, 0);
+    assert.equal(replies().length, 0);
+    acknowledge(denied, false);
+    await tick();
+    assert.equal(current.aufgaben.length, 0);
+    assert.equal(replies().length, 0);
+
+    b.w.App.personalSyncConnectionBatch(offer);
+    await waitFor(() => protectedSaves().length === 2);
+    const save = protectedSaves()[1];
+    assert.equal(JSON.parse(save.text).aufgaben[0].titel, "Connection task");
+    b.w.App.gespeichert({ id: save.id + 1, ok: true, committed: true, standSha256: "a".repeat(64) });
+    assert.equal(replies().length, 0);
+    acknowledge(save, true);
+    await waitFor(() => replies().length === 1);
+    assert.equal(current.aufgaben[0].titel, "Connection task");
+    assert.equal(replies()[0].token, offer.commit_token);
+    assert.equal(replies()[0].batches[0].records[0].id, "connection-task");
+  });
+
+  if (web === windows) await test("scoped original is included in the protected candidate and applied only after its SaveACK", async b => {
+    const peer = "22222222-2222-4222-8222-222222222222";
+    const fingerprint = "ab".repeat(32);
+    b.w.App.telefonStand({ enabled: true, peers: [{ device_id: peer, fingerprint, state: "online_wifi", transport: "wifi",
+      shared_sync: { supported: true, ready: true, values: { auto_mode: "connection", content_mode: "phone_scope" } } }] });
+    const digest = bytes => require("node:crypto").createHash("sha256").update(bytes).digest("hex");
+    const bytes = Buffer.from("%PDF-1.4\nMagnolie attachment fixture\n%%EOF\n");
+    const hash = digest(bytes);
+    const original = "data:application/pdf;base64," + bytes.toString("base64");
+    const id = "original-note";
+    const members = { notes: [id], tasks: [] };
+    const manifest = { format: 10, epoch: "44444444-4444-4444-8444-444444444444", revision: 1,
+      scope_hash: await b.t.personalSyncHash(members), members };
+    const descriptor = { attachment_id: "original-file", name: "Original.pdf", kind: "pdf", mime: "application/pdf", size: bytes.length, sha256: hash };
+    const value = { title: "Incoming Original", text: "", html: "", notebook_id: "", symbol: "", created_ms: 1, modified_ms: 2,
+      attachments: [descriptor] };
+    const record = { kind: "note", id, state: "live", value, hash: await b.t.personalSyncHash(value), modified_ms: 2,
+      clock: [{ actor_id: peer, counter: 1 }] };
+    const offer = { device_id: peer, content_scope_fingerprint: fingerprint, transport: "wifi", content_scope: manifest,
+      expires_ms: Date.now() + 60000, pending_message_id: "original-message", commit_token: "original-token",
+      body: { format: 3, run_id: "11111111-1111-4111-8111-111111111111", requested_modules: ["notes"], records: [record],
+        attachment_data: { [hash]: original } } };
+    const acknowledge = save => b.w.App.gespeichert({ id: save.id, ok: true, committed: true, standSha256: digest(save.text) });
+    b.t.speichereJetzt();
+    acknowledge(b.saves().at(-1));
+    b.w.App.personalSyncConnectionBatch(offer);
+    const protectedSave = () => b.saves().find(save => save.personalConnectionLauf);
+    const deadline = Date.now() + 1500;
+    while (!protectedSave() && Date.now() < deadline) await tick();
+    const save = protectedSave();
+    assert.ok(save, "The original did not reach the protected writer");
+    assert.deepEqual(JSON.parse(save.text).notizen[0].anhaenge, [{ id: "original-file", name: "Original.pdf", art: "pdf", daten: original }]);
+    assert.equal(b.t.daten().notizen.length, 0);
+    acknowledge(save);
+    assert.equal(b.t.daten().notizen[0].anhaenge[0].daten, original);
+    await tick();
+    const reply = b.messages.find(message => message.cmd === "telefon_personal_connection_reply");
+    assert.equal(reply.token, "original-token");
+    assert.deepEqual(plain(reply.batches[0].records[0].value.attachments), [descriptor]);
+    assert(!JSON.stringify(reply).includes(original), "Reply bytes must be obtained from the native saved book");
+  });
+
+  if (web === windows) await test("elected connection start waits for its scoped plan and confirmed book", async b => {
+    const peer = "22222222-2222-4222-8222-222222222222", fingerprint = "ab".repeat(32);
+    const report = ready => b.w.App.telefonStand({ enabled: true, peers: [{ device_id: peer, fingerprint,
+      state: "online_bluetooth", transport: "bluetooth", personal_connection_start_ready: ready,
+      shared_sync: { supported: true, ready: true, values: { auto_mode: "connection", content_mode: "phone_scope" } } }] });
+    const prepares = () => b.messages.filter(m => m.cmd === "telefon_personal_connection_prepare");
+    const launches = () => b.messages.filter(m => m.cmd === "telefon_personal_connection_start");
+    const members = { notes: ["only-scope"], tasks: [] };
+    const plan = { token: "one-use", run_id: "11111111-1111-4111-8111-111111111111", format: 3, transport: "bluetooth",
+      scope: { format: 10, epoch: "44444444-4444-4444-8444-444444444444", revision: 1, scope_hash: await b.t.personalSyncHash(members), members } };
+    const initial = b.saves().length;
+    report(false);
+    assert.equal(prepares().length, 0);
+    report(true); report(true);
+    assert.equal(prepares().length, 1);
+    assert.equal(prepares()[0].fingerprint, fingerprint);
+    b.w.App.personalConnectionStartPlan({ requestId: "other", plan });
+    assert.equal(launches().length, 0);
+    b.w.App.personalConnectionStartPlan({ requestId: prepares()[0].requestId, plan });
+    const deadline = Date.now() + 1500;
+    while (b.saves().length === initial && Date.now() < deadline) await tick();
+    const save = b.saves().at(-1);
+    assert.ok(b.saves().length > initial && save.cmd === "speichern");
+    const sha = require("node:crypto").createHash("sha256").update(save.text).digest("hex");
+    b.w.App.gespeichert({ id: save.id + 1, ok: true, committed: true, standSha256: sha });
+    assert.equal(launches().length, 0);
+    b.w.App.gespeichert({ id: save.id, ok: true, committed: true, standSha256: sha });
+    await tick();
+    assert.equal(launches().length, 1);
+    const start = launches()[0];
+    assert.equal(start.sha256, sha);
+    assert.equal(start.request.trigger, "auto_connection");
+    assert.equal(start.request.run_id, plan.run_id);
+    assert.equal(start.token, plan.token);
+    const rows = plain(start.batches.flatMap(batch => batch.records));
+    const note = rows.find(record => record.kind === "note");
+    assert.equal(note.id, "only-scope");
+    assert.deepEqual(rows.map(record => record.id), [note.id, note.value.notebook_id]);
+    assert(!Object.hasOwn(start, "sources"));
+    assert(!b.messages.some(message => message.cmd === "personal_sync_lauf_senden"), "The normal legacy queue received the elected start");
+  }, { notizen: [{ id: "only-scope", titel: "Selected" }, { id: "other-note", titel: "Unselected" }] });
+
   await test("batch hash fault cannot partly update data or clocks", async b => {
     const value = { title: "Valid first record", note: "", due: "2026-09-09", priority: 2, completed: false,
       remind: false, lead_days: 0, reminder_minute: 480, created_ms: 1, modified_ms: 2 };
