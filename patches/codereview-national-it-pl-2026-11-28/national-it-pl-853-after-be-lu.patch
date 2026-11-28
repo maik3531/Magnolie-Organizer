@@ -1,0 +1,192 @@
+diff --git a/magnolie-organizer/web/appearance.js b/magnolie-organizer/web/appearance.js
+--- a/magnolie-organizer/web/appearance.js
++++ b/magnolie-organizer/web/appearance.js
+@@ -66,6 +66,17 @@
+       { d: "M40 23A12 12 0 1 1 40 47A12 12 0 1 1 40 23Z", fill: "none" },
+       { d: "M40 28A7 7 0 1 1 40 42A7 7 0 1 1 40 28Z" }
+     ],
++    "italian-ballot": [
++      { d: "M13 35H67L71 67H9ZM13 35L21 28H59L67 35M23 40H57M9 67H71", fill: "none", "data-motif-part": "ballot-box" },
++      { d: "M27 28L23 14L50 6L56 27M29 17L34 20L40 12", fill: "none", "data-motif-part": "ballot-paper" },
++      { d: "M9 15L14 21M67 11L62 18M8 51H3M72 51H77M28 73H52", fill: "none", "data-motif-part": "festive-rays" }
++    ],
++    "polish-banner": [
++      { d: "M18 7V70M12 70H24", fill: "none", "data-motif-part": "flagpole" },
++      { d: "M18 13C34 5 49 23 66 14V46C49 55 34 37 18 45Z", fill: "none", "data-motif-part": "flag" },
++      { d: "M18 29C34 21 49 39 66 30", fill: "none", "data-motif-part": "horizontal-bands" },
++      { d: "M8 16L4 11M72 19L77 15M34 59L29 65M53 58L58 65M41 68V75", fill: "none", "data-motif-part": "festive-rays" }
++    ],
+     "unity-gate": [
+       { d: "M8 65H72M12 60H68V65H12ZM14 30H66V35H14ZM12 26H68V30H12Z", fill: "none", "data-motif-part": "gate-entablature" },
+       { d: "M18 35V60M23 35V60M31 35V60M36 35V60M44 35V60M49 35V60M57 35V60M62 35V60", fill: "none", "data-motif-part": "gate-columns" },
+@@ -127,6 +138,8 @@
+   // Verified national festival identities, not translated calendar names.
+   const holidayCountries = new Set(["DE", "AT", "CH", "LI", "LU", "BE", "NL", "FR", "IT", "PL", "CZ", "ES"]);
+   const nationalMotifs = Object.freeze({
++    "it-republic-day": "italian-ballot",
++    "pl-independence-day": "polish-banner",
+     "de-unity-day": "unity-gate",
+     "at-national-day": "neutrality-parliament",
+     "ch-national-day": "swiss-lantern",
+@@ -137,6 +150,11 @@
+   });
+   function nationalFestival(value, country) {
+     const { year, month, day } = value;
++    // Italy: fixed holiday since 1949, moved to the first Sunday in June in 1977–2000.
++    if (country === "IT" && year >= 1949 && month === 6) {
++      if (year >= 1977 && year <= 2000 ? day <= 7 && value.date.getUTCDay() === 0 : day === 2) return "it-republic-day";
++    }
++    if (country === "PL" && (year === 1937 || year === 1938 || year >= 1989) && month === 11 && day === 11) return "pl-independence-day";
+     if (country === "DE" && year >= 1990 && month === 10 && day === 3) return "de-unity-day";
+     if (country === "AT" && year >= 1965 && month === 10 && day === 26) return "at-national-day";
+     if (country === "CH" && year >= 1994 && month === 8 && day === 1) return "ch-national-day";
+@@ -297,6 +315,7 @@
+     sync.addEventListener("change", () => { if (section.isConnected && context.developer && !context.locked) { preview.sync = sync.checked; changed(); } }); section.append(syncRow);
+     select("season", "Seasonal background", [["auto", "Automatic"], ["none", "None"], ["crystals", "Snowflakes"], ["stars", "Stars"]]);
+     select("holiday", "Holiday watermark", [["auto", "Automatic"], ["none", "None"], ["boots", "Boots"], ["santa", "Santa Claus"], ["rocket", "Rocket"], ["glass", "Champagne glass"], ["eggs", "Easter eggs"],
++      ["italian-ballot", "Italy"], ["polish-banner", "Poland"],
+       ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"], ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"]]);
+     const dateRow = document.createElement("label"), date = document.createElement("input"); date.type = "date"; date.className = "feld"; date.value = preview.date;
+     date.dataset.appearanceTest = "date"; dateRow.className = "formzeile"; dateRow.append(document.createTextNode(t("Date")), date); section.append(dateRow);
+diff --git a/magnolie-organizer-windows/app/web/appearance.js b/magnolie-organizer-windows/app/web/appearance.js
+--- a/magnolie-organizer-windows/app/web/appearance.js
++++ b/magnolie-organizer-windows/app/web/appearance.js
+@@ -66,6 +66,17 @@
+       { d: "M40 23A12 12 0 1 1 40 47A12 12 0 1 1 40 23Z", fill: "none" },
+       { d: "M40 28A7 7 0 1 1 40 42A7 7 0 1 1 40 28Z" }
+     ],
++    "italian-ballot": [
++      { d: "M13 35H67L71 67H9ZM13 35L21 28H59L67 35M23 40H57M9 67H71", fill: "none", "data-motif-part": "ballot-box" },
++      { d: "M27 28L23 14L50 6L56 27M29 17L34 20L40 12", fill: "none", "data-motif-part": "ballot-paper" },
++      { d: "M9 15L14 21M67 11L62 18M8 51H3M72 51H77M28 73H52", fill: "none", "data-motif-part": "festive-rays" }
++    ],
++    "polish-banner": [
++      { d: "M18 7V70M12 70H24", fill: "none", "data-motif-part": "flagpole" },
++      { d: "M18 13C34 5 49 23 66 14V46C49 55 34 37 18 45Z", fill: "none", "data-motif-part": "flag" },
++      { d: "M18 29C34 21 49 39 66 30", fill: "none", "data-motif-part": "horizontal-bands" },
++      { d: "M8 16L4 11M72 19L77 15M34 59L29 65M53 58L58 65M41 68V75", fill: "none", "data-motif-part": "festive-rays" }
++    ],
+     "unity-gate": [
+       { d: "M8 65H72M12 60H68V65H12ZM14 30H66V35H14ZM12 26H68V30H12Z", fill: "none", "data-motif-part": "gate-entablature" },
+       { d: "M18 35V60M23 35V60M31 35V60M36 35V60M44 35V60M49 35V60M57 35V60M62 35V60", fill: "none", "data-motif-part": "gate-columns" },
+@@ -127,6 +138,8 @@
+   // Verified national festival identities, not translated calendar names.
+   const holidayCountries = new Set(["DE", "AT", "CH", "LI", "LU", "BE", "NL", "FR", "IT", "PL", "CZ", "ES"]);
+   const nationalMotifs = Object.freeze({
++    "it-republic-day": "italian-ballot",
++    "pl-independence-day": "polish-banner",
+     "de-unity-day": "unity-gate",
+     "at-national-day": "neutrality-parliament",
+     "ch-national-day": "swiss-lantern",
+@@ -137,6 +150,11 @@
+   });
+   function nationalFestival(value, country) {
+     const { year, month, day } = value;
++    // Italy: fixed holiday since 1949, moved to the first Sunday in June in 1977–2000.
++    if (country === "IT" && year >= 1949 && month === 6) {
++      if (year >= 1977 && year <= 2000 ? day <= 7 && value.date.getUTCDay() === 0 : day === 2) return "it-republic-day";
++    }
++    if (country === "PL" && (year === 1937 || year === 1938 || year >= 1989) && month === 11 && day === 11) return "pl-independence-day";
+     if (country === "DE" && year >= 1990 && month === 10 && day === 3) return "de-unity-day";
+     if (country === "AT" && year >= 1965 && month === 10 && day === 26) return "at-national-day";
+     if (country === "CH" && year >= 1994 && month === 8 && day === 1) return "ch-national-day";
+@@ -297,6 +315,7 @@
+     sync.addEventListener("change", () => { if (section.isConnected && context.developer && !context.locked) { preview.sync = sync.checked; changed(); } }); section.append(syncRow);
+     select("season", "Seasonal background", [["auto", "Automatic"], ["none", "None"], ["crystals", "Snowflakes"], ["stars", "Stars"]]);
+     select("holiday", "Holiday watermark", [["auto", "Automatic"], ["none", "None"], ["boots", "Boots"], ["santa", "Santa Claus"], ["rocket", "Rocket"], ["glass", "Champagne glass"], ["eggs", "Easter eggs"],
++      ["italian-ballot", "Italy"], ["polish-banner", "Poland"],
+       ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"], ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"]]);
+     const dateRow = document.createElement("label"), date = document.createElement("input"); date.type = "date"; date.className = "feld"; date.value = preview.date;
+     date.dataset.appearanceTest = "date"; dateRow.className = "formzeile"; dateRow.append(document.createTextNode(t("Date")), date); section.append(dateRow);
+diff --git a/magnolie-organizer/pruefungen/appearance-it-pl.cjs b/magnolie-organizer/pruefungen/appearance-it-pl.cjs
+new file mode 100644
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/appearance-it-pl.cjs
+@@ -0,0 +1,87 @@
++"use strict";
++const fs=require("node:fs"),path=require("node:path");
++function probe(source){
++ const results=[];
++ const check=(name,fn)=>{try{results.push({name,pass:!!fn()});}catch(e){results.push({name,pass:false,error:String(e)});}};
++ class N{
++ constructor(tag=""){this.tag=tag;this.children=[];this.dataset={};this.attrs={};this.events={};this.style={};this.classList={add(){}};this.value="";this.textContent="";this.parent=null;}
++ get isConnected(){return this.tag==="body"||!!this.parent?.isConnected;}
++ append(...items){for(const n of items){n.parent=this;this.children.push(n);}}
++ prepend(n){n.parent=this;this.children.unshift(n);}
++ remove(){if(this.parent){this.parent.children=this.parent.children.filter(n=>n!==this);this.parent=null;}}
++ replaceChildren(...items){for(const n of this.children)n.parent=null;this.children=[];this.append(...items);}
++ setAttribute(k,v){this.attrs[k]=v;}
++ toggleAttribute(k,v){if(v)this.attrs[k]="";else delete this.attrs[k];}
++ addEventListener(k,f){this.events[k]=f;}
++ querySelectorAll(s){const match=n=>s==="[data-appearance-test]"?n.dataset.appearanceTest!==undefined:s===":scope > [data-appearance-watermark]"?n.dataset.appearanceWatermark!==undefined:s==="#magnolie-test-hinweis"?n.id==="magnolie-test-hinweis":s==="#schreibtisch"?n.id==="schreibtisch":s==="#magnolie-saison"?n.id==="magnolie-saison":s===".wo-tag[data-appearance-date]"?n.dataset.appearanceDate!==undefined:false;const all=n=>n.children.flatMap(c=>[c,...all(c)]);return (s.startsWith(":scope")?this.children:all(this)).filter(match);}
++ querySelector(s){return this.querySelectorAll(s)[0]??null;}
++ }
++ const body=new N("body"),doc={body,createElement:t=>new N(t),createElementNS:(ns,t)=>new N(t),createTextNode:t=>Object.assign(new N("#text"),{textContent:t}),querySelector:s=>body.querySelector(s),querySelectorAll:s=>body.querySelectorAll(s)};
++ const window={};
++ new Function("document","window",source)(doc,window);
++ window.MagnolieAppearance.update({today:"2026-08-01",country:"CH",developer:true,locked:false});
++ window.MagnolieAppearance.mountDeveloper(body,x=>x);
++ check("default panel remains disabled",()=>body.children.length===0);
++ new Function("document","window",source.replace("const SHOW_DEVELOPER_PREVIEW = false;","const SHOW_DEVELOPER_PREVIEW = true;"))(doc,window);
++ const a=window.MagnolieAppearance,calls=[],tr=x=>"T:"+x;
++ a.update({today:"2026-08-01",country:"CH",developer:false,locked:false});a.mountDeveloper(body,tr, x=>calls.push(x));
++ check("nondeveloper blocked",()=>body.children.length===0);
++ a.update({today:"2026-08-01",country:"CH",developer:true,locked:true});a.mountDeveloper(body,tr,x=>calls.push(x));
++ check("locked blocked",()=>body.children.length===0);
++ a.update({today:"2026-08-01",country:"CH",developer:true,locked:false});a.mountDeveloper(body,tr,x=>calls.push(x));
++ const section=body.children.find(n=>n.id==="entwickler-darstellung");
++ const all=n=>n.children.flatMap(c=>[c,...all(c)]);
++ const select=all(section).find(n=>n.dataset.appearanceTest==="holiday");
++ const sample=all(section).find(n=>n.dataset.appearanceSample==="watermark");
++ const reset=all(section).find(n=>n.textContent==="T:Reset preview");
++ const choose=value=>{select.value=value;select.events.change();};
++ const motif=()=>sample.children[0]?.dataset.appearanceWatermark;
++ check("automatic country motif",()=>motif()==="swiss-lantern");
++ for(const [kind,label] of [["unity-gate","Germany"],["neutrality-parliament","Austria"],["swiss-lantern","Switzerland"],["french-rosette","France"],["kings-crown","Netherlands"],["italian-ballot","Italy"],["polish-banner","Poland"]]){
++ check("option "+kind,()=>select.children.some(n=>n.value===kind&&n.textContent==="T:"+label));
++ check("explicit "+kind,()=>{choose("none");choose(kind);return motif()===kind&&sample.children[0].attrs["aria-hidden"]==="true"&&sample.children[0].attrs.focusable==="false";});
++ }
++ check("all previous options retained",()=>["auto","none","boots","santa","rocket","glass","eggs"].every(x=>select.children.some(n=>n.value===x)));
++ check("invalid choice cannot change preview",()=>{choose("boots");choose("invalid");return motif()==="boots";});
++ check("reset to automatic",()=>{reset.events.click();return motif()==="swiss-lantern"&&select.value==="auto";});
++ check("country change automatic",()=>{a.update({today:"2026-07-14",country:"FR",developer:true,locked:false});return motif()==="french-rosette";});
++ check("none clears image",()=>{choose("none");return !motif();});
++ check("legacy override works",()=>{choose("eggs");return motif()==="eggs";});
++ check("ordinary changes no native calls",()=>calls.length===0);
++ check("lock resets and stale event has no effect",()=>{a.update({today:"2026-07-14",country:"FR",developer:true,locked:true});choose("rocket");section.remove();a.update({today:"2026-07-14",country:"FR",developer:true,locked:false});a.mountDeveloper(body,tr,x=>calls.push(x));const fresh=all(body).find(n=>n.dataset.appearanceSample==="watermark");return fresh.children[0]?.dataset.appearanceWatermark==="french-rosette"&&calls.length===0;});
++
++ for(const [iso,country,want] of [
++ ["1948-06-02","IT","none"],["1949-06-02","IT","italian-ballot"],["1976-06-02","IT","italian-ballot"],
++ ["1977-06-02","IT","none"],["1977-06-05","IT","italian-ballot"],["1977-06-06","IT","none"],
++ ["1985-06-02","IT","italian-ballot"],["2000-06-04","IT","italian-ballot"],["2000-06-02","IT","none"],
++ ["2001-06-02","IT","italian-ballot"],["2001-06-03","IT","none"],["2026-06-02","IT","italian-ballot"],
++ ["2026-06-01","IT","none"],["2026-06-03","IT","none"],["2024-06-02","IT","italian-ballot"],
++ ["1936-11-11","PL","none"],["1937-11-11","PL","polish-banner"],["1938-11-11","PL","polish-banner"],
++ ["1939-11-11","PL","none"],["1945-11-11","PL","none"],["1988-11-11","PL","none"],
++ ["1989-11-11","PL","polish-banner"],["2026-11-11","PL","polish-banner"],
++ ["2026-11-10","PL","none"],["2026-11-12","PL","none"],["2026-06-02","PL","none"],["2026-11-11","IT","none"],
++ ["2026-06-02","","none"],["2026-11-11","XX","none"],["2026-02-30","IT","none"],
++ ["2026-10-03","DE","unity-gate"],["2025-04-26","NL","kings-crown"],["2026-04-05","IT","eggs"],
++ ["2026-12-31","PL","rocket"]]){
++ check(iso+" "+country+" "+want,()=>a.holiday(iso,country)===want);
++ }
++ for(const [kind,parts] of [["italian-ballot",["ballot-box","ballot-paper","festive-rays"]],["polish-banner",["flag","horizontal-bands","flagpole","festive-rays"]]]){
++ check("SVG attributes "+kind,()=>{const s=a.stamp(kind);return s?.attrs.viewBox==="0 0 80 80"&&s.attrs["aria-hidden"]==="true"&&s.attrs.focusable==="false"&&parts.every(p=>s.children.some(n=>n.attrs["data-motif-part"]===p))&&s.children.every(n=>n.tag==="path"&&n.attrs.stroke==="currentColor"&&n.attrs["stroke-width"]==="2"&&n.attrs["stroke-linecap"]==="round"&&n.attrs.d.length>0);});
++ }
++ const cell=new N("div");body.append(cell);
++ a.update({today:"2026-06-02",country:"IT",developer:false,locked:false});a.day(cell,"2026-06-02");
++ check("calendar Italian motif",()=>cell.children[0]?.dataset.appearanceWatermark==="italian-ballot");
++ a.day(cell,"2026-06-02");
++ check("calendar no duplicate",()=>cell.children.length===1&&cell.children[0]?.dataset.appearanceWatermark==="italian-ballot");
++ a.update({today:"2026-06-02",country:"PL",developer:false,locked:false});
++ check("calendar country refresh removes Italian",()=>cell.children.length===0);
++ a.day(cell,"2026-11-11");
++ check("calendar Polish motif",()=>cell.children[0]?.dataset.appearanceWatermark==="polish-banner");
++ a.update({today:"2026-11-11",country:"PL",developer:false,locked:true});
++ check("calendar locked clears motif",()=>cell.children.length===0);
++ return results;
++}
++const root=process.argv[2]||".";
++let failed=0;
++for(const name of ["magnolie-organizer/web/appearance.js","magnolie-organizer-windows/app/web/appearance.js"]){const result=probe(fs.readFileSync(path.join(root,name),"utf8"));console.log(name,JSON.stringify(result));failed+=result.filter(x=>!x.pass).length;}
++process.exitCode=failed?1:0;

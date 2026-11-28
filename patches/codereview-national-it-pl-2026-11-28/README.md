@@ -1,0 +1,19 @@
+# #853 – Italien und Polen: Nationalmotive mit historischen Kalendergrenzen
+
+Basis `61365c3c166468e956c6634536ffe603b7d5e10e`; beide Produktblobs `203419a4daf85971a7649d9deede548d6883f4ae` (bytegleiche Module laut Abruf). Keine Produkt-main-Änderung. #854 inzwischen durch Codex abgeschlossen; #860 übernimmt weitere Länder/Quellen. #128 privat aktiv, nicht konkurriert. #691 und alter Desktop-Pumpfix im neuen Delta nicht als übernommen bestätigt.
+
+## Regel und Quellen
+- Italien: stilisierte Wahlurne mit Stimmzettel, eigenständige Vektorgeometrie als Bezug auf das Referendum vom 2. Juni 1946 ([Präsidentenarchiv](https://archivio.quirinale.it/aspr/comunicati/PRESSRELEASE-001-001661/presidente/carlo-azeglio-ciampi/dichiarazione-del-presidente-della-repubblica-carlo-azeglio-ciampi-sulla-festa-nazionale-della-repubblica)). Gesetzlich belegter 2. Juni ab 1949 ([Gesetz 260/1949](https://www.normattiva.it/eli/id/1949/05/31/049U0260/CONSOLIDATED/20260101)), erste Junisonntage 1977–2000 ([Gesetz 54/1977](https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=077U0054&atto.dataPubblicazioneGazzetta=1977-03-07&tipoDettaglio=vigente)), wieder 2. Juni ab 2001 ([Gesetz 336/2000](https://www.normattiva.it/eli/id/2000/11/22/000G0390/ORIGINAL)). Vor 1949 hier bewusst kein Motiv; die Sonntagsregel betrifft den damaligen Feiertermin, nicht eine Aussage über zusätzliche arbeitsfreie Tage.
+- Polen: stilisiertes horizontal zweigeteiltes Festbanner, Bezug auf die gesetzliche Beflaggung ([Kulturministerium](https://www.gov.pl/web/kultura/obowiazek-wywieszania-flagi-panstwowej-rp)); 11. November 1937/38 und ab 1989 ([amtliche historische Darstellung](https://sw.gov.pl/aktualnosc/zaklad-karny-w-chelmie-narodowe-swieto-niepodleglosci), [Wiederherstellung 1989](https://sw.gov.pl/node/201506)). Keine automatische Darstellung während der Aufhebungszeit. Keine Zuordnung nach UI-Sprache.
+- Beide Motive sind eigene SVG-Pfade im vorhandenen 80x80-Stamp-Renderer, mit currentColor, bestehender Strichstärke, CSS und barrierefrei dekorativem Markup. Die existierenden Übersetzungsschlüssel Italy/Poland werden verwendet; die Entwickleroption bleibt standardmäßig deaktiviert.
+
+## Anwendungsalternativen (nur eine wählen)
+1. `national-it-pl-853.patch` direkt auf die oben genannte Basis bzw. identische Produktblobs.
+2. `national-it-pl-853-after-be-lu.patch` nur nach vollständig angewendetem BE/LU-Patch 3b767883c84cab421035266d252a883a424c6bc0. Der vorherige Patch ist nicht enthalten. Die beiden Alternativen nicht zusammen anwenden; bei abweichenden Quellständen neu abgleichen. Git apply --check vor Anwendung. Beide enthalten den neuen explizit ausführbaren Test `magnolie-organizer/pruefungen/appearance-it-pl.cjs`.
+
+## Tatsächlich ausgeführt
+- magnolie-organizer/web/appearance.js, main: 46/67 → 67/67.
+- magnolie-organizer/web/appearance.js, after-BE-LU: 46/67 → 67/67.
+- magnolie-organizer-windows/app/web/appearance.js, main: 46/67 → 67/67.
+- magnolie-organizer-windows/app/web/appearance.js, after-BE-LU: 46/67 → 67/67.
+Vollständige echte appearance.js-Module im kontrollierten V8-DOM/SVG-Double-Host ausgeführt; die Prüffunktion ist identisch mit probe.cjs. Enthält historische Grenzfälle, Länderausschluss, ungültige Daten, Vorschau-Opt-in/Testkopie, Reset, Sperre, native Bridge-Stille, SVG-Attribute und Kalender-Regionswechsel. BE/LU-Alternative zusätzlich auf zwei Festtermine geprüft. Beide Patchvarianten je Quelle per Kontext-Hunk-Verarbeitung vorwärts/rückwärts exakt geprüft. Wiederholung: `node probe.cjs /pfad/zum/checkout` (oder neuer Produkt-Test mit Checkoutpfad). Kein tatsächlicher git-apply-Lauf, kein echter Browser/DOM/Raster/Druck, keine Übersetzungskatalog-/Mac-/Tablet-/native oder Paketabnahme. Kein Release. Die übrigen Festidentitäten, Handbuch und native Prüfungen bleiben offen.
