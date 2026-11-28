@@ -28,8 +28,12 @@ aufgeführt.
   die SVG-Anzeige und unveränderte Druckausgabe mit und ohne Motive im
   GTK-WebKit-Host bestanden. Das standardmäßig deaktivierte Entwicklerpanel
   bietet alle neun Motive in beiden Oberflächen und 20 Sprachen zur
-  Auswahl. Weitere Festidentitäten, Handbuch und
-  Mac-/Tablet-Projektion bleiben in #853; installierte Pakete in #113.
+  Auswahl. Das Handbuch beschreibt die neun Motive in der Wochenansicht,
+  die Zuordnung zu Land und Kalenderdatum, den Druck und die Vorschau
+  in Testversionen. Handbuchdarstellung in 20 Sprachen, neun
+  Katalogprüfungen und die redaktionelle Laufzeitprüfung bestanden.
+  Weitere Festidentitäten und die Mac-/Tablet-Projektion bleiben in #853;
+  installierte Pakete in #113.
 
 - [#857](https://github.com/maik3531/Magnolie-Organizer/issues/857):
   Die Feiertagsdienste für Linux, Windows, macOS und Android-Tablet erkennen

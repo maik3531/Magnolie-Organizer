@@ -540,6 +540,10 @@ for (const language of languages) {
   assert.strictEqual(fs.readFileSync(generated, "utf8"),
     fs.readFileSync(path.join(WEB, "i18n", `${language}.js`), "utf8"),
     `${language}: checked-in JS catalog differs from PO output`);
+  const watermarkSource = sourcePages.find(page => page.id === "country-region-holiday-display").inhaltAnhang.en;
+  const watermarkTranslation = data.messages[watermarkSource];
+  assert.ok(watermarkTranslation && watermarkTranslation !== watermarkSource && isBalancedHtml(watermarkTranslation),
+    `${language}: missing or invalid national holiday watermark guidance`);
   const protectedTranslations = protectedSource.map((message) => data.messages[message]);
   const protectedTranslationText = protectedTranslations.join("\n");
   assert.ok(protectedTranslationText.includes("No valid coffee allowance") &&
@@ -1255,6 +1259,14 @@ try {
     "der Anbieter die Abdeckung bestätigt hat", "bedeuten nicht, dass es keine Ferien gibt",
     "höchstens drei Jahre und 26 Regionen", "Termine, Kontakte, Notizen"])
     assert.ok(germanText.includes(phrase), `German holiday documentation missing: ${phrase}`);
+  for (const phrase of ["National holiday watermarks", "Luxembourg, Italy and Poland",
+    "independently of the display language and downloaded holidays", "omitted from print and PDF",
+    "disabled in standard builds", "Reset preview to return to automatic display"])
+    assert.ok(englishText.includes(phrase), `English watermark documentation missing: ${phrase}`);
+  for (const phrase of ["Wasserzeichen für Nationalfeiertage", "Luxemburg, Italien und Polen",
+    "unabhängig von der Anzeigesprache und abgerufenen Feiertagen", "Druck und PDF",
+    "in Standardversionen deaktiviert", "Vorschau zurücksetzen"])
+    assert.ok(germanText.includes(phrase), `German watermark documentation missing: ${phrase}`);
   const regionalIds = ["settings-language-format-region", "settings-time-week-region"];
   assert.strictEqual(sourcePages.filter((page) => regionalIds.includes(page.id)).length, 2,
     "the language and regional display route must contain exactly two pages");

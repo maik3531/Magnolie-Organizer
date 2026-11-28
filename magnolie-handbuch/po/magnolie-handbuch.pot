@@ -1588,6 +1588,20 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<h3>National holiday watermarks</h3><p>In the Linux and Windows Organizer, "
+"the Week view shows a watermark on the matching date for Germany, Austria, "
+"Switzerland, France, the Netherlands, Belgium, Luxembourg, Italy and Poland. "
+"The country selected in the Organizer and the date of the calendar cell "
+"determine the motif, independently of the display language and downloaded "
+"holidays. The watermark is omitted from print and PDF.</p><p>The appearance "
+"preview is disabled in standard builds. In test builds that provide it, open "
+"Developer options, choose a country motif under Holiday watermark, and "
+"select Reset preview to return to automatic display. The preview does not "
+"change your country or holiday settings.</p>"
+msgstr ""
+
+#, no-javascript-format
+msgid ""
 "<h3>Navigation and recording</h3><p>Settings lists Version, Connections and "
 "Import in that order, followed by Recovery and Android permissions. Time "
 "tracking starts enabled with fresh data; a saved off choice stays off. Its "
