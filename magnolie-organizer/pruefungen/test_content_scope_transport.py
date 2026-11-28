@@ -346,6 +346,35 @@ def test_connection_automation_requires_current_negotiated_authority(tmp_path, m
         assert (ack["status"], ack["error"]) == ("rejected", expected_error), ack
 
 
+@pytest.mark.parametrize("change", ["repackaged", "completed", "capability_revision"])
+def test_connection_reader_accepts_only_one_automatic_request(tmp_path, monkeypatch, change):
+    service, peer, reader, remote, manifest = connection_automation_fixture(tmp_path, monkeypatch, "bluetooth")
+    peer_id = peer["device_id"]
+    run_id = str(uuid.uuid4())
+    request = {"format": 3, "run_id": run_id, "trigger": personal.AUTO_CONNECTION_TRIGGER, "modules": ["notes", "tasks"]}
+    packet = dict(message(scope.wrap("personal_sync.request", request, manifest)), kind=scope.DATA_KIND)
+    service._payload(peer, reader, packet)
+    assert reader.sent[-1]["status"] == "accepted"
+    if change == "completed":
+        service.store.finish_auto_run(peer_id, run_id)
+    if change == "capability_revision":
+        reader.last_capabilities = phone.desktop_capabilities(service.store.next_revision("capabilities.update"))
+    else:
+        service._payload(peer, reader, packet)
+        assert reader.sent[-1]["status"] == "duplicate"
+    competing = dict(request, run_id=str(uuid.uuid4())) if change != "repackaged" else request
+    retry = dict(message(scope.wrap("personal_sync.request", competing, manifest)), kind=scope.DATA_KIND)
+    service._payload(peer, reader, retry)
+    assert (reader.sent[-1]["status"], reader.sent[-1]["error"]) == ("rejected", "not_granted")
+    assert service.store.dedupe_result(peer_id, retry["message_id"]) is None
+    if change != "repackaged":
+        assert service.store.personal_run(peer_id, competing["run_id"]) == {}
+    replacement = reconnect_automation_fixture(service, peer, reader, remote, manifest)
+    fresh = dict(request, run_id=str(uuid.uuid4()))
+    service._payload(peer, replacement, dict(message(scope.wrap("personal_sync.request", fresh, manifest)), kind=scope.DATA_KIND))
+    assert replacement.sent[-1]["status"] == "accepted"
+
+
 def test_connection_request_requires_current_capability_sent_on_the_original_reader(tmp_path, monkeypatch):
     service, peer, original, remote, manifest = connection_automation_fixture(tmp_path, monkeypatch, "bluetooth")
     peer_id, public = peer["device_id"], peer["static_public"]

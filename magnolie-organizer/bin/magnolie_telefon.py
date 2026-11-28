@@ -3393,6 +3393,7 @@ class PhoneService:
         self.content_scope_sessions = weakref.WeakKeyDictionary()
         self.gui_connection_starts = weakref.WeakKeyDictionary()
         self.gui_connection_started = weakref.WeakSet()
+        self.connection_received_starts = weakref.WeakKeyDictionary()
         self.note_controls = weakref.WeakKeyDictionary()
         self.actor_source_channels = weakref.WeakKeyDictionary()
         self.native_actor_book_source = None
@@ -10468,13 +10469,20 @@ class PhoneService:
                         if body["trigger"] == "auto_wifi" and self.connection_transports.get(peer["device_id"]) != "wifi":
                             raise ValueError("auto sync received outside wifi")
                         authority = None
+                        request_hash = None
                         if body["trigger"] == personal_sync_contract.AUTO_CONNECTION_TRIGGER:
                             authority = self._connection_automation_authority(current, channel, body)
+                            request_hash = hashlib.sha256(canonical(payload)).digest()
+                            previous_start = self.connection_received_starts.get(channel)
+                            if previous_start is not None and previous_start != request_hash:
+                                raise PermissionError("This reader already admitted an automatic request.")
                             active = self.store.active_auto_run(peer["device_id"], connection_authority=authority)
                             if active and active != body["run_id"]:
                                 raise PermissionError("Another automatic run is active.")
                         self.store.remember_scoped_run(peer["device_id"], peer["static_public"], body, wrapped["scope"],
                                                        payload["expires_ms"], connection_authority=authority)
+                        if request_hash is not None:
+                            self.connection_received_starts[channel] = request_hash
                     elif self.store.scoped_run_reference(peer["device_id"], peer["static_public"], body["run_id"]) != wrapped["scope"]:
                         raise PermissionError("Scoped run binding missing or different.")
                     if inner_kind == "personal_sync.report" and body["trigger"] == personal_sync_contract.AUTO_CONNECTION_TRIGGER:

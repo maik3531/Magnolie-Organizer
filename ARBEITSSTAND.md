@@ -27,6 +27,9 @@ aufgeführt.
   und das angebotene Modulformat. Eine spätere Revision setzt den alten
   Lauf nicht fort. 82 Hostfälle und die erweiterte verschlüsselte
   Gegenprobe bestanden.
+  Pro Linux-Verbindung wird höchstens ein automatischer Start angenommen.
+  Nach Abschluss oder Revisionswechsel bleibt die Grenze bestehen; ein
+  neuer authentifizierter Reader kann starten. 85 Hostfälle bestanden.
 
 - [#869](https://github.com/maik3531/Magnolie-Organizer/issues/869):
   Der breite Linux-Webtest prüft Feiertagsabrufe über die kontrollierte
