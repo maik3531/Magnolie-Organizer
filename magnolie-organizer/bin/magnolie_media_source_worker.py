@@ -26,6 +26,7 @@ class NativeMappedMediaWorker:
         self._token=None;self._preferences=None;self._book=None;self._deadline=None
         self._book_fence=book_fence
         self._automatic=automatic
+        self._private_video=connection._media_support is not None
         self._native_current=native_current
         self._collection=None;self._collection_control=None;self._active_sender=None;self._filtered=0
 
@@ -43,6 +44,8 @@ class NativeMappedMediaWorker:
                 or self._token is None or c._media_transport.intent_for(self._kind,to_phone=True) is not self._token):
             raise TransferError('media_source_native_operation_ended')
         if c._native_metadata_current() is not True:raise TransferError('media_source_current_metadata_required')
+        if self._private_video and c._private_outgoing_video() is not self._token:
+            raise TransferError('media_source_typed_video_counterpart_required')
         if self._collection_control is not None:
             controls,session,challenge=self._collection_control
             remote=controls._remote
@@ -160,6 +163,8 @@ class NativeMappedMediaWorker:
             mode=effective(self._token.body)['collection_mode']
             if mode not in ('phone_inventory','entire_collection'):
                 raise TransferError('media_source_current_intent_required')
+            if self._private_video and (self._kind!='video' or self._automatic or c._private_outgoing_video() is not self._token):
+                raise TransferError('media_source_typed_video_counterpart_required')
             if mode=='entire_collection' and self._automatic:
                 # A manual composition proof is not native acceptance of an
                 # unattended whole-collection export. Keep that gate explicit.
@@ -187,6 +192,8 @@ class NativeMappedMediaWorker:
             while True:
                 self._current()
                 snapshot,records,cursor=c._mappings.candidate_page(self._kind,after=cursor,expected=snapshot,limit=self.PAGE_SIZE)
+                if self._private_video and records:
+                    raise TransferError('media_source_private_mapped_return_unavailable')
                 for record in records:
                     self._current()
                     if self._collection is not None and record.file_key in self._collection._mapped:

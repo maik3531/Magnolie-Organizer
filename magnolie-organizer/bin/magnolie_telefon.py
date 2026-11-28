@@ -101,6 +101,8 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
         native=importlib.import_module('magnolie_file_desktop_connection')
         if native.NativeDesktopFileConnection._data_handlers_ready:
             items['device_status']['versions'].append(21)
+            if optional_phone.private_pc_video() and native.NativeDesktopFileConnection._video_data_handlers_ready:
+                items['device_status']['versions'].append(22)
     return {"revision": revision, "items": items}
 
 
@@ -2908,7 +2910,8 @@ class PhoneService:
         self._native_sending_setups = weakref.WeakKeyDictionary()
         self._native_file_controls = weakref.WeakKeyDictionary()
         self._native_file_control_receipts = weakref.WeakKeyDictionary()
-        self._native_media_support_checked = False  # Private integration only until matching counterpart acceptance.
+        self._native_pc_video_checked = self._native_photo_built and optional_phone.private_pc_video()
+        self._native_media_support_checked = self._native_pc_video_checked
         self._native_media_support = weakref.WeakKeyDictionary()
         self._native_media_settings_previews = weakref.WeakKeyDictionary()
         self._native_media_support_projected = weakref.WeakSet()
@@ -3226,7 +3229,8 @@ class PhoneService:
                     self._current_native_source_metadata(peer_id,static_public,channel,generation)),
                 native_wifi_current=lambda:((support.supports(channel) if support is not None else
                     self._current_native_source_metadata(peer_id,static_public,channel,generation))
-                    and self.connection_transports.get(peer_id)=='wifi'),media_support=support)
+                     and self.connection_transports.get(peer_id)=='wifi'),media_support=support,
+                private_pc_video_runtime=support is not None and self._native_pc_video_checked)
         except BaseException:
             authority.close()
             raise

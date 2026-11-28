@@ -115,7 +115,10 @@ class NativeCollectionMediaSource(NativeMappedMediaSource):
     def freeze_completed_successor(self,action,expected,selected,member,*,kind='images',native_current=lambda:True):
         return self._freeze(action,expected,selected,member,kind,native_current,True)
 
-    def _freeze(self,action,expected,selected,member,kind,native_current,completed_successor):
+    def freeze_private_video(self,action,expected,selected,member,*,native_current,compare_completed):
+        return self._freeze(action,expected,selected,member,'video',native_current,compare_completed,private_video=True)
+
+    def _freeze(self,action,expected,selected,member,kind,native_current,completed_successor,*,private_video=False):
         from magnolie_photo_destination import NativePhotoDestinationAction
         from magnolie_photo_preferences import PhotoPreferencesSnapshot
         if (type(action) is not NativePhotoDestinationAction or type(expected) is not PhotoPreferencesSnapshot
@@ -169,7 +172,11 @@ class NativeCollectionMediaSource(NativeMappedMediaSource):
                             except BaseException:prefix[:]=b'\0'*len(prefix);raise
                         from magnolie_media_mime import PREFIX_BYTES,identify_collection
                         prefix=prefix_bytes(PREFIX_BYTES)
-                        try:identify_collection(prefix,member.size,kind);current()
+                        try:
+                            mime=identify_collection(prefix,member.size,kind)
+                            if private_video and (mime!='video/mp4' or member.size<=0):
+                                raise TransferError('media_collection_known_other_type')
+                            current()
                         finally:prefix[:]=b'\0'*len(prefix)
                         if kind=='images' and effective(token.body)['photos_only']:
                             from magnolie_photo_metadata import MAX_METADATA_BYTES,camera_photo_matches
@@ -186,7 +193,7 @@ class NativeCollectionMediaSource(NativeMappedMediaSource):
                             parent=os.open(self._authority.binding.native_directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
                             try:
                                 _NativeSourceCacheWriter._private(os.fstat(parent),directory=True)
-                                jobs._catalog.require_free_slot(parent,current)
+                                if not private_video:jobs._catalog.require_free_slot(parent,current)
                             finally:os.close(parent)
                             # A matching size/old digest is not a fresh native
                             # observation. Hash the entire current held original
@@ -202,6 +209,7 @@ class NativeCollectionMediaSource(NativeMappedMediaSource):
                                 raise TransferError('media_collection_original_predecessor_changed')
                             if member.size==previous.size and digest.hexdigest()==previous.sha256:
                                 raise TransferError('media_collection_latest_payload_already_sent')
+                            if private_video:raise TransferError('media_collection_video_replacement_unavailable')
                         selection=_NativePcSelection(canonical(origin),catalog_bytes,member.name,previous)
                         with _NativeSourceCacheWriter(self,None,member.size,lease._signature,token,expected,kind,book.book_version,current,
                                 pc_selection=selection) as cache:

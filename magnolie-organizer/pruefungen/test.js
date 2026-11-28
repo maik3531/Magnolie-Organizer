@@ -7565,8 +7565,8 @@ function knopfMit(text, wurzel) {
   const sharedFold = bd.querySelector("details.notes-foto-sync");
   assert.strictEqual(sharedFold.querySelectorAll("summary input").length, 1);
   assert.strictEqual(sharedFold.querySelector("summary input").dataset.mediaSetting, "enabled");
-  assert.ok(sharedFold.querySelector('[data-media-receive="images"]') &&
-    !sharedFold.querySelector('summary [data-media-receive]'), "Lokale Empfangsfreigabe ist nicht die gemeinsame Aktivierung");
+  assert.ok(!sharedFold.querySelector('[data-media-receive="images"]'),
+    "Bei PC → Handy erscheint kein Foto-Empfangsschalter");
   sharedFold.open = false;
   const beforeFold = baumNachrichten.length;
   sharedFold.querySelector("summary").click(); await tick();
@@ -7828,6 +7828,17 @@ function knopfMit(text, wurzel) {
   assert.ok(bd.querySelector("[data-mapped-outgoing-status]").textContent && !bd.querySelector("[data-photo-manual-sync]").disabled);
   fotoStand({ available: true, enabled: false, mapped_outgoing: false, state: "off", albums: [] });
   assert.ok(!bd.querySelector("[data-photo-manual-sync]") && !bd.querySelector("[data-photo-mode]"));
+  const originalVideo = { available: true, enabled: false, state: "off", albums: [], video_supported: true,
+    sending_consent: { version: "b".repeat(64), photos: false, videos: true }, sending_choice_kinds: ["videos"],
+    collection_sources_supported: true, shared_media: { version: "d".repeat(64), agreed: true, configured: true,
+      values: { ...sharedChoices, enabled: true, photos_enabled: false, videos_enabled: true, collection_mode: "entire_collection" } } };
+  fotoStand(originalVideo);
+  assert.ok(!bd.querySelector('[data-media-send="photos"]') && bd.querySelector('[data-media-send="videos"]'));
+  assert.ok(!bd.querySelector('[data-collection-source-add="images"]') && bd.querySelector('[data-collection-source-add="video"]'));
+  assert.ok(!bd.querySelector("[data-photo-manual-sync]"), "Ein Video-Ordner und das Empfangsecho fehlen");
+  fotoStand({ ...originalVideo, collection_manual_outgoing_ready: true });
+  bd.querySelector("[data-photo-manual-sync]").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "sync_shared" });
   fotoStand({ ...videoStand, state: "syncing", busy: true, active_media: "video" });
   videoGruppe = bd.querySelector(".notes-video-sync");
   assert.ok(bd.querySelector("[data-photo-manual-sync]").disabled &&

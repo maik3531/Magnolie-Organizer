@@ -129,6 +129,14 @@ aufgeführt.
   einschließlich Android-Testdialog, Saved, Rücklesen, Quellenabschluss
   und unveränderter Wiederholung. Mischversand und die installierte
   Windows/Notes-Gegenprobe bleiben offen.
+  Linux kann im separat aktivierbaren privaten Build eine Original-MP4
+  aus einem ausdrücklich gewählten Videoordner manuell an Notes senden.
+  Der gekoppelte WLAN-Quelltest bestätigte die getrennte Video-Freigabe,
+  bytegleiches Speichern, Saved, Rücklesen und den Quellenabschluss.
+  Bei unveränderten Dateien blieb der Folgelauf still. 87 Linux-
+  Regressionstests, der einzeln wiederholte Sammlungsfall und die
+  Oberflächenprüfung bestanden. Die Abnahme mit installierten
+  Linux-/Notes-Paketen und MediaStore bleibt offen.
   Der separat aktivierbare Foto-Batch-Empfang in Notes nimmt neue
   PC-Originale über dieselbe WLAN-Verbindung wie die bestätigten Einstellungen an.
   Er benötigt die separat ausgehandelte Foto-Batch-Fähigkeit und die

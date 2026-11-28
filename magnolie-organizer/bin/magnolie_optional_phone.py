@@ -51,6 +51,21 @@ def available(feature):
     return False
 
 
+def private_pc_video():
+    """Opt-in from the installed private build, never from user or peer settings."""
+    bindir = Path(__file__).resolve().parent
+    if bindir.name != 'python' or bindir.parent.name != 'magnolie-organizer':
+        return False
+    config = bindir.parent / 'build-config.json'
+    try:
+        if config.is_symlink() or not config.is_file() or config.stat().st_size > 65536:
+            return False
+        value = json.loads(config.read_text(encoding='utf-8'))
+        return composition(value)['photo_sync'] and value.get('privatePcVideoSend') is True
+    except (OSError, ValueError):
+        return False
+
+
 def selected_modules(modules, selected):
     if type(selected) is not dict or set(selected) != FEATURES or any(type(value) is not bool for value in selected.values()):
         raise ValueError('invalid desktop build composition')

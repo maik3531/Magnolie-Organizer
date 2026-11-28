@@ -30211,7 +30211,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const revoke = knopf(_("Revoke") + " · " + (revokeVideo ? _("Videos") : _("Photos")), "", () => sende(revokeVideo ? "videos_disable" : "disable"));
         revoke.title = revokeVideo ? (stand.video_destination || "") : label.title;
         gruppe.append(revoke);
-      } else if (stand.shared_media && !manualReceive && !automaticReceive && sharedValues?.photos_enabled === true) {
+      } else if (stand.shared_media && !manualReceive && !automaticReceive &&
+          sharedValues?.direction !== "pc_to_phone" && sharedValues?.photos_enabled === true) {
         const row = el("label", "hak"); row.append(an, document.createTextNode(" " + label.title));
         gruppe.append(row);
       } else if (!stand.shared_media) titel.append(label);
@@ -30219,6 +30220,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (sendeStand) {
         const rights = el("section", "notes-medien-rechte"); rights.append(el("h4", null, _("Send")));
         for (const [field, title] of [["photos", _("Photos")], ["videos", _("Videos")]]) {
+          if (Array.isArray(stand.sending_choice_kinds) && !stand.sending_choice_kinds.includes(field)) continue;
           if (field === "videos" && stand.video_supported !== true) continue;
           const input = document.createElement("input"); input.type = "checkbox"; input.dataset.mediaSend = field;
           input.checked = sendeStand[field] === true;
@@ -30478,6 +30480,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const sources = el("section", "notes-pc-sammlungsordner"); sources.append(el("h4", null, _("Selected PC source folders")));
         sources.append(el("p", "einst-hinweis", _("PC source folders are separate from receive destinations.")));
         for (const [kind, label, consent] of [["images", _("Photos"), "photos"], ["video", _("Videos"), "videos"]]) {
+          if (Array.isArray(stand.sending_choice_kinds) && !stand.sending_choice_kinds.includes(consent)) continue;
           if (kind === "video" && stand.video_supported !== true) continue;
           const row = el("div", "knopfreihe"); row.dataset.collectionSourceKind = kind;
           const add = knopf(label + " · " + _("Add PC source folder …"), "", () => telefonSammlungsOrdnerAktion(peer, stand, kind, "choose"));
@@ -30496,16 +30499,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
       if (twoWayHeld) gruppe.append(el("p", "einst-hinweis", _("Two-way synchronization") + " · " + _("Unavailable")));
       const backupRecovery = baueMedienBackupWiederherstellung(); gruppe.append(backupRecovery);
-      if (manualReceive || automaticSetup || stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
+      const collectionManual = stand.collection_manual_outgoing_ready === true;
+      if (manualReceive || automaticSetup || stand.enabled || collectionManual || stand.mapped_outgoing === true || stand.busy === true) {
         const manuell = el("div", "knopfreihe notes-medien-manuell");
         const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => {
           telefonFotoFehler.delete(peer.device_id);
           Bruecke.sende({ cmd: "telefon_foto_aktion", kennung: peer.device_id, fingerprint: peer.fingerprint,
-             request: manualReceive || stand.mapped_outgoing === true && !(fotoAlbumWahl?.value || videoAlbumWahl?.value) ? { action: "sync_shared" } :
+             request: manualReceive || collectionManual || stand.mapped_outgoing === true && !(fotoAlbumWahl?.value || videoAlbumWahl?.value) ? { action: "sync_shared" } :
               { action: "sync_selected", album_id: fotoAlbumWahl?.value || null, video_album_id: videoAlbumWahl?.value || null } });
         });
         jetzt.dataset.photoManualSync = "true";
-        jetzt.disabled = twoWayHeld || stand.busy === true || !(manualReceive || stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length) ||
+        jetzt.disabled = twoWayHeld || stand.busy === true || !(manualReceive || collectionManual || stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length) ||
           !!(stand.shared_media && stand.shared_media.configured !== false && (!stand.shared_media.values.enabled || !stand.shared_media.agreed));
         if (automaticSetup) {
           const einrichten = knopf(_("Set up automatic receiving"), "hauptknopf", () => sende("setup_automatic_receive"));

@@ -211,6 +211,11 @@ class _NativeMediaSourceSender:
                     origin=self._cache.pc_origin
                     if origin is None:raise TransferError('media_collection_sender_pc_origin_required')
                     previous=self._jobs.pc_previous_publication(self._cache.manifest.source_id,self._cache._job_version)
+                    if self._connection is not None and self._connection._media_support is not None:
+                        if kind!='video' or mime!='video/mp4' or previous is not None or file.size<=0 or self._cache.original_references:
+                            raise TransferError('media_source_typed_video_counterpart_required')
+                        if self._connection._private_outgoing_video() is not token:
+                            raise TransferError('media_source_sender_original_intent_required')
                     pc={file.id:dict(format=1,origin_sha256=sha256(b'magnolie-pc-media-origin-v1\0'+canonical(origin)).hexdigest(),
                         previous_publication_sha256=previous)}
                 offer=create_media_offer(manifest,token.body,kind,{file.id:mime},self._cache.original_references,pc_origins=pc)
