@@ -43,6 +43,11 @@ for (const platform of ["linux", "windows"]) {
   for (const language of languages) {
     win.MagnolieI18n.setLocale(language);
     assert.equal(win.document.documentElement.dir, language === "ar" ? "rtl" : "ltr");
+    const holidays = page("country-region-holiday-display");
+    const watermarkSource = holidays.inhaltAnhang.en;
+    const watermarkText = win.MagnolieI18n.gettext(watermarkSource);
+    assert.ok(holidays.inhalt.endsWith(watermarkText), `${language}/${platform}: missing watermark section`);
+    if (language !== "en") assert.notEqual(watermarkText, watermarkSource, `${language}: untranslated watermark section`);
     for (const [id, files] of [
       ["linux-diagnostic-reminder-logs", ["debug.log", "wecker.log"]],
       ["windows-diagnostic-logs", ["webview.log", "bridge.log", "telefon.log", "kde-connect-debug.log"]]

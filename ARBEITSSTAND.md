@@ -127,21 +127,21 @@ aufgeführt.
 
 - [#853](https://github.com/maik3531/Magnolie-Organizer/issues/853):
   Zwölf nationale Kalenderwasserzeichen sind in den Desktopquellen integriert:
-  DE, AT, CH, FR, NL, BE, LU, IT, PL, LI, CZ und ES. Die Wochenansicht folgt dem gewählten
-  Feiertagsland und Datum. Italien berücksichtigt die belegten frühen
+  DE, AT, CH, FR, NL, BE, LU, IT, PL, LI, CZ und ES. Die Wochenansicht folgt
+  dem gewählten Feiertagsland und Datum. Italien berücksichtigt die belegten frühen
   Feiern, die Sonntagsregel und den 2. Juni 1986; Polen zeigt das Motiv
   am 11. November 1937/38 und ab 1989. Liechtensteins Höhenfeuer-Motiv erscheint
   am 15. August ab 1940, das tschechische Motiv am 28. Oktober ab 1993 und
-  das spanische Motiv am 12. Oktober ab 1982. 40 Desktop-DOM-Läufe in 20 Sprachen sowie
-  die SVG-Anzeige und unveränderte Druckausgabe mit und ohne Motive im
+  das spanische Motiv am 12. Oktober ab 1982. 40 Desktop-DOM-Läufe in 20
+  Sprachen sowie die SVG-Anzeige und unveränderte Druckausgabe im
   GTK-WebKit-Host bestanden. Das standardmäßig deaktivierte Entwicklerpanel
   bietet alle zwölf Motive in beiden Oberflächen und 20 Sprachen zur
-  Auswahl. Das Handbuch beschreibt die neun Motive in der Wochenansicht,
+  Auswahl. Das Handbuch beschreibt alle zwölf Motive in der Wochenansicht,
   die Zuordnung zu Land und Kalenderdatum, den Druck und die Vorschau
-  in Testversionen. Handbuchdarstellung in 20 Sprachen, neun
-  Katalogprüfungen und die redaktionelle Laufzeitprüfung bestanden.
-  Der Handbuchnachtrag zu Liechtenstein, Tschechien und Spanien, weitere Festidentitäten und die
-  Mac-/Tablet-Projektion bleiben in #853; installierte Pakete in #113.
+  in Testversionen. 170 englische und 170 deutsche Handbuchseiten,
+  neun Katalogprüfungen und die redaktionelle Laufzeit in 20 Sprachen
+  für beide Desktopplattformen bestanden. Weitere Festidentitäten und
+  die Mac-/Tablet-Projektion bleiben in #853; installierte Pakete in #113.
 
 - [#857](https://github.com/maik3531/Magnolie-Organizer/issues/857):
   Die Feiertagsdienste für Linux, Windows, macOS und Android-Tablet erkennen

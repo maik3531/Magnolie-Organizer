@@ -1259,11 +1259,11 @@ try {
     "der Anbieter die Abdeckung bestätigt hat", "bedeuten nicht, dass es keine Ferien gibt",
     "höchstens drei Jahre und 26 Regionen", "Termine, Kontakte, Notizen"])
     assert.ok(germanText.includes(phrase), `German holiday documentation missing: ${phrase}`);
-  for (const phrase of ["National holiday watermarks", "Luxembourg, Italy and Poland",
+  for (const phrase of ["National holiday watermarks", "Luxembourg, Italy, Poland, Liechtenstein, Czechia and Spain",
     "independently of the display language and downloaded holidays", "omitted from print and PDF",
     "disabled in standard builds", "Reset preview to return to automatic display"])
     assert.ok(englishText.includes(phrase), `English watermark documentation missing: ${phrase}`);
-  for (const phrase of ["Wasserzeichen für Nationalfeiertage", "Luxemburg, Italien und Polen",
+  for (const phrase of ["Wasserzeichen für Nationalfeiertage", "Luxemburg, Italien, Polen, Liechtenstein, Tschechien und Spanien",
     "unabhängig von der Anzeigesprache und abgerufenen Feiertagen", "Druck und PDF",
     "in Standardversionen deaktiviert", "Vorschau zurücksetzen"])
     assert.ok(germanText.includes(phrase), `German watermark documentation missing: ${phrase}`);
