@@ -1245,12 +1245,14 @@ try {
   const holidayIds = ["country-region-holiday-display", "fetching-public-and-school-holidays"];
   assert.strictEqual(sourcePages.filter((page) => holidayIds.includes(page.id)).length, 2,
     "the country, region, and holiday route must contain exactly two pages");
-  for (const phrase of ["The Organizer never guesses one", "All cantons",
-    "replaces only entries whose date range touches one of the requested years",
+  for (const phrase of ["The Organizer never guesses one", "All cantons", "France offers school zones and overseas areas",
+    "public holidays still come from the national calendar", "A postal address never selects a school area",
+    "replaces only dates covered by a confirmed response", "does not mean there are no holidays",
     "At most three years and 26 regions", "Your appointments, contacts, notes"])
     assert.ok(englishText.includes(phrase), `English holiday documentation missing: ${phrase}`);
-  for (const phrase of ["niemals ein Bundesland oder einen Kanton", "Alle Kantone",
-    "nur Einträge, deren Zeitraum eines der angefragten Jahre berührt",
+  for (const phrase of ["niemals ein Bundesland oder einen Kanton", "Alle Kantone", "Frankreich bietet Ferienzonen und Überseegebiete",
+    "gesetzliche Feiertage aus dem landesweiten Kalender", "Die Postanschrift legt kein Schulgebiet fest",
+    "der Anbieter die Abdeckung bestätigt hat", "bedeuten nicht, dass es keine Ferien gibt",
     "höchstens drei Jahre und 26 Regionen", "Termine, Kontakte, Notizen"])
     assert.ok(germanText.includes(phrase), `German holiday documentation missing: ${phrase}`);
   const regionalIds = ["settings-language-format-region", "settings-time-week-region"];

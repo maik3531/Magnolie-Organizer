@@ -62,7 +62,8 @@ aufgeführt.
   widerrufen die Zustimmung; der Abruf beginnt erst nach bestätigter
   Speicherung. 106 Einrichtungs-DOM-Fälle, der native Windows-Bau mit
   Kerngruppe sowie GTK- und WinForms-Dialogprüfungen in 20 Sprachen bestanden.
-  Handbuch, Lückenanzeige und installierte Paketabnahme bleiben offen.
+  Die beiden Handbuchseiten erklären diese Auswahl und den Abruf in
+  allen 20 Sprachen. Lückenanzeige und installierte Paketabnahme bleiben offen.
 
 - [#852](https://github.com/maik3531/Magnolie-Organizer/issues/852):
   Der Abrufstatus zählt gespeicherte Feiertage und Ferien der gewählten
