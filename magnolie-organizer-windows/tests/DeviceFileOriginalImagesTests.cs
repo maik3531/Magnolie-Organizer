@@ -6,7 +6,8 @@ namespace MagnolieOrganizer.Windows.Tests;
 internal static class DeviceFileOriginalImagesTests
 {
     internal static async Task VerifyManualAsync(PhoneCameraParentTests.Fixture fixture, TelefonCoordinator coordinator,
-        Func<Task<JsonObject>> read, Func<JsonObject, Task> send, bool video = false)
+        Func<Task<JsonObject>> read, Func<JsonObject, Task> send, bool video = false,
+        Func<Func<Func<Task<JsonObject>>, Func<JsonObject, Task>, TelefonConnection, Task>, Task>? reconnect = null)
     {
         var peer = fixture.Peer.Id;
         var kind = video ? "video" : "images";
@@ -39,13 +40,98 @@ internal static class DeviceFileOriginalImagesTests
         request["version"] = selected["shared_start_version"]!.DeepClone();
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(230));
         var pass = coordinator.RunNativeMediaUiSharedAsync(NativeMediaUiRequest.Parse(request), deadline.Token);
-        await VerifyTransferAsync(fixture, read, send, video, originals, root, pass, deadline);
+        await VerifyTransferAsync(fixture, read, send, video, originals, root, pass, deadline,
+            afterSaved: reconnect is null ? null : async (offer, saved, context) =>
+            {
+                var ping = new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = Now() };
+                await send(ping);
+                ping["type"] = "pong";
+                TestAssert.That(JsonNode.DeepEquals(ping, await read().WaitAsync(deadline.Token)), "Saved did not cross the original reader barrier.");
+                var job = context["source_id"]!.GetValue<string>();
+                var pending = DeviceFileSourceSendTests.Exchange(fixture.Store, peer, job);
+                TestAssert.That(pending["phase"]?.GetValue<string>() == "peer_saved" && JsonNode.DeepEquals(pending["peer_saved"], saved) &&
+                    pending["source_end"] is null, "The original batch was not durably Saved before disconnection.");
+                Console.WriteLine("Original photo Saved confirmed in SQLite; closing its reader before readback.");
+                await reconnect(async (freshRead, freshSend, _) =>
+                {
+                    try { await pass.WaitAsync(deadline.Token); }
+                    catch (Exception error) when (error is IOException or OperationCanceledException or ObjectDisposedException ||
+                        error is InvalidDataException { Message: "media_collection_original_send_binding_required" }) { }
+                    TestAssert.That(pass.IsCompleted && !pass.IsCompletedSuccessfully, "The disconnected pass claimed completion.");
+                    Console.WriteLine("Fresh photo reader negotiated; requesting manual Saved recovery.");
+                    request["requestId"] = Guid.NewGuid().ToString("D");
+                    request["version"] = coordinator.NativeMediaUiStatus(peer)["shared_start_version"]!.DeepClone();
+                    var resumed = coordinator.RunNativeMediaUiSharedAsync(NativeMediaUiRequest.Parse(request), deadline.Token);
+                    try
+                    {
+                        await VerifySavedRecoveryAsync(fixture, freshRead, freshSend, offer, saved, context, resumed, deadline.Token);
+                        TestAssert.That(await resumed.WaitAsync(deadline.Token) == "content_pass", "The fresh action did not finish the original Saved batch.");
+                        var ended = DeviceFileSourceSendTests.Exchange(fixture.Store, peer, job);
+                        TestAssert.That(ended["phase"]?.GetValue<string>() == "source_ended" &&
+                            !JsonNode.DeepEquals(ended["reader_id"], ended["recovery"]?["reader_id"]) &&
+                            JsonNode.DeepEquals(ended["offer"], offer) && JsonNode.DeepEquals(ended["peer_saved"], saved) &&
+                            JsonNode.DeepEquals(ended["sent_chunks"], pending["sent_chunks"]) &&
+                            JsonNode.DeepEquals(ended["source_end"]?["readback_sha256"], ended["peer_readback"]?["body"]?["readback_sha256"]) &&
+                            fixture.Store.NativeMediaSourceHistory(peer).Count == 1 &&
+                            originals.All(pair => File.ReadAllBytes(Path.Combine(root, pair.Key)).SequenceEqual(pair.Value)),
+                            "Recovery did not end only the original journal with the original bytes and delivery bits intact.");
+                    }
+                    finally
+                    {
+                        if (!resumed.IsCompleted) deadline.Cancel();
+                        try { await resumed.WaitAsync(TimeSpan.FromSeconds(10)); } catch { }
+                    }
+                });
+            });
+    }
+
+    private static async Task VerifySavedRecoveryAsync(PhoneCameraParentTests.Fixture fixture,
+        Func<Task<JsonObject>> read, Func<JsonObject, Task> send, JsonObject offer, JsonObject saved,
+        JsonObject context, Task pass, CancellationToken token)
+    {
+        async Task<JsonObject> Next(string kind)
+        {
+            while (true)
+            {
+                var next = read();
+                if (await Task.WhenAny(next, pass).WaitAsync(token) == pass) await pass;
+                var frame = await next.WaitAsync(token);
+                if (frame["type"]?.GetValue<string>() == "ping")
+                {
+                    frame["type"] = "pong"; await send(frame); continue;
+                }
+                TestAssert.That(frame["kind"]?.GetValue<string>() == kind, $"Unexpected frame during recovery ({kind}): {frame["kind"]}");
+                return frame;
+            }
+        }
+        var local = fixture.Store.ReadFileIdentity();
+        var phone = new NativeFileControlIdentity(fixture.Peer.Id, Convert.ToHexString(SHA256.HashData(fixture.Peer.PublicKey)).ToLowerInvariant());
+        var desktop = new NativeFileControlPeer(local.DeviceId, local.IdentitySha256, new object(), true, true, true, true, true, fixture.Peer.FilePairingEpoch);
+        var grant = new NativeLocalFileGrant(new(1, new string('a', 64), false, true), new object(), true);
+        using var controls = new NativeFileControlSession(phone, () => desktop, () => grant);
+        controls.ObserveRemote(DeviceFileControlEnvelope.Validate(await Next(DeviceFileControl.Kind), Now()), desktop);
+        var echo = controls.Packet(); controls.MarkSent(echo);
+        await send(DeviceFileControlEnvelope.Create(echo, Now()));
+        controls.ObserveRemote(DeviceFileControlEnvelope.Validate(await Next(DeviceFileControl.Kind), Now()), desktop);
+        var challenge = await Next(DeviceSavedBatchReadback.RequestKind);
+        Console.WriteLine("Fresh reader sent a Saved recovery challenge.");
+        var at = context["manifest_sha256"]!.GetValue<string>();
+        var binding = controls.Binding(at, senderIsLocal: false)!;
+        var body = challenge["body"]!.AsObject();
+        TestAssert.That(JsonNode.DeepEquals(body["offer"], offer) && JsonNode.DeepEquals(body["saved"], saved) &&
+            body["binding_sha256"]?.GetValue<string>() == DeviceFileControl.Digest("magnolie-pc-saved-readback-control-v1\0", binding.Snapshot()),
+            "Recovery used anything other than the historical Offer/Saved and a fresh authenticated file binding.");
+        context["permission_epoch"] = binding.PermissionEpoch;
+        context["readback_nonce"] = body["nonce"]!.DeepClone();
+        var replyBinding = controls.Binding(DevicePublishedBatchReadbackEnvelope.DestinationToken(context), senderIsLocal: false)!;
+        await send(DeviceFileSourceSendTests.Message(DevicePublishedBatchReadbackEnvelope.Kind,
+            DevicePublishedBatchReadbackEnvelope.EncodeBody(context, replyBinding), challenge));
     }
 
     internal static async Task VerifyTransferAsync(PhoneCameraParentTests.Fixture fixture,
         Func<Task<JsonObject>> read, Func<JsonObject, Task> send, bool video,
         Dictionary<string, byte[]> originals, string root, Task pass, CancellationTokenSource deadline,
-        NativeFileControlSession? agreedControls = null)
+        NativeFileControlSession? agreedControls = null, Func<JsonObject, JsonObject, JsonObject, Task>? afterSaved = null)
     {
         var peer = fixture.Peer.Id;
         var kind = video ? "video" : "images";
@@ -139,7 +225,8 @@ internal static class DeviceFileOriginalImagesTests
                     ["mime_type"] = mime, ["publication_sha256"] = publication, ["row_sha256"] = row };
             }
             var saved = accept.DeepClone().AsObject(); saved.Remove("offer_id"); saved["receipts"] = receipts;
-            await send(DeviceFileSourceSendTests.Message(DeviceFileSavedEnvelope.Kind, saved, acceptance));
+            var savedFrame = DeviceFileSourceSendTests.Message(DeviceFileSavedEnvelope.Kind, saved, acceptance);
+            await send(savedFrame);
             TestAssert.That(!pass.IsCompleted, "Saved alone stopped the native operation.");
             var context = new JsonObject { ["format"] = video ? 1 : 2, ["offer_id"] = offerFrame["message_id"]!.DeepClone(),
                 ["manifest_sha256"] = offer.Manifest.Fingerprint, ["transfer_id"] = offer.Manifest.TransferId,
@@ -157,6 +244,11 @@ internal static class DeviceFileOriginalImagesTests
             else
             {
                 context["members"] = members;
+                if (afterSaved is not null)
+                {
+                    await afterSaved(offerFrame, savedFrame, context);
+                    return;
+                }
                 var readback = controls.Binding(DevicePublishedBatchReadbackEnvelope.DestinationToken(context), senderIsLocal: false)!;
                 await send(DeviceFileSourceSendTests.Message(DevicePublishedBatchReadbackEnvelope.Kind,
                     DevicePublishedBatchReadbackEnvelope.EncodeBody(context, readback), acceptance));

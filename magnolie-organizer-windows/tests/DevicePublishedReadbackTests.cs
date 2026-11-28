@@ -112,6 +112,55 @@ internal static class DevicePublishedReadbackTests
             "A readback extended the original offer lifetime.");
         TestAssert.Throws<InvalidDataException>(() => DevicePublishedBatchReadbackEnvelope.Parse(message, offer,
             binding with { ReceiverIdentitySha256 = new string('0', 64) }, "images", now), "Foreign binding accepted the readback.");
+        VerifyHistoricalPhotoBatch(offer, binding, Context(), now);
         return Task.CompletedTask;
+    }
+
+    private static void VerifyHistoricalPhotoBatch(JsonObject offer, DeviceTransferBinding originalBinding, JsonObject context, long savedAt)
+    {
+        const string sender = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
+        const string receiver = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb";
+        var created = TelefonProtocolContract.Integer(offer["created_ms"]);
+        var fixture = DeviceFileOfferEnvelope.Validate(offer, originalBinding.SenderId, originalBinding.ReceiverId, created);
+        var manifest = new DeviceFileManifest(fixture.TransferId, fixture.SourceId, sender, receiver, fixture.Files, fixture.TotalBytes);
+        var settings = MediaSyncSettings.Change(MediaSyncSettings.Create(sender), sender, receiver, "enabled", JsonValue.Create(true)!);
+        settings = MediaSyncSettings.Change(settings, sender, receiver, "direction", JsonValue.Create("pc_to_phone")!);
+        settings = MediaSyncSettings.Change(settings, sender, receiver, "collection_mode", JsonValue.Create("entire_collection")!);
+        var members = context["members"]!.AsObject();
+        var mime = new JsonObject(members.Select(pair => KeyValuePair.Create(pair.Key, pair.Value!["mime_type"]?.DeepClone())));
+        var origins = new JsonObject(manifest.Files.Select(file => KeyValuePair.Create<string, JsonNode?>(file.Id,
+            new JsonObject { ["format"] = 1, ["origin_sha256"] = file.Id + file.Id, ["previous_publication_sha256"] = null })));
+        var historical = MediaOfferEnvelope.Create(manifest, settings, "images", mime, new(), created,
+            offer["message_id"]!.GetValue<string>(), origins, pcBatch: true);
+        var accepted = new RemoteFileAcceptance(
+            historical["message_id"]!.GetValue<string>(), manifest.Fingerprint, manifest.TransferId,
+            new string('f', 64), originalBinding.PermissionEpoch, originalBinding.DestinationToken);
+        var receiptRows = new JsonArray(manifest.Files.Select(file => (JsonNode?)new JsonObject { ["file_id"] = file.Id, ["size"] = file.Size,
+            ["sha256"] = file.Sha256, ["receipt_sha256"] = members[file.Id]!["publication_sha256"]!.DeepClone() }).ToArray());
+        var saved = new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),
+            ["kind"] = DeviceFileSavedEnvelope.Kind, ["created_ms"] = savedAt, ["expires_ms"] = historical["expires_ms"]!.DeepClone(),
+            ["body"] = new JsonObject { ["format"] = 1, ["transfer_id"] = manifest.TransferId, ["manifest_sha256"] = manifest.Fingerprint,
+                ["acceptance_sha256"] = accepted.AcceptanceSha256, ["permission_epoch"] = accepted.PermissionEpoch,
+                ["destination_token"] = accepted.DestinationToken, ["receipts"] = receiptRows } };
+        var receipts = DeviceFileSavedEnvelope.Parse(saved, manifest, accepted, savedAt);
+        var fresh = originalBinding with { SenderId = sender, ReceiverId = receiver, DestinationToken = manifest.Fingerprint, PermissionEpoch = new string('a', 64) };
+        var now = TelefonProtocolContract.Integer(historical["expires_ms"]) + 60000;
+        var challenge = DeviceSavedBatchReadback.Create(historical, saved, fresh, now);
+        context["manifest_sha256"] = manifest.Fingerprint;
+        context["readback_nonce"] = challenge["body"]!["nonce"]!.DeepClone();
+        context["permission_epoch"] = fresh.PermissionEpoch;
+        var replyBinding = fresh with { DestinationToken = DevicePublishedBatchReadbackEnvelope.DestinationToken(context) };
+        var reply = new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),
+            ["kind"] = DevicePublishedBatchReadbackEnvelope.Kind, ["created_ms"] = now, ["expires_ms"] = challenge["expires_ms"]!.DeepClone(),
+            ["body"] = DevicePublishedBatchReadbackEnvelope.EncodeBody(context, replyBinding) };
+        TestAssert.That(JsonNode.DeepEquals(reply["body"], DeviceSavedBatchReadback.ParseReply(challenge, reply, historical, saved,
+            receipts, fresh, replyBinding, now).Body), "Historical offer expiry blocked a fresh authenticated read-only response.");
+        var replay = DeviceSavedBatchReadback.Create(historical, saved, fresh, now);
+        TestAssert.Throws<InvalidDataException>(() => DeviceSavedBatchReadback.ParseReply(replay, reply, historical, saved,
+            receipts, fresh, replyBinding, now), "A different challenge nonce accepted an old response.");
+        TestAssert.Throws<InvalidDataException>(() => DeviceSavedBatchReadback.ParseReply(challenge, reply, historical, saved,
+            receipts, fresh, replyBinding with { ReceiverIdentitySha256 = new string('0', 64) }, now), "A foreign binding accepted a recovery response.");
+        TestAssert.Throws<InvalidDataException>(() => DeviceSavedBatchReadback.ParseReply(challenge, reply, historical, saved,
+            receipts, fresh, replyBinding, TelefonProtocolContract.Integer(challenge["expires_ms"])), "An expired recovery response was accepted.");
     }
 }

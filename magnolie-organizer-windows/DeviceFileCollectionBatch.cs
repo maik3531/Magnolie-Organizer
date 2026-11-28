@@ -205,6 +205,26 @@ internal sealed partial class TelefonStore
             result.Require(); return result; // Never invert published cacheGate -> original gate.
         }
 
+        internal NativePreparedMediaBatch? RecoverSavedCache()
+        {
+            lock (gate)
+            {
+                Require();
+                if (freezeAttempted) throw DeviceFileControl.Error("media_source_cache_original_preparation_required");
+                try
+                {
+                    var attached = NativePreparedMediaBatch.AttachSaved(this);
+                    if (attached is not null)
+                    {
+                        freezeAttempted = true;
+                        frozen = attached;
+                    }
+                    return attached;
+                }
+                catch { RetireAndClose(); throw; }
+            }
+        }
+
         internal void BindRetirementDrain(NativeBatchSourceRetirement owner)
         {
             lock (gate)

@@ -421,9 +421,17 @@ aufgeführt.
   Im gekoppelten Test wurden Foto-v2 und MP4-v1 jeweils nach einem
   eigenen TCP-Abbruch bytegleich überprüft, lokal gesichert und im
   ursprünglichen Job abgeschlossen. Notes veröffentlichte jede Datei
-  genau einmal. Installierte Paketpaare, gemischte WLAN-Automatik,
-  Windows-Wiederaufnahme und Änderungen vorhandener Galeriezeilen
-  bleiben offen.
+  genau einmal. Der manuelle Windows-Fotoexport kann nach dauerhaftem
+  Saved und einem Verbindungsabbruch den ursprünglichen Auftrag über
+  einen frisch bestätigten Leser rücklesen und lokal abschließen. Der
+  native verschlüsselte Windows-Loopback bestätigte zwei unveränderte
+  Originale, unveränderte Sendequittungen und ein Ende für genau den
+  ursprünglichen Auftrag; ein erneutes Angebot oder erneute Dateidaten
+  wären im Test zurückgewiesen worden. Zwei Codec-Gruppen und drei
+  native Windows-Gruppen bestanden. Ohne belegten ursprünglichen Leser
+  bleibt ein älterer unterbrochener Auftrag gehalten. Windows-MP4,
+  Windows/Notes-Providerkopplung, installierte Paketpaare, gemischte
+  WLAN-Automatik und Änderungen vorhandener Galeriezeilen bleiben offen.
   Windows kann in der privaten Medienkonfiguration Original-MP4 aus
   einem ausdrücklich gewählten Videoordner manuell senden. Die Auswahl
   startet keine Übertragung. Der Lauf braucht getrennt bestätigtes

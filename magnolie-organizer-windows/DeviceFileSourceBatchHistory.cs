@@ -22,6 +22,9 @@ internal sealed partial class TelefonStore
         List<(string JobId, byte[] Cipher, JsonObject Body)> records, string jobId, string exchangeVersion) =>
         new BatchHistory(this, db, transaction, scope, records).PendingRetirement(jobId, exchangeVersion);
 
+    internal sealed record PendingSavedPhotoBatch(JsonObject Job, string JobVersion, JsonObject Exchange,
+        string ExchangeVersion, RemoteSavedConfirmation Saved);
+
     private sealed class BatchHistory(TelefonStore store, SqliteConnection db, SqliteTransaction transaction,
         NativeMediaPreferenceScope scope, List<(string JobId, byte[] Cipher, JsonObject Body)> records)
     {
@@ -41,6 +44,42 @@ internal sealed partial class TelefonStore
             var root = ValidateRoot(jobId, allowPlanned: true);
             if (root.Ended || root.ExchangeVersion != exchangeVersion) throw Error();
             return root.Exchange.DeepClone().AsObject();
+        }
+
+        internal PendingSavedPhotoBatch? FindSavedPhotos(JsonObject origins)
+        {
+            PendingSavedPhotoBatch? pending = null;
+            foreach (var source in records.Where(item => Number(item.Body["format"]) == 5))
+            {
+                var savedOrigins = source.Body["origins"]!.AsObject();
+                if (!savedOrigins.Any(old => origins.Any(current => JsonNode.DeepEquals(old.Value, current.Value)))) continue;
+                var (body, exchangeVersion) = Exchange(source.JobId, batch: true);
+                if (Text(body, "phase") == "source_ended") continue;
+                var version = SourceDigest(source.Cipher);
+                if (pending is not null || Text(source.Body, "phase") != "ready" || Text(body, "phase") != "peer_saved" ||
+                    body["peer_readback"] is not null || savedOrigins.Count != origins.Count ||
+                    !savedOrigins.All(old => origins.Any(current => JsonNode.DeepEquals(old.Value, current.Value))) ||
+                    !body.ContainsKey("reader_id") || !DeviceFileControl.Hash(Text(body, "reader_id")) ||
+                    source.Body["predecessors"]!.AsObject().Any(previous => previous.Value is not null))
+                    throw Error();
+                TelefonProtocolContract.ExactObject(body, "format", "cache_version", "nonce", "offer", "permission_epoch", "phase", "acceptance",
+                    "sent_chunks", "pending_chunk", "peer_saved", "peer_readback", "reader_id");
+                var manifest = BatchManifest(source.Body);
+                var (media, _, receipts) = OriginalSaved(source.Body, manifest, version, body);
+                if (media.MediaType != "images" || Number(body["peer_saved"]!["created_ms"]) < Number(body["acceptance"]!["created_ms"]))
+                    throw Error();
+                foreach (var file in manifest.Files)
+                {
+                    var origin = savedOrigins[file.Id]!.AsObject();
+                    ValidateOriginalGraph(origin, file, manifest);
+                    if (!JsonNode.DeepEquals(media.PcOrigins[file.Id], new JsonObject { ["format"] = 1,
+                        ["origin_sha256"] = PcOriginDigest(origin), ["previous_publication_sha256"] = null }))
+                        throw Error();
+                }
+                VerifyCiphers(source.JobId, source.Body, manifest);
+                pending = new(source.Body, version, body, exchangeVersion, receipts);
+            }
+            return pending;
         }
 
         private (JsonObject Body, string Version) Exchange(string job, bool batch)
@@ -162,33 +201,34 @@ internal sealed partial class TelefonStore
                 var ended = Text(body, "phase") == "source_ended";
                 var fields = new[] { "format", "cache_version", "nonce", "offer", "permission_epoch", "phase", "acceptance",
                     "sent_chunks", "pending_chunk", "peer_saved", "peer_readback", "source_retirement" };
+                if (body.ContainsKey("reader_id"))
+                {
+                    if (!DeviceFileControl.Hash(Text(body, "reader_id"))) throw Error();
+                    fields = fields.Append("reader_id").ToArray();
+                }
+                if (body.ContainsKey("recovery")) fields = fields.Append("recovery").ToArray();
                 TelefonProtocolContract.ExactObject(body, ended ? fields.Append("source_end").ToArray() : fields);
                 var version = SourceDigest(source.Cipher);
-                if (Number(body["format"]) != 2 || !ended && (!allowPlanned || Text(body, "phase") != "end_planned") || Text(body, "cache_version") != version ||
-                    Text(body, "nonce") != Text(source.Body, "nonce") || body["pending_chunk"] is not null) throw Error();
-                var offer = body["offer"]!.AsObject();
-                var media = MediaOfferEnvelope.Validate(offer, scope.LocalId, scope.PeerId, Number(offer["created_ms"]), allowPcBatch: true);
-                if (media.Manifest.Fingerprint != manifest.Fingerprint || media.Originals.Count != 0 ||
-                    !JsonNode.DeepEquals(media.Settings, source.Body["provenance"]!["settings"]) || media.MediaType != Text(source.Body["provenance"]!, "media_type") ||
-                    !JsonNode.DeepEquals(media.MimeTypes, source.Body["mime_types"]) ||
-                    Text(body, "permission_epoch") != Text(source.Body["provenance"]!["sending_binding"]!, "permission_epoch")) throw Error();
-                var acceptance = body["acceptance"]!.AsObject(); var accepted = DeviceFileAcceptanceEnvelope.Parse(acceptance, Number(acceptance["created_ms"]));
-                if (accepted.OfferId != Text(offer, "message_id") || accepted.ManifestSha256 != manifest.Fingerprint || accepted.TransferId != manifest.TransferId ||
-                    accepted.PermissionEpoch != Text(body, "permission_epoch") || Number(acceptance["created_ms"]) < Number(offer["created_ms"]) ||
-                    Number(acceptance["expires_ms"]) > Number(offer["expires_ms"])) throw Error();
-                var saved = body["peer_saved"]!.AsObject(); var receipts = DeviceFileSavedEnvelope.Parse(saved, manifest, accepted, Number(saved["created_ms"]));
+                if (!ended && (!allowPlanned || Text(body, "phase") != "end_planned")) throw Error();
+                var (media, accepted, receipts) = OriginalSaved(source.Body, manifest, version, body);
                 var readback = body["peer_readback"]!.AsObject();
-                var binding = new DeviceTransferBinding(scope.LocalId, scope.PeerId, scope.LocalKey, scope.PeerKey, accepted.PermissionEpoch,
+                var recovery = body.ContainsKey("recovery")
+                    ? TelefonProtocolContract.ExactObject(body["recovery"]!, "request", "permission_epoch", "reader_id") : null;
+                if (recovery is not null && (!body.ContainsKey("reader_id") || !DeviceFileControl.Hash(Text(recovery, "reader_id")) ||
+                    Text(body, "reader_id") == Text(recovery, "reader_id"))) throw Error();
+                var binding = new DeviceTransferBinding(scope.LocalId, scope.PeerId, scope.LocalKey, scope.PeerKey,
+                    recovery is null ? accepted.PermissionEpoch : Text(recovery, "permission_epoch"),
                     Text(readback["body"]!, "destination_token"));
-                var observed = DevicePublishedBatchReadbackEnvelope.Parse(readback, media.Offer, binding, media.MediaType, Number(readback["created_ms"]));
-                if (Number(saved["expires_ms"]) > Number(acceptance["expires_ms"]) || Number(readback["expires_ms"]) > Number(acceptance["expires_ms"])) throw Error();
-                var sent = body["sent_chunks"]!.AsObject();
-                if (!sent.Select(pair => pair.Key).ToHashSet(StringComparer.Ordinal).SetEquals(manifest.Files.Select(file => file.Id))) throw Error();
+                binding.Validate();
+                var at = Number(readback["created_ms"]);
+                var observed = recovery is null
+                    ? DevicePublishedBatchReadbackEnvelope.Parse(readback, media.Offer, binding, media.MediaType, at)
+                    : DeviceSavedBatchReadback.ParseReply(recovery["request"]!.AsObject(), readback, media.Offer, body["peer_saved"]!.AsObject(),
+                        receipts, binding with { DestinationToken = manifest.Fingerprint }, binding, at);
+                if (recovery is null && Number(readback["expires_ms"]) > Number(body["acceptance"]!["expires_ms"])) throw Error();
                 var publications = new Dictionary<string, string>(StringComparer.Ordinal);
                 foreach (var file in manifest.Files)
                 {
-                    var chunks = sent[file.Id]!.AsArray(); var count = (int)((file.Size + DeviceFileManifest.ChunkBytes - 1) / DeviceFileManifest.ChunkBytes);
-                    if (chunks.Count != count || !chunks.Select(Number).ToHashSet().SetEquals(Enumerable.Range(0, count).Select(index => (long)index))) throw Error();
                     var receipt = receipts.Members.Single(value => value.FileId == file.Id); var member = observed.Body["members"]![file.Id]!;
                     if (Text(member, "publication_sha256") != receipt.ReceiptSha256 || Text(member, "mime_type") != Text(source.Body["mime_types"]!, file.Id)) throw Error();
                     publications.Add(file.Id, receipt.ReceiptSha256);
@@ -218,6 +258,33 @@ internal sealed partial class TelefonStore
                 var result = new Root(source.Body, manifest, version, exchangeVersion, publications, body, ended); complete.Add(job, result); return result;
             }
             finally { checking.Remove(job); }
+        }
+
+        private (NativeMediaOffer Media, RemoteFileAcceptance Accepted, RemoteSavedConfirmation Saved) OriginalSaved(
+            JsonObject source, DeviceFileManifest manifest, string version, JsonObject body)
+        {
+            if (Number(body["format"]) != 2 || Text(body, "cache_version") != version ||
+                Text(body, "nonce") != Text(source, "nonce") || body["pending_chunk"] is not null) throw Error();
+            var offer = body["offer"]!.AsObject();
+            var media = MediaOfferEnvelope.Validate(offer, scope.LocalId, scope.PeerId, Number(offer["created_ms"]), allowPcBatch: true);
+            if (!media.PcBatch || media.Manifest.Fingerprint != manifest.Fingerprint || media.Originals.Count != 0 ||
+                !JsonNode.DeepEquals(media.Settings, source["provenance"]!["settings"]) || media.MediaType != Text(source["provenance"]!, "media_type") ||
+                !JsonNode.DeepEquals(media.MimeTypes, source["mime_types"]) ||
+                Text(body, "permission_epoch") != Text(source["provenance"]!["sending_binding"]!, "permission_epoch")) throw Error();
+            var acceptance = body["acceptance"]!.AsObject(); var accepted = DeviceFileAcceptanceEnvelope.Parse(acceptance, Number(acceptance["created_ms"]));
+            if (accepted.OfferId != Text(offer, "message_id") || accepted.ManifestSha256 != manifest.Fingerprint || accepted.TransferId != manifest.TransferId ||
+                accepted.PermissionEpoch != Text(body, "permission_epoch") || Number(acceptance["created_ms"]) < Number(offer["created_ms"]) ||
+                Number(acceptance["expires_ms"]) > Number(offer["expires_ms"])) throw Error();
+            var saved = body["peer_saved"]!.AsObject(); var receipts = DeviceFileSavedEnvelope.Parse(saved, manifest, accepted, Number(saved["created_ms"]));
+            if (Number(saved["expires_ms"]) > Number(acceptance["expires_ms"])) throw Error();
+            var sent = body["sent_chunks"]!.AsObject();
+            if (!sent.Select(pair => pair.Key).ToHashSet(StringComparer.Ordinal).SetEquals(manifest.Files.Select(file => file.Id))) throw Error();
+            foreach (var file in manifest.Files)
+            {
+                var chunks = sent[file.Id]!.AsArray(); var count = (int)((file.Size + DeviceFileManifest.ChunkBytes - 1) / DeviceFileManifest.ChunkBytes);
+                if (chunks.Count != count || !chunks.Select(Number).ToHashSet().SetEquals(Enumerable.Range(0, count).Select(index => (long)index))) throw Error();
+            }
+            return (media, accepted, receipts);
         }
 
         private static void ValidateEnd(JsonObject ready, DeviceFileManifest manifest, string version, JsonObject body, JsonObject readback, bool planned)

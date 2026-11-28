@@ -14,6 +14,8 @@ internal sealed partial class TelefonConnection
         internal readonly NativeFileControlSession Owner;
         internal readonly string PermissionEpoch;
         internal readonly JsonObject Offer;
+        internal readonly JsonObject? RecoveryRequest;
+        internal readonly string ReaderId;
         internal readonly CancellationTokenSource Lifetime;
         private readonly Func<bool>? counterpartCurrent;
         internal readonly TaskCompletionSource<RemoteFileAcceptance> Accepted = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -28,7 +30,20 @@ internal sealed partial class TelefonConnection
             NativeFileControlSession owner, string epoch, CancellationTokenSource lifetime, Func<bool>? counterpartCurrent = null)
         {
             Connection = connection; Cache = cache; Owner = owner; PermissionEpoch = epoch; Lifetime = lifetime;
-            this.counterpartCurrent = counterpartCurrent; Offer = cache.CreateMediaOffer(Now());
+            this.counterpartCurrent = counterpartCurrent;
+            ReaderId = connection.nativeBatchReader;
+            var recovery = cache.Recovery;
+            if (recovery is null) Offer = cache.CreateMediaOffer(Now());
+            else
+            {
+                if (counterpartCurrent is null || recovery.Exchange["reader_id"]?.GetValue<string>() == ReaderId)
+                    throw DeviceFileControl.Error("media_source_batch_fresh_reader_required");
+                Offer = recovery.Exchange["offer"]!.AsObject();
+                var binding = owner.Binding(cache.Manifest.Fingerprint, senderIsLocal: true)
+                    ?? throw DeviceFileControl.Error("media_source_send_grant_required");
+                if (binding.PermissionEpoch != epoch) throw DeviceFileControl.Error("media_source_send_grant_required");
+                RecoveryRequest = DeviceSavedBatchReadback.Create(Offer, recovery.Exchange["peer_saved"]!.AsObject(), binding, Now());
+            }
         }
 
         internal void Require()
@@ -37,15 +52,17 @@ internal sealed partial class TelefonConnection
             RequireBatchCounterpart(counterpartCurrent);
             if (Exchange is null) Cache.Require(); else Exchange.Require();
             Connection.RequireNativeFileControls(Owner);
-            var binding = Owner.Binding(Acceptance?.DestinationToken ?? new string('0', 64), senderIsLocal: true);
+            var destination = RecoveryRequest is null ? Acceptance?.DestinationToken ?? new string('0', 64) : Cache.Manifest.Fingerprint;
+            var binding = Owner.Binding(destination, senderIsLocal: true);
             lock (Connection.fileRouteGate)
                 if (!ReferenceEquals(Connection.nativeMediaBatchSend, this) || binding is null || binding.PermissionEpoch != PermissionEpoch ||
                     binding.SenderId != Cache.Manifest.SenderId || binding.ReceiverId != Cache.Manifest.ReceiverId ||
-                    Now() >= Offer["expires_ms"]!.GetValue<long>() || Acceptance is not null && Now() >= AcceptanceExpires)
+                    Now() >= (RecoveryRequest ?? Offer)["expires_ms"]!.GetValue<long>() || Acceptance is not null && Now() >= AcceptanceExpires)
                     throw DeviceFileControl.Error("media_source_batch_send_original_owner_required");
         }
     }
 
+    private readonly string nativeBatchReader = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
     private NativeMediaBatchSendRun? nativeMediaBatchSend;
     private TelefonStore.NativeBatchSourceRetirement? nativeBatchRetirement;
 
@@ -98,11 +115,12 @@ internal sealed partial class TelefonConnection
                     nativeMediaBatchSend = run;
                 }
                 run.Require(); cache.BeginSendAttempt(this); run.Exchange = new(run);
-                await WriteNativeMediaFrameAsync(run.Offer, run.Require, lifetime.Token);
-                run.Exchange.OfferSent();
+                await WriteNativeMediaFrameAsync(run.RecoveryRequest ?? run.Offer, run.Require, lifetime.Token);
+                if (cache.Recovery is { } recovery) run.Saved.TrySetResult(recovery.Saved);
+                else run.Exchange.OfferSent();
             }
             finally { fileControlIo.Release(); }
-            _ = await run.Accepted.Task.WaitAsync(lifetime.Token);
+            if (run.RecoveryRequest is null) _ = await run.Accepted.Task.WaitAsync(lifetime.Token);
             var saved = await run.Saved.Task.WaitAsync(lifetime.Token); run.Require();
             var readback = await run.Readback.Task.WaitAsync(lifetime.Token); run.Require();
             if (output is not null)
@@ -148,6 +166,20 @@ internal sealed partial class TelefonConnection
             lock (fileRouteGate) run = nativeMediaBatchSend;
             if (run is null) throw DeviceFileControl.Error("media_source_send_unsolicited_reply");
             run.Require(); var kind = message["kind"]!.GetValue<string>();
+            if (run.RecoveryRequest is { } recoveryRequest && run.Cache.Recovery is { } recovery)
+            {
+                if (kind != DevicePublishedBatchReadbackEnvelope.Kind || !run.Saved.Task.IsCompletedSuccessfully || run.Readback.Task.IsCompleted)
+                    throw DeviceFileControl.Error("media_source_send_unexpected_readback");
+                var destination = TelefonMessagingContract.String(message["body"]!.AsObject(), "destination_token");
+                var requestBinding = run.Owner.Binding(run.Cache.Manifest.Fingerprint, senderIsLocal: true)
+                    ?? throw DeviceFileControl.Error("media_source_send_grant_required");
+                var replyBinding = run.Owner.Binding(destination, senderIsLocal: true)
+                    ?? throw DeviceFileControl.Error("media_source_send_grant_required");
+                var observed = DeviceSavedBatchReadback.ParseReply(recoveryRequest, message, run.Offer,
+                    recovery.Exchange["peer_saved"]!.AsObject(), recovery.Saved, requestBinding, replyBinding, Now());
+                run.Require(); run.Exchange.PeerReadback(message); run.Readback.TrySetResult(observed);
+                return;
+            }
             if (run.Acceptance is not null && TelefonProtocolContract.Integer(message["expires_ms"]) > run.AcceptanceExpires)
                 throw DeviceFileControl.Error("media_source_batch_original_acceptance_deadline_required");
             if (kind == DeviceFileAcceptanceEnvelope.Kind)

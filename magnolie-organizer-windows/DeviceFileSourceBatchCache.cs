@@ -142,6 +142,7 @@ internal sealed partial class TelefonStore
         internal object ConnectionOwner => source.ConnectionOwner;
         internal string PeerId => scope.PeerId;
         internal TelefonStore OwnerStore => store;
+        internal PendingSavedPhotoBatch? Recovery { get; private init; }
         internal string Nonce { get { lock (cacheGate) { Require(); return record["nonce"]!.GetValue<string>(); } } }
         internal string Version { get { lock (cacheGate) { Require(); return version; } } }
         internal JsonObject Observation { get { lock (cacheGate) { Require(); return record.DeepClone().AsObject(); } } }
@@ -251,6 +252,7 @@ internal sealed partial class TelefonStore
         {
             lock (cacheGate)
             {
+                if (Recovery is not null) throw DeviceFileControl.Error("media_source_batch_recovery_read_only");
                 Require(); VerifyCipherSet();
                 var origins = new JsonObject();
                 foreach (var pair in record["origins"]!.AsObject())
@@ -337,7 +339,7 @@ internal sealed partial class TelefonStore
             lock (cacheGate)
                 try
                 {
-                    if (record["phase"]!.GetValue<string>() != "ready" || !numbers.TryGetValue((fileId, index), out var number))
+                    if (Recovery is not null || record["phase"]!.GetValue<string>() != "ready" || !numbers.TryGetValue((fileId, index), out var number))
                         throw DeviceFileControl.Error("media_source_batch_cache_exact_route_required");
                     return ReadCore(number);
                 }
@@ -480,6 +482,42 @@ internal sealed partial class TelefonStore
                 result.Freeze(); return result;
             }
             catch { result.Dispose(); throw; } // Keep every planned/partial row; no restart adoption.
+        }
+
+        internal static NativePreparedMediaBatch? AttachSaved(NativeCollectionMediaBatch source)
+        {
+            source.Require(); var store = source.Store; var scope = store.MediaPreferenceScope(source.PeerId);
+            var origins = source.OriginalOrigins;
+            PendingSavedPhotoBatch? pending;
+            lock (store.gate)
+            {
+                using var db = store.OpenNativeMediaDatabase(); db.Open(); using var transaction = db.BeginTransaction(deferred: true);
+                var records = store.SourceRecords(db, transaction, scope);
+                pending = new BatchHistory(store, db, transaction, scope, records).FindSavedPhotos(origins);
+                transaction.Commit();
+            }
+            if (pending is null) return null;
+            var historical = pending.Job["provenance"]!.DeepClone().AsObject();
+            var live = source.Provenance;
+            // A reconnect can negotiate a different bilateral file epoch. No
+            // other part of the journal's native provenance may change.
+            historical["sending_binding"]!["permission_epoch"] = live["sending_binding"]!["permission_epoch"]!.DeepClone();
+            if (!JsonNode.DeepEquals(historical, live)) throw DeviceFileControl.Error("media_source_batch_recovery_provenance_changed");
+            var actual = source.PrepareManifest().Files.ToDictionary(file => file.Path, StringComparer.Ordinal);
+            var mime = source.MimeTypes;
+            var result = new NativePreparedMediaBatch(source, scope, pending.Job) { version = pending.JobVersion, Recovery = pending };
+            try
+            {
+                if (result.Manifest.Files.Count != actual.Count || result.Manifest.Files.Any(file =>
+                    !actual.TryGetValue(file.Path, out var current) || current.Size != file.Size || current.Sha256 != file.Sha256 ||
+                    !JsonNode.DeepEquals(origins[current.Id], pending.Job["origins"]![file.Id]) ||
+                    mime[current.Id] != pending.Job["mime_types"]![file.Id]!.GetValue<string>()))
+                    throw DeviceFileControl.Error("media_source_batch_recovery_original_changed");
+                result.nativeIoKey = AcquireBatchNativeIo(scope.PeerId, result.JobId, live["book_version"]!.GetValue<string>(), result);
+                result.VerifyCipherSet();
+                return result;
+            }
+            catch { result.Dispose(); throw; }
         }
 
         internal void RequireIoEnded()

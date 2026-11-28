@@ -362,7 +362,7 @@ internal sealed partial class TelefonConnection
 
     internal async Task SynchronizeOriginalPcImageCollectionAsync(JsonObject intent, NativeMediaBookPermit book,
         Action requireIntent, Func<bool> agreement, NativeMediaSendConsent expectedSend,
-        IReadOnlyList<NativeMediaCollectionRoot> expectedRoots, CancellationToken token)
+        IReadOnlyList<NativeMediaCollectionRoot> expectedRoots, CancellationToken token, bool allowSavedRecovery)
     {
         var controls = RequireNativeFileControls();
         var epoch = controls.Binding(new string('0', 64), senderIsLocal: true)
@@ -390,7 +390,7 @@ internal sealed partial class TelefonConnection
             using var original = store.OpenNativeCollectionMediaBatch(peer.Id, "images", selection.Id, selection.Version,
                 members, binding, book, intent, Current, this, expectedSend: expectedSend);
             TelefonStore.NativePreparedMediaBatch cache;
-            try { cache = original.FreezeCache(); }
+            try { cache = (allowSavedRecovery ? original.RecoverSavedCache() : null) ?? original.FreezeCache(); }
             catch (InvalidDataException error) when (error.Message == "media_source_batch_latest_payload_already_sent")
             { Current(); continue; }
             using (cache)

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
@@ -72,7 +73,8 @@ internal static class DevicePublishedBatchReadbackEnvelope
         return body;
     }
 
-    internal static RemotePublishedBatchReadback Parse(JsonObject message, JsonObject offer, DeviceTransferBinding binding, string mediaType, long now)
+    internal static RemotePublishedBatchReadback Parse(JsonObject message, JsonObject offer, DeviceTransferBinding binding, string mediaType, long now,
+        bool historicalOffer = false)
     {
         if (mediaType is not ("images" or "video") || TelefonCrypto.Canonical(message).Length > DeviceFileOfferEnvelope.MaximumApplicationBytes) throw Error();
         TelefonProtocolContract.ExactObject(message, "type", "v", "message_id", "kind", "created_ms", "expires_ms", "body");
@@ -84,11 +86,11 @@ internal static class DevicePublishedBatchReadbackEnvelope
         var body = TelefonProtocolContract.ExactObject(message["body"]!, Fields.Concat(new[] { "destination_token", "binding_sha256", "readback_sha256" }).ToArray());
         var context = new JsonObject(Fields.Select(key => KeyValuePair.Create(key, body[key]?.DeepClone())));
         if (!JsonNode.DeepEquals(EncodeBody(context, binding), body)) throw Error();
-        var manifest = DeviceFileOfferEnvelope.Validate(offer, binding.SenderId, binding.ReceiverId, now);
         var members = body["members"]!.AsObject();
         var offerCreated = TelefonProtocolContract.Integer(offer["created_ms"]);
         var offerExpires = TelefonProtocolContract.Integer(offer["expires_ms"]);
-        if (now < offerCreated || now >= offerExpires || created < offerCreated || expires > offerExpires ||
+        var manifest = DeviceFileOfferEnvelope.Validate(offer, binding.SenderId, binding.ReceiverId, historicalOffer ? offerCreated : now);
+        if ((!historicalOffer && (now < offerCreated || now >= offerExpires || created < offerCreated || expires > offerExpires)) ||
             Text(body, "offer_id") != Text(offer, "message_id") || Text(body, "manifest_sha256") != manifest.Fingerprint ||
             Text(body, "transfer_id") != manifest.TransferId || Text(body, "source_id") != manifest.SourceId || Text(body, "media_type") != mediaType ||
             !members.Select(pair => pair.Key).ToHashSet(StringComparer.Ordinal).SetEquals(manifest.Files.Select(file => file.Id))) throw Error();
@@ -98,5 +100,73 @@ internal static class DevicePublishedBatchReadbackEnvelope
             if (TelefonProtocolContract.Integer(member["size"]) != file.Size || Text(member, "sha256") != file.Sha256) throw Error();
         }
         return new(body);
+    }
+}
+
+internal static class DeviceSavedBatchReadback
+{
+    internal const string RequestKind = "file_transfer.published.recover";
+    private const string BindingDomain = "magnolie-pc-saved-readback-control-v1\0";
+    private static InvalidDataException Error() => DeviceFileControl.Error("media_saved_readback_invalid_photo_recovery");
+
+    internal static JsonObject Create(JsonObject offer, JsonObject saved, DeviceTransferBinding binding, long now)
+    {
+        var request = new JsonObject
+        {
+            ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"), ["kind"] = RequestKind,
+            ["created_ms"] = now, ["expires_ms"] = checked(now + DeviceFileControl.MaximumTtlMs),
+            ["body"] = new JsonObject
+            {
+                ["format"] = 1, ["binding_sha256"] = DeviceFileControl.Digest(BindingDomain, binding.Snapshot()),
+                ["nonce"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(),
+                ["offer"] = offer.DeepClone(), ["saved"] = saved.DeepClone()
+            }
+        };
+        if (TelefonCrypto.Canonical(request).Length > DeviceFileOfferEnvelope.MaximumApplicationBytes) throw Error();
+        return request;
+    }
+
+    // The live caller must obtain both bindings from the same authenticated reader.
+    // The history caller verifies the recorded challenge using its protected scope.
+    internal static RemotePublishedBatchReadback ParseReply(JsonObject request, JsonObject reply,
+        JsonObject offer, JsonObject saved, RemoteSavedConfirmation receipts, DeviceTransferBinding requestBinding,
+        DeviceTransferBinding replyBinding, long now)
+    {
+        static long Time(JsonObject message, string field) => TelefonProtocolContract.Integer(message[field]);
+        static string Text(JsonObject value, string key) => TelefonMessagingContract.String(value, key);
+        var requestBody = TelefonProtocolContract.ExactObject(request["body"]!, "format", "binding_sha256", "nonce", "offer", "saved");
+        var created = Time(request, "created_ms"); var expires = Time(request, "expires_ms");
+        TelefonProtocolContract.ExactObject(request, "type", "v", "message_id", "kind", "created_ms", "expires_ms", "body");
+        if (Text(request, "type") != "message" || Time(request, "v") != 1 || Text(request, "kind") != RequestKind ||
+            !TelefonProtocolContract.IsUuidV4(Text(request, "message_id")) ||
+            created < 0 || created > now || now >= expires || expires > 253402300799999 ||
+            expires - created > DeviceFileControl.MaximumTtlMs || Time(requestBody, "format") != 1 ||
+            requestBody["binding_sha256"]?.GetValue<string>() != DeviceFileControl.Digest(BindingDomain, requestBinding.Snapshot()) ||
+            !DeviceFileControl.Hash(Text(requestBody, "nonce")) ||
+            !JsonNode.DeepEquals(requestBody["offer"], offer) || !JsonNode.DeepEquals(requestBody["saved"], saved) ||
+            TelefonCrypto.Canonical(request).Length > DeviceFileOfferEnvelope.MaximumApplicationBytes)
+            throw Error();
+        var media = MediaOfferEnvelope.Validate(offer, requestBinding.SenderId, requestBinding.ReceiverId,
+            Time(offer, "created_ms"), allowPcBatch: true);
+        var replyCreated = Time(reply, "created_ms");
+        if (!media.PcBatch || media.MediaType != "images" || media.Originals.Count != 0 ||
+            media.PcOrigins.Count != media.Manifest.Files.Count ||
+            media.PcOrigins.Any(origin => origin.Value!["previous_publication_sha256"] is not null) ||
+            receipts.Members.Select(member => member.ReceiptSha256).Distinct(StringComparer.Ordinal).Count() != media.Manifest.Files.Count ||
+            requestBinding.DestinationToken != media.Manifest.Fingerprint ||
+            replyBinding != (requestBinding with { DestinationToken = replyBinding.DestinationToken }) ||
+            Time(saved, "created_ms") < Time(offer, "created_ms") || Time(saved, "created_ms") > created ||
+            Time(saved, "expires_ms") > Time(offer, "expires_ms") ||
+            replyCreated < created || replyCreated > now || Time(reply, "expires_ms") > expires ||
+            Text(reply, "message_id") == Text(request, "message_id"))
+            throw Error();
+        var observed = DevicePublishedBatchReadbackEnvelope.Parse(reply, media.Offer, replyBinding, "images", now, historicalOffer: true);
+        var body = observed.Body;
+        if (Text(body, "readback_nonce") != Text(requestBody, "nonce") ||
+            receipts.Members.Any(receipt =>
+                Text(body["members"]![receipt.FileId]!.AsObject(), "publication_sha256") != receipt.ReceiptSha256 ||
+                Text(body["members"]![receipt.FileId]!.AsObject(), "mime_type") != media.MimeTypes[receipt.FileId]!.GetValue<string>()))
+            throw Error();
+        return observed;
     }
 }

@@ -101,6 +101,10 @@ internal static class SharedSyncTransportTests
         DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
             ? NativeMediaSupportAsync(firstReceive: "pc_image_manual", transfer: true, composed: true)
             : Task.CompletedTask;
+    internal static Task NativeOriginalPcImageSavedRecoveryAsync() =>
+        DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
+            ? NativeMediaSupportAsync(firstReceive: "pc_image_recovery", transfer: true, composed: true)
+            : Task.CompletedTask;
     internal static Task NativeOriginalPcImageAutomaticAsync() =>
         DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
             ? NativeMediaSupportAsync(firstReceive: "pc_image_automatic", transfer: true, composed: true)
@@ -144,7 +148,7 @@ internal static class SharedSyncTransportTests
             return null;
         }
         using var fixture = new PhoneCameraParentTests.Fixture(filePairingEpoch: new string('a', 64), receive: PublishMetadata,
-              lifetime: transfer ? TimeSpan.FromSeconds(firstReceive is "pc_image_manual" or "pc_image_automatic" or
+             lifetime: transfer ? TimeSpan.FromSeconds(firstReceive is "pc_image_manual" or "pc_image_automatic" or "pc_image_recovery" or
                   "pc_video_manual_entry" or "pc_video_automatic_entry" ? 240 : 50) : null,
             peerName: useDefaults ? "Magnolie Test " + Guid.NewGuid().ToString("N") : "Controlled original parent");
         var connection = fixture.Connection;
@@ -201,7 +205,8 @@ internal static class SharedSyncTransportTests
         {
             var peer = fixture.Peer;
             var saved = fixture.Store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey);
-            var retired = connection.CapturePrivateMediaPhoneImport(saved!);
+            var photoRecovery = firstReceive == "pc_image_recovery";
+            var retired = photoRecovery ? connection.CapturePrivatePcImageDiscovery() : connection.CapturePrivateMediaPhoneImport(saved!);
             TestAssert.That(retired?.Invoke() == true && online.Remove(peer.Id), "Setup did not retain its original reader.");
             await fixture.Send(new JsonObject { ["type"] = "close", ["reason"] = "normal" }, sent++);
             await run;
@@ -209,7 +214,7 @@ internal static class SharedSyncTransportTests
             TestAssert.That(retired?.Invoke() != true, "The disconnected reader still authorizes media.");
 
             using var fresh = new PhoneCameraParentTests.Fixture(receive: PublishMetadata, previous: fixture,
-                lifetime: TimeSpan.FromSeconds(50));
+                lifetime: TimeSpan.FromSeconds(photoRecovery ? 140 : 50));
             typeof(TelefonCoordinator).GetMethod("ConfigureNativeMediaConnection", System.Reflection.BindingFlags.Instance |
                 System.Reflection.BindingFlags.NonPublic)!.Invoke(coordinator, [peer, fresh.Connection]);
             online.Add(peer.Id, fresh.Connection);
@@ -269,6 +274,19 @@ internal static class SharedSyncTransportTests
                 await Barrier();
                 TestAssert.That(fresh.Connection.PrivateMediaSettingsMatched && retired?.Invoke() != true,
                     "Fresh receipts failed to bind the new reader exclusively.");
+                if (photoRecovery)
+                {
+                    var photoProbe = Hello();
+                    photoProbe["body"]!["feature"] = "pc_image_batch_v3";
+                    await Send(photoProbe);
+                    var photoReply = await Read();
+                    TestAssert.That(photoReply["body"]?["feature"]?.GetValue<string>() == "pc_image_batch_v3" &&
+                        JsonNode.DeepEquals(Ack(photoProbe), await Read()), "The replacement reader did not negotiate photo support.");
+                    await Send(Ack(photoReply));
+                    await Barrier();
+                    TestAssert.That(fresh.Connection.CapturePrivatePcImageDiscovery()?.Invoke() == true,
+                        "The fresh reader did not receive its own photo ACK.");
+                }
                 await transferOriginals(Read, Send, fresh.Connection);
                 await Send(new JsonObject { ["type"] = "close", ["reason"] = "normal" });
                 await reader;
@@ -312,7 +330,7 @@ internal static class SharedSyncTransportTests
             CryptographicOperations.ZeroMemory(local.PrivateKey);
             var remote = fixture.Peer.Id;
             var selected = MediaSyncSettings.Change(MediaSyncSettings.Create(remote), remote, local.Id, "enabled", JsonValue.Create(true)!);
-            var pcImages = firstReceive is "pc_image_hello" or "pc_image_manual" or "pc_image_automatic";
+            var pcImages = firstReceive is "pc_image_hello" or "pc_image_manual" or "pc_image_automatic" or "pc_image_recovery";
             var pcVideo = firstReceive is "pc_video_manual_entry" or "pc_video_automatic_entry" or "pc_video_automatic_stop" or "pc_video_automatic_off";
             selected = MediaSyncSettings.Change(selected, remote, local.Id, "direction", JsonValue.Create(pcImages || pcVideo ? "pc_to_phone" : "phone_to_pc")!);
             if (pcImages || pcVideo)
@@ -364,8 +382,9 @@ internal static class SharedSyncTransportTests
                 if (pcImages)
                 {
                     await VerifyPcImageHello(fixture, body, () => fixture.Read(received++), frame => fixture.Send(frame, sent++),
-                        manual: firstReceive == "pc_image_manual",
-                        automatic: firstReceive == "pc_image_automatic" ? composition : null, Control, Ping);
+                        manual: firstReceive is "pc_image_manual" or "pc_image_recovery",
+                        automatic: firstReceive == "pc_image_automatic" ? composition : null, Control, Ping,
+                        firstReceive == "pc_image_recovery" ? Reconnect : null);
                     return;
                 }
                 if (pcVideo)
@@ -600,7 +619,9 @@ internal static class SharedSyncTransportTests
 
     private static async Task VerifyPcImageHello(PhoneCameraParentTests.Fixture fixture, JsonObject settings,
         Func<Task<JsonObject>> read, Func<JsonObject, Task> send, bool manual, TelefonCoordinator? automatic,
-        Func<string, JsonObject, Task> control, Func<Task> heartbeat)
+        Func<string, JsonObject, Task> control, Func<Task> heartbeat,
+        Func<TelefonCoordinator, Dictionary<string, TelefonConnection>,
+            Func<Func<Task<JsonObject>>, Func<JsonObject, Task>, TelefonConnection, Task>, Task>? reconnect)
     {
         var remote = fixture.Peer.Id;
         using var ownedCoordinator = automatic is null
@@ -675,7 +696,8 @@ internal static class SharedSyncTransportTests
                 "A repeated image probe renewed or retired the original witness.");
             TestAssert.That(fixture.Store.OutboxMessage(remote, reply["message_id"]!.GetValue<string>()) is null &&
                 !fixture.Store.ReceivedMatches(remote, probe), "An image support handshake entered durable storage.");
-            if (manual) await DeviceFileOriginalImagesTests.VerifyManualAsync(fixture, coordinator, read, send);
+            if (manual) await DeviceFileOriginalImagesTests.VerifyManualAsync(fixture, coordinator, read, send,
+                reconnect: reconnect is null ? null : transfer => reconnect(coordinator, online, transfer));
             if (automatic is not null) await VerifyPcImageAutomaticExport(fixture, automatic, read, send, control, heartbeat);
             fixture.Connection.Dispose();
             TestAssert.That(witness?.Invoke() != true, "A disconnected reader retained image discovery.");

@@ -84,12 +84,16 @@ internal sealed partial class TelefonStore
                 boundary?.Invoke("source_batch_backup_ciphers_verified");
                 var expected = Manifest.Files.ToDictionary(file => file.Id, BackupProvenance, StringComparer.Ordinal);
                 var selected = new Dictionary<string, NativeMediaBackupVersion>(StringComparer.Ordinal);
-                using var catalog = new MediaBackupCatalog(store, parent, Current, create);
+                using var catalog = new MediaBackupCatalog(store, parent, Current, create && Recovery is null);
                 boundary?.Invoke("source_batch_backup_catalog_opened");
+                var existing = Recovery is null ? null : catalog.Versions().ToDictionary(item => item.Id, StringComparer.Ordinal);
                 foreach (var file in Manifest.Files)
                 {
                     Current();
-                    var saved = catalog.Save(NativeMediaBackupBytes.Input.FromPreparedBatch(this, file.Id), file.Size, file.Sha256, file.Path, expected[file.Id]);
+                    var saved = existing is null
+                        ? catalog.Save(NativeMediaBackupBytes.Input.FromPreparedBatch(this, file.Id), file.Size, file.Sha256, file.Path, expected[file.Id])
+                        : existing.GetValueOrDefault(DeviceFileControl.Digest("magnolie-native-media-backup-version-v1\0", expected[file.Id]))
+                            ?? throw DeviceFileControl.Error("media_backup_complete_original_batch_map_required");
                     selected.Add(file.Id, saved); boundary?.Invoke("source_batch_backup_member_saved"); Current();
                 }
                 // The caller never sees a first-file or stale subset map.

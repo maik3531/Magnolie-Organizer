@@ -22,10 +22,16 @@ internal sealed partial class TelefonStore
         internal NativeMediaBatchSourceExchange(TelefonConnection.NativeMediaBatchSendRun run)
         {
             this.run = run; cache = run.Cache; store = cache.OwnerStore; run.Require();
+            if (cache.Recovery is { } recovery)
+            {
+                body = recovery.Exchange; version = recovery.ExchangeVersion; Require();
+                return;
+            }
             var sent = new JsonObject(); foreach (var file in cache.Manifest.Files) sent[file.Id] = new JsonArray();
             body = new JsonObject { ["format"] = 2, ["cache_version"] = cache.Version, ["nonce"] = cache.Nonce,
                 ["offer"] = run.Offer.DeepClone(), ["permission_epoch"] = run.PermissionEpoch, ["phase"] = "offer_planned",
-                ["acceptance"] = null, ["sent_chunks"] = sent, ["pending_chunk"] = null, ["peer_saved"] = null, ["peer_readback"] = null };
+                ["acceptance"] = null, ["sent_chunks"] = sent, ["pending_chunk"] = null, ["peer_saved"] = null, ["peer_readback"] = null,
+                ["reader_id"] = run.ReaderId };
             Write(body.DeepClone().AsObject());
         }
 
@@ -136,7 +142,10 @@ internal sealed partial class TelefonStore
         {
             if (Phase != "peer_saved" || body["pending_chunk"] is not null || !AllChunksSent || body["peer_readback"] is not null)
                 throw DeviceFileControl.Error("media_source_exchange_readback_state");
-            var next = body.DeepClone().AsObject(); next["phase"] = "peer_readback"; next["peer_readback"] = message.DeepClone(); Write(next);
+            var next = body.DeepClone().AsObject(); next["phase"] = "peer_readback"; next["peer_readback"] = message.DeepClone();
+            if (run.RecoveryRequest is { } request)
+                next["recovery"] = new JsonObject { ["request"] = request.DeepClone(), ["permission_epoch"] = run.PermissionEpoch, ["reader_id"] = run.ReaderId };
+            Write(next);
         }
 
         internal void PlanRetirement(NativeBatchSourceRetirement owner, JsonObject plan)

@@ -324,7 +324,7 @@ internal sealed partial class TelefonCoordinator
                     // while preparing, reading and retiring their own descriptors.
                     if (originalExport.Kind == "images")
                         await connection.SynchronizeOriginalPcImageCollectionAsync(runIntent!, permit, RequireIntent, originalExport.Agreement,
-                            originalExport.Consent, originalExport.Roots, lifetime.Token);
+                            originalExport.Consent, originalExport.Roots, lifetime.Token, allowSavedRecovery: automaticExport is null);
                     else
                         await connection.SynchronizeOriginalPcVideoCollectionAsync(runIntent!, permit, RequireIntent, originalExport.Agreement,
                             originalExport.Consent, originalExport.Roots, lifetime.Token);
