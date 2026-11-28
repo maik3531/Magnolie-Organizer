@@ -4,6 +4,7 @@ import importlib.machinery
 import importlib.util
 import base64
 from datetime import date, timedelta
+from functools import wraps
 import hashlib
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
@@ -31,8 +32,12 @@ TRAY_SOAK_SECONDS = int(os.environ.get("MAGNOLIE_MCP_PROBE_TRAY_SOAK_SECONDS", "
 assert TRAY_SOAK_SECONDS == 0 or 30 <= TRAY_SOAK_SECONDS <= 1800
 LARGE_BOOK_ROWS = int(os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_ROWS", "0"))
 LARGE_BOOK_STARTUP_ONLY = os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_STARTUP_ONLY") == "1"
+LARGE_BOOK_SAVE_ONLY = os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_SAVE_ONLY") == "1"
+LARGE_BOOK_SAVE_TRACE = os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_SAVE_TRACE") == "1"
 assert LARGE_BOOK_ROWS in (0, 10_000, 50_000) and not (LARGE_BOOK_ROWS and TRAY_SOAK_SECONDS)
-assert not LARGE_BOOK_STARTUP_ONLY or LARGE_BOOK_ROWS
+assert not (LARGE_BOOK_STARTUP_ONLY and LARGE_BOOK_SAVE_ONLY)
+assert not (LARGE_BOOK_STARTUP_ONLY or LARGE_BOOK_SAVE_ONLY) or LARGE_BOOK_ROWS
+assert not LARGE_BOOK_SAVE_TRACE or LARGE_BOOK_SAVE_ONLY
 PROBE_TIMEOUT = 240 if LARGE_BOOK_ROWS else TRAY_SOAK_SECONDS + 90
 if BACKGROUND_PROBE:
     current_network = os.readlink("/proc/self/ns/net")
@@ -274,6 +279,36 @@ product = importlib.util.module_from_spec(spec)
 sys.modules[loader.name] = product
 loader.exec_module(product)
 assert product.GTK_OK and product.WEBKIT_OK
+if LARGE_BOOK_SAVE_TRACE:
+    import magnolie_native_book_json
+
+    def trace_save(function):
+        @wraps(function)
+        def measured(*args, **kwargs):
+            start = time.monotonic()
+
+            def emit(marker):
+                fields = ({"phase": function.__qualname__, "marker": marker, "monotonic": time.monotonic(),
+                           "duration_ms": (time.monotonic() - start) * 1000,
+                           "thread": threading.current_thread().name, "file_bytes": data_file.stat().st_size})
+                rss = next((line for line in Path("/proc/self/status").read_text().splitlines()
+                            if line.startswith("VmRSS:")), "")
+                fields["host_rss"] = rss
+                print("LARGE_BOOK_SAVE_PHASE " + json.dumps(fields), flush=True)
+
+            emit("begin")
+            try:
+                return function(*args, **kwargs)
+            finally:
+                emit("end")
+        return measured
+
+    for module, names in ((product, ("journal_inhalt_geaendert", "speichere_text", "erinnerungsdaten_schreiben")),
+                          (magnolie_native_book_json, ("book_hash",))):
+        for name in names:
+            setattr(module, name, trace_save(getattr(module, name)))
+    product.BaumSyncSnapshot.fingerprint = staticmethod(trace_save(product.BaumSyncSnapshot.fingerprint))
+    product.Fenster._journal_snapshot = trace_save(product.Fenster._journal_snapshot)
 product._REGIONAL = product.regional_einstellungen(dict(product._REGIONAL, timeZone="UTC", language="en", formatLocale="en-GB"))
 state = {"started": False, "passed": False, "error": None, "transport_blocked": False, "activation_private": True, "network_isolated": BACKGROUND_PROBE}
 def unrelated_transport(*_args, **_kwargs):
@@ -524,7 +559,7 @@ def javascript(script):
     return result["value"]
 
 
-def resource_processes():
+def resource_processes(*, detailed=True):
     # Walk only this probe's process tree, including its WebKit renderer.
     pending, processes, seen = [os.getpid()], [], set()
     ticks = os.sysconf("SC_CLK_TCK")
@@ -536,12 +571,14 @@ def resource_processes():
             base = Path("/proc") / str(pid)
             status = dict(line.split(":", 1) for line in (base / "status").read_text().splitlines() if ":" in line)
             stat = (base / "stat").read_text().rsplit(")", 1)[1].split()
-            try: fds = len(list((base / "fd").iterdir()))
-            except PermissionError: fds = None
-            try:
-                rollup = dict(line.split(":", 1) for line in (base / "smaps_rollup").read_text().splitlines() if ":" in line)
-                pss = int(rollup["Pss"].split()[0]) * 1024
-            except PermissionError: pss = None
+            fds = pss = None
+            if detailed:
+                try: fds = len(list((base / "fd").iterdir()))
+                except PermissionError: pass
+                try:
+                    rollup = dict(line.split(":", 1) for line in (base / "smaps_rollup").read_text().splitlines() if ":" in line)
+                    pss = int(rollup["Pss"].split()[0]) * 1024
+                except PermissionError: pass
             processes.append({"pid": pid, "name": status["Name"].strip(),
                 "rss_bytes": int(status.get("VmRSS", "0 kB").split()[0]) * 1024,
                 "rss_peak_bytes": int(status.get("VmHWM", "0 kB").split()[0]) * 1024,
@@ -733,7 +770,8 @@ def client():
                 return
             cgroup = next(line.split(":", 2)[2] for line in Path("/proc/self/cgroup").read_text().splitlines()
                           if line.startswith("0::"))
-            memory_peak = Path("/sys/fs/cgroup") / cgroup.lstrip("/") / "memory.peak"
+            memory_cgroup = Path("/sys/fs/cgroup") / cgroup.lstrip("/")
+            memory_peak = memory_cgroup / "memory.peak"
             javascript("""(() => {
               let last = performance.now();
               const meter = window.magnolieScaleMeter = { gap: 0, frames: 0, result: null };
@@ -786,26 +824,47 @@ def client():
 
             assert measure("open-cover", """document.querySelector('#deckel').click();
                 return document.querySelector('#buch').classList.contains('offen');""")
-            for section in ("kalender", "aufgaben", "adressen", "planer", "jahrestage", "notizen"):
-                selector_text = json.dumps(f'[data-fokus="register:{section}"]')
-                assert measure("navigate-" + section, f"document.querySelector({selector_text}).click(); "
-                               "return OrganizerTest.zustand().sektion;") == section
-            assert measure("scroll-notes", """const list = document.querySelector('.notiz-uebersicht');
-                list.scrollTop = list.scrollHeight;
-                return list.scrollTop;""") > 0
-            title = "Fixture note " + f"{LARGE_BOOK_ROWS // 2:05d}"
-            assert measure("search-notes", f"""const search = document.querySelector('#notiz-suche');
-                search.value = {json.dumps(title)};
-                search.dispatchEvent(new Event('input', {{bubbles:true}}));
-                return document.querySelector('.notiz-uebersicht').textContent.includes({json.dumps(title)});""")
+            if not LARGE_BOOK_SAVE_ONLY:
+                for section in ("kalender", "aufgaben", "adressen", "planer", "jahrestage", "notizen"):
+                    selector_text = json.dumps(f'[data-fokus="register:{section}"]')
+                    assert measure("navigate-" + section, f"document.querySelector({selector_text}).click(); "
+                                   "return OrganizerTest.zustand().sektion;") == section
+                assert measure("scroll-notes", """const list = document.querySelector('.notiz-uebersicht');
+                    list.scrollTop = list.scrollHeight;
+                    return list.scrollTop;""") > 0
+                title = "Fixture note " + f"{LARGE_BOOK_ROWS // 2:05d}"
+                assert measure("search-notes", f"""const search = document.querySelector('#notiz-suche');
+                    search.value = {json.dumps(title)};
+                    search.dispatchEvent(new Event('input', {{bubbles:true}}));
+                    return document.querySelector('.notiz-uebersicht').textContent.includes({json.dumps(title)});""")
 
             note_id = "owned-native-fixture"
             note = call("tools/call", {"name": "organizer_note_read", "arguments": {"id": note_id}})
             javascript("window.magnolieScaleMeter.reset(); JSON.stringify(true)")
             started = time.monotonic()
             new_title = "Owned native fixture updated at scale"
-            save = call("tools/call", {"name": "organizer_note_update", "arguments": {
-                "id": note_id, "expected_revision": note["structuredContent"]["revision"], "title": new_title}})
+            stop_sampling = threading.Event()
+
+            def save_samples():
+                while not stop_sampling.is_set():
+                    used = memory_cgroup / "memory.current"
+                    print("LARGE_BOOK_SAVE_SAMPLE " + json.dumps({
+                        "elapsed_ms": round((time.monotonic() - started) * 1000, 2),
+                        "cgroup_bytes": int(used.read_text()) if used.is_file() else None,
+                        "file_bytes": data_file.stat().st_size,
+                        "processes": resource_processes(detailed=False)}), flush=True)
+                    stop_sampling.wait(0.5)
+
+            sampler = threading.Thread(target=save_samples, name="owned-book-save-sampler") if LARGE_BOOK_SAVE_ONLY else None
+            if sampler is not None:
+                sampler.start()
+            try:
+                save = call("tools/call", {"name": "organizer_note_update", "arguments": {
+                    "id": note_id, "expected_revision": note["structuredContent"]["revision"], "title": new_title}})
+            finally:
+                stop_sampling.set()
+                if sampler is not None:
+                    sampler.join(3)
             assert not save["isError"] and save["structuredContent"]["persisted"], save
             frame = javascript("JSON.stringify({ gap: window.magnolieScaleMeter.gap, frames: window.magnolieScaleMeter.frames })")
             sample("save-one-note", started, frame)
@@ -3311,6 +3370,8 @@ if TRAY_SOAK_SECONDS:
     print("Native TRAY SOAK PASS: registered product indicator and real Gtk tray menu hide/restore, synthetic navigation, window resizing and bounded resource samples; not a physical tray click/display/DPI or all-day endurance acceptance")
 elif LARGE_BOOK_STARTUP_ONLY:
     print("Native large-book GTK/WebKit startup and complete book counts PASS:", LARGE_BOOK_ROWS, "records per area")
+elif LARGE_BOOK_SAVE_ONLY:
+    print("Native large-book GTK/WebKit single-entry save and disk readback PASS:", LARGE_BOOK_ROWS, "records per area")
 elif LARGE_BOOK_ROWS:
     print("Native large-book GTK/WebKit UI, frame observations and single-entry save PASS:", LARGE_BOOK_ROWS, "records per area")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_SMS_PREFERENCES_ONLY") == "1":

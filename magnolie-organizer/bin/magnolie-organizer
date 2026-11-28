@@ -24742,9 +24742,10 @@ class Fenster(_FENSTER_BASIS):
             notes_choice_store = getattr(self, '_notes_original_choice_store', None)
             notes_choice_intent = None
             notes_choice_error = None
+            contact_saved_payload = klartext
             try:
                 with self._daten_sperre:
-                    from magnolie_contact_source_book import NativeContactSourceResultCommit
+                    from magnolie_contact_source_book import NativeContactSourceResultCommit, _NativeSavedBookDigests
                     from magnolie_contact_notes_requests import NativeNotesBootstrapSave
                     if contact_result is not None and (type(contact_result) not in (NativeContactSourceResultCommit, NativeNotesBootstrapSave) or
                             proof is not None or historical is not None):
@@ -24768,6 +24769,7 @@ class Fenster(_FENSTER_BASIS):
                     covered = lease.covers(previous, proof, time.monotonic())
                     def native_write(payload):
                         nonlocal warnung, contact_approval_intent, contact_approval_error, notes_choice_intent, notes_choice_error
+                        nonlocal contact_saved_payload
                         if contact_approval_store is not None:
                             try:
                                 if contact_approval_store.has_desired_consent():
@@ -24823,8 +24825,13 @@ class Fenster(_FENSTER_BASIS):
                             observed = book_owner.record_saved(*self._telefon_actor_buchbindung(), lease.ack) if book_owner is not None else None
                             if observed is not None:
                                 from magnolie_native_book_json import book_hash
-                                self._notes_actor_saved_data = (observed["book_source"], observed["sequence"],
-                                    book_hash(daten))
+                                fingerprint = book_hash(daten)
+                                self._notes_actor_saved_data = (observed["book_source"], observed["sequence"], fingerprint)
+                                if payload is klartext:
+                                    # Same parsed input and exact bytes already
+                                    # hashed by this writer. Contacts still need
+                                    # their independent post-repair observation.
+                                    contact_saved_payload = _NativeSavedBookDigests(lease.ack, fingerprint)
                         if retention.get("repair_error"):
                             warnung = warnung or _("Saving the data") + ": " + retention["repair_error"]
                     if historical is not None:
@@ -24851,7 +24858,7 @@ class Fenster(_FENSTER_BASIS):
                         if warnung:
                             contact_book.invalidate_saved()
                         else:
-                            contact_book.record_saved(*self._kontakt_quellen_buchbindung(), klartext)
+                            contact_book.record_saved(*self._kontakt_quellen_buchbindung(), contact_saved_payload)
                             if contact_approval_intent is not None:
                                 try:
                                     contact_approval_store.confirm_save(contact_approval_intent,

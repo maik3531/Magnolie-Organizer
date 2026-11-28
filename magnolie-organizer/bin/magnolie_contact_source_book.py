@@ -9,9 +9,17 @@ import hmac
 import json
 import os
 import threading
+from dataclasses import dataclass
 
 from magnolie_native_book_json import book_hash
 from magnolie_personal_actor_store import NativeBookOwnerScope, NativeProducerBookSnapshot
+
+
+@dataclass(frozen=True)
+class _NativeSavedBookDigests:
+    """Digests of the exact committed text and parsed content in one native save."""
+    saved_sha256: str
+    content_sha256: str
 
 
 class NativeContactSourceBook:
@@ -40,13 +48,17 @@ class NativeContactSourceBook:
         with self._lock:
             self._observed = None
             try:
-                if not isinstance(payload, str):
-                    return None
-                data = json.loads(payload)
-                if not isinstance(data, dict):
-                    return None
-                fingerprint = book_hash(data)
-                saved_hash = hashlib.sha256(payload.encode('utf-8')).hexdigest()
+                if type(payload) is _NativeSavedBookDigests:
+                    fingerprint = payload.content_sha256
+                    saved_hash = payload.saved_sha256
+                else:
+                    if not isinstance(payload, str):
+                        return None
+                    data = json.loads(payload)
+                    if not isinstance(data, dict):
+                        return None
+                    fingerprint = book_hash(data)
+                    saved_hash = hashlib.sha256(payload.encode('utf-8')).hexdigest()
             except (TypeError, ValueError, UnicodeError, OverflowError, RuntimeError):
                 return None
             state = self._owner.record_saved(binding, available, saved_hash)

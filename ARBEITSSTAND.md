@@ -288,6 +288,12 @@ aufgeführt.
   war die Anwendung nach 8,26 Sekunden bereit; vorher lief die
   Initialisierung in den Timeout. Die lange Jahrestagsansicht und der
   Speicherbedarf beim Speichern bleiben offen.
+  Der Linux-Speicherpfad berechnet den Buchhash für Notes und Kontakte
+  bei demselben bestätigten Schreibvorgang nur einmal. Im isolierten
+  250.000-Einträge-Test sank die Zeit bis zum SaveACK von 16,71 auf
+  12,85 Sekunden; der neue Titel und alle Bestandszahlen wurden von der
+  Platte bestätigt. Die volle Aktionsfolge und lange Frame-Abstände
+  beim Speichern brauchen eine eigene Abnahme.
   Die native N100- und 30-Tage-Prüfung bleibt offen.
 - [#847](https://github.com/maik3531/Magnolie-Organizer/issues/847):
   Linux und Windows überspringen beim Kontaktdateiimport überflüssige
