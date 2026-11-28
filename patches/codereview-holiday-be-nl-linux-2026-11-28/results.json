@@ -1,0 +1,297 @@
+{
+  "date": "2026-11-28",
+  "basis": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "prior": "combined #855/#856, native Linux product blob 5314124d5bbe4444edf783b136b1ad3ac218cde5",
+  "python": "3.13.5",
+  "actual_commands": [
+    "python probe.py before.py",
+    "python probe.py after.py",
+    "python -m py_compile before.py after.py probe.py"
+  ],
+  "before": {
+    "passed": 11,
+    "total": 44,
+    "exit": 1
+  },
+  "after": {
+    "passed": 44,
+    "total": 44,
+    "exit": 0
+  },
+  "cases": [
+    {
+      "name": "NL-NO uses groupCode",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "NL-NO public unfiltered",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "NL-NO canonical positive scope",
+      "before": true,
+      "after": true,
+      "before_detail": ""
+    },
+    {
+      "name": "BE-DE uses groupCode",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "BE-DE public unfiltered",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "BE-DE canonical positive scope",
+      "before": true,
+      "after": true,
+      "before_detail": ""
+    },
+    {
+      "name": "NL-MI uses groupCode",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "NL-MI public unfiltered",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "NL-MI canonical positive scope",
+      "before": true,
+      "after": true,
+      "before_detail": ""
+    },
+    {
+      "name": "NL-ZU uses groupCode",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "NL-ZU public unfiltered",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "NL-ZU canonical positive scope",
+      "before": true,
+      "after": true,
+      "before_detail": ""
+    },
+    {
+      "name": "BE-FR uses groupCode",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "BE-FR public unfiltered",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "BE-FR canonical positive scope",
+      "before": true,
+      "after": true,
+      "before_detail": ""
+    },
+    {
+      "name": "BE-NL uses groupCode",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "BE-NL public unfiltered",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "BE-NL canonical positive scope",
+      "before": true,
+      "after": true,
+      "before_detail": ""
+    },
+    {
+      "name": "country query keeps all four group identities",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "country query preserves cross-year interval",
+      "before": true,
+      "after": true,
+      "before_detail": ""
+    },
+    {
+      "name": "multi-group source identity retained",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "wrong group not broadened and no coverage",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "unknown code not broadened and no coverage",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "foreign code not broadened and no coverage",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "prefixless code not broadened and no coverage",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "missing identity not broadened and no coverage",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "wrong type not broadened and no coverage",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "mixed valid/invalid not broadened and no coverage",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "municipal restriction not broadened and no coverage",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "contradictory nationwide not broadened and no coverage",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "empty group no delete authority",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "empty country school no delete authority",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "contradictory nationwide municipal data rejected",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "offline school preserves public scope",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "nationwide accepted without proving group coverage",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "nationwide plus explicit group proves structural scope",
+      "before": true,
+      "after": true,
+      "before_detail": ""
+    },
+    {
+      "name": "country response missing other groups no delete authority",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "country municipality not widened",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "school opt-out only public",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "three group fanout and one public",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "group plus subdivision selection rejected",
+      "before": false,
+      "after": true,
+      "before_detail": "assertion false"
+    },
+    {
+      "name": "AT ISO mapping unchanged",
+      "before": true,
+      "after": true,
+      "before_detail": ""
+    },
+    {
+      "name": "DE subdivision unchanged",
+      "before": true,
+      "after": true,
+      "before_detail": ""
+    },
+    {
+      "name": "legacy municipality selection unchanged",
+      "before": true,
+      "after": true,
+      "before_detail": ""
+    }
+  ],
+  "sha256": {
+    "original_product": "f08f017abdc49e3e7aed4f99628c792e9daf83d87583a39724ddad0880a84163",
+    "prior_product": "5d4beae86270874cb3a4e9286b2bd8ad77203cecda45c065ba63ff29c0b96d63",
+    "candidate_product": "c04a4dbc8d8f7ef35b0140012ecf05787e83896547567dd66272d2b4e8d97eff",
+    "host_before": "48149baa5ca02c8feb26f525efbe85ff64049b866b14a60a7d1ad8de5c4b9cd2",
+    "host_after": "df76e9c66039447a3fad474a958ff2ab56eaa9c51ee85eda322b24ca8d308afc",
+    "probe": "914be0c0aa47757261f834b00f4c54ddf0ea100d17687013dbf6be50682d4b54",
+    "complete_patch": "fef09c840757c21e9bc30acc659d5a1315ab4eda8c5bf4f2bb9dc96cce170542"
+  },
+  "source_binding": "Full remote product blob reconstructed through earlier combined patch and new context hunks; exact host excerpt SHA256 verified both ways, new native source reversed byte-exactly. New test file content separately bound. No full checkout or git apply."
+}

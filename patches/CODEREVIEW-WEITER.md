@@ -1,4 +1,9 @@
 
+## 28.11.2026 – #854 BE/NL, Linux-Provider-Teilpatch
+
+- Main weiterhin `1749c92eb42801c38eaba31b272d8c0e27be9164`. Nach #855/#856: [BE/NL-Teilpatch, Probe, Belege](codereview-holiday-be-nl-linux-2026-11-28/README.md). Tatsächliche Linux-Funktionen im Python-Host 11/44 → 44/44, exakte Quellenbindung; keine Live-/GUI-/Git-Anwendungsabnahme. Gruppenparameter und Parser, konservative Scope-Autorisierung; keine GUI-Freischaltung. Patch-SHA256 `fef09c840757c21e9bc30acc659d5a1315ab4eda8c5bf4f2bb9dc96cce170542`.
+- **Nächster Schritt:** Windows-, Kotlin- und Swift-Provider analog korrigieren und prüfen; anschließend gemeinsame GUI/MCP/Cache-Anfrage mit separatem landesweiten PublicHolidays-Scope und Schulgruppen. FR-Patch bleibt erhalten. Weitere #854/#853-Arbeit sowie Synchronisations-Aufsetzpunkt unverändert; #128 privat aktiv, nicht konkurrieren. Kein Produktmerge.
+
 ## 28.11.2026 – #854 Frankreich, geprüfter erster Teilpatch
 
 - Main weiterhin `1749c92eb42801c38eaba31b272d8c0e27be9164`; bisherige Synchronisations- und Wasserzeichenstände unverändert.
