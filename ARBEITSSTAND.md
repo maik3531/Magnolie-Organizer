@@ -7,13 +7,22 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#867](https://github.com/maik3531/Magnolie-Organizer/issues/867) und
+  [#868](https://github.com/maik3531/Magnolie-Organizer/issues/868):
+  Die macOS-UI-Projektion bindet wieder die aktuelle Sendebrücke und
+  die indexierte Geburtstagsnormalisierung. `MacBeta.send` bleibt
+  der Mac-Pfad; reine Kontakt-Geburtstage erzeugen keinen Kalendertermin.
+  Vollständige reproduzierbare Projektion und sechs Hostgruppen,
+  darunter Save/Restore und 246 Kontaktkopieprüfungen, bestanden.
+  Native Paketabnahme bleibt in #113.
+
 - [#866](https://github.com/maik3531/Magnolie-Organizer/issues/866):
   Der macOS-Importhelfer projiziert die sieben benötigten Definitionen
   für ICS-Farben und Nextcloud-Geburtstage aus der Desktopquelle.
   20 Hosttests bestanden, darunter unbekanntes Schaltjahr, Kalender-
   und Terminfarbe, ursprüngliche ICS-Daten und die Ablehnung
-  ungeprüfter Abhängigkeiten. Die UI-Projektion hat einen getrennten
-  Fehler an der Desktop-Brücke; die native Paketabnahme bleibt offen.
+  ungeprüfter Abhängigkeiten. Die getrennten UI-Projektionsfehler
+  wurden in #867 und #868 behoben; die native Paketabnahme bleibt offen.
 
 - [#865](https://github.com/maik3531/Magnolie-Organizer/issues/865):
   OpenHolidays-Abrufe für polnische Schulferien 2026 und 2027 bleiben

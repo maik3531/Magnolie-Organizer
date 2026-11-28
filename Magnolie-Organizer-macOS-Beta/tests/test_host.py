@@ -509,7 +509,9 @@ class ProjectionTests(unittest.TestCase):
         # Each independently important birthday path is an exact audited anchor.
         for anchor in ["function kontaktGeburtstagNurAmKontakt(kontakt) {",
                        "const importGeburtstag = kontaktGeburtstagNurAmKontakt(k)",
-                       "const geburtstag = kontaktGeburtstagNurAmKontakt(k)", "const kontakteNachName = new Map();", "const verknuepft = d.jahrestage.find((j) => j.kontaktId === k.id &&",
+                       "const geburtstag = kontaktGeburtstagNurAmKontakt(k)", "const kontakteNachName = new Map();",
+                       "if (!ersterGeburtstagProKontakt.has(j.kontaktId)) ersterGeburtstagProKontakt.set(j.kontaktId, j);",
+                       "const verknuepft = ersterGeburtstagProKontakt.get(k.id);",
                        'const fNotiz = eingabe("textarea", k ? k.notiz : "");',
                        'form.append(formZeile(_("Note"), fNotiz));',
                        "notiz: fNotiz.value, foto: fotoWert, fotoManuell: fotoManuell,",
@@ -521,8 +523,10 @@ class ProjectionTests(unittest.TestCase):
                        "const jahrestag = k.geburtstag ? { datum: k.geburtstag,",
                        "if (kontaktGeburtstagNurAmKontakt(base) && args.birth_date !== undefined) {",
                        "if (args.birth_date !== undefined && !kontaktGeburtstagNurAmKontakt(base)) {\n        if (args.birth_date && !gueltigesJahresdatum(args.birth_date))"]:
-            with self.subTest(anchor=anchor), self.assertRaisesRegex(ValueError, "Canonical contact-only birthday anchor changed"):
-                projection.project_contact_copy_birthdays(canonical.replace(anchor, "/* synthetic drift */", 1))
+            with self.subTest(anchor=anchor):
+                self.assertIn(anchor, canonical)
+                with self.assertRaisesRegex(ValueError, "Canonical contact-only birthday anchor changed"):
+                    projection.project_contact_copy_birthdays(canonical.replace(anchor, "/* synthetic drift */", 1))
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-system-contact-") as temp:
             temp = canonical_temporary_root(temp)
             target = Path(temp) / "UI"

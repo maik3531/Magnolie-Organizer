@@ -182,9 +182,12 @@ def project_contact_copy_birthdays(text):
     for (const k of d.kontakte) {
       if (kontaktGeburtstagNurAmKontakt(k)) continue;
       const namen = new Set([''',
+        '''    for (const j of d.jahrestage) {
+      if (!istGeburtstagTyp(j.typ)) continue;
+      if (!ersterGeburtstagProKontakt.has(j.kontaktId)) ersterGeburtstagProKontakt.set(j.kontaktId, j);''',
         '''    for (const k of d.kontakte) {
       if (kontaktGeburtstagNurAmKontakt(k)) continue;
-      const verknuepft = d.jahrestage.find((j) => j.kontaktId === k.id &&''',
+      const verknuepft = ersterGeburtstagProKontakt.get(k.id);''',
         '''    const fNotiz = eingabe("textarea", k ? k.notiz : "");
     const contactBirthday = !eigenesProfil && kontaktGeburtstagsEditor(k);
     fNach.id = "kontakt-nachname";''',
@@ -316,7 +319,8 @@ def project(snapshot, target):
                          lambda _: 'const NEU_IN_DIESER_FASSUNG_FASSUNG = ' + json.dumps(identity["version"]) + ';\nconst NEU_IN_DIESER_FASSUNG = ' + json.dumps(notes) + ';', text)
     if count != 1:
         raise ValueError("Canonical release note binding changed.")
-    text = replace_once(text, "window.webkit.messageHandlers[this.name].postMessage(JSON.stringify(obj));\n        return true;",
+    # Linux may pass typed GTK save messages; macOS keeps its own command and save gates.
+    text = replace_once(text, "window.webkit.messageHandlers[this.name].postMessage(alsWerte ? obj : JSON.stringify(obj));\n        return true;",
                         "return window.MacBeta.send(obj, this.name);")
     text = replace_once(text, "  function normalisiere(roh) {",
                         "  function normalisiere(roh) { return window.MacBeta.preserve(roh, normalisiereDesktop(roh)); }\n"
