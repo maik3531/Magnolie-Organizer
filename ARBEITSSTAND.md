@@ -269,6 +269,13 @@ aufgeführt.
   Versand durch. Zwei native Zeit-Testgruppen, gemeinsamer Speicher und
   Transport sowie der vollständige WinForms-Bau bestanden. Der neue
   Zeit-Automatiktrigger und die installierte Abnahme bleiben offen.
+  Die gespeicherte Abschaltung des Custom-Abgleichs sperrt unter Linux
+  und Windows sofort Custom-Daten und -Anfragen, auch bevor die ältere
+  V4-Freigabe aktualisiert ist. Ausstehende Custom-Daten werden mit
+  derselben Einstellung gespeichert bzw. verworfen; die Steuerung
+  kann die Abschaltung weiterhin übertragen. 94 Linux-Fälle, drei
+  native Windows-Testgruppen und der WinForms-Bau bestanden. Der
+  separat reproduzierte Snapshot-Testfehler ist in #862 erfasst.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

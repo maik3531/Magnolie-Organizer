@@ -458,6 +458,10 @@ internal sealed partial class TelefonStore
             if (RestoreFenced || !CustomSupported(peerId)) return false;
             var settings = CustomSettings(peerId);
             if (kind == "personal_sync.custom_settings") return !outgoing || JsonNode.DeepEquals(body, settings["local"]);
+            var peer = LoadPeers().Single(value => value.Id == peerId && value.State == "paired");
+            var shared = SharedSettings(peerId, peer.PublicKey);
+            if (shared is not null && SharedSyncSettings.Effective(shared)["custom_enabled"]?.GetValue<bool>() == false)
+                return false;
             if (DesktopFeatures()["custom_tab"]?.GetValue<bool>() == false) return false;
             var personal = PersonalSettings(peerId);
             return PersonalSyncContract.CustomScopeAllowed(settings[outgoing ? "remote" : "local"] as JsonObject,

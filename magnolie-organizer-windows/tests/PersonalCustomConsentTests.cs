@@ -117,6 +117,21 @@ internal static class PersonalCustomConsentTests
             TestAssert.That(store.OutboxMessage(source, id) is null && !store.CustomAllowed(source, "personal_sync.custom_batch", batch, true), "Revocation did not cancel the queued batch.");
             store.SetCustomSettings(source, vectors["reenabled"]!.AsObject(), false);
             TestAssert.That(!store.CustomAllowed(source, "personal_sync.custom_batch", batch, true), "Stale batch revived after off/on.");
+            var currentConsent = store.CustomSettings(source)["local"]!.AsObject();
+            var currentBatch = batch.DeepClone().AsObject();
+            currentBatch["sender_epoch"] = currentConsent["epoch"]!.DeepClone();
+            currentBatch["sender_revision"] = currentConsent["revision"]!.DeepClone();
+            store.ChangeSharedSetting(source, peer.PublicKey, "custom_enabled", JsonValue.Create(true)!);
+            TestAssert.That(store.CustomAllowed(source, "personal_sync.custom_batch", currentBatch, true), "Shared Custom ON disabled the current V4 grant.");
+            var queued = store.Enqueue(source, "personal_sync.custom_batch", currentBatch, 60_000, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            var control = store.Enqueue(source, "personal_sync.custom_settings", currentConsent, 60_000, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            store.ChangeSharedSetting(source, peer.PublicKey, "custom_enabled", JsonValue.Create(false)!);
+            store = new TelefonStore(paths, key);
+            TestAssert.That(JsonNode.DeepEquals(store.CustomSettings(source)["local"], currentConsent) &&
+                store.OutboxMessage(source, queued) is null && store.OutboxMessage(source, control) is not null &&
+                !store.CustomAllowed(source, "personal_sync.custom_batch", currentBatch, true) &&
+                store.CustomAllowed(source, "personal_sync.custom_settings", currentConsent, true),
+                "Persisted Custom OFF must stop data while leaving the previous V4 controls available for convergence.");
             var local7 = TelefonStore.NewCustomSettings(false, 7);
             var remote7 = TelefonStore.NewCustomSettings(true, 7);
             store.SetCustomSettings(source, local7, false); store.SetCustomSettings(source, remote7, true);

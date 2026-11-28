@@ -95,6 +95,30 @@ def test_control_ack_after_save_and_duplicate_does_not_drop_batch(tmp_path):
     assert identifier in {m["message_id"] for m in service.store.pending(peer_id)}
 
 
+def test_common_custom_off_blocks_data_before_v4_consent_is_projected(tmp_path):
+    service, peer_id = _personal_service(tmp_path, lambda *_: None)
+    peer = service.store.peer(peer_id)
+    peer["capabilities"] = phone.desktop_capabilities()
+    peer["custom_sync"] = {"local": C["remote"], "remote": C["local"]}
+    service.store.save_peers()
+    public = peer["static_public"]
+    service.store.change_shared_setting(peer_id, public, "custom_enabled", True)
+    batch_id = service.send_custom_sync(peer_id, "personal_sync.custom_batch", V["batch"])
+    controls = service.store.queue(peer_id, "personal_sync.custom_settings", C["remote"], phone.DAY_MS)
+    service.store.change_shared_setting(peer_id, public, "custom_enabled", False)
+    reopened = phone.PhoneService(str(tmp_path / "phone"), "Test", callback=lambda *_: None)
+    assert reopened.store.peer(peer_id)["custom_sync"] == peer["custom_sync"], "Only the shared setting was written."
+    assert reopened.store.outbox_message(peer_id, batch_id) is None
+    assert reopened.store.outbox_message(peer_id, controls["message_id"]) == controls
+    assert reopened._custom_allowed(peer_id, "personal_sync.custom_settings", C["remote"], True)
+    request = dict(format=4, trigger="manual",
+        sender_epoch=C["local"]["epoch"], receiver_epoch=C["remote"]["epoch"],
+        sender_revision=C["local"]["revision"], receiver_revision=C["remote"]["revision"])
+    assert not reopened._custom_allowed(peer_id, "personal_sync.custom_request", request)
+    with pytest.raises(RuntimeError, match="not permitted"):
+        reopened.send_custom_sync(peer_id, "personal_sync.custom_batch", V["batch"])
+
+
 def test_all_twenty_manual_resources_match_frozen_text():
     data = json.loads((CONTRACTS / "personal-custom-ui.json").read_text())
     ui = json.loads((CONTRACTS / "ui-bugfixes.json").read_text())

@@ -2740,9 +2740,13 @@ class PhoneStore:
                 raise PermissionError("shared_settings_peer_changed")
             if row is None or updated != previous:
                 old_mode = shared_sync_contract.effective(previous)["time_mode"]
-                new_mode = shared_sync_contract.effective(updated)["time_mode"]
+                values = shared_sync_contract.effective(updated)
+                new_mode = values["time_mode"]
                 if (row is None or old_mode != new_mode) and "phone_import" in (old_mode, new_mode):
                     self._discard_time_entry_batches(db, peer_id)
+                if values["custom_enabled"] is False:
+                    db.execute("DELETE FROM outbox WHERE peer_id=? AND kind IN (?,?)",
+                               (peer_id, "personal_sync.custom_batch", "personal_sync.custom_request"))
                 sealed = self._encrypt(canonical(updated), "shared_settings", key)
                 db.execute("INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)", (key, sealed))
         return updated
@@ -8453,6 +8457,9 @@ class PhoneService:
         custom = peer.get("custom_sync", {})
         if kind == "personal_sync.custom_settings":
             return not outgoing or body == custom.get("local")
+        shared = self.store.shared_settings(peer_id, peer["static_public"])
+        if shared is not None and shared_sync_contract.effective(shared)["custom_enabled"] is False:
+            return False
         if self.store.desktop_features().get("custom_tab") is False:
             return False
         personal = peer.get("personal_sync", {})

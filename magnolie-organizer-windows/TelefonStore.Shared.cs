@@ -50,9 +50,16 @@ internal sealed partial class TelefonStore
             SharedSyncSettings.Merge(next, next, actor, peerId);
             if (SharedSettingsBinding(peerId, expectedPublic).Key != key) throw new InvalidOperationException("shared_settings_peer_changed");
             var oldMode = SharedSyncSettings.Effective(previous)["time_mode"]?.GetValue<string>();
-            var newMode = SharedSyncSettings.Effective(next)["time_mode"]?.GetValue<string>();
+            var values = SharedSyncSettings.Effective(next);
+            var newMode = values["time_mode"]?.GetValue<string>();
             if ((stored is null || oldMode != newMode) && (oldMode == "phone_import" || newMode == "phone_import"))
                 DiscardTimeEntryBatches(db, transaction, peerId);
+            if (values["custom_enabled"]?.GetValue<bool>() == false)
+            {
+                using var discard = db.CreateCommand(); discard.Transaction = transaction;
+                discard.CommandText = "DELETE FROM outbox WHERE peer_id=$peer AND kind IN ('personal_sync.custom_batch','personal_sync.custom_request')";
+                discard.Parameters.AddWithValue("$peer", peerId); discard.ExecuteNonQuery();
+            }
             using var save = db.CreateCommand(); save.Transaction = transaction;
             save.CommandText = "INSERT OR REPLACE INTO meta(key,value) VALUES($key,$value)";
             save.Parameters.AddWithValue("$key", key); save.Parameters.AddWithValue("$value", Seal("shared_settings", key, TelefonCrypto.Canonical(next)));
