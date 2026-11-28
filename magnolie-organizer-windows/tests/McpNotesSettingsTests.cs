@@ -30,6 +30,15 @@ internal static class McpNotesSettingsTests
                 state["shared"]!["values"] is null && store.SharedSettings(peer.Id, peer.PublicKey) is null,
                 "Reading pairing-derived authority must not initialize synchronization preferences.");
             var initial = SharedSyncSettings.Effective(SharedSyncSettings.Create(store.LoadOrCreateIdentity().Id));
+            var unsupportedSeed = initial.DeepClone().AsObject();
+            unsupportedSeed["auto_mode"] = "connection";
+            await TestAssert.ThrowsAsync<InvalidDataException>(() => service.SetCommonPreferencesAsync(peer.Id, fingerprint, unsupportedSeed),
+                "Unnegotiated connection mode initialized common preferences.");
+            await TestAssert.ThrowsAsync<InvalidDataException>(() => service.StartCommonSyncAsync(peer.Id, fingerprint, unsupportedSeed),
+                "Unnegotiated connection mode started common synchronization.");
+            TestAssert.That(store.SharedSettings(peer.Id, peer.PublicKey) is null &&
+                service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.GetValue<string>() == state["revision"]!.GetValue<string>(),
+                "An unsupported initial choice changed synchronization state.");
             var update = Target("notes_settings_update"); update["expectedRevision"] = state["revision"]!.DeepClone();
             update["initial"] = initial; update["field"] = "auto_mode"; update["value"] = "wifi";
             var saved = await service.ExecuteMcpAsync(update, default);
@@ -39,6 +48,12 @@ internal static class McpNotesSettingsTests
                 "Native Notes shared preference was not saved/read back through the GUI handler: " + saved.ToJsonString());
             var stale = await service.ExecuteMcpAsync(update, default);
             TestAssert.That(stale["code"]!.GetValue<string>() == "conflict", "Stale Notes revision mutated shared preferences.");
+            var wifiChoice = store.SharedSettings(peer.Id, peer.PublicKey);
+            update["expectedRevision"] = saved["notesSettings"]!["revision"]!.DeepClone(); update["value"] = "connection";
+            var unsupported = await service.ExecuteMcpAsync(update, default);
+            TestAssert.That(unsupported["code"]?.GetValue<string>() == "invalid_selection" && store.PersonalSettings(peer.Id).AutoWifi &&
+                JsonNode.DeepEquals(wifiChoice, store.SharedSettings(peer.Id, peer.PublicKey)),
+                "Unnegotiated connection mode replaced the working WLAN choice.");
             update["expectedRevision"] = saved["notesSettings"]!["revision"]!.DeepClone(); update["field"] = "skip_deletions"; update["value"] = false;
             var deletion = await service.ExecuteMcpAsync(update, default);
             TestAssert.That(deletion["ok"]!.GetValue<bool>() && store.StoredGrantMatches("personal_deletions_sync", true), "Shared deletion preference bypassed the existing grant handler.");

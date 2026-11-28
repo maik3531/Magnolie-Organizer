@@ -86,9 +86,10 @@ aufgeführt.
   anschließend über WLAN an. 129 Release-JVM-Tests bestanden. Windows
   prüft ebenfalls vor dem Speichern und behält `not_granted` für Bluetooth
   und `wifi_only` für den WLAN-Lauf bei. Sieben native .NET-Gruppen bestanden.
-  Unter Linux kann ein lokaler Einstellungsaufruf ohne beidseitige
+  Unter Linux und Windows kann ein lokaler Einstellungsaufruf ohne beidseitige
   Unterstützung die WLAN-Automatik nicht durch „Bei Verbindung“ ersetzen.
-  Die vorhandene WLAN-Wahl bleibt erhalten. 63 Hosttests bestanden.
+  Die vorhandene WLAN-Wahl bleibt erhalten. 63 Linux-Hosttests und vier
+  native Windows-.NET-Gruppen bestanden.
   Die Automatik über weitere freigegebene Transporte bleibt offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt

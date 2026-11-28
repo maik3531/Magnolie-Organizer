@@ -34,9 +34,10 @@ internal sealed partial class TelefonCoordinator
                     throw new McpConflictException();
                 RequireSolePeer(id);
                 var peer = store.LoadPeers().Single(item => item.Id == id && item.State == "paired");
+                var localCapabilities = SharedLocalCapabilities();
                 if (!TelefonCrypto.Fingerprint(peer.PublicKey).Equals(expectedFingerprint, StringComparison.OrdinalIgnoreCase) ||
                     (!(activate || field is not null) && !store.PersonalSettings(id).OwnDevice) ||
-                    !SharedSyncSettings.Supported(SharedLocalCapabilities(), peer.Capabilities))
+                    !SharedSyncSettings.Supported(localCapabilities, peer.Capabilities))
                     throw new InvalidOperationException("Shared preferences are unavailable for this paired device.");
                 var validated = SharedSyncSettings.Create(identity.Id, initial);
                 if (!initial.Select(pair => pair.Key).ToHashSet(StringComparer.Ordinal).SetEquals(SharedSyncSettings.Effective(validated).Select(pair => pair.Key)))
@@ -44,6 +45,12 @@ internal sealed partial class TelefonCoordinator
                 if (field is not null) SharedSyncSettings.Change(validated, identity.Id, id, field,
                     value ?? throw new InvalidDataException("Missing preference value."));
                 else if (value is not null) throw new InvalidDataException("Unexpected preference value.");
+                var requestsConnectionMode = field == "auto_mode" && value?.GetValue<string>() == "connection";
+                var seedsConnectionMode = initial["auto_mode"]!.GetValue<string>() == "connection" &&
+                    store.SharedSettings(id, peer.PublicKey) is null;
+                if ((requestsConnectionMode || seedsConnectionMode) &&
+                    !PersonalSyncContract.AutoConnectionSupported(localCapabilities, peer.Capabilities))
+                    throw new InvalidDataException("Automatic synchronization over the current connection is unsupported for this pairing.");
                 if (!store.PersonalSettings(id).OwnDevice)
                 {
                     store.SetPersonalSyncMode(id, initial["auto_mode"]!.GetValue<string>() == "wifi", initial["skip_deletions"]!.GetValue<bool>());
