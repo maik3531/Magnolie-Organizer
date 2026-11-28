@@ -18,6 +18,8 @@ aufgeführt.
   automatischen Starts. Eine höhere oder gleiche UUID erzeugt keinen
   Lauf. 81 Hostfälle einschließlich WLAN, Bluetooth, Wiederholung
   und Wechsel der Verbindung bestanden.
+  Notes setzt dieselbe Wahl vor der Anlage eines eingehenden
+  automatischen Laufs durch. Alle 133 Release-JVM-Laufzeitfälle bestanden.
 
 - [#869](https://github.com/maik3531/Magnolie-Organizer/issues/869):
   Der breite Linux-Webtest prüft Feiertagsabrufe über die kontrollierte

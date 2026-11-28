@@ -133,6 +133,8 @@ class ScopedDataRuntimeTest {
     @Test fun scopedConnectionRequestOnCurrentBluetoothNeedsItsOwnRunPolicy() = exercise("receive-auto-connection", 14)
     @Test fun scopedConnectionRequestWaitsForTheActuallyAdvertisedRevision() =
         exercise("receive-auto-connection-advertisement", 14)
+    @Test fun scopedConnectionRequestFromTheNonElectedPeerDoesNotCreateARun() =
+        exercise("receive-auto-connection-higher-uuid", 14)
     @Test fun scopedConnectionInitiatorWaitsForTheOriginalRequestAckBeforeItsBatch() =
         exercise("start-auto-connection", 3)
     @Test fun scopedConnectionInitiatorSavesTheReplyOriginalBeforeSendingItsResult() =
@@ -519,7 +521,12 @@ class ScopedDataRuntimeTest {
             val storage = TelefonAblage.get(context)
             storage.identity("Synthetic").second.fill(0)
             storage.setEnabled(true); storage.setPersonalSync(true, true, true, false, false)
-            val peerId = "22222222-2222-4222-8222-222222222222"
+            val nonElectedPeer = mode == "receive-auto-connection-higher-uuid"
+            val peerId = when {
+                connectionStart || nonElectedPeer -> "ffffffff-ffff-4fff-bfff-ffffffffffff"
+                connectionAutomation -> "00000000-0000-4000-8000-000000000000"
+                else -> "22222222-2222-4222-8222-222222222222"
+            }
             if (actorProducer) {
                 val fixture = TelefonKanonisch.json.parseToJsonElement(requireNotNull(javaClass.getResource("/personal-sync-contract.json")).readText()).jsonObject
                 val dataUrl = fixture.getValue("format2").jsonObject.getValue("data_url").jsonPrimitive.content
@@ -2154,11 +2161,12 @@ class ScopedDataRuntimeTest {
                      }
                       work.receiveMessage(peer, requestMessage, channel, 0)
                       val ack = requestAck()
-                      if (mode.endsWith("-format")) {
+                       if (mode.endsWith("-format") || nonElectedPeer) {
                           assertEquals("rejected", ack.string("status"))
                           assertEquals("not_granted", ack.string("error"))
-                          assertNull(queue.personalRun(peerId, run))
-                          assertFalse(queue.containsScopedRun(peerId, run))
+                           assertNull(queue.personalRun(peerId, run))
+                           assertFalse(queue.containsScopedRun(peerId, run))
+                           assertNull(queue.duplicateResult(peerId, requestMessage.string("message_id")))
                           return
                       }
                       assertEquals(ack.toString(), "accepted", ack.string("status"))

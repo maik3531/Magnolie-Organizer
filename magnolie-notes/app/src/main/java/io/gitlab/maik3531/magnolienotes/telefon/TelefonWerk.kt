@@ -4215,8 +4215,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     if (innerKind == "personal_sync.request") {
                         if (body.string("trigger") == "auto_wifi" && activeTransport?.first != TelefonTransportArt.WIFI)
                             throw TelefonProtokollFehler("Auto-Sync-Request außerhalb des WLANs.")
-                        val authority = if (body.string("trigger") == PersonalAutoSync.CONNECTION)
-                            connectionRequestAuthority(peer, noteSession, body) else null
+                        val authority = if (body.string("trigger") == PersonalAutoSync.CONNECTION) {
+                            check(peer.device_id < sharedActor) { "The peer is not the elected connection initiator." }
+                            connectionRequestAuthority(peer, noteSession, body)
+                        } else null
                         if (authority != null) {
                             val receipt = queue.receiveScopedConnectionRequest(sharedBinding(peer), sharedPreferences, decoded,
                                 reference, authority) {
