@@ -448,10 +448,16 @@ aufgeführt.
   bei demselben bestätigten Schreibvorgang nur einmal. Im isolierten
   250.000-Einträge-Test sank die Zeit bis zum SaveACK von 16,71 auf
   12,85 Sekunden; der neue Titel und alle Bestandszahlen wurden von der
-  Platte bestätigt. Die volle Aktionsfolge erreichte vor dem
-  Ansichtsfix erneut das Speicherlimit. Speicherbedarf und lange
-  Frame-Abstände beim Speichern brauchen eine eigene Abnahme.
-  Die native N100- und 30-Tage-Prüfung bleibt offen.
+  Platte bestätigt. [`39f57898`](https://github.com/maik3531/Magnolie-Organizer/commit/39f57898)
+  entfernt unbenutzte Terminlisten aus der Erinnerungsbrücke;
+  [`46c5864f`](https://github.com/maik3531/Magnolie-Organizer/commit/46c5864f)
+  vermeidet eine zweite JSON-Escapierung bei großen regulären GTK-
+  Schreibvorgängen und unnötige Wiederherstellungs-Fingerprints.
+  Mit 10.000 Einträgen je Bereich bestand die native Linux-Vollfolge:
+  bereit in 4,29 s, Notizsuche in 153 ms und Speicherung in 2,14 s
+  mit erneuter Dateiprüfung. Bei 50.000 je Bereich erreicht der zweite
+  Vollbuchtransfer weiterhin 5 GiB vor seiner Speicherbestätigung.
+  Begrenzte Übertragung sowie Windows, N100 und 30 Tray-Tage bleiben offen.
 - [#847](https://github.com/maik3531/Magnolie-Organizer/issues/847):
   Linux und Windows überspringen beim Kontaktdateiimport überflüssige
   Buchsortierungen und die unbenutzte Kontaktsuche bei expliziter Auswahl.
