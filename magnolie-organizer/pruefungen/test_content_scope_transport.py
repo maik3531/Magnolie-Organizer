@@ -71,6 +71,10 @@ def test_scoped_request_checks_transport_before_persisting(tmp_path, monkeypatch
 
 
 def connection_automation_fixture(tmp_path, monkeypatch, transport, gate=None, *, peer_id=None):
+    # Inbound fixtures represent the elected phone; GUI start fixtures pass
+    # their own peer ID to exercise the desktop's election separately.
+    if peer_id is None:
+        peer_id = "00000000-0000-4000-8000-000000000000"
     service, peer, channel = fixture(tmp_path, monkeypatch, peer_id=peer_id)
     channel.sid = uuid.uuid4().bytes
     channel.reader_nonce = uuid.uuid4().bytes + uuid.uuid4().bytes
@@ -280,11 +284,17 @@ def test_expired_connection_run_never_creates_an_unbound_report_or_clears_legacy
     ("bluetooth", "settings_echo"),
     ("bluetooth", "grant"),
     ("bluetooth", "reader"),
+    ("bluetooth", "higher_uuid"),
+    ("bluetooth", "equal_uuid"),
     ("unavailable", "transport"),
 ])
 def test_connection_automation_requires_current_negotiated_authority(tmp_path, monkeypatch, transport, gate):
-    service, peer, channel, remote, manifest = connection_automation_fixture(tmp_path, monkeypatch, transport, gate)
+    higher_peer = "ffffffff-ffff-4fff-bfff-ffffffffffff" if gate == "higher_uuid" else None
+    service, peer, channel, remote, manifest = connection_automation_fixture(
+        tmp_path, monkeypatch, transport, gate, peer_id=higher_peer)
     peer_id, public = peer["device_id"], peer["static_public"]
+    if gate == "equal_uuid":
+        monkeypatch.setitem(service.store.identity, "device_id", peer_id)
     run = str(uuid.uuid4())
     request = {"format": 3, "run_id": run, "trigger": personal.AUTO_CONNECTION_TRIGGER, "modules": ["notes", "tasks"]}
     # Keep the peer's frame independent of the local encoder, so the baseline
@@ -322,6 +332,8 @@ def test_connection_automation_requires_current_negotiated_authority(tmp_path, m
         assert not service.store.personal_run(peer_id, run)
         assert service.store.scoped_run_reference(peer_id, public, run) is None
         assert not service.store.active_auto_run(peer_id)
+        if gate in {"higher_uuid", "equal_uuid"}:
+            assert service.store.dedupe_result(peer_id, packet["message_id"]) is None
         expected_error = "temporary_failure" if gate == "settings_echo" else "not_granted"
         assert (ack["status"], ack["error"]) == ("rejected", expected_error), ack
 

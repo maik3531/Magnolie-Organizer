@@ -10442,6 +10442,10 @@ class PhoneService:
                     current = self.store.sole_peer(peer["device_id"])
                     if not current or current["static_public"] != peer["static_public"] or self.connections.get(peer["device_id"]) is not channel:
                         raise PermissionError("Scoped data peer changed.")
+                    if (wrapped["kind"] == "personal_sync.request"
+                            and wrapped["body"]["trigger"] == personal_sync_contract.AUTO_CONNECTION_TRIGGER
+                            and current["device_id"] >= self.store.identity["device_id"]):
+                        raise PermissionError("The phone is not the elected connection initiator.")
                     manifest = self.current_content_scope(peer["device_id"], peer["static_public"], wrapped["scope"])
                     inner_kind, body = content_scope_contract.unwrap(wrapped, manifest)
                     inner_message = dict(payload, kind=inner_kind, body=body)

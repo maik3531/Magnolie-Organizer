@@ -14,6 +14,10 @@ aufgeführt.
   Speicherung zurück. Die verschlüsselte Gegenprobe und 156
   Release-JVM-Fälle bestanden. Installierte Kopplung und weitere
   Automatikumfänge sind offen.
+  Linux prüft die Initiatorwahl jetzt auch beim Empfang eines
+  automatischen Starts. Eine höhere oder gleiche UUID erzeugt keinen
+  Lauf. 81 Hostfälle einschließlich WLAN, Bluetooth, Wiederholung
+  und Wechsel der Verbindung bestanden.
 
 - [#869](https://github.com/maik3531/Magnolie-Organizer/issues/869):
   Der breite Linux-Webtest prüft Feiertagsabrufe über die kontrollierte
