@@ -106,6 +106,67 @@ class TimeControlRuntimeTest {
         }
     }
 
+    @Test fun headerSyncRequiresLiveManualRouteAndRejectsStaleSelection() = fixture { f ->
+        val queue = field(TelefonWerk::class.java, "queue").get(f.work) as TelefonQueue
+        fun ready() = f.work.run { refreshModules(); state.value.personalHeaderSyncReady }
+        fun queued() = queue.hasKind(f.peer.device_id, TimeSyncProtokoll.REQUEST)
+        f.session.timeReceived = null
+        assertFalse(ready())
+        f.work.personalHeaderSyncNow(f.peer)
+        assertFalse(queued())
+        f.session.timeReceived = f.peer.remote_personal_time_policy
+        assertTrue(ready())
+
+        // A still-rendered enabled action does not survive a dead original pipe.
+        f.transportCurrent.set { false }
+        f.work.personalHeaderSyncNow(f.peer)
+        assertFalse(f.work.state.value.personalHeaderSyncReady)
+        assertFalse(queued())
+        f.transportCurrent.set { true }
+        field(TelefonWerk::class.java, "activeTransport").set(f.work, TelefonTransportArt.BLUETOOTH to f.pipe)
+        assertTrue(ready())
+        f.work.personalHeaderSyncNow(f.peer.copy(static_public = TelefonKrypto.b64(ByteArray(32) { 24 })))
+        assertFalse(queued())
+
+        f.storage.setPersonalSync(true, false, false, true, false)
+        assertFalse(ready())
+        f.work.personalHeaderSyncNow(f.peer)
+        assertFalse(queued())
+        f.storage.setPersonalSync(true, false, false, false, false)
+        assertTrue(ready())
+        // The outbox is the production queue; the fixture supplies no remote pong loop.
+        (field(TelefonWerk::class.java, "scopedWakeup").get(f.work) as AtomicBoolean).set(true)
+        f.work.personalHeaderSyncNow(f.peer)
+        assertTrue(queued())
+        assertFalse(queue.hasKind(f.peer.device_id, "personal_sync.request"))
+    }
+
+    @Test fun headerSyncRequiresAgreedManualModeAndRejectsConnectionMode() = fixture { f ->
+        val peer = f.peer.copy(remote_personal_notes_sync_available = true,
+            remote_personal_notes_sync_versions = listOf(SharedSyncSettings.VERSION),
+            remote_personal_tasks_sync_versions = f.peer.remote_personal_tasks_sync_versions + SharedSyncSettings.VERSION)
+        f.storage.savePeer(peer)
+        (field(TelefonWerk::class.java, "scopedWakeup").get(f.work) as AtomicBoolean).set(true)
+        val initial = SharedSyncSettings.effective(SharedSyncSettings.create(peer.device_id)) +
+            mapOf("auto_mode" to JsonPrimitive("manual"), "skip_deletions" to JsonPrimitive(!peer.personal_deletions_sync_granted))
+        val manual = f.work.configureCommonPreferences(peer.device_id, peer.static_public, initial)
+        assertFalse(f.work.state.value.personalHeaderSyncReady)
+        f.session.sharedSent = manual
+        f.session.sharedReceived = manual
+        f.work.refreshModules()
+        assertTrue(f.work.state.value.personalHeaderSyncReady)
+
+        val connection = f.work.configureCommonPreferences(peer.device_id, peer.static_public, initial,
+            "auto_mode", JsonPrimitive("connection"))
+        f.session.sharedSent = connection
+        f.session.sharedReceived = connection
+        f.work.refreshModules()
+        assertFalse(f.work.state.value.personalHeaderSyncReady)
+        f.work.personalHeaderSyncNow(peer)
+        val queue = field(TelefonWerk::class.java, "queue").get(f.work) as TelefonQueue
+        assertFalse(queue.hasKind(peer.device_id, TimeSyncProtokoll.REQUEST))
+    }
+
     @Test fun sourceBoundCommandsUseActualEncryptedWriterAndNativeLifecycle() = fixture { f ->
         val read = f.read(); assertEquals(JsonPrimitive(false), read["persisted"])
         val start = f.command("start", read).copy(activity = "Actual native timer control")

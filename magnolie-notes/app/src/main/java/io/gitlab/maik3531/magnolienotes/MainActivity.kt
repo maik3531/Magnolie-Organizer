@@ -1151,13 +1151,8 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
             }
             if (blatt == 0 || blatt == 1) io.gitlab.maik3531.magnolienotes.ui.ListenSortierKnopf(blatt == 1) { sortierBlatt = blatt }
             io.gitlab.maik3531.magnolienotes.ui.TelefonKopf(telefonZustand,
-                sync = { runCatching {
-                    if (telefonZustand.sharedPreferencesSupported) telefonZustand.peer?.let { peer ->
-                        telefonWerk.configureCommonPreferences(peer.device_id, peer.static_public,
-                            gemeinsameSyncAnfangswerte(telefonZustand, bestand))
-                    }
-                    telefonWerk.personalSyncNow()
-                }.onFailure { sage(zusammenhang.fehlertext(it)) } },
+                sync = { peer -> runCatching { telefonWerk.personalHeaderSyncNow(peer) }
+                    .onFailure { sage(zusammenhang.fehlertext(it)) } },
                 computer = { id -> runCatching { telefonWerk.selectComputer(id) }.onFailure { sage(zusammenhang.fehlertext(it)) }
                     if (id == null) blatt = 3 },
                 disconnect = { peer -> runCatching { telefonWerk.disconnectComputer(peer) }

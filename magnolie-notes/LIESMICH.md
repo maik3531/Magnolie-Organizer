@@ -15,6 +15,10 @@ Das Rechnersymbol in der Notes-Kopfzeile zeigt die gespeicherten Rechner.
 Mit **Trennen** wird die Verbindung zum gewählten Rechner beendet. Kopplung
 und Freigaben bleiben gespeichert. Zum erneuten Verbinden den Rechner im
 selben Menü auswählen.
+**Jetzt synchronisieren** ist in der Kopfzeile im manuellen Modus nur
+bedienbar, wenn der gewählte Rechner verbunden und mindestens ein
+Abgleich freigegeben und bereit ist. Im Automatikmodus ist das Symbol
+ausgeblendet.
 
 Die Paketbeschreibungen für F-Droid nennen diese Rolle und die optionalen Zugriffe.
 Der vollständige Fotoabgleich sowie Webcam/Mikrofon und Bildschirmspiegelung sind

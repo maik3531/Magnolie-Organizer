@@ -1746,7 +1746,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
 
     @Synchronized private fun refreshSharedPreferenceState() {
-        val peer = safePeer()?.takeIf { it.state == "paired" && it.own_device && SharedSyncSettings.supported(it, sharedLocalCapabilities()) }
+        val selected = safePeer()
+        val peer = selected?.takeIf { it.state == "paired" && it.own_device && SharedSyncSettings.supported(it, sharedLocalCapabilities()) }
         val body = peer?.let { sharedPreferences.read(sharedBinding(it)) }
         val session = activeChannel?.let { noteSessions[it] }
         _state.value = _state.value.copy(
@@ -1755,6 +1756,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 session?.sharedSent == body && session.sharedReceived == body,
             sharedPreferencesValues = body?.let { JsonObject(SharedSyncSettings.effective(it)) },
             sharedPreferencesInitial = peer?.let { JsonObject(initialCommonPreferences(it)) })
+        refreshPersonalHeaderSync(selected)
     }
 
     private fun initialCommonPreferences(peer: TelefonPeer): Map<String, JsonElement> = mapOf(
@@ -2153,6 +2155,62 @@ class TelefonWerk private constructor(private val context: Context, private val 
         else wakeScopedSync(peer)
     }
 
+    private data class HeaderSync(val content: Boolean, val time: Boolean, val custom: JsonObject?) {
+        val ready get() = content || time || custom != null
+    }
+
+    private fun personalHeaderSync(peer: TelefonPeer, checkCurrentScope: Boolean = false): HeaderSync? {
+        val channel = activeChannel ?: return null
+        val session = noteSessions[channel] ?: return null
+        if (!sessionTransportAktuell(channel, pairingGeneration) || peer.state != "paired" ||
+            !peer.own_device || !peer.remote_own_device ||
+            !session.capabilitiesReceived || !session.grantsReceived || !session.ownSettingsReceived) return null
+        val documents = Ablage.hole(context)
+        if (!documents.synchronisationsSchreibbar()) return null
+        val common = if (usesCommonPreferences(peer)) {
+            val settings = sharedPreferences.read(sharedBinding(peer)) ?: return null
+            if (!sharedControlsReady(peer, session) || session.sharedSent != settings || session.sharedReceived != settings) return null
+            SharedSyncSettings.effective(settings)
+        } else null
+        if (common?.let { it["auto_mode"] != JsonPrimitive("manual") } ?: storage.personalAutoWifi()) return null
+        val notes = peer.personal_notes_sync_granted && peer.remote_personal_notes_sync_granted
+        val tasks = peer.personal_tasks_sync_granted && peer.remote_personal_tasks_sync_granted
+        val content = if (common?.get("content_mode") == JsonPrimitive("phone_scope")) {
+            val selection = session.contentScopeSelection
+            selection != null && session.localContentScope != null && contentScopeControlsReady(peer, session) &&
+                session.contentScopeRestoreEpoch == documents.baum.value.syncEpoch &&
+                session.contentScopeAccepted.size == maxOf(1, (selection.notes.size + selection.tasks.size + 255) / 256) &&
+                (!checkCurrentScope || selection == PersonalSync.livePersonalContent(documents.bestand.value))
+        } else {
+            (notes || tasks) && (!notes || peer.remote_personal_notes_sync_available && noteModeReady(peer, session)) &&
+                (!tasks || peer.remote_personal_tasks_sync_available)
+        }
+        val localTime = peer.personal_time_policy
+        val remoteTime = peer.remote_personal_time_policy
+        val time = localTime != null && remoteTime != null &&
+            timeTransmissionAllowed(peer, TimeSyncProtokoll.request(localTime, remoteTime, "manual"), session, outgoing = true)
+        val custom = customRequest(peer, "manual")?.takeUnless { queue.hasKind(peer.device_id, "personal_sync.custom_settings") }
+        return HeaderSync(content, time, custom)
+    }
+
+    private fun refreshPersonalHeaderSync(peer: TelefonPeer?) {
+        val ready = runCatching { peer?.let { personalHeaderSync(it)?.ready } == true }.getOrDefault(false)
+        if (_state.value.personalHeaderSyncReady != ready) _state.value = _state.value.copy(personalHeaderSyncReady = ready)
+    }
+
+    @Synchronized internal fun personalHeaderSyncNow(expected: TelefonPeer) {
+        val peer = safePeer()?.takeIf { it.device_id == expected.device_id && it.static_public == expected.static_public } ?: return
+        val available = personalHeaderSync(peer, checkCurrentScope = true)
+        if (available?.ready != true) {
+            _state.value = _state.value.copy(personalHeaderSyncReady = false)
+            return
+        }
+        if (available.time) requestTimeSync("manual")
+        available.custom?.let { queueCustomRequest(peer, "manual", it) }
+        if (available.content) enqueuePersonalSync(peer, "manual")
+        wakeScopedSync(peer)
+    }
+
     @Synchronized internal fun personalItemSyncAvailable(kind: String, localId: String? = null): Boolean = runCatching {
         if (kind !in setOf("note", "task")) return@runCatching false
         val peer = safePeer() ?: return@runCatching false
@@ -2419,6 +2477,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         activeChannel?.let { mediaSupportReaders[it]?.retire() }
         activeTransport = null
         activeChannel = null
+        _state.value = _state.value.copy(personalHeaderSyncReady = false)
         clearMediaPreferenceState()
         runCatching { pipe?.close() }
         retireInvalidPersonalActors()
@@ -4920,8 +4979,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
             peerEffect(peer, generation) { queue.sent(entry.messageId, queue.attempts(entry.messageId)) }
             if (entry.payload.string("kind") in setOf("capabilities.update", "grants.update")) controls += entry.messageId
         }
-        if (!controlsOnly) peerEffect(peer, generation) { current -> queueAutomaticTime(current, noteSessions[channel]) }
-        if (!controlsOnly) sendActorDue(peer, channel, generation)
+        if (!controlsOnly) {
+            peerEffect(peer, generation) { current ->
+                queueAutomaticTime(current, noteSessions[channel])
+                if (activeChannel === channel) refreshPersonalHeaderSync(current)
+            }
+            sendActorDue(peer, channel, generation)
+        }
         return controls
     }
 
@@ -5308,20 +5372,29 @@ class TelefonWerk private constructor(private val context: Context, private val 
             body.string("sender_epoch"), body.string("receiver_epoch"), body.long("sender_revision"), body.long("receiver_revision"))
     }
 
-    @Synchronized private fun requestCustom(trigger: String): Boolean {
-        val peer = safePeer() ?: return false
-        refreshCustomAuthorization()
+    private fun customRequest(peer: TelefonPeer, trigger: String): JsonObject? {
         val state = Ablage.hole(context).bestand.value.personalCustom
-        val local = state.local ?: return false; val remote = state.remote ?: return false
+        val local = state.local ?: return null
+        val remote = state.remote ?: return null
         val body = buildJsonObject {
             put("format", JsonPrimitive(4)); put("trigger", JsonPrimitive(trigger))
             put("sender_epoch", local.getValue("epoch")); put("receiver_epoch", remote.getValue("epoch"))
             put("sender_revision", local.getValue("revision")); put("receiver_revision", remote.getValue("revision"))
         }
-        if (!customTransmissionAllowed(peer, "personal_sync.custom_request", body)) return false
+        return body.takeIf { customTransmissionAllowed(peer, "personal_sync.custom_request", it) }
+    }
+
+    private fun queueCustomRequest(peer: TelefonPeer, trigger: String, body: JsonObject) {
         queue.removeKind(peer.device_id, "personal_sync.custom_request")
         queue.queue(peer.device_id, "personal_sync.custom_request", body, 86_400_000,
             transportPolicy = if (trigger == "auto_wifi") "wifi_only" else "any")
+    }
+
+    @Synchronized private fun requestCustom(trigger: String): Boolean {
+        val peer = safePeer() ?: return false
+        refreshCustomAuthorization()
+        val body = customRequest(peer, trigger) ?: return false
+        queueCustomRequest(peer, trigger, body)
         return true
     }
 

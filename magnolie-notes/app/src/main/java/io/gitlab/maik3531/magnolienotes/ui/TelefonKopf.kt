@@ -25,18 +25,19 @@ import kotlinx.serialization.json.JsonPrimitive
 
 /** Direct shortcuts to the same actions exposed in device settings. */
 @Composable
-fun TelefonKopf(telefon: TelefonUiZustand, sync: () -> Unit, computer: (String?) -> Unit,
+fun TelefonKopf(telefon: TelefonUiZustand, sync: (TelefonPeer) -> Unit, computer: (String?) -> Unit,
                 disconnect: (TelefonPeer) -> Unit) {
     var opened by remember { mutableStateOf(false) }
     val syncName = stringResource(R.string.personal_sync_jetzt)
     val computerName = stringResource(R.string.telefon_rechner_hinzufuegen)
     val manual = telefon.sharedPreferencesValues?.get("auto_mode")?.let { it == JsonPrimitive("manual") }
         ?: !telefon.personalAutoWifi
+    val selected = telefon.peer
     Row {
-        if (manual && telefon.peer?.own_device == true) IconButton(onClick = sync,
-            enabled = telefon.peer.remote_own_device, modifier = Modifier.semantics { contentDescription = syncName }) {
+        if (manual && selected?.own_device == true) IconButton(onClick = { sync(selected) },
+            enabled = telefon.personalHeaderSyncReady, modifier = Modifier.semantics { contentDescription = syncName }) {
             Canvas(Modifier.size(24.dp)) {
-                val colour = Magnolie.gold
+                val colour = Magnolie.gold.copy(alpha = if (telefon.personalHeaderSyncReady) 1f else .38f)
                 val line = size.width / 14
                 drawArc(colour, 35f, 270f, false, Offset(size.width * .17f, size.height * .17f), size * .66f, style = Stroke(line, cap = StrokeCap.Round))
                 drawLine(colour, Offset(size.width * .78f, size.height * .2f), Offset(size.width * .78f, size.height * .42f), line)

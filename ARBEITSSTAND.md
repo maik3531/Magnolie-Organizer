@@ -57,7 +57,15 @@ aufgeführt.
   zum ausgewählten Rechner. Kopplungen, Freigaben und Warteschlangen
   bleiben erhalten; die alte Sitzung kann keine Änderungen mehr anwenden.
   Alle 22 Release-JVM-Tests zum Verbindungslebenszyklus bestanden.
-  Native Bedienung, nutzbare Sync-Verfügbarkeit und Fernabnahme bleiben offen.
+  **Jetzt synchronisieren** ist im manuellen Modus nur für eine aktuelle
+  authentisierte Verbindung mit einem freigegebenen, bereiten Abgleich aktiv.
+  Automatik blendet das Symbol aus. Ein Klick prüft Verbindung und Auswahl
+  erneut und startet nur die verfügbaren Bereiche. Der Notes-Release-JVM-Lauf
+  bestand 144 Fälle, darunter fehlende Steuerungsbestätigung, verlorene
+  Verbindung, eine Aktion mit veraltetem Rechnerschlüssel sowie ein alter
+  manueller Klick nach Wechsel auf **Bei Verbindung**. Das Handbuch
+  erklärt die Kopfzeile in allen 20 Sprachen. Native Bedienung über WLAN und
+  Bluetooth, Rechnerwechsel und Fernabnahme bleiben separat zu prüfen.
 - [#790](https://github.com/maik3531/Magnolie-Organizer/issues/790):
   Die Workflow-Tests für Mac und Tablet prüfen den aktuellen Checkout,
   während die historische Codec-Referenz separat bleibt. Die Tablet-

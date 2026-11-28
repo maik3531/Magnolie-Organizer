@@ -141,6 +141,7 @@ data class TelefonUiZustand(
     val personalNotesEnabled: Boolean = false,
     val personalTasksEnabled: Boolean = false,
     val personalAutoWifi: Boolean = false,
+    val personalHeaderSyncReady: Boolean = false,
     val personalDeletionsEnabled: Boolean = false,
     val personalNotesMode: String = PersonalNoteMode.IMPORT,
     val sharedPreferencesSupported: Boolean = false,

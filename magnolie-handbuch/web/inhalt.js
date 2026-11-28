@@ -3059,9 +3059,33 @@ const notesHandbuchBilder = (images, text) => "<figure class='notes-native-figur
   "</div><figcaption>" + notesHandbuchEscape(text.caption) + "</figcaption></figure>";
 const notesHandbuchVerweise = (ids, text) => "<h3>" + notesHandbuchEscape(text.further) + "</h3><p>" +
   ids.map(id => "<b data-page='" + id + "' data-page-title='true' class='knopfwort'></b>").join(" · ") + "</p>";
+const NOTES_KOPFZEILE = {
+  en: "In manual mode, Synchronize now in the Notes header is enabled when the selected computer is connected and at least one authorized sync is ready. Automatic mode hides the button. The computer menu lets you switch computers or disconnect and keep the pairing and permissions.",
+  de: "Im manuellen Modus ist Jetzt synchronisieren in der Notes-Kopfzeile bedienbar, sobald der gewählte Rechner verbunden und mindestens ein freigegebener Abgleich bereit ist. Im Automatikmodus ist das Symbol ausgeblendet. Im Rechnermenü können Sie den Rechner wechseln oder die Verbindung trennen. Kopplungen und Freigaben bleiben erhalten.",
+  fr: "En mode manuel, Synchroniser maintenant est disponible dans l’en-tête de Notes quand l’ordinateur sélectionné est connecté et qu’au moins une synchronisation autorisée est prête. Le mode automatique masque ce bouton. Le menu des ordinateurs permet de changer d’ordinateur ou de se déconnecter tout en conservant les associations et les autorisations.",
+  es: "En el modo manual, Sincronizar ahora se activa en la cabecera de Notes cuando el ordenador seleccionado está conectado y al menos una sincronización autorizada está lista. El modo automático oculta el botón. Use el menú de ordenadores para cambiar de equipo o desconectarse sin perder los emparejamientos ni los permisos.",
+  it: "In modalità manuale, Sincronizza ora è disponibile nell’intestazione di Notes quando il computer selezionato è connesso e almeno una sincronizzazione autorizzata è pronta. La modalità automatica nasconde il pulsante. Il menu dei computer consente di cambiare computer o disconnettersi conservando le associazioni e le autorizzazioni.",
+  nl: "In de handmatige modus is Nu synchroniseren in de kopbalk van Notes beschikbaar als de gekozen computer verbonden is en minstens één toegestane synchronisatie gereed is. In de automatische modus is de knop verborgen. Via het computermenu kunt u van computer wisselen of de verbinding verbreken. Koppelingen en machtigingen blijven bewaard.",
+  pt: "No modo manual, Sincronizar agora fica disponível no cabeçalho do Notes quando o computador selecionado está ligado e pelo menos uma sincronização autorizada está pronta. O modo automático oculta o botão. Use o menu de computadores para mudar de computador ou desligar a ligação sem perder os emparelhamentos nem as permissões.",
+  ru: "В ручном режиме кнопка «Синхронизировать сейчас» в верхней панели Notes доступна, когда выбранный компьютер подключён и готов хотя бы один разрешённый вид синхронизации. В автоматическом режиме кнопка скрыта. В меню компьютеров можно выбрать другой компьютер или отключиться. Сопряжения и разрешения сохраняются.",
+  cs: "V ručním režimu je tlačítko Synchronizovat nyní v záhlaví Notes dostupné, pokud je vybraný počítač připojený a alespoň jedna povolená synchronizace je připravená. Automatický režim tlačítko skrývá. V nabídce počítačů můžete vybrat jiný počítač nebo se odpojit. Párování a oprávnění zůstanou zachována.",
+  pl: "W trybie ręcznym przycisk Synchronizuj teraz w nagłówku Notes jest dostępny, gdy wybrany komputer jest połączony i co najmniej jedna dozwolona synchronizacja jest gotowa. Tryb automatyczny ukrywa przycisk. Menu komputerów pozwala zmienić komputer lub rozłączyć się z zachowaniem parowania i uprawnień.",
+  hsb: "W manuelnym modusu móžeće Nětko synchronizować w hłowje Notes wužiwać, hdyž je wubrany ličak zwjazany a znajmjeńša jedna dowolena synchronizacija je spřihotowana. Awtomatiski modus tłóčatko schowa. W meniju ličakow móžeće ličak wuměnić abo zwisk dźělić. Koplowanja a dowolnosće so wobchowaja.",
+  da: "I manuel tilstand er Synkroniser nu i Notes’ topbjælke aktiv, når den valgte computer er tilsluttet, og mindst én godkendt synkronisering er klar. Automatisk tilstand skjuler knappen. Brug computermenuen til at skifte computer eller afbryde forbindelsen. Parringer og tilladelser bevares.",
+  nb: "I manuell modus er Synkroniser nå i toppfeltet i Notes tilgjengelig når den valgte datamaskinen er tilkoblet og minst én godkjent synkronisering er klar. Automatisk modus skjuler knappen. Bruk datamaskinmenyen til å bytte datamaskin eller koble fra. Parkoblinger og tillatelser beholdes.",
+  hi: "मैन्युअल मोड में Notes के शीर्ष पर अभी सिंक करें तभी उपलब्ध होता है, जब चुना हुआ कंप्यूटर जुड़ा हो और कम-से-कम एक अनुमत सिंक तैयार हो। स्वचालित मोड में बटन छिपा रहता है। कंप्यूटर मेनू से कंप्यूटर बदलें या कनेक्शन तोड़ें। पेयरिंग और अनुमतियाँ बनी रहती हैं।",
+  "zh-cn": "在手动模式下，所选电脑已连接且至少有一项获准的同步就绪时，才能使用 Notes 顶栏的“立即同步”。自动模式会隐藏此按钮。可在电脑菜单中切换电脑或断开连接，配对和权限会保留。",
+  ja: "手動モードでは、選択したコンピューターが接続され、許可済みの同期が少なくとも一つ準備できると、Notes のヘッダーの「今すぐ同期」が使えます。自動モードではボタンは表示されません。コンピューターのメニューで切り替えや切断ができます。ペアリングと権限は保持されます。",
+  ar: "في الوضع اليدوي، يتاح زر «المزامنة الآن» في رأس Notes عندما يكون الحاسوب المحدد متصلاً وتكون مزامنة واحدة مأذون بها على الأقل جاهزة. يخفي الوضع التلقائي الزر. استخدم قائمة الحواسيب للتبديل إلى حاسوب آخر أو قطع الاتصال مع الاحتفاظ بالاقتران والأذونات.",
+  uk: "У ручному режимі кнопка «Синхронізувати зараз» у верхній панелі Notes доступна, коли вибраний комп’ютер підключено й готовий принаймні один дозволений вид синхронізації. В автоматичному режимі кнопка прихована. У меню комп’ютерів можна перемкнутися на інший комп’ютер або від’єднатися. Сполучення й дозволи зберігаються.",
+  be: "У ручным рэжыме кнопка «Сінхранізаваць зараз» у верхняй панэлі Notes даступная, калі выбраны камп’ютар падключаны і гатовы прынамсі адзін дазволены від сінхранізацыі. У аўтаматычным рэжыме кнопка схаваная. У меню камп’ютараў можна выбраць іншы камп’ютар або адключыцца. Спалучэнні і дазволы захоўваюцца.",
+  tr: "Elle eşitleme modunda, seçili bilgisayar bağlıysa ve en az bir izinli eşitleme hazırsa Notes üst çubuğundaki Şimdi eşitle düğmesi kullanılabilir. Otomatik mod düğmeyi gizler. Bilgisayar menüsünden başka bir bilgisayar seçebilir veya bağlantıyı kesebilirsiniz. Eşleştirmeler ve izinler korunur."
+};
 const NOTES_KAPITEL_SEITEN = [
-  ["android-notes-connections", "connectionsTitle", text =>
-    "<h3>Magnolie Notes</h3>" + notesHandbuchAbsatz(text.notesConnection) + "<h3>KDE Connect</h3>" + notesHandbuchAbsatz(text.kdeConnection) +
+  ["android-notes-connections", "connectionsTitle", (text, language) =>
+    "<h3>Magnolie Notes</h3>" + notesHandbuchAbsatz(text.notesConnection) +
+    (NOTES_KOPFZEILE[language] ? notesHandbuchAbsatz(NOTES_KOPFZEILE[language]) : "") +
+    "<h3>KDE Connect</h3>" + notesHandbuchAbsatz(text.kdeConnection) +
     "<h3>Magnolienbaum</h3>" + notesHandbuchAbsatz(text.treeConnection) +
     notesHandbuchVerweise(["phone-pair-wlan-steps", "android-one-time-contact-import", "tree-contact-sync"], text)],
   ["android-notes-list-sorting", "sortTitle", text => notesHandbuchAbsatz(text.notesSort) + notesHandbuchAbsatz(text.tasksSort) +
@@ -3090,7 +3114,7 @@ for (const [id, title, render] of NOTES_KAPITEL_SEITEN) {
   window.HANDBUCH_SEITEN.splice(notesHandbuchPosition++, 0, { id, kapitel: "Magnolie Notes", titel: NOTES_KAPITEL.en[title], imInhalt: true,
     inhalt: render(NOTES_KAPITEL.en), titelUebersetzungen: Object.fromEntries(Object.entries(NOTES_KAPITEL).map(([language, text]) => [language, text[title]])),
     kapitelUebersetzungen: Object.fromEntries(Object.keys(NOTES_KAPITEL).map(language => [language, "Magnolie Notes"])) });
-  HANDBUCH_ANHAENGE[id] = { ersetzen: true, inhalt: Object.fromEntries(Object.entries(NOTES_KAPITEL).map(([language, text]) => [language, render(text)])) };
+  HANDBUCH_ANHAENGE[id] = { ersetzen: true, inhalt: Object.fromEntries(Object.entries(NOTES_KAPITEL).map(([language, text]) => [language, render(text, language)])) };
 }
 for (const [language, text] of Object.entries(NOTES_KAPITEL)) {
   NOTES_ZEITERFASSUNG_HILFE[language] = NOTES_ZEITERFASSUNG_HILFE[language].replace(/<p>[\s\S]*?<\/p>/, notesHandbuchAbsatz(text.navigation));
