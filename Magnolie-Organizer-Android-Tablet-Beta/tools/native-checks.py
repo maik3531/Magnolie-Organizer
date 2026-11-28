@@ -21,6 +21,7 @@ SUITES = {
     'domains': ['domains'],
     'timezone': ['timezone-interop'],
     'system-records': ['system-records'],
+    'permissions': ['permissions', 'permissions-revoked'],
     'storage': ['basics', 'saf', 'fault', 'print'],
     'print': ['basics', 'print'],
     'notifications': ['notifications'],
@@ -148,6 +149,8 @@ def main(argv=None):
         raise SystemExit('Main must finish Windows native work and grant the sole slot first')
     if opts.suite == 'system-records' and (opts.api != 34 or opts.image != 'google_apis'):
         raise SystemExit('system-records requires its explicit API34 google_apis target')
+    if opts.suite == 'permissions' and (opts.api != 35 or opts.image != 'google_apis'):
+        raise SystemExit('permissions requires its explicit API35 google_apis target')
     os.chdir(ROOT)
     os.umask(0o077)
     cpus = session.pin_two_cpus()
@@ -189,7 +192,26 @@ def main(argv=None):
                     output = session.adb(owned, state, command, 30)
                     (Path(state['run']) / 'evidence' / (name+'.txt')).write_text(output)
 
-            code = session.run_session(owner, config, after_boot=install)
+            def permissions(owned, state):
+                session.run_test(owned, state, 'permissions', config.test_timeout)
+                package = session.BETA_PACKAGE
+                activity = 'io.gitlab.maik3531.magnolietabletbeta.MainActivity'
+                started = session.adb(owned, state, ['shell', 'am', 'start', '-W', '-n', f'{package}/{activity}'], 30)
+                if 'Status: ok' not in started:
+                    raise RuntimeError('Tablet did not reopen for native contact permission revocation')
+                before = session.target_processes(owned, state, 10)
+                if not before:
+                    raise RuntimeError('Tablet process not running before native contact permission revocation')
+                output = session.adb(owned, state, ['shell', 'pm', 'revoke', package, 'android.permission.READ_CONTACTS'], 15)
+                if output.strip():
+                    raise RuntimeError('Android did not revoke the contact runtime permission: ' + output)
+                after = session.target_processes(owned, state, 10)
+                owned.record('contact-permission-revoked', targetPidsBefore=before, targetPidsAfter=after)
+                session.run_test(owned, state, 'permissions-revoked', config.test_timeout)
+                return 0
+
+            code = session.run_session(owner, config, after_boot=install,
+                                       run_tests=permissions if opts.suite == 'permissions' else None)
         except session.Stopped as exc:
             code = 128 + owner.signal
             owner.record('interrupted', reason=str(exc))

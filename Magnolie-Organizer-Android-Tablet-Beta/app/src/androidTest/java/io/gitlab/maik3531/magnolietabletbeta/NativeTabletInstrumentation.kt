@@ -72,6 +72,8 @@ class NativeTabletInstrumentation : Instrumentation() {
                 }
                 "system-records" -> pass("native Android system-provider smoke",
                     NativeSystemProviderSmoke.run(this, File(out,"system-records-receipt.json"), ::pass))
+                "permissions" -> systemPermissions(revoked = false)
+                "permissions-revoked" -> systemPermissions(revoked = true)
                 "domains" -> domains()
                 "basics" -> basics()
                 "restart" -> {launch(); assertPersisted()}
@@ -605,6 +607,80 @@ class NativeTabletInstrumentation : Instrumentation() {
         check(data().getJSONArray("notizen").toString().contains("Keyboard")); pass("hardware key input into real WebView note")
         assertPersisted()
         if(options.getString("fixture")=="capture") prepareNavigationFixture()
+    }
+
+    private fun systemPermissions(revoked: Boolean) {
+        launch()
+        val contacts = android.Manifest.permission.READ_CONTACTS
+        val calendar = android.Manifest.permission.READ_CALENDAR
+        fun granted(permission: String) =
+            targetContext.checkSelfPermission(permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        fun policy(contactsAllowed: Boolean, calendarAllowed: Boolean) {
+            check(granted(contacts) == contactsAllowed && granted(calendar) == calendarAllowed)
+            check(!granted(android.Manifest.permission.WRITE_CONTACTS) && !granted(android.Manifest.permission.WRITE_CALENDAR))
+            waitFor("WebView source permissions $contactsAllowed/$calendarAllowed", 12) {
+                value("""
+                    (()=> {
+                        const contacts = document.getElementById('tablet-system-source-contacts');
+                        const events = document.getElementById('tablet-system-source-events');
+                        const refresh = document.getElementById('tablet-system-refresh');
+                        return !!contacts && !!events && !!refresh && !refresh.disabled &&
+                            contacts.disabled === ${!contactsAllowed} && events.disabled === ${!calendarAllowed} &&
+                            (${contactsAllowed} || contacts.options.length === 1);
+                    })()
+                """.trimIndent()) == "true"
+            }
+        }
+        fun consent(kind: String, allow: Boolean) {
+            // Exercise the production button and bridge; trusted gesture
+            // delivery is measured independently by the navigation suite.
+            raw("document.getElementById('tablet-system-access-$kind').click()")
+            val id = if (allow) "permission_allow_button" else "permission_deny_button"
+            var action: AccessibilityNodeInfo? = null
+            waitFor("Android permission controller $id", 12) {
+                action = nodes().firstOrNull {
+                    val authority = it.packageName?.toString().orEmpty()
+                    // The Google variant runs the AOSP resources under a
+                    // different application ID.
+                    authority in setOf("com.android.permissioncontroller", "com.google.android.permissioncontroller") &&
+                        it.isVisibleToUser && it.viewIdResourceName == "com.android.permissioncontroller:id/$id"
+                }
+                action != null
+            }
+            check(action!!.performAction(AccessibilityNodeInfo.ACTION_CLICK))
+            waitFor("Android permission controller returned to Tablet", 12) {
+                uiAutomation.rootInActiveWindow?.packageName?.toString() == targetContext.packageName
+            }
+        }
+
+        raw("OrganizerTest.oeffneEinstellungen(); document.getElementById('einst-tab-sync').click()")
+        if (revoked) {
+            policy(contactsAllowed = false, calendarAllowed = true)
+            val saved = File(out.parentFile, "permission-note.json")
+            val expected = JSONObject(saved.readText())
+            val id = JSONObject.quote(expected.getString("id"))
+            val actual = JSONObject(value("OrganizerTest.daten().notizen.find(note=>note.id===$id)"))
+            check(actual.getString("titel") == expected.getString("titel") && actual.getString("text") == expected.getString("text"))
+            pass("Contact revocation leaves Calendar and the saved local note intact")
+            return
+        }
+
+        policy(contactsAllowed = false, calendarAllowed = false)
+        consent("contacts", allow = false)
+        policy(contactsAllowed = false, calendarAllowed = false)
+        pass("Real Android contact denial keeps both source lists closed")
+        consent("contacts", allow = true)
+        policy(contactsAllowed = true, calendarAllowed = false)
+        pass("Contact permission opens only the contact source list")
+        consent("events", allow = true)
+        policy(contactsAllowed = true, calendarAllowed = true)
+        pass("Calendar permission is a separate native dialog")
+        raw("OrganizerTest.schliesseEinstellungen()")
+        scenario("NativeScenario.note()")
+        saved()
+        File(out.parentFile, "permission-note.json").writeText(
+            data().getJSONArray("notizen").getJSONObject(0).toString())
+        pass("Local note saved with both independent READ choices")
     }
     private fun prepareNavigationFixture() {
         // Stress fixture retains actual editor structure; replace only this test's own series.

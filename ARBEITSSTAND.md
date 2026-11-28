@@ -15,6 +15,13 @@ aufgeführt.
   Lesevorgang das wiederhergestellte Buch; alte UI-Schreibversuche wurden
   abgewiesen. API-34-Speicherabnahme ([#471](https://github.com/maik3531/Magnolie-Organizer/issues/471))
   und die 40 Touchwechsel bleiben offen.
+  Die echten Android-35-Systemdialoge für Kontakte und Kalender wurden
+  getrennt geprüft. Eine Kontaktablehnung ließ beide Listen gesperrt;
+  die Kontaktfreigabe öffnete nur die Kontaktliste. Nach der eigenen
+  Kalenderfreigabe blieben beide Quellen ohne Schreibrechte. Android
+  beendete die laufende App beim Entzug des Kontaktzugriffs. Nach dem
+  Neustart war die Kontaktliste wieder gesperrt, Kalenderzugriff und
+  verschlüsselt gespeicherte eigene Notiz blieben erhalten.
 - [#848](https://github.com/maik3531/Magnolie-Organizer/issues/848):
   Die isolierte Tablet-Druck-WebView lädt ihr Hauptdokument direkt.
   Die Android-Druckvorschau einer Notiz und die Speicherung über den
