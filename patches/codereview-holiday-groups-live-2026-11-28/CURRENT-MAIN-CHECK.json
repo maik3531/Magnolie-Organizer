@@ -1,0 +1,267 @@
+{
+  "main_commit": "8b0b253b9593d139c3ceeadcc222a498a5da34f3",
+  "main_tree_truncated": false,
+  "published_artifact_commit": "07ec937c9a249bec142f3b6199d9b65e9ce69c5e",
+  "published_tree_truncated": false,
+  "published_patch": {
+    "path": "patches/codereview-holiday-groups-live-2026-11-28/be-nl-providers-854-857-after-855-856.patch",
+    "mode": "100644",
+    "type": "blob",
+    "sha": "93fdb8e6a2771e467e2f79d69d52d80539c0c6f7",
+    "size": 326714,
+    "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/blobs/93fdb8e6a2771e467e2f79d69d52d80539c0c6f7"
+  },
+  "source_matches": 27,
+  "source_differences": 0,
+  "paths": [
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+      "expected_before": "093ccc9423c8f47f5b9c09ccd661e8d8ae56d321",
+      "remote": {
+        "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "093ccc9423c8f47f5b9c09ccd661e8d8ae56d321",
+        "size": 21047,
+        "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/blobs/093ccc9423c8f47f5b9c09ccd661e8d8ae56d321"
+      },
+      "source_matches": true
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Doubles.kt",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Probe.kt",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+      "expected_before": "a3ae8d4e038571d4dd0448e03a3002e5b85f9624",
+      "remote": {
+        "path": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "a3ae8d4e038571d4dd0448e03a3002e5b85f9624",
+        "size": 15819,
+        "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/blobs/a3ae8d4e038571d4dd0448e03a3002e5b85f9624"
+      },
+      "source_matches": true
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Doubles.swift",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Probe.swift",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/ATTRIBUTION.md",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-DE-SchoolHolidays.json",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-FR-SchoolHolidays.json",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-Groups.json",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-NL-SchoolHolidays.json",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-PublicHolidays.json",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-SchoolHolidays.json",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-Groups.json",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-MI-SchoolHolidays.json",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-NO-SchoolHolidays.json",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-PublicHolidays.json",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-SchoolHolidays.json",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-ZU-SchoolHolidays.json",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/OPENHOLIDAYS-DATA-LICENSE.txt",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/requests.json",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "magnolie-organizer-windows/BridgeDispatcher.cs",
+      "expected_before": "f61ccaa3c0e4b0fe517a448bd829d82b35223820",
+      "remote": {
+        "path": "magnolie-organizer-windows/BridgeDispatcher.cs",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "f61ccaa3c0e4b0fe517a448bd829d82b35223820",
+        "size": 176672,
+        "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/blobs/f61ccaa3c0e4b0fe517a448bd829d82b35223820"
+      },
+      "source_matches": true
+    },
+    {
+      "path": "magnolie-organizer-windows/OpenHolidayData.cs",
+      "expected_before": "217476e0b67c8d37897e08fda696fd7d88640b6d",
+      "remote": {
+        "path": "magnolie-organizer-windows/OpenHolidayData.cs",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "217476e0b67c8d37897e08fda696fd7d88640b6d",
+        "size": 7800,
+        "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/blobs/217476e0b67c8d37897e08fda696fd7d88640b6d"
+      },
+      "source_matches": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/holiday-school-groups.cs.txt",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/holiday-school-groups.py",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "expected_before": "5314124d5bbe4444edf783b136b1ad3ac218cde5",
+      "remote": {
+        "path": "magnolie-organizer/bin/magnolie-organizer",
+        "mode": "100755",
+        "type": "blob",
+        "sha": "5314124d5bbe4444edf783b136b1ad3ac218cde5",
+        "size": 1616309,
+        "url": "https://api.github.com/repos/maik3531/Magnolie-Organizer/git/blobs/5314124d5bbe4444edf783b136b1ad3ac218cde5"
+      },
+      "source_matches": true
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/holiday_groups_854_probe.py",
+      "expected_before": null,
+      "remote": null,
+      "source_matches": true
+    }
+  ],
+  "patch_local_sha256": "bad577950aa8f78fd9d306b72440b5aa10176e15c5ce3f033302e54b28d44b75",
+  "git_apply_check": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "Checking patch Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt...\nChecking patch Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Doubles.kt...\nChecking patch Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Probe.kt...\nChecking patch Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift...\nChecking patch Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Doubles.swift...\nChecking patch Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Probe.swift...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/ATTRIBUTION.md...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/BE-DE-SchoolHolidays.json...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/BE-FR-SchoolHolidays.json...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/BE-Groups.json...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/BE-NL-SchoolHolidays.json...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/BE-PublicHolidays.json...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/BE-SchoolHolidays.json...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/NL-Groups.json...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/NL-MI-SchoolHolidays.json...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/NL-NO-SchoolHolidays.json...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/NL-PublicHolidays.json...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/NL-SchoolHolidays.json...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/NL-ZU-SchoolHolidays.json...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/OPENHOLIDAYS-DATA-LICENSE.txt...\nChecking patch contracts/fixtures/holiday-groups-2026-11-28/requests.json...\nChecking patch magnolie-organizer-windows/BridgeDispatcher.cs...\nChecking patch magnolie-organizer-windows/OpenHolidayData.cs...\nChecking patch magnolie-organizer-windows/tests/holiday-school-groups.cs.txt...\nChecking patch magnolie-organizer-windows/tests/holiday-school-groups.py...\nChecking patch magnolie-organizer/bin/magnolie-organizer...\nwarning: magnolie-organizer/bin/magnolie-organizer has type 100755, expected 100644\nChecking patch magnolie-organizer/pruefungen/holiday_groups_854_probe.py...\n",
+    "scope": "isolated exact source subset with GitHub main 8b0b253b9593d139c3ceeadcc222a498a5da34f3 blob identities and all 22 new paths independently verified absent",
+    "product_changes_applied": false
+  },
+  "conclusion": "APPLY_COMBINED_PATCH_DIRECTLY_TO_MAIN_8B0_WITHOUT_REAPPLYING_855_856",
+  "git_apply_index_check": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "warning: magnolie-organizer/bin/magnolie-organizer has type 100755, expected 100644\n",
+    "scope": "isolated index populated from exact main 8b0 source blobs and file modes; no commit and no patch application",
+    "product_changes_applied": false
+  },
+  "file_mode_difference": {
+    "path": "magnolie-organizer/bin/magnolie-organizer",
+    "main_mode": "100755",
+    "patch_index_mode": "100644",
+    "mode_change_directive_in_patch": false
+  },
+  "functional_tests_repeated": false,
+  "native_tests_repeated": false,
+  "isolated_index_apply_and_reverse": {
+    "scope": "temporary exact-source index, no product checkout, no commit, no functional or native test",
+    "before_linux": {
+      "filesystem_mode": "0o755",
+      "index_entry": "100755 5314124d5bbe4444edf783b136b1ad3ac218cde5 0\tmagnolie-organizer/bin/magnolie-organizer",
+      "sha256": "5d4beae86270874cb3a4e9286b2bd8ad77203cecda45c065ba63ff29c0b96d63"
+    },
+    "apply_exit_code": 0,
+    "apply_stdout": "",
+    "apply_stderr": "/workspace/scratch/6344df626283/delivery/patches/codereview-holiday-groups-live-2026-11-28/be-nl-providers-854-857-after-855-856.patch:672: trailing whitespace.\nrecord or in some other way that clarifies what rights apply. \n/workspace/scratch/6344df626283/delivery/patches/codereview-holiday-groups-live-2026-11-28/be-nl-providers-854-857-after-855-856.patch:683: trailing whitespace.\nThe Licensor (as defined below) \n/workspace/scratch/6344df626283/delivery/patches/codereview-holiday-groups-live-2026-11-28/be-nl-providers-854-857-after-855-856.patch:685: trailing whitespace.\nand \n/workspace/scratch/6344df626283/delivery/patches/codereview-holiday-groups-live-2026-11-28/be-nl-providers-854-857-after-855-856.patch:687: trailing whitespace.\nYou (as defined below) \n/workspace/scratch/6344df626283/delivery/patches/codereview-holiday-groups-live-2026-11-28/be-nl-providers-854-857-after-855-856.patch:689: trailing whitespace.\nagree as follows: \nwarning: magnolie-organizer/bin/magnolie-organizer has type 100755, expected 100644\nwarning: squelched 32 whitespace errors\nwarning: 37 lines add whitespace errors.\n",
+    "after_linux": {
+      "filesystem_mode": "0o755",
+      "index_entry": "100755 0eae6137790054c60d3f41bc230486eee2f93624 0\tmagnolie-organizer/bin/magnolie-organizer",
+      "sha256": "9f230d1e38db027793756da21bb22eaf839671926758f66ddd6bdbba1185b32f"
+    },
+    "executable_bit_preserved": true,
+    "reverse": {
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "warning: magnolie-organizer/bin/magnolie-organizer has type 100755, expected 100644\n",
+      "linux_state": {
+        "filesystem_mode": "0o755",
+        "index_entry": "100755 5314124d5bbe4444edf783b136b1ad3ac218cde5 0\tmagnolie-organizer/bin/magnolie-organizer",
+        "sha256": "5d4beae86270874cb3a4e9286b2bd8ad77203cecda45c065ba63ff29c0b96d63"
+      }
+    },
+    "restored_linux_exactly": true
+  }
+}

@@ -8,11 +8,37 @@ Regressionen, unveränderte Anbieterantworten und die genauen Prüfgrenzen.
 
 Fachissues: [#854 – internationale Erweiterung](https://github.com/maik3531/Magnolie-Organizer/issues/854)
 und [#857 – niederländische Gruppen mit Verwaltungsangaben](https://github.com/maik3531/Magnolie-Organizer/issues/857).
-Die aktuelle Produktbasis wurde erneut als
-`1749c92eb42801c38eaba31b272d8c0e27be9164` gelesen. Die Übernahme in Produkt-main
-und die Freigabe installierbarer Pakete bleiben der späteren Codex-Prüfung
-vorbehalten. Diese Lieferung aktiviert noch keine neue Gruppenauswahl in der
+Ursprüngliche Prüfbasis: `1749c92eb42801c38eaba31b272d8c0e27be9164` plus
+#855/#856. Der aktualisierte Abgleich mit der zwischenzeitlichen Codex-Übernahme
+steht im folgenden Abschnitt. Die Produktübernahme von #854/#857 und die
+Freigabe installierbarer Pakete bleiben der späteren Codex-Prüfung vorbehalten. Diese Lieferung aktiviert noch keine neue Gruppenauswahl in der
 Oberfläche.
+
+## Aktualisierte Anwendungsbasis nach Codex-Übernahme – 28.11.2026
+
+Codex hat [#855](https://github.com/maik3531/Magnolie-Organizer/issues/855#issuecomment-7239370495)
+und [#856](https://github.com/maik3531/Magnolie-Organizer/issues/856#issuecomment-7239395916)
+in Produkt-main übernommen und beide Issues geschlossen. Der abschließend gelesene
+Stand ist `8b0b253b9593d139c3ceeadcc222a498a5da34f3`.
+
+**Auf diesem Stand den vollständigen BE/NL-Patch direkt anwenden; #855/#856
+nicht nochmals anwenden.** Alle fünf vorhandenen Produktblobs entsprechen genau
+seinen Voraussetzungen, alle 22 neuen Pfade fehlen dort wie erwartet.
+`git apply --check`, `git apply --check --index`, tatsächliche Anwendung mit
+Index und Rücknahme sind auf den isoliert rekonstruierten, remote verifizierten
+Quellen bestanden. [Vollständiger Nachweis](CURRENT-MAIN-CHECK.json).
+
+Git meldet dabei eine Moduswarnung, weil der Patchheader das Linux-Programm als
+`100644` nennt, main es aber bereits als `100755` führt. Die tatsächliche
+Anwendung bewahrt `100755` in Dateisystem und Index; auch die Rücknahme stellt
+Blob und Modus exakt wieder her. Hinzu kommen 37 Leerzeichenwarnungen, deren
+Ausgaben im Nachweis stehen; sie sind kein Anwendungsabbruch. Die unveränderten
+Quellpatchbytes und alle bisherigen Prüfsummen bleiben gültig. Funktions- oder
+native Tests wurden für diesen reinen Basisabgleich nicht erneut ausgeführt.
+
+Die Übernahme von **#854/#857**, die gemeinsame GUI/MCP/Cache-Integration und
+native App-/Paketabnahme bleiben offen. Bei weiter verändertem main vor
+Anwendung erneut den Quellstand und aktive Issue-Markierungen abgleichen.
 
 ## Was die reale Gegenprobe verändert hat
 

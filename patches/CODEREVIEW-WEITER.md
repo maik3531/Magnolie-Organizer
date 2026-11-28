@@ -1,3 +1,28 @@
+## 28.11.2026 – Zwischenzeitliche Codex-Übernahme #855/#856 abgeglichen
+
+**Aktuell gelesener Produkt-main: `8b0b253b9593d139c3ceeadcc222a498a5da34f3`.**
+Codex hat #855 und #856 übernommen und beide Fachissues geschlossen; die native
+App-/Paketabnahme bleibt in [#113](https://github.com/maik3531/Magnolie-Organizer/issues/113#issuecomment-7239433836).
+Alte #855/#856-Patches auf diesem Stand **nicht erneut anwenden**.
+
+Der vollständige #854/#857-BE/NL-Providerpatch passt direkt auf diesen main:
+alle fünf Produktblobs identisch, 22 neue Pfade fehlen wie erwartet.
+[Quellen-/Anwendungsnachweis](codereview-holiday-groups-live-2026-11-28/CURRENT-MAIN-CHECK.json):
+`git apply --check`, Index-Prüfung, tatsächliche isolierte Anwendung und Rücknahme
+jeweils Exit 0; Linux-Ausführungsrecht `100755` bleibt trotz Patchheaderwarnung
+erhalten. Keine Funktions-/Native-Neutests. [Aktualisierte Anleitung](codereview-holiday-groups-live-2026-11-28/README.md).
+Der Quellpatch selbst bleibt unverändert; keine neue konkurrierende Variante.
+
+**Eigener Umfang #854 Windows-Provider / #857 Providerkorrektur ist fertig und
+direkt in den Fachissues übergeben.** Nächster offener Schritt bleibt die
+GUI/MCP/Cache-Integration aus dem folgenden Übergabeabschnitt. Zuvor aktuelle
+Codex-Markierungen, PRs/Commits und Quellen lesen; keine bereits laufende
+Teilaufgabe doppelt beginnen. Die Übernahmestände in älteren Abschnitten sind
+historisch. Die Koordinationsregel ist im stündlichen Monitoring gespeichert
+und durch erneutes Lesen bestätigt.
+
+---
+
 ## 28.11.2026 – #854 Windows-Provider und #857 reale NL-Gruppenantworten abgeschlossen
 
 Main erneut geprüft: `1749c92eb42801c38eaba31b272d8c0e27be9164`. [Vollständiger Vierplattformpatch, Folgepatches und Nachweise](codereview-holiday-groups-live-2026-11-28/README.md). Der kombinierte Providerpatch setzt auf #855/#856 **vor** allen bisherigen BE/NL-#854-Providerpatches auf; SHA-256 `bad577950aa8f78fd9d306b72440b5aa10176e15c5ce3f033302e54b28d44b75`. Alternativ: neuer Windows-Patch und die drei kleinen #857-Korrekturen nach den jeweiligen älteren Plattformpatches. Die beiden Wege nicht doppelt anwenden.
