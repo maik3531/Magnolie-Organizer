@@ -66,6 +66,7 @@ class _NativePcSelection:
 class NativeCollectionMediaSource(NativeMappedMediaSource):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs);self._held={};self._selected={};self._handoff={}
+        self._original_batch=None
 
     def _read(self,*args,**kwargs):
         raise TransferError('media_collection_native_root_selection_required')
@@ -92,8 +93,36 @@ class NativeCollectionMediaSource(NativeMappedMediaSource):
     def close(self):
         super().close()
         if self._gate.acquire(blocking=False):
-            try:self._close_held()
+            try:
+                try:self._close_held()
+                finally:
+                    if self._original_batch is not None:self._original_batch._close_owned()
             finally:self._gate.release()
+
+    def select_original_batch(self,action,expected,selected,members,*,kind='images',native_current=lambda:True,all_new_only=False):
+        from magnolie_photo_destination import NativePhotoDestinationAction
+        from magnolie_photo_preferences import PhotoPreferencesSnapshot
+        from magnolie_media_source_batch import NativeCollectionMediaBatch
+        if (type(action) is not NativePhotoDestinationAction or type(expected) is not PhotoPreferencesSnapshot
+                or type(selected) is not NativeMediaCollectionRootRecord or type(members) not in (list,tuple)
+                or kind not in ('images','video') or selected.media_type!=('images' if kind=='images' else 'videos')
+                or not callable(native_current) or type(all_new_only) is not bool):
+            raise TransferError('media_collection_native_root_selection_required')
+        action.consume(self._preferences)
+        if not self._gate.acquire(blocking=False):raise TransferError('media_source_busy')
+        batch=None
+        try:
+            if self._prepared or self._original_batch is not None:raise TransferError('media_source_prepared_capacity')
+            batch=NativeCollectionMediaBatch(self,action,expected,selected,members,kind,native_current,all_new_only)
+            self._original_batch=batch
+            batch._admit_locked()
+            return batch
+        except BaseException:
+            if batch is not None:batch._close_owned()
+            raise
+        finally:
+            self._gate.release()
+            if self._closed.is_set():self.close()
 
     @contextmanager
     def prepared_cache(self,job_id):
@@ -130,7 +159,7 @@ class NativeCollectionMediaSource(NativeMappedMediaSource):
         if not self._gate.acquire(blocking=False):raise TransferError('media_source_busy')
         root=lease=catalog=None;retired=threading.Event();retained=False
         try:
-            if self._prepared:raise TransferError('media_source_prepared_capacity')
+            if self._prepared or self._original_batch is not None:raise TransferError('media_source_prepared_capacity')
             original_permission,token=self._source_permission(action,expected,kind)
             original_permission()
             if expected.policy.mapping_store is not None:self._mappings.verify_witness(expected.policy.mapping_store)

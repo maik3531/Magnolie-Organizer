@@ -1,4 +1,4 @@
-"""One ephemeral shared-settings support attempt on an authenticated WLAN parent.
+"""One ephemeral feature-specific support attempt on an authenticated WLAN parent.
 
 This is not a dispatcher, a capability advertisement, settings agreement, or
 file authority. The caller must bind `current` to the original native WLAN
@@ -13,21 +13,26 @@ from magnolie_telefon import SecureChannel, now_ms, valid_uuid
 
 
 KIND = 'media_support.hello'
+SHARED_SETTINGS = 'shared_settings'
+PC_IMAGE_BATCH = 'pc_image_batch_v3'
 TTL = 10_000
 _MAX_CLOCK_LEAD_MS = 250
 _FIELDS = {'type', 'v', 'message_id', 'kind', 'created_ms', 'expires_ms', 'body'}
 
 
-def offer(at):
+def offer(at, feature=SHARED_SETTINGS):
+    if feature not in (SHARED_SETTINGS, PC_IMAGE_BATCH):
+        raise ValueError('unknown native media support feature')
     return dict(type='message', v=1, message_id=str(uuid.uuid4()), kind=KIND,
-                created_ms=at, expires_ms=at+TTL, body=dict(format=1, feature='shared_settings'))
+                created_ms=at, expires_ms=at+TTL, body=dict(format=1, feature=feature))
 
 
 def ack(message):
     return dict(type='ack', message_id=message['message_id'], status='accepted', error='none')
 
 
-def valid(message, at):
+def valid(message, at, feature=SHARED_SETTINGS):
+    if feature not in (SHARED_SETTINGS, PC_IMAGE_BATCH):return False
     if type(message) is not dict or set(message) != _FIELDS:return False
     body = message['body']
     return (message['type']=='message' and type(message['v']) is int and message['v']==1
@@ -37,11 +42,12 @@ def valid(message, at):
             and max(message['created_ms'],at)<message['expires_ms']<=253402300799999
             and message['expires_ms']-message['created_ms']<=TTL
             and type(body) is dict and set(body)=={'format','feature'}
-            and type(body['format']) is int and body['format']==1 and body['feature']=='shared_settings')
+            and type(body['format']) is int and body['format']==1 and body['feature']==feature)
 
 
 class NativeMediaSupportAttempt:
-    def __init__(self, channel, current, wall=now_ms, monotonic_ms=lambda:time.monotonic_ns()//1_000_000):
+    def __init__(self, channel, current, wall=now_ms, monotonic_ms=lambda:time.monotonic_ns()//1_000_000,
+                 *, feature=SHARED_SETTINGS):
         if type(channel) is not SecureChannel or not callable(current):
             raise ValueError('native media support needs its secure parent')
         self._channel, self._current, self._wall, self._clock = channel, current, wall, monotonic_ms
@@ -50,7 +56,8 @@ class NativeMediaSupportAttempt:
         self._retired = threading.Event()
         self._sent = self._written = self._local_ack = self._remote_ack = self._established = False
         self._remote_claimed = False
-        self._offer = offer(wall())
+        self._feature = feature
+        self._offer = offer(wall(), feature)
 
     def close(self):
         self._retired.set()  # Never close or replace the shared socket.
@@ -108,7 +115,8 @@ class NativeMediaSupportAttempt:
                 self._local_ack = True
                 self._publish_locked()
                 return True
-            if self._remote_claimed or not valid(message, self._wall()) or message['message_id']==self._offer['message_id']:
+            if (self._remote_claimed or not valid(message, self._wall(), self._feature)
+                    or message['message_id']==self._offer['message_id']):
                 return False
             self._remote_claimed = True
         if not self._write(ack(message)):return False

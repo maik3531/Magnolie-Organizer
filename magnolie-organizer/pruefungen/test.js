@@ -7839,6 +7839,19 @@ function knopfMit(text, wurzel) {
   fotoStand({ ...originalVideo, collection_manual_outgoing_ready: true });
   bd.querySelector("[data-photo-manual-sync]").click();
   assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "sync_shared" });
+  const originalPhotos = { ...originalVideo, sending_consent: { ...originalVideo.sending_consent, photos: true, videos: false },
+    sending_choice_kinds: ["photos"], shared_media: { ...originalVideo.shared_media,
+      values: { ...originalVideo.shared_media.values, photos_enabled: true, videos_enabled: false } } };
+  const vorFotoBatch = baumNachrichten.length;
+  fotoStand(originalPhotos);
+  assert.strictEqual(baumNachrichten.length, vorFotoBatch);
+  assert.ok(bd.querySelector('[data-media-send="photos"]') && !bd.querySelector('[data-media-send="videos"]'));
+  assert.ok(bd.querySelector('[data-collection-source-add="images"]') && !bd.querySelector('[data-collection-source-add="video"]'));
+  assert.ok(!bd.querySelector('[data-media-receive="images"]') && !bd.querySelector("[data-photo-manual-sync]"));
+  fotoStand({ ...originalPhotos, collection_manual_outgoing_ready: true });
+  assert.strictEqual(bd.querySelectorAll("[data-photo-manual-sync]").length, 1);
+  bd.querySelector("[data-photo-manual-sync]").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "sync_shared" });
   fotoStand({ ...videoStand, state: "syncing", busy: true, active_media: "video" });
   videoGruppe = bd.querySelector(".notes-video-sync");
   assert.ok(bd.querySelector("[data-photo-manual-sync]").disabled &&

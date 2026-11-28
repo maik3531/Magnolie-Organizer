@@ -52,6 +52,14 @@ def available(feature):
 
 
 def private_pc_video():
+    return _private_media_build_option('privatePcVideoSend')
+
+
+def private_pc_image_batch():
+    return _private_media_build_option('privatePcImageBatchSend')
+
+
+def _private_media_build_option(option):
     """Opt-in from the installed private build, never from user or peer settings."""
     bindir = Path(__file__).resolve().parent
     if bindir.name != 'python' or bindir.parent.name != 'magnolie-organizer':
@@ -61,7 +69,7 @@ def private_pc_video():
         if config.is_symlink() or not config.is_file() or config.stat().st_size > 65536:
             return False
         value = json.loads(config.read_text(encoding='utf-8'))
-        return composition(value)['photo_sync'] and value.get('privatePcVideoSend') is True
+        return composition(value)['photo_sync'] and value.get(option) is True
     except (OSError, ValueError):
         return False
 

@@ -36,6 +36,7 @@ class NativeSourceJobRecord:
 class _NativeSourceJobs:
     MAX_RECORDS=128
     MAX_BYTES=8192
+    BATCH_MAX_BYTES=65536
     def __init__(self,authority):
         if type(authority) is not NativeDesktopFileAuthority:raise TransferError('media_source_jobs_native_owner_required')
         self._authority=authority;self._store=authority.binding.store_owner
@@ -74,8 +75,11 @@ class _NativeSourceJobs:
         finally:db.close()
 
     def _decode(self,job,cipher,db_key):
-        if type(cipher) is not bytes or not 29<=len(cipher)<=self.MAX_BYTES+28:raise TransferError('media_source_jobs_record_invalid')
+        if type(cipher) is not bytes or not 29<=len(cipher)<=self.BATCH_MAX_BYTES+28:raise TransferError('media_source_jobs_record_invalid')
         plain=self._authority.protection.unseal(cipher,self._key(job));body=strict_json(plain)
+        if type(body) is dict and type(body.get('format')) is int and body['format']==4:
+            return self._decode_batch(job,cipher,plain,body,db_key)
+        if len(cipher)>self.MAX_BYTES+28:raise TransferError('media_source_jobs_record_invalid')
         ordered=type(body) is dict and type(body.get('format')) is int and body['format'] in (2,3)
         local=ordered and body['format']==3
         if (type(body) is not dict or set(body)!={'format','scope','database_key','job_id','nonce','state','intent_sha256','root_key',
@@ -121,7 +125,9 @@ class _NativeSourceJobs:
 
     def _writer(self,writer):
         from magnolie_media_source_cache import _NativeSourceCacheWriter
-        if type(writer) is not _NativeSourceCacheWriter or writer._authority is not self._authority or writer._scope!=self._scope:
+        from magnolie_media_source_batch_cache import _NativeBatchCacheWriter
+        if (type(writer) not in (_NativeSourceCacheWriter,_NativeBatchCacheWriter)
+                or writer._authority is not self._authority or writer._scope!=self._scope):
             raise TransferError('media_source_jobs_live_writer_required')
         writer._guard()
 
@@ -131,9 +137,11 @@ class _NativeSourceJobs:
         for name,_ in ([] if catalog is None else catalog.body['members']):
             if not name.startswith(self._prefix):continue
             record=self._read(db,key,name[len(self._prefix):])
-            old=record.body.get('local_origin')
-            if old is not None and (old['file_key']==origin['file_key'] or
-                    old['root_id']==origin['root_id'] and old['file_path']==origin['file_path']):
+            body=record.body
+            origins=([entry['local_origin'] for entry in body['members'].values()]
+                if body['format']==4 else [body.get('local_origin')])
+            if any(old is not None and (old['file_key']==origin['file_key'] or
+                    old['root_id']==origin['root_id'] and old['file_path']==origin['file_path']) for old in origins):
                 # No independent PC successor/reassociation owner exists yet.
                 # Even exact old origins HOLD; neither changed roots nor a new
                 # inode at a previously known path may mint a fresh origin.
@@ -180,6 +188,8 @@ class _NativeSourceJobs:
         self._catalog.observe(catalog);return result
 
     def plan(self,writer,intent):
+        from magnolie_media_source_cache import _NativeSourceCacheWriter
+        if type(writer) is not _NativeSourceCacheWriter:raise TransferError('media_source_jobs_live_writer_required')
         self._writer(writer);job=writer._job
         if (sha256(canonical(intent)).hexdigest()!=writer._intent_sha256 or intent['job_id']!=job
                 or intent['scope']!=self._scope):raise TransferError('media_source_jobs_original_plan_required')
@@ -209,6 +219,8 @@ class _NativeSourceJobs:
         return result
 
     def ready(self,writer,planned,manifest,proof_sha256):
+        from magnolie_media_source_cache import _NativeSourceCacheWriter
+        if type(writer) is not _NativeSourceCacheWriter:raise TransferError('media_source_jobs_live_writer_required')
         self._writer(writer);job=writer._job
         if getattr(writer,'_planned_job',None) is not planned:raise TransferError('media_source_jobs_original_plan_required')
         body=planned.body;body.update(state='cache_ready',manifest=manifest.wire(),proof_sha256=proof_sha256,
@@ -229,3 +241,108 @@ class _NativeSourceJobs:
         record=self.lookup(job)
         if record is None or record.version!=version or record.state!='cache_ready':raise TransferError('media_source_jobs_ready_record_required')
         return record
+
+    def _require_original_ready_membership(self,job,version):
+        """Recheck the current authenticated catalog for an already decoded ready record."""
+        name=self._key(job)
+        with self._database() as (db,key):
+            db.execute('BEGIN')
+            catalog=self._catalog.verify(db,key)
+            if catalog is None or [name,version] not in catalog.body['members']:
+                raise TransferError('media_source_jobs_ready_record_required')
+        self._catalog.observe(catalog)
+
+    def _decode_batch(self,job,cipher,plain,body,db_key):
+        from magnolie_media_source_batch_cache import validate_batch_members,validate_batch_predecessors
+        from magnolie_media_source_lineage import validate_lineage
+        from magnolie_media_source_roots import NativeMediaCollectionRootsWitness
+        if (set(body)!={'format','scope','database_key','job_id','nonce','state','intent_sha256','root_key','parent_key',
+                'book_version','source_policy_sha256','pairing_epoch','manifest','proof_sha256','original_references',
+                'lineage','members','predecessors','root_catalog','media_type'} or canonical(body)!=plain
+                or body['scope']!=self._scope or body['job_id']!=job or body['database_key']!=list(db_key)
+                or body['media_type'] not in ('images','video')):
+            raise TransferError('media_source_jobs_record_invalid')
+        validate_batch_members(body['members'])
+        validate_lineage(body['lineage'])
+        validate_batch_predecessors(body['members'],body['predecessors'])
+        if NativeMediaCollectionRootsWitness.parse(body['root_catalog']).scope!=self._root_scope:
+            raise TransferError('media_source_jobs_record_invalid')
+        for name in ('nonce','intent_sha256','book_version','source_policy_sha256','pairing_epoch'):
+            if not _hex(body[name]):raise TransferError('media_source_jobs_record_invalid')
+        for name in ('root_key','parent_key'):
+            key=body[name]
+            if type(key) is not list or len(key)!=2 or any(type(n) is not int or not 0<=n<2**64 for n in key) or key[1]==0:
+                raise TransferError('media_source_jobs_record_invalid')
+        if body['state']=='cache_planned':
+            if any(body[k] is not None for k in ('manifest','proof_sha256','original_references')):
+                raise TransferError('media_source_jobs_record_invalid')
+        elif body['state']=='cache_ready':
+            manifest=FileManifest.parse(body['manifest'])
+            if (manifest.source_id!=job or not _hex(body['proof_sha256']) or body['original_references']!={}
+                    or {f.id:(f.path,f.size) for f in manifest.files}!=
+                    {fid:(e['path'],e['size']) for fid,e in body['members'].items()}):
+                raise TransferError('media_source_jobs_record_invalid')
+        else:raise TransferError('media_source_jobs_record_invalid')
+        return NativeSourceJobRecord(sha256(cipher).hexdigest(),body)
+
+    def require_batch_selections(self,selections):
+        from magnolie_media_source_pc import _NativePcSelection
+        if type(selections) is not dict or not selections or any(type(s) is not _NativePcSelection for s in selections.values()):
+            raise TransferError('media_source_jobs_original_plan_required')
+        with self._database() as (db,key):
+            db.execute('BEGIN')
+            catalog=self._catalog.verify(db,key)
+            for selection in selections.values():self._require_pc_selection(db,key,catalog,selection)
+        self._catalog.observe(catalog)
+
+    def plan_batch(self,writer,intent):
+        from magnolie_media_source_batch_cache import _NativeBatchCacheWriter
+        if type(writer) is not _NativeBatchCacheWriter:raise TransferError('media_source_jobs_live_writer_required')
+        self._writer(writer);job=writer._job
+        if intent is not writer._intent or sha256(canonical(intent)).hexdigest()!=writer._intent_sha256:
+            raise TransferError('media_source_jobs_original_plan_required')
+        with self._database() as (db,key):
+            db.execute('BEGIN IMMEDIATE')
+            catalog=self._catalog.verify(db,key)
+            for selection in writer._selections.values():self._require_pc_selection(db,key,catalog,selection)
+            from magnolie_media_source_lineage import _NativeSourceLineage
+            lineage=_NativeSourceLineage(self).predecessor(db,key,catalog)
+            if catalog is None:catalog=self._catalog.initialize(writer,db,key)
+            if self._read(db,key,job) is not None:raise TransferError('media_source_jobs_original_plan_required')
+            if db.execute('SELECT COUNT(*) FROM meta WHERE key LIKE ?',(self._prefix+'%',)).fetchone()[0]>=self.MAX_RECORDS:
+                raise TransferError('media_source_jobs_capacity')
+            body=dict(format=4,scope=self._scope,database_key=list(key),job_id=job,nonce=intent['job_nonce'],state='cache_planned',
+                lineage=lineage,intent_sha256=writer._intent_sha256,root_key=list(writer._root_key),parent_key=list(writer._parent_key),
+                book_version=intent['book_version'],source_policy_sha256=intent['source_policy_sha256'],pairing_epoch=intent['pairing_epoch'],
+                manifest=None,proof_sha256=None,original_references=None,members=writer._entries,predecessors=writer._predecessors,
+                root_catalog=intent['root_catalog'],media_type=intent['media_type'])
+            plain=canonical(body)
+            if len(plain)>self.BATCH_MAX_BYTES:raise TransferError('media_source_jobs_record_size')
+            cipher=self._authority.protection.seal(plain,self._key(job))
+            self._decode(job,cipher,key);self._writer(writer)
+            db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(self._key(job),cipher));self._writer(writer)
+            self._catalog.advance(db,key,catalog);self._writer(writer)
+        result=self.lookup(job)
+        if result is None or result.version!=sha256(cipher).hexdigest():raise TransferError('media_source_jobs_plan_readback_failed')
+        self._writer(writer);return result
+
+    def ready_batch(self,writer,manifest,proof_sha256):
+        from magnolie_media_source_batch_cache import _NativeBatchCacheWriter
+        if type(writer) is not _NativeBatchCacheWriter:raise TransferError('media_source_jobs_live_writer_required')
+        self._writer(writer);planned=writer._planned_job;job=writer._job
+        body=planned.body;body.update(state='cache_ready',manifest=manifest.wire(),proof_sha256=proof_sha256,original_references={})
+        plain=canonical(body)
+        if len(plain)>self.BATCH_MAX_BYTES:raise TransferError('media_source_jobs_record_size')
+        with self._database() as (db,key):
+            db.execute('BEGIN IMMEDIATE')
+            catalog=self._catalog.verify(db,key);before=self._read(db,key,job)
+            if before is None or before.version!=planned.version or before.state!='cache_planned':
+                raise TransferError('media_source_jobs_plan_changed')
+            cipher=self._authority.protection.seal(plain,self._key(job))
+            self._decode(job,cipher,key);self._writer(writer)
+            db.execute('UPDATE meta SET value=? WHERE key=?',(cipher,self._key(job)));self._writer(writer)
+            self._catalog.advance(db,key,catalog);self._writer(writer)
+        result=self.lookup(job)
+        if result is None or result.body!=body or result.version!=sha256(cipher).hexdigest():
+            raise TransferError('media_source_jobs_ready_readback_failed')
+        self._writer(writer);return result

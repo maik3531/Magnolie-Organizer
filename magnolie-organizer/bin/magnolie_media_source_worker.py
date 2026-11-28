@@ -26,7 +26,8 @@ class NativeMappedMediaWorker:
         self._token=None;self._preferences=None;self._book=None;self._deadline=None
         self._book_fence=book_fence
         self._automatic=automatic
-        self._private_video=connection._media_support is not None
+        self._private_video=connection._media_support is not None and kind=='video'
+        self._private_images=connection._media_support is not None and kind=='images'
         self._native_current=native_current
         self._collection=None;self._collection_control=None;self._active_sender=None;self._filtered=0
 
@@ -46,6 +47,8 @@ class NativeMappedMediaWorker:
         if c._native_metadata_current() is not True:raise TransferError('media_source_current_metadata_required')
         if self._private_video and c._private_outgoing_video() is not self._token:
             raise TransferError('media_source_typed_video_counterpart_required')
+        if self._private_images and c._private_outgoing_image_batch() is not self._token:
+            raise TransferError('media_source_batch_counterpart_required')
         if self._collection_control is not None:
             controls,session,challenge=self._collection_control
             remote=controls._remote
@@ -91,8 +94,8 @@ class NativeMappedMediaWorker:
 
     def _archive(self,sender,record):
         from magnolie_media_backups import NativeMediaBackups,NativeMediaBackupLocations
-        from magnolie_media_source_backup import backup_prepared_source
-        from magnolie_media_source_retirement import _NativeSourceRetirement
+        from magnolie_media_source_backup import backup_prepared_source,backup_prepared_batch
+        from magnolie_media_source_retirement import _NativeSourceRetirement,_NativeBatchSourceRetirement
         from magnolie_media_source_roots import NativeMediaCollectionRootRecord
         c=self._connection;destination=record.directory if type(record) is NativeMediaCollectionRootRecord else record.destination
         scope=sha256(canonical(dict(subject=c._preferences._subject,media_type=self._kind))).hexdigest()
@@ -110,8 +113,12 @@ class NativeMappedMediaWorker:
                 # exits. Own the actual connection lane before touching cache
                 # I/O; never treat that projection as source-END/drain.
                 with c._operation(incoming=True):
-                    version=backup_prepared_source(backups,sender._source,sender._job)
-                retirement=_NativeSourceRetirement(sender,backups,version)
+                    if sender._batch is None:
+                        version=backup_prepared_source(backups,sender._source,sender._job)
+                        retirement=_NativeSourceRetirement(sender,backups,version)
+                    else:
+                        versions=backup_prepared_batch(backups,sender._batch)
+                        retirement=_NativeBatchSourceRetirement(sender,backups,versions)
                 while True:
                     self._current()
                     try:retirement.run();break
@@ -120,8 +127,11 @@ class NativeMappedMediaWorker:
                         with c._update_condition:c._update_condition.wait(.25)
 
     def _send_file(self,cache,record):
+        self._send_prepared(self._connection.open_prepared_media_sender(cache.manifest.source_id),record,1)
+
+    def _send_prepared(self,sender,record,count):
         c=self._connection
-        sender=c.open_prepared_media_sender(cache.manifest.source_id);self._active_sender=sender
+        self._active_sender=sender
         sender.send_media_offer()
         while True:
             self._current();self._idle_sender_current(sender)
@@ -131,7 +141,22 @@ class NativeMappedMediaWorker:
             if observed is not None and observed.body['phase']=='peer_readback':break
             with c._update_condition:c._update_condition.wait(.25)
         self._archive(sender,record);self._active_sender=None
-        with self._lock:self._saved+=1
+        with self._lock:self._saved+=count
+
+    def _collection_batches(self,mapped_keys):
+        c=self._connection
+        for selected,members,filtered in self._collection.image_batches(mapped_keys):
+            with self._lock:self._filtered+=filtered
+            if not members:continue
+            try:
+                batch=c.prepare_worker_pc_image_batch(self,self._preferences,selected,members)
+            except TransferError as error:
+                if str(error)!='media_collection_latest_payload_already_sent':raise
+                with self._lock:self._known+=len(members)
+                continue
+            try:self._send_prepared(c.open_prepared_pc_batch_sender(batch),selected,len(members))
+            finally:batch.close()
+        self._collection.finish()
 
     def _collection_files(self):
         c=self._connection
@@ -165,6 +190,8 @@ class NativeMappedMediaWorker:
                 raise TransferError('media_source_current_intent_required')
             if self._private_video and (self._kind!='video' or self._automatic or c._private_outgoing_video() is not self._token):
                 raise TransferError('media_source_typed_video_counterpart_required')
+            if self._private_images and (self._automatic or c._private_outgoing_image_batch() is not self._token):
+                raise TransferError('media_source_batch_counterpart_required')
             if mode=='entire_collection' and self._automatic:
                 # A manual composition proof is not native acceptance of an
                 # unattended whole-collection export. Keep that gate explicit.
@@ -188,12 +215,16 @@ class NativeMappedMediaWorker:
                 from magnolie_media_source_collection_pass import NativeCollectionPass
                 self._collection=NativeCollectionPass(self)
             with self._lock:self._state='syncing'
-            snapshot=None;cursor=None
+            snapshot=None;cursor=None;mapped_keys=set()
             while True:
                 self._current()
                 snapshot,records,cursor=c._mappings.candidate_page(self._kind,after=cursor,expected=snapshot,limit=self.PAGE_SIZE)
                 if self._private_video and records:
                     raise TransferError('media_source_private_mapped_return_unavailable')
+                if self._private_images:
+                    mapped_keys.update(record.file_key for record in records)
+                    if cursor is None:break
+                    continue
                 for record in records:
                     self._current()
                     if self._collection is not None and record.file_key in self._collection._mapped:
@@ -212,7 +243,8 @@ class NativeMappedMediaWorker:
                     self._send_file(selected.cache,record)
                     if self._collection is not None:self._collection.note_checked_mapping(selected.plan.observation)
                 if cursor is None:break
-            if self._collection is not None:self._collection_files()
+            if self._private_images:self._collection_batches(mapped_keys)
+            elif self._collection is not None:self._collection_files()
             self._current()
             if c._mappings.read()!=snapshot:raise TransferError('photo_mappings_candidate_snapshot_changed')
             if c._preferences.read()!=self._preferences:raise TransferError('media_source_local_consent_required')

@@ -148,6 +148,17 @@ aufgeführt.
   Linux-Sender und Android-35-Testprovider bestanden. Zwei bytegleiche PNGs
   erreichten den geschützten Quellenabschluss; bei unverändertem Ordner
   wurde nichts erneut übertragen.
+  Die manuelle Linux-Ausgabe neuer Foto-Originale ist im privaten Build
+  separat aktivierbar. Ein ausdrücklich gewählter PC-Bilderordner,
+  Foto-SEND und der tatsächliche Notes-Fotoempfang sind Voraussetzung.
+  Linux bindet Saved, den v2-Nachweis aller Batch-Mitglieder und die
+  geprüften lokalen Sicherungen an denselben Quellenabschluss.
+  Der gekoppelte WLAN-Quelltest mit Android-35-Testprovider bestätigte
+  zwei bytegleiche PNGs, stillen Wiederholungslauf und den Widerruf
+  auf der ursprünglichen Verbindung. Die MP4-Gegenprobe, 32 Prüfungen
+  zu Build-Komposition und Videorechten sowie die Linux-Oberfläche
+  bestanden ebenfalls. Geschützte Alt- und Mischfälle, unterbrochene
+  Abschlüsse, Linux-WLAN-Automatik und installierte Abnahme bleiben offen.
   Änderungen vorhandener Galeriezeilen und Misch-Batches bleiben offen.
   Windows kann in der privaten Medienkonfiguration Original-MP4 aus
   einem ausdrücklich gewählten Videoordner manuell senden. Die Auswahl

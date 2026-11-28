@@ -138,6 +138,8 @@ class _NativeSourceRetirementRecovery:
         try:
             self._permission,_=self._source._source_permission(action,expected,self._kind);self._permission()
             record=self._journal.lookup(self._job);ready=self._jobs.lookup(self._job)
+            if record is not None and record.body['format']==3:
+                raise TransferError('media_source_whole_batch_recovery_owner_required')
             if (record is None or record.version!=self._expected_version or record.body['state']!='archive_planned'
                     or ready is None or ready.state!='cache_ready' or record.body['ready_version']!=ready.version):
                 raise TransferError('media_source_retirement_original_intent_required')

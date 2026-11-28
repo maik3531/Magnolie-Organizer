@@ -139,6 +139,17 @@ class NativeCollectionRoot:
             except BaseException:
                 self._closed.set(); raise
 
+    def _require_original_members(self, leases):
+        # Verify the exact open descriptors before and after checking every
+        # member under the selected root's authority.
+        with self._gate:
+            self._require()
+            for lease in leases:
+                if type(lease) is not _CollectionReadLease or lease._root is not self:
+                    raise TransferError('media_collection_original_root_required')
+                lease._require_member()
+            self._require()
+
     def inventory(self, *, cancelled=lambda:False, maximum_entries=4096, maximum_depth=16):
         with self._gate:
             return self._inventory(cancelled, maximum_entries, maximum_depth)
@@ -234,7 +245,17 @@ class _CollectionReadLease:
     def _require_held_root(self):
         try:
             if self._closed.is_set():raise TransferError('media_collection_reader_retired')
-            self._root._require(); parent = self._root._fd
+            self._root._require()
+            self._require_member()
+            self._root._require()
+        except BaseException:
+            self._closed.set()
+            raise
+
+    def _require_member(self):
+        try:
+            if self._closed.is_set() or not self._owned:raise TransferError('media_collection_reader_retired')
+            parent = self._root._fd
             for item, fd in zip(self._member.parents, self._owned[:-1]):
                 value = os.fstat(fd); named = os.stat(item.name, dir_fd=parent, follow_symlinks=False)
                 if (not stat.S_ISDIR(value.st_mode) or value.st_uid != os.geteuid() or _key(value) != item.key or
@@ -246,7 +267,6 @@ class _CollectionReadLease:
                     _key(value) != self._member.key or value.st_size != self._member.size or not 1 <= value.st_size <= MAX_FILE_BYTES or
                     _native_witness(self._owned[-1]) != (self._member.birthtime, self._root.mount_id) or _signature(value) != self._signature or _signature(named) != self._signature):
                 raise TransferError('media_collection_original_file_changed')
-            self._root._require()
         except BaseException:
             self._closed.set(); raise
     def read_exact(self, offset, count):

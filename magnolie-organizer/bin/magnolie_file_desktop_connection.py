@@ -53,10 +53,15 @@ class NativeDesktopFileConnection:
     _video_data_handlers_ready = True
 
     def __init__(self, authority, channel, *, released=lambda owner:None, activity_changed=None, status_changed=None,
-                 native_wifi_current=lambda:False,native_metadata_current=lambda:False,media_support=None,private_pc_video_runtime=False):
-        if not callable(native_wifi_current) or not callable(native_metadata_current):raise TransferError('media_source_native_wifi_required')
+                 native_wifi_current=lambda:False,native_metadata_current=lambda:False,media_support=None,
+                 private_pc_video_runtime=False,pc_batch_peer_ready=None):
+        if (not callable(native_wifi_current) or not callable(native_metadata_current)
+                or pc_batch_peer_ready is not None and not callable(pc_batch_peer_ready)):
+            raise TransferError('media_source_native_wifi_required')
         self._native_wifi_current=native_wifi_current
         self._native_metadata_current=native_metadata_current
+        self._private_pc_image_runtime=media_support is not None and pc_batch_peer_ready is not None
+        self._pc_batch_peer_ready=pc_batch_peer_ready if self._private_pc_image_runtime else lambda:False
         if (type(authority) is not NativeDesktopFileAuthority or channel is not authority.native_channel
                 or not callable(getattr(channel, 'send', None)) or not callable(released)):
             raise TransferError('file_desktop_native_owner_required')
@@ -108,7 +113,7 @@ class NativeDesktopFileConnection:
         self._media_transport = self._media_source = self._media_sender = None
         self._media_support = media_support
         self._private_pc_video_runtime = private_pc_video_runtime is True and media_support is not None
-        self._private_video_receive_bound = None
+        self._private_outgoing_bound = None
         self._media_pc_source = None
         self._media_sending_state = None
         self._media_sending_choice = None
@@ -130,7 +135,7 @@ class NativeDesktopFileConnection:
                 from magnolie_media_transport import NativeMediaSettingsTransport
                 self._media_transport=NativeMediaSettingsTransport(authority,
                     lambda:not self._closed.is_set() and self._data_handlers_ready,support=media_support)
-                if self._private_pc_video_runtime:
+                if self._private_pc_video_runtime or self._private_pc_image_runtime:
                     from magnolie_media_source_pc import NativeCollectionMediaSource
                     self._media_pc_source=NativeCollectionMediaSource(self._preferences,self._mappings,self._media_transport)
             elif type(channel) is SecureChannel and status.get('available') is True and 23 in status.get('versions',[]):
@@ -161,7 +166,7 @@ class NativeDesktopFileConnection:
         # Do not claim receiver readiness from preferences or control codecs.
         grant,snapshot=self._preferences.native_local_state(self._data_handlers_ready,source_handlers_ready=self._media_source is not None,
             video_handlers_ready=self._media_support is not None and self._video_data_handlers_ready and self._authority.video_available(),
-            video_send_only=self._private_pc_video_runtime)
+            video_send_only=self._private_pc_video_runtime,image_send_only=self._private_pc_image_runtime)
         consent=snapshot.policy.sending if snapshot.associated and snapshot.policy is not None else None
         if consent is not None and consent.pairing_epoch!=snapshot.policy.pairing_epoch:consent=None
         self._media_sending_state=dict(version=snapshot.version,photos=bool(consent is not None and consent.photos),
@@ -408,7 +413,7 @@ class NativeDesktopFileConnection:
         try:self._local()
         except (TransferError,OSError,InvalidTag):return
         if self._media_support is not None:
-            self._refresh_private_video_output()
+            self._refresh_private_output()
             if self._desktop_session is None:
                 kinds=self._private_receive_kinds()
                 if not kinds:return
@@ -436,13 +441,30 @@ class NativeDesktopFileConnection:
         values=effective(token.body)
         return token if (values['collection_mode'],values['direction'],values['auto_mode'])==('entire_collection','pc_to_phone','manual') else None
 
-    def _refresh_private_video_output(self):
-        if not self._private_pc_video_runtime:return
-        token=self._private_outgoing_video()
-        self._private_video_receive_bound=None
-        if token is not None and (self._media_sending_state or {}).get('videos') is True:
+    def _private_outgoing_image_batch(self):
+        if not self._data_handlers_ready or not self._native_wifi_current() or not self._pc_batch_peer_ready():
+            return None
+        transport=self._media_transport
+        token=transport.intent_for('images',to_phone=True)
+        if token is None or transport.intent_for('video',to_phone=True) is not None:return None
+        from magnolie_media_sync import effective
+        values=effective(token.body)
+        return token if (values['collection_mode'],values['direction'],values['auto_mode'])==('entire_collection','pc_to_phone','manual') else None
+
+    def _private_outgoing_intent(self,kind):
+        return self._private_outgoing_video() if kind=='video' else self._private_outgoing_image_batch()
+
+    def observe_private_batch_ready(self):
+        with self._operation(incoming=True):
+            self._shared_schedule_changed()
+
+    def _refresh_private_output(self):
+        self._private_outgoing_bound=None
+        for kind,field in (('images','photos'),('video','videos')):
+            token=self._private_outgoing_intent(kind)
+            if token is None or (self._media_sending_state or {}).get(field) is not True:continue
             self._send_controls(now_ms)
-            if self._controls.binding('0'*64,sender_is_local=True) is not None:self._private_video_receive_bound=token
+            if self._controls.binding('0'*64,sender_is_local=True) is not None:self._private_outgoing_bound=token
             if self._media_collection_roots_state is None:
                 from magnolie_media_source_choice import roots_projection
                 try:
@@ -450,6 +472,7 @@ class NativeDesktopFileConnection:
                     with closing(self._preferences.open_collection_roots()) as catalog:
                         self._media_collection_roots_state=roots_projection(catalog.read())
                 except (TransferError,OSError,InvalidTag):pass
+            break
 
     def _private_receive_kinds(self):
         transport=self._media_transport
@@ -482,7 +505,9 @@ class NativeDesktopFileConnection:
             return self._media_source.freeze(self._preferences.issue_action(),expected,association,record_sha256,kind=kind)
 
     def _collection_preparation_active(self):
-        return self._media_pc_source is not None and bool(self._media_pc_source._prepared)
+        source=self._media_pc_source
+        return source is not None and (
+            bool(source._prepared) or source._original_batch is not None and not source._closed.is_set())
 
     def prepare_collection_media_source(self,action,expected,selected,member,*,kind='images',native_current=lambda:True):
         return self._prepare_collection_media_source(action,expected,selected,member,kind,native_current,False)
@@ -585,8 +610,8 @@ class NativeDesktopFileConnection:
         self._take_action(action)
         with self._operation():
             if self._media_support is not None:
-                if kind!='video' or automatic or self._private_outgoing_video() is None:
-                    raise TransferError('media_source_typed_video_counterpart_required')
+                if automatic or self._private_outgoing_intent(kind) is None:
+                    raise TransferError('media_source_current_intent_required')
             elif self._media_source is None:raise TransferError('media_source_native_composition_required')
             if (self._mapped_worker is not None or self._album_worker is not None or self._run is not None
                     or self._source_pending is not None or self._source_run is not None or self._media_sender is not None
@@ -607,6 +632,65 @@ class NativeDesktopFileConnection:
             if len(owners)!=1:raise TransferError('media_source_sender_actual_preparation_required')
             from magnolie_media_source_sender import _NativeMediaSourceSender
             sender=_NativeMediaSourceSender(owners[0],job_id,_connection=self)
+            self._media_sender=sender
+            return sender
+
+    def _require_pc_batch_counterpart(self):
+        self._ready()
+        if self._private_outgoing_image_batch() is None or self._authority.current_peer() is None:
+            raise TransferError('media_source_batch_counterpart_required')
+
+    def prepare_worker_pc_image_batch(self,worker,expected,selected,members):
+        from magnolie_media_source_collection_pass import NativeCollectionPass
+        from magnolie_media_source_pc import NativeCollectionMediaSource
+        from magnolie_media_source_worker import NativeMappedMediaWorker
+        with self._operation():
+            self._require_pc_batch_counterpart()
+            source=self._media_pc_source
+            if (type(worker) is not NativeMappedMediaWorker or self._mapped_worker is not worker or worker._kind!='images'
+                    or worker._automatic or type(worker._collection) is not NativeCollectionPass or source is None
+                    or self._collection_preparation_active() or self._media_sender is not None or self._run is not None
+                    or self._source_pending is not None or self._source_run is not None or self._album_worker is not None):
+                raise TransferError('media_collection_original_worker_required')
+            controls=self._controls
+            with controls._gate:
+                binding=controls.binding('0'*64,sender_is_local=True)
+                if binding is None:
+                    raise TransferError('media_source_current_send_control_required')
+                control_session=(controls._session_epoch,controls._remote.challenge)
+            if source._closed.is_set():
+                source=NativeCollectionMediaSource(self._preferences,self._mappings,self._media_transport)
+                self._media_pc_source=source
+            def current():
+                self._require_pc_batch_counterpart()
+                if self._media_pc_source is not source or self._controls is not controls:
+                    raise TransferError('media_collection_original_send_binding_required')
+                with controls._gate:
+                    if (controls._remote is None or (controls._session_epoch,controls._remote.challenge)!=control_session
+                            or controls.binding('0'*64,sender_is_local=True)!=binding):
+                        raise TransferError('media_collection_original_send_binding_required')
+                return worker._collection.require_member(selected,members)
+            current()
+            batch=source.select_original_batch(self._preferences.issue_action(),expected,selected,members,
+                native_current=current,all_new_only=True)
+            try:
+                batch.freeze_cache()
+                return batch
+            except BaseException:
+                batch.close()
+                raise
+
+    def open_prepared_pc_batch_sender(self,batch):
+        from magnolie_media_source_batch import NativeCollectionMediaBatch
+        from magnolie_media_source_sender import _NativeMediaSourceSender
+        with self._operation():
+            self._require_pc_batch_counterpart()
+            source=self._media_pc_source
+            if (type(batch) is not NativeCollectionMediaBatch or source is None or source._original_batch is not batch
+                    or batch._kind!='images' or self._media_sender is not None or self._run is not None
+                    or self._source_pending is not None or self._source_run is not None or self._album_worker is not None):
+                raise TransferError('media_source_sender_original_batch_required')
+            sender=_NativeMediaSourceSender(source,batch._id,_connection=self,_batch=batch)
             self._media_sender=sender
             return sender
 
@@ -656,20 +740,28 @@ class NativeDesktopFileConnection:
                     value['manual_receive']=mode=='manual' and supported and kinds in receiving.get('manual_receive',())
                     value['automatic_receive_setup']=mode=='wifi' and supported and kinds in receiving.get('automatic_setup',())
                     value['video_destination_setup']='video' in kinds and supported and not value.get('enabled') and not value.get('video_enabled')
-                    video=self._private_outgoing_video()
                     sending=self._media_sending_state or {}
-                    if (video is not None and sending.get('version') is not None
-                            or self._private_pc_video_runtime and sending.get('videos') is True):
-                        value['sending_consent']=dict(sending)
-                        value['sending_choice_kinds']=['videos']
+                    choices=[]
                     roots=(self._media_collection_roots_state or {}).get('roots',())
-                    value['collection_manual_outgoing_ready']=(video is not None and self._private_video_receive_bound is video
-                        and sending.get('videos') is True and any(root['media_type']=='video' for root in roots))
+                    value['collection_manual_outgoing_ready']=False
+                    for kind,field,compiled in (
+                            ('images','photos',self._private_pc_image_runtime),
+                            ('video','videos',self._private_pc_video_runtime)):
+                        intent=self._private_outgoing_intent(kind)
+                        if (intent is not None and sending.get('version') is not None
+                                or compiled and sending.get(field) is True):
+                            choices.append(field)
+                        if (intent is not None and self._private_outgoing_bound is intent
+                                and sending.get(field) is True and any(root['media_type']==kind for root in roots)):
+                            value['collection_manual_outgoing_ready']=True
+                    if choices:
+                        value['sending_consent']=dict(sending)
+                        value['sending_choice_kinds']=choices
         if self._media_collection_roots_state is not None:
             value['collection_sources']=dict(version=self._media_collection_roots_state['version'],
                 roots=[dict(root) for root in self._media_collection_roots_state['roots']])
         value['collection_sources_supported']=(self._media_pc_source is not None and self._data_handlers_ready
-            and (self._media_support is None or self._private_outgoing_video() is not None))
+            and (self._media_support is None or any(self._private_outgoing_intent(kind) is not None for kind in ('images','video'))))
         return value
 
     def native_shared_media_setting(self,field,value,version):
@@ -723,7 +815,7 @@ class NativeDesktopFileConnection:
                  else not _hex(selection) or photos is not None or videos is not None or version is not None)):
             raise TransferError('media_sending_native_choice_invalid')
         with self._operation():
-            if self._media_source is None and not self._private_pc_video_runtime:
+            if self._media_source is None and not (self._private_pc_video_runtime or self._private_pc_image_runtime):
                 raise TransferError('media_source_native_composition_required')
             if operation=='cancel':
                 choice=self._media_sending_choice
@@ -733,18 +825,25 @@ class NativeDesktopFileConnection:
             expected=self._preferences.read()
             if operation=='prepare' and expected.version!=version:raise TransferError('media_sending_native_choice_changed')
             previous=expected.policy.sending if expected.associated and expected.policy is not None else None
-            intent=None
-            if self._private_pc_video_runtime:
+            intents=()
+            if self._media_support is not None:
                 if operation=='prepare':
-                    if photos!=bool(previous is not None and previous.photos):
-                        raise TransferError('media_sending_native_choice_changed')
-                    intent=self._private_outgoing_video()
-                    if videos and intent is None:raise TransferError('media_source_typed_video_counterpart_required')
+                    requested=(('images',photos,bool(previous and previous.photos),self._private_pc_image_runtime),
+                               ('video',videos,bool(previous and previous.videos),self._private_pc_video_runtime))
+                    selected=[]
+                    for kind,value,old,compiled in requested:
+                        if value==old:continue
+                        if not compiled:raise TransferError('media_sending_native_choice_changed')
+                        if value:
+                            intent=self._private_outgoing_intent(kind)
+                            if intent is None:raise TransferError('media_sending_native_choice_changed')
+                            selected.append((kind,intent))
+                    intents=tuple(selected)
                 elif self._media_sending_choice is not None:
-                    intent=self._media_sending_choice[6]
+                    intents=self._media_sending_choice[6]
             def current():
                 self._ready()
-                if intent is not None and self._private_outgoing_video() is not intent:
+                if any(self._private_outgoing_intent(kind) is not intent for kind,intent in intents):
                     raise TransferError('media_sending_native_choice_changed')
                 return True
             with NativeMediaRetention(self._authority.binding.native_directory) as retention:
@@ -753,7 +852,7 @@ class NativeDesktopFileConnection:
                     book_version=sha256(canonical(retention._read())).hexdigest()
                     if operation=='prepare':
                         ticket=uuid.uuid4().hex+uuid.uuid4().hex
-                        self._media_sending_choice=(ticket,time.monotonic()+60,expected,book_version,photos,videos,intent)
+                        self._media_sending_choice=(ticket,time.monotonic()+60,expected,book_version,photos,videos,intents)
                         consent=expected.policy.sending if expected.associated and expected.policy is not None else None
                         if consent is not None and consent.pairing_epoch!=expected.policy.pairing_epoch:consent=None
                         return dict(selection=ticket,version=expected.version,photos=photos,videos=videos,
@@ -769,7 +868,7 @@ class NativeDesktopFileConnection:
                     permit.require_current();self._ready()
                     if self._preferences.read()!=result:raise TransferError('media_sending_native_choice_changed')
                     self._send_controls(now_ms)
-                    self._refresh_private_video_output()
+                    if self._media_support is not None:self._refresh_private_output()
                     return dict(version=result.version,photos=choice[4],videos=choice[5])
 
     def native_destination_choice(self,operation,*,kind,selection=None,path=None,witness=None,book_version=None,book_witness=None):
@@ -839,8 +938,8 @@ class NativeDesktopFileConnection:
             return dict(canceled=True)
         with self._operation():
             if self._media_pc_source is None:raise TransferError('media_source_native_composition_required')
-            if self._private_pc_video_runtime and (kind!='video' or self._private_outgoing_video() is None):
-                raise TransferError('media_source_typed_video_counterpart_required')
+            if self._media_support is not None and self._private_outgoing_intent(kind) is None:
+                raise TransferError('media_collection_native_choice_changed')
             if operation in ('read','prepare'):
                 if operation=='prepare':
                     with self._media_collection_gate:
@@ -873,7 +972,7 @@ class NativeDesktopFileConnection:
             try:
                 if (self._mapped_worker is not None or self._album_worker is not None or self._run is not None
                         or self._source_pending is not None or self._source_run is not None or self._media_sender is not None
-                         or self._media_source is not None and self._media_source._prepared or self._media_pc_source._prepared):
+                        or self._media_source is not None and self._media_source._prepared or self._collection_preparation_active()):
                     raise TransferError('file_desktop_album_worker_busy')
                 result=choice.commit(path,witness)
                 self._media_collection_roots_state=result
@@ -3567,15 +3666,20 @@ class NativePhotoDesktopSession:
                         or self._schedule.mode!='automatic'):
                     raise TransferError('photo_sync_invalid_action')
                 first_receive=None
-                private_video=(self.connection._private_outgoing_video()
-                    if operation=='sync_shared' and getattr(self.connection,'_media_support',None) is not None else None)
-                if private_video is not None and self.connection.desktop_snapshot().get('collection_manual_outgoing_ready') is not True:
+                private_output=None
+                if operation=='sync_shared' and getattr(self.connection,'_media_support',None) is not None:
+                    for kind in ('images','video'):
+                        intent=self.connection._private_outgoing_intent(kind)
+                        if intent is not None:
+                            private_output=(kind,intent)
+                            break
+                if private_output is not None and self.connection.desktop_snapshot().get('collection_manual_outgoing_ready') is not True:
                     raise TransferError('media_source_current_send_control_required')
-                if operation=='sync_shared' and not private_video:first_receive=self._first_receive_choice()
+                if operation=='sync_shared' and private_output is None:first_receive=self._first_receive_choice()
                 if operation=='setup_automatic_receive':
                     first_receive=self._first_receive_choice(automatic=True)
                     if first_receive is None:raise TransferError('media_automatic_receive_setup_not_available')
-                if operation in ('sync','videos_sync','sync_selected','sync_shared') and first_receive is None and not private_video:
+                if operation in ('sync','videos_sync','sync_selected','sync_shared') and first_receive is None and private_output is None:
                     schedule_run=self._schedule.request_now()
                 if operation in ('sync','videos_sync','sync_selected','sync_shared','automatic'):
                     self._progress_totals=dict(saved_files=0,known_files=0,conflicts=0)
@@ -3590,7 +3694,7 @@ class NativePhotoDesktopSession:
                 if operation=='sync_selected':arguments+=(video_album_id,)
                 self._thread=threading.Thread(target=self._run,args=arguments,
                     kwargs=({'first_receive':first_receive} if first_receive is not None else
-                        {'private_video':private_video} if private_video is not None else {}),
+                        {'private_output':private_output} if private_output is not None else {}),
                     name='magnolie-photo-desktop-action',daemon=True)
                 try:self._thread.start()
                 except BaseException:
@@ -4089,7 +4193,7 @@ class NativePhotoDesktopSession:
         return state['catalog']
 
     def _run(self, operation, album_id, schedule_run=None, job_owner=None,historical_choice=None,destination_path=None,video_album_id=None,
-            *,first_receive=None,private_video=None):
+            *,first_receive=None,private_output=None):
         syncing=operation in ('sync','videos_sync','sync_selected','sync_shared','automatic')
         automatic_setup=operation=='setup_automatic_receive'
         reported=syncing and first_receive is None
@@ -4100,17 +4204,17 @@ class NativePhotoDesktopSession:
             shared_token=None
             transport=self.connection._media_transport
             private_media=getattr(self.connection,'_media_support',None) is not None
-            if private_video is not None and self.connection._private_outgoing_video() is not private_video:
+            if private_output is not None and self.connection._private_outgoing_intent(private_output[0]) is not private_output[1]:
                 raise TransferError('media_source_current_intent_required')
             if automatic_setup and (first_receive is None or not private_media):
                 raise TransferError('media_automatic_receive_setup_not_available')
             if (syncing or automatic_setup) and transport is not None and transport.requires_safe_return():
                 raise TransferError('media_source_native_composition_required')
             if (syncing or automatic_setup) and private_media:
-                if not private_video and any(transport.intent_for(kind,to_phone=True) is not None for kind in ('images','video')):
+                if private_output is None and any(transport.intent_for(kind,to_phone=True) is not None for kind in ('images','video')):
                     # Do not silently complete the phone half of a two-way run.
                     raise TransferError('media_source_native_composition_required')
-                if not private_video and not self.connection._private_receive_kinds():
+                if private_output is None and not self.connection._private_receive_kinds():
                     raise TransferError('media_source_current_intent_required')
             if (syncing or automatic_setup) and transport is not None and (private_media or transport._display_body is not None):
                 # Once shared settings exist, legacy selected-album actions
@@ -4166,7 +4270,7 @@ class NativePhotoDesktopSession:
                     self._sync_activity(True)
                     reported=True
                 from magnolie_media_retention import maintain_native_media_trash
-                if not private_media or not private_video:
+                if not private_media or private_output is None:
                     maintain_native_media_trash(self.connection._authority.binding.native_directory,shared_constraint.require_current)
             if operation in ('enable','resume_automatic'):
                 if operation=='resume_automatic':

@@ -2911,8 +2911,10 @@ class PhoneService:
         self._native_file_controls = weakref.WeakKeyDictionary()
         self._native_file_control_receipts = weakref.WeakKeyDictionary()
         self._native_pc_video_checked = self._native_photo_built and optional_phone.private_pc_video()
-        self._native_media_support_checked = self._native_pc_video_checked
+        self._native_pc_image_batch_checked = self._native_photo_built and optional_phone.private_pc_image_batch()
+        self._native_media_support_checked = self._native_pc_video_checked or self._native_pc_image_batch_checked
         self._native_media_support = weakref.WeakKeyDictionary()
+        self._native_pc_image_batch_support = weakref.WeakKeyDictionary()
         self._native_media_settings_previews = weakref.WeakKeyDictionary()
         self._native_media_support_projected = weakref.WeakSet()
         self._native_photo_activity = {}
@@ -3222,6 +3224,10 @@ class PhoneService:
                 with self.lock:
                     if self._native_file_connections.get(channel) is owner:
                         self._native_file_connections.pop(channel, None)
+            def batch_peer_ready():
+                batch=self._native_pc_image_batch_support.get(channel)
+                return (support is not None and support.supports(channel)
+                    and batch is not None and batch.supports(channel))
             connection = NativeDesktopFileConnection(authority, channel, released=released,
                 activity_changed=lambda owner, active: self._native_photo_activity_changed(connection, owner, active),
                 status_changed=lambda: self.callback('photo_sync', {}),
@@ -3230,7 +3236,8 @@ class PhoneService:
                 native_wifi_current=lambda:((support.supports(channel) if support is not None else
                     self._current_native_source_metadata(peer_id,static_public,channel,generation))
                      and self.connection_transports.get(peer_id)=='wifi'),media_support=support,
-                private_pc_video_runtime=support is not None and self._native_pc_video_checked)
+                private_pc_video_runtime=support is not None and self._native_pc_video_checked,
+                pc_batch_peer_ready=batch_peer_ready if support is not None and self._native_pc_image_batch_checked else None)
         except BaseException:
             authority.close()
             raise
@@ -3259,6 +3266,8 @@ class PhoneService:
             self._native_sending_setups.pop(channel,None)
             self._native_media_settings_previews.pop(channel,None)
             support=self._native_media_support.pop(channel,None)
+            image_batch=self._native_pc_image_batch_support.pop(channel,None)
+            if image_batch is not None:image_batch.close()
             if support is not None:support.close()
             bindings = getattr(self, '_file_channel_bindings', None)
             owners = getattr(self, '_native_file_connections', None)
@@ -3692,7 +3701,7 @@ class PhoneService:
                  or self._equivalent_native_metadata_refresh(controls.get('grants.update'),peer.get('grants')))
             and controls.get('personal_sync.settings')=={'format':1,'own_device':True})
 
-    def _begin_native_media_support(self,peer,channel):
+    def _begin_native_media_support(self,peer,channel,*,feature=None):
         # Private session reader only. No file owner, settings, grants or
         # folders are opened here, and no packet is queued for later replay.
         if not self._native_media_support_checked or not self._native_photo_built or type(channel) is not SecureChannel:return None
@@ -3700,33 +3709,56 @@ class PhoneService:
         connection_type=self._native_file_module('magnolie_file_desktop_connection').NativeDesktopFileConnection
         if not connection_type._data_handlers_ready:return None
         support = self._native_file_module('magnolie_media_support')
+        if feature is None:feature=support.SHARED_SETTINGS
         with self.lock:
             binding=self._file_channel_bindings.get(channel)
             if binding is None or binding.pairing_epoch is None:return None
+            settings = None
+            attempts = self._native_media_support
+            if feature==support.PC_IMAGE_BATCH:
+                settings=self._native_media_support.get(channel)
+                if not self._native_pc_image_batch_checked or settings is None or not settings.supports(channel):
+                    return None
+                attempts=self._native_pc_image_batch_support
+            elif feature!=support.SHARED_SETTINGS:
+                return None
             def current():
                 return (self._native_media_support_checked and connection_type._data_handlers_ready
+                    and (settings is None or self._native_pc_image_batch_checked and settings.supports(channel))
                     and self._file_channel_bindings.get(channel) is binding
                     and self.connection_transports.get(peer_id)=='wifi'
                     and self._current_native_source_metadata(peer_id,static_public,channel,binding.generation,require_legacy_shared=False))
             if not current():return None
-            attempt=self._native_media_support.get(channel)
+            attempt=attempts.get(channel)
             if attempt is not None:return attempt  # Never restart a retired original attempt.
-            attempt=support.NativeMediaSupportAttempt(channel,current)
-            self._native_media_support[channel]=attempt
+            attempt=support.NativeMediaSupportAttempt(channel,current,feature=feature)
+            attempts[channel]=attempt
         attempt.send()  # No service monitor across authenticated output.
-        self._project_native_media_support(peer,channel,attempt)
+        if settings is None:self._project_native_media_support(peer,channel,attempt)
         return attempt
 
     def _native_media_support_ack(self,peer,channel,payload):
         with self.lock:
-            attempt=self._native_media_support.get(channel)
+            settings=self._native_media_support.get(channel)
+            attempt=next((owner for owner in (settings,self._native_pc_image_batch_support.get(channel))
+                if owner is not None and owner.owns_ack(channel,payload)),None)
             binding=self._file_channel_bindings.get(channel)
             if (attempt is None or binding is None or binding.peer_id!=peer.get('device_id')
-                    or binding.static_public!=peer.get('static_public') or not attempt.owns_ack(channel,payload)):
+                    or binding.static_public!=peer.get('static_public')):
                 return False
+        was_ready=attempt.supports(channel)
         attempt.receive(channel,payload)
-        self._project_native_media_support(peer,channel,attempt)
+        if attempt is settings:self._project_native_media_support(peer,channel,attempt)
+        elif not was_ready and attempt.supports(channel):self._project_native_image_batch(channel)
         return True # An obsolete original receipt still never reaches the personal outbox.
+
+    def _project_native_image_batch(self,channel):
+        with self.lock:
+            connection=self._native_file_connections.get(channel)
+        if connection is not None:
+            try:connection.observe_private_batch_ready()
+            except (ValueError,OSError):pass  # The next native control rechecks readiness.
+        self.callback('photo_sync',{})
 
     def _project_native_media_support(self,peer,channel,attempt):
         # Either receipt can finish the original exchange (or post-write
@@ -9386,11 +9418,15 @@ class PhoneService:
         if getattr(self,'_native_media_support_checked',False) and payload.get('kind')=='media_support.hello':
             if scoped_reference is None and self._native_photo_built:
                 support = self._native_file_module('magnolie_media_support')
-                if support.valid(payload,now_ms()):
-                    attempt=self._begin_native_media_support(peer,channel)
+                body=payload.get('body')
+                feature=body.get('feature') if type(body) is dict else None
+                if support.valid(payload,now_ms(),feature):
+                    attempt=self._begin_native_media_support(peer,channel,feature=feature)
                     if attempt is not None:
+                        was_ready=attempt.supports(channel)
                         attempt.receive(channel,payload)
-                        self._project_native_media_support(peer,channel,attempt)
+                        if feature==support.SHARED_SETTINGS:self._project_native_media_support(peer,channel,attempt)
+                        elif not was_ready and attempt.supports(channel):self._project_native_image_batch(channel)
             return  # This private lane never persists a discovery message.
         if is_reserved_screen_control(payload):
             self._screen_dispatch.receive(peer, channel, payload)

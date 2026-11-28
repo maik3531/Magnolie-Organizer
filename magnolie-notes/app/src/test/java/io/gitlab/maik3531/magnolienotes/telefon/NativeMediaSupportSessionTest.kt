@@ -137,7 +137,9 @@ class NativeMediaSupportSessionTest {
                 Boolean::class.javaPrimitiveType, kotlin.jvm.functions.Function0::class.java).apply { isAccessible = true }
             repeat(if (reconnect) 2 else 1) {
                 TelefonTcpRoehre("127.0.0.1", port = port.toInt()).use { pipe ->
-                    pipe.setReadTimeout(if (fullVideoPeer == null) 15_000 else 55_000)
+                    // Local archive and a quiet rerun intentionally send no
+                    // frames. Keep the stage and wire deadlines independent.
+                    pipe.setReadTimeout(if (fullVideoPeer != null || sendImages) 55_000 else 15_000)
                     val reader = tasks.submit { session.invoke(work, peer, TelefonTransportArt.WIFI, pipe, "", "", false, {}) }
                     try {
                         if (imageBatchPeer != null) {

@@ -788,9 +788,10 @@ class ProtectedPhotoPreferences:
     def local_grant(self,handlers_ready):
         return self.native_local_state(handlers_ready)[0]
 
-    def native_local_state(self,handlers_ready,*,source_handlers_ready=False,video_handlers_ready=False,video_send_only=False):
+    def native_local_state(self,handlers_ready,*,source_handlers_ready=False,video_handlers_ready=False,
+                           video_send_only=False,image_send_only=False):
         """One protected read for the grant and its exact native policy input."""
-        if any(type(flag) is not bool for flag in (handlers_ready,source_handlers_ready,video_handlers_ready,video_send_only)):
+        if any(type(flag) is not bool for flag in (handlers_ready,source_handlers_ready,video_handlers_ready,video_send_only,image_send_only)):
             raise TransferError('photo_preferences_native_handlers_required')
         snapshot=self.read();peer=self._peer();policy=snapshot.policy
         # A requested bidirectional mode is not a half-ready one-way grant.
@@ -800,7 +801,8 @@ class ProtectedPhotoPreferences:
              or video_handlers_ready and snapshot.independent_video_available))
         sending=(policy is not None and snapshot.associated and policy.sending is not None
             and policy.sending.pairing_epoch==peer.pairing_epoch and
-            (source_handlers_ready and (policy.sending.photos or policy.sending.videos) or video_send_only and policy.sending.videos))
+            (source_handlers_ready and (policy.sending.photos or policy.sending.videos)
+             or video_send_only and policy.sending.videos or image_send_only and policy.sending.photos))
         revision=(policy.permission_revision if policy.permission_revision is not None else policy.revision) if policy is not None else 1
         epoch=policy.permission_epoch if snapshot.associated and policy is not None else sha256(canonical(dict(scope=self._scope,pairing=peer.pairing_epoch,closed=snapshot.version))).hexdigest()
         return NativeLocalFileGrant(FileGrantState(revision,epoch,sending,enabled),self,handlers_ready),snapshot

@@ -96,6 +96,22 @@ def test_private_linux_video_capability_requires_installed_opt_in_and_handler(tm
             assert 22 not in phone.desktop_capabilities()['items']['device_status']['versions']
 
 
+def test_private_linux_image_batch_is_independent_and_has_no_legacy_marker(tmp_path):
+    import magnolie_telefon as phone
+
+    data = tmp_path / 'magnolie-organizer'
+    runtime = data / 'python'
+    runtime.mkdir(parents=True)
+    config = data / 'build-config.json'
+    with mock.patch.object(policy, '__file__', str(runtime / 'magnolie_optional_phone.py')):
+        for enabled, option, expected in ((True, None, False), (True, 'true', False), (False, True, False), (True, True, True)):
+            config.write_text(json.dumps({'phoneFeatures': {'photo_sync': enabled}, 'privatePcImageBatchSend': option}))
+            assert policy.private_pc_image_batch() is expected
+            assert not policy.private_pc_video()
+            versions = phone.desktop_capabilities()['items']['device_status']['versions']
+            assert 22 not in versions and 23 not in versions
+
+
 @pytest.mark.parametrize('value', [True, [], {'photo_sync': 1}, {'phone_camera': 'true'}, {'unknown': True}])
 def test_invalid_composition_never_changes_payload_or_config(tmp_path, value):
     bindir, data = payload(tmp_path)

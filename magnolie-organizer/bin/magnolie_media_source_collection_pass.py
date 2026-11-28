@@ -96,6 +96,52 @@ class NativeCollectionPass:
                 try:yield selected,member
                 finally:self._active=None
 
+    def image_batches(self,mapped_keys):
+        """Select only independent images from each original chosen root."""
+        from magnolie_file_transfer import CHUNK_BYTES,MAX_FILES,MAX_TOTAL_BYTES
+        from magnolie_media_mime import PREFIX_BYTES,identify_collection
+        from magnolie_media_sync import effective
+        from magnolie_photo_metadata import MAX_METADATA_BYTES,camera_photo_matches
+        worker=self._worker
+        if worker._kind!='images' or self._active is not None:
+            raise TransferError('media_collection_original_worker_required')
+        photos_only=effective(worker._token.body)['photos_only']
+        prefix_limit=max(PREFIX_BYTES,MAX_METADATA_BYTES) if photos_only else PREFIX_BYTES
+        for selected,root,inventory,signatures in self._frames:
+            self._catalog_current()
+            chosen=[];filtered=0
+            with self._catalog.selected_root_lease(selected):
+                for member in inventory.members:
+                    self._scan_current()
+                    with root.open_member(member) as lease:
+                        if lease._signature!=signatures[member]:
+                            raise TransferError('media_collection_original_inventory_changed')
+                        if member.key in mapped_keys:
+                            continue
+                        prefix=bytearray()
+                        try:
+                            limit=min(member.size,prefix_limit)
+                            for offset in range(0,limit,CHUNK_BYTES):
+                                clear=lease.read_exact(offset,min(CHUNK_BYTES,limit-offset))
+                                try:prefix.extend(clear)
+                                finally:clear[:]=b'\0'*len(clear)
+                            try:identify_collection(prefix[:PREFIX_BYTES],member.size,'images')
+                            except TransferError as error:
+                                if str(error)!='media_collection_known_other_type':raise
+                                filtered+=1
+                                continue
+                            if photos_only and not camera_photo_matches(prefix[:MAX_METADATA_BYTES]):
+                                filtered+=1
+                                continue
+                            chosen.append(member)
+                        finally:prefix[:]=b'\0'*len(prefix)
+            if len(chosen)>MAX_FILES or sum(member.size for member in chosen)>MAX_TOTAL_BYTES:
+                raise TransferError('media_source_batch_original_members_required')
+            members=tuple(chosen)
+            self._active=(selected,members)
+            try:yield selected,members,filtered
+            finally:self._active=None
+
     def finish(self):
         # Actual END closes each offered member's IO lease. Re-check the whole
         # frozen inventory so edits/new files/moves after an earlier END cannot

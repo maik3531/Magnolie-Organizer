@@ -52,7 +52,7 @@ class _NativeSourceCatalog:
             prefix=next(p for p in (self._jobs._prefix,self._exchange,self._retirement,self._retry) if name.startswith(p))
             job=name[len(prefix):]
             if type(job) is not str or len(job)!=32 or not _hex(job*2):raise TransferError('media_source_catalog_invalid_member')
-            bound=self._jobs.MAX_BYTES if prefix==self._jobs._prefix else 262144 if prefix==self._retry else 16384
+            bound=self._jobs.BATCH_MAX_BYTES if prefix==self._jobs._prefix else 262144
             if type(blob) is not bytes or not 29<=len(blob)<=bound+28:raise TransferError('media_source_catalog_invalid_member')
             (job_ids if prefix==self._jobs._prefix else exchange_ids if prefix==self._exchange else retirement_ids if prefix==self._retirement else retry_ids).add(job)
             members.append([name,sha256(blob).hexdigest()])

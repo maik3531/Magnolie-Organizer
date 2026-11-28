@@ -26,6 +26,28 @@ def _validate_source_version(value,key):
             or not 0<value['saved_ms']<=253402300799999 or type(value['source']) is not dict):
         raise TransferError('media_backup_source_version_invalid')
     source=value['source']
+    if type(source.get('format')) is int and source['format']==3:
+        from magnolie_media_source_pc import validate_pc_origin
+        from magnolie_media_source_roots import NativeMediaCollectionRootsWitness
+        from magnolie_media_source_batch_cache import validate_batch_predecessors
+        from magnolie_file_transfer import MAX_FILE_BYTES,_portable_path
+        if (set(source)!={'format','job_id','job_nonce','job_version','proof_sha256','book_version',
+                'manifest_sha256','batch_members_sha256','file','local_origin','root_catalog','media_type','predecessor'}
+                or type(source['job_id']) is not str or len(source['job_id'])!=32 or not _hex(source['job_id']*2)
+                or any(not _hex(source[n]) for n in ('job_nonce','job_version','proof_sha256','book_version','manifest_sha256','batch_members_sha256'))
+                or type(source['file']) is not dict or set(source['file'])!={'id','path','size','sha256'}
+                or source['media_type'] not in ('images','video')):
+            raise TransferError('media_backup_source_version_invalid')
+        file=source['file']
+        if (type(file['id']) is not str or len(file['id'])!=32 or not _hex(file['id']*2)
+                or type(file['size']) is not int or not 1<=file['size']<=MAX_FILE_BYTES or not _hex(file['sha256'])):
+            raise TransferError('media_backup_source_version_invalid')
+        _portable_path(file['path']);validate_pc_origin(source['local_origin']);NativeMediaCollectionRootsWitness.parse(source['root_catalog'])
+        validate_batch_predecessors({file['id']:None},{file['id']:source['predecessor']})
+        if (file['path']!=source['local_origin']['file_path'] or value['name']!=file['path']
+                or value['object_key']!=content_key(file['size'],file['sha256']) or _source_version_id(source)!=key):
+            raise TransferError('media_backup_source_version_invalid')
+        return value
     if type(source.get('format')) is int and source['format']==2:
         from magnolie_media_source_pc import validate_pc_origin
         from magnolie_media_source_roots import NativeMediaCollectionRootsWitness
@@ -111,6 +133,12 @@ def backup_prepared_source(backups,source,job_id,*,boundary=lambda _:None):
         if local:provenance.update(local_origin=cached.pc_origin,root_catalog=cached._pc_selection.catalog,media_type=cached._media_type,source_path=file.path)
         else:provenance.update(original_mapping_sha256=mapping.protected_record_sha256,original_mapping=mapping.wire())
         if restored is not None:provenance['restored_source']=restored.wire()
+        name=file.path if local else mapping.relative_path if restored is None else restored.relative_path
+        return _backup_source_file(backups,file,provenance,reader,current,boundary,name)
+
+
+def _backup_source_file(backups,file,provenance,reader,current,boundary,name):
+        """Existing durable object/version IO, called only inside native scopes."""
         version_id=_source_version_id(provenance);key=content_key(file.size,file.sha256)
         before=backups._record('versions',version_id);obj=backups._record('objects',key)
         if before is not None:
@@ -120,7 +148,6 @@ def backup_prepared_source(backups,source,job_id,*,boundary=lambda _:None):
         if version is None:
             if len(backups._members('versions'))+len(backups._pending_members())>=backups.MAX_VERSIONS:
                 raise TransferError('media_backup_catalog_capacity')
-            name=file.path if local else mapping.relative_path if restored is None else restored.relative_path
             version=dict(id=version_id,object_key=key,saved_ms=backups._clock(),name=name,source=provenance)
             _validate_source_version(version,version_id);current();backups._commit(pending=version)
         elif version['source']!=provenance:raise TransferError('media_backup_original_source_owner_required')
@@ -163,3 +190,76 @@ def backup_prepared_source(backups,source,job_id,*,boundary=lambda _:None):
         boundary('source_backup_payload_verified');current();backups._commit(version=version,obj=obj)
         backups._verify_object(obj);current();boundary('source_backup_complete');current()
         return backups._version(version)
+
+
+def batch_source_provenances(batch):
+    from dataclasses import asdict
+    previous={fid:asdict(s.previous) if s.previous is not None else None for fid,s in batch._selections.items()}
+    cache=batch._cache
+    context=dict(format=3,job_id=batch._id,job_nonce=cache._job_nonce,job_version=cache._job_version,
+        proof_sha256=cache.proof_sha256,book_version=cache._book_version,manifest_sha256=cache.manifest.fingerprint,
+        batch_members_sha256=sha256(canonical(dict(members=batch._entries,predecessors=previous))).hexdigest(),media_type=batch._kind)
+    return {file.id:dict(context,file=dict(id=file.id,path=file.path,size=file.size,sha256=file.sha256),
+        local_origin=copy.deepcopy(batch._entries[file.id]['local_origin']),root_catalog=copy.deepcopy(batch._catalog_witness),
+        predecessor=previous[file.id]) for file in cache.manifest.files}
+
+
+def batch_source_provenance_ready(ready,file):
+    """Protected historical backup correlation only, never a source factory."""
+    from magnolie_media_source_jobs import NativeSourceJobRecord
+    if type(ready) is not NativeSourceJobRecord or ready.state!='cache_ready' or ready.body['format']!=4:
+        raise TransferError('media_backup_actual_batch_preparation_required')
+    body=ready.body;manifest=FileManifest.parse(body['manifest'])
+    if file not in manifest.files:raise TransferError('media_backup_actual_batch_preparation_required')
+    return dict(format=3,job_id=body['job_id'],job_nonce=body['nonce'],job_version=ready.version,
+        proof_sha256=body['proof_sha256'],book_version=body['book_version'],manifest_sha256=manifest.fingerprint,
+        batch_members_sha256=sha256(canonical(dict(members=body['members'],predecessors=body['predecessors']))).hexdigest(),
+        file=dict(id=file.id,path=file.path,size=file.size,sha256=file.sha256),
+        local_origin=copy.deepcopy(body['members'][file.id]['local_origin']),root_catalog=copy.deepcopy(body['root_catalog']),
+        media_type=body['media_type'],predecessor=copy.deepcopy(body['predecessors'][file.id]))
+
+
+def backup_prepared_batch(backups,batch,*,boundary=lambda _:None):
+    """All-member local versions under ONE actual native cache/book scope.
+
+    Returned historical versions are not a complete-root retirement permit.
+    The native retirement owner must independently verify their exact full map.
+    """
+    from magnolie_media_source_batch import NativeCollectionMediaBatch
+    from magnolie_media_source_batch_cache import FrozenNativeMediaBatch
+    from magnolie_media_backups import NativeMediaBackups
+    if (type(backups) is not NativeMediaBackups or type(batch) is not NativeCollectionMediaBatch
+            or type(batch._cache) is not FrozenNativeMediaBatch or not callable(boundary)
+            or backups.destination!=batch._selected.directory
+            or backups.protection.native_directory_identity!=batch._owner._authority.protection.native_directory_identity):
+        raise TransferError('media_backup_actual_batch_preparation_required')
+    with batch.cached_reader() as reader,backups._operation():
+        def current():reader._permission();backups._current();return True
+        current();backups._ensure_native_owner()
+        plan=[];new_versions=0;required={};provenances=batch_source_provenances(batch)
+        for file in batch._cache.manifest.files:
+            provenance=provenances[file.id];version_id=_source_version_id(provenance)
+            _validate_source_version(dict(id=version_id,object_key=content_key(file.size,file.sha256),
+                saved_ms=backups._clock(),name=file.path,source=provenance),version_id)
+            if backups._record('versions',version_id) is None and backups._pending(version_id) is None:new_versions+=1
+            key=content_key(file.size,file.sha256)
+            if backups._record('objects',key) is None:required[key]=file.size
+            plan.append((file,provenance))
+        if len(backups._members('versions'))+len(backups._pending_members())+new_versions>backups.MAX_VERSIONS:
+            raise TransferError('media_backup_catalog_capacity')
+        free=os.fstatvfs(backups._root)
+        if free.f_bavail*free.f_frsize<sum(required.values())+1024**3:raise TransferError('media_backup_insufficient_space')
+        result={}
+        class FileView:
+            def __init__(self,file_id):self._file_id=file_id
+            def read_chunk(self,index):return reader.read_chunk(self._file_id,index)
+        for file,provenance in plan:
+            current()
+            result[file.id]=_backup_source_file(backups,file,provenance,FileView(file.id),current,boundary,file.path)
+        for file,provenance in plan:
+            selected=result[file.id];value=backups._selected_version(selected)
+            if value['source']!=provenance:raise TransferError('media_backup_original_source_owner_required')
+            obj=backups._record('objects',value['object_key'])
+            if obj is None or obj['prepared']:raise TransferError('media_backup_object_not_complete')
+            backups._verify_object(obj);current()
+        return result

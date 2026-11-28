@@ -43,6 +43,11 @@ class _NativeSourceLineage:
     def __init__(self,jobs):self._jobs=jobs
 
     def _completed(self,db,key,record,*,pc_trail=()):
+        retired,_=self._completed_exchange(db,key,record,pc_trail=pc_trail)
+        return retired
+
+    def _completed_exchange(self,db,key,record,*,pc_trail=()):
+        """The protected retirement and its validated original exchange DATA."""
         from magnolie_media_source_retirement import _NativeSourceRetirementJournal,verify_retirement_exchange
         original=record.body;retired=_NativeSourceRetirementJournal(self._jobs)._read(db,key,original['job_id'])
         if record.state!='cache_ready' or retired is None or retired.body['state']!='archived':
@@ -52,8 +57,8 @@ class _NativeSourceLineage:
                 or body['root_key']!=original['root_key'] or body['parent_key']!=original['parent_key']
                 or body['proof_witness']['sha256']!=original['proof_sha256']):
             raise TransferError('media_source_lineage_original_completion_required')
-        verify_retirement_exchange(self._jobs,db,key,record,body,pc_trail=pc_trail)
-        return retired
+        exchange=verify_retirement_exchange(self._jobs,db,key,record,body,pc_trail=pc_trail)
+        return retired,exchange
 
     def inspect(self,db,key,catalog):
         jobs=self._jobs
