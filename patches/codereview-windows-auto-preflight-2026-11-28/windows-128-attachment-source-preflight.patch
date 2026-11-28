@@ -1,0 +1,46 @@
+diff --git a/magnolie-organizer-windows/PersonalSyncContract.cs b/magnolie-organizer-windows/PersonalSyncContract.cs
+--- a/magnolie-organizer-windows/PersonalSyncContract.cs
++++ b/magnolie-organizer-windows/PersonalSyncContract.cs
+@@ -462,6 +462,11 @@
+         return id;
+     }
+ 
++    // The bridge has already validated the descriptor and verified the source hash.
++    internal static bool AttachmentSourceMatches(JsonObject descriptor, string mime, long size) =>
++        TelefonProtocolContract.Integer(descriptor["size"]) == size &&
++        string.Equals(descriptor["mime"]?.GetValue<string>(), mime, StringComparison.Ordinal);
++
+     private static void ValidateReport(JsonObject body)
+     {
+         var format = DataFormat(body); Exact(body, format >= 2 ? ["format", "run_id", "state", "trigger", "transport", "sent", "received", "conflicts", "attachments_omitted", "oversized_skipped", "started_ms", "finished_ms", "error", "deletions", "attachments"] : ["format", "run_id", "state", "trigger", "transport", "sent", "received", "conflicts", "attachments_omitted", "oversized_skipped", "started_ms", "finished_ms", "error", "deletions"]);
+diff --git a/magnolie-organizer-windows/BridgeDispatcher.Sync.cs b/magnolie-organizer-windows/BridgeDispatcher.Sync.cs
+--- a/magnolie-organizer-windows/BridgeDispatcher.Sync.cs
++++ b/magnolie-organizer-windows/BridgeDispatcher.Sync.cs
+@@ -1372,6 +1372,10 @@
+             .GroupBy(descriptor => descriptor["sha256"]!.GetValue<string>(), StringComparer.Ordinal)
+             .ToDictionary(group => group.Key, group => group.First().DeepClone().AsObject(), StringComparer.Ordinal);
+         if (!descriptors.Keys.ToHashSet(StringComparer.Ordinal).SetEquals(sources.Keys)) throw new InvalidDataException(T("The personal synchronization attachment sources are incomplete."));
++        // Validate every source before the initial request can enter the outbox.
++        foreach (var source in sources.Values)
++            if (!PersonalSyncContract.AttachmentSourceMatches(descriptors[source.Hash], source.Mime, source.Data.LongLength))
++                throw new InvalidDataException(T("The personal synchronization attachment identity does not match."));
+         if (!reply) await telefon.SendPersonalSyncAsync(peerId, "personal_sync.request", request);
+         foreach (var source in sources.Values)
+         {
+diff --git a/magnolie-organizer-windows/tests/PersonalSyncTests.cs b/magnolie-organizer-windows/tests/PersonalSyncTests.cs
+--- a/magnolie-organizer-windows/tests/PersonalSyncTests.cs
++++ b/magnolie-organizer-windows/tests/PersonalSyncTests.cs
+@@ -28,6 +28,13 @@
+         var format2 = vectors["format2"]!.AsObject(); var format2Value = format2["value"]!.AsObject();
+         TestAssert.That(Encoding.UTF8.GetString(TelefonCrypto.Canonical(format2Value)) == format2["canonical"]!.GetValue<string>() && PersonalSyncContract.ProjectionHash(format2Value) == format2["sha256"]!.GetValue<string>(), "Format-2-Projektion weicht ab.");
+         var decoded = PersonalSyncContract.DecodeDataUrl(format2["data_url"]!.GetValue<string>()); TestAssert.That(decoded.Mime == "image/png" && decoded.Data.Length == 8, "PNG-Data-URL wurde nicht streng dekodiert.");
++        var sourceDescriptor = format2["descriptor"]!.AsObject();
++        TestAssert.That(PersonalSyncContract.AttachmentSourceMatches(sourceDescriptor, decoded.Mime, decoded.Data.LongLength),
++            "Valid attachment source was rejected.");
++        TestAssert.That(!PersonalSyncContract.AttachmentSourceMatches(sourceDescriptor, decoded.Mime, decoded.Data.LongLength - 1) &&
++            !PersonalSyncContract.AttachmentSourceMatches(sourceDescriptor, decoded.Mime, decoded.Data.LongLength + 1) &&
++            !PersonalSyncContract.AttachmentSourceMatches(sourceDescriptor, "application/pdf", decoded.Data.LongLength),
++            "Attachment source size or MIME mismatch was accepted.");
+         foreach (var invalid in format2["invalid_names"]!.AsArray())
+         {
+             var bad = format2Value.DeepClone().AsObject(); bad["attachments"]![0]!["name"] = invalid!.GetValue<string>();

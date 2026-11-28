@@ -1,0 +1,93 @@
+[
+  {
+    "name": "no_attachments",
+    "pass": true,
+    "requested": 1,
+    "staged": 0,
+    "batches": 1,
+    "complete": true,
+    "error": ""
+  },
+  {
+    "name": "valid_small",
+    "pass": true,
+    "requested": 1,
+    "staged": 1,
+    "batches": 1,
+    "complete": true,
+    "error": ""
+  },
+  {
+    "name": "valid_boundary",
+    "pass": true,
+    "requested": 1,
+    "staged": 1,
+    "batches": 1,
+    "complete": true,
+    "error": ""
+  },
+  {
+    "name": "valid_final_byte",
+    "pass": true,
+    "requested": 1,
+    "staged": 1,
+    "batches": 1,
+    "complete": true,
+    "error": ""
+  },
+  {
+    "name": "declared_too_short",
+    "pass": false,
+    "requested": 1,
+    "staged": 0,
+    "batches": 0,
+    "complete": false,
+    "error": "stage_chunk"
+  },
+  {
+    "name": "declared_too_long",
+    "pass": false,
+    "requested": 1,
+    "staged": 0,
+    "batches": 0,
+    "complete": false,
+    "error": "stage_chunk"
+  },
+  {
+    "name": "missing_last_chunk",
+    "pass": false,
+    "requested": 1,
+    "staged": 1,
+    "batches": 1,
+    "complete": false,
+    "error": "verify"
+  },
+  {
+    "name": "extra_chunk",
+    "pass": false,
+    "requested": 1,
+    "staged": 0,
+    "batches": 0,
+    "complete": false,
+    "error": "stage_chunk"
+  },
+  {
+    "name": "wrong_mime",
+    "pass": false,
+    "requested": 1,
+    "staged": 1,
+    "batches": 1,
+    "complete": false,
+    "error": "verify"
+  },
+  {
+    "name": "second_attachment_invalid",
+    "pass": false,
+    "requested": 1,
+    "staged": 1,
+    "batches": 0,
+    "complete": false,
+    "error": "stage_chunk"
+  }
+]
+4/10
