@@ -158,7 +158,19 @@ aufgeführt.
   auf der ursprünglichen Verbindung. Die MP4-Gegenprobe, 32 Prüfungen
   zu Build-Komposition und Videorechten sowie die Linux-Oberfläche
   bestanden ebenfalls. Geschützte Alt- und Mischfälle, unterbrochene
-  Abschlüsse, Linux-WLAN-Automatik und installierte Abnahme bleiben offen.
+  Abschlüsse und installierte Abnahme bleiben offen.
+  Im privaten Linux-Build kann eine bewusst gewählte WLAN-Ausgabe
+  eine Original-MP4 aus dem gewählten Videoordner ohne manuellen
+  Start senden. Das funktioniert auch bei geschlossenen Einstellungen.
+  Bei ausstehender Notes-Empfangsfreigabe bleibt
+  „Stopp“ verfügbar. Der gekoppelte Quelltest bestätigte bytegleiche
+  Übertragung, Saved, v1-Rücklesen und den geschützten Quellenabschluss.
+  Stopp, Ausschalten und erneutes Einschalten mit der alten WLAN-Wahl
+  starteten keinen Versand; eine neue bewusste WLAN-Wahl war wirksam.
+  Die manuellen Foto- und MP4-Gegenproben, 41 Linux-Prüfungen für
+  Planung, Erstempfang und Videorechte sowie die Oberfläche bestanden.
+  Automatischer Versand nach einem Verbindungswechsel, Fotoausgabe im
+  WLAN und installierte Abnahme bleiben offen.
   Änderungen vorhandener Galeriezeilen und Misch-Batches bleiben offen.
   Windows kann in der privaten Medienkonfiguration Original-MP4 aus
   einem ausdrücklich gewählten Videoordner manuell senden. Die Auswahl

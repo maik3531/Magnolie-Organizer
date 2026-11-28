@@ -7836,6 +7836,11 @@ function knopfMit(text, wurzel) {
   assert.ok(!bd.querySelector('[data-media-send="photos"]') && bd.querySelector('[data-media-send="videos"]'));
   assert.ok(!bd.querySelector('[data-collection-source-add="images"]') && bd.querySelector('[data-collection-source-add="video"]'));
   assert.ok(!bd.querySelector("[data-photo-manual-sync]"), "Ein Video-Ordner und das Empfangsecho fehlen");
+  fotoStand({ ...originalVideo, collection_automatic_outgoing_waiting: true, shared_media: { ...originalVideo.shared_media,
+    values: { ...originalVideo.shared_media.values, auto_mode: "wifi" } } });
+  assert.ok(!bd.querySelector("[data-photo-manual-sync]"));
+  bd.querySelector("[data-photo-stop]").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "stop" });
   fotoStand({ ...originalVideo, collection_manual_outgoing_ready: true });
   bd.querySelector("[data-photo-manual-sync]").click();
   assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "sync_shared" });

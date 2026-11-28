@@ -30500,7 +30500,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (twoWayHeld) gruppe.append(el("p", "einst-hinweis", _("Two-way synchronization") + " · " + _("Unavailable")));
       const backupRecovery = baueMedienBackupWiederherstellung(); gruppe.append(backupRecovery);
       const collectionManual = stand.collection_manual_outgoing_ready === true;
-      if (manualReceive || automaticSetup || stand.enabled || collectionManual || stand.mapped_outgoing === true || stand.busy === true) {
+      const collectionWaiting = stand.collection_automatic_outgoing_waiting === true && stand.busy !== true;
+      if (!collectionWaiting && (manualReceive || automaticSetup || stand.enabled || collectionManual ||
+          stand.mapped_outgoing === true || stand.busy === true)) {
         const manuell = el("div", "knopfreihe notes-medien-manuell");
         const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => {
           telefonFotoFehler.delete(peer.device_id);
@@ -30521,6 +30523,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           const stop = knopf(_("Stop"), "", () => sende("stop")); stop.dataset.photoStop = "true"; manuell.append(stop);
         }
         gruppe.append(manuell);
+      } else if (collectionWaiting) {
+        const wartend = el("div", "knopfreihe notes-medien-manuell");
+        const stop = knopf(_("Stop"), "", () => sende("stop"));
+        stop.dataset.photoStop = "true";
+        wartend.append(el("span", "einst-hinweis", _("Waiting for the phone…")), stop);
+        gruppe.append(wartend);
       }
       zeichneMedienBackupWiederherstellung(backupRecovery);
     }
