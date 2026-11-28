@@ -1,3 +1,9 @@
+## 28.11.2026 – #853 zusätzliche Nationalmotive BE/LU
+
+Main 46c5864f5c49f458e0be84fc7f56337a3450ed3a; vorheriger Vorschaupatch bereits übernommen (67215cd2); #128 privat aktiv, #691/alter Desktop-Pumpfix nicht als übernommen bestätigt. #854 GUI-Dateien weiterhin leer trotz Blob-SHA; kein ungebundener Patch. Neuer unabhängiger Teilpatch [BE/LU samt Belegen](codereview-national-be-lu-2026-11-28/README.md): 26/40 → 40/40; 26/40 → 40/40 V8-SVG-Double-Host, vier Text-Rundläufe, kein Git-apply/DOM/Raster/Druck/native. LU konservativ ab 1964. Eigene Teilaufgabe BE/LU fertig, weitere Festidentitäten/Handbuch offen. Nächster freier Schritt #854 sobald vollständige GUI-Quellen und keine aktive Fremdmarkierung, sonst #853 unabhängige Festidentitäten. Sync-Aufsetzpunkt erhalten. Kein Produktmerge.
+
+---
+
 ## 28.11.2026 – Übernahmen abgeglichen, #853 explizite Nationalmotivvorschau
 
 Main `a11d899eb24918034dfac22f71cbadbac90fb848`: #850/#851/#852/#855/#856/#857 und fünf Nationalmotive #853 laut ARBEITSSTAND, Commitdelta und aktuellen Codex-Kommentaren integriert; keine alten Patches erneut anwenden. #128 privat aktiv (Windows-Notes-Gegenstellenprobe); #691/alter Desktop-Pumpfix seit 1749c92e keine betroffenen Sync-Quellen im Delta, nicht als übernommen bestätigt.

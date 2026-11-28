@@ -1,0 +1,1065 @@
+{
+  "base": "46c5864f5c49f458e0be84fc7f56337a3450ed3a",
+  "fresh": "46c5864f5c49f458e0be84fc7f56337a3450ed3a",
+  "sourceBlobs": {
+    "magnolie-organizer/web/appearance.js": "203419a4daf85971a7649d9deede548d6883f4ae",
+    "magnolie-organizer-windows/app/web/appearance.js": "203419a4daf85971a7649d9deede548d6883f4ae",
+    "magnolie-organizer/pruefungen/appearance-ui.cjs": "b1e62abd3507b894c146040ba74408ee44a36cab",
+    "contracts/appearance-v1.md": "73e52a182766522dadad9e7b86a8a59db8823804"
+  },
+  "roundtrip": true,
+  "tests": [
+    {
+      "path": "magnolie-organizer/web/appearance.js",
+      "blob": "203419a4daf85971a7649d9deede548d6883f4ae",
+      "before": {
+        "passed": 26,
+        "total": 40,
+        "results": [
+          {
+            "name": "1890-07-21/BE",
+            "expected": "belgian-banner",
+            "actual": "none",
+            "pass": false
+          },
+          {
+            "name": "1889-07-21/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/BE",
+            "expected": "belgian-banner",
+            "actual": "none",
+            "pass": false
+          },
+          {
+            "name": "2027-07-21/BE",
+            "expected": "belgian-banner",
+            "actual": "none",
+            "pass": false
+          },
+          {
+            "name": "2026-07-20/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-22/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-11-15/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "1964-06-23/LU",
+            "expected": "luxembourg-concert",
+            "actual": "none",
+            "pass": false
+          },
+          {
+            "name": "1960-06-23/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/LU",
+            "expected": "luxembourg-concert",
+            "actual": "none",
+            "pass": false
+          },
+          {
+            "name": "2027-06-23/LU",
+            "expected": "luxembourg-concert",
+            "actual": "none",
+            "pass": false
+          },
+          {
+            "name": "2026-06-22/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-24/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/DE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/FR",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/ZZ",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/lu",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-02-30/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-32/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-10-03/DE",
+            "expected": "unity-gate",
+            "actual": "unity-gate",
+            "pass": true
+          },
+          {
+            "name": "2026-10-26/AT",
+            "expected": "neutrality-parliament",
+            "actual": "neutrality-parliament",
+            "pass": true
+          },
+          {
+            "name": "2026-08-01/CH",
+            "expected": "swiss-lantern",
+            "actual": "swiss-lantern",
+            "pass": true
+          },
+          {
+            "name": "2026-07-14/FR",
+            "expected": "french-rosette",
+            "actual": "french-rosette",
+            "pass": true
+          },
+          {
+            "name": "2025-04-26/NL",
+            "expected": "kings-crown",
+            "actual": "kings-crown",
+            "pass": true
+          },
+          {
+            "name": "2025-04-27/NL",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-04-05/BE",
+            "expected": "eggs",
+            "actual": "eggs",
+            "pass": true
+          },
+          {
+            "name": "2026-12-06/LU",
+            "expected": "boots",
+            "actual": "boots",
+            "pass": true
+          },
+          {
+            "name": "belgian-banner svg",
+            "expected": true,
+            "actual": false,
+            "pass": false
+          },
+          {
+            "name": "belgian-banner parts",
+            "expected": [
+              "banner",
+              "vertical-bands",
+              "festive-ribbon",
+              "confetti"
+            ],
+            "actual": null,
+            "pass": false
+          },
+          {
+            "name": "belgian-banner style",
+            "expected": true,
+            "actual": false,
+            "pass": false
+          },
+          {
+            "name": "belgian-banner preview",
+            "expected": true,
+            "actual": false,
+            "pass": false
+          },
+          {
+            "name": "luxembourg-concert svg",
+            "expected": true,
+            "actual": false,
+            "pass": false
+          },
+          {
+            "name": "luxembourg-concert parts",
+            "expected": [
+              "music-stems",
+              "music-notes",
+              "firework",
+              "confetti"
+            ],
+            "actual": null,
+            "pass": false
+          },
+          {
+            "name": "luxembourg-concert style",
+            "expected": true,
+            "actual": false,
+            "pass": false
+          },
+          {
+            "name": "luxembourg-concert preview",
+            "expected": true,
+            "actual": false,
+            "pass": false
+          },
+          {
+            "name": "disabled",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "unknown",
+            "expected": null,
+            "actual": null,
+            "pass": true
+          }
+        ]
+      },
+      "after": {
+        "passed": 40,
+        "total": 40,
+        "results": [
+          {
+            "name": "1890-07-21/BE",
+            "expected": "belgian-banner",
+            "actual": "belgian-banner",
+            "pass": true
+          },
+          {
+            "name": "1889-07-21/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/BE",
+            "expected": "belgian-banner",
+            "actual": "belgian-banner",
+            "pass": true
+          },
+          {
+            "name": "2027-07-21/BE",
+            "expected": "belgian-banner",
+            "actual": "belgian-banner",
+            "pass": true
+          },
+          {
+            "name": "2026-07-20/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-22/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-11-15/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "1964-06-23/LU",
+            "expected": "luxembourg-concert",
+            "actual": "luxembourg-concert",
+            "pass": true
+          },
+          {
+            "name": "1960-06-23/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/LU",
+            "expected": "luxembourg-concert",
+            "actual": "luxembourg-concert",
+            "pass": true
+          },
+          {
+            "name": "2027-06-23/LU",
+            "expected": "luxembourg-concert",
+            "actual": "luxembourg-concert",
+            "pass": true
+          },
+          {
+            "name": "2026-06-22/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-24/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/DE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/FR",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/ZZ",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/lu",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-02-30/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-32/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-10-03/DE",
+            "expected": "unity-gate",
+            "actual": "unity-gate",
+            "pass": true
+          },
+          {
+            "name": "2026-10-26/AT",
+            "expected": "neutrality-parliament",
+            "actual": "neutrality-parliament",
+            "pass": true
+          },
+          {
+            "name": "2026-08-01/CH",
+            "expected": "swiss-lantern",
+            "actual": "swiss-lantern",
+            "pass": true
+          },
+          {
+            "name": "2026-07-14/FR",
+            "expected": "french-rosette",
+            "actual": "french-rosette",
+            "pass": true
+          },
+          {
+            "name": "2025-04-26/NL",
+            "expected": "kings-crown",
+            "actual": "kings-crown",
+            "pass": true
+          },
+          {
+            "name": "2025-04-27/NL",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-04-05/BE",
+            "expected": "eggs",
+            "actual": "eggs",
+            "pass": true
+          },
+          {
+            "name": "2026-12-06/LU",
+            "expected": "boots",
+            "actual": "boots",
+            "pass": true
+          },
+          {
+            "name": "belgian-banner svg",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "belgian-banner parts",
+            "expected": [
+              "banner",
+              "vertical-bands",
+              "festive-ribbon",
+              "confetti"
+            ],
+            "actual": [
+              "banner",
+              "vertical-bands",
+              "festive-ribbon",
+              "confetti"
+            ],
+            "pass": true
+          },
+          {
+            "name": "belgian-banner style",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "belgian-banner preview",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "luxembourg-concert svg",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "luxembourg-concert parts",
+            "expected": [
+              "music-stems",
+              "music-notes",
+              "firework",
+              "confetti"
+            ],
+            "actual": [
+              "music-stems",
+              "music-notes",
+              "firework",
+              "confetti"
+            ],
+            "pass": true
+          },
+          {
+            "name": "luxembourg-concert style",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "luxembourg-concert preview",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "disabled",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "unknown",
+            "expected": null,
+            "actual": null,
+            "pass": true
+          }
+        ]
+      }
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/appearance.js",
+      "blob": "203419a4daf85971a7649d9deede548d6883f4ae",
+      "before": {
+        "passed": 26,
+        "total": 40,
+        "results": [
+          {
+            "name": "1890-07-21/BE",
+            "expected": "belgian-banner",
+            "actual": "none",
+            "pass": false
+          },
+          {
+            "name": "1889-07-21/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/BE",
+            "expected": "belgian-banner",
+            "actual": "none",
+            "pass": false
+          },
+          {
+            "name": "2027-07-21/BE",
+            "expected": "belgian-banner",
+            "actual": "none",
+            "pass": false
+          },
+          {
+            "name": "2026-07-20/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-22/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-11-15/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "1964-06-23/LU",
+            "expected": "luxembourg-concert",
+            "actual": "none",
+            "pass": false
+          },
+          {
+            "name": "1960-06-23/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/LU",
+            "expected": "luxembourg-concert",
+            "actual": "none",
+            "pass": false
+          },
+          {
+            "name": "2027-06-23/LU",
+            "expected": "luxembourg-concert",
+            "actual": "none",
+            "pass": false
+          },
+          {
+            "name": "2026-06-22/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-24/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/DE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/FR",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/ZZ",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/lu",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-02-30/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-32/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-10-03/DE",
+            "expected": "unity-gate",
+            "actual": "unity-gate",
+            "pass": true
+          },
+          {
+            "name": "2026-10-26/AT",
+            "expected": "neutrality-parliament",
+            "actual": "neutrality-parliament",
+            "pass": true
+          },
+          {
+            "name": "2026-08-01/CH",
+            "expected": "swiss-lantern",
+            "actual": "swiss-lantern",
+            "pass": true
+          },
+          {
+            "name": "2026-07-14/FR",
+            "expected": "french-rosette",
+            "actual": "french-rosette",
+            "pass": true
+          },
+          {
+            "name": "2025-04-26/NL",
+            "expected": "kings-crown",
+            "actual": "kings-crown",
+            "pass": true
+          },
+          {
+            "name": "2025-04-27/NL",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-04-05/BE",
+            "expected": "eggs",
+            "actual": "eggs",
+            "pass": true
+          },
+          {
+            "name": "2026-12-06/LU",
+            "expected": "boots",
+            "actual": "boots",
+            "pass": true
+          },
+          {
+            "name": "belgian-banner svg",
+            "expected": true,
+            "actual": false,
+            "pass": false
+          },
+          {
+            "name": "belgian-banner parts",
+            "expected": [
+              "banner",
+              "vertical-bands",
+              "festive-ribbon",
+              "confetti"
+            ],
+            "actual": null,
+            "pass": false
+          },
+          {
+            "name": "belgian-banner style",
+            "expected": true,
+            "actual": false,
+            "pass": false
+          },
+          {
+            "name": "belgian-banner preview",
+            "expected": true,
+            "actual": false,
+            "pass": false
+          },
+          {
+            "name": "luxembourg-concert svg",
+            "expected": true,
+            "actual": false,
+            "pass": false
+          },
+          {
+            "name": "luxembourg-concert parts",
+            "expected": [
+              "music-stems",
+              "music-notes",
+              "firework",
+              "confetti"
+            ],
+            "actual": null,
+            "pass": false
+          },
+          {
+            "name": "luxembourg-concert style",
+            "expected": true,
+            "actual": false,
+            "pass": false
+          },
+          {
+            "name": "luxembourg-concert preview",
+            "expected": true,
+            "actual": false,
+            "pass": false
+          },
+          {
+            "name": "disabled",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "unknown",
+            "expected": null,
+            "actual": null,
+            "pass": true
+          }
+        ]
+      },
+      "after": {
+        "passed": 40,
+        "total": 40,
+        "results": [
+          {
+            "name": "1890-07-21/BE",
+            "expected": "belgian-banner",
+            "actual": "belgian-banner",
+            "pass": true
+          },
+          {
+            "name": "1889-07-21/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/BE",
+            "expected": "belgian-banner",
+            "actual": "belgian-banner",
+            "pass": true
+          },
+          {
+            "name": "2027-07-21/BE",
+            "expected": "belgian-banner",
+            "actual": "belgian-banner",
+            "pass": true
+          },
+          {
+            "name": "2026-07-20/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-22/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-11-15/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "1964-06-23/LU",
+            "expected": "luxembourg-concert",
+            "actual": "luxembourg-concert",
+            "pass": true
+          },
+          {
+            "name": "1960-06-23/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/LU",
+            "expected": "luxembourg-concert",
+            "actual": "luxembourg-concert",
+            "pass": true
+          },
+          {
+            "name": "2027-06-23/LU",
+            "expected": "luxembourg-concert",
+            "actual": "luxembourg-concert",
+            "pass": true
+          },
+          {
+            "name": "2026-06-22/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-24/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/LU",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/DE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/FR",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-21/",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/ZZ",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-06-23/lu",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-02-30/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-07-32/BE",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-10-03/DE",
+            "expected": "unity-gate",
+            "actual": "unity-gate",
+            "pass": true
+          },
+          {
+            "name": "2026-10-26/AT",
+            "expected": "neutrality-parliament",
+            "actual": "neutrality-parliament",
+            "pass": true
+          },
+          {
+            "name": "2026-08-01/CH",
+            "expected": "swiss-lantern",
+            "actual": "swiss-lantern",
+            "pass": true
+          },
+          {
+            "name": "2026-07-14/FR",
+            "expected": "french-rosette",
+            "actual": "french-rosette",
+            "pass": true
+          },
+          {
+            "name": "2025-04-26/NL",
+            "expected": "kings-crown",
+            "actual": "kings-crown",
+            "pass": true
+          },
+          {
+            "name": "2025-04-27/NL",
+            "expected": "none",
+            "actual": "none",
+            "pass": true
+          },
+          {
+            "name": "2026-04-05/BE",
+            "expected": "eggs",
+            "actual": "eggs",
+            "pass": true
+          },
+          {
+            "name": "2026-12-06/LU",
+            "expected": "boots",
+            "actual": "boots",
+            "pass": true
+          },
+          {
+            "name": "belgian-banner svg",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "belgian-banner parts",
+            "expected": [
+              "banner",
+              "vertical-bands",
+              "festive-ribbon",
+              "confetti"
+            ],
+            "actual": [
+              "banner",
+              "vertical-bands",
+              "festive-ribbon",
+              "confetti"
+            ],
+            "pass": true
+          },
+          {
+            "name": "belgian-banner style",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "belgian-banner preview",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "luxembourg-concert svg",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "luxembourg-concert parts",
+            "expected": [
+              "music-stems",
+              "music-notes",
+              "firework",
+              "confetti"
+            ],
+            "actual": [
+              "music-stems",
+              "music-notes",
+              "firework",
+              "confetti"
+            ],
+            "pass": true
+          },
+          {
+            "name": "luxembourg-concert style",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "luxembourg-concert preview",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "disabled",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "unknown",
+            "expected": null,
+            "actual": null,
+            "pass": true
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+diff --git a/magnolie-organizer/web/appearance.js b/magnolie-organizer/web/appearance.js
+--- a/magnolie-organizer/web/appearance.js
++++ b/magnolie-organizer/web/appearance.js
+@@ -80,1 +80,13 @@
+-    "kings-crown": [
++    "belgian-banner": [
++      { d: "M19 10V70M14 70H24M19 15Q42 7 64 15V43Q42 35 19 43", fill: "none", "data-motif-part": "banner" },
++      { d: "M34 12V40M49 12V40", fill: "none", "data-motif-part": "vertical-bands" },
++      { d: "M32 49Q43 55 54 49L49 60L43 57L37 60Z", fill: "none", "data-motif-part": "festive-ribbon" },
++      { d: "M8 23L11 27M70 21L74 17M66 56L72 61M29 66L32 71", fill: "none", "data-motif-part": "confetti" }
++    ],
++    "luxembourg-concert": [
++      { d: "M21 57V24L51 17V49M21 31L51 24", fill: "none", "data-motif-part": "music-stems" },
++      { d: "M21 57C21 49 8 50 8 58C8 66 21 65 21 57ZM51 49C51 41 38 42 38 50C38 58 51 57 51 49Z", "data-motif-part": "music-notes" },
++      { d: "M63 9V17M63 31V39M48 24H55M71 24H78M52 13L57 18M69 30L74 35M74 13L69 18M57 30L52 35", fill: "none", "data-motif-part": "firework" },
++      { d: "M31 66L35 71M63 57L68 61M7 17L10 22", fill: "none", "data-motif-part": "confetti" }
++    ],
++    "kings-crown": [
+@@ -122,1 +134,3 @@
+-    "nl-kings-day": "kings-crown"
++    "be-national-day": "belgian-banner",
++    "lu-national-day": "luxembourg-concert",
++    "nl-kings-day": "kings-crown"
+@@ -130,1 +144,4 @@
+-    if (country === "NL" && year >= 2014 && month === 4) {
++    if (country === "BE" && year >= 1890 && month === 7 && day === 21) return "be-national-day";
++    // Official sources differ on the first summer celebration; 1964 onward is unambiguous.
++    if (country === "LU" && year >= 1964 && month === 6 && day === 23) return "lu-national-day";
++    if (country === "NL" && year >= 2014 && month === 4) {
+@@ -283,1 +300,1 @@
+-      ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"]]);
++      ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"], ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"]]);
+diff --git a/magnolie-organizer-windows/app/web/appearance.js b/magnolie-organizer-windows/app/web/appearance.js
+--- a/magnolie-organizer-windows/app/web/appearance.js
++++ b/magnolie-organizer-windows/app/web/appearance.js
+@@ -80,1 +80,13 @@
+-    "kings-crown": [
++    "belgian-banner": [
++      { d: "M19 10V70M14 70H24M19 15Q42 7 64 15V43Q42 35 19 43", fill: "none", "data-motif-part": "banner" },
++      { d: "M34 12V40M49 12V40", fill: "none", "data-motif-part": "vertical-bands" },
++      { d: "M32 49Q43 55 54 49L49 60L43 57L37 60Z", fill: "none", "data-motif-part": "festive-ribbon" },
++      { d: "M8 23L11 27M70 21L74 17M66 56L72 61M29 66L32 71", fill: "none", "data-motif-part": "confetti" }
++    ],
++    "luxembourg-concert": [
++      { d: "M21 57V24L51 17V49M21 31L51 24", fill: "none", "data-motif-part": "music-stems" },
++      { d: "M21 57C21 49 8 50 8 58C8 66 21 65 21 57ZM51 49C51 41 38 42 38 50C38 58 51 57 51 49Z", "data-motif-part": "music-notes" },
++      { d: "M63 9V17M63 31V39M48 24H55M71 24H78M52 13L57 18M69 30L74 35M74 13L69 18M57 30L52 35", fill: "none", "data-motif-part": "firework" },
++      { d: "M31 66L35 71M63 57L68 61M7 17L10 22", fill: "none", "data-motif-part": "confetti" }
++    ],
++    "kings-crown": [
+@@ -122,1 +134,3 @@
+-    "nl-kings-day": "kings-crown"
++    "be-national-day": "belgian-banner",
++    "lu-national-day": "luxembourg-concert",
++    "nl-kings-day": "kings-crown"
+@@ -130,1 +144,4 @@
+-    if (country === "NL" && year >= 2014 && month === 4) {
++    if (country === "BE" && year >= 1890 && month === 7 && day === 21) return "be-national-day";
++    // Official sources differ on the first summer celebration; 1964 onward is unambiguous.
++    if (country === "LU" && year >= 1964 && month === 6 && day === 23) return "lu-national-day";
++    if (country === "NL" && year >= 2014 && month === 4) {
+@@ -283,1 +300,1 @@
+-      ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"]]);
++      ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"], ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"]]);
+diff --git a/magnolie-organizer/pruefungen/appearance-ui.cjs b/magnolie-organizer/pruefungen/appearance-ui.cjs
+--- a/magnolie-organizer/pruefungen/appearance-ui.cjs
++++ b/magnolie-organizer/pruefungen/appearance-ui.cjs
+@@ -35,1 +35,2 @@
+-          ["2025-04-26", "NL", "kings-crown"]
++          ["2025-04-26", "NL", "kings-crown"], ["2026-07-21", "BE", "belgian-banner"],
++          ["2026-06-23", "LU", "luxembourg-concert"]
+@@ -91,1 +92,2 @@
+-        ["french-rosette", "France"], ["kings-crown", "Netherlands"]
++        ["french-rosette", "France"], ["kings-crown", "Netherlands"],
++        ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"]
+@@ -99,1 +101,1 @@
+-      assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "kings-crown");
++      assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "luxembourg-concert");
+diff --git a/contracts/appearance-v1.md b/contracts/appearance-v1.md
+--- a/contracts/appearance-v1.md
++++ b/contracts/appearance-v1.md
+@@ -28,1 +28,4 @@
+-  (26. Oktober ab 1965, Parlamentsmotiv). Die Regeln sind unabhängig von
++  (26. Oktober ab 1965, Parlamentsmotiv), Belgien (21. Juli ab 1890,
++  dreigeteiltes Festbanner) und Luxemburg (23. Juni, Konzert-/Feuerwerksmotiv,
++  konservativ ab 1964 wegen abweichender Angaben zum ersten Sommertermin).
++  Die Regeln sind unabhängig von
+@@ -36,1 +39,5 @@
+-  https://www.parlament.gv.at/en/experience/events/1285635 .
++  https://www.parlament.gv.at/en/experience/events/1285635 ,
++  https://www.monarchie.be/en/monarchy/events-linked-monarchy ,
++  https://www.belgium.be/fr/la_belgique/connaitre_le_pays/la_belgique_en_bref/symboles/drapeaux ,
++  https://luxembourg.public.lu/en/society-and-culture/political-system/symbols-dynasty.html und
++  https://luxembourg.public.lu/en/vivre/quality-of-life/jours-feries-legaux.html .
+@@ -54,1 +61,1 @@
+-  fünf Nationalmotive DE, AT, CH, FR und NL, sowie ein Testdatum;
++  sieben Nationalmotive DE, AT, CH, FR, NL, BE und LU, sowie ein Testdatum;
