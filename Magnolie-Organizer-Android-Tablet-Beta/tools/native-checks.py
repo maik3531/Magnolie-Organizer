@@ -22,6 +22,8 @@ SUITES = {
     'timezone': ['timezone-interop'],
     'system-records': ['system-records'],
     'permissions': ['permissions', 'permissions-revoked'],
+    # The separate interrupted stage has no successful instrumentation result.
+    'permissions-active': ['permissions', 'permissions-revoked'],
     'storage': ['basics', 'saf', 'fault', 'print'],
     'print': ['basics', 'print'],
     'print-domains': ['print-contacts', 'print-tasks', 'print-calendar'],
@@ -151,8 +153,8 @@ def main(argv=None):
         raise SystemExit('Main must finish Windows native work and grant the sole slot first')
     if opts.suite == 'system-records' and (opts.api != 34 or opts.image != 'google_apis'):
         raise SystemExit('system-records requires its explicit API34 google_apis target')
-    if opts.suite == 'permissions' and (opts.api != 35 or opts.image != 'google_apis'):
-        raise SystemExit('permissions requires its explicit API35 google_apis target')
+    if opts.suite in ('permissions', 'permissions-active') and (opts.api != 35 or opts.image != 'google_apis'):
+        raise SystemExit('permission checks require their explicit API35 google_apis target')
     os.chdir(ROOT)
     os.umask(0o077)
     cpus = session.pin_two_cpus()
@@ -212,6 +214,34 @@ def main(argv=None):
                 session.run_test(owned, state, 'permissions-revoked', config.test_timeout)
                 return 0
 
+            def permissions_active(owned, state):
+                session.run_test(owned, state, 'permissions', config.test_timeout)
+                stage = 'permissions-active-revoke'
+                session.prepare_test_process(owned, state, stage)
+                package = session.BETA_PACKAGE
+                output = session.adb(owned, state, ['shell', 'am', 'instrument', '-w', '-r', '-e', 'stage', stage,
+                    f'{package}.test/io.gitlab.maik3531.magnolietabletbeta.NativeTabletInstrumentation'], config.test_timeout)
+                print(output, flush=True)
+                observed = re.findall(r'(?m)^INSTRUMENTATION_STATUS: stream=NATIVE_CONTACT_CURSOR_OPEN '
+                                      r'pid=([1-9][0-9]*) sourceHash=([0-9a-f]{64})\r?$', output)
+                if len(observed) != 1 or observed[0][1] != projection['sourceHash'] or \
+                        'INSTRUMENTATION_RESULT: stream=' in output:
+                    raise RuntimeError('No uniquely bound active cursor and interrupted instrumentation')
+                pid = int(observed[0][0])
+                if pid in session.target_processes(owned, state, 10):
+                    raise RuntimeError('The cursor owner survived the runtime permission change')
+                exit_info = session.adb(owned, state, ['shell', 'dumpsys', 'activity', 'exit-info', package], 15)
+                exits = re.split(r'(?=ApplicationExitInfo #\d+:)', exit_info)
+                if not any(re.search(rf'\bpid={pid}\b', record) and
+                           re.search(rf'\bprocess={re.escape(package)}(?=\s)', record) and
+                           re.search(r'\breason=8 \(PERMISSION CHANGE\)', record) and
+                           'description=permissions revoked' in record for record in exits):
+                    raise RuntimeError('Android did not attribute the original cursor owner exit to permission revocation')
+                owned.record('contact-permission-revoked-with-open-cursor', targetPid=pid,
+                             sourceHash=projection['sourceHash'])
+                session.run_test(owned, state, 'permissions-revoked', config.test_timeout)
+                return 0
+
             def print_domains(owned, state):
                 failed = False
                 for stage in config.test:
@@ -226,7 +256,7 @@ def main(argv=None):
                         failed = True
                 return int(failed)
 
-            native_suite = {'permissions': permissions, 'print-domains': print_domains,
+            native_suite = {'permissions': permissions, 'permissions-active': permissions_active, 'print-domains': print_domains,
                             'print-planner': print_domains}.get(opts.suite)
             code = session.run_session(owner, config, after_boot=install,
                                        run_tests=native_suite)

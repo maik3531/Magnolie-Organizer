@@ -30,6 +30,11 @@ aufgeführt.
   beendete die laufende App beim Entzug des Kontaktzugriffs. Nach dem
   Neustart war die Kontaktliste wieder gesperrt, Kalenderzugriff und
   verschlüsselt gespeicherte eigene Notiz blieben erhalten.
+  Ein separater API-35-Lauf löste den Entzug bei geöffnetem
+  RawContacts-Cursor der nativen Importabfrage aus. Android beendete
+  genau den Cursor-Eigentümer wegen der Berechtigungsänderung, bevor
+  der Import Daten zurückgab. Dieselben Kalender- und Notizprüfungen
+  bestanden nach dem Neustart.
 - [#848](https://github.com/maik3531/Magnolie-Organizer/issues/848):
   Die isolierte Tablet-Druck-WebView lädt ihr Hauptdokument direkt.
   Die Android-Druckvorschau einer Notiz und die Speicherung über den

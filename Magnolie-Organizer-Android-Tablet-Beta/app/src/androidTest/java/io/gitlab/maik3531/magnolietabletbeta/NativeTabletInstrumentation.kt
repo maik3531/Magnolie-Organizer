@@ -73,6 +73,7 @@ class NativeTabletInstrumentation : Instrumentation() {
                 "system-records" -> pass("native Android system-provider smoke",
                     NativeSystemProviderSmoke.run(this, File(out,"system-records-receipt.json"), ::pass))
                 "permissions" -> systemPermissions(revoked = false)
+                "permissions-active-revoke" -> revokeDuringContactRead()
                 "permissions-revoked" -> systemPermissions(revoked = true)
                 "domains" -> domains()
                 "basics" -> basics()
@@ -693,6 +694,58 @@ class NativeTabletInstrumentation : Instrumentation() {
             data().getJSONArray("notizen").getJSONObject(0).toString())
         pass("Local note saved with both independent READ choices")
     }
+    private fun revokeDuringContactRead() {
+        val context = targetContext
+        val contact = android.Manifest.permission.READ_CONTACTS
+        val write = android.Manifest.permission.WRITE_CONTACTS
+        fun granted(permission: String) =
+            context.checkSelfPermission(permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        check(android.os.Build.VERSION.SDK_INT == 35 && granted(contact))
+        check(granted(android.Manifest.permission.READ_CALENDAR) && !granted(write) &&
+            !granted(android.Manifest.permission.WRITE_CALENDAR))
+        val raw = android.provider.ContactsContract.RawContacts.CONTENT_URI
+        uiAutomation.adoptShellPermissionIdentity(write)
+        try {
+            // This synthetic row lives only in the fresh owned guest.
+            checkNotNull(context.contentResolver.insert(raw, android.content.ContentValues()))
+        } finally {
+            uiAutomation.dropShellPermissionIdentity()
+        }
+        check(!granted(write))
+        val kind = SystemSourcePolicy.Kind.CONTACTS
+        val sources = AndroidSystemSources.Control().use {
+            AndroidSystemSources(context).status(it, listOf(kind)).getValue(kind)
+        }
+        check(sources.state == "authorized")
+        val source = SystemSourcePolicy.uid(kind, "contacts",
+            android.provider.ContactsContract.RawContacts.getLocalAccountType(context),
+            android.provider.ContactsContract.RawContacts.getLocalAccountName(context), null)
+        check(sources.sources.orEmpty().any { it.uid == source })
+        val request = SystemImportRequest(kind, source, "native-active-contact-read", "synthetic", "synthetic")
+        val hash = context.assets.open("projection.json").bufferedReader().use {
+            JSONObject(it.readText()).getString("sourceHash")
+        }
+        AndroidSystemSources.Control().use { control ->
+            AndroidSystemRecords(context, contactCursorOpened = {
+                check(granted(contact) && !granted(write))
+                // The production query returned its real cursor and owns it here.
+                // No row has yet reached the import caller.
+                sendStatus(1, Bundle().apply {
+                    putString("stream", "NATIVE_CONTACT_CURSOR_OPEN pid=${android.os.Process.myPid()} sourceHash=$hash\n")
+                })
+                val command = "pm revoke ${context.packageName} $contact"
+                android.os.ParcelFileDescriptor.AutoCloseInputStream(uiAutomation.executeShellCommand(command)).use {
+                    check(it.readBytes().isEmpty()) { "Native permission revocation reported output" }
+                }
+                // A live cursor alone must never satisfy the proof. Android
+                // must end this process before the native import can return.
+                android.os.SystemClock.sleep(5000)
+                error("The app survived its own runtime permission revocation")
+            }).read(request, control) { check(granted(contact) && !granted(write)) }
+        }
+        error("Contact import returned despite the active revocation probe")
+    }
+
     private fun prepareNavigationFixture() {
         // Stress fixture retains actual editor structure; replace only this test's own series.
         val fixture=File(targetContext.getExternalFilesDir(null),"input-ab-fixture.json")

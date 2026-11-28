@@ -14,7 +14,8 @@ import android.provider.Settings.Secure
 import org.json.JSONObject
 
 /** Explicit read-only import from one provider source. No provider mutation API is used. Refs #791, #799, #800. */
-internal class AndroidSystemRecords(private val context: Context) {
+internal class AndroidSystemRecords(private val context: Context,
+    private val contactCursorOpened: (() -> Unit)? = null) {
     private data class CalendarSource(val id: String, val accountType: String?, val accountName: String?)
     private class Budget {
         private var rows = 0
@@ -63,18 +64,21 @@ internal class AndroidSystemRecords(private val context: Context) {
         val budget = Budget()
         val cursor = context.contentResolver.query(RawContacts.CONTENT_URI, projection,
             RawContacts.DELETED + "=0", null, RawContacts._ID + " ASC", control.signal) ?: error("provider_unavailable")
-        cursor.use { while (it.moveToNext()) {
-            control.check(); budget.row()
-            val source = SystemSourcePolicy.uid(SystemSourcePolicy.Kind.CONTACTS, "contacts",
-                it.text(RawContacts.ACCOUNT_TYPE), it.text(RawContacts.ACCOUNT_NAME), it.text(RawContacts.DATA_SET))
-            if (source == request.sourceUid) {
-                check(found.size < SystemImportPolicy.MAX_RECORDS) { "record_limit" }
-                found.add(SystemImportPolicy.RawContact(it.text(RawContacts._ID) ?: error("provider_unavailable"),
-                    it.text(RawContacts.VERSION) ?: error("provider_unavailable"),
-                    budget.text(it.text(RawContacts.DISPLAY_NAME_PRIMARY)).orEmpty(),
-                    budget.text(it.text(RawContacts.SOURCE_ID)), budget.text(it.text(RawContacts.BACKUP_ID))))
+        cursor.use {
+            contactCursorOpened?.invoke()
+            while (it.moveToNext()) {
+                control.check(); budget.row()
+                val source = SystemSourcePolicy.uid(SystemSourcePolicy.Kind.CONTACTS, "contacts",
+                    it.text(RawContacts.ACCOUNT_TYPE), it.text(RawContacts.ACCOUNT_NAME), it.text(RawContacts.DATA_SET))
+                if (source == request.sourceUid) {
+                    check(found.size < SystemImportPolicy.MAX_RECORDS) { "record_limit" }
+                    found.add(SystemImportPolicy.RawContact(it.text(RawContacts._ID) ?: error("provider_unavailable"),
+                        it.text(RawContacts.VERSION) ?: error("provider_unavailable"),
+                        budget.text(it.text(RawContacts.DISPLAY_NAME_PRIMARY)).orEmpty(),
+                        budget.text(it.text(RawContacts.SOURCE_ID)), budget.text(it.text(RawContacts.BACKUP_ID))))
+                }
             }
-        } }
+        }
         current()
         check(found.map { it.id }.toSet().size == found.size) { "provider_changed" }
         return found
