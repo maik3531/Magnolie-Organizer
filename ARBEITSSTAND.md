@@ -189,9 +189,16 @@ aufgeführt.
   Android-35-Testprovider an. Saved, Foto-v2-/Video-v1-Rücklesen und
   geschützter Quellenabschluss wurden jeweils getrennt bestätigt.
   Der unveränderte Folgelauf übertrug keine Medien. 73 Linux-Prüfungen
-  und die Oberflächenprüfung bestanden. Gemischte
-  WLAN-Automatik, Änderungen vorhandener Galeriezeilen und unterbrochene
-  Quellenabschlüsse bleiben offen.
+  und die Oberflächenprüfung bestanden. Wenn Linux nach vollständigem
+  Foto-Rücklesen beim lokalen Archivabschluss unterbrochen wurde, kann
+  „Jetzt synchronisieren“ den bestehenden Abschluss fortsetzen. Das
+  setzt dieselbe Buch-, Ordner- und Freigabebindung sowie alle lokalen
+  Sicherungen voraus. Beide Unterbrechungspunkte vor und nach der
+  Cache-Umbenennung wurden geprüft. Im gekoppelten Test blieb das
+  bereits empfangene Foto unverändert und wurde nicht erneut übertragen;
+  die noch ausstehende Original-MP4 folgte separat. Unterbrechungen vor
+  dem vollständigen Rücklesen, MP4-Quellenabschluss, gemischte WLAN-
+  Automatik und Änderungen vorhandener Galeriezeilen bleiben offen.
   Windows kann in der privaten Medienkonfiguration Original-MP4 aus
   einem ausdrücklich gewählten Videoordner manuell senden. Die Auswahl
   startet keine Übertragung. Der Lauf braucht getrennt bestätigtes

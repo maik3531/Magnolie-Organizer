@@ -156,3 +156,76 @@ def test_whole_native_batch_drains_every_original_and_cache_fd_before_one_verifi
     assert {e['path']:ready.body['predecessors'][fid]['publication_sha256'] for fid,e in successor._entries.items()}==old_by_origin
     assert (cache.directory.parent/ended.body['archive']).is_dir() and next_cache.directory.is_dir()
     successor.close()
+
+
+@pytest.mark.parametrize('interrupted_at', ['source_batch_retirement_planned', 'source_batch_retirement_moved'])
+def test_interrupted_batch_end_requires_fresh_local_recovery_without_resend(pc, interrupted_at, monkeypatch):
+    from magnolie_media_source_pc import NativeCollectionMediaSource
+    from magnolie_media_source_recovery import _NativeBatchSourceRetirementRecovery, recover_pending_pc_image_batch_end
+    from magnolie_media_source_retirement import _NativeSourceRetirementJournal
+
+    h = pc
+    batch, cache, sender, offer, accepted, raw = prepared(h)
+    chunks(h, sender, cache, accepted, raw)
+    receipt = all_saved(accepted, cache)
+    deliver(h, sender, receipt)
+    deliver(h, sender, readback(sender, cache, offer, accepted, receipt))
+
+    def interrupt(phase):
+        if phase == interrupted_at:
+            raise OSError('simulated interruption after durable checkpoint')
+
+    with NativeMediaBackups(h.selected.directory, h.authority.protection, lambda: True, create=True) as backups:
+        selected = backup_prepared_batch(backups, batch)
+        owner = _NativeBatchSourceRetirement(sender, backups, selected, boundary=interrupt)
+        with pytest.raises(OSError, match='simulated interruption'):
+            owner.run()
+        assert len(backups.versions()) == len(cache.manifest.files)
+
+    jobs = _NativeSourceJobs(h.authority)
+    journal = _NativeSourceRetirementJournal(jobs)
+    pending = journal.lookup(batch._id)
+    assert pending.body['format'] == 3 and pending.body['state'] == 'archive_planned'
+    assert set(pending.body['backups']) == set(batch._entries)
+    assert cache.directory.is_dir() == (interrupted_at == 'source_batch_retirement_planned')
+    assert (cache.directory.parent / pending.body['archive']).is_dir() == (interrupted_at == 'source_batch_retirement_moved')
+    assert batch._root is None and batch._catalog is None
+    assert all((h.pc_file.parent / entry['path']).read_bytes() == raw for entry in batch._entries.values())
+
+    h.source = NativeCollectionMediaSource(h.preferences, h.mappings, h.controller)
+    with pytest.raises(TransferError, match='pending_job'):
+        select(h)
+    # A denied preparation retires its owner; it must not be reused for END.
+    assert h.source._original_batch is not None
+    h.source.close()
+    assert journal.lookup(batch._id) == pending
+    h.source = NativeCollectionMediaSource(h.preferences, h.mappings, h.controller)
+
+    wire = (h.channel.send_seq, h.channel.receive_seq)
+    unseal = h.authority.protection.unseal
+
+    def metadata_only(cipher, domain):
+        assert '/chunk-' not in domain
+        return unseal(cipher, domain)
+
+    monkeypatch.setattr(h.authority.protection, 'unseal', metadata_only)
+    with NativeMediaBackups(h.selected.directory, h.authority.protection, lambda: True) as backups:
+        subset = dict(selected)
+        subset.pop(next(iter(subset)))
+        incomplete = _NativeBatchSourceRetirementRecovery(h.source, batch._id, pending.version, backups, subset)
+        with pytest.raises(TransferError, match='original_job_required'):
+            incomplete.run(h.preferences.issue_action(), h.preferences.read())
+        assert journal.lookup(batch._id) == pending
+
+    ended = recover_pending_pc_image_batch_end(h.source, lambda: True)
+    assert ended.body == dict(pending.body, state='archived')
+    assert recover_pending_pc_image_batch_end(h.source, lambda: True) is None
+
+    assert (h.channel.send_seq, h.channel.receive_seq) == wire
+    assert not cache.directory.exists() and (cache.directory.parent / ended.body['archive']).is_dir()
+    assert not h.source._prepared and h.source._original_batch is None
+    for file_id, entry in batch._entries.items():
+        previous = jobs.completed_pc_origin(entry['local_origin'])
+        assert previous.publication_sha256 == sha256(file_id.encode()).hexdigest()
+        assert (h.pc_file.parent / entry['path']).read_bytes() == raw
+    h.source.close()

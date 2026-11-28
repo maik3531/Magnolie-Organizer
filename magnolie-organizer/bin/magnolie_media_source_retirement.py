@@ -90,13 +90,15 @@ class _NativeSourceRetirementJournal:
         self._jobs._catalog.observe(catalog);return result
 
     def write(self,owner,expected,body):
-        from magnolie_media_source_recovery import _NativeSourceRetirementRecovery
-        if (type(owner) not in (_NativeSourceRetirement,_NativeSourceRetirementRecovery,_NativeBatchSourceRetirement)
+        from magnolie_media_source_recovery import _NativeSourceRetirementRecovery,_NativeBatchSourceRetirementRecovery
+        recovery=type(owner) in (_NativeSourceRetirementRecovery,_NativeBatchSourceRetirementRecovery)
+        batch=type(owner) in (_NativeBatchSourceRetirement,_NativeBatchSourceRetirementRecovery)
+        if (not recovery and type(owner) not in (_NativeSourceRetirement,_NativeBatchSourceRetirement)
                 or owner._journal is not self):
             raise TransferError('media_source_retirement_live_owner_required')
-        if type(owner) is _NativeSourceRetirementRecovery and expected is None:
+        if recovery and expected is None:
             raise TransferError('media_source_retirement_original_intent_required')
-        if type(owner) is _NativeSourceRetirementRecovery and expected.body['format']==3:
+        if recovery and (expected.body['format']==3)!=batch:
             raise TransferError('media_source_whole_batch_recovery_owner_required')
         owner._current();job=owner._job
         with self._jobs._database() as (db,key):
@@ -109,7 +111,7 @@ class _NativeSourceRetirementJournal:
             elif (before is None or before.version!=expected.version or before.body['state']!='archive_planned'
                     or body!=dict(before.body,state='archived')):raise TransferError('media_source_retirement_original_intent_required')
             plain=canonical(body)
-            if len(plain)>(self.BATCH_MAX_BYTES if type(owner) is _NativeBatchSourceRetirement else self.MAX_BYTES):
+            if len(plain)>(self.BATCH_MAX_BYTES if batch else self.MAX_BYTES):
                 raise TransferError('media_source_retirement_record_size')
             name=self._prefix+job;cipher=self._jobs._authority.protection.seal(plain,name)
             db.execute('INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)',(name,cipher))
@@ -390,10 +392,13 @@ def _verified_source_backup_map(backups,selected,expected,protection,live):
     return result
 
 
-def verify_archived_cache(jobs,parent,body,current):
+def verify_archived_cache(jobs,parent,body,current,*,name=None):
+    name=body['archive'] if name is None else name
+    if name!=body['archive'] and (body.get('format')!=3 or name!=body['stage'] or body['state']!='archive_planned'):
+        raise TransferError('media_source_recovery_original_stage_required')
     current();value=os.fstat(parent);_private(value,directory=True)
     if [value.st_dev,value.st_ino]!=body['parent_key']:raise TransferError('media_source_retirement_original_parent_required')
-    try:root=os.open(body['archive'],os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=parent)
+    try:root=os.open(name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=parent)
     except FileNotFoundError:raise TransferError('media_source_retirement_original_archive_required')
     try:
         value=os.fstat(root);_private(value,directory=True)
@@ -405,7 +410,7 @@ def verify_archived_cache(jobs,parent,body,current):
             expected|={_NativeBatchCacheWriter.chunk_name(f.id,i) for f in manifest.files for i in range(f.chunks)}
         else:expected|={'chunk-%08x.enc'%i for i in range(manifest.files[0].chunks)}
         if set(os.listdir(root))!=expected:raise TransferError('media_source_retirement_archive_layout_changed')
-        for name in expected:_private(os.stat(name,dir_fd=root,follow_symlinks=False))
+        for leaf in expected:_private(os.stat(leaf,dir_fd=root,follow_symlinks=False))
         fd=os.open('manifest.enc',os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=root)
         try:
             before=os.fstat(fd);_private(before);proof=body['proof_witness']
@@ -417,7 +422,7 @@ def verify_archived_cache(jobs,parent,body,current):
                     or sha256(cipher).hexdigest()!=proof['sha256']):raise TransferError('media_source_retirement_original_proof_required')
         finally:os.close(fd)
         if batch:_verify_archived_batch_cipher(jobs,root,body,manifest,cipher,current)
-        named=os.stat(body['archive'],dir_fd=parent,follow_symlinks=False);_private(named,directory=True)
+        named=os.stat(name,dir_fd=parent,follow_symlinks=False);_private(named,directory=True)
         if [named.st_dev,named.st_ino]!=body['root_key']:raise TransferError('media_source_retirement_original_archive_required')
         current()
     finally:os.close(root)

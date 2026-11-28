@@ -83,8 +83,17 @@ class NativeMediaSupportSessionTest {
         pairedSession(testSettings = false, mixed = true)
     }
 
+    @Test
+    @Config(shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class,
+        GalleryIncomingRowsTest.SameFileDescriptorDuplicate::class])
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun manualRetryFinishesInterruptedPhotoArchiveWithoutRepublishingIt() {
+        org.junit.Assume.assumeTrue(BuildConfig.PRIVATE_PC_MIXED_PREFLIGHT)
+        pairedSession(testSettings = false, mixed = true, recoverBatchEnd = true)
+    }
+
     private fun pairedSession(testSettings: Boolean, reconnect: Boolean = false, videoSender: Boolean = false,
-        imageBatchPeer: File? = null, sendImages: Boolean = false, mixed: Boolean = false) {
+        imageBatchPeer: File? = null, sendImages: Boolean = false, mixed: Boolean = false, recoverBatchEnd: Boolean = false) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("MediaSessionFixture", 1.0, "Isolated test keys") {
             init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
@@ -109,6 +118,7 @@ class NativeMediaSupportSessionTest {
             assertTrue(script.isFile)
             val command = listOf(System.getenv("MAGNOLIE_PYTHON") ?: "/usr/bin/python3", "-B", script.path) +
                 when {
+                    recoverBatchEnd -> listOf("--pc-send-mixed-recovery")
                     mixed -> listOf("--pc-send-mixed")
                     sendImages -> listOf("--pc-send-bootstrap")
                     imageBatchPeer != null -> listOf("--batch-support")

@@ -20,7 +20,7 @@ from magnolie_media_mixed_preflight import RESULT as MIXED_READY
 from magnolie_media_retention import NativeMediaRetention
 from magnolie_media_source_choice import NativeCollectionRoot, native_folder_witness
 from magnolie_media_source_jobs import _NativeSourceJobs
-from magnolie_media_source_retirement import _NativeSourceRetirementJournal
+from magnolie_media_source_retirement import _NativeBatchSourceRetirement, _NativeSourceRetirementJournal
 import magnolie_telefon as phone
 from magnolie_telefon import (PAIR_FRAME_MAX, PhoneService, native_file_pairing_epoch,
                               fingerprint, now_ms, receive_frame, unb64)
@@ -100,6 +100,7 @@ class Desktop(PhoneService):
 class MixedDesktop(PhoneService):
     """Real control, shared agreement, picker, manual action and original source END."""
     phase = 'settings'
+    interrupt_batch_end = False
 
     def _payload(self, peer, channel, payload, scoped_reference=None):
         super()._payload(peer, channel, payload, scoped_reference)
@@ -165,7 +166,7 @@ class MixedDesktop(PhoneService):
             self.ended = []
             self.phase = 'preflight'
             sync()
-        elif self.phase == 'preflight' and kind == MIXED_READY:
+        elif self.phase in ('preflight', 'recovery-preflight') and kind == MIXED_READY:
             self.phase = 'offer'
         elif self.phase == 'offer' and kind == ACCEPT:
             sender = owner._media_sender
@@ -188,10 +189,20 @@ class MixedDesktop(PhoneService):
             assert payload['expires_ms'] <= self.saved['expires_ms'] <= self.offer['expires_ms']
             self.ended.append(self.job)
             self.phase = 'offer'
+            if len(self.ended) == 1 and self.interrupt_batch_end:
+                session = owner.desktop_session()
+                assert session.join(35), session.snapshot()
+                state = session.snapshot()
+                assert state['state'] == 'held' and state['error'] == 'fixture interrupted photo archive', state
+                journal = _NativeSourceRetirementJournal(_NativeSourceJobs(owner._authority))
+                assert journal.lookup(self.job).body['state'] == 'archive_planned'
+                self.phase = 'recovery-preflight'
+                sync()
             if len(self.ended) == 2:
                 session = owner.desktop_session()
                 assert session.join(35) and session.snapshot()['state'] == 'complete', session.snapshot()
-                assert session.snapshot()['saved_files'] == 2
+                assert session.snapshot()['saved_files'] == (1 if self.interrupt_batch_end else 2)
+                assert session.snapshot()['known_files'] == int(self.interrupt_batch_end)
                 self._require_archived(owner)
                 self.phase = 'repeat'
                 sync()
@@ -239,7 +250,7 @@ class MixedDesktop(PhoneService):
         assert all(journal.lookup(job).body['state'] == 'archived' for job in self.ended)
 
 
-def main(test_settings=False, reconnect=False, video_sender=False, mixed=False):
+def main(test_settings=False, reconnect=False, video_sender=False, mixed=False, interrupt_batch_end=False):
     with TemporaryDirectory(prefix='magnolie-media-paired-') as root, socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         listener.bind(('127.0.0.1', 0)); listener.listen(1); listener.settimeout(10)
         desktop = MixedDesktop if mixed else Desktop
@@ -250,6 +261,7 @@ def main(test_settings=False, reconnect=False, video_sender=False, mixed=False):
         service.native_screen_included = False
         NativeDesktopFileConnection._data_handlers_ready = True
         if mixed:
+            service.interrupt_batch_end = interrupt_batch_end
             service._native_pc_image_batch_checked = service._native_pc_video_checked = service._native_pc_mixed_checked = True
             book = Path(root) / 'daten.json'
             book.write_text('{"einstellungen":{"papierkorb":{"an":true,"tage":30}}}', encoding='utf-8')
@@ -273,6 +285,16 @@ def main(test_settings=False, reconnect=False, video_sender=False, mixed=False):
                 capabilities['items']['device_status']['versions'].append(VIDEO_DISCOVERY_VERSION)
             return capabilities
 
+        retirement_init = _NativeBatchSourceRetirement.__init__
+
+        def interrupt_retirement(owner, sender, backups, selected, *, boundary=lambda _: None):
+            def fault(phase):
+                boundary(phase)
+                if phase == 'source_batch_retirement_moved':
+                    raise OSError('fixture interrupted photo archive')
+
+            retirement_init(owner, sender, backups, selected, boundary=fault)
+
         for resumed in range(2 if reconnect else 1):
             service.resumed = bool(resumed)
             service.ping = service.settings_owner = None
@@ -284,7 +306,9 @@ def main(test_settings=False, reconnect=False, video_sender=False, mixed=False):
                     # Model a photo-capable desktop composition in this disposable
                     # process, without editing or reading a user's build configuration.
                     with (patch.object(phone.optional_phone, 'available', lambda name: name == 'photo_sync'),
-                          patch.object(phone, 'desktop_capabilities', fixture_capabilities)):
+                          patch.object(phone, 'desktop_capabilities', fixture_capabilities),
+                          patch.object(_NativeBatchSourceRetirement, '__init__',
+                                       interrupt_retirement if interrupt_batch_end else retirement_init)):
                         service._session(client, start)
                 except EOFError:
                     if not service.heartbeat:
@@ -295,6 +319,9 @@ def main(test_settings=False, reconnect=False, video_sender=False, mixed=False):
 
 
 if __name__ == '__main__':
-    assert sys.argv[1:] in ([], ['--settings'], ['--reconnect'], ['--video-sender'], ['--pc-send-mixed'])
+    assert sys.argv[1:] in ([], ['--settings'], ['--reconnect'], ['--video-sender'],
+                           ['--pc-send-mixed'], ['--pc-send-mixed-recovery'])
     main(test_settings=bool(sys.argv[1:]), reconnect=sys.argv[1:] == ['--reconnect'],
-         video_sender=sys.argv[1:] == ['--video-sender'], mixed=sys.argv[1:] == ['--pc-send-mixed'])
+         video_sender=sys.argv[1:] == ['--video-sender'],
+         mixed=sys.argv[1:] in (['--pc-send-mixed'], ['--pc-send-mixed-recovery']),
+         interrupt_batch_end=sys.argv[1:] == ['--pc-send-mixed-recovery'])

@@ -830,6 +830,36 @@ class NativeDesktopFileConnection:
                 or self._authority.current_peer() is None):
             raise TransferError('media_source_batch_counterpart_required')
 
+    def recover_pending_pc_image_batch_end(self, native_current, mixed=None):
+        """A fresh manual run may finish the prior local archival intent."""
+        from magnolie_media_source_pc import NativeCollectionMediaSource
+        from magnolie_media_source_recovery import recover_pending_pc_image_batch_end
+
+        with self._operation(incoming=True):
+            token = self._private_worker_intent('images', mixed=mixed)
+            if (token is None or self._mixed_pass is not mixed or self._media_pc_source is None
+                    or self._mapped_worker is not None or self._album_worker is not None or self._run is not None
+                    or self._media_sender is not None or self._source_pending is not None or self._source_run is not None
+                    or self._collection_preparation_active()):
+                raise TransferError('media_source_recovery_native_owner_required')
+
+            def current():
+                native_current()
+                if self._private_worker_intent('images', mixed=mixed) is not token:
+                    raise TransferError('media_source_recovery_native_owner_required')
+                if mixed is not None:
+                    mixed.require_worker(self._desktop_session)
+                return True
+
+            current()
+            # A drained source keeps its historical object identity. A fresh
+            # recovery owner cannot inherit the earlier sender or descriptors.
+            source = NativeCollectionMediaSource(self._preferences, self._mappings, self._media_transport)
+            try:
+                return recover_pending_pc_image_batch_end(source, current)
+            finally:
+                source.close()
+
     def prepare_worker_pc_image_batch(self,worker,expected,selected,members):
         from magnolie_media_source_collection_pass import NativeCollectionPass
         from magnolie_media_source_pc import NativeCollectionMediaSource
@@ -4552,6 +4582,8 @@ class NativePhotoDesktopSession:
                     if mixed_admission is None:raise TransferError('media_mixed_preflight_current_owner_required')
                     mixed_admission.claim(self)
                     mixed_admission.require_unmapped_sources(self,self.connection._mappings)
+                if operation=='sync_shared' and private_output is not None and private_output[0] in ('images','mixed'):
+                    self.connection.recover_pending_pc_image_batch_end(shared_constraint.require_current,mixed_admission)
                 from magnolie_media_retention import maintain_native_media_trash
                 if not private_media or private_output is None:
                     maintain_native_media_trash(self.connection._authority.binding.native_directory,shared_constraint.require_current)
