@@ -1,0 +1,28 @@
+original size-False-False FAIL
+original size-False-True FAIL
+original size-True-False FAIL
+original size-True-True FAIL
+original mime-False-False FAIL
+original mime-False-True FAIL
+original mime-True-False FAIL
+original mime-True-True FAIL
+original historical replay FAIL
+original identical hash different names PASS
+original distinct hashes PASS
+original actor path unchanged PASS
+original format 1 unchanged PASS
+4 / 13
+candidate size-False-False PASS
+candidate size-False-True PASS
+candidate size-True-False PASS
+candidate size-True-True PASS
+candidate mime-False-False PASS
+candidate mime-False-True PASS
+candidate mime-True-False PASS
+candidate mime-True-True PASS
+candidate historical replay PASS
+candidate identical hash different names PASS
+candidate distinct hashes PASS
+candidate actor path unchanged PASS
+candidate format 1 unchanged PASS
+13 / 13

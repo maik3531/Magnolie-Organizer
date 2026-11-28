@@ -1,0 +1,47 @@
+diff --git a/magnolie-organizer/bin/magnolie_telefon.py b/magnolie-organizer/bin/magnolie_telefon.py
+--- a/magnolie-organizer/bin/magnolie_telefon.py
++++ b/magnolie-organizer/bin/magnolie_telefon.py
+@@ -1472,3 +1472,6 @@
++    class _ConflictingAttachmentManifest(ValueError):
++        pass
++
+     def stage_personal_batch(self, peer_id, message):
+         body = message["body"]
+         request = self.personal_run(peer_id, body["run_id"])
+@@ -1514,10 +1517,20 @@
+                     any(row[0] > final_sequences[0] for row in rows)):
+                 raise ValueError("conflicting personal batch final sequence")
+             record_count = 0
++            descriptors = {}
++            check_manifest = not personal_actor_contract.is_storage_peer(peer_id)
+             for staged_sequence, _batch, _message, staged_payload, _last in rows:
+                 staged_primary = "%s:%s:%d:%d" % (peer_id, body["run_id"], body["reply"], staged_sequence)
+                 staged = strict_json(self._decrypt(staged_payload, "personal_batch", staged_primary))
+                 record_count += len(staged["body"]["records"])
++                if check_manifest and staged["body"].get("format", 1) >= 2:
++                    for record in staged["body"]["records"]:
++                        if record["kind"] != "note":
++                            continue
++                        for item in record["value"]["attachments"]:
++                            metadata = (item["size"], item["mime"])
++                            if descriptors.setdefault(item["sha256"], metadata) != metadata:
++                                raise self._ConflictingAttachmentManifest("conflicting attachment manifest")
+             if record_count > 100000:
+                 raise ValueError("personal run too large")
+         if len(rows) > 4096:
+@@ -2091,8 +2104,13 @@
+                 row = db.execute("SELECT payload FROM personal_batch WHERE peer_id=? AND run_id=? AND reply=? AND sequence=?",
+                     (peer_id, run_id, reply, sequence)).fetchone()
+             if row:
+-                aggregate = self.stage_personal_batch(peer_id,
+-                    strict_json(self._decrypt(row[0], "personal_batch", primary)))
++                try:
++                    aggregate = self.stage_personal_batch(peer_id,
++                        strict_json(self._decrypt(row[0], "personal_batch", primary)))
++                except self._ConflictingAttachmentManifest:
++                    # A previously staged invalid ordinary group must not block
++                    # other groups. Keep its original rows for normal expiry.
++                    continue
+                 if aggregate:
+                     ready.append((peer_id, aggregate))
+         return ready
