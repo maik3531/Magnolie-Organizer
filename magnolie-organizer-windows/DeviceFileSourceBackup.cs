@@ -4,6 +4,48 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed partial class TelefonStore
 {
+    internal sealed record RecoveredVideoBackup(NativeMediaBackupParent Parent, NativeMediaBackupVersion Version, JsonObject Provenance)
+    {
+        internal JsonObject Evidence() => new()
+        {
+            ["id"] = Version.Id, ["object_key"] = Version.ObjectKey, ["saved_ms"] = Version.SavedMs,
+            ["name"] = Version.Name, ["record_sha256"] = Version.RecordSha256
+        };
+    }
+
+    private static JsonObject PcBackupProvenance(JsonObject job, string version, string id) => new()
+    {
+        ["kind"] = "prepared_pc_source", ["format"] = 1, ["job_id"] = id, ["job_version"] = version,
+        ["nonce"] = job["nonce"]!.DeepClone(), ["scope"] = job["scope"]!.DeepClone(), ["manifest"] = job["manifest"]!.DeepClone(),
+        ["source_provenance"] = job["provenance"]!.DeepClone(), ["local_origin"] = job["local_origin"]!.DeepClone(),
+        ["previous"] = job["previous"]?.DeepClone()
+    };
+
+    private static void ValidateRecoveredVideoBackup(JsonObject job, string version, DeviceFileManifest manifest, JsonObject proof)
+    {
+        TelefonProtocolContract.ExactObject(proof, "id", "object_key", "saved_ms", "name", "record_sha256");
+        var provenance = PcBackupProvenance(job, version, manifest.SourceId);
+        var record = proof.DeepClone().AsObject();
+        record.Remove("record_sha256");
+        record["provenance"] = provenance;
+        ValidatePreparedPcBackup(record, provenance);
+        if (record["id"]?.GetValue<string>() != DeviceFileControl.Digest("magnolie-native-media-backup-version-v1\0", provenance) ||
+            TelefonProtocolContract.Integer(record["saved_ms"]) is < 1 or > NativeMediaBackupPolicy.MaximumTimestampMs ||
+            proof["record_sha256"]?.GetValue<string>() != DeviceFileControl.Digest("magnolie-native-media-backup-reference-v1\0", record))
+            throw DeviceFileControl.Error("media_backup_original_version_changed");
+    }
+
+    internal void WithVerifiedRecoveredVideoBackup(RecoveredVideoBackup backup, string fileId, Func<bool> permit, Action<Action> finish)
+    {
+        lock (gate)
+        {
+            void Current() { if (RestoreFenced || !permit()) throw DeviceFileControl.Error("media_backup_native_permit_changed"); }
+            using var catalog = new MediaBackupCatalog(this, backup.Parent, Current, false);
+            catalog.VerifyPreparedBatchMap(new Dictionary<string, NativeMediaBackupVersion> { [fileId] = backup.Version },
+                new Dictionary<string, JsonObject> { [fileId] = backup.Provenance }, finish: finish);
+        }
+    }
+
     // Source backup is not an incoming Saved receipt, source-END or a grant to
     // publish/delete. The output directory has its own explicit native WRITE
     // owner; the selected collection remains read-only.
@@ -82,12 +124,32 @@ internal sealed partial class TelefonStore
                         throw DeviceFileControl.Error("media_backup_original_source_owner_required");
                 }
                 Current(); var file = Manifest.Files.Single();
-                var provenance = new JsonObject { ["kind"] = "prepared_pc_source", ["format"] = 1, ["job_id"] = JobId,
-                    ["job_version"] = version, ["nonce"] = originalNonce, ["scope"] = record["scope"]!.DeepClone(),
-                    ["manifest"] = record["manifest"]!.DeepClone(), ["source_provenance"] = record["provenance"]!.DeepClone(),
-                    ["local_origin"] = record["local_origin"]!.DeepClone(), ["previous"] = record["previous"]?.DeepClone() };
+                var provenance = PcBackupProvenance(record, version, JobId);
                 using var catalog = new MediaBackupCatalog(store, parent, Current, create);
                 return catalog.Save(NativeMediaBackupBytes.Input.FromPrepared(this), file.Size, file.Sha256, file.Path, provenance);
+            }
+        }
+
+        internal RecoveredVideoBackup FindRecoveredVideoBackup(DeviceFileNativeDirectory output, Func<bool> permit)
+        {
+            lock (cacheGate)
+            lock (store.gate)
+            {
+                Require();
+                if (Recovery is null) throw DeviceFileControl.Error("media_source_video_original_saved_required");
+                var parent = NativeMediaBackupParent.Capture(output);
+                var provenance = PcBackupProvenance(record, version, JobId);
+                var id = DeviceFileControl.Digest("magnolie-native-media-backup-version-v1\0", provenance);
+                void Current()
+                {
+                    Require();
+                    if (!permit() || NativeMediaBackupParent.Capture(output) != parent)
+                        throw DeviceFileControl.Error("media_backup_native_permit_changed");
+                }
+                using var catalog = new MediaBackupCatalog(store, parent, Current, false);
+                var selected = catalog.Versions().SingleOrDefault(item => item.Id == id)
+                    ?? throw DeviceFileControl.Error("media_backup_original_version_changed");
+                return new(parent, selected, provenance);
             }
         }
     }

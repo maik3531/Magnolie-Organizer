@@ -117,7 +117,8 @@ internal sealed partial class TelefonStore
         }
 
         internal void VerifyPreparedBatchMap(IReadOnlyDictionary<string, NativeMediaBackupVersion> selected,
-            IReadOnlyDictionary<string, JsonObject> expected, NativeBatchSourceRetirement? retirement = null)
+            IReadOnlyDictionary<string, JsonObject> expected, NativeBatchSourceRetirement? retirement = null,
+            Action<Action>? finish = null)
         {
             Current();
             if (selected.Count is < 1 or > DeviceFileManifest.MaxFiles || !selected.Keys.ToHashSet(StringComparer.Ordinal).SetEquals(expected.Keys) ||
@@ -181,6 +182,12 @@ internal sealed partial class TelefonStore
                 Current();
                 batchSnapshot.Require();
                 retirement?.FinishVerifiedBackupMap(this);
+                finish?.Invoke(() =>
+                {
+                    Current();
+                    batchSnapshot.Require();
+                    foreach (var (_, file) in held.Values) file.Require();
+                });
             }
             finally
             {

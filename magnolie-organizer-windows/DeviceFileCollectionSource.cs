@@ -36,8 +36,9 @@ internal sealed partial class TelefonStore
         internal DeviceFileNativeDirectory.CollectionSignature ObserveCollection() => file.Observe();
         internal NativePreparedMediaSource Freeze() => FreezeCore(false);
         internal NativePreparedMediaSource FreezeCompletedSuccessor() => FreezeCore(true);
-        internal NativePreparedMediaSource FreezeNewTypedVideo() => FreezeCore(true, newTypedVideoOnly: true);
-        private NativePreparedMediaSource FreezeCore(bool completedSuccessor, bool newTypedVideoOnly = false)
+        internal NativePreparedMediaSource FreezeNewTypedVideo(bool allowSavedRecovery) =>
+            FreezeCore(true, newTypedVideoOnly: true, allowSavedRecovery: allowSavedRecovery);
+        private NativePreparedMediaSource FreezeCore(bool completedSuccessor, bool newTypedVideoOnly = false, bool allowSavedRecovery = false)
         {
             NativePreparedMediaSource result;
             lock (sourceGate)
@@ -49,7 +50,8 @@ internal sealed partial class TelefonStore
                 {
                     if (freezeAttempted) throw DeviceFileControl.Error("media_source_original_preparation_required");
                     freezeAttempted = true;
-                    frozen = NativePreparedMediaSource.Create(Store, this, completedSuccessor, newTypedVideoOnly);
+                    var recovery = allowSavedRecovery ? NativePreparedMediaSource.AttachSavedVideo(this, PrepareManifest()) : null;
+                    frozen = recovery ?? NativePreparedMediaSource.Create(Store, this, completedSuccessor, newTypedVideoOnly);
                 }
                 result = frozen;
                 if (newTypedVideoOnly && !result.NewTypedVideoOnly)
@@ -409,7 +411,7 @@ internal sealed partial class TelefonConnection
 
     internal async Task SynchronizeOriginalPcVideoCollectionAsync(JsonObject intent, NativeMediaBookPermit book,
         Action requireIntent, Func<bool> agreement, NativeMediaSendConsent expectedSend,
-        IReadOnlyList<NativeMediaCollectionRoot> expectedRoots, CancellationToken token)
+        IReadOnlyList<NativeMediaCollectionRoot> expectedRoots, CancellationToken token, bool allowSavedRecovery)
     {
         var controls = RequireNativeFileControls();
         var binding = controls.Binding(new string('0', 64), senderIsLocal: true)
@@ -437,10 +439,35 @@ internal sealed partial class TelefonConnection
                 member, binding with { DestinationToken = tokenForRoot }, book, intent, collection.Require, this);
             collection.CheckOpened(selection, member, source.ObserveCollection());
             TelefonStore.NativePreparedMediaSource cache;
-            try { cache = source.FreezeNewTypedVideo(); }
+            try { cache = source.FreezeNewTypedVideo(allowSavedRecovery); }
             catch (InvalidDataException error) when (error.Message is "media_collection_known_other_type" or
                 "media_source_cache_latest_payload_already_sent") { Current(); continue; }
-            using (cache) await SendNativeMappedMediaSourceToSourceEndAsync(cache, token);
+            using (cache)
+            {
+                if (!allowSavedRecovery) await SendNativeMappedMediaSourceToSourceEndAsync(cache, token);
+                else
+                {
+                    using var output = DeviceFileNativeDirectory.OpenExistingForReceive(selection.NativePath);
+                    bool Permit()
+                    {
+                        token.ThrowIfCancellationRequested();
+                        Current();
+                        return output.CurrentReceiveIdentity() == selection.Identity &&
+                            output.CurrentReceiveCreationFileTime() == selection.CreationFileTime &&
+                            output.VolumePath.Equals(selection.VolumePath, StringComparison.OrdinalIgnoreCase);
+                    }
+                    if (cache.Recovery is null)
+                    {
+                        _ = store.SaveNativePreparedPcBackup(cache, output, Permit, createBackup: true);
+                        await SendNativeMappedMediaSourceToSourceEndAsync(cache, token);
+                    }
+                    else
+                    {
+                        var backup = cache.FindRecoveredVideoBackup(output, Permit);
+                        await RecoverNativeSavedVideoToSourceEndAsync(cache, backup, Permit, token);
+                    }
+                }
+            }
             Current();
         }
         collection.Finish();

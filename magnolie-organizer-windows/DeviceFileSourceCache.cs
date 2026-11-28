@@ -250,19 +250,26 @@ internal sealed partial class TelefonStore
             var clear = Open("native_media_source_exchange", scope.PeerId + "/" + previous.JobId, cipher);
             try
             {
-                var exchange = TelefonProtocolContract.ExactObject(JsonNode.Parse(clear)!, "format", "cache_version", "nonce", "offer", "permission_epoch",
-                    "phase", "acceptance", "sent_chunks", "pending_chunk", "peer_saved", "peer_readback", "source_end");
+                var exchange = JsonNode.Parse(clear)!.AsObject();
+                var format = TelefonProtocolContract.Integer(exchange["format"]);
+                var fields = new[] { "format", "cache_version", "nonce", "offer", "permission_epoch",
+                    "phase", "acceptance", "sent_chunks", "pending_chunk", "peer_saved", "peer_readback", "source_end" };
+                if (format == 2) fields = [..fields, "reader_id", "acceptance_envelope", "saved_envelope"];
+                var recovery = exchange["recovery"] is JsonObject proof && format == 2
+                    ? TelefonProtocolContract.ExactObject(proof, "request", "reply", "reader_id", "permission_epoch", "backup") : null;
+                TelefonProtocolContract.ExactObject(exchange, recovery is null ? fields : [..fields, "recovery"]);
                 var end = TelefonProtocolContract.ExactObject(exchange["source_end"]!, "format", "job_id", "cache_version", "nonce", "readback_sha256");
                 var readback = exchange["peer_readback"] as JsonObject ?? throw Error();
                 var epoch = Text(exchange, "permission_epoch");
                 var originalBinding = previous.Body["provenance"]!["sending_binding"]!.AsObject();
-                var binding = new DeviceTransferBinding(scope.LocalId, scope.PeerId, scope.LocalKey, scope.PeerKey, epoch, Text(readback, "destination_token"));
+                var binding = new DeviceTransferBinding(scope.LocalId, scope.PeerId, scope.LocalKey, scope.PeerKey,
+                    recovery is null ? epoch : Text(recovery, "permission_epoch"), Text(readback, "destination_token"));
                 var context = new JsonObject(readback.Where(pair => pair.Key is not ("destination_token" or "binding_sha256" or "readback_sha256"))
                     .Select(pair => KeyValuePair.Create(pair.Key, pair.Value?.DeepClone())));
                 var offer = exchange["offer"]!.AsObject();
                 var media = MediaOfferEnvelope.Validate(offer, scope.LocalId, scope.PeerId, TelefonProtocolContract.Integer(offer["created_ms"]));
                 var receipt = exchange["peer_saved"]!["receipts"]!.AsArray().Single()!.AsObject();
-                if (TelefonProtocolContract.Integer(exchange["format"]) != 1 || Text(exchange, "phase") != "source_ended" ||
+                if (format is not (1 or 2) || Text(exchange, "phase") != "source_ended" ||
                     Text(exchange, "cache_version") != SourceDigest(previous.Cipher) || exchange["nonce"]?.ToJsonString() != previous.Body["nonce"]?.ToJsonString() ||
                     TelefonProtocolContract.Integer(end["format"]) != 1 || Text(end, "job_id") != previous.JobId ||
                     !JsonNode.DeepEquals(end["cache_version"], exchange["cache_version"]) || !JsonNode.DeepEquals(end["nonce"], exchange["nonce"]) ||
@@ -273,6 +280,20 @@ internal sealed partial class TelefonStore
                     Text(originalBinding, "permission_epoch") != epoch || !JsonNode.DeepEquals(DevicePublishedReadbackEnvelope.EncodeBody(context, binding), readback))
                     throw Error();
                 var file = media.Manifest.Files.Single();
+                if (format == 2)
+                {
+                    var saved = ValidateOriginalVideoSaved(previous.Body, SourceDigest(previous.Cipher), exchange, media.Manifest, scope);
+                    if (recovery is not null)
+                    {
+                        var reply = recovery["reply"]!.AsObject();
+                        if (!DeviceFileControl.Hash(Text(recovery, "reader_id")) || Text(recovery, "reader_id") == Text(exchange, "reader_id") ||
+                            !JsonNode.DeepEquals(DeviceSavedBatchReadback.ParseVideoReply(recovery["request"]!.AsObject(), reply, offer,
+                                exchange["saved_envelope"]!.AsObject(), saved, binding with { DestinationToken = media.Manifest.Fingerprint },
+                                binding, TelefonProtocolContract.Integer(reply["created_ms"])).Body, readback))
+                            throw Error();
+                        ValidateRecoveredVideoBackup(previous.Body, SourceDigest(previous.Cipher), media.Manifest, recovery["backup"]!.AsObject());
+                    }
+                }
                 receipts.Add(previous.JobId, Text(receipt, "receipt_sha256"));
                 if (previous.Body["local_origin"] is JsonObject local)
                 {
@@ -342,6 +363,7 @@ internal sealed partial class TelefonStore
         internal TelefonStore OwnerStore => store;
         internal object ConnectionOwner => source.ConnectionOwner;
         internal bool NewTypedVideoOnly { get; private init; }
+        internal PendingSavedVideo? Recovery { get; private init; }
         internal string PeerId => scope.PeerId;
         internal string Nonce { get { lock (cacheGate) { Require(); return record["nonce"]!.GetValue<string>(); } } }
         internal void BeginSendAttempt(TelefonConnection connection)
@@ -418,8 +440,9 @@ internal sealed partial class TelefonStore
                 ["origin_sha256"] = PcOriginDigest(origin), ["previous_publication_sha256"] = previousPublication } };
         }
 
-        private NativePreparedMediaSource(TelefonStore store, NativeMediaSourceOwner source, NativeMediaPreferenceScope scope, JsonObject record)
-        { this.store = store; this.source = source; this.scope = scope; this.record = record; Manifest = source.PrepareManifest(); }
+        private NativePreparedMediaSource(TelefonStore store, NativeMediaSourceOwner source, NativeMediaPreferenceScope scope,
+            JsonObject record, DeviceFileManifest? originalManifest = null)
+        { this.store = store; this.source = source; this.scope = scope; this.record = record; Manifest = originalManifest ?? source.PrepareManifest(); }
 
         private void Current()
         {
@@ -572,6 +595,13 @@ internal sealed partial class TelefonStore
             store.RequireNativeMediaStorageKey();
             lock (store.gate) { using var db = store.OpenNativeMediaDatabase(); db.Open(); _ = ReadHead(db, null); }
         }
+
+        internal void VerifyRecoveryCiphers(SqliteConnection db, SqliteTransaction transaction)
+        {
+            if (Recovery is null) throw DeviceFileControl.Error("media_source_video_original_saved_required");
+            _ = ReadHead(db, transaction);
+            VerifyVideoCiphers(db, transaction, PeerId, JobId, record, Manifest);
+        }
         public void Dispose()
         {
             retired = true;
@@ -611,6 +641,73 @@ internal sealed partial class TelefonStore
             var result = new NativePreparedMediaSource(store, source, scope, body) { NewTypedVideoOnly = newTypedVideoOnly };
             try { result.Freeze(); return result; } catch { result.retired = true; throw; } // Never erase partial/history or adopt it on retry.
         }
+
+        internal static NativePreparedMediaSource? AttachSavedVideo(NativeCollectionMediaSource source, DeviceFileManifest liveManifest)
+        {
+            source.Require();
+            var store = source.Store;
+            var scope = store.MediaPreferenceScope(source.PeerId);
+            var proposed = new JsonObject { ["format"] = 3, ["local_origin"] = source.LocalOrigin };
+            lock (store.gate)
+            {
+                using var db = store.OpenNativeMediaDatabase(); db.Open();
+                using var transaction = db.BeginTransaction(deferred: true);
+                var history = store.SourceRecords(db, transaction, scope);
+                RequireLocalSourceGenerationHistory(history, proposed);
+                var matching = history.Where(job => JsonNode.DeepEquals(job.Body["local_origin"], proposed["local_origin"])).ToArray();
+                if (matching.Length != 1) return null; // The ordinary lineage check handles ambiguous or absent history.
+                var (id, jobCipher, job) = matching[0];
+                using var read = db.CreateCommand(); read.Transaction = transaction;
+                read.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='native_media_source_exchanges'";
+                if (read.ExecuteScalar() is null) return null;
+                read.CommandText = "SELECT value FROM native_media_source_exchanges WHERE peer_id=$peer AND job_id=$job AND length(value) BETWEEN 29 AND 32796";
+                read.Parameters.AddWithValue("$peer", scope.PeerId); read.Parameters.AddWithValue("$job", id);
+                if (read.ExecuteScalar() is not byte[] cipher) return null;
+                var clear = store.Open("native_media_source_exchange", scope.PeerId + "/" + id, cipher);
+                JsonObject exchange;
+                try { exchange = JsonNode.Parse(clear)!.AsObject(); }
+                finally { CryptographicOperations.ZeroMemory(clear); }
+                if (exchange["phase"]?.GetValue<string>() != "peer_saved") return null;
+                TelefonProtocolContract.ExactObject(exchange, "format", "cache_version", "nonce", "offer", "permission_epoch", "phase",
+                    "acceptance", "sent_chunks", "pending_chunk", "peer_saved", "reader_id", "acceptance_envelope", "saved_envelope");
+                var version = SourceDigest(jobCipher);
+                var manifest = BatchManifest(job);
+                var saved = ValidateOriginalVideoSaved(job, version, exchange, manifest, scope);
+                var historical = job["provenance"]!.DeepClone().AsObject();
+                var current = source.Provenance;
+                historical["sending_binding"]!["permission_epoch"] = current["sending_binding"]!["permission_epoch"]!.DeepClone();
+                var original = manifest.Files.Single(); var actual = liveManifest.Files.Single();
+                if (job["phase"]?.GetValue<string>() != "ready" || !JsonNode.DeepEquals(historical, current) ||
+                    original.Path != actual.Path || original.Size != actual.Size || original.Sha256 != actual.Sha256)
+                    throw DeviceFileControl.Error("media_source_video_recovery_original_changed");
+                VerifyVideoCiphers(db, transaction, scope.PeerId, id, job, manifest);
+                source.Require(); transaction.Commit();
+                return new NativePreparedMediaSource(store, source, scope, job, manifest)
+                {
+                    version = version, NewTypedVideoOnly = true,
+                    Recovery = new PendingSavedVideo(exchange, SourceDigest(cipher), saved)
+                };
+            }
+        }
+    }
+
+    private static void VerifyVideoCiphers(SqliteConnection db, SqliteTransaction? transaction, string peerId, string id,
+        JsonObject job, DeviceFileManifest manifest)
+    {
+        using var read = db.CreateCommand(); read.Transaction = transaction;
+        read.CommandText = "SELECT number,value FROM native_media_source_chunks WHERE peer_id=$peer AND job_id=$job ORDER BY number";
+        read.Parameters.AddWithValue("$peer", peerId); read.Parameters.AddWithValue("$job", id);
+        using var rows = read.ExecuteReader();
+        var hashes = job["chunks"]!.AsArray(); var index = 0;
+        while (rows.Read())
+        {
+            var wanted = Math.Min(DeviceFileManifest.ChunkBytes, manifest.TotalBytes - (long)index * DeviceFileManifest.ChunkBytes);
+            if (index >= hashes.Count || rows.GetInt32(0) != index || rows[1] is not byte[] cipher ||
+                cipher.LongLength != wanted + 28 || SourceDigest(cipher) != hashes[index]!.GetValue<string>())
+                throw DeviceFileControl.Error("media_source_cache_chunk_changed");
+            index++;
+        }
+        if (index != hashes.Count) throw DeviceFileControl.Error("media_source_cache_chunk_changed");
     }
     private NativePreparedMediaSource FreezeNativeMappedMediaSource(NativeMappedMediaSource source, bool completedSuccessor = false) =>
         NativePreparedMediaSource.Create(this, source, completedSuccessor);

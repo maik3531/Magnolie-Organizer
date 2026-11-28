@@ -59,7 +59,58 @@ internal static class DevicePublishedReadbackTests
         var video = DevicePublishedReadbackEnvelope.Parse(videoMessage, offer, videoBinding, "video", now);
         TestAssert.That(!video.GrantsWriteAuthority && !video.IsSavedReceipt && !video.AllowsChunkOutput,
             "Video readback invented native completion authority.");
+        VerifyHistoricalVideo(offer, videoBinding, videoContext, now);
         return Task.CompletedTask;
+    }
+
+    private static void VerifyHistoricalVideo(JsonObject offer, DeviceTransferBinding originalBinding, JsonObject context, long savedAt)
+    {
+        const string sender = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
+        const string receiver = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb";
+        var created = TelefonProtocolContract.Integer(offer["created_ms"]);
+        var fixture = DeviceFileOfferEnvelope.Validate(offer, originalBinding.SenderId, originalBinding.ReceiverId, created);
+        var file = fixture.Files.Single() with { Path = "original.mp4" };
+        var manifest = new DeviceFileManifest(fixture.TransferId, fixture.SourceId, sender, receiver, [file], file.Size);
+        var settings = MediaSyncSettings.Change(MediaSyncSettings.Create(sender), sender, receiver, "enabled", JsonValue.Create(true)!);
+        settings = MediaSyncSettings.Change(settings, sender, receiver, "direction", JsonValue.Create("pc_to_phone")!);
+        settings = MediaSyncSettings.Change(settings, sender, receiver, "collection_mode", JsonValue.Create("entire_collection")!);
+        settings = MediaSyncSettings.Change(settings, sender, receiver, "photos_enabled", JsonValue.Create(false)!);
+        settings = MediaSyncSettings.Change(settings, sender, receiver, "videos_enabled", JsonValue.Create(true)!);
+        var origins = new JsonObject { [file.Id] = new JsonObject { ["format"] = 1, ["origin_sha256"] = file.Id + file.Id,
+            ["previous_publication_sha256"] = null } };
+        var original = MediaOfferEnvelope.Create(manifest, settings, "video", new JsonObject { [file.Id] = "video/mp4" },
+            new(), created, offer["message_id"]!.GetValue<string>(), origins);
+        var accepted = new RemoteFileAcceptance(original["message_id"]!.GetValue<string>(), manifest.Fingerprint, manifest.TransferId,
+            new string('f', 64), originalBinding.PermissionEpoch, originalBinding.DestinationToken);
+        var saved = new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),
+            ["kind"] = DeviceFileSavedEnvelope.Kind, ["created_ms"] = savedAt, ["expires_ms"] = original["expires_ms"]!.DeepClone(),
+            ["body"] = new JsonObject { ["format"] = 1, ["transfer_id"] = manifest.TransferId, ["manifest_sha256"] = manifest.Fingerprint,
+                ["acceptance_sha256"] = accepted.AcceptanceSha256, ["permission_epoch"] = accepted.PermissionEpoch,
+                ["destination_token"] = accepted.DestinationToken, ["receipts"] = new JsonArray(new JsonObject {
+                    ["file_id"] = file.Id, ["size"] = file.Size, ["sha256"] = file.Sha256,
+                    ["receipt_sha256"] = context["publication_sha256"]!.DeepClone() }) } };
+        var receipts = DeviceFileSavedEnvelope.Parse(saved, manifest, accepted, savedAt);
+        var fresh = originalBinding with { SenderId = sender, ReceiverId = receiver,
+            DestinationToken = manifest.Fingerprint, PermissionEpoch = new string('a', 64) };
+        var now = TelefonProtocolContract.Integer(original["expires_ms"]) + 60_000;
+        var request = DeviceSavedBatchReadback.Create(original, saved, fresh, now);
+        context["manifest_sha256"] = manifest.Fingerprint;
+        context["readback_nonce"] = request["body"]!["nonce"]!.DeepClone();
+        context["permission_epoch"] = fresh.PermissionEpoch;
+        var replyBinding = fresh with { DestinationToken = DevicePublishedReadbackEnvelope.DestinationToken(context) };
+        var reply = DeviceFileSourceSendTests.Message(DevicePublishedReadbackEnvelope.Kind,
+            DevicePublishedReadbackEnvelope.EncodeBody(context, replyBinding), request);
+        reply["created_ms"] = now;
+        RemotePublishedReadback Parse(JsonObject currentRequest, DeviceTransferBinding currentBinding, long at) =>
+            DeviceSavedBatchReadback.ParseVideoReply(currentRequest, reply, original, saved, receipts, fresh, currentBinding, at);
+        TestAssert.That(JsonNode.DeepEquals(Parse(request, replyBinding, now).Body, reply["body"]),
+            "The original MP4 could not be verified beyond its old offer lifetime.");
+        var replay = DeviceSavedBatchReadback.Create(original, saved, fresh, now);
+        TestAssert.Throws<InvalidDataException>(() => Parse(replay, replyBinding, now), "An old nonce accepted the MP4 response.");
+        TestAssert.Throws<InvalidDataException>(() => Parse(request, replyBinding with { PermissionEpoch = originalBinding.PermissionEpoch }, now),
+            "An old permission epoch accepted the MP4 response.");
+        TestAssert.Throws<InvalidDataException>(() => Parse(request, replyBinding, TelefonProtocolContract.Integer(request["expires_ms"])),
+            "The expired MP4 challenge was accepted.");
     }
 
     internal static Task BatchAsync()

@@ -113,6 +113,10 @@ internal static class SharedSyncTransportTests
         DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
             ? NativeMediaSupportAsync(firstReceive: "pc_video_manual_entry", transfer: true, composed: true)
             : Task.CompletedTask;
+    internal static Task NativeOriginalPcVideoSavedRecoveryAsync() =>
+        DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
+            ? NativeMediaSupportAsync(firstReceive: "pc_video_recovery", transfer: true, composed: true)
+            : Task.CompletedTask;
     internal static Task NativeOriginalPcVideoAutomaticEntryAsync() =>
         DesktopPhoneBuild.PrivateMediaSettings && OperatingSystem.IsWindows()
             ? NativeMediaSupportAsync(firstReceive: "pc_video_automatic_entry", transfer: true, composed: true)
@@ -149,7 +153,7 @@ internal static class SharedSyncTransportTests
         }
         using var fixture = new PhoneCameraParentTests.Fixture(filePairingEpoch: new string('a', 64), receive: PublishMetadata,
              lifetime: transfer ? TimeSpan.FromSeconds(firstReceive is "pc_image_manual" or "pc_image_automatic" or "pc_image_recovery" or
-                  "pc_video_manual_entry" or "pc_video_automatic_entry" ? 240 : 50) : null,
+                  "pc_video_manual_entry" or "pc_video_recovery" or "pc_video_automatic_entry" ? 240 : 50) : null,
             peerName: useDefaults ? "Magnolie Test " + Guid.NewGuid().ToString("N") : "Controlled original parent");
         var connection = fixture.Connection;
         fixture.Store.SavePeers([fixture.Peer]);
@@ -206,7 +210,9 @@ internal static class SharedSyncTransportTests
             var peer = fixture.Peer;
             var saved = fixture.Store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey);
             var photoRecovery = firstReceive == "pc_image_recovery";
-            var retired = photoRecovery ? connection.CapturePrivatePcImageDiscovery() : connection.CapturePrivateMediaPhoneImport(saved!);
+            var videoRecovery = firstReceive == "pc_video_recovery";
+            var retired = photoRecovery ? connection.CapturePrivatePcImageDiscovery() :
+                videoRecovery ? connection.CapturePrivatePcVideoExport(saved!) : connection.CapturePrivateMediaPhoneImport(saved!);
             TestAssert.That(retired?.Invoke() == true && online.Remove(peer.Id), "Setup did not retain its original reader.");
             await fixture.Send(new JsonObject { ["type"] = "close", ["reason"] = "normal" }, sent++);
             await run;
@@ -214,7 +220,7 @@ internal static class SharedSyncTransportTests
             TestAssert.That(retired?.Invoke() != true, "The disconnected reader still authorizes media.");
 
             using var fresh = new PhoneCameraParentTests.Fixture(receive: PublishMetadata, previous: fixture,
-                lifetime: TimeSpan.FromSeconds(photoRecovery ? 140 : 50));
+                lifetime: TimeSpan.FromSeconds(photoRecovery || videoRecovery ? 140 : 50));
             typeof(TelefonCoordinator).GetMethod("ConfigureNativeMediaConnection", System.Reflection.BindingFlags.Instance |
                 System.Reflection.BindingFlags.NonPublic)!.Invoke(coordinator, [peer, fresh.Connection]);
             online.Add(peer.Id, fresh.Connection);
@@ -331,7 +337,7 @@ internal static class SharedSyncTransportTests
             var remote = fixture.Peer.Id;
             var selected = MediaSyncSettings.Change(MediaSyncSettings.Create(remote), remote, local.Id, "enabled", JsonValue.Create(true)!);
             var pcImages = firstReceive is "pc_image_hello" or "pc_image_manual" or "pc_image_automatic" or "pc_image_recovery";
-            var pcVideo = firstReceive is "pc_video_manual_entry" or "pc_video_automatic_entry" or "pc_video_automatic_stop" or "pc_video_automatic_off";
+            var pcVideo = firstReceive is "pc_video_manual_entry" or "pc_video_recovery" or "pc_video_automatic_entry" or "pc_video_automatic_stop" or "pc_video_automatic_off";
             selected = MediaSyncSettings.Change(selected, remote, local.Id, "direction", JsonValue.Create(pcImages || pcVideo ? "pc_to_phone" : "phone_to_pc")!);
             if (pcImages || pcVideo)
                 selected = MediaSyncSettings.Change(selected, remote, local.Id, "collection_mode", JsonValue.Create("entire_collection")!);
@@ -390,7 +396,8 @@ internal static class SharedSyncTransportTests
                 if (pcVideo)
                 {
                     await VerifyPcVideoEntry(fixture, composition!, () => fixture.Read(received++),
-                        frame => fixture.Send(frame, sent++), Control, Ping, firstReceive!);
+                        frame => fixture.Send(frame, sent++), Control, Ping, firstReceive!,
+                        firstReceive == "pc_video_recovery" ? Reconnect : null);
                     return;
                 }
                 originalImport = connection.CapturePrivateMediaPhoneImport(body);
@@ -476,7 +483,8 @@ internal static class SharedSyncTransportTests
 
     private static async Task VerifyPcVideoEntry(PhoneCameraParentTests.Fixture fixture, TelefonCoordinator coordinator,
         Func<Task<JsonObject>> read, Func<JsonObject, Task> send, Func<string, JsonObject, Task> control,
-        Func<Task> heartbeat, string scenario)
+        Func<Task> heartbeat, string scenario, Func<TelefonCoordinator, Dictionary<string, TelefonConnection>,
+            Func<Func<Task<JsonObject>>, Func<JsonObject, Task>, TelefonConnection, Task>, Task>? reconnect)
     {
         var peer = fixture.Peer.Id;
         var book = new PersonalActorNativeSaveHost(Path.Combine(fixture.Paths.Root, "pc-video-book"),
@@ -496,9 +504,10 @@ internal static class SharedSyncTransportTests
                 !fixture.Store.ReadNativeMediaSendConsent(peer).Explicit &&
                 fixture.Store.NativeMediaCollectionRoots(peer).Count == 0,
                 "Viewing the video choice granted SEND, picked a root, or started work.");
-            if (scenario == "pc_video_manual_entry")
+            if (scenario is "pc_video_manual_entry" or "pc_video_recovery")
             {
-                await DeviceFileOriginalImagesTests.VerifyManualAsync(fixture, coordinator, read, send, video: true);
+                await DeviceFileOriginalImagesTests.VerifyManualAsync(fixture, coordinator, read, send, video: true,
+                    reconnect: reconnect is null ? null : transfer => reconnect(coordinator, online, transfer));
                 return;
             }
             var stop = scenario == "pc_video_automatic_stop";

@@ -12,6 +12,10 @@ internal sealed partial class TelefonConnection
         internal readonly NativeFileControlSession Owner;
         internal readonly string PermissionEpoch;
         internal readonly JsonObject Offer;
+        internal readonly JsonObject? RecoveryRequest;
+        internal readonly string ReaderId;
+        internal readonly TelefonStore.RecoveredVideoBackup? RecoveryBackup;
+        private readonly Func<bool>? recoveryPermit;
         internal readonly CancellationTokenSource Lifetime;
         internal readonly TaskCompletionSource<RemoteFileAcceptance> Accepted = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource<RemoteSavedConfirmation> Saved = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -21,17 +25,46 @@ internal sealed partial class TelefonConnection
         internal TelefonStore.NativeMediaSourceExchange Exchange = null!;
         internal RemoteFileAcceptance? Acceptance;
         internal NativeMediaSendRun(TelefonConnection connection, TelefonStore.NativePreparedMediaSource cache,
-            NativeFileControlSession owner, string permissionEpoch, CancellationTokenSource lifetime, bool expectReadback = false)
-        { Connection = connection; Cache = cache; Owner = owner; PermissionEpoch = permissionEpoch; Lifetime = lifetime; ExpectReadback = expectReadback; Offer = cache.CreateMediaOffer(Now()); }
-        internal void Require()
+            NativeFileControlSession owner, string permissionEpoch, CancellationTokenSource lifetime, bool expectReadback,
+            TelefonStore.RecoveredVideoBackup? backup, Func<bool>? permit)
         {
-            Lifetime.Token.ThrowIfCancellationRequested(); Cache.Require(); Exchange?.Require(); Connection.RequireNativeFileControls(Owner);
-            var token = Acceptance?.DestinationToken ?? new string('0', 64);
+            Connection = connection; Cache = cache; Owner = owner; PermissionEpoch = permissionEpoch;
+            Lifetime = lifetime; ExpectReadback = expectReadback; ReaderId = connection.nativeBatchReader;
+            RecoveryBackup = backup; recoveryPermit = permit;
+            if (cache.Recovery is not { } recovery) { Offer = cache.CreateMediaOffer(Now()); return; }
+            if (!expectReadback || backup is null || permit is null || recovery.Exchange["reader_id"]?.GetValue<string>() == ReaderId)
+                throw DeviceFileControl.Error("media_source_video_fresh_reader_required");
+            Offer = recovery.Exchange["offer"]!.AsObject();
+            var binding = owner.Binding(cache.Manifest.Fingerprint, senderIsLocal: true)
+                ?? throw DeviceFileControl.Error("media_source_send_grant_required");
+            if (binding.PermissionEpoch != permissionEpoch) throw DeviceFileControl.Error("media_source_send_grant_required");
+            RecoveryRequest = DeviceSavedBatchReadback.Create(Offer, recovery.Exchange["saved_envelope"]!.AsObject(), binding, Now());
+        }
+
+        private void RequireControls()
+        {
+            Connection.RequireNativeFileControls(Owner);
+            if (recoveryPermit is not null && !recoveryPermit()) throw DeviceFileControl.Error("media_backup_native_permit_changed");
+            var token = RecoveryRequest is null ? Acceptance?.DestinationToken ?? new string('0', 64) : Cache.Manifest.Fingerprint;
             var current = Owner.Binding(token, senderIsLocal: true);
             lock (Connection.fileRouteGate)
                 if (!ReferenceEquals(Connection.nativeMediaSend, this) || current is null || current.PermissionEpoch != PermissionEpoch ||
-                    current.SenderId != Cache.Manifest.SenderId || current.ReceiverId != Cache.Manifest.ReceiverId || Now() >= Offer["expires_ms"]!.GetValue<long>())
+                    current.SenderId != Cache.Manifest.SenderId || current.ReceiverId != Cache.Manifest.ReceiverId ||
+                    Now() >= (RecoveryRequest ?? Offer)["expires_ms"]!.GetValue<long>())
                     throw DeviceFileControl.Error("media_source_send_original_owner_required");
+        }
+
+        internal void Require()
+        {
+            Lifetime.Token.ThrowIfCancellationRequested(); Cache.Require(); Exchange?.Require();
+            RequireControls();
+        }
+
+        internal bool RequireRecoveryEnd()
+        {
+            if (!OutputDrained || RecoveryRequest is null) throw DeviceFileControl.Error("media_source_exchange_native_end_required");
+            RequireControls();
+            return true;
         }
     }
     private NativeMediaSendRun? nativeMediaSend;
@@ -57,8 +90,15 @@ internal sealed partial class TelefonConnection
         return (result.Saved, result.Readback ?? throw DeviceFileControl.Error("media_source_send_readback_required"));
     }
 
+    private async Task RecoverNativeSavedVideoToSourceEndAsync(TelefonStore.NativePreparedMediaSource cache,
+        TelefonStore.RecoveredVideoBackup backup, Func<bool> permit, CancellationToken token)
+    {
+        _ = await SendNativeMappedMediaSourceCoreAsync(cache, true, token, endSource: true, backup, permit);
+    }
+
     private async Task<(RemoteSavedConfirmation Saved, RemotePublishedReadback? Readback)> SendNativeMappedMediaSourceCoreAsync(
-        TelefonStore.NativePreparedMediaSource cache, bool expectReadback, CancellationToken token, bool endSource = false)
+        TelefonStore.NativePreparedMediaSource cache, bool expectReadback, CancellationToken token, bool endSource = false,
+        TelefonStore.RecoveredVideoBackup? backup = null, Func<bool>? permit = null)
     {
         if (!ReferenceEquals(cache.OwnerStore, store) || !ReferenceEquals(cache.ConnectionOwner, this))
             throw DeviceFileControl.Error("media_source_send_native_cache_required");
@@ -72,7 +112,7 @@ internal sealed partial class TelefonConnection
             {
                 cache.Require(); var owner = RequireNativeFileControls();
                 var binding = owner.Binding(new string('0', 64), senderIsLocal: true) ?? throw DeviceFileControl.Error("media_source_send_grant_required");
-                run = new(this, cache, owner, binding.PermissionEpoch, lifetime, expectReadback);
+                run = new(this, cache, owner, binding.PermissionEpoch, lifetime, expectReadback, backup, permit);
                 lock (fileRouteGate)
                 {
                     if (NativeMediaSendBusy || nativeMediaSourceRun is not null || nativeEndedMediaBatch is not null || nativeMediaTransfer is not null || nativeSourceCommand is not null || nativeSourceStatus is not null)
@@ -80,11 +120,12 @@ internal sealed partial class TelefonConnection
                     nativeMediaSend = run;
                 }
                 run.Require(); cache.BeginSendAttempt(this); run.Exchange = new(run);
-                await WriteNativeMediaFrameAsync(run.Offer, run.Require, lifetime.Token);
-                run.Exchange.OfferSent(); // Only after secure output AND all original native guards returned.
+                await WriteNativeMediaFrameAsync(run.RecoveryRequest ?? run.Offer, run.Require, lifetime.Token);
+                if (cache.Recovery is { } recovery) run.Saved.TrySetResult(recovery.Saved);
+                else run.Exchange.OfferSent(); // Only after secure output AND all original native guards returned.
             }
             finally { fileControlIo.Release(); }
-            _ = await run.Accepted.Task.WaitAsync(lifetime.Token);
+            if (run.RecoveryRequest is null) _ = await run.Accepted.Task.WaitAsync(lifetime.Token);
             var saved = await run.Saved.Task.WaitAsync(lifetime.Token); run.Require();
             var readback = expectReadback ? await run.Readback.Task.WaitAsync(lifetime.Token) : null; run.Require();
             sourceEndReady = endSource && readback is not null;
@@ -99,11 +140,15 @@ internal sealed partial class TelefonConnection
                 await fileControlIo.WaitAsync(CancellationToken.None);
                 try
                 {
-                    lock (fileRouteGate) if (ReferenceEquals(nativeMediaSend, run)) nativeMediaSend = null;
                     run.OutputDrained = true;
+                    if (sourceEndReady && run.RecoveryRequest is not null) run.Exchange.SourceEnd();
                 }
-                finally { fileControlIo.Release(); }
-                if (sourceEndReady) run.Exchange.SourceEnd();
+                finally
+                {
+                    lock (fileRouteGate) if (ReferenceEquals(nativeMediaSend, run)) nativeMediaSend = null;
+                    fileControlIo.Release();
+                }
+                if (sourceEndReady && run.RecoveryRequest is null) run.Exchange.SourceEnd();
             }
         }
     }
@@ -124,7 +169,21 @@ internal sealed partial class TelefonConnection
             lock (fileRouteGate) run = nativeMediaSend;
             if (run is null) throw DeviceFileControl.Error("media_source_send_unsolicited_reply");
             run.Require(); var kind = message["kind"]!.GetValue<string>();
-            if (kind == DeviceFileAcceptanceEnvelope.Kind)
+            if (run.RecoveryRequest is { } challenge)
+            {
+                if (kind != DevicePublishedReadbackEnvelope.Kind || !run.Saved.Task.IsCompletedSuccessfully || run.Readback.Task.IsCompleted)
+                    throw DeviceFileControl.Error("media_source_send_unexpected_readback");
+                var destination = message["body"]?["destination_token"]?.GetValue<string>()
+                    ?? throw DeviceFileControl.Error("media_source_send_readback_required");
+                var originalBinding = run.Owner.Binding(run.Cache.Manifest.Fingerprint, senderIsLocal: true)
+                    ?? throw DeviceFileControl.Error("media_source_send_grant_required");
+                var replyBinding = run.Owner.Binding(destination, senderIsLocal: true)
+                    ?? throw DeviceFileControl.Error("media_source_send_grant_required");
+                var readback = DeviceSavedBatchReadback.ParseVideoReply(challenge, message, run.Offer,
+                    run.Cache.Recovery!.Exchange["saved_envelope"]!.AsObject(), run.Saved.Task.Result, originalBinding, replyBinding, Now());
+                run.Require(); run.Exchange.PeerReadback(readback, message); run.Readback.TrySetResult(readback);
+            }
+            else if (kind == DeviceFileAcceptanceEnvelope.Kind)
             {
                 if (run.Acceptance is not null) throw DeviceFileControl.Error("media_source_send_duplicate_acceptance");
                 var accepted = DeviceFileAcceptanceEnvelope.Parse(message, Now());
@@ -133,7 +192,7 @@ internal sealed partial class TelefonConnection
                     message["expires_ms"]!.GetValue<long>() > run.Offer["expires_ms"]!.GetValue<long>() ||
                     run.Owner.Binding(accepted.DestinationToken, senderIsLocal: true) is null)
                     throw DeviceFileControl.Error("media_source_send_acceptance_changed");
-                run.Exchange.Accepted(message["body"]!.AsObject()); run.Acceptance = accepted; run.Require(); run.Accepted.TrySetResult(accepted);
+                run.Exchange.Accepted(message); run.Acceptance = accepted; run.Require(); run.Accepted.TrySetResult(accepted);
             }
             else
             {
@@ -169,13 +228,13 @@ internal sealed partial class TelefonConnection
                     if (body["publication_sha256"]?.GetValue<string>() != member.ReceiptSha256 ||
                         body["mime_type"]?.GetValue<string>() != media.MimeTypes[member.FileId]?.GetValue<string>())
                         throw DeviceFileControl.Error("media_source_send_publication_changed");
-                    run.Require(); run.Exchange.PeerReadback(readback.Body); run.Readback.TrySetResult(readback);
+                    run.Require(); run.Exchange.PeerReadback(readback, message); run.Readback.TrySetResult(readback);
                 }
                 else
                 {
                     var saved = DeviceFileSavedEnvelope.Parse(message, run.Cache.Manifest, accepted, Now());
                     if (message["expires_ms"]!.GetValue<long>() > run.Offer["expires_ms"]!.GetValue<long>()) throw DeviceFileControl.Error("media_source_send_saved_expired");
-                    run.Exchange.PeerSaved(message["body"]!.AsObject()); run.Saved.TrySetResult(saved);
+                    run.Exchange.PeerSaved(message); run.Saved.TrySetResult(saved);
                 }
             }
         }

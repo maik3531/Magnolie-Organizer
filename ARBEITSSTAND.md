@@ -106,6 +106,13 @@ aufgeführt.
   in #860.
 
 - [#330](https://github.com/maik3531/Magnolie-Organizer/issues/330#issuecomment-7242988889):
+  Windows kann ein manuell gesendetes PC-Original-MP4 nach bestätigtem
+  `Saved` auf einer neuen WLAN-Verbindung rücklesen. Es sendet das Video
+  dabei nicht erneut. Der Abschluss gehört zum ursprünglichen Journal und
+  setzt die verifizierte Sicherung voraus. Sieben native Rücklesegruppen
+  sowie manueller MP4-Versand, MP4- und Foto-Wiederaufnahme bestanden.
+  Der reguläre WinForms-Bau war erfolgreich;
+  installierte Windows–Notes-Kopplung bleibt offen.
   Der native Windows-Abbruchtest nach geplantem Fotoabschluss hält
   beide Originale, Saved, bestätigtes Rücklesen und Sicherungsreferenzen.
   Der bisherige Wiederanlauf für die Phase vor dem Rücklesen schreibt

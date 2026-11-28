@@ -564,6 +564,7 @@ if (OperatingSystem.IsWindows())
     runner.Add("Media shared transport / Windows original WLAN manual photo batch", SharedSyncTransportTests.NativeOriginalPcImageManualAsync);
     runner.Add("Media shared transport / Windows original WLAN recover saved photos", SharedSyncTransportTests.NativeOriginalPcImageSavedRecoveryAsync);
     runner.Add("Media shared transport / Windows original WLAN manual PC video entry", SharedSyncTransportTests.NativeOriginalPcVideoManualEntryAsync);
+    runner.Add("Media shared transport / Windows original WLAN recover saved PC video", SharedSyncTransportTests.NativeOriginalPcVideoSavedRecoveryAsync);
     runner.Add("Media shared transport / Windows original WLAN automatic PC video entry", SharedSyncTransportTests.NativeOriginalPcVideoAutomaticEntryAsync);
     runner.Add("Media shared transport / Windows original WLAN automatic PC image entry", SharedSyncTransportTests.NativeOriginalPcImageAutomaticAsync);
     runner.Add("Media shared transport / Windows original WLAN automatic PC video Stop", SharedSyncTransportTests.NativeOriginalPcVideoAutomaticStopAsync);

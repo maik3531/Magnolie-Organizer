@@ -55,7 +55,8 @@ internal static class DevicePublishedReadbackEnvelope
         return value;
     }
 
-    internal static RemotePublishedReadback Parse(JsonObject message, JsonObject offer, DeviceTransferBinding binding, string mediaType, long now)
+    internal static RemotePublishedReadback Parse(JsonObject message, JsonObject offer, DeviceTransferBinding binding, string mediaType, long now,
+        bool historicalOffer = false)
     {
         if (mediaType is not ("images" or "video") || TelefonCrypto.Canonical(message).Length > DeviceFileOfferEnvelope.MaximumApplicationBytes) throw Error();
         TelefonProtocolContract.ExactObject(message, "type", "v", "message_id", "kind", "created_ms", "expires_ms", "body");
@@ -66,9 +67,10 @@ internal static class DevicePublishedReadbackEnvelope
         var body = TelefonProtocolContract.ExactObject(message["body"]!, ContextFields.Concat(new[] { "destination_token", "binding_sha256", "readback_sha256" }).ToArray());
         var context = new JsonObject(ContextFields.Select(key => KeyValuePair.Create(key, body[key]?.DeepClone())));
         if (!JsonNode.DeepEquals(EncodeBody(context, binding), body)) throw Error();
-        var manifest = DeviceFileOfferEnvelope.Validate(offer, binding.SenderId, binding.ReceiverId, now);
         var offerCreated = TelefonProtocolContract.Integer(offer["created_ms"]); var offerExpires = TelefonProtocolContract.Integer(offer["expires_ms"]);
-        if (now < offerCreated || now >= offerExpires || created < offerCreated || expires > offerExpires || manifest.Files.Count != 1) throw Error();
+        var manifest = DeviceFileOfferEnvelope.Validate(offer, binding.SenderId, binding.ReceiverId, historicalOffer ? offerCreated : now);
+        if (now < offerCreated || created < offerCreated || manifest.Files.Count != 1 ||
+            !historicalOffer && (now >= offerExpires || expires > offerExpires)) throw Error();
         var file = manifest.Files[0];
         if (Text(body, "offer_id") != Text(offer, "message_id") || Text(body, "manifest_sha256") != manifest.Fingerprint ||
             Text(body, "transfer_id") != manifest.TransferId || Text(body, "source_id") != manifest.SourceId || Text(body, "file_id") != file.Id ||

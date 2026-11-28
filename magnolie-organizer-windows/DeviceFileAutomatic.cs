@@ -327,7 +327,7 @@ internal sealed partial class TelefonCoordinator
                             originalExport.Consent, originalExport.Roots, lifetime.Token, allowSavedRecovery: automaticExport is null);
                     else
                         await connection.SynchronizeOriginalPcVideoCollectionAsync(runIntent!, permit, RequireIntent, originalExport.Agreement,
-                            originalExport.Consent, originalExport.Roots, lifetime.Token);
+                            originalExport.Consent, originalExport.Roots, lifetime.Token, allowSavedRecovery: automaticExport is null);
                     lock (state) state.Phase = "content_pass";
                     return "content_pass";
                 }

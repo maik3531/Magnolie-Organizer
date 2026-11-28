@@ -47,34 +47,62 @@ internal static class DeviceFileOriginalImagesTests
                 await send(ping);
                 ping["type"] = "pong";
                 TestAssert.That(JsonNode.DeepEquals(ping, await read().WaitAsync(deadline.Token)), "Saved did not cross the original reader barrier.");
-                var job = context["source_id"]!.GetValue<string>();
-                var pending = DeviceFileSourceSendTests.Exchange(fixture.Store, peer, job);
-                TestAssert.That(pending["phase"]?.GetValue<string>() == "peer_saved" && JsonNode.DeepEquals(pending["peer_saved"], saved) &&
-                    pending["source_end"] is null, "The original batch was not durably Saved before disconnection.");
-                Console.WriteLine("Original photo Saved confirmed in SQLite; closing its reader before readback.");
+                 var job = context["source_id"]!.GetValue<string>();
+                 var pending = DeviceFileSourceSendTests.Exchange(fixture.Store, peer, job);
+                 TestAssert.That(pending["phase"]?.GetValue<string>() == "peer_saved" &&
+                     JsonNode.DeepEquals(pending["peer_saved"], video ? saved["body"] : saved) &&
+                     pending["source_end"] is null, "The original transfer was not durably Saved before disconnection.");
+                 Console.WriteLine($"Original {kind} Saved confirmed in SQLite; closing its reader before readback.");
                 await reconnect(async (freshRead, freshSend, _) =>
                 {
                     try { await pass.WaitAsync(deadline.Token); }
                     catch (Exception error) when (error is IOException or OperationCanceledException or ObjectDisposedException ||
                         error is InvalidDataException { Message: "media_collection_original_send_binding_required" }) { }
                     TestAssert.That(pass.IsCompleted && !pass.IsCompletedSuccessfully, "The disconnected pass claimed completion.");
-                    Console.WriteLine("Fresh photo reader negotiated; requesting manual Saved recovery.");
+                     Console.WriteLine($"Fresh {kind} reader negotiated; requesting manual Saved recovery.");
                     request["requestId"] = Guid.NewGuid().ToString("D");
                     request["version"] = coordinator.NativeMediaUiStatus(peer)["shared_start_version"]!.DeepClone();
                     var resumed = coordinator.RunNativeMediaUiSharedAsync(NativeMediaUiRequest.Parse(request), deadline.Token);
                     try
                     {
-                        await VerifySavedRecoveryAsync(fixture, freshRead, freshSend, offer, saved, context, resumed, deadline.Token);
-                        TestAssert.That(await resumed.WaitAsync(deadline.Token) == "content_pass", "The fresh action did not finish the original Saved batch.");
-                        var ended = DeviceFileSourceSendTests.Exchange(fixture.Store, peer, job);
-                        TestAssert.That(ended["phase"]?.GetValue<string>() == "source_ended" &&
-                            !JsonNode.DeepEquals(ended["reader_id"], ended["recovery"]?["reader_id"]) &&
-                            JsonNode.DeepEquals(ended["offer"], offer) && JsonNode.DeepEquals(ended["peer_saved"], saved) &&
-                            JsonNode.DeepEquals(ended["sent_chunks"], pending["sent_chunks"]) &&
-                            JsonNode.DeepEquals(ended["source_end"]?["readback_sha256"], ended["peer_readback"]?["body"]?["readback_sha256"]) &&
-                            fixture.Store.NativeMediaSourceHistory(peer).Count == 1 &&
-                            originals.All(pair => File.ReadAllBytes(Path.Combine(root, pair.Key)).SequenceEqual(pair.Value)),
-                            "Recovery did not end only the original journal with the original bytes and delivery bits intact.");
+                         await VerifySavedRecoveryAsync(fixture, freshRead, freshSend, offer, saved, context, resumed, deadline.Token, video);
+                         TestAssert.That(await resumed.WaitAsync(deadline.Token) == "content_pass", "The fresh action did not finish the original Saved transfer.");
+                         var ended = DeviceFileSourceSendTests.Exchange(fixture.Store, peer, job);
+                         var proof = video ? ended["peer_readback"] : ended["peer_readback"]?["body"];
+                         TestAssert.That(ended["phase"]?.GetValue<string>() == "source_ended" &&
+                             ended["reader_id"] is not null && ended["recovery"]?["reader_id"] is not null &&
+                             !JsonNode.DeepEquals(ended["reader_id"], ended["recovery"]?["reader_id"]) &&
+                             JsonNode.DeepEquals(ended["offer"], offer) && JsonNode.DeepEquals(ended["peer_saved"], video ? saved["body"] : saved) &&
+                             JsonNode.DeepEquals(ended["sent_chunks"], pending["sent_chunks"]) &&
+                             proof?["readback_sha256"] is not null &&
+                             JsonNode.DeepEquals(ended["source_end"]?["readback_sha256"], proof["readback_sha256"]) &&
+                             fixture.Store.NativeMediaSourceHistory(peer).Count == 1 &&
+                             originals.All(pair => File.ReadAllBytes(Path.Combine(root, pair.Key)).SequenceEqual(pair.Value)),
+                             "Recovery did not end only the original journal with the original bytes and delivery bits intact.");
+                         if (video)
+                         {
+                             var backup = Directory.EnumerateFiles(Path.Combine(root, "Backup"), "object-*.raw").Single();
+                             TestAssert.That(File.ReadAllBytes(backup).SequenceEqual(originals.Values.Single()) &&
+                                 JsonNode.DeepEquals(ended["saved_envelope"], saved) &&
+                                 ended["recovery"]?["backup"]?["record_sha256"] is not null,
+                                 "The original MP4 backup or Saved envelope was not preserved.");
+                             request["requestId"] = Guid.NewGuid().ToString("D");
+                             request["version"] = coordinator.NativeMediaUiStatus(peer)["shared_start_version"]!.DeepClone();
+                             var unchanged = coordinator.RunNativeMediaUiSharedAsync(NativeMediaUiRequest.Parse(request), deadline.Token);
+                             using var retryControls = await NegotiateReceiveAsync(fixture, freshSend,
+                                 kind => ReadApplicationAsync(freshRead, freshSend, unchanged, kind, deadline.Token));
+                             TestAssert.That(await unchanged.WaitAsync(deadline.Token) == "content_pass" &&
+                                 JsonNode.DeepEquals(ended, DeviceFileSourceSendTests.Exchange(fixture.Store, peer, job)) &&
+                                 fixture.Store.NativeMediaSourceHistory(peer).Count == 1,
+                                 "A further manual pass did not recognize the recovered original's END.");
+                             ping["ping_id"] = Guid.NewGuid().ToString("D");
+                             ping["type"] = "ping";
+                             ping["sent_ms"] = Now();
+                             await freshSend(ping);
+                             ping["type"] = "pong";
+                             TestAssert.That(JsonNode.DeepEquals(ping, await freshRead().WaitAsync(deadline.Token)),
+                                 "A further manual pass emitted an unexpected recovery or data frame.");
+                         }
                     }
                     finally
                     {
@@ -87,32 +115,10 @@ internal static class DeviceFileOriginalImagesTests
 
     private static async Task VerifySavedRecoveryAsync(PhoneCameraParentTests.Fixture fixture,
         Func<Task<JsonObject>> read, Func<JsonObject, Task> send, JsonObject offer, JsonObject saved,
-        JsonObject context, Task pass, CancellationToken token)
+        JsonObject context, Task pass, CancellationToken token, bool video)
     {
-        async Task<JsonObject> Next(string kind)
-        {
-            while (true)
-            {
-                var next = read();
-                if (await Task.WhenAny(next, pass).WaitAsync(token) == pass) await pass;
-                var frame = await next.WaitAsync(token);
-                if (frame["type"]?.GetValue<string>() == "ping")
-                {
-                    frame["type"] = "pong"; await send(frame); continue;
-                }
-                TestAssert.That(frame["kind"]?.GetValue<string>() == kind, $"Unexpected frame during recovery ({kind}): {frame["kind"]}");
-                return frame;
-            }
-        }
-        var local = fixture.Store.ReadFileIdentity();
-        var phone = new NativeFileControlIdentity(fixture.Peer.Id, Convert.ToHexString(SHA256.HashData(fixture.Peer.PublicKey)).ToLowerInvariant());
-        var desktop = new NativeFileControlPeer(local.DeviceId, local.IdentitySha256, new object(), true, true, true, true, true, fixture.Peer.FilePairingEpoch);
-        var grant = new NativeLocalFileGrant(new(1, new string('a', 64), false, true), new object(), true);
-        using var controls = new NativeFileControlSession(phone, () => desktop, () => grant);
-        controls.ObserveRemote(DeviceFileControlEnvelope.Validate(await Next(DeviceFileControl.Kind), Now()), desktop);
-        var echo = controls.Packet(); controls.MarkSent(echo);
-        await send(DeviceFileControlEnvelope.Create(echo, Now()));
-        controls.ObserveRemote(DeviceFileControlEnvelope.Validate(await Next(DeviceFileControl.Kind), Now()), desktop);
+        Task<JsonObject> Next(string kind) => ReadApplicationAsync(read, send, pass, kind, token);
+        using var controls = await NegotiateReceiveAsync(fixture, send, Next);
         var challenge = await Next(DeviceSavedBatchReadback.RequestKind);
         Console.WriteLine("Fresh reader sent a Saved recovery challenge.");
         var at = context["manifest_sha256"]!.GetValue<string>();
@@ -123,9 +129,49 @@ internal static class DeviceFileOriginalImagesTests
             "Recovery used anything other than the historical Offer/Saved and a fresh authenticated file binding.");
         context["permission_epoch"] = binding.PermissionEpoch;
         context["readback_nonce"] = body["nonce"]!.DeepClone();
-        var replyBinding = controls.Binding(DevicePublishedBatchReadbackEnvelope.DestinationToken(context), senderIsLocal: false)!;
-        await send(DeviceFileSourceSendTests.Message(DevicePublishedBatchReadbackEnvelope.Kind,
-            DevicePublishedBatchReadbackEnvelope.EncodeBody(context, replyBinding), challenge));
+        var tokenForReadback = video ? DevicePublishedReadbackEnvelope.DestinationToken(context) :
+            DevicePublishedBatchReadbackEnvelope.DestinationToken(context);
+        var replyBinding = controls.Binding(tokenForReadback, senderIsLocal: false)!;
+        var reply = video ? DevicePublishedReadbackEnvelope.EncodeBody(context, replyBinding) :
+            DevicePublishedBatchReadbackEnvelope.EncodeBody(context, replyBinding);
+        await send(DeviceFileSourceSendTests.Message(video ? DevicePublishedReadbackEnvelope.Kind :
+            DevicePublishedBatchReadbackEnvelope.Kind, reply, challenge));
+    }
+
+    private static async Task<JsonObject> ReadApplicationAsync(Func<Task<JsonObject>> read, Func<JsonObject, Task> send,
+        Task pass, string kind, CancellationToken token)
+    {
+        while (true)
+        {
+            var next = read();
+            if (await Task.WhenAny(next, pass).WaitAsync(token) == pass) await pass;
+            var frame = await next.WaitAsync(token);
+            if (frame["type"]?.GetValue<string>() == "ping")
+            {
+                frame["type"] = "pong"; await send(frame); continue;
+            }
+            TestAssert.That(frame["kind"]?.GetValue<string>() == kind, $"Unexpected media frame ({kind}): {frame["kind"]}");
+            return frame;
+        }
+    }
+
+    private static async Task<NativeFileControlSession> NegotiateReceiveAsync(PhoneCameraParentTests.Fixture fixture,
+        Func<JsonObject, Task> send, Func<string, Task<JsonObject>> next)
+    {
+        var local = fixture.Store.ReadFileIdentity();
+        var phone = new NativeFileControlIdentity(fixture.Peer.Id, Convert.ToHexString(SHA256.HashData(fixture.Peer.PublicKey)).ToLowerInvariant());
+        var desktop = new NativeFileControlPeer(local.DeviceId, local.IdentitySha256, new object(), true, true, true, true, true, fixture.Peer.FilePairingEpoch);
+        var grant = new NativeLocalFileGrant(new(1, new string('a', 64), false, true), new object(), true);
+        var controls = new NativeFileControlSession(phone, () => desktop, () => grant);
+        try
+        {
+            controls.ObserveRemote(DeviceFileControlEnvelope.Validate(await next(DeviceFileControl.Kind), Now()), desktop);
+            var echo = controls.Packet(); controls.MarkSent(echo);
+            await send(DeviceFileControlEnvelope.Create(echo, Now()));
+            controls.ObserveRemote(DeviceFileControlEnvelope.Validate(await next(DeviceFileControl.Kind), Now()), desktop);
+            return controls;
+        }
+        catch { controls.Dispose(); throw; }
     }
 
     internal static async Task VerifyTransferAsync(PhoneCameraParentTests.Fixture fixture,
@@ -237,22 +283,20 @@ internal static class DeviceFileOriginalImagesTests
                 var member = members.Single();
                 context["file_id"] = member.Key;
                 foreach (var field in member.Value!.AsObject()) context[field.Key] = field.Value!.DeepClone();
-                var readback = controls.Binding(DevicePublishedReadbackEnvelope.DestinationToken(context), senderIsLocal: false)!;
-                await send(DeviceFileSourceSendTests.Message(DevicePublishedReadbackEnvelope.Kind,
-                    DevicePublishedReadbackEnvelope.EncodeBody(context, readback), acceptance));
             }
-            else
+            else context["members"] = members;
+            if (afterSaved is not null)
             {
-                context["members"] = members;
-                if (afterSaved is not null)
-                {
-                    await afterSaved(offerFrame, savedFrame, context);
-                    return;
-                }
-                var readback = controls.Binding(DevicePublishedBatchReadbackEnvelope.DestinationToken(context), senderIsLocal: false)!;
-                await send(DeviceFileSourceSendTests.Message(DevicePublishedBatchReadbackEnvelope.Kind,
-                    DevicePublishedBatchReadbackEnvelope.EncodeBody(context, readback), acceptance));
+                await afterSaved(offerFrame, savedFrame, context);
+                return;
             }
+            var destination = video ? DevicePublishedReadbackEnvelope.DestinationToken(context) :
+                DevicePublishedBatchReadbackEnvelope.DestinationToken(context);
+            var readback = controls.Binding(destination, senderIsLocal: false)!;
+            var report = video ? DevicePublishedReadbackEnvelope.EncodeBody(context, readback) :
+                DevicePublishedBatchReadbackEnvelope.EncodeBody(context, readback);
+            await send(DeviceFileSourceSendTests.Message(video ? DevicePublishedReadbackEnvelope.Kind :
+                DevicePublishedBatchReadbackEnvelope.Kind, report, acceptance));
             Console.WriteLine("Original WLAN complete readback sent.");
             await pass.WaitAsync(deadline.Token);
             TestAssert.That((pass is not Task<string> result || result.Result == "content_pass") &&

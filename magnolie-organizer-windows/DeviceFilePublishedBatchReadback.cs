@@ -107,7 +107,9 @@ internal static class DeviceSavedBatchReadback
 {
     internal const string RequestKind = "file_transfer.published.recover";
     private const string BindingDomain = "magnolie-pc-saved-readback-control-v1\0";
-    private static InvalidDataException Error() => DeviceFileControl.Error("media_saved_readback_invalid_photo_recovery");
+    private static InvalidDataException Error() => DeviceFileControl.Error("media_saved_readback_invalid_recovery");
+    private static long Time(JsonObject message, string field) => TelefonProtocolContract.Integer(message[field]);
+    private static string Text(JsonObject value, string key) => TelefonMessagingContract.String(value, key);
 
     internal static JsonObject Create(JsonObject offer, JsonObject saved, DeviceTransferBinding binding, long now)
     {
@@ -126,14 +128,9 @@ internal static class DeviceSavedBatchReadback
         return request;
     }
 
-    // The live caller must obtain both bindings from the same authenticated reader.
-    // The history caller verifies the recorded challenge using its protected scope.
-    internal static RemotePublishedBatchReadback ParseReply(JsonObject request, JsonObject reply,
-        JsonObject offer, JsonObject saved, RemoteSavedConfirmation receipts, DeviceTransferBinding requestBinding,
-        DeviceTransferBinding replyBinding, long now)
+    private static NativeMediaOffer ValidateReplyBinding(JsonObject request, JsonObject reply,
+        JsonObject offer, JsonObject saved, DeviceTransferBinding requestBinding, DeviceTransferBinding replyBinding, long now)
     {
-        static long Time(JsonObject message, string field) => TelefonProtocolContract.Integer(message[field]);
-        static string Text(JsonObject value, string key) => TelefonMessagingContract.String(value, key);
         var requestBody = TelefonProtocolContract.ExactObject(request["body"]!, "format", "binding_sha256", "nonce", "offer", "saved");
         var created = Time(request, "created_ms"); var expires = Time(request, "expires_ms");
         TelefonProtocolContract.ExactObject(request, "type", "v", "message_id", "kind", "created_ms", "expires_ms", "body");
@@ -149,10 +146,9 @@ internal static class DeviceSavedBatchReadback
         var media = MediaOfferEnvelope.Validate(offer, requestBinding.SenderId, requestBinding.ReceiverId,
             Time(offer, "created_ms"), allowPcBatch: true);
         var replyCreated = Time(reply, "created_ms");
-        if (!media.PcBatch || media.MediaType != "images" || media.Originals.Count != 0 ||
+        if (media.Originals.Count != 0 ||
             media.PcOrigins.Count != media.Manifest.Files.Count ||
             media.PcOrigins.Any(origin => origin.Value!["previous_publication_sha256"] is not null) ||
-            receipts.Members.Select(member => member.ReceiptSha256).Distinct(StringComparer.Ordinal).Count() != media.Manifest.Files.Count ||
             requestBinding.DestinationToken != media.Manifest.Fingerprint ||
             replyBinding != (requestBinding with { DestinationToken = replyBinding.DestinationToken }) ||
             Time(saved, "created_ms") < Time(offer, "created_ms") || Time(saved, "created_ms") > created ||
@@ -160,13 +156,43 @@ internal static class DeviceSavedBatchReadback
             replyCreated < created || replyCreated > now || Time(reply, "expires_ms") > expires ||
             Text(reply, "message_id") == Text(request, "message_id"))
             throw Error();
+        return media;
+    }
+
+    // The live caller must obtain both bindings from the same authenticated reader.
+    // The history caller verifies the recorded challenge using its protected scope.
+    internal static RemotePublishedBatchReadback ParseReply(JsonObject request, JsonObject reply,
+        JsonObject offer, JsonObject saved, RemoteSavedConfirmation receipts, DeviceTransferBinding requestBinding,
+        DeviceTransferBinding replyBinding, long now)
+    {
+        var media = ValidateReplyBinding(request, reply, offer, saved, requestBinding, replyBinding, now);
+        if (!media.PcBatch || media.MediaType != "images" ||
+            receipts.Members.Select(member => member.ReceiptSha256).Distinct(StringComparer.Ordinal).Count() != media.Manifest.Files.Count)
+            throw Error();
         var observed = DevicePublishedBatchReadbackEnvelope.Parse(reply, media.Offer, replyBinding, "images", now, historicalOffer: true);
         var body = observed.Body;
-        if (Text(body, "readback_nonce") != Text(requestBody, "nonce") ||
+        if (Text(body, "readback_nonce") != Text(request["body"]!.AsObject(), "nonce") ||
             receipts.Members.Any(receipt =>
                 Text(body["members"]![receipt.FileId]!.AsObject(), "publication_sha256") != receipt.ReceiptSha256 ||
                 Text(body["members"]![receipt.FileId]!.AsObject(), "mime_type") != media.MimeTypes[receipt.FileId]!.GetValue<string>()))
             throw Error();
+        return observed;
+    }
+
+    internal static RemotePublishedReadback ParseVideoReply(JsonObject request, JsonObject reply,
+        JsonObject offer, JsonObject saved, RemoteSavedConfirmation receipt, DeviceTransferBinding requestBinding,
+        DeviceTransferBinding replyBinding, long now)
+    {
+        var media = ValidateReplyBinding(request, reply, offer, saved, requestBinding, replyBinding, now);
+        if (media.PcBatch || media.MediaType != "video" || media.Manifest.Files.Count != 1 ||
+            media.MimeTypes[media.Manifest.Files[0].Id]?.GetValue<string>() != "video/mp4" ||
+            receipt.Members.Count != 1) throw Error();
+        var observed = DevicePublishedReadbackEnvelope.Parse(reply, media.Offer, replyBinding, "video", now, historicalOffer: true);
+        var body = observed.Body;
+        var member = receipt.Members[0];
+        if (Text(body, "readback_nonce") != Text(request["body"]!.AsObject(), "nonce") ||
+            Text(body, "file_id") != member.FileId || Text(body, "publication_sha256") != member.ReceiptSha256 ||
+            Text(body, "mime_type") != "video/mp4") throw Error();
         return observed;
     }
 }
